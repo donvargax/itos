@@ -245,3 +245,35 @@ func TestVisibilityOfAProvider(t *testing.T) {
 		t.Errorf("tells: %q", got)
 	}
 }
+
+// readCI says why it did not read the run, for a provider that cannot look,
+// none, and a look that fails, with no CI standing; a commit with no run yet
+// is CI none, and a run found is its result, each said on the head's lines.
+func TestStatusReadsCI(t *testing.T) {
+	found := providers.Run{URL: "u", Status: "completed", Conclusion: "success"}
+	for _, c := range []struct {
+		name   string
+		ok     bool
+		err    error
+		look   providers.Watch
+		result string
+		line   string
+	}{
+		{"cannot look", true, errors.New("no token"), nil, "", "CI cannot be read: no token"},
+		{"none", false, nil, nil, "", "CI is not read: ci.watch.provider is none."},
+		{"a look that fails", true, nil, func(string) (providers.Run, bool, error) { return providers.Run{}, false, errors.New("502") }, "", "CI cannot be read: 502"},
+		{"no run yet", true, nil, func(string) (providers.Run, bool, error) { return providers.Run{}, false, nil }, "none", "CI: no run of abcdef1 yet"},
+		{"a run", true, nil, func(string) (providers.Run, bool, error) { return found, true, nil }, "success", "CI: success, u"},
+	} {
+		st := &standing{}
+		st.readCI(providers.Watcher{Look: c.look}, c.ok, c.err, "abcdef1234567")
+		result := ""
+		if st.CI != nil {
+			result = st.CI.Result
+		}
+		unread := c.result == ""
+		if result != c.result || len(st.start) != 1 || st.start[0] != c.line || (len(st.Unread) == 1) != unread {
+			t.Errorf("%s: CI %+v, lines %q, unread %q", c.name, st.CI, st.start, st.Unread)
+		}
+	}
+}

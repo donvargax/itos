@@ -85,9 +85,10 @@ func readOnly(t *testing.T, dir string) {
 	t.Cleanup(func() { _ = os.Chmod(dir, 0o755) })
 }
 
-// The arguments init refuses before it looks at any folder.
+// The arguments init refuses before it looks at any folder: --git-shim-dir
+// last, with no folder after it, among them.
 func TestInitRefusesItsArguments(t *testing.T) {
-	for _, args := range [][]string{{"--plugin", "everywhere"}, {"--bogus"}, {"--no-git-shim", "--git-shim-dir", "x"}} {
+	for _, args := range [][]string{{"--plugin", "everywhere"}, {"--bogus"}, {"--no-git-shim", "--git-shim-dir", "x"}, {"--git-shim", "--git-shim-dir"}} {
 		if _, err := initCommand(args, Out{Stdout: &strings.Builder{}, Stderr: &strings.Builder{}}); ExitCode(err) != ExitUsage {
 			t.Errorf("init %v: %v", args, err)
 		}
@@ -327,6 +328,17 @@ func TestPolicyInitInAFolderWithNoRepository(t *testing.T) {
 	if code != 0 || err != nil || json.Unmarshal([]byte(stdout), &got) != nil || !got.GitInit || got.Since != nil ||
 		got.Pin["version"] != "9.1.0" {
 		t.Errorf("--json: exit %d, %v:\n%s", code, err, stdout)
+	}
+}
+
+// A policy with no pin is pinned to the newest release, and init --policy
+// names its version.
+func TestPolicyInitPinsTheNewestRelease(t *testing.T) {
+	initScratch(t, "commit", map[string]string{"p.yaml": "version: 1\n"})
+	releaseServer(t, map[string]string{"/latest/download/checksums.txt": "aa  itos-9.2.0-linux-amd64.tar.gz\n"})
+	code, stdout, stderr, err := initRun(t, false, "--policy", "p.yaml")
+	if code != 0 || err != nil || !strings.Contains(stdout, "Pinned itos 9.2.0, the newest release.") {
+		t.Fatalf("exit %d, %v:\n%s%s", code, err, stdout, stderr)
 	}
 }
 

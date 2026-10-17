@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/donvargax/itos/v8/internal/config"
@@ -69,5 +70,35 @@ tests:
 	t.Chdir(unborn)
 	if _, err := stagedChange(cfg, msg, "", nil); err == nil {
 		t.Error("an amend's note that cannot be read gave no error")
+	}
+}
+
+// A kind's staged range command runs for a commit of every type with path
+// rules but those its except_types names, each line it prints on stderr a
+// problem of the commit.
+func TestStagedRuleSkipsTheExceptTypes(t *testing.T) {
+	notesRepo(t)
+	writeFile(t, "a.md", "a\n")
+	gitIn(t, "add", "a.md")
+	cfg, err := config.FromText("itos.yaml", `version: 1
+commits:
+  types: [feat, docs]
+  scopes: { feat: {}, docs: {} }
+tests:
+  scenario:
+    root: features
+    id: "ID-[A-Z]+-\\d+"
+    range_checks:
+      - { name: staged-says, staged: "echo '  - judged {type}' >&2; exit 1", except_types: [docs] }
+`, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for typ, want := range map[string]int{"feat": ExitPolicy, "docs": 0} {
+		var stderr strings.Builder
+		code, err := stagedRule(cfg, typ+": x\n", "", nil, Out{Stdout: io.Discard, Stderr: &stderr})
+		if err != nil || code != want || strings.Contains(stderr.String(), "judged "+typ) != (want != 0) {
+			t.Errorf("%s: exit %d, %v\n%s", typ, code, err, stderr.String())
+		}
 	}
 }

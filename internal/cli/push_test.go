@@ -149,3 +149,39 @@ func TestPushRefusesSkippingTheHooks(t *testing.T) {
 		t.Errorf("push under git -c core.hooksPath = %d, %v", code, err)
 	}
 }
+
+// A rebase git stops with no conflict, at a commit that would overwrite an
+// untracked file, is a rebase stopped all the same: the push says so, exit
+// 1, and leaves the rebase to be continued or aborted.
+func TestPushRebaseStoppedWithNoConflict(t *testing.T) {
+	gitConfigRepo(t, "version: 1\n")
+	for _, name := range []string{"GIT_AUTHOR_NAME", "GIT_COMMITTER_NAME"} {
+		t.Setenv(name, "itos")
+	}
+	for _, name := range []string{"GIT_AUTHOR_EMAIL", "GIT_COMMITTER_EMAIL"} {
+		t.Setenv(name, "itos@example.com")
+	}
+	gitLine(t, "checkout", "-q", "-b", "main")
+	gitLine(t, "commit", "-q", "--allow-empty", "-m", "chore: start")
+	gitLine(t, "checkout", "-q", "-b", "up")
+	gitLine(t, "commit", "-q", "--allow-empty", "-m", "docs: theirs")
+	gitLine(t, "checkout", "-q", "main")
+	writeFile(t, "f.md", "mine\n")
+	gitLine(t, "add", "f.md")
+	gitLine(t, "commit", "-q", "-m", "docs: add f")
+	gitLine(t, "rm", "-q", "f.md")
+	gitLine(t, "commit", "-q", "-m", "docs: drop f")
+	writeFile(t, "f.md", "untracked\n")
+	var stdout, stderr strings.Builder
+	r := pushRun{o: Out{Stdout: &stdout, Stderr: &stderr, JSON: true}, git: &stderr, remote: "origin", branch: "main"}
+	code, done, err := r.rebase("up")
+	var got struct {
+		Outcome string `json:"outcome"`
+	}
+	if !done || code != ExitPolicy || err != nil || json.Unmarshal([]byte(stdout.String()), &got) != nil || got.Outcome != "rebase-stopped" {
+		t.Fatalf("exit %d, done %v, %v\n%s%s", code, done, err, stdout.String(), stderr.String())
+	}
+	if !git.Rebasing() || len(git.Conflicted()) > 0 {
+		t.Errorf("rebasing %v, conflicted %v", git.Rebasing(), git.Conflicted())
+	}
+}

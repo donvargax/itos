@@ -4,6 +4,7 @@ import (
 	"errors"
 	"strings"
 	"testing"
+	"testing/synctest"
 	"time"
 
 	"github.com/donvargax/itos/v8/internal/config"
@@ -211,7 +212,28 @@ func TestARateLimitsWaitReplacesAShorterInterval(t *testing.T) {
 	}
 	var stdout, stderr strings.Builder
 	w := watchRun(watchConfig(10, 600), providers.Watcher{Look: look}, "abc", "", Out{Stdout: &stdout, Stderr: &stderr})
-	if w.code != 0 || len(slept) != 2 || slept[0] != 30*time.Second || slept[1] != 10*time.Second {
+	if w.code != 0 || len(slept) != 2 || slept[0] != 30*time.Second || slept[1] != 10*time.Second ||
+		strings.Count(stdout.String(), "rate limit") != 1 {
 		t.Fatalf("code %d, slept %v\n%s%s", w.code, slept, stdout.String(), stderr.String())
 	}
+}
+
+// The watch times out only once no time is left: with a nanosecond left it
+// looks once more, and a run found then is its result. The bubble's clock
+// moves only while the watch sleeps, so the nanosecond is exact.
+func TestAWatchLooksAgainWhileAnyTimeIsLeft(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		looks := 0
+		look := func(string) (providers.Run, bool, error) {
+			if looks++; looks == 1 {
+				return providers.Run{}, false, nil
+			}
+			return providers.Run{URL: "u", Status: "completed", Conclusion: "success"}, true, nil
+		}
+		var stdout, stderr strings.Builder
+		w := watchRun(watchConfig(0, 1e-9), providers.Watcher{Look: look}, "abc", "", Out{Stdout: &stdout, Stderr: &stderr})
+		if w.code != 0 || w.outcome != "success" || looks != 2 {
+			t.Fatalf("code %d, outcome %s, looks %d\n%s%s", w.code, w.outcome, looks, stdout.String(), stderr.String())
+		}
+	})
 }

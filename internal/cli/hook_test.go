@@ -45,7 +45,8 @@ func TestProblemLine(t *testing.T) {
 }
 
 // An amend is --amend among git commit's options, never a value of one, nor
-// a path after --.
+// a path after --; a long option that takes no value takes no argument after
+// it as one.
 func TestAmends(t *testing.T) {
 	for _, c := range []struct {
 		args []string
@@ -53,6 +54,7 @@ func TestAmends(t *testing.T) {
 	}{
 		{[]string{"--amend", "--no-edit"}, true},
 		{[]string{"-m", "x", "--amend"}, true},
+		{[]string{"--allow-empty", "--amend"}, true},
 		{[]string{"-am", "x", "--amend"}, true},
 		{[]string{"-m", "--amend"}, false},
 		{[]string{"-m--amend"}, false},

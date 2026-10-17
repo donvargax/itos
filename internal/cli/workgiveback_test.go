@@ -114,12 +114,13 @@ func TestWorkPerson(t *testing.T) {
 	if person, _, problem := workPerson(cfg, registry, "p", says("q", "")); person != "p" || problem != nil {
 		t.Errorf("--as p: %q, %+v", person, problem)
 	}
-	if _, _, problem := workPerson(cfg, registry, "", says("r", "")); problem == nil ||
+	if person, every, problem := workPerson(cfg, registry, "", says("r", "")); person != "" || every || problem == nil ||
 		problem.Message != "r is not in people.yaml, so cannot own an item" || problem.Fix != "add r to people.yaml, or pass --as <handle>" {
-		t.Errorf("the provider's r, not among the people: %+v", problem)
+		t.Errorf("the provider's r, not among the people: %q, %v, %+v", person, every, problem)
 	}
-	if _, _, problem := workPerson(cfg, registry, "", says("", "gh is signed out")); problem == nil || !strings.Contains(problem.Message, "gh is signed out") {
-		t.Errorf("a provider that cannot say: %+v", problem)
+	if person, every, problem := workPerson(cfg, registry, "", says("", "gh is signed out")); person != "" || every || problem == nil ||
+		!strings.Contains(problem.Message, "gh is signed out") {
+		t.Errorf("a provider that cannot say: %q, %v, %+v", person, every, problem)
 	}
 	if err := (refusal{code: ExitMissing, found: []out.Problem{{Message: "nobody"}}}); err.Error() != "nobody" {
 		t.Errorf("a refusal says %q", err.Error())
