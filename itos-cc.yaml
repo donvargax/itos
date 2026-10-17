@@ -113,3 +113,21 @@ mutation:
       replacement: "0"
       reason: "Equivalent: the loop can step past where the original stops only once common is len(to)-1, from and to agreeing on every key before it; going on there also needs more keys in from than in to and from[common] == to[common], so that to holds from, which Rename refused before the loop. It stops at the same common, and never reads past the end of to."
       line_text: for common < len(from)-1 && common < len(to)-1 && from[common] == to[common] {
+    - file: internal/message/header.go
+      function: github.com/donvargax/itos/v8/internal/message#parse
+      hash: 32bb9fd6911e03c1
+      line_in_function: 20
+      column: 35
+      original: ">="
+      replacement: ">"
+      reason: "Equivalent: gluedAt returns -1 or an index of at least 1, never 0: its loop runs i from len(found)-1 down to 1, and every index it returns is first, set only to such an i and returned only when below len(found), its start; every other return is -1. For every value gluedAt gives, g >= 0, g > 0 and g >= 1 are the same test, so parse marks the same line glued, or none."
+      line_text: if g := gluedAt(found[:end]); g >= 0 {
+    - file: internal/message/header.go
+      function: github.com/donvargax/itos/v8/internal/message#parse
+      hash: 32bb9fd6911e03c1
+      line_in_function: 20
+      column: 38
+      original: "0"
+      replacement: "1"
+      reason: "Equivalent: gluedAt returns -1 or an index of at least 1, never 0: its loop runs i from len(found)-1 down to 1, and every index it returns is first, set only to such an i and returned only when below len(found), its start; every other return is -1. For every value gluedAt gives, g >= 0, g > 0 and g >= 1 are the same test, so parse marks the same line glued, or none."
+      line_text: if g := gluedAt(found[:end]); g >= 0 {
