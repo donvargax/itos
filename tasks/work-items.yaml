@@ -10485,5 +10485,8 @@ items:
       and typed failures in one place, finite lifecycles as state machines. For itos: the VCS and
       tracker backends as adapters behind one contract the commands project, which is also what the
       itos-cc refactor pilot is testing.
+
+      Correction to the note above: whether the itos-cc refactor pilot tests this rule is the
+      coordinator's guess, not known; ask the user when the discussion resumes.
     refs: [internal/providers, PLAN.md]
     tags: [providers, work, commit]
