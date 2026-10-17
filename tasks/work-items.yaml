@@ -10300,3 +10300,22 @@ items:
       user plans to pitch agent-first hosting around this layer later; no new VCS or hosting is
       built now.
     tags: [review, ci, work]
+
+  - id: p2-security-agent-scan
+    title: Try an autonomous security agent (Strix) on itos once its CLI surface is in scope
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The user's idea (2026-10-17), to revisit later: Strix (usestrix/strix, Apache-2.0,
+      docs.strix.ai) runs agents that test a target inside a Docker sandbox and confirm each finding
+      with a proof of concept; it takes Anthropic models through STRIX_LLM (anthropic/<model>) and
+      LLM_API_KEY, runs headless with -n and writes strix_runs/. Its checks are web-app classes
+      (IDOR, XSS, SSRF, JWT), and itos is a CLI, so it may find little; the surface worth testing is
+      text from issues and the registry reaching shell commands, the git shim's PATH handling and
+      the workflows. If tried: read its curl installer first, run once against a git archive export
+      in a scratch folder, never this checkout, with the key in a file only the user writes and a
+      token budget. The user has Anthropic API credits for it.
+    tags: [ci]
