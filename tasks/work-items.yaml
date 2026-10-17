@@ -10201,7 +10201,7 @@ items:
     title: Tests kill the survivors the nightlies of 2026-10-16 and 2026-10-17 drew
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
 

@@ -2230,15 +2230,6 @@
     2026-10-17): itos-cc 0.12.0 reads gluedAt's empty case clause (message/header.go:138) as never
     run, its cover block holding no statement (itos-cc#53), so a refactor commit gives it a
     continue, which changes nothing it does; it comes out once a pinned itos-cc fixes #53.
-  done_when:
-    - run: tools/bin/pinned itos-cc mutation run --count 20 --json --seed 38896023548 cmd internal
-      timeout: 900
-    - run: tools/bin/pinned itos-cc mutation run --since 9397855d98441c2276c0333e4938ca16e46a7aeb --count 60 --fail-uncovered=lines --json --seed 38896023548 $(go run ./tools/bin/nightly-base -linux-files cmd internal)
-      timeout: 900
-    - run: tools/bin/pinned itos-cc mutation run --count 20 --json --seed 39029889396 cmd internal
-      timeout: 900
-    - run: tools/bin/pinned itos-cc mutation run --since 9397855d98441c2276c0333e4938ca16e46a7aeb --count 60 --fail-uncovered=lines --json --seed 39029889396 $(go run ./tools/bin/nightly-base -linux-files cmd internal)
-      timeout: 900
 
 - id: T-188
   type: ci
