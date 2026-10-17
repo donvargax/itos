@@ -10178,8 +10178,8 @@ items:
   - id: T-187
     title: Tests kill the survivors the nightlies of 2026-10-16 and 2026-10-17 drew
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
 
