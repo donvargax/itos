@@ -10547,3 +10547,17 @@ items:
       "y\n") gives stale, not written. slice-159 removes the question on fresh inits; if it removes
       every path that asks it, drop this, else fix it first.
     refs: [internal/cli/initrulesstealth.go, features/init.feature]
+
+  - id: p1-work-add-refusal-keeps-id
+    title: A refused work add still consumes the minted ID
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      2026-10-17: work add --kind bug without --phase was refused ('which phase bug-115 is in is not
+      said'), and the retry with --phase minted bug-116; no bug-115 exists anywhere. The help says a
+      refusal writes nothing, but the shared counter moved. Mint after every check passes, or give
+      the ID back on refusal. Also: a bug could take its phase from its refs' slice or default to
+      the active phase, so the first try need not fail.
