@@ -10182,3 +10182,30 @@ items:
     status: todo
     depends_on: []
     kind: task
+
+  - id: p1-mutation-results-committed
+    title: Every product mutation site has a committed result, and a check proves none is missing or stale
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The user's call (2026-10-17): every product site (cmd and internal, 10,093 sites, none in
+      _test.go) gets a mutation run, by committed results rather than by the nightly carrying
+      progress (itos-cc#43's shape). Today the nightly judges 80 sites a night and keeps none, so
+      judging every site once would take about four months; the random step's survival rate (5 or 6
+      of 20 on 2026-10-15 to 2026-10-17) puts the unkilled mutants at roughly 2,000 to 2,500. The
+      shape: one complete itos-cc mutation run, split by package across runs, whose .metrics/mutate
+      snapshots are committed (itos-cc writes them to be committed: later runs reuse killed mutants
+      of unchanged functions and judge only changed functions and survivors); then itos-cc mutation
+      check cmd internal, which runs no test, proves every function has a fresh valid result, at the
+      cheapest tier that catches a missing one. Its survivors become the burn-down beside T-186 and
+      T-187. To design before it is specified, with an ADR: who refreshes the snapshots and when
+      (this changes q-41's no local mutation runs and q-55's one-site push proof), how a push that
+      changes a function gets its result committed, how survivors are listed while the burn-down
+      lasts (an except is only for an equivalent mutant), and what happens to the nightly's random
+      and changed-site steps once every site has a result. The random step stays strict meanwhile,
+      and the changed-site step's base stays at 9397855d until a whole nightly passes.
+    refs: [itos.yaml, itos-cc.yaml, .metrics/mutate, docs/decisions]
+    tags: [ci, tests]
