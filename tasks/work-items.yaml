@@ -10546,8 +10546,8 @@ items:
   - id: T-189
     title: work promote ends a ledger error after the reservation as its check does
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
 
