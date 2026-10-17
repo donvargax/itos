@@ -10645,3 +10645,20 @@ items:
       shared with p1-mutation-results-committed and p2-itos-data-store. Still uncovered: commits
       left unpushed while rules change, and deleting a file with its rule in one push.
     refs: [internal/cli/verify.go, internal/providers/range.go]
+
+  - id: p1-task-check-failure-reason
+    title: "itos task says why a check failed: stopped at its timeout, or the tail of its output"
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Issue #82 (2026-10-17, from itos-cc): a done_when check running a whole scenario suite with no
+      timeout: of its own was stopped at the ledger's 600-second default, and itos task printed only
+      failing (fail in --json), with no reason and none of its output; the agent reran it by hand
+      for half an hour (it passed in 28 minutes) and read itos's source to find the default.
+      Expected: a timeout says it was stopped after N seconds, with the fix (the check's timeout:,
+      or ledger.check.timeout); a failure shows the last lines of its output, or where the full
+      output was written; --json carries a reason and an output tail.
+    refs: [internal/check, internal/cli]
