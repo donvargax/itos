@@ -1119,6 +1119,12 @@ items:
       turns live fail against the binary built from its parent and pass on it, whatever order the
       agent worked in, so the red-first test commit stops being a rule agents must follow. Mutation
       testing already proves the unit tests can fail.
+
+      The user (2026-10-17) wants both parts: the spec-time check that @wip scenarios fail at a Then
+      step, and the CI check that the scenarios a feat or fix turns live fail on its parent's binary
+      and pass on its own, modelled on previous-release's compatibility check (the old binary judged
+      against the new scenarios, here to prove they fail before the implementation). Once both land,
+      the red-first test commit leaves the agents' rules.
     tags: [tests]
 
   - id: p1-commit-message-file
