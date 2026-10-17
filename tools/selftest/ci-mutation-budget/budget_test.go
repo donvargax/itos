@@ -161,7 +161,9 @@ func TestSelftest(t *testing.T) {
 	failOnly := ""
 
 	// One run of tools/bin/itos with the fake shell: its exit code, its answer and every
-	// itos-cc mutation command the plan dispatched, the plan's budget.
+	// itos-cc mutation command the plan dispatched, the plan's budget; dispatched is every command
+	// it dispatched, in order.
+	var dispatched []string
 	invocation := func(t *testing.T, fail string, args ...string) (int, answer, []string) {
 		t.Helper()
 		if err := os.WriteFile(log, nil, 0o644); err != nil {
@@ -181,9 +183,14 @@ func TestSelftest(t *testing.T) {
 			t.Fatal(err)
 		}
 		var mutations []string
+		dispatched = nil
 		for _, line := range strings.Split(string(data), "\n") {
 			var c struct{ Command string }
-			if line != "" && json.Unmarshal([]byte(line), &c) == nil && strings.Contains(c.Command, "itos-cc mutation") {
+			if line == "" || json.Unmarshal([]byte(line), &c) != nil {
+				continue
+			}
+			dispatched = append(dispatched, c.Command)
+			if strings.Contains(c.Command, "itos-cc mutation") {
 				mutations = append(mutations, c.Command)
 			}
 		}
@@ -233,7 +240,8 @@ func TestSelftest(t *testing.T) {
 
 	// And then sixty fresh mutants of the functions changed since the last green nightly, seeded
 	// as the twenty are, strictly covered on their changed lines (T-161), after the twenty: the
-	// nightly's two mutation commands, in that order, and no other.
+	// nightly's two mutation commands, in that order, and no other. They are the last two commands
+	// it runs (T-185), so a runner that shuts down during them costs only them.
 	t.Run("the nightly judges sixty sites changed since the last green nightly", func(t *testing.T) {
 		code, a, mutations := invocation(t, "", "ci", "run", "--nightly", "--json")
 		if code != 0 || !a.OK {
@@ -241,6 +249,9 @@ func TestSelftest(t *testing.T) {
 		}
 		if !slices.Equal(mutations, []string{expectedNightly, expectedChanged}) {
 			t.Errorf("the nightly must run exactly\n%s\n%s\nnot:\n%s", expectedNightly, expectedChanged, strings.Join(mutations, "\n"))
+		}
+		if n := len(dispatched); n < 2 || !slices.Equal(dispatched[n-2:], []string{expectedNightly, expectedChanged}) {
+			t.Errorf("the nightly's two mutation commands must be the last it runs, the twenty first:\n%s", strings.Join(dispatched, "\n"))
 		}
 	})
 

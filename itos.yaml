@@ -344,35 +344,6 @@ ci:
       # here to keep that true (T-135). Cheap and offline, so it can also run by hand on windows,
       # where it is the check that says a spawn lost its exit code.
       - "ITOS_SELFTEST=1 go test -count=1 -run '^TestSelftest$' ./tools/selftest/tools-bin-programs"
-      # Twenty mutation sites of the Go code judged freshly (q-41's nightly budget, q-52), drawn
-      # across cmd and internal with no cache; a survivor fails the night. Not --fail-uncovered
-      # (q-54): with no range, strict coverage judges every function, and that backlog is the
-      # debt baseline's (p3-debt-role). The seed is the run's own, GitHub's run id (the time, run
-      # by hand), not HEAD's, so two nights on one commit draw differently; the report names it,
-      # to reproduce a draw. Linux only, as the job is.
-      - {
-          run: 'tools/bin/pinned itos-cc mutation run --count 20 --seed "${GITHUB_RUN_ID:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}" --json cmd internal',
-          cost: late,
-        }
-      # The mutation sites of the Go functions changed since the last green nightly, strictly
-      # covered on the lines changed (ADR-0049, q-57): a push judges one site of its range, so the
-      # rest of a slice's survivors are judged here, not one red push at a time. The base is the
-      # head commit of nightly.yml's last run on main that concluded success, read with gh and the
-      # job's token (tools/bin/nightly-base). Capped and seeded per run (the user, 2026-10-12): a
-      # range of 60 sites or fewer is judged whole, a bigger one (after a red streak) gets a fresh
-      # sample of 60 each night, seeded as the twenty above are, until a green night moves the
-      # base, and never runs past the job's time. With no green nightly in reach (none, gh failing,
-      # or its commit not in HEAD's history) it says so and judges the last 24 hours' first-parent
-      # range instead, never every function. A survivor or an uncovered changed line fails the
-      # night. Linux only, as the job is (T-161). Its paths are the Go files of cmd and internal a
-      # Linux build compiles (nightly-base -linux-files), not the folders: Linux cannot measure code
-      # only another OS builds (itos-cc#18), so a change to a _windows.go file would keep every
-      # night red and the base, which moves only on a green night, would never move (the user,
-      # 2026-10-12). The narrowing goes when an itos-cc release fixes itos-cc#18.
-      - {
-          run: 'base=$(go run ./tools/bin/nightly-base) && files=$(go run ./tools/bin/nightly-base -linux-files cmd internal) && tools/bin/pinned itos-cc mutation run --since "$base" --count 60 --seed "${GITHUB_RUN_ID:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}" --fail-uncovered=lines --json $files',
-          cost: late,
-        }
       # The features never run the itos on the PATH (T-087's check, kept as a step in T-125): a
       # fake one exiting 97 there passes only while they hide it. CI's runners have no itos, a
       # person's machine has one, and nothing else plants one.
@@ -428,7 +399,7 @@ ci:
       # on its digest, where before this step fetched the 4.5 MB linux-amd64 archive every night to
       # verify one attestation. That attestation is verified where the bytes are, in the release
       # job that uploads them (.github/workflows/release.yml), since gh attestation verify takes the
-      # file and never a digest. Last, as it asks GitHub.
+      # file and never a digest. Late, as it asks GitHub.
       - go run ./tools/bin/verify-release -repo donvargax/itos -manifest checksums.txt
       # The newest completed CI run on main passed on Linux, macOS and Windows (T-072): a push's own
       # run is still going when its plan runs, so the nightly reads the one before it. A metadata
@@ -444,6 +415,38 @@ ci:
           (all(passed("Validation-only range")) or
            all((passed("Validation-only range") | not) and passed("Install the launcher") and passed("The launcher") and
              (if .name == "ci (ubuntu-latest)" then passed("Plan") else passed("Unit tests") and passed("Named tests") end))))' | grep -qx true
+      # The two mutation steps are the plan's last, the twenty first (T-185): they take most of the
+      # night's time, so a runner that shuts down during them costs only them, never the steps
+      # that would have come after.
+      # Twenty mutation sites of the Go code judged freshly (q-41's nightly budget, q-52), drawn
+      # across cmd and internal with no cache; a survivor fails the night. Not --fail-uncovered
+      # (q-54): with no range, strict coverage judges every function, and that backlog is the
+      # debt baseline's (p3-debt-role). The seed is the run's own, GitHub's run id (the time, run
+      # by hand), not HEAD's, so two nights on one commit draw differently; the report names it,
+      # to reproduce a draw. Linux only, as the job is.
+      - {
+          run: 'tools/bin/pinned itos-cc mutation run --count 20 --seed "${GITHUB_RUN_ID:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}" --json cmd internal',
+          cost: late,
+        }
+      # The mutation sites of the Go functions changed since the last green nightly, strictly
+      # covered on the lines changed (ADR-0049, q-57): a push judges one site of its range, so the
+      # rest of a slice's survivors are judged here, not one red push at a time. The base is the
+      # head commit of nightly.yml's last run on main that concluded success, read with gh and the
+      # job's token (tools/bin/nightly-base). Capped and seeded per run (the user, 2026-10-12): a
+      # range of 60 sites or fewer is judged whole, a bigger one (after a red streak) gets a fresh
+      # sample of 60 each night, seeded as the twenty above are, until a green night moves the
+      # base, and never runs past the job's time. With no green nightly in reach (none, gh failing,
+      # or its commit not in HEAD's history) it says so and judges the last 24 hours' first-parent
+      # range instead, never every function. A survivor or an uncovered changed line fails the
+      # night. Linux only, as the job is (T-161). Its paths are the Go files of cmd and internal a
+      # Linux build compiles (nightly-base -linux-files), not the folders: Linux cannot measure code
+      # only another OS builds (itos-cc#18), so a change to a _windows.go file would keep every
+      # night red and the base, which moves only on a green night, would never move (the user,
+      # 2026-10-12). The narrowing goes when an itos-cc release fixes itos-cc#18.
+      - {
+          run: 'base=$(go run ./tools/bin/nightly-base) && files=$(go run ./tools/bin/nightly-base -linux-files cmd internal) && tools/bin/pinned itos-cc mutation run --since "$base" --count 60 --seed "${GITHUB_RUN_ID:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}" --fail-uncovered=lines --json $files',
+          cost: late,
+        }
   wait_on_status: [todo] # a named task nobody has started waits
   stop_at_first_failure: true
   range:
