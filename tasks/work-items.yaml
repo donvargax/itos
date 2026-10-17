@@ -10318,6 +10318,21 @@ items:
       rewriting shared history (the user's objection to Gerrit's Change-Id). The thread's claims
       that Gerrit topics and Reviewable give a combined diff of non-consecutive commits contradict
       its own earlier answers and are unverified; Phorge audits are believed per commit.
+
+      Review UIs and prior art the user pointed to (2026-10-17). hunk (modem-dev/hunk, MIT): a
+      terminal diff viewer built on OpenTUI and @pierre/diffs, the user's preference (CLI over web);
+      it reads a patch from stdin (hunk patch -), so itos can pipe the review's diff (main with the
+      review's commits reverted, against main) without making refs at all; it shows agents'
+      annotations inline and ships a hunk-review skill; it reads git, jj and Sapling; where its
+      annotations are stored is not documented. skepsis (oxidecomputer/skepsis): a local web UI on
+      React and @pierre/diffs, early (0.1.x); it writes review comments into the source as code
+      comments, which for review after the commit would put them on main, so not that part; it keys
+      'viewed' state by the file's content hash, which is worth borrowing. Fossil: autosync makes a
+      distributed VCS feel like SVN's commit-to-trunk; history is never rewritten (no rebase); a
+      commit's comment, tags and branch can be amended later by an append-only control artifact
+      (fossil amend), the shape this idea needs for a review's membership (git notes being git's
+      nearest equivalent); tickets, wiki and a timeline UI (fossil ui) live in the repository
+      itself.
     tags: [review, ci, work]
 
   - id: p2-security-agent-scan
