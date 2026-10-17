@@ -10357,6 +10357,16 @@ items:
 
       Scope (the user, 2026-10-17): this idea stays the review piece for itos; the wider
       GitHub-alternative UI is a separate product, noted in p3-github-alternative-notes.
+
+      Amp's CI/CD (2026-10-17, Thorsten Ball on X, from the user's summary; the post itself could
+      not be fetched): direct pushes to main while SOC2 compliant; Buildkite runs tests and image
+      builds, then GitHub Actions runs infrastructure security checks and deploys. A failed check
+      blocks the deploy, not the push, and notifies that commit's author in Slack; later pushes keep
+      running CI in parallel until the pipeline is green again. Staging then production in about 10
+      minutes; durable agent infrastructure every 2 hours, CLI releases every 4. Fits this idea's
+      gate on release rather than merge, and itos already releases only on green. How Amp meets
+      SOC2's change approval without pre-merge review is not in the summary: worth finding out,
+      since review after the commit as audit evidence would be a selling point.
     tags: [review, ci, work]
 
   - id: p2-security-agent-scan
