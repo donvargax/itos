@@ -10487,6 +10487,10 @@ items:
 
       Correction to the note above: whether the itos-cc refactor pilot tests this rule is the
       coordinator's guess, not known; ask the user when the discussion resumes.
+
+      The user (2026-10-17): they believe the itos-cc refactor pilot covers the
+      adapters-outside-core rule. When the pilot lands, confirm it and start this design from the
+      pilot's seams; no separate idea.
     refs: [internal/providers, PLAN.md]
     tags: [providers, work, commit]
 
