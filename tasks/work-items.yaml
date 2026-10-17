@@ -10503,3 +10503,29 @@ items:
       coordinator's guess, not known; ask the user when the discussion resumes.
     refs: [internal/providers, PLAN.md]
     tags: [providers, work, commit]
+
+  - id: p3-github-alternative-notes
+    title: "Notes for a separate product: an agent-first GitHub alternative, UI first, on Cloudflare"
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Not itos work: the user's related product (2026-10-17), kept here as notes until it has a home
+      of its own. A UI across everything GitHub does (code, history, issues, reviews, checks),
+      faster than GitHub's, with trunk-only work and review after the commit at its core
+      (p2-trunk-review-and-release stays the itos-scoped review piece). Direction: first a client on
+      GitHub's own infrastructure (its APIs, commit comments, the Checks API, objects by SHA cached
+      forever, ETag polling or a small Worker for webhooks), then its own hosting on Cloudflare if
+      the product needs it, applying the lessons of Anthropic's Scion (server-side work, lazy
+      clients, immutable cached derived data, a compare-and-swap ref): Artifacts for git storage
+      (beta; repos up to 1 GB, files up to 32 MB), Workers for the API and UI, R2 for immutable
+      derived data and one JSON per issue or review, D1 or a Durable Object per repo's main ref, a
+      Container for heavy git work; celld (with joelhooks/alchemy-celld) to self-host the same
+      Workers API, avoiding lock-in; the git protocol as the storage boundary. Prior art:
+      Tim-Ferguson/cf-github-auto-backup (GitHub mirrored into Artifacts, R2 and D1 with its own
+      code browser, working), DiffsHub, Pierre's Code Storage, Entire, joelhooks/rat-king (agent
+      network, same stack). The user's view: the hosting players do not conflict with it; more
+      differentiators to come from the user.
+    tags: [review, providers]
