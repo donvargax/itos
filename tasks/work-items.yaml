@@ -10479,5 +10479,11 @@ items:
       the user is piloting in itos-cc, whose lessons come back here first; then the discussion
       resumes from this. Related: p2-itos-data-store, p2-trunk-review-and-release,
       p3-command-providers-back.
+
+      A design rule worth borrowing (joelhooks/rat-king's VISION, 2026-10-17): provider adapters
+      stay outside the core, and every surface (CLI, API, UI) projects the same contract; contracts
+      and typed failures in one place, finite lifecycles as state machines. For itos: the VCS and
+      tracker backends as adapters behind one contract the commands project, which is also what the
+      itos-cc refactor pilot is testing.
     refs: [internal/providers, PLAN.md]
     tags: [providers, work, commit]
