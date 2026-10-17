@@ -6759,6 +6759,16 @@ items:
       draft/draft.go:151:81 parse + to -; cli/commands.go:275:19 ciCommand 0 to 1. All paths are
       under internal/. These 14 distinct sites are separate regression or equivalence-analysis work;
       no mutation exception, threshold or budget was changed by the infrastructure repair.
+
+      Nightlies 38896023548 (2026-10-16) and 39029889396 (2026-10-17), both on ee115257: platform
+      jobs green, red on survivors only. 10-16 random and changed-site: cli/initshim.go:66:7
+      parseShimFlag + to -; cli/status.go:586:7 standing.readCI ! deleted; cli/status.go:592:11
+      standing.readCI != to ==; cli/watch.go:225:11 watchCovered > to >=; cli/workwrite.go:510:14
+      workPerson false to true; config/stealth.go:53:27 Locate || to &&; six uncovered. 10-17
+      random: cli/follow.go:222:44 followAdd != to ==; cli/hook.go:383:46 stagedRule ! deleted;
+      cli/push.go:342:20 pushRun.rebase || to &&; cli/watch.go:212:14 watchCovered 0 to 1;
+      work/defer.go:60:16 Defer || to &&; message/header.go:138:19 gluedAt 0 to 1 uncovered. All
+      under internal/.
     refs: [internal/cli/gitshim.go, internal/cli/push.go, internal/work/propose.go]
 
   - id: slice-110
