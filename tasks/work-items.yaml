@@ -10615,3 +10615,16 @@ items:
       ledger entry, so a Task footer naming it is refused as an unknown task, the gap #54 met
       through promote. Either work add --kind task refuses and names task add, or it takes --type
       and --check and writes the entry as promote now does.
+
+  - id: p1-uncommitted-git-failure
+    title: A git that fails reads as changes no commit holds
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Found by slice 138's unit tests: uncommitted (internal/cli/workwrite.go) treats an error from
+      git status as a file with changes, so a git that cannot run makes every registry writer refuse
+      with '<file> has changes no commit holds', naming the wrong cause. It should report git's
+      failure as the error it is.
