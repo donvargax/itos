@@ -10227,7 +10227,17 @@ items:
       lasts (an except is only for an equivalent mutant), and what happens to the nightly's random
       and changed-site steps once every site has a result. The random step stays strict meanwhile,
       and the changed-site step's base stays at 9397855d until a whole nightly passes.
-    refs: [itos.yaml, itos-cc.yaml, .metrics/mutate, docs/decisions]
+
+      Blocked on itos-cc#56 (the user, 2026-10-17). itos-cc 0.12 dates a Go file's results by every
+      test file of its package and of the packages importing it, one hop. internal/cli imports 27 of
+      32 internal packages, and in the 7 days to 2026-10-17, 38 commits changed a cli test (56 any
+      Go test), so committed results would be stale after most pushes. Refreshing is about 10,093
+      sites at roughly 12 s each (the 2026-10-17 nightly judged 20 in about 4 minutes), over a day
+      of runner time. It is also near the policy q-41 replaced on 2026-10-08. A one-time sweep plus
+      moving the changed-site base was offered and declined in favour of waiting. Once #56 dates a
+      kill by its killing test, design this as first written. .metrics/mutate is tracked (T-141) but
+      holds 12 old snapshots; mutation check cmd internal reports 1,171 functions missing.
+    refs: [itos.yaml, itos-cc.yaml, .metrics/mutate, docs/decisions, https://github.com/donvargax/itos-cc/issues/56]
     tags: [ci, tests]
 
   - id: p1-nightly-report-reads-ci-run-output
