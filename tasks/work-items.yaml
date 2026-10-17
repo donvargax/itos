@@ -10531,3 +10531,19 @@ items:
       network, same stack). The user's view: the hosting players do not conflict with it; more
       differentiators to come from the user.
     tags: [review, providers]
+
+  - id: bug-116
+    title: A yes to init's rules question under a stealth config writes nothing
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: bug
+    why: >
+      Found by T-186 (2026-10-17). Under a stealth config, answering yes to init's question whether
+      to write itos's rules into .git/itos/AGENTS.md passes the answer switch in initrulesstealth.go
+      and falls into the !r.flag.given pending branch, which returns stale ('not all in place … itos
+      init --agent-rules writes them'); the non-stealth path writes. Repro: stealthRun(t, false,
+      "y\n") gives stale, not written. slice-159 removes the question on fresh inits; if it removes
+      every path that asks it, drop this, else fix it first.
+    refs: [internal/cli/initrulesstealth.go, features/init.feature]
