@@ -10678,3 +10678,27 @@ items:
       author cannot rely on it without trying. One help line, such as 'An empty <from> (no range:
       run everything) prints docs_only=false.', and a scenario that holds it.
     refs: [internal/cli/help.go]
+
+  - id: p1-task-checks-once-at-done
+    title: A task's checks run once, at work done, all of them, and are kept fast
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Issue #83 (2026-10-17, from itos-cc): with no ci.cost.static patterns every check is late, so
+      neither the commit-msg hook nor work done (which stops at the first late check, as the hook
+      does) ran T-96 to T-100's checks; agents ran them by hand, one for half an hour (#82), and the
+      closes went through on CI alone. Where checks are static they run on every commit naming the
+      task and again at work done: five commits, six runs or more. Asked: work done runs every
+      done_when check, each under its timeout, and refuses the close naming the failure and its
+      output (#82); the static/late split stops applying to done_when (it stays for ci.steps); the
+      commit-msg hook stops running task checks, which also settles #60; guide work says work done
+      runs them, and guide brief/decide say a done_when check is targeted and fast (whole suites
+      belong in ci.steps); config check could warn on a long timeout or a check repeating a ci.steps
+      command; #65 (slice-136) lists the checks without running them. Needs the user's decision
+      first: it reverses ADR-0013 (the commit-msg hook runs, last, the checks of the tasks a commit
+      names), and fits ADR-0043 (checks gate work done, then leave) and the user's 'a check that
+      passed never runs again'.
+    refs: [internal/cli/workdone.go, internal/cli/hook.go, docs/decisions]
