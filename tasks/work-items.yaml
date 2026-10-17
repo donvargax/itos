@@ -10338,3 +10338,32 @@ items:
       in a scratch folder, never this checkout, with the key in a file only the user writes and a
       token budget. The user has Anthropic API credits for it.
     tags: [ci]
+
+  - id: p2-agent-shared-trunk
+    title: Agents share one working tree and trunk through intent-carrying reads and writes
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The user's idea (2026-10-17, their Gemini thread in .tmp/Trunk-Based Development
+      Alternatives.pdf, which ends in a spec called SIBS): agents swarming one codebase should not
+      each sit in a worktree or branch and merge later; a read returns the file, what changed since
+      that agent last read it and the intent behind those changes, a write carries its intent, and
+      agents claim what they are about to touch. Today itos avoids the problem by allowing one
+      implementing agent per checkout. The cheap shape, on git plumbing rather than the spec's
+      operational transformation: a write is a small commit on main whose message holds the intent
+      (itos footers), made with a per-agent index (GIT_INDEX_FILE) and landed by a compare-and-swap
+      on the ref (update-ref <new> <old>); a read is the content plus git log <agent's last
+      read>..HEAD -- <path> with those commits' patches and intents; a failed swap makes the agent
+      re-read and re-apply, the model doing with intent as context what the spec's 'semantic OT'
+      promised; claims are soft locks in a shared registry, files first. This is Scion's server-side
+      commits and compare-and-swap ref at the scale of one machine. Not taken from the spec: OT or
+      CRDTs (they guarantee convergence, not correct code), locks on syntax-tree nodes (a parser per
+      language, and callers in other files escape them), reverting a file to its last green state
+      (fights concurrent work). Open: whether the tools are an MCP server or wrappers itos ships,
+      how a claim expires, and how CI judges a trunk that moves every few seconds (the Scion
+      article's 'what does CI even mean'). Related: p2-trunk-review-and-release,
+      sandbox-for-unattended-runs (memory).
+    tags: [work, commit]
