@@ -10232,3 +10232,22 @@ items:
     status: done
     depends_on: []
     kind: task
+
+  - id: p1-empty-case-site-uncovered
+    title: A mutation site on an empty case clause can be judged
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      itos-cc (v as pinned) reads a site on the case line of a case clause with no statements as
+      uncovered, whatever the tests run: Go's cover gives such a clause a block of no statements,
+      here header.go:138.23,138.23 with count 1, and itos-cc credits none. gluedAt's case
+      gitSpace(l[0]): (message/header.go:138:19, 0 to 1) is on a line changed since 9397855d, so the
+      nightly's changed-site step fails it as mutation.uncovered under --fail-uncovered=lines every
+      night it is drawn, and T-187's check at seed 39029889396 fails on it, though
+      TestFooterLeadingBlankLine runs the line and its one-space continuation case would kill the
+      mutant. Either itos-cc counts a zero-statement block that ran (an issue for itos-cc), or the
+      clause gets a statement (continue), a refactor; until one lands, that check cannot pass.
+    refs: [internal/message/header.go]
