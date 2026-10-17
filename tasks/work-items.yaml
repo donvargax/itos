@@ -10436,6 +10436,11 @@ items:
       bounds the loop whatever the decisions do; the decisions become a table test with no fake
       sleep or clock. The shape joelhooks/piper uses (machines decide, an executor acts). A
       refactor: what itos ci watch and itos push print and exit with stays as it is.
+
+      The repair's agent confirms the reading (2026-10-17): the default branch's continue skips the
+      deadline check, and only covering's guarantee of a real next keeps the original from spinning;
+      checking the deadline before following a run would bound it. watch.go:138:95 (failing never
+      giving up) is the same family: bounded only by the 600 s deadline.
     refs: [internal/cli/watch.go]
     tags: [ci, push]
 
