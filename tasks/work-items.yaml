@@ -56,7 +56,6 @@ phases:
 
 queue:
   - T-186
-  - T-187
   - p1-mutation-results-committed
   - slice-138
   - p1-text-from-file
