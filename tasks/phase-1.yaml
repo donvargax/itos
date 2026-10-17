@@ -2139,3 +2139,26 @@
   done_when:
     - run: tools/bin/itos tests next-id --help
     - run: tools/bin/itos work done --help
+
+- id: T-185
+  type: ci
+  title: The Nightly red issue names each failed plan step and the mutation sites it found
+  why: >
+    The Nightly red issue says only 'nightly: failure. No failing scenario in its log' for the
+    plan's job (comments on #29 for runs 38896023548 and 39029889396), so a nightly red every night
+    on mutation survivors (the user keeps the random step strict, 2026-10-17) hides any new failure
+    behind the same text. Run 39029889396 showed the cost: the runner received a shutdown signal
+    during the changed-site step and the ten steps after it never ran, with nothing in the issue to
+    say so. The report step's body is built by a Go program under tools/bin, unit-tested on log
+    excerpts of those two runs kept as testdata, replacing the inline bash in nightly.yml's report
+    job. For each red job, as now, its failing scenarios; for the plan's job, from its log lines:
+    each failed step from 'CI failed at:' and 'also failed at:' with its exit code; for each failed
+    itos-cc mutation step, each site its JSON names with rule mutation.survived or
+    mutation.uncovered (file:line:col, the change, the function), and count.interrupted when
+    present; and when the log shows the runner shut down or the operation cancelled, the last step
+    started and that the steps after it did not run. Read from the log, not ci run --json: no
+    artifact plumbing. No change to the plan, its order or any verdict. Was
+    p1-nightly-report-names-steps (split from slice-133).
+  done_when:
+    - run: go test ./tools/bin/nightly-report -count=1
+    - run: ITOS_SELFTEST=1 go test -count=1 -run '^TestSelftest$' ./tools/selftest/tools-bin-programs
