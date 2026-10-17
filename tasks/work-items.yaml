@@ -6567,6 +6567,9 @@ items:
       fails a test commit made before it, on CI's first run from commits.since. Judging each commit
       by its own config covers both.
     refs: [internal/providers/range.go, internal/cli/verify.go]
+    deferred: >
+      The user (2026-10-17): too much work for the value; move commits.since by hand when old
+      commits fail newer rules, until p1-verify-verdict-once's design.
 
   - id: p1-written-yaml-formatter-stable
     title: The YAML itos writes passes this repository's formatter
