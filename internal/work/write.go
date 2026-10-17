@@ -228,35 +228,49 @@ func waitsOn(r Registry, item *value.Map) []string {
 	return on
 }
 
-// Promote is the registry with the idea made a slice or a task (kind) under
-// a new id (slice 52): its id and kind changed, "Was <old id>." put before
-// its why, and every depends_on that named the old id naming the new one,
-// as the queue does when it holds the idea (slice 66).
-// A title given ("" for none) replaces the idea's (slice 65): an idea
-// promoted has usually become something more specific than its title says,
-// and the commit's body names the new title. Refused, with nothing changed: an id no item has, an item that is not an
-// idea, a new id an item already has, and for a task a new id the ledger's
-// pattern (taskID) does not match, and an idea dropped (slice 78).
-func Promote(r Registry, text, id, newID, kind, title string, taskID *regexp.Regexp) (Change, *out.Problem, error) {
+// Promotable is the idea an id names, which work promote may make a slice
+// or a task, or the problem that refuses it before an id is minted for it:
+// an id no item has, an item dropped (slice 78) or one that is not an idea.
+func Promotable(r Registry, id string) (*value.Map, *out.Problem) {
 	i := find(r, id)
 	if i < 0 {
-		return Change{}, unknown(id), nil
+		return nil, unknown(id)
 	}
 	item := r.Items[i]
-	refuse := func(rule, message, fix string) (Change, *out.Problem, error) {
-		return Change{}, &out.Problem{Rule: rule, Message: message, Fix: fix}, nil
-	}
 	if item.At("status") == Dropped {
-		return refuse("work-promote-dropped", id+" is dropped, taken out of the open work",
-			"add the work anew with itos work add, under an id no item has")
+		return nil, &out.Problem{Rule: "work-promote-dropped", Message: id + " is dropped, taken out of the open work",
+			Fix: "add the work anew with itos work add, under an id no item has"}
 	}
 	if item.At("kind") != "idea" {
 		what := "has no kind"
 		if kind := item.At("kind"); !absent(kind) {
 			what = "is a " + value.String(kind)
 		}
-		return refuse("work-promote-not-idea", fmt.Sprintf("%s %s, not an idea: only an idea is promoted", id, what),
-			"promote an item of kind idea")
+		return nil, &out.Problem{Rule: "work-promote-not-idea", Message: fmt.Sprintf("%s %s, not an idea: only an idea is promoted", id, what),
+			Fix: "promote an item of kind idea"}
+	}
+	return item, nil
+}
+
+// Promote is the registry with the idea made a slice or a task (kind) under
+// a new id (slice 52): its id and kind changed and every depends_on that
+// named the old id naming the new one, as the queue does when it holds the
+// idea (slice 66). A slice's why is led by "Was <old id>."; a task's is
+// dropped (slice 138), since its ledger entry, which work promote writes in
+// the same commit, holds it (WhereWhy).
+// A title given ("" for none) replaces the idea's (slice 65): an idea
+// promoted has usually become something more specific than its title says,
+// and the commit's body names the new title. Refused, with nothing changed:
+// what Promotable refuses, a new id an item already has, and for a task a
+// new id the ledger's pattern (taskID) does not match.
+func Promote(r Registry, text, id, newID, kind, title string, taskID *regexp.Regexp) (Change, *out.Problem, error) {
+	item, problem := Promotable(r, id)
+	if problem != nil {
+		return Change{}, problem, nil
+	}
+	i := find(r, id)
+	refuse := func(rule, message, fix string) (Change, *out.Problem, error) {
+		return Change{}, &out.Problem{Rule: rule, Message: message, Fix: fix}, nil
 	}
 	if j := find(r, newID); j >= 0 {
 		return refuse("work-promote-taken", fmt.Sprintf("%s is already an item: %s", newID, value.String(r.Items[j].At("title"))),
@@ -271,11 +285,15 @@ func Promote(r Registry, text, id, newID, kind, title string, taskID *regexp.Reg
 		return Change{}, nil, err
 	}
 	after := value.Copy(item).(*value.Map)
-	lead := "Was " + id + "."
+	why := func() error { return doc.Lead([]any{"items", i, "why"}, "Was "+id+".") }
+	if kind == "task" {
+		why = func() error { return doc.Drop([]any{"items", i, "why"}) }
+		after.Delete("why")
+	}
 	for _, edit := range []func() error{
 		func() error { return doc.Set([]any{"items", i, "id"}, newID) },
 		func() error { return doc.Set([]any{"items", i, "kind"}, kind) },
-		func() error { return doc.Lead([]any{"items", i, "why"}, lead) },
+		why,
 	} {
 		if err := edit(); err != nil {
 			return Change{}, nil, err

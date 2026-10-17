@@ -60,17 +60,10 @@ func taskAddArgs(cfg *config.Loaded, args []string) (ledger.NewTask, error) {
 				return n, usage("task add takes one %s with a value", name)
 			}
 			seen[field], *field = true, v
-		case name == "--check":
-			if strings.TrimSpace(v) == "" {
-				return n, usage("task add --check needs a command")
-			}
-			n.Checks, timed = append(n.Checks, ledger.NewCheck{Run: v}), false
 		default:
-			seconds, err := strconv.ParseFloat(v, 64)
-			if len(n.Checks) == 0 || timed || err != nil || seconds <= 0 {
-				return n, usage("task add takes one --timeout <seconds> after a --check, a number above 0, for that check")
+			if err := checkArg("task add", &n.Checks, &timed, name, v); err != nil {
+				return n, err
 			}
-			n.Checks[len(n.Checks)-1].Timeout, timed = &seconds, true
 		}
 	}
 	if len(ids) > 0 {
@@ -80,6 +73,27 @@ func taskAddArgs(cfg *config.Loaded, args []string) (ledger.NewTask, error) {
 		return n, usage(taskAddUsage)
 	}
 	return n, nil
+}
+
+// checkArg reads one --check or --timeout of a command that writes a
+// task's checks, task add or work promote (cmd, as its usage errors name
+// it): a --check's command, never blank, is the next check; a --timeout,
+// once after a --check, is that check's seconds, a number above 0. timed is
+// whether the last check has its timeout.
+func checkArg(cmd string, checks *[]ledger.NewCheck, timed *bool, name, v string) error {
+	if name == "--check" {
+		if strings.TrimSpace(v) == "" {
+			return usage("%s --check needs a command", cmd)
+		}
+		*checks, *timed = append(*checks, ledger.NewCheck{Run: v}), false
+		return nil
+	}
+	seconds, err := strconv.ParseFloat(v, 64)
+	if len(*checks) == 0 || *timed || err != nil || seconds <= 0 {
+		return usage("%s takes one --timeout <seconds> after a --check, a number above 0, for that check", cmd)
+	}
+	(*checks)[len(*checks)-1].Timeout, *timed = &seconds, true
+	return nil
 }
 
 // taskAdd is `task add --group <g> --type <type> --title <title> --why

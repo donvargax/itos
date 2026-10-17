@@ -287,17 +287,28 @@ func TestWorkPromoteMintsTaskIDFromTheLedger(t *testing.T) {
 	if err := os.WriteFile(ledger, []byte("- { id: T-001, type: chore, title: Existing task }\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
+	gitIn(t, "add", "--", ledger)
+	gitIn(t, "commit", "-q", "-m", "docs: a ledger")
 	var stdout, stderr strings.Builder
-	code, err := workPromote([]string{"p1-idea", "--kind", "task"}, Out{Stdout: &stdout, Stderr: &stderr})
-	if err != nil || code != 0 || !strings.Contains(stdout.String(), "T-002") {
+	code, err := workPromote([]string{"p1-idea", "--kind", "task", "--type", "build", "--check", "true"}, Out{Stdout: &stdout, Stderr: &stderr})
+	if err != nil || code != 0 || stdout.String() != "p1-idea is the task T-002 of tasks/phase-1.yaml: committed "+
+		strings.TrimSpace(gitIn(t, "rev-parse", "--short=7", "HEAD"))+" docs: promote p1-idea to T-002\n" {
 		t.Fatalf("workPromote task = (%d, %v), stdout=%q stderr=%q, want T-002", code, err, stdout.String(), stderr.String())
 	}
-	if strings.Contains(stdout.String(), "named now by") {
-		t.Fatalf("workPromote without dependents named any: %q", stdout.String())
-	}
 	registry, err := os.ReadFile(filepath.Join(dir, "registry.yaml"))
-	if err != nil || !strings.Contains(string(registry), "id: T-002") || !strings.Contains(string(registry), "kind: task") {
-		t.Fatalf("registry after task promotion = %q (%v), want task T-002", registry, err)
+	if err != nil || !strings.Contains(string(registry), "id: T-002") || !strings.Contains(string(registry), "kind: task") ||
+		strings.Contains(string(registry), "Specified") {
+		t.Fatalf("registry after task promotion = %q (%v), want task T-002 with no why", registry, err)
+	}
+	if text, err := os.ReadFile(ledger); err != nil || !strings.HasSuffix(string(text), "- id: T-002\n  type: build\n  title: Idea\n  why: >\n    Specified\n  done_when:\n    - run: \"true\"\n") {
+		t.Fatalf("ledger after task promotion = %q (%v), want T-002 with the idea's title and why", text, err)
+	}
+	if files := strings.Fields(gitIn(t, "show", "--name-only", "--format=", "HEAD")); strings.Join(files, " ") != "registry.yaml tasks/phase-1.yaml" {
+		t.Errorf("the promote committed %q, want the registry and the ledger file", files)
+	}
+	if body := strings.Join(strings.Fields(gitIn(t, "log", "-1", "--format=%b")), " "); !strings.HasSuffix(body,
+		"with itos work promote, and write its ledger entry, with its why and checks, in tasks/phase-1.yaml.") {
+		t.Errorf("the promote's body is %q, want it to name the ledger entry", body)
 	}
 }
 
@@ -320,11 +331,18 @@ func TestWorkPromoteRejectsMalformedArguments(t *testing.T) {
 }
 
 func TestWorkPromotePropagatesReservationFailures(t *testing.T) {
-	registryWriterRepo(t, "phases: { 1: null }\nitems:\n  - { id: p1-idea, title: Idea, phase: 1, owner: null, status: todo, kind: idea, why: Specified }\n")
-	useFailingGit(t)
+	dir := registryWriterRepo(t, "phases: { 1: null }\nitems:\n  - { id: p1-idea, title: Idea, phase: 1, owner: null, status: todo, kind: idea, why: Specified }\n")
+	// A counter that cannot be read, so the reservation, which comes after
+	// every check of the promote's, fails.
+	if err := os.MkdirAll(filepath.Join(dir, ".git", "itos"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, ".git", "itos", "ids.yaml"), []byte("{"), 0o644); err != nil {
+		t.Fatal(err)
+	}
 	code, err := workPromote([]string{"p1-idea", "--kind", "slice"}, Out{})
-	if code != 0 || err == nil || !strings.Contains(err.Error(), "exit status 1") {
-		t.Fatalf("workPromote = (%d, %v), want exit code 0 and the injected Git command failure", code, err)
+	if code != 0 || err == nil {
+		t.Fatalf("workPromote = (%d, %v), want exit code 0 and the counter's failure", code, err)
 	}
 }
 

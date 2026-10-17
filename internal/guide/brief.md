@@ -7,9 +7,10 @@ loop's steps 2 and 3 in `itos go`).
 
 - **Specify the item if it is not yet**: `@wip` scenarios for a behaviour, or
   a task with checks for anything else. An idea becomes work with
-  `itos work promote <idea> --kind slice|task` (itos mints the ID), and
-  `--title <title>` when what it has become is no longer what its title
-  says. Leave it `todo`: the agent takes it with `itos work take`.
+  `itos work promote <idea> --kind slice`, or `--kind task --type <type>
+  --check <command>`, which writes the task's ledger entry too (itos mints
+  the ID), and `--title <title>` when what it has become is no longer what
+  its title says. Leave it `todo`: the agent takes it with `itos work take`.
 - **Every decision goes into the spec before the agent starts**: a slice's
   in its scenarios and the comments above them, a task's in its ledger
   entry's why. The registry is an index: only an idea, which has no spec

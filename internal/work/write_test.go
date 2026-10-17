@@ -129,11 +129,21 @@ func TestPromote(t *testing.T) {
 	if err != nil || problem != nil {
 		t.Fatal(err, problem)
 	}
-	want := "  - { id: T-9, title: I, phase: 1, status: todo, kind: task, why: 'Was i. a gap' }\n" +
+	// A task's why is its ledger entry's, which work promote writes beside
+	// the registry (slice 138), so the registry keeps none.
+	want := "  - { id: T-9, title: I, phase: 1, status: todo, kind: task }\n" +
 		"  - { id: s, title: S, phase: 1, status: todo, depends_on: [T-9] }\n"
 	if !strings.HasSuffix(change.Text, want) || strings.Join(change.Rewritten, " ") != "s" ||
-		change.Header != "docs: promote i to T-9" {
-		t.Errorf("promote i: %q %v %q", change.Text, change.Rewritten, change.Header)
+		change.Header != "docs: promote i to T-9" || change.Item.Has("why") {
+		t.Errorf("promote i: %q %v %q %v", change.Text, change.Rewritten, change.Header, change.Item)
+	}
+	// A slice's why is led by the idea's id.
+	change, problem, err = Promote(r, text, "i", "slice-2", "slice", "", nil)
+	if err != nil || problem != nil {
+		t.Fatal(err, problem)
+	}
+	if !strings.Contains(change.Text, "kind: slice, why: 'Was i. a gap' }") || change.Item.At("why") != "Was i. a gap" {
+		t.Errorf("promote i to a slice: %q %v", change.Text, change.Item)
 	}
 	// A title given replaces the idea's, and the body says so (slice 65).
 	change, problem, err = Promote(r, text, "i", "slice-2", "slice", "I, specified", nil)
@@ -150,6 +160,29 @@ func TestPromote(t *testing.T) {
 	}
 	if _, problem, _ := Promote(r, text, "i", "nine", "task", "", regexp.MustCompile(`^T-\d+$`)); problem == nil || problem.Rule != "work-promote-not-task-id" {
 		t.Errorf("nine is no task ID: %+v", problem)
+	}
+}
+
+// Promotable gives the idea, or refuses before an id is minted for it: an id
+// no item has, and an item that is not an idea, named by its kind or by its
+// having none.
+func TestPromotable(t *testing.T) {
+	text := "phases: { 1: null }\nitems:\n" +
+		"  - { id: i, title: I, phase: 1, status: todo, kind: idea }\n" +
+		"  - { id: s, title: S, phase: 1, status: todo, kind: slice }\n" +
+		"  - { id: n, title: N, phase: 1, status: todo }\n"
+	r := registryOf(t, text)
+	if idea, problem := Promotable(r, "i"); problem != nil || idea.At("title") != "I" {
+		t.Errorf("Promotable(i) = %v, %+v", idea, problem)
+	}
+	for id, want := range map[string]string{
+		"x": "no item x in the registry",
+		"s": "s is a slice, not an idea: only an idea is promoted",
+		"n": "n has no kind, not an idea: only an idea is promoted",
+	} {
+		if idea, problem := Promotable(r, id); idea != nil || problem == nil || problem.Message != want {
+			t.Errorf("Promotable(%s) = %v, %+v, want %q", id, idea, problem, want)
+		}
 	}
 }
 

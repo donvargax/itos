@@ -548,10 +548,15 @@
 // nothing: written under its lock (internal/lock), nothing committed, and
 // --json's commit null. writeCommitted is the same for several files.
 //
-//   - work take and work promote (workwrite.go) call work.Take and
-//     work.Promote; take's person is Whoami's, nobody or one the people do
-//     not list exiting 3, and under a stealth config, or with no one in the
-//     people, nobody is asked and the owner is left as it is.
+//   - work take (workwrite.go) and work promote (workpromote.go) call
+//     work.Take and work.Promote; take's person is Whoami's, nobody or one
+//     the people do not list exiting 3, and under a stealth config, or with
+//     no one in the people, nobody is asked and the owner is left as it is.
+//     promote judges all it can refuse before newItemID reserves the id
+//     (slice 138): work.Promotable, the questions, and for a task its
+//     ledger entry, by ledger.Add under the id ledger.NextID would give,
+//     and commitReady, writeCommitted's own refusals; a task's ledger file
+//     is committed with the registry and the questions.
 //   - work done (workdone.go) is the landing's check, then a registry write:
 //     work.Done judges the registry alone, then the command checks, in cost
 //     order, stopping at the first that refuses (exit 1): the item's

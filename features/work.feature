@@ -1183,7 +1183,7 @@ Feature: The work registry
   # and tags it uses, supplies completed dependencies, and records its
   # initial metadata. It also supplies a queued position, a dependent item
   # and a linked question so every reference rewrite is observable.
-  @ID-WORK-104 @slice-138 @wip
+  @ID-WORK-104 @slice-138
   Scenario: task promotion creates the ledger entry and preserves the idea's metadata and references
     Given a committed task-promotion fixture for the idea "p1-archive"
     When itos runs "work promote p1-archive --kind task --type build --check 'echo archive > promotion-check-marker' --json"
@@ -1196,7 +1196,7 @@ Feature: The work registry
     And a commit message naming the promoted task passes its configured ledger-footer check
     And the file "promotion-check-marker" does not exist
 
-  @ID-WORK-105 @slice-138 @wip
+  @ID-WORK-105 @slice-138
   Scenario: task promotion accepts a current specification and ordered checks with per-check timeouts
     Given a committed task-promotion fixture for the idea "p1-archive"
     When itos runs "work promote p1-archive --kind task --type build --title 'Build reviewed archives' --why 'Package the reviewed inputs.' --check 'echo first' --timeout 9 --check 'echo second' --timeout 11 --json"
@@ -1210,7 +1210,7 @@ Feature: The work registry
 
   # Task-only slice flags and malformed timeout cases are regression guards
   # inside the outline; their existing rejection must remain unchanged.
-  @ID-WORK-106 @slice-138 @wip
+  @ID-WORK-106 @slice-138
   Scenario Outline: invalid promotion arguments change neither the repository nor the ID counter
     Given a committed task-promotion fixture for the idea "p1-archive"
     And the promotion state is saved for comparison
@@ -1232,7 +1232,7 @@ Feature: The work registry
 
   # Each defect is deliberately committed before the snapshot, so refusal
   # must preserve that input rather than silently repair the fixture.
-  @ID-WORK-107 @slice-138 @wip
+  @ID-WORK-107 @slice-138
   Scenario Outline: semantic promotion failures are reported before reserving a task ID
     Given a committed task-promotion fixture for the idea "p1-archive"
     And the promotion fixture has "<problem>"
@@ -1251,7 +1251,7 @@ Feature: The work registry
 
   # The hook records that it ran, then refuses the final promotion commit.
   # This must reach Git; a parser refusal cannot satisfy the scenario.
-  @ID-WORK-108 @slice-138 @wip
+  @ID-WORK-108 @slice-138
   Scenario: a rejected promotion commit restores all participating files and leaves unrelated staging alone
     Given a committed task-promotion fixture for the idea "p1-archive"
     And a configured hook that records and rejects promotion commits
@@ -1264,7 +1264,7 @@ Feature: The work registry
 
   # The stealth setup relocates config, ledger, registry and questions
   # together, so the default worktree ledger cannot satisfy the assertions.
-  @ID-WORK-109 @slice-138 @wip
+  @ID-WORK-109 @slice-138
   Scenario: promotion under a stealth config writes the complete task and references without a commit
     Given a committed task-promotion fixture for the idea "p1-archive"
     And the promotion fixture uses a stealth config
@@ -1278,7 +1278,7 @@ Feature: The work registry
 
   # Guard: ordinary slice promotion already works and must remain usable
   # without task metadata. This case is expected to pass before the slice.
-  @ID-WORK-110 @slice-138 @guard @wip
+  @ID-WORK-110 @slice-138 @guard
   Scenario: slice promotion continues without task fields and creates no ledger entry
     Given a committed task-promotion fixture for the idea "p1-archive"
     When itos runs "work promote p1-archive --kind slice --json"

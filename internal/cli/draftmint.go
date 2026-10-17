@@ -41,11 +41,14 @@ func mintedKind(command []string) string {
 	args := read.Rest[2:]
 	switch g.Rest[0] {
 	case "work":
-		line := workAddLine
 		if g.Rest[1] == "promote" {
-			line = workPromoteLine
+			p, err := workPromoteLine(args)
+			if err != nil {
+				return ""
+			}
+			return p.kind
 		}
-		if _, kind, _, err := line(args); err == nil && kind != "idea" {
+		if _, kind, _, err := workAddLine(args); err == nil && kind != "idea" {
 			return kind
 		}
 		return ""

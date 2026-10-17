@@ -65,8 +65,8 @@ Commands:
   work list [--all] [--tag <tag>]  the open items of the work registry; --all every one
   work show <id> [--patch]         an item, its scenarios and its commits; reads only
   work take <id> [--as <handle>]   set an item in progress for the person, and commit it
-  work promote <idea> --kind slice|task [--title <title>]
-                                   make an idea a slice or a task, and commit it
+  work promote <idea> --kind slice|task [--title <title>] […]
+                                   make an idea a slice or a task (and its ledger entry), and commit it
   work done <id>                   mark an item done once it has landed, and commit it
   work add [<idea-id>] --title <title> --why <why> [--kind idea|slice|task|bug] […]
                                    add an item to the work registry, and commit it
@@ -230,7 +230,7 @@ or {"schema":1,"ok":false,"problems":[{"rule","message","fix"}]}`,
        itos work list [--all] [--tag <tag>]
        itos work show <id> [--patch]
        itos work take <id> [--as <handle>]
-        itos work promote <idea> --kind slice|task [--title <title>]
+        itos work promote <idea> --kind slice|task [--title <title>] […]
        itos work done <id>
         itos work add [<idea-id>] --title <title> --why <why> [--kind idea|slice|task|bug] […]
        itos work edit <id>… [--title <title>] [--depends-on <ids>] [--refs <refs>] [--tags <tags>] [--note <text>]
@@ -306,21 +306,32 @@ every item is the session's, and its owner is left as it is.
 --json: {"schema":1,"ok":true,"item":{…},"commit":"<sha>"|null}, or
 {"schema":1,"ok":false,"problems":[{"rule","message","fix"}]}`,
 
-	"work promote": `Usage: itos work promote <idea> --kind slice|task [--title <title>]
+	"work promote": `Usage: itos work promote <idea> --kind slice [--title <title>]
+       itos work promote <idea> --kind task --type <type> --check <command> [--timeout <seconds>]… [--title <title>] [--why <why>]
 
-Makes an idea a slice or a task: mints an ID from the shared counter, renames it, sets its kind, puts
-"Was <idea>." before its why and renames it in every depends_on and every
-question (work.asks) that names it, then commits the registry, with the
-questions when one named it, "docs: promote <idea> to <id>", as work take
-does (itos help work take). --title gives it a new title in the same commit,
-whose body says so; without it the idea's title is kept. Refused, nothing
-written (exit 2): a caller-supplied ID. Refused, nothing written (exit 1): a
-registry that is not sound or has changes no commit holds, questions that
-cannot be read, or that name the idea and have changes no commit holds, an id
-no item has, an item that is not an idea, an idea dropped, a commit a hook
+Makes an idea a slice or a task: mints an ID from the shared counter, renames
+it, sets its kind and renames it in every depends_on and every question
+(work.asks) that names it. A slice's why is led by "Was <idea>."; a task's
+moves to its ledger entry, which the promote writes at the end of the file of
+the idea's group: the --type, the checks in order (each --check, its
+--timeout after it, as task add reads them), and the idea's why unless --why
+gives another. No check is run. It then commits the registry, with the ledger
+file and the questions when they changed, "docs: promote <idea> to <id>", as
+work take does (itos help work take). --title gives it a new title in the same
+commit, whose body says so; without it the idea's title is kept.
+Refused before an ID is minted, nothing written (exit 2): a caller-supplied
+ID, a task with no --type or no --check, a --timeout that is not a number
+above 0 after its --check, and --why, --type, --check or --timeout for a
+slice. Refused before an ID is minted, nothing written (exit 1): a registry
+that is not sound or has changes no commit holds, questions that cannot be
+read, or that name the idea and have changes no commit holds, an id no item
+has, an item that is not an idea, an idea dropped; for a task, a type
+commits.types does not list, a ledger with problems, a group ledger.files
+cannot name, an idea with no why and no --why, a ledger file with changes no
+commit holds. Refused after, the files put back (exit 1): a commit a hook
 refuses. Under a stealth config the files are written and nothing committed.
 
---json: {"schema":1,"ok":true,"item":{…},"was","rewritten":[…],"questions"?:[…],"commit":"<sha>"|null},
+--json: {"schema":1,"ok":true,"item":{…},"was","rewritten":[…],"task"?:{…},"file"?,"questions"?:[…],"commit":"<sha>"|null},
 or {"schema":1,"ok":false,"problems":[{"rule","message","fix"}]}`,
 
 	"work done": `Usage: itos work done <id>

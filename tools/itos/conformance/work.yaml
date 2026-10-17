@@ -1142,6 +1142,36 @@ cases:
         fix: correct .git/itos/asks.yaml to what itos decision writes, then promote p1-thing again
     files_after:
       .git/itos/work-items.yaml: *one-idea
+  # Slice 138: a task's promotion writes its ledger entry in the file of the
+  # idea's group, its title and why there, its checks in order, and drops the
+  # why from the registry, an index; no check is run.
+  - name: work promote --kind task writes the task's ledger entry, its why moved there
+    argv: [work, promote, p1-thing, --kind, task, --type, build, --check, sh -c 'touch ran', --timeout, "30", --check, "true", --json]
+    git: []
+    files:
+      itos.yaml: null
+      .git/itos/itos.yaml: "version: 1\nledger: { files: \"tasks/phase-{group}.yaml\", id: \"T-\\\\d+\" }\nwork: { registry: work-items.yaml }\n"
+      .git/itos/tasks/phase-1.yaml: "- { id: T-001, type: docs, title: One }\n"
+      .git/itos/work-items.yaml: "phases:\n  1: null\nitems:\n  - id: p1-thing # the idea\n    title: A thing\n    phase: 1\n    status: todo\n    kind: idea\n    why: >\n      A gap\n      left behind.\n    tags: []\n  - { id: slice-4, title: Four, phase: 1, status: todo, depends_on: [p1-thing] }\n"
+    exit: 0
+    json:
+      schema: 1
+      ok: true
+      item: { id: T-002, title: A thing, phase: 1, status: todo, kind: task, tags: [], depends_on: [] }
+      was: p1-thing
+      rewritten: [slice-4]
+      task: { id: T-002, type: build, title: A thing, why: "A gap left behind.\n", done_when: [{ run: sh -c 'touch ran', timeout: 30 }, { run: "true" }] }
+      file: .git/itos/tasks/phase-1.yaml
+      commit: null
+    files_after:
+      ran: null
+      .git/itos/tasks/phase-1.yaml: "- { id: T-001, type: docs, title: One }\n- id: T-002\n  type: build\n  title: A thing\n  why: >\n    A gap left behind.\n  done_when:\n    - run: sh -c 'touch ran'\n      timeout: 30\n    - run: \"true\"\n"
+      .git/itos/work-items.yaml: "phases:\n  1: null\nitems:\n  - id: T-002 # the idea\n    title: A thing\n    phase: 1\n    status: todo\n    kind: task\n    tags: []\n  - { id: slice-4, title: Four, phase: 1, status: todo, depends_on: [T-002] }\n"
+  - name: work promote --kind slice refuses a flag only a task's promotion takes
+    argv: [work, promote, p1-thing, --kind, slice, --check, "true"]
+    exit: 2
+    stderr: |
+      itos: work promote --kind slice does not take --check, which only a task's promotion takes (itos --help)
   - name: work promote refuses an item that is not an idea
     argv: [work, promote, ready, --kind, slice]
     git: []

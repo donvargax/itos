@@ -184,6 +184,10 @@ func (w *world) promotionDefect(problem string) error {
 		}
 		return nil
 	case "an idea phase outside the ledger pattern":
+		// The default pattern, [^/]+, takes any phase a registry can list.
+		if err := w.configSets("ledger.group.pattern", `\d+`); err != nil {
+			return err
+		}
 		if err := edit(registry, "phases: { 1: null }", "phases: { 1: null, two: null }"); err != nil {
 			return err
 		}

@@ -1,7 +1,7 @@
 package cli
 
 // The commands that write the work registry (slice 52, features/work.feature):
-// work take and work promote. The registry is written by commands, never by
+// work take here, work promote in workpromote.go. The registry is written by commands, never by
 // hand, and each commits its own change (the user's calls, 2026-10-03), so a
 // coordinator neither edits YAML nor words a registry commit. The edit is
 // work's (internal/work/write.go); what every such command shares is here:
@@ -24,10 +24,8 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/donvargax/itos/v8/internal/ask"
 	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/git"
-	"github.com/donvargax/itos/v8/internal/ledger"
 	"github.com/donvargax/itos/v8/internal/lock"
 	"github.com/donvargax/itos/v8/internal/message"
 	"github.com/donvargax/itos/v8/internal/out"
@@ -230,7 +228,8 @@ type written struct {
 // the rest are errors. work's commands write the registry alone
 // (writeRegistry), but for work done closing a task with checks, which
 // writes the registry and the task's ledger file (slice 101), task add a
-// ledger file and the registry (slice 55),
+// ledger file and the registry (slice 55), work promote the registry, a
+// task's ledger file and the questions (bug 105, slice 138),
 // decision the questions alone (slice 62), decision record the questions, a decision
 // record, the one it supersedes and their index (slice 69).
 func writeCommitted(cfg *config.Loaded, files []written, header, body string, o Out) (string, int, error) {
@@ -238,19 +237,11 @@ func writeCommitted(cfg *config.Loaded, files []written, header, body string, o 
 	for i, f := range files {
 		paths[i] = f.path
 	}
-	if !cfg.Stealth {
-		// The commit runs through the hooks as any commit, so it is refused,
-		// before anything is written, where git would run none of itos's
-		// (slice 91).
-		if err := hooksReady("commit-msg"); err != nil {
-			return "", 0, err
-		}
-		for _, f := range files {
-			if p := uncommitted(cfg, f.path, f.rule); p != nil {
-				code, err := refuseWork([]out.Problem{*p}, ExitPolicy, o)
-				return "", code, err
-			}
-		}
+	if p, err := commitReady(cfg, files); err != nil {
+		return "", 0, err
+	} else if p != nil {
+		code, err := refuseWork([]out.Problem{*p}, ExitPolicy, o)
+		return "", code, err
 	}
 	named := and(paths)
 	modes := make([]fs.FileMode, len(files))
@@ -321,6 +312,28 @@ func writeCommitted(cfg *config.Loaded, files []written, header, body string, o 
 		return "", 0, err
 	}
 	return strings.TrimSpace(sha), 0, nil
+}
+
+// commitReady is what writeCommitted refuses before it writes anything, in
+// a project: itos's commit-msg hook not declared, an error, since the commit
+// runs through the hooks as any commit and git would run none of itos's
+// (slice 91); and the first file with changes no commit holds (uncommitted),
+// a problem. A command that reserves an id asks it before it does (work
+// promote, slice 138). Under a stealth config, which commits nothing,
+// nothing is.
+func commitReady(cfg *config.Loaded, files []written) (*out.Problem, error) {
+	if cfg.Stealth {
+		return nil, nil
+	}
+	if err := hooksReady("commit-msg"); err != nil {
+		return nil, err
+	}
+	for _, f := range files {
+		if p := uncommitted(cfg, f.path, f.rule); p != nil {
+			return p, nil
+		}
+	}
+	return nil, nil
 }
 
 // selfBody is the body of a commit itos makes of its own files, its words
@@ -517,117 +530,6 @@ func workPerson(cfg *config.Loaded, registry work.Registry, as string, identify 
 }
 
 // promoteKinds are what work promote makes of an idea.
-var promoteKinds = []string{"slice", "task"}
-
-// workPromote is `work promote <idea> --kind slice|task [--title <title>]`:
-// the idea renamed, given a minted ID and the kind (and the title, when given),
-// "Was <idea>." before its why, every depends_on naming it renamed too, and
-// the registry committed (work.Promote). A task's id must match the ledger's
-// ledger.id. Every question of work.asks naming the idea names the new id,
-// committed with the registry (bug 105, promotedAsks); with none, the
-// registry is committed alone.
-func workPromote(args []string, o Out) (int, error) {
-	id, kind, flags, err := workPromoteLine(args)
-	if err != nil {
-		return 0, err
-	}
-	cfg, registry, text, release, code, err := soundRegistry(o)
-	defer release()
-	if cfg == nil {
-		return code, err
-	}
-	newID, err := newItemID(cfg, kind, itemIDs(registry))
-	if err != nil {
-		return 0, err
-	}
-	change, problem, err := work.Promote(registry, text, id, newID, kind, flags["--title"], ledger.IDPattern(cfg))
-	if err != nil {
-		return 0, uneditable(cfg.Work.Registry, err)
-	}
-	if problem != nil {
-		return refuseWork([]out.Problem{*problem}, ExitPolicy, o)
-	}
-	files := []written{{path: cfg.Work.Registry, old: text, text: change.Text}}
-	asks, renamed, problem, err := promotedAsks(cfg, id, newID)
-	if err != nil {
-		return 0, err
-	}
-	if problem != nil {
-		return refuseWork([]out.Problem{*problem}, ExitPolicy, o)
-	}
-	body := change.Body
-	if len(renamed) > 0 {
-		files = append(files, *asks)
-		body = strings.TrimSuffix(body, ".") + ", and rename it in " + and(renamed) + " of " + cfg.Work.Asks + "."
-	}
-	sha, code, err := writeCommitted(cfg, files, change.Header, body, o)
-	if err != nil || code != 0 {
-		return code, err
-	}
-	line := fmt.Sprintf("%s is the %s %s", id, kind, newID)
-	if namedBy := append(slices.Clone(change.Rewritten), renamed...); len(namedBy) > 0 {
-		line += ", named now by " + strings.Join(namedBy, ", ")
-	}
-	extra := []out.Field{{Key: "was", Value: id}, {Key: "rewritten", Value: anys(change.Rewritten)}}
-	// Only when a question named the idea, so a promote without one reports
-	// as it did.
-	if len(renamed) > 0 {
-		extra = append(extra, out.Field{Key: "questions", Value: anys(renamed)})
-	}
-	return reportWork(line+": "+committed(sha, change.Header), change, sha, extra, o)
-}
-
-// anys is the strings as a list out.Emit writes.
-func anys(names []string) []any {
-	list := make([]any, len(names))
-	for i, n := range names {
-		list[i] = n
-	}
-	return list
-}
-
-// promotedAsks is the questions' file, work.asks, with every question naming
-// the idea naming its new id (ask.File.Rename), and the ids of the ones it
-// renamed; none, and no file, when the file is not there or no question
-// names the idea. The problem, which refuses the promote, is a file that
-// cannot be read as itos decision writes it.
-func promotedAsks(cfg *config.Loaded, id, newID string) (*written, []string, *out.Problem, error) {
-	f, old, there, err := loadAsks(cfg)
-	if err != nil && there {
-		return nil, nil, &out.Problem{
-			Rule:    "asks-invalid",
-			Message: err.Error(),
-			Fix:     "correct " + cfg.Work.Asks + " to what itos decision writes, then promote " + id + " again",
-		}, nil
-	}
-	if err != nil {
-		return nil, nil, nil, err
-	}
-	renamed := f.Rename(id, newID)
-	if len(renamed) == 0 {
-		return nil, nil, nil, nil
-	}
-	return &written{path: cfg.Work.Asks, old: old, text: ask.Text(f)}, renamed, nil, nil
-}
-
-// workPromoteLine reads work promote's arguments: the idea, the kind it
-// becomes and the flags. A line the command refuses is a usage error, an
-// --id among them, since the id is minted.
-func workPromoteLine(args []string) (id, kind string, flags map[string]string, err error) {
-	id, flags, err = workArgs("promote", args, "--id", "--kind", "--title")
-	if err != nil {
-		return "", "", nil, err
-	}
-	kind = flags["--kind"]
-	if kind != "slice" && kind != "task" {
-		return "", "", nil, usage("work promote needs --kind %s", strings.Join(promoteKinds, "|"))
-	}
-	if flags["--id"] != "" {
-		return "", "", nil, usage("work promote mints the %s id; do not pass --id", kind)
-	}
-	return id, kind, flags, nil
-}
-
 // workQueue is `work queue <id>… --top | --before <id> | --after <id> |
 // --remove` (slice 66; --drop before v6.0.0): the item put first in the registry's queue, just
 // before or after an item it holds, or taken out of it, the queue written

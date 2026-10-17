@@ -60,7 +60,9 @@
 //   - Take sets an item doing for a person (the owner left as it is when
 //     nobody is asked); Promote turns an idea into a slice or a task, renames
 //     it in every depends_on and in the queue, and replaces the title when
-//     --title gives one.
+//     --title gives one; a slice's why is led by "Was <idea>.", a task's
+//     dropped, its ledger entry holding it (slice 138). Promotable is what
+//     it refuses of the idea alone, judged before an id is minted.
 //   - Done closes an item (an idea, a deferred item, one not doing and one
 //     whose dependency is not done refused, one already done Unchanged);
 //     Unqueue then takes it out of the queue, a commit of its own.
