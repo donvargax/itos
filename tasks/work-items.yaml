@@ -9749,6 +9749,13 @@ items:
       history, with uncertain or mixed-purpose commits marked needs-review rather than inferred safe
       from item association or path names alone. The earlier extra example was a one-expression
       staticcheck repair; do not weaken lint or the current revert-first rule to reduce bookkeeping.
+
+      2026-10-17: joelhooks/piper's triage of a failed check fits this planner: retry it once, then
+      run it on the base without the change, and class the failure as a flake, a runner failure, a
+      broken base or the change's regression; and bisect a red range with probe builds to the commit
+      at fault. The nightly of 2026-10-17 (a runner shut down mid-plan) and main's red of the same
+      day (verify on old commits) are the two cases it would have told apart. See
+      p2-trunk-review-and-release.
     refs: [internal/guide/repair.md, internal/work/show.go, internal/cli/workshow.go]
 
   - id: slice-145
