@@ -63,11 +63,19 @@ func TestATransientFailureIsLookedPast(t *testing.T) {
 
 // A cancelled run is no verdict (bug 41): one whose branch has no newer run
 // of the commit exits 75, outcome cancelled; one that has, a rerun of the
-// commit itself here, is followed, and its result is the watch's.
+// commit itself here, is followed, and its result is the watch's. The first
+// watch ends at its first look: a second is an error that ends it, so a
+// watch that follows no run does not spin.
 func TestACancelledRunIsFollowedOr75(t *testing.T) {
 	noSleep(t)
 	cancelled := providers.Run{URL: "u", Status: "completed", Conclusion: "cancelled", ID: 1, HeadSHA: "abc", Branch: "main", Created: "1"}
-	look := func(string) (providers.Run, bool, error) { return cancelled, true, nil }
+	once := 0
+	look := func(string) (providers.Run, bool, error) {
+		if once++; once > 1 {
+			return providers.Run{}, false, errors.New("looked again")
+		}
+		return cancelled, true, nil
+	}
 	alone := func(string) ([]providers.Run, error) { return []providers.Run{cancelled}, nil }
 	var stdout, stderr strings.Builder
 	w := watchRun(watchConfig(0, 60), providers.Watcher{Look: look, Runs: alone}, "abc", "", Out{Stdout: &stdout, Stderr: &stderr})
