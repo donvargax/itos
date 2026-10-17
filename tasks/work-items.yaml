@@ -10602,3 +10602,25 @@ items:
       git status as a file with changes, so a git that cannot run makes every registry writer refuse
       with '<file> has changes no commit holds', naming the wrong cause. It should report git's
       failure as the error it is.
+
+  - id: p1-verify-verdict-once
+    title: CI judges each commit's verify once and keeps the verdict, keyed by its SHA
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The user (2026-10-17): a commit stays in CI's range until a green run covers it, and must be
+      judged on CI, not trusted from the client (hooks are UX, CI the real validation); slice-163's
+      per-commit config is too much work for its value, so commits.since keeps being moved by hand
+      meanwhile. Borrowed from mutation results: a verdict is data keyed by its input, a commit's
+      SHA (immutable: message, tree, parents). Unlike a mutant, a verdict must not go stale when the
+      rules change, since that is what made the false reds (T-136, T-188, T-142, T-149, #55); the
+      key is the SHA alone, the policy's hash kept as evidence. CI reads verdicts (say
+      refs/notes/itos-verify), skips commits it already passed, judges the rest by the current rules
+      and writes theirs back, also on runs red for other reasons. Open: verdicts only CI can write
+      (notes anyone with push access can forge; a signed note or a store clients cannot push to),
+      shared with p1-mutation-results-committed and p2-itos-data-store. Still uncovered: commits
+      left unpushed while rules change, and deleting a file with its rule in one push.
+    refs: [internal/cli/verify.go, internal/providers/range.go]
