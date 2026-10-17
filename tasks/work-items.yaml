@@ -55,6 +55,9 @@ phases:
   3: donvargax
 
 queue:
+  - T-185
+  - T-186
+  - T-187
   - slice-138
   - p1-text-from-file
   - p1-defer-reason-footer
