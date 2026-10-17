@@ -2235,3 +2235,22 @@
       timeout: 900
     - run: tools/bin/pinned itos-cc mutation run --since 9397855d98441c2276c0333e4938ca16e46a7aeb --count 60 --fail-uncovered=lines --json --seed 39029889396 $(go run ./tools/bin/nightly-base -linux-files cmd internal)
       timeout: 900
+
+- id: T-188
+  type: ci
+  title: Verification starts at the last green commit again, so main's CI can be green
+  why: >
+    T-136's case again. On 2026-10-17 a coordinator's push carried 213 spec commits an earlier
+    session had left unpushed, so the last green CI run (ee115257, run 38811909620, 2026-10-15) fell
+    227 first parents behind the head, past the 100 ci range asks (providers.FirstParentsAsked). ci
+    range then gave commits.since (32fc9144), and itos verify re-checked every commit since it:
+    seven commits written before today's path rules fail them (67d5f39, debd75c, 76a7cd3, 0ced4bc,
+    7f3d7f2, d253b04, 0439ca8: the vp, parity and TypeScript removals). Every run from 37b51ca1 on
+    is red, whatever it carries (39036532209, 39038502010). Every commit up to ee115257 passed
+    verify when it was pushed, and the 227 since pass itos verify ee115257 068abf04, so
+    commits.since moves to ee1152572b59c164bd15b3342a0f219d9c09595f, its comment saying so beside
+    T-136's. The cause, running out of first parents re-verifying all history, is slice-163's and
+    p1-verify-past-the-window's, not this task's.
+  done_when:
+    - run: tools/bin/itos verify 32fc9144f790f2e0341bbba7bac89722d5e2825a HEAD
+    - run: tools/bin/itos config check

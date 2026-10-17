@@ -10225,3 +10225,11 @@ items:
       wording passes every gate and the Nightly red issue goes back to saying nothing of the plan's
       failures, unseen until a red night. A self-test could run itos ci run --nightly with failing
       fake steps, as ci-mutation-budget does, and feed its output to nightly-report's reader.
+
+  - id: T-188
+    title: Verification starts at the last green commit again, so main's CI can be green
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task
