@@ -10702,3 +10702,19 @@ items:
       names), and fits ADR-0043 (checks gate work done, then leave) and the user's 'a check that
       passed never runs again'.
     refs: [internal/cli/workdone.go, internal/cli/hook.go, docs/decisions]
+
+  - id: p1-inbox-marks-triaged
+    title: The inbox marks the issues the registry already tracks
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      2026-10-17: the inbox listed 47 actionable open issues, and the coordinator took them for
+      untriaged; 44 were already cited by a registry item and left open as ORCHESTRATING.md's triage
+      rule says (linked from the item until it lands), so only three needed triage. Actionable says
+      who may direct the work, not whether it is recorded. The inbox could read the registry, the
+      ledger, the questions and the feature files for '#<n>' and split the actionable list into new
+      and tracked, naming the items for each tracked one.
+    refs: [tools/bin/inbox]
