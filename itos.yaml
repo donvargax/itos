@@ -117,9 +117,10 @@ commits:
   reject_message: "Commit rejected (see tasks/README.md):"
   # Where verification starts: verify and the range checks leave this commit
   # and its ancestors out. It was the template's squashed initial commit, which
-  # no rule passes; T-136 moved it to the last green run's commit, every commit
-  # up to which passed verify when pushed, once older commits failed later rules.
-  since: "32fc9144f790f2e0341bbba7bac89722d5e2825a"
+  # no rule passes; T-136, then T-188, moved it to the last green run's commit,
+  # every commit up to which passed verify when pushed, once older commits
+  # failed later rules.
+  since: "ee1152572b59c164bd15b3342a0f219d9c09595f"
 
 tests: # named tests, each kind behind an adapter (internal/tests)
   scenario:
