@@ -10239,6 +10239,9 @@ items:
       holds 12 old snapshots; mutation check cmd internal reports 1,171 functions missing.
     refs: [itos.yaml, itos-cc.yaml, .metrics/mutate, docs/decisions, https://github.com/donvargax/itos-cc/issues/56]
     tags: [ci, tests]
+    deferred: >
+      Waits on itos-cc#56: committed Go results go stale on any test change one import hop away, so
+      they cannot stay fresh here.
 
   - id: p1-nightly-report-reads-ci-run-output
     title: nightly-report is held to the failure lines itos ci run prints
