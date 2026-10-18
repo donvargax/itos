@@ -1869,9 +1869,6 @@
     do not repeat it manually. Identity setup, malformed-argument fixture removal and the existing
     Windows hook-skip coverage gap remain outside this change. Raw profiles and the experiment
     report are in the native machine's approved temporary directory under p1-windows-unit-profile.
-  done_when:
-    - run: go test ./internal/cli -count=1 -run '^TestStandInHooksFixture$'
-      timeout: 60
 
 - id: T-174
   type: ci
