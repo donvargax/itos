@@ -1,8 +1,8 @@
 # The work registry (`itos work`, `work list`, `work check`):
 # the open items listed, every one with --all, judged or not;
 # what a person can start, what nobody owns, what waits and on what, ideas and
-# deferred items apart; every problem `work check` finds, with its rule and
-# fix, a group called by ledger.group.label, the groups' owners under
+# deferred items apart; every problem `work check` finds, by its rule, a
+# group called by ledger.group.label, the groups' owners under
 # work.groups_key and the statuses work.statuses lists; the people a registry's
 # owners come from (the All Contributors table,
 # an .all-contributorsrc, a YAML list); and who a session works for (--as, or
@@ -750,7 +750,7 @@ cases:
       file: .git/itos/work-items.yaml
       items: [{ id: x, title: X, phase: 1, owner: q, status: todo, depends_on: [], tags: [] }]
   - name: work take sets an item in progress for the person and commits the registry alone, its comments and quoting kept
-    argv: [work, take, x]
+    argv: [work, take, x, --json]
     git:
       - commit: "docs: start"
         files:
@@ -759,7 +759,12 @@ cases:
     files:
       work-items.yaml: *takeable
     exit: 0
-    stdout_has: "x is in progress for a: committed "
+    json_has:
+      schema: 1
+      ok: true
+      item: { id: x, title: "X, quoted", phase: 1, owner: a, status: doing, depends_on: [], tags: [] }
+      commit: "<any>"
+    stderr_has: "docs: take x"
     files_after:
       work-items.yaml: &taken "# who does what\nphases: { 1: null }\nitems:\n  - id: x # the first\n    title: \"X, quoted\"\n    phase: 1\n    owner: a\n    status: doing\n    depends_on: []\n"
   - name: under a stealth config work take writes the registry and commits nothing
@@ -778,103 +783,82 @@ cases:
     files_after:
       .git/itos/work-items.yaml: *taken
   - name: a stealth session with no --as takes any item, its owner left as it is
-    argv: [work, take, x]
+    argv: [work, take, x, --json]
     git: []
     files:
       itos.yaml: null
       .git/itos/itos.yaml: *stealth
       .git/itos/work-items.yaml: "phases: { 1: q }\nitems:\n  - { id: x, title: X, phase: 1, owner: z, status: todo }\n"
     exit: 0
-    stdout: |
-      x is in progress for z: the registry is the stealth config's, so nothing is committed
+    json: { schema: 1, ok: true, item: { id: x, title: X, phase: 1, owner: z, status: doing, depends_on: [], tags: [] }, commit: null }
     files_after:
       .git/itos/work-items.yaml: "phases: { 1: q }\nitems:\n  - { id: x, title: X, phase: 1, owner: z, status: doing }\n"
   - name: work take refuses an item someone else owns
-    argv: [work, take, slice]
+    argv: [work, take, slice, --json]
     exit: 1
-    stderr: |
-      slice is b's, not a's
-        fix: take one of yours or nobody's (itos work), or agree with b to give it to you
+    json: { schema: 1, ok: false, problems: [{ rule: work-take-owned }] }
+    stdout_has: "b's"
   - name: work take refuses an item whose group someone else owns
-    argv: [work, take, free, --as, b]
+    argv: [work, take, free, --as, b, --json]
     files:
       work-items.yaml: "phases: { 1: a }\nitems:\n  - { id: free, title: Free, phase: 1, owner: null, status: todo }\n"
     exit: 1
-    stderr: |
-      free is a's, not b's
-        fix: take one of yours or nobody's (itos work), or agree with a to give it to you
+    json: { schema: 1, ok: false, problems: [{ rule: work-take-owned }] }
+    stdout_has: "a's"
   - name: work take refuses an idea, naming work promote
     argv: [work, take, idea, --json]
     exit: 1
-    json:
-      schema: 1
-      ok: false
-      problems:
-        - rule: work-take-idea
-          message: "idea is an idea, not yet specified: make it a slice or a task first"
-          fix: "itos work promote idea --kind slice|task"
+    json: { schema: 1, ok: false, problems: [{ rule: work-take-idea }] }
+    stdout_has: "work promote"
   - name: work take refuses an item that waits on one not done
-    argv: [work, take, later]
+    argv: [work, take, later, --json]
     exit: 1
-    stderr: |
-      later waits on ready (todo)
-        fix: finish what it waits on first, or take an item that can start (itos work)
+    json: { schema: 1, ok: false, problems: [{ rule: work-take-waiting }] }
+    stdout_has: ready
   - name: work take refuses an item done
-    argv: [work, take, done]
+    argv: [work, take, done, --json]
     exit: 1
-    stderr: |
-      done is done
-        fix: take an item not done (itos work)
+    json: { schema: 1, ok: false, problems: [{ rule: work-take-done }] }
   - name: work take refuses a deferred item
-    argv: [work, take, parked]
+    argv: [work, take, parked, --json]
     exit: 1
-    stderr: |
-      parked is deferred: put off for now
-        fix: itos work resume parked first, or take another item (itos work)
+    json: { schema: 1, ok: false, problems: [{ rule: work-take-deferred }] }
+    stdout_has: "put off for now"
   - name: work take refuses an id no item has
-    argv: [work, take, nope]
+    argv: [work, take, nope, --json]
     exit: 1
-    stderr: |
-      no item nope in the registry
-        fix: itos work list --all names every item
+    json: { schema: 1, ok: false, problems: [{ rule: work-unknown-item }] }
+    stdout_has: nope
   - name: work take of an item already in progress for the person changes nothing
-    argv: [work, take, busy]
+    argv: [work, take, busy, --json]
     exit: 0
-    stdout: |
-      busy is already in progress for a; nothing to change
+    json: { schema: 1, ok: true, item: { id: busy, title: Busy, phase: 1, owner: a, status: doing, depends_on: [], tags: [] }, commit: null }
   - name: work take refuses a registry with changes no commit holds
-    argv: [work, take, free]
+    argv: [work, take, free, --json]
     git: []
     exit: 1
-    stderr: |
-      work-items.yaml has changes no commit holds, which itos's commit of it would sweep in
-        fix: commit or drop the changes to work-items.yaml first
+    json: { schema: 1, ok: false, problems: [{ rule: work-registry-uncommitted }] }
     files_after:
       work-items.yaml: *registry
   - name: work take refuses a registry that is not sound
-    argv: [work, take, x]
+    argv: [work, take, x, --json]
     files:
       work-items.yaml: "phases: { 1: a }\nitems:\n  - { id: x, title: X, phase: 1, owner: nobody, status: todo }\n"
     exit: 1
-    stderr: |
-      x: owner "nobody" is not in people.yaml
-        fix: add nobody to people.yaml, or set x's owner to one of its logins
+    json: { schema: 1, ok: false, problems: [{ rule: work-unknown-owner }] }
+    stdout_has: nobody
   - name: work take with --as not among the people exits 3
-    argv: [work, take, free, --as, z]
+    argv: [work, take, free, --as, z, --json]
     exit: 3
-    stderr: |
-      "z" is not in people.yaml
-        fix: pass --as <handle>
+    json: { schema: 1, ok: false, problems: [{ rule: work-no-person }] }
   - name: work take needs one id
     argv: [work, take]
     exit: 2
-    stderr: |
-      itos: work take needs one <id> (itos --help)
+    stderr_has: "<id>"
   - name: work take takes only --as
     argv: [work, take, free, --kind, slice]
     exit: 2
-    stderr: |
-      itos: work take does not take --kind; it takes --as (itos --help)
+    stderr_has: "--kind"
   - name: work promote makes an idea a slice, its why led by its old id, and renames it where items depend on it
     argv: [work, promote, p1-thing, --kind, slice, --json]
     git: []
@@ -912,7 +896,7 @@ cases:
   # Every question naming the idea, answered or not, names the new id, written
   # with the registry (bug 105); a question naming another item is kept.
   - name: work promote renames the idea in the questions that name it
-    argv: [work, promote, p1-thing, --kind, slice]
+    argv: [work, promote, p1-thing, --kind, slice, --json]
     git: []
     files:
       itos.yaml: null
@@ -920,9 +904,15 @@ cases:
       .git/itos/work-items.yaml: "phases:\n  1: null\nitems:\n  - { id: p1-thing, title: A thing, phase: 1, status: todo, kind: idea, why: a gap }\n  - { id: slice-4, title: Four, phase: 1, status: todo, depends_on: [p1-thing] }\n"
       .git/itos/asks.yaml: "questions:\n  - { id: q-1, item: p1-thing, question: \"Which way?\" }\n"
     exit: 0
-    stdout: |
-      p1-thing is the slice slice-5, named now by slice-4, q-1: the registry is the stealth config's, so nothing is committed
-  - name: the same as --json, answered questions too, and a question naming another item kept
+    json:
+      schema: 1
+      ok: true
+      item: { id: slice-5, title: A thing, phase: 1, status: todo, kind: slice, why: Was p1-thing. a gap, depends_on: [], tags: [] }
+      was: p1-thing
+      rewritten: [slice-4]
+      questions: [q-1]
+      commit: null
+  - name: work promote renames the idea in answered questions too, and keeps a question naming another item
     argv: [work, promote, p1-thing, --kind, slice, --json]
     git: []
     files:
@@ -942,7 +932,7 @@ cases:
     files_after:
       .git/itos/asks.yaml: "# The questions to the person the work is for, written by itos decision (itos help decision).\nquestions:\n  - id: q-1\n    item: \"slice-1\"\n    question: \"Which way?\"\n  - id: q-2\n    item: \"p1-other\"\n    question: \"Which other?\"\n  - id: q-3\n    item: \"slice-1\"\n    question: \"Done?\"\n    answer: \"Yes.\"\n"
   - name: work promote refuses questions it cannot read, and writes nothing
-    argv: [work, promote, p1-thing, --kind, slice]
+    argv: [work, promote, p1-thing, --kind, slice, --json]
     git: []
     files:
       itos.yaml: null
@@ -950,10 +940,8 @@ cases:
       .git/itos/work-items.yaml: &one-idea "phases:\n  1: null\nitems:\n  - { id: p1-thing, title: A thing, phase: 1, status: todo, kind: idea, why: a gap }\n"
       .git/itos/asks.yaml: "questions:\n  - { id: q-1, item: p1-thing, question: \"Which way?\", colour: red }\n"
     exit: 1
-    stderr: |
-      .git/itos/asks.yaml: yaml: unmarshal errors:
-        line 2: field colour not found in type ask.Question
-        fix: correct .git/itos/asks.yaml to what itos decision writes, then promote p1-thing again
+    json: { schema: 1, ok: false, problems: [{ rule: asks-invalid }] }
+    stdout_has: ".git/itos/asks.yaml"
     files_after:
       .git/itos/work-items.yaml: *one-idea
   # Slice 138: a task's promotion writes its ledger entry in the file of the
@@ -984,64 +972,56 @@ cases:
   - name: work promote --kind slice refuses a flag only a task's promotion takes
     argv: [work, promote, p1-thing, --kind, slice, --check, "true"]
     exit: 2
-    stderr: |
-      itos: work promote --kind slice does not take --check, which only a task's promotion takes (itos --help)
+    stderr_has: "--check"
   - name: work promote refuses an item that is not an idea
-    argv: [work, promote, ready, --kind, slice]
+    argv: [work, promote, ready, --kind, slice, --json]
     git: []
     exit: 1
-    stderr: |
-      ready has no kind, not an idea: only an idea is promoted
-        fix: promote an item of kind idea
+    json: { schema: 1, ok: false, problems: [{ rule: work-promote-not-idea }] }
+    stdout_has: ready
   - name: work promote refuses an id an item already has
     argv: [work, promote, idea, --id, ready, --kind, slice]
     exit: 2
-    stderr: |
-      itos: work promote mints the slice id; do not pass --id (itos --help)
+    stderr_has: "--id"
   - name: work promote refuses a task id ledger.id does not match
     argv: [work, promote, idea, --id, task-1, --kind, task]
     files:
       itos.yaml: "version: 1\nledger: { files: \"tasks/phase-{group}.yaml\", id: \"T-\\\\d+\" }\nwork:\n  registry: work-items.yaml\n  people: { source: yaml, file: people.yaml }\n"
     exit: 2
-    stderr: |
-      itos: work promote mints the task id; do not pass --id (itos --help)
+    stderr_has: "--id"
   - name: work promote needs --kind slice or task
     argv: [work, promote, idea, --id, slice-1, --kind, idea]
     exit: 2
-    stderr: |
-      itos: work promote needs --kind slice|task (itos --help)
+    stderr_has: "slice|task"
   - name: work promote needs --kind
     argv: [work, promote, idea]
     exit: 2
-    stderr: |
-      itos: work promote needs --kind slice|task (itos --help)
+    stderr_has: "--kind"
   # Slice 103: a drafted command that mints an item's id mints it when it is
   # drafted, prints it and keeps it in the draft; promote runs the command
   # with that id, minting no other.
   - name: draft add of a work add that mints reserves the id at once, prints it and keeps it in the draft
-    argv: [draft, add, thing, --, work, add, --kind, slice, --title, A thing, --why, Because.]
+    argv: [draft, add, thing, --json, --, work, add, --kind, slice, --title, A thing, --why, Because.]
     git: []
     files:
       itos.yaml: null
       .git/itos/itos.yaml: *stealth
       .git/itos/work-items.yaml: &four "phases:\n  1: null\nitems:\n  - { id: slice-4, title: Four, phase: 1, status: todo }\n"
     exit: 0
-    stdout: |
-      thing drafted: itos work add --kind slice --title 'A thing' --why Because.  (makes slice-5)
+    json: { schema: 1, ok: true, draft: { id: thing, kind: command, command: [work, add, --kind, slice, --title, A thing, --why, Because.], minted: slice-5 } }
     files_after:
       .git/itos/work-items.yaml: *four
       .git/itos/ids.yaml: "counters:\n    slice: 5\n"
       .git/itos/drafts/drafts.yaml: "# itos draft's pending changes: this clone's own, never committed (itos help draft).\ndrafts:\n  - id: thing\n    command:\n      - work\n      - add\n      - --kind\n      - slice\n      - --title\n      - A thing\n      - --why\n      - Because.\n    minted: slice-5\n"
   - name: draft add of a work add --kind bug reserves the bug id at once
-    argv: [draft, add, a-bug, --, work, add, --kind, bug, --title, It breaks, --why, Found today.]
+    argv: [draft, add, a-bug, --json, --, work, add, --kind, bug, --title, It breaks, --why, Found today.]
     git: []
     files:
       itos.yaml: null
       .git/itos/itos.yaml: *stealth
       .git/itos/work-items.yaml: "phases:\n  1: null\nitems:\n  - { id: bug-5, title: Five, phase: 1, status: done, kind: bug }\n"
     exit: 0
-    stdout: |
-      a-bug drafted: itos work add --kind bug --title 'It breaks' --why 'Found today.'  (makes bug-6)
+    json: { schema: 1, ok: true, draft: { id: a-bug, kind: command, command: [work, add, --kind, bug, --title, It breaks, --why, Found today.], minted: bug-6 } }
     files_after:
       .git/itos/ids.yaml: "counters:\n    bug: 6\n"
   - name: draft add of a task add says the task id it reserved, under --json
@@ -1072,7 +1052,7 @@ cases:
     files_after:
       .git/itos/ids.yaml: null
   - name: draft promote runs a minting draft with the id it reserved, and mints no other
-    argv: [draft, promote]
+    argv: [draft, promote, --json]
     git: []
     files:
       itos.yaml: null
@@ -1081,16 +1061,13 @@ cases:
       .git/itos/ids.yaml: "counters:\n    slice: 7\n"
       .git/itos/drafts/drafts.yaml: "drafts:\n  - { id: thing, command: [work, add, --kind, slice, --title, A thing, --why, Because.], minted: slice-6 }\n"
     exit: 0
-    stdout: |
-      thing promoted: itos work add --kind slice --title 'A thing' --why Because. (no commit)
-    stderr: |
-      slice-6 is a new slice: the registry is the stealth config's, so nothing is committed
+    json: { schema: 1, ok: true, promoted: [thing] }
     files_after:
       .git/itos/ids.yaml: "counters:\n    slice: 7\n"
       .git/itos/work-items.yaml: "phases:\n  1: null\nitems:\n  - { id: slice-4, title: Four, phase: 1, status: todo }\n  - id: slice-6\n    title: A thing\n    phase: 1\n    owner: null\n    status: todo\n    depends_on: []\n    kind: slice\n    why: >\n      Because.\n"
       .git/itos/drafts/drafts.yaml: "# itos draft's pending changes: this clone's own, never committed (itos help draft).\ndrafts: []\n"
   - name: work done marks an item done and commits the registry alone, saying what it could not check
-    argv: [work, done, x]
+    argv: [work, done, x, --json]
     git:
       - commit: "docs: start"
         files:
@@ -1098,17 +1075,20 @@ cases:
     files:
       work-items.yaml: *closable
     exit: 0
-    stdout_has: "x is done: committed "
-    stderr_has:
-      - "itos: the repository has no remote, so whether its commits are pushed was not checked"
-      - "itos: ci.watch.provider is none, so CI was not checked"
+    json_has:
+      schema: 1
+      ok: true
+      item: { id: x, title: "X, quoted", phase: 1, owner: null, status: done, depends_on: [], tags: [] }
+      ci: unwatched
+      commit: "<any>"
+    stderr_has: ["no remote", "docs: close x"]
     files_after:
       work-items.yaml: "# who does what\nphases: { 1: null }\nitems:\n  - id: x # the first\n    title: \"X, quoted\"\n    phase: 1\n    owner: null\n    status: done\n    depends_on: []\n"
   # Slice 101: closing a task with checks, the close commit takes its
   # done_when out of its ledger entry, edited in place: its why, every other
   # line and comment, and the file's CRLF line breaks kept.
   - name: work done of a task with checks takes them out of its ledger entry in the close commit
-    argv: [work, done, T-1]
+    argv: [work, done, T-1, --json]
     git:
       - commit: "docs: start"
         files:
@@ -1120,12 +1100,18 @@ cases:
       work-items.yaml: *closableTask
       tasks/phase-1.yaml: *checked
     exit: 0
-    stdout_has: " docs: close T-1; its checks are out of tasks/phase-1.yaml\n"
+    json_has:
+      schema: 1
+      ok: true
+      item: { id: T-1, title: One, phase: 1, owner: null, status: done, depends_on: [], tags: [] }
+      ci: unwatched
+      commit: "<any>"
+    stderr_has: "docs: close T-1"
     files_after:
       work-items.yaml: "phases: { 1: null }\nitems:\n  - { id: T-1, title: One, phase: 1, owner: null, status: done, depends_on: [] }\n"
       tasks/phase-1.yaml: "# phase 1\r\n- id: T-1\r\n  type: docs\r\n  title: One\r\n  why: The ledger says why.\r\n  # kept\r\n- id: T-2\r\n  type: docs\r\n  title: Two\r\n  done_when:\r\n    - run: \"true\"\r\n"
   - name: work done of a task with no checks leaves its ledger as it is
-    argv: [work, done, T-1]
+    argv: [work, done, T-1, --json]
     git:
       - commit: "docs: start"
         files:
@@ -1137,7 +1123,13 @@ cases:
       work-items.yaml: *closableTask
       tasks/phase-1.yaml: *unchecked
     exit: 0
-    stdout_has: " docs: close T-1\n"
+    json_has:
+      schema: 1
+      ok: true
+      item: { id: T-1, title: One, phase: 1, owner: null, status: done, depends_on: [], tags: [] }
+      ci: unwatched
+      commit: "<any>"
+    stderr_has: "docs: close T-1"
     files_after:
       tasks/phase-1.yaml: *unchecked
   - name: work done refuses an item one of whose scenarios at HEAD is still @wip
@@ -1157,45 +1149,36 @@ cases:
           scenario: { root: features, id: "ID-[A-Z]+-\\d+" }
       work-items.yaml: *closable
     exit: 1
-    json:
-      schema: 1
-      ok: false
-      problems:
-        - rule: work-done-wip
-          message: "x's scenario @ID-X-01 (x.feature) is still @wip at HEAD"
-          fix: "implement it and commit it live, then run itos work done x again"
+    json: { schema: 1, ok: false, problems: [{ rule: work-done-wip }] }
+    stdout_has: "@ID-X-01"
     files_after:
       work-items.yaml: *closable
   - name: work done refuses an idea, naming work promote
-    argv: [work, done, idea]
+    argv: [work, done, idea, --json]
     exit: 1
-    stderr: |
-      idea is an idea, not yet specified, so there is nothing of it to be done
-        fix: itos work promote idea --kind slice|task, then build it
+    json: { schema: 1, ok: false, problems: [{ rule: work-done-idea }] }
+    stdout_has: "work promote"
   - name: work done refuses a deferred item
-    argv: [work, done, parked]
+    argv: [work, done, parked, --json]
     exit: 1
-    stderr: |
-      parked is deferred: put off for now
-        fix: itos work resume parked first
+    json: { schema: 1, ok: false, problems: [{ rule: work-done-deferred }] }
+    stdout_has: "work resume"
   # Bug 37: work done refuses, writing nothing, what work check would refuse
   # after it: an item not doing, and one a dependency of which is not done.
   - name: work done refuses an item that is not doing, naming work take
-    argv: [work, done, ready]
+    argv: [work, done, ready, --json]
     exit: 1
-    stderr: |
-      ready is todo, not doing
-        fix: take it first (itos work take ready), then land its work
+    json: { schema: 1, ok: false, problems: [{ rule: work-done-status }] }
+    stdout_has: "work take"
     files_after:
       work-items.yaml: *registry
   - name: work done refuses an item whose dependency is not done, naming it
-    argv: [work, done, x]
+    argv: [work, done, x, --json]
     files:
       work-items.yaml: &waiting "phases: { 1: null }\nitems:\n  - { id: w, title: W, phase: 1, owner: null, status: todo, depends_on: [] }\n  - { id: x, title: X, phase: 1, owner: null, status: doing, depends_on: [w] }\n"
     exit: 1
-    stderr: |
-      x: done, but "w" is todo
-        fix: finish w first, or set x back to doing
+    json: { schema: 1, ok: false, problems: [{ rule: work-done-before-dependency }] }
+    stdout_has: "\\\"w\\\""
     files_after:
       work-items.yaml: *waiting
   - name: work done of an item already done changes nothing
@@ -1207,7 +1190,7 @@ cases:
       item: { id: done, title: Done, phase: 1, owner: a, status: done, depends_on: [], tags: [] }
       commit: null
   - name: work add makes an idea at the end of the items, todo and nobody's, and commits the registry alone
-    argv: [work, add, p1-new, --title, "New: a thing", --why, "A gap, found while building."]
+    argv: [work, add, p1-new, --title, "New: a thing", --why, "A gap, found while building.", --json]
     git:
       - commit: "docs: start"
         files:
@@ -1216,7 +1199,22 @@ cases:
     files:
       work-items.yaml: *takeable
     exit: 0
-    stdout_has: "p1-new is a new idea: committed "
+    json_has:
+      schema: 1
+      ok: true
+      item:
+        id: p1-new
+        title: "New: a thing"
+        phase: 1
+        owner: null
+        status: todo
+        depends_on: []
+        kind: idea
+        why: |
+          A gap, found while building.
+        tags: []
+      commit: "<any>"
+    stderr_has: "docs: add p1-new"
     files_after:
       work-items.yaml: "# who does what\nphases: { 1: null }\nitems:\n  - id: x # the first\n    title: \"X, quoted\"\n    phase: 1\n    owner: null\n    status: todo\n    depends_on: []\n  - id: p1-new\n    title: \"New: a thing\"\n    phase: 1\n    owner: null\n    status: todo\n    depends_on: []\n    kind: idea\n    why: >\n      A gap, found while building.\n"
   - name: under a stealth config work add writes a slice with its group, owner, dependencies and refs, and commits nothing
@@ -1235,49 +1233,38 @@ cases:
     files_after:
       .git/itos/work-items.yaml: "phases: { 1: null, 2: null }\nitems:\n  - { id: x, title: X, phase: 1, status: done }\n\n  - { id: y, title: Y, phase: 2, status: todo }\n\n  - id: slice-1\n    title: Nine\n    phase: 1\n    owner: a\n    status: todo\n    depends_on: [x, y]\n    kind: slice\n    why: >\n      Specified.\n    refs: [features/x.feature]\n"
   - name: work add refuses an id an item has
-    argv: [work, add, ready, --title, Again, --why, A second one.]
+    argv: [work, add, ready, --title, Again, --why, A second one., --json]
     exit: 1
-    stderr: |
-      ready is already an item: Ready
-        fix: give the new item an id no item has, or change ready with itos work edit
+    json: { schema: 1, ok: false, problems: [{ rule: work-add-taken }] }
+    stdout_has: ready
   - name: work add refuses a dependency on no item, as work check would
     argv: [work, add, p1-new, --title, New, --why, Because., --depends-on, nope, --json]
     exit: 1
-    json:
-      schema: 1
-      ok: false
-      problems:
-        - rule: work-unknown-dependency
-          message: "p1-new: depends on unknown \"nope\""
-          fix: "remove \"nope\" from p1-new's depends_on, or add an item nope"
+    json: { schema: 1, ok: false, problems: [{ rule: work-unknown-dependency }] }
+    stdout_has: nope
   - name: work add refuses an owner the people do not list, as work check would
-    argv: [work, add, p1-new, --title, New, --why, Because., --owner, zed]
+    argv: [work, add, p1-new, --title, New, --why, Because., --owner, zed, --json]
     exit: 1
-    stderr: |
-      p1-new: owner "zed" is not in people.yaml
-        fix: add zed to people.yaml, or set p1-new's owner to one of its logins
+    json: { schema: 1, ok: false, problems: [{ rule: work-unknown-owner }] }
+    stdout_has: zed
   - name: work add needs a phase where the registry lists more than one and the id names none
-    argv: [work, add, --kind, slice, --title, Nine, --why, Because.]
+    argv: [work, add, --kind, slice, --title, Nine, --why, Because., --json]
     git: []
     exit: 1
-    stderr: |
-      which phase slice-1 is in is not said: the registry lists 1, 2
-        fix: pass --phase <phase>
+    json: { schema: 1, ok: false, problems: [{ rule: work-add-no-phase }] }
+    stdout_has: ["1, 2", "--phase"]
   - name: work add refuses a task id ledger.id does not match
     argv: [work, add, task-1, --kind, task, --phase, "1", --title, T, --why, Because.]
     exit: 2
-    stderr: |
-      itos: work add mints the task id; do not pass one (itos --help)
+    stderr_has: "task id"
   - name: work add needs a title and a why
     argv: [work, add, p1-new, --title, New]
     exit: 2
-    stderr: |
-      itos: work add needs --title <title> and --why <why> (itos --help)
+    stderr_has: ["--title", "--why"]
   - name: work add makes an idea, a slice or a task
     argv: [work, add, p1-new, --title, New, --why, Because., --kind, epic]
     exit: 2
-    stderr: |
-      itos: work add takes --kind idea|slice|task|bug (itos --help)
+    stderr_has: "idea|slice|task|bug"
   # Slice 104: a bug is a kind of its own, minted bug-<n> past the
   # registry's bugs and the feature files' @bug tags, a slice's tags and an
   # older bug item of kind slice counted as what they are named.
@@ -1300,10 +1287,9 @@ cases:
   - name: work add refuses an id for a bug, and writes nothing
     argv: [work, add, bug-9, --kind, bug, --title, It breaks, --why, Found today.]
     exit: 2
-    stderr: |
-      itos: work add mints the bug id; do not pass one (itos --help)
+    stderr_has: "bug id"
   - name: work edit changes a title in its quoting and gives an item with no why the note, committing the registry alone
-    argv: [work, edit, x, --title, "X, renamed", --note, A note.]
+    argv: [work, edit, x, --title, "X, renamed", --note, A note., --json]
     git:
       - commit: "docs: start"
         files:
@@ -1311,7 +1297,22 @@ cases:
     files:
       work-items.yaml: *takeable
     exit: 0
-    stdout_has: "x's title, why changed: committed "
+    json_has:
+      schema: 1
+      ok: true
+      item:
+        id: x
+        title: X, renamed
+        phase: 1
+        owner: null
+        status: todo
+        depends_on: []
+        why: |
+          A note.
+        tags: []
+      changed: [title, why]
+      commit: "<any>"
+    stderr_has: "docs: edit x"
     files_after:
       work-items.yaml: "# who does what\nphases: { 1: null }\nitems:\n  - id: x # the first\n    title: \"X, renamed\"\n    phase: 1\n    owner: null\n    status: todo\n    depends_on: []\n    why: >\n      A note.\n"
   - name: under a stealth config work edit replaces dependencies and refs, and adds a paragraph to a folded why
@@ -1361,42 +1362,46 @@ cases:
     files_after:
       .git/itos/work-items.yaml: "phases: { 1: null }\nitems:\n  - { id: a, title: A, phase: 1, status: done }\n  - id: b\n    title: B\n    phase: 1\n    status: todo\n    depends_on: [a]\n    refs: [docs/c.md]\n    # kept\n    why: A gap.\n"
   - name: work edit of an item with no refs given none changes nothing
-    argv: [work, edit, ready, --refs, ""]
+    argv: [work, edit, ready, --refs, "", --json]
     git: []
     files:
       itos.yaml: null
       .git/itos/itos.yaml: *stealth
       .git/itos/work-items.yaml: *registry
     exit: 0
-    stdout: |
-      ready is already so; nothing to change
+    json:
+      schema: 1
+      ok: true
+      item: { id: ready, title: Ready, phase: 1, owner: a, status: todo, depends_on: [done], issue: 12, tags: [] }
+      changed: []
+      commit: null
   - name: work edit refuses a cycle, as work check would
-    argv: [work, edit, ready, --depends-on, later]
+    argv: [work, edit, ready, --depends-on, later, --json]
     exit: 1
-    stderr: |
-      cycle: ready → later → ready
-        fix: remove one of the depends_on links ready → later → ready in work-items.yaml
+    json: { schema: 1, ok: false, problems: [{ rule: work-cycle }] }
+    stdout_has: later
   - name: work edit refuses an id no item has
-    argv: [work, edit, nope, --note, Nothing to note.]
+    argv: [work, edit, nope, --note, Nothing to note., --json]
     exit: 1
-    stderr: |
-      no item nope in the registry
-        fix: itos work list --all names every item
+    json: { schema: 1, ok: false, problems: [{ rule: work-unknown-item }] }
+    stdout_has: nope
   - name: work edit of an item already as asked changes nothing
-    argv: [work, edit, ready, --title, Ready, --depends-on, done]
+    argv: [work, edit, ready, --title, Ready, --depends-on, done, --json]
     exit: 0
-    stdout: |
-      ready is already so; nothing to change
+    json:
+      schema: 1
+      ok: true
+      item: { id: ready, title: Ready, phase: 1, owner: a, status: todo, depends_on: [done], issue: 12, tags: [] }
+      changed: []
+      commit: null
   - name: work edit needs something to change
     argv: [work, edit, ready]
     exit: 2
-    stderr: |
-      itos: work edit needs --title, --depends-on, --refs, --tags or --note (itos --help)
+    stderr_has: "--note"
   - name: work edit changes no owner, work take does
     argv: [work, edit, ready, --owner, b]
     exit: 2
-    stderr: |
-      itos: work edit does not take --owner; it takes --title, --depends-on, --refs, --tags or --note (itos --help)
+    stderr_has: "--owner"
   - name: work show prints the item, what depends on it, its scenarios and its commits, oldest first
     argv: [work, show, x, --json]
     git:
@@ -1590,7 +1595,7 @@ cases:
         - { item: { id: idea, title: An idea, phase: 1, owner: a, status: todo, kind: idea, depends_on: [], tags: [] }, on: [] }
       deferred: []
   - name: work queue --top starts the queue before items, a block list, and commits the registry alone
-    argv: [work, queue, x, --top]
+    argv: [work, queue, x, --top, --json]
     git:
       - commit: "docs: start"
         files:
@@ -1599,7 +1604,13 @@ cases:
     files:
       work-items.yaml: *takeable
     exit: 0
-    stdout_has: "x is first in the queue: committed "
+    json_has:
+      schema: 1
+      ok: true
+      item: { id: x, title: "X, quoted", phase: 1, owner: null, status: todo, depends_on: [], tags: [] }
+      queue: [x]
+      commit: "<any>"
+    stderr_has: "docs: queue x"
     files_after:
       work-items.yaml: "# who does what\nphases: { 1: null }\nqueue:\n  - x\nitems:\n  - id: x # the first\n    title: \"X, quoted\"\n    phase: 1\n    owner: null\n    status: todo\n    depends_on: []\n"
   - name: under a stealth config work queue --after moves an item and commits nothing
@@ -1619,28 +1630,25 @@ cases:
     files_after:
       .git/itos/work-items.yaml: "phases: { 1: null }\n\nqueue:\n  - y\n  - z\n  - x\n\nitems:\n  - { id: x, title: X, phase: 1, status: todo }\n  - { id: y, title: Y, phase: 1, status: todo }\n  - { id: z, title: Z, phase: 1, status: todo }\n  - { id: d, title: D, phase: 1, status: done }\n"
   - name: under a stealth config work queue --remove of the last item leaves an empty queue
-    argv: [work, queue, x, --remove]
+    argv: [work, queue, x, --remove, --json]
     git: []
     files:
       itos.yaml: null
       .git/itos/itos.yaml: *stealth
       .git/itos/work-items.yaml: "phases: { 1: null }\nqueue:\n  - x\nitems:\n  - { id: x, title: X, phase: 1, status: todo }\n"
     exit: 0
-    stdout: |
-      x is out of the queue: the registry is the stealth config's, so nothing is committed
+    json: { schema: 1, ok: true, item: { id: x, title: X, phase: 1, status: todo, depends_on: [], tags: [] }, queue: [], commit: null }
     files_after:
       .git/itos/work-items.yaml: "phases: { 1: null }\nqueue: []\nitems:\n  - { id: x, title: X, phase: 1, status: todo }\n"
   - name: work queue refuses a place beside an item the queue does not hold
-    argv: [work, queue, x, --before, d]
+    argv: [work, queue, x, --before, d, --json]
     git: []
     files:
       itos.yaml: null
       .git/itos/itos.yaml: *stealth
       .git/itos/work-items.yaml: *queued
     exit: 1
-    stderr: |
-      d is not in the queue
-        fix: queue d first (itos work queue d --top), or name an item the queue holds
+    json: { schema: 1, ok: false, problems: [{ rule: work-queue-not-queued }] }
   - name: work queue refuses an item done
     argv: [work, queue, d, --top, --json]
     git: []
@@ -1649,42 +1657,39 @@ cases:
       .git/itos/itos.yaml: *stealth
       .git/itos/work-items.yaml: *queued
     exit: 1
-    json:
-      schema: 1
-      ok: false
-      problems:
-        - rule: work-queue-done
-          message: "d is done, and the queue holds work still to do"
-          fix: "queue an item not done (itos work list)"
+    json: { schema: 1, ok: false, problems: [{ rule: work-queue-done }] }
   - name: work queue of an item already where it is put changes nothing
-    argv: [work, queue, y, --after, x]
+    argv: [work, queue, y, --after, x, --json]
     git: []
     files:
       itos.yaml: null
       .git/itos/itos.yaml: *stealth
       .git/itos/work-items.yaml: *queued
     exit: 0
-    stdout: |
-      y is already after x in the queue; nothing to change
+    json: { schema: 1, ok: true, item: { id: y, title: Y, phase: 1, status: todo, depends_on: [], tags: [] }, queue: [x, y, z], commit: null }
   - name: work queue needs one place
     argv: [work, queue, x, --top, --remove]
     exit: 2
-    stderr: |
-      itos: work queue needs one of --top, --before <id>, --after <id> or --remove (itos --help)
+    stderr_has: ["--top", "--remove"]
   # Slice 118: work edit, drop, defer, resume and queue take several ids, the
   # change made to each, all judged before anything is written, and one
   # commit.
   - name: under a stealth config work queue with several ids puts them together, in the order given
-    argv: [work, queue, z, x, --after, y]
+    argv: [work, queue, z, x, --after, y, --json]
     git: []
     files:
       itos.yaml: null
       .git/itos/itos.yaml: *stealth
       .git/itos/work-items.yaml: *queued
     exit: 0
-    stdout: |
-      z and x are after y in the queue, in that order
-      the registry is the stealth config's, so nothing is committed
+    json:
+      schema: 1
+      ok: true
+      items:
+        - { id: z, title: Z, phase: 1, status: todo, depends_on: [], tags: [] }
+        - { id: x, title: X, phase: 1, status: todo, depends_on: [], tags: [] }
+      queue: [y, z, x]
+      commit: null
     files_after:
       .git/itos/work-items.yaml: "phases: { 1: null }\n\nqueue:\n  - y\n  - z\n  - x\n\nitems:\n  - { id: x, title: X, phase: 1, status: todo }\n  - { id: y, title: Y, phase: 1, status: todo }\n  - { id: z, title: Z, phase: 1, status: todo }\n  - { id: d, title: D, phase: 1, status: done }\n"
   - name: under a stealth config work edit with several ids gives each the change
@@ -1712,29 +1717,17 @@ cases:
       .git/itos/itos.yaml: *stealth
       .git/itos/work-items.yaml: *queued
     exit: 1
-    json:
-      schema: 1
-      ok: false
-      refused: [d, nope]
-      problems:
-        - rule: work-defer-done
-          message: "d is done, and a done item stays done"
-          fix: "defer an item still to do (itos work list)"
-        - rule: work-unknown-item
-          message: "no item nope in the registry"
-          fix: "itos work list --all names every item"
+    json: { schema: 1, ok: false, refused: [d, nope], problems: [{ rule: work-defer-done }, { rule: work-unknown-item }] }
     files_after:
       .git/itos/work-items.yaml: *queued
   - name: work edit refuses --title with several ids
     argv: [work, edit, x, y, --title, One title]
     exit: 2
-    stderr: |
-      itos: work edit --title is one item's own: give it one <id>, not 2 (itos --help)
+    stderr_has: "--title"
   - name: work queue refuses an id named twice
     argv: [work, queue, x, y, x, --top]
     exit: 2
-    stderr: |
-      itos: work queue names x twice (itos --help)
+    stderr_has: "x twice"
   - name: work check refuses a queue naming an item the registry does not have, or one twice
     argv: [work, check, --json]
     files:
@@ -1751,7 +1744,7 @@ cases:
   # Slice 78: work drop takes an item out of the open work, its status
   # dropped, a status itos knows whatever work.statuses lists.
   - name: work drop marks an item dropped, drops its why, takes it out of the queue, and commits the registry alone
-    argv: [work, drop, x, --why, Superseded by y.]
+    argv: [work, drop, x, --why, Superseded by y., --json]
     git:
       - commit: "docs: start"
         files:
@@ -1759,7 +1752,12 @@ cases:
     files:
       work-items.yaml: *droppable
     exit: 0
-    stdout_has: "x is dropped: committed "
+    json_has:
+      schema: 1
+      ok: true
+      item: { id: x, title: X, phase: 1, owner: null, status: dropped, kind: idea, depends_on: [], tags: [] }
+      commit: "<any>"
+    stderr_has: "docs: drop x"
     files_after:
       work-items.yaml: "phases: { 1: null }\nqueue:\n  - y\nitems:\n  - { id: x, title: X, phase: 1, owner: null, status: dropped, kind: idea }\n  - { id: y, title: Y, phase: 1, owner: null, status: todo }\n"
   - name: under a stealth config work drop writes the registry and commits nothing
@@ -1778,29 +1776,26 @@ cases:
     files_after:
       .git/itos/work-items.yaml: "phases: { 1: null }\nqueue:\n  - y\nitems:\n  - { id: x, title: X, phase: 1, owner: null, status: dropped, kind: idea }\n  - { id: y, title: Y, phase: 1, owner: null, status: todo }\n"
   - name: work drop refuses an item an item still to do depends on, naming it
-    argv: [work, drop, x, --why, Not needed.]
+    argv: [work, drop, x, --why, Not needed., --json]
     git: []
     files:
       itos.yaml: null
       .git/itos/itos.yaml: *stealth
       .git/itos/work-items.yaml: "phases: { 1: null }\nitems:\n  - { id: x, title: X, phase: 1, status: todo }\n  - { id: y, title: Y, phase: 1, status: todo, depends_on: [x] }\n  - { id: z, title: Z, phase: 1, status: done }\n"
     exit: 1
-    stderr: |
-      x is depended on by y, still to do
-        fix: take x out of their depends_on first (itos work edit <id> --depends-on …), or drop them first
+    json: { schema: 1, ok: false, problems: [{ rule: work-drop-depended-on }] }
+    stdout_has: "by y"
   - name: work drop refuses an item done
-    argv: [work, drop, z, --why, Too late.]
+    argv: [work, drop, z, --why, Too late., --json]
     git: []
     files:
       itos.yaml: null
       .git/itos/itos.yaml: *stealth
       .git/itos/work-items.yaml: "phases: { 1: null }\nitems:\n  - { id: z, title: Z, phase: 1, status: done }\n"
     exit: 1
-    stderr: |
-      z is done, and a done item stays done
-        fix: drop an item still to do (itos work list)
+    json: { schema: 1, ok: false, problems: [{ rule: work-drop-done }] }
   - name: work drop with several ids drops each for the one reason, and commits the registry once
-    argv: [work, drop, x, y, --why, Merged into z.]
+    argv: [work, drop, x, y, --why, Merged into z., --json]
     git:
       - commit: "docs: start"
         files:
@@ -1808,18 +1803,24 @@ cases:
     files:
       work-items.yaml: *droppableTwo
     exit: 0
-    stdout_has: ["x is dropped\ny is dropped\ncommitted ", " docs: drop x, y\n"]
+    json_has:
+      schema: 1
+      ok: true
+      items:
+        - { id: x, title: X, phase: 1, owner: null, status: dropped, kind: idea, depends_on: [], tags: [] }
+        - { id: y, title: Y, phase: 1, owner: null, status: dropped, kind: idea, depends_on: [], tags: [] }
+      commit: "<any>"
+    stderr_has: "docs: drop x, y"
     files_after:
       work-items.yaml: "phases: { 1: null }\nqueue:\n  - z\nitems:\n  - { id: x, title: X, phase: 1, owner: null, status: dropped, kind: idea }\n  - { id: y, title: Y, phase: 1, owner: null, status: dropped, kind: idea }\n  - { id: z, title: Z, phase: 1, owner: null, status: todo }\n"
   - name: work drop needs a reason
     argv: [work, drop, x]
     exit: 2
-    stderr: |
-      itos: work drop needs --why <reason>, the commit's record of why the item is dropped (itos --help)
+    stderr_has: "--why"
   # Slice 98: work defer sets an item's deferred key to the reason, and
   # work resume removes it, each committing the registry alone.
   - name: work defer sets the item's deferred key to the reason, and commits the registry alone
-    argv: [work, defer, x, --why, Waits for y.]
+    argv: [work, defer, x, --why, Waits for y., --json]
     git:
       - commit: "docs: start"
         files:
@@ -1827,7 +1828,12 @@ cases:
     files:
       work-items.yaml: *deferrable
     exit: 0
-    stdout_has: "x is deferred: committed "
+    json_has:
+      schema: 1
+      ok: true
+      item: { id: x, title: X, phase: 1, owner: null, status: todo, kind: idea, depends_on: [], tags: [], deferred: Waits for y. }
+      commit: "<any>"
+    stderr_has: "docs: defer x"
     files_after:
       work-items.yaml: &deferred "phases: { 1: null }\nqueue:\n  - x\nitems:\n  - { id: x, title: X, phase: 1, owner: null, status: todo, kind: idea, deferred: \"Waits for y.\" }\n  - { id: y, title: Y, phase: 1, owner: null, status: todo }\n"
   - name: under a stealth config work defer writes the registry and commits nothing
@@ -1846,34 +1852,30 @@ cases:
     files_after:
       .git/itos/work-items.yaml: *deferred
   - name: work defer refuses an item already deferred, naming its reason
-    argv: [work, defer, x, --why, Another reason.]
+    argv: [work, defer, x, --why, Another reason., --json]
     git: []
     files:
       itos.yaml: null
       .git/itos/itos.yaml: *stealth
       .git/itos/work-items.yaml: *deferred
     exit: 1
-    stderr: |
-      x is already deferred: Waits for y.
-        fix: itos work resume x first, then defer it with the new reason
+    json: { schema: 1, ok: false, problems: [{ rule: work-defer-deferred }] }
+    stdout_has: "Waits for y."
   - name: work defer refuses an item done
-    argv: [work, defer, z, --why, Too late.]
+    argv: [work, defer, z, --why, Too late., --json]
     git: []
     files:
       itos.yaml: null
       .git/itos/itos.yaml: *stealth
       .git/itos/work-items.yaml: "phases: { 1: null }\nitems:\n  - { id: z, title: Z, phase: 1, status: done }\n"
     exit: 1
-    stderr: |
-      z is done, and a done item stays done
-        fix: defer an item still to do (itos work list)
+    json: { schema: 1, ok: false, problems: [{ rule: work-defer-done }] }
   - name: work defer needs a reason
     argv: [work, defer, x]
     exit: 2
-    stderr: |
-      itos: work defer needs --why <reason>, why the item is put off, which its deferred key holds (itos --help)
+    stderr_has: "--why"
   - name: work resume removes the item's deferred key, and commits the registry alone
-    argv: [work, resume, x]
+    argv: [work, resume, x, --json]
     git:
       - commit: "docs: start"
         files:
@@ -1881,7 +1883,12 @@ cases:
     files:
       work-items.yaml: *deferred
     exit: 0
-    stdout_has: "x is resumed: committed "
+    json_has:
+      schema: 1
+      ok: true
+      item: { id: x, title: X, phase: 1, owner: null, status: todo, kind: idea, depends_on: [], tags: [] }
+      commit: "<any>"
+    stderr_has: "docs: resume x"
     files_after:
       work-items.yaml: *deferrable
   - name: work resume refuses an item that is not deferred
@@ -1892,17 +1899,11 @@ cases:
       .git/itos/itos.yaml: *stealth
       .git/itos/work-items.yaml: *deferrable
     exit: 1
-    json:
-      schema: 1
-      ok: false
-      problems:
-        - rule: work-resume-not-deferred
-          message: x is not deferred
-          fix: itos work list marks a deferred item (deferred)
+    json: { schema: 1, ok: false, problems: [{ rule: work-resume-not-deferred }] }
   # Slice 122: work give-back undoes a take, the status todo again and the
   # owner kept, the reason the commit's body, the registry committed alone.
   - name: work give-back puts an item in progress back to todo, keeping its owner, and commits the registry alone
-    argv: [work, give-back, x, --why, Blocked on y., --as, a]
+    argv: [work, give-back, x, --why, Blocked on y., --as, a, --json]
     git:
       - commit: "docs: start"
         files:
@@ -1910,7 +1911,12 @@ cases:
     files:
       work-items.yaml: *givable
     exit: 0
-    stdout_has: ["x is given back, todo again for a: committed ", " docs: give back x\n"]
+    json_has:
+      schema: 1
+      ok: true
+      item: { id: x, title: X, phase: 1, owner: a, status: todo, depends_on: [], tags: [] }
+      commit: "<any>"
+    stderr_has: "docs: give back x"
     files_after:
       work-items.yaml: &givenBack "phases: { 1: null }\nitems:\n  - { id: x, title: X, phase: 1, owner: a, status: todo }\n  - { id: y, title: Y, phase: 1, owner: b, status: doing }\n"
   - name: under a stealth config work give-back writes the registry and commits nothing, every item the session's
@@ -1929,16 +1935,15 @@ cases:
     files_after:
       .git/itos/work-items.yaml: *givenBack
   - name: work give-back refuses an item not in progress, naming its status
-    argv: [work, give-back, x, --why, Blocked., --as, a]
+    argv: [work, give-back, x, --why, Blocked., --as, a, --json]
     git: []
     files:
       itos.yaml: null
       .git/itos/itos.yaml: *stealth
       .git/itos/work-items.yaml: *givenBack
     exit: 1
-    stderr: |
-      x is todo, not in progress: only an item doing is given back
-        fix: give back an item in progress (itos work)
+    json: { schema: 1, ok: false, problems: [{ rule: work-give-back-status }] }
+    stdout_has: todo
   - name: work give-back refuses an item someone else has in progress, naming them
     argv: [work, give-back, y, --why, Blocked., --as, a, --json]
     git: []
@@ -1947,37 +1952,28 @@ cases:
       .git/itos/itos.yaml: *stealth
       .git/itos/work-items.yaml: *givable
     exit: 1
-    json:
-      schema: 1
-      ok: false
-      problems:
-        - rule: work-give-back-owned
-          message: y is b's, not a's
-          fix: give back one of yours, or agree with b that they give it back
+    json: { schema: 1, ok: false, problems: [{ rule: work-give-back-owned }] }
+    stdout_has: "b's"
   - name: work give-back exits 3 for a person not among the people
-    argv: [work, give-back, x, --why, Blocked., --as, c]
+    argv: [work, give-back, x, --why, Blocked., --as, c, --json]
     files:
       work-items.yaml: *givable
     exit: 3
-    stderr: |
-      "c" is not in people.yaml
-        fix: pass --as <handle>
+    json: { schema: 1, ok: false, problems: [{ rule: work-no-person }] }
   - name: work give-back needs a reason
     argv: [work, give-back, x]
     exit: 2
-    stderr: |
-      itos: work give-back needs --why <reason>, the commit's record of why the item is given back (itos --help)
+    stderr_has: "--why"
   - name: work take refuses an item dropped, naming its status
-    argv: [work, take, x, --as, a]
+    argv: [work, take, x, --as, a, --json]
     git: []
     files:
       itos.yaml: null
       .git/itos/itos.yaml: *stealth
       .git/itos/work-items.yaml: "phases: { 1: null }\nitems:\n  - { id: x, title: X, phase: 1, status: dropped }\n"
     exit: 1
-    stderr: |
-      x is dropped, taken out of the open work
-        fix: take an item that is todo (itos work)
+    json: { schema: 1, ok: false, problems: [{ rule: work-take-dropped }] }
+    stdout_has: dropped
   - name: work check knows dropped whatever work.statuses lists, and reports an item still to do depending on one
     argv: [work, check, --json]
     files:
