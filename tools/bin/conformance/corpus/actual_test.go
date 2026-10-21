@@ -2,6 +2,7 @@ package corpus
 
 import (
 	"errors"
+	"regexp"
 	"strings"
 	"testing"
 )
@@ -31,7 +32,7 @@ func TestWriteActuals(t *testing.T) {
 	actuals := []Actual{
 		{Fixture: f, Case: f.Cases[0], s: s, Outcome: &Outcome{
 			Exit:   &one,
-			Stdout: `{"schema":1,"message":"m","text":"t","id":"/tmp/case/x","at":"` + sha + `","list":[{"rule":"r","fix":"f"}],"n":2.5,"none":null}`,
+			Stdout: `{"schema":1,"message":"m","text":"t","id":"/tmp/case/x","at":"` + sha + `","list":[{"rule":"r","fix":"f"}],"n":2.5,"say":"\"b\" {c}, d"}`,
 			Stderr: "",
 			files:  map[string]*written{"a.yaml": {text: "built: 0123456\nby: 8.1.0-dev.3.gabc\n"}},
 		}},
@@ -47,7 +48,8 @@ func TestWriteActuals(t *testing.T) {
   argv: [work, show, --json]
   exit: 1
   stderr: ""
-  json: {schema: 1, id: '{{dir}}/x', at: '{{sha.base}}', list: [{rule: r}], n: 2.5, none: null}
+  json: { schema: 1, id: "{{dir}}/x", at: "{{sha.base}}", list: [{ rule: r }], n: 2.5, say: "\"b\" {c}, d" }
+  messages: [{ message: m }, { at: "list[0]", rule: r, fix: f }]
   files_after:
     a.yaml: |
       built: {{short.base}}
@@ -72,14 +74,15 @@ func TestWriteActuals(t *testing.T) {
 	}
 }
 
-// What --actual writes, pasted as a case's expectations, passes.
+// What --actual writes, pasted as a case's expectations less its messages, which are for reading,
+// passes.
 func TestActualsPasteAsPassingExpectations(t *testing.T) {
 	sha := "0123456789abcdef0123456789abcdef01234567"
 	s := &subst{dir: "/tmp/case", version: "8.1.0", labels: map[string]string{"base": sha}}
 	exit := 3
 	out := &Outcome{
 		Exit:   &exit,
-		Stdout: `{"schema":1,"message":"m","path":"/tmp/case/a b","items":[{"id":"T-1","at":"` + sha + `","fix":"f"}],"long":"` + strings.Repeat("word ", 30) + `"}`,
+		Stdout: `{"schema":1,"message":"m","path":"/tmp/case/a b","items":[{"id":"T-1","at":"` + sha + `","fix":"f"}],"say":"a \"b\" {c}, d: e","n":"1","none":{},"long":"` + strings.Repeat("word ", 30) + `"}`,
 		Stderr: "warning: /tmp/case/x\n  indented\n",
 		files:  map[string]*written{"notes.md": {text: "# 8.1.0\n\nby " + sha[:7] + "\n"}},
 	}
@@ -92,6 +95,7 @@ func TestActualsPasteAsPassingExpectations(t *testing.T) {
 		t.Fatal(err)
 	}
 	pasted := strings.Replace(b.String(), "- file: ask.yaml\n  name: a\n", "- name: a\n", 1)
+	pasted = regexp.MustCompile(`(?m)^  messages:.*\n(?:    .*\n)*`).ReplaceAllString(pasted, "")
 	g, err := ReadFixture(writeFixture(t, "cases:\n"+pasted))
 	if err != nil {
 		t.Fatalf("%v\n%s", err, b.String())

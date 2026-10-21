@@ -37,21 +37,158 @@ func (r *Runner) Actuals(fixtures []*Fixture) []Actual {
 
 // WriteActuals writes each case's outcome as a YAML list, its expectations ready to paste: file,
 // name and argv, then exit, stdout (when it is not JSON), stderr, json (stdout's, when it is
-// JSON, less the keys json: does not judge) and files_after (the files the case names there, as
+// JSON, less the keys json: does not judge), messages (the message and fix json: leaves out,
+// where they stand in the JSON, beside the rule of the object holding them, for reading only: a
+// fact a problem names in its message alone) and files_after (the files the case names there, as
 // the run left them; null for one absent), or error, why it could not run. The case's folder, its
 // labelled commits and the binary's version are written back as {{dir}}, {{sha.<label>}},
-// {{short.<label>}} and {{version}}.
+// {{short.<label>}} and {{version}}. It is written in the corpus's style: a flow mapping spaced
+// inside its braces, a string that needs quotes double-quoted.
 func WriteActuals(w io.Writer, actuals []Actual) error {
 	list := &yaml.Node{Kind: yaml.SequenceNode}
 	for _, a := range actuals {
 		list.Content = append(list.Content, a.node())
 	}
-	enc := yaml.NewEncoder(w)
+	flows, err := inline(list, nil)
+	if err != nil {
+		return err
+	}
+	var b strings.Builder
+	enc := yaml.NewEncoder(&b)
 	enc.SetIndent(2)
 	if err := enc.Encode(list); err != nil {
 		return err
 	}
-	return enc.Close()
+	if err := enc.Close(); err != nil {
+		return err
+	}
+	text := b.String()
+	for i, f := range flows {
+		text = strings.Replace(text, flowMark(i), f, 1)
+	}
+	_, err = io.WriteString(w, text)
+	return err
+}
+
+// flowMark stands in the encoded list for the ith flow node, written apart (inline).
+func flowMark(i int) string { return "itos-actual-flow-" + strconv.Itoa(i) + "-" }
+
+// inline replaces each outermost flow node under n by its mark, appending to flows the node as
+// the corpus writes it: its strings double-quoted where a flow needs quotes, a mapping's braces
+// spaced, { a: b }, an empty one {}.
+func inline(n *yaml.Node, flows []string) ([]string, error) {
+	for _, c := range n.Content {
+		if c.Style != yaml.FlowStyle || c.Kind != yaml.MappingNode && c.Kind != yaml.SequenceNode {
+			var err error
+			if flows, err = inline(c, flows); err != nil {
+				return nil, err
+			}
+			continue
+		}
+		quoteFlow(c)
+		out, err := yaml.Marshal(c)
+		if err != nil {
+			return nil, err
+		}
+		flows = append(flows, spaced(strings.TrimSuffix(string(out), "\n")))
+		*c = yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Value: flowMark(len(flows) - 1)}
+	}
+	return flows, nil
+}
+
+// quoteFlow double-quotes each string of a flow node that a flow cannot hold plain.
+func quoteFlow(n *yaml.Node) {
+	if n.Kind == yaml.ScalarNode && n.Tag == "!!str" && n.Style == 0 && needsQuotes(n.Value, true) {
+		n.Style = yaml.DoubleQuotedStyle
+	}
+	for _, c := range n.Content {
+		quoteFlow(c)
+	}
+}
+
+// needsQuotes says whether YAML would quote s, in a flow or in a block.
+func needsQuotes(s string, flow bool) bool {
+	n := &yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Value: s}
+	if flow {
+		n = &yaml.Node{Kind: yaml.SequenceNode, Style: yaml.FlowStyle, Content: []*yaml.Node{n}}
+	}
+	out, err := yaml.Marshal(n)
+	if err != nil {
+		return true
+	}
+	if flow {
+		out = out[1:]
+	}
+	return len(out) > 0 && (out[0] == '\'' || out[0] == '"')
+}
+
+// spaced is a flow node's text with a space inside each brace of a mapping that holds
+// something; a double-quoted string in it is left as it is.
+func spaced(s string) string {
+	var b strings.Builder
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		switch {
+		case c == '"':
+			j := i + 1
+			for j < len(s) && s[j] != '"' {
+				if s[j] == '\\' {
+					j++
+				}
+				j++
+			}
+			b.WriteString(s[i:min(j+1, len(s))])
+			i = j
+		case c == '{' && i+1 < len(s) && s[i+1] != '}':
+			b.WriteString("{ ")
+		case c == '}' && i > 0 && s[i-1] != '{':
+			b.WriteString(" }")
+		default:
+			b.WriteByte(c)
+		}
+	}
+	return b.String()
+}
+
+// messages are the message and fix keys at any depth of a JSON value, each with where it stands
+// (at, left out at the top) and the rule beside it, if there is one.
+func messages(v any, at string) []any {
+	var out []any
+	switch t := v.(type) {
+	case []any:
+		for i, e := range t {
+			out = append(out, messages(e, at+"["+strconv.Itoa(i)+"]")...)
+		}
+	case *mapping:
+		entry := newMapping()
+		if at != "" {
+			entry.set("at", at)
+		}
+		if rule, ok := t.vals["rule"].(string); ok {
+			entry.set("rule", rule)
+		}
+		held := false
+		for _, k := range []string{"message", "fix"} {
+			if s, ok := t.vals[k]; ok {
+				entry.set(k, s)
+				held = true
+			}
+		}
+		if held {
+			out = append(out, entry)
+		}
+		for _, k := range t.keys {
+			if k == "message" || k == "fix" {
+				continue
+			}
+			path := k
+			if at != "" {
+				path = at + "." + k
+			}
+			out = append(out, messages(t.vals[k], path)...)
+		}
+	}
+	return out
 }
 
 func (a Actual) node() *yaml.Node {
@@ -83,6 +220,9 @@ func (a Actual) node() *yaml.Node {
 	if err == nil {
 		var left int
 		add("json", valueNode(mapStrings(machine(v, &left, true), back)))
+		if said := messages(v, ""); len(said) > 0 {
+			add("messages", valueNode(mapStrings(said, back)))
+		}
 	}
 	if len(a.Case.filesAfter) > 0 {
 		files := &yaml.Node{Kind: yaml.MappingNode}
@@ -127,11 +267,14 @@ func (a Actual) unsubst() func(string) string {
 	return replacer.Replace
 }
 
-// str is a string as YAML writes it: a text of lines in literal style.
+// str is a string as YAML writes it: a text of lines in literal style, one that needs quotes
+// double-quoted.
 func str(s string) *yaml.Node {
 	n := &yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Value: s}
 	if strings.Contains(strings.TrimSuffix(s, "\n"), "\n") || strings.HasSuffix(s, "\n") && len(s) > 1 {
 		n.Style = yaml.LiteralStyle
+	} else if needsQuotes(s, false) {
+		n.Style = yaml.DoubleQuotedStyle
 	}
 	return n
 }

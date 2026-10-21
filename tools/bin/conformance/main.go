@@ -13,9 +13,10 @@
 // the cases whose name the regular expression matches.
 //
 // --actual judges nothing: it writes to stdout, as a YAML list, what each case's run did (its
-// exit code, stdout, stderr, stdout's JSON less the keys json: does not judge, and the files its
-// files_after names), the case's folder, commits and the binary's version written back as their
-// placeholders, so a case's expectations can be written from it (corpus.WriteActuals). It exits
+// exit code, stdout, stderr, stdout's JSON less the keys json: does not judge, the message and
+// fix it left out, to read, and the files its files_after names), the case's folder, commits and
+// the binary's version written back as their placeholders, in the corpus's style, so a case's
+// expectations can be written from it (corpus.WriteActuals). It exits
 // 0, or 1 when a case could not run.
 //
 // Each case that fails is printed to stderr, with its command and what differs, and a line on
