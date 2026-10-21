@@ -10937,8 +10937,8 @@ items:
   - id: T-193
     title: The features-scope self-test expects one run per Examples row of a Scenario Outline
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
 
