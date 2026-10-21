@@ -55,6 +55,7 @@ phases:
   3: donvargax
 
 queue:
+  - T-190
   - p1-mutation-results-committed
   - p1-text-from-file
   - p1-defer-reason-footer
