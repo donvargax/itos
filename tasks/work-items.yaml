@@ -10771,3 +10771,11 @@ items:
       earlier or claim a speedup by losing later assertions; restoring coverage skipped after
       refusingHook is separate work.
     refs: [internal/cli/workeach_test.go, internal/cli/workmint_test.go]
+
+  - id: T-190
+    title: Build itos with Go 1.27.3, past the crypto/x509 vulnerability of 1.27.2
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task

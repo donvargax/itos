@@ -2271,3 +2271,18 @@
     runs git when a draft reserved the id, so only a ledger changed in that moment reaches it: no
     test can. Ending both calls' errors and problems through one helper keeps the branch and lets
     the check's tests cover it.
+
+- id: T-190
+  type: build
+  title: Build itos with Go 1.27.3, past the crypto/x509 vulnerability of 1.27.2
+  why: >
+    The nightly of 2026-10-21 (run 39594715946) went red in the go-hooks self-test: govulncheck
+    reports GO-2026-6809 (crypto/x509 trusts compromised intermediate certificates), a
+    standard-library vulnerability the code reaches in Go 1.27.2, fixed in 1.27.3 (released
+    2026-10-19), so the pre-commit refuses any go.mod change. As T-140 did, raising go.mod's
+    toolchain line moves CI, the nightly, the release build (go-version-file and
+    .github/actions/go-toolchain) and a local go under GOTOOLCHAIN=auto to the fixed library. The
+    toolchain line is outside deps-check's seven-day rule.
+  done_when:
+    - run: grep -qx "toolchain go1.27.3" go.mod
+    - run: go tool govulncheck -test ./...
