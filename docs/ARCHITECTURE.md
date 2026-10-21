@@ -63,7 +63,8 @@ What every command meets:
   laid over one table of defaults and read through `config.Load` alone;
 - **the data** (`internal/source`): the ledger, registry, people, smoke sets,
   questions and decision records, read through one source, the working tree,
-  the index or a commit;
+  the index or a commit, opened by the tree reader's port
+  (`internal/store/tree`);
 - **the providers** (`internal/providers`): the world outside the
   repository, a push's range start, a commit's CI run, who a session works for;
 - **the shell** (`internal/shell`): every command the config or the ledger

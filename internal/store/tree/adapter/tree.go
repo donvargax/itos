@@ -1,8 +1,9 @@
-package source
+package adapter
 
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -15,36 +16,28 @@ import (
 	"syscall"
 
 	"github.com/donvargax/itos/v8/internal/git"
+	"github.com/donvargax/itos/v8/internal/store/tree/port"
 )
 
-// Source is a tree itos reads its data from. Paths are the working tree's,
-// relative to the current folder, as everywhere else.
-type Source interface {
-	// Tree is "worktree", "index" or a commit, as a kind's adapter takes a
-	// tree.
-	Tree() string
-	Has(path string) bool
-	// Read is the file's text; an error when the source does not hold it.
-	Read(path string) (string, error)
-	// List is the names of the files directly in a folder; an error when
-	// there is none.
-	List(dir string) ([]string, error)
-}
+// Trees is the tree reader over the disk and git.
+type Trees struct{}
+
+var _ port.Trees = Trees{}
 
 // Worktree is the working tree's files.
-var Worktree Source = worktree{}
+var Worktree port.Source = worktree{}
 
 type worktree struct{}
 
-func (worktree) Tree() string { return "worktree" }
+func (worktree) Tree(context.Context) string { return "worktree" }
 
 // Has is whether the working tree has the path (existsSync).
-func (worktree) Has(path string) bool {
+func (worktree) Has(_ context.Context, path string) bool {
 	_, err := os.Stat(path)
 	return err == nil
 }
 
-func (worktree) Read(path string) (string, error) {
+func (worktree) Read(_ context.Context, path string) (string, error) {
 	text, err := os.ReadFile(path)
 	if err != nil {
 		return "", nodeError(err, "open", path)
@@ -53,7 +46,7 @@ func (worktree) Read(path string) (string, error) {
 }
 
 // List is the names of the entries directly in a folder, sorted.
-func (worktree) List(dir string) ([]string, error) {
+func (worktree) List(_ context.Context, dir string) ([]string, error) {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		return nil, nodeError(err, "scandir", dir)
@@ -68,7 +61,7 @@ func (worktree) List(dir string) ([]string, error) {
 // At is the source a tree names: the working tree for "worktree", else a tree
 // git holds, "index" for the staged tree or a commit. An error outside a
 // repository.
-func At(tree string) (Source, error) {
+func (Trees) At(_ context.Context, tree string) (port.Source, error) {
 	if tree == "worktree" {
 		return Worktree, nil
 	}
@@ -102,7 +95,7 @@ func (t gitTree) aside(p string) bool {
 	return p == t.common || strings.HasPrefix(p, t.common+string(filepath.Separator))
 }
 
-func (t gitTree) Tree() string { return t.tree }
+func (t gitTree) Tree(context.Context) string { return t.tree }
 
 // name is how a message names the tree.
 func (t gitTree) name() string {
@@ -133,16 +126,16 @@ func (t gitTree) spec(p string) string {
 	return t.tree + ":" + t.inRepo(p)
 }
 
-func (t gitTree) Has(p string) bool {
+func (t gitTree) Has(ctx context.Context, p string) bool {
 	if t.aside(p) {
-		return Worktree.Has(p)
+		return Worktree.Has(ctx, p)
 	}
 	return git.Succeeds("cat-file", "-e", t.spec(p))
 }
 
-func (t gitTree) Read(p string) (string, error) {
+func (t gitTree) Read(ctx context.Context, p string) (string, error) {
 	if t.aside(p) {
-		return Worktree.Read(p)
+		return Worktree.Read(ctx, p)
 	}
 	text, err := git.Output("show", t.spec(p))
 	if err != nil {
@@ -151,9 +144,9 @@ func (t gitTree) Read(p string) (string, error) {
 	return text, nil
 }
 
-func (t gitTree) List(dir string) ([]string, error) {
+func (t gitTree) List(ctx context.Context, dir string) ([]string, error) {
 	if t.aside(dir) {
-		return Worktree.List(dir)
+		return Worktree.List(ctx, dir)
 	}
 	at := t.inRepo(dir)
 	listed, err := listTree(t.tree, at)
@@ -182,35 +175,12 @@ func listTree(tree, dir string) ([]string, error) {
 	return git.Paths("ls-tree", "-r", "--name-only", tree, "--", dir)
 }
 
-var current = Worktree
-
-// Current is the source itos's data is read from now.
-func Current() Source { return current }
-
-// ReadingFrom runs fn with itos's data read from s while it runs.
-func ReadingFrom(s Source, fn func() error) error {
-	before := current
-	current = s
-	defer func() { current = before }()
-	return fn()
-}
-
-// Has is whether the current source has the path.
-func Has(path string) bool { return current.Has(path) }
-
-// Read is the file's text in the current source.
-func Read(path string) (string, error) { return current.Read(path) }
-
-// List is the names of the entries directly in a folder of the current
-// source.
-func List(dir string) ([]string, error) { return current.List(dir) }
-
 // Texts are the files of a tree git holds under a folder, "index" for the
 // staged tree or a commit, that keep accepts, as path to text, paths as git
 // gives them. A tree that cannot be read (no HEAD yet, no such commit) has
 // none. git cat-file reads them in one run, where the TypeScript runs git show
 // per file: the same texts, in a run per tree rather than per file.
-func Texts(tree, dir string, keep func(string) bool) map[string]string {
+func (Trees) Texts(ctx context.Context, tree, dir string, keep func(string) bool) map[string]string {
 	listed, err := listTree(tree, dir)
 	if err != nil {
 		return map[string]string{}
@@ -242,7 +212,7 @@ func Texts(tree, dir string, keep func(string) bool) map[string]string {
 	if len(paths) == 0 {
 		return texts
 	}
-	cmd := exec.Command(git.Bin(), "cat-file", "--batch")
+	cmd := exec.CommandContext(ctx, git.Bin(), "cat-file", "--batch")
 	cmd.Stdin = &specs
 	out, err := cmd.Output()
 	if err != nil {

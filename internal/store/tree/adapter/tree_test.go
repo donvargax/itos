@@ -1,4 +1,4 @@
-package source
+package adapter
 
 import (
 	"os"
@@ -52,36 +52,30 @@ func TestTrees(t *testing.T) {
 		"index":    {"staged\n", "phase-1.yaml phase-2.yaml"},
 		"HEAD":     {"one\n", "phase-1.yaml"},
 	} {
-		s, err := At(tree)
+		s, err := Trees{}.At(t.Context(), tree)
 		if err != nil {
 			t.Fatal(err)
 		}
-		var text, names string
-		err = ReadingFrom(s, func() error {
-			got, err := Read("tasks/phase-1.yaml")
-			text = got
-			listed, _ := List("tasks")
-			names = strings.Join(listed, " ")
-			return err
-		})
-		if err != nil || text != want[0] || names != want[1] || Current() != Worktree {
+		text, err := s.Read(t.Context(), "tasks/phase-1.yaml")
+		listed, _ := s.List(t.Context(), "tasks")
+		if names := strings.Join(listed, " "); err != nil || text != want[0] || names != want[1] {
 			t.Errorf("%s: %q %q %v", tree, text, names, err)
 		}
 	}
-	head, _ := At("HEAD")
-	if _, err := head.Read("tasks/phase-2.yaml"); err == nil || err.Error() != "HEAD holds no tasks/phase-2.yaml" {
+	head, _ := Trees{}.At(t.Context(), "HEAD")
+	if _, err := head.Read(t.Context(), "tasks/phase-2.yaml"); err == nil || err.Error() != "HEAD holds no tasks/phase-2.yaml" {
 		t.Errorf("HEAD read %v", err)
 	}
-	if _, err := head.List("gone"); err == nil || err.Error() != "HEAD holds no folder gone" {
+	if _, err := head.List(t.Context(), "gone"); err == nil || err.Error() != "HEAD holds no folder gone" {
 		t.Errorf("HEAD list %v", err)
 	}
 	all := func(string) bool { return true }
-	if got := Texts("index", "tasks", all); !reflect.DeepEqual(got, map[string]string{
+	if got := (Trees{}).Texts(t.Context(), "index", "tasks", all); !reflect.DeepEqual(got, map[string]string{
 		"tasks/phase-1.yaml": "staged\n", "tasks/phase-2.yaml": "staged two\n",
 	}) {
 		t.Errorf("index texts %q", got)
 	}
-	if got := Texts("no-such-commit", "tasks", all); len(got) != 0 {
+	if got := (Trees{}).Texts(t.Context(), "no-such-commit", "tasks", all); len(got) != 0 {
 		t.Errorf("unreadable tree's texts %q", got)
 	}
 }
@@ -111,15 +105,15 @@ func TestTextsOfNamesGitQuotes(t *testing.T) {
 	}
 	t.Chdir(dir)
 	all := func(string) bool { return true }
-	if got := Texts("index", "features", all); !reflect.DeepEqual(got, want) {
+	if got := (Trees{}).Texts(t.Context(), "index", "features", all); !reflect.DeepEqual(got, want) {
 		t.Errorf("index texts %q, want %q", got, want)
 	}
 	gitIn(t, dir, "commit", "-qm", "names")
-	if got := Texts("HEAD", "features", all); !reflect.DeepEqual(got, want) {
+	if got := (Trees{}).Texts(t.Context(), "HEAD", "features", all); !reflect.DeepEqual(got, want) {
 		t.Errorf("HEAD texts %q, want %q", got, want)
 	}
-	head, _ := At("HEAD")
-	listed, err := head.List("features")
+	head, _ := Trees{}.At(t.Context(), "HEAD")
+	listed, err := head.List(t.Context(), "features")
 	if err != nil || len(listed) != len(names) || !slices.Contains(listed, "café.feature") {
 		t.Errorf("HEAD list %q, %v", listed, err)
 	}
@@ -132,20 +126,20 @@ func TestGitFolderIsReadWhereItIs(t *testing.T) {
 	gitIn(t, dir, "init", "-q")
 	write(t, filepath.Join(dir, ".git/itos/tasks/phase-1.yaml"), "aside\n")
 	t.Chdir(dir)
-	index, err := At("index")
+	index, err := Trees{}.At(t.Context(), "index")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !index.Has(".git/itos/tasks/phase-1.yaml") {
+	if !index.Has(t.Context(), ".git/itos/tasks/phase-1.yaml") {
 		t.Error("the index does not have the git folder's file")
 	}
-	if text, err := index.Read(".git/itos/tasks/phase-1.yaml"); err != nil || text != "aside\n" {
+	if text, err := index.Read(t.Context(), ".git/itos/tasks/phase-1.yaml"); err != nil || text != "aside\n" {
 		t.Errorf("Read = %q, %v", text, err)
 	}
-	if names, err := index.List(".git/itos/tasks"); err != nil || !reflect.DeepEqual(names, []string{"phase-1.yaml"}) {
+	if names, err := index.List(t.Context(), ".git/itos/tasks"); err != nil || !reflect.DeepEqual(names, []string{"phase-1.yaml"}) {
 		t.Errorf("List = %v, %v", names, err)
 	}
-	if index.Has("tasks/phase-1.yaml") {
+	if index.Has(t.Context(), "tasks/phase-1.yaml") {
 		t.Error("the index has a file it does not hold")
 	}
 }
