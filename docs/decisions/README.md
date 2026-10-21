@@ -53,5 +53,6 @@ file and leaves this list, which itos decision record writes.
 - [ADR-0050: itos adopts go-template-itos as a linked project](0050-itos-adopts-go-template-itos-as-a-linked-project.md)
 - [ADR-0051: Each check runs at the cheapest tier that catches what it catches](0051-each-check-runs-at-the-cheapest-tier-that-catches-what-it-catches.md)
 - [ADR-0052: The corpus pins only the contract: exit codes, json less message and fix, and files written](0052-the-corpus-pins-only-the-contract-exit-codes-json-less-message-and-fix-and-files-written.md)
+- [ADR-0053: Each command is a vertical slice over shared engines, reaching the outside world through ports, as itos-cc's layout](0053-each-command-is-a-vertical-slice-over-shared-engines-reaching-the-outside-world-through-ports-as-itos-cc-s-layout.md)
 
 <!-- itos:decisions:end -->
