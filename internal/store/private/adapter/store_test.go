@@ -110,4 +110,16 @@ func TestStoreSaysTheDisksErrors(t *testing.T) {
 	if _, err := (Store{}).Hold(t.Context(), "threads.yaml"); err == nil {
 		t.Error("a lock taken where the folder is a file")
 	}
+	if err := os.Remove(folder); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Mkdir(folder, 0o500); err != nil {
+		t.Fatal(err)
+	}
+	if runtime.GOOS == "windows" || os.Geteuid() == 0 {
+		return
+	}
+	if err := (Store{}).Write(t.Context(), "threads.yaml", []byte("x")); err == nil {
+		t.Error("a file written in a folder no one may write in")
+	}
 }

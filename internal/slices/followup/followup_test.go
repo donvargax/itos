@@ -270,6 +270,26 @@ func TestRunDoc(t *testing.T) {
 	}
 }
 
+// A relative doc path where the process stands in a folder removed is an
+// error, nothing written.
+func TestRunDocWhereTheFolderWent(t *testing.T) {
+	p := ports{store(t)}
+	if code, _, _, err := followup(t, p, false, "add", "a", "--with", "ana", "--title", "T", "--note", "N"); code != 0 || err != nil {
+		t.Fatal(code, err)
+	}
+	gone := t.TempDir()
+	t.Chdir(gone)
+	if err := os.Remove(gone); err != nil {
+		t.Skip("this system cannot remove the folder a process stands in")
+	}
+	if _, err := filepath.Abs("."); err == nil {
+		t.Skip("this system still tells a removed folder")
+	}
+	if _, _, _, err := followup(t, p, false, "doc", "a", "a.md"); err == nil {
+		t.Error("a doc written where the folder went")
+	}
+}
+
 // No repository is exit 3 and a line saying so.
 func TestRunWithNoRepository(t *testing.T) {
 	for _, args := range [][]string{nil, {"add", "a", "--with", "x", "--title", "t", "--note", "n"}} {
