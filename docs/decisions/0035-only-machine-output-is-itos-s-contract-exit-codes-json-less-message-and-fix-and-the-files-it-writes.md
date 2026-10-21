@@ -28,3 +28,5 @@ previous-release no longer compares an old case's plain stdout or stderr, nor me
 ## More Information
 
 Amended by ADR-0052: the corpus pins only the contract too, so "this tree's own corpus still pins every word" no longer holds.
+
+Amended by ADR-0054: script-facing plain outputs and the guard's hook JSON are contract too; guide text is exempt like message and fix.

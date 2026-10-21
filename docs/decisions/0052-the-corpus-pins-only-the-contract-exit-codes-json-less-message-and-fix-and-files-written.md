@@ -24,3 +24,7 @@ The user, 2026-10-21: yes. Printed text is exempt from breaking changes, so the 
 ### Consequences
 
 Amends ADR-0035, whose sentence 'this tree's own corpus still pins every word' no longer holds; the rest of 0035 stands. p1-json-cases-pin-json becomes one test task per corpus file, help.yaml first, before the per-command declaration of the slices refactor (p1-slices-and-ports) reorganises help. A command a behaviour case needs and that has no --json is a gap recorded as its own idea. The refactor gets no printed-text proof.
+
+## More Information
+
+Amended by ADR-0054: the script-facing plain outputs keep their exact pins; guide text is not judged.
