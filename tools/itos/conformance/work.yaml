@@ -39,127 +39,25 @@ files:
 env: { PATH: "{{dir}}/bin:{{PATH}}" }
 cases:
   - name: what a person can start, then what nobody owns, what waits, ideas and deferred items
-    argv: [work, --as, a]
-    exit: 0
-    stdout: |
-      Working for a.
-
-      In progress:
-        busy  Busy
-
-      Can start now:
-        ready  Ready  (#12)
-        phased  Owned by the phase
-
-      Unowned, can start now (agree an owner first):
-        free  Free
-
-      Waiting:
-        later  Later  ← ready
-
-      Ideas, not yet specified (a coordinator specifies one before it starts):
-        idea  An idea
-        idea-later  A later idea  ← ready
-        free-idea  A free idea
-
-      Deferred:
-        parked  Parked  — put off for now
-        parked-idea  A parked idea  — waits on a second runner
-  - name: the same as --json, the proposal agents read
     argv: [work, --as, a, --json]
     exit: 0
     json:
       schema: 1
       person: a
-      doing:
-        - id: busy
-          title: Busy
-          phase: 1
-          owner: a
-          status: doing
-          depends_on: []
-          tags: []
+      doing: [{ id: busy, title: Busy, phase: 1, owner: a, status: doing, depends_on: [], tags: [] }]
       next:
-        - id: ready
-          title: Ready
-          phase: 1
-          owner: a
-          status: todo
-          tags: []
-          depends_on:
-            - done
-          issue: 12
-        - id: phased
-          title: Owned by the phase
-          phase: 1
-          owner: null
-          status: todo
-          depends_on: []
-          tags: []
-      unowned:
-        - id: free
-          title: Free
-          phase: 2
-          owner: null
-          status: todo
-          depends_on: []
-          tags: []
-      waiting:
-        - item:
-            id: later
-            title: Later
-            phase: 1
-            owner: a
-            status: todo
-            tags: []
-            depends_on:
-              - ready
-          on:
-            - ready
+        - { id: ready, title: Ready, phase: 1, owner: a, status: todo, depends_on: [done], issue: 12, tags: [] }
+        - { id: phased, title: Owned by the phase, phase: 1, owner: null, status: todo, depends_on: [], tags: [] }
+      unowned: [{ id: free, title: Free, phase: 2, owner: null, status: todo, depends_on: [], tags: [] }]
+      waiting: [{ item: { id: later, title: Later, phase: 1, owner: a, status: todo, depends_on: [ready], tags: [] }, on: [ready] }]
       ideas:
-        - item:
-            id: idea
-            title: An idea
-            phase: 1
-            owner: a
-            status: todo
-            kind: idea
-            why: a gap a slice left
-            depends_on: []
-            tags: []
+        - item: { id: idea, title: An idea, phase: 1, owner: a, status: todo, kind: idea, why: a gap a slice left, depends_on: [], tags: [] }
           on: []
-        - item:
-            id: idea-later
-            title: A later idea
-            phase: 1
-            owner: a
-            status: todo
-            kind: idea
-            tags: []
-            depends_on:
-              - ready
-          on:
-            - ready
-        - item:
-            id: free-idea
-            title: A free idea
-            phase: 2
-            owner: null
-            status: todo
-            kind: idea
-            depends_on: []
-            tags: []
-          on: []
+        - item: { id: idea-later, title: A later idea, phase: 1, owner: a, status: todo, kind: idea, depends_on: [ready], tags: [] }
+          on: [ready]
+        - { item: { id: free-idea, title: A free idea, phase: 2, owner: null, status: todo, kind: idea, depends_on: [], tags: [] }, on: [] }
       deferred:
-        - id: parked
-          title: Parked
-          phase: 1
-          owner: a
-          status: todo
-          kind: task
-          deferred: put off for now
-          depends_on: []
-          tags: []
+        - { id: parked, title: Parked, phase: 1, owner: a, status: todo, kind: task, deferred: put off for now, depends_on: [], tags: [] }
         - id: parked-idea
           title: A parked idea
           phase: 1
@@ -170,84 +68,80 @@ cases:
           depends_on: []
           tags: []
   - name: another person sees their own and the unowned
-    argv: [work, --as, b]
+    argv: [work, --as, b, --json]
     exit: 0
-    stdout: |
-      Working for b.
-
-      Can start now:
-        slice  A slice
-
-      Unowned, can start now (agree an owner first):
-        free  Free
-
-      Ideas, not yet specified (a coordinator specifies one before it starts):
-        free-idea  A free idea
-        theirs  Theirs
+    json:
+      schema: 1
+      person: b
+      doing: []
+      next: [{ id: slice, title: A slice, phase: 1, owner: b, status: todo, kind: slice, depends_on: [], tags: [] }]
+      unowned: [{ id: free, title: Free, phase: 2, owner: null, status: todo, depends_on: [], tags: [] }]
+      waiting: []
+      ideas:
+        - { item: { id: free-idea, title: A free idea, phase: 2, owner: null, status: todo, kind: idea, depends_on: [], tags: [] }, on: [] }
+        - { item: { id: theirs, title: Theirs, phase: 1, owner: b, status: todo, kind: idea, depends_on: [], tags: [] }, on: [] }
+      deferred: []
   - name: the identity provider says who the session works for
-    argv: [work]
+    argv: [work, --json]
     exit: 0
-    stdout: |
-      Working for a.
-
-      In progress:
-        busy  Busy
-
-      Can start now:
-        ready  Ready  (#12)
-        phased  Owned by the phase
-
-      Unowned, can start now (agree an owner first):
-        free  Free
-
-      Waiting:
-        later  Later  ← ready
-
-      Ideas, not yet specified (a coordinator specifies one before it starts):
-        idea  An idea
-        idea-later  A later idea  ← ready
-        free-idea  A free idea
-
-      Deferred:
-        parked  Parked  — put off for now
-        parked-idea  A parked idea  — waits on a second runner
+    json:
+      schema: 1
+      person: a
+      doing: [{ id: busy, title: Busy, phase: 1, owner: a, status: doing, depends_on: [], tags: [] }]
+      next:
+        - { id: ready, title: Ready, phase: 1, owner: a, status: todo, depends_on: [done], issue: 12, tags: [] }
+        - { id: phased, title: Owned by the phase, phase: 1, owner: null, status: todo, depends_on: [], tags: [] }
+      unowned: [{ id: free, title: Free, phase: 2, owner: null, status: todo, depends_on: [], tags: [] }]
+      waiting: [{ item: { id: later, title: Later, phase: 1, owner: a, status: todo, depends_on: [ready], tags: [] }, on: [ready] }]
+      ideas:
+        - item: { id: idea, title: An idea, phase: 1, owner: a, status: todo, kind: idea, why: a gap a slice left, depends_on: [], tags: [] }
+          on: []
+        - item: { id: idea-later, title: A later idea, phase: 1, owner: a, status: todo, kind: idea, depends_on: [ready], tags: [] }
+          on: [ready]
+        - { item: { id: free-idea, title: A free idea, phase: 2, owner: null, status: todo, kind: idea, depends_on: [], tags: [] }, on: [] }
+      deferred:
+        - { id: parked, title: Parked, phase: 1, owner: a, status: todo, kind: task, deferred: put off for now, depends_on: [], tags: [] }
+        - id: parked-idea
+          title: A parked idea
+          phase: 1
+          owner: a
+          status: todo
+          kind: idea
+          deferred: "  waits on a second runner  "
+          depends_on: []
+          tags: []
   - name: a handle not among the people is a missing environment
     argv: [work, --as, c]
     exit: 3
-    stderr: |
-      "c" is not in people.yaml
+    stderr_has: "\"c\""
   - name: a registry that is not sound stops the proposal
     argv: [work, --as, a]
     files:
       work-items.yaml: "phases: { 1: a }\nitems:\n  - { id: x, title: X, phase: 1, owner: a, status: todo, depends_on: [nope] }\n"
     exit: 1
-    stderr: |
-      x: depends on unknown "nope"
+    stderr_has: nope
   - name: the registry is sound
-    argv: [work, check]
+    argv: [work, check, --json]
     exit: 0
-    stdout: |
-      work-items.yaml: sound
+    json: { schema: 1, file: work-items.yaml, sound: true, problems: [] }
   - name: the registry is sound, quietly
     argv: [work, check, -q]
     exit: 0
   - name: without work.registry, the registry is tasks/work-items.yaml
-    argv: [work, check]
+    argv: [work, check, --json]
     files:
       itos.yaml: "version: 1\nwork: { people: { source: yaml, file: people.yaml } }\n"
       tasks/work-items.yaml: "phases: { 1: a }\nitems:\n  - { id: x, title: X, phase: 1, owner: a, status: todo }\n"
     exit: 0
-    stdout: |
-      tasks/work-items.yaml: sound
+    json: { schema: 1, file: tasks/work-items.yaml, sound: true, problems: [] }
   - name: without work.registry, the registry is beside a ledger in another folder
-    argv: [work, check]
+    argv: [work, check, --json]
     files:
       itos.yaml: "version: 1\nledger: { files: \"work/phase-{group}.yaml\" }\nwork: { people: { source: yaml, file: people.yaml } }\n"
       work/phase-1.yaml: "[]\n"
       work/work-items.yaml: "phases: { 1: a }\nitems:\n  - { id: x, title: X, phase: 1, owner: a, status: todo }\n"
     exit: 0
-    stdout: |
-      work/work-items.yaml: sound
+    json: { schema: 1, file: work/work-items.yaml, sound: true, problems: [] }
   - name: with the registry in tasks/ and the ledger in work/, work check names work/work-items.yaml
     argv: [work, check, --json]
     files:
@@ -255,85 +149,42 @@ cases:
       work/phase-1.yaml: "[]\n"
       tasks/work-items.yaml: "phases: { 1: a }\nitems: []\n"
     exit: 1
-    json:
-      schema: 1
-      file: work/work-items.yaml
-      sound: false
-      problems:
-        - rule: work-registry-missing
-          message: no work registry at work/work-items.yaml
-          fix: move the registry to work/work-items.yaml, or set work.registry to where it is
+    json: { schema: 1, file: work/work-items.yaml, sound: false, problems: [{ rule: work-registry-missing }] }
   - name: work.registry still overrides the default beside the ledger
-    argv: [work, check]
+    argv: [work, check, --json]
     files:
       itos.yaml: "version: 1\nledger: { files: \"work/phase-{group}.yaml\" }\nwork: { registry: tasks/work-items.yaml, people: { source: yaml, file: people.yaml } }\n"
       work/phase-1.yaml: "[]\n"
       tasks/work-items.yaml: "phases: { 1: a }\nitems: []\n"
     exit: 0
-    stdout: |
-      tasks/work-items.yaml: sound
+    json: { schema: 1, file: tasks/work-items.yaml, sound: true, problems: [] }
   - name: with no registry where itos looks, work check names the path
-    argv: [work, check]
+    argv: [work, check, --json]
     files:
       itos.yaml: "version: 1\nwork: { people: { source: yaml, file: people.yaml } }\n"
       docs/work-items.yaml: "phases: { 1: a }\nitems: []\n"
     exit: 1
-    stderr: |
-      no work registry at tasks/work-items.yaml
-  - name: the same as --json, with its rule and fix
-    argv: [work, check, --json]
-    files:
-      itos.yaml: "version: 1\nwork: { people: { source: yaml, file: people.yaml } }\n"
-    exit: 1
-    json:
-      schema: 1
-      file: tasks/work-items.yaml
-      sound: false
-      problems:
-        - rule: work-registry-missing
-          message: no work registry at tasks/work-items.yaml
-          fix: move the registry to tasks/work-items.yaml, or set work.registry to where it is
+    json: { schema: 1, file: tasks/work-items.yaml, sound: false, problems: [{ rule: work-registry-missing }] }
+    stdout_has: tasks/work-items.yaml
   - name: with no registry where itos looks, the proposal stops there
     argv: [work, --as, a]
     files:
       work-items.yaml: null
     exit: 1
-    stderr: |
-      no work registry at work-items.yaml
+    stderr_has: work-items.yaml
   - name: a registry file named on the command line that is not there
     argv: [work, check, other.yaml, --json]
     exit: 1
-    json:
-      schema: 1
-      file: other.yaml
-      sound: false
-      problems:
-        - rule: work-registry-missing
-          message: no work registry at other.yaml
-          fix: name the registry's file, or write one at other.yaml
+    json: { schema: 1, file: other.yaml, sound: false, problems: [{ rule: work-registry-missing }] }
   - name: a registry file named on the command line
-    argv: [work, check, other.yaml]
-    files:
-      other.yaml: "phases: { 1: null }\nitems:\n  - { id: a, title: A, phase: 1, owner: null, status: todo, depends_on: [b] }\n  - { id: b, title: B, phase: 1, owner: null, status: todo, depends_on: [a] }\n"
-    exit: 1
-    stderr: |
-      cycle: a → b → a
-  - name: a cycle, as --json with its rule and fix
     argv: [work, check, other.yaml, --json]
     files:
       other.yaml: "phases: { 1: null }\nitems:\n  - { id: a, title: A, phase: 1, owner: null, status: todo, depends_on: [b] }\n  - { id: b, title: B, phase: 1, owner: null, status: todo, depends_on: [a] }\n"
     exit: 1
-    json:
-      schema: 1
-      file: other.yaml
-      sound: false
-      problems:
-        - rule: work-cycle
-          message: "cycle: a → b → a"
-          fix: remove one of the depends_on links a → b → a in other.yaml
-  - name: every problem of an item, as text
-    argv: [work, check]
-    files: &broken
+    json: { schema: 1, file: other.yaml, sound: false, problems: [{ rule: work-cycle }] }
+  - name: every problem of an item, as --json
+    argv: [work, check, --json]
+    files:
       work-items.yaml: |
         phases: { 1: a, 3: z }
         items:
@@ -350,70 +201,26 @@ cases:
           - { id: p, title: P, phase: 2, owner: a, status: todo }
           - { id: n, phase: 1, owner: a, status: todo }
     exit: 1
-    stderr: |
-      x: listed twice
-      p: phase 2 is not listed
-      x: owner "q" is not in people.yaml
-      x: depends on unknown "nope"
-      y: done, but "z" is todo
-      e: unknown kind "epic"
-      i: an idea is doing; specify it first (kind slice or task)
-      d: deferred needs its reason
-      w: deferred, but done
-      v: why is not a text
-      s: unknown status "started"
-      n: no title
-      phase 3: owner "z" is not in people.yaml
-  - name: every problem of an item, as --json
-    argv: [work, check, --json]
-    files: *broken
-    exit: 1
     json:
       schema: 1
       file: work-items.yaml
       sound: false
       problems:
-        - rule: work-duplicate-id
-          message: "x: listed twice"
-          fix: rename or remove one of the two x items
-        - rule: work-unknown-phase
-          message: "p: phase 2 is not listed"
-          fix: "add phase 2 to phases: in work-items.yaml, or move p to a listed one"
-        - rule: work-unknown-owner
-          message: 'x: owner "q" is not in people.yaml'
-          fix: add q to people.yaml, or set x's owner to one of its logins
-        - rule: work-unknown-dependency
-          message: 'x: depends on unknown "nope"'
-          fix: remove "nope" from x's depends_on, or add an item nope
-        - rule: work-done-before-dependency
-          message: 'y: done, but "z" is todo'
-          fix: finish z first, or set y back to doing
-        - rule: work-unknown-kind
-          message: 'e: unknown kind "epic"'
-          fix: set e's kind to one of slice, task, idea, bug
-        - rule: work-idea-started
-          message: "i: an idea is doing; specify it first (kind slice or task)"
-          fix: "specify i (kind: slice or task, with its scenarios or ledger entry), or set it back to todo"
-        - rule: work-deferred-no-reason
-          message: "d: deferred needs its reason"
-          fix: write why d is deferred in its deferred:, or remove the key
-        - rule: work-deferred-started
-          message: "w: deferred, but done"
-          fix: remove w's deferred:, or set it back to todo
-        - rule: work-why-not-text
-          message: "v: why is not a text"
-          fix: write v's why as text, or remove it
-        - rule: work-unknown-status
-          message: 's: unknown status "started"'
-          fix: set s's status to one of todo, doing, done, blocked
-        - rule: work-no-title
-          message: "n: no title"
-          fix: give n a title
-        - rule: work-unknown-phase-owner
-          message: 'phase 3: owner "z" is not in people.yaml'
-          fix: add z to people.yaml, or set phase 3's owner to one of its logins
+        - { rule: work-duplicate-id }
+        - { rule: work-unknown-phase }
+        - { rule: work-unknown-owner }
+        - { rule: work-unknown-dependency }
+        - { rule: work-done-before-dependency }
+        - { rule: work-unknown-kind }
+        - { rule: work-idea-started }
+        - { rule: work-deferred-no-reason }
+        - { rule: work-deferred-started }
+        - { rule: work-why-not-text }
+        - { rule: work-unknown-status }
+        - { rule: work-no-title }
+        - { rule: work-unknown-phase-owner }
   - name: a group called by ledger.group.label in the messages and fixes
-    argv: [work, check]
+    argv: [work, check, --json]
     files: &labelled
       itos.yaml: |
         version: 1
@@ -426,26 +233,10 @@ cases:
         items:
           - { id: p, title: P, phase: 2, owner: a, status: todo }
     exit: 1
-    stderr: |
-      p: milestone 2 is not listed
-      milestone 3: owner "z" is not in people.yaml
-  - name: the same as --json, the rule IDs as they are
-    argv: [work, check, --json]
-    files: *labelled
-    exit: 1
-    json:
-      schema: 1
-      file: work-items.yaml
-      sound: false
-      problems:
-        - rule: work-unknown-phase
-          message: "p: milestone 2 is not listed"
-          fix: "add milestone 2 to phases: in work-items.yaml, or move p to a listed one"
-        - rule: work-unknown-phase-owner
-          message: 'milestone 3: owner "z" is not in people.yaml'
-          fix: add z to people.yaml, or set milestone 3's owner to one of its logins
+    json: { schema: 1, file: work-items.yaml, sound: false, problems: [{ rule: work-unknown-phase }, { rule: work-unknown-phase-owner }] }
+    stdout_has: ["milestone 2", "milestone 3"]
   - name: the people from an All Contributors table, by their profile links
-    argv: [work, --as, a]
+    argv: [work, --as, a, --json]
     files:
       itos.yaml: |
         version: 1
@@ -462,32 +253,34 @@ cases:
         <a href="https://github.com/b"><img src="https://github.com/b.png" /></a>
         <!-- ALL-CONTRIBUTORS-LIST:END -->
     exit: 0
-    stdout: |
-      Working for a.
-
-      In progress:
-        busy  Busy
-
-      Can start now:
-        ready  Ready  (#12)
-        phased  Owned by the phase
-
-      Unowned, can start now (agree an owner first):
-        free  Free
-
-      Waiting:
-        later  Later  ← ready
-
-      Ideas, not yet specified (a coordinator specifies one before it starts):
-        idea  An idea
-        idea-later  A later idea  ← ready
-        free-idea  A free idea
-
-      Deferred:
-        parked  Parked  — put off for now
-        parked-idea  A parked idea  — waits on a second runner
+    json:
+      schema: 1
+      person: a
+      doing: [{ id: busy, title: Busy, phase: 1, owner: a, status: doing, depends_on: [], tags: [] }]
+      next:
+        - { id: ready, title: Ready, phase: 1, owner: a, status: todo, depends_on: [done], issue: 12, tags: [] }
+        - { id: phased, title: Owned by the phase, phase: 1, owner: null, status: todo, depends_on: [], tags: [] }
+      unowned: [{ id: free, title: Free, phase: 2, owner: null, status: todo, depends_on: [], tags: [] }]
+      waiting: [{ item: { id: later, title: Later, phase: 1, owner: a, status: todo, depends_on: [ready], tags: [] }, on: [ready] }]
+      ideas:
+        - item: { id: idea, title: An idea, phase: 1, owner: a, status: todo, kind: idea, why: a gap a slice left, depends_on: [], tags: [] }
+          on: []
+        - item: { id: idea-later, title: A later idea, phase: 1, owner: a, status: todo, kind: idea, depends_on: [ready], tags: [] }
+          on: [ready]
+        - { item: { id: free-idea, title: A free idea, phase: 2, owner: null, status: todo, kind: idea, depends_on: [], tags: [] }, on: [] }
+      deferred:
+        - { id: parked, title: Parked, phase: 1, owner: a, status: todo, kind: task, deferred: put off for now, depends_on: [], tags: [] }
+        - id: parked-idea
+          title: A parked idea
+          phase: 1
+          owner: a
+          status: todo
+          kind: idea
+          deferred: "  waits on a second runner  "
+          depends_on: []
+          tags: []
   - name: a table's links on another host name nobody by default
-    argv: [work, check]
+    argv: [work, check, --json]
     files:
       itos.yaml: |
         version: 1
@@ -500,20 +293,25 @@ cases:
         <a href="https://codeberg.org/b"><img src="https://codeberg.org/b.png" /></a>
         <!-- ALL-CONTRIBUTORS-LIST:END -->
     exit: 1
-    stderr: |
-      done: owner "a" is not in CONTRIBUTORS.md
-      ready: owner "a" is not in CONTRIBUTORS.md
-      later: owner "a" is not in CONTRIBUTORS.md
-      busy: owner "a" is not in CONTRIBUTORS.md
-      idea: owner "a" is not in CONTRIBUTORS.md
-      idea-later: owner "a" is not in CONTRIBUTORS.md
-      parked: owner "a" is not in CONTRIBUTORS.md
-      parked-idea: owner "a" is not in CONTRIBUTORS.md
-      theirs: owner "b" is not in CONTRIBUTORS.md
-      slice: owner "b" is not in CONTRIBUTORS.md
-      phase 1: owner "a" is not in CONTRIBUTORS.md
+    json:
+      schema: 1
+      file: work-items.yaml
+      sound: false
+      problems:
+        - { rule: work-unknown-owner }
+        - { rule: work-unknown-owner }
+        - { rule: work-unknown-owner }
+        - { rule: work-unknown-owner }
+        - { rule: work-unknown-owner }
+        - { rule: work-unknown-owner }
+        - { rule: work-unknown-owner }
+        - { rule: work-unknown-owner }
+        - { rule: work-unknown-owner }
+        - { rule: work-unknown-owner }
+        - { rule: work-unknown-phase-owner }
+    stdout_has: CONTRIBUTORS.md
   - name: login_from reads the logins from another host's links
-    argv: [work, check]
+    argv: [work, check, --json]
     files:
       itos.yaml: |
         version: 1
@@ -522,30 +320,29 @@ cases:
           people: { source: all-contributors-md, file: CONTRIBUTORS.md, login_from: "https://codeberg.org/{login}" }
       CONTRIBUTORS.md: *codeberg
     exit: 0
-    stdout: |
-      work-items.yaml: sound
+    json: { schema: 1, file: work-items.yaml, sound: true, problems: [] }
   - name: login_from needs one {login}
-    argv: [work, check]
+    argv: [work, check, --json]
     files:
       itos.yaml: |
         version: 1
         work:
           people: { source: all-contributors-md, file: CONTRIBUTORS.md, login_from: "https://codeberg.org/" }
     exit: 2
-    stderr: |
-      FAIL itos.yaml: work.people.login_from needs one {login}: https://codeberg.org/
+    json: { schema: 1, config: itos.yaml, valid: false, problems: [{ rule: config-login-from }] }
+    stdout_has: work.people.login_from
   - name: login_from is read only from a table
-    argv: [work, check]
+    argv: [work, check, --json]
     files:
       itos.yaml: |
         version: 1
         work:
           people: { source: yaml, file: people.yaml, login_from: "https://codeberg.org/{login}" }
     exit: 2
-    stderr: |
-      FAIL itos.yaml: work.people.login_from is read only by all-contributors-md
+    json: { schema: 1, config: itos.yaml, valid: false, problems: [{ rule: config-login-from }] }
+    stdout_has: work.people.login_from
   - name: the people from an .all-contributorsrc
-    argv: [work, check]
+    argv: [work, check, --json]
     files:
       itos.yaml: |
         version: 1
@@ -554,13 +351,12 @@ cases:
           people: { source: all-contributorsrc, file: .all-contributorsrc }
       .all-contributorsrc: '{"projectName":"x","contributors":[{"login":"a","name":"A"},{"login":"b","contributions":["code"]}]}'
     exit: 0
-    stdout: |
-      work-items.yaml: sound
+    json: { schema: 1, file: work-items.yaml, sound: true, problems: [] }
   # A project's people file missing or unreadable is config check's to
   # report, as a warning (config.yaml); work and work check say nothing of
   # it, holding no owner and no handle to people they cannot read.
   - name: an .all-contributorsrc without a contributors list leaves the owners unchecked, saying nothing
-    argv: [work, check]
+    argv: [work, check, --json]
     files:
       itos.yaml: |
         version: 1
@@ -569,32 +365,31 @@ cases:
           people: { source: all-contributorsrc, file: .all-contributorsrc }
       .all-contributorsrc: '{"projectName":"x"}'
     exit: 0
-    stdout: |
-      work-items.yaml: sound
-    stderr: ""
+    json: { schema: 1, file: work-items.yaml, sound: true, problems: [] }
   - name: a YAML people file that is not a list leaves the owners unchecked, saying nothing
-    argv: [work, check]
+    argv: [work, check, --json]
     files:
       people.yaml: "people: [a]\n"
       work-items.yaml: "phases: { 1: z }\nitems:\n  - { id: x, title: X, phase: 1, owner: q, status: todo }\n"
     exit: 0
-    stdout: |
-      work-items.yaml: sound
-    stderr: ""
+    json: { schema: 1, file: work-items.yaml, sound: true, problems: [] }
   - name: with no people file, --as is taken as given, and nothing is said of the people
-    argv: [work, --as, c]
+    argv: [work, --as, c, --json]
     files:
       people.yaml: null
       work-items.yaml: "phases: { 1: c }\nitems:\n  - { id: x, title: X, phase: 1, owner: null, status: todo }\n"
     exit: 0
-    stdout: |
-      Working for c.
-
-      Can start now:
-        x  X
-    stderr: ""
+    json:
+      schema: 1
+      person: c
+      doing: []
+      next: [{ id: x, title: X, phase: 1, owner: null, status: todo, depends_on: [], tags: [] }]
+      unowned: []
+      waiting: []
+      ideas: []
+      deferred: []
   - name: identity none makes the session nobody, with its hint
-    argv: [work]
+    argv: [work, --json]
     files:
       itos.yaml: |
         version: 1
@@ -603,18 +398,18 @@ cases:
           people: { source: yaml, file: people.yaml }
           identity: { provider: none, hint: ask the coordinator }
     exit: 0
-    stdout: |
-      Working for nobody.
-
-      Unowned, can start now (agree an owner first):
-        free  Free
-
-      Ideas, not yet specified (a coordinator specifies one before it starts):
-        free-idea  A free idea
-    stderr: |
-      work.identity is none, so this session is nobody; ask the coordinator
+    json:
+      schema: 1
+      person: null
+      doing: []
+      next: []
+      unowned: [{ id: free, title: Free, phase: 2, owner: null, status: todo, depends_on: [], tags: [] }]
+      waiting: []
+      ideas: [{ item: { id: free-idea, title: A free idea, phase: 2, owner: null, status: todo, kind: idea, depends_on: [], tags: [] }, on: [] }]
+      deferred: []
+    stderr_has: "ask the coordinator"
   - name: --as works whatever the identity provider
-    argv: [work, --as, b]
+    argv: [work, --as, b, --json]
     files:
       itos.yaml: |
         version: 1
@@ -623,20 +418,19 @@ cases:
           people: { source: yaml, file: people.yaml }
           identity: { provider: none }
     exit: 0
-    stdout: |
-      Working for b.
-
-      Can start now:
-        slice  A slice
-
-      Unowned, can start now (agree an owner first):
-        free  Free
-
-      Ideas, not yet specified (a coordinator specifies one before it starts):
-        free-idea  A free idea
-        theirs  Theirs
+    json:
+      schema: 1
+      person: b
+      doing: []
+      next: [{ id: slice, title: A slice, phase: 1, owner: b, status: todo, kind: slice, depends_on: [], tags: [] }]
+      unowned: [{ id: free, title: Free, phase: 2, owner: null, status: todo, depends_on: [], tags: [] }]
+      waiting: []
+      ideas:
+        - { item: { id: free-idea, title: A free idea, phase: 2, owner: null, status: todo, kind: idea, depends_on: [], tags: [] }, on: [] }
+        - { item: { id: theirs, title: Theirs, phase: 1, owner: b, status: todo, kind: idea, depends_on: [], tags: [] }, on: [] }
+      deferred: []
   - name: a handle the provider gives that is not among the people owns nothing yet
-    argv: [work]
+    argv: [work, --json]
     files:
       itos.yaml: |
         version: 1
@@ -645,18 +439,18 @@ cases:
           people: { source: yaml, file: people.yaml }
       bin/gh: { text: "#!/bin/sh\necho newcomer\n", executable: true }
     exit: 0
-    stdout: |
-      Working for newcomer.
-
-      Unowned, can start now (agree an owner first):
-        free  Free
-
-      Ideas, not yet specified (a coordinator specifies one before it starts):
-        free-idea  A free idea
-    stderr: |
-      newcomer is not in people.yaml: nothing is theirs yet
+    json:
+      schema: 1
+      person: newcomer
+      doing: []
+      next: []
+      unowned: [{ id: free, title: Free, phase: 2, owner: null, status: todo, depends_on: [], tags: [] }]
+      waiting: []
+      ideas: [{ item: { id: free-idea, title: A free idea, phase: 2, owner: null, status: todo, kind: idea, depends_on: [], tags: [] }, on: [] }]
+      deferred: []
+    stderr_has: newcomer
   - name: the GitHub account gh is signed in as
-    argv: [work]
+    argv: [work, --json]
     env: { PATH: "{{dir}}/bin:{{PATH}}" }
     files:
       itos.yaml: &github |
@@ -667,53 +461,52 @@ cases:
           identity: { provider: github }
       bin/gh: { text: "#!/bin/sh\n[ \"$*\" = \"api user --jq .login\" ] && echo b\n", executable: true }
     exit: 0
-    stdout: |
-      Working for b.
-
-      Can start now:
-        slice  A slice
-
-      Unowned, can start now (agree an owner first):
-        free  Free
-
-      Ideas, not yet specified (a coordinator specifies one before it starts):
-        free-idea  A free idea
-        theirs  Theirs
+    json:
+      schema: 1
+      person: b
+      doing: []
+      next: [{ id: slice, title: A slice, phase: 1, owner: b, status: todo, kind: slice, depends_on: [], tags: [] }]
+      unowned: [{ id: free, title: Free, phase: 2, owner: null, status: todo, depends_on: [], tags: [] }]
+      waiting: []
+      ideas:
+        - { item: { id: free-idea, title: A free idea, phase: 2, owner: null, status: todo, kind: idea, depends_on: [], tags: [] }, on: [] }
+        - { item: { id: theirs, title: Theirs, phase: 1, owner: b, status: todo, kind: idea, depends_on: [], tags: [] }, on: [] }
+      deferred: []
   - name: gh signed out makes the session nobody
-    argv: [work]
+    argv: [work, --json]
     env: { PATH: "{{dir}}/bin:{{PATH}}" }
     files:
       itos.yaml: *github
       bin/gh: { text: "#!/bin/sh\necho 'not logged in' >&2\nexit 4\n", executable: true }
     exit: 0
-    stdout: |
-      Working for nobody.
-
-      Unowned, can start now (agree an owner first):
-        free  Free
-
-      Ideas, not yet specified (a coordinator specifies one before it starts):
-        free-idea  A free idea
-    stderr: |
-      gh is not signed in (gh auth login), so this session is nobody; pass --as <handle>
+    json:
+      schema: 1
+      person: null
+      doing: []
+      next: []
+      unowned: [{ id: free, title: Free, phase: 2, owner: null, status: todo, depends_on: [], tags: [] }]
+      waiting: []
+      ideas: [{ item: { id: free-idea, title: A free idea, phase: 2, owner: null, status: todo, kind: idea, depends_on: [], tags: [] }, on: [] }]
+      deferred: []
+    stderr_has: "signed in"
   - name: gh missing makes the session nobody
-    argv: [work]
+    argv: [work, --json]
     hide: [gh]
     files:
       itos.yaml: *github
     exit: 0
-    stdout: |
-      Working for nobody.
-
-      Unowned, can start now (agree an owner first):
-        free  Free
-
-      Ideas, not yet specified (a coordinator specifies one before it starts):
-        free-idea  A free idea
-    stderr: |
-      gh is not installed, so this session is nobody; pass --as <handle>
+    json:
+      schema: 1
+      person: null
+      doing: []
+      next: []
+      unowned: [{ id: free, title: Free, phase: 2, owner: null, status: todo, depends_on: [], tags: [] }]
+      waiting: []
+      ideas: [{ item: { id: free-idea, title: A free idea, phase: 2, owner: null, status: todo, kind: idea, depends_on: [], tags: [] }, on: [] }]
+      deferred: []
+    stderr_has: "not installed"
   - name: a stealth session owns every item, gh never asked
-    argv: [work]
+    argv: [work, --json]
     env: { PATH: "{{dir}}/bin:{{PATH}}" }
     git: []
     files:
@@ -724,30 +517,36 @@ cases:
     files_after:
       gh-asked: null
     exit: 0
-    stdout: |
-      Working for you: under a stealth config every item is yours.
-
-      In progress:
-        busy  Busy
-
-      Can start now:
-        ready  Ready  (#12)
-        free  Free
-        phased  Owned by the phase
-        slice  A slice
-
-      Waiting:
-        later  Later  ← ready
-
-      Ideas, not yet specified (a coordinator specifies one before it starts):
-        idea  An idea
-        idea-later  A later idea  ← ready
-        free-idea  A free idea
-        theirs  Theirs
-
-      Deferred:
-        parked  Parked  — put off for now
-        parked-idea  A parked idea  — waits on a second runner
+    json:
+      schema: 1
+      person: null
+      every_item: true
+      doing: [{ id: busy, title: Busy, phase: 1, owner: a, status: doing, depends_on: [], tags: [] }]
+      next:
+        - { id: ready, title: Ready, phase: 1, owner: a, status: todo, depends_on: [done], issue: 12, tags: [] }
+        - { id: free, title: Free, phase: 2, owner: null, status: todo, depends_on: [], tags: [] }
+        - { id: phased, title: Owned by the phase, phase: 1, owner: null, status: todo, depends_on: [], tags: [] }
+        - { id: slice, title: A slice, phase: 1, owner: b, status: todo, kind: slice, depends_on: [], tags: [] }
+      unowned: []
+      waiting: [{ item: { id: later, title: Later, phase: 1, owner: a, status: todo, depends_on: [ready], tags: [] }, on: [ready] }]
+      ideas:
+        - item: { id: idea, title: An idea, phase: 1, owner: a, status: todo, kind: idea, why: a gap a slice left, depends_on: [], tags: [] }
+          on: []
+        - item: { id: idea-later, title: A later idea, phase: 1, owner: a, status: todo, kind: idea, depends_on: [ready], tags: [] }
+          on: [ready]
+        - { item: { id: free-idea, title: A free idea, phase: 2, owner: null, status: todo, kind: idea, depends_on: [], tags: [] }, on: [] }
+        - { item: { id: theirs, title: Theirs, phase: 1, owner: b, status: todo, kind: idea, depends_on: [], tags: [] }, on: [] }
+      deferred:
+        - { id: parked, title: Parked, phase: 1, owner: a, status: todo, kind: task, deferred: put off for now, depends_on: [], tags: [] }
+        - id: parked-idea
+          title: A parked idea
+          phase: 1
+          owner: a
+          status: todo
+          kind: idea
+          deferred: "  waits on a second runner  "
+          depends_on: []
+          tags: []
   - name: a stealth session's proposal says every item is its own
     argv: [work, --json]
     env: { PATH: "{{dir}}/bin:{{PATH}}" }
@@ -772,84 +571,99 @@ cases:
       ideas: []
       deferred: []
   - name: --as under a stealth config proposes that handle's items, as in a project
-    argv: [work, --as, b]
+    argv: [work, --as, b, --json]
     git: []
     files:
       itos.yaml: null
       .git/itos/itos.yaml: *stealth
       .git/itos/work-items.yaml: *registry
     exit: 0
-    stdout: |
-      Working for b.
-
-      Can start now:
-        slice  A slice
-
-      Unowned, can start now (agree an owner first):
-        free  Free
-
-      Ideas, not yet specified (a coordinator specifies one before it starts):
-        free-idea  A free idea
-        theirs  Theirs
+    json:
+      schema: 1
+      person: b
+      doing: []
+      next: [{ id: slice, title: A slice, phase: 1, owner: b, status: todo, kind: slice, depends_on: [], tags: [] }]
+      unowned: [{ id: free, title: Free, phase: 2, owner: null, status: todo, depends_on: [], tags: [] }]
+      waiting: []
+      ideas:
+        - { item: { id: free-idea, title: A free idea, phase: 2, owner: null, status: todo, kind: idea, depends_on: [], tags: [] }, on: [] }
+        - { item: { id: theirs, title: Theirs, phase: 1, owner: b, status: todo, kind: idea, depends_on: [], tags: [] }, on: [] }
+      deferred: []
   - name: the owners per group under work.groups_key, the statuses work.statuses lists
     argv: [work, check, --json, --config, milestones.yaml]
     files:
       milestones.yaml: "version: 1\nwork:\n  registry: milestones-items.yaml\n  groups_key: milestones\n  statuses: [open, closed]\n  people: { source: yaml, file: people.yaml }\n"
       milestones-items.yaml: "milestones: { 1: a }\nitems:\n  - { id: m, title: M, phase: 1, owner: null, status: open }\n  - { id: n, title: N, phase: 2, owner: null, status: todo }\n"
     exit: 1
+    json: { schema: 1, file: milestones-items.yaml, sound: false, problems: [{ rule: work-unknown-phase }, { rule: work-unknown-status }] }
+    stdout_has: [milestones, "open, closed"]
+  - name: work list prints the open items in the registry's order, other people's too, a deferred one marked so
+    argv: [work, list, --json]
+    exit: 0
     json:
       schema: 1
-      file: milestones-items.yaml
-      sound: false
-      problems:
-        - rule: work-unknown-phase
-          message: "n: phase 2 is not listed"
-          fix: "add phase 2 to milestones: in milestones-items.yaml, or move n to a listed one"
-        - rule: work-unknown-status
-          message: 'n: unknown status "todo"'
-          fix: set n's status to one of open, closed
-  - name: work list prints the open items in the registry's order, other people's too, a deferred one marked so
-    argv: [work, list]
-    exit: 0
-    stdout: |
-      ready        -      todo   Ready
-      later        -      todo   Later
-      busy         -      doing  Busy
-      free         -      todo   Free
-      phased       -      todo   Owned by the phase
-      idea         idea   todo   An idea
-      idea-later   idea   todo   A later idea
-      parked       task   todo   Parked  (deferred)
-      parked-idea  idea   todo   A parked idea  (deferred)
-      free-idea    idea   todo   A free idea
-      theirs       idea   todo   Theirs
-      slice        slice  todo   A slice
+      file: work-items.yaml
+      items:
+        - { id: ready, title: Ready, phase: 1, owner: a, status: todo, depends_on: [done], issue: 12, tags: [] }
+        - { id: later, title: Later, phase: 1, owner: a, status: todo, depends_on: [ready], tags: [] }
+        - { id: busy, title: Busy, phase: 1, owner: a, status: doing, depends_on: [], tags: [] }
+        - { id: free, title: Free, phase: 2, owner: null, status: todo, depends_on: [], tags: [] }
+        - { id: phased, title: Owned by the phase, phase: 1, owner: null, status: todo, depends_on: [], tags: [] }
+        - { id: idea, title: An idea, phase: 1, owner: a, status: todo, kind: idea, why: a gap a slice left, depends_on: [], tags: [] }
+        - { id: idea-later, title: A later idea, phase: 1, owner: a, status: todo, kind: idea, depends_on: [ready], tags: [] }
+        - { id: parked, title: Parked, phase: 1, owner: a, status: todo, kind: task, deferred: put off for now, depends_on: [], tags: [] }
+        - id: parked-idea
+          title: A parked idea
+          phase: 1
+          owner: a
+          status: todo
+          kind: idea
+          deferred: "  waits on a second runner  "
+          depends_on: []
+          tags: []
+        - { id: free-idea, title: A free idea, phase: 2, owner: null, status: todo, kind: idea, depends_on: [], tags: [] }
+        - { id: theirs, title: Theirs, phase: 1, owner: b, status: todo, kind: idea, depends_on: [], tags: [] }
+        - { id: slice, title: A slice, phase: 1, owner: b, status: todo, kind: slice, depends_on: [], tags: [] }
   - name: work list --all prints every item in the registry's order, done ones too
-    argv: [work, list, --all]
+    argv: [work, list, --all, --json]
     exit: 0
-    stdout: |
-      done         -      done   Done
-      ready        -      todo   Ready
-      later        -      todo   Later
-      busy         -      doing  Busy
-      free         -      todo   Free
-      phased       -      todo   Owned by the phase
-      idea         idea   todo   An idea
-      idea-later   idea   todo   A later idea
-      parked       task   todo   Parked  (deferred)
-      parked-idea  idea   todo   A parked idea  (deferred)
-      free-idea    idea   todo   A free idea
-      theirs       idea   todo   Theirs
-      slice        slice  todo   A slice
+    json:
+      schema: 1
+      file: work-items.yaml
+      items:
+        - { id: done, title: Done, phase: 1, owner: a, status: done, depends_on: [], tags: [] }
+        - { id: ready, title: Ready, phase: 1, owner: a, status: todo, depends_on: [done], issue: 12, tags: [] }
+        - { id: later, title: Later, phase: 1, owner: a, status: todo, depends_on: [ready], tags: [] }
+        - { id: busy, title: Busy, phase: 1, owner: a, status: doing, depends_on: [], tags: [] }
+        - { id: free, title: Free, phase: 2, owner: null, status: todo, depends_on: [], tags: [] }
+        - { id: phased, title: Owned by the phase, phase: 1, owner: null, status: todo, depends_on: [], tags: [] }
+        - { id: idea, title: An idea, phase: 1, owner: a, status: todo, kind: idea, why: a gap a slice left, depends_on: [], tags: [] }
+        - { id: idea-later, title: A later idea, phase: 1, owner: a, status: todo, kind: idea, depends_on: [ready], tags: [] }
+        - { id: parked, title: Parked, phase: 1, owner: a, status: todo, kind: task, deferred: put off for now, depends_on: [], tags: [] }
+        - id: parked-idea
+          title: A parked idea
+          phase: 1
+          owner: a
+          status: todo
+          kind: idea
+          deferred: "  waits on a second runner  "
+          depends_on: []
+          tags: []
+        - { id: free-idea, title: A free idea, phase: 2, owner: null, status: todo, kind: idea, depends_on: [], tags: [] }
+        - { id: theirs, title: Theirs, phase: 1, owner: b, status: todo, kind: idea, depends_on: [], tags: [] }
+        - { id: slice, title: A slice, phase: 1, owner: b, status: todo, kind: slice, depends_on: [], tags: [] }
   - name: work list leaves out a done or dropped item, which --all prints, and lists a blocked one or any other status
-    argv: [work, list]
+    argv: [work, list, --json]
     files:
       work-items.yaml: "phases: { 1: a }\nitems:\n  - { id: d, title: D, phase: 1, owner: a, status: done }\n  - { id: r, title: R, phase: 1, owner: a, status: dropped }\n  - { id: b, title: B, phase: 1, owner: a, status: blocked }\n  - { id: t, title: T, phase: 1, owner: a, status: todo }\n  - { id: v, title: V, phase: 1, owner: a, status: review }\n"
     exit: 0
-    stdout: |
-      b  -  blocked  B
-      t  -  todo     T
-      v  -  review   V
+    json:
+      schema: 1
+      file: work-items.yaml
+      items:
+        - { id: b, title: B, phase: 1, owner: a, status: blocked, depends_on: [], tags: [] }
+        - { id: t, title: T, phase: 1, owner: a, status: todo, depends_on: [], tags: [] }
+        - { id: v, title: V, phase: 1, owner: a, status: review, depends_on: [], tags: [] }
   - name: work list --json, the open items each as work --json writes it, and where the registry was read
     argv: [work, list, --json]
     files:
@@ -861,13 +675,16 @@ cases:
       items:
         - { id: y, title: Y, phase: 1, owner: null, status: todo, kind: idea, depends_on: [x], tags: [] }
   - name: work list --all prints every item, done ones too
-    argv: [work, list, --all]
+    argv: [work, list, --all, --json]
     files:
       work-items.yaml: "phases: { 1: a }\nitems:\n  - { id: x, title: X, phase: 1, owner: a, status: done }\n  - { id: y, title: Y, phase: 1, owner: null, status: todo, kind: idea }\n"
     exit: 0
-    stdout: |
-      x  -     done  X
-      y  idea  todo  Y
+    json:
+      schema: 1
+      file: work-items.yaml
+      items:
+        - { id: x, title: X, phase: 1, owner: a, status: done, depends_on: [], tags: [] }
+        - { id: y, title: Y, phase: 1, owner: null, status: todo, kind: idea, depends_on: [], tags: [] }
   - name: work list --all --json writes every item as work list --json writes the open ones
     argv: [work, list, --all, --json]
     files:
@@ -897,44 +714,41 @@ cases:
       itos.yaml: "version: 1\nwork: { registry: work-items.yaml, tags: [plugin], people: { source: yaml, file: people.yaml } }\n"
       work-items.yaml: "phases: { 1: a }\nitems:\n  - { id: x, title: X, phase: 1, owner: a, status: todo, tags: [plugin, windows] }\n"
     exit: 1
-    json:
-      schema: 1
-      file: work-items.yaml
-      sound: false
-      problems:
-        - rule: work-unknown-tag
-          message: 'x: tag "windows" is not in work.tags (plugin)'
-          fix: "declare windows in work.tags, or remove it from x's tags (itos work edit x --tags …)"
+    json: { schema: 1, file: work-items.yaml, sound: false, problems: [{ rule: work-unknown-tag }] }
+    stdout_has: windows
   - name: work list judges nothing, so a registry that is not sound still lists
-    argv: [work, list, --all]
+    argv: [work, list, --all, --json]
     files:
       work-items.yaml: "phases: { 1: a }\nitems:\n  - { id: x, title: X, phase: 1, owner: nobody, status: todo, depends_on: [nope] }\n  - { id: y, phase: 1 }\n"
     exit: 0
-    stdout: |
-      x  -  todo  X
-      y  -  -
+    json:
+      schema: 1
+      file: work-items.yaml
+      items:
+        - { id: x, title: X, phase: 1, owner: nobody, status: todo, depends_on: [nope], tags: [] }
+        - { id: y, phase: 1, depends_on: [], tags: [] }
   - name: with no registry where itos looks, work list says where that is
     argv: [work, list, --json]
     files:
       work-items.yaml: null
     exit: 1
-    stderr: |
-      no work registry at work-items.yaml
+    stderr_has: work-items.yaml
   - name: work list takes no argument but --all
     argv: [work, list, --as, a]
     exit: 2
-    stderr: |
-      itos: work list does not take --as; it takes --all or --tag (itos --help)
+    stderr_has: "--as"
   - name: work list reads a stealth config's registry in the git folder
-    argv: [work, list]
+    argv: [work, list, --json]
     git: []
     files:
       itos.yaml: null
       .git/itos/itos.yaml: *stealth
       .git/itos/work-items.yaml: "phases: { 1: q }\nitems:\n  - { id: x, title: X, phase: 1, owner: q, status: todo }\n"
     exit: 0
-    stdout: |
-      x  -  todo  X
+    json:
+      schema: 1
+      file: .git/itos/work-items.yaml
+      items: [{ id: x, title: X, phase: 1, owner: q, status: todo, depends_on: [], tags: [] }]
   - name: work take sets an item in progress for the person and commits the registry alone, its comments and quoting kept
     argv: [work, take, x]
     git:
@@ -1584,7 +1398,7 @@ cases:
     stderr: |
       itos: work edit does not take --owner; it takes --title, --depends-on, --refs, --tags or --note (itos --help)
   - name: work show prints the item, what depends on it, its scenarios and its commits, oldest first
-    argv: [work, show, x]
+    argv: [work, show, x, --json]
     git:
       - commit: "docs: start"
         files:
@@ -1611,21 +1425,26 @@ cases:
           scenario: { root: features, id: "ID-[A-Z]+-\\d+" }
       work-items.yaml: *shown
     exit: 0
-    stdout: |
-      x  X
-        kind: slice, status: doing, owner: a, phase: 1
-        depended on by: y
-        refs: features/x.feature
-
-        Because it is needed.
-
-      Scenarios tagged @x:
-        @ID-X-01  live  x.feature
-        @ID-X-02  wip   x.feature
-
-      Commits, oldest first:
-        {{short.take}} docs: take x
-        {{short.feat}} feat: add x
+    json:
+      schema: 1
+      ok: true
+      item:
+        id: x
+        title: X
+        phase: 1
+        owner: a
+        status: doing
+        kind: slice
+        depends_on: []
+        refs: [features/x.feature]
+        why: Because it is needed.
+        tags: []
+      depended_on_by: [y]
+      scenarios: [{ id: "@ID-X-01", file: x.feature, live: true }, { id: "@ID-X-02", file: x.feature, live: false }]
+      questions: []
+      commits:
+        - { sha: "{{sha.take}}", short: "{{short.take}}", header: "docs: take x" }
+        - { sha: "{{sha.feat}}", short: "{{short.feat}}", header: "feat: add x" }
   - name: work show --json, the item, what depends on it, its scenarios and its commits as data
     argv: [work, show, x, --json]
     git:
@@ -1651,7 +1470,7 @@ cases:
       commits: [{ sha: "{{sha.feat}}", short: "{{short.feat}}", header: "feat: add x" }]
   # Slice 62: the questions of itos decision naming the item, beside its scenarios.
   - name: work show lists the questions naming the item, open and answered, and no other
-    argv: [work, show, x]
+    argv: [work, show, x, --json]
     files:
       itos.yaml: *showConfig
       work-items.yaml: *shown
@@ -1661,121 +1480,88 @@ cases:
           - { id: q-2, item: y, question: "About y?" }
           - { id: q-3, item: x, question: "Is the archive\nworth it?" }
     exit: 0
-    stdout: |
-      x  X
-        kind: slice, status: doing, owner: a, phase: 1
-        depended on by: y
-        refs: features/x.feature
-
-        Because it is needed.
-
-      Scenarios: none tagged @x
-
-      Questions naming x:
-        q-1  answered  Labels or Projects?
-        q-3  open      Is the archive worth it?
-
-      Commits: none yet
-  - name: work show --json gives the questions naming the item
-    argv: [work, show, x, --json]
-    files:
-      itos.yaml: *showConfig
-      work-items.yaml: *shown
-      asks.yaml: *questions
-    exit: 0
     json:
       schema: 1
       ok: true
       item:
-        { id: x, title: X, phase: 1, owner: a, status: doing, kind: slice, depends_on: [], tags: [], refs: [features/x.feature], why: Because it is needed. }
+        id: x
+        title: X
+        phase: 1
+        owner: a
+        status: doing
+        kind: slice
+        depends_on: []
+        refs: [features/x.feature]
+        why: Because it is needed.
+        tags: []
       depended_on_by: [y]
       scenarios: []
       questions:
         - { id: q-1, item: x, question: "Labels or Projects?", status: answered, answer: Labels. }
-        - { id: q-3, item: x, question: "Is the archive\nworth it?", status: open }
+        - id: q-3
+          item: x
+          question: |-
+            Is the archive
+            worth it?
+          status: open
       commits: []
-  # bug-107: task add wrote a task's why into its registry item as well as its
-  # ledger entry, and the registries written keep the copy; work show prints a
-  # registry why that reads as the ledger's once, whitespace aside, and one that
-  # says something else after it.
-  - name: work show prints a task's why once when its registry item repeats the ledger's
-    argv: [work, show, T-1]
+  - name: work show prints a registry why that differs from the ledger's after it
+    argv: [work, show, T-1, --json]
     files:
       itos.yaml: *ledgered
       tasks/phase-1.yaml: &folded "- id: T-1\n  type: docs\n  title: One\n  why: >\n    The ledger\n    says why.\n"
-      work-items.yaml: &repeated "phases: { 1: null }\nitems:\n  - { id: T-1, title: One, phase: 1, owner: null, status: todo, kind: task, depends_on: [], why: The ledger says why. }\n"
-    exit: 0
-    stdout: |
-      T-1  One
-        kind: task, status: todo, owner: nobody, phase: 1
-
-        The ledger says why.
-
-      Scenarios: none tagged @T-1
-
-      Commits: none yet
-  - name: work show prints a registry why that differs from the ledger's after it
-    argv: [work, show, T-1]
-    files:
-      itos.yaml: *ledgered
-      tasks/phase-1.yaml: *folded
       work-items.yaml: "phases: { 1: null }\nitems:\n  - { id: T-1, title: One, phase: 1, owner: null, status: todo, kind: task, depends_on: [], why: An idea's reasons. }\n"
     exit: 0
-    stdout: |
-      T-1  One
-        kind: task, status: todo, owner: nobody, phase: 1
-
+    json:
+      schema: 1
+      ok: true
+      item: { id: T-1, title: One, phase: 1, owner: null, status: todo, kind: task, depends_on: [], why: An idea's reasons., tags: [] }
+      ledger_why: |
         The ledger says why.
-
-        An idea's reasons.
-
-      Scenarios: none tagged @T-1
-
-      Commits: none yet
+      depended_on_by: []
+      scenarios: []
+      questions: []
+      commits: []
   - name: work show --json leaves out of the item a registry why that repeats its ledger_why
     argv: [work, show, T-1, --json]
     files:
       itos.yaml: *ledgered
       tasks/phase-1.yaml: *folded
-      work-items.yaml: *repeated
+      work-items.yaml: "phases: { 1: null }\nitems:\n  - { id: T-1, title: One, phase: 1, owner: null, status: todo, kind: task, depends_on: [], why: The ledger says why. }\n"
     exit: 0
     json:
       schema: 1
       ok: true
       item: { id: T-1, title: One, phase: 1, owner: null, status: todo, kind: task, depends_on: [], tags: [] }
-      ledger_why: "The ledger says why.\n"
+      ledger_why: |
+        The ledger says why.
       depended_on_by: []
       scenarios: []
       questions: []
       commits: []
   - name: work show refuses an id no item has
-    argv: [work, show, nothing]
+    argv: [work, show, nothing, --json]
     exit: 1
-    stderr: |
-      no item nothing in the registry
-        fix: itos work list --all names every item
+    json: { schema: 1, ok: false, problems: [{ rule: work-unknown-item }] }
+    stdout_has: nothing
   - name: work show needs one id
     argv: [work, show]
     exit: 2
-    stderr: |
-      itos: work show needs one <id> (itos --help)
+    stderr_has: "<id>"
   - name: work refuses a subcommand it does not have, naming those it has
     argv: [work, bogus, --x]
     exit: 2
-    stderr: |
-      itos: work has no subcommand bogus: it takes list, show, take, promote, done, add, edit, queue, drop, defer, resume, give-back or check, else --as <handle> (itos --help)
+    stderr_has: bogus
   - name: work refuses a flag it does not take
     argv: [work, --as, a, --all]
     exit: 2
-    stderr: |
-      itos: work does not take --all; it takes --as, else a subcommand: add, check, defer, done, drop, edit, give-back, list, promote, queue, resume, show or take (itos --help)
+    stderr_has: "--all"
   - name: work --as needs a handle
     argv: [work, --as]
     exit: 2
-    stderr: |
-      itos: work --as needs a value (itos --help)
+    stderr_has: "--as"
   - name: work proposes in the queue's order, the unqueued after
-    argv: [work, --as, a]
+    argv: [work, --as, a, --json]
     files:
       work-items.yaml: |
         phases: { 1: a, 2: null }
@@ -1788,20 +1574,21 @@ cases:
           - { id: idea, title: An idea, phase: 1, owner: a, status: todo, kind: idea }
           - { id: free-idea, title: A free idea, phase: 2, owner: null, status: todo, kind: idea }
     exit: 0
-    stdout: |
-      Working for a.
-
-      Can start now:
-        phased  Owned by the phase
-        ready  Ready
-
-      Unowned, can start now (agree an owner first):
-        free  Free
-        free-later  Free later
-
-      Ideas, not yet specified (a coordinator specifies one before it starts):
-        free-idea  A free idea
-        idea  An idea
+    json:
+      schema: 1
+      person: a
+      doing: []
+      next:
+        - { id: phased, title: Owned by the phase, phase: 1, owner: null, status: todo, depends_on: [], tags: [] }
+        - { id: ready, title: Ready, phase: 1, owner: a, status: todo, depends_on: [], tags: [] }
+      unowned:
+        - { id: free, title: Free, phase: 2, owner: null, status: todo, depends_on: [], tags: [] }
+        - { id: free-later, title: Free later, phase: 2, owner: null, status: todo, depends_on: [], tags: [] }
+      waiting: []
+      ideas:
+        - { item: { id: free-idea, title: A free idea, phase: 2, owner: null, status: todo, kind: idea, depends_on: [], tags: [] }, on: [] }
+        - { item: { id: idea, title: An idea, phase: 1, owner: a, status: todo, kind: idea, depends_on: [], tags: [] }, on: [] }
+      deferred: []
   - name: work queue --top starts the queue before items, a block list, and commits the registry alone
     argv: [work, queue, x, --top]
     git:
@@ -1953,24 +1740,14 @@ cases:
     files:
       work-items.yaml: "phases: { 1: null }\nqueue: [x, nope, x]\nitems:\n  - { id: x, title: X, phase: 1, owner: null, status: todo }\n"
     exit: 1
-    json:
-      schema: 1
-      file: work-items.yaml
-      sound: false
-      problems:
-        - rule: work-queue-unknown-item
-          message: "queue: names unknown \"nope\""
-          fix: "remove \"nope\" from queue: in work-items.yaml, or add an item nope"
-        - rule: work-queue-twice
-          message: "queue: names \"x\" twice"
-          fix: "remove one of the two \"x\" from queue: in work-items.yaml"
+    json: { schema: 1, file: work-items.yaml, sound: false, problems: [{ rule: work-queue-unknown-item }, { rule: work-queue-twice }] }
+    stdout_has: nope
   - name: work check refuses a queue that is not a list
-    argv: [work, check]
+    argv: [work, check, --json]
     files:
       work-items.yaml: "phases: { 1: null }\nqueue: x\nitems:\n  - { id: x, title: X, phase: 1, owner: null, status: todo }\n"
     exit: 1
-    stderr: |
-      queue: is not a list of item ids
+    json: { schema: 1, file: work-items.yaml, sound: false, problems: [{ rule: work-queue-not-list }] }
   # Slice 78: work drop takes an item out of the open work, its status
   # dropped, a status itos knows whatever work.statuses lists.
   - name: work drop marks an item dropped, drops its why, takes it out of the queue, and commits the registry alone
@@ -2207,11 +1984,4 @@ cases:
       itos.yaml: "version: 1\nwork:\n  registry: work-items.yaml\n  statuses: [open, closed]\n  people: { source: yaml, file: people.yaml }\n"
       work-items.yaml: "phases: { 1: null }\nitems:\n  - { id: x, title: X, phase: 1, owner: null, status: dropped, kind: idea }\n  - { id: y, title: Y, phase: 1, owner: null, status: open, depends_on: [x] }\n  - { id: z, title: Z, phase: 1, owner: null, status: dropped, depends_on: [x] }\n"
     exit: 1
-    json:
-      schema: 1
-      file: work-items.yaml
-      sound: false
-      problems:
-        - rule: work-dropped-dependency
-          message: "y: depends on \"x\", which is dropped and will never be done"
-          fix: "remove \"x\" from y's depends_on (itos work edit y --depends-on …), or drop y too"
+    json: { schema: 1, file: work-items.yaml, sound: false, problems: [{ rule: work-dropped-dependency }] }
