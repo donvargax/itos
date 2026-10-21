@@ -185,3 +185,66 @@ func TestPushRebaseStoppedWithNoConflict(t *testing.T) {
 		t.Errorf("rebasing %v, conflicted %v", git.Rebasing(), git.Conflicted())
 	}
 }
+
+// A rebase that stops on a conflict in the work registry says, beside git,
+// what happened there: a take of the same item on both sides names the
+// upstream's owner and how to give the item up (slice 66); an item added on
+// each side names none as taken and says to keep both and continue, and
+// nothing in the output advises git rebase --skip (bug 118).
+func TestPushRebaseStoppedOnTheRegistry(t *testing.T) {
+	item := func(id, owner, status string) string {
+		return "  - { id: " + id + ", title: " + id + ", phase: 1, owner: " + owner + ", status: " + status + ", depends_on: [] }\n"
+	}
+	head := "phases: { 1: null }\nitems:\n"
+	base := head + item("slice-9", "null", "todo")
+	for _, c := range []struct {
+		name, theirs, mine string
+		says, not          []string
+	}{
+		{"a take on both sides", head + item("slice-9", "ana", "doing"), head + item("slice-9", "bo", "doing"),
+			[]string{"slice-9 is taken: a commit on origin/main made ana its owner first.", "git rebase --skip"},
+			[]string{"was changed on"}},
+		{"an item added on each side", base + item("p1-from-ana", "null", "todo"), base + item("p1-from-bo", "null", "todo"),
+			[]string{"added or\nchanged different items", "git rebase --continue"},
+			[]string{"the same item", "rebase --skip", "is taken"}},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			gitConfigRepo(t, "version: 1\n")
+			for _, name := range []string{"GIT_AUTHOR_NAME", "GIT_COMMITTER_NAME"} {
+				t.Setenv(name, "itos")
+			}
+			for _, name := range []string{"GIT_AUTHOR_EMAIL", "GIT_COMMITTER_EMAIL"} {
+				t.Setenv(name, "itos@example.com")
+			}
+			registry := filepath.Join("tasks", "work-items.yaml")
+			commit := func(text, subject string) {
+				t.Helper()
+				writeFiles(t, map[string]string{registry: text})
+				gitLine(t, "add", registry)
+				gitLine(t, "commit", "-q", "-m", subject)
+			}
+			gitLine(t, "checkout", "-q", "-b", "main")
+			commit(base, "docs: a registry")
+			gitLine(t, "checkout", "-q", "-b", "up")
+			commit(c.theirs, "docs: theirs")
+			gitLine(t, "checkout", "-q", "main")
+			commit(c.mine, "docs: mine")
+			var stdout, stderr strings.Builder
+			r := pushRun{o: Out{Stdout: &stdout, Stderr: &stderr}, git: &stderr, remote: "origin", branch: "main"}
+			code, done, err := r.rebase("up")
+			if !done || code != ExitPolicy || err != nil {
+				t.Fatalf("exit %d, done %v, %v\n%s%s", code, done, err, stdout.String(), stderr.String())
+			}
+			for _, text := range c.says {
+				if !strings.Contains(stderr.String(), text) {
+					t.Errorf("no %q in:\n%s", text, stderr.String())
+				}
+			}
+			for _, text := range c.not {
+				if strings.Contains(stderr.String(), text) {
+					t.Errorf("%q in:\n%s", text, stderr.String())
+				}
+			}
+		})
+	}
+}
