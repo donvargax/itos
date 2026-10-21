@@ -1,7 +1,7 @@
 # The re-check of a pushed range (`itos verify`): every
 # non-merge commit's message against the footers as they were at that commit,
-# then its paths, then each kind's range check once; the summary line agents
-# quote, and --json; commits.since, which leaves a commit and its ancestors
+# then its paths, then each kind's range check once, each judged by --json, the
+# reports and the range check's output on stderr; commits.since, which leaves a commit and its ancestors
 # out and starts the range checks there; a footer's own since, which leaves
 # them out of that footer's required_for.
 #
@@ -60,62 +60,49 @@ files:
           - { name: moves, except_types: [feat, fix], range: "echo checked {from}..{to}" }
 cases:
   - name: every commit up to the head, a feat valid at its own commit though a later one set its scenario back
-    argv: [verify, "", "{{sha.head}}"]
+    argv: [verify, "", "{{sha.head}}", --json]
     exit: 0
-    stdout: |
-      3/3 commits pass the commit rules
-      checked ..{{sha.head}}
-    stderr: ""
+    json:
+      schema: 1
+      range: { from: "", to: "{{sha.head}}" }
+      commits:
+        - { sha: "{{sha.bare}}", header: "docs: start", ok: true }
+        - { sha: "{{sha.live}}", header: "feat: add a thing", ok: true }
+        - { sha: "{{sha.head}}", header: "docs: set the scenario back to @wip", ok: true }
+      passed: 3
+      total: 3
+      range_checks: true
+    stderr_has: "checked ..{{sha.head}}"
   - name: a from of zeros is every commit up to the head
-    argv: [verify, "0000000000000000000000000000000000000000", "{{sha.head}}"]
+    argv: [verify, "0000000000000000000000000000000000000000", "{{sha.head}}", --json]
     exit: 0
-    stdout: |
-      3/3 commits pass the commit rules
-      checked 0000000000000000000000000000000000000000..{{sha.head}}
-    stderr: ""
+    json:
+      schema: 1
+      range: { from: "0000000000000000000000000000000000000000", to: "{{sha.head}}" }
+      commits:
+        - { sha: "{{sha.bare}}", header: "docs: start", ok: true }
+        - { sha: "{{sha.live}}", header: "feat: add a thing", ok: true }
+        - { sha: "{{sha.head}}", header: "docs: set the scenario back to @wip", ok: true }
+      passed: 3
+      total: 3
+      range_checks: true
+    stderr_has: "checked 0000000000000000000000000000000000000000..{{sha.head}}"
   - name: a range with commits that fail, each named under its report
-    argv: [verify, "{{sha.head}}", "{{sha.tidy}}"]
-    exit: 1
-    stdout: |
-      1/3 commits pass the commit rules
-      checked {{sha.head}}..{{sha.tidy}}
-    stderr: |
-      ✖   unknown tasks: T-002 [task-footer]
-        ^ {{short.gone}} build: name a task that is gone
-      Commit rejected:
-        - docs commits may not touch src/a.ts
-        ^ {{short.source}} docs: touch the source
-  - name: --json of that range, the reports on stderr
     argv: [verify, "{{sha.head}}", "{{sha.tidy}}", --json]
     exit: 1
     json:
       schema: 1
-      range:
-        from: "{{sha.head}}"
-        to: "{{sha.tidy}}"
+      range: { from: "{{sha.head}}", to: "{{sha.tidy}}" }
       commits:
-        - sha: "{{sha.gone}}"
-          header: "build: name a task that is gone"
-          ok: false
-        - sha: "{{sha.source}}"
-          header: "docs: touch the source"
-          ok: false
-        - sha: "{{sha.tidy}}"
-          header: "chore: tidy"
-          ok: true
+        - { sha: "{{sha.gone}}", header: "build: name a task that is gone", ok: false }
+        - { sha: "{{sha.source}}", header: "docs: touch the source", ok: false }
+        - { sha: "{{sha.tidy}}", header: "chore: tidy", ok: true }
       passed: 1
       total: 3
       range_checks: true
-    stderr: |
-      ✖   unknown tasks: T-002 [task-footer]
-        ^ {{short.gone}} build: name a task that is gone
-      Commit rejected:
-        - docs commits may not touch src/a.ts
-        ^ {{short.source}} docs: touch the source
-      1/3 commits pass the commit rules
-      checked {{sha.head}}..{{sha.tidy}}
+    stderr_has: ["[task-footer]", T-002, src/a.ts, "checked {{sha.head}}..{{sha.tidy}}"]
   - name: a range check that fails fails the range, its commits sound
-    argv: [verify, "{{sha.source}}", "{{sha.tidy}}", --config, failing.yaml]
+    argv: [verify, "{{sha.source}}", "{{sha.tidy}}", --config, failing.yaml, --json]
     files:
       failing.yaml: |
         version: 1
@@ -130,40 +117,50 @@ cases:
             range_checks:
               - { name: moves, range: "echo 'a moved scenario changed' >&2; exit 1" }
     exit: 1
-    stdout: |
-      1/1 commits pass the commit rules
-    stderr: |
-      a moved scenario changed
+    json:
+      schema: 1
+      range: { from: "{{sha.source}}", to: "{{sha.tidy}}" }
+      commits: [{ sha: "{{sha.tidy}}", header: "chore: tidy", ok: true }]
+      passed: 1
+      total: 1
+      range_checks: false
+    stderr_has: "a moved scenario changed"
   - name: the header lint delegate reads the commit it checks from ITOS_AT
-    argv: [verify, "{{sha.bare}}", "{{sha.head}}", --config, delegated.yaml]
+    argv: [verify, "{{sha.bare}}", "{{sha.head}}", --config, delegated.yaml, --json]
     files:
       delegated.yaml: |
         version: 1
         commits:
           header_lint: { stdin: "head -1 >&2; echo \"at $(git rev-parse --short $ITOS_AT)\" >&2" }
     exit: 0
-    stdout: |
-      2/2 commits pass the commit rules
-    stderr: |
-      feat: add a thing
-      at {{short.live}}
-      docs: set the scenario back to @wip
-      at {{short.head}}
+    json:
+      schema: 1
+      range: { from: "{{sha.bare}}", to: "{{sha.head}}" }
+      commits:
+        - { sha: "{{sha.live}}", header: "feat: add a thing", ok: true }
+        - { sha: "{{sha.head}}", header: "docs: set the scenario back to @wip", ok: true }
+      passed: 2
+      total: 2
+      range_checks: true
+    stderr_has: ["at {{short.live}}", "at {{short.head}}"]
   - name: a header the delegate rejects
-    argv: [verify, "{{sha.head}}", "{{sha.gone}}", --config, rejecting.yaml]
+    argv: [verify, "{{sha.head}}", "{{sha.gone}}", --config, rejecting.yaml, --json]
     files:
       rejecting.yaml: |
         version: 1
         commits:
           header_lint: { stdin: "cat >/dev/null; echo '✖   type may not be empty [type-empty]'; exit 1" }
     exit: 1
-    stdout: |
-      ✖   type may not be empty [type-empty]
-      0/1 commits pass the commit rules
-    stderr: |2
-        ^ {{short.gone}} build: name a task that is gone
+    json:
+      schema: 1
+      range: { from: "{{sha.head}}", to: "{{sha.gone}}" }
+      commits: [{ sha: "{{sha.gone}}", header: "build: name a task that is gone", ok: false }]
+      passed: 0
+      total: 1
+      range_checks: true
+    stderr_has: "[type-empty]"
   - name: a commit made without the hooks, no type and no footer, is the delegate's to reject
-    argv: [verify, "{{sha.start}}", "{{sha.wip}}", --config, skipped.yaml]
+    argv: [verify, "{{sha.start}}", "{{sha.wip}}", --config, skipped.yaml, --json]
     git:
       - commit: "docs: start"
         files: { README.md: "scratch\n", tasks/phase-1.yaml: "- { id: T-001, type: build, title: One }\n" }
@@ -182,13 +179,16 @@ cases:
           footers:
             Task: { source: ledger, required_for: [build], validate_for: all, read_at: commit }
     exit: 1
-    stdout: |
-      ✖   type may not be empty [type-empty]
-      0/1 commits pass the commit rules
-    stderr: |2
-        ^ {{short.wip}} wip
+    json:
+      schema: 1
+      range: { from: "{{sha.start}}", to: "{{sha.wip}}" }
+      commits: [{ sha: "{{sha.wip}}", header: wip, ok: false }]
+      passed: 0
+      total: 1
+      range_checks: true
+    stderr_has: "[type-empty]"
   - name: the built-in header lint rejects a commit made without the hooks
-    argv: [verify, "{{sha.start}}", "{{sha.wip}}", --config, builtin.yaml]
+    argv: [verify, "{{sha.start}}", "{{sha.wip}}", --config, builtin.yaml, --json]
     git:
       - commit: "docs: start"
         files: { README.md: "scratch\n", tasks/phase-1.yaml: "- { id: T-001, type: build, title: One }\n" }
@@ -206,20 +206,27 @@ cases:
           footers:
             Task: { source: ledger, required_for: [build], validate_for: all, read_at: commit }
     exit: 1
-    stdout: |
-      0/1 commits pass the commit rules
-    stderr: |
-      ✖   subject may not be empty [subject-empty]
-      ✖   type may not be empty [type-empty]
-        ^ {{short.wip}} wip
+    json:
+      schema: 1
+      range: { from: "{{sha.start}}", to: "{{sha.wip}}" }
+      commits: [{ sha: "{{sha.wip}}", header: wip, ok: false }]
+      passed: 0
+      total: 1
+      range_checks: true
+    stderr_has: ["[subject-empty]", "[type-empty]"]
   - name: an empty range passes
-    argv: [verify, "{{sha.tidy}}", "{{sha.tidy}}"]
+    argv: [verify, "{{sha.tidy}}", "{{sha.tidy}}", --json]
     exit: 0
-    stdout: |
-      0/0 commits pass the commit rules
-      checked {{sha.tidy}}..{{sha.tidy}}
+    json:
+      schema: 1
+      range: { from: "{{sha.tidy}}", to: "{{sha.tidy}}" }
+      commits: []
+      passed: 0
+      total: 0
+      range_checks: true
+    stderr_has: "checked {{sha.tidy}}..{{sha.tidy}}"
   - name: commits.since and its ancestors are left out, and the range checks start there
-    argv: [verify, "", "{{sha.tidy}}", --config, since.yaml]
+    argv: [verify, "", "{{sha.tidy}}", --config, since.yaml, --json]
     files:
       since.yaml: |
         version: 1
@@ -238,12 +245,17 @@ cases:
             range_checks:
               - { name: moves, except_types: [feat, fix], range: "echo checked {from}..{to}" }
     exit: 0
-    stdout: |
-      Not checked: {{short.source}} (commits.since) and its ancestors
-      1/1 commits pass the commit rules
-      checked {{sha.source}}..{{sha.tidy}}
+    json:
+      schema: 1
+      range: { from: "", to: "{{sha.tidy}}" }
+      since: "{{sha.source}}"
+      commits: [{ sha: "{{sha.tidy}}", header: "chore: tidy", ok: true }]
+      passed: 1
+      total: 1
+      range_checks: true
+    stderr_has: "checked {{sha.source}}..{{sha.tidy}}"
   - name: a start older than commits.since starts at it
-    argv: [verify, "{{sha.bare}}", "{{sha.tidy}}", --config, since.yaml]
+    argv: [verify, "{{sha.bare}}", "{{sha.tidy}}", --config, since.yaml, --json]
     files:
       since.yaml: |
         version: 1
@@ -262,12 +274,17 @@ cases:
             range_checks:
               - { name: moves, except_types: [feat, fix], range: "echo checked {from}..{to}" }
     exit: 0
-    stdout: |
-      Not checked: {{short.source}} (commits.since) and its ancestors
-      1/1 commits pass the commit rules
-      checked {{sha.source}}..{{sha.tidy}}
+    json:
+      schema: 1
+      range: { from: "{{sha.bare}}", to: "{{sha.tidy}}" }
+      since: "{{sha.source}}"
+      commits: [{ sha: "{{sha.tidy}}", header: "chore: tidy", ok: true }]
+      passed: 1
+      total: 1
+      range_checks: true
+    stderr_has: "checked {{sha.source}}..{{sha.tidy}}"
   - name: a start newer than commits.since keeps its own
-    argv: [verify, "{{sha.gone}}", "{{sha.tidy}}", --config, since.yaml]
+    argv: [verify, "{{sha.gone}}", "{{sha.tidy}}", --config, since.yaml, --json]
     files:
       since.yaml: |
         version: 1
@@ -286,18 +303,21 @@ cases:
             range_checks:
               - { name: moves, except_types: [feat, fix], range: "echo checked {from}..{to}" }
     exit: 1
-    stdout: |
-      Not checked: {{short.head}} (commits.since) and its ancestors
-      1/2 commits pass the commit rules
-      checked {{sha.gone}}..{{sha.tidy}}
-    stderr: |
-      Commit rejected:
-        - docs commits may not touch src/a.ts
-        ^ {{short.source}} docs: touch the source
+    json:
+      schema: 1
+      range: { from: "{{sha.gone}}", to: "{{sha.tidy}}" }
+      since: "{{sha.head}}"
+      commits:
+        - { sha: "{{sha.source}}", header: "docs: touch the source", ok: false }
+        - { sha: "{{sha.tidy}}", header: "chore: tidy", ok: true }
+      passed: 1
+      total: 2
+      range_checks: true
+    stderr_has: [src/a.ts, "checked {{sha.gone}}..{{sha.tidy}}"]
   # A footer's own since: added to the rules later, a required footer would
   # otherwise fail every commit written before it.
   - name: without a since of its own, a required footer fails every commit written before the rule
-    argv: [verify, "", HEAD, --config, upgrading.yaml]
+    argv: [verify, "", HEAD, --config, upgrading.yaml, --json]
     git: &upgrading
       - commit: "chore: start"
         files: { README.md: "scratch\n" }
@@ -307,6 +327,7 @@ cases:
         label: before
       - commit: "chore: after the rule\n\nUpgrading: none\n"
         files: { README.md: "scratch, after\n" }
+        label: after
     files:
       upgrading.yaml: |
         version: 1
@@ -315,15 +336,19 @@ cases:
           footers:
             Upgrading: { source: text, required_for: [chore] }
     exit: 1
-    stdout: |
-      1/3 commits pass the commit rules
-    stderr: |
-      ✖   chore commits need a "Upgrading: <what a consumer must do, or none>" footer [upgrading-footer]
-        ^ {{short.start}} chore: start
-      ✖   chore commits need a "Upgrading: <what a consumer must do, or none>" footer [upgrading-footer]
-        ^ {{short.before}} chore: before the rule
+    json:
+      schema: 1
+      range: { from: "", to: HEAD }
+      commits:
+        - { sha: "{{sha.start}}", header: "chore: start", ok: false }
+        - { sha: "{{sha.before}}", header: "chore: before the rule", ok: false }
+        - { sha: "{{sha.after}}", header: "chore: after the rule", ok: true }
+      passed: 1
+      total: 3
+      range_checks: true
+    stderr_has: "[upgrading-footer]"
   - name: a footer's since leaves that commit and its ancestors out of its required_for
-    argv: [verify, "", HEAD, --config, upgrading.yaml]
+    argv: [verify, "", HEAD, --config, upgrading.yaml, --json]
     git: *upgrading
     files:
       upgrading.yaml: |
@@ -333,11 +358,18 @@ cases:
           footers:
             Upgrading: { source: text, required_for: [chore], since: "{{sha.before}}" }
     exit: 0
-    stdout: |
-      3/3 commits pass the commit rules
-    stderr: ""
+    json:
+      schema: 1
+      range: { from: "", to: HEAD }
+      commits:
+        - { sha: "{{sha.start}}", header: "chore: start", ok: true }
+        - { sha: "{{sha.before}}", header: "chore: before the rule", ok: true }
+        - { sha: "{{sha.after}}", header: "chore: after the rule", ok: true }
+      passed: 3
+      total: 3
+      range_checks: true
   - name: a commit after the footer's since still needs it
-    argv: [verify, "", HEAD, --config, upgrading.yaml]
+    argv: [verify, "", HEAD, --config, upgrading.yaml, --json]
     git: *upgrading
     files:
       upgrading.yaml: |
@@ -347,13 +379,19 @@ cases:
           footers:
             Upgrading: { source: text, required_for: [chore], since: "{{sha.start}}" }
     exit: 1
-    stdout: |
-      2/3 commits pass the commit rules
-    stderr: |
-      ✖   chore commits need a "Upgrading: <what a consumer must do, or none>" footer [upgrading-footer]
-        ^ {{short.before}} chore: before the rule
+    json:
+      schema: 1
+      range: { from: "", to: HEAD }
+      commits:
+        - { sha: "{{sha.start}}", header: "chore: start", ok: true }
+        - { sha: "{{sha.before}}", header: "chore: before the rule", ok: false }
+        - { sha: "{{sha.after}}", header: "chore: after the rule", ok: true }
+      passed: 2
+      total: 3
+      range_checks: true
+    stderr_has: "[upgrading-footer]"
   - name: a footer's since naming no commit of the repository
-    argv: [verify, "", HEAD, --config, upgrading.yaml]
+    argv: [verify, "", HEAD, --config, upgrading.yaml, --json]
     git: *upgrading
     files:
       upgrading.yaml: |
@@ -363,10 +401,10 @@ cases:
           footers:
             Upgrading: { source: text, required_for: [chore], since: "0123456789abcdef0123456789abcdef01234567" }
     exit: 2
-    stderr: |
-      FAIL commits.footers.Upgrading.since names 0123456789abcdef0123456789abcdef01234567, which is not a commit of this repository
+    json: { schema: 1, range: { from: "", to: HEAD }, problems: [{ rule: config-since-commit }] }
+    stdout_has: [commits.footers.Upgrading.since, 0123456789abcdef0123456789abcdef01234567]
   - name: commits.since naming no commit of the repository
-    argv: [verify, "", "{{sha.tidy}}", --config, since.yaml]
+    argv: [verify, "", "{{sha.tidy}}", --config, since.yaml, --json]
     files:
       since.yaml: |
         version: 1
@@ -385,12 +423,12 @@ cases:
             range_checks:
               - { name: moves, except_types: [feat, fix], range: "echo checked {from}..{to}" }
     exit: 2
-    stderr: |
-      FAIL commits.since names 0123456789abcdef0123456789abcdef01234567, which is not a commit of this repository
+    json: { schema: 1, range: { from: "", to: "{{sha.tidy}}" }, problems: [{ rule: config-since-commit }] }
+    stdout_has: [commits.since, 0123456789abcdef0123456789abcdef01234567]
   # actions/checkout clones one commit deep by default: the clone lacks the
   # commit commits.since names, though the repository it was cloned from has it.
   - name: commits.since beyond a shallow clone's history
-    argv: [verify, "", HEAD, --config, since.yaml]
+    argv: [verify, "", HEAD, --config, since.yaml, --json]
     git:
       - commit: "docs: start"
         files: { README.md: "scratch\n" }
@@ -406,5 +444,5 @@ cases:
           types: [docs]
           since: "{{sha.first}}"
     exit: 2
-    stderr: |
-      FAIL commits.since names {{sha.first}}, which this clone does not have: the clone is shallow, and the commit may lie beyond its history. Fetch the whole history with git fetch --unshallow, or with fetch-depth: 0 for actions/checkout
+    json: { schema: 1, range: { from: "", to: HEAD }, problems: [{ rule: config-since-commit }] }
+    stdout_has: ["{{sha.first}}", "git fetch --unshallow"]
