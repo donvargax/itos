@@ -11064,7 +11064,7 @@ items:
     title: "help.yaml pins only what help must do: exit 0, stdout, the subcommands named"
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
 
