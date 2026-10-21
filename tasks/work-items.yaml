@@ -11091,3 +11091,11 @@ items:
     status: todo
     depends_on: []
     kind: task
+
+  - id: T-204
+    title: The work and verify corpus files pin only the contract
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task
