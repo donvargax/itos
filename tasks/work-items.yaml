@@ -11029,8 +11029,8 @@ items:
   - id: T-196
     title: "Pilot slices: guard and version move to internal/slices, each with its CLI, Query, Handler and Ports"
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
 
