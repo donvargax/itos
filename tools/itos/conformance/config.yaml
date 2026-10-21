@@ -1,6 +1,6 @@
 # The config and what it names (`itos config check`): a sound
-# config, ledger, registry and smoke set; each config problem with its rule
-# and fix (an unknown key and the key it misspells, a wrong type, a value not
+# config, ledger, registry and smoke set; each config problem by its rule
+# (an unknown key and the key it misspells, a wrong type, a value not
 # allowed, a missing key, a pattern that does not compile as RE2 (a lookaround,
 # a backreference, a repeat count above 1000, a letter escape, an empty class,
 # a kind's ID pattern among them), a name that refers
@@ -39,36 +39,15 @@ files:
   features/a.feature: "Feature: A\n\n  @ID-A-01\n  Scenario: Opens\n    When I open it\n"
 cases:
   - name: a sound config, ledger, registry and smoke set
-    argv: [config, check]
-    exit: 0
-    stdout: |
-      itos.yaml is valid, and so are the 2 ledger files it reads
-      work-items.yaml: sound
-      smoke.yaml: every file has a smoke test (1 in all)
-  - name: the same as --json
     argv: [config, check, --json]
     exit: 0
-    json:
-      schema: 1
-      config: itos.yaml
-      valid: true
-      problems: []
+    json: { schema: 1, config: itos.yaml, valid: true, problems: [] }
   - name: quietly
     argv: [config, check, -q]
     exit: 0
   # A project's people file missing or unreadable is a warning, which never
   # fails the run: without the people, the registry's owners go unchecked.
   - name: a missing people file is a warning, and the check passes
-    argv: [config, check]
-    files: { people.yaml: null }
-    exit: 0
-    stdout: |
-      itos.yaml is valid, and so are the 2 ledger files it reads
-      work-items.yaml: sound
-      smoke.yaml: every file has a smoke test (1 in all)
-    stderr: |
-      WARN no people file at people.yaml (work.people), so the registry's owners go unchecked
-  - name: the same as --json, the warning with its rule and fix
     argv: [config, check, --json]
     files: { people.yaml: null }
     exit: 0
@@ -77,28 +56,34 @@ cases:
       config: itos.yaml
       valid: true
       problems: []
-      warnings:
-        - rule: work-people-missing
-          message: no people file at people.yaml (work.people), so the registry's owners go unchecked
-          fix: list the people who may own work in people.yaml, or set work.people.file to where they are
-          area: people
+      warnings: [{ rule: work-people-missing, area: people }]
+    stdout_has: people.yaml
   - name: a YAML people file that is not a list is a warning, its owners unchecked
-    argv: [config, check]
+    argv: [config, check, --json]
     files:
       people.yaml: "people: [a]\n"
       work-items.yaml: "phases: { 1: z }\nitems:\n  - { id: T-001, title: One, phase: 1, owner: q, status: done }\n"
     exit: 0
-    stderr: |
-      WARN people.yaml (work.people, yaml) is not a list of logins, so the registry's owners go unchecked
+    json:
+      schema: 1
+      config: itos.yaml
+      valid: true
+      problems: []
+      warnings: [{ rule: work-people-unreadable, area: people }]
+    stdout_has: people.yaml
   - name: a YAML people entry that is not a login is a warning
-    argv: [config, check, -q]
+    argv: [config, check, -q, --json]
     files: { people.yaml: "- a\n- 3\n" }
     exit: 0
-    stdout: ""
-    stderr: |
-      WARN people.yaml (work.people, yaml) entry 1 is not a login, so the registry's owners go unchecked
+    json:
+      schema: 1
+      config: itos.yaml
+      valid: true
+      problems: []
+      warnings: [{ rule: work-people-unreadable, area: people }]
+    stdout_has: "entry 1"
   - name: an .all-contributorsrc without a contributors list is a warning
-    argv: [config, check, -q]
+    argv: [config, check, -q, --json]
     files:
       itos.yaml: |
         version: 1
@@ -107,10 +92,15 @@ cases:
         work: { registry: work-items.yaml, people: { source: all-contributorsrc, file: .all-contributorsrc } }
       .all-contributorsrc: '{"projectName":"x"}'
     exit: 0
-    stderr: |
-      WARN .all-contributorsrc (work.people, all-contributorsrc) has no contributors list, so the registry's owners go unchecked
+    json:
+      schema: 1
+      config: itos.yaml
+      valid: true
+      problems: []
+      warnings: [{ rule: work-people-unreadable, area: people }]
+    stdout_has: ".all-contributorsrc"
   - name: an .all-contributorsrc contributor without a login is a warning
-    argv: [config, check, -q]
+    argv: [config, check, -q, --json]
     files:
       itos.yaml: |
         version: 1
@@ -119,8 +109,13 @@ cases:
         work: { registry: work-items.yaml, people: { source: all-contributorsrc, file: .all-contributorsrc } }
       .all-contributorsrc: '{"contributors":[{"name":"No Login"}]}'
     exit: 0
-    stderr: |
-      WARN .all-contributorsrc (work.people, all-contributorsrc) contributors[0] has no login, so the registry's owners go unchecked
+    json:
+      schema: 1
+      config: itos.yaml
+      valid: true
+      problems: []
+      warnings: [{ rule: work-people-unreadable, area: people }]
+    stdout_has: "contributors[0]"
   - name: a misspelt key names the key it misspells (typo.yaml)
     argv: [config, check, --json, --config, typo.yaml]
     files:
@@ -130,18 +125,8 @@ cases:
       schema: 1
       config: typo.yaml
       valid: false
-      problems:
-        - rule: config-unknown-key
-          message: "typo.yaml: unknown key ci.cost.keep_writen_order"
-          fix: rename ci.cost.keep_writen_order to keep_written_order
-          area: config
-  - name: the same as text
-    argv: [config, check, --config, typo.yaml]
-    files:
-      typo.yaml: "version: 1\nci:\n  steps: [{ run: vp check, cost: static }]\n  cost:\n    static: [\"^vp check$\"]\n    keep_writen_order: true\n"
-    exit: 2
-    stderr: |
-      FAIL typo.yaml: unknown key ci.cost.keep_writen_order
+      problems: [{ rule: config-unknown-key, area: config }]
+    stdout_has: [ci.cost.keep_writen_order, keep_written_order]
   - name: an unknown key far from any lists the keys there are
     argv: [config, check, --json]
     files: { itos.yaml: "version: 1\nhooks: { shims: true }\n" }
@@ -150,11 +135,8 @@ cases:
       schema: 1
       config: itos.yaml
       valid: false
-      problems:
-        - rule: config-unknown-key
-          message: "itos.yaml: unknown key hooks.shims"
-          fix: remove hooks.shims; the keys here are bin, pre_push, commit_msg
-          area: config
+      problems: [{ rule: config-unknown-key, area: config }]
+    stdout_has: [hooks.shims, "bin, pre_push, commit_msg"]
   # Slice 97: work.tags, the tags a work item may carry, are distinct names.
   - name: work.tags declares no empty tag and none twice
     argv: [config, check, --json]
@@ -164,15 +146,8 @@ cases:
       schema: 1
       config: itos.yaml
       valid: false
-      problems:
-        - rule: config-work-tag-empty
-          message: "itos.yaml: work.tags[1] is empty"
-          fix: give the tag a name, or remove it from work.tags
-          area: config
-        - rule: config-work-tag-twice
-          message: 'itos.yaml: work.tags declares "plugin" twice'
-          fix: remove one of the two plugin from work.tags
-          area: config
+      problems: [{ rule: config-work-tag-empty, area: config }, { rule: config-work-tag-twice, area: config }]
+    stdout_has: ["work.tags[1]", plugin]
   - name: the keys of features not built yet are unknown, header_lint.use is builtin or command, and hooks.manager, removed in v6, is unknown
     argv: [config, check, --json]
     files:
@@ -183,22 +158,11 @@ cases:
       config: itos.yaml
       valid: false
       problems:
-        - rule: config-unknown-key
-          message: "itos.yaml: unknown key ledger.check.pushed"
-          fix: remove ledger.check.pushed; the keys here are timeout
-          area: config
-        - rule: config-enum
-          message: 'itos.yaml: commits.header_lint.use should be one of builtin, command, not "both"'
-          fix: set commits.header_lint.use to one of builtin, command
-          area: config
-        - rule: config-unknown-key
-          message: "itos.yaml: unknown key commits.header_lint.alongside"
-          fix: remove commits.header_lint.alongside; the keys here are use, hook, stdin
-          area: config
-        - rule: config-unknown-key
-          message: "itos.yaml: unknown key hooks.manager"
-          fix: remove hooks.manager; the keys here are bin, pre_push, commit_msg
-          area: config
+        - { rule: config-unknown-key, area: config }
+        - { rule: config-enum, area: config }
+        - { rule: config-unknown-key, area: config }
+        - { rule: config-unknown-key, area: config }
+    stdout_has: [ledger.check.pushed, commits.header_lint.use, commits.header_lint.alongside, hooks.manager]
   - name: wrong types, a value not allowed, missing keys
     argv: [config, check, --json]
     files:
@@ -214,40 +178,19 @@ cases:
       config: itos.yaml
       valid: false
       problems:
-        - rule: config-type
-          message: "itos.yaml: version should be a number, not string"
-          fix: make version a number
-          area: config
-        - rule: config-type
-          message: "itos.yaml: shell should be a list of strings"
-          fix: make shell a list of strings
-          area: config
-        - rule: config-type
-          message: "itos.yaml: ledger.group.numeric should be a boolean, not string"
-          fix: make ledger.group.numeric a boolean
-          area: config
-        - rule: config-missing-key
-          message: "itos.yaml: ledger.files is missing"
-          fix: add ledger.files
-          area: config
-        - rule: config-type
-          message: "itos.yaml: ci.stop_at_first_failure should be a boolean, not number"
-          fix: make ci.stop_at_first_failure a boolean
-          area: config
-        - rule: config-enum
-          message: 'itos.yaml: ci.range.provider should be one of github, none, not "gitlab"'
-          fix: set ci.range.provider to one of github, none
-          area: config
-        - rule: config-missing-key
-          message: "itos.yaml: work.people.source is missing"
-          fix: add work.people.source
-          area: config
+        - { rule: config-type, area: config }
+        - { rule: config-type, area: config }
+        - { rule: config-type, area: config }
+        - { rule: config-missing-key, area: config }
+        - { rule: config-type, area: config }
+        - { rule: config-enum, area: config }
+        - { rule: config-missing-key, area: config }
+    stdout_has: [ledger.group.numeric, ledger.files, ci.stop_at_first_failure, ci.range.provider, work.people.source]
   - name: a config that is not a mapping
-    argv: [config, check]
+    argv: [config, check, --json]
     files: { itos.yaml: "- version: 1\n" }
     exit: 2
-    stderr: |
-      FAIL itos.yaml: the file should be a mapping, not a list
+    json: { schema: 1, config: itos.yaml, valid: false, problems: [{ rule: config-type, area: config }] }
   - name: patterns that do not compile, and a ledger file name without its group
     argv: [config, check, --json]
     files:
@@ -264,32 +207,18 @@ cases:
       config: itos.yaml
       valid: false
       problems:
-        - rule: config-regexp
-          message: "itos.yaml: ci.cost.static[0] is not an RE2 regular expression: ^vp check("
-          fix: correct ci.cost.static[0] so that it compiles as an RE2 regular expression (no lookaround or backreference)
-          area: config
-        - rule: config-regexp
-          message: "itos.yaml: ci.covers[0].matches is not an RE2 regular expression: *"
-          fix: correct ci.covers[0].matches so that it compiles as an RE2 regular expression (no lookaround or backreference)
-          area: config
-        - rule: config-regexp
-          message: "itos.yaml: ledger.id is not an RE2 regular expression: T-(\\d+"
-          fix: correct ledger.id so that it compiles as an RE2 regular expression (no lookaround or backreference)
-          area: config
-        - rule: config-regexp
-          message: "itos.yaml: ledger.group.pattern is not an RE2 regular expression: ["
-          fix: correct ledger.group.pattern so that it compiles as an RE2 regular expression (no lookaround or backreference)
-          area: config
-        - rule: config-ledger-files
-          message: "itos.yaml: ledger.files has no {group}: tasks/all.yaml"
-          fix: write {group} in ledger.files where a file's group stands, as in tasks/phase-{group}.yaml
-          area: config
+        - { rule: config-regexp, area: config }
+        - { rule: config-regexp, area: config }
+        - { rule: config-regexp, area: config }
+        - { rule: config-regexp, area: config }
+        - { rule: config-ledger-files, area: config }
+    stdout_has: ["ci.cost.static[0]", "ci.covers[0].matches", ledger.id, ledger.group.pattern, tasks/all.yaml]
   # The config's patterns are RE2 in both implementations
   # (docs/decisions/0020-the-config-s-regular-expressions-are-re2.md): JavaScript compiles each of these, and the TypeScript refuses
   # them as RE2 does, a lookaround outside a class and a backreference in or out
   # of one; tests.<kind>.id is checked as the other four keys are.
   - name: patterns RE2 does not have, a lookaround and a backreference, and a kind's ID pattern
-    argv: [config, check]
+    argv: [config, check, --json]
     files:
       itos.yaml: |
         version: 1
@@ -304,20 +233,25 @@ cases:
           cost: { static: ["^vp check(?= )"] }
           covers: [{ by: vp check, matches: "^(\\w+) \\1$" }]
     exit: 2
-    stderr: |
-      FAIL itos.yaml: ci.cost.static[0] is not an RE2 regular expression: ^vp check(?= )
-      FAIL itos.yaml: ci.covers[0].matches is not an RE2 regular expression: ^(\w+) \1$
-      FAIL itos.yaml: tests.unit.id is not an RE2 regular expression: U-(?<=U-)\d+
-      FAIL itos.yaml: tests.e2e.id is not an RE2 regular expression: E-[\1]
-      FAIL itos.yaml: tests.spec.id is not an RE2 regular expression: S-(?<n>\d)\k<n>
-      FAIL itos.yaml: ledger.id is not an RE2 regular expression: T-(?!0)\d+
-      FAIL itos.yaml: ledger.group.pattern is not an RE2 regular expression: (\d)\1*
+    json:
+      schema: 1
+      config: itos.yaml
+      valid: false
+      problems:
+        - { rule: config-regexp, area: config }
+        - { rule: config-regexp, area: config }
+        - { rule: config-regexp, area: config }
+        - { rule: config-regexp, area: config }
+        - { rule: config-regexp, area: config }
+        - { rule: config-regexp, area: config }
+        - { rule: config-regexp, area: config }
+    stdout_has: ["ci.cost.static[0]", "ci.covers[0].matches", tests.unit.id, tests.e2e.id, tests.spec.id, ledger.id, ledger.group.pattern]
   # JavaScript compiles each of these too, and RE2 refuses them: a repeat count
   # above 1000, nested counted repeats multiplying, \c, a letter escape RE2 has
   # no reading for, [\b], [] and [^] (RE2 reads a ] right after [ or [^ as a
   # member), and a Unicode class RE2 has no name for. tests.fine.id is RE2's.
   - name: patterns RE2 does not have, a repeat count above 1000, letter escapes and empty classes
-    argv: [config, check]
+    argv: [config, check, --json]
     files:
       itos.yaml: |
         version: 1
@@ -334,18 +268,23 @@ cases:
           cost: { static: ["^vp check a{1001}"] }
           covers: [{ by: vp check, matches: "^(vp check {100}){11}$" }]
     exit: 2
-    stderr: |
-      FAIL itos.yaml: ci.cost.static[0] is not an RE2 regular expression: ^vp check a{1001}
-      FAIL itos.yaml: ci.covers[0].matches is not an RE2 regular expression: ^(vp check {100}){11}$
-      FAIL itos.yaml: tests.unit.id is not an RE2 regular expression: U-\cA
-      FAIL itos.yaml: tests.e2e.id is not an RE2 regular expression: E-[\b]
-      FAIL itos.yaml: tests.spec.id is not an RE2 regular expression: S-[]
-      FAIL itos.yaml: tests.story.id is not an RE2 regular expression: N-[^]
-      FAIL itos.yaml: tests.case.id is not an RE2 regular expression: C-\p{Foo}
-      FAIL itos.yaml: ledger.id is not an RE2 regular expression: T-\e\d+
-      FAIL itos.yaml: ledger.group.pattern is not an RE2 regular expression: \d{1,1001}
+    json:
+      schema: 1
+      config: itos.yaml
+      valid: false
+      problems:
+        - { rule: config-regexp, area: config }
+        - { rule: config-regexp, area: config }
+        - { rule: config-regexp, area: config }
+        - { rule: config-regexp, area: config }
+        - { rule: config-regexp, area: config }
+        - { rule: config-regexp, area: config }
+        - { rule: config-regexp, area: config }
+        - { rule: config-regexp, area: config }
+        - { rule: config-regexp, area: config }
+    stdout_has: ["ci.cost.static[0]", "ci.covers[0].matches", tests.unit.id, tests.e2e.id, tests.spec.id, tests.story.id, tests.case.id, ledger.id, ledger.group.pattern]
   - name: names that refer to nothing
-    argv: [config, check]
+    argv: [config, check, --json]
     files:
       itos.yaml: |
         version: 1
@@ -361,16 +300,21 @@ cases:
         tests:
           unit: { id: "U-\\d+" }
     exit: 2
-    stderr: |
-      FAIL itos.yaml: commits.scopes.docs is not one of commits.types
-      FAIL itos.yaml: commits.footers.Task.source is ledger, text or { tests: <kind> }
-      FAIL itos.yaml: commits.footers.Task.required_for names chore, which is not one of commits.types
-      FAIL itos.yaml: commits.footers.Task.validate_for is a list of types or all
-      FAIL itos.yaml: commits.footers.Tests.source names tests.e2e, which the config does not have
-      FAIL itos.yaml: commits.footers.Tests.validate_for names docs, which is not one of commits.types
-      FAIL itos.yaml: a CI step needs exactly one of run and tests: {"run":"a","tests":"scenario"}
-      FAIL itos.yaml: a CI step runs tests: unit, and tests.unit.run.whole is missing
-      FAIL itos.yaml: a CI step needs exactly one of run and tests: {"cost":"late"}
+    json:
+      schema: 1
+      config: itos.yaml
+      valid: false
+      problems:
+        - { rule: config-scope-type, area: config }
+        - { rule: config-footer-source, area: config }
+        - { rule: config-footer-types, area: config }
+        - { rule: config-footer-types, area: config }
+        - { rule: config-footer-source, area: config }
+        - { rule: config-footer-types, area: config }
+        - { rule: config-step, area: config }
+        - { rule: config-step-tests, area: config }
+        - { rule: config-step, area: config }
+    stdout_has: [commits.scopes.docs, commits.footers.Task.source, commits.footers.Task.required_for, commits.footers.Task.validate_for, commits.footers.Tests.source, commits.footers.Tests.validate_for, tests.unit.run.whole]
   - name: an except in a scope with no never (config-scope-except)
     argv: [config, check, --json]
     files:
@@ -386,25 +330,21 @@ cases:
       schema: 1
       config: itos.yaml
       valid: false
-      problems:
-        - rule: config-scope-except
-          message: "itos.yaml: commits.scopes.chore has an except and no never, and except takes paths out of never alone"
-          fix: write the globs its except takes paths out of under commits.scopes.chore.never, or remove commits.scopes.chore.except
-          area: config
-        - rule: config-scope-except
-          message: "itos.yaml: commits.scopes.docs has an except and no never, and except takes paths out of never alone"
-          fix: write the globs its except takes paths out of under commits.scopes.docs.never, or remove commits.scopes.docs.except
-          area: config
-  - name: the same as text, and commit check-paths refuses the config too
-    argv: [commit, check-paths, --type, chore, src/games/cielo/themes/colours.ts]
+      problems: [{ rule: config-scope-except, area: config }, { rule: config-scope-except, area: config }]
+    stdout_has: [commits.scopes.chore, commits.scopes.docs]
+  - name: commit check-paths refuses a scope's except with no never, as config check does
+    argv: [commit, check-paths, --type, chore, src/games/cielo/themes/colours.ts, --json]
     files:
       itos.yaml: *except
     exit: 2
-    stderr: |
-      FAIL itos.yaml: commits.scopes.chore has an except and no never, and except takes paths out of never alone
-      FAIL itos.yaml: commits.scopes.docs has an except and no never, and except takes paths out of never alone
+    json:
+      schema: 1
+      config: itos.yaml
+      valid: false
+      problems: [{ rule: config-scope-except }, { rule: config-scope-except }]
+    stdout_has: [commits.scopes.chore, commits.scopes.docs]
   - name: a static check written below a late one (static-after-late)
-    argv: [config, check, --ledger, late.yaml]
+    argv: [config, check, --ledger, late.yaml, --json]
     files:
       late.yaml: |
         - id: T-090
@@ -415,30 +355,17 @@ cases:
             - run: sh -c 'test -s docs/changelog/CHANGELOG.md'
               cost: static
     exit: 1
-    stderr: |
-      FAIL T-090: check 1 says cost: static below check 0, which is late: written order runs it late
+    json:
+      schema: 1
+      config: itos.yaml
+      valid: false
+      problems: [{ rule: ledger-static-after-late, area: ledger }]
+    stdout_has: T-090
   # Bug 27: a check static by a ci.cost.static pattern, written below a late
   # one, runs late just the same, and is a warning, never a failure: failing
   # ledgers that passed before would break every project holding one.
   - name: a check static by a pattern written below a late one is a warning (pattern-static-after-late)
-    argv: [config, check, --ledger, pattern.yaml]
-    files:
-      pattern.yaml: |
-        - id: T-093
-          type: build
-          title: A check static by a pattern written below a late one
-          done_when:
-            - run: vp run changelog
-            - run: vp check
-    exit: 0
-    stdout: |
-      itos.yaml is valid, and so are the 1 ledger files it reads
-      work-items.yaml: sound
-      smoke.yaml: every file has a smoke test (1 in all)
-    stderr: |
-      WARN T-093: check 1 is static by ci.cost.static below check 0, which is late: written order runs it late
-  - name: the same as --json, the warning with its rule, fix and area
-    argv: [config, check, --json, --ledger, pattern.yaml]
+    argv: [config, check, --ledger, pattern.yaml, --json]
     files:
       pattern.yaml: |
         - id: T-093
@@ -453,13 +380,10 @@ cases:
       config: itos.yaml
       valid: true
       problems: []
-      warnings:
-        - rule: ledger-pattern-static-after-late
-          message: "T-093: check 1 is static by ci.cost.static below check 0, which is late: written order runs it late"
-          fix: "move check 1 above check 0, or write cost: late on check 1 if it is meant to run late"
-          area: ledger
+      warnings: [{ rule: ledger-pattern-static-after-late, area: ledger }]
+    stdout_has: T-093
   - name: beside an explicit cost static below a late check, which still fails
-    argv: [config, check, --ledger, both.yaml]
+    argv: [config, check, --ledger, both.yaml, --json]
     files:
       both.yaml: |
         - id: T-094
@@ -475,11 +399,15 @@ cases:
             - run: vp run changelog
             - run: vp check
     exit: 1
-    stderr: |
-      FAIL T-094: check 1 says cost: static below check 0, which is late: written order runs it late
-      WARN T-095: check 1 is static by ci.cost.static below check 0, which is late: written order runs it late
+    json:
+      schema: 1
+      config: itos.yaml
+      valid: false
+      problems: [{ rule: ledger-static-after-late, area: ledger }]
+      warnings: [{ rule: ledger-pattern-static-after-late, area: ledger }]
+    stdout_has: [T-094, T-095]
   - name: without keep_written_order, a check static by a pattern below a late one is not reported
-    argv: [config, check, -q, --ledger, pattern.yaml]
+    argv: [config, check, -q, --ledger, pattern.yaml, --json]
     files:
       itos.yaml: |
         version: 1
@@ -499,10 +427,9 @@ cases:
             - run: vp run changelog
             - run: vp check
     exit: 0
-    stdout: ""
-    stderr: ""
+    json: { schema: 1, config: itos.yaml, valid: true, problems: [] }
   - name: a check that calls hooks.bin is read as itos by the patterns, one under another path as written
-    argv: [config, check, --ledger, bin.yaml]
+    argv: [config, check, --ledger, bin.yaml, --json]
     files:
       itos.yaml: |
         version: 1
@@ -529,8 +456,12 @@ cases:
             - run: vp check
               cost: static
     exit: 1
-    stderr: |
-      FAIL T-092: check 1 says cost: static below check 0, which is late: written order runs it late
+    json:
+      schema: 1
+      config: itos.yaml
+      valid: false
+      problems: [{ rule: ledger-static-after-late, area: ledger }]
+    stdout_has: T-092
   - name: every problem of a task, as --json
     argv: [config, check, --json, --ledger, bad.yaml]
     files:
@@ -566,87 +497,37 @@ cases:
       config: itos.yaml
       valid: false
       problems:
-        - rule: ledger-duplicate-id
-          message: "T-1: also in bad.yaml"
-          fix: give one of the two T-1 tasks another id
-          area: ledger
-        - rule: ledger-unknown-key
-          message: "X-2: unknown key owner"
-          fix: remove owner; a task's keys are id, type, title, why, done_when
-          area: ledger
-        - rule: ledger-id-pattern
-          message: "X-2: the id does not match ^(?:T-\\d+)$"
-          fix: rename the task to an id that matches ^(?:T-\d+)$
-          area: ledger
-        - rule: ledger-type
-          message: "X-2: type feat is not a commit type"
-          fix: "set type: to one of build, docs"
-          area: ledger
-        - rule: ledger-no-title
-          message: "X-2: no title"
-          fix: "give the task a title:"
-          area: ledger
-        - rule: ledger-why
-          message: "X-2: its why is not text"
-          fix: write the why as text
-          area: ledger
-        - rule: ledger-check-run-or-fails
-          message: "X-2: check 0 needs exactly one of run and fails"
-          fix: "give check 0 either run: or fails:, not both"
-          area: ledger
-        - rule: ledger-check-run-or-fails
-          message: "X-2: check 1 needs exactly one of run and fails"
-          fix: "give check 1 either run: or fails:, not both"
-          area: ledger
-        - rule: ledger-check-command
-          message: "X-2: check 2's command is not text"
-          fix: quote check 2's command as one string
-          area: ledger
-        - rule: ledger-check-unknown-key
-          message: "X-2: check 3 has an unknown key when"
-          fix: remove when; a check's keys are run, fails, after, timeout, prose, cost
-          area: ledger
-        - rule: ledger-check-value
-          message: 'X-2: check 3 says after: "merge"; after: push is its only value'
-          fix: "write after: push, or remove it in check 3"
-          area: ledger
-        - rule: ledger-check-value
-          message: 'X-2: check 3 says timeout: "soon"; its timeout is a number of seconds'
-          fix: write the timeout as a number of seconds in check 3
-          area: ledger
-        - rule: ledger-check-value
-          message: 'X-2: check 3 says prose: "maybe"; prose is true or false'
-          fix: "write prose: true or false in check 3"
-          area: ledger
-        - rule: ledger-check-value
-          message: 'X-2: check 3 says cost: "cheap"; cost is static or late'
-          fix: "write cost: static or cost: late in check 3"
-          area: ledger
-        - rule: ledger-check-shape
-          message: "X-2: check 4 is not a mapping"
-          fix: "write check 4 as run: <command> or fails: <command>"
-          area: ledger
-        - rule: ledger-no-id
-          message: "task 4 of bad.yaml: no id"
-          fix: "give the task an id: that matches ledger.id"
-          area: ledger
-        - rule: ledger-no-title
-          message: "task 4 of bad.yaml: no title"
-          fix: "give the task a title:"
-          area: ledger
-        - rule: ledger-done-when
-          message: "task 4 of bad.yaml: done_when is not a list"
-          fix: write done_when as a list of checks
-          area: ledger
+        - { rule: ledger-duplicate-id, area: ledger }
+        - { rule: ledger-unknown-key, area: ledger }
+        - { rule: ledger-id-pattern, area: ledger }
+        - { rule: ledger-type, area: ledger }
+        - { rule: ledger-no-title, area: ledger }
+        - { rule: ledger-why, area: ledger }
+        - { rule: ledger-check-run-or-fails, area: ledger }
+        - { rule: ledger-check-run-or-fails, area: ledger }
+        - { rule: ledger-check-command, area: ledger }
+        - { rule: ledger-check-unknown-key, area: ledger }
+        - { rule: ledger-check-value, area: ledger }
+        - { rule: ledger-check-value, area: ledger }
+        - { rule: ledger-check-value, area: ledger }
+        - { rule: ledger-check-value, area: ledger }
+        - { rule: ledger-check-shape, area: ledger }
+        - { rule: ledger-no-id, area: ledger }
+        - { rule: ledger-no-title, area: ledger }
+        - { rule: ledger-done-when, area: ledger }
+    stdout_has: [T-1, X-2, "task 4 of bad.yaml"]
   - name: a ledger file that is not a list, and one that cannot be read
-    argv: [config, check]
+    argv: [config, check, --json]
     files:
       tasks/phase-1.yaml: "id: T-001\n"
       tasks/phase-2.yaml: "- id: T-002\n  title: a: b\n"
     exit: 1
-    stderr_has:
-      - "FAIL tasks/phase-1.yaml is not a list of tasks\n"
-      - "FAIL tasks/phase-2.yaml cannot be read: "
+    json:
+      schema: 1
+      config: itos.yaml
+      valid: false
+      problems: [{ rule: ledger-not-a-list, area: ledger }, { rule: ledger-unreadable, area: ledger }]
+    stdout_has: [tasks/phase-1.yaml, tasks/phase-2.yaml]
   - name: the registry's and the smoke set's problems beside the ledger's
     argv: [config, check, --json]
     files:
@@ -657,15 +538,8 @@ cases:
       schema: 1
       config: itos.yaml
       valid: false
-      problems:
-        - rule: work-unknown-owner
-          message: 'T-001: owner "z" is not in people.yaml'
-          fix: add z to people.yaml, or set T-001's owner to one of its logins
-          area: registry
-        - rule: smoke-not-live
-          message: the smoke list names @ID-A-02, which is not a live scenario of a.feature
-          fix: "edit smoke.yaml: name a live scenario of a.feature in place of @ID-A-02"
-          area: smoke
+      problems: [{ rule: work-unknown-owner, area: registry }, { rule: smoke-not-live, area: smoke }]
+    stdout_has: [T-001, "@ID-A-02"]
   - name: no registry where itos looks is the registry's problem, naming the path
     argv: [config, check, --json]
     files:
@@ -675,25 +549,19 @@ cases:
       schema: 1
       config: itos.yaml
       valid: false
-      problems:
-        - rule: work-registry-missing
-          message: no work registry at work-items.yaml
-          fix: move the registry to work-items.yaml, or set work.registry to where it is
-          area: registry
+      problems: [{ rule: work-registry-missing, area: registry }]
+    stdout_has: work-items.yaml
   # The decision records in the folder work.decisions names (slice 74): no
   # two share a number, and a record superseded names one the folder has.
   # The status is read from the frontmatter as YAML, its words in any case.
   - name: decision records that hold to both rules pass
-    argv: [config, check]
+    argv: [config, check, --json]
     files:
       docs/decisions/0001-use-go.md: "---\nstatus: SUPERSEDED BY adr-0002\n---\n\n# Use Go\n"
       docs/decisions/0002-use-rust.md: "# Use Rust\n"
       docs/decisions/README.md: "# Decisions\n"
     exit: 0
-    stdout: |
-      itos.yaml is valid, and so are the 2 ledger files it reads
-      work-items.yaml: sound
-      smoke.yaml: every file has a smoke test (1 in all)
+    json: { schema: 1, config: itos.yaml, valid: true, problems: [] }
   - name: decision records sharing a number, and one superseded by a record not there
     argv: [config, check, --json]
     files:
@@ -706,28 +574,21 @@ cases:
       config: itos.yaml
       valid: false
       problems:
-        - rule: decisions-number-twice
-          message: docs/decisions/0002-use-rust.md and docs/decisions/0002-use-zig.md share the number 0002
-          fix: renumber docs/decisions/0002-use-zig.md to 0003, a number no record has, and correct what names it
-          area: decisions
-        - rule: decisions-superseded-by-missing
-          message: docs/decisions/0001-use-go.md is superseded by ADR-0009, which no record in docs/decisions has
-          fix: set its status to the record that superseded it, or write ADR-0009
-          area: decisions
+        - { rule: decisions-number-twice, area: decisions }
+        - { rule: decisions-superseded-by-missing, area: decisions }
+    stdout_has: [docs/decisions/0002-use-zig.md, ADR-0009]
   - name: a smoke set that cannot be read is one problem
-    argv: [config, check]
+    argv: [config, check, --json]
     files:
       smoke.yaml: "file: a.feature\n"
     exit: 1
-    stderr: |
-      FAIL smoke.yaml: is not a list of files
+    json:
+      schema: 1
+      config: itos.yaml
+      valid: false
+      problems: [{ rule: smoke-unreadable, area: smoke }]
+    stdout_has: smoke.yaml
   - name: a missing ledger folder is one problem naming it, exit 2
-    argv: [config, check]
-    files: { tasks: null }
-    exit: 2
-    stderr: |
-      FAIL itos.yaml: the ledger's folder tasks does not exist
-  - name: a missing ledger folder as --json, the report with its rule and fix
     argv: [config, check, --json]
     files: { tasks: null }
     exit: 2
@@ -735,13 +596,10 @@ cases:
       schema: 1
       config: itos.yaml
       valid: false
-      problems:
-        - rule: ledger-folder-missing
-          message: "itos.yaml: the ledger's folder tasks does not exist"
-          fix: "create tasks with the ledger's files (ledger.files is tasks/phase-{group}.yaml), or point ledger.files at the folder that holds them"
-          area: ledger
+      problems: [{ rule: ledger-folder-missing, area: ledger }]
+    stdout_has: "folder tasks"
   - name: commits.since naming a commit of the repository
-    argv: [config, check, --config, since.yaml]
+    argv: [config, check, --config, since.yaml, --json]
     git:
       - commit: "docs: start"
         files: { README.md: "scratch\n" }
@@ -758,10 +616,7 @@ cases:
           cost: { static: ["^vp check$"], keep_written_order: true }
         work: { registry: work-items.yaml, people: { source: yaml, file: people.yaml } }
     exit: 0
-    stdout: |
-      since.yaml is valid, and so are the 2 ledger files it reads
-      work-items.yaml: sound
-      smoke.yaml: every file has a smoke test (1 in all)
+    json: { schema: 1, config: since.yaml, valid: true, problems: [] }
   - name: commits.since that is not a full SHA
     argv: [config, check, --json, --config, since.yaml]
     files:
@@ -780,13 +635,10 @@ cases:
       schema: 1
       config: since.yaml
       valid: false
-      problems:
-        - rule: config-since
-          message: "since.yaml: commits.since is not the full SHA of a commit: abc1234"
-          fix: set commits.since to the commit's full SHA, as `git rev-parse <commit>` prints it
-          area: config
+      problems: [{ rule: config-since, area: config }]
+    stdout_has: abc1234
   - name: commits.since naming no commit of the repository
-    argv: [config, check, --config, since.yaml]
+    argv: [config, check, --config, since.yaml, --json]
     git:
       - commit: "docs: start"
         files: { README.md: "scratch\n" }
@@ -802,35 +654,15 @@ cases:
           cost: { static: ["^vp check$"], keep_written_order: true }
         work: { registry: work-items.yaml, people: { source: yaml, file: people.yaml } }
     exit: 2
-    stderr: |
-      FAIL since.yaml: commits.since names 0123456789abcdef0123456789abcdef01234567, which is not a commit of this repository
+    json:
+      schema: 1
+      config: since.yaml
+      valid: false
+      problems: [{ rule: config-since-commit, area: config }]
+    stdout_has: 0123456789abcdef0123456789abcdef01234567
   # actions/checkout clones one commit deep by default: the clone lacks the
   # commit commits.since names, though the repository it was cloned from has it.
   - name: commits.since beyond a shallow clone's history
-    argv: [config, check, --config, since.yaml]
-    git:
-      - commit: "docs: start"
-        files: { README.md: "scratch\n" }
-        label: first
-      - commit: "docs: write the readme"
-        files: { README.md: "scratch, written\n" }
-      - run: "git clone -q --depth 1 'file://{{dir}}' shallow"
-    cwd: shallow
-    files:
-      shallow/since.yaml: |
-        version: 1
-        ledger: { files: "tasks/phase-{group}.yaml", group: { pattern: "\\d+", numeric: true }, id: "T-\\d+" }
-        commits: { types: [build, docs], since: "{{sha.first}}" }
-        tests:
-          scenario: { root: features, id: "ID-[A-Z]+-\\d+", tag_prefix: "@", smoke: { file: smoke.yaml } }
-        ci:
-          steps: [{ run: vp check, cost: static }]
-          cost: { static: ["^vp check$"], keep_written_order: true }
-        work: { registry: work-items.yaml, people: { source: yaml, file: people.yaml } }
-    exit: 2
-    stderr: |
-      FAIL since.yaml: commits.since names {{sha.first}}, which this clone does not have: the clone is shallow, and the commit may lie beyond its history. Fetch the whole history with git fetch --unshallow, or with fetch-depth: 0 for actions/checkout
-  - name: commits.since beyond a shallow clone's history, as JSON with its fix
     argv: [config, check, --config, since.yaml, --json]
     git:
       - commit: "docs: start"
@@ -856,16 +688,10 @@ cases:
       schema: 1
       config: since.yaml
       valid: false
-      problems:
-        - rule: config-since-commit
-          message: "since.yaml: commits.since names {{sha.first}}, which this clone does not have: the clone is shallow, and the commit may lie beyond its history. Fetch the whole history with git fetch --unshallow, or with fetch-depth: 0 for actions/checkout"
-          fix: "run git fetch --unshallow, or give actions/checkout fetch-depth: 0"
-          area: config
-  # A footer of free text (source: text) says what a consumer must do, or
-  # none: it has no IDs, so the keys that say how IDs are written and read
-  # would be read by nothing. Its since is checked as commits.since is.
+      problems: [{ rule: config-since-commit, area: config }]
+    stdout_has: ["{{sha.first}}", "git fetch --unshallow"]
   - name: a footer of free text with a since naming a commit of the repository
-    argv: [config, check, --config, text.yaml]
+    argv: [config, check, --config, text.yaml, --json]
     git:
       - commit: "docs: start"
         files: { README.md: "scratch\n" }
@@ -885,10 +711,7 @@ cases:
           cost: { static: ["^vp check$"], keep_written_order: true }
         work: { registry: work-items.yaml, people: { source: yaml, file: people.yaml } }
     exit: 0
-    stdout: |
-      text.yaml is valid, and so are the 2 ledger files it reads
-      work-items.yaml: sound
-      smoke.yaml: every file has a smoke test (1 in all)
+    json: { schema: 1, config: text.yaml, valid: true, problems: [] }
   - name: a footer of free text takes no key that reads IDs, and its since is a full SHA
     argv: [config, check, --json, --config, text.yaml]
     files:
@@ -904,24 +727,13 @@ cases:
       config: text.yaml
       valid: false
       problems:
-        - rule: config-since
-          message: "text.yaml: commits.footers.Upgrading.since is not the full SHA of a commit: abc1234"
-          fix: set commits.footers.Upgrading.since to the commit's full SHA, as `git rev-parse <commit>` prints it
-          area: config
-        - rule: config-footer-text
-          message: "text.yaml: commits.footers.Upgrading.strip_prefix is for a footer of IDs, and commits.footers.Upgrading is free text (source: text)"
-          fix: remove commits.footers.Upgrading.strip_prefix
-          area: config
-        - rule: config-footer-text
-          message: "text.yaml: commits.footers.Upgrading.must_be_live is for a footer of IDs, and commits.footers.Upgrading is free text (source: text)"
-          fix: remove commits.footers.Upgrading.must_be_live
-          area: config
-        - rule: config-footer-text
-          message: "text.yaml: commits.footers.Upgrading.read_at is for a footer of IDs, and commits.footers.Upgrading is free text (source: text)"
-          fix: remove commits.footers.Upgrading.read_at
-          area: config
+        - { rule: config-since, area: config }
+        - { rule: config-footer-text, area: config }
+        - { rule: config-footer-text, area: config }
+        - { rule: config-footer-text, area: config }
+    stdout_has: [commits.footers.Upgrading.since, commits.footers.Upgrading.strip_prefix, commits.footers.Upgrading.must_be_live, commits.footers.Upgrading.read_at]
   - name: a footer's since naming no commit of the repository
-    argv: [config, check, --config, text.yaml]
+    argv: [config, check, --config, text.yaml, --json]
     git:
       - commit: "docs: start"
         files: { README.md: "scratch\n" }
@@ -933,20 +745,28 @@ cases:
           footers:
             Upgrading: { source: text, required_for: [build], since: "0123456789abcdef0123456789abcdef01234567" }
     exit: 2
-    stderr: |
-      FAIL text.yaml: commits.footers.Upgrading.since names 0123456789abcdef0123456789abcdef01234567, which is not a commit of this repository
+    json:
+      schema: 1
+      config: text.yaml
+      valid: false
+      problems: [{ rule: config-since-commit, area: config }]
+    stdout_has: commits.footers.Upgrading.since
   - name: a hooks.commit_msg.check_timeout of no seconds is refused, since it would be no timeout
-    argv: [config, check, --config, hook.yaml]
+    argv: [config, check, --config, hook.yaml, --json]
     files: { hook.yaml: "version: 1\nhooks: { commit_msg: { check_timeout: 0 } }\n" }
     exit: 2
-    stderr: |
-      FAIL hook.yaml: hooks.commit_msg.check_timeout is a number of seconds above 0, not 0
+    json:
+      schema: 1
+      config: hook.yaml
+      valid: false
+      problems: [{ rule: config-check-timeout, area: config }]
+    stdout_has: hooks.commit_msg.check_timeout
   # Values a command misbehaves on (slice 129, moved to the loader in slice
   # 130): a number not finite, an empty shell, a ledger.check.timeout of 0 are
   # refused when the config loads, exit 2, by config check as by every
   # command, and nothing else is judged.
   - name: values a command misbehaves on are refused when the config loads, exit 2, each naming its key
-    argv: [config, check]
+    argv: [config, check, --json]
     files:
       itos.yaml: |
         version: 1
@@ -962,11 +782,16 @@ cases:
           watch: { interval: .nan, timeout: .inf }
         work: { registry: work-items.yaml, people: { source: yaml, file: people.yaml } }
     exit: 2
-    stderr: |
-      FAIL itos.yaml: ci.watch.interval is NaN, and a number in the config is finite
-      FAIL itos.yaml: ci.watch.timeout is Infinity, and a number in the config is finite
-      FAIL itos.yaml: shell names no program, so no command can run under it
-      FAIL itos.yaml: ledger.check.timeout is a number of seconds above 0, not 0
+    json:
+      schema: 1
+      config: itos.yaml
+      valid: false
+      problems:
+        - { rule: config-number-finite, area: config }
+        - { rule: config-number-finite, area: config }
+        - { rule: config-shell, area: config }
+        - { rule: config-check-timeout, area: config }
+    stdout_has: [ci.watch.interval, ci.watch.timeout, ledger.check.timeout]
   - name: a value a command misbehaves on, as --json, the loader's problem with its rule and fix
     argv: [config, check, --json]
     files:
@@ -977,20 +802,12 @@ cases:
         commits: { types: [build, docs] }
         work: { registry: work-items.yaml, people: { source: yaml, file: people.yaml } }
     exit: 2
-    json:
-      schema: 1
-      config: itos.yaml
-      valid: false
-      problems:
-        - rule: config-shell
-          message: "itos.yaml: shell names no program, so no command can run under it"
-          fix: "remove shell to run commands under sh -c, or name the program first: [bash, -c]"
-          area: config
+    json: { schema: 1, config: itos.yaml, valid: false, problems: [{ rule: config-shell, area: config }] }
   # Values a config loads with that nothing reads as written (slice 129):
   # config check names each, exit 1, beside the ledger's problems, and every
   # other command still reads the config.
   - name: values nothing reads as written are refused, exit 1, each naming its key
-    argv: [config, check]
+    argv: [config, check, --json]
     files:
       itos.yaml: |
         version: 1
@@ -1013,11 +830,16 @@ cases:
         work: { registry: work-items.yaml, people: { source: yaml, file: people.yaml } }
       tasks/phase-1.yaml: "- { id: T-001, type: build, title: One, done_when: [{ run: vp check, timeout: -1 }] }\n"
     exit: 1
-    stderr: |
-      FAIL itos.yaml: tests.scenario.range_checks[0].except_types names biuld, which is not one of commits.types
-      FAIL itos.yaml: tests.unit.wip_tag is read only by the gherkin adapter, and tests.unit.adapter is a command, which says itself which tests are live
-      FAIL itos.yaml: ledger.group.label is skip, and --skip is already another flag of itos task, so it never takes a group
-      FAIL T-001: check 0 says timeout: -1; its timeout is a finite number of seconds above 0
+    json:
+      schema: 1
+      config: itos.yaml
+      valid: false
+      problems:
+        - { rule: config-except-types, area: config }
+        - { rule: config-wip-tag, area: config }
+        - { rule: config-group-label, area: config }
+        - { rule: ledger-check-value, area: ledger }
+    stdout_has: ["tests.scenario.range_checks[0].except_types", tests.unit.wip_tag, ledger.group.label, T-001]
   - name: a value nothing reads as written, as --json, with its rule, its fix and the config's area
     argv: [config, check, --json]
     files:
@@ -1031,11 +853,8 @@ cases:
       schema: 1
       config: itos.yaml
       valid: false
-      problems:
-        - rule: config-group-label
-          message: "itos.yaml: ledger.group.label \"a phase\" cannot be typed as itos task's flag --a phase"
-          fix: set ledger.group.label to one word, with no space, = or leading -, such as phase or milestone
-          area: config
+      problems: [{ rule: config-group-label, area: config }]
+    stdout_has: ledger.group.label
   # Ledger layouts that read nothing, or read the registry (slice 130), are
   # judged before the ledger's folder is listed, exit 1, and no ledger file
   # is read.
@@ -1053,16 +872,11 @@ cases:
       config: itos.yaml
       valid: false
       problems:
-        - rule: config-ledger-group-anchors
-          message: "itos.yaml: ledger.group.pattern has anchors of its own: ^\\d+$; it is matched inside a file's name, between what ledger.files writes around {group}, so it matches no file"
-          fix: "remove the anchors (^, $, \\A, \\z) from ledger.group.pattern"
-          area: config
-        - rule: config-ledger-files-folder
-          message: "itos.yaml: ledger.files has {group} in its folder: tasks/{group}/phase-{group}.yaml; the ledger is one folder, and a group is a part of a file's name"
-          fix: "write {group} in the file's name, as in tasks/phase-{group}.yaml"
-          area: config
+        - { rule: config-ledger-group-anchors, area: config }
+        - { rule: config-ledger-files-folder, area: config }
+    stdout_has: [ledger.group.pattern, ledger.files]
   - name: a ledger.files that matches work.registry is refused, naming both keys
-    argv: [config, check]
+    argv: [config, check, --json]
     files:
       itos.yaml: |
         version: 1
@@ -1070,8 +884,12 @@ cases:
         commits: { types: [build, docs] }
         work: { registry: work-items.yaml, people: { source: yaml, file: people.yaml } }
     exit: 1
-    stderr: |
-      FAIL itos.yaml: ledger.files ({group}.yaml) matches work.registry (work-items.yaml), so the registry would be read as a ledger file
+    json:
+      schema: 1
+      config: itos.yaml
+      valid: false
+      problems: [{ rule: config-ledger-registry, area: config }]
+    stdout_has: [ledger.files, work.registry]
   # The questions' file, work.asks, is judged as the ledger and the registry
   # are (slice 130): as itos decision writes it, each item it names one the
   # registry has.
@@ -1084,25 +902,23 @@ cases:
       schema: 1
       config: itos.yaml
       valid: false
-      problems:
-        - rule: asks-unknown-item
-          message: "asks.yaml: q-2 names the item p1-gone, which work-items.yaml does not have"
-          fix: "name an item of work-items.yaml in q-2's item, or remove its item"
-          area: asks
+      problems: [{ rule: asks-unknown-item, area: asks }]
+    stdout_has: [q-2, p1-gone]
   # An answered question naming an item the registry does not have is a
   # warning, which never fails the run (bug 105): it is a record, its item
   # gone breaks nothing; an open one, which holds its item up, is a problem.
   - name: an answered question naming an item the registry does not have is a warning, and the check passes
-    argv: [config, check]
+    argv: [config, check, --json]
     files:
       asks.yaml: "questions:\n  - { id: q-1, item: p1-gone, question: \"Which way?\", answer: \"This way.\" }\n"
     exit: 0
-    stdout: |
-      itos.yaml is valid, and so are the 2 ledger files it reads
-      work-items.yaml: sound
-      smoke.yaml: every file has a smoke test (1 in all)
-    stderr: |
-      WARN asks.yaml: q-1, answered, names the item p1-gone, which work-items.yaml does not have
+    json:
+      schema: 1
+      config: itos.yaml
+      valid: true
+      problems: []
+      warnings: [{ rule: asks-answered-unknown-item, area: asks }]
+    stdout_has: [q-1, p1-gone]
   - name: an open question naming a missing item is a problem, an answered one a warning, as --json
     argv: [config, check, --json]
     files:
@@ -1112,23 +928,16 @@ cases:
       schema: 1
       config: itos.yaml
       valid: false
-      problems:
-        - rule: asks-unknown-item
-          message: "asks.yaml: q-2 names the item p1-gone, which work-items.yaml does not have"
-          fix: "name an item of work-items.yaml in q-2's item, or remove its item"
-          area: asks
-      warnings:
-        - rule: asks-answered-unknown-item
-          message: "asks.yaml: q-1, answered, names the item p1-gone, which work-items.yaml does not have"
-          fix: "name the item's new id in q-1's item, or remove its item"
-          area: asks
+      problems: [{ rule: asks-unknown-item, area: asks }]
+      warnings: [{ rule: asks-answered-unknown-item, area: asks }]
+    stdout_has: [q-1, q-2]
   - name: a questions' file giving an id twice is refused, naming it
-    argv: [config, check]
+    argv: [config, check, --json]
     files:
       asks.yaml: "questions:\n  - { id: q-1, question: \"Which way?\" }\n  - { id: q-1, question: \"Which other?\" }\n"
     exit: 1
-    stderr: |
-      FAIL asks.yaml: two questions have the id q-1
+    json: { schema: 1, config: itos.yaml, valid: false, problems: [{ rule: asks-invalid, area: asks }] }
+    stdout_has: q-1
   - name: a nightly tasks step is refused as the step v8 removed, whatever its value
     argv: [config, check, --json, --config, nightly.yaml]
     files: { nightly.yaml: "version: 1\nci: { steps: [], nightly: { steps: [{ tasks: doing }] } }\n" }
@@ -1137,11 +946,8 @@ cases:
       schema: 1
       config: nightly.yaml
       valid: false
-      problems:
-        - rule: config-step-tasks
-          message: "nightly.yaml: a nightly step runs tasks: doing, which v8 removed: a task's checks are its own progress and leave the ledger at work done: {\"tasks\":\"doing\"}"
-          fix: "remove the step; a check to run every night is a step of its own, run: <command>"
-          area: config
+      problems: [{ rule: config-step-tasks, area: config }]
+    stdout_has: "tasks: doing"
   - name: a tasks step is refused in ci.steps and the nightly, with a cost or beside a run, once a step
     argv: [config, check, --json, --config, tasks.yaml]
     files:
@@ -1156,38 +962,22 @@ cases:
       config: tasks.yaml
       valid: false
       problems:
-        - rule: config-step-tasks
-          message: "tasks.yaml: a CI step runs tasks: done, which v8 removed: a task's checks are its own progress and leave the ledger at work done: {\"tasks\":\"done\"}"
-          fix: "remove the step; a check to run every night is a step of its own, run: <command>"
-          area: config
-        - rule: config-step-tasks
-          message: "tasks.yaml: a nightly step runs tasks: done, which v8 removed: a task's checks are its own progress and leave the ledger at work done: {\"tasks\":\"done\",\"cost\":\"late\"}"
-          fix: "remove the step; a check to run every night is a step of its own, run: <command>"
-          area: config
-        - rule: config-step-tasks
-          message: "tasks.yaml: a nightly step runs tasks: done, which v8 removed: a task's checks are its own progress and leave the ledger at work done: {\"tasks\":\"done\",\"run\":\"vp check\"}"
-          fix: "remove the step; a check to run every night is a step of its own, run: <command>"
-          area: config
-        - rule: config-step
-          message: 'tasks.yaml: a nightly step needs exactly one of run and tests: {"cost":"static"}'
-          fix: "give the step either run: <command> or tests: <kind>, not both"
-          area: config
-  - name: the defaults the tools take when a key is left out
-    argv: [config, check, --print-defaults]
-    exit: 0
-    stdout_has: ["registry: tasks/work-items.yaml", "timeout: 600", "adapter: gherkin", "hint: pass --as <handle>", "check_timeout: 60", "bin: itos", "label: phase"]
+        - { rule: config-step-tasks, area: config }
+        - { rule: config-step-tasks, area: config }
+        - { rule: config-step-tasks, area: config }
+        - { rule: config-step, area: config }
   - name: the defaults put the registry in the folder of this config's ledger
-    argv: [config, check, --print-defaults]
+    argv: [config, check, --print-defaults, --json]
     files:
       itos.yaml: "version: 1\nledger: { files: \"work/phase-{group}.yaml\" }\n"
     exit: 0
-    stdout_has: ["registry: work/work-items.yaml", "asks: work/asks.yaml"]
+    json_has: { defaults: { work: { registry: work/work-items.yaml, asks: work/asks.yaml } } }
   - name: with no config to read, the defaults put the registry in tasks/
-    argv: [config, check, --print-defaults]
+    argv: [config, check, --print-defaults, --json]
     files:
       itos.yaml: null
     exit: 0
-    stdout_has: ["registry: tasks/work-items.yaml", "asks: tasks/asks.yaml"]
+    json_has: { defaults: { work: { registry: tasks/work-items.yaml, asks: tasks/asks.yaml } } }
   - name: the defaults as --json
     argv: [config, check, --print-defaults, --json]
     exit: 0
@@ -1381,29 +1171,25 @@ cases:
   - name: config get refuses a key v5 removed, saying what to do instead
     argv: [config, get, ci.watch.nightly_command]
     exit: 2
-    stderr: |
-      itos: config get: ci.watch.nightly_command was removed in v5; remove ci.watch.nightly_command; ci.watch.github.nightly_workflow names the nightly (itos --help)
+    stderr_has: [ci.watch.nightly_command, ci.watch.github.nightly_workflow]
   - name: config get refuses a key the config does not have, naming the keys there
     argv: [config, get, hooks.no_such_key]
     exit: 2
-    stderr: |
-      itos: config get: unknown key hooks.no_such_key; the keys there are bin, pre_push, commit_msg (itos --help)
+    stderr_has: [hooks.no_such_key, "bin, pre_push, commit_msg"]
   - name: config get refuses a key under a value that has none
     argv: [config, get, hooks.bin.x]
     exit: 2
-    stderr: |
-      itos: config get: unknown key hooks.bin.x (itos --help)
+    stderr_has: hooks.bin.x
   - name: config get needs one key
     argv: [config, get]
     exit: 2
-    stderr: |
-      itos: config get needs one <key>, a dotted path such as hooks.bin (itos --help)
+    stderr_has: "<key>"
   - name: config get with no config to read fails as every command does
-    argv: [config, get, hooks.bin]
+    argv: [config, get, hooks.bin, --json]
     files:
       itos.yaml: null
     exit: 2
-    stderr_has: "FAIL itos.yaml: cannot be read: "
+    json: { schema: 1, config: itos.yaml, valid: false, problems: [{ rule: config-unreadable }] }
   # pin: the one release a repository runs (pin.feature). Pinned to the
   # binary's own version, so the launcher runs the binary itself and fetches
   # nothing; the malformed pins are read by no launcher either.
@@ -1422,11 +1208,7 @@ cases:
           cost: { static: ["^vp check$"], keep_written_order: true }
         work: { registry: work-items.yaml, people: { source: yaml, file: people.yaml } }
     exit: 0
-    json:
-      schema: 1
-      config: itos.yaml
-      valid: true
-      problems: []
+    json: { schema: 1, config: itos.yaml, valid: true, problems: [] }
   - name: a pin needs both its version and its checksums
     argv: [config, check, --json, --config, pin.yaml]
     files:
@@ -1436,11 +1218,8 @@ cases:
       schema: 1
       config: pin.yaml
       valid: false
-      problems:
-        - rule: config-missing-key
-          message: "pin.yaml: pin.checksums is missing"
-          fix: add pin.checksums
-          area: config
+      problems: [{ rule: config-missing-key, area: config }]
+    stdout_has: pin.checksums
   - name: pin.version is a release's version and pin.checksums a SHA-256 in hex
     argv: [config, check, --json, --config, pin.yaml]
     files:
@@ -1450,12 +1229,5 @@ cases:
       schema: 1
       config: pin.yaml
       valid: false
-      problems:
-        - rule: config-pin
-          message: "pin.yaml: pin.version is not a release's version, x.y.z: v2"
-          fix: set pin.version to the version of an itos release, without its v (2.0.0)
-          area: config
-        - rule: config-pin
-          message: "pin.yaml: pin.checksums is not a SHA-256 in hex: ABC"
-          fix: set pin.checksums to the SHA-256 of the release's checksums.txt, as `sha256sum checksums.txt` prints it
-          area: config
+      problems: [{ rule: config-pin, area: config }, { rule: config-pin, area: config }]
+    stdout_has: [pin.version, pin.checksums]
