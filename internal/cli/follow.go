@@ -366,7 +366,7 @@ func followDoc(args []string, o Out) (int, error) {
 	if t == nil {
 		return noThread(id, o)
 	}
-	target, err := filepath.Abs(typed(path))
+	target, err := filepath.Abs(typed(o.Origin, path))
 	if err != nil {
 		return 0, err
 	}
@@ -398,7 +398,7 @@ func followDoc(args []string, o Out) (int, error) {
 	if err := os.Chmod(target, 0o600); err != nil {
 		return 0, err
 	}
-	if notIgnored(typed(path)) {
+	if notIgnored(typed(o.Origin, path)) {
 		fmt.Fprintf(o.Stderr, "itos: warning: %s is in the work tree and not ignored by git, so a git add can commit this private thread; "+
 			"list it in .git/info/exclude or .gitignore, or write it outside the work tree\n", path)
 	}

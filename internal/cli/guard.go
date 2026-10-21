@@ -40,7 +40,7 @@ func guardClaudeCode(o Out) (int, error) {
 		fmt.Fprintf(o.Stderr, "itos: guard claude-code cannot read Claude Code's %s input on stdin: %s\n", guard.Event, err)
 		return ExitPolicy, nil
 	}
-	here, err := filepath.Abs(typed("."))
+	here, err := filepath.Abs(typed(o.Origin, "."))
 	if err != nil {
 		fmt.Fprintf(o.Stderr, "itos: guard claude-code cannot tell the folder it runs in: %s\n", err)
 		return ExitPolicy, nil

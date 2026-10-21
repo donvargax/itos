@@ -67,8 +67,9 @@
 // in the PATH's folders that extensionPath would run, sorted.
 //
 // applyGlobals moves to --root, or to the repository's top from a subfolder
-// (config.Top), before any command, and keeps where the person stood,
-// relative to the top, in origin: typed reads a path they typed from there
+// (config.Top), before any command, and gives where the person stood,
+// relative to the top, which Main carries to each command in Out.Origin:
+// typed reads a path they typed from there
 // (check-paths' paths, check-message's, work check's and hook commit-msg's
 // file, config check --ledger, tests smoke check --features, followup doc's
 // file), as git reads a path typed in a subfolder, and runGit runs git
@@ -741,7 +742,7 @@
 // apart from git's hooks. guardClaudeCode never returns an error, since a
 // usage error's exit 2 is what Claude Code takes as a block: an input
 // guard.Read refuses is one stderr line and exit 1. The folder judged is the
-// input's cwd, read from typed(".") when relative, where itos was started
+// input's cwd, read from Out.Origin when relative, where itos was started
 // before applyGlobals moved to the top. GuardSince is the first itos with
 // the command, which the launcher reads.
 package cli

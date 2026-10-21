@@ -212,10 +212,8 @@ func TestPushFollowsNoTags(t *testing.T) {
 // it would run in is gone.
 func TestPushNamedGitThatCannotStart(t *testing.T) {
 	namedPushRepo(t)
-	origin = "no-such-folder"
-	t.Cleanup(func() { origin = "" })
 	var stderr strings.Builder
-	code, err := push([]string{"--ref", "b"}, Out{Stdout: io.Discard, Stderr: &stderr})
+	code, err := push([]string{"--ref", "b"}, Out{Stdout: io.Discard, Stderr: &stderr, Origin: "no-such-folder"})
 	if err != nil || code != ExitMissing || !strings.HasPrefix(stderr.String(), "itos: cannot run git: ") {
 		t.Errorf("push --ref b with no git to run = %d, %v\n%s", code, err, stderr.String())
 	}

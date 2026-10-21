@@ -768,7 +768,7 @@ func verifyPush(cfg *config.Loaded, refs []pushedRef, o Out) (int, error) {
 		}
 		seen[r] = true
 		var log strings.Builder
-		run, err := newVerifier(cfg, Out{Stdout: &log, Stderr: &log, Tests: o.Tests}).over(r.From, r.To)
+		run, err := newVerifier(cfg, Out{Stdout: &log, Stderr: &log, Tests: o.Tests, Origin: o.Origin}).over(r.From, r.To)
 		if err != nil {
 			return 0, err
 		}

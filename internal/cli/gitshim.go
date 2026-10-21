@@ -42,7 +42,7 @@ func gitShim(args []string, o Out) (int, error) {
 				return 0, usage("git-shim %s --dir needs <folder>", sub)
 			}
 			i++
-			dir = typed(rest[i])
+			dir = typed(o.Origin, rest[i])
 		}
 		if sub == "install" {
 			return installShim(dir, o)

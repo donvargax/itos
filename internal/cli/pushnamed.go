@@ -117,7 +117,7 @@ func (r pushRun) remoteTags(tags []string) (map[string]string, kind.Kind, bool) 
 		argv = append(argv, "refs/tags/"+t)
 	}
 	var stdout, stderr bytes.Buffer
-	code, err := runGit(argv, os.Environ(), &stdout, Out{Stderr: &stderr})
+	code, err := runGit(argv, os.Environ(), &stdout, Out{Stderr: &stderr, Origin: r.o.Origin})
 	if err != nil || code != 0 {
 		r.o.Stderr.Write(stderr.Bytes())
 		return nil, git.RemoteFailure(stderr.String()), true

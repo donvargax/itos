@@ -237,7 +237,7 @@ func draftAdd(args []string, o Out) (int, error) {
 	var names []string
 	if d.IsChange() {
 		var refused *out.Problem
-		d.Paths, names, refused, err = takeChange(file, id, paths)
+		d.Paths, names, refused, err = takeChange(file, id, paths, o.Origin)
 		if err != nil {
 			return 0, err
 		}
@@ -312,7 +312,7 @@ func draftEdit(args []string, o Out) (int, error) {
 	if had := drafts.Find(id); had != nil {
 		return idTaken(*had, o)
 	}
-	paths, err := topPaths("draft edit", typedPaths)
+	paths, err := topPaths("draft edit", typedPaths, o.Origin)
 	if err != nil {
 		return 0, err
 	}
@@ -498,7 +498,7 @@ func draftGit(env []string, args ...string) (string, error) {
 
 // topPaths are the typed paths as the repository's top names them, with
 // itos at the top; a path outside the work tree is a usage error.
-func topPaths(command string, typedPaths []string) ([]string, error) {
+func topPaths(command string, typedPaths []string, origin string) ([]string, error) {
 	top, err := git.Output("rev-parse", "--show-toplevel")
 	if err != nil {
 		return nil, fmt.Errorf("the work tree's top cannot be read: %w", err)
@@ -516,7 +516,7 @@ func topPaths(command string, typedPaths []string) ([]string, error) {
 	}
 	paths := make([]string, len(typedPaths))
 	for i, p := range typedPaths {
-		full := typed(p)
+		full := typed(origin, p)
 		if !filepath.IsAbs(full) {
 			full = filepath.Join(here, full)
 		}
@@ -537,8 +537,8 @@ func topPaths(command string, typedPaths []string) ([]string, error) {
 // and the files the change touches. A path that names nothing in the work
 // tree or HEAD, a path git ignores, no change at all and no HEAD are
 // refusals, nothing written.
-func takeChange(file, id string, typedPaths []string) (paths, names []string, refused *out.Problem, err error) {
-	paths, err = topPaths("draft add", typedPaths)
+func takeChange(file, id string, typedPaths []string, origin string) (paths, names []string, refused *out.Problem, err error) {
+	paths, err = topPaths("draft add", typedPaths, origin)
 	if err != nil {
 		return nil, nil, nil, err
 	}

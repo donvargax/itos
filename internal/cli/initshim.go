@@ -46,7 +46,7 @@ type shimFlag struct {
 // parseShimFlag reads --git-shim, --no-git-shim or --git-shim-dir <folder>
 // (--git-shim-dir=<folder>) out of init's arguments at i, and gives how many
 // arguments it read, 0 when args[i] is none of them.
-func parseShimFlag(args []string, i int, f *shimFlag) (int, error) {
+func parseShimFlag(args []string, i int, f *shimFlag, origin string) (int, error) {
 	a := args[i]
 	switch a {
 	case "--git-shim", "--no-git-shim":
@@ -71,7 +71,7 @@ func parseShimFlag(args []string, i int, f *shimFlag) (int, error) {
 	if folder == "" {
 		return 0, usage("--git-shim-dir needs <folder>")
 	}
-	dir, err := filepath.Abs(typed(folder))
+	dir, err := filepath.Abs(typed(origin, folder))
 	if err != nil {
 		return 0, err
 	}

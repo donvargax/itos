@@ -528,5 +528,5 @@ func touchesOnlyRegistry(registry string, revs ...string) bool {
 // run runs git, its stdout the run's, its stderr to stderr, and gives its
 // exit code.
 func (r pushRun) run(stderr io.Writer, argv ...string) (int, error) {
-	return runGit(argv, os.Environ(), r.git, Out{Stderr: stderr})
+	return runGit(argv, os.Environ(), r.git, Out{Stderr: stderr, Origin: r.o.Origin})
 }

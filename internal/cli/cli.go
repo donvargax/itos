@@ -80,11 +80,15 @@ func ParseGlobals(args []string) Globals {
 }
 
 // Out is how a command reports: its streams, the global flags that shape
-// what it prints, and Tests, where the run's test listings warn.
+// what it prints, Tests, where the run's test listings warn, and Origin, the
+// folder the person stood in, relative to the repository's top, when the
+// run moved there from a subfolder to read its config (config.Top); "" when
+// it runs where it was started, or where --root says.
 type Out struct {
 	JSON, Quiet    bool
 	Stdout, Stderr io.Writer
 	Tests          *tests.Warnings
+	Origin         string
 }
 
 // usageError is a command called wrongly: exit 2, naming the help.
@@ -168,49 +172,44 @@ func configFailure(c *config.Error, o Out) int {
 	return ExitUsage
 }
 
-// origin is the folder the person stood in, relative to the repository's
-// top, when a run from a subfolder moved there to read its config
-// (config.Top); "" when it runs where it was started, or where --root says.
-var origin string
-
 // applyGlobals sets what the global flags set before any command runs, so
 // --config and --root hold for everything a command loads. With neither, and
 // no ITOS_CONFIG, a run from a subfolder of a repository whose config is at
-// its top moves there first, as --root <top> would (slice 40).
-func applyGlobals(g Globals) error {
-	origin = ""
+// its top moves there first, as --root <top> would (slice 40), and gives
+// where the person stood (Out.Origin).
+func applyGlobals(g Globals) (origin string, err error) {
 	if g.Config != "" {
 		if err := os.Setenv("ITOS_CONFIG", g.Config); err != nil {
-			return err
+			return "", err
 		}
 	}
 	if g.Root != "" {
 		if err := os.Chdir(g.Root); err != nil {
-			return kind.Wrap(kind.Usage, fmt.Errorf("--root %s: %w", g.Root, err))
+			return "", kind.Wrap(kind.Usage, fmt.Errorf("--root %s: %w", g.Root, err))
 		}
 	} else if top := config.Top(""); top != "" {
-		if err := moveTo(top); err != nil {
-			return err
+		if origin, err = moveTo(top); err != nil {
+			return "", err
 		}
 	}
 	if g.NoColor {
-		return os.Setenv("NO_COLOR", "1")
+		return origin, os.Setenv("NO_COLOR", "1")
 	}
-	return nil
+	return origin, nil
 }
 
-// moveTo makes the repository's top the folder itos runs in, and keeps
-// where the person stood in origin.
-func moveTo(top string) error {
+// moveTo makes the repository's top the folder itos runs in, and gives
+// where the person stood, relative to it.
+func moveTo(top string) (string, error) {
 	here, err := os.Getwd()
 	if err != nil {
-		return err
+		return "", err
 	}
 	if err := os.Chdir(top); err != nil {
-		return fmt.Errorf("%s: %w", top, err)
+		return "", fmt.Errorf("%s: %w", top, err)
 	}
 	if top, err = os.Getwd(); err != nil {
-		return err
+		return "", err
 	}
 	if real, err := filepath.EvalSymlinks(here); err == nil {
 		here = real
@@ -220,17 +219,16 @@ func moveTo(top string) error {
 	}
 	rel, err := filepath.Rel(top, here)
 	if err != nil || rel == "." {
-		return nil
+		return "", nil
 	}
-	origin = rel
-	return nil
+	return rel, nil
 }
 
 // typed is a path the person typed, as itos reads it at the top it moved to
-// from a subfolder: relative to the folder they stood in, as git reads a
-// path typed there. An absolute path, "-" (stdin) and every path of a run
-// that did not move stay as typed.
-func typed(p string) string {
+// from origin, the subfolder they stood in (Out.Origin): relative to it, as
+// git reads a path typed there. An absolute path, "-" (stdin) and every path
+// of a run that did not move stay as typed.
+func typed(origin, p string) string {
 	if origin == "" || p == "" || p == "-" || filepath.IsAbs(p) {
 		return p
 	}
@@ -241,9 +239,11 @@ func typed(p string) string {
 func Main(args []string, stdout, stderr io.Writer) int {
 	g := Parse(args)
 	o := Out{JSON: g.JSON, Quiet: g.Quiet, Stdout: stdout, Stderr: stderr, Tests: tests.NewWarnings(stderr)}
-	if err := applyGlobals(g); err != nil {
+	origin, err := applyGlobals(g)
+	if err != nil {
 		return failure(err, o)
 	}
+	o.Origin = origin
 	name, rest := "", []string(nil)
 	if len(g.Rest) > 0 {
 		name, rest = g.Rest[0], g.Rest[1:]

@@ -98,7 +98,7 @@ func policyInit(policy string, stealth bool, offer pluginOffer, shimOffer shimOf
 		return 0, usage("init --policy writes the project's own config, itos.yaml at its top or with --stealth in "+
 			"the git folder, not the %s that --config or ITOS_CONFIG names", named)
 	}
-	plan, refusal, err := policyPlanned(policy, stealth)
+	plan, refusal, err := policyPlanned(policy, stealth, o.Origin)
 	if err != nil {
 		return 0, err
 	}
@@ -168,9 +168,9 @@ func policyInit(policy string, stealth bool, offer pluginOffer, shimOffer shimOf
 // and plans what init would write of it, then finds what of a project is
 // there already and derives the smoke sets: a refusal with nothing written,
 // git init included.
-func policyPlanned(policy string, stealth bool) (policyPlan, *policyRefusal, error) {
+func policyPlanned(policy string, stealth bool, origin string) (policyPlan, *policyRefusal, error) {
 	plan := policyPlan{file: "itos.yaml", stealth: stealth}
-	text, err := os.ReadFile(typed(policy))
+	text, err := os.ReadFile(typed(origin, policy))
 	if err != nil {
 		return plan, nil, &config.Error{File: policy, Problems: []out.Problem{{Rule: "config-unreadable",
 			Message: "cannot be read: " + err.Error(), Fix: "name the itos config whose policy the project takes"}}}

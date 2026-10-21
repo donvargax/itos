@@ -65,7 +65,7 @@ func mintedKind(command []string) string {
 // A registry the command would refuse is reported, its code given.
 func draftMint(command []string, o Out) (minted string, code int, err error) {
 	err = inPlace(func() error {
-		if applyGlobals(ParseGlobals(command)) != nil {
+		if _, err := applyGlobals(ParseGlobals(command)); err != nil {
 			return nil
 		}
 		kind := mintedKind(command)
@@ -108,14 +108,12 @@ func runReserved(d draft.Draft, w io.Writer) int {
 }
 
 // inPlace runs f, then puts back what a command's global flags change in
-// this process: the folder it runs in, ITOS_CONFIG, NO_COLOR and the folder
-// the person stood in.
+// this process: the folder it runs in, ITOS_CONFIG and NO_COLOR.
 func inPlace(f func() error) error {
 	here, err := os.Getwd()
 	if err != nil {
 		return err
 	}
-	stood := origin
 	env := map[string]*string{}
 	for _, name := range []string{"ITOS_CONFIG", "NO_COLOR"} {
 		if value, ok := os.LookupEnv(name); ok {
@@ -125,7 +123,6 @@ func inPlace(f func() error) error {
 		}
 	}
 	ran := f()
-	origin = stood
 	for name, value := range env {
 		if value == nil {
 			os.Unsetenv(name)

@@ -115,7 +115,7 @@ func workCommand(args []string, o Out) (int, error) {
 		return workShow(rest, o)
 	case "check":
 		file, named := first(rest)
-		return workCheck(typed(file), named, o)
+		return workCheck(typed(o.Origin, file), named, o)
 	case "list":
 		others, values, set, err := subArgs("work", "list", rest, []string{"--tag"}, []string{"--all"})
 		if err != nil {
@@ -172,7 +172,7 @@ func commit(args []string, o Out) (int, error) {
 		if err := commitRefs("commit check-message", at); err != nil {
 			return 0, err
 		}
-		return checkMessage(typed(file), at, o)
+		return checkMessage(typed(o.Origin, file), at, o)
 	case "check-paths":
 		typ, ok := flagValue(rest, "--type")
 		if !ok {
@@ -180,7 +180,7 @@ func commit(args []string, o Out) (int, error) {
 		}
 		var files []string
 		for _, f := range positional(rest, "--type") {
-			files = append(files, filepath.ToSlash(typed(f)))
+			files = append(files, filepath.ToSlash(typed(o.Origin, f)))
 		}
 		return checkPaths(typ, files, o)
 	case "footers":
@@ -248,7 +248,7 @@ func testsCommand(args []string, o Out) (int, error) {
 	case "check":
 		var root *string
 		if features, ok := flagValue(more, "--features"); ok {
-			features = typed(features)
+			features = typed(o.Origin, features)
 			root = &features
 		}
 		return smokeCheck(name, root, o)
@@ -326,7 +326,7 @@ func hook(args []string, o Out) (int, error) {
 		if len(rest) == 0 {
 			return 0, usage("hook commit-msg needs <file>")
 		}
-		return hookCommitMsg(typed(rest[0]), o)
+		return hookCommitMsg(typed(o.Origin, rest[0]), o)
 	case "pre-push":
 		return hookPrePush(o)
 	case "install":
@@ -351,7 +351,7 @@ func configCommand(args []string, o Out) (int, error) {
 		return printDefaults(o)
 	}
 	ledger, _ := flagValue(args, "--ledger")
-	return configCheck(typed(ledger), o)
+	return configCheck(typed(o.Origin, ledger), o)
 }
 
 // versionCommand prints the version, or under --json the version with the

@@ -58,7 +58,7 @@ func initCommand(args []string, o Out) (int, error) {
 	for i := 0; i < len(args); i++ {
 		n, err := parsePluginFlag(args, i, &plugin)
 		if err == nil && n == 0 {
-			n, err = parseShimFlag(args, i, &shim)
+			n, err = parseShimFlag(args, i, &shim, o.Origin)
 		}
 		if err == nil && n == 0 {
 			n, err = parseRulesFlag(args, i, &rules)
@@ -347,7 +347,7 @@ func initHooks(o Out) (int, any, error) {
 		return code, nil, err
 	}
 	var buf bytes.Buffer
-	code, err := hookInstall(false, false, Out{JSON: true, Quiet: o.Quiet, Stdout: &buf, Stderr: o.Stderr, Tests: o.Tests})
+	code, err := hookInstall(false, false, Out{JSON: true, Quiet: o.Quiet, Stdout: &buf, Stderr: o.Stderr, Tests: o.Tests, Origin: o.Origin})
 	if err != nil || buf.Len() == 0 {
 		return code, nil, err
 	}

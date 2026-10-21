@@ -219,6 +219,8 @@ type gitArgs struct {
 	fileAt        valueAt
 	amend, noEdit bool
 	refused       string
+	// origin is the run's Out.Origin, where -F's file is read from.
+	origin string
 }
 
 // refuse keeps the option as the first refused, when none is yet.
@@ -327,7 +329,7 @@ func (g gitArgs) message() (string, bool) {
 	case len(g.messages) > 0:
 		return strings.Join(g.messages, "\n\n"), true
 	case g.file != "" && g.file != "-":
-		text, err := os.ReadFile(typed(g.file))
+		text, err := os.ReadFile(typed(g.origin, g.file))
 		return string(text), err == nil
 	case g.amend && g.noEdit:
 		text, err := git.Output("log", "-1", "--format=%B", "HEAD")
@@ -414,7 +416,7 @@ func wrapBody(args []string, g gitArgs, limit int, keys []string) ([]string, str
 	if g.file == "-" {
 		raw, err = io.ReadAll(os.Stdin)
 	} else {
-		raw, err = os.ReadFile(typed(g.file))
+		raw, err = os.ReadFile(typed(g.origin, g.file))
 	}
 	if err != nil {
 		return args, "", nil
@@ -485,6 +487,7 @@ func gitCommit(args []string, o Out) (int, error) {
 		return 0, err
 	}
 	g := readGitArgs(flags.git)
+	g.origin = o.Origin
 	if err := refuseCommitArgs(g); err != nil {
 		return 0, err
 	}
@@ -576,7 +579,7 @@ func gitCommit(args []string, o Out) (int, error) {
 // repository's top to read its config (slice 40).
 func runGit(argv, env []string, stdout io.Writer, o Out) (int, error) {
 	cmd := exec.Command(git.Bin(), argv...)
-	cmd.Dir = origin
+	cmd.Dir = o.Origin
 	cmd.Env = env
 	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, stdout, o.Stderr
 	interrupts := make(chan os.Signal, 1)
