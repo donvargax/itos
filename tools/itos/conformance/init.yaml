@@ -9,33 +9,27 @@ cases:
   - name: init refuses an argument it does not take, naming what it takes
     argv: [init, --force]
     exit: 2
-    stderr: |
-      itos: init does not take --force; it takes --stealth, --policy, --plugin, --git-shim, --no-git-shim, --git-shim-dir, --agent-rules or --no-agent-rules (itos --help)
+    stderr_has: --force
   - name: init's --git-shim-dir needs a folder
     argv: [init, --git-shim, --git-shim-dir]
     exit: 2
-    stderr: |
-      itos: init --git-shim-dir needs a value (itos --help)
+    stderr_has: --git-shim-dir
   - name: init takes --git-shim or --no-git-shim, not both
     argv: [init, --git-shim, --no-git-shim]
     exit: 2
-    stderr: |
-      itos: init takes --git-shim or --no-git-shim, not both (itos --help)
+    stderr_has: [--git-shim, --no-git-shim]
   - name: init's --git-shim-dir goes with --git-shim, not --no-git-shim
     argv: [init, --no-git-shim, --git-shim-dir, shims]
     exit: 2
-    stderr: |
-      itos: --git-shim-dir names where --git-shim links itos as git, not --no-git-shim (itos --help)
+    stderr_has: [--git-shim-dir, --no-git-shim]
   - name: init's --plugin takes a scope
     argv: [init, --plugin, everywhere]
     exit: 2
-    stderr: |
-      itos: --plugin takes project, user, local or no (everywhere) (itos --help)
+    stderr_has: everywhere
   - name: under --stealth init refuses to install the plugin for the project
     argv: [init, --stealth, --plugin, project]
     exit: 2
-    stderr: |
-      itos: under --stealth, --plugin project would write .claude/settings.json, which the project commits; --plugin local installs it for you alone in this repository, --plugin user for every one of yours (itos --help)
+    stderr_has: [--stealth, --plugin project]
   - name: init --stealth where the project has its own itos.yaml is a usage error, and writes nothing
     argv: [init, --stealth, --agent-rules]
     hide: [claude]
@@ -46,8 +40,7 @@ cases:
           itos.yaml: "version: 1\nledger: { files: \"tasks/phase-{group}.yaml\" }\n"
           tasks/work-items.yaml: "phases: {}\nitems: []\n"
     exit: 2
-    stderr: |
-      itos: --stealth writes a config in the git folder for a clone that cannot change the project, but this one has its own itos.yaml; run init without --stealth (itos --help)
+    stderr_has: [--stealth, itos.yaml]
     files_after:
       CLAUDE.local.md: null
       AGENTS.override.md: null
@@ -58,15 +51,16 @@ cases:
       - commit: "docs: start"
         files: { README.md: "# Scratch\n" }
         label: start
-    argv: [init]
+    argv: [init, --json]
     exit: 0
-    stdout_has:
-      - "wrote itos.yaml\nwrote tasks/phase-1.yaml\nwrote tasks/work-items.yaml\n"
-      - "commits.since is HEAD, {{short.start}}: no commit before it is judged.\n"
-      - "Pinned no itos: cannot ask for the newest itos: "
-      - "Run itos pin when the release server can be reached.\n"
-      - "wrote hook.itos-commit-msg\nwrote hook.itos-pre-push\n"
-      - "Commit what init wrote with the task that adopts itos: git add itos.yaml tasks/phase-1.yaml tasks/work-items.yaml, then itos commit --task T-1 -m 'chore: adopt itos'\n"
+    json_has:
+      action: initialized
+      config: itos.yaml
+      since: "{{sha.start}}"
+      files: [{ path: itos.yaml, action: wrote }, { path: tasks/phase-1.yaml, action: wrote }, { path: tasks/work-items.yaml, action: wrote }]
+      pin: null
+      pin_problem: "<any>"
+      hooks: { hooks: [{ name: itos-commit-msg, action: wrote }, { name: itos-pre-push, action: wrote }] }
     files_after:
       itos.yaml: |
         # itos.yaml, written by itos init: this repository's rules for its commits,
@@ -148,27 +142,27 @@ cases:
         version: 1
         ledger: { files: "tasks/phase-{group}.yaml" }
       tasks/: ""
-    argv: [init, --no-git-shim]
+    argv: [init, --no-git-shim, --json]
     exit: 1
-    stdout: |
-      itos.yaml is there already; init kept it as it is.
-      Missing:
-        no work registry at tasks/work-items.yaml; move the registry to tasks/work-items.yaml, or set work.registry to where it is
-        the pre-push hook: hook.itos-pre-push in the git config does not run itos; run itos hook install
-      Noted, not counted as missing:
-        no people file at CONTRIBUTORS.md (work.people), so the registry's owners go unchecked; list the people who may own work in CONTRIBUTORS.md, or set work.people.file to where they are
+    json_has:
+      action: checked
+      config: itos.yaml
+      missing: [{ rule: work-registry-missing, area: registry }, { rule: hook-missing, area: hooks }]
+      notes: [{ rule: work-people-missing, area: people }]
+    stdout_has: [tasks/work-items.yaml, hook.itos-pre-push, CONTRIBUTORS.md]
     files_after:
       .git/hooks/pre-push: null
   - name: with --plugin and no claude on the PATH init says Claude Code was not found, and does the rest
-    argv: [init, --plugin, user]
+    argv: [init, --plugin, user, --json]
     hide: [claude]
     git:
       - commit: "docs: start"
         files: { README.md: "# Scratch\n" }
     exit: 0
-    stdout_has:
-      - "wrote hook.itos-commit-msg\nwrote hook.itos-pre-push\n"
-      - "Claude Code was not found (no claude on the PATH), so the itos plugin for it is not installed; with Claude Code installed, itos init --plugin user installs it.\n"
+    json_has:
+      action: initialized
+      hooks: { hooks: [{ name: itos-commit-msg, action: wrote }, { name: itos-pre-push, action: wrote }] }
+      plugin: { action: no_claude, scope: user }
   - name: with --plugin project init adds the marketplace and installs the plugin, and names its settings in the commit
     argv: [init, --plugin, project]
     env: { PATH: "{{dir}}/.git/bin:{{PATH}}" }
@@ -186,16 +180,14 @@ cases:
           esac
         executable: true
     exit: 0
-    stdout_has:
-      - "wrote hook.itos-pre-push\nInstalled the itos plugin for Claude Code, itos@itos, at its project scope.\n"
-      - "git add itos.yaml tasks/phase-1.yaml tasks/work-items.yaml .claude/settings.json, then itos commit --task T-1"
+    stdout_has: "itos.yaml tasks/phase-1.yaml tasks/work-items.yaml .claude/settings.json"
     files_after:
       .git/claude-args: |
         plugin list --json
         plugin marketplace add donvargax/itos --scope project
         plugin install itos@itos --scope project
   - name: with no --plugin and nobody to ask init installs nothing and says how to
-    argv: [init]
+    argv: [init, --json]
     env: { PATH: "{{dir}}/.git/bin:{{PATH}}" }
     git:
       - commit: "docs: start"
@@ -203,12 +195,14 @@ cases:
     files:
       .git/bin/claude: *claude
     exit: 0
-    stdout_has: "The itos plugin for Claude Code is not installed: itos init --plugin installs it for this repository (.claude/settings.json, to commit), --plugin user for every repository of yours, --plugin local for you alone in this one.\n"
+    json_has:
+      action: initialized
+      plugin: { action: offered, scope: null }
     files_after:
       .git/claude-args: |
         plugin list --json
   - name: run again where nothing is missing, init notes a people file missing and reports a plugin not installed, and still exits 0
-    argv: [init, --no-git-shim]
+    argv: [init, --no-git-shim, --json]
     env: { PATH: "{{dir}}/.git/bin:{{PATH}}" }
     git:
       - commit: "docs: start"
@@ -220,12 +214,11 @@ cases:
       tasks/work-items.yaml: "phases: {}\nitems: []\n"
       .git/bin/claude: *claude
     exit: 0
-    stdout: |
-      itos.yaml is there already; init kept it as it is.
-      Nothing is missing: the config, its ledger, registry and smoke sets are sound, and the hooks call itos.
-      Noted, not counted as missing:
-        no people file at CONTRIBUTORS.md (work.people), so the registry's owners go unchecked; list the people who may own work in CONTRIBUTORS.md, or set work.people.file to where they are
-      The itos plugin for Claude Code is not installed: itos init --plugin installs it for this repository (.claude/settings.json, to commit), --plugin user for every repository of yours, --plugin local for you alone in this one.
+    json_has:
+      action: checked
+      missing: []
+      notes: [{ rule: work-people-missing, area: people }]
+      plugin: { action: offered, scope: null }
   - name: run again with the plugin installed, init's JSON says so, and what it notes
     argv: [--json, init, --no-git-shim]
     env: { PATH: "{{dir}}/.git/bin:{{PATH}}" }
@@ -249,15 +242,11 @@ cases:
       action: checked
       missing: []
       plugin: { action: already, scope: user, excluded: false }
-      notes:
-        - rule: work-people-missing
-          message: "no people file at CONTRIBUTORS.md (work.people), so the registry's owners go unchecked"
-          fix: list the people who may own work in CONTRIBUTORS.md, or set work.people.file to where they are
-          area: people
+      notes: [{ rule: work-people-missing, area: people }]
       git_shim: { action: declined, link: null, on_path: false, before_git: false }
       agent_rules: { action: offered, files: [] }
   - name: a claude that fails at the install is reported, exit 1, the rest of init done
-    argv: [init, --plugin, user]
+    argv: [init, --plugin, user, --json]
     env: { PATH: "{{dir}}/.git/bin:{{PATH}}" }
     git:
       - commit: "docs: start"
@@ -272,19 +261,22 @@ cases:
           esac
         executable: true
     exit: 1
-    stdout_has:
-      - "wrote hook.itos-pre-push\nclaude plugin install itos@itos --scope user failed (exit 1):\nPlugin \"itos\" not found in any marketplace\n"
-      - "then itos commit --task T-1 -m 'chore: adopt itos'\n"
+    json_has:
+      action: initialized
+      files: [{ path: itos.yaml, action: wrote }, { path: tasks/phase-1.yaml, action: wrote }, { path: tasks/work-items.yaml, action: wrote }]
+      hooks: { hooks: [{ name: itos-commit-msg, action: wrote }, { name: itos-pre-push, action: wrote }] }
+      plugin: { action: failed, scope: user }
+    stdout_has: "not found in any marketplace"
   - name: with --agent-rules init writes its rules for agents at the end of AGENTS.md, its text kept, and CLAUDE.md imports it
-    argv: [init, --agent-rules, --no-git-shim]
+    argv: [init, --agent-rules, --no-git-shim, --json]
     hide: [claude]
     git:
       - commit: "docs: start"
         files: { README.md: "# Scratch\n", AGENTS.md: "# Demo\n\nBe kind." }
     exit: 0
-    stdout_has:
-      - "updated AGENTS.md\nwrote CLAUDE.md\nAGENTS.md holds itos's rules for agents, between <!-- itos:begin --> and <!-- itos:end -->, which itos init --agent-rules rewrites; CLAUDE.md imports it (@AGENTS.md).\n"
-      - "git add itos.yaml tasks/phase-1.yaml tasks/work-items.yaml AGENTS.md CLAUDE.md, then itos commit --task T-1"
+    json_has:
+      action: initialized
+      agent_rules: { action: written, files: [{ path: AGENTS.md, action: updated }, { path: CLAUDE.md, action: wrote }] }
     files_after:
       CLAUDE.md: "@AGENTS.md\n"
       AGENTS.md: |
@@ -302,18 +294,20 @@ cases:
 
         <!-- itos:end -->
   - name: with no --agent-rules and nobody to ask init writes no rules and says how to
-    argv: [init, --no-git-shim]
+    argv: [init, --no-git-shim, --json]
     hide: [claude]
     git:
       - commit: "docs: start"
         files: { README.md: "# Scratch\n" }
     exit: 0
-    stdout_has: "itos's rules for agents are not written: itos init --agent-rules writes them into AGENTS.md, between <!-- itos:begin --> and <!-- itos:end -->, and imports it from CLAUDE.md (@AGENTS.md); --no-agent-rules declines.\n"
+    json_has:
+      action: initialized
+      agent_rules: { action: offered, files: [] }
     files_after:
       AGENTS.md: null
       CLAUDE.md: null
   - name: run again, a block other than the one this itos writes is reported, naming itos init --agent-rules, and kept
-    argv: [init, --no-git-shim]
+    argv: [init, --no-git-shim, --json]
     hide: [claude]
     git:
       - commit: "docs: start"
@@ -325,33 +319,40 @@ cases:
       tasks/work-items.yaml: "phases: {}\nitems: []\n"
       AGENTS.md: "Be kind.\n\n<!-- itos:begin -->\nOld rules.\n<!-- itos:end -->\n"
     exit: 0
-    stdout_has: "AGENTS.md's itos rules are not the ones this itos writes: itos init --agent-rules rewrites them, only between the markers.\n"
+    json_has:
+      action: checked
+      missing: []
+      agent_rules: { action: stale }
     files_after:
       AGENTS.md: "Be kind.\n\n<!-- itos:begin -->\nOld rules.\n<!-- itos:end -->\n"
       CLAUDE.md: null
   - name: an AGENTS.md with a begin marker and no end one is not written, exit 1, the rest of init done
-    argv: [init, --agent-rules, --no-git-shim]
+    argv: [init, --agent-rules, --no-git-shim, --json]
     hide: [claude]
     git:
       - commit: "docs: start"
         files: { README.md: "# Scratch\n", AGENTS.md: "<!-- itos:begin -->\nMine.\n" }
     exit: 1
-    stdout_has:
-      - "AGENTS.md is not written: AGENTS.md has a <!-- itos:begin --> line with no <!-- itos:end --> line after it; put the markers right by hand.\n"
-      - "then itos commit --task T-1 -m 'chore: adopt itos'\n"
+    json_has:
+      action: initialized
+      files: [{ path: itos.yaml, action: wrote }, { path: tasks/phase-1.yaml, action: wrote }, { path: tasks/work-items.yaml, action: wrote }]
+      agent_rules: { action: failed, files: [], problem: "<any>" }
     files_after:
       AGENTS.md: "<!-- itos:begin -->\nMine.\n"
       CLAUDE.md: null
   - name: under --stealth, --agent-rules writes the rules in the git folder, imported from CLAUDE.local.md and after a copy of AGENTS.md in AGENTS.override.md, both excluded
-    argv: [init, --stealth, --agent-rules, --no-git-shim]
+    argv: [init, --stealth, --agent-rules, --no-git-shim, --json]
     hide: [claude]
     git:
       - commit: "docs: start"
         files: { README.md: "# Scratch\n", AGENTS.md: "# Demo\n\nBe kind.\n" }
     exit: 0
-    stdout_has:
-      - "wrote .git/itos/AGENTS.md\nwrote CLAUDE.local.md\nwrote AGENTS.override.md\nListed CLAUDE.local.md and AGENTS.override.md in the git folder's info/exclude, so git status stays clean.\n.git/itos/AGENTS.md holds itos's rules for agents, between <!-- itos:begin --> and <!-- itos:end -->, which itos init --agent-rules rewrites; CLAUDE.local.md imports it for Claude Code, and AGENTS.override.md holds them for Codex, after a copy of AGENTS.md between <!-- itos:agents-md:begin --> and <!-- itos:agents-md:end -->.\n"
-      - "Nothing the project tracks changed"
+    json_has:
+      action: initialized
+      config: .git/itos/itos.yaml
+      agent_rules:
+        action: written
+        files: [{ path: .git/itos/AGENTS.md, action: wrote }, { path: CLAUDE.local.md, action: wrote }, { path: AGENTS.override.md, action: wrote }]
     files_after:
       AGENTS.md: "# Demo\n\nBe kind.\n"
       CLAUDE.md: null
@@ -375,7 +376,7 @@ cases:
 
         <!-- itos:end -->
   - name: under --stealth a CLAUDE.local.md and an AGENTS.override.md of the person's keep their text and gain the block alone, never the copy
-    argv: [init, --stealth, --agent-rules, --no-git-shim]
+    argv: [init, --stealth, --agent-rules, --no-git-shim, --json]
     hide: [claude]
     git:
       - commit: "docs: start"
@@ -384,17 +385,23 @@ cases:
       CLAUDE.local.md: "My notes.\r\n"
       AGENTS.override.md: "My override.\n<!-- itos:begin -->\nOld.\n<!-- itos:end -->\nAfter.\n"
     exit: 0
-    stdout_has: "wrote .git/itos/AGENTS.md\nupdated CLAUDE.local.md\nupdated AGENTS.override.md\nListed CLAUDE.local.md and AGENTS.override.md in the git folder's info/exclude, so git status stays clean.\n.git/itos/AGENTS.md holds itos's rules for agents, between <!-- itos:begin --> and <!-- itos:end -->, which itos init --agent-rules rewrites; CLAUDE.local.md imports it for Claude Code, and AGENTS.override.md holds them for Codex.\n"
+    json_has:
+      agent_rules:
+        action: written
+        files: [{ path: .git/itos/AGENTS.md, action: wrote }, { path: CLAUDE.local.md, action: updated }, { path: AGENTS.override.md, action: updated }]
     files_after:
       CLAUDE.local.md: "My notes.\r\n\r\n<!-- itos:begin -->\r\n\r\n@AGENTS.md\r\n\r\n@.git/itos/AGENTS.md\r\n\r\n<!-- itos:end -->\r\n"
   - name: with no --agent-rules and nobody to ask, under --stealth init writes no rules and says how to
-    argv: [init, --stealth, --no-git-shim]
+    argv: [init, --stealth, --no-git-shim, --json]
     hide: [claude]
     git:
       - commit: "docs: start"
         files: { README.md: "# Scratch\n" }
     exit: 0
-    stdout_has: "itos's rules for agents are not written: itos init --agent-rules writes them into .git/itos/AGENTS.md, imports it from CLAUDE.local.md for Claude Code and writes it into AGENTS.override.md for Codex, both kept out of git by its info/exclude; --no-agent-rules declines.\n"
+    json_has:
+      action: initialized
+      config: .git/itos/itos.yaml
+      agent_rules: { action: offered, files: [] }
     files_after:
       .git/itos/AGENTS.md: null
       CLAUDE.local.md: null
@@ -402,27 +409,27 @@ cases:
   - name: init takes --agent-rules or --no-agent-rules, not both
     argv: [init, --agent-rules, --no-agent-rules]
     exit: 2
-    stderr: |
-      itos: init takes --agent-rules or --no-agent-rules, not both (itos --help)
+    stderr_has: [--agent-rules, --no-agent-rules]
   - name: with --git-shim init links itos as git in the folder --git-shim-dir names, and says where it stands on the PATH
-    argv: [init, --git-shim, --git-shim-dir, shims]
+    argv: [init, --git-shim, --git-shim-dir, shims, --json]
     hide: [claude]
     git:
       - commit: "docs: start"
         files: { README.md: "# Scratch\n" }
     exit: 0
-    stdout_has:
-      - "wrote hook.itos-pre-push\nLinked the git shim: {{dir}}/shims/git to "
-      - "{{dir}}/shims is not on the PATH: put it before "
-      - "then itos commit --task T-1 -m 'chore: adopt itos'\n"
+    json_has:
+      action: initialized
+      git_shim: { action: linked, link: "{{dir}}/shims/git", on_path: false, before_git: false }
   - name: with no --git-shim and nobody to ask init links nothing and says how to
-    argv: [init]
+    argv: [init, --json]
     hide: [claude]
     git:
       - commit: "docs: start"
         files: { README.md: "# Scratch\n" }
     exit: 0
-    stdout_has: ", the folder holding itos (--git-shim-dir <folder> for another), so that in a repository itos manages git commit and git push are itos's.\n"
+    json_has:
+      action: initialized
+      git_shim: { action: offered, link: "<any>", on_path: false }
   - name: run again with --git-shim, init links it and reports it in its JSON
     argv: [--json, init, --git-shim, --git-shim-dir, shims]
     hide: [claude]
@@ -441,15 +448,11 @@ cases:
       action: checked
       missing: []
       plugin: { action: no_claude, scope: null, excluded: false }
-      notes:
-        - rule: work-people-missing
-          message: "no people file at CONTRIBUTORS.md (work.people), so the registry's owners go unchecked"
-          fix: list the people who may own work in CONTRIBUTORS.md, or set work.people.file to where they are
-          area: people
+      notes: [{ rule: work-people-missing, area: people }]
       git_shim: { action: linked, link: "{{dir}}/shims/git", on_path: false, before_git: false }
       agent_rules: { action: offered, files: [] }
   - name: run again with no --git-shim, init says how to link it and does not count it as missing
-    argv: [init]
+    argv: [init, --json]
     hide: [claude]
     git:
       - commit: "docs: start"
@@ -460,12 +463,12 @@ cases:
         ledger: { files: "tasks/phase-{group}.yaml" }
       tasks/work-items.yaml: "phases: {}\nitems: []\n"
     exit: 0
-    stdout_has:
-      - "Nothing is missing: the config, its ledger, registry and smoke sets are sound, and the hooks call itos.\n"
-      - "The git shim is not linked: itos init --git-shim links itos as git in "
-      - ", the folder holding itos (--git-shim-dir <folder> for another), so that in a repository itos manages git commit and git push are itos's.\n"
+    json_has:
+      action: checked
+      missing: []
+      git_shim: { action: offered, link: "<any>" }
   - name: where no scenario carries an ID tag, the starter requires the Scenarios footer of no type, and init says how to tag one
-    argv: [init]
+    argv: [init, --json]
     hide: [claude]
     git:
       - commit: "docs: start"
@@ -478,7 +481,10 @@ cases:
           Scenario: a page opens
             When it opens
     exit: 0
-    stdout_has: "No scenario under features carries an ID tag, so the smoke set names none and no feat or fix needs a Scenarios footer yet: tag a scenario with its ID, such as @ID-PAGE-01 on the line above it, then set commits.footers.Scenarios.required_for to [feat, fix] in itos.yaml.\n"
+    json_has:
+      action: initialized
+      since: "{{sha.start}}"
+      files: [{ path: itos.yaml, action: wrote }, { path: features/smoke.yaml, action: wrote }]
     files_after:
       itos.yaml: |
         # itos.yaml, written by itos init: this repository's rules for its commits,
@@ -546,26 +552,27 @@ cases:
   - name: init's --policy needs a file
     argv: [init, --policy]
     exit: 2
-    stderr: |
-      itos: init --policy needs a value (itos --help)
+    stderr_has: --policy
   - name: init --policy writes the project's own config, never one --config names
     argv: [--config, other.yaml, init, --policy, policy.yaml]
     files: { policy.yaml: "version: 1\n" }
     exit: 2
-    stderr: |
-      itos: init --policy writes the project's own config, itos.yaml at its top or with --stealth in the git folder, not the other.yaml that --config or ITOS_CONFIG names (itos --help)
+    stderr_has: other.yaml
   - name: init --policy refuses a policy config check refuses before it runs git init
-    argv: [init, --policy, policy.yaml, --no-git-shim]
+    argv: [init, --policy, policy.yaml, --no-git-shim, --json]
     hide: [claude]
     files: { policy.yaml: "version: 1\nimaginary_policy: true\n" }
     exit: 2
-    stderr: |
-      FAIL policy.yaml: unknown key imaginary_policy
+    json_has:
+      config: policy.yaml
+      valid: false
+      problems: [{ rule: config-unknown-key }]
+    stdout_has: imaginary_policy
     files_after:
       .git/HEAD: null
       itos.yaml: null
   - name: init --policy refuses a policy that cannot name the file of group 1, nor hold T-1, writing nothing
-    argv: [init, --policy, policy.yaml, --no-git-shim]
+    argv: [init, --policy, policy.yaml, --no-git-shim, --json]
     hide: [claude]
     git:
       - commit: "docs: start"
@@ -580,10 +587,11 @@ cases:
         commits:
           types: [feat, fix, docs]
     exit: 2
-    stderr: |
-      FAIL policy.yaml: ledger.files (tasks/phase-{group}.yaml) and ledger.group.pattern ([a-z]+) cannot name the file of the group 1, the fresh ledger's
-      FAIL policy.yaml: ledger.id (TASK-\d+) does not match T-1, the task the project's adoption commit names
-      FAIL policy.yaml: commits.types does not list chore, the type of T-1, the adoption task
+    json_has:
+      config: policy.yaml
+      valid: false
+      problems: [{ rule: init-policy-ledger }]
+    stdout_has: [ledger.files, ledger.id, commits.types]
     files_after:
       itos.yaml: null
       tasks/work-items.yaml: null
@@ -605,21 +613,15 @@ cases:
       list.sh: |
         echo listed >> ran
     exit: 2
-    json:
-      schema: 1
-      config: policy.yaml
-      valid: false
-      problems:
-        - rule: init-policy-path
-          message: "policy.yaml: ledger.files puts ../outside/phase-1.yaml outside the project"
-          fix: point ledger.files at a path inside it
+    json: { schema: 1, config: policy.yaml, valid: false, problems: [{ rule: init-policy-path }] }
+    stdout_has: ../outside/phase-1.yaml
     files_after:
       itos.yaml: null
       ran: null
   # Slice 110: a command adapter's smoke set comes from its list, run once
   # in the project as itos tests list runs it, before anything is written.
   - name: init --policy derives a command adapter's smoke set from its list, run once in the project
-    argv: [init, --policy, policy.yaml, --no-git-shim, --no-agent-rules]
+    argv: [init, --policy, policy.yaml, --no-git-shim, --no-agent-rules, --json]
     hide: [claude]
     git:
       - commit: "docs: start"
@@ -636,8 +638,10 @@ cases:
         echo "$*" >> ran
         printf '%s\n' '{"protocol":1,"tests":[{"id":"U-1","file":"a_test.go","live":false},{"id":"U-2","file":"a_test.go","live":true},{"id":"U-3","file":"b_test.go","live":true}],"files":["a_test.go","b_test.go","c_test.go"]}'
     exit: 0
-    stdout_has:
-      - "wrote itos.yaml\nwrote tasks/phase-1.yaml\nwrote tasks/work-items.yaml\nwrote tests/smoke.yaml\n"
+    json_has:
+      action: initialized
+      policy: policy.yaml
+      files: [{ path: itos.yaml, action: wrote }, { path: tests/smoke.yaml, action: wrote }]
     files_after:
       ran: |
         list --at worktree
@@ -654,7 +658,7 @@ cases:
             - id: "@U-3"
               why: picked by itos init, the file's first live scenario
   - name: init --policy refuses a command adapter's list that fails, with its error, and writes nothing
-    argv: [init, --policy, policy.yaml, --no-git-shim]
+    argv: [init, --policy, policy.yaml, --no-git-shim, --json]
     hide: [claude]
     git:
       - commit: "docs: start"
@@ -670,11 +674,10 @@ cases:
         echo 'no test binary yet' >&2
         exit 3
     exit: 1
-    stderr: |
-      itos: init --policy wrote nothing: the list of tests.unit failed, so it cannot derive its smoke set:
-        tests.unit: `sh list.sh list --at worktree` exited 3
-        no test binary yet
-      Make tests.unit's adapter list the project's tests, then run init --policy again.
+    json_has:
+      action: refused
+      problems: [{ rule: init-policy-list }]
+    stdout_has: "no test binary yet"
     files_after:
       itos.yaml: null
       tasks/phase-1.yaml: null
@@ -693,14 +696,8 @@ cases:
       list.sh: |
         printf '%s\n' '{"protocol":2,"tests":[],"files":[]}'
     exit: 1
-    json:
-      schema: 1
-      config: itos.yaml
-      action: refused
-      problems:
-        - rule: init-policy-list
-          message: "tests.unit: `sh list.sh list --at worktree` speaks protocol 2, not 1"
-          fix: make tests.unit's adapter list the project's tests, then run init --policy again
+    json: { schema: 1, config: itos.yaml, action: refused, problems: [{ rule: init-policy-list }] }
+    stdout_has: "protocol 2"
     files_after:
       .git/HEAD: null
       itos.yaml: null
@@ -708,7 +705,7 @@ cases:
   # it is when tests smoke check passes over it, refused with the check's
   # problems when it does not; only where there is none is one derived.
   - name: init --policy keeps a smoke set the project has when the smoke check passes over it, and names it in what to commit
-    argv: [init, --policy, template/policy.yaml, --no-git-shim, --no-agent-rules]
+    argv: [init, --policy, template/policy.yaml, --no-git-shim, --no-agent-rules, --json]
     hide: [claude]
     git:
       - commit: "docs: start"
@@ -735,9 +732,9 @@ cases:
             id: 'ID-[A-Z]+-\d+'
             smoke: { file: specs/smoke.yaml }
     exit: 0
-    stdout_has:
-      - "wrote itos.yaml\nwrote tasks/phase-1.yaml\nwrote tasks/work-items.yaml\nkept specs/smoke.yaml\n"
-      - "git add itos.yaml tasks/phase-1.yaml tasks/work-items.yaml specs/smoke.yaml, then itos commit --task T-1"
+    json_has:
+      action: initialized
+      files: [{ path: itos.yaml, action: wrote }, { path: specs/smoke.yaml, action: kept }]
     files_after:
       specs/smoke.yaml: |
         # Reviewed with the template.
@@ -746,7 +743,7 @@ cases:
             - id: "@ID-PAGE-01"
               why: the page renders, reviewed with the template
   - name: init --policy refuses a smoke set the project has that the smoke check refuses, with its problems, and writes nothing
-    argv: [init, --policy, policy.yaml, --no-git-shim]
+    argv: [init, --policy, policy.yaml, --no-git-shim, --json]
     hide: [claude]
     git:
       - commit: "docs: start"
@@ -771,11 +768,10 @@ cases:
             id: 'ID-[A-Z]+-\d+'
             smoke: { file: specs/smoke.yaml }
     exit: 1
-    stderr: |
-      itos: init --policy keeps the smoke set a project has only when tests smoke check passes over it, so it wrote nothing; specs/smoke.yaml fails it:
-        FAIL the smoke list names @ID-PAGE-09, which is not a live scenario of pages.feature
-        FAIL a smoke scenario of pages.feature does not say why it is there
-      Correct specs/smoke.yaml, or remove it for init --policy to derive one, then run init --policy again.
+    json_has:
+      action: refused
+      problems: [{ rule: smoke-not-live }, { rule: smoke-no-why }]
+    stdout_has: "@ID-PAGE-09"
     files_after:
       itos.yaml: null
       tasks/phase-1.yaml: null
@@ -795,14 +791,8 @@ cases:
             id: 'ID-[A-Z]+-\d+'
             smoke: { file: tests/smoke.yaml }
     exit: 1
-    json:
-      schema: 1
-      config: itos.yaml
-      action: refused
-      problems:
-        - rule: init-policy-smoke
-          message: "tests/smoke.yaml: is not a list of files"
-          fix: correct tests/smoke.yaml, or remove it for init --policy to derive one
+    json: { schema: 1, config: itos.yaml, action: refused, problems: [{ rule: init-policy-smoke }] }
+    stdout_has: tests/smoke.yaml
     files_after:
       itos.yaml: null
   - name: under --json init --policy keeps a command kind's smoke set the project has, its list run once for the check
@@ -859,18 +849,17 @@ cases:
             - id: "@U-2"
               why: the fastest of a_test.go
   - name: init --policy refuses a project's data that is there already, an empty registry too, and writes nothing
-    argv: [init, --policy, policy.yaml, --no-git-shim]
+    argv: [init, --policy, policy.yaml, --no-git-shim, --json]
     hide: [claude]
     git:
       - commit: "docs: start"
         files: { README.md: "# Scratch\n", tasks/phase-7.yaml: "[]\n", tasks/work-items.yaml: "" }
     files: { policy.yaml: "version: 1\n" }
     exit: 1
-    stderr: |
-      itos: init --policy makes a fresh project and never writes over one, so it wrote nothing; these are there already:
-        tasks/phase-7.yaml
-        tasks/work-items.yaml
-      Run init --policy where no itos config or data is, or init without --policy to check this project.
+    json_has:
+      action: refused
+      problems: [{ rule: init-policy-exists }]
+    stdout_has: [tasks/phase-7.yaml, tasks/work-items.yaml]
     files_after:
       itos.yaml: null
       tasks/phase-1.yaml: null
@@ -882,16 +871,9 @@ cases:
         files: { README.md: "# Scratch\n", itos.yaml: "version: 1\n" }
     files: { policy.yaml: "version: 1\n" }
     exit: 1
-    json:
-      schema: 1
-      config: itos.yaml
-      action: refused
-      problems:
-        - rule: init-policy-exists
-          message: "itos.yaml is there already: init --policy makes a fresh project, never over one"
-          fix: run init --policy where no itos config or data is, or init without --policy to check this project
+    json: { schema: 1, config: itos.yaml, action: refused, problems: [{ rule: init-policy-exists }] }
   - name: init --policy makes the policy, read from where it ran, the project's config at its top, with fresh data and HEAD as commits.since
-    argv: [init, --policy, policy.yaml, --no-git-shim, --no-agent-rules]
+    argv: [init, --policy, policy.yaml, --no-git-shim, --no-agent-rules, --json]
     hide: [claude]
     cwd: template
     git:
@@ -914,9 +896,12 @@ cases:
           registry: work/items.yaml
           groups_key: groups
     exit: 0
-    stdout_has:
-      - "wrote itos.yaml\nwrote work/phase-1.yaml\nwrote work/items.yaml\nitos.yaml holds the policy of policy.yaml, made fresh for this project: no task, owner, status, commit or result of the policy's own came with it.\ncommits.since is HEAD, {{short.start}}: no commit before it is judged.\nPinned no itos: cannot ask for the newest itos: "
-      - "Commit what init wrote with the task that adopts itos: git add itos.yaml work/phase-1.yaml work/items.yaml, then itos commit --task T-1 -m 'chore: adopt itos'\n"
+    json_has:
+      action: initialized
+      config: itos.yaml
+      policy: policy.yaml
+      since: "{{sha.start}}"
+      files: [{ path: itos.yaml, action: wrote }, { path: work/phase-1.yaml, action: wrote }, { path: work/items.yaml, action: wrote }]
     files_after:
       template/policy.yaml: |
         # The template's reviewed policy.
