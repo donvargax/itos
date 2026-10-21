@@ -9126,6 +9126,11 @@ items:
       run; with one coordinator handing out work in turn, the coordinator already knows. The guide
       could say: push the take at once when others may take the same work, else it goes with the
       work's push, the brief deciding.
+
+      2026-10-21, T-192's agent: the take's commit hooks took over two minutes, the agent began
+      editing meanwhile, and itos push then refused for tracked changes no commit holds, so the take
+      rode with the work. Either work take pushes itself, or itos push pushes the committed range
+      past unrelated unstaged edits.
     tags: [docs]
 
   - id: p1-doc-budget-at-commit
