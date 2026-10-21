@@ -91,15 +91,29 @@ func TestSelftest(t *testing.T) {
 			"commit-tree", "HEAD^{tree}", "-p", "HEAD", "-m", message)
 	}
 
-	// go test's subtest name for a scenario, and the scenarios' names by it: go test names a
+	// go test's subtest names for a scenario, and the scenarios' names by them: go test names a
 	// subtest after the scenario, its spaces turned to underscores, and two scenarios may share a
 	// name (ID-ASK-01 and ID-ASK-20), which it tells apart by a "#01" suffix on the later one. The
 	// suffix is dropped here and the scenarios sharing a name are counted, since which of them ran
-	// is not in what go test reports.
+	// is not in what go test reports. A Scenario Outline runs once per row of its Examples, each
+	// run named after the outline with the row's values in its <column>s, so as many names as rows.
 	idTag := regexp.MustCompile("^" + regexp.QuoteMeta(k.TagPrefix) + "(" + k.ID + ")$")
-	scenarioLine := regexp.MustCompile(`^Scenario(?: Outline)?:\s*(.*?)\s*$`)
-	subtestOf := map[string]string{} // an ID, its subtest name
-	names := map[string]bool{}       // every subtest name
+	scenarioLine := regexp.MustCompile(`^Scenario( Outline)?:\s*(.*?)\s*$`)
+	subtestsOf := map[string][]string{} // an ID, its subtest name once per run
+	names := map[string]bool{}          // every subtest name
+	subtest := func(name string) string {
+		s := "TestFeatures/" + strings.ReplaceAll(name, " ", "_")
+		names[s] = true
+		return s
+	}
+	cells := func(row string) []string {
+		parts := strings.Split(strings.TrimSpace(row), "|")
+		out := make([]string, 0, len(parts))
+		for _, cell := range parts[1 : len(parts)-1] {
+			out = append(out, strings.TrimSpace(cell))
+		}
+		return out
+	}
 	features, err := filepath.Glob(filepath.Join(root, k.Root, "*.feature"))
 	if err != nil {
 		t.Fatal(err)
@@ -110,20 +124,46 @@ func TestSelftest(t *testing.T) {
 			t.Fatal(err)
 		}
 		var tags []string
+		// The outline being read, and its current Examples' header once read.
+		var outline, outlineID string
+		var header []string
+		inExamples := false
 		for _, line := range strings.Split(string(text), "\n") {
 			line = strings.TrimSpace(line)
 			if strings.HasPrefix(line, k.TagPrefix) {
 				tags = append(tags, strings.Fields(line)...)
 			}
+			if outlineID != "" && strings.HasPrefix(line, "Examples:") {
+				inExamples, header, tags = true, nil, nil
+				continue
+			}
+			if inExamples && strings.HasPrefix(line, "|") {
+				if header == nil {
+					header = cells(line)
+					continue
+				}
+				name := outline
+				for i, value := range cells(line) {
+					if i < len(header) {
+						name = strings.ReplaceAll(name, "<"+header[i]+">", value)
+					}
+				}
+				subtestsOf[outlineID] = append(subtestsOf[outlineID], subtest(name))
+				continue
+			}
 			m := scenarioLine.FindStringSubmatch(line)
 			if m == nil {
 				continue
 			}
+			outline, outlineID, header, inExamples = "", "", nil, false
 			for _, tag := range tags {
 				if id := idTag.FindStringSubmatch(tag); id != nil {
-					subtest := "TestFeatures/" + strings.ReplaceAll(m[1], " ", "_")
-					names[subtest] = true
-					subtestOf[id[1]] = subtest
+					if m[1] != "" {
+						outline, outlineID = m[2], id[1]
+						subtestsOf[id[1]] = nil
+					} else {
+						subtestsOf[id[1]] = []string{subtest(m[2])}
+					}
 					break
 				}
 			}
@@ -158,17 +198,23 @@ func TestSelftest(t *testing.T) {
 		}
 		return counts
 	}
-	// The same, as a set of scenario IDs would read it: each name the IDs share.
+	// The same, as a set of scenario IDs would read it: each name the IDs share, an outline's once
+	// per Examples row.
 	wanted := func(t *testing.T, ids ...[]string) ran {
 		t.Helper()
 		out := ran{}
 		for _, each := range ids {
 			for _, id := range each {
-				name, ok := subtestOf[id]
+				subtests, ok := subtestsOf[id]
 				if !ok {
 					t.Fatalf("no feature file names %s", id)
 				}
-				out[name]++
+				if len(subtests) == 0 {
+					t.Fatalf("the outline %s has no Examples row", id)
+				}
+				for _, name := range subtests {
+					out[name]++
+				}
 			}
 		}
 		return out
