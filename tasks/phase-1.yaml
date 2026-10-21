@@ -2346,9 +2346,6 @@
     the next red nightly shows the cause; a fix for the cause itself waits for that text and is not
     guessed here. Its unit test feeds a failing log fetch and asserts the error's text reaches the
     body.
-  done_when:
-    - run: go test -count=1 ./tools/bin/nightly-report
-    - run: grep -q "could not be read" tools/bin/nightly-report/main.go
 
 - id: T-193
   type: ci

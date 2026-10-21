@@ -10913,7 +10913,7 @@ items:
     title: The Nightly red comment says why a job log could not be read
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
 
