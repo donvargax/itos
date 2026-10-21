@@ -1,6 +1,7 @@
 package tests
 
 import (
+	"os"
 	"strings"
 	"testing"
 )
@@ -24,4 +25,29 @@ func TestWarningsOncePerRun(t *testing.T) {
 	}
 	var none *Warnings
 	none.cannotList("unit", "HEAD")
+}
+
+// A command adapter that cannot list a tree is asked for the working tree
+// instead, and the listing warns on the run's warnings; at the working tree
+// it warns nothing.
+func TestListTestsWarnsOnTheRunsWarnings(t *testing.T) {
+	t.Chdir(t.TempDir())
+	adapter := `[ "$3" = worktree ] || exit 1
+printf '{"protocol":1,"tests":[],"files":["a.test.ts"]}\n'
+`
+	if err := os.WriteFile("adapter.sh", []byte(adapter), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	cfg := load(t, "version: 1\ntests:\n  unit: { adapter: { command: \"sh adapter.sh\", supports_at: false }, root: src }\n")
+	var warned strings.Builder
+	ws := NewWarnings(&warned)
+	if list, err := ListTests(cfg, "unit", "worktree", ws); err != nil || len(list.Files) != 1 || warned.Len() != 0 {
+		t.Fatalf("at the working tree: %+v, %v, warned %q", list, err, warned.String())
+	}
+	if list, err := ListTests(cfg, "unit", "HEAD", ws); err != nil || len(list.Files) != 1 {
+		t.Fatalf("at HEAD: %+v, %v", list, err)
+	}
+	if want := "tests.unit cannot list a tree; HEAD is read as the working tree\n"; warned.String() != want {
+		t.Errorf("warned %q, want %q", warned.String(), want)
+	}
 }
