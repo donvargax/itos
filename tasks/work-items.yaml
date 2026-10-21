@@ -11278,8 +11278,8 @@ items:
   - id: T-212
     title: The corpus can pin that something did not print, and refuses exact text outside stdout_contract
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
 
