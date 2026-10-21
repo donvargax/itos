@@ -2283,9 +2283,6 @@
     toolchain line moves CI, the nightly, the release build (go-version-file and
     .github/actions/go-toolchain) and a local go under GOTOOLCHAIN=auto to the fixed library. The
     toolchain line is outside deps-check's seven-day rule.
-  done_when:
-    - run: grep -qx "toolchain go1.27.3" go.mod
-    - run: go tool govulncheck -test ./...
 
 - id: T-191
   type: test

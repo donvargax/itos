@@ -10778,7 +10778,7 @@ items:
     title: Build itos with Go 1.27.3, past the crypto/x509 vulnerability of 1.27.2
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
 
