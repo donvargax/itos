@@ -2581,3 +2581,22 @@
     - run: go run ./tools/bin/conformance --bin tools/bin/itos --only tools/itos/conformance/work.yaml tools/itos/conformance/verify.yaml
       timeout: 900
     - run: "! grep -nE '^ +(stdout|stderr):' tools/itos/conformance/work.yaml tools/itos/conformance/verify.yaml"
+
+- id: T-205
+  type: ci
+  title: The corpus runner leaves out only the top-level text key, and previous-release keeps the stdout of ADR-0054's script outputs
+  why: >
+    T-197's agent (2026-10-21) found two gaps against ADR-0054. json: and previous-release leave out
+    every key named text at any depth, which also drops data, follow's notes[].text and the footers
+    command's footers[].text; ADR-0054 exempts only the guide prose that guide --json and go --json
+    carry, at the object's top level, so text is left out at the top level alone. And ADR-0054 says
+    previous-release compares the plain outputs scripts read (ci scope docs_only=, ci range FROM=
+    TO=, config get, tests next-id, tests smoke ids) exactly, while File.Machine drops stdout from
+    every old case: a case marks its stdout as contract (a key such as stdout_contract: true,
+    documented with the schema), Machine keeps that case's stdout, and the corpus cases of those
+    outputs carry the mark. Folds in p1-previous-release-pins-script-outputs.
+  done_when:
+    - run: go test -count=1 ./tools/bin/conformance/... ./tools/bin/previous-release/...
+      timeout: 600
+    - run: go run ./tools/bin/conformance --bin tools/bin/itos
+      timeout: 900
