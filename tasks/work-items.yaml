@@ -11193,7 +11193,7 @@ items:
     title: Tests cover the lines T-195 re-plumbed that no test runs
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
 

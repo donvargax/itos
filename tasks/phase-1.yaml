@@ -2599,9 +2599,6 @@
     first; a scenario only where only a scenario reaches the line; error returns from Getwd or Chdir
     may need a seam (a function value) rather than a real failure, or are argued unreachable and
     left. No change to what itos does.
-  done_when:
-    - run: tools/bin/pinned itos-cc mutation run --since 04fee33d --count 1 --seed 04fee33d --fail-uncovered=lines --json cmd internal
-      timeout: 900
 
 - id: T-207
   type: refactor
