@@ -26,15 +26,33 @@ linters:
       rules:
         - name: context-as-argument
     # ADR-0053's arrows, from itos-cc's .golangci.yml, adapted to this module.
-    # No package is under internal/slices yet (docs/plans/slices-and-ports.md),
-    # so these rules hold over tools/testdata/architecture's fixtures alone
-    # until the moves land; tools/bin/architecture-check runs the fixtures and
-    # holds what depguard cannot: a slice importing another, within a slice
-    # the domain and the adapters importing only the domain, who imports a
-    # slice, and the binary linking a fake. A move whose import a rule refuses
-    # extends the rule, with a fixture, never loosens it.
+    # They hold the slices moved so far (docs/plans/slices-and-ports.md) and
+    # tools/testdata/architecture's fixtures; tools/bin/architecture-check
+    # runs the fixtures and holds what depguard cannot: a slice importing
+    # another, within a slice the domain and the adapters importing only the
+    # domain, who imports a slice, and the binary linking a fake. A move whose
+    # import a rule refuses extends the rule, with a fixture, never loosens
+    # it.
     depguard:
       rules:
+        # A slice, outside its domain and adapters, imports nothing of ours
+        # but its own subpackages (architecture-check refuses another
+        # slice's) and internal/out, through which its output goes. It
+        # reaches everything else through the Ports it owns, which the
+        # assembly binds; internal/cli is the assembly until the step that
+        # moves it into cmd, so a slice importing it would cycle.
+        slice-packages:
+          list-mode: lax
+          files:
+            - "**/internal/slices/**"
+            - "!**/internal/slices/*/domain/**"
+            - "!**/internal/slices/*/adapters/**"
+          allow:
+            - github.com/donvargax/itos/v8/internal/slices/
+            - github.com/donvargax/itos/v8/internal/out$
+          deny:
+            - pkg: github.com/donvargax/itos/v8
+              desc: "a slice imports nothing of ours but its own subpackages and internal/out (ADR-0053): reach the rest through its Ports; extend the rule, with a fixture, never loosen it"
         # A slice's domain, its tests and subpackages with it, imports nothing
         # of ours outside internal/slices: no UI, engine, adapter or cmd. It
         # reaches the outside through its port.

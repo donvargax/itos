@@ -17,10 +17,14 @@ set -eu
 # What may import a package under internal/slices from outside it, beside
 # cmd/, which assembles the slices: one row per exception, three fields,
 # the importer's path in the module (it and its subpackages), code or tests,
-# and the imported path in the module (it and its subpackages). None today;
-# a move that needs one adds its row here, saying why (itos-cc#61).
+# and the imported path in the module (it and its subpackages). A move that
+# needs one adds its row here, saying why (itos-cc#61).
 # ARCHITECTURE_OUTSIDE_EXCEPTIONS replaces the rows, for the fixtures.
-outside_exceptions=${ARCHITECTURE_OUTSIDE_EXCEPTIONS-""}
+#
+# internal/cli's code: the assembly until the step of
+# docs/plans/slices-and-ports.md that moves it into cmd, which removes the
+# row; its command table calls each slice and binds its Ports (ADR-0053).
+outside_exceptions=${ARCHITECTURE_OUTSIDE_EXCEPTIONS-"internal/cli code internal/slices"}
 
 usage() {
 	echo "usage: tools/bin/architecture-check [--linked <package> | --siblings <package>... | --outside <package>...]" >&2
