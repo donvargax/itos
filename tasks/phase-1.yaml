@@ -2614,3 +2614,27 @@
   done_when:
     - run: tools/bin/pinned itos-cc mutation run --since 04fee33d --count 1 --seed 04fee33d --fail-uncovered=lines --json cmd internal
       timeout: 900
+
+- id: T-207
+  type: refactor
+  title: "Pilot slice followup: internal/slices/followup over a private-store port with a fake and a contract suite"
+  why: >
+    ADR-0053, step 3 of docs/plans/slices-and-ports.md, the last pilot and the first port: the
+    followup command (internal/cli/follow*.go) and internal/follow (its domain,
+    internal/slices/followup/domain) move as T-196 moved guard. Its outside world is the clone's
+    private store (the git common dir's itos folder, the lock, whether the path is ignored), which
+    becomes the first port in itos-cc's shape: an interface in a port package, an in-memory fake in
+    its porttest package and an exported contract suite (StoreContract(t, open)) that the fake's
+    tests and the real adapter's tests both run; the real adapter wraps today's code (internal/lock,
+    git rev-parse --git-common-dir, check-ignore). Every port method takes a context.Context first.
+    The port is placed where the later tracker store (step 6) can grow from it,
+    internal/store/private or the like; name it in the commit. depguard and architecture-check gain
+    rules for the port, porttest and adapter packages (porttest never linked into the binary), with
+    fixtures. No behaviour change.
+  done_when:
+    - run: test -d internal/slices/followup/domain
+    - run: "! test -e internal/follow"
+    - run: tools/bin/architecture-check
+      timeout: 900
+    - run: tools/bin/pinned golangci-lint run ./...
+      timeout: 600
