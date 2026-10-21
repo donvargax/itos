@@ -90,7 +90,7 @@ What every command meets:
 - Questions and decision records: `internal/ask`, `internal/adr`; follow-ups
   and drafts: `internal/follow`, `internal/draft`.
 - The guides `itos go` and `itos guide` print: `internal/guide`.
-- The Claude Code guard: `internal/guard`.
+- The Claude Code guard: `internal/slices/guard`.
 - YAML read as itos reads it, and edited in place: `internal/value`.
 - The lock, new IDs and their remote counter, the version: `internal/lock`,
   `internal/nextid`, `internal/idcounter` ([ADR-0045]), `internal/version`.
