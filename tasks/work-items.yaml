@@ -11095,8 +11095,8 @@ items:
   - id: T-202
     title: The tasks, status and init corpus files pin only the contract
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
 
