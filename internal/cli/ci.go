@@ -15,7 +15,7 @@ import (
 // or a pushed range's with its data from the working tree or, with dataAt,
 // from that commit.
 func planOf(from, to string, nightly bool, dataAt string) (*config.Loaded, *plan.Plan, error) {
-	cfg, err := config.Load(config.Path())
+	cfg, err := loadConfig()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -77,7 +77,7 @@ func ciPlan(from, to string, nightly bool, dataAt string, o Out) (int, error) {
 // ciScope is `ci scope <from> <to>` (ci.ts's ciScope): whether the range is
 // prose only, for the workflow.
 func ciScope(from, to string, o Out) (int, error) {
-	cfg, err := config.Load(config.Path())
+	cfg, err := loadConfig()
 	if err != nil {
 		return 0, err
 	}
@@ -99,7 +99,7 @@ func ciScope(from, to string, o Out) (int, error) {
 // whose base is kept without asking the provider; a provider that fails is
 // not an error.
 func ciRange(head, base string, o Out) (int, error) {
-	cfg, err := config.Load(config.Path())
+	cfg, err := loadConfig()
 	if err != nil {
 		return 0, err
 	}

@@ -100,7 +100,7 @@ func checkArg(cmd string, checks *[]ledger.NewCheck, timed *bool, name, v string
 // <why> --check <command> [--timeout <seconds>] [--check …]`: the task at the
 // end of its group's ledger file, its item in the registry, committed.
 func taskAdd(args []string, o Out) (int, error) {
-	cfg, err := config.Load(config.Path())
+	cfg, err := loadConfig()
 	if err != nil {
 		return 0, err
 	}

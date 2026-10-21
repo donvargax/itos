@@ -1,6 +1,7 @@
 package adr
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -17,7 +18,7 @@ import (
 	"go.yaml.in/yaml/v3"
 
 	"github.com/donvargax/itos/v8/internal/out"
-	"github.com/donvargax/itos/v8/internal/source"
+	"github.com/donvargax/itos/v8/internal/store/tree/port"
 )
 
 // IndexName is the index's file in the records' folder.
@@ -156,14 +157,15 @@ func IsRecord(name string) bool {
 }
 
 // List is the records in the folder, by number: its Markdown files whose
-// names start with a number, read from the source itos reads its data from
+// names start with a number, read from src, the tree itos reads its data from
 // (the working tree, or the index in the commit-msg hook). A folder that is
 // not there holds none; a working tree's folder that is there and cannot be
 // listed is an error.
-func List(dir string) ([]Record, error) {
-	names, err := source.List(dir)
+func List(src port.Source, dir string) ([]Record, error) {
+	ctx := context.Background()
+	names, err := src.List(ctx, dir)
 	if err != nil {
-		if source.Current().Tree() == "worktree" && source.Has(dir) {
+		if src.Tree(ctx) == "worktree" && src.Has(ctx, dir) {
 			return nil, err
 		}
 		return nil, nil
@@ -174,7 +176,7 @@ func List(dir string) ([]Record, error) {
 			continue
 		}
 		n, _ := numberOf(name)
-		text, err := source.Read(filepath.Join(dir, name))
+		text, err := src.Read(ctx, filepath.Join(dir, name))
 		if err != nil {
 			return nil, err
 		}

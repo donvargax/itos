@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"slices"
 	"strings"
@@ -9,7 +10,6 @@ import (
 	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/ledger"
 	"github.com/donvargax/itos/v8/internal/out"
-	"github.com/donvargax/itos/v8/internal/source"
 	"github.com/donvargax/itos/v8/internal/value"
 	"github.com/donvargax/itos/v8/internal/work"
 )
@@ -191,7 +191,7 @@ func task(args []string, o Out) (int, error) {
 // with no checks. 1 when a check fails or an ID is unknown, 2 when nothing
 // matches.
 func runTasks(args []string, o Out) (int, error) {
-	cfg, err := config.Load(config.Path())
+	cfg, err := loadConfig()
 	if err != nil {
 		return 0, err
 	}
@@ -225,7 +225,7 @@ func runTasks(args []string, o Out) (int, error) {
 			return 0, t.Err
 		}
 	}
-	statuses := work.ItemStatuses(cfg.Work.Registry)
+	statuses := work.ItemStatuses(cfg.Source, cfg.Work.Registry)
 	rows := make([]taskRow, len(selected))
 	code := 0
 	for i, t := range selected {
@@ -280,7 +280,7 @@ type listJSON struct {
 // item"; it runs nothing, and reads the registry alone, without the people.
 // With no registry where itos looks, it says so, naming the path.
 func listTasks(args []string, o Out) (int, error) {
-	cfg, err := config.Load(config.Path())
+	cfg, err := loadConfig()
 	if err != nil {
 		return 0, err
 	}
@@ -291,10 +291,10 @@ func listTasks(args []string, o Out) (int, error) {
 	group, byGroup := groupFlag(cfg, args)
 	tasks := slices.DeleteFunc(all, func(t ledger.Task) bool { return byGroup && !inGroup(cfg, t, group) })
 	registry := cfg.Work.Registry
-	if !source.Has(registry) {
+	if !cfg.Source.Has(context.Background(), registry) {
 		fmt.Fprintf(o.Stderr, "No work registry at %s, so no task has an item.\n", registry)
 	}
-	statuses := work.ItemStatuses(registry)
+	statuses := work.ItemStatuses(cfg.Source, registry)
 	if o.JSON {
 		list := make([]listJSON, len(tasks))
 		for i, t := range tasks {

@@ -1,12 +1,12 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 
-	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/out"
 	"github.com/donvargax/itos/v8/internal/providers"
-	"github.com/donvargax/itos/v8/internal/source"
+	trees "github.com/donvargax/itos/v8/internal/store/tree/adapter"
 	"github.com/donvargax/itos/v8/internal/work"
 )
 
@@ -18,10 +18,10 @@ import (
 func workCheck(path string, named bool, o Out) (int, error) {
 	var found []out.Problem
 	file := path
-	if named && !source.Has(path) {
+	if named && !trees.Worktree.Has(context.Background(), path) {
 		found = []out.Problem{work.Missing(path, true)}
 	} else {
-		cfg, err := config.Load(config.Path())
+		cfg, err := loadConfig()
 		if err != nil {
 			return 0, err
 		}
@@ -72,7 +72,7 @@ func workProposal(as string, o Out) (int, error) {
 	if code, err := workCheck("", false, Out{Quiet: true, Stdout: o.Stdout, Stderr: o.Stderr, Tests: o.Tests, Origin: o.Origin}); code != 0 || err != nil {
 		return code, err
 	}
-	cfg, err := config.Load(config.Path())
+	cfg, err := loadConfig()
 	if err != nil {
 		return 0, err
 	}
@@ -116,12 +116,12 @@ func workProposal(as string, o Out) (int, error) {
 // is written as work --json writes it, so the two describe an item alike,
 // and file says where the registry was read.
 func workList(all bool, tag string, o Out) (int, error) {
-	cfg, err := config.Load(config.Path())
+	cfg, err := loadConfig()
 	if err != nil {
 		return 0, err
 	}
 	file := cfg.Work.Registry
-	if !source.Has(file) {
+	if !cfg.Source.Has(context.Background(), file) {
 		fmt.Fprintln(o.Stderr, work.Missing(file, false).Message)
 		return ExitPolicy, nil
 	}

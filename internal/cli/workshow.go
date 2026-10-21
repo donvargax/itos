@@ -15,6 +15,7 @@ package cli
 // 76). It reads, never writes.
 
 import (
+	"context"
 	"fmt"
 	"regexp"
 	"slices"
@@ -27,7 +28,6 @@ import (
 	"github.com/donvargax/itos/v8/internal/ledger"
 	"github.com/donvargax/itos/v8/internal/message"
 	"github.com/donvargax/itos/v8/internal/out"
-	"github.com/donvargax/itos/v8/internal/source"
 	"github.com/donvargax/itos/v8/internal/tests"
 	"github.com/donvargax/itos/v8/internal/work"
 )
@@ -65,12 +65,12 @@ func workShow(args []string, o Out) (int, error) {
 		return 0, usage("work show needs one <id>")
 	}
 	id := ids[0]
-	cfg, err := config.Load(config.Path())
+	cfg, err := loadConfig()
 	if err != nil {
 		return 0, err
 	}
 	file := cfg.Work.Registry
-	if !source.Has(file) {
+	if !cfg.Source.Has(context.Background(), file) {
 		return refuseWork([]out.Problem{work.Missing(file, false)}, ExitPolicy, o)
 	}
 	registry, err := work.Load(cfg, file)

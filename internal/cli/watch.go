@@ -321,7 +321,7 @@ func ciWatch(args []string, o Out) (int, error) {
 		return 0, usage("ci watch: %s is not a commit of this repository", rev)
 	}
 	sha = strings.TrimSpace(sha)
-	cfg, err := config.Load(config.Path())
+	cfg, err := loadConfig()
 	if err != nil {
 		return 0, err
 	}

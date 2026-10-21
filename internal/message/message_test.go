@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/donvargax/itos/v8/internal/config"
+	"github.com/donvargax/itos/v8/internal/store/tree/adapter"
 )
 
 // A footer's IDs over several lines, split at whitespace and commas, the
@@ -161,7 +162,7 @@ func load(t *testing.T, text string) *config.Loaded {
 	if err := os.WriteFile(file, []byte(text), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	cfg, err := config.Load(file)
+	cfg, err := config.Load(adapter.Trees{}, adapter.Worktree, file)
 	if err != nil {
 		t.Fatal(err)
 	}

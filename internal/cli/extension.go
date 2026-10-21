@@ -18,7 +18,6 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/version"
 )
 
@@ -152,7 +151,7 @@ func extensionEnv(g Globals) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	file, err := filepath.Abs(config.Path())
+	file, err := filepath.Abs(configPath())
 	if err != nil {
 		return nil, err
 	}

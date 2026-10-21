@@ -159,7 +159,7 @@ func commitEmpty(t *testing.T, message string) string {
 // newest judged; an item with none has no such commit.
 func TestOwnCommitIsTheNewestThatNamesTheItem(t *testing.T) {
 	closeRepoLinked(t)
-	cfg, err := config.Load(config.Path())
+	cfg, err := loadConfig()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -256,7 +256,7 @@ func TestLandedCIJudgesTheItemsOwnRun(t *testing.T) {
 	t.Setenv("GITHUB_API_URL", server.URL)
 	t.Setenv("GITHUB_REPOSITORY", "owner/scratch")
 	t.Setenv("GITHUB_TOKEN", "token")
-	cfg, err := config.Load(config.Path())
+	cfg, err := loadConfig()
 	if err != nil {
 		t.Fatal(err)
 	}

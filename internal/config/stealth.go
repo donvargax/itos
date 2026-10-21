@@ -20,13 +20,14 @@ package config
 // ITOS_CONFIG names resolves its paths from the root, as it always has.
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
 
 	"github.com/donvargax/itos/v8/internal/git"
-	"github.com/donvargax/itos/v8/internal/source"
+	"github.com/donvargax/itos/v8/internal/store/tree/port"
 	"github.com/donvargax/itos/v8/internal/value"
 )
 
@@ -37,9 +38,15 @@ const fileName = "itos.yaml"
 const StealthFolder = "itos"
 
 // Path is the config's path: ITOS_CONFIG, which --config sets, else
-// itos.yaml in the current folder, else the stealth config when there is
-// one, else itos.yaml, which then reports itself missing.
-func Path() string { return Locate("") }
+// itos.yaml in the current folder, src or the working tree holding it, else
+// the stealth config when there is one, else itos.yaml, which then reports
+// itself missing.
+func Path(src port.Source) string {
+	if os.Getenv("ITOS_CONFIG") == "" && src.Has(context.Background(), fileName) {
+		return fileName
+	}
+	return Locate("")
+}
 
 // Locate is the config itos reads for the folder dir ("" for the current
 // one), as Path picks it, relative to dir unless it is absolute. The
@@ -49,11 +56,7 @@ func Locate(dir string) string {
 	if p := os.Getenv("ITOS_CONFIG"); p != "" {
 		return p
 	}
-	if dir == "" {
-		if source.Has(fileName) || source.Worktree.Has(fileName) {
-			return fileName
-		}
-	} else if _, err := os.Stat(filepath.Join(dir, fileName)); err == nil {
+	if _, err := os.Stat(filepath.Join(dir, fileName)); err == nil {
 		return fileName
 	}
 	if s := stealthFile(dir); s != "" {

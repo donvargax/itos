@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/donvargax/itos/v8/internal/config"
+	"github.com/donvargax/itos/v8/internal/store/tree/adapter"
 )
 
 func rules(t *testing.T, text string) *Rules {
@@ -14,7 +15,7 @@ func rules(t *testing.T, text string) *Rules {
 	if err := os.WriteFile(file, []byte(text), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	cfg, err := config.Load(file)
+	cfg, err := config.Load(adapter.Trees{}, adapter.Worktree, file)
 	if err != nil {
 		t.Fatal(err)
 	}

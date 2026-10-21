@@ -180,8 +180,8 @@ func (f commitFlags) footerLines(cfg *config.Loaded, missing error) (links, cont
 // still runs git where itos is not set up; an error when there is one that
 // does not load.
 func commitConfig() (cfg *config.Loaded, missing, err error) {
-	file := config.Path()
-	cfg, err = config.Load(file)
+	file := configPath()
+	cfg, err = loadConfigFile(file)
 	if err == nil {
 		return cfg, nil, nil
 	}
@@ -495,7 +495,7 @@ func gitCommit(args []string, o Out) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	stealth := config.IsStealth(config.Path())
+	stealth := config.IsStealth(configPath())
 	if cfg != nil {
 		if found := lacking(cfg, g, links, content, stealth); len(found) > 0 {
 			return refuseCommit(cfg, found, o)

@@ -17,7 +17,6 @@ import (
 	"os"
 	"slices"
 
-	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/draft"
 )
 
@@ -53,7 +52,7 @@ func mintedKind(command []string) string {
 		}
 		return ""
 	}
-	if cfg, err := config.Load(config.Path()); err == nil {
+	if cfg, err := loadConfig(); err == nil {
 		if _, err := taskAddArgs(cfg, args); err == nil {
 			return "task"
 		}

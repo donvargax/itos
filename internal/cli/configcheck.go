@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"maps"
@@ -13,7 +14,8 @@ import (
 	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/ledger"
 	"github.com/donvargax/itos/v8/internal/out"
-	"github.com/donvargax/itos/v8/internal/source"
+	trees "github.com/donvargax/itos/v8/internal/store/tree/adapter"
+	"github.com/donvargax/itos/v8/internal/store/tree/port"
 	"github.com/donvargax/itos/v8/internal/tests"
 	"github.com/donvargax/itos/v8/internal/value"
 	"github.com/donvargax/itos/v8/internal/work"
@@ -83,10 +85,11 @@ func judgedSmokeFindings(cfg *config.Loaded, judged func(name, file string) bool
 // (a check static by a ci.cost.static pattern that written order runs late,
 // ledger.Findings, a project's people file missing or unreadable,
 // work.PeopleProblem, or an answered question naming an item the registry
-// does not have, asksProblems) never sets it.
-func configFindings(ledgerFile string, ws *tests.Warnings) (int, []Found, []Found, []string, error) {
-	path := config.Path()
-	cfg, err := config.Load(path)
+// does not have, asksProblems) never sets it. The config and its data are
+// read from src.
+func configFindings(src port.Source, ledgerFile string, ws *tests.Warnings) (int, []Found, []Found, []string, error) {
+	path := config.Path(src)
+	cfg, err := config.Load(trees.Trees{}, src, path)
 	var invalid *config.Error
 	if errors.As(err, &invalid) {
 		return 2, prefixed(invalid, "config"), nil, nil, nil
@@ -148,7 +151,7 @@ func configFindings(ledgerFile string, ws *tests.Warnings) (int, []Found, []Foun
 	found = append(found, smoke...)
 	// The decision records in the folder work.decisions names (slice 74);
 	// a folder that is not there holds none to check.
-	records, err := adr.List(cfg.Work.Decisions)
+	records, err := adr.List(cfg.Source, cfg.Work.Decisions)
 	if err != nil {
 		return 0, nil, nil, nil, err
 	}
@@ -165,7 +168,7 @@ func configFindings(ledgerFile string, ws *tests.Warnings) (int, []Found, []Foun
 }
 
 // asksProblems are the problems of the questions' file, work.asks, read
-// from the current source as the ledger and the registry are (slice 130): a
+// from the config's source as the ledger and the registry are (slice 130): a
 // file not as itos decision writes it (ask.Parse: an unknown key, an id given
 // twice, ...), else each open question naming an item the registry does not
 // have, since it holds that item up. Its warnings are each answered question
@@ -174,10 +177,10 @@ func configFindings(ledgerFile string, ws *tests.Warnings) (int, []Found, []Foun
 // not there; a registry that cannot be read is work.Problems' to report.
 func asksProblems(cfg *config.Loaded) (problems, warnings []out.Problem, err error) {
 	file := cfg.Work.Asks
-	if !source.Has(file) {
+	if !cfg.Source.Has(context.Background(), file) {
 		return nil, nil, nil
 	}
-	text, err := source.Read(file)
+	text, err := cfg.Source.Read(context.Background(), file)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -275,7 +278,7 @@ func prefixed(e *config.Error, area string) []Found {
 // rule id and, where one exists, a fix; then its warnings, printed as WARN
 // and never failing it.
 func configCheck(ledgerFile string, o Out) (int, error) {
-	code, found, warnings, lines, err := configFindings(ledgerFile, o.Tests)
+	code, found, warnings, lines, err := configFindings(trees.Worktree, ledgerFile, o.Tests)
 	if err != nil {
 		return 0, err
 	}
@@ -284,7 +287,7 @@ func configCheck(ledgerFile string, o Out) (int, error) {
 			found = []Found{}
 		}
 		fields := []out.Field{
-			{Key: "config", Value: config.Path()},
+			{Key: "config", Value: configPath()},
 			{Key: "valid", Value: len(found) == 0},
 			{Key: "problems", Value: found},
 		}
@@ -314,9 +317,9 @@ func configCheck(ledgerFile string, o Out) (int, error) {
 // config's ledger and to a stealth config. It checks nothing, so a config that does not load gets the
 // table's own values.
 func printDefaults(o Out) (int, error) {
-	path := config.Path()
+	path := configPath()
 	var file *value.Map
-	if cfg, err := config.Load(path); err == nil {
+	if cfg, err := loadConfigFile(path); err == nil {
 		file = cfg.File()
 	}
 	table := config.DefaultsFor(file, config.IsStealth(path))
@@ -344,7 +347,7 @@ func configGet(key string, o Out) (int, error) {
 		}
 		return 0, usage("config get: unknown key %s", key)
 	}
-	cfg, err := config.Load(config.Path())
+	cfg, err := loadConfig()
 	if err != nil {
 		return 0, err
 	}

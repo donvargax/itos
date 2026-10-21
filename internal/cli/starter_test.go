@@ -7,7 +7,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/tests"
 	"github.com/donvargax/itos/v8/internal/value"
 )
@@ -28,7 +27,7 @@ func TestStarterLoads(t *testing.T) {
 		if err := os.WriteFile(file, []byte(s.config()), 0o644); err != nil {
 			t.Fatal(err)
 		}
-		cfg, err := config.Load(file)
+		cfg, err := loadConfigFile(file)
 		if err != nil {
 			t.Fatalf("%+v: %v\n%s", s, err, s.config())
 		}

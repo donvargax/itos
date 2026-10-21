@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -16,7 +17,8 @@ import (
 	"github.com/donvargax/itos/v8/internal/out"
 	"github.com/donvargax/itos/v8/internal/providers"
 	"github.com/donvargax/itos/v8/internal/release"
-	"github.com/donvargax/itos/v8/internal/source"
+	trees "github.com/donvargax/itos/v8/internal/store/tree/adapter"
+	"github.com/donvargax/itos/v8/internal/store/tree/port"
 )
 
 // statusRepo is a scratch repository as the current folder, with no remote,
@@ -53,7 +55,7 @@ func TestStatusRefuses(t *testing.T) {
 	if code, stdout, stderr := run("status", "--as", "a"); code != ExitUsage {
 		t.Errorf("a registry that cannot be read: exit %d\n%s%s", code, stdout, stderr)
 	}
-	cfg, err := config.Load(config.Path())
+	cfg, err := loadConfig()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -73,32 +75,28 @@ func TestStatusRefuses(t *testing.T) {
 // it is once and fails after: a registry changed between its check and its
 // load.
 type secondReadFails struct {
-	source.Source
+	port.Source
 	reads int
 }
 
-func (s *secondReadFails) Read(path string) (string, error) {
+func (s *secondReadFails) Read(ctx context.Context, path string) (string, error) {
 	if path == "work-items.yaml" {
 		if s.reads++; s.reads > 1 {
 			return "", errors.New("changed while read")
 		}
 	}
-	return s.Source.Read(path)
+	return s.Source.Read(ctx, path)
 }
 
 // A registry that cannot be loaded after its check is the error.
 func TestStatusRegistryChanged(t *testing.T) {
 	statusRepo(t, map[string]string{"work-items.yaml": items("one"), "people.yaml": "- a\n"})
-	cfg, err := config.Load(config.Path())
+	cfg, err := loadConfig()
 	if err != nil {
 		t.Fatal(err)
 	}
-	var code int
-	err = source.ReadingFrom(&secondReadFails{Source: source.Worktree}, func() error {
-		_, _, c, err := statusOf(cfg, "a", Out{})
-		code = c
-		return err
-	})
+	cfg.Source = &secondReadFails{Source: trees.Worktree}
+	_, _, code, err := statusOf(cfg, "a", Out{})
 	if err == nil || !strings.Contains(err.Error(), "changed while read") || code != 0 {
 		t.Errorf("the second read's failure is not the error: exit %d, %v", code, err)
 	}
@@ -113,7 +111,7 @@ func TestStatusEveryAndNobody(t *testing.T) {
 		"people.yaml":     "[]\n",
 		"asks.yaml":       "questions:\n  - id: q-1\n    item: i1\n    question: Which way?\n",
 	})
-	cfg, err := config.Load(config.Path())
+	cfg, err := loadConfig()
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -10,8 +10,6 @@ package cli
 import (
 	"fmt"
 	"os"
-
-	"github.com/donvargax/itos/v8/internal/config"
 )
 
 func exists(p string) bool {
@@ -31,7 +29,7 @@ func readIf(p string) (string, bool) {
 // config declares.
 func hookInstall(print, force bool, o Out) (int, error) {
 	const root = "."
-	cfg, err := config.Load(config.Path())
+	cfg, err := loadConfig()
 	if err != nil {
 		return 0, err
 	}

@@ -56,11 +56,11 @@ func goStatus(o Out) *standing {
 		fmt.Fprintf(o.Stderr, "itos: where things stand is not printed: %s\n", why)
 		return nil
 	}
-	file := config.Path()
+	file := configPath()
 	if _, err := os.Stat(file); err != nil {
 		return skip("there is no itos config here (itos init makes one)")
 	}
-	cfg, err := config.Load(file)
+	cfg, err := loadConfigFile(file)
 	if err != nil {
 		return skip(strings.ReplaceAll(strings.TrimSpace(err.Error()), "\n", "; "))
 	}
@@ -116,11 +116,11 @@ func printProcedure(name string, o Out) (int, error) {
 // (commitPolicy), under a heading of their own; "" with no config. A config that cannot be read is
 // a warning, and the procedure prints without them.
 func configCommitPolicy(o Out) string {
-	file := config.Path()
+	file := configPath()
 	if _, err := os.Stat(file); err != nil {
 		return ""
 	}
-	cfg, err := config.Load(file)
+	cfg, err := loadConfigFile(file)
 	if err != nil {
 		fmt.Fprintf(o.Stderr, "itos: %s cannot be read, so the commit rules it sets are not printed: %s\n",
 			file, strings.ReplaceAll(strings.TrimSpace(err.Error()), "\n", "; "))
@@ -235,9 +235,9 @@ func readNotes(path string, o Out) (string, string) {
 // from the repository's top; "" outside a repository with no config. A
 // config that cannot be read is a warning, and the default is read instead.
 func notesPath(o Out) string {
-	file := config.Path()
+	file := configPath()
 	if _, err := os.Stat(file); err == nil {
-		loaded, err := config.Load(file)
+		loaded, err := loadConfigFile(file)
 		if err == nil {
 			p, _ := loaded.Get("guide.orchestrating").(string)
 			return p

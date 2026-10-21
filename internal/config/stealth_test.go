@@ -1,6 +1,7 @@
 package config
 
 import (
+	"context"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -8,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/donvargax/itos/v8/internal/git"
-	"github.com/donvargax/itos/v8/internal/source"
+	"github.com/donvargax/itos/v8/internal/store/tree/adapter"
 	"github.com/donvargax/itos/v8/internal/value"
 )
 
@@ -51,15 +52,15 @@ func TestStealthConfig(t *testing.T) {
 	t.Chdir(dir)
 	t.Setenv("ITOS_CONFIG", "")
 	stealth := filepath.Join(".git", "itos", "itos.yaml")
-	if got := Path(); got != "itos.yaml" {
-		t.Fatalf("with no config, Path() = %q, want itos.yaml", got)
+	if got := Path(adapter.Worktree); got != "itos.yaml" {
+		t.Fatalf("with no config, Path(adapter.Worktree) = %q, want itos.yaml", got)
 	}
 	writeFile(t, stealth, stealthText)
-	if got := Path(); got != stealth {
-		t.Fatalf("Path() = %q, want %q", got, stealth)
+	if got := Path(adapter.Worktree); got != stealth {
+		t.Fatalf("Path(adapter.Worktree) = %q, want %q", got, stealth)
 	}
 	beside := filepath.Join(".git", "itos")
-	c, err := Load(Path())
+	c, err := Load(adapter.Trees{}, adapter.Worktree, Path(adapter.Worktree))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -73,19 +74,19 @@ func TestStealthConfig(t *testing.T) {
 	}
 	abs, _ := filepath.Abs(stealth)
 	t.Setenv("ITOS_CONFIG", abs)
-	if c, err := Load(Path()); err != nil || !c.Stealth || c.Ledger.Files != filepath.Join(filepath.Dir(abs), "tasks/phase-{group}.yaml") {
+	if c, err := Load(adapter.Trees{}, adapter.Worktree, Path(adapter.Worktree)); err != nil || !c.Stealth || c.Ledger.Files != filepath.Join(filepath.Dir(abs), "tasks/phase-{group}.yaml") {
 		t.Errorf("ITOS_CONFIG naming the stealth config: %+v, %v", c, err)
 	}
 	writeFile(t, "other.yaml", stealthText)
 	t.Setenv("ITOS_CONFIG", "other.yaml")
-	if c, err := Load(Path()); err != nil || c.Stealth || c.Ledger.Files != "tasks/phase-{group}.yaml" ||
+	if c, err := Load(adapter.Trees{}, adapter.Worktree, Path(adapter.Worktree)); err != nil || c.Stealth || c.Ledger.Files != "tasks/phase-{group}.yaml" ||
 		c.Work.People.File != "people.yaml" || c.Hooks.Bin != "tools/bin/itos" {
 		t.Errorf("ITOS_CONFIG naming another config: %+v, %v", c, err)
 	}
 	t.Setenv("ITOS_CONFIG", "")
 	writeFile(t, "itos.yaml", stealthText)
-	if got := Path(); got != "itos.yaml" || IsStealth(got) {
-		t.Errorf("with an itos.yaml in the root, Path() = %q", got)
+	if got := Path(adapter.Worktree); got != "itos.yaml" || IsStealth(got) {
+		t.Errorf("with an itos.yaml in the root, Path(adapter.Worktree) = %q", got)
 	}
 }
 
@@ -118,18 +119,11 @@ func TestARootConfigInEitherTreeWinsOverTheStealthOne(t *testing.T) {
 	t.Chdir(dir)
 	t.Setenv("ITOS_CONFIG", "")
 	writeFile(t, filepath.Join(".git", "itos", "itos.yaml"), stealthText)
-	index, err := source.At("index")
+	index, err := adapter.Trees{}.At(context.Background(), "index")
 	if err != nil {
 		t.Fatal(err)
 	}
-	locate := func() string {
-		t.Helper()
-		got := ""
-		if err := source.ReadingFrom(index, func() error { got = Locate(""); return nil }); err != nil {
-			t.Fatal(err)
-		}
-		return got
-	}
+	locate := func() string { return Path(index) }
 	writeFile(t, "itos.yaml", stealthText)
 	if got := locate(); got != "itos.yaml" {
 		t.Errorf("an itos.yaml only in the working tree: Locate = %q", got)

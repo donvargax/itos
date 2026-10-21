@@ -17,7 +17,7 @@ import (
 // kind's adapter's listing at the working tree, the index or a commit, one
 // test a line, or under --json the protocol's object as the adapter gave it.
 func testsList(name, at string, o Out) (int, error) {
-	cfg, err := config.Load(config.Path())
+	cfg, err := loadConfig()
 	if err != nil {
 		return 0, err
 	}
@@ -64,7 +64,7 @@ func listFields(list tests.List) []out.Field {
 // moves checks' allowed renames. 0 when they only move scenarios, if
 // anything, 1 with each problem on stderr or under --json.
 func testsMoves(name string, o Out) (int, error) {
-	cfg, err := config.Load(config.Path())
+	cfg, err := loadConfig()
 	if err != nil {
 		return 0, err
 	}
@@ -95,7 +95,7 @@ func testsMoves(name string, o Out) (int, error) {
 
 // smokeSet is the config and the kind's smoke set in the working tree.
 func smokeSet(name string) (*config.Loaded, config.Kind, []tests.SmokeFile, error) {
-	cfg, err := config.Load(config.Path())
+	cfg, err := loadConfig()
 	if err != nil {
 		return nil, config.Kind{}, nil, err
 	}

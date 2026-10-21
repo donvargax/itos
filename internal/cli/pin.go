@@ -118,7 +118,7 @@ type configPin struct{ file, text, version, checksums string }
 // readConfigPin reads the config itos finds, the stealth one included, and
 // its pin.
 func readConfigPin() (configPin, error) {
-	file := config.Path()
+	file := configPath()
 	text, err := os.ReadFile(file)
 	if err != nil {
 		return configPin{}, &config.Error{File: file, Problems: []out.Problem{{

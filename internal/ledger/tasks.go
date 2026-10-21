@@ -1,12 +1,13 @@
 package ledger
 
 import (
+	"context"
 	"fmt"
 	"path"
 
 	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/kind"
-	"github.com/donvargax/itos/v8/internal/source"
+
 	"github.com/donvargax/itos/v8/internal/value"
 )
 
@@ -74,7 +75,7 @@ func Tasks(cfg *config.Loaded) ([]Task, error) {
 	}
 	var tasks []Task
 	for _, f := range files {
-		text, err := source.Read(f.Path)
+		text, err := cfg.Source.Read(context.Background(), f.Path)
 		if err != nil {
 			return nil, err
 		}
@@ -177,7 +178,7 @@ func IDs(cfg *config.Loaded, tree string) (map[string]bool, error) {
 		return nil, err
 	}
 	keep := func(p string) bool { return path.Dir(p) == layout.Dir && layout.File.MatchString(path.Base(p)) }
-	for _, text := range source.Texts(tree, layout.Dir, keep) {
+	for _, text := range cfg.Trees.Texts(context.Background(), tree, layout.Dir, keep) {
 		tasks, err := value.Parse(text)
 		list, ok := tasks.([]any)
 		if err != nil || !ok {

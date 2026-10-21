@@ -76,7 +76,7 @@
 // commit and itos push's git in it, so pathspecs and an -F file mean what
 // they meant. Under --root nothing is translated. Under a stealth config
 // verify and ci plan with no range take the unpushed commits (git.Unpushed):
-// commands.go asks config.IsStealth(config.Path()) before the usage error,
+// commands.go asks config.IsStealth(configPath()) before the usage error,
 // so a project's is unchanged and needs no config load.
 //
 // # Commands the launcher leaves to this binary
@@ -361,8 +361,8 @@
 // 36), so a blank or comment first line, as an editor leaves one, does not
 // hide the type from the paths and the footers:
 //
-//  1. itos's data at commit: configFindings under
-//     source.ReadingFrom(source.At("index"), …) when a staged path (git diff
+//  1. itos's data at commit: configFindings reading the index (the tree
+//     reader's At("index"), handed to it) when a staged path (git diff
 //     --cached --name-only --no-renames) is the config, a ledger file, the
 //     registry, the questions' file (slice 130), a smoke set or a decision
 //     record or index, as

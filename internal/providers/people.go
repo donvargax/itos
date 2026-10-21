@@ -1,6 +1,7 @@
 package providers
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -8,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/donvargax/itos/v8/internal/config"
-	"github.com/donvargax/itos/v8/internal/source"
+	"github.com/donvargax/itos/v8/internal/store/tree/port"
 	"github.com/donvargax/itos/v8/internal/value"
 )
 
@@ -97,9 +98,10 @@ func YAMLLogins(text string) ([]string, error) {
 	return unique(logins), nil
 }
 
-// People are who may own work, read from the file the people source names.
-func People(p config.People) ([]string, error) {
-	text, err := source.Read(p.File)
+// People are who may own work, read from src, the tree itos reads its data
+// from, in the file the people source names.
+func People(src port.Source, p config.People) ([]string, error) {
+	text, err := src.Read(context.Background(), p.File)
 	if err != nil {
 		return nil, err
 	}

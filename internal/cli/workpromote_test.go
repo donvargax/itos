@@ -8,7 +8,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/kind"
 	"github.com/donvargax/itos/v8/internal/value"
 	"github.com/donvargax/itos/v8/internal/work"
@@ -163,7 +162,7 @@ func TestWorkPromoteUnderAStealthConfigSaysWhatIsNotCommitted(t *testing.T) {
 // line gives none; the line's --why stands in for the idea's.
 func TestPromotedTaskNeedsAGroupAndAWhy(t *testing.T) {
 	promoteRepo(t)
-	cfg, err := config.Load(config.Path())
+	cfg, err := loadConfig()
 	if err != nil {
 		t.Fatal(err)
 	}

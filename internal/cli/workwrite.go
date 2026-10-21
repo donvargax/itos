@@ -134,7 +134,7 @@ func refuseWork(found []out.Problem, code int, o Out) (int, error) {
 // writes are commits, which git's own index lock takes in turn.
 func soundRegistry(o Out) (cfg *config.Loaded, registry work.Registry, text string, release func(), code int, err error) {
 	release = func() {}
-	if cfg, err = config.Load(config.Path()); err != nil {
+	if cfg, err = loadConfig(); err != nil {
 		return nil, work.Registry{}, "", release, 0, err
 	}
 	if cfg.Stealth {

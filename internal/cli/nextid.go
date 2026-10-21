@@ -9,6 +9,7 @@ package cli
 // next-id, and tests next-id of any other stem, only read.
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"strings"
@@ -17,7 +18,6 @@ import (
 	"github.com/donvargax/itos/v8/internal/idcounter"
 	"github.com/donvargax/itos/v8/internal/ledger"
 	"github.com/donvargax/itos/v8/internal/out"
-	"github.com/donvargax/itos/v8/internal/source"
 	"github.com/donvargax/itos/v8/internal/tests"
 	"github.com/donvargax/itos/v8/internal/work"
 )
@@ -26,7 +26,7 @@ import (
 // or a task before its scenarios or its ledger entry exist; none when the
 // config's registry is not there.
 func registryIDs(cfg *config.Loaded) ([]string, error) {
-	if !source.Has(cfg.Work.Registry) {
+	if !cfg.Source.Has(context.Background(), cfg.Work.Registry) {
 		return nil, nil
 	}
 	registry, err := work.Load(cfg, cfg.Work.Registry)
@@ -62,7 +62,7 @@ func testsNextID(args []string, o Out) (int, error) {
 	if err != nil || count < 1 {
 		return 0, usage("tests next-id --count takes how many ids to claim, a number from 1 up, not %q", text)
 	}
-	cfg, err := config.Load(config.Path())
+	cfg, err := loadConfig()
 	if err != nil {
 		return 0, err
 	}
@@ -141,7 +141,7 @@ func taskNextID(args []string, o Out) (int, error) {
 	if words := positional(args); len(words) > 0 {
 		return 0, usage("task next-id takes no arguments")
 	}
-	cfg, err := config.Load(config.Path())
+	cfg, err := loadConfig()
 	if err != nil {
 		return 0, err
 	}

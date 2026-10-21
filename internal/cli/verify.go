@@ -188,7 +188,7 @@ func untypedMerge(cfg *config.Loaded, c judged) []out.Problem {
 // others' commits in a repository that does not use itos follow no rules of
 // the person's.
 func verifyRange(from, to string, o Out) (int, error) {
-	cfg, err := config.Load(config.Path())
+	cfg, err := loadConfig()
 	if err != nil {
 		return 0, err
 	}

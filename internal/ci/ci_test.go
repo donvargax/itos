@@ -13,6 +13,7 @@ import (
 	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/ledger"
 	"github.com/donvargax/itos/v8/internal/plan"
+	"github.com/donvargax/itos/v8/internal/store/tree/adapter"
 )
 
 func load(t *testing.T) *config.Loaded {
@@ -21,7 +22,7 @@ func load(t *testing.T) *config.Loaded {
 	if err := os.WriteFile(file, []byte("version: 1\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	cfg, err := config.Load(file)
+	cfg, err := config.Load(adapter.Trees{}, adapter.Worktree, file)
 	if err != nil {
 		t.Fatal(err)
 	}

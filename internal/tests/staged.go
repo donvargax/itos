@@ -1,12 +1,12 @@
 package tests
 
 import (
+	"context"
 	"path"
 	"path/filepath"
 	"strings"
 
 	"github.com/donvargax/itos/v8/internal/config"
-	"github.com/donvargax/itos/v8/internal/source"
 )
 
 // StagesTestFile is whether one of paths, from the repository's top as git
@@ -14,7 +14,7 @@ import (
 // the kind's smoke rule when one is staged). On a Gherkin kind it is a
 // .feature file under the kind's root, as the adapter reads them, so a
 // deletion counts too. On a command kind it is a file the adapter lists at
-// the index or, for a path the current source lacks (a deletion, under the
+// the index or, for a path the config's source lacks (a deletion, under the
 // hook's reading of the index), at before, a commit; a tree that names no
 // commit lists nothing, and a listing that fails names no file.
 func StagesTestFile(cfg *config.Loaded, name string, paths []string, before string, ws *Warnings) bool {
@@ -35,7 +35,7 @@ func StagesTestFile(cfg *config.Loaded, name string, paths []string, before stri
 	}
 	var gone []string
 	for _, p := range paths {
-		if !source.Has(p) {
+		if !cfg.Source.Has(context.Background(), p) {
 			gone = append(gone, p)
 		}
 	}

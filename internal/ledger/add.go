@@ -73,7 +73,7 @@ func Add(cfg *config.Loaded, n NewTask) (Added, []out.Problem, error) {
 	}
 	file := ""
 	for _, f := range files {
-		tasks, _ := read(f.Path)
+		tasks, _ := read(cfg.Source, f.Path)
 		for _, t := range tasks {
 			if value.Prop(t, "id") == n.ID {
 				return refuse("ledger-add-taken", fmt.Sprintf("%s is already a task of the ledger, in %s: %s", n.ID, f.Path, value.String(value.Prop(t, "title"))),

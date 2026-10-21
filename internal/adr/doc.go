@@ -33,7 +33,7 @@
 // nothing regenerates it on demand.
 //
 // The functions here are text in, text out, but for List and Next, which
-// read the folder, List through internal/source so that the commit-msg hook
-// reads the records as staged (a folder that is not there holds none);
+// read the folder, List through the tree it is handed so that the commit-msg
+// hook reads the records as staged (a folder that is not there holds none);
 // internal/cli/ask.go writes and commits.
 package adr

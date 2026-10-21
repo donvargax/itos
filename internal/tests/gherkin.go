@@ -1,6 +1,7 @@
 package tests
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -8,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/donvargax/itos/v8/internal/config"
-	"github.com/donvargax/itos/v8/internal/source"
+	"github.com/donvargax/itos/v8/internal/store/tree/port"
 	"github.com/donvargax/itos/v8/internal/value"
 )
 
@@ -113,9 +114,9 @@ func featureFiles(dir string) []string {
 // featureTexts are the feature files under a folder as path to text, paths
 // as git gives them: from the working tree's file system, the index or a
 // commit. A tree that cannot be read has none.
-func featureTexts(tree, root string) (map[string]string, error) {
+func featureTexts(trees port.Trees, tree, root string) (map[string]string, error) {
 	if tree != "worktree" {
-		return source.Texts(tree, root, func(p string) bool { return strings.HasSuffix(p, ".feature") }), nil
+		return trees.Texts(context.Background(), tree, root, func(p string) bool { return strings.HasSuffix(p, ".feature") }), nil
 	}
 	texts := map[string]string{}
 	for _, path := range featureFiles(root) {
@@ -129,8 +130,8 @@ func featureTexts(tree, root string) (map[string]string, error) {
 }
 
 // gherkinList is the adapter protocol's list of a tree's scenarios.
-func gherkinList(o Options, at string) (List, error) {
-	byPath, err := featureTexts(at, o.Root)
+func gherkinList(trees port.Trees, o Options, at string) (List, error) {
+	byPath, err := featureTexts(trees, at, o.Root)
 	if err != nil {
 		return List{}, err
 	}
@@ -177,7 +178,7 @@ func Tagged(cfg *config.Loaded, tag, at string) ([]Test, error) {
 		if err != nil {
 			return nil, err
 		}
-		byPath, err := featureTexts(at, o.Root)
+		byPath, err := featureTexts(cfg.Trees, at, o.Root)
 		if err != nil {
 			return nil, err
 		}

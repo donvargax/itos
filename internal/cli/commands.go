@@ -9,6 +9,7 @@ import (
 	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/git"
 	versionslice "github.com/donvargax/itos/v8/internal/slices/version"
+	trees "github.com/donvargax/itos/v8/internal/store/tree/adapter"
 	"github.com/donvargax/itos/v8/internal/version"
 )
 
@@ -197,7 +198,7 @@ func commit(args []string, o Out) (int, error) {
 }
 
 func verify(args []string, o Out) (int, error) {
-	if len(args) == 0 && config.IsStealth(config.Path()) {
+	if len(args) == 0 && config.IsStealth(configPath()) {
 		return verifyRange(git.Unpushed, "HEAD", o)
 	}
 	if len(args) < 2 {
@@ -282,7 +283,7 @@ func ciCommand(args []string, o Out) (int, error) {
 	switch sub {
 	case "plan":
 		whole := slices.Contains(rest, "--whole")
-		if !nightly && !whole && len(range_) == 0 && config.IsStealth(config.Path()) {
+		if !nightly && !whole && len(range_) == 0 && config.IsStealth(configPath()) {
 			from, to = git.Unpushed, "HEAD"
 		}
 		if !nightly && !whole && to == "" {
@@ -371,7 +372,7 @@ func (versionPorts) BuildVersion(context.Context) string {
 
 // Requires is the requires of the config config.Path names.
 func (versionPorts) Requires(context.Context) (*string, error) {
-	cfg, err := config.Load(config.Path())
+	cfg, err := loadConfig()
 	if err != nil {
 		return nil, err
 	}
@@ -382,3 +383,17 @@ func (versionPorts) Requires(context.Context) (*string, error) {
 func (versionPorts) Satisfies(_ context.Context, v, r string) bool {
 	return version.Satisfies(v, r)
 }
+
+// configPath is the config's path, as the working tree has it: every
+// command but the commit-msg hook, which reads the index, reads its data
+// from the working tree (ADR-0053).
+func configPath() string { return config.Path(trees.Worktree) }
+
+// loadConfigFile is the config at file, it and its data read from the
+// working tree.
+func loadConfigFile(file string) (*config.Loaded, error) {
+	return config.Load(trees.Trees{}, trees.Worktree, file)
+}
+
+// loadConfig is the config at its path, read from the working tree.
+func loadConfig() (*config.Loaded, error) { return loadConfigFile(configPath()) }

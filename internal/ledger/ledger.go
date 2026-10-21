@@ -1,6 +1,7 @@
 package ledger
 
 import (
+	"context"
 	"fmt"
 	"math"
 	"path"
@@ -13,7 +14,7 @@ import (
 
 	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/out"
-	"github.com/donvargax/itos/v8/internal/source"
+	"github.com/donvargax/itos/v8/internal/store/tree/port"
 	"github.com/donvargax/itos/v8/internal/value"
 )
 
@@ -63,12 +64,12 @@ func Files(cfg *config.Loaded) ([]File, error) {
 	if err != nil {
 		return nil, err
 	}
-	names, err := source.List(layout.Dir)
+	names, err := cfg.Source.List(context.Background(), layout.Dir)
 	if err != nil {
-		if source.Current().Tree() == "worktree" && source.Has(layout.Dir) {
+		if cfg.Source.Tree(context.Background()) == "worktree" && cfg.Source.Has(context.Background(), layout.Dir) {
 			return nil, err
 		}
-		return nil, &config.Error{File: config.Path(), Problems: []out.Problem{{
+		return nil, &config.Error{File: config.Path(cfg.Source), Problems: []out.Problem{{
 			Rule:    "ledger-folder-missing",
 			Message: fmt.Sprintf("the ledger's folder %s does not exist", layout.Dir),
 			Fix:     fmt.Sprintf("create %s with the ledger's files (ledger.files is %s), or point ledger.files at the folder that holds them", layout.Dir, cfg.Ledger.Files),
@@ -382,8 +383,8 @@ func taskFindings(cfg *config.Loaded, task any) (found, warnings []out.Problem) 
 }
 
 // read is a ledger file's tasks, or the problem reading it.
-func read(file string) ([]any, *out.Problem) {
-	text, err := source.Read(file)
+func read(src port.Source, file string) ([]any, *out.Problem) {
+	text, err := src.Read(context.Background(), file)
 	var tasks any
 	if err == nil {
 		tasks, err = value.Parse(text)
@@ -421,7 +422,7 @@ func Issues(cfg *config.Loaded, files []string) []out.Problem {
 func Findings(cfg *config.Loaded, files []string) (found, warned []out.Problem) {
 	seen := map[string]string{}
 	for _, file := range files {
-		tasks, unreadable := read(file)
+		tasks, unreadable := read(cfg.Source, file)
 		if unreadable != nil {
 			found = append(found, *unreadable)
 			continue

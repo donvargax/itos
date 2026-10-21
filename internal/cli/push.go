@@ -198,7 +198,7 @@ func push(args []string, o Out) (int, error) {
 	}
 	// Where itos is set up, a push git would make without itos's pre-push
 	// hook is refused before anything is fetched (slice 91).
-	if exists(config.Path()) {
+	if exists(configPath()) {
 		if err := hooksReady("pre-push"); err != nil {
 			if o.JSON {
 				fmt.Fprintf(o.Stderr, "itos: %s\n", err)
@@ -324,7 +324,7 @@ func (r pushRun) remoteLines(what string, failure kind.Kind) []string {
 // settings for it overruled; done when the rebase stopped or did not start,
 // or left a conflict, with the outcome reported: nothing is pushed then.
 func (r pushRun) rebase(onto string) (int, bool, error) {
-	if config.IsStealth(config.Path()) {
+	if config.IsStealth(configPath()) {
 		if err := rewriteNotes(); err != nil {
 			fmt.Fprintf(r.o.Stderr, "itos: cannot set notes.rewriteRef: %s\n", err)
 			return ExitMissing, true, nil
@@ -370,11 +370,11 @@ func (r pushRun) rebase(onto string) (int, bool, error) {
 // appended at the registry's end, bug 118), so it says to keep both and
 // continue: --skip would drop the commit's own items.
 func (r pushRun) registryConflict() []string {
-	file := config.Path()
+	file := configPath()
 	if _, err := os.Stat(file); err != nil {
 		return nil
 	}
-	cfg, err := config.Load(file)
+	cfg, err := loadConfigFile(file)
 	if err != nil {
 		return nil
 	}
@@ -455,11 +455,11 @@ func (r pushRun) push(remote, ref, onto string) (int, error) {
 // commits, an item's take and its close, and a run for each made one item
 // cost three waits; it says how to wait for that run all the same.
 func (r *pushRun) wait(remote, onto, pushed string) (int, error) {
-	file := config.Path()
+	file := configPath()
 	if _, err := os.Stat(file); err != nil {
 		return r.report(0, "pushed", pushed)
 	}
-	cfg, err := config.Load(file)
+	cfg, err := loadConfigFile(file)
 	if err != nil {
 		fmt.Fprintf(r.o.Stderr, "itos: no CI run watched, the config cannot be read: %s\n", err)
 		return r.report(0, "pushed", pushed)

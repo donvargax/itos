@@ -81,7 +81,7 @@ var group = []flagSpec{val("--group"), val("--phase")}
 // groupLabel is the flag of the config's group label, when it is not one
 // of group's: --milestone for ledger.group.label milestone.
 func groupLabel() ([]flagSpec, error) {
-	cfg, err := config.Load(config.Path())
+	cfg, err := loadConfig()
 	if err != nil {
 		return nil, err
 	}

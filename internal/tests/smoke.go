@@ -1,13 +1,13 @@
 package tests
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
 	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/kind"
 	"github.com/donvargax/itos/v8/internal/out"
-	"github.com/donvargax/itos/v8/internal/source"
 	"github.com/donvargax/itos/v8/internal/value"
 )
 
@@ -138,10 +138,10 @@ func LoadSmoke(cfg *config.Loaded, name string) ([]SmokeFile, error) {
 	if err != nil {
 		return nil, err
 	}
-	if !source.Has(path) {
+	if !cfg.Source.Has(context.Background(), path) {
 		return nil, kind.Wrap(kind.Usage, fmt.Errorf("%s is missing (tests.%s.smoke.file)", path, name))
 	}
-	text, err := source.Read(path)
+	text, err := cfg.Source.Read(context.Background(), path)
 	if err != nil {
 		return nil, err
 	}
@@ -160,11 +160,11 @@ func LoadSmokeAt(cfg *config.Loaded, name, at string) ([]SmokeFile, error) {
 	if err != nil {
 		return nil, err
 	}
-	tree, err := source.At(at)
+	tree, err := cfg.Trees.At(context.Background(), at)
 	if err != nil {
 		return nil, err
 	}
-	text, err := tree.Read(path)
+	text, err := tree.Read(context.Background(), path)
 	if err != nil {
 		return nil, kind.Wrap(kind.Usage, fmt.Errorf("%s holds no %s", at, path))
 	}
@@ -186,7 +186,7 @@ func SmokeIDs(k config.Kind, smoke []SmokeFile) []string {
 // the kind's root, in the order the adapter lists the files; a file with no
 // live test is there with none.
 func liveScenarios(cfg *config.Loaded, name string, root *string, ws *Warnings) ([]string, map[string]map[string]bool, error) {
-	list, err := ListTestsUnder(cfg, name, source.Current().Tree(), root, ws)
+	list, err := ListTestsUnder(cfg, name, cfg.Source.Tree(context.Background()), root, ws)
 	if err != nil {
 		return nil, nil, err
 	}

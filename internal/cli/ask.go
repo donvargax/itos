@@ -21,6 +21,7 @@ package cli
 // nothing is committed.
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -36,7 +37,6 @@ import (
 	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/lock"
 	"github.com/donvargax/itos/v8/internal/out"
-	"github.com/donvargax/itos/v8/internal/source"
 	"github.com/donvargax/itos/v8/internal/value"
 	"github.com/donvargax/itos/v8/internal/work"
 )
@@ -122,7 +122,7 @@ func loadAsks(cfg *config.Loaded) (ask.File, string, bool, error) {
 // are commits.
 func heldAsks(o Out) (cfg *config.Loaded, release func(), err error) {
 	release = func() {}
-	if cfg, err = config.Load(config.Path()); err != nil {
+	if cfg, err = loadConfig(); err != nil {
 		return nil, release, err
 	}
 	if cfg.Stealth {
@@ -164,7 +164,7 @@ func noQuestion(id string, o Out) (int, error) {
 // registry where itos looks; nil when the item is there.
 func itemProblem(cfg *config.Loaded, item string) (*out.Problem, error) {
 	file := cfg.Work.Registry
-	if !source.Has(file) {
+	if !cfg.Source.Has(context.Background(), file) {
 		p := work.Missing(file, false)
 		return &p, nil
 	}
@@ -308,7 +308,7 @@ func askAnswer(args []string, o Out) (int, error) {
 
 // readAsks is the config and the questions, for a subcommand that reads.
 func readAsks() (ask.File, error) {
-	cfg, err := config.Load(config.Path())
+	cfg, err := loadConfig()
 	if err != nil {
 		return ask.File{}, err
 	}
@@ -511,7 +511,7 @@ func askRecord(args []string, o Out) (int, error) {
 		return reportRecord(fmt.Sprintf("%s marked as recorded nowhere: %s", id, askCommitted(sha, header)), *q, "", sha, o)
 	}
 	dir := filepath.FromSlash(cfg.Work.Decisions)
-	records, err := adr.List(dir)
+	records, err := adr.List(cfg.Source, dir)
 	if err != nil {
 		return 0, err
 	}

@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/donvargax/itos/v8/internal/git"
+	trees "github.com/donvargax/itos/v8/internal/store/tree/adapter"
 )
 
 // A deleted branch sends nothing, so it runs nothing; a new one is judged by
@@ -84,7 +85,7 @@ func TestStagesDecisions(t *testing.T) {
 		"docs/decisions/old/0001-use-go.md": false,
 		"docs/0001-use-go.md":               false,
 	} {
-		if got := stagesData([]string{staged}); got != want {
+		if got := stagesData(trees.Worktree, []string{staged}); got != want {
 			t.Errorf("stagesData(%q) = %v", staged, got)
 		}
 	}
@@ -103,7 +104,7 @@ func TestStagesNamedData(t *testing.T) {
 		"features/smoke.yaml": true,
 		"notes.yaml":          false,
 	} {
-		if got := stagesData([]string{staged}); got != want {
+		if got := stagesData(trees.Worktree, []string{staged}); got != want {
 			t.Errorf("stagesData(%q) = %v", staged, got)
 		}
 	}
@@ -120,7 +121,7 @@ func TestStagesLedgerFiles(t *testing.T) {
 		"tasks/notes.md":     false,
 		"docs/phase-1.yaml":  false,
 	} {
-		if got := stagesData([]string{staged}); got != want {
+		if got := stagesData(trees.Worktree, []string{staged}); got != want {
 			t.Errorf("stagesData(%q) = %v", staged, got)
 		}
 	}

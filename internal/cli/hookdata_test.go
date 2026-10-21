@@ -6,8 +6,6 @@ import (
 	"slices"
 	"strings"
 	"testing"
-
-	"github.com/donvargax/itos/v8/internal/config"
 )
 
 // scratchFolder is a new folder, made the current one, that no repository
@@ -62,7 +60,7 @@ func TestJudgedSmokeFindings(t *testing.T) {
 		"features/a.feature":  "Feature: A\n\n  @ID-A-01\n  Scenario: One\n    When it runs\n",
 		"features/smoke.yaml": "- file: a.feature\n  scenarios: [{ id: \"@ID-A-01\", why: listed }]\n",
 	})
-	cfg, err := config.Load("itos.yaml")
+	cfg, err := loadConfigFile("itos.yaml")
 	if err != nil {
 		t.Fatal(err)
 	}

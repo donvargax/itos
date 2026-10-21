@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/donvargax/itos/v8/internal/store/tree/adapter"
 )
 
 // A new record in MADR 4's bare-minimal sections, its status and date in the
@@ -142,7 +144,7 @@ func TestListNext(t *testing.T) {
 	if n, err := Next(dir); err != nil || n != 13 {
 		t.Errorf("next: %d, %v", n, err)
 	}
-	records, err := List(dir)
+	records, err := List(adapter.Worktree, dir)
 	if err != nil || len(records) != 2 || records[0].Number != 7 || records[1].Title() != "Later" {
 		t.Errorf("list: %+v, %v", records, err)
 	}

@@ -52,7 +52,7 @@
 // Unknown and NotStarted sit beside it for the preamble. Make plans an
 // Input; For(cfg, from, to, Data) plans a range, DataAt reading the ledger,
 // the registry and the smoke set from the working tree or, for --data-at,
-// from a commit under source.ReadingFrom (the config stays the working
+// from a commit, by config.Loaded.DataFrom (the config stays the working
 // tree's); ForNightly plans the nightly from the config alone. Fields and
 // Print are the JSON and text itos ci plan prints, a contract: their keys,
 // order and values are held by the corpus. NamedTests cuts a plan to its run

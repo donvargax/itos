@@ -1,10 +1,11 @@
 package plan
 
 import (
+	"context"
+
 	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/ledger"
 	"github.com/donvargax/itos/v8/internal/proof"
-	"github.com/donvargax/itos/v8/internal/source"
 	"github.com/donvargax/itos/v8/internal/value"
 	"github.com/donvargax/itos/v8/internal/work"
 )
@@ -26,21 +27,17 @@ type Data struct {
 // missing is one problem naming it.
 func DataAt(cfg *config.Loaded, at string) (Data, error) {
 	var d Data
-	read := func() error {
-		tasks, err := ledger.Tasks(cfg)
-		d.Tasks = tasks
-		d.Statuses = work.ItemStatuses(cfg.Work.Registry)
-		return err
-	}
-	var err error
-	if at == "" {
-		err = read()
-	} else {
-		var tree source.Source
-		if tree, err = source.At(at); err == nil {
-			err = source.ReadingFrom(tree, read)
+	data := cfg
+	if at != "" {
+		tree, err := cfg.Trees.At(context.Background(), at)
+		if err != nil {
+			return Data{}, err
 		}
+		data = cfg.DataFrom(tree)
 	}
+	tasks, err := ledger.Tasks(data)
+	d.Tasks = tasks
+	d.Statuses = work.ItemStatuses(data.Source, data.Work.Registry)
 	if err != nil {
 		return Data{}, err
 	}

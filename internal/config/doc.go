@@ -10,7 +10,7 @@
 //
 // # Finding the file
 //
-// Path, which is Locate(""), gives the file --config or ITOS_CONFIG names,
+// Path, Locate("") with the tree itos reads its data from asked first, gives the file --config or ITOS_CONFIG names,
 // else itos.yaml in the folder itos runs in, else the stealth config. --root
 // changes that folder first, and so does a run from a subfolder (top.go):
 // with no --config, no ITOS_CONFIG, no --root and no itos.yaml in the
@@ -37,7 +37,7 @@
 // work.asks, work.decisions, guide.orchestrating, each kind's smoke.file)
 // into its folder before the typed config is decoded, so the two agree; a
 // kind's root, the globs and the commands stay the project's. Nothing else
-// knows the mode but internal/source (a path in the git folder is read from
+// knows the mode but the tree reader's adapter (a path in the git folder is read from
 // the file whatever the tree), the footer rules (a stealth ledger footer's
 // IDs are read in the working tree, since no commit carries that ledger) and
 // the commands that write notes or take the unpushed range.

@@ -36,7 +36,7 @@ func idMintTestConfig(t *testing.T, ledger string) (*config.Loaded, string) {
 	if err := os.WriteFile(path, []byte(ledger), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	cfg, err := config.Load(filepath.Join(dir, "itos.yaml"))
+	cfg, err := loadConfigFile(filepath.Join(dir, "itos.yaml"))
 	if err != nil {
 		t.Fatal(err)
 	}

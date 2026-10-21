@@ -128,7 +128,7 @@ commits:
 	if err := os.WriteFile(file, []byte(text), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	cfg, err := config.Load(file)
+	cfg, err := loadConfigFile(file)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -180,7 +180,7 @@ tests:
 		if err := os.WriteFile(file, []byte("version: 1\nledger: { files: \"tasks/phase-{group}.yaml\", id: \"T-\\\\d+\" }\n"+c.config), 0o644); err != nil {
 			t.Fatal(err)
 		}
-		cfg, err := config.Load(file)
+		cfg, err := loadConfigFile(file)
 		if err != nil {
 			t.Fatal(err)
 		}

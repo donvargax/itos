@@ -1,6 +1,7 @@
 package message
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"regexp"
@@ -11,7 +12,6 @@ import (
 	"github.com/donvargax/itos/v8/internal/git"
 	"github.com/donvargax/itos/v8/internal/ledger"
 	"github.com/donvargax/itos/v8/internal/out"
-	"github.com/donvargax/itos/v8/internal/source"
 	"github.com/donvargax/itos/v8/internal/tests"
 	"github.com/donvargax/itos/v8/internal/value"
 	"github.com/donvargax/itos/v8/internal/work"
@@ -240,7 +240,7 @@ func knownAt(cfg *config.Loaded, f config.Footer, tree string, ws *tests.Warning
 		return known{all: ids, notLive: map[string]bool{}}, err
 	}
 	if f.Registry() {
-		ids, err := work.IDsAt(cfg.Work.Registry, tree)
+		ids, err := work.IDsAt(cfg.Trees, cfg.Work.Registry, tree)
 		return known{all: ids, notLive: map[string]bool{}}, err
 	}
 	if tree == "" {
@@ -260,16 +260,16 @@ func knownAt(cfg *config.Loaded, f config.Footer, tree string, ws *tests.Warning
 	return k, nil
 }
 
-// needSource is a ledger or registry footer's source in the current source,
+// needSource is a ledger or registry footer's source in the config's source,
 // which a project may have configured without making yet: the ledger's folder
 // or the registry's file missing is one problem naming it, exit 2 (a file the
 // config names that cannot be read), not the read's own error.
 func needSource(cfg *config.Loaded, key string, f config.Footer) error {
 	if f.Registry() {
-		if source.Has(cfg.Work.Registry) {
+		if cfg.Source.Has(context.Background(), cfg.Work.Registry) {
 			return nil
 		}
-		return &config.Error{File: config.Path(), Problems: []out.Problem{{
+		return &config.Error{File: config.Path(cfg.Source), Problems: []out.Problem{{
 			Rule:    "footer-source-missing",
 			Message: fmt.Sprintf("the %s: footer names items of the work registry, and its file %s does not exist", key, cfg.Work.Registry),
 			Fix:     "create " + cfg.Work.Registry + " with the work items, or point work.registry at the file that holds them",
@@ -282,10 +282,10 @@ func needSource(cfg *config.Loaded, key string, f config.Footer) error {
 	if err != nil {
 		return err
 	}
-	if source.Has(layout.Dir) {
+	if cfg.Source.Has(context.Background(), layout.Dir) {
 		return nil
 	}
-	return &config.Error{File: config.Path(), Problems: []out.Problem{{
+	return &config.Error{File: config.Path(cfg.Source), Problems: []out.Problem{{
 		Rule:    "footer-source-missing",
 		Message: fmt.Sprintf("the %s: footer names tasks of the ledger, and its folder %s does not exist", key, layout.Dir),
 		Fix:     fmt.Sprintf("create %s with the ledger's files (ledger.files is %s), or point ledger.files at the folder that holds them", layout.Dir, cfg.Ledger.Files),

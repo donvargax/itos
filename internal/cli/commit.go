@@ -1,15 +1,15 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
 
-	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/message"
 	"github.com/donvargax/itos/v8/internal/out"
 	"github.com/donvargax/itos/v8/internal/scope"
-	"github.com/donvargax/itos/v8/internal/source"
+	trees "github.com/donvargax/itos/v8/internal/store/tree/adapter"
 )
 
 // checkMessage is `commit check-message <file|-> [--at <sha>]` (commit.ts's
@@ -28,14 +28,14 @@ func checkMessage(file, at string, o Out) (int, error) {
 		text = string(raw)
 	} else {
 		var err error
-		if text, err = source.Worktree.Read(file); err != nil {
+		if text, err = trees.Worktree.Read(context.Background(), file); err != nil {
 			return 0, err
 		}
 	}
 	if at == "" {
 		at = os.Getenv("ITOS_AT")
 	}
-	cfg, err := config.Load(config.Path())
+	cfg, err := loadConfig()
 	if err != nil {
 		return 0, err
 	}
@@ -47,7 +47,7 @@ func checkMessage(file, at string, o Out) (int, error) {
 // checkPaths): the path rules alone, for planning a split. 0 when they hold,
 // 1 when not, the rejection on stderr or the problems under --json.
 func checkPaths(typ string, files []string, o Out) (int, error) {
-	cfg, err := config.Load(config.Path())
+	cfg, err := loadConfig()
 	if err != nil {
 		return 0, err
 	}
@@ -85,7 +85,7 @@ func checkPaths(typ string, files []string, o Out) (int, error) {
 // each, the commit's short SHA and the text; under --json each with the full
 // SHA and the subject. 2 when <name> is not a footer of free text.
 func listFooters(name, from, to string, o Out) (int, error) {
-	cfg, err := config.Load(config.Path())
+	cfg, err := loadConfig()
 	if err != nil {
 		return 0, err
 	}

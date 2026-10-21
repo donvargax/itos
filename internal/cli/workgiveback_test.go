@@ -6,7 +6,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/out"
 	"github.com/donvargax/itos/v8/internal/providers"
 	"github.com/donvargax/itos/v8/internal/work"
@@ -97,7 +96,7 @@ func TestWorkGiveBack(t *testing.T) {
 // ids says its problem as an error.
 func TestWorkPerson(t *testing.T) {
 	givingRepo(t)
-	cfg, err := config.Load(config.Path())
+	cfg, err := loadConfig()
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -1,13 +1,14 @@
 package config
 
 import (
+	"context"
 	"encoding/json"
 	"regexp"
 	"strconv"
 	"strings"
 
 	"github.com/donvargax/itos/v8/internal/out"
-	"github.com/donvargax/itos/v8/internal/source"
+	"github.com/donvargax/itos/v8/internal/store/tree/port"
 	"github.com/donvargax/itos/v8/internal/value"
 )
 
@@ -41,6 +42,11 @@ type Loaded struct {
 	// Stealth is whether it is the stealth config (stealth.go), whose own
 	// data is read beside it, in the git folder, and never at a commit.
 	Stealth bool
+	// Trees opens the trees itos reads, and Source is the one the config and
+	// its data are read from: the working tree, or the index in the
+	// commit-msg hook (ADR-0053).
+	Trees  port.Trees
+	Source port.Source
 	// file is the file as written, its $sets expanded; tree is it laid over
 	// the defaults, as the typed config is decoded from.
 	file    *value.Map
@@ -102,30 +108,54 @@ var decode = func(tree *value.Map, into *Config) error {
 	return json.Unmarshal([]byte(value.JSON(tree)), into)
 }
 
-// configText is the config's text from the source itos reads its data from;
-// one that source does not hold, such as an ITOS_CONFIG outside the
-// repository, is read where it is.
-func configText(file string) (string, error) {
-	if source.Has(file) {
-		return source.Read(file)
+// configText is the config's text from src; one src does not hold, such as
+// an ITOS_CONFIG outside the repository, is read where it is.
+func configText(trees port.Trees, src port.Source, file string) (string, error) {
+	ctx := context.Background()
+	if src.Has(ctx, file) {
+		return src.Read(ctx, file)
 	}
-	return source.Worktree.Read(file)
+	worktree, err := trees.At(ctx, "worktree")
+	if err != nil {
+		return "", err
+	}
+	return worktree.Read(ctx, file)
 }
 
-// Load reads, validates and lays over the defaults the config at file.
-func Load(file string) (*Loaded, error) {
-	text, err := configText(file)
+// Load reads, validates and lays over the defaults the config at file, read
+// from src, the tree its data is then read from; trees opens the others.
+func Load(trees port.Trees, src port.Source, file string) (*Loaded, error) {
+	text, err := configText(trees, src, file)
 	if err != nil {
 		return nil, unreadable(file, err)
 	}
-	return fromText(file, text, IsStealth)
+	loaded, err := fromText(file, text, IsStealth)
+	if err != nil {
+		return nil, err
+	}
+	loaded.Trees, loaded.Source = trees, src
+	return loaded, nil
+}
+
+// DataFrom is the config with its data read from src: plan's --data-at
+// reads a commit's data by the working tree's config.
+func (l *Loaded) DataFrom(src port.Source) *Loaded {
+	at := *l
+	at.Source = src
+	return &at
 }
 
 // FromText is Load of a config's text, not read from file but named by it,
 // the stealth one or not as stealth says: itos init --policy (slice 108)
 // validates a policy, and the config it makes of it, before it writes any.
-func FromText(file, text string, stealth bool) (*Loaded, error) {
-	return fromText(file, text, func(string) bool { return stealth })
+// Its data is read from src.
+func FromText(trees port.Trees, src port.Source, file, text string, stealth bool) (*Loaded, error) {
+	loaded, err := fromText(file, text, func(string) bool { return stealth })
+	if err != nil {
+		return nil, err
+	}
+	loaded.Trees, loaded.Source = trees, src
+	return loaded, nil
 }
 
 // unreadable is a config that cannot be read, or is not YAML.

@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/donvargax/itos/v8/internal/config"
+	"github.com/donvargax/itos/v8/internal/store/tree/adapter"
 )
 
 // A ledger in a scratch folder, its files written, and its config loaded.
@@ -21,7 +22,7 @@ func scratchLedger(t *testing.T, files map[string]string) *config.Loaded {
 			t.Fatal(err)
 		}
 	}
-	cfg, err := config.Load("itos.yaml")
+	cfg, err := config.Load(adapter.Trees{}, adapter.Worktree, "itos.yaml")
 	if err != nil {
 		t.Fatal(err)
 	}

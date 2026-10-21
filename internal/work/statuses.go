@@ -1,7 +1,9 @@
 package work
 
 import (
-	"github.com/donvargax/itos/v8/internal/source"
+	"context"
+
+	"github.com/donvargax/itos/v8/internal/store/tree/port"
 	"github.com/donvargax/itos/v8/internal/value"
 )
 
@@ -11,13 +13,13 @@ import (
 // task's status through it. An item that gives no status has none.
 type Statuses struct{ byID map[string]any }
 
-// ItemStatuses reads the registry at path. A registry that is not there or
+// ItemStatuses reads the registry at path in src. A registry that is not there or
 // cannot be read, whose items are not a list, or one of whose items is null,
 // gives none, as the TypeScript's read of it throws and is caught. The first
 // item of an id wins, since a duplicate is a registry problem.
-func ItemStatuses(path string) Statuses {
+func ItemStatuses(src port.Source, path string) Statuses {
 	none := Statuses{map[string]any{}}
-	text, err := source.Read(path)
+	text, err := src.Read(context.Background(), path)
 	if err != nil {
 		return none
 	}
@@ -62,19 +64,20 @@ func (s Statuses) Of(id string) (any, bool) {
 // footer whose source is the registry). A tree without the registry, or one
 // that does not read as a list of items, has none; an id that is not text is
 // no item's.
-func IDsAt(path, tree string) (map[string]bool, error) {
-	from := source.Worktree
-	if tree != "" {
-		var err error
-		if from, err = source.At(tree); err != nil {
-			return nil, err
-		}
+func IDsAt(trees port.Trees, path, tree string) (map[string]bool, error) {
+	ctx := context.Background()
+	if tree == "" {
+		tree = "worktree"
+	}
+	from, err := trees.At(ctx, tree)
+	if err != nil {
+		return nil, err
 	}
 	ids := map[string]bool{}
-	if !from.Has(path) {
+	if !from.Has(ctx, path) {
 		return ids, nil
 	}
-	text, err := from.Read(path)
+	text, err := from.Read(ctx, path)
 	if err != nil {
 		return ids, nil
 	}

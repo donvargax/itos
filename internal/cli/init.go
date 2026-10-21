@@ -42,6 +42,7 @@ import (
 	"github.com/donvargax/itos/v8/internal/kind"
 	"github.com/donvargax/itos/v8/internal/out"
 	"github.com/donvargax/itos/v8/internal/release"
+	trees "github.com/donvargax/itos/v8/internal/store/tree/adapter"
 	"github.com/donvargax/itos/v8/internal/tests"
 	"github.com/donvargax/itos/v8/internal/value"
 	"github.com/donvargax/itos/v8/internal/version"
@@ -98,7 +99,7 @@ func initCommand(args []string, o Out) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	if file := config.Path(); exists(file) {
+	if file := configPath(); exists(file) {
 		// A stealth config is for a clone that cannot change the project:
 		// where the project has its own, --stealth would only copy what it
 		// commits into files that go stale unreported (bug 43).
@@ -216,9 +217,9 @@ func initWrite(stealth, initialized bool, offer pluginOffer, shimOffer shimOffer
 	// footer is required of no type, and the config written says so.
 	smoke, smokeIDs := "", 0
 	if s.scenarios {
-		cfg, err := config.FromText(file, s.config(), stealth)
+		cfg, err := config.FromText(trees.Trees{}, trees.Worktree, file, s.config(), stealth)
 		if exists(file) {
-			cfg, err = config.Load(file)
+			cfg, err = loadConfigFile(file)
 		}
 		if err != nil {
 			return 0, err
@@ -409,11 +410,11 @@ func smokeSetOf(list tests.List, prefix string) (string, int) {
 // reports a block other than the one this itos writes and writes one only
 // for --agent-rules. None of them not in place is counted as missing.
 func initReport(file string, offer pluginOffer, shimOffer shimOffer, rulesOffer rulesOffer, o Out) (int, error) {
-	_, found, notes, _, err := configFindings("", o.Tests)
+	_, found, notes, _, err := configFindings(trees.Worktree, "", o.Tests)
 	if err != nil {
 		return 0, err
 	}
-	if cfg, err := config.Load(file); err == nil {
+	if cfg, err := loadConfigFile(file); err == nil {
 		found = append(found, tagged("hooks", hookProblems())...)
 		if behind := pinBehind(cfg); behind != nil {
 			notes = append(notes, Found{*behind, "pin"})

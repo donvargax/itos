@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/donvargax/itos/v8/internal/config"
+	"github.com/donvargax/itos/v8/internal/store/tree/adapter"
 )
 
 // configIn is the config of the text, loaded in a fresh folder holding the
@@ -23,7 +24,7 @@ func configIn(t *testing.T, text string, files ...string) *config.Loaded {
 			t.Fatal(err)
 		}
 	}
-	cfg, err := config.Load("itos.yaml")
+	cfg, err := config.Load(adapter.Trees{}, adapter.Worktree, "itos.yaml")
 	if err != nil {
 		t.Fatal(err)
 	}

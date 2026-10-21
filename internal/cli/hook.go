@@ -20,6 +20,7 @@ package cli
 // hold (handedFooters), never the message's.
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -37,7 +38,8 @@ import (
 	"github.com/donvargax/itos/v8/internal/out"
 	"github.com/donvargax/itos/v8/internal/scope"
 	"github.com/donvargax/itos/v8/internal/shell"
-	"github.com/donvargax/itos/v8/internal/source"
+	trees "github.com/donvargax/itos/v8/internal/store/tree/adapter"
+	"github.com/donvargax/itos/v8/internal/store/tree/port"
 	"github.com/donvargax/itos/v8/internal/tests"
 	"github.com/donvargax/itos/v8/internal/value"
 	"github.com/donvargax/itos/v8/internal/work"
@@ -75,11 +77,11 @@ func hookCommitMsg(file string, o Out) (int, error) {
 	if code, err := stagedDataRule(base, o); code != 0 || err != nil {
 		return code, err
 	}
-	text, err := source.Worktree.Read(file)
+	text, err := trees.Worktree.Read(context.Background(), file)
 	if err != nil {
 		return 0, err
 	}
-	cfg, err := config.Load(config.Path())
+	cfg, err := loadConfig()
 	if err != nil {
 		return 0, err
 	}
@@ -186,18 +188,19 @@ func amending() bool {
 // stagesData is whether a staged path is the config, a ledger file, the
 // registry, the questions' file (slice 130), a smoke set, or a decision record or their index in the folder
 // work.decisions names (slice 74), as the staged config names them
-// (commit-data.ts's stagesData), read in the current source. A config that
-// does not load and is not staged leaves the commit to the hook's other
-// rules, which read it too.
-func stagesData(staged []string) bool {
+// (commit-data.ts's stagesData), read in src. A config that does not load
+// and is not staged leaves the commit to the hook's other rules, which read
+// it too.
+func stagesData(src port.Source, staged []string) bool {
 	files := map[string]bool{}
 	for _, f := range staged {
 		files[path.Clean(f)] = true
 	}
-	if files[path.Clean(config.Path())] {
+	file := config.Path(src)
+	if files[path.Clean(file)] {
 		return true
 	}
-	cfg, err := config.Load(config.Path())
+	cfg, err := config.Load(trees.Trees{}, src, file)
 	if err != nil {
 		return false
 	}
@@ -241,46 +244,42 @@ func stagedDataIssues(base string, ws *tests.Warnings) ([]out.Problem, string, e
 	if err != nil {
 		return nil, "", err
 	}
-	index, err := source.At("index")
+	index, err := trees.Trees{}.At(context.Background(), "index")
 	if err != nil {
 		return nil, "", err
 	}
 	var found []out.Problem
-	header := ""
-	err = source.ReadingFrom(index, func() error {
-		if !stagesData(staged) {
-			found = stagedSmokeIssues(staged, base, ws)
-		} else {
-			_, findings, _, _, err := configFindings("", ws)
-			if err != nil {
-				found = []out.Problem{{Rule: "data-unreadable", Message: err.Error()}}
-			}
-			for _, f := range findings {
-				found = append(found, f.Problem)
-			}
+	if !stagesData(index, staged) {
+		found = stagedSmokeIssues(index, staged, base, ws)
+	} else {
+		_, findings, _, _, err := configFindings(index, "", ws)
+		if err != nil {
+			found = []out.Problem{{Rule: "data-unreadable", Message: err.Error()}}
 		}
-		if len(found) == 0 {
-			return nil
+		for _, f := range findings {
+			found = append(found, f.Problem)
 		}
-		header = "Commit rejected:"
-		if cfg, err := config.Load(config.Path()); err == nil {
-			header = cfg.Commits.RejectMessage
-		}
-		return nil
-	})
-	return found, header, err
+	}
+	if len(found) == 0 {
+		return nil, "", nil
+	}
+	header := "Commit rejected:"
+	if cfg, err := config.Load(trees.Trees{}, index, config.Path(index)); err == nil {
+		header = cfg.Commits.RejectMessage
+	}
+	return found, header, nil
 }
 
 // stagedSmokeIssues are the smoke rule's problems, as itos tests smoke check
 // finds them and config check reports them, for each kind whose smoke set
-// the current source (the index) holds and whose test files a staged path is
-// (tests.StagesTestFile, a deletion's against base, HEAD when ""): slice 117,
-// since a feat that makes a file's tests live stages no smoke set, and CI's
-// smoke step was the first to see it. A kind whose set the index lacks is
-// config check's to report, and a config that does not load the hook's
-// other rules'.
-func stagedSmokeIssues(staged []string, base string, ws *tests.Warnings) []out.Problem {
-	cfg, err := config.Load(config.Path())
+// index holds, the config and its data read from there, and whose test files
+// a staged path is (tests.StagesTestFile, a deletion's against base, HEAD
+// when ""): slice 117, since a feat that makes a file's tests live stages no
+// smoke set, and CI's smoke step was the first to see it. A kind whose set
+// the index lacks is config check's to report, and a config that does not
+// load the hook's other rules'.
+func stagedSmokeIssues(index port.Source, staged []string, base string, ws *tests.Warnings) []out.Problem {
+	cfg, err := config.Load(trees.Trees{}, index, config.Path(index))
 	if err != nil {
 		return nil
 	}
@@ -288,7 +287,7 @@ func stagedSmokeIssues(staged []string, base string, ws *tests.Warnings) []out.P
 		base = "HEAD"
 	}
 	found, _, _ := judgedSmokeFindings(cfg, func(name, file string) bool {
-		return source.Has(file) && tests.StagesTestFile(cfg, name, staged, base, ws)
+		return index.Has(context.Background(), file) && tests.StagesTestFile(cfg, name, staged, base, ws)
 	}, ws)
 	var problems []out.Problem
 	for _, f := range found {
@@ -480,34 +479,31 @@ func namedTaskIDs(cfg *config.Loaded, text string) []string {
 // stagedTasks). A staged tree whose ledger cannot be read names none: the
 // header lint has judged the footer by then.
 func stagedTasks(ids []string) ([]namedTask, error) {
-	index, err := source.At("index")
+	index, err := trees.Trees{}.At(context.Background(), "index")
 	if err != nil {
 		return nil, err
 	}
+	cfg, err := config.Load(trees.Trees{}, index, config.Path(index))
+	if err != nil {
+		return nil, nil
+	}
+	tasks, err := ledger.Tasks(cfg)
+	if err != nil {
+		return nil, nil
+	}
 	var named []namedTask
-	err = source.ReadingFrom(index, func() error {
-		cfg, err := config.Load(config.Path())
-		if err != nil {
-			return nil
-		}
-		tasks, err := ledger.Tasks(cfg)
-		if err != nil {
-			return nil
-		}
-		registry := cfg.Work.Registry
-		statuses := work.ItemStatuses(registry)
-		for _, id := range ids {
-			for _, t := range tasks {
-				if t.ID == id {
-					status, ok := statuses.Of(id)
-					named = append(named, namedTask{t, status, ok, registry})
-					break
-				}
+	registry := cfg.Work.Registry
+	statuses := work.ItemStatuses(index, registry)
+	for _, id := range ids {
+		for _, t := range tasks {
+			if t.ID == id {
+				status, ok := statuses.Of(id)
+				named = append(named, namedTask{t, status, ok, registry})
+				break
 			}
 		}
-		return nil
-	})
-	return named, err
+	}
+	return named, nil
 }
 
 // checkEnv is the environment a task's check runs in under the hook: the
@@ -849,7 +845,7 @@ func hookPrePush(o Out) (int, error) {
 	if r, ok := rewrites(refs); ok {
 		return refuseRewrite(r, o), nil
 	}
-	cfg, err := config.Load(config.Path())
+	cfg, err := loadConfig()
 	if err != nil {
 		return 0, err
 	}

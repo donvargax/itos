@@ -191,7 +191,7 @@ func statusCommand(args []string, o Out) (int, error) {
 	if len(pos) > 0 {
 		return 0, usage("status takes no arguments: %s", strings.Join(pos, " "))
 	}
-	cfg, err := config.Load(config.Path())
+	cfg, err := loadConfig()
 	if err != nil {
 		return 0, err
 	}

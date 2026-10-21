@@ -4,6 +4,8 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/donvargax/itos/v8/internal/store/tree/adapter"
 )
 
 func statusesOf(t *testing.T, text string) Statuses {
@@ -12,7 +14,7 @@ func statusesOf(t *testing.T, text string) Statuses {
 	if err := os.WriteFile(file, []byte(text), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	return ItemStatuses(file)
+	return ItemStatuses(adapter.Worktree, file)
 }
 
 // The first item of an id wins; an item without a status, or with null, has
@@ -32,7 +34,7 @@ func TestItemStatuses(t *testing.T) {
 			t.Errorf("%q: got %v", text, got)
 		}
 	}
-	if _, ok := ItemStatuses(filepath.Join(t.TempDir(), "none.yaml")).Of("T-1"); ok {
+	if _, ok := ItemStatuses(adapter.Worktree, filepath.Join(t.TempDir(), "none.yaml")).Of("T-1"); ok {
 		t.Error("a missing registry has a status")
 	}
 }

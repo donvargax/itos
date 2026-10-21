@@ -1,6 +1,7 @@
 package work
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"slices"
@@ -10,7 +11,6 @@ import (
 	"github.com/donvargax/itos/v8/internal/kind"
 	"github.com/donvargax/itos/v8/internal/out"
 	"github.com/donvargax/itos/v8/internal/providers"
-	"github.com/donvargax/itos/v8/internal/source"
 	"github.com/donvargax/itos/v8/internal/value"
 )
 
@@ -60,11 +60,11 @@ type Registry struct {
 // under a stealth config (bug 46).
 func (r Registry) Nobody() bool { return !r.People || len(r.Logins) == 0 }
 
-// Load reads the registry at path and the people of the config's source. A
+// Load reads the registry at path and the people, from the config's source. A
 // registry that is not YAML or not the registry's shape is a data file itos
 // refuses, kind.Usage (exit 2).
 func Load(cfg *config.Loaded, path string) (Registry, error) {
-	text, err := source.Read(path)
+	text, err := cfg.Source.Read(context.Background(), path)
 	if err != nil {
 		return Registry{}, err
 	}
@@ -107,7 +107,7 @@ func parse(cfg *config.Loaded, text string) (Registry, error) {
 	}
 	r := Registry{Phases: phases, Items: items, Queue: value.Copy(value.Prop(raw, "queue"))}
 	if !cfg.Stealth {
-		if logins, err := providers.People(cfg.Work.People); err == nil {
+		if logins, err := providers.People(cfg.Source, cfg.Work.People); err == nil {
 			r.Logins, r.People = logins, true
 		}
 	}
@@ -124,14 +124,14 @@ func PeopleProblem(cfg *config.Loaded) *out.Problem {
 		return nil
 	}
 	file := cfg.Work.People.File
-	if !source.Has(file) {
+	if !cfg.Source.Has(context.Background(), file) {
 		return &out.Problem{
 			Rule:    "work-people-missing",
 			Message: "no people file at " + file + " (work.people), so the registry's owners go unchecked",
 			Fix:     "list the people who may own work in " + file + ", or set work.people.file to where they are",
 		}
 	}
-	if _, err := providers.People(cfg.Work.People); err != nil {
+	if _, err := providers.People(cfg.Source, cfg.Work.People); err != nil {
 		return &out.Problem{
 			Rule:    "work-people-unreadable",
 			Message: err.Error() + ", so the registry's owners go unchecked",
@@ -448,7 +448,7 @@ func Problems(cfg *config.Loaded) ([]out.Problem, error) {
 // anchor or expanding past its bound, is a problem of the registry, as the
 // bug-39 decision has it, where any other YAML it cannot read is an error.
 func ProblemsAt(cfg *config.Loaded, file string, named bool) ([]out.Problem, error) {
-	if !source.Has(file) {
+	if !cfg.Source.Has(context.Background(), file) {
 		return []out.Problem{Missing(file, named)}, nil
 	}
 	r, err := Load(cfg, file)

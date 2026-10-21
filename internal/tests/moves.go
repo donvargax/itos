@@ -321,7 +321,7 @@ func (m *Moves) featureTexts(name, tree string) (map[string]string, Options, err
 	if err != nil {
 		return nil, Options{}, err
 	}
-	texts, err := featureTexts(tree, o.Root)
+	texts, err := featureTexts(m.cfg.Trees, tree, o.Root)
 	return texts, o, err
 }
 
@@ -516,7 +516,7 @@ func (m *Moves) Index(name string) ([]out.Problem, error) {
 		return nil, err
 	}
 	if k.Adapter.Command != "" || k.Adapter.Name != "gherkin" {
-		return nil, &config.Error{File: config.Path(), Problems: []out.Problem{{
+		return nil, &config.Error{File: config.Path(m.cfg.Source), Problems: []out.Problem{{
 			Rule:    "moves-not-gherkin",
 			Message: "tests." + name + ".adapter is not gherkin, and the moves rule reads feature files",
 			Fix:     "name a kind whose adapter is gherkin",

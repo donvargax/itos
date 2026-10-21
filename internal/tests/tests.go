@@ -111,7 +111,7 @@ func ListTestsUnder(cfg *config.Loaded, name, at string, root *string, ws *Warni
 	if err != nil {
 		return List{}, err
 	}
-	return gherkinList(options, at)
+	return gherkinList(cfg.Trees, options, at)
 }
 
 // commandList is a command adapter's list, held to the protocol: a non-zero

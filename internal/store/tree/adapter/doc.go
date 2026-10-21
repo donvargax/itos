@@ -19,6 +19,7 @@
 //
 // A working tree's read that fails says so in Node's words (`ENOENT: no such
 // file or directory, open 'people.yaml'`), since what itos prints quotes
-// them and the corpus pins it. internal/source binds the adapter; its tests
-// run porttest.TreesContract, as the fake's do.
+// them and the corpus pins it. internal/cli hands Trees and Worktree to
+// every reader, in config.Loaded or as a parameter; its tests run
+// porttest.TreesContract, as the fake's do.
 package adapter
