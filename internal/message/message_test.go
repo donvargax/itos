@@ -288,6 +288,34 @@ commits:
 	}
 }
 
+// A footer read at a commit where its source lists nothing, as a project's
+// first commits predate it, is read against the working tree, a warning
+// saying so.
+func TestFooterOfATreeWithoutItsSourceReadsTheWorkingTree(t *testing.T) {
+	t.Chdir(t.TempDir())
+	lists := `[ "$3" = worktree ] && t='{"id":"U-1","file":"a_test.go","live":true}'` + "\n" +
+		`printf '{"protocol":1,"tests":[%s],"files":[]}\n' "$t"` + "\n"
+	if err := os.WriteFile("lists.sh", []byte(lists), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	cfg := load(t, `version: 1
+commits:
+  types: [test]
+  footers:
+    Tests: { source: { tests: unit }, read_at: commit, validate_for: [test] }
+tests:
+  unit: { adapter: { command: sh lists.sh, supports_at: true }, tag_prefix: "" }
+`)
+	for id, unknown := range map[string]bool{"U-1": false, "U-2": true} {
+		var warn strings.Builder
+		said, err := CheckFooter(cfg, "Tests", "test", "test: x\n\nTests: "+id+"\n", Reading{Warn: &warn})
+		if err != nil || (said != "") != unknown || !strings.Contains(warn.String(), "index has no") ||
+			!strings.Contains(warn.String(), "read against the working tree") {
+			t.Errorf("Tests: %s said %q, %v, warned %q", id, said, err, warn.String())
+		}
+	}
+}
+
 // Each footer of free text has a flag of its name in lower case, unless a
 // built-in flag has that name; Missing names the required footers a commit
 // lacks, links read from one text and content from another.
