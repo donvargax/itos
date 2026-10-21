@@ -319,25 +319,7 @@ func (s *subst) text(t string) string {
 }
 
 // deep is a value with every string in it, at any depth, replaced.
-func (s *subst) deep(v any) any {
-	switch t := v.(type) {
-	case string:
-		return s.text(t)
-	case []any:
-		out := make([]any, len(t))
-		for i, e := range t {
-			out[i] = s.deep(e)
-		}
-		return out
-	case *mapping:
-		out := newMapping()
-		for _, k := range t.keys {
-			out.set(k, s.deep(t.vals[k]))
-		}
-		return out
-	}
-	return v
-}
+func (s *subst) deep(v any) any { return mapStrings(v, s.text) }
 
 // writeFiles writes files into dir, and says the paths it wrote.
 func writeFiles(dir string, fs files, s *subst) ([]string, error) {
@@ -661,23 +643,28 @@ func (r *Runner) Run(fixtures []*Fixture) []Result {
 			results = append(results, Result{Fixture: f, Case: c})
 		}
 	}
+	r.each(len(results), func(i int) { results[i].Problems = r.judge(results[i].Case) })
+	return results
+}
+
+// each calls do for every index below n, Jobs at a time.
+func (r *Runner) each(n int, do func(int)) {
 	work := make(chan int)
 	var wg sync.WaitGroup
-	for range min(r.opts.Jobs, max(1, len(results))) {
+	for range min(r.opts.Jobs, max(1, n)) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			for i := range work {
-				results[i].Problems = r.judge(results[i].Case)
+				do(i)
 			}
 		}()
 	}
-	for i := range results {
+	for i := range n {
 		work <- i
 	}
 	close(work)
 	wg.Wait()
-	return results
 }
 
 // judge runs one case and says what differs from what it expects.
