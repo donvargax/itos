@@ -35,6 +35,7 @@ cases:
       runs:
         - { head_sha: "{{sha.root}}", status: completed, conclusion: success }
     exit: 0
+    stdout_contract: true
     stdout: |
       FROM={{sha.root}}
   - name: the nearest first parent with a green run starts it, past one whose run failed
@@ -44,6 +45,7 @@ cases:
         - { head_sha: "{{sha.one}}", status: completed, conclusion: failure }
         - { head_sha: "{{sha.root}}", status: completed, conclusion: success }
     exit: 0
+    stdout_contract: true
     stdout: |
       FROM={{sha.root}}
   - name: a green run on another branch counts
@@ -53,6 +55,7 @@ cases:
         - { head_sha: "{{sha.one}}", status: completed, conclusion: success, head_branch: rewritten }
         - { head_sha: "{{sha.root}}", status: completed, conclusion: success }
     exit: 0
+    stdout_contract: true
     stdout: |
       FROM={{sha.one}}
   - name: a green run off the head's history starts nothing, which runs everything
@@ -61,12 +64,14 @@ cases:
       runs:
         - { head_sha: "{{sha.divergent}}", status: completed, conclusion: success }
     exit: 0
+    stdout_contract: true
     stdout: |
       FROM=
   - name: an API that refuses runs everything, and is not an error
     argv: [ci, range, --head, "{{sha.two}}"]
     github: { refuse: true }
     exit: 0
+    stdout_contract: true
     stdout: |
       FROM=
     stderr: ""
@@ -76,6 +81,7 @@ cases:
       runs:
         - { head_sha: "{{sha.root}}", status: completed, conclusion: success }
     exit: 0
+    stdout_contract: true
     stdout: |
       FROM={{sha.divergent}}
     stderr: ""
@@ -93,6 +99,7 @@ cases:
     files:
       itos.yaml: "version: 1\nci: { steps: [vp check], range: { provider: none } }\n"
     exit: 0
+    stdout_contract: true
     stdout: |
       FROM=
   - name: provider none still keeps a pull request's base
@@ -100,11 +107,13 @@ cases:
     files:
       itos.yaml: "version: 1\nci: { steps: [vp check], range: { provider: none } }\n"
     exit: 0
+    stdout_contract: true
     stdout: |
       FROM={{sha.one}}
   - name: provider github without a repository runs everything, asking no one
     argv: [ci, range, --head, "{{sha.two}}"]
     exit: 0
+    stdout_contract: true
     stdout: |
       FROM=
   - name: with no green run the range starts at commits.since
@@ -115,6 +124,7 @@ cases:
       runs:
         - { head_sha: "{{sha.one}}", status: completed, conclusion: failure }
     exit: 0
+    stdout_contract: true
     stdout: |
       FROM={{sha.root}}
   - name: a green run nearer than commits.since starts the range
@@ -125,6 +135,7 @@ cases:
       runs:
         - { head_sha: "{{sha.one}}", status: completed, conclusion: success }
     exit: 0
+    stdout_contract: true
     stdout: |
       FROM={{sha.one}}
   - name: an API that refuses starts the range at commits.since
@@ -133,6 +144,7 @@ cases:
       itos.yaml: "version: 1\ncommits: { since: \"{{sha.one}}\" }\nci: { steps: [vp check], range: { provider: github } }\n"
     github: { refuse: true }
     exit: 0
+    stdout_contract: true
     stdout: |
       FROM={{sha.one}}
     stderr: ""
@@ -141,6 +153,7 @@ cases:
     files:
       itos.yaml: "version: 1\ncommits: { since: \"{{sha.root}}\" }\nci: { steps: [vp check], range: { provider: none } }\n"
     exit: 0
+    stdout_contract: true
     stdout: |
       FROM={{sha.root}}
   - name: commits.since off the head's history starts nothing, which runs everything
@@ -148,6 +161,7 @@ cases:
     files:
       itos.yaml: "version: 1\ncommits: { since: \"{{sha.divergent}}\" }\nci: { steps: [vp check], range: { provider: none } }\n"
     exit: 0
+    stdout_contract: true
     stdout: |
       FROM=
   - name: a pull request keeps its base over commits.since
@@ -155,6 +169,7 @@ cases:
     files:
       itos.yaml: "version: 1\ncommits: { since: \"{{sha.root}}\" }\nci: { steps: [vp check], range: { provider: none } }\n"
     exit: 0
+    stdout_contract: true
     stdout: |
       FROM={{sha.one}}
   - name: the command provider was removed in v5

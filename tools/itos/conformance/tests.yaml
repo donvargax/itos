@@ -282,6 +282,7 @@ cases:
   - name: the smoke IDs
     argv: [tests, smoke, ids, fixture]
     exit: 0
+    stdout_contract: true
     stdout: |
       F-001
       F-003
@@ -297,6 +298,7 @@ cases:
   - name: tests next-id claims an area's next tag through the id counter, kept in the git folder with no remote
     argv: [tests, next-id, scenario, ID-ONE]
     exit: 0
+    stdout_contract: true
     stdout: |
       @ID-ONE-04
     files_after:
@@ -317,6 +319,7 @@ cases:
   - name: tests next-id --count claims several of an area's tags in a row, one a line
     argv: [tests, next-id, scenario, ID-ONE, --count, "3"]
     exit: 0
+    stdout_contract: true
     stdout: |
       @ID-ONE-04
       @ID-ONE-05

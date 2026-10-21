@@ -59,6 +59,7 @@ cases:
     files:
       .git/itos/itos.yaml: "version: 1\n"
     exit: 0
+    stdout_contract: true
     stdout: |
       .git/itos/docs/ORCHESTRATING.md
   - name: guide with a name it has no guide by names those it has

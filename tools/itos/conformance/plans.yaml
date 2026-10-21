@@ -1579,21 +1579,25 @@ cases:
   - name: ci scope of a prose-only range
     argv: [ci, scope, "{{sha.every}}", "{{sha.prose}}"]
     exit: 0
+    stdout_contract: true
     stdout: |
       docs_only=true
   - name: ci scope of a range that touches code
     argv: [ci, scope, "{{sha.prose}}", "{{sha.subsets}}"]
     exit: 0
+    stdout_contract: true
     stdout: |
       docs_only=false
   - name: ci scope of a range that touches the ledger is not prose
     argv: [ci, scope, "{{sha.start}}", "{{sha.base}}"]
     exit: 0
+    stdout_contract: true
     stdout: |
       docs_only=false
   - name: ci scope of a range it cannot read is not prose
     argv: [ci, scope, "", "{{sha.prose}}"]
     exit: 0
+    stdout_contract: true
     stdout: |
       docs_only=false
   - name: ci scope --json
@@ -1607,6 +1611,7 @@ cases:
     files:
       noprose.yaml: "version: 1\nci: { steps: [vp check] }\n"
     exit: 0
+    stdout_contract: true
     stdout: |
       docs_only=false
   - name: without a registry no task waits
