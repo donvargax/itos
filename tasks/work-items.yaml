@@ -10905,3 +10905,11 @@ items:
     status: todo
     depends_on: []
     kind: task
+
+  - id: T-195
+    title: "Process-global state out of internal/cli and internal/tests: draft promote runs Main through a value, not an init re-entry"
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task

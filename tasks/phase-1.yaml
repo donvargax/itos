@@ -2389,3 +2389,25 @@
       timeout: 600
     - run: tools/bin/architecture-check
       timeout: 900
+
+- id: T-195
+  type: refactor
+  title: "Process-global state out of internal/cli and internal/tests: draft promote runs Main through a value, not an init re-entry"
+  why: >
+    ADR-0053, step 2 of docs/plans/slices-and-ports.md: each global is a reason a command cannot run
+    twice in one process, and a slice must take what it needs as values. Out: draftmint.go's init()
+    setting mainReserved (cmd or Main hands draft promote the function to run), idmint.go's package
+    var reserved (a parameter of the commands that mint), cli.go's origin (a value carried with the
+    output, as itos-cc's UI carries its paths), tests.Warnings and warned (tests/tests.go: a writer
+    and a per-run set passed in). Left for later steps, named so no one does them twice: the
+    package-global current source (the tree-reader port), the cached core.commentChar (the VCS
+    port's messages group), process cwd and environment set by applyGlobals, git.Export, ci and shim
+    (the boundary, with the OS as a value). No behaviour change; help, output and exit codes are
+    byte-for-byte as before.
+  done_when:
+    - run: "! grep -rn \"^func init()\" internal cmd"
+    - run: "! grep -n \"^var reserved \" internal/cli/idmint.go"
+    - run: "! grep -n \"^var origin \" internal/cli/cli.go"
+    - run: "! grep -nE \"^var (Warnings|warned) \" internal/tests/tests.go"
+    - run: go test -count=1 ./internal/... ./cmd/...
+      timeout: 900
