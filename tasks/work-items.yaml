@@ -11133,6 +11133,14 @@ items:
       recorded, status gives no reason when GitHub refuses. Each is a feat after the freeze
       (ADR-0053); the corpus tasks T-198 to T-204 keep loose _has checks for them meanwhile.
 
+      T-199 found more (2026-10-21). ci watch and push --json give ci: error with no reason when the
+      API refuses, no token is found or no GitHub repository is known. push --json on uncommitted
+      changes does not name the files. tests list --at a tree, with an adapter that cannot list one,
+      does not say the working tree was read. A problem names the path, config key or id it is about
+      only in its message (commit check-paths scope rules, config errors, a footer naming a test
+      that is unknown or not live, both fixture-footer), so the corpus splits such cases or keeps a
+      loose _has meanwhile.
+
   - id: p1-lint-itos-cc-linters
     title: Turn on the itos-cc linters the tree fails today
     phase: 1
