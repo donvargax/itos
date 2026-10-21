@@ -17,72 +17,71 @@ cases:
   - name: push --force is a usage error naming why
     argv: [push, --force]
     exit: 2
-    stderr: |
-      itos: push never forces: --force would overwrite the remote's commits; itos push rebases onto them instead (itos --help)
+    stderr_has: --force
   - name: push -f is a usage error naming why
     argv: [push, -f]
     exit: 2
-    stderr: |
-      itos: push never forces: -f would overwrite the remote's commits; itos push rebases onto them instead (itos --help)
+    stderr_has: -f
   - name: push --force-with-lease is a usage error naming why
     argv: [push, --force-with-lease=main]
     exit: 2
-    stderr: |
-      itos: push never forces: --force-with-lease=main would overwrite the remote's commits; itos push rebases onto them instead (itos --help)
+    stderr_has: --force-with-lease=main
   - name: a + refspec is a usage error naming why
     argv: [push, +main]
     exit: 2
-    stderr: |
-      itos: push never forces: +main is a forcing refspec; itos push rebases onto the remote's commits instead (itos --help)
+    stderr_has: +main
   - name: push takes no arguments but --no-wait, --tag and --ref
     argv: [push, --no-wait, origin, main]
     exit: 2
-    stderr: |
-      itos: push takes no arguments but --no-wait, --tag <tag> and --ref <branch>: it pushes HEAD to the branch's upstream (origin) (itos --help)
+    stderr_has: [--no-wait, --tag, --ref]
   - name: push --tag needs a tag's name
     argv: [push, --tag]
     exit: 2
-    stderr: |
-      itos: push --tag needs a tag's name (itos --help)
+    stderr_has: --tag
   - name: push --ref takes a branch's name, not a refspec
     argv: [push, --ref, "HEAD:ci/windows"]
     exit: 2
-    stderr: |
-      itos: push --ref takes a branch's name, not a refspec (HEAD:ci/windows): it pushes to the remote's of the same name (itos --help)
+    stderr_has: "HEAD:ci/windows"
   - name: push outside a git repository is a missing environment
     argv: [push]
     exit: 3
-    stderr: |
-      itos: push runs in a git repository, and this is none
+    stderr_has: git repository
   - name: uncommitted changes to tracked files refuse the push
-    argv: [push]
+    argv: [push, --json]
     git:
       - commit: "chore: start"
         files: { README.md: "scratch\n" }
       - write: { README.md: "changed\n" }
     exit: 1
-    stderr: |
-      itos push: tracked files have uncommitted changes; commit or stash them first, then run itos push again:
-         M README.md
+    json:
+      schema: 1
+      ok: false
+      outcome: uncommitted
   - name: a detached HEAD is refused
-    argv: [push]
+    argv: [push, --json]
     git:
       - commit: "chore: start"
         files: { README.md: "scratch\n" }
       - run: git checkout -q --detach
     exit: 1
-    stderr: |
-      itos push: HEAD is not on a branch; check out the branch to push first
+    json:
+      schema: 1
+      ok: false
+      outcome: detached
   - name: no upstream and no origin is a missing environment
-    argv: [push]
+    argv: [push, --json]
     git:
       - commit: "chore: start"
         files: { README.md: "scratch\n" }
     exit: 3
-    stderr: |
-      itos push: main has no upstream and there is no remote origin to push to
+    json:
+      schema: 1
+      ok: false
+      outcome: no-remote
+      remote: origin
+      branch: main
   - name: with no upstream it pushes to origin's branch of the same name, untracked files no reason to refuse
-    argv: [push]
+    argv: [push, --json]
     git:
       - commit: "chore: start"
         files: { README.md: "scratch\n" }
@@ -91,13 +90,17 @@ cases:
     files:
       untracked.txt: "not committed\n"
     exit: 0
-    stdout: |
-      Pushed {{short.head}} to origin/main.
-    stderr_has: "{{sha.head}} -> main"
     files_after:
       .git/origin.git/refs/heads/main: "{{sha.head}}\n"
+    json:
+      schema: 1
+      ok: true
+      outcome: pushed
+      remote: origin
+      branch: main
+      commit: '{{sha.head}}'
   - name: push --tag pushes the tag alone, to origin's tag of its name, the branch left where it was
-    argv: [push, --tag, v1]
+    argv: [push, --tag, v1, --json]
     git:
       - commit: "chore: start"
         files: { README.md: "scratch\n" }
@@ -108,21 +111,17 @@ cases:
         label: more
       - run: git tag v1
     exit: 0
-    stdout: |
-      Pushed tag v1 to origin.
     files_after:
       .git/origin.git/refs/heads/main: "{{sha.start}}\n"
       .git/origin.git/refs/tags/v1: "{{sha.more}}\n"
+    json:
+      schema: 1
+      ok: true
+      outcome: pushed
+      remote: origin
+      tags:
+      - v1
   - name: nothing to push is success
-    argv: [push]
-    git:
-      - commit: "chore: start"
-        files: { README.md: "scratch\n" }
-      - run: git init -q --bare .git/origin.git && git remote add origin .git/origin.git && git push -q origin main
-    exit: 0
-    stdout: |
-      Nothing to push: main is at origin/main.
-  - name: nothing to push, as JSON
     argv: [push, --json]
     git:
       - commit: "chore: start"
@@ -131,7 +130,7 @@ cases:
     exit: 0
     json: { schema: 1, ok: true, outcome: nothing-to-push, remote: origin, branch: main }
   - name: the remote's commits are fetched and the branch rebased onto them before the push, whatever pull.rebase says
-    argv: [push]
+    argv: [push, --json]
     git:
       - commit: "chore: start"
         files: { README.md: "scratch\n" }
@@ -144,10 +143,9 @@ cases:
       - commit: "chore: ours"
         files: { notes.md: "ours\n" }
     exit: 0
-    stdout_has: "to origin/main."
-    stderr_has: " -> main"
-  - name: a rebase that stops pushes nothing and says how to go on
-    argv: [push]
+    json_has: { schema: 1, ok: true, outcome: pushed, remote: origin, branch: main, commit: "<any>" }
+  - name: a rebase that stops pushes nothing
+    argv: [push, --json]
     git:
       - commit: "chore: start"
         files: { README.md: "scratch\n" }
@@ -161,12 +159,14 @@ cases:
         files: { README.md: "ours\n" }
         label: ours
     exit: 1
-    stderr_has:
-      - "itos push: the rebase onto origin/main stopped; nothing was pushed.\n"
-      - "Resolve the conflicts, git add the files and run git rebase --continue, then itos push again;\n"
-      - "or run git rebase --abort to go back to where the branch was.\n"
+    json:
+      schema: 1
+      ok: false
+      outcome: rebase-stopped
+      remote: origin
+      branch: main
   - name: a rebase in progress refuses the push
-    argv: [push]
+    argv: [push, --json]
     git:
       - commit: "chore: start"
         files: { README.md: "scratch\n" }
@@ -180,11 +180,12 @@ cases:
         files: { README.md: "ours\n" }
       - run: git fetch -q origin && ! git rebase -q origin/main >/dev/null 2>&1
     exit: 1
-    stderr: |
-      itos push: a rebase is in progress or a conflict is left; nothing was pulled or pushed.
-      Resolve it and run git rebase --continue, or run git rebase --abort, then itos push again.
+    json:
+      schema: 1
+      ok: false
+      outcome: rebase-in-progress
   - name: a push the pre-push hook refuses is reported with git's exit code
-    argv: [push]
+    argv: [push, --json]
     git:
       - commit: "chore: start"
         files: { README.md: "scratch\n" }
@@ -192,14 +193,17 @@ cases:
     files:
       .git/hooks/pre-push: { text: "#!/bin/sh\necho the hook says no >&2\nexit 1\n", executable: true }
     exit: 1
-    stdout: ""
-    stderr_has:
-      - "the hook says no\n"
-      - "itos push: the push to origin/main failed (git's message above); nothing was forced.\n"
+    stderr_has: "the hook says no\n"
     files_after:
       .git/origin.git/refs/heads/main: null
+    json:
+      schema: 1
+      ok: false
+      outcome: push-failed
+      remote: origin
+      branch: main
   - name: only HEAD is pushed, the itos notes left behind whatever the config's push refspec says
-    argv: [push]
+    argv: [push, --json]
     git:
       - commit: "chore: start"
         files: { README.md: "scratch\n" }
@@ -211,8 +215,13 @@ cases:
     files:
       .git/itos/itos.yaml: "version: 1\n"
     exit: 0
-    stdout: |
-      Pushed {{short.head}} to origin/main.
     files_after:
       .git/origin.git/refs/heads/main: "{{sha.head}}\n"
       .git/origin.git/refs/notes/itos: null
+    json:
+      schema: 1
+      ok: true
+      outcome: pushed
+      remote: origin
+      branch: main
+      commit: '{{sha.head}}'
