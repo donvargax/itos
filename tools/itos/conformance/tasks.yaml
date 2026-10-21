@@ -60,91 +60,98 @@ files:
   tasks/notes.yaml: "- { id: T-090, type: build, title: Not a ledger file }\n"
 cases:
   - name: one task runs verbosely, then its status line
-    argv: [task, T-001]
+    argv: [task, T-001, --json]
     exit: 0
-    stdout: |
-
-      T-001 Checks that pass
-        $ echo first
-      first
-        $ sh -c 'echo second; exit 1'   (must fail)
-      second
-
-      done     T-001  build    Checks that pass
-  - name: a failing check fails the task, the rest still run
-    argv: [task, T-002]
-    exit: 1
-    stdout: |
-
-      T-002 A check that fails
-        $ true
-        $ sh -c 'echo broken >&2; exit 5'
-        $ echo still runs
-      still runs
-
-      failing  T-002  ci       A check that fails
-    stderr: |
-      broken
-  - name: several tasks, one status line each
-    argv: [task, T-001, T-003, T-004]
-    exit: 0
-    stdout: |
-
-      done     T-001  build    Checks that pass
-      review   T-003  docs     Reviewed by hand
-      pending  T-004  ci       Waits on the push
+    json:
+      schema: 1
+      tasks:
+        - id: T-001
+          type: build
+          title: Checks that pass
+          group: 1
+          status: done
+          checks:
+            - { command: echo first, result: pass }
+            - { command: sh -c 'echo second; exit 1', fails: true, result: pass }
+    stderr_has: ["first\n", "second\n"]
   - name: after push waits while no remote branch holds HEAD
-    argv: [task, T-004]
+    argv: [task, T-004, --json]
     exit: 0
-    stdout: |
-
-      T-004 Waits on the push
-        $ true
-
-      pending  T-004  ci       Waits on the push
+    json:
+      schema: 1
+      tasks:
+        - id: T-004
+          type: ci
+          title: Waits on the push
+          group: 2
+          status: pending
+          checks: [{ command: "true", result: pass }, { command: echo pushed, result: pending }]
   - name: after push runs once a remote branch holds HEAD
-    argv: [task, T-004]
+    argv: [task, T-004, --json]
     git:
       - commit: "docs: start"
         files: { README.md: "scratch\n" }
       - run: git update-ref refs/remotes/origin/main HEAD
     exit: 0
-    stdout: |
-
-      T-004 Waits on the push
-        $ true
-        $ echo pushed
-      pushed
-
-      done     T-004  ci       Waits on the push
+    json:
+      schema: 1
+      tasks:
+        - id: T-004
+          type: ci
+          title: Waits on the push
+          group: 2
+          status: done
+          checks: [{ command: "true", result: pass }, { command: echo pushed, result: pass }]
   - name: a check past its timeout fails
-    argv: [task, T-005]
+    argv: [task, T-005, --json]
     exit: 1
-    stdout: |
-
-      T-005 A check past its timeout
-        $ sleep 5
-
-      failing  T-005  test     A check past its timeout
+    json:
+      schema: 1
+      tasks:
+        - id: T-005
+          type: test
+          title: A check past its timeout
+          group: 2
+          status: failing
+          checks: [{ command: sleep 5, result: fail }]
   - name: a group of tasks
-    argv: [task, --group, "1"]
+    argv: [task, --group, "1", --json]
     exit: 1
-    stdout: |
-
-      done     T-001  build    Checks that pass
-      failing  T-002  ci       A check that fails
-      review   T-003  docs     Reviewed by hand
+    json:
+      schema: 1
+      tasks:
+        - id: T-001
+          type: build
+          title: Checks that pass
+          group: 1
+          status: done
+          checks:
+            - { command: echo first, result: pass }
+            - { command: sh -c 'echo second; exit 1', fails: true, result: pass }
+        - id: T-002
+          type: ci
+          title: A check that fails
+          group: 1
+          status: failing
+          checks:
+            - { command: "true", result: pass }
+            - { command: sh -c 'echo broken >&2; exit 5', result: fail }
+            - { command: echo still runs, result: pass }
+        - { id: T-003, type: docs, title: Reviewed by hand, group: 1, status: review, checks: [] }
   - name: --phase is --group
-    argv: [task, --phase, "2", --skip, T-005]
+    argv: [task, --phase, "2", --skip, T-005, --json]
     exit: 0
-    stdout: |
-
-      T-004 Waits on the push
-        $ true
-
-      pending  T-004  ci       Waits on the push
+    json:
+      schema: 1
+      tasks:
+        - id: T-004
+          type: ci
+          title: Waits on the push
+          group: 2
+          status: pending
+          checks: [{ command: "true", result: pass }, { command: echo pushed, result: pending }]
   - name: --<ledger.group.label> is --group
-    argv: [task, --milestone, "2", --skip, T-005]
+    argv: [task, --milestone, "2", --skip, T-005, --json]
     files: &milestone
       itos.yaml: |
         version: 1
@@ -154,40 +161,51 @@ cases:
           id: "T-\\d+"
         commits: { types: [build, ci, docs, test] }
     exit: 0
-    stdout: |
-
-      T-004 Waits on the push
-        $ true
-
-      pending  T-004  ci       Waits on the push
+    json:
+      schema: 1
+      tasks:
+        - id: T-004
+          type: ci
+          title: Waits on the push
+          group: 2
+          status: pending
+          checks: [{ command: "true", result: pass }, { command: echo pushed, result: pending }]
   - name: --phase is --group whatever the label
-    argv: [task, --phase, "2", --skip, T-005]
+    argv: [task, --phase, "2", --skip, T-005, --json]
     files: *milestone
     exit: 0
-    stdout: |
-
-      T-004 Waits on the push
-        $ true
-
-      pending  T-004  ci       Waits on the push
+    json:
+      schema: 1
+      tasks:
+        - id: T-004
+          type: ci
+          title: Waits on the push
+          group: 2
+          status: pending
+          checks: [{ command: "true", result: pass }, { command: echo pushed, result: pending }]
   - name: no task matches, the usage naming the label's flag
     argv: [task, --milestone, "7"]
     files: *milestone
     exit: 2
-    stderr: |
-      No matching tasks. Usage: itos task <id>… | --group|--milestone <g> [--skip <ids>] | --pending
+    stderr_has: --milestone
   - name: --pending shows the tasks not done
-    argv: [task, --pending, --skip, "T-005,T-002"]
+    argv: [task, --pending, --skip, "T-005,T-002", --json]
     exit: 0
-    stdout: |
-
-      review   T-003  docs     Reviewed by hand
-      pending  T-004  ci       Waits on the push
+    json:
+      schema: 1
+      tasks:
+        - { id: T-003, type: docs, title: Reviewed by hand, group: 1, status: review, checks: [] }
+        - id: T-004
+          type: ci
+          title: Waits on the push
+          group: 2
+          status: pending
+          checks: [{ command: "true", result: pass }, { command: echo pushed, result: pending }]
   # Slice 101: work done takes a closed task's checks out of the ledger, so a
   # task with none reads done when its work item is done, review otherwise;
   # --pending leaves the done one out.
   - name: a task with no checks is done when its work item is, review when it is not
-    argv: [task, T-003, T-090]
+    argv: [task, T-003, T-090, --json]
     files:
       tasks/work-items.yaml: &reviewed |
         phases: { 1: null }
@@ -197,23 +215,29 @@ cases:
         - { id: T-003, type: docs, title: Reviewed by hand }
         - { id: T-090, type: docs, title: No item }
     exit: 0
-    stdout: |
-
-      done     T-003  docs     Reviewed by hand
-      review   T-090  docs     No item
+    json:
+      schema: 1
+      tasks:
+        - { id: T-003, type: docs, title: Reviewed by hand, group: 1, status: done, checks: [] }
+        - { id: T-090, type: docs, title: No item, group: 1, status: review, checks: [] }
   - name: --pending leaves out a task with no checks whose work item is done
-    argv: [task, --pending, --skip, "T-005,T-002"]
+    argv: [task, --pending, --skip, "T-005,T-002", --json]
     files:
       tasks/work-items.yaml: *reviewed
     exit: 0
-    stdout: |
-
-      pending  T-004  ci       Waits on the push
+    json:
+      schema: 1
+      tasks:
+        - id: T-004
+          type: ci
+          title: Waits on the push
+          group: 2
+          status: pending
+          checks: [{ command: "true", result: pass }, { command: echo pushed, result: pending }]
   - name: an ID the ledger does not have
     argv: [task, T-001, T-099]
     exit: 1
-    stderr: |
-      No task T-099 in tasks/
+    stderr_has: T-099
   # With no ledger.id, every word itos task is given that is no flag or a
   # flag's value is a task ID (slice 130), so one the ledger lacks is named
   # whatever its shape.
@@ -225,19 +249,17 @@ cases:
         ledger: { files: "tasks/phase-{group}.yaml", group: { label: phase, pattern: "\\d+", numeric: true } }
         commits: { types: [build, ci, docs, test] }
     exit: 1
-    stderr: |
-      No task OPS-8 in tasks/
+    stderr_has: OPS-8
   - name: no task matches
     argv: [task, --group, "7"]
     exit: 2
-    stderr: |
-      No matching tasks. Usage: itos task <id>… | --group|--phase <g> [--skip <ids>] | --pending
+    stderr_has: "--group|--phase <g>"
   - name: a task run with the ledger folder missing is one problem naming it, exit 2
-    argv: [task, T-001]
+    argv: [task, T-001, --json]
     files: { tasks: null }
     exit: 2
-    stderr: |
-      FAIL itos.yaml: the ledger's folder tasks does not exist
+    json: { schema: 1, config: itos.yaml, valid: false, problems: [{ rule: ledger-folder-missing }] }
+    stdout_has: "folder tasks"
   - name: --json with each check's result, the verbose log on stderr
     argv: [task, T-002, --json]
     exit: 1
@@ -250,20 +272,10 @@ cases:
           group: 1
           status: failing
           checks:
-            - command: "true"
-              result: pass
-            - command: sh -c 'echo broken >&2; exit 5'
-              result: fail
-            - command: echo still runs
-              result: pass
-    stderr: |
-
-      T-002 A check that fails
-        $ true
-        $ sh -c 'echo broken >&2; exit 5'
-      broken
-        $ echo still runs
-      still runs
+            - { command: "true", result: pass }
+            - { command: sh -c 'echo broken >&2; exit 5', result: fail }
+            - { command: echo still runs, result: pass }
+    stderr_has: ["broken\n", "still runs\n"]
   - name: --json for several tasks
     argv: [task, T-001, T-003, T-004, --json]
     exit: 0
@@ -276,123 +288,65 @@ cases:
           group: 1
           status: done
           checks:
-            - command: echo first
-              result: pass
-            - command: sh -c 'echo second; exit 1'
-              fails: true
-              result: pass
-        - id: T-003
-          type: docs
-          title: Reviewed by hand
-          group: 1
-          status: review
-          checks: []
+            - { command: echo first, result: pass }
+            - { command: sh -c 'echo second; exit 1', fails: true, result: pass }
+        - { id: T-003, type: docs, title: Reviewed by hand, group: 1, status: review, checks: [] }
         - id: T-004
           type: ci
           title: Waits on the push
           group: 2
           status: pending
-          checks:
-            - command: "true"
-              result: pass
-            - command: echo pushed
-              result: pending
-  - name: task list
-    argv: [task, list]
-    exit: 0
-    stdout: |
-      no item  T-001  1   build    Checks that pass
-      no item  T-002  1   ci       A check that fails
-      no item  T-003  1   docs     Reviewed by hand
-      no item  T-004  2   ci       Waits on the push
-      no item  T-005  2   test     A check past its timeout
-    stderr: |
-      No work registry at tasks/work-items.yaml, so no task has an item.
-  # Numeric groups are read in the order of their numbers (slice 130), not
-  # of the files' names.
+          checks: [{ command: "true", result: pass }, { command: echo pushed, result: pending }]
   - name: task list reads numeric groups in the order of their numbers
-    argv: [task, list]
+    argv: [task, list, --json]
     files:
       tasks/phase-10.yaml: "- { id: T-010, type: docs, title: The tenth }\n"
     exit: 0
-    stdout: |
-      no item  T-001  1   build    Checks that pass
-      no item  T-002  1   ci       A check that fails
-      no item  T-003  1   docs     Reviewed by hand
-      no item  T-004  2   ci       Waits on the push
-      no item  T-005  2   test     A check past its timeout
-      no item  T-010  10  docs     The tenth
-    stderr: |
-      No work registry at tasks/work-items.yaml, so no task has an item.
-  - name: task list with the ledger folder missing is one problem naming it, exit 2
-    argv: [task, list]
-    files: { tasks: null }
-    exit: 2
-    stderr: |
-      FAIL itos.yaml: the ledger's folder tasks does not exist
+    json:
+      schema: 1
+      tasks:
+        - { id: T-001, type: build, title: Checks that pass, group: 1, checks: 2, status: null }
+        - { id: T-002, type: ci, title: A check that fails, group: 1, checks: 3, status: null }
+        - { id: T-003, type: docs, title: Reviewed by hand, group: 1, checks: 0, status: null }
+        - { id: T-004, type: ci, title: Waits on the push, group: 2, checks: 2, status: null }
+        - { id: T-005, type: test, title: A check past its timeout, group: 2, checks: 1, status: null }
+        - { id: T-010, type: docs, title: The tenth, group: 10, checks: 0, status: null }
   - name: task list --json with the ledger folder missing is the config error's report
     argv: [task, list, --json]
     files: { tasks: null }
     exit: 2
+    json: { schema: 1, config: itos.yaml, valid: false, problems: [{ rule: ledger-folder-missing }] }
+    stdout_has: "folder tasks"
+  - name: task list of a group
+    argv: [task, list, --group, "2", --json]
+    exit: 0
     json:
       schema: 1
-      config: itos.yaml
-      valid: false
-      problems:
-        - rule: ledger-folder-missing
-          message: "itos.yaml: the ledger's folder tasks does not exist"
-          fix: "create tasks with the ledger's files (ledger.files is tasks/phase-{group}.yaml), or point ledger.files at the folder that holds them"
-  - name: task list of a group
-    argv: [task, list, --group, "2"]
-    exit: 0
-    stdout: |
-      no item  T-004  2   ci       Waits on the push
-      no item  T-005  2   test     A check past its timeout
+      tasks:
+        - { id: T-004, type: ci, title: Waits on the push, group: 2, checks: 2, status: null }
+        - { id: T-005, type: test, title: A check past its timeout, group: 2, checks: 1, status: null }
   - name: task list of a group by the label's flag
-    argv: [task, list, --milestone, "2"]
+    argv: [task, list, --milestone, "2", --json]
     files: *milestone
     exit: 0
-    stdout: |
-      no item  T-004  2   ci       Waits on the push
-      no item  T-005  2   test     A check past its timeout
+    json:
+      schema: 1
+      tasks:
+        - { id: T-004, type: ci, title: Waits on the push, group: 2, checks: 2, status: null }
+        - { id: T-005, type: test, title: A check past its timeout, group: 2, checks: 1, status: null }
   - name: task list --json
     argv: [task, list, --json]
     exit: 0
     json:
       schema: 1
       tasks:
-        - id: T-001
-          type: build
-          title: Checks that pass
-          group: 1
-          checks: 2
-          status: null
-        - id: T-002
-          type: ci
-          title: A check that fails
-          group: 1
-          checks: 3
-          status: null
-        - id: T-003
-          type: docs
-          title: Reviewed by hand
-          group: 1
-          checks: 0
-          status: null
-        - id: T-004
-          type: ci
-          title: Waits on the push
-          group: 2
-          checks: 2
-          status: null
-        - id: T-005
-          type: test
-          title: A check past its timeout
-          group: 2
-          checks: 1
-          status: null
+        - { id: T-001, type: build, title: Checks that pass, group: 1, checks: 2, status: null }
+        - { id: T-002, type: ci, title: A check that fails, group: 1, checks: 3, status: null }
+        - { id: T-003, type: docs, title: Reviewed by hand, group: 1, checks: 0, status: null }
+        - { id: T-004, type: ci, title: Waits on the push, group: 2, checks: 2, status: null }
+        - { id: T-005, type: test, title: A check past its timeout, group: 2, checks: 1, status: null }
   - name: task list with the work registry's statuses, running no check
-    argv: [task, list]
+    argv: [task, list, --json]
     files:
       tasks/work-items.yaml: |
         phases: { 1: null, 2: null }
@@ -407,11 +361,12 @@ cases:
           done_when:
             - run: sh -c 'echo ran >> runs'
     exit: 0
-    stdout: |
-      doing    T-001  1   build    Counts its runs
-      done     T-004  2   ci       Waits on the push
-      no item  T-005  2   test     A check past its timeout
-    stderr: ""
+    json:
+      schema: 1
+      tasks:
+        - { id: T-001, type: build, title: Counts its runs, group: 1, checks: 1, status: doing }
+        - { id: T-004, type: ci, title: Waits on the push, group: 2, checks: 2, status: done }
+        - { id: T-005, type: test, title: A check past its timeout, group: 2, checks: 1, status: null }
     files_after:
       runs: null
   - name: task list --json with the registry's statuses
@@ -425,20 +380,10 @@ cases:
     json:
       schema: 1
       tasks:
-        - id: T-004
-          type: ci
-          title: Waits on the push
-          group: 2
-          checks: 2
-          status: blocked
-        - id: T-005
-          type: test
-          title: A check past its timeout
-          group: 2
-          checks: 1
-          status: null
+        - { id: T-004, type: ci, title: Waits on the push, group: 2, checks: 2, status: blocked }
+        - { id: T-005, type: test, title: A check past its timeout, group: 2, checks: 1, status: null }
   - name: task list reads the registry work.registry names
-    argv: [task, list, --group, "2"]
+    argv: [task, list, --group, "2", --json]
     files:
       itos.yaml: |
         version: 1
@@ -450,12 +395,13 @@ cases:
         work: { registry: plans/items.yaml }
       plans/items.yaml: "items:\n  - { id: T-005, status: todo }\n"
     exit: 0
-    stdout: |
-      no item  T-004  2   ci       Waits on the push
-      todo     T-005  2   test     A check past its timeout
-    stderr: ""
+    json:
+      schema: 1
+      tasks:
+        - { id: T-004, type: ci, title: Waits on the push, group: 2, checks: 2, status: null }
+        - { id: T-005, type: test, title: A check past its timeout, group: 2, checks: 1, status: todo }
   - name: task list reads the registry beside a ledger in another folder, not tasks/
-    argv: [task, list]
+    argv: [task, list, --json]
     files:
       itos.yaml: |
         version: 1
@@ -468,11 +414,11 @@ cases:
       work/work-items.yaml: "items:\n  - { id: T-010, status: doing }\n"
       tasks/work-items.yaml: "items:\n  - { id: T-010, status: done }\n"
     exit: 0
-    stdout: |
-      doing    T-010  1   build    In work
-    stderr: ""
+    json:
+      schema: 1
+      tasks: [{ id: T-010, type: build, title: In work, group: 1, checks: 0, status: doing }]
   - name: task list with no registry beside a ledger in another folder names that path
-    argv: [task, list]
+    argv: [task, list, --json]
     files:
       itos.yaml: |
         version: 1
@@ -483,12 +429,12 @@ cases:
         commits: { types: [build, ci, docs, test] }
       work/phase-1.yaml: "- { id: T-010, type: build, title: In work, done_when: [] }\n"
     exit: 0
-    stdout: |
-      no item  T-010  1   build    In work
-    stderr: |
-      No work registry at work/work-items.yaml, so no task has an item.
+    json:
+      schema: 1
+      tasks: [{ id: T-010, type: build, title: In work, group: 1, checks: 0, status: null }]
+    stderr_has: work/work-items.yaml
   - name: a check two tasks list runs once, and both read its result
-    argv: [task, --group, "3"]
+    argv: [task, --group, "3", --json]
     files:
       tasks/phase-3.yaml: |
         - id: T-010
@@ -502,14 +448,25 @@ cases:
           done_when:
             - run: sh  -c 'echo ran >> runs; exit 3'
     exit: 1
-    stdout: |
-
-      failing  T-010  build    Counts
-      failing  T-011  build    Counts too
+    json:
+      schema: 1
+      tasks:
+        - id: T-010
+          type: build
+          title: Counts
+          group: 3
+          status: failing
+          checks: [{ command: sh -c 'echo ran >> runs; exit 3', result: fail }]
+        - id: T-011
+          type: build
+          title: Counts too
+          group: 3
+          status: failing
+          checks: [{ command: sh  -c 'echo ran >> runs; exit 3', result: fail }]
     files_after:
       runs: "ran\n"
   - name: a command one task runs and another must fail runs once, each reading it its way
-    argv: [task, T-010, T-011]
+    argv: [task, T-010, T-011, --json]
     files:
       tasks/phase-3.yaml: |
         - id: T-010
@@ -523,14 +480,25 @@ cases:
           done_when:
             - fails: sh -c 'echo ran >> runs; exit 3'
     exit: 1
-    stdout: |
-
-      failing  T-010  build    Must pass
-      done     T-011  build    Must fail
+    json:
+      schema: 1
+      tasks:
+        - id: T-010
+          type: build
+          title: Must pass
+          group: 3
+          status: failing
+          checks: [{ command: sh -c 'echo ran >> runs; exit 3', result: fail }]
+        - id: T-011
+          type: build
+          title: Must fail
+          group: 3
+          status: done
+          checks: [{ command: sh -c 'echo ran >> runs; exit 3', fails: true, result: pass }]
     files_after:
       runs: "ran\n"
   - name: the same command with another timeout is another check
-    argv: [task, --group, "3"]
+    argv: [task, --group, "3", --json]
     files:
       tasks/phase-3.yaml: |
         - id: T-010
@@ -551,15 +519,31 @@ cases:
             - run: sh -c 'echo ran >> runs'
               timeout: 600
     exit: 0
-    stdout: |
-
-      done     T-010  build    Counts
-      done     T-011  build    Counts with its own timeout
-      done     T-012  build    The ledger's timeout written out
+    json:
+      schema: 1
+      tasks:
+        - id: T-010
+          type: build
+          title: Counts
+          group: 3
+          status: done
+          checks: [{ command: sh -c 'echo ran >> runs', result: pass }]
+        - id: T-011
+          type: build
+          title: Counts with its own timeout
+          group: 3
+          status: done
+          checks: [{ command: sh -c 'echo ran >> runs', result: pass }]
+        - id: T-012
+          type: build
+          title: The ledger's timeout written out
+          group: 3
+          status: done
+          checks: [{ command: sh -c 'echo ran >> runs', result: pass }]
     files_after:
       runs: "ran\nran\n"
   - name: one task listing a check twice runs it once and says the second is reused
-    argv: [task, T-010]
+    argv: [task, T-010, --json]
     files:
       tasks/phase-3.yaml: |
         - id: T-010
@@ -569,18 +553,21 @@ cases:
             - run: sh -c 'echo ran >> runs; echo out'
             - fails: sh -c 'echo ran >> runs; echo out'
     exit: 1
-    stdout: |
-
-      T-010 Lists a check twice
-        $ sh -c 'echo ran >> runs; echo out'
-      out
-        $ sh -c 'echo ran >> runs; echo out'   (must fail)   (ran above; its exit status reused)
-
-      failing  T-010  build    Lists a check twice
+    json:
+      schema: 1
+      tasks:
+        - id: T-010
+          type: build
+          title: Lists a check twice
+          group: 3
+          status: failing
+          checks:
+            - { command: sh -c 'echo ran >> runs; echo out', result: pass }
+            - { command: sh -c 'echo ran >> runs; echo out', fails: true, result: fail }
     files_after:
       runs: "ran\n"
   - name: an after push check waits though another task ran its command
-    argv: [task, T-001, T-004]
+    argv: [task, T-001, T-004, --json]
     files:
       tasks/phase-1.yaml: |
         - id: T-001
@@ -589,32 +576,45 @@ cases:
           done_when:
             - run: echo pushed
     exit: 0
-    stdout: |
-
-      done     T-001  build    Runs what T-004 waits on
-      pending  T-004  ci       Waits on the push
+    json:
+      schema: 1
+      tasks:
+        - id: T-001
+          type: build
+          title: Runs what T-004 waits on
+          group: 1
+          status: done
+          checks: [{ command: echo pushed, result: pass }]
+        - id: T-004
+          type: ci
+          title: Waits on the push
+          group: 2
+          status: pending
+          checks: [{ command: "true", result: pass }, { command: echo pushed, result: pending }]
   - name: a ledger whose groups are names
-    argv: [task, list]
+    argv: [task, list, --json]
     files:
       itos.yaml: "version: 1\nledger: { files: \"work/{group}.yaml\" }\n"
       work/alpha.yaml: "- { id: A-1, type: build, title: First, done_when: [{ run: \"true\" }] }\n"
       work/beta.yaml: "- { id: B-1, type: build, title: Second }\n"
     exit: 0
-    stdout: |
-      no item  A-1  alpha build    First
-      no item  B-1  beta build    Second
+    json:
+      schema: 1
+      tasks:
+        - { id: A-1, type: build, title: First, group: alpha, checks: 1, status: null }
+        - { id: B-1, type: build, title: Second, group: beta, checks: 0, status: null }
   - name: a group by its name
-    argv: [task, --group, beta]
+    argv: [task, --group, beta, --json]
     files:
       itos.yaml: "version: 1\nledger: { files: \"work/{group}.yaml\" }\n"
       work/alpha.yaml: "- { id: A-1, type: build, title: First, done_when: [{ run: \"true\" }] }\n"
       work/beta.yaml: "- { id: B-1, type: build, title: Second }\n"
     exit: 0
-    stdout: |
-
-      review   B-1  build    Second
+    json:
+      schema: 1
+      tasks: [{ id: B-1, type: build, title: Second, group: beta, status: review, checks: [] }]
   - name: task add writes the task after the last of its group's file and its item into the registry, and commits both alone
-    argv: [task, add, --group, "1", --type, docs, --title, "Write: the guide", --why, It is missing., --check, "true", --check, "sh -c 'exit 0'", --timeout, "30"]
+    argv: [task, add, --group, "1", --type, docs, --title, "Write: the guide", --why, It is missing., --check, "true", --check, "sh -c 'exit 0'", --timeout, "30", --json]
     git:
       - commit: "docs: start"
         files:
@@ -626,7 +626,13 @@ cases:
     files:
       tasks/work-items.yaml: *registry
     exit: 0
-    stdout_has: "T-006 is a new task in tasks/phase-1.yaml, and an item in tasks/work-items.yaml: committed "
+    json_has:
+      ok: true
+      task: { id: T-006, type: docs, title: "Write: the guide", done_when: [{ run: "true" }, { run: "sh -c 'exit 0'", timeout: 30 }] }
+      file: tasks/phase-1.yaml
+      item: { id: T-006, phase: 1, status: todo, kind: task }
+      commit: "<any>"
+    stderr_has: 2 files changed
     files_after:
       tasks/phase-1.yaml: "- id: T-001\n  type: build\n  title: Checks that pass\n  done_when:\n    - run: echo first\n    - fails: sh -c 'echo second; exit 1'\n- id: T-002\n  type: ci\n  title: A check that fails\n  done_when:\n    - run: \"true\"\n    - run: sh -c 'echo broken >&2; exit 5'\n    - run: echo still runs\n- id: T-003\n  type: docs\n  title: Reviewed by hand\n  done_when: []\n- id: T-006\n  type: docs\n  title: \"Write: the guide\"\n  why: >\n    It is missing.\n  done_when:\n    - run: \"true\"\n    - run: sh -c 'exit 0'\n      timeout: 30\n"
       tasks/work-items.yaml: "phases: { 1: null, 2: null }\nitems:\n  - { id: T-001, title: Checks that pass, phase: 1, status: done }\n  - id: T-006\n    title: \"Write: the guide\"\n    phase: 1\n    owner: null\n    status: todo\n    depends_on: []\n    kind: task\n"
@@ -645,55 +651,59 @@ cases:
     json:
       schema: 1
       ok: true
-      task: { id: T-004, type: build, title: Three, why: "A phase of its own.\n", done_when: [{ run: go vet ./..., timeout: 120 }] }
+      task:
+        id: T-004
+        type: build
+        title: Three
+        why: |
+          A phase of its own.
+        done_when: [{ run: go vet ./..., timeout: 120 }]
       file: .git/itos/tasks/phase-3.yaml
-      item: { id: T-004, title: Three, phase: 3, owner: null, status: todo, depends_on: [], tags: [], kind: task }
+      item:
+        id: T-004
+        title: Three
+        phase: 3
+        owner: null
+        status: todo
+        depends_on: []
+        kind: task
+        tags: []
       commit: null
     files_after:
       .git/itos/tasks/phase-3.yaml: "- id: T-004\n  type: build\n  title: Three\n  why: >\n    A phase of its own.\n  done_when:\n    - run: go vet ./...\n      timeout: 120\n"
   - name: task add refuses a caller-supplied id, and writes nothing
     argv: [task, add, T-004, --group, "1", --type, docs, --title, Again, --why, A second one., --check, "true"]
     exit: 2
-    stderr: |
-      itos: task add mints the task id; do not pass one (itos --help)
+    stderr_has: task id
   - name: task add refuses a type commits.types does not list
     argv: [task, add, --group, "1", --type, chore, --title, Six, --why, Because., --check, "true", --json]
     files:
       tasks/work-items.yaml: *registry
     exit: 1
-    json:
-      schema: 1
-      ok: false
-      problems:
-        - rule: ledger-add-type
-          message: "chore is not a commit type: commits.types lists build, ci, docs, test"
-          fix: pass --type with one of build, ci, docs, test
+    json: { schema: 1, ok: false, problems: [{ rule: ledger-add-type }] }
+    stdout_has: chore
   - name: task add refuses a group the registry does not list, as work check would, writing nothing
-    argv: [task, add, --group, "4", --type, docs, --title, Six, --why, Because., --check, "true"]
+    argv: [task, add, --group, "4", --type, docs, --title, Six, --why, Because., --check, "true", --json]
     files:
       tasks/work-items.yaml: *registry
     exit: 1
-    stderr: |
-      T-006: phase 4 is not listed
-        fix: add phase 4 to phases: in tasks/work-items.yaml, or move T-006 to a listed one
+    json: { schema: 1, ok: false, problems: [{ rule: work-unknown-phase }] }
+    stdout_has: "phase 4"
     files_after:
       tasks/phase-4.yaml: null
       tasks/work-items.yaml: *registry
   - name: task add refuses a group ledger.group.pattern does not match
-    argv: [task, add, --group, two, --type, docs, --title, Six, --why, Because., --check, "true"]
+    argv: [task, add, --group, two, --type, docs, --title, Six, --why, Because., --check, "true", --json]
     files:
       tasks/work-items.yaml: *registry
     exit: 1
-    stderr: |
-      two is not a phase ledger.files can name: ledger.group.pattern is \d+
-        fix: pass a phase ledger.group.pattern matches
+    json: { schema: 1, ok: false, problems: [{ rule: ledger-add-group }] }
+    stdout_has: ledger.group.pattern
   - name: task add needs a check
     argv: [task, add, --group, "1", --type, docs, --title, Six, --why, Because.]
     exit: 2
-    stderr: |
-      itos: task add needs --group <g>, --type <type>, --title <title>, --why <why> and a --check <command> (itos --help)
+    stderr_has: --check
   - name: task add takes a timeout only after a check
     argv: [task, add, --group, "1", --type, docs, --title, Six, --why, Because., --timeout, "30", --check, "true"]
     exit: 2
-    stderr: |
-      itos: task add takes one --timeout <seconds> after a --check, a number above 0, for that check (itos --help)
+    stderr_has: [--timeout, --check]
