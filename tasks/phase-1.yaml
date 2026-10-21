@@ -2637,3 +2637,28 @@
   done_when:
     - run: tools/bin/pinned itos-cc mutation run --since 9209b6be --count 1 --seed 9209b6be --fail-uncovered=lines --json cmd internal
       timeout: 900
+
+- id: T-210
+  type: refactor
+  title: "The tree reader is a port: internal/store/tree with a fake, a contract suite proved to fail, and the worktree and git-tree adapters"
+  why: >
+    ADR-0053, step 6 of docs/plans/slices-and-ports.md (step 5, the per-command declaration, waits
+    for v9's kong: the coordinator, 2026-10-21, since itos-cc's declaration is kong's and a
+    hand-made one would be redone). internal/source's Source (Tree, Has, Read, List) and Texts
+    become a port at internal/store/tree/port, every method taking a context.Context first; an
+    in-memory fake in port/porttest; a contract suite in T-209's shape (T[C], distinct messages,
+    contract_test.go proving each assertion fires on a fake broken for it) run by the fake's tests
+    and by both adapters' tests in temp repositories; the adapters (worktree, and a git tree at the
+    index or a commit, with the common-dir aside rule and Node-worded read errors kept) move from
+    internal/source to internal/store/tree/adapter. internal/source keeps its package-level Has,
+    Read, List, Current and ReadingFrom for now, delegating to the port's values, so no consumer
+    changes here; T-211 threads the value and removes the global. depguard and architecture-check
+    rules and fixtures for the new packages as T-207 added for the private store. No behaviour
+    change.
+  done_when:
+    - run: test -d internal/store/tree/port/porttest
+    - run: test -d internal/store/tree/adapter
+    - run: tools/bin/architecture-check
+      timeout: 900
+    - run: tools/bin/pinned golangci-lint run ./...
+      timeout: 600
