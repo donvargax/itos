@@ -13,8 +13,8 @@ import (
 )
 
 // compare is what differs between a case's expectations and its outcome, as lines to print.
-// With additive, stdout, stderr, json and files_after are judged by what they must still hold,
-// a written file by its data.
+// With additive, stdout (but a stdout_contract one, judged whole), stderr, json and files_after
+// are judged by what they must still hold, a written file by its data.
 func compare(c *Case, out *Outcome, s *subst, additive bool) []string {
 	var problems []string
 	if out.Exit == nil || float64(*out.Exit) != c.exit {
@@ -29,7 +29,11 @@ func compare(c *Case, out *Outcome, s *subst, additive bool) []string {
 		text = linesProblems
 	}
 	if c.stdout != nil {
-		problems = append(problems, text("stdout", s.text(*c.stdout), out.Stdout)...)
+		judge := text
+		if c.stdoutContract {
+			judge = textProblems
+		}
+		problems = append(problems, judge("stdout", s.text(*c.stdout), out.Stdout)...)
 	}
 	if c.stderr != nil {
 		problems = append(problems, text("stderr", s.text(*c.stderr), out.Stderr)...)
@@ -155,7 +159,7 @@ func jsonProblems(expected any, stdout string, additive bool) []string {
 		return quoted("stdout is not JSON:", stdout)
 	}
 	var left int
-	expected, actual = machine(expected, &left), machine(actual, &left)
+	expected, actual = machine(expected, &left, true), machine(actual, &left, true)
 	if !additive {
 		return textProblems("json", pretty(expected), pretty(actual))
 	}

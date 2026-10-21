@@ -98,6 +98,7 @@ type Case struct {
 	jsonHas        any
 	hasJSONHas     bool
 	stdoutNonempty bool
+	stdoutContract bool
 	filesAfter     files
 	gitConfigAfter []pair
 }
@@ -105,7 +106,7 @@ type Case struct {
 var (
 	caseKeys = set("name", "argv", "git", "files", "stdin", "env", "cwd", "hide", "exit", "stdout",
 		"stderr", "stdout_has", "stderr_has", "json", "json_has", "stdout_nonempty", "files_after",
-		"git_config_after", "github")
+		"git_config_after", "github", "stdout_contract")
 	stepKeys = set("commit", "stage", "write", "files", "branch", "checkout", "run", "label")
 	topKeys  = set("files", "git", "env", "github", "cases")
 )
@@ -172,11 +173,13 @@ func (f *File) Names() []string {
 
 // Machine leaves in each case only what itos's contract holds it to, as previous-release judges
 // the last release's corpus (docs/decisions/0035-only-machine-output-is-itos-s-contract-exit-codes-json-less-message-and-fix-and-the-files-it-writes.md):
-// it takes out every case's stdout, stderr, stdout_has and stderr_has, which pin plain text, and
-// every key named message, fix or text at any depth of its json, which are sentences for people
-// (unjudged). json_has and stdout_nonempty stay: they name only what the case chose to pin. It
-// says how many cases it read, how many of them lost their plain output, and how many message,
-// fix and text keys it left out.
+// it takes out every case's stdout, stderr, stdout_has and stderr_has, which pin plain text, but
+// the stdout of a case marked stdout_contract, a plain output scripts read
+// (docs/decisions/0054-script-facing-plain-outputs-and-the-guard-s-hook-json-are-contract-guide-text-is-exempt-like-message-and-fix.md),
+// and the keys of its json that are sentences for people (unjudged). json_has and
+// stdout_nonempty stay: they name only what the case chose to pin. It says how many cases it
+// read, how many of them lost their plain output, and how many message, fix and text keys it left
+// out.
 func (f *File) Machine() (cases, plainOut, keys int) {
 	for _, c := range f.doc.vals["cases"].([]any) {
 		m, ok := c.(*mapping)
@@ -185,7 +188,11 @@ func (f *File) Machine() (cases, plainOut, keys int) {
 		}
 		cases++
 		lost := false
-		for _, k := range []string{"stdout", "stderr", "stdout_has", "stderr_has"} {
+		plain := []string{"stderr", "stdout_has", "stderr_has"}
+		if v, _ := m.get("stdout_contract"); v != true {
+			plain = append(plain, "stdout")
+		}
+		for _, k := range plain {
 			if _, ok := m.get(k); ok {
 				lost = true
 				m.del(k)
@@ -195,35 +202,39 @@ func (f *File) Machine() (cases, plainOut, keys int) {
 			plainOut++
 		}
 		if j, ok := m.get("json"); ok {
-			m.set("json", machine(j, &keys))
+			m.set("json", machine(j, &keys, true))
 		}
 	}
 	return cases, plainOut, keys
 }
 
 // unjudged are the json keys no case's json: compares, at any depth: message and fix, a
-// problem's sentences (docs/decisions/0035-only-machine-output-is-itos-s-contract-exit-codes-json-less-message-and-fix-and-the-files-it-writes.md),
-// and text, guide --json's and go --json's prose
-// (docs/decisions/0054-script-facing-plain-outputs-and-the-guard-s-hook-json-are-contract-guide-text-is-exempt-like-message-and-fix.md).
-var unjudged = set("message", "fix", "text")
+// problem's sentences (docs/decisions/0035-only-machine-output-is-itos-s-contract-exit-codes-json-less-message-and-fix-and-the-files-it-writes.md).
+// unjudgedTop are those it leaves out of the top-level object alone: text, guide --json's and
+// go --json's prose (ADR-0054); a text key deeper down is data, a follow note's or a footer's.
+var (
+	unjudged    = set("message", "fix")
+	unjudgedTop = set("text")
+)
 
-// machine is a json value less every unjudged key, at any depth, counted.
-func machine(v any, keys *int) any {
+// machine is a json value less its unjudged keys, and with top its own unjudgedTop keys,
+// counted.
+func machine(v any, keys *int, top bool) any {
 	switch t := v.(type) {
 	case []any:
 		out := make([]any, len(t))
 		for i, e := range t {
-			out[i] = machine(e, keys)
+			out[i] = machine(e, keys, false)
 		}
 		return out
 	case *mapping:
 		out := newMapping()
 		for _, k := range t.keys {
-			if unjudged[k] {
+			if unjudged[k] || top && unjudgedTop[k] {
 				*keys++
 				continue
 			}
-			out.set(k, machine(t.vals[k], keys))
+			out.set(k, machine(t.vals[k], keys, false))
 		}
 		return out
 	}
@@ -363,6 +374,15 @@ func readCase(raw any, names map[string]bool) (*Case, string) {
 	}
 	c.json, c.hasJSON = m.get("json")
 	c.jsonHas, c.hasJSONHas = m.get("json_has")
+	if v, ok := m.get("stdout_contract"); ok {
+		if v != true {
+			return nil, "has a stdout_contract that is not true"
+		}
+		if c.stdout == nil {
+			return nil, "has a stdout_contract without a stdout"
+		}
+		c.stdoutContract = true
+	}
 	if v, ok := m.get("stdout_nonempty"); ok {
 		if v != true {
 			return nil, "has a stdout_nonempty that is not true"

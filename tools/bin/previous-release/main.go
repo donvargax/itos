@@ -27,11 +27,13 @@
 // assert. Its corpus is judged by itos's machine output alone, the only
 // contract it keeps (docs/decisions/0035-only-machine-output-is-itos-s-contract-exit-codes-json-less-message-and-fix-and-the-files-it-writes.md):
 // an old case's exit code, its files_after and its json, the json less every
-// key named message, fix or text at any depth, since those are the sentences a
-// person reads and change with them (text, guide prose, since
+// key named message or fix at any depth and text at its top, since those are
+// the sentences a person reads and change with them (text, guide prose, since
 // docs/decisions/0054-script-facing-plain-outputs-and-the-guard-s-hook-json-are-contract-guide-text-is-exempt-like-message-and-fix.md). Its stdout, stderr, stdout_has and
 // stderr_has are not compared: every plain-text output, help, a refusal or a
-// success alike, is for people and may change in any release. They are taken
+// success alike, is for people and may change in any release, but the plain
+// outputs scripts read (ADR-0054), whose cases say stdout_contract and whose
+// stdout is compared whole. The rest are taken
 // out of the release's cases before the runner runs them (corpus.File's
 // Machine), with the message, fix and text keys, and the check says how many
 // it left out. A help case or a usage error is judged as any other case
@@ -228,8 +230,9 @@ func run() int {
 	corpusReadied := readyOldCorpus(tree)
 	cases := corpusReadied.Names
 	fmt.Printf("%s: %s's conformance corpus: its %s judged by itos's machine output alone, by this tree's runner (--additive):\n"+
-		"  each one's exit code, files_after and json, a json key added passing and one removed or changed failing;\n"+
-		"  left out as for people, the plain stdout and stderr of %s and %s named message, fix or text in their json\n"+
+		"  each one's exit code, files_after and json, a json key added passing and one removed or changed failing,\n"+
+		"  and a stdout_contract case's stdout, whole (docs/decisions/0054-script-facing-plain-outputs-and-the-guard-s-hook-json-are-contract-guide-text-is-exempt-like-message-and-fix.md);\n"+
+		"  left out as for people, the other plain stdout and stderr of %s and %s named message or fix, or text at the top, in their json\n"+
 		"  (docs/decisions/0035-only-machine-output-is-itos-s-contract-exit-codes-json-less-message-and-fix-and-the-files-it-writes.md);\n"+
 		"  this tree's own corpus pins its json less those keys, and every other output exactly\n",
 		self, tag, counted(corpusReadied.Cases, "case", "cases"),
@@ -272,7 +275,7 @@ type suite struct {
 
 // readied is the release's corpus readied for the run: each fixture with only
 // what itos's contract holds it to (corpus.File's Machine), how many cases it
-// read, how many lost their plain output, how many message, fix and text keys it
+// read, how many lost their plain output, how many message, fix and top-level text keys it
 // left out of their json, and each corpus file's case names, by its base name,
 // which Changes: entries are read against. A file that cannot be read is an
 // error the corpus's run reports, its names none.

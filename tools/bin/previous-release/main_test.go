@@ -29,9 +29,9 @@ func TestMain(m *testing.M) {
 func fakeItos(args []string) int {
 	problems := func(rule string) {
 		out, _ := json.Marshal(map[string]any{
-			"schema": 1, "ok": false, "count": 1,
+			"schema": 1, "ok": false, "count": 1, "text": "prose said anew",
 			"problems": []map[string]any{{
-				"rule": rule, "message": "said anew", "fix": "a fix said anew", "text": "prose said anew",
+				"rule": rule, "message": "said anew", "fix": "a fix said anew",
 				"detail": map[string]any{"message": "deeper, said anew", "line": 3},
 			}},
 		})
@@ -47,6 +47,10 @@ func fakeItos(args []string) int {
 		return 2
 	case "succeed":
 		fmt.Println("finished, said anew")
+	case "scope":
+		fmt.Println("docs_only=true")
+	case "scope added":
+		fmt.Println("docs_only=true\nmore=1")
 	case "check reworded":
 		problems("r-one")
 		return 1
@@ -70,7 +74,8 @@ func fakeItos(args []string) int {
 }
 
 // A fixture of the last release's corpus: four cases whose words fakeItos
-// changes, which pass, and four whose machine output it changes, which fail.
+// changes and a script output it keeps, which pass, and four whose machine
+// output it changes and a script output it adds a line to, which fail.
 const oldCorpus = `cases:
   - name: help, said anew
     argv: [--help]
@@ -92,12 +97,22 @@ const oldCorpus = `cases:
     json:
       schema: 1
       ok: false
+      text: the old prose
       problems:
         - rule: r-one
           message: the old words
           fix: the old fix
-          text: the old prose
           detail: { message: the old deeper words, line: 3 }
+  - name: a script output, as it was
+    argv: [scope]
+    exit: 0
+    stdout: "docs_only=true\n"
+    stdout_contract: true
+  - name: a script output, a line added
+    argv: [scope, added]
+    exit: 0
+    stdout: "docs_only=true\n"
+    stdout_contract: true
   - name: an exit code, changed
     argv: [exit]
     exit: 1
@@ -132,8 +147,9 @@ func oldTree(t *testing.T) string {
 }
 
 // readyOldCorpus takes out of every old case what is for people, its plain
-// output and its json's message, fix and text keys at any depth, and keeps the rest
-// as written: the exit code, files_after and every other json key
+// output (but a stdout_contract case's stdout) and its json's message and fix
+// keys at any depth and text at its top, and keeps the rest as written: the
+// exit code, files_after and every other json key
 // (docs/decisions/0035-only-machine-output-is-itos-s-contract-exit-codes-json-less-message-and-fix-and-the-files-it-writes.md).
 // It counts what it left out, names every case, and writes nothing to the
 // release's tree. What it leaves of a case is corpus.File's Machine's, tested
@@ -144,14 +160,14 @@ func TestReadyOldCorpusKeepsMachineOutputOnly(t *testing.T) {
 	if r.Err != nil {
 		t.Fatal(r.Err)
 	}
-	if r.Cases != 8 || r.Plain != 4 || r.Keys != 5 {
-		t.Errorf("cases read, cases whose plain output it left out, message, fix and text keys it left out: got %d, %d, %d, want 8, 4, 5",
+	if r.Cases != 10 || r.Plain != 4 || r.Keys != 5 {
+		t.Errorf("cases read, cases whose plain output it left out, message, fix and text keys it left out: got %d, %d, %d, want 10, 4, 5",
 			r.Cases, r.Plain, r.Keys)
 	}
-	if got := len(r.Names["cli.yaml"]); got != 8 {
-		t.Errorf("the case names, as written: got %d, want 8: %q", got, r.Names["cli.yaml"])
+	if got := len(r.Names["cli.yaml"]); got != 10 {
+		t.Errorf("the case names, as written: got %d, want 10: %q", got, r.Names["cli.yaml"])
 	}
-	if len(r.Fixtures) != 1 || len(r.Fixtures[0].Cases) != 8 || r.Fixtures[0].Shown != "tools/itos/conformance/cli.yaml" {
+	if len(r.Fixtures) != 1 || len(r.Fixtures[0].Cases) != 10 || r.Fixtures[0].Shown != "tools/itos/conformance/cli.yaml" {
 		t.Errorf("the fixtures to run: %+v", r.Fixtures)
 	}
 	written, err := os.ReadFile(filepath.Join(tree, "tools/itos/conformance/cli.yaml"))
@@ -167,7 +183,7 @@ func TestReadyOldCorpusUnreadable(t *testing.T) {
 		t.Fatal(err)
 	}
 	r := readyOldCorpus(tree)
-	if r.Err == nil || !strings.Contains(r.Err.Error(), "bad.yaml") || len(r.Names["cli.yaml"]) != 8 {
+	if r.Err == nil || !strings.Contains(r.Err.Error(), "bad.yaml") || len(r.Names["cli.yaml"]) != 10 {
 		t.Errorf("an unreadable file should be the run's error, the readable ones named: %v, %q", r.Err, r.Names)
 	}
 	if s := runCorpus(r, "itos"); s.err == nil {
@@ -177,8 +193,8 @@ func TestReadyOldCorpusUnreadable(t *testing.T) {
 
 // The old corpus, readied and run against an itos that rewords everything:
 // a reworded stdout or stderr, help text included, and a reworded message,
-// fix or text pass; a changed exit code, rule id or files_after, or a json key
-// removed, fails (docs/decisions/0035-only-machine-output-is-itos-s-contract-exit-codes-json-less-message-and-fix-and-the-files-it-writes.md).
+// fix or top-level text pass; a changed exit code, rule id or files_after, a
+// json key removed, or a line added to a stdout_contract case's stdout, fails (docs/decisions/0035-only-machine-output-is-itos-s-contract-exit-codes-json-less-message-and-fix-and-the-files-it-writes.md).
 func TestOldCorpusJudgesMachineOutputAlone(t *testing.T) {
 	old := readyOldCorpus(oldTree(t))
 	if old.Err != nil {
@@ -201,6 +217,7 @@ func TestOldCorpusJudgesMachineOutputAlone(t *testing.T) {
 	want := []string{
 		"cli.yaml: a json key, removed",
 		"cli.yaml: a rule id, changed",
+		"cli.yaml: a script output, a line added",
 		"cli.yaml: an exit code, changed",
 		"cli.yaml: files_after, changed",
 	}

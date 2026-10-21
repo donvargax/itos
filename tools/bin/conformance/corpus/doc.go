@@ -27,9 +27,11 @@
 //	stdout, stderr          the exact text; stdout_has, stderr_has: text each must contain (one,
 //	                        or a list); stdout_nonempty: true, stdout holds something besides
 //	                        whitespace
-//	json                    stdout's JSON, whole, less every key named message, fix or text at
-//	                        any depth on both sides: sentences for people, not contract
-//	                        (ADR-0035, ADR-0054), so a reworded one passes
+//	stdout_contract         true: stdout is a plain output scripts read (ADR-0054), which
+//	                        Machine keeps and Additive still judges whole; it needs a stdout
+//	json                    stdout's JSON, whole, less every key named message or fix at any
+//	                        depth and text at the top level, on both sides: sentences for people,
+//	                        not contract (ADR-0035, ADR-0054), so a reworded one passes
 //	json_has                what stdout's JSON must hold, a subset: every key it names present
 //	                        with the value it gives, at every depth, keys it does not name
 //	                        passing; an array's elements each held by some element of the
@@ -50,7 +52,8 @@
 // (v8.0.0's ask.yaml), is read as YAML 1.2 reads it (quoteFlowQuestions).
 //
 // Additive (Options.Additive, the command line's --additive), which tools/bin/previous-release
-// turns on for the last release's corpus (T-076): stdout and stderr are lines that must all
+// turns on for the last release's corpus (T-076): stdout (but a stdout_contract one) and stderr
+// are lines that must all
 // appear in the output in the same order, lines added before, between or after them passing,
 // and json is what the output's JSON must hold: every key it names there with the value it
 // gives, at every depth, an array element by element at the same length, a key added anywhere
@@ -62,7 +65,7 @@
 // stderr_has, stdout_nonempty, json_has and git_config_after (each entry data, and one it does
 // not name never read, T-113) are judged as ever. Without it, as this tree's corpus runs, stdout,
 // stderr and every file are pinned exactly, comments and all, and json whole less message, fix
-// and text.
+// and top-level text.
 //
 // A case's github is a fake of GitHub's API for ci.watch, status and ci range's github providers
 // (slice 85, when v5.0.0 removed the command providers the corpus faked CI with): the runner

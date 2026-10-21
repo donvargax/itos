@@ -116,6 +116,8 @@ func TestFixtureErrors(t *testing.T) {
 		{"cases:\n  - { name: a, argv: [x], exit: 0, git: [{ push: x }] }\n", "a git step has an unknown key push"},
 		{"cases:\n  - [x]\n", "case 1 is not a mapping"},
 		{"cases:\n  - { name: a, argv: [x], exit: 0, stdout_nonempty: false }\n", "case 1 (a) has a stdout_nonempty that is not true"},
+		{"cases:\n  - { name: a, argv: [x], exit: 0, stdout: x, stdout_contract: yes }\n", "case 1 (a) has a stdout_contract that is not true"},
+		{"cases:\n  - { name: a, argv: [x], exit: 0, stdout_contract: true }\n", "case 1 (a) has a stdout_contract without a stdout"},
 	} {
 		_, err := ReadFixture(writeFixture(t, c.text))
 		if err == nil || !strings.Contains(err.Error(), c.want) {
@@ -157,26 +159,30 @@ cases:
 
 func TestMachine(t *testing.T) {
 	file, err := ReadFile(writeFixture(t, `cases:
-  - { name: a, argv: [x], exit: 0, stdout: "x\n", json: { ok: true, message: m, list: [{ fix: f, rule: r, text: t }] } }
+  - { name: a, argv: [x], exit: 0, stdout: "x\n", json: { ok: true, message: m, text: t, list: [{ fix: f, rule: r, text: t }] } }
   - { name: b, argv: [x], exit: 0, stderr_has: y }
   - { name: c, argv: [x], exit: 0, stdout_nonempty: true, json_has: { text: t, message: "<any>" } }
+  - { name: d, argv: [x], exit: 0, stdout: "docs_only=true\n", stdout_contract: true, stderr: "" }
 `))
 	if err != nil {
 		t.Fatal(err)
 	}
 	cases, plainOut, keys := file.Machine()
-	if cases != 3 || plainOut != 2 || keys != 3 {
-		t.Errorf("Machine said %d cases, %d plain, %d keys; want 3, 2, 3", cases, plainOut, keys)
+	if cases != 4 || plainOut != 3 || keys != 3 {
+		t.Errorf("Machine said %d cases, %d plain, %d keys; want 4, 3, 3", cases, plainOut, keys)
 	}
 	f, err := file.Fixture()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if f.Cases[0].stdout != nil || f.Cases[1].stderrHas != nil || show(f.Cases[0].json) != `{"ok":true,"list":[{"rule":"r"}]}` ||
+	if f.Cases[0].stdout != nil || f.Cases[1].stderrHas != nil || show(f.Cases[0].json) != `{"ok":true,"list":[{"rule":"r","text":"t"}]}` ||
 		!f.Cases[2].stdoutNonempty || show(f.Cases[2].jsonHas) != `{"text":"t","message":"<any>"}` {
 		t.Errorf("Machine left %v %v %s, %v %s", f.Cases[0].stdout, f.Cases[1].stderrHas, show(f.Cases[0].json), f.Cases[2].stdoutNonempty, show(f.Cases[2].jsonHas))
 	}
-	if !slices.Equal(file.Names(), []string{"a", "b", "c"}) {
+	if d := f.Cases[3]; d.stdout == nil || *d.stdout != "docs_only=true\n" || !d.stdoutContract || d.stderr != nil {
+		t.Errorf("Machine should keep a stdout_contract case's stdout alone: %v %v %v", d.stdout, d.stdoutContract, d.stderr)
+	}
+	if !slices.Equal(file.Names(), []string{"a", "b", "c", "d"}) {
 		t.Errorf("names %q", file.Names())
 	}
 }
@@ -238,17 +244,20 @@ func judged(t *testing.T, kase, stdout string, additive bool) string {
 	return strings.Join(compare(f.Cases[0], &Outcome{Exit: &exit, Stdout: stdout}, &subst{}, additive), "\n")
 }
 
-// json: compares the whole object less every key named message, fix or text, at any depth
-// (ADR-0035, ADR-0054): reworded sentences pass, any other key changed, added or removed fails.
+// json: compares the whole object less every key named message or fix at any depth, and text at
+// the top (ADR-0035, ADR-0054): reworded sentences pass, any other key changed, added or removed
+// fails, a text deeper down included, which is data.
 func TestJSONLeavesOutSentences(t *testing.T) {
-	const kase = `{ name: a, argv: [x], exit: 0, json: { rule: r, message: old words, problems: [{ rule: p, fix: old fix, detail: { text: old prose, line: 3 } }] } }`
+	const kase = `{ name: a, argv: [x], exit: 0, json: { rule: r, message: old words, text: old prose, problems: [{ rule: p, fix: old fix, detail: { message: old words, line: 3 } }], notes: [{ text: a note }] } }`
 	for stdout, want := range map[string]string{
-		`{"rule":"r","message":"new words","problems":[{"rule":"p","fix":"new fix","detail":{"text":"new prose","line":3}}]}`: "",
-		`{"rule":"r","problems":[{"rule":"p","detail":{"line":3}}]}`:                                                          "",
-		`{"rule":"r","problems":[{"rule":"p","detail":{"line":3},"text":"added prose"}],"fix":"added"}`:                       "",
-		`{"rule":"r","message":"new words","problems":[{"rule":"p","detail":{"line":4}}]}`:                                    "line",
-		`{"rule":"r","problems":[{"rule":"p","detail":{"line":3}}],"extra":1}`:                                                "extra",
-		`{"problems":[{"rule":"p","detail":{"line":3}}]}`:                                                                     "rule",
+		`{"rule":"r","message":"new words","text":"new prose","problems":[{"rule":"p","fix":"new fix","detail":{"message":"new words","line":3}}],"notes":[{"text":"a note"}]}`: "",
+		`{"rule":"r","problems":[{"rule":"p","detail":{"line":3}}],"notes":[{"text":"a note"}]}`:                                                                                "",
+		`{"rule":"r","problems":[{"rule":"p","detail":{"line":3},"fix":"added"}],"text":"added prose","notes":[{"text":"a note"}]}`:                                             "",
+		`{"rule":"r","message":"new words","problems":[{"rule":"p","detail":{"line":4}}],"notes":[{"text":"a note"}]}`:                                                          "line",
+		`{"rule":"r","problems":[{"rule":"p","detail":{"line":3}}],"notes":[{"text":"a note"}],"extra":1}`:                                                                      "extra",
+		`{"problems":[{"rule":"p","detail":{"line":3}}],"notes":[{"text":"a note"}]}`:                                                                                           "rule",
+		`{"rule":"r","problems":[{"rule":"p","detail":{"line":3}}],"notes":[{"text":"another note"}]}`:                                                                          "another note",
+		`{"rule":"r","problems":[{"rule":"p","detail":{"line":3}}],"notes":[{}]}`:                                                                                               "a note",
 	} {
 		got := judged(t, kase, stdout, false)
 		if (want == "") != (got == "") || !strings.Contains(got, want) {
@@ -258,8 +267,26 @@ func TestJSONLeavesOutSentences(t *testing.T) {
 			t.Errorf("json: of %s showed an unjudged key: %q", stdout, got)
 		}
 	}
-	if got := judged(t, kase, `{"rule":"r","problems":[{"rule":"p","detail":{"line":3,"more":1}}],"added":true}`, true); got != "" {
+	if got := judged(t, kase, `{"rule":"r","problems":[{"rule":"p","detail":{"line":3,"more":1}}],"notes":[{"text":"a note"}],"added":true}`, true); got != "" {
 		t.Errorf("additive json: should pass keys added, sentences aside: %q", got)
+	}
+}
+
+// A stdout_contract case's stdout is judged whole even in additive, where any other stdout
+// passes with lines added (ADR-0054: the plain outputs scripts read).
+func TestStdoutContract(t *testing.T) {
+	const plain = `{ name: a, argv: [x], exit: 0, stdout: "FROM=abc\n" }`
+	const contract = `{ name: a, argv: [x], exit: 0, stdout: "FROM=abc\n", stdout_contract: true }`
+	if got := judged(t, plain, "FROM=abc\nTO=def\n", true); got != "" {
+		t.Errorf("additive should pass a line added to a plain stdout: %q", got)
+	}
+	for _, additive := range []bool{false, true} {
+		if got := judged(t, contract, "FROM=abc\n", additive); got != "" {
+			t.Errorf("a contract stdout as it was should pass (additive %v): %q", additive, got)
+		}
+		if got := judged(t, contract, "FROM=abc\nTO=def\n", additive); !strings.Contains(got, "TO=def") {
+			t.Errorf("a line added to a contract stdout should fail (additive %v): %q", additive, got)
+		}
 	}
 }
 
