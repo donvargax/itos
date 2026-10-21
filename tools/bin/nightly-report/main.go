@@ -22,7 +22,8 @@
 // Everything is read from the log, never from ci run --json: the report job needs no artifact.
 // It asks GitHub through gh, with the token gh has (the job hands it github.token). A job list
 // that cannot be read, or a log, is said in the body, never a failure of the program: the issue
-// still names the run.
+// still names the run, and the error's first line, gh's stderr included, under that sentence; the
+// whole error goes to stderr, into the report job's log.
 //
 // It imports nothing but the standard library, as the other gate programs do.
 //
@@ -68,17 +69,29 @@ func run(args []string, cmd runner, stdout, stderr io.Writer) int {
 	if err != nil || len(jobs) == 0 {
 		b.WriteString("\nIts jobs could not be read: see the run's log.\n")
 	}
+	if err != nil {
+		fmt.Fprintf(stderr, "nightly-report: the jobs could not be read: %v\n", err)
+		fmt.Fprintf(&b, "\n%s\n", code(firstLine(err), false))
+	}
 	for _, j := range jobs {
 		text, err := cmd("gh", "api", fmt.Sprintf("repos/%s/actions/jobs/%d/logs", *repo, j.ID))
 		fmt.Fprintf(&b, "\n### %s: %s\n\n", j.Name, j.Conclusion)
 		if err != nil {
-			b.WriteString("Its log could not be read: see the run.\n")
+			fmt.Fprintf(stderr, "nightly-report: the log of job %s (%d) could not be read: %v\n", j.Name, j.ID, err)
+			fmt.Fprintf(&b, "Its log could not be read: see the run.\n\n%s\n", code(firstLine(err), false))
 			continue
 		}
 		b.WriteString(read(text).render())
 	}
 	fmt.Fprint(stdout, b.String())
 	return 0
+}
+
+// firstLine is an error's text to its first line break, trimmed: gh's stderr, which execRun's
+// error carries, may run to several lines.
+func firstLine(err error) string {
+	line, _, _ := strings.Cut(strings.TrimSpace(err.Error()), "\n")
+	return strings.TrimSpace(line)
 }
 
 // job is a job of the attempt, as the jobs call lists it.

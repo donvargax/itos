@@ -204,7 +204,7 @@ func (f *fake) run(name string, args ...string) (string, error) {
 			return text, nil
 		}
 	}
-	return "", errors.New("gh: HTTP 404")
+	return "", errors.New("gh: exit status 1: gh: Not Found (HTTP 404)\n{\"message\":\"Not Found\"}")
 }
 
 var args = []string{"-repo", "donvargax/itos", "-run", "7", "-attempt", "2", "-url", "https://github.com/donvargax/itos/actions/runs/7"}
@@ -222,26 +222,37 @@ func TestRun(t *testing.T) {
 	}
 	want := "Nightly run https://github.com/donvargax/itos/actions/runs/7 is red.\n\n### nightly: failure\n\n" +
 		read(excerpt(t, "38896023548")).render() +
-		"\n### platform (windows-latest): cancelled\n\nIts log could not be read: see the run.\n"
+		"\n### platform (windows-latest): cancelled\n\nIts log could not be read: see the run.\n\n" +
+		"`gh: exit status 1: gh: Not Found (HTTP 404)`\n"
 	if stdout.String() != want {
 		t.Errorf("the body says:\n%s\nwant:\n%s", stdout.String(), want)
+	}
+	// The whole error, gh's every line, goes to stderr.
+	if !strings.Contains(stderr.String(), "job platform (windows-latest) (3)") || !strings.Contains(stderr.String(), `{"message":"Not Found"}`) {
+		t.Errorf("stderr says:\n%s", stderr.String())
 	}
 }
 
 func TestTheJobsCannotBeRead(t *testing.T) {
-	for name, f := range map[string]*fake{
-		"gh fails": {jobsErr: errors.New("gh: HTTP 403")},
-		"not JSON": {jobs: "<html>"},
-		"none red": {jobs: `{"jobs":[{"id":1,"name":"nightly","conclusion":"success"}]}`},
+	for name, c := range map[string]struct {
+		f   *fake
+		why string // what the body gives under the sentence; nothing when no call failed
+	}{
+		"gh fails": {&fake{jobsErr: errors.New("gh: exit status 1: gh: HTTP 403\nmore")}, "\n`gh: exit status 1: gh: HTTP 403`\n"},
+		"not JSON": {&fake{jobs: "<html>"}, "\n`invalid character '<' looking for beginning of value`\n"},
+		"none red": {&fake{jobs: `{"jobs":[{"id":1,"name":"nightly","conclusion":"success"}]}`}, ""},
 	} {
 		t.Run(name, func(t *testing.T) {
 			var stdout, stderr strings.Builder
-			if code := run(args, f.run, &stdout, &stderr); code != 0 {
+			if code := run(args, c.f.run, &stdout, &stderr); code != 0 {
 				t.Fatalf("exit %d: %s", code, stderr.String())
 			}
-			want := "Nightly run https://github.com/donvargax/itos/actions/runs/7 is red.\n\nIts jobs could not be read: see the run's log.\n"
+			want := "Nightly run https://github.com/donvargax/itos/actions/runs/7 is red.\n\nIts jobs could not be read: see the run's log.\n" + c.why
 			if stdout.String() != want {
 				t.Errorf("the body says:\n%s", stdout.String())
+			}
+			if (c.why == "") != (stderr.Len() == 0) {
+				t.Errorf("stderr says: %q", stderr.String())
 			}
 		})
 	}
