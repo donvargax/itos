@@ -11246,8 +11246,8 @@ items:
   - id: T-210
     title: "The tree reader is a port: internal/store/tree with a fake, a contract suite proved to fail, and the worktree and git-tree adapters"
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
 
