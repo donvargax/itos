@@ -34,8 +34,8 @@
 // in one table keyed by command path (help.go): itos, itos help … and any
 // --help print the longest command path the table knows, before any config
 // is read; TestUsageFlagsAreInTheSpecs holds every flag a usage line names to
-// the spec, and a change to a text lands with its case in the corpus's
-// help.yaml.
+// the spec; the corpus's help.yaml pins only that help exits 0 and names
+// the subcommands, not its words (ADR-0052).
 //
 // The commands and flags v6.0.0 renamed (renamed.go,
 // docs/decisions/0036-v6-0-0-renames-commands-by-the-cli-guidelines-parses-every-flag-from-a-spec-and-takes-exit-codes-from-the-error-s-kind.md)

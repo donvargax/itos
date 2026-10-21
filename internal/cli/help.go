@@ -7,8 +7,8 @@ import (
 
 // The help texts, help.ts ported: what `itos --help` and each command's
 // --help print, one place for all of them rather than one per command.
-// Agents read these, so tools/itos/conformance/help.yaml holds every one
-// byte for byte, and a change here is the same change to help.ts.
+// Their words are for people (ADR-0052): tools/itos/conformance/help.yaml
+// pins only that each exits 0 and names its subcommands.
 
 const globalFlags = `Global flags:
   --config <file>   the config (default ITOS_CONFIG, else itos.yaml, else the
