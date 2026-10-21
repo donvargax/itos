@@ -11167,3 +11167,19 @@ items:
       landed as a chore. The fixtures of a gate belong to the gate, so build and ci, or test, should
       reach tools/testdata.
     refs: [T-194]
+
+  - id: p1-previous-release-pins-script-outputs
+    title: previous-release judges the script-facing plain outputs exactly
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      ADR-0054 makes the plain stdout meant for scripts contract: ci scope docs_only=, ci range
+      FROM= and TO=, config get, tests next-id, tests smoke ids. It says previous-release compares
+      them exactly, but the Machine walk of corpus.File takes stdout, stderr, stdout_has and
+      stderr_has out of every old case, so a changed script output passes the release check. T-197
+      left that rule as it was. Needs a way to tell those cases apart, a case key or the command
+      they run, and Machine keeping their stdout.
+    refs: [docs/decisions/0054-script-facing-plain-outputs-and-the-guard-s-hook-json-are-contract-guide-text-is-exempt-like-message-and-fix.md]
