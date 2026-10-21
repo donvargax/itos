@@ -151,7 +151,7 @@ cases:
     argv: [init, --no-git-shim]
     exit: 1
     stdout: |
-      itos.yaml is there already, so init wrote nothing.
+      itos.yaml is there already; init kept it as it is.
       Missing:
         no work registry at tasks/work-items.yaml; move the registry to tasks/work-items.yaml, or set work.registry to where it is
         the pre-push hook: hook.itos-pre-push in the git config does not run itos; run itos hook install
@@ -221,7 +221,7 @@ cases:
       .git/bin/claude: *claude
     exit: 0
     stdout: |
-      itos.yaml is there already, so init wrote nothing.
+      itos.yaml is there already; init kept it as it is.
       Nothing is missing: the config, its ledger, registry and smoke sets are sound, and the hooks call itos.
       Noted, not counted as missing:
         no people file at CONTRIBUTORS.md (work.people), so the registry's owners go unchecked; list the people who may own work in CONTRIBUTORS.md, or set work.people.file to where they are

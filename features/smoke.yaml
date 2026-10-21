@@ -88,6 +88,10 @@
   scenarios:
     - id: "@ID-INIT-01"
       why: init in a repository with a commit writes a config the checks accept and installs the hooks, the file's point
+- file: init-status.feature
+  scenarios:
+    - id: "@ID-INITSTATUS-01"
+      why: a rerun that rewrites the rules says it kept the config, not that it wrote nothing, the file's point
 - file: ids.feature
   scenarios:
     - id: "@ID-IDS-01"

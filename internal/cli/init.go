@@ -399,8 +399,8 @@ func smokeSetOf(list tests.List, prefix string) (string, int) {
 	return b.String(), n
 }
 
-// initReport is init where a config is there: it writes nothing and lists
-// what is missing, exit 1 when anything is; then what it notes, never
+// initReport is init where a config is there: it keeps the config as it is
+// and lists what is missing, exit 1 when anything is; then what it notes, never
 // counted as missing (slice 50): a people file the config names that the
 // repository lacks or cannot be read (config check's warning), and a pin
 // behind the newest release, where the release server answers; then makes
@@ -448,7 +448,7 @@ func initReport(file string, offer pluginOffer, shimOffer shimOffer, rulesOffer 
 			fmt.Fprintf(o.Stdout, "  %s\n", line)
 		}
 	}
-	fmt.Fprintf(o.Stdout, "%s is there already, so init wrote nothing.\n", file)
+	fmt.Fprintf(o.Stdout, "%s is there already; init kept it as it is.\n", file)
 	if len(found) == 0 {
 		fmt.Fprintln(o.Stdout, "Nothing is missing: the config, its ledger, registry and smoke sets are sound, and the hooks call itos.")
 	} else {

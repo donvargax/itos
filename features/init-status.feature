@@ -14,7 +14,7 @@ Feature: A rerun reports the existing config separately from requested setup wri
     Given a repository with a valid existing itos config and installed hooks
     And all release/update observations use local fixtures
 
-  @wip @ID-INITSTATUS-01 @bug-114
+  @ID-INITSTATUS-01 @bug-114
   Scenario: A requested rules rewrite is not preceded by a global wrote-nothing claim
     Given AGENTS.md has a stale marked itos rules block
     When itos runs "init --agent-rules --plugin no --no-git-shim"
@@ -24,7 +24,7 @@ Feature: A rerun reports the existing config separately from requested setup wri
     And the stale marked rules block is updated using the existing rules behavior
     And the rules result separately reports what it wrote
 
-  @wip @ID-INITSTATUS-02 @bug-114
+  @ID-INITSTATUS-02 @bug-114
   Scenario: A current rules block keeps its own truthful result
     Given AGENTS.md and its Claude import already contain the current rules
     When itos runs "init --agent-rules --plugin no --no-git-shim"
