@@ -1,3 +1,7 @@
+# A port's fake and contract suite (ADR-0053) are test code outside
+# _test.go files, never linked into the binary: no command measures them.
+exclude: ["**/porttest/**"]
+
 mutation:
   tests:
     list: go run ./tools/bin/itos-cc-tests
