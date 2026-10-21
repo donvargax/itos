@@ -6056,6 +6056,10 @@ items:
       the CI step prints a line such as 1 function judged, 6 mutants killed, 0 excepted; a check
       that judged nothing while the range touches proof.code's paths fails the step, since it then
       proves nothing. After slice-106, whose CI step is where the line goes.
+    deferred: >
+      Feature freeze for the slices and ports refactor (ADR-0053, the user 2026-10-21): only repairs
+      and moves until the layout is done, since most of these touch internal/cli files the moves
+      rewrite. Resume after the last slice moves.
 
   - id: p1-proof-empty-range
     title: A range with no readable start runs no code proof, and says nothing about it
@@ -6139,6 +6143,10 @@ items:
       tools/bin/itos-cc-tests is a separate gate/config task after this CLI slice lands; no mutation
       or CI policy changes are bundled.
     refs: [features/tests-list.feature, internal/cli/tests.go, internal/cli/commands.go, internal/cli/help.go, internal/tests/tests.go, internal/tests/gherkin.go]
+    deferred: >
+      Feature freeze for the slices and ports refactor (ADR-0053, the user 2026-10-21): only repairs
+      and moves until the layout is done, since most of these touch internal/cli files the moves
+      rewrite. Resume after the last slice moves.
 
   - id: p3-opencode-plugin
     title: An opencode v2 plugin guards git commit and git push, and init wires it
@@ -7045,6 +7053,10 @@ items:
       whole-tree mutation run, no output added to --tests-only execution or configured nightly
       execution. Those modes already have their own contracts.
     refs: [features/ci-proof-report.feature, internal/plan/data.go, internal/plan/plan.go, internal/cli/ci.go, internal/ci/ci.go]
+    deferred: >
+      Feature freeze for the slices and ports refactor (ADR-0053, the user 2026-10-21): only repairs
+      and moves until the layout is done, since most of these touch internal/cli files the moves
+      rewrite. Resume after the last slice moves.
 
   - id: slice-131
     title: itos push --tag and --ref push a tag or another branch, never forced, and tags only when asked
@@ -7097,6 +7109,10 @@ items:
       first probe. Wanted: a reader meeting a record can tell whether it has been tried, and a
       session about to build from one learns it before writing anything (a record proposed until
       something proves it, a warning, or an answered-but-unproven state).
+    deferred: >
+      Feature freeze for the slices and ports refactor (ADR-0053, the user 2026-10-21): only repairs
+      and moves until the layout is done, since most of these touch internal/cli files the moves
+      rewrite. Resume after the last slice moves.
 
   - id: p1-flag-defaults-policy
     title: Each command's plain invocation is the recommended one, starting with itos init --agent-rules
@@ -7256,6 +7272,10 @@ items:
       the current kind and registry, but a rejected alias never reserves an ID or contacts the
       counter.
     refs: [features/next-id-stems.feature, internal/cli/nextid.go, internal/tests/nextid.go, internal/cli/help.go]
+    deferred: >
+      Feature freeze for the slices and ports refactor (ADR-0053, the user 2026-10-21): only repairs
+      and moves until the layout is done, since most of these touch internal/cli files the moves
+      rewrite. Resume after the last slice moves.
 
   - id: p1-drop-done-dependency
     title: Dropping an idea already built frees the items that wait on it, as work done does
@@ -7924,6 +7944,10 @@ items:
       projection engine or a guarantee about future inputs.
     refs: [internal/cli/idmint.go, features/draft.feature]
     tags: [work]
+    deferred: >
+      Feature freeze for the slices and ports refactor (ADR-0053, the user 2026-10-21): only repairs
+      and moves until the layout is done, since most of these touch internal/cli files the moves
+      rewrite. Resume after the last slice moves.
 
   - id: p1-ci-run-help-proof-check
     title: ci run's help says the code proof runs proof.code.check, which may judge fresh mutants
@@ -8686,6 +8710,10 @@ items:
       repair is now p1-upgrade-repair-question-links.
     refs: [features/decision-relink.feature, internal/cli/ask.go, internal/cli/configcheck.go, internal/ask/ask.go]
     tags: [work]
+    deferred: >
+      Feature freeze for the slices and ports refactor (ADR-0053, the user 2026-10-21): only repairs
+      and moves until the layout is done, since most of these touch internal/cli files the moves
+      rewrite. Resume after the last slice moves.
 
   - id: p1-upgrade-notes-tidy
     title: itos upgrade's notes leave out the steps it did, and group a commit's changed cases under one header
@@ -8880,6 +8908,10 @@ items:
       change.
     tags: [ci, push]
     refs: [features/watch-registration.feature, internal/cli/push.go, internal/cli/watch.go, internal/providers/watch.go]
+    deferred: >
+      Feature freeze for the slices and ports refactor (ADR-0053, the user 2026-10-21): only repairs
+      and moves until the layout is done, since most of these touch internal/cli files the moves
+      rewrite. Resume after the last slice moves.
 
   - id: slice-151
     title: Explain CI step forms and range inputs in CLI help and defaults examples
@@ -8904,6 +8936,10 @@ items:
       that mismatch, with no planner change hidden in this help work.
     tags: [ci, docs]
     refs: [features/ci-help.feature, internal/cli/help.go, internal/cli/configcheck.go, internal/config/defaults.go, internal/plan/ends.go]
+    deferred: >
+      Feature freeze for the slices and ports refactor (ADR-0053, the user 2026-10-21): only repairs
+      and moves until the layout is done, since most of these touch internal/cli files the moves
+      rewrite. Resume after the last slice moves.
 
   - id: p1-init-shim-under-pin
     title: init under a pin looks for the git shim beside the cached release, not the git on the PATH
@@ -9239,6 +9275,10 @@ items:
       this delivery.
     tags: [upgrade]
     refs: [internal/cli/upgrade.go, action.yml, docs/decisions/0024-a-global-itos-is-a-launcher-that-runs-the-version-a-repository-pins.md, features/upgrade-command.feature]
+    deferred: >
+      Feature freeze for the slices and ports refactor (ADR-0053, the user 2026-10-21): only repairs
+      and moves until the layout is done, since most of these touch internal/cli files the moves
+      rewrite. Resume after the last slice moves.
 
   - id: T-169
     title: The conformance runner's fake GitHub answers a repository's visibility
@@ -9416,6 +9456,10 @@ items:
       points to this read-only view. This is a definition outline, not yet a promoted or
       scenario-backed item.
     refs: [internal/cli/workshow.go, internal/ledger/tasks.go, features/show.feature]
+    deferred: >
+      Feature freeze for the slices and ports refactor (ADR-0053, the user 2026-10-21): only repairs
+      and moves until the layout is done, since most of these touch internal/cli files the moves
+      rewrite. Resume after the last slice moves.
 
   - id: p1-guides-use-configured-footers
     title: Guides prescribe only commit links the project's footer policy supports
@@ -9521,6 +9565,10 @@ items:
       demonstration; there is no authorization here to change ci run execution or this repository's
       current helper.
     refs: [internal/cli/ci.go, internal/plan, tools/bin/ci-repo/main.go]
+    deferred: >
+      Feature freeze for the slices and ports refactor (ADR-0053, the user 2026-10-21): only repairs
+      and moves until the layout is done, since most of these touch internal/cli files the moves
+      rewrite. Resume after the last slice moves.
 
   - id: slice-141
     title: Replace a command draft without losing its reserved ID
@@ -9571,6 +9619,10 @@ items:
       selective promotion and field-scoped rebasing. Any expansion to external lint execution
       requires a separate decision.
     refs: [internal/cli/draft.go, internal/message/written.go, features/draft.feature]
+    deferred: >
+      Feature freeze for the slices and ports refactor (ADR-0053, the user 2026-10-21): only repairs
+      and moves until the layout is done, since most of these touch internal/cli files the moves
+      rewrite. Resume after the last slice moves.
 
   - id: p1-agent-git-ci-contract
     title: Separate Git validation, helper commands and ownership of CI follow-up
@@ -9621,6 +9673,10 @@ items:
       scenarios. A fix may need Changes naming released queue cases that promised the old header; it
       does not migrate old Git history.
     refs: [internal/work/queue.go, internal/work/show.go, internal/cli/workdone.go, features/work.feature]
+    deferred: >
+      Feature freeze for the slices and ports refactor (ADR-0053, the user 2026-10-21): only repairs
+      and moves until the layout is done, since most of these touch internal/cli files the moves
+      rewrite. Resume after the last slice moves.
 
   - id: slice-142
     title: Close and dequeue an item in one recoverable commit
@@ -9682,6 +9738,10 @@ items:
     status: todo
     depends_on: []
     kind: task
+    deferred: >
+      Feature freeze for the slices and ports refactor (ADR-0053, the user 2026-10-21): only repairs
+      and moves until the layout is done, since most of these touch internal/cli files the moves
+      rewrite. Resume after the last slice moves.
 
   - id: slice-144
     title: Show meaningful job and step transitions during CI watches
@@ -9705,6 +9765,10 @@ items:
       policy. Provider capability and exact transition format still need scenarios before
       implementation.
     refs: [internal/cli/watch.go, internal/providers]
+    deferred: >
+      Feature freeze for the slices and ports refactor (ADR-0053, the user 2026-10-21): only repairs
+      and moves until the layout is done, since most of these touch internal/cli files the moves
+      rewrite. Resume after the last slice moves.
 
   - id: T-178
     title: State delegated publication scope explicitly in worker briefs
@@ -9713,6 +9777,10 @@ items:
     status: todo
     depends_on: []
     kind: task
+    deferred: >
+      Feature freeze for the slices and ports refactor (ADR-0053, the user 2026-10-21): only repairs
+      and moves until the layout is done, since most of these touch internal/cli files the moves
+      rewrite. Resume after the last slice moves.
 
   - id: p1-repair-plan
     title: Plan failed-main restoration from mixed item history
@@ -9882,6 +9950,10 @@ items:
       their existing entries, ordering and shape. No interpretation or execution of footer prose and
       no change to upgrade edits.
     refs: [features/upgrade-notes.feature, internal/cli/upgrade.go]
+    deferred: >
+      Feature freeze for the slices and ports refactor (ADR-0053, the user 2026-10-21): only repairs
+      and moves until the layout is done, since most of these touch internal/cli files the moves
+      rewrite. Resume after the last slice moves.
 
   - id: T-179
     title: Correct the embedded CI code-proof help and planner comment
@@ -9890,6 +9962,10 @@ items:
     status: todo
     depends_on: []
     kind: task
+    deferred: >
+      Feature freeze for the slices and ports refactor (ADR-0053, the user 2026-10-21): only repairs
+      and moves until the layout is done, since most of these touch internal/cli files the moves
+      rewrite. Resume after the last slice moves.
 
   - id: p1-task-check-status-wording
     title: Distinguish passing task checks from work-item completion in task output
@@ -9991,6 +10067,10 @@ items:
       setup/cleanup failures report environment errors rather than claim a staged verdict. The
       feature specification will define these boundaries before implementation.
     refs: [features/hook-task-snapshot.feature, internal/cli/hook.go, internal/check/captured.go, internal/shell/shell.go, internal/git/bin.go]
+    deferred: >
+      Feature freeze for the slices and ports refactor (ADR-0053, the user 2026-10-21): only repairs
+      and moves until the layout is done, since most of these touch internal/cli files the moves
+      rewrite. Resume after the last slice moves.
 
   - id: p1-pinned-shim-install-target
     title: Use a stable launcher target for new shim installation from pinned init
@@ -10029,6 +10109,10 @@ items:
       init dispatch for the rest of initialization. The missing/new installation target and cache
       advice are separate p1-pinned-shim-install-target work, not changes to guard/default policy.
     refs: [features/init-shim-identity.feature, internal/cli/initshim.go, internal/cli/gitshim.go, internal/git/bin.go, internal/launch/launch.go]
+    deferred: >
+      Feature freeze for the slices and ports refactor (ADR-0053, the user 2026-10-21): only repairs
+      and moves until the layout is done, since most of these touch internal/cli files the moves
+      rewrite. Resume after the last slice moves.
 
   - id: bug-114
     title: Qualify the existing-config result in init rerun output
@@ -10055,6 +10139,10 @@ items:
     status: todo
     depends_on: []
     kind: task
+    deferred: >
+      Feature freeze for the slices and ports refactor (ADR-0053, the user 2026-10-21): only repairs
+      and moves until the layout is done, since most of these touch internal/cli files the moves
+      rewrite. Resume after the last slice moves.
 
   - id: T-182
     title: Dispatch listed mutation tests to features and conformance fixtures
@@ -10073,6 +10161,10 @@ items:
     depends_on: [slice-138]
     kind: task
     refs: [internal/guide/brief.md, internal/guide/work.md, internal/guide/commit.md]
+    deferred: >
+      Feature freeze for the slices and ports refactor (ADR-0053, the user 2026-10-21): only repairs
+      and moves until the layout is done, since most of these touch internal/cli files the moves
+      rewrite. Resume after the last slice moves.
 
   - id: slice-159
     title: Write local agent rules by default on fresh initialization
@@ -10087,6 +10179,10 @@ items:
       --no-agent-rules opts out, reruns retain explicit rewrite, and plugin/global Git shim stay
       opt-in. Split this concrete default from the broader command-default audit.
     refs: [internal/cli/init.go, internal/cli/initrules.go, internal/cli/initrulesstealth.go, features/init.feature]
+    deferred: >
+      Feature freeze for the slices and ports refactor (ADR-0053, the user 2026-10-21): only repairs
+      and moves until the layout is done, since most of these touch internal/cli files the moves
+      rewrite. Resume after the last slice moves.
 
   - id: slice-160
     title: Refuse runtime project configs outside the working tree
@@ -10101,6 +10197,10 @@ items:
       execution, preserving private stealth configs and policy files read only as import input.
       Shared external metadata and per-branch planning are separate designs.
     refs: [internal/config/config.go, internal/config/stealth.go, internal/config/top.go]
+    deferred: >
+      Feature freeze for the slices and ports refactor (ADR-0053, the user 2026-10-21): only repairs
+      and moves until the layout is done, since most of these touch internal/cli files the moves
+      rewrite. Resume after the last slice moves.
 
   - id: slice-162
     title: Run explicitly selected live tests from the working tree
@@ -10115,6 +10215,10 @@ items:
       using existing configured selection. No WIP guarantee, red-proof interpretation, automatic
       commits, stashing or worktrees. The original idea retains WIP and red-first policy design.
     refs: [internal/tests/run.go, internal/tests/gherkin.go, internal/cli/tests.go]
+    deferred: >
+      Feature freeze for the slices and ports refactor (ADR-0053, the user 2026-10-21): only repairs
+      and moves until the layout is done, since most of these touch internal/cli files the moves
+      rewrite. Resume after the last slice moves.
 
   - id: p1-historical-range-commands
     title: Define historical policy epochs for arbitrary range commands
@@ -10156,6 +10260,10 @@ items:
     depends_on: []
     kind: task
     refs: [README.md, docs/upgrading.md, internal/idcounter/doc.go, internal/cli/nextid.go]
+    deferred: >
+      Feature freeze for the slices and ports refactor (ADR-0053, the user 2026-10-21): only repairs
+      and moves until the layout is done, since most of these touch internal/cli files the moves
+      rewrite. Resume after the last slice moves.
 
   - id: T-185
     title: The Nightly red issue names each failed plan step and the mutation sites it found
