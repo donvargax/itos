@@ -25,8 +25,20 @@
 //	         file's, and null leaves it out
 //	exit     the expected exit code (required)
 //	stdout, stderr          the exact text; stdout_has, stderr_has: text each must contain (one,
-//	                        or a list); json: stdout's JSON
-//	files_after             files as they must be after the run (null: absent)
+//	                        or a list); stdout_nonempty: true, stdout holds something besides
+//	                        whitespace
+//	json                    stdout's JSON, whole, less every key named message, fix or text at
+//	                        any depth on both sides: sentences for people, not contract
+//	                        (ADR-0035, ADR-0054), so a reworded one passes
+//	json_has                what stdout's JSON must hold, a subset: every key it names present
+//	                        with the value it gives, at every depth, keys it does not name
+//	                        passing; an array's elements each held by some element of the
+//	                        output's array, in any order, others beside them passing (to pin a
+//	                        whole array, use json:); the value "<any>" holds any value, for a
+//	                        key or an element that must be there whatever it says. It judges
+//	                        every key it names, message, fix and text included, so it names
+//	                        those only with "<any>" or where they hold data, not a sentence
+//	files_after            files as they must be after the run (null: absent)
 //	git_config_after        entries of the case's git config as they must be after the run:
 //	                        key → value (git config --get-all, a key set more than once its
 //	                        values a line each), or null for a key unset; keys it does not name
@@ -47,9 +59,10 @@
 // (docs/decisions/0040-a-written-file-is-contract-by-its-data-not-its-comment-lines.md): a .yaml
 // or .yml file by what it parses to, comments dropped, held as json is, a key added passing; a
 // .md file by its text less its HTML comments; any other file whole. The exit code, stdout_has,
-// stderr_has and git_config_after (each entry data, and one it does not name never read, T-113)
-// are judged as ever. Without it, as this tree's corpus runs, every output and every file is
-// pinned exactly, comments and all.
+// stderr_has, stdout_nonempty, json_has and git_config_after (each entry data, and one it does
+// not name never read, T-113) are judged as ever. Without it, as this tree's corpus runs, stdout,
+// stderr and every file are pinned exactly, comments and all, and json whole less message, fix
+// and text.
 //
 // A case's github is a fake of GitHub's API for ci.watch, status and ci range's github providers
 // (slice 85, when v5.0.0 removed the command providers the corpus faked CI with): the runner

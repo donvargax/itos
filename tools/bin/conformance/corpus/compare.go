@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 )
@@ -33,10 +34,16 @@ func compare(c *Case, out *Outcome, s *subst, additive bool) []string {
 	if c.stderr != nil {
 		problems = append(problems, text("stderr", s.text(*c.stderr), out.Stderr)...)
 	}
+	if c.stdoutNonempty && strings.TrimSpace(out.Stdout) == "" {
+		problems = append(problems, quoted("stdout is empty, expected something besides whitespace:", out.Stdout)...)
+	}
 	problems = append(problems, hasProblems("stdout", c.stdoutHas, out.Stdout, s)...)
 	problems = append(problems, hasProblems("stderr", c.stderrHas, out.Stderr, s)...)
 	if c.hasJSON {
 		problems = append(problems, jsonProblems(s.deep(c.json), out.Stdout, additive)...)
+	}
+	if c.hasJSONHas {
+		problems = append(problems, jsonHasProblems(s.deep(c.jsonHas), out.Stdout)...)
 	}
 	for _, e := range c.filesAfter {
 		problems = append(problems, fileProblems(e, out.files[e.path], s, additive)...)
@@ -140,11 +147,15 @@ func hasProblems(stream string, wanted []string, got string, s *subst) []string 
 	return nil
 }
 
+// jsonProblems is where stdout's JSON differs from expected, both less every unjudged key: the
+// whole of it, or with additive what expected holds (jsonLacks).
 func jsonProblems(expected any, stdout string, additive bool) []string {
 	actual, err := parseJSON(stdout)
 	if err != nil {
 		return quoted("stdout is not JSON:", stdout)
 	}
+	var left int
+	expected, actual = machine(expected, &left), machine(actual, &left)
 	if !additive {
 		return textProblems("json", pretty(expected), pretty(actual))
 	}
@@ -302,6 +313,75 @@ func jsonLacks(expected, actual any, at string) []string {
 		var lacks []string
 		for i := range want {
 			lacks = append(lacks, jsonLacks(want[i], got[i], fmt.Sprintf("%s[%d]", at, i))...)
+		}
+		return lacks
+	}
+	switch actual.(type) {
+	case *mapping, []any:
+		return differs
+	}
+	if expected != actual {
+		return differs
+	}
+	return nil
+}
+
+// anyValue, as a value anywhere in a json_has, holds whatever value stands there: the key, or
+// the array element, must be present, its value not judged.
+const anyValue = "<any>"
+
+// jsonHasProblems is where stdout's JSON does not hold what a case's json_has names (jsonHolds).
+func jsonHasProblems(expected any, stdout string) []string {
+	actual, err := parseJSON(stdout)
+	if err != nil {
+		return quoted("stdout is not JSON:", stdout)
+	}
+	if lacks := jsonHolds(expected, actual, ""); len(lacks) > 0 {
+		return append([]string{"json lacks what json_has names:"}, indented(lacks)...)
+	}
+	return nil
+}
+
+// jsonHolds is where actual does not hold expected, a json_has's subset: every key of an object
+// present with what expected gives it, keys it does not name passing; every element of an array
+// held by some element of actual's, in any order, whatever else actual's holds; anyValue holding
+// any value; any other value equal. Unlike json:, it judges every key it names, message, fix and
+// text included. Each line names its place, a path from the top ("." for the whole).
+func jsonHolds(expected, actual any, at string) []string {
+	if expected == anyValue {
+		return nil
+	}
+	place := at
+	if place == "" {
+		place = "."
+	}
+	differs := []string{fmt.Sprintf("%s: expected %s, got %s", place, show(expected), show(actual))}
+	switch want := expected.(type) {
+	case *mapping:
+		got, ok := actual.(*mapping)
+		if !ok {
+			return differs
+		}
+		var lacks []string
+		for _, k := range want.keys {
+			v, ok := got.get(k)
+			if !ok {
+				lacks = append(lacks, fmt.Sprintf("%s.%s: expected %s, got none", at, k, show(want.vals[k])))
+				continue
+			}
+			lacks = append(lacks, jsonHolds(want.vals[k], v, at+"."+k)...)
+		}
+		return lacks
+	case []any:
+		got, ok := actual.([]any)
+		if !ok {
+			return differs
+		}
+		var lacks []string
+		for i, w := range want {
+			if !slices.ContainsFunc(got, func(g any) bool { return len(jsonHolds(w, g, "")) == 0 }) {
+				lacks = append(lacks, fmt.Sprintf("%s[%d]: expected %s among %s", at, i, show(w), show(actual)))
+			}
 		}
 		return lacks
 	}

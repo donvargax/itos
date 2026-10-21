@@ -31,7 +31,7 @@ func fakeItos(args []string) int {
 		out, _ := json.Marshal(map[string]any{
 			"schema": 1, "ok": false, "count": 1,
 			"problems": []map[string]any{{
-				"rule": rule, "message": "said anew", "fix": "a fix said anew",
+				"rule": rule, "message": "said anew", "fix": "a fix said anew", "text": "prose said anew",
 				"detail": map[string]any{"message": "deeper, said anew", "line": 3},
 			}},
 		})
@@ -96,6 +96,7 @@ const oldCorpus = `cases:
         - rule: r-one
           message: the old words
           fix: the old fix
+          text: the old prose
           detail: { message: the old deeper words, line: 3 }
   - name: an exit code, changed
     argv: [exit]
@@ -131,7 +132,7 @@ func oldTree(t *testing.T) string {
 }
 
 // readyOldCorpus takes out of every old case what is for people, its plain
-// output and its json's message and fix keys at any depth, and keeps the rest
+// output and its json's message, fix and text keys at any depth, and keeps the rest
 // as written: the exit code, files_after and every other json key
 // (docs/decisions/0035-only-machine-output-is-itos-s-contract-exit-codes-json-less-message-and-fix-and-the-files-it-writes.md).
 // It counts what it left out, names every case, and writes nothing to the
@@ -143,8 +144,8 @@ func TestReadyOldCorpusKeepsMachineOutputOnly(t *testing.T) {
 	if r.Err != nil {
 		t.Fatal(r.Err)
 	}
-	if r.Cases != 8 || r.Plain != 4 || r.Keys != 4 {
-		t.Errorf("cases read, cases whose plain output it left out, message and fix keys it left out: got %d, %d, %d, want 8, 4, 4",
+	if r.Cases != 8 || r.Plain != 4 || r.Keys != 5 {
+		t.Errorf("cases read, cases whose plain output it left out, message, fix and text keys it left out: got %d, %d, %d, want 8, 4, 5",
 			r.Cases, r.Plain, r.Keys)
 	}
 	if got := len(r.Names["cli.yaml"]); got != 8 {
@@ -175,8 +176,8 @@ func TestReadyOldCorpusUnreadable(t *testing.T) {
 }
 
 // The old corpus, readied and run against an itos that rewords everything:
-// a reworded stdout or stderr, help text included, and a reworded message or
-// fix pass; a changed exit code, rule id or files_after, or a json key
+// a reworded stdout or stderr, help text included, and a reworded message,
+// fix or text pass; a changed exit code, rule id or files_after, or a json key
 // removed, fails (docs/decisions/0035-only-machine-output-is-itos-s-contract-exit-codes-json-less-message-and-fix-and-the-files-it-writes.md).
 func TestOldCorpusJudgesMachineOutputAlone(t *testing.T) {
 	old := readyOldCorpus(oldTree(t))

@@ -95,13 +95,17 @@ type Case struct {
 	stderrHas      []string
 	json           any
 	hasJSON        bool
+	jsonHas        any
+	hasJSONHas     bool
+	stdoutNonempty bool
 	filesAfter     files
 	gitConfigAfter []pair
 }
 
 var (
 	caseKeys = set("name", "argv", "git", "files", "stdin", "env", "cwd", "hide", "exit", "stdout",
-		"stderr", "stdout_has", "stderr_has", "json", "files_after", "git_config_after", "github")
+		"stderr", "stdout_has", "stderr_has", "json", "json_has", "stdout_nonempty", "files_after",
+		"git_config_after", "github")
 	stepKeys = set("commit", "stage", "write", "files", "branch", "checkout", "run", "label")
 	topKeys  = set("files", "git", "env", "github", "cases")
 )
@@ -169,9 +173,10 @@ func (f *File) Names() []string {
 // Machine leaves in each case only what itos's contract holds it to, as previous-release judges
 // the last release's corpus (docs/decisions/0035-only-machine-output-is-itos-s-contract-exit-codes-json-less-message-and-fix-and-the-files-it-writes.md):
 // it takes out every case's stdout, stderr, stdout_has and stderr_has, which pin plain text, and
-// every key named message or fix at any depth of its json, which are the same sentences. It says
-// how many cases it read, how many of them lost their plain output, and how many message and fix
-// keys it left out.
+// every key named message, fix or text at any depth of its json, which are sentences for people
+// (unjudged). json_has and stdout_nonempty stay: they name only what the case chose to pin. It
+// says how many cases it read, how many of them lost their plain output, and how many message,
+// fix and text keys it left out.
 func (f *File) Machine() (cases, plainOut, keys int) {
 	for _, c := range f.doc.vals["cases"].([]any) {
 		m, ok := c.(*mapping)
@@ -196,7 +201,13 @@ func (f *File) Machine() (cases, plainOut, keys int) {
 	return cases, plainOut, keys
 }
 
-// machine is a json value less every key named message or fix, at any depth, counted.
+// unjudged are the json keys no case's json: compares, at any depth: message and fix, a
+// problem's sentences (docs/decisions/0035-only-machine-output-is-itos-s-contract-exit-codes-json-less-message-and-fix-and-the-files-it-writes.md),
+// and text, guide --json's and go --json's prose
+// (docs/decisions/0054-script-facing-plain-outputs-and-the-guard-s-hook-json-are-contract-guide-text-is-exempt-like-message-and-fix.md).
+var unjudged = set("message", "fix", "text")
+
+// machine is a json value less every unjudged key, at any depth, counted.
 func machine(v any, keys *int) any {
 	switch t := v.(type) {
 	case []any:
@@ -208,7 +219,7 @@ func machine(v any, keys *int) any {
 	case *mapping:
 		out := newMapping()
 		for _, k := range t.keys {
-			if k == "message" || k == "fix" {
+			if unjudged[k] {
 				*keys++
 				continue
 			}
@@ -351,6 +362,13 @@ func readCase(raw any, names map[string]bool) (*Case, string) {
 		}
 	}
 	c.json, c.hasJSON = m.get("json")
+	c.jsonHas, c.hasJSONHas = m.get("json_has")
+	if v, ok := m.get("stdout_nonempty"); ok {
+		if v != true {
+			return nil, "has a stdout_nonempty that is not true"
+		}
+		c.stdoutNonempty = true
+	}
 	c.github = m.vals["github"]
 	return c, ""
 }

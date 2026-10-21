@@ -317,7 +317,7 @@ func TestSelftest(t *testing.T) {
 		return true
 	}
 
-	const leftOut = "the plain stdout and stderr of 10 cases and 2 keys named message or fix"
+	const leftOut = "the plain stdout and stderr of 10 cases and 2 keys named message, fix or text"
 	t.Run("the release's own binary passes", func(t *testing.T) {
 		on("main")
 		r := run(repo, "-bin", bin["good"])

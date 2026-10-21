@@ -115,6 +115,7 @@ func TestFixtureErrors(t *testing.T) {
 		{"cases:\n  - { name: a, argv: [x] }\n", "case 1 (a) has no exit"},
 		{"cases:\n  - { name: a, argv: [x], exit: 0, git: [{ push: x }] }\n", "a git step has an unknown key push"},
 		{"cases:\n  - [x]\n", "case 1 is not a mapping"},
+		{"cases:\n  - { name: a, argv: [x], exit: 0, stdout_nonempty: false }\n", "case 1 (a) has a stdout_nonempty that is not true"},
 	} {
 		_, err := ReadFixture(writeFixture(t, c.text))
 		if err == nil || !strings.Contains(err.Error(), c.want) {
@@ -156,23 +157,24 @@ cases:
 
 func TestMachine(t *testing.T) {
 	file, err := ReadFile(writeFixture(t, `cases:
-  - { name: a, argv: [x], exit: 0, stdout: "x\n", json: { ok: true, message: m, list: [{ fix: f, rule: r }] } }
+  - { name: a, argv: [x], exit: 0, stdout: "x\n", json: { ok: true, message: m, list: [{ fix: f, rule: r, text: t }] } }
   - { name: b, argv: [x], exit: 0, stderr_has: y }
-  - { name: c, argv: [x], exit: 0 }
+  - { name: c, argv: [x], exit: 0, stdout_nonempty: true, json_has: { text: t, message: "<any>" } }
 `))
 	if err != nil {
 		t.Fatal(err)
 	}
 	cases, plainOut, keys := file.Machine()
-	if cases != 3 || plainOut != 2 || keys != 2 {
-		t.Errorf("Machine said %d cases, %d plain, %d keys; want 3, 2, 2", cases, plainOut, keys)
+	if cases != 3 || plainOut != 2 || keys != 3 {
+		t.Errorf("Machine said %d cases, %d plain, %d keys; want 3, 2, 3", cases, plainOut, keys)
 	}
 	f, err := file.Fixture()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if f.Cases[0].stdout != nil || f.Cases[1].stderrHas != nil || show(f.Cases[0].json) != `{"ok":true,"list":[{"rule":"r"}]}` {
-		t.Errorf("Machine left %v %v %s", f.Cases[0].stdout, f.Cases[1].stderrHas, show(f.Cases[0].json))
+	if f.Cases[0].stdout != nil || f.Cases[1].stderrHas != nil || show(f.Cases[0].json) != `{"ok":true,"list":[{"rule":"r"}]}` ||
+		!f.Cases[2].stdoutNonempty || show(f.Cases[2].jsonHas) != `{"text":"t","message":"<any>"}` {
+		t.Errorf("Machine left %v %v %s, %v %s", f.Cases[0].stdout, f.Cases[1].stderrHas, show(f.Cases[0].json), f.Cases[2].stdoutNonempty, show(f.Cases[2].jsonHas))
 	}
 	if !slices.Equal(file.Names(), []string{"a", "b", "c"}) {
 		t.Errorf("names %q", file.Names())
@@ -222,5 +224,83 @@ func TestJudging(t *testing.T) {
 	}
 	if _, err := parseJSON(`{"a":1} {"b":2}`); err == nil {
 		t.Errorf("two JSON values should not read as one")
+	}
+}
+
+// judged is what compare says of a case's YAML text run to exit 0 with stdout.
+func judged(t *testing.T, kase, stdout string, additive bool) string {
+	t.Helper()
+	f, err := ReadFixture(writeFixture(t, "cases:\n  - "+kase+"\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	exit := 0
+	return strings.Join(compare(f.Cases[0], &Outcome{Exit: &exit, Stdout: stdout}, &subst{}, additive), "\n")
+}
+
+// json: compares the whole object less every key named message, fix or text, at any depth
+// (ADR-0035, ADR-0054): reworded sentences pass, any other key changed, added or removed fails.
+func TestJSONLeavesOutSentences(t *testing.T) {
+	const kase = `{ name: a, argv: [x], exit: 0, json: { rule: r, message: old words, problems: [{ rule: p, fix: old fix, detail: { text: old prose, line: 3 } }] } }`
+	for stdout, want := range map[string]string{
+		`{"rule":"r","message":"new words","problems":[{"rule":"p","fix":"new fix","detail":{"text":"new prose","line":3}}]}`: "",
+		`{"rule":"r","problems":[{"rule":"p","detail":{"line":3}}]}`:                                                          "",
+		`{"rule":"r","problems":[{"rule":"p","detail":{"line":3},"text":"added prose"}],"fix":"added"}`:                       "",
+		`{"rule":"r","message":"new words","problems":[{"rule":"p","detail":{"line":4}}]}`:                                    "line",
+		`{"rule":"r","problems":[{"rule":"p","detail":{"line":3}}],"extra":1}`:                                                "extra",
+		`{"problems":[{"rule":"p","detail":{"line":3}}]}`:                                                                     "rule",
+	} {
+		got := judged(t, kase, stdout, false)
+		if (want == "") != (got == "") || !strings.Contains(got, want) {
+			t.Errorf("json: of %s said %q, want it to name %q", stdout, got, want)
+		}
+		if strings.Contains(got, "words") || strings.Contains(got, "prose") {
+			t.Errorf("json: of %s showed an unjudged key: %q", stdout, got)
+		}
+	}
+	if got := judged(t, kase, `{"rule":"r","problems":[{"rule":"p","detail":{"line":3,"more":1}}],"added":true}`, true); got != "" {
+		t.Errorf("additive json: should pass keys added, sentences aside: %q", got)
+	}
+}
+
+// json_has holds a subset: the keys it names with their values, "<any>" for any value, an
+// array's elements each among the output's, in any order.
+func TestJSONHas(t *testing.T) {
+	const kase = `{ name: a, argv: [x], exit: 0, json_has: { ok: true, link: "<any>", items: [{ id: b }, c], problems: [{ rule: r, message: "<any>" }] } }`
+	const holds = `{"ok":true,"link":"/somewhere/bin/git","extra":{"x":1},"items":["c",{"id":"a"},{"id":"b","more":2}],"problems":[{"rule":"q"},{"rule":"r","message":"anything"}]}`
+	if got := judged(t, kase, holds, false); got != "" {
+		t.Errorf("json_has should hold a subset: %q", got)
+	}
+	if got := judged(t, kase, holds, true); got != "" {
+		t.Errorf("json_has should judge alike in additive: %q", got)
+	}
+	for stdout, want := range map[string]string{
+		`{"ok":false,"link":null,"items":[{"id":"b"},"c"],"problems":[{"rule":"r","message":""}]}`: ".ok: expected true, got false",
+		`{"ok":true,"items":[{"id":"b"},"c"],"problems":[{"rule":"r","message":""}]}`:              `.link: expected "<any>", got none`,
+		`{"ok":true,"link":1,"items":[{"id":"a"},"c"],"problems":[{"rule":"r","message":""}]}`:     `.items[0]: expected {"id":"b"} among [{"id":"a"},"c"]`,
+		`{"ok":true,"link":1,"items":[{"id":"b"},"c"],"problems":[{"rule":"r"}]}`:                  `.problems[0]: expected {"rule":"r","message":"<any>"} among [{"rule":"r"}]`,
+		`{"ok":true,"link":1,"items":{"id":"b"},"problems":[{"rule":"r","message":""}]}`:           `.items: expected [{"id":"b"},"c"], got {"id":"b"}`,
+		`not json`: "stdout is not JSON",
+	} {
+		if got := judged(t, kase, stdout, false); !strings.Contains(got, want) {
+			t.Errorf("json_has of %s said %q, want it to name %q", stdout, got, want)
+		}
+	}
+	// It judges every key it names, a sentence's key too.
+	if got := judged(t, `{ name: a, argv: [x], exit: 0, json_has: { message: old words } }`, `{"message":"new words"}`, false); got == "" {
+		t.Errorf("json_has should judge a message it names")
+	}
+}
+
+// stdout_nonempty: true wants stdout to hold something besides whitespace.
+func TestStdoutNonempty(t *testing.T) {
+	const kase = `{ name: a, argv: [x], exit: 0, stdout_nonempty: true }`
+	if got := judged(t, kase, "usage: itos\n", false); got != "" {
+		t.Errorf("a stdout with text should pass: %q", got)
+	}
+	for _, stdout := range []string{"", " \n\t\n"} {
+		if got := judged(t, kase, stdout, false); !strings.Contains(got, "stdout is empty") {
+			t.Errorf("stdout %q should fail: %q", stdout, got)
+		}
 	}
 }
