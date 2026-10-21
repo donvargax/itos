@@ -11157,6 +11157,12 @@ items:
       the registry that says so, or that --tests found no named tests to run; what ran, merged,
       covered, left out or left pending is the log alone, as above.
 
+      T-204 found more, 2026-10-21. work --json does not say why the session is nobody,
+      work.identity none with its hint or gh signed out or not installed, nor that the handle the
+      provider gave is not among the people. work done --json gives ci unwatched but not that
+      whether its commits are pushed went unchecked for want of a remote. verify --json names no
+      problem or rule for a failing commit, as above.
+
   - id: p1-lint-itos-cc-linters
     title: Turn on the itos-cc linters the tree fails today
     phase: 1
