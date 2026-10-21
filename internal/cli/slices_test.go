@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/donvargax/itos/v8/internal/version"
 )
@@ -66,5 +67,39 @@ func TestGuardPorts(t *testing.T) {
 	code, stdout, stderr := run("guard", "claude-code")
 	if code != 0 || !strings.Contains(stdout, `"permissionDecision":"deny"`) || stderr != "" {
 		t.Errorf("guard claude-code: exit %d, stdout %q, stderr %q", code, stdout, stderr)
+	}
+}
+
+// The followup slice keeps its threads in the clone's private store and
+// reads the clock; a line it cannot read is a usage error, and a threads'
+// file its domain refuses a data file itos refuses, both exit 2.
+func TestFollowupPorts(t *testing.T) {
+	dir := gitConfigRepo(t, "version: 1\n")
+	if code, _, stderr := run("followup", "bogus"); code != ExitUsage || !strings.Contains(stderr, "followup has no subcommand bogus") {
+		t.Errorf("followup bogus: exit %d, stderr %q", code, stderr)
+	}
+	before := time.Now().Truncate(time.Second)
+	if code, _, stderr := run("followup", "add", "a", "--with", "ana", "--title", "T", "--note", "N"); code != 0 || stderr != "" {
+		t.Fatalf("followup add: exit %d, stderr %q", code, stderr)
+	}
+	file := filepath.Join(dir, ".git", "itos", "follow-ups.yaml")
+	text, err := os.ReadFile(file)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var stamp string
+	for line := range strings.Lines(string(text)) {
+		if at, ok := strings.CutPrefix(strings.TrimSpace(line), "- at: "); ok {
+			stamp = strings.Trim(at, `"'`)
+		}
+	}
+	if at, err := time.Parse(time.RFC3339, stamp); err != nil || at.Before(before) || at.After(time.Now()) {
+		t.Errorf("the note is not dated now: %q, %v\n%s", stamp, err, text)
+	}
+	if err := os.WriteFile(file, []byte("threads: [\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if code, _, stderr := run("followup"); code != ExitUsage || !strings.Contains(stderr, file) {
+		t.Errorf("an invalid threads' file: exit %d, stderr %q", code, stderr)
 	}
 }
