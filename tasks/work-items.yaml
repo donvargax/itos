@@ -5205,6 +5205,12 @@ items:
       Every take, close and queue commits tasks/work-items.yaml, so parallel work conflicts there on
       every rebase or merge. A merge driver for the registry, or a file per item. Found discussing
       parallel work, 2026-10-06.
+
+      #107 (2026-10-21): two appended items conflict at the registry's end on every rebase; the
+      issue proposes a merge driver for the registry file or replaying the itos commands. Its
+      comment: a ledger file conflicts the same way when one session's work done drops a task's
+      done_when lines and another's task add or promote appends the next task right after them;
+      whatever merges the registry should cover the ledgers too.
     tags: [work]
 
   - id: p1-refs-overlap
