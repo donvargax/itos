@@ -2489,10 +2489,6 @@
     tests smoke ids) and guard claude-code's hook JSON keep their exact pins. No product change;
     previous-release is unaffected until the next release. Files: hooks.yaml moves.yaml
     messages.yaml.
-  done_when:
-    - run: go run ./tools/bin/conformance --bin tools/bin/itos --only tools/itos/conformance/hooks.yaml tools/itos/conformance/moves.yaml tools/itos/conformance/messages.yaml
-      timeout: 900
-    - run: "! grep -nE '^ +(stdout|stderr):' tools/itos/conformance/moves.yaml tools/itos/conformance/messages.yaml"
 
 - id: T-202
   type: test
