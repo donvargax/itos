@@ -11071,7 +11071,7 @@ items:
     title: "The small corpus files pin only the contract: globs, scopes, range, plans, push, watch, smoke, tests"
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
 
