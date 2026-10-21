@@ -24,79 +24,130 @@ cases:
     argv: [commit, check-paths, --type, star, README.md]
     exit: 0
   - name: "* does not cross a slash"
-    argv: [commit, check-paths, --type, star, docs/a.md]
+    argv: [commit, check-paths, --json, --type, star, docs/a.md]
     exit: 1
-    stderr: |
-      Commit rejected:
-        - star commits may not touch docs/a.md
+    json:
+      schema: 1
+      type: star
+      files: [docs/a.md]
+      ok: false
+      problems:
+        - rule: scope-only
   - name: "** crosses slashes"
     argv: [commit, check-paths, --type, deep, docs/a/b/c.md, docs/x]
     exit: 0
   - name: "** after a folder does not match the folder's name alone, nor a longer name"
-    argv: [commit, check-paths, --type, deep, docs, docsx/a.md]
+    argv: [commit, check-paths, --json, --type, deep, docs, docsx/a.md]
     exit: 1
-    stderr: |
-      Commit rejected:
-        - deep commits may not touch docs
-        - deep commits may not touch docsx/a.md
+    json:
+      schema: 1
+      type: deep
+      files: [docs, docsx/a.md]
+      ok: false
+      problems:
+        - rule: scope-only
+        - rule: scope-only
   - name: "**/ may match no folder at all"
     argv: [commit, check-paths, --type, anydir, a.md, x/y/b.md]
     exit: 0
   - name: "**/ still needs the rest to match"
-    argv: [commit, check-paths, --type, anydir, x/a.mdx]
+    argv: [commit, check-paths, --json, --type, anydir, x/a.mdx]
     exit: 1
-    stderr: |
-      Commit rejected:
-        - anydir commits may not touch x/a.mdx
+    json:
+      schema: 1
+      type: anydir
+      files: [x/a.mdx]
+      ok: false
+      problems:
+        - rule: scope-only
   - name: "{a,b} is either"
     argv: [commit, check-paths, --type, brace, a.json, b.yaml]
     exit: 0
   - name: "{a,b} is nothing else"
-    argv: [commit, check-paths, --type, brace, c.yml, d.json/e]
+    argv: [commit, check-paths, --json, --type, brace, c.yml, d.json/e]
     exit: 1
-    stderr: |
-      Commit rejected:
-        - brace commits may not touch c.yml
-        - brace commits may not touch d.json/e
-  - name: a glob matches the whole path, not a part of it
-    argv: [commit, check-paths, --type, whole, src/a.ts, src/b/a.ts, xsrc/a.ts, src/a.tsx]
+    json:
+      schema: 1
+      type: brace
+      files: [c.yml, d.json/e]
+      ok: false
+      problems:
+        - rule: scope-only
+        - rule: scope-only
+  # A problem names no path but in its message, so a case whose paths are
+  # held apart shows which: those that pass in one, those refused, each with
+  # its problem, in another.
+  - name: a glob matches the whole path
+    argv: [commit, check-paths, --type, whole, src/a.ts]
+    exit: 0
+  - name: a glob does not match a part of a path
+    argv: [commit, check-paths, --json, --type, whole, src/b/a.ts, xsrc/a.ts, src/a.tsx]
     exit: 1
-    stderr: |
-      Commit rejected:
-        - whole commits may not touch src/b/a.ts
-        - whole commits may not touch xsrc/a.ts
-        - whole commits may not touch src/a.tsx
-  - name: a dot and the regular expression characters are literal
-    argv: [commit, check-paths, --type, literal, .gitignore, a+b(c).md, xgitignore, aab(c).md]
+    json:
+      schema: 1
+      type: whole
+      files: [src/b/a.ts, xsrc/a.ts, src/a.tsx]
+      ok: false
+      problems:
+        - rule: scope-only
+        - rule: scope-only
+        - rule: scope-only
+  - name: a dot and the regular expression characters match themselves
+    argv: [commit, check-paths, --type, literal, .gitignore, a+b(c).md]
+    exit: 0
+  - name: a dot and the regular expression characters match nothing else
+    argv: [commit, check-paths, --json, --type, literal, xgitignore, aab(c).md]
     exit: 1
-    stderr: |
-      Commit rejected:
-        - literal commits may not touch xgitignore
-        - literal commits may not touch aab(c).md
+    json:
+      schema: 1
+      type: literal
+      files: [xgitignore, aab(c).md]
+      ok: false
+      problems:
+        - rule: scope-only
+        - rule: scope-only
   - name: a $set stands for its path set
-    argv: [commit, check-paths, --type, set, docs/x.yaml, notes/a.md, index.html, src/index.html]
+    argv: [commit, check-paths, --type, set, docs/x.yaml, notes/a.md, index.html]
+    exit: 0
+  - name: a $set stands for nothing outside its path set
+    argv: [commit, check-paths, --json, --type, set, src/index.html]
     exit: 1
-    stderr: |
-      Commit rejected:
-        - set commits may not touch src/index.html
+    json:
+      schema: 1
+      type: set
+      files: [src/index.html]
+      ok: false
+      problems:
+        - rule: scope-only
+  - name: never passes a path it does not match
+    argv: [commit, check-paths, --type, never, src/a.ts]
+    exit: 0
   - name: never rejects each path that matches
-    argv: [commit, check-paths, --type, never, src/a.ts, data/x/one.json, e2e/features/a.feature]
+    argv: [commit, check-paths, --json, --type, never, data/x/one.json, e2e/features/a.feature]
     exit: 1
-    stderr: |
-      Commit rejected:
-        - never commits may not touch data/x/one.json
-        - never commits may not touch e2e/features/a.feature
+    json:
+      schema: 1
+      type: never
+      files: [data/x/one.json, e2e/features/a.feature]
+      ok: false
+      problems:
+        - rule: scope-never
+        - rule: scope-never
   - name: must_touch needs one path that matches
     argv: [commit, check-paths, --type, must, docs/a.md, e2e/steps/a.ts]
     exit: 0
   - name: must_touch fails when none does
-    argv: [commit, check-paths, --type, must, docs/a.md, tasks/phase-1.yaml]
+    argv: [commit, check-paths, --json, --type, must, docs/a.md, tasks/phase-1.yaml]
     exit: 1
-    stderr: |
-      Commit rejected:
-        - must commits must change src/** or e2e/**
+    json:
+      schema: 1
+      type: must
+      files: [docs/a.md, tasks/phase-1.yaml]
+      ok: false
+      problems:
+        - rule: scope-must-touch
   - name: a path set the config lacks is a config error
-    argv: [commit, check-paths, --type, set, a.md]
+    argv: [commit, check-paths, --json, --type, set, a.md]
     files:
       itos.yaml: |
         version: 1
@@ -105,5 +156,9 @@ cases:
           scopes:
             set: { only: [$prose] }
     exit: 2
-    stderr: |
-      FAIL itos.yaml: commits.scopes.set.only names $prose, which commits.path_sets does not have
+    json:
+      schema: 1
+      config: itos.yaml
+      valid: false
+      problems:
+        - rule: config-path-set
