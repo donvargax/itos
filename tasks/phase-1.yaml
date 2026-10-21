@@ -2669,3 +2669,19 @@
     - run: grep -rq "stderr_lacks" tools/bin/conformance
     - run: go run ./tools/bin/conformance --bin tools/bin/itos
       timeout: 900
+
+- id: T-213
+  type: refactor
+  title: "The OS is a value: logic takes the platform from the boundary instead of branching on runtime.GOOS"
+  why: >
+    ADR-0053, step 8 of docs/plans/slices-and-ports.md, as itos-cc's 'The OS as a value': code that
+    differs by OS takes the platform as a value detected once where cmd or internal/cli starts, and
+    tests pass any other value, so Windows and macOS paths are tested on Linux. Ten runtime.GOOS
+    branches in logic today: internal/git/bin.go (2), internal/shim/shim.go, internal/lock/lock.go,
+    internal/cli/extension.go, internal/cli/gitshim.go (2), internal/launch/launch.go (3). A
+    build-tagged file may still hold a call one OS lacks, with no logic. Unit tests cover each
+    branch for each platform value. No behaviour change.
+  done_when:
+    - run: "! grep -rn \"runtime.GOOS\" internal --include=*.go --exclude=*_test.go"
+    - run: go test -count=1 ./internal/... ./cmd/...
+      timeout: 900
