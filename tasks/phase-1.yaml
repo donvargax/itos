@@ -2411,3 +2411,30 @@
     - run: "! grep -nE \"^var (Warnings|warned) \" internal/tests/tests.go"
     - run: go test -count=1 ./internal/... ./cmd/...
       timeout: 900
+
+- id: T-196
+  type: refactor
+  title: "Pilot slices: guard and version move to internal/slices, each with its CLI, Query, Handler and Ports"
+  why: >
+    ADR-0053, step 3 of docs/plans/slices-and-ports.md, after T-194's gates and T-195: the two
+    smallest commands prove the layout, the depguard rules and architecture-check on real code, as
+    itos-cc's units pilot did. guard (internal/cli's guard command and internal/guard as the slice's
+    domain, internal/slices/guard/domain) and version (internal/slices/version, no domain) each get
+    a package with a CLI value parsing what internal/cli's flag spec hands it, a Query of domain
+    values, Handler.Handle(ctx, q) and a Ports interface the slice owns (guard's one outside need,
+    config.Managed(dir), becomes a Ports method). Until step 5 moves the assembly into cmd,
+    internal/cli is the assembly: its command table calls each slice, binds its Ports to the real
+    code, and is architecture-check's one outside exception, removed in step 5. A slice imports
+    nothing of internal/cli (which would cycle); its output goes through internal/out. Every Ports
+    method takes a context.Context first; internal/cli passes context.Background(). The rules T-194
+    wrote for internal/slices now hold real packages; tighten any that only held fixtures. Help,
+    output, exit codes and --json unchanged; mutation snapshots and exceptions under .metrics/mutate
+    move with the files.
+  done_when:
+    - run: test -d internal/slices/guard/domain
+    - run: test -d internal/slices/version
+    - run: "! test -e internal/guard"
+    - run: tools/bin/architecture-check
+      timeout: 900
+    - run: tools/bin/pinned golangci-lint run ./...
+      timeout: 600
