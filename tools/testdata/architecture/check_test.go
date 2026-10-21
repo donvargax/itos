@@ -12,6 +12,7 @@ import (
 	"go/format"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -39,8 +40,14 @@ var stubs = []string{
 	"internal/store/private/port",
 	"internal/store/private/port/porttest",
 	"internal/store/private/adapter",
+	"internal/store/tree/port",
+	"internal/store/tree/port/porttest",
+	"internal/store/tree/adapter",
 	"cmd/probe",
 }
+
+// stores are the stores this repository has moved behind a port.
+var stores = []string{"internal/store/private", "internal/store/tree"}
 
 var mocks = []string{"github.com/golang/mock/gomock", "go.uber.org/mock/gomock", "github.com/stretchr/testify/mock", "github.com/vektra/mockery/v2", "github.com/maxbrunsfeld/counterfeiter/v6"}
 
@@ -71,7 +78,6 @@ func (f fixture) source() string {
 func fixtures(module string) []fixture {
 	var all []fixture
 	ours := func(path string) string { return module + "/" + path }
-	store := "internal/store/private"
 	add := func(layer, imported, symbol, rule string, test bool) {
 		name := strings.NewReplacer("/", "_", ".", "_").Replace(strings.TrimPrefix(imported, module+"/"))
 		if rule == "" {
@@ -109,20 +115,22 @@ func fixtures(module string) []fixture {
 			add(slice, ours(target), "Value", "", test)
 		}
 		add(slice, "strings", "ToLower", "", test)
-		// A slice imports a store's port; never its adapter, which the
-		// assembly binds.
-		add(slice, ours(store+"/port"), "Value", "", test)
-		add(slice, ours(store+"/adapter"), "Value", "slice-packages", test)
-		// A store's port and its fake import nothing of ours but the port
-		// and the fake: no UI, engine, slice or adapter.
-		for _, layer := range []string{store + "/port", store + "/port/porttest"} {
-			for _, target := range []string{"internal/cli", "internal/git", "internal/slices/alpha", store + "/adapter"} {
-				add(layer, ours(target), "Value", "store-ports", test)
+		for _, store := range stores {
+			// A slice imports a store's port; never its adapter, which the
+			// assembly binds.
+			add(slice, ours(store+"/port"), "Value", "", test)
+			add(slice, ours(store+"/adapter"), "Value", "slice-packages", test)
+			// A store's port and its fake import nothing of ours but the
+			// port and the fake: no UI, engine, slice or adapter.
+			for _, layer := range []string{store + "/port", store + "/port/porttest"} {
+				for _, target := range []string{"internal/cli", "internal/git", "internal/slices/alpha", store + "/adapter"} {
+					add(layer, ours(target), "Value", "store-ports", test)
+				}
+				for _, target := range []string{store + "/port", store + "/port/porttest"} {
+					add(layer, ours(target), "Value", "", test)
+				}
+				add(layer, "strings", "ToLower", "", test)
 			}
-			for _, target := range []string{store + "/port", store + "/port/porttest"} {
-				add(layer, ours(target), "Value", "", test)
-			}
-			add(layer, "strings", "ToLower", "", test)
 		}
 		// Mocking libraries, nowhere: a slice's domain, an adapter, an engine
 		// and cmd alike.
@@ -150,24 +158,26 @@ func fixtures(module string) []fixture {
 	}
 	add(adapter, ours("internal/slices/alpha/domain/port/porttest"), "Value", "", true)
 	add(adapter, "os", "ReadFile", "", false)
-	// A slice's code links no fake, which its tests may use.
-	add("internal/slices/alpha", ours(store+"/port/porttest"), "Value", "slice-fakes", false)
-	add("internal/slices/alpha", ours(store+"/port/porttest"), "Value", "", true)
-	// A port and its fake do no I/O in their code; their tests may.
-	add(store+"/port", "os", "ReadFile", "store-ports-io", false)
-	add(store+"/port/porttest", "net", "Dial", "store-ports-io", false)
-	add(store+"/port", "os", "ReadFile", "", true)
-	// A store's adapter's code imports no slice and links no fake; it does
-	// I/O through the libraries it wraps, and its tests run the port's
-	// contract suite, the fake with it.
-	adapter = store + "/adapter"
-	add(adapter, ours("internal/slices/alpha"), "Value", "store-adapters", false)
-	add(adapter, ours(store+"/port/porttest"), "Value", "store-adapters", false)
-	add(adapter, ours(store+"/port/porttest"), "Value", "", true)
-	for _, target := range []string{store + "/port", "internal/git"} {
-		add(adapter, ours(target), "Value", "", false)
+	for _, store := range stores {
+		// A slice's code links no fake, which its tests may use.
+		add("internal/slices/alpha", ours(store+"/port/porttest"), "Value", "slice-fakes", false)
+		add("internal/slices/alpha", ours(store+"/port/porttest"), "Value", "", true)
+		// A port and its fake do no I/O in their code; their tests may.
+		add(store+"/port", "os", "ReadFile", "store-ports-io", false)
+		add(store+"/port/porttest", "net", "Dial", "store-ports-io", false)
+		add(store+"/port", "os", "ReadFile", "", true)
+		// A store's adapter's code imports no slice and links no fake; it
+		// does I/O through the libraries it wraps, and its tests run the
+		// port's contract suite, the fake with it.
+		adapter := store + "/adapter"
+		add(adapter, ours("internal/slices/alpha"), "Value", "store-adapters", false)
+		add(adapter, ours(store+"/port/porttest"), "Value", "store-adapters", false)
+		add(adapter, ours(store+"/port/porttest"), "Value", "", true)
+		for _, target := range []string{store + "/port", "internal/git"} {
+			add(adapter, ours(target), "Value", "", false)
+		}
+		add(adapter, "os", "ReadFile", "", false)
 	}
-	add(adapter, "os", "ReadFile", "", false)
 	// What is outside internal/slices and importing a slice, which depguard
 	// lets by and architecture-check's outside holds.
 	add("internal/git", ours("internal/slices/alpha"), "Value", "", false)
@@ -241,8 +251,12 @@ func TestArchitecture(t *testing.T) {
 	fake := module + "/internal/slices/alpha/domain/port/porttest"
 	write("cmd/slices/main.go", fmt.Sprintf("package main\n\nimport (\n _ %q\n _ %q\n _ %q\n _ %q\n)\n\nfunc main() {}\n", module+"/internal/slices/alpha", module+"/internal/slices/alpha/domain", module+"/internal/slices/alpha/adapters/disk", module+"/internal/slices/beta"))
 	write("cmd/linked/main.go", fmt.Sprintf("package main\n\nimport _ %q\n\nfunc main() {}\n", fake))
-	storeFake := module + "/internal/store/private/port/porttest"
-	write("cmd/storelinked/main.go", fmt.Sprintf("package main\n\nimport _ %q\n\nfunc main() {}\n", storeFake))
+	var storeFakes []string
+	for _, store := range stores {
+		storeFake := module + "/" + store + "/port/porttest"
+		storeFakes = append(storeFakes, storeFake)
+		write("cmd/"+path.Base(store)+"linked/main.go", fmt.Sprintf("package main\n\nimport _ %q\n\nfunc main() {}\n", storeFake))
+	}
 	write("cmd/tested/main.go", "package main\n\nfunc main() {}\n")
 	write("cmd/tested/main_test.go", fmt.Sprintf("package main\n\nimport (\n _ %q\n \"testing\"\n)\n\nfunc TestProbe(t *testing.T) {\n _ = t\n}\n", fake))
 	var expected []expectation
@@ -263,7 +277,7 @@ func TestArchitecture(t *testing.T) {
 	}
 	t.Run("lint", func(t *testing.T) { lint(t, linter, root, dir, env, expected) })
 	check := filepath.Join(root, "tools", "bin", "architecture-check")
-	checkLinked(t, check, dir, env, fake, storeFake)
+	checkLinked(t, check, dir, env, fake, storeFakes)
 	checkSiblings(t, check, dir, env, module)
 	checkOutside(t, check, dir, env, module)
 }
@@ -406,11 +420,16 @@ func saysAll(text string, texts []string) bool {
 // checkLinked runs architecture-check --linked: a binary linking a port's
 // fake refused, naming both, a slice's port's or a store's, and one whose
 // fake is a test's accepted.
-func checkLinked(t *testing.T, check, dir string, env []string, fake, storeFake string) {
-	for _, c := range []struct {
+func checkLinked(t *testing.T, check, dir string, env []string, fake string, storeFakes []string) {
+	type linked struct {
 		pkg, fake string
 		refused   bool
-	}{{"./cmd/linked", fake, true}, {"./cmd/storelinked", storeFake, true}, {"./cmd/tested", fake, false}} {
+	}
+	cases := []linked{{"./cmd/linked", fake, true}, {"./cmd/tested", fake, false}}
+	for i, store := range stores {
+		cases = append(cases, linked{"./cmd/" + path.Base(store) + "linked", storeFakes[i], true})
+	}
+	for _, c := range cases {
 		t.Run("linked "+c.pkg, func(t *testing.T) {
 			output, err := runCheck(check, dir, env, "--linked", c.pkg)
 			expect(t, output, err, c.refused, c.pkg+" links "+c.fake, "_test.go")
