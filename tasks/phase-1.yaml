@@ -2651,3 +2651,21 @@
     - run: "! grep -rn \"source\\.ReadingFrom\\|source\\.Current()\" internal cmd"
     - run: go test -count=1 ./internal/... ./cmd/...
       timeout: 900
+
+- id: T-212
+  type: ci
+  title: The corpus can pin that something did not print, and refuses exact text outside stdout_contract
+  why: >
+    The end of ADR-0052's conversion (T-198 to T-204, 2026-10-21, 899 cases). A loose _has cannot
+    show a step did not run: ci-run.yaml's 'a failing check ends the run', '--tests alone' and the
+    prose range's left-out check lost that pin when they went loose; stdout_lacks and stderr_lacks
+    (a substring that must not appear) restore it, and those cases gain them. And so exact text
+    cannot creep back, the runner refuses at read time a case with an exact stdout: or stderr:
+    unless it is stdout_contract or the empty string (hooks.yaml's no-output pins), naming the case.
+    Unit tests for both; the corpus passes.
+  done_when:
+    - run: go test -count=1 ./tools/bin/conformance/...
+      timeout: 600
+    - run: grep -rq "stderr_lacks" tools/bin/conformance
+    - run: go run ./tools/bin/conformance --bin tools/bin/itos
+      timeout: 900
