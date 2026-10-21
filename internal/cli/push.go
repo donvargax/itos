@@ -330,7 +330,9 @@ func (r pushRun) rebase(onto string) (int, bool, error) {
 			return ExitMissing, true, nil
 		}
 	}
-	argv := []string{"rebase", "--no-autostash"}
+	// git's hint on a stop advises git rebase --skip, which drops the whole
+	// commit being replayed (bug 118); itos says how to go on instead.
+	argv := []string{"-c", "advice.mergeConflict=false", "rebase", "--no-autostash"}
 	if r.o.Quiet {
 		argv = append(argv, "--quiet")
 	}
@@ -363,7 +365,10 @@ func (r pushRun) rebase(onto string) (int, bool, error) {
 // conflict is the lock and the remote keeps the first take. It names the
 // file and each item both sides changed, the upstream's owner of one it
 // took, and how to give the item up (git rebase --skip drops the commit
-// being replayed, a registry command's being the registry alone).
+// being replayed, a registry command's being the registry alone). When no
+// item clashes, both sides added or changed different items (two ideas
+// appended at the registry's end, bug 118), so it says to keep both and
+// continue: --skip would drop the commit's own items.
 func (r pushRun) registryConflict() []string {
 	file := config.Path()
 	if _, err := os.Stat(file); err != nil {
@@ -381,13 +386,19 @@ func (r pushRun) registryConflict() []string {
 	if !hit {
 		return nil
 	}
-	lines := []string{"", fmt.Sprintf("The conflict is in the work registry, %s: a commit on %s changed", registry, r.upstream()),
-		"the same item as yours, so it was taken, or changed, there first, and the remote keeps that."}
 	show := func(rev string) string {
 		text, _ := git.Output("show", rev+":"+registry)
 		return text
 	}
-	for _, c := range work.Clashes(show("REBASE_HEAD^"), show("HEAD"), show("REBASE_HEAD")) {
+	clashes := work.Clashes(show("REBASE_HEAD^"), show("HEAD"), show("REBASE_HEAD"))
+	if len(clashes) == 0 {
+		return []string{"", fmt.Sprintf("The conflict is in the work registry, %s: a commit on %s and yours added or", registry, r.upstream()),
+			"changed different items, so nothing was taken twice. Keep both sides' items in the file, git add it",
+			"and run git rebase --continue, then itos push again; or run git rebase --abort to leave it."}
+	}
+	lines := []string{"", fmt.Sprintf("The conflict is in the work registry, %s: a commit on %s changed", registry, r.upstream()),
+		"the same item as yours, so it was taken, or changed, there first, and the remote keeps that."}
+	for _, c := range clashes {
 		switch {
 		case c.Taken && c.Owner != "":
 			lines = append(lines, fmt.Sprintf("  %s is taken: a commit on %s made %s its owner first.", c.ID, r.upstream(), c.Owner))

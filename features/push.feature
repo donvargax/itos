@@ -76,7 +76,7 @@ Feature: itos push, the pull-rebase-push routine as one command
   # clashes. The take-clash advice, git rebase --skip, would drop the whole
   # commit; with no clash the push says to keep both sides and continue.
   # ID-PUSH-05's wording and advice for a real clash stay as they are.
-  @wip @ID-PUSH-15 @bug-118
+  @ID-PUSH-15 @bug-118
   Scenario: Two different items added on both sides are not called the same item, and nothing advises skipping
     Given the work registry has the item "slice-9" owned by nobody with the status "todo"
     And the remote has gained the commit "docs: add p1-from-ana" adding the idea "p1-from-ana" to the registry

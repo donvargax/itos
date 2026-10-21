@@ -310,12 +310,15 @@
 // runs git rebase --no-autostash <sha> (never git pull, so neither
 // pull.rebase, pull.ff nor a fork point enters it), after rewriteNotes under
 // a stealth config so the rebase carries the itos notes. A stop afterwards
-// (git.Rebasing or git.Conflicted) exits 1 saying how to go on; when the
+// (git.Rebasing or git.Conflicted) exits 1 saying how to go on, git's own
+// hint turned off (advice.mergeConflict) since it advises --skip, which
+// drops the commit being replayed (bug 118); when the
 // work registry is among the conflicted files, registryConflict adds what
 // happened in a person's words: each item both sides changed
 // (work.Clashes), the upstream's owner of one it took, and git rebase
 // --skip to give the item up, since two takes of one item meet there and the
-// remote keeps the first.
+// remote keeps the first; with no such item, that both sides changed
+// different items and to keep both and git rebase --continue (bug 118).
 //
 // HEAD is then resolved to a full SHA once (pushRun.sha), and nothing after
 // reads HEAD again: git runs the pre-push hook after it resolves the
