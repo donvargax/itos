@@ -2352,3 +2352,19 @@
   done_when:
     - run: go test -count=1 ./tools/bin/nightly-report
     - run: grep -q "could not be read" tools/bin/nightly-report/main.go
+
+- id: T-193
+  type: ci
+  title: The features-scope self-test expects one run per Examples row of a Scenario Outline
+  why: >
+    The nightlies of 2026-10-18 to 2026-10-21 (runs 39124515762 to 39594715946) went red in the
+    features-scope self-test since slice-138 added the repository's first Scenario Outlines:
+    @ID-WORK-106 (9 Examples rows) and @ID-WORK-107 (5). godog runs one subtest per row, all named
+    after the outline, and the self-test's expected set holds each live scenario once, so 'the whole
+    run is every live scenario' reports them missing x1 and extra x9 and x5. Nothing is skipped or
+    added: the expected set counts one run per Examples row of an outline (the feature files are
+    already read there to name go test's subtests), for the whole run, the smoke run and the
+    one-scenario range alike. No change to itos (the user, 2026-10-21).
+  done_when:
+    - run: ITOS_SELFTEST=1 go test -count=1 -run '^TestSelftest$' ./tools/selftest/features-scope
+      timeout: 600

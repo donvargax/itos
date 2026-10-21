@@ -10828,3 +10828,11 @@ items:
       patch; the change must reach the binary (the toolchain line, or a module go list -deps
       ./cmd/itos names), else it is chore(deps) or build. Needs: per-scope rules in the commit
       config, or a built-in deps rule; release-version reading fix(deps).
+
+  - id: T-193
+    title: The features-scope self-test expects one run per Examples row of a Scenario Outline
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task
