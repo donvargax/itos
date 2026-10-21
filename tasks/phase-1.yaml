@@ -2678,3 +2678,19 @@
     - run: "! grep -rn \"runtime.GOOS\" internal --include=*.go --exclude=*_test.go"
     - run: go test -count=1 ./internal/... ./cmd/...
       timeout: 900
+
+- id: T-214
+  type: ci
+  title: Corpus cases that say they write nothing pin it with files_after, and the runner's additive text comparison goes
+  why: >
+    T-212's agent (2026-10-21): cases named for writing nothing pin only a stderr fact (tasks.yaml's
+    task add refusing a caller-supplied id, work.yaml's work add refusing an id for a bug, and
+    others like them): a file fact, which files_after pins (the files the case would have written,
+    absent or unchanged). And with exact text refused (T-212) and Machine stripping it, the runner's
+    additive linesProblems for stdout and stderr only ever judges empty text, so it and doc.go's
+    Additive paragraph on text go. ci commits for the runner, test commits for the corpus files.
+  done_when:
+    - run: go test -count=1 ./tools/bin/conformance/... ./tools/bin/previous-release/...
+      timeout: 600
+    - run: go run ./tools/bin/conformance --bin tools/bin/itos
+      timeout: 900
