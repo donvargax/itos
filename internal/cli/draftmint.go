@@ -18,7 +18,6 @@ import (
 
 	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/draft"
-	"github.com/donvargax/itos/v8/internal/tests"
 )
 
 // mintingLines are the commands that mint an item's id, as their first two
@@ -109,14 +108,14 @@ func runReserved(d draft.Draft, w io.Writer) int {
 }
 
 // inPlace runs f, then puts back what a command's global flags change in
-// this process: the folder it runs in, ITOS_CONFIG, NO_COLOR, the folder the
-// person stood in and where the tests warn.
+// this process: the folder it runs in, ITOS_CONFIG, NO_COLOR and the folder
+// the person stood in.
 func inPlace(f func() error) error {
 	here, err := os.Getwd()
 	if err != nil {
 		return err
 	}
-	stood, warnings := origin, tests.Warnings
+	stood := origin
 	env := map[string]*string{}
 	for _, name := range []string{"ITOS_CONFIG", "NO_COLOR"} {
 		if value, ok := os.LookupEnv(name); ok {
@@ -126,7 +125,7 @@ func inPlace(f func() error) error {
 		}
 	}
 	ran := f()
-	origin, tests.Warnings = stood, warnings
+	origin = stood
 	for name, value := range env {
 		if value == nil {
 			os.Unsetenv(name)

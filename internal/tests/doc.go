@@ -13,9 +13,10 @@
 // <tree>` through the config's shell, its output read by value.ParseJSON
 // (keys in JavaScript's order) and held to the protocol, its failures
 // carrying its stderr and its exit as shell.Result.Status; supports_at:
-// false warns once a run on Warnings, which cli.Main points at its stderr. A
-// command adapter's listing keeps each object as printed in Raw, which itos
-// tests list --json prints key for key, extra keys included. ListTests is a
+// false warns once a run on the run's Warnings, passed in (cli.Main makes
+// one on its stderr, carried in cli.Out and message.Reading). A command
+// adapter's listing keeps each object as printed in Raw, which itos tests
+// list --json prints key for key, extra keys included. ListTests is a
 // kind's listing at a tree, ListTestsUnder the same with tests smoke check
 // --features <dir> standing in for a Gherkin kind's root. Tagged gives the
 // Gherkin kinds' scenarios whose tag line, or their file's, holds a tag
@@ -85,7 +86,7 @@
 // true or a kind whose named adapter is not gherkin, and allowed_renames or
 // code without it; code's $path_sets are expanded as commits.scopes' are.
 //
-// NewMoves(cfg) reads each kind's feature files once per tree and gives the
+// NewMoves(cfg, ws) reads each kind's feature files once per tree and gives the
 // callers: Commit(sha, type, change) for verify (the commit against git.Parent, the
 // empty tree for a root commit, nothing read when no check judges the type),
 // Between for the commit-msg hook (HEAD, or for an amend HEAD's parent,

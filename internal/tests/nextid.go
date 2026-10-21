@@ -26,7 +26,7 @@ func NextTag(cfg *config.Loaded, name, stem string, others []string) (string, er
 	}
 	ids := others
 	if k.Adapter.Command != "" || k.Adapter.Name != "gherkin" {
-		list, err := ListTests(cfg, name, "worktree")
+		list, err := ListTests(cfg, name, "worktree", nil)
 		if err != nil {
 			return "", err
 		}

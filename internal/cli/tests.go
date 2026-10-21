@@ -24,7 +24,7 @@ func testsList(name, at string, o Out) (int, error) {
 	if at == "" {
 		at = "worktree"
 	}
-	list, err := tests.ListTests(cfg, name, at)
+	list, err := tests.ListTests(cfg, name, at, o.Tests)
 	if err != nil {
 		return 0, err
 	}
@@ -68,7 +68,7 @@ func testsMoves(name string, o Out) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	found, err := tests.NewMoves(cfg).Index(name)
+	found, err := tests.NewMoves(cfg, o.Tests).Index(name)
 	if err != nil {
 		return 0, err
 	}
@@ -116,7 +116,7 @@ func smokeCheck(name string, root *string, o Out) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	found, err := tests.SmokeIssues(cfg, name, smoke, root)
+	found, err := tests.SmokeIssues(cfg, name, smoke, root, o.Tests)
 	if err != nil {
 		return 0, err
 	}

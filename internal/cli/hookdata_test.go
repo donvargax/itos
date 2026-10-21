@@ -66,7 +66,7 @@ func TestJudgedSmokeFindings(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	found, lines, err := judgedSmokeFindings(cfg, nil)
+	found, lines, err := judgedSmokeFindings(cfg, nil, nil)
 	if err != nil || len(found) != 0 || !slices.Equal(lines, []string{"features/smoke.yaml: every smoke test is live (1 in all)"}) {
 		t.Errorf("a sound set: %v %q %v", found, lines, err)
 	}
@@ -74,12 +74,12 @@ func TestJudgedSmokeFindings(t *testing.T) {
 	found, lines, _ = judgedSmokeFindings(cfg, func(name, file string) bool {
 		asked = append(asked, name+" "+file)
 		return false
-	})
+	}, nil)
 	if len(found) != 0 || len(lines) != 0 || !slices.Equal(asked, []string{"scenario features/smoke.yaml"}) {
 		t.Errorf("a kind left out: %v %q, asked %q", found, lines, asked)
 	}
 	writeFiles(t, map[string]string{"features/smoke.yaml": "- [\n"})
-	found, _, _ = judgedSmokeFindings(cfg, nil)
+	found, _, _ = judgedSmokeFindings(cfg, nil, nil)
 	if len(found) != 1 || found[0].Rule != "smoke-unreadable" || found[0].Fix != "correct features/smoke.yaml" || found[0].Area != "smoke" {
 		t.Errorf("a set that cannot be read: %v", found)
 	}
@@ -92,19 +92,19 @@ func TestJudgedSmokeFindings(t *testing.T) {
 // the smoke rule's problem, under the staged reject message (slice 117).
 func TestStagedDataIssues(t *testing.T) {
 	scratchFolder(t)
-	if _, _, err := stagedDataIssues(""); err == nil {
+	if _, _, err := stagedDataIssues("", nil); err == nil {
 		t.Error("outside a repository: no error")
 	}
 
 	gitIn(t, "init", "-q", "-b", "main")
 	writeFiles(t, map[string]string{"README.md": "scratch\n"})
 	gitIn(t, "add", "README.md")
-	if found, _, err := stagedDataIssues(""); err != nil || len(found) != 0 {
+	if found, _, err := stagedDataIssues("", nil); err != nil || len(found) != 0 {
 		t.Errorf("no config: %v %v", found, err)
 	}
 
 	useWrappedGit(t, "rev-parse", "", "")
-	if _, _, err := stagedDataIssues(""); err == nil {
+	if _, _, err := stagedDataIssues("", nil); err == nil {
 		t.Error("an index git cannot place: no error")
 	}
 	t.Setenv("ITOS_GIT", "")
@@ -118,7 +118,7 @@ func TestStagedDataIssues(t *testing.T) {
 	gitIn(t, "commit", "-q", "-m", "docs: start")
 	writeFiles(t, map[string]string{"tasks/work-items.yaml": "phases: [\n"})
 	gitIn(t, "add", "tasks/work-items.yaml")
-	found, header, err := stagedDataIssues("")
+	found, header, err := stagedDataIssues("", nil)
 	if err != nil || len(found) != 1 || found[0].Rule != "data-unreadable" || header != "Commit rejected:" {
 		t.Errorf("a registry that cannot be read: %v %q %v", found, header, err)
 	}
@@ -134,7 +134,7 @@ func TestStagedDataIssues(t *testing.T) {
 	gitIn(t, "commit", "-q", "-m", "test: the smoke set")
 	writeFiles(t, map[string]string{"features/b.feature": "Feature: B\n\n  @ID-B-01\n  Scenario: One\n    When it runs\n"})
 	gitIn(t, "add", "features/b.feature")
-	found, header, err = stagedDataIssues("")
+	found, header, err = stagedDataIssues("", nil)
 	if err != nil || len(found) != 1 || found[0].Rule != "smoke-missing" || !strings.HasPrefix(found[0].Message, "b.feature ") || header != "Refused:" {
 		t.Errorf("a staged feature file with no smoke scenario: %v %q %v", found, header, err)
 	}

@@ -79,11 +79,12 @@ func ParseGlobals(args []string) Globals {
 	return g
 }
 
-// Out is how a command reports: its streams, and the global flags that shape
-// what it prints.
+// Out is how a command reports: its streams, the global flags that shape
+// what it prints, and Tests, where the run's test listings warn.
 type Out struct {
 	JSON, Quiet    bool
 	Stdout, Stderr io.Writer
+	Tests          *tests.Warnings
 }
 
 // usageError is a command called wrongly: exit 2, naming the help.
@@ -239,8 +240,7 @@ func typed(p string) string {
 // Main runs itos with the arguments after its name and gives the exit code.
 func Main(args []string, stdout, stderr io.Writer) int {
 	g := Parse(args)
-	o := Out{JSON: g.JSON, Quiet: g.Quiet, Stdout: stdout, Stderr: stderr}
-	tests.Warnings = stderr
+	o := Out{JSON: g.JSON, Quiet: g.Quiet, Stdout: stdout, Stderr: stderr, Tests: tests.NewWarnings(stderr)}
 	if err := applyGlobals(g); err != nil {
 		return failure(err, o)
 	}

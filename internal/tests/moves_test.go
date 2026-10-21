@@ -196,7 +196,7 @@ tests:
     tag_prefix: "@"
     range_checks: [{ name: moves, builtin: moves, except_types: [feat] }]
 `)
-	moves := NewMoves(cfg)
+	moves := NewMoves(cfg, nil)
 	found, err := moves.Merge("test", first, "HEAD", nil, Change{})
 	if err != nil || len(found) != 0 {
 		t.Fatalf("a merge with no own change judged by what its topic brings: %v, %v", found, err)
@@ -294,7 +294,7 @@ tests:
     id: "ID-[A-Z]+-\\d+"
     range_checks: [{ name: moves, builtin: moves, except_types: [feat], code: ["?x"] }]
 `)
-	m := NewMoves(cfg)
+	m := NewMoves(cfg, nil)
 	checks := m.checks()
 	got, err := m.live(checks[0], Change{
 		Named: map[string][]string{"scenario": {"ID-C-01"}, "other": {"ID-D-01"}},
@@ -317,7 +317,7 @@ tests:
     root: other
     id: "ID-[A-Z]+-\\d+"
     range_checks: [{ name: moves, builtin: moves, except_types: [feat], code: ["?x"] }]
-`))
+`), nil)
 	if _, err := bad.Between("test", "HEAD", "index", Change{Paths: []string{"x"}}); err == nil {
 		t.Error("the rule judged a commit by a glob JavaScript refuses")
 	}

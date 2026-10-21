@@ -17,7 +17,7 @@ import (
 // the index or, for a path the current source lacks (a deletion, under the
 // hook's reading of the index), at before, a commit; a tree that names no
 // commit lists nothing, and a listing that fails names no file.
-func StagesTestFile(cfg *config.Loaded, name string, paths []string, before string) bool {
+func StagesTestFile(cfg *config.Loaded, name string, paths []string, before string, ws *Warnings) bool {
 	k, err := KindOf(cfg, name)
 	if err != nil {
 		return false
@@ -25,7 +25,7 @@ func StagesTestFile(cfg *config.Loaded, name string, paths []string, before stri
 	if k.Adapter.Command == "" {
 		return featureAmong(k, paths)
 	}
-	m := NewMoves(cfg)
+	m := NewMoves(cfg, ws)
 	list, err := m.testList(name, "index")
 	if err != nil {
 		return false

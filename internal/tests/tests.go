@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"os"
 	"strings"
 
 	"github.com/donvargax/itos/v8/internal/config"
@@ -36,12 +35,32 @@ type List struct {
 	Raw      any      `json:"-"`
 }
 
-// Warnings is where a listing's warning goes: a command adapter that cannot
-// list a tree, read as the working tree. stderr, as console.warn's.
-var Warnings io.Writer = os.Stderr
+// Warnings are where a run's listings warn, and the kinds whose warning it
+// has printed: a command adapter that cannot list a tree, read as the
+// working tree, warns once a run. Each run makes its own (NewWarnings); nil
+// warns nowhere, for a listing of the working tree alone, which never warns.
+type Warnings struct {
+	w      io.Writer
+	warned map[string]bool
+}
 
-// warned are the kinds whose warning this run has printed: one per run.
-var warned = map[string]bool{}
+// NewWarnings are a run's warnings, printed on w (its stderr, as
+// console.warn's).
+func NewWarnings(w io.Writer) *Warnings {
+	return &Warnings{w: w, warned: map[string]bool{}}
+}
+
+// cannotList warns, once a run, that the kind's adapter reads tree as the
+// working tree.
+func (ws *Warnings) cannotList(name, tree string) {
+	if ws == nil {
+		return
+	}
+	if !ws.warned[name] {
+		fmt.Fprintf(ws.w, "tests.%s cannot list a tree; %s is read as the working tree\n", name, tree)
+	}
+	ws.warned[name] = true
+}
 
 // KindOf is the kind the config names, its defaults under it.
 func KindOf(cfg *config.Loaded, name string) (config.Kind, error) {
@@ -60,15 +79,16 @@ func BareID(k config.Kind, id string) string {
 	return id
 }
 
-// ListTests is the kind's tests at a tree: "worktree", "index" or a commit.
-func ListTests(cfg *config.Loaded, name, at string) (List, error) {
-	return ListTestsUnder(cfg, name, at, nil)
+// ListTests is the kind's tests at a tree: "worktree", "index" or a commit,
+// warning on ws.
+func ListTests(cfg *config.Loaded, name, at string, ws *Warnings) (List, error) {
+	return ListTestsUnder(cfg, name, at, nil, ws)
 }
 
 // ListTestsUnder is ListTests with root, when not nil, standing in for a
 // Gherkin kind's own (`tests smoke check --features <dir>`: a copy of its
 // files). A command adapter lists what it lists.
-func ListTestsUnder(cfg *config.Loaded, name, at string, root *string) (List, error) {
+func ListTestsUnder(cfg *config.Loaded, name, at string, root *string, ws *Warnings) (List, error) {
 	k, err := KindOf(cfg, name)
 	if err != nil {
 		return List{}, err
@@ -77,10 +97,7 @@ func ListTestsUnder(cfg *config.Loaded, name, at string, root *string) (List, er
 	case k.Adapter.Command != "":
 		tree := at
 		if k.Adapter.SupportsAt != nil && !*k.Adapter.SupportsAt && tree != "worktree" {
-			if !warned[name] {
-				fmt.Fprintf(Warnings, "tests.%s cannot list a tree; %s is read as the working tree\n", name, tree)
-			}
-			warned[name] = true
+			ws.cannotList(name, tree)
 			tree = "worktree"
 		}
 		return commandList(cfg, name, k.Adapter.Command, tree)

@@ -223,7 +223,7 @@ func initWrite(stealth, initialized bool, offer pluginOffer, shimOffer shimOffer
 		if err != nil {
 			return 0, err
 		}
-		list, err := tests.ListTests(cfg, "scenario", "worktree")
+		list, err := tests.ListTests(cfg, "scenario", "worktree", nil)
 		if err != nil {
 			return 0, err
 		}
@@ -347,7 +347,7 @@ func initHooks(o Out) (int, any, error) {
 		return code, nil, err
 	}
 	var buf bytes.Buffer
-	code, err := hookInstall(false, false, Out{JSON: true, Quiet: o.Quiet, Stdout: &buf, Stderr: o.Stderr})
+	code, err := hookInstall(false, false, Out{JSON: true, Quiet: o.Quiet, Stdout: &buf, Stderr: o.Stderr, Tests: o.Tests})
 	if err != nil || buf.Len() == 0 {
 		return code, nil, err
 	}
@@ -409,7 +409,7 @@ func smokeSetOf(list tests.List, prefix string) (string, int) {
 // reports a block other than the one this itos writes and writes one only
 // for --agent-rules. None of them not in place is counted as missing.
 func initReport(file string, offer pluginOffer, shimOffer shimOffer, rulesOffer rulesOffer, o Out) (int, error) {
-	_, found, notes, _, err := configFindings("")
+	_, found, notes, _, err := configFindings("", o.Tests)
 	if err != nil {
 		return 0, err
 	}

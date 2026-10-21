@@ -69,7 +69,7 @@ func workCheck(path string, named bool, o Out) (int, error) {
 // one, so the session owns every item, whatever owner it names; --as still
 // proposes that handle's, as in a project.
 func workProposal(as string, o Out) (int, error) {
-	if code, err := workCheck("", false, Out{Quiet: true, Stdout: o.Stdout, Stderr: o.Stderr}); code != 0 || err != nil {
+	if code, err := workCheck("", false, Out{Quiet: true, Stdout: o.Stdout, Stderr: o.Stderr, Tests: o.Tests}); code != 0 || err != nil {
 		return code, err
 	}
 	cfg, err := config.Load(config.Path())

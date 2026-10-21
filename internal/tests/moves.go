@@ -283,11 +283,12 @@ type Moves struct {
 	cfg   *config.Loaded
 	sets  map[string]*FeatureSet
 	lists map[string]List
+	ws    *Warnings
 }
 
-// NewMoves is the moves rule of a config.
-func NewMoves(cfg *config.Loaded) *Moves {
-	return &Moves{cfg: cfg, sets: map[string]*FeatureSet{}, lists: map[string]List{}}
+// NewMoves is the moves rule of a config, its listings warning on ws.
+func NewMoves(cfg *config.Loaded, ws *Warnings) *Moves {
+	return &Moves{cfg: cfg, sets: map[string]*FeatureSet{}, lists: map[string]List{}, ws: ws}
 }
 
 // featureSet is the kind's feature files at a tree: a commit, or "index"

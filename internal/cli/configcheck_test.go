@@ -72,7 +72,7 @@ func TestConfigFindings(t *testing.T) {
 	})
 	findings := func(wantCode int, want ...string) {
 		t.Helper()
-		code, found, _, _, err := configFindings("")
+		code, found, _, _, err := configFindings("", nil)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -112,13 +112,13 @@ func TestConfigFindings(t *testing.T) {
 		"tasks/asks.yaml":       "questions:\n  - { id: q-1, item: p1-a, question: \"Why?\" }\n",
 		"tasks/work-items.yaml": "phases: {}\nitems: &a [*a]\n",
 	})
-	code, found, _, _, err := configFindings("")
+	code, found, _, _, err := configFindings("", nil)
 	if err != nil || code != ExitPolicy || slices.ContainsFunc(found, func(f Found) bool { return f.Area == "asks" }) {
 		t.Errorf("a registry with a cycle: %d %+v %v", code, found, err)
 	}
 
 	writeFiles(t, map[string]string{"tasks/work-items.yaml": "phases: [\n"})
-	if code, found, _, _, err := configFindings(""); err == nil || code != 0 || found != nil {
+	if code, found, _, _, err := configFindings("", nil); err == nil || code != 0 || found != nil {
 		t.Errorf("a registry that cannot be read: %d %v %v", code, found, err)
 	}
 }
@@ -135,7 +135,7 @@ func TestConfigFindingsQuestionsUnreadable(t *testing.T) {
 		"people.yaml":           "- a\n",
 		"tasks/asks.yaml/x":     "",
 	})
-	if code, found, _, _, err := configFindings(""); err == nil || code != 0 || found != nil {
+	if code, found, _, _, err := configFindings("", nil); err == nil || code != 0 || found != nil {
 		t.Errorf("a questions' file that cannot be read: %d %v %v", code, found, err)
 	}
 }
@@ -154,7 +154,7 @@ func TestConfigFindingsAnsweredQuestionsWarn(t *testing.T) {
 		"tasks/asks.yaml": "questions:\n  - { id: q-1, item: p1-gone, question: \"Why?\", answer: \"So.\" }\n" +
 			"  - { id: q-2, item: p1-a, question: \"How?\", answer: \"Thus.\" }\n  - { id: q-3, question: \"When?\", answer: \"Now.\" }\n",
 	})
-	code, found, warnings, _, err := configFindings("")
+	code, found, warnings, _, err := configFindings("", nil)
 	if err != nil || code != 0 || len(found) != 0 || len(warnings) != 1 {
 		t.Fatalf("answered: %d %+v %+v %v", code, found, warnings, err)
 	}
@@ -166,7 +166,7 @@ func TestConfigFindingsAnsweredQuestionsWarn(t *testing.T) {
 		t.Errorf("warning %+v, want %+v", warnings[0], want)
 	}
 	writeFiles(t, map[string]string{"tasks/asks.yaml": "questions:\n  - { id: q-1, item: p1-gone, question: \"Why?\" }\n"})
-	code, found, warnings, _, err = configFindings("")
+	code, found, warnings, _, err = configFindings("", nil)
 	if err != nil || code != ExitPolicy || len(found) != 1 || found[0].Rule != "asks-unknown-item" || len(warnings) != 0 {
 		t.Errorf("open: %d %+v %+v %v", code, found, warnings, err)
 	}

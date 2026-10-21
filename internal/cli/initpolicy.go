@@ -529,7 +529,7 @@ func policySmokeSets(cfg *config.Loaded, files []policyFile) (*policyRefusal, er
 		if files[i].kept = lexists(f.path); files[i].kept {
 			found, err = policySmokeCheck(cfg, name, f.path)
 		} else {
-			list, err = tests.ListTests(cfg, name, "worktree")
+			list, err = tests.ListTests(cfg, name, "worktree", nil)
 		}
 		switch {
 		case err != nil && k.Adapter.Command != "":
@@ -553,7 +553,7 @@ func policySmokeCheck(cfg *config.Loaded, name, file string) ([]out.Problem, err
 		return []out.Problem{{Rule: "init-policy-smoke", Message: err.Error(),
 			Fix: "correct " + filepath.ToSlash(file) + ", or remove it for init --policy to derive one"}}, nil
 	}
-	return tests.SmokeIssues(cfg, name, smoke, nil)
+	return tests.SmokeIssues(cfg, name, smoke, nil, nil)
 }
 
 // policySmokeRefused is the refusal of a smoke set the project has that the

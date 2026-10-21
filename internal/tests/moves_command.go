@@ -37,7 +37,7 @@ func (m *Moves) testList(name, tree string) (List, error) {
 			return m.lists[key], nil
 		}
 	}
-	list, err := ListTests(m.cfg, name, at)
+	list, err := ListTests(m.cfg, name, at, m.ws)
 	if err != nil {
 		return List{}, err
 	}

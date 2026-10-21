@@ -39,7 +39,7 @@ func checkMessage(file, at string, o Out) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	return message.Check(cfg, text, message.Reading{At: at, Note: os.Getenv(message.FootersEnv), Warn: o.Stderr},
+	return message.Check(cfg, text, message.Reading{At: at, Note: os.Getenv(message.FootersEnv), Warn: o.Stderr, Tests: o.Tests},
 		message.Streams{JSON: o.JSON, Stdout: o.Stdout, Stderr: o.Stderr})
 }
 

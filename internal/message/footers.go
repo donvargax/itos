@@ -25,12 +25,13 @@ import (
 // and check-message judge the commit being made, which every rule holds.
 // Note is the commit's footers under a stealth config, read there instead
 // of the message's: the lines itos commit hands the hook, or a made commit's
-// itos note.
+// itos note. Tests is where a listing of a footer's tests warns, the run's.
 type Reading struct {
-	At   string
-	Made bool
-	Note string
-	Warn io.Writer
+	At    string
+	Made  bool
+	Note  string
+	Warn  io.Writer
+	Tests *tests.Warnings
 }
 
 // tree is the tree a footer's IDs are read at: a commit, "index", or "" for
@@ -233,7 +234,7 @@ func notLiveWhy(cfg *config.Loaded, f config.Footer) (string, error) {
 // tree), and the ones not live.
 type known struct{ all, notLive map[string]bool }
 
-func knownAt(cfg *config.Loaded, f config.Footer, tree string) (known, error) {
+func knownAt(cfg *config.Loaded, f config.Footer, tree string, ws *tests.Warnings) (known, error) {
 	if isLedger(f) {
 		ids, err := ledger.IDs(cfg, tree)
 		return known{all: ids, notLive: map[string]bool{}}, err
@@ -245,7 +246,7 @@ func knownAt(cfg *config.Loaded, f config.Footer, tree string) (known, error) {
 	if tree == "" {
 		tree = "worktree"
 	}
-	list, err := tests.ListTests(cfg, f.Source.Tests, tree)
+	list, err := tests.ListTests(cfg, f.Source.Tests, tree, ws)
 	if err != nil {
 		return known{}, err
 	}
@@ -308,7 +309,7 @@ func knownFor(cfg *config.Loaded, key string, f config.Footer, r Reading) (known
 			return known{}, err
 		}
 	}
-	found, err := knownAt(cfg, f, tree)
+	found, err := knownAt(cfg, f, tree, r.Tests)
 	if err != nil || tree == "" || len(found.all) > 0 {
 		return found, err
 	}
@@ -316,7 +317,7 @@ func knownFor(cfg *config.Loaded, key string, f config.Footer, r Reading) (known
 		return known{}, err
 	}
 	fmt.Fprintf(r.Warn, "%s has no %s; its %s: footer is read against the working tree\n", tree, noun(f), key)
-	return knownAt(cfg, f, "")
+	return knownAt(cfg, f, "", r.Tests)
 }
 
 // CheckFooter is one footer's rule over the footers of a commit of the type

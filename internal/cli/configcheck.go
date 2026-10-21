@@ -37,14 +37,14 @@ func tagged(area string, problems []out.Problem) []Found {
 
 // smokeFindings are each kind's smoke set against its tests, and the line
 // each sound one prints; a set that cannot be read is one problem.
-func smokeFindings(cfg *config.Loaded) ([]Found, []string, error) {
-	return judgedSmokeFindings(cfg, nil)
+func smokeFindings(cfg *config.Loaded, ws *tests.Warnings) ([]Found, []string, error) {
+	return judgedSmokeFindings(cfg, nil, ws)
 }
 
 // judgedSmokeFindings are smokeFindings for the kinds judged picks by name
 // and smoke file (the commit-msg hook's, slice 117), or for every kind with a
 // smoke set when judged is nil.
-func judgedSmokeFindings(cfg *config.Loaded, judged func(name, file string) bool) ([]Found, []string, error) {
+func judgedSmokeFindings(cfg *config.Loaded, judged func(name, file string) bool, ws *tests.Warnings) ([]Found, []string, error) {
 	var found []Found
 	var lines []string
 	for _, name := range cfg.Tests.Keys {
@@ -59,7 +59,7 @@ func judgedSmokeFindings(cfg *config.Loaded, judged func(name, file string) bool
 		smoke, err := tests.LoadSmoke(cfg, name)
 		var own []out.Problem
 		if err == nil {
-			own, err = tests.SmokeIssues(cfg, name, smoke, nil)
+			own, err = tests.SmokeIssues(cfg, name, smoke, nil, ws)
 		}
 		if err != nil {
 			found = append(found, Found{out.Problem{Rule: "smoke-unreadable", Message: err.Error(), Fix: "correct " + file}, "smoke"})
@@ -84,7 +84,7 @@ func judgedSmokeFindings(cfg *config.Loaded, judged func(name, file string) bool
 // ledger.Findings, a project's people file missing or unreadable,
 // work.PeopleProblem, or an answered question naming an item the registry
 // does not have, asksProblems) never sets it.
-func configFindings(ledgerFile string) (int, []Found, []Found, []string, error) {
+func configFindings(ledgerFile string, ws *tests.Warnings) (int, []Found, []Found, []string, error) {
 	path := config.Path()
 	cfg, err := config.Load(path)
 	var invalid *config.Error
@@ -120,7 +120,7 @@ func configFindings(ledgerFile string) (int, []Found, []Found, []string, error) 
 			files = append(files, f.Path)
 		}
 	}
-	smoke, smokeLines, err := smokeFindings(cfg)
+	smoke, smokeLines, err := smokeFindings(cfg, ws)
 	if err != nil {
 		return 0, nil, nil, nil, err
 	}
@@ -275,7 +275,7 @@ func prefixed(e *config.Error, area string) []Found {
 // rule id and, where one exists, a fix; then its warnings, printed as WARN
 // and never failing it.
 func configCheck(ledgerFile string, o Out) (int, error) {
-	code, found, warnings, lines, err := configFindings(ledgerFile)
+	code, found, warnings, lines, err := configFindings(ledgerFile, o.Tests)
 	if err != nil {
 		return 0, err
 	}

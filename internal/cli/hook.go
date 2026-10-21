@@ -99,7 +99,7 @@ func hookCommitMsg(file string, o Out) (int, error) {
 	if code, err := stagedRule(cfg, stored, base, merge, o); code != 0 || err != nil {
 		return code, err
 	}
-	reading := message.Reading{At: os.Getenv("ITOS_AT"), Warn: o.Stderr}
+	reading := message.Reading{At: os.Getenv("ITOS_AT"), Warn: o.Stderr, Tests: o.Tests}
 	footers := stored
 	if cfg.Stealth {
 		if reading.Note, err = handedFooters(); err != nil {
@@ -236,7 +236,7 @@ func stagesData(staged []string) bool {
 // saying so, else the smoke rule's for each kind whose test files it stages
 // (stagedSmokeIssues); and the rejection's first line, commits.reject_message
 // as staged, if it loads. The staged paths are against base, as stagedFiles.
-func stagedDataIssues(base string) ([]out.Problem, string, error) {
+func stagedDataIssues(base string, ws *tests.Warnings) ([]out.Problem, string, error) {
 	staged, err := stagedFiles(base)
 	if err != nil {
 		return nil, "", err
@@ -249,9 +249,9 @@ func stagedDataIssues(base string) ([]out.Problem, string, error) {
 	header := ""
 	err = source.ReadingFrom(index, func() error {
 		if !stagesData(staged) {
-			found = stagedSmokeIssues(staged, base)
+			found = stagedSmokeIssues(staged, base, ws)
 		} else {
-			_, findings, _, _, err := configFindings("")
+			_, findings, _, _, err := configFindings("", ws)
 			if err != nil {
 				found = []out.Problem{{Rule: "data-unreadable", Message: err.Error()}}
 			}
@@ -279,7 +279,7 @@ func stagedDataIssues(base string) ([]out.Problem, string, error) {
 // smoke step was the first to see it. A kind whose set the index lacks is
 // config check's to report, and a config that does not load the hook's
 // other rules'.
-func stagedSmokeIssues(staged []string, base string) []out.Problem {
+func stagedSmokeIssues(staged []string, base string, ws *tests.Warnings) []out.Problem {
 	cfg, err := config.Load(config.Path())
 	if err != nil {
 		return nil
@@ -288,8 +288,8 @@ func stagedSmokeIssues(staged []string, base string) []out.Problem {
 		base = "HEAD"
 	}
 	found, _, _ := judgedSmokeFindings(cfg, func(name, file string) bool {
-		return source.Has(file) && tests.StagesTestFile(cfg, name, staged, base)
-	})
+		return source.Has(file) && tests.StagesTestFile(cfg, name, staged, base, ws)
+	}, ws)
 	var problems []out.Problem
 	for _, f := range found {
 		problems = append(problems, f.Problem)
@@ -301,7 +301,7 @@ func stagedSmokeIssues(staged []string, base string) []out.Problem {
 // staged data is sound or none is staged, else the rejection, its problems
 // one a line, and 1.
 func stagedDataRule(base string, o Out) (int, error) {
-	found, header, err := stagedDataIssues(base)
+	found, header, err := stagedDataIssues(base, o.Tests)
 	if err != nil || len(found) == 0 {
 		return 0, err
 	}
@@ -396,9 +396,9 @@ func stagedRule(cfg *config.Loaded, text, base string, merge *judged, o Out) (in
 	}
 	var moved []out.Problem
 	if merge != nil {
-		moved, err = tests.NewMoves(cfg).Merge(typ, merge.parent, "index", merge.files, change)
+		moved, err = tests.NewMoves(cfg, o.Tests).Merge(typ, merge.parent, "index", merge.files, change)
 	} else {
-		moved, err = tests.NewMoves(cfg).Between(typ, before, "index", change)
+		moved, err = tests.NewMoves(cfg, o.Tests).Between(typ, before, "index", change)
 	}
 	if err != nil {
 		return 0, err
@@ -768,7 +768,7 @@ func verifyPush(cfg *config.Loaded, refs []pushedRef, o Out) (int, error) {
 		}
 		seen[r] = true
 		var log strings.Builder
-		run, err := newVerifier(cfg, Out{Stdout: &log, Stderr: &log}).over(r.From, r.To)
+		run, err := newVerifier(cfg, Out{Stdout: &log, Stderr: &log, Tests: o.Tests}).over(r.From, r.To)
 		if err != nil {
 			return 0, err
 		}

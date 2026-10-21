@@ -87,7 +87,7 @@ func (v *verifier) commit(sha string) (verified, error) {
 	if merge && len(files) == 0 {
 		return verified{SHA: sha, Header: header, OK: true}, nil
 	}
-	reading := message.Reading{At: sha, Made: true, Warn: v.o.Stderr}
+	reading := message.Reading{At: sha, Made: true, Warn: v.o.Stderr, Tests: v.o.Tests}
 	if v.cfg.Stealth {
 		if reading.Note, err = message.Note(sha); err != nil {
 			return verified{}, err
@@ -237,7 +237,7 @@ func printSinceIssues(missing []out.Problem, o Out) {
 // newVerifier is a run of verify writing to o: its logs on stdout, or on
 // stderr under --json.
 func newVerifier(cfg *config.Loaded, o Out) *verifier {
-	v := &verifier{cfg: cfg, moves: tests.NewMoves(cfg), log: o.Stdout, o: o}
+	v := &verifier{cfg: cfg, moves: tests.NewMoves(cfg, o.Tests), log: o.Stdout, o: o}
 	if o.JSON {
 		v.log = o.Stderr
 	}

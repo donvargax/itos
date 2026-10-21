@@ -25,11 +25,11 @@ func TestStagesTestFileGherkin(t *testing.T) {
 		{[]string{"features/deep/b.feature"}, true},
 		{[]string{"./features/c.feature"}, true},
 	} {
-		if got := StagesTestFile(cfg, "scenario", c.paths, "HEAD"); got != c.want {
+		if got := StagesTestFile(cfg, "scenario", c.paths, "HEAD", nil); got != c.want {
 			t.Errorf("%q: %v, want %v", c.paths, got, c.want)
 		}
 	}
-	if StagesTestFile(cfg, "missing", []string{"features/a.feature"}, "HEAD") {
+	if StagesTestFile(cfg, "missing", []string{"features/a.feature"}, "HEAD", nil) {
 		t.Error("a kind the config lacks has a test file")
 	}
 	if !featureAmong(config.Kind{}, []string{"anywhere/a.feature"}) {
@@ -82,7 +82,7 @@ printf '{"protocol":1,"tests":[],"files":[%s]}\n' "$f"
 	if err := os.Rename("src/gone.test.ts", "gone.keep"); err != nil {
 		t.Fatal(err)
 	}
-	if StagesTestFile(cfg, "unit", []string{"src/gone.test.ts"}, "HEAD") {
+	if StagesTestFile(cfg, "unit", []string{"src/gone.test.ts"}, "HEAD", nil) {
 		t.Error("an unborn HEAD listed a deleted file")
 	}
 	if err := os.Rename("gone.keep", "src/gone.test.ts"); err != nil {
@@ -101,14 +101,14 @@ printf '{"protocol":1,"tests":[],"files":[%s]}\n' "$f"
 		{[]string{"src/never.ts"}, false},
 		{[]string{"a.test.ts"}, false},
 	} {
-		if got := StagesTestFile(cfg, "unit", c.paths, "HEAD"); got != c.want {
+		if got := StagesTestFile(cfg, "unit", c.paths, "HEAD", nil); got != c.want {
 			t.Errorf("%q: %v, want %v", c.paths, got, c.want)
 		}
 	}
-	if StagesTestFile(command("false"), "unit", []string{"src/a.test.ts"}, "HEAD") {
+	if StagesTestFile(command("false"), "unit", []string{"src/a.test.ts"}, "HEAD", nil) {
 		t.Error("an adapter that fails listed a test file")
 	}
-	if StagesTestFile(command("sh index-only.sh"), "unit", []string{"src/gone.test.ts"}, "HEAD") {
+	if StagesTestFile(command("sh index-only.sh"), "unit", []string{"src/gone.test.ts"}, "HEAD", nil) {
 		t.Error("an adapter that fails at the commit before listed a deleted file")
 	}
 	if !listedAmong(config.Kind{}, List{Files: []string{"src/a.test.ts"}}, []string{"src/a.test.ts"}) {
