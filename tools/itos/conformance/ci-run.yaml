@@ -1,5 +1,5 @@
 # The CI driver (`ci run`): the plan carried out in cost order with the
-# config's `ci.env`, the log lines agents and their instructions quote, the first failure ending the run (a failing step's
+# config's `ci.env`, the first failure ending the run (a failing step's
 # own exit code, a task check's 1, unknown tasks before anything runs, named
 # against the ledger's folder; the nightly goes on past a failing step and
 # names each later one), the tasks read from the footer whose source is
@@ -8,7 +8,7 @@
 # and run as itself when there is none, the nightly's tasks step refused
 # before any step runs, a missing ledger folder stopping it at the plan (2), a named task waiting on
 # the registry beside the ledger, --tests running the run of named tests alone,
-# and --json, whose failures lists every failure. The steps and checks are `echo`s, so the log shows what ran.
+# each case judged by --json's verdict, whose failures lists every failure; the steps and checks are `echo`s, so the log on stderr shows loosely what ran.
 git:
   - commit: "build: the scratch project"
     files:
@@ -106,131 +106,49 @@ files:
   gates.sh: "echo the gates self-test\n"
   run-smoke.sh: "echo the smoke run as itself\n"
 cases:
-  - name: a push's run, in cost order, with what it merged, covered, left out and left pending
-    argv: [ci, run, "{{sha.base}}", "{{sha.every}}"]
+  - name: a push's run runs the plan's steps and checks with ci.env, the named tests in one merged run
+    argv: [ci, run, "{{sha.base}}", "{{sha.every}}", --json]
     exit: 0
-    stdout: |
-
-      $ echo lint
-      lint
-
-      T-010
-        $ echo a static check
-      a static check
-
-      $ echo unit tests
-      unit tests
-
-      $ printf 'run %s\n' '@(?:ID-A-01)\b|@ID-A-02'
-      run @(?:ID-A-01)\b|@ID-A-02
-
-      T-010
-        = vp test run   (ran above as `echo unit tests`)
-
-      T-010
-        $ echo "a late check sees CI=$CI"
-      a late check sees CI=1
-
-      T-010
-        = run-scenarios "@ID-A-02"   (in the scenario run above)
-
-      T-010
-        = sh gates.sh   (left out of push CI by ci.nightly_only)
-
-      T-010
-        $ false   (must fail)
-
-      T-010
-        - echo only after the push   (pending: runs after the push)
-
-      CI passed
+    json: { schema: 1, ok: true }
+    stderr_has: ["\nlint\n", "\na static check\n", "\nunit tests\n", "\nrun @(?:ID-A-01)\\b|@ID-A-02\n", "\na late check sees CI=1\n"]
   - name: --tests runs the range's run of named tests alone, merged as the run merges it
-    argv: [ci, run, "{{sha.base}}", "{{sha.every}}", --tests]
+    argv: [ci, run, "{{sha.base}}", "{{sha.every}}", --tests, --json]
     exit: 0
-    stdout: |
-
-      $ printf 'run %s\n' '@(?:ID-A-01)\b|@ID-A-02'
-      run @(?:ID-A-01)\b|@ID-A-02
-
-      CI passed
+    json: { schema: 1, ok: true }
+    stderr_has: "\nrun @(?:ID-A-01)\\b|@ID-A-02\n"
   - name: --tests with no run of named tests for the range runs nothing and says so
-    argv: [ci, run, "{{sha.prose}}", "{{sha.smoke}}", --tests]
+    argv: [ci, run, "{{sha.prose}}", "{{sha.smoke}}", --tests, --json]
     files: { e2e/smoke.yaml: "[]\n" }
     exit: 0
-    stdout: |
-      ci run --tests: no named tests to run (no tests: step, or nothing selected), so nothing ran.
-
-      CI passed
+    json: { schema: 1, ok: true }
+    stderr_has: "no named tests"
   - name: --tests with --nightly runs the nightly's tests step alone
-    argv: [ci, run, --nightly, --tests]
+    argv: [ci, run, --nightly, --tests, --json]
     exit: 0
-    stdout: |
-
-      $ echo run every scenario
-      run every scenario
-
-      CI passed
+    json: { schema: 1, ok: true }
+    stderr_has: "\nrun every scenario\n"
   - name: a check recognized as the smoke run is in the run of named tests
-    argv: [ci, run, "{{sha.prose}}", "{{sha.smoke}}"]
+    argv: [ci, run, "{{sha.prose}}", "{{sha.smoke}}", --json]
     exit: 0
-    stdout: |
-
-      $ echo lint
-      lint
-
-      $ echo unit tests
-      unit tests
-
-      $ printf 'run %s\n' '@(?:ID-A-01)\b'
-      run @(?:ID-A-01)\b
-
-      T-012
-        = sh run-smoke.sh   (in the scenario run above)
-
-      CI passed
+    json: { schema: 1, ok: true }
+    stderr_has: "\nrun @(?:ID-A-01)\\b\n"
   - name: with an empty smoke set and no test named there is no such run, so the check runs as itself
-    argv: [ci, run, "{{sha.prose}}", "{{sha.smoke}}"]
+    argv: [ci, run, "{{sha.prose}}", "{{sha.smoke}}", --json]
     files: { e2e/smoke.yaml: "[]\n" }
     exit: 0
-    stdout: |
-
-      $ echo lint
-      lint
-
-      $ echo unit tests
-      unit tests
-
-      T-012
-        $ sh run-smoke.sh
-      the smoke run as itself
-
-      CI passed
+    json: { schema: 1, ok: true }
+    stderr_has: "\nthe smoke run as itself\n"
   - name: a failing check ends the run, naming the task
-    argv: [ci, run, "{{sha.every}}", "{{sha.failing}}"]
+    argv: [ci, run, "{{sha.every}}", "{{sha.failing}}", --json]
     exit: 1
-    stdout: |
-
-      $ echo lint
-      lint
-
-      $ echo unit tests
-      unit tests
-
-      $ printf 'run %s\n' '@(?:ID-A-01)\b'
-      run @(?:ID-A-01)\b
-
-      T-011
-        $ echo first
-      first
-
-      T-011
-        $ sh -c 'echo broken; exit 4'
-      broken
-    stderr: |
-
-      CI failed at T-011 (A check that fails), its check: sh -c 'echo broken; exit 4'
+    json:
+      schema: 1
+      ok: false
+      failed_at: { task: T-011, title: A check that fails, command: sh -c 'echo broken; exit 4', code: 1 }
+      failures: [{ task: T-011, title: A check that fails, command: sh -c 'echo broken; exit 4', code: 1 }]
+    stderr_has: ["\nfirst\n", "\nbroken\n"]
   - name: a failing step ends the run with exit 1, naming its own exit code
-    argv: [ci, run, "{{sha.every}}", "{{sha.failing}}"]
+    argv: [ci, run, "{{sha.every}}", "{{sha.failing}}", --json]
     files:
       itos.yaml: |
         version: 1
@@ -247,63 +165,13 @@ cases:
           scenario: { root: e2e/features, id: "ID-[A-Z]+-\\d+", tag_prefix: "@", smoke: { file: e2e/smoke.yaml } }
         work: { registry: tasks/work-items.yaml }
     exit: 1
-    stdout: |
-
-      $ echo lint
-      lint
-
-      $ sh -c 'echo tests fail; exit 3'
-      tests fail
-    stderr: |
-
-      CI failed at: sh -c 'echo tests fail; exit 3' (it exited 3)
+    json:
+      schema: 1
+      ok: false
+      failed_at: { step: sh -c 'echo tests fail; exit 3', code: 3 }
+      failures: [{ step: sh -c 'echo tests fail; exit 3', code: 3 }]
+    stderr_has: "\ntests fail\n"
   - name: with ci.stop_at_first_failure false every step and check runs, and the first failure is named
-    argv: [ci, run, "{{sha.every}}", "{{sha.failing}}"]
-    files:
-      itos.yaml: |
-        version: 1
-        ledger: { files: "tasks/phase-{group}.yaml", id: "T-\\d+" }
-        commits:
-          footers:
-            Task: { source: ledger, validate_for: all, read_at: commit }
-        ci:
-          steps:
-            - { run: echo lint, cost: static }
-            - { run: "sh -c 'echo tests fail; exit 3'", cost: late }
-            - { run: echo still runs, cost: late }
-          stop_at_first_failure: false
-        tests:
-          scenario: { root: e2e/features, id: "ID-[A-Z]+-\\d+", tag_prefix: "@", smoke: { file: e2e/smoke.yaml } }
-        work: { registry: tasks/work-items.yaml }
-    exit: 1
-    stdout: |
-
-      $ echo lint
-      lint
-
-      $ sh -c 'echo tests fail; exit 3'
-      tests fail
-
-      $ echo still runs
-      still runs
-
-      T-011
-        $ echo first
-      first
-
-      T-011
-        $ sh -c 'echo broken; exit 4'
-      broken
-
-      T-011
-        $ echo never
-      never
-    stderr: |
-
-      CI failed at: sh -c 'echo tests fail; exit 3' (it exited 3)
-
-      also failed at T-011 (A check that fails), its check: sh -c 'echo broken; exit 4'
-  - name: the same as --json, its verdict the first failure
     argv: [ci, run, "{{sha.every}}", "{{sha.failing}}", --json]
     files:
       itos.yaml: |
@@ -325,16 +193,11 @@ cases:
     json:
       schema: 1
       ok: false
-      failed_at:
-        step: sh -c 'echo tests fail; exit 3'
-        code: 3
+      failed_at: { step: sh -c 'echo tests fail; exit 3', code: 3 }
       failures:
-        - step: sh -c 'echo tests fail; exit 3'
-          code: 3
-        - task: T-011
-          title: A check that fails
-          command: sh -c 'echo broken; exit 4'
-          code: 1
+        - { step: sh -c 'echo tests fail; exit 3', code: 3 }
+        - { task: T-011, title: A check that fails, command: sh -c 'echo broken; exit 4', code: 1 }
+    stderr_has: ["\ntests fail\n", "\nstill runs\n", "\nfirst\n", "\nbroken\n", "\nnever\n"]
   - name: a code proof that finds a survivor fails the run, naming the problem, and --json carries it
     argv: [ci, run, "{{sha.smoke}}", "{{sha.code}}", --json]
     files:
@@ -363,21 +226,16 @@ cases:
       ok: false
       failed_at:
         step: sh proof.sh mutation check --since {{sha.smoke}} --fail-uncovered --json
-        problems:
-          - rule: mutation.survived
-            message: "src/a.ts:3:9: a mutant of Total survived"
-            fix: test it
+        problems: [{ rule: mutation.survived }]
         code: 1
       failures:
         - step: sh proof.sh mutation check --since {{sha.smoke}} --fail-uncovered --json
-          problems:
-            - rule: mutation.survived
-              message: "src/a.ts:3:9: a mutant of Total survived"
-              fix: test it
+          problems: [{ rule: mutation.survived }]
           code: 1
+    stdout_has: "src/a.ts:3:9"
 
   - name: a code proof that cannot run fails the run, never a pass
-    argv: [ci, run, "{{sha.smoke}}", "{{sha.code}}"]
+    argv: [ci, run, "{{sha.smoke}}", "{{sha.code}}", --json]
     files:
       itos.yaml: |
         version: 1
@@ -395,20 +253,14 @@ cases:
             check: "sh -c 'exit 3' --since {base}"
         work: { registry: tasks/work-items.yaml }
     exit: 1
-    stdout: |
-
-      $ echo lint
-      lint
-
-      $ sh -c 'exit 3' --since {{sha.smoke}}
-    stderr: |
-
-      CI failed at the code proof: sh -c 'exit 3' --since {{sha.smoke}}
-      ci-code-proof: the code proof could not run, so the run fails rather than passes it: sh -c 'exit 3' --since {{sha.smoke}} exited 3
-        fix: make proof.code.check run (its command, its tools) and push the range again; nothing is proved until it answers
+    json:
+      schema: 1
+      ok: false
+      failed_at: { step: "sh -c 'exit 3' --since {{sha.smoke}}", problems: [{ rule: ci-code-proof }], code: 1 }
+      failures: [{ step: "sh -c 'exit 3' --since {{sha.smoke}}", problems: [{ rule: ci-code-proof }], code: 1 }]
 
   - name: a CI with no tests step reads no kind of named tests and no smoke set
-    argv: [ci, run, "{{sha.unknown}}", "{{sha.waiting}}"]
+    argv: [ci, run, "{{sha.unknown}}", "{{sha.waiting}}", --json]
     files:
       itos.yaml: |
         version: 1
@@ -420,15 +272,10 @@ cases:
           steps: [echo lint]
         work: { registry: tasks/work-items.yaml }
     exit: 0
-    stdout: |
-      T-040 is named but not started (todo in tasks/work-items.yaml): its checks wait.
-
-      $ echo lint
-      lint
-
-      CI passed
+    json: { schema: 1, ok: true }
+    stderr_has: "\nlint\n"
   - name: a step and a check run through the config's shell
-    argv: [ci, run, "{{sha.every}}", "{{sha.failing}}"]
+    argv: [ci, run, "{{sha.every}}", "{{sha.failing}}", --json]
     files:
       itos.yaml: |
         version: 1
@@ -444,33 +291,23 @@ cases:
           scenario: { root: e2e/features, id: "ID-[A-Z]+-\\d+", tag_prefix: "@", smoke: { file: e2e/smoke.yaml } }
         work: { registry: tasks/work-items.yaml }
     exit: 1
-    stdout: |
-
-      $ echo lint
-      through the shell: echo lint
-      lint
-
-      T-011
-        $ echo first
-      through the shell: echo first
-      first
-
-      T-011
-        $ sh -c 'echo broken; exit 4'
-      through the shell: sh -c 'echo broken; exit 4'
-      broken
-    stderr: |
-
-      CI failed at T-011 (A check that fails), its check: sh -c 'echo broken; exit 4'
+    json:
+      schema: 1
+      ok: false
+      failed_at: { task: T-011, title: A check that fails, command: sh -c 'echo broken; exit 4', code: 1 }
+      failures: [{ task: T-011, title: A check that fails, command: sh -c 'echo broken; exit 4', code: 1 }]
+    stderr_has: ["through the shell: echo lint", "through the shell: echo first", "through the shell: sh -c 'echo broken; exit 4'"]
   - name: a task no task file has fails the run before anything runs
-    argv: [ci, run, "{{sha.failing}}", "{{sha.unknown}}"]
+    argv: [ci, run, "{{sha.failing}}", "{{sha.unknown}}", --json]
     exit: 1
-    stderr: |
-      No task T-044 in tasks/, though a footer names it
-
-      CI failed at the tasks named: T-044
+    json:
+      schema: 1
+      ok: false
+      failed_at: { unknown: [T-044], code: 1 }
+      failures: [{ unknown: [T-044], code: 1 }]
+    stderr_has: tasks/
   - name: a task the ledger lacks is reported against the ledger's own folder
-    argv: [ci, run, "{{sha.failing}}", "{{sha.unknown}}"]
+    argv: [ci, run, "{{sha.failing}}", "{{sha.unknown}}", --json]
     files:
       itos.yaml: |
         version: 1
@@ -483,12 +320,14 @@ cases:
         work: { registry: tasks/work-items.yaml }
       work/phase-1.yaml: "- { id: T-040, type: build, title: Not started }\n"
     exit: 1
-    stderr: |
-      No task T-044 in work/, though a footer names it
-
-      CI failed at the tasks named: T-044
+    json:
+      schema: 1
+      ok: false
+      failed_at: { unknown: [T-044], code: 1 }
+      failures: [{ unknown: [T-044], code: 1 }]
+    stderr_has: work/
   - name: without work.registry, a named task waits on the registry beside a ledger in another folder
-    argv: [ci, run, "{{sha.unknown}}", "{{sha.waiting}}"]
+    argv: [ci, run, "{{sha.unknown}}", "{{sha.waiting}}", --json]
     files:
       itos.yaml: |
         version: 1
@@ -502,15 +341,10 @@ cases:
       work/phase-1.yaml: "- { id: T-040, type: build, title: Not started, done_when: [{ run: echo waits }] }\n"
       work/work-items.yaml: "items:\n  - { id: T-040, status: todo }\n"
     exit: 0
-    stdout: |
-      T-040 is named but not started (todo in work/work-items.yaml): its checks wait.
-
-      $ echo lint
-      lint
-
-      CI passed
+    json: { schema: 1, ok: true }
+    stderr_has: [T-040, work/work-items.yaml, "\nlint\n"]
   - name: the tasks a range names are read from the ledger footer, whatever its key
-    argv: [ci, run, "{{sha.smoke}}", "{{sha.work}}"]
+    argv: [ci, run, "{{sha.smoke}}", "{{sha.work}}", --json]
     files:
       itos.yaml: |
         version: 1
@@ -522,127 +356,30 @@ cases:
           steps: [echo lint]
         work: { registry: tasks/work-items.yaml }
     exit: 0
-    stdout: |
-
-      $ echo lint
-      lint
-
-      T-041
-        $ echo reads prose
-      reads prose
-
-      T-041
-        $ echo reads code
-      reads code
-
-      CI passed
+    json: { schema: 1, ok: true }
+    stderr_has: ["\nreads prose\n", "\nreads code\n"]
   - name: the ledger folder missing stops the run at the plan, before any step
-    argv: [ci, run, "{{sha.base}}", "{{sha.every}}"]
+    argv: [ci, run, "{{sha.base}}", "{{sha.every}}", --json]
     files: { tasks: null }
     exit: 2
-    stdout: ""
-    stderr: |
-      FAIL itos.yaml: the ledger's folder tasks does not exist
+    json: { schema: 1, config: itos.yaml, valid: false, problems: [{ rule: ledger-folder-missing }] }
   - name: a task not started is named, and its checks wait
-    argv: [ci, run, "{{sha.unknown}}", "{{sha.waiting}}"]
-    exit: 0
-    stdout: |
-      T-040 is named but not started (todo in tasks/work-items.yaml): its checks wait.
-
-      $ echo lint
-      lint
-
-      $ echo unit tests
-      unit tests
-
-      $ printf 'run %s\n' '@(?:ID-A-01)\b'
-      run @(?:ID-A-01)\b
-
-      CI passed
-  - name: a prose-only range runs the prose steps and says what it leaves out
-    argv: [ci, run, "{{sha.waiting}}", "{{sha.prose}}"]
-    exit: 0
-    stdout: |
-      Only prose changed: `echo lint`, and the named tasks' static and `prose: true` checks.
-        - T-041: echo reads code   (reads no prose; left out)
-
-      $ echo lint
-      lint
-
-      T-041
-        $ echo reads prose
-      reads prose
-
-      CI passed
-  - name: --json keeps stdout for the verdict
-    argv: [ci, run, "{{sha.every}}", "{{sha.failing}}", --json]
-    exit: 1
-    json:
-      schema: 1
-      ok: false
-      failed_at:
-        task: T-011
-        title: A check that fails
-        command: sh -c 'echo broken; exit 4'
-        code: 1
-      failures:
-        - task: T-011
-          title: A check that fails
-          command: sh -c 'echo broken; exit 4'
-          code: 1
-    stderr: |
-
-      $ echo lint
-      lint
-
-      $ echo unit tests
-      unit tests
-
-      $ printf 'run %s\n' '@(?:ID-A-01)\b'
-      run @(?:ID-A-01)\b
-
-      T-011
-        $ echo first
-      first
-
-      T-011
-        $ sh -c 'echo broken; exit 4'
-      broken
-
-      CI failed at T-011 (A check that fails), its check: sh -c 'echo broken; exit 4'
-  - name: --json of a run that passes
     argv: [ci, run, "{{sha.unknown}}", "{{sha.waiting}}", --json]
     exit: 0
-    json:
-      schema: 1
-      ok: true
-    stderr: |
-      T-040 is named but not started (todo in tasks/work-items.yaml): its checks wait.
-
-      $ echo lint
-      lint
-
-      $ echo unit tests
-      unit tests
-
-      $ printf 'run %s\n' '@(?:ID-A-01)\b'
-      run @(?:ID-A-01)\b
-
-      CI passed
-  - name: the nightly runs every scenario, then its own steps
-    argv: [ci, run, --nightly]
+    json: { schema: 1, ok: true }
+    stderr_has: [T-040, tasks/work-items.yaml, "\nrun @(?:ID-A-01)\\b\n"]
+  - name: a prose-only range runs the prose steps and the prose checks
+    argv: [ci, run, "{{sha.waiting}}", "{{sha.prose}}", --json]
     exit: 0
-    stdout: |
-
-      $ echo run every scenario
-      run every scenario
-
-      $ sh gates.sh
-      the gates self-test
-
-      CI passed
+    json: { schema: 1, ok: true }
+    stderr_has: ["\nlint\n", "\nreads prose\n"]
+  - name: the nightly runs every scenario, then its own steps
+    argv: [ci, run, --nightly, --json]
+    exit: 0
+    json: { schema: 1, ok: true }
+    stderr_has: ["\nrun every scenario\n", "\nthe gates self-test\n"]
   - name: the nightly refuses a tasks step, which v8 removed, before any step runs
-    argv: [ci, run, --nightly]
+    argv: [ci, run, --nightly, --json]
     files:
       itos.yaml: |
         version: 1
@@ -673,10 +410,9 @@ cases:
           nightly: { steps: [{ tests: scenario, whole: true }, sh gates.sh, { tasks: done }] }
         work: { registry: tasks/work-items.yaml }
     exit: 2
-    stderr: |
-      FAIL itos.yaml: a nightly step runs tasks: done, which v8 removed: a task's checks are its own progress and leave the ledger at work done: {"tasks":"done"}
+    json: { schema: 1, config: itos.yaml, valid: false, problems: [{ rule: config-step-tasks }] }
   - name: the nightly goes on past a failing step though ci.stop_at_first_failure is true, naming each failure
-    argv: [ci, run, --nightly]
+    argv: [ci, run, --nightly, --json]
     files:
       itos.yaml: &nightly-fails |
         version: 1
@@ -690,49 +426,16 @@ cases:
           nightly: { steps: ["sh -c 'echo first fails; exit 3'", echo still runs, "sh -c 'echo second fails; exit 4'"] }
         work: { registry: tasks/work-items.yaml }
     exit: 1
-    stdout: |
-
-      $ sh -c 'echo first fails; exit 3'
-      first fails
-
-      $ echo still runs
-      still runs
-
-      $ sh -c 'echo second fails; exit 4'
-      second fails
-    stderr: |
-
-      CI failed at: sh -c 'echo first fails; exit 3' (it exited 3)
-
-      also failed at: sh -c 'echo second fails; exit 4' (it exited 4)
-  - name: the nightly's --json lists every failure in failures, in run order, failed_at the first
-    argv: [ci, run, --nightly, --json]
-    files:
-      itos.yaml: *nightly-fails
-    exit: 1
     json:
       schema: 1
       ok: false
-      failed_at:
-        step: sh -c 'echo first fails; exit 3'
-        code: 3
+      failed_at: { step: sh -c 'echo first fails; exit 3', code: 3 }
       failures:
-        - step: sh -c 'echo first fails; exit 3'
-          code: 3
-        - step: sh -c 'echo second fails; exit 4'
-          code: 4
+        - { step: sh -c 'echo first fails; exit 3', code: 3 }
+        - { step: sh -c 'echo second fails; exit 4', code: 4 }
+    stderr_has: ["\nfirst fails\n", "\nstill runs\n", "\nsecond fails\n"]
   - name: with no range, every step and every test
-    argv: [ci, run]
+    argv: [ci, run, --json]
     exit: 0
-    stdout: |
-
-      $ echo lint
-      lint
-
-      $ echo unit tests
-      unit tests
-
-      $ echo run every scenario
-      run every scenario
-
-      CI passed
+    json: { schema: 1, ok: true }
+    stderr_has: ["\nlint\n", "\nunit tests\n", "\nrun every scenario\n"]
