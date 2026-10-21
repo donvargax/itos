@@ -2594,3 +2594,23 @@
       timeout: 600
     - run: go run ./tools/bin/conformance --bin tools/bin/itos
       timeout: 900
+
+- id: T-206
+  type: test
+  title: Tests cover the lines T-195 re-plumbed that no test runs
+  why: >
+    Coverage debt of the slices refactor (the user, 2026-10-21: moves push past old uncovered lines,
+    a test task pays them). T-195's push proof named twelve changed lines no test runs, all old code
+    only re-plumbed: cli/cli.go:193 applyGlobals Setenv(ITOS_CONFIG) failure; cli/cli.go:202
+    applyGlobals moveTo error; cli/cli.go:216, 219, 222 moveTo Getwd, Chdir and second Getwd errors;
+    cli/cli.go:232 moveTo returning no folder when the folders are the same or cannot be related;
+    cli/commands.go:175 commit checkMessage(typed(o.Origin, file)); cli/commands.go:251 testsCommand
+    typed(o.Origin, features); cli/commit.go:42 checkMessage building message.Reading;
+    cli/tests.go:27 testsList calling tests.ListTests; message/footers.go:319 knownFor falling back
+    to knownAt; tests/nextid.go:29 NextTag listing a command kind at the working tree. Unit tests
+    first; a scenario only where only a scenario reaches the line; error returns from Getwd or Chdir
+    may need a seam (a function value) rather than a real failure, or are argued unreachable and
+    left. No change to what itos does.
+  done_when:
+    - run: tools/bin/pinned itos-cc mutation run --since 04fee33d --count 1 --seed 04fee33d --fail-uncovered=lines --json cmd internal
+      timeout: 900
