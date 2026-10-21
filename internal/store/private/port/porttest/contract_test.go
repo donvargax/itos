@@ -15,14 +15,13 @@ import (
 // recorder runs StoreContract as testing does, each case on its own
 // goroutine, a Fatalf ending it, and keeps what each case reported.
 type recorder struct {
-	ctx      context.Context
 	name     string
 	failures map[string][]string
 }
 
 func (r *recorder) Helper() {}
 
-func (r *recorder) Context() context.Context { return r.ctx }
+func (r *recorder) Context() context.Context { return context.Background() }
 
 func (r *recorder) Errorf(format string, args ...any) {
 	r.failures[r.name] = append(r.failures[r.name], fmt.Sprintf(format, args...))
@@ -37,7 +36,7 @@ func (r *recorder) Run(name string, f func(t *recorder)) bool {
 	done := make(chan struct{})
 	go func() {
 		defer close(done)
-		f(&recorder{ctx: r.ctx, name: name, failures: r.failures})
+		f(&recorder{name: name, failures: r.failures})
 	}()
 	<-done
 	return len(r.failures[name]) == 0
@@ -226,7 +225,7 @@ func TestStoreContractFailsEachBrokenStore(t *testing.T) {
 		{"exposed with no repository", map[string][]string{"no repository": {"NotIgnored("}}},
 		{"plain errors", map[string][]string{"no repository": {"Path: ", "Read: ", "Write: ", "Hold: "}}},
 	} {
-		r := &recorder{ctx: t.Context(), failures: map[string][]string{}}
+		r := &recorder{failures: map[string][]string{}}
 		StoreContract(r, func(_ *recorder, repository bool) Fixture {
 			f := Fixture{
 				Kept:    filepath.Join(root, "kept.md"),
