@@ -1,11 +1,11 @@
 package cli
 
 import (
-	"fmt"
+	"context"
 	"os"
-	"path/filepath"
 
-	"github.com/donvargax/itos/v8/internal/guard"
+	"github.com/donvargax/itos/v8/internal/config"
+	"github.com/donvargax/itos/v8/internal/slices/guard"
 )
 
 // GuardSince is the first itos with guard claude-code (v6.0.0, decision 36;
@@ -15,43 +15,22 @@ import (
 // internal/launch).
 const GuardSince = "6.0.0"
 
-// guardCommand is `guard <harness>`, a harness's guard of an agent's git
-// commit and git push: guard claude-code alone so far.
+// guardCommand is `guard <harness>`, the guard slice (internal/slices/guard)
+// over its ports bound to the real code; the folder judged when the input
+// names none, and the one a relative one is read from, is where itos was
+// started, before a run from a subfolder moved to the top.
 func guardCommand(args []string, o Out) (int, error) {
-	sub, _ := split(args)
-	if sub == "claude-code" {
-		return guardClaudeCode(o)
+	c, err := guard.Parse(args, typed(o.Origin, "."))
+	if err != nil {
+		return 0, usage("%s", err)
 	}
-	return 0, usage("unknown command: guard %s", sub)
+	return c.Run(context.Background(), os.Stdin, o.Stdout, o.Stderr, guard.NewHandler(guardPorts{})), nil
 }
 
-// guardClaudeCode is `guard claude-code`, Claude Code's PreToolUse hook
-// (internal/guard): Claude Code's input on stdin, a deny on stdout for a git
-// commit or git push in a repository itos manages, nothing for anything else,
-// exit 0 either way. Claude Code blocks the tool on exit 2 alone and goes on
-// after any other failure, so an input it cannot read is exit 1, its reason
-// on stderr, and never an error the command line would report as a usage
-// error's 2. The folder judged when the input names none, and the one a
-// relative one is read from, is where itos was started, before a run from a
-// subfolder moved to the top.
-func guardClaudeCode(o Out) (int, error) {
-	in, err := guard.Read(os.Stdin)
-	if err != nil {
-		fmt.Fprintf(o.Stderr, "itos: guard claude-code cannot read Claude Code's %s input on stdin: %s\n", guard.Event, err)
-		return ExitPolicy, nil
-	}
-	here, err := filepath.Abs(typed(o.Origin, "."))
-	if err != nil {
-		fmt.Fprintf(o.Stderr, "itos: guard claude-code cannot tell the folder it runs in: %s\n", err)
-		return ExitPolicy, nil
-	}
-	reason, deny := guard.Reason(in, here)
-	if !deny {
-		return 0, nil
-	}
-	if err := guard.Deny(o.Stdout, reason); err != nil {
-		fmt.Fprintf(o.Stderr, "itos: guard claude-code cannot write its %s answer: %s\n", guard.Event, err)
-		return ExitPolicy, nil
-	}
-	return 0, nil
+// guardPorts are the guard slice's ports over the real code.
+type guardPorts struct{}
+
+// Managed is config.Managed.
+func (guardPorts) Managed(_ context.Context, dir string) bool {
+	return config.Managed(dir)
 }

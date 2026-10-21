@@ -1,7 +1,6 @@
-package guard
+package domain
 
 import (
-	"os"
 	"path/filepath"
 	"reflect"
 	"runtime"
@@ -75,18 +74,13 @@ func TestRead(t *testing.T) {
 }
 
 func TestReason(t *testing.T) {
-	t.Setenv("ITOS_CONFIG", "")
-	repo := t.TempDir()
-	if err := os.MkdirAll(filepath.Join(repo, ".git"), 0o755); err != nil {
-		t.Fatal(err)
+	repo, elsewhere := t.TempDir(), t.TempDir()
+	// itos manages repo and the folders under it, as config.Managed judges a
+	// repository with a config at its top.
+	managed := func(dir string) bool {
+		rel, err := filepath.Rel(repo, dir)
+		return err == nil && rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator))
 	}
-	if err := os.MkdirAll(filepath.Join(repo, "sub"), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(filepath.Join(repo, "itos.yaml"), []byte("version: 1\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	elsewhere := t.TempDir()
 	cases := []struct {
 		in   Input
 		here string
@@ -104,7 +98,7 @@ func TestReason(t *testing.T) {
 		{Input{"Edit", "", repo}, repo, nil},
 	}
 	for _, c := range cases {
-		reason, deny := Reason(c.in, c.here)
+		reason, deny := Reason(c.in, c.here, managed)
 		if deny != (c.want != nil) {
 			t.Errorf("%+v: deny %v, reason %q", c.in, deny, reason)
 		}

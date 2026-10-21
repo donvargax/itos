@@ -1,14 +1,14 @@
 package cli
 
 import (
-	"fmt"
+	"context"
 	"path/filepath"
 	"slices"
 	"strings"
 
 	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/git"
-	"github.com/donvargax/itos/v8/internal/out"
+	versionslice "github.com/donvargax/itos/v8/internal/slices/version"
 	"github.com/donvargax/itos/v8/internal/version"
 )
 
@@ -354,39 +354,31 @@ func configCommand(args []string, o Out) (int, error) {
 	return configCheck(typed(o.Origin, ledger), o)
 }
 
-// versionCommand prints the version, or under --json the version with the
-// config's requires and whether it holds; with --check, a version that does
-// not satisfy requires exits 1. Only --check needs the config: a global itos
-// is run outside any project first of all (issue #2), so without it a config
-// that is missing or cannot be read leaves requires out rather than failing.
+// versionCommand is the version slice (internal/slices/version) over its
+// ports bound to the real code.
 func versionCommand(args []string, o Out) (int, error) {
-	check := slices.Contains(args, "--check")
-	var requires *string
+	h := versionslice.NewHandler(versionPorts{})
+	return versionslice.Parse(args, o.JSON).Run(context.Background(), o.Stdout, o.Stderr, h)
+}
+
+// versionPorts are the version slice's ports over the real code.
+type versionPorts struct{}
+
+// BuildVersion is version.Version.
+func (versionPorts) BuildVersion(context.Context) string {
+	return version.Version()
+}
+
+// Requires is the requires of the config config.Path names.
+func (versionPorts) Requires(context.Context) (*string, error) {
 	cfg, err := config.Load(config.Path())
-	switch {
-	case err == nil:
-		requires = cfg.Requires
-	case check:
-		return 0, err
+	if err != nil {
+		return nil, err
 	}
-	v := version.Version()
-	ok := requires == nil || version.Satisfies(v, *requires)
-	if o.JSON {
-		fields := []out.Field{{Key: "version", Value: v}}
-		if requires != nil {
-			fields = append(fields,
-				out.Field{Key: "requires", Value: *requires},
-				out.Field{Key: "satisfied", Value: ok})
-		}
-		if err := out.Emit(o.Stdout, fields...); err != nil {
-			return 0, err
-		}
-	} else {
-		fmt.Fprintf(o.Stdout, "itos %s\n", v)
-	}
-	if !check || ok {
-		return 0, nil
-	}
-	fmt.Fprintf(o.Stderr, "itos %s does not satisfy %s (the config's requires)\n", v, *requires)
-	return ExitPolicy, nil
+	return cfg.Requires, nil
+}
+
+// Satisfies is version.Satisfies.
+func (versionPorts) Satisfies(_ context.Context, v, r string) bool {
+	return version.Satisfies(v, r)
 }

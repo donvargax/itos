@@ -1,4 +1,4 @@
-package guard
+package domain
 
 import (
 	"bytes"
@@ -10,8 +10,6 @@ import (
 	"strings"
 
 	"mvdan.cc/sh/v3/syntax"
-
-	"github.com/donvargax/itos/v8/internal/config"
 )
 
 // Event is the hook event the guard answers.
@@ -76,8 +74,8 @@ var Guarded = []struct{ Name, Reason string }{
 // Reason is the deny's reason for the input, run from the folder here (the
 // one a relative input folder and -C are read from, and the folder judged
 // when the input names none), and whether there is one: a Bash command
-// running a guarded git subcommand, in a folder itos manages.
-func Reason(in Input, here string) (string, bool) {
+// running a guarded git subcommand, in a folder managed says itos manages.
+func Reason(in Input, here string, managed func(dir string) bool) (string, bool) {
 	if in.Tool != "Bash" {
 		return "", false
 	}
@@ -98,7 +96,7 @@ func Reason(in Input, here string) (string, bool) {
 		if !filepath.IsAbs(dir) {
 			dir = filepath.Join(folder, dir)
 		}
-		if !denied[c.Sub] && config.Managed(dir) {
+		if !denied[c.Sub] && managed(dir) {
 			denied[c.Sub] = true
 		}
 	}

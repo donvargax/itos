@@ -739,11 +739,17 @@
 //
 // # guard claude-code
 //
-// guard claude-code (guard.go over internal/guard) is a group of its own,
-// apart from git's hooks. guardClaudeCode never returns an error, since a
-// usage error's exit 2 is what Claude Code takes as a block: an input
-// guard.Read refuses is one stderr line and exit 1. The folder judged is the
-// input's cwd, read from Out.Origin when relative, where itos was started
-// before applyGlobals moved to the top. GuardSince is the first itos with
-// the command, which the launcher reads.
+// guard claude-code is a group of its own, apart from git's hooks: the
+// guard slice (internal/slices/guard), which guard.go hands Out.Origin,
+// where itos was started before applyGlobals moved to the top, and binds
+// to config.Managed. GuardSince is the first itos with the command, which
+// the launcher reads.
+//
+// # The slices
+//
+// The commands moved into slices (ADR-0053), guard and version so far, are
+// called from the command table and their Ports bound here, to the real
+// code, with context.Background(): internal/cli is their assembly until it
+// moves into cmd, the one package outside cmd that tools/bin/architecture-check
+// lets import a slice. A slice imports nothing of internal/cli.
 package cli
