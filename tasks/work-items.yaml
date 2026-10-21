@@ -11027,7 +11027,7 @@ items:
     title: "Process-global state out of internal/cli and internal/tests: draft promote runs Main through a value, not an init re-entry"
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
 

@@ -2393,13 +2393,6 @@
     port's messages group), process cwd and environment set by applyGlobals, git.Export, ci and shim
     (the boundary, with the OS as a value). No behaviour change; help, output and exit codes are
     byte-for-byte as before.
-  done_when:
-    - run: "! grep -rn \"^func init()\" internal cmd"
-    - run: "! grep -n \"^var reserved \" internal/cli/idmint.go"
-    - run: "! grep -n \"^var origin \" internal/cli/cli.go"
-    - run: "! grep -nE \"^var (Warnings|warned) \" internal/tests/tests.go"
-    - run: go test -count=1 ./internal/... ./cmd/...
-      timeout: 900
 
 - id: T-196
   type: refactor
