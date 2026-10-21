@@ -17,6 +17,7 @@ import (
 	"github.com/donvargax/itos/v8/internal/git"
 	"github.com/donvargax/itos/v8/internal/out"
 	"github.com/donvargax/itos/v8/internal/plan"
+	"github.com/donvargax/itos/v8/internal/store/tree/adapter"
 )
 
 type scope struct {
@@ -66,7 +67,7 @@ func run(args []string) (int, error) {
 	if len(args) != 3 || (args[0] != "scope" && args[0] != "plan" && args[0] != "run" && args[0] != "tests") {
 		return 2, fmt.Errorf("usage: ci-repo scope|plan|run|tests FROM TO")
 	}
-	cfg, err := config.Load(config.Path())
+	cfg, err := config.Load(adapter.Trees{}, adapter.Worktree, config.Path(adapter.Worktree))
 	if err != nil {
 		return 2, err
 	}

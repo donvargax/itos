@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/donvargax/itos/v8/internal/config"
+	"github.com/donvargax/itos/v8/internal/store/tree/adapter"
 	"github.com/donvargax/itos/v8/tools/selftest/scratch"
 )
 
@@ -46,7 +47,7 @@ func TestSelftest(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	cfg, err := config.FromText("itos.yaml", string(cfgBytes), false)
+	cfg, err := config.FromText(adapter.Trees{}, adapter.Worktree, "itos.yaml", string(cfgBytes), false)
 	if err != nil {
 		t.Fatal(err)
 	}
