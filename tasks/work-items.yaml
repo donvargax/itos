@@ -11141,6 +11141,10 @@ items:
       that is unknown or not live, both fixture-footer), so the corpus splits such cases or keeps a
       loose _has meanwhile.
 
+      T-200 found more (2026-10-21). followup doc --json does not say the doc it wrote is in the
+      work tree and not ignored by git, which the warning on stderr says. guide commit --json does
+      not say it appended the commit policy the config sets, which only its text holds.
+
   - id: p1-lint-itos-cc-linters
     title: Turn on the itos-cc linters the tree fails today
     phase: 1
