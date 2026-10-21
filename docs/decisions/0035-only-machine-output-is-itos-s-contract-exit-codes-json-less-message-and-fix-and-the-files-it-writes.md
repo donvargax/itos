@@ -24,3 +24,7 @@ Only machine output is itos's contract: its exit codes, its --json output less e
 ### Consequences
 
 previous-release no longer compares an old case's plain stdout or stderr, nor message and fix in its json (T-100); this replaces the part of 0021 that kept a config error's words judged, and its help and usage-error exemptions become the general rule. Exit 75 is added and ci run exits 1 for a failing step (slice-86), released as v6.0.0 with the contract in its BREAKING-CHANGE footer. Renaming a rule id or a json key, or changing an exit code, is a breaking change. Structured per-rule fields in --json problems follow as additive keys.
+
+## More Information
+
+Amended by ADR-0052: the corpus pins only the contract too, so "this tree's own corpus still pins every word" no longer holds.
