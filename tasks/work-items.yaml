@@ -11208,8 +11208,8 @@ items:
   - id: T-207
     title: "Pilot slice followup: internal/slices/followup over a private-store port with a fake and a contract suite"
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
 
