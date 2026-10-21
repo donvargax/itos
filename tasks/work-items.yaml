@@ -11085,8 +11085,8 @@ items:
   - id: T-201
     title: The hooks, moves and messages corpus files pin only the contract
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
 
