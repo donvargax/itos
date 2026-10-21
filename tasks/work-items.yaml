@@ -10796,3 +10796,17 @@ items:
     status: todo
     depends_on: []
     kind: task
+
+  - id: p1-commit-item-takes-task
+    title: itos commit --item <task> commits a build or ci change as --task <task> does
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      T-190's agent (2026-10-21) followed the brief template's 'itos commit --item <item>' for a
+      build commit and was refused with 'build commits need --task <id>', though T-190 is a ledger
+      task the registry lists. Either commit --item accepts a ledger task and writes the Task
+      footer, or the brief template in itos guide brief says --task for a task. The first removes
+      the trap for every agent; the second only for the briefed ones.
