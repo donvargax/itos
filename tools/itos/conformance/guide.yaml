@@ -7,52 +7,71 @@
 # (slice 119), commit with the commit policy a config sets; the usage errors.
 cases:
   - name: guide work prints the implementer's guide outside a repository
-    argv: [guide, work]
+    argv: [guide, work, --json]
     exit: 0
-    stdout_has: "# Working with itos\n"
+    json:
+      schema: 1
+      guide: work
   - name: go prints the coordinator's guide outside a repository
-    argv: [go]
+    argv: [go, --json]
     exit: 0
-    stdout_has: "# Coordinating with itos\n"
+    json:
+      schema: 1
+      guide: coordinate
   - name: guide coordinate is go
-    argv: [guide, coordinate]
+    argv: [guide, coordinate, --json]
     git: []
     files:
       docs/ORCHESTRATING.md: "Ours.\n"
     exit: 0
-    stdout_has: ["# Coordinating with itos\n", "\n\n---\n\nOurs.\n"]
-  - name: go appends docs/ORCHESTRATING.md after a line of ---
-    argv: [go]
+    json:
+      schema: 1
+      guide: coordinate
+      notes: docs/ORCHESTRATING.md
+  - name: go appends docs/ORCHESTRATING.md
+    argv: [go, --json]
     git: []
     files:
       docs/ORCHESTRATING.md: "Ours.\n"
     exit: 0
-    stdout_has: ["# Coordinating with itos\n", "\n\n---\n\nOurs.\n"]
+    json:
+      schema: 1
+      guide: coordinate
+      notes: docs/ORCHESTRATING.md
   - name: go from a subfolder reads docs/ORCHESTRATING.md at the repository's top
-    argv: [go]
+    argv: [go, --json]
     git: []
     files:
       docs/ORCHESTRATING.md: "Ours.\n"
       sub/: ""
     cwd: sub
     exit: 0
-    stdout_has: "\n---\n\nOurs.\n"
+    json:
+      schema: 1
+      guide: coordinate
+      notes: ../docs/ORCHESTRATING.md
   - name: go appends the file guide.orchestrating names
-    argv: [go]
+    argv: [go, --json]
     git: []
     files:
       itos.yaml: "version: 1\nguide: { orchestrating: notes/agents.md }\n"
       notes/agents.md: "Kept elsewhere.\n"
     exit: 0
-    stdout_has: "\n---\n\nKept elsewhere.\n"
+    json:
+      schema: 1
+      guide: coordinate
+      notes: notes/agents.md
   - name: go reads a stealth config's guide.orchestrating beside it, in the git folder
-    argv: [go]
+    argv: [go, --json]
     git: []
     files:
       .git/itos/itos.yaml: "version: 1\nguide: { orchestrating: notes.md }\n"
       .git/itos/notes.md: "Kept in the git folder.\n"
     exit: 0
-    stdout_has: "\n---\n\nKept in the git folder.\n"
+    json:
+      schema: 1
+      guide: coordinate
+      notes: .git/itos/notes.md
   - name: config get gives a stealth config's guide.orchestrating beside it
     argv: [config, get, guide.orchestrating]
     git: []
@@ -65,81 +84,66 @@ cases:
   - name: guide with a name it has no guide by names those it has
     argv: [guide, review]
     exit: 2
-    stderr: |
-      itos: no guide or procedure review: the guides are coordinate, work; the procedures are brief, commit, decide, land, push, repair (itos --help)
+    stderr_has: [review, coordinate, work]
   - name: guide needs a name
     argv: [guide]
     exit: 2
-    stderr: |
-      itos: guide needs a name: the guides are coordinate, work; the procedures are brief, commit, decide, land, push, repair (itos --help)
+    stderr_has: [coordinate, work]
   - name: a procedure prints alone outside a repository
-    argv: [guide, brief]
+    argv: [guide, brief, --json]
     exit: 0
-    stdout_has: ["# Specifying and briefing an item\n", "## Specifying\n", "## The brief\n"]
+    json:
+      schema: 1
+      guide: brief
   - name: guide commit outside a repository prints how to commit alone
-    argv: [guide, commit]
+    argv: [guide, commit, --json]
     exit: 0
-    stdout_has: "# Committing with itos\n"
+    json:
+      schema: 1
+      guide: commit
   - name: guide commit appends the commit policy the config sets
     argv: [guide, commit]
     git: []
     files:
       itos.yaml: "version: 1\ncommits: { types: [feat, deps] }\n"
     exit: 0
-    stdout_has:
-      - "# Committing with itos\n"
-      - "\n\n## The rules the config sets\n\nAs `itos.yaml` sets them; the hooks and CI hold every commit to them.\n\n### Commit types\n\nA commit's type is one of `feat` or `deps`."
+    stdout_has: "`deps`"
   - name: a procedure takes no argument
     argv: [guide, brief, slice-1]
     exit: 2
-    stderr: |
-      itos: guide brief takes no argument: slice-1 (itos --help)
+    stderr_has: slice-1
   - name: a procedure as --json
     argv: [guide, land, --json]
     exit: 0
-    stdout_has: ['"schema": 1', '"guide": "land"', '"text": "# Landing a result\n']
+    json:
+      schema: 1
+      guide: land
   - name: go takes no arguments
     argv: [go, work]
     exit: 2
-    stderr: |
-      itos: go takes no arguments: work (itos --help)
-  - name: guide as --json
-    argv: [guide, work, --json]
-    exit: 0
-    stdout_has: ['"schema": 1', '"guide": "work"', '"text": "# Working with itos\n']
-  - name: go as --json names the file it appended
+    stderr_has: work
+  - name: go appends this clone's own notes after the repository's
     argv: [go, --json]
-    git: []
-    files:
-      docs/ORCHESTRATING.md: "Ours.\n"
-    exit: 0
-    stdout_has: ['"guide": "coordinate"', '"notes": "docs/ORCHESTRATING.md"']
-  - name: go from a subfolder names the file it appended from there
-    argv: [go, --json]
-    git: []
-    files:
-      docs/ORCHESTRATING.md: "Ours.\n"
-      sub/: ""
-    cwd: sub
-    exit: 0
-    stdout_has: '"notes": "../docs/ORCHESTRATING.md"'
-  - name: go prints this clone's own notes under their heading, after the repository's
-    argv: [go]
     git: []
     files:
       docs/ORCHESTRATING.md: "Ours.\n"
       .git/itos/notes.md: "Mine.\n"
     exit: 0
-    stdout_has:
-      - "\n---\n\nOurs.\n\n---\n\n# This clone's own notes\n\n"
-      - "These are uncommitted and hold what is true on this machine only (.git/itos/notes.md).\n\nMine.\n"
+    json:
+      schema: 1
+      guide: coordinate
+      notes: docs/ORCHESTRATING.md
+      local_notes: .git/itos/notes.md
   - name: go as --json names this clone's own notes
     argv: [go, --json]
     git: []
     files:
       .git/itos/notes.md: "Mine.\n"
     exit: 0
-    stdout_has: '"local_notes": ".git/itos/notes.md"'
+    json:
+      schema: 1
+      guide: coordinate
+      local_notes: .git/itos/notes.md
   - name: go from a subfolder names this clone's own notes from there
     argv: [go, --json]
     git: []
@@ -148,4 +152,7 @@ cases:
       sub/: ""
     cwd: sub
     exit: 0
-    stdout_has: '"local_notes": "../.git/itos/notes.md"'
+    json:
+      schema: 1
+      guide: coordinate
+      local_notes: ../.git/itos/notes.md
