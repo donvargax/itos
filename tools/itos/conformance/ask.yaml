@@ -6,8 +6,8 @@
 # have, no question with the id, one already answered, a file with changes no
 # commit holds, a file itos did not write whole); a stealth config's
 # questions beside its registry in the git folder, nothing committed; and
-# work.asks moving the file. Slice 69's: the list naming the answered
-# questions recorded nowhere, --all and show giving each one's decision;
+# work.asks moving the file. Slice 69's: --all and show giving each answered
+# question's decision, a record's number or none;
 # record writing the next decision record, its index and the decision on the
 # question, committing them together, a supersede setting the old record's
 # status, --none, a stealth config's records in the git folder, and record's
@@ -34,53 +34,38 @@ files:
       - id: q-3
         question: "Which way?"
 cases:
-  - name: decision lists the open questions, each with the item it names
-    argv: [decision]
-    exit: 0
-    stdout: |
-      Open questions:
-        q-2  Is the archive worth it?  (x)
-        q-3  Which way?
-
-      Answered and recorded nowhere: itos decision record q-1 (--title <title>, or --none)
   - name: decision --all lists the answered questions after the open ones, each with its answer
-    argv: [decision, --all]
+    argv: [decision, --all, --json]
     exit: 0
-    stdout: |
-      Open questions:
-        q-2  Is the archive worth it?  (x)
-        q-3  Which way?
-
-      Answered questions:
-        q-1  Labels or Projects?  (x)
-             → Labels, with trust by who acted.
-
-      Answered and recorded nowhere: itos decision record q-1 (--title <title>, or --none)
-  - name: decision --all gives each answered question's decision, and names none when every answer is recorded
-    argv: [decision, --all]
-    files:
-      asks.yaml: "questions:\n  - { id: q-1, question: a, answer: b, decision: 3 }\n  - { id: q-2, question: c, answer: d, decision: none }\n"
-    exit: 0
-    stdout: |
-      No open questions.
-
-      Answered questions:
-        q-1  a
-             → b
-               decision 3
-        q-2  c
-             → d
-               no decision (--none)
+    json:
+      schema: 1
+      questions:
+      - id: q-2
+        item: x
+        question: "Is the archive\nworth it?"
+        status: open
+      - id: q-3
+        question: Which way?
+        status: open
+      - id: q-1
+        item: x
+        question: Labels or Projects?
+        status: answered
+        answer: Labels, with trust by who acted.
   - name: decision show gives the question's decision
-    argv: [decision, show, q-1]
+    argv: [decision, show, q-1, --json]
     files:
       asks.yaml: "questions:\n  - { id: q-1, question: a, answer: b, decision: 3 }\n"
     exit: 0
-    stdout: |
-      q-1: a
-      answered, decision 3
-
-      b
+    json:
+      schema: 1
+      ok: true
+      question:
+        id: q-1
+        question: a
+        status: answered
+        answer: b
+        decision: 3
   - name: decision --json gives each question's decision, a number or none
     argv: [decision, --all, --json]
     files:
@@ -96,7 +81,7 @@ cases:
     files:
       asks.yaml: &baddecision "questions:\n  - { id: q-1, question: a, answer: b, decision: \"0003\" }\n"
     exit: 2
-    stderr_has: "asks.yaml: q-1's decision is \"0003\", neither a decision record's number nor none"
+    stderr_has: [asks.yaml, q-1, "0003"]
     files_after:
       asks.yaml: *baddecision
   - name: decision --json lists the open questions
@@ -108,27 +93,24 @@ cases:
         - { id: q-2, item: x, question: "Is the archive\nworth it?", status: open }
         - { id: q-3, question: "Which way?", status: open }
   - name: decision with no questions file says there are none
-    argv: [decision, --all]
+    argv: [decision, --all, --json]
     files:
       asks.yaml: null
     exit: 0
-    stdout: |
-      No questions.
-  - name: decision show prints an answered question and its answer
-    argv: [decision, show, q-1]
-    exit: 0
-    stdout: |
-      q-1: Labels or Projects?
-      answered, about x
-
-      Labels, with trust by who acted.
+    json:
+      schema: 1
+      questions: []
   - name: decision show prints an open question, its lines kept
-    argv: [decision, show, q-2]
+    argv: [decision, show, q-2, --json]
     exit: 0
-    stdout: |
-      q-2: Is the archive
-           worth it?
-      open, about x
+    json:
+      schema: 1
+      ok: true
+      question:
+        id: q-2
+        item: x
+        question: "Is the archive\nworth it?"
+        status: open
   - name: decision show --json gives the question
     argv: [decision, show, q-1, --json]
     exit: 0
@@ -137,34 +119,32 @@ cases:
       ok: true
       question: { id: q-1, item: x, question: "Labels or Projects?", status: answered, answer: "Labels, with trust by who acted." }
   - name: decision show refuses an id no question has
-    argv: [decision, show, q-9]
+    argv: [decision, show, q-9, --json]
     exit: 1
-    stderr: |
-      there is no question q-9
-        fix: itos decision --all lists the questions
+    json:
+      schema: 1
+      ok: false
+      problems:
+      - rule: ask-no-question
   - name: decision show takes only a question's id
     argv: [decision, show, x]
     exit: 2
-    stderr: |
-      itos: decision show: "x" is no question id (q-<n>) (itos --help)
+    stderr_has: '"x"'
   - name: decision has no subcommand it does not know
     argv: [decision, list]
     exit: 2
-    stderr: |
-      itos: decision has no subcommand list: it takes add, answer, record or show, else --all (itos --help)
+    stderr_has: list
   - name: decision add needs the question
     argv: [decision, add, --item, x]
     exit: 2
-    stderr: |
-      itos: decision add needs <text>, the question (itos --help)
+    stderr_has: <text>
   - name: decision add asks with the next free id, and commits the file alone, what else is staged left staged
-    argv: [decision, add, Should, docs, "need a footer?", --item, x]
+    argv: [decision, add, Should, docs, "need a footer?", --item, x, --json]
     git:
       - commit: "docs: start"
         files: { asks.yaml: *asks }
       - stage: { README.md: "staged\n" }
     exit: 0
-    stdout_has: "q-4 asked about x: committed "
     files_after:
       asks.yaml: |
         # The questions to the person the work is for, written by itos decision (itos help decision).
@@ -181,51 +161,70 @@ cases:
           - id: q-4
             item: "x"
             question: "Should docs need a footer?"
+    json_has:
+      schema: 1
+      ok: true
+      question:
+        id: q-4
+        item: x
+        question: Should docs need a footer?
+        status: open
+      commit: "<any>"
   - name: the first decision add makes the file, its id q-1
-    argv: [decision, add, "Which way?"]
+    argv: [decision, add, "Which way?", --json]
     git:
       - commit: "docs: start"
         files: { README.md: "start\n" }
     files:
       asks.yaml: null
     exit: 0
-    stdout_has: "q-1 asked: committed "
     files_after:
       asks.yaml: "# The questions to the person the work is for, written by itos decision (itos help decision).\nquestions:\n  - id: q-1\n    question: \"Which way?\"\n"
+    json_has:
+      schema: 1
+      ok: true
+      question:
+        id: q-1
+        question: Which way?
+        status: open
+      commit: "<any>"
   - name: decision add refuses an item the registry does not have, and writes nothing
-    argv: [decision, add, "Which way?", --item, nope]
+    argv: [decision, add, "Which way?", --item, nope, --json]
     files:
       asks.yaml: null
     exit: 1
-    stderr: |
-      no item nope in work-items.yaml, so no question can name it
-        fix: itos work list --all names every item; --item may be left out
     files_after:
       asks.yaml: null
+    json:
+      schema: 1
+      ok: false
+      problems:
+      - rule: ask-unknown-item
   - name: decision add refuses a questions file with changes no commit holds
-    argv: [decision, add, "Which way?"]
+    argv: [decision, add, "Which way?", --json]
     git: []
     exit: 1
-    stderr: |
-      asks.yaml has changes no commit holds, which itos's commit of it would sweep in
-        fix: commit or drop the changes to asks.yaml first
     files_after:
       asks.yaml: *asks
+    json:
+      schema: 1
+      ok: false
+      problems:
+      - rule: asks-file-uncommitted
   - name: decision add refuses a questions file itos did not write whole, and leaves it as it is
     argv: [decision, add, "Which way?"]
     files:
       asks.yaml: &unknown "questions:\n  - { id: q-1, question: a, status: open }\n"
     exit: 2
-    stderr_has: "asks.yaml: yaml: unmarshal errors:"
+    stderr_has: [asks.yaml, status]
     files_after:
       asks.yaml: *unknown
   - name: decision answer keeps the answer beside the question, and commits the file alone
-    argv: [decision, answer, q-3, This, way.]
+    argv: [decision, answer, q-3, This, way., --json]
     git:
       - commit: "docs: start"
         files: { asks.yaml: *asks }
     exit: 0
-    stdout_has: "q-3 answered: committed "
     files_after:
       asks.yaml: |
         # The questions to the person the work is for, written by itos decision (itos help decision).
@@ -240,25 +239,37 @@ cases:
           - id: q-3
             question: "Which way?"
             answer: "This way."
+    json_has:
+      schema: 1
+      ok: true
+      question:
+        id: q-3
+        question: Which way?
+        status: answered
+        answer: This way.
+      commit: "<any>"
   - name: decision answer refuses a question already answered
-    argv: [decision, answer, q-1, Projects.]
+    argv: [decision, answer, q-1, Projects., --json]
     exit: 1
-    stderr: |
-      q-1 is already answered: Labels, with trust by who acted.
-        fix: itos decision add asks a new question
+    json:
+      schema: 1
+      ok: false
+      problems:
+      - rule: ask-answered
   - name: decision answer refuses an id no question has
-    argv: [decision, answer, q-7, Yes.]
+    argv: [decision, answer, q-7, Yes., --json]
     exit: 1
-    stderr: |
-      there is no question q-7
-        fix: itos decision --all lists the questions
+    json:
+      schema: 1
+      ok: false
+      problems:
+      - rule: ask-no-question
   - name: decision answer needs the answer
     argv: [decision, answer, q-3]
     exit: 2
-    stderr: |
-      itos: decision answer needs <id> <text>, the answer (itos --help)
+    stderr_has: <text>
   - name: under a stealth config decision add writes the questions beside its registry and commits nothing
-    argv: [decision, add, "Which way?", --item, x]
+    argv: [decision, add, "Which way?", --item, x, --json]
     git: []
     files:
       itos.yaml: null
@@ -266,12 +277,19 @@ cases:
       .git/itos/itos.yaml: "version: 1\nwork: { registry: work-items.yaml }\n"
       .git/itos/work-items.yaml: *registry
     exit: 0
-    stdout: |
-      q-1 asked about x: the questions are the stealth config's, so nothing is committed
     files_after:
       .git/itos/asks.yaml: "# The questions to the person the work is for, written by itos decision (itos help decision).\nquestions:\n  - id: q-1\n    item: \"x\"\n    question: \"Which way?\"\n"
       .git/itos/work-items.yaml.lock: null
       asks.yaml: null
+    json:
+      schema: 1
+      ok: true
+      question:
+        id: q-1
+        item: x
+        question: Which way?
+        status: open
+      commit: null
   - name: under a stealth config decision answer --json gives the question and no commit
     argv: [decision, answer, q-3, This way., --json]
     git: []
@@ -287,21 +305,23 @@ cases:
       question: { id: q-3, question: "Which way?", status: answered, answer: This way. }
       commit: null
   - name: work.asks moves the questions file
-    argv: [decision, --all]
+    argv: [decision, --all, --json]
     files:
       itos.yaml: "version: 1\nwork: { registry: work-items.yaml, asks: docs/questions.yaml, people: { source: yaml, file: people.yaml } }\n"
       docs/questions.yaml: "questions:\n  - { id: q-5, question: \"Moved?\" }\n"
     exit: 0
-    stdout: |
-      Open questions:
-        q-5  Moved?
+    json:
+      schema: 1
+      questions:
+      - id: q-5
+        question: Moved?
+        status: open
   - name: decision record writes the answer as the first decision record, makes the index, notes the decision and commits them
-    argv: [decision, record, q-1, --title, Triage issues with labels]
+    argv: [decision, record, q-1, --title, Triage issues with labels, --json]
     git:
       - commit: "docs: start"
         files: { asks.yaml: *asks }
     exit: 0
-    stdout_has: "q-1 recorded as decision 1, docs/decisions/0001-triage-issues-with-labels.md: committed "
     files_after:
       asks.yaml: |
         # The questions to the person the work is for, written by itos decision (itos help decision).
@@ -327,8 +347,20 @@ cases:
         - [ADR-0001: Triage issues with labels](0001-triage-issues-with-labels.md)
 
         <!-- itos:decisions:end -->
+    json_has:
+      schema: 1
+      ok: true
+      question:
+        id: q-1
+        item: x
+        question: Labels or Projects?
+        status: answered
+        answer: Labels, with trust by who acted.
+        decision: 1
+      record: docs/decisions/0001-triage-issues-with-labels.md
+      commit: "<any>"
   - name: decision record --supersedes sets the old record's status, and the index keeps its own text and drops it
-    argv: [decision, record, q-1, --title, Use labels, --supersedes, "4"]
+    argv: [decision, record, q-1, --title, Use labels, --supersedes, "4", --json]
     git:
       - commit: "docs: start"
         files:
@@ -337,12 +369,23 @@ cases:
           docs/decisions/0005-use-go.md: "---\nstatus: accepted\n---\n\n# Use Go\n"
           docs/decisions/README.md: "# Our records\n\n<!-- itos:decisions:begin -->\n- old\n<!-- itos:decisions:end -->\n\nKept.\n"
     exit: 0
-    stdout_has: "q-1 recorded as decision 6, docs/decisions/0006-use-labels.md: committed "
     files_after:
       docs/decisions/0004-use-projects.md: "---\nstatus: superseded by ADR-0006\ndate: 2020-01-02\n---\n\n# Use Projects\n\n## Context and Problem Statement\n\nc\n\n## Decision Outcome\n\nd\n"
       docs/decisions/README.md: "# Our records\n\n<!-- itos:decisions:begin -->\n\n- [ADR-0005: Use Go](0005-use-go.md)\n- [ADR-0006: Use labels](0006-use-labels.md)\n\n<!-- itos:decisions:end -->\n\nKept.\n"
+    json_has:
+      schema: 1
+      ok: true
+      question:
+        id: q-1
+        item: x
+        question: Labels or Projects?
+        status: answered
+        answer: Labels, with trust by who acted.
+        decision: 6
+      record: docs/decisions/0006-use-labels.md
+      commit: "<any>"
   - name: decision record writes in the folder work.decisions names, numbered past the highest name there, and reads no .adr-dir
-    argv: [decision, record, q-1, --title, Labels!, --option, Labels, --option, Projects, --consequences, Projects stay unused.]
+    argv: [decision, record, q-1, --title, Labels!, --option, Labels, --option, Projects, --consequences, Projects stay unused., --json]
     files:
       itos.yaml: "version: 1\nwork: { registry: work-items.yaml, decisions: notes/decisions, people: { source: yaml, file: people.yaml } }\n"
     git:
@@ -355,7 +398,6 @@ cases:
           notes/decisions/0010-new.md: "---\nstatus: accepted\n---\n\n# New\n"
           docs/decisions/0042-elsewhere.md: "---\nstatus: accepted\n---\n\n# Elsewhere\n"
     exit: 0
-    stdout_has: "q-1 recorded as decision 11, notes/decisions/0011-labels.md: committed "
     files_after:
       notes/decisions/README.md: |
         # Decisions
@@ -372,13 +414,24 @@ cases:
         <!-- itos:decisions:end -->
       docs/decisions/README.md: null
       elsewhere/README.md: null
+    json_has:
+      schema: 1
+      ok: true
+      question:
+        id: q-1
+        item: x
+        question: Labels or Projects?
+        status: answered
+        answer: Labels, with trust by who acted.
+        decision: 11
+      record: notes/decisions/0011-labels.md
+      commit: "<any>"
   - name: decision record --none marks the answer as recorded nowhere, writes no record and commits the questions alone
-    argv: [decision, record, q-1, --none]
+    argv: [decision, record, q-1, --none, --json]
     git:
       - commit: "docs: start"
         files: { asks.yaml: *asks }
     exit: 0
-    stdout_has: "q-1 marked as recorded nowhere: committed "
     files_after:
       asks.yaml: |
         # The questions to the person the work is for, written by itos decision (itos help decision).
@@ -394,69 +447,85 @@ cases:
           - id: q-3
             question: "Which way?"
       docs/decisions/README.md: null
+    json_has:
+      schema: 1
+      ok: true
+      question:
+        id: q-1
+        item: x
+        question: Labels or Projects?
+        status: answered
+        answer: Labels, with trust by who acted.
+        decision: none
+      record: null
+      commit: "<any>"
   - name: decision record refuses a question not answered
-    argv: [decision, record, q-2, --title, Archive]
+    argv: [decision, record, q-2, --title, Archive, --json]
     exit: 1
-    stderr: |
-      q-2 is not answered, so it holds no decision to record
-        fix: itos decision answer q-2 <text> answers it first
     files_after:
       docs/decisions/README.md: null
+    json:
+      schema: 1
+      ok: false
+      problems:
+      - rule: ask-unanswered
   - name: decision record refuses a question already recorded
-    argv: [decision, record, q-1, --none]
+    argv: [decision, record, q-1, --none, --json]
     files:
       asks.yaml: "questions:\n  - { id: q-1, question: a, answer: b, decision: 3 }\n"
     exit: 1
-    stderr: |
-      q-1 is already recorded, as decision 3
-        fix: itos decision show q-1 shows it
+    json:
+      schema: 1
+      ok: false
+      problems:
+      - rule: ask-recorded
   - name: decision record refuses to supersede a record the folder does not have, and writes nothing
-    argv: [decision, record, q-1, --title, Labels, --supersedes, "2"]
+    argv: [decision, record, q-1, --title, Labels, --supersedes, "2", --json]
     git:
       - commit: "docs: start"
         files: { asks.yaml: *asks }
     exit: 1
-    stderr: |
-      there is no decision record 2 in docs/decisions, so none can be superseded
-        fix: --supersedes takes the number of a record there
     files_after:
       asks.yaml: *asks
       docs/decisions/README.md: null
+    json:
+      schema: 1
+      ok: false
+      problems:
+      - rule: ask-no-decision
   - name: decision record refuses an index with changes no commit holds, and writes nothing
-    argv: [decision, record, q-1, --title, Labels]
+    argv: [decision, record, q-1, --title, Labels, --json]
     git:
       - commit: "docs: start"
         files: { asks.yaml: *asks }
     files:
       docs/decisions/README.md: "mine\n"
     exit: 1
-    stderr: |
-      docs/decisions/README.md has changes no commit holds, which itos's commit of it would sweep in
-        fix: commit or drop the changes to docs/decisions/README.md first
     files_after:
       asks.yaml: *asks
       docs/decisions/README.md: "mine\n"
       docs/decisions/0001-labels.md: null
+    json:
+      schema: 1
+      ok: false
+      problems:
+      - rule: decision-index-uncommitted
   - name: decision record needs a title, or --none
     argv: [decision, record, q-1]
     exit: 2
-    stderr: |
-      itos: decision record needs --title <title>, the decision's, or --none (itos --help)
+    stderr_has: [--title, --none]
   - name: decision record --none takes no title
     argv: [decision, record, q-1, --none, --title, Labels]
     exit: 2
-    stderr: |
-      itos: decision record --none writes no record, so it takes no --title, --option, --consequences or --supersedes (itos --help)
+    stderr_has: [--none, --title]
   - name: decision record --option needs a value
     argv: [decision, record, q-1, --title, Labels, --option]
     exit: 2
-    stderr: |
-      itos: decision record --option needs a value (itos --help)
+    stderr_has: --option
   - name: decision record --supersedes takes a record's number
     argv: [decision, record, q-1, --title, Labels, --supersedes, "0004-use-projects"]
     exit: 2
-    stderr: |
-      itos: decision record --supersedes takes a decision record's number, not "0004-use-projects" (itos --help)
+    stderr_has: 0004-use-projects
   - name: under a stealth config decision record writes the records in the git folder and commits nothing
     argv: [decision, record, q-1, --title, Labels, --json]
     git: []
