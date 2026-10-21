@@ -11099,3 +11099,22 @@ items:
     status: todo
     depends_on: []
     kind: task
+
+  - id: p1-json-gaps
+    title: Every command's --json carries the facts its text gives, and every refusal prints its JSON object
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The corpus count for ADR-0052 (2026-10-21) found what a contract-only corpus cannot pin. No
+      JSON at all: hook commit-msg, hook pre-push, tests smoke run, help. Refusals that print no
+      object under --json: task <unknown id> and work or work list with a missing or unsound
+      registry (exit 1); --as naming nobody, draft, followup and push outside a repository, commit
+      and hooks install with undeclared hooks or an old git (exit 3); pin with no release server
+      (exit 75). --json lacking the fact the text gives: verify names no problems or rule ids per
+      failing commit (about 13 corpus cases wait on it), ci run gives only ok, failed_at and
+      failures, draft promote does not name the id it minted, decision does not list answers not yet
+      recorded, status gives no reason when GitHub refuses. Each is a feat after the freeze
+      (ADR-0053); the corpus tasks T-198 to T-204 keep loose _has checks for them meanwhile.
