@@ -44,6 +44,8 @@ cases:
   - name: quietly
     argv: [tests, smoke, check, scenario, -q]
     exit: 0
+    stdout: ""
+    stderr: ""
   - name: the rule holds, a file with only @wip scenarios needing none
     argv: [tests, smoke, check, scenario, --json]
     exit: 0

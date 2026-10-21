@@ -111,33 +111,39 @@ cases:
     exit: 0
     json: { schema: 1, ok: true }
     stderr_has: ["\nlint\n", "\na static check\n", "\nunit tests\n", "\nrun @(?:ID-A-01)\\b|@ID-A-02\n", "\na late check sees CI=1\n"]
+    stderr_lacks: "\nrun @ID-A-02\n"
   - name: --tests runs the range's run of named tests alone, merged as the run merges it
     argv: [ci, run, "{{sha.base}}", "{{sha.every}}", --tests, --json]
     exit: 0
     json: { schema: 1, ok: true }
     stderr_has: "\nrun @(?:ID-A-01)\\b|@ID-A-02\n"
+    stderr_lacks: ["\nlint\n", "\na static check\n", "\nunit tests\n", "\na late check sees CI=1\n"]
   - name: --tests with no run of named tests for the range runs nothing and says so
     argv: [ci, run, "{{sha.prose}}", "{{sha.smoke}}", --tests, --json]
     files: { e2e/smoke.yaml: "[]\n" }
     exit: 0
     json: { schema: 1, ok: true }
     stderr_has: "no named tests"
+    stderr_lacks: ["\nlint\n", "\nunit tests\n", "\nthe smoke run as itself\n"]
   - name: --tests with --nightly runs the nightly's tests step alone
     argv: [ci, run, --nightly, --tests, --json]
     exit: 0
     json: { schema: 1, ok: true }
     stderr_has: "\nrun every scenario\n"
+    stderr_lacks: "\nthe gates self-test\n"
   - name: a check recognized as the smoke run is in the run of named tests
     argv: [ci, run, "{{sha.prose}}", "{{sha.smoke}}", --json]
     exit: 0
     json: { schema: 1, ok: true }
     stderr_has: "\nrun @(?:ID-A-01)\\b\n"
+    stderr_lacks: "\nthe smoke run as itself\n"
   - name: with an empty smoke set and no test named there is no such run, so the check runs as itself
     argv: [ci, run, "{{sha.prose}}", "{{sha.smoke}}", --json]
     files: { e2e/smoke.yaml: "[]\n" }
     exit: 0
     json: { schema: 1, ok: true }
     stderr_has: "\nthe smoke run as itself\n"
+    stderr_lacks: "\nrun @"
   - name: a failing check ends the run, naming the task
     argv: [ci, run, "{{sha.every}}", "{{sha.failing}}", --json]
     exit: 1
@@ -147,6 +153,7 @@ cases:
       failed_at: { task: T-011, title: A check that fails, command: sh -c 'echo broken; exit 4', code: 1 }
       failures: [{ task: T-011, title: A check that fails, command: sh -c 'echo broken; exit 4', code: 1 }]
     stderr_has: ["\nfirst\n", "\nbroken\n"]
+    stderr_lacks: ["echo never", "\nnever\n"]
   - name: a failing step ends the run with exit 1, naming its own exit code
     argv: [ci, run, "{{sha.every}}", "{{sha.failing}}", --json]
     files:
@@ -171,6 +178,7 @@ cases:
       failed_at: { step: sh -c 'echo tests fail; exit 3', code: 3 }
       failures: [{ step: sh -c 'echo tests fail; exit 3', code: 3 }]
     stderr_has: "\ntests fail\n"
+    stderr_lacks: ["echo never", "\nnever\n", "\nfirst\n"]
   - name: with ci.stop_at_first_failure false every step and check runs, and the first failure is named
     argv: [ci, run, "{{sha.every}}", "{{sha.failing}}", --json]
     files:
@@ -274,6 +282,7 @@ cases:
     exit: 0
     json: { schema: 1, ok: true }
     stderr_has: "\nlint\n"
+    stderr_lacks: "\nrun @"
   - name: a step and a check run through the config's shell
     argv: [ci, run, "{{sha.every}}", "{{sha.failing}}", --json]
     files:
@@ -306,6 +315,7 @@ cases:
       failed_at: { unknown: [T-044], code: 1 }
       failures: [{ unknown: [T-044], code: 1 }]
     stderr_has: tasks/
+    stderr_lacks: ["\nlint\n", "\nunit tests\n"]
   - name: a task the ledger lacks is reported against the ledger's own folder
     argv: [ci, run, "{{sha.failing}}", "{{sha.unknown}}", --json]
     files:
@@ -343,6 +353,7 @@ cases:
     exit: 0
     json: { schema: 1, ok: true }
     stderr_has: [T-040, work/work-items.yaml, "\nlint\n"]
+    stderr_lacks: "\nwaits\n"
   - name: the tasks a range names are read from the ledger footer, whatever its key
     argv: [ci, run, "{{sha.smoke}}", "{{sha.work}}", --json]
     files:
@@ -363,16 +374,19 @@ cases:
     files: { tasks: null }
     exit: 2
     json: { schema: 1, config: itos.yaml, valid: false, problems: [{ rule: ledger-folder-missing }] }
+    stderr_lacks: ["\nlint\n", "\na static check\n"]
   - name: a task not started is named, and its checks wait
     argv: [ci, run, "{{sha.unknown}}", "{{sha.waiting}}", --json]
     exit: 0
     json: { schema: 1, ok: true }
     stderr_has: [T-040, tasks/work-items.yaml, "\nrun @(?:ID-A-01)\\b\n"]
+    stderr_lacks: "\nwaits\n"
   - name: a prose-only range runs the prose steps and the prose checks
     argv: [ci, run, "{{sha.waiting}}", "{{sha.prose}}", --json]
     exit: 0
     json: { schema: 1, ok: true }
     stderr_has: ["\nlint\n", "\nreads prose\n"]
+    stderr_lacks: ["\nreads code\n", "\nunit tests\n"]
   - name: the nightly runs every scenario, then its own steps
     argv: [ci, run, --nightly, --json]
     exit: 0
@@ -411,6 +425,7 @@ cases:
         work: { registry: tasks/work-items.yaml }
     exit: 2
     json: { schema: 1, config: itos.yaml, valid: false, problems: [{ rule: config-step-tasks }] }
+    stderr_lacks: ["\nrun every scenario\n", "\nthe gates self-test\n"]
   - name: the nightly goes on past a failing step though ci.stop_at_first_failure is true, naming each failure
     argv: [ci, run, --nightly, --json]
     files:

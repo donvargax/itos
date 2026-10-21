@@ -45,6 +45,8 @@ cases:
   - name: quietly
     argv: [config, check, -q]
     exit: 0
+    stdout: ""
+    stderr: ""
   # A project's people file missing or unreadable is a warning, which never
   # fails the run: without the people, the registry's owners go unchecked.
   - name: a missing people file is a warning, and the check passes

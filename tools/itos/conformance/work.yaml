@@ -119,6 +119,7 @@ cases:
     files:
       work-items.yaml: "phases: { 1: a }\nitems:\n  - { id: x, title: X, phase: 1, owner: a, status: todo, depends_on: [nope] }\n"
     exit: 1
+    stdout: ""
     stderr_has: nope
   - name: the registry is sound
     argv: [work, check, --json]
@@ -127,6 +128,8 @@ cases:
   - name: the registry is sound, quietly
     argv: [work, check, -q]
     exit: 0
+    stdout: ""
+    stderr: ""
   - name: without work.registry, the registry is tasks/work-items.yaml
     argv: [work, check, --json]
     files:
@@ -171,6 +174,7 @@ cases:
     files:
       work-items.yaml: null
     exit: 1
+    stdout: ""
     stderr_has: work-items.yaml
   - name: a registry file named on the command line that is not there
     argv: [work, check, other.yaml, --json]

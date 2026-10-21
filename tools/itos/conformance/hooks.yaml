@@ -231,6 +231,7 @@ cases:
       - run: git config --remove-section hook.itos-commit-msg
       - stage: { README.md: "tidier\n" }
     exit: 3
+    stdout: ""
     stderr_has: [commit-msg, itos hook install]
   - name: itos commit refuses, exit 3, with a git that runs no hook its config declares
     argv: [commit, -m, "docs: tidy"]
@@ -676,6 +677,7 @@ cases:
     argv: [hook, pre-push, upstream, git@example.invalid:x.git]
     stdin: "(delete) 0000000000000000000000000000000000000000 refs/heads/old {{sha.base}}\n"
     exit: 0
+    stdout: ""
   - name: pre-push fails when a command fails
     argv: [hook, pre-push, upstream, git@example.invalid:x.git]
     stdin: "refs/heads/main {{sha.more}} refs/heads/main {{sha.base}}\n"
@@ -730,6 +732,8 @@ cases:
     files:
       itos.yaml: "version: 1\ncommits: { types: [docs] }\n"
     exit: 0
+    stdout: ""
+    stderr: ""
   - name: guard claude-code denies a git commit in an itos repository, naming itos commit
     argv: [guard, claude-code]
     stdin: '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git commit -m x"},"cwd":"{{dir}}"}'
