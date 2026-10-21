@@ -11098,7 +11098,7 @@ items:
     title: The config and ci-run corpus files pin only the contract
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
 

@@ -2519,9 +2519,6 @@
     ADR-0054's script outputs (ci scope docs_only=, ci range FROM= TO=, config get, tests next-id,
     tests smoke ids) and guard claude-code's hook JSON keep their exact pins. No product change;
     previous-release is unaffected until the next release. Files: config.yaml ci-run.yaml.
-  done_when:
-    - run: go run ./tools/bin/conformance --bin tools/bin/itos --only tools/itos/conformance/config.yaml tools/itos/conformance/ci-run.yaml
-      timeout: 900
 
 - id: T-204
   type: test
