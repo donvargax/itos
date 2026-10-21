@@ -17,6 +17,8 @@ func checkOutside(t *testing.T, check, dir string, env []string, module string) 
 	}{
 		{"./cmd/slices", "", "", ""},
 		{"./internal/git/internal_slices_alpha_allowed_code", "internal/slices/alpha", "", ""},
+		// A store serves every slice through the assembly and imports none.
+		{"./internal/store/private/adapter/internal_slices_alpha_code", "internal/slices/alpha", "", ""},
 		{"./internal/cli/internal_slices_alpha_domain_allowed_test", "internal/slices/alpha/domain", " from its tests", ""},
 		{"./internal/git/internal_slices_alpha_domain_allowed_test", "internal/slices/alpha/domain", " from its tests", ""},
 		// The row excepts git's tests, its subpackages' with them, and
