@@ -11213,3 +11213,11 @@ items:
     status: todo
     depends_on: []
     kind: task
+
+  - id: T-208
+    title: The corpus runner prints a case's actual output, so a case can be converted without a probe
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task

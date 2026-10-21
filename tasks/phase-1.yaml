@@ -2611,3 +2611,18 @@
       timeout: 900
     - run: tools/bin/pinned golangci-lint run ./...
       timeout: 600
+
+- id: T-208
+  type: ci
+  title: The corpus runner prints a case's actual output, so a case can be converted without a probe
+  why: >
+    T-199 and T-200's agent (2026-10-21) converted 302 cases to json: and json_has: by asserting a
+    dummy stdout and parsing the runner's diff to see what itos printed, for every case. A runner
+    flag (e.g. --actual with --only and a case name filter) printing each selected case's exit code,
+    stdout, stderr and parsed JSON, in YAML ready to paste, saves that for the remaining files
+    (hooks, moves, messages, tasks, status, init, config, ci-run, work, verify: about 590 cases).
+    Read only: it judges nothing and writes no file.
+  done_when:
+    - run: go test -count=1 ./tools/bin/conformance/...
+      timeout: 600
+    - run: grep -rq -- "--actual" tools/bin/conformance
