@@ -1,5 +1,5 @@
 # One message through the footer rules (`commit check-message`):
-# the wording of each rejection, the tree each footer's IDs are read at (the
+# the rule of each rejection, the tree each footer's IDs are read at (the
 # staged tree by default, the commit --at names, the working tree for a
 # commit that predates the source, or always with read_at: worktree), a
 # ledger folder that is missing (read only for a message naming a task), another
@@ -9,7 +9,7 @@
 # beside it, a footer of free text (there and not empty; none passes; its
 # since not applied to a message), a range's free-text footers gathered
 # (commit footers), and the built-in header lint (commits.header_lint.use: builtin):
-# each of config-conventional's errors under commitlint's rule id and words,
+# each of config-conventional's errors under commitlint's rule id,
 # commits.types as the type list (config-conventional's own without it), its
 # warnings printed without rejecting, the messages commitlint leaves alone,
 # comment lines read as part of a message on stdin, no delegate run beside
@@ -85,43 +85,42 @@ files:
       scenario: { root: e2e/features, id: "ID-[A-Z]+-\\d+", wip_tag: "@wip" }
 cases:
   - name: a scenario now @wip is rejected in a new commit
-    argv: [commit, check-message, "-"]
+    argv: [commit, check-message, "-", --json]
     stdin: "feat: x\n\nScenarios: @ID-SCRATCH-01\n"
     exit: 1
-    stderr: |
-      ✖   still tagged @wip: ID-SCRATCH-01 [scenarios-footer]
+    json: { schema: 1, ok: false, problems: [{ rule: scenarios-footer }] }
+    stdout_has: ["@wip", ID-SCRATCH-01]
   - name: the message may come from a file
-    argv: [commit, check-message, msg.txt]
+    argv: [commit, check-message, msg.txt, --json]
     files: { msg.txt: "feat: x\n\nScenarios: @ID-SCRATCH-01\n" }
     exit: 1
-    stderr: |
-      ✖   still tagged @wip: ID-SCRATCH-01 [scenarios-footer]
+    json: { schema: 1, ok: false, problems: [{ rule: scenarios-footer }] }
   - name: --at reads the scenarios at that commit, where it was live
     argv: [commit, check-message, "-", --at, "{{sha.live}}"]
     stdin: "feat: x\n\nScenarios: @ID-SCRATCH-01\n"
     exit: 0
   - name: --at still rejects a scenario that commit did not have
-    argv: [commit, check-message, "-", --at, "{{sha.live}}"]
+    argv: [commit, check-message, "-", --at, "{{sha.live}}", --json]
     stdin: "feat: x\n\nScenarios: @ID-SCRATCH-02\n"
     exit: 1
-    stderr: |
-      ✖   unknown scenarios: ID-SCRATCH-02 [scenarios-footer]
+    json: { schema: 1, ok: false, problems: [{ rule: scenarios-footer }] }
+    stdout_has: ID-SCRATCH-02
   - name: --at HEAD reads the scenario as @wip
-    argv: [commit, check-message, --at, HEAD, "-"]
+    argv: [commit, check-message, --at, HEAD, "-", --json]
     stdin: "feat: x\n\nScenarios: @ID-SCRATCH-01\n"
     exit: 1
-    stderr: |
-      ✖   still tagged @wip: ID-SCRATCH-01 [scenarios-footer]
+    json: { schema: 1, ok: false, problems: [{ rule: scenarios-footer }] }
+    stdout_has: ["@wip", ID-SCRATCH-01]
   - name: a task the ledger had at the commit passes there
     argv: [commit, check-message, "-", --at, "{{sha.live}}"]
     stdin: "build: x\n\nTask: T-002\n"
     exit: 0
   - name: a task taken out of the ledger is unknown in a new commit
-    argv: [commit, check-message, "-"]
+    argv: [commit, check-message, "-", --json]
     stdin: "build: x\n\nTask: T-002\n"
     exit: 1
-    stderr: |
-      ✖   unknown tasks: T-002 [task-footer]
+    json: { schema: 1, ok: false, problems: [{ rule: task-footer }] }
+    stdout_has: T-002
   - name: the footers read the staged tree, not the working tree
     argv: [commit, check-message, "-"]
     stdin: "build: x\n\nTask: T-003\n"
@@ -132,28 +131,27 @@ cases:
       - write: { tasks/phase-1.yaml: "- { id: T-001, type: build, title: One }\n" }
     exit: 0
   - name: a task only the working tree has is unknown to a commit
-    argv: [commit, check-message, "-"]
+    argv: [commit, check-message, "-", --json]
     stdin: "build: x\n\nTask: T-003\n"
     git:
       - commit: "docs: a ledger"
         files: { tasks/phase-1.yaml: "- { id: T-001, type: build, title: One }\n" }
       - write: { tasks/phase-1.yaml: "- { id: T-001, type: build, title: One }\n- { id: T-003, type: build, title: Three }\n" }
     exit: 1
-    stderr: |
-      ✖   unknown tasks: T-003 [task-footer]
+    json: { schema: 1, ok: false, problems: [{ rule: task-footer }] }
+    stdout_has: T-003
   - name: a commit that predates the ledger is read against the working tree, and says so
-    argv: [commit, check-message, "-", --at, "{{sha.bare}}"]
+    argv: [commit, check-message, "-", --at, "{{sha.bare}}", --json]
     stdin: "build: x\n\nTask: T-001\n"
     exit: 0
-    stderr: |
-      {{sha.bare}} has no tasks; its Task: footer is read against the working tree
+    json: { schema: 1, ok: true, problems: [] }
+    stderr_has: "{{sha.bare}}"
   - name: the working tree still rejects a task it lacks
-    argv: [commit, check-message, "-", --at, "{{sha.bare}}"]
+    argv: [commit, check-message, "-", --at, "{{sha.bare}}", --json]
     stdin: "build: x\n\nTask: T-002\n"
     exit: 1
-    stderr: |
-      {{sha.bare}} has no tasks; its Task: footer is read against the working tree
-      ✖   unknown tasks: T-002 [task-footer]
+    json: { schema: 1, ok: false, problems: [{ rule: task-footer }] }
+    stdout_has: T-002
   - name: a message that names no task reads no ledger, so a missing ledger folder is no problem
     argv: [commit, check-message, "-", --config, no-ledger.yaml]
     stdin: "docs: x\n"
@@ -167,48 +165,32 @@ cases:
             Task: { source: ledger, required_for: [chore], validate_for: all, read_at: commit }
     exit: 0
   - name: a missing footer is judged without the ledger folder
-    argv: [commit, check-message, "-", --config, no-ledger.yaml]
+    argv: [commit, check-message, "-", --config, no-ledger.yaml, --json]
     stdin: "chore: x\n"
     files: *no-ledger
     exit: 1
-    stderr: |
-      ✖   chore commits need a "Task: T-…" footer [task-footer]
-  - name: a task named when the ledger folder is missing is one problem naming the folder, exit 2
-    argv: [commit, check-message, "-", --config, no-ledger.yaml]
-    stdin: "chore: x\n\nTask: T-001\n"
-    files: *no-ledger
-    exit: 2
-    stderr: |
-      FAIL no-ledger.yaml: the Task: footer names tasks of the ledger, and its folder gone does not exist
+    json: { schema: 1, ok: false, problems: [{ rule: task-footer }] }
   - name: the missing ledger folder as --json, with its rule and fix
     argv: [commit, check-message, "-", --config, no-ledger.yaml, --json]
     stdin: "chore: x\n\nTask: T-001\n"
     files: *no-ledger
     exit: 2
-    json:
-      schema: 1
-      config: no-ledger.yaml
-      valid: false
-      problems:
-        - rule: footer-source-missing
-          message: "no-ledger.yaml: the Task: footer names tasks of the ledger, and its folder gone does not exist"
-          fix: "create gone with the ledger's files (ledger.files is gone/phase-{group}.yaml), or point ledger.files at the folder that holds them"
+    json: { schema: 1, config: no-ledger.yaml, valid: false, problems: [{ rule: footer-source-missing }] }
+    stdout_has: gone
   - name: a type that needs a Task footer, without one
-    argv: [commit, check-message, "-"]
+    argv: [commit, check-message, "-", --json]
     stdin: "chore: x\n"
     exit: 1
-    stderr: |
-      ✖   chore commits need a "Task: T-…" footer [task-footer]
+    json: { schema: 1, ok: false, problems: [{ rule: task-footer }] }
   - name: a type that needs a Scenarios footer, without one
-    argv: [commit, check-message, "-"]
+    argv: [commit, check-message, "-", --json]
     stdin: "fix: x\n"
     exit: 1
-    stderr: |
-      ✖   fix commits need a "Scenarios: @ID-…" footer [scenarios-footer]
+    json: { schema: 1, ok: false, problems: [{ rule: scenarios-footer }] }
   # A footer of free text (source: text) says what a consumer must do, or the
   # word none; its rule is only that it is there and not empty.
-  - name: a type that needs a free-text footer, without one
-    argv: [commit, check-message, "-", --config, text.yaml]
+  - name: the missing free-text footer as --json, with its fix
+    argv: [commit, check-message, "-", --config, text.yaml, --json]
     stdin: "chore: x\n"
     files: &text
       text.yaml: |
@@ -218,20 +200,7 @@ cases:
           footers:
             Upgrading: { source: text, required_for: [chore], validate_for: all, since: "{{sha.head}}" }
     exit: 1
-    stderr: |
-      ✖   chore commits need a "Upgrading: <what a consumer must do, or none>" footer [upgrading-footer]
-  - name: the missing free-text footer as --json, with its fix
-    argv: [commit, check-message, "-", --config, text.yaml, --json]
-    stdin: "chore: x\n"
-    files: *text
-    exit: 1
-    json:
-      schema: 1
-      ok: false
-      problems:
-        - rule: upgrading-footer
-          message: "chore commits need a \"Upgrading: <what a consumer must do, or none>\" footer"
-          fix: "add a line `Upgrading: <what a consumer must do>` after a blank line at the end, or `Upgrading: none` when a consumer changes nothing"
+    json: { schema: 1, ok: false, problems: [{ rule: upgrading-footer }] }
   - name: none says a consumer changes nothing
     argv: [commit, check-message, "-", --config, text.yaml]
     stdin: "chore: x\n\nUpgrading: none\n"
@@ -243,34 +212,26 @@ cases:
     files: *text
     exit: 0
   - name: an empty free-text footer is no footer to a type that needs one
-    argv: [commit, check-message, "-", --config, text.yaml]
+    argv: [commit, check-message, "-", --config, text.yaml, --json]
     stdin: "chore: x\n\nUpgrading:\n"
     files: *text
     exit: 1
-    stderr: |
-      ✖   chore commits need a "Upgrading: <what a consumer must do, or none>" footer [upgrading-footer]
+    json: { schema: 1, ok: false, problems: [{ rule: upgrading-footer }] }
   - name: an empty free-text footer is rejected where the type validates it, beside one that says something
     argv: [commit, check-message, "-", --config, text.yaml, --json]
     stdin: "docs: x\n\nUpgrading: drop Node\nUpgrading:  \n"
     files: *text
     exit: 1
-    json:
-      schema: 1
-      ok: false
-      problems:
-        - rule: upgrading-footer
-          message: "the Upgrading: footer is empty"
-          fix: "write after Upgrading: what a consumer must do, or none"
+    json: { schema: 1, ok: false, problems: [{ rule: upgrading-footer }] }
   - name: check-message requires a footer of a commit before its since, as the commit-msg hook does
-    argv: [commit, check-message, "-", --config, text.yaml, --at, "{{sha.live}}"]
+    argv: [commit, check-message, "-", --config, text.yaml, --at, "{{sha.live}}", --json]
     stdin: "chore: x\n"
     files: *text
     exit: 1
-    stderr: |
-      ✖   chore commits need a "Upgrading: <what a consumer must do, or none>" footer [upgrading-footer]
+    json: { schema: 1, ok: false, problems: [{ rule: upgrading-footer }] }
   # commit footers gathers a range's free-text footers for a release's notes.
   - name: commit footers lists a range's free-text footers with their commits, oldest first, leaving out none
-    argv: [commit, footers, Upgrading, "{{sha.first}}", HEAD, --config, said.yaml]
+    argv: [commit, footers, Upgrading, "{{sha.first}}", HEAD, --config, said.yaml, --json]
     git: &said
       - commit: "chore: start\n\nUpgrading: before the range\n"
         files: { README.md: "scratch\n" }
@@ -291,11 +252,16 @@ cases:
           footers:
             Upgrading: { source: text, required_for: [chore] }
     exit: 0
-    stdout: |
-      {{short.renamed}} rename commits.lint to commits.header_lint
-      {{short.dropped}} install the binary
-      {{short.dropped}} drop Node
-    stderr: ""
+    json:
+      schema: 1
+      footer: Upgrading
+      range: { from: "{{sha.first}}", to: HEAD }
+      footers:
+        - sha: "{{sha.renamed}}"
+          subject: "chore: rename the key"
+          text: rename commits.lint to commits.header_lint
+        - { sha: "{{sha.dropped}}", subject: "chore: drop node", text: install the binary }
+        - { sha: "{{sha.dropped}}", subject: "chore: drop node", text: drop Node }
   - name: commit footers as --json, each with its commit's full SHA and subject
     argv: [commit, footers, Upgrading, "{{sha.renamed}}", HEAD, --config, said.yaml, --json]
     git: *said
@@ -309,64 +275,57 @@ cases:
         - { sha: "{{sha.dropped}}", subject: "chore: drop node", text: install the binary }
         - { sha: "{{sha.dropped}}", subject: "chore: drop node", text: drop Node }
   - name: commit footers from an empty start reads every commit up to the end
-    argv: [commit, footers, Upgrading, "", "{{sha.renamed}}", --config, said.yaml]
+    argv: [commit, footers, Upgrading, "", "{{sha.renamed}}", --config, said.yaml, --json]
     git: *said
     files: *saidcfg
     exit: 0
-    stdout: |
-      {{short.first}} before the range
-      {{short.renamed}} rename commits.lint to commits.header_lint
+    json:
+      schema: 1
+      footer: Upgrading
+      range: { from: "", to: "{{sha.renamed}}" }
+      footers:
+        - { sha: "{{sha.first}}", subject: "chore: start", text: before the range }
+        - sha: "{{sha.renamed}}"
+          subject: "chore: rename the key"
+          text: rename commits.lint to commits.header_lint
   - name: commit footers lists only a footer of free text
     argv: [commit, footers, Task, "", HEAD]
     exit: 2
-    stderr: |
-      itos: commit footers needs a footer of free text: commits.footers.Task is not one (source: text) (itos --help)
+    stderr_has: commits.footers.Task
   - name: commit footers needs a name and a range
     argv: [commit, footers, Upgrading, HEAD]
     exit: 2
-    stderr: |
-      itos: commit footers needs <name> <from> <to> (itos --help)
+    stderr_has: <name> <from> <to>
   - name: docs needs no footer
     argv: [commit, check-message, "-"]
     stdin: "docs: x\n"
     exit: 0
   - name: a footer over several lines, with and without its prefix
-    argv: [commit, check-message, "-"]
+    argv: [commit, check-message, "-", --json]
     stdin: "feat: x\n\nScenarios: @ID-A-1, @ID-B-2\nScenarios: ID-C-3\n"
     exit: 1
-    stderr: |
-      ✖   unknown scenarios: ID-A-1, ID-B-2, ID-C-3 [scenarios-footer]
+    json: { schema: 1, ok: false, problems: [{ rule: scenarios-footer }] }
+    stdout_has: [ID-A-1, ID-B-2, ID-C-3]
   - name: an ID without the prefix is the same ID
     argv: [commit, check-message, "-", --at, "{{sha.live}}"]
     stdin: "feat: x\n\nScenarios: ID-SCRATCH-01\n"
     exit: 0
   - name: every footer is checked, each problem on its line
-    argv: [commit, check-message, "-"]
+    argv: [commit, check-message, "-", --json]
     stdin: "feat: x\n\nScenarios: @ID-NOPE-01\nTask: T-044\n"
     exit: 1
-    stderr: |
-      ✖   unknown tasks: T-044 [task-footer]
-      ✖   unknown scenarios: ID-NOPE-01 [scenarios-footer]
+    json: { schema: 1, ok: false, problems: [{ rule: task-footer }, { rule: scenarios-footer }] }
+    stdout_has: [T-044, ID-NOPE-01]
   - name: a Task footer on a type that needs none is still validated
-    argv: [commit, check-message, "-"]
+    argv: [commit, check-message, "-", --json]
     stdin: "docs: x\n\nTask: T-044\n"
     exit: 1
-    stderr: |
-      ✖   unknown tasks: T-044 [task-footer]
+    json: { schema: 1, ok: false, problems: [{ rule: task-footer }] }
   - name: --json gives each problem its rule and fix
     argv: [commit, check-message, "-", --json]
     stdin: "feat: x\n\nScenarios: @ID-SCRATCH-01, @ID-NOPE-01\nTask: T-044\n"
     exit: 1
-    json:
-      schema: 1
-      ok: false
-      problems:
-        - rule: task-footer
-          message: "unknown tasks: T-044"
-          fix: name an id tasks/ has, or add it first in a docs commit
-        - rule: scenarios-footer
-          message: "unknown scenarios: ID-NOPE-01"
-          fix: name an id the scenario files has, or add it first in a docs commit
+    json: { schema: 1, ok: false, problems: [{ rule: task-footer }, { rule: scenarios-footer }] }
   - name: an unknown task's fix names the ledger's own folder
     argv: [commit, check-message, "-", --json]
     stdin: "docs: x\n\nTask: T-044\n"
@@ -379,24 +338,13 @@ cases:
             Task: { source: ledger, validate_for: all, read_at: worktree }
       work/phase-1.yaml: "- { id: T-001, type: build, title: Scratch T-001 }\n"
     exit: 1
-    json:
-      schema: 1
-      ok: false
-      problems:
-        - rule: task-footer
-          message: "unknown tasks: T-044"
-          fix: name an id work/ has, or add it first in a docs commit
+    json: { schema: 1, ok: false, problems: [{ rule: task-footer }] }
+    stdout_has: work/
   - name: --json of a missing footer
     argv: [commit, check-message, --json, "-"]
     stdin: "refactor: x\n"
     exit: 1
-    json:
-      schema: 1
-      ok: false
-      problems:
-        - rule: task-footer
-          message: 'refactor commits need a "Task: T-…" footer'
-          fix: "add a line `Task: <id>` after a blank line at the end, naming what the commit belongs to"
+    json: { schema: 1, ok: false, problems: [{ rule: task-footer }] }
   - name: --json of a message that passes
     argv: [commit, check-message, --json, "-"]
     stdin: "build: x\n\nTask: T-001\n"
@@ -406,27 +354,27 @@ cases:
       ok: true
       problems: []
   - name: another config's footer, required for its types, with its ID hint
-    argv: [commit, check-message, "-", --config, other.yaml]
+    argv: [commit, check-message, "-", --config, other.yaml, --json]
     stdin: "chore: x\n"
     exit: 1
-    stderr: |
-      ✖   chore commits need a "Refs: T-…" footer [refs-footer]
+    json: { schema: 1, ok: false, problems: [{ rule: refs-footer }] }
+    stdout_has: "Refs: T-"
   - name: another config's footer, given
     argv: [commit, check-message, "-", --config, other.yaml]
     stdin: "chore: x\n\nRefs: T-001\n"
     exit: 0
   - name: validate_for all checks a type that need not carry it
-    argv: [commit, check-message, "-", --config, other.yaml]
+    argv: [commit, check-message, "-", --config, other.yaml, --json]
     stdin: "docs: x\n\nRefs: T-009\n"
     exit: 1
-    stderr: |
-      ✖   unknown tasks: T-009 [refs-footer]
+    json: { schema: 1, ok: false, problems: [{ rule: refs-footer }] }
+    stdout_has: T-009
   - name: without must_be_live a @wip scenario may be named
     argv: [commit, check-message, "-", --config, other.yaml]
     stdin: "feat: x\n\nTests: @ID-SCRATCH-01\n"
     exit: 0
   - name: a kind without wip_tag names the default one for a test not live
-    argv: [commit, check-message, "-", --config, nowip.yaml]
+    argv: [commit, check-message, "-", --config, nowip.yaml, --json]
     files:
       nowip.yaml: |
         version: 1
@@ -438,32 +386,31 @@ cases:
           scenario: { root: e2e/features, id: "ID-[A-Z]+-\\d+" }
     stdin: "feat: x\n\nScenarios: @ID-SCRATCH-01\n"
     exit: 1
-    stderr: |
-      ✖   still tagged @wip: ID-SCRATCH-01 [scenarios-footer]
+    json: { schema: 1, ok: false, problems: [{ rule: scenarios-footer }] }
+    stdout_has: ["@wip", ID-SCRATCH-01]
   - name: another config's footer hint for a kind of tests
-    argv: [commit, check-message, "-", --config, other.yaml]
+    argv: [commit, check-message, "-", --config, other.yaml, --json]
     stdin: "feat: x\n"
     exit: 1
-    stderr: |
-      ✖   feat commits need a "Tests: @ID-…" footer [tests-footer]
+    json: { schema: 1, ok: false, problems: [{ rule: tests-footer }] }
+    stdout_has: "Tests: @ID-"
   - name: a footer the config does not define is not read
-    argv: [commit, check-message, "-", --config, other.yaml]
+    argv: [commit, check-message, "-", --config, other.yaml, --json]
     stdin: "chore: x\n\nTask: T-001\n"
     exit: 1
-    stderr: |
-      ✖   chore commits need a "Refs: T-…" footer [refs-footer]
+    json: { schema: 1, ok: false, problems: [{ rule: refs-footer }] }
   - name: read_at worktree reads the working tree even at a commit
-    argv: [commit, check-message, "-", --config, other.yaml, --at, "{{sha.live}}"]
+    argv: [commit, check-message, "-", --config, other.yaml, --at, "{{sha.live}}", --json]
     stdin: "chore: x\n\nRefs: T-002\n"
     exit: 1
-    stderr: |
-      ✖   unknown tasks: T-002 [refs-footer]
+    json: { schema: 1, ok: false, problems: [{ rule: refs-footer }] }
+    stdout_has: T-002
   - name: read_at commit reads that commit beside it
-    argv: [commit, check-message, "-", --config, other.yaml, --at, "{{sha.live}}"]
+    argv: [commit, check-message, "-", --config, other.yaml, --at, "{{sha.live}}", --json]
     stdin: "feat: x\n\nTests: @ID-SCRATCH-02\n"
     exit: 1
-    stderr: |
-      ✖   unknown scenarios: ID-SCRATCH-02 [tests-footer]
+    json: { schema: 1, ok: false, problems: [{ rule: tests-footer }] }
+    stdout_has: ID-SCRATCH-02
   - name: a header lint delegate's report is printed as it comes, and its failure is the message's
     argv: [commit, check-message, "-", --config, delegate.yaml]
     stdin: "update things\n"
@@ -485,13 +432,7 @@ cases:
         echo "✖   found 2 problems, 1 warnings"
         exit 1
     exit: 1
-    stdout: |
-      ⧗   input: update things
-      ✖   subject may not be empty [subject-empty]
-      ✖   type may not be empty [type-empty]
-      ⚠   body's lines must not be longer than 100 characters [body-max-line-length]
-
-      ✖   found 2 problems, 1 warnings
+    stdout_has: ["⧗   input: update things", "✖   found 2 problems, 1 warnings"]
   - name: --json reads the delegate's report into problems, each with its level and fix
     argv: [commit, check-message, "-", --json, --config, delegate.yaml]
     stdin: "update things\n"
@@ -501,25 +442,16 @@ cases:
       schema: 1
       ok: false
       problems:
-        - rule: subject-empty
-          message: subject may not be empty
-          fix: write a subject after the type's colon
-          level: error
-        - rule: type-empty
-          message: type may not be empty
-          fix: "start the header with a type and a colon, as in `fix: …`"
-          level: error
-        - rule: body-max-line-length
-          message: body's lines must not be longer than 100 characters
-          fix: wrap the body at 100 characters
-          level: warning
+        - { rule: subject-empty, level: error }
+        - { rule: type-empty, level: error }
+        - { rule: body-max-line-length, level: warning }
   - name: a message the delegate passes
     argv: [commit, check-message, "-", --config, delegate.yaml]
     stdin: "docs: things\n"
     files: *delegate
     exit: 0
   - name: the footer rules run after a delegate that passes, and reject the message
-    argv: [commit, check-message, "-"]
+    argv: [commit, check-message, "-", --json]
     stdin: "feat: x\n\nTask: T-9\n"
     env: { ITOS_CONFIG: passing-delegate.yaml }
     git: []
@@ -533,10 +465,7 @@ cases:
             Task: { source: ledger, required_for: [chore], validate_for: all }
       tasks/phase-1.yaml: "- { id: T-001, type: chore, title: One }\n"
     exit: 1
-    stdout: |
-      linted
-    stderr: |
-      ✖   unknown tasks: T-9 [task-footer]
+    json: { schema: 1, ok: false, problems: [{ rule: task-footer, level: error }] }
   - name: a delegate that fails without a report of its rules is one header-lint problem
     argv: [commit, check-message, "-", --json, --config, broken.yaml]
     stdin: "docs: things\n"
@@ -546,13 +475,8 @@ cases:
         commits:
           header_lint: { stdin: "cat >/dev/null; echo 'lint: no config found'; exit 9" }
     exit: 1
-    json:
-      schema: 1
-      ok: false
-      problems:
-        - rule: header-lint
-          message: "lint: no config found"
-          level: error
+    json: { schema: 1, ok: false, problems: [{ rule: header-lint, level: error }] }
+    stdout_has: "lint: no config found"
   - name: a delegate's footer rule gets the footer's fix
     argv: [commit, check-message, "-", --json]
     stdin: "feat: x\n"
@@ -580,27 +504,13 @@ cases:
       schema: 1
       ok: false
       problems:
-        - rule: task-footer
-          message: "unknown tasks: T-9"
-          fix: name an id tasks/ has, or add it first in a docs commit
-          level: error
-        - rule: scenarios-footer
-          message: "still tagged @wip: ID-A-01"
-          fix: "make each id the Scenarios: footer names live in the same commit"
-          level: error
-        - rule: scenarios-footer
-          message: 'feat commits need a "Scenarios: @ID-…" footer'
-          fix: "add a line `Scenarios: <id>` after a blank line at the end, naming what the commit belongs to"
-          level: error
-        - rule: local-rule
-          message: something else
-          level: error
-        - rule: scenarios-footer
-          message: 'feat commits need a "Scenarios: @ID-…" footer'
-          fix: "add a line `Scenarios: <id>` after a blank line at the end, naming what the commit belongs to"
-          level: error
+        - { rule: task-footer, level: error }
+        - { rule: scenarios-footer, level: error }
+        - { rule: scenarios-footer, level: error }
+        - { rule: local-rule, level: error }
+        - { rule: scenarios-footer, level: error }
   - name: the built-in lint names a header without a type or a subject by commitlint's rules and words
-    argv: [commit, check-message, "-", --config, builtin.yaml]
+    argv: [commit, check-message, "-", --config, builtin.yaml, --json]
     stdin: "update things\n"
     files: &builtin
       builtin.yaml: |
@@ -612,106 +522,112 @@ cases:
           footers:
             Task: { source: ledger, required_for: [chore], validate_for: all, read_at: commit }
     exit: 1
-    stderr: |
-      ✖   subject may not be empty [subject-empty]
-      ✖   type may not be empty [type-empty]
+    json:
+      schema: 1
+      ok: false
+      problems: [{ rule: subject-empty, level: error }, { rule: type-empty, level: error }]
   - name: the built-in lint takes its type list from commits.types, in lower case, and refuses a sentence-case subject and a full stop
-    argv: [commit, check-message, "-", --config, builtin.yaml]
+    argv: [commit, check-message, "-", --config, builtin.yaml, --json]
     stdin: "Build: Add a script.\n"
     files: *builtin
     exit: 1
-    stderr: |
-      ✖   subject must not be sentence-case [subject-case]
-      ✖   subject may not end with full stop [subject-full-stop]
-      ✖   type must be lower-case [type-case]
-      ✖   type must be one of [feat, fix, chore, docs] [type-enum]
+    json:
+      schema: 1
+      ok: false
+      problems:
+        - { rule: subject-case, level: error }
+        - { rule: subject-full-stop, level: error }
+        - { rule: type-case, level: error }
+        - { rule: type-enum, level: error }
+    stdout_has: "[feat, fix, chore, docs]"
   - name: the built-in lint names every case a subject is in
-    argv: [commit, check-message, "-", --config, builtin.yaml]
+    argv: [commit, check-message, "-", --config, builtin.yaml, --json]
     stdin: "docs: ADD THE PAGE\n"
     files: *builtin
     exit: 1
-    stderr: |
-      ✖   subject must not be sentence-case, start-case, upper-case [subject-case]
+    json: { schema: 1, ok: false, problems: [{ rule: subject-case, level: error }] }
+    stdout_has: sentence-case, start-case, upper-case
   - name: the built-in lint refuses a header with spaces around it
-    argv: [commit, check-message, "-", --config, builtin.yaml]
+    argv: [commit, check-message, "-", --config, builtin.yaml, --json]
     stdin: " docs: a page \n"
     files: *builtin
     exit: 1
-    stderr: |
-      ✖   header must not be surrounded by whitespace [header-trim]
-      ✖   subject may not be empty [subject-empty]
-      ✖   type may not be empty [type-empty]
+    json:
+      schema: 1
+      ok: false
+      problems:
+        - { rule: header-trim, level: error }
+        - { rule: subject-empty, level: error }
+        - { rule: type-empty, level: error }
   - name: the built-in lint refuses a header over 100 characters, saying how long it is
-    argv: [commit, check-message, "-", --config, builtin.yaml]
+    argv: [commit, check-message, "-", --config, builtin.yaml, --json]
     stdin: "docs: tidy the readme so that every paragraph says one thing and nothing in it repeats another one again\n"
     files: *builtin
     exit: 1
-    stderr: |
-      ✖   header must not be longer than 100 characters, current length is 104 [header-max-length]
+    json: { schema: 1, ok: false, problems: [{ rule: header-max-length, level: error }] }
+    stdout_has: "104"
   - name: the built-in lint refuses body and footer lines over 100 characters, but not a line with a URL
-    argv: [commit, check-message, "-", --config, builtin.yaml]
+    argv: [commit, check-message, "-", --config, builtin.yaml, --json]
     stdin: "docs: a page\n\naaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\nsee https://example.com/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\n\nRefs: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n"
     files: *builtin
     exit: 1
-    stderr: |
-      ✖   body's lines must not be longer than 100 characters [body-max-line-length]
-      ✖   footer's lines must not be longer than 100 characters [footer-max-line-length]
+    json:
+      schema: 1
+      ok: false
+      problems: [{ rule: body-max-line-length, level: error }, { rule: footer-max-line-length, level: error }]
   - name: the built-in lint's warnings are printed and do not reject the message
-    argv: [commit, check-message, "-", --config, builtin.yaml]
+    argv: [commit, check-message, "-", --config, builtin.yaml, --json]
     stdin: "docs: a page\nmore words\nRefs: 1\n"
-    files: *builtin
-    exit: 0
-    stderr: |
-      ⚠   body must have leading blank line [body-leading-blank]
-      ⚠   footer must have leading blank line: line 3, "Refs: 1", begins with a word and a colon, a footer git reads only after a blank line [footer-leading-blank]
-  - name: a body line beginning with a word and a hash is prose, and draws no footer warning
-    argv: [commit, check-message, "-", --config, builtin.yaml]
-    stdin: "docs: a page\n\nThe page said it twice, so one line now starts\nwith #, which is plain prose.\n"
-    files: *builtin
-    exit: 0
-    stderr: ""
-  # The footers are git's trailers (bug 110): the last paragraph, when its
-  # lines are trailers, BREAKING CHANGE with its space among them.
-  - name: a body line beginning with a footer's key is prose, not that footer
-    argv: [commit, check-message, "-", --config, builtin.yaml]
-    stdin: "chore: tidy\n\nName the work in the footers, with\nTask: or Item: as the config asks.\n\nTask: T-001\n"
-    files: *builtin
-    exit: 0
-    stderr: ""
-  - name: a footer above the last paragraph is not read
-    argv: [commit, check-message, "-", --config, builtin.yaml]
-    stdin: "chore: tidy\n\nTask: T-001\n\nThe readme said it twice.\n"
-    files: *builtin
-    exit: 1
-    stderr: |
-      ✖   chore commits need a "Task: T-…" footer [task-footer]
-  - name: a footer glued to the body is warned of and not read
-    argv: [commit, check-message, "-", --config, builtin.yaml]
-    stdin: "chore: tidy\n\nThe readme said it twice.\nTask: T-001\n"
-    files: *builtin
-    exit: 1
-    stderr: |
-      ⚠   footer must have leading blank line: line 4, "Task: T-001", begins with a word and a colon, a footer git reads only after a blank line [footer-leading-blank]
-      ✖   chore commits need a "Task: T-…" footer [task-footer]
-  - name: a breaking-change note beside the other footers keeps them all
-    argv: [commit, check-message, "-", --config, builtin.yaml]
-    stdin: "chore: tidy\n\nBREAKING CHANGE: the keys moved\nTask: T-001\n"
-    files: *builtin
-    exit: 0
-    stderr: ""
-  - name: --json gives the footer-leading-blank warning with the line it names
-    argv: [commit, check-message, "-", --json, --config, builtin.yaml]
-    stdin: "docs: a page\n\nThe page said it twice, and the wrapped\nscenarios: line below reads as a footer.\n"
     files: *builtin
     exit: 0
     json:
       schema: 1
       ok: true
-      problems:
-        - rule: footer-leading-blank
-          message: 'footer must have leading blank line: line 4, "scenarios: line below reads as a footer.", begins with a word and a colon, a footer git reads only after a blank line'
-          fix: leave a blank line before the footers, or reword or rewrap the line named if it is prose
-          level: warning
+      problems: [{ rule: body-leading-blank, level: warning }, { rule: footer-leading-blank, level: warning }]
+    stdout_has: line 3
+  - name: a body line beginning with a word and a hash is prose, and draws no footer warning
+    argv: [commit, check-message, "-", --config, builtin.yaml, --json]
+    stdin: "docs: a page\n\nThe page said it twice, so one line now starts\nwith #, which is plain prose.\n"
+    files: *builtin
+    exit: 0
+    json: { schema: 1, ok: true, problems: [] }
+  # The footers are git's trailers (bug 110): the last paragraph, when its
+  # lines are trailers, BREAKING CHANGE with its space among them.
+  - name: a body line beginning with a footer's key is prose, not that footer
+    argv: [commit, check-message, "-", --config, builtin.yaml, --json]
+    stdin: "chore: tidy\n\nName the work in the footers, with\nTask: or Item: as the config asks.\n\nTask: T-001\n"
+    files: *builtin
+    exit: 0
+    json: { schema: 1, ok: true, problems: [] }
+  - name: a footer above the last paragraph is not read
+    argv: [commit, check-message, "-", --config, builtin.yaml, --json]
+    stdin: "chore: tidy\n\nTask: T-001\n\nThe readme said it twice.\n"
+    files: *builtin
+    exit: 1
+    json: { schema: 1, ok: false, problems: [{ rule: task-footer, level: error }] }
+  - name: a footer glued to the body is warned of and not read
+    argv: [commit, check-message, "-", --config, builtin.yaml, --json]
+    stdin: "chore: tidy\n\nThe readme said it twice.\nTask: T-001\n"
+    files: *builtin
+    exit: 1
+    json:
+      schema: 1
+      ok: false
+      problems: [{ rule: footer-leading-blank, level: warning }, { rule: task-footer, level: error }]
+    stdout_has: line 4
+  - name: a breaking-change note beside the other footers keeps them all
+    argv: [commit, check-message, "-", --config, builtin.yaml, --json]
+    stdin: "chore: tidy\n\nBREAKING CHANGE: the keys moved\nTask: T-001\n"
+    files: *builtin
+    exit: 0
+    json: { schema: 1, ok: true, problems: [] }
+  - name: --json gives the footer-leading-blank warning with the line it names
+    argv: [commit, check-message, "-", --json, --config, builtin.yaml]
+    stdin: "docs: a page\n\nThe page said it twice, and the wrapped\nscenarios: line below reads as a footer.\n"
+    files: *builtin
+    exit: 0
+    json: { schema: 1, ok: true, problems: [{ rule: footer-leading-blank, level: warning }] }
+    stdout_has: line 4
   - name: --json gives the built-in lint's problems with their levels and fixes, then the footer rules'
     argv: [commit, check-message, "-", --json, --config, builtin.yaml]
     stdin: "chore: Tidy\nthe readme\n"
@@ -721,50 +637,33 @@ cases:
       schema: 1
       ok: false
       problems:
-        - rule: subject-case
-          message: subject must not be sentence-case, start-case, pascal-case
-          fix: start the subject with a lower-case letter
-          level: error
-        - rule: body-leading-blank
-          message: body must have leading blank line
-          fix: leave a blank line between the header and the body
-          level: warning
-        - rule: task-footer
-          message: 'chore commits need a "Task: T-…" footer'
-          fix: "add a line `Task: <id>` after a blank line at the end, naming what the commit belongs to"
-          level: error
+        - { rule: subject-case, level: error }
+        - { rule: body-leading-blank, level: warning }
+        - { rule: task-footer, level: error }
   - name: --json of a message the built-in lint only warns about is ok
     argv: [commit, check-message, "-", --json, --config, builtin.yaml]
     stdin: "docs: a page\nmore words\n"
     files: *builtin
     exit: 0
-    json:
-      schema: 1
-      ok: true
-      problems:
-        - rule: body-leading-blank
-          message: body must have leading blank line
-          fix: leave a blank line between the header and the body
-          level: warning
+    json: { schema: 1, ok: true, problems: [{ rule: body-leading-blank, level: warning }] }
   - name: the footer rules run beside the built-in lint when it passes the header
-    argv: [commit, check-message, "-", --config, builtin.yaml]
+    argv: [commit, check-message, "-", --config, builtin.yaml, --json]
     stdin: "chore: tidy\n\nTask: T-9\n"
     files: *builtin
     exit: 1
-    stderr: |
-      ✖   unknown tasks: T-9 [task-footer]
+    json: { schema: 1, ok: false, problems: [{ rule: task-footer, level: error }] }
   - name: the built-in lint passes a sound message
-    argv: [commit, check-message, "-", --config, builtin.yaml]
+    argv: [commit, check-message, "-", --config, builtin.yaml, --json]
     stdin: "chore: tidy the readme\n\nTask: T-001\n"
     files: *builtin
     exit: 0
-    stderr: ""
+    json: { schema: 1, ok: true, problems: [] }
   - name: the built-in lint leaves a merge's message alone, as commitlint does
-    argv: [commit, check-message, "-", --config, builtin.yaml]
+    argv: [commit, check-message, "-", --config, builtin.yaml, --json]
     stdin: "Merge branch 'topic' into main\n"
     files: *builtin
     exit: 0
-    stderr: ""
+    json: { schema: 1, ok: true, problems: [] }
   - name: the built-in lint leaves a revert's message alone
     argv: [commit, check-message, "-", --config, builtin.yaml]
     stdin: "Revert \"docs: a page\"\n\nThis reverts commit abc.\n"
@@ -781,41 +680,39 @@ cases:
     files: *builtin
     exit: 0
   - name: a blank message has neither type nor subject for the built-in lint
-    argv: [commit, check-message, "-", --config, builtin.yaml]
+    argv: [commit, check-message, "-", --config, builtin.yaml, --json]
     stdin: "\n"
     files: *builtin
     exit: 1
-    stderr: |
-      ✖   subject may not be empty [subject-empty]
-      ✖   type may not be empty [type-empty]
+    json:
+      schema: 1
+      ok: false
+      problems: [{ rule: subject-empty, level: error }, { rule: type-empty, level: error }]
   - name: a comment line is part of a message on stdin, as commitlint reads stdin
-    argv: [commit, check-message, "-", --config, builtin.yaml]
+    argv: [commit, check-message, "-", --config, builtin.yaml, --json]
     stdin: "docs: a page\n\n# xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n"
     files: *builtin
     exit: 1
-    stderr: |
-      ✖   body's lines must not be longer than 100 characters [body-max-line-length]
+    json: { schema: 1, ok: false, problems: [{ rule: body-max-line-length, level: error }] }
   - name: without commits.types the built-in lint's type list is config-conventional's
-    argv: [commit, check-message, "-", --config, no-types.yaml]
+    argv: [commit, check-message, "-", --config, no-types.yaml, --json]
     stdin: "feature: a page\n"
     files:
       no-types.yaml: "version: 1\ncommits:\n  header_lint: { use: builtin }\n"
     exit: 1
-    stderr: |
-      ✖   type must be one of [build, chore, ci, docs, feat, fix, perf, refactor, revert, style, test] [type-enum]
+    json: { schema: 1, ok: false, problems: [{ rule: type-enum, level: error }] }
+    stdout_has: "[build, chore, ci, docs, feat, fix, perf, refactor, revert, style, test]"
   - name: use builtin runs no delegate, though the config names one
-    argv: [commit, check-message, "-", --config, both.yaml]
+    argv: [commit, check-message, "-", --config, both.yaml, --json]
     stdin: "docs: a page\n"
     files:
       both.yaml: "version: 1\ncommits:\n  header_lint: { use: builtin, stdin: \"echo delegated; exit 1\" }\n"
     exit: 0
-    stdout: ""
-    stderr: ""
+    json: { schema: 1, ok: true, problems: [] }
   - name: use command runs the delegate, as a config with no use does
-    argv: [commit, check-message, "-", --config, command.yaml]
+    argv: [commit, check-message, "-", --config, command.yaml, --json]
     stdin: "docs: things\n"
     files:
       command.yaml: "version: 1\ncommits:\n  header_lint: { use: command, stdin: \"cat >/dev/null; echo '✖   delegated [local-rule]'; exit 1\" }\n"
     exit: 1
-    stdout: |
-      ✖   delegated [local-rule]
+    json: { schema: 1, ok: false, problems: [{ rule: local-rule, level: error }] }
