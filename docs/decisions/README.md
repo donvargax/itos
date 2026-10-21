@@ -54,5 +54,6 @@ file and leaves this list, which itos decision record writes.
 - [ADR-0051: Each check runs at the cheapest tier that catches what it catches](0051-each-check-runs-at-the-cheapest-tier-that-catches-what-it-catches.md)
 - [ADR-0052: The corpus pins only the contract: exit codes, json less message and fix, and files written](0052-the-corpus-pins-only-the-contract-exit-codes-json-less-message-and-fix-and-files-written.md)
 - [ADR-0053: Each command is a vertical slice over shared engines, reaching the outside world through ports, as itos-cc's layout](0053-each-command-is-a-vertical-slice-over-shared-engines-reaching-the-outside-world-through-ports-as-itos-cc-s-layout.md)
+- [ADR-0054: Script-facing plain outputs and the guard's hook JSON are contract; guide text is exempt like message and fix](0054-script-facing-plain-outputs-and-the-guard-s-hook-json-are-contract-guide-text-is-exempt-like-message-and-fix.md)
 
 <!-- itos:decisions:end -->
