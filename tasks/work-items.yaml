@@ -11152,6 +11152,12 @@ items:
       was found. init --json does not name .claude/settings.json, which a project-scope plugin
       install writes, among what to commit.
 
+      T-203 found more, 2026-10-21. config check --json does not say how many ledger files it read
+      or how many smoke tests the smoke set holds, which only the text says. ci run --json does not
+      name the ledger folder an unknown task was looked for in, the tasks named but not started nor
+      the registry that says so, or that --tests found no named tests to run; what ran, merged,
+      covered, left out or left pending is the log alone, as above.
+
   - id: p1-lint-itos-cc-linters
     title: Turn on the itos-cc linters the tree fails today
     phase: 1
