@@ -11145,6 +11145,10 @@ items:
       work tree and not ignored by git, which the warning on stderr says. guide commit --json does
       not say it appended the commit policy the config sets, which only its text holds.
 
+      T-201 found more (2026-10-21). commit check-message --json does not say that a commit made
+      before the ledger existed has its Task: footer read against the working tree, which only the
+      note on stderr says.
+
   - id: p1-lint-itos-cc-linters
     title: Turn on the itos-cc linters the tree fails today
     phase: 1
