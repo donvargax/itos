@@ -11128,3 +11128,24 @@ items:
       failures, draft promote does not name the id it minted, decision does not list answers not yet
       recorded, status gives no reason when GitHub refuses. Each is a feat after the freeze
       (ADR-0053); the corpus tasks T-198 to T-204 keep loose _has checks for them meanwhile.
+
+  - id: p1-lint-itos-cc-linters
+    title: Turn on the itos-cc linters the tree fails today
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      T-194 enabled only the linters of itos-cc that the tree passed unchanged: containedctx,
+      depguard, gochecksumtype, govet, revive with context-as-argument, unused. Left off, with the
+      findings of golangci-lint 2.14.0 over ./... on 2026-10-21: errcheck 472 (mostly unchecked
+      fmt.Fprint* to the output writers, then os.Remove, RemoveAll and Unsetenv in tests, and
+      Close), gosec 123 on non-test code (G204 43, G304 34, G301 19, G306 13, G703 5, G602 4, G302
+      2, G104 1, G112 1, G704 1), staticcheck 15 (10 QF quick fixes, ST1005 3, ST1023 2; go tool
+      staticcheck is a step of its own and passes), the file-length-limit rule of revive at 600
+      lines 10 (the largest internal/cli files, up to 2080 lines, which the slice moves split),
+      ineffassign 3. Each is a decision first: which to adopt, with what exclusions or nolint
+      reasons, and whether the fmt writes are excluded from errcheck. Fixing them is product code,
+      so beside or after the moves of docs/plans/slices-and-ports.md.
+    refs: [T-194]
