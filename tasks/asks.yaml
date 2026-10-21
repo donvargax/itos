@@ -346,3 +346,6 @@ questions:
   - id: q-85
     item: "p1-repair-plan"
     question: "For #80, recommend a read-only repair planner first: explicit failed and known-good revisions, associated commits with diffs and retention/review classifications, and a proposed ordinary revert sequence only where unambiguous. It must not execute reverts/pushes or infer safe source-only commits from paths/item links. Retry bookkeeping remains separate and immediate restoration policy stays unchanged. Alternative: deliver only a concrete documented repair/retry recipe before introducing a planner command. Which first delivery is worthwhile?"
+  - id: q-86
+    item: "p1-json-cases-pin-json"
+    question: "ADR-0035 makes plain text a non-contract, yet this tree's corpus pins every word (329 exact stdout, 440 exact stderr comparisons, help.yaml's 77 exact help cases). Should the corpus pin only the contract (exit codes, json: less message and fix, files_after), converting text-only behaviour cases to json: and deleting wording-only cases, with plain text at most a loose stdout_has fact? Recommended: yes, one test task per corpus file, help.yaml first; scenarios keep loose substring checks that a refusal names the next step."
