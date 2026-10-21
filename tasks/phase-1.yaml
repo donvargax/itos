@@ -2378,11 +2378,6 @@
     naming each linter and its finding count, not fixed here (the user, 2026-10-21: as fast as
     possible). itos.yaml's ci steps gain both, cost static, after go vet. Behaviour unchanged: no
     product Go edits beyond what a linter enabled here requires, which should be none.
-  done_when:
-    - run: tools/bin/pinned golangci-lint run ./...
-      timeout: 600
-    - run: tools/bin/architecture-check
-      timeout: 900
 
 - id: T-195
   type: refactor

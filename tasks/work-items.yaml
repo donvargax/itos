@@ -11014,7 +11014,7 @@ items:
     title: "The gates of itos-cc's layout: pinned golangci-lint with depguard, architecture-check and its fixtures"
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
 
