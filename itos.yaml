@@ -160,6 +160,14 @@ ci:
     # gofmt names each file it would change.
     - { run: "! gofmt -l features cmd internal | grep .", cost: static }
     - { run: go vet ./..., cost: static }
+    # The pinned golangci-lint over the whole module (.golangci.yml, T-194): ADR-0053's depguard
+    # arrows, no mocking library, and the linters of itos-cc's the tree passes. Linux only, as the
+    # ci job is; tools/bin/pinned fetches it and checks its SHA-256.
+    - { run: tools/bin/pinned golangci-lint run ./..., cost: static }
+    # What depguard cannot hold (a slice importing another, the domain and adapters within a
+    # slice, who imports a slice, the binary linking a fake), then the fixtures under
+    # tools/testdata/architecture proving every rule accepts and refuses with that linter (T-194).
+    - { run: tools/bin/architecture-check, cost: static }
     # staticcheck (T-148), its default checks over the whole module: U1000 (unused code), the SA
     # checks (likely bugs), the S simplifications and the ST style rules. A finding is fixed, or
     # excused with a //lint:ignore <check> <reason> beside it when it is a false positive. Its

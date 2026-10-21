@@ -14,16 +14,20 @@
 #   tools/bin/pinned dprint <args>…       dprint, which formats the Markdown and
 #                                         YAML (dprint.json, the pre-commit hook
 #                                         and CI's format step, T-142)
+#   tools/bin/pinned golangci-lint <args>…  golangci-lint, which lints the Go
+#                                         (.golangci.yml, T-194) and runs the
+#                                         fixtures of tools/bin/architecture-check
 #   tools/bin/pinned --path <tool>        prints the binary's path, fetching it
 #
-# GoReleaser, git-cliff and dprint are held to the 7-day module age rule
+# GoReleaser, git-cliff, dprint and golangci-lint are held to the 7-day module age rule
 # (T-067); dprint's plugins are pinned by their SHA-256 in dprint.json, which
 # dprint checks when it fetches them.
 # itos-cc is our own built tool (ADR-0046), so it has no age wait. To move a
 # pin, change its version and all four platform hashes together, from the
 # release's own checksums (or the archive's SHA-256 after checking an upstream
-# digest), in a build commit. Linux and macOS on amd64 and arm64; exit 2
-# elsewhere, or when a fetch or a check fails.
+# digest), in a build commit. Linux and macOS on amd64 and arm64, and
+# golangci-lint on Windows too (Git for Windows' sh, a zip and an .exe), as
+# itos-cc pins it; exit 2 elsewhere, or when a fetch or a check fails.
 set -eu
 root=$(CDPATH='' cd -- "$(dirname -- "$0")/../.." && pwd)
 
@@ -47,6 +51,8 @@ Linux-x86_64) platform=linux-amd64 ;;
 Linux-aarch64 | Linux-arm64) platform=linux-arm64 ;;
 Darwin-x86_64) platform=darwin-amd64 ;;
 Darwin-arm64) platform=darwin-arm64 ;;
+MINGW*-x86_64 | MSYS*-x86_64 | CYGWIN*-x86_64) platform=windows-amd64 ;;
+MINGW*-aarch64 | MSYS*-aarch64 | CYGWIN*-aarch64 | MINGW*-arm64 | MSYS*-arm64) platform=windows-arm64 ;;
 *) die "no pinned $tool for $(uname -s)-$(uname -m)" ;;
 esac
 
@@ -59,6 +65,7 @@ goreleaser)
 	linux-arm64) asset=goreleaser_Linux_arm64.tar.gz sum=a71681b29194f08f057a68cfcaa5c6b15d907a83a2622c51900c4faff828f322 ;;
 	darwin-amd64) asset=goreleaser_Darwin_x86_64.tar.gz sum=5e97d6517f73a0b6f71675a2911b15d3136c03c8907650c2b18e114b1c0f5205 ;;
 	darwin-arm64) asset=goreleaser_Darwin_arm64.tar.gz sum=a811ff154fe136a0cfb55d00126c151fc39ec370a663d805a9ca5547445aa70c ;;
+	*) die "no pinned $tool for $platform" ;;
 	esac
 	url=https://github.com/goreleaser/goreleaser/releases/download/v$version/$asset
 	member=goreleaser
@@ -71,6 +78,7 @@ git-cliff)
 	linux-arm64) target=aarch64-unknown-linux-gnu sum=69e208f6e4baef3a0f9b759d5f44223aa9336b86c691072a3d0c98d35a816e69 ;;
 	darwin-amd64) target=x86_64-apple-darwin sum=4e647d2deb152aca1e987f225cf42b080b991dd98f3bce4027ef95446d982ac3 ;;
 	darwin-arm64) target=aarch64-apple-darwin sum=a0be97e237d440d34c5e508ec21d070b2c85cbb8be48a46a56f9a4e8bd247f05 ;;
+	*) die "no pinned $tool for $platform" ;;
 	esac
 	asset=git-cliff-$version-$target.tar.gz
 	url=https://github.com/orhun/git-cliff/releases/download/v$version/$asset
@@ -85,6 +93,7 @@ itos-cc)
 	linux-arm64) asset=itos-cc-$version-linux-arm64.tar.gz sum=a6e20c55f7428cf379b0383f6bd5ffdd32bd4ec63f2c21fdc202dfffc9a2999e ;;
 	darwin-amd64) asset=itos-cc-$version-darwin-amd64.tar.gz sum=6457c87a04850b3cc5035c7b2122bb3fa2f402188e7109e4cd370ebbb08054fa ;;
 	darwin-arm64) asset=itos-cc-$version-darwin-arm64.tar.gz sum=83847010c04494d5c109904e98e6edaa50fc6af683e632928bc5011240545de9 ;;
+	*) die "no pinned $tool for $platform" ;;
 	esac
 	url=https://github.com/donvargax/itos-cc/releases/download/v$version/$asset
 	member=itos-cc
@@ -97,16 +106,36 @@ dprint)
 	linux-arm64) target=aarch64-unknown-linux-gnu sum=03fd8908f9b418bdc4701347ff0527a59d1c08db2bc09a9f5d8101eb711e7fe2 ;;
 	darwin-amd64) target=x86_64-apple-darwin sum=551fd5b0ce32a83682f6aaa425317db54402451a0ab66b46c0e11e17900f7db8 ;;
 	darwin-arm64) target=aarch64-apple-darwin sum=b495103be1c01ba097449d73af3d76bbcef3deb291b87e9b7db6e8d12d497ef6 ;;
+	*) die "no pinned $tool for $platform" ;;
 	esac
 	asset=dprint-$target.zip
 	url=https://github.com/dprint/dprint/releases/download/$version/$asset
 	member=dprint
 	;;
-*) die "no pinned tool named $tool (goreleaser, git-cliff, itos-cc, dprint)" ;;
+golangci-lint)
+	# v2.14.0, as itos-cc pins it; the sums are the release's own,
+	# golangci-lint-2.14.0-checksums.txt.
+	version=2.14.0
+	case "$platform" in
+	linux-amd64) sum=ab90aeb7b066f92a33415b638a50fe5344bbb75a0d32ad30cc248d88f81032ab ;;
+	linux-arm64) sum=ee7ec5f3453d15ddf106fae5a4d6c71737712348a979d1fe9cd52ec7ea299bae ;;
+	darwin-amd64) sum=a5667c1c3536be1740133213e1e822bfb8f0d98ea12903174d6d5f635e4ed68d ;;
+	darwin-arm64) sum=5ef5f36a7147e91dc58ef9ef4d11bb7bad5ead0c76eb6c01327a73c641d1dcc3 ;;
+	windows-amd64) sum=b15f903d1649283a2ab6e8d2f0c317eaf1f9f6b3763950e7e8b7e72a43dd724f ;;
+	windows-arm64) sum=6399496aef883e5d2f77ea93e6e54fdd05bc2695f64071d8de0b0579cad92274 ;;
+	esac
+	case "$platform" in
+	windows-*) asset=golangci-lint-$version-$platform.zip exe=.exe ;;
+	*) asset=golangci-lint-$version-$platform.tar.gz ;;
+	esac
+	url=https://github.com/golangci/golangci-lint/releases/download/v$version/$asset
+	member=golangci-lint-$version-$platform/golangci-lint${exe-}
+	;;
+*) die "no pinned tool named $tool (goreleaser, git-cliff, itos-cc, dprint, golangci-lint)" ;;
 esac
 
 dir=$root/.tools/$tool-$version
-bin=$dir/$tool
+bin=$dir/$tool${exe-}
 if [ ! -x "$bin" ]; then
 	command -v curl >/dev/null 2>&1 || die "curl is not on the PATH, to fetch $tool $version"
 	if command -v sha256sum >/dev/null 2>&1; then check="sha256sum -c -"; else check="shasum -a 256 -c -"; fi

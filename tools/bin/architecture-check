@@ -1,0 +1,167 @@
+#!/bin/sh
+# architecture-check: the arrows of ADR-0053's layout that depguard cannot
+# hold (.golangci.yml holds the rest), then the fixtures under
+# tools/testdata/architecture, which prove with the pinned golangci-lint and
+# this script that every rule accepts and refuses what it should. Adapted
+# from github.com/donvargax/itos-cc's tools/bin/architecture-check.
+#
+#   tools/bin/architecture-check                  every check over this module
+#   tools/bin/architecture-check --linked <pkg>   only the binary's fakes
+#   tools/bin/architecture-check --siblings <pkg>...   only the slices' arrows
+#   tools/bin/architecture-check --outside <pkg>...    only who imports a slice
+#
+# The three flags run over the module of the current folder, as the fixtures
+# use them. Exit 1 on a refusal, each named; 2 on a usage error.
+set -eu
+
+# What may import a package under internal/slices from outside it, beside
+# cmd/, which assembles the slices: one row per exception, three fields,
+# the importer's path in the module (it and its subpackages), code or tests,
+# and the imported path in the module (it and its subpackages). None today;
+# a move that needs one adds its row here, saying why (itos-cc#61).
+# ARCHITECTURE_OUTSIDE_EXCEPTIONS replaces the rows, for the fixtures.
+outside_exceptions=${ARCHITECTURE_OUTSIDE_EXCEPTIONS-""}
+
+usage() {
+	echo "usage: tools/bin/architecture-check [--linked <package> | --siblings <package>... | --outside <package>...]" >&2
+	exit 2
+}
+
+# linked <package>: refuse a binary linking a port's fake, which depguard
+# cannot hold, seeing only the imports a file names, not what a binary links
+# through them. go list -deps leaves _test.go files out, so a fake a
+# command's tests import passes.
+linked() {
+	deps=$(go list -deps "$1")
+	fakes=$(printf '%s\n' "$deps" | grep -E '/porttest(/|$)' || true)
+	[ -z "$fakes" ] && return 0
+	for fake in $fakes; do
+		echo "architecture-check: $1 links $fake; a port's fake enters only through _test.go files" >&2
+	done
+	return 1
+}
+
+# siblings <package>...: the arrows between packages under internal/slices,
+# from code or tests, which depguard cannot hold: its lists are prefixes, so
+# refusing the slices would refuse a slice's own subpackages too. A package
+# under internal/slices/X imports none under internal/slices/Y. Within X, its
+# domain (internal/slices/X/domain and below) imports nothing of X outside
+# the domain, and an adapter (internal/slices/X/adapters/A and below) nothing
+# of X but the domain and itself: no UI, handler or other adapter.
+siblings() {
+	prefix="$(go list -m)/internal/slices/"
+	listed=$(go list -f '{{.ImportPath}}{{range .Imports}} {{.}}{{end}}{{range .TestImports}} {{.}}{{end}}{{range .XTestImports}} {{.}}{{end}}' "$@")
+	refused=$(printf '%s\n' "$listed" | awk -v prefix="$prefix" '
+		function rest(path) {
+			if (index(path, prefix) != 1) return ""
+			return substr(path, length(prefix) + 1)
+		}
+		function first(path, n, parts) {
+			n = split(path, parts, "/")
+			return parts[1]
+		}
+		# The part of slice X a path within X is: "domain", "adapters/A" or
+		# "" for the slice itself and anything else of it.
+		function part(path, n, parts) {
+			n = split(path, parts, "/")
+			if (parts[2] == "domain") return "domain"
+			if (parts[2] == "adapters" && n >= 3) return "adapters/" parts[3]
+			return ""
+		}
+		{
+			own = rest($1)
+			if (own == "") next
+			for (i = 2; i <= NF; i++) {
+				other = rest($i)
+				if (other == "" || seen[$1 " " $i]++) continue
+				if (first(other) != first(own)) {
+					print $1 " imports " $i "; a slice imports no other slice (ADR-0053)"
+					continue
+				}
+				from = part(own)
+				to = part(other)
+				if (from == "domain" && to != "domain")
+					print $1 " imports " $i "; a slice'"'"'s domain imports nothing of its slice but its domain (ADR-0053)"
+				else if (from ~ /^adapters\// && to != "domain" && to != from)
+					print $1 " imports " $i "; an adapter imports nothing of its slice but its domain (ADR-0053)"
+			}
+		}')
+	[ -z "$refused" ] && return 0
+	printf '%s\n' "$refused" | while IFS= read -r line; do
+		echo "architecture-check: $line" >&2
+	done
+	return 1
+}
+
+# outside <package>...: refuse a package outside internal/slices importing
+# one under it, from its code or its tests, unless the importer is under
+# cmd/, which assembles the slices, or a row of outside_exceptions allows it
+# (ADR-0053). depguard cannot hold it: its rules name the importing files,
+# and every package outside internal/slices would need one.
+outside() {
+	module=$(go list -m)
+	listed=$(go list -f '{{$p := .ImportPath}}{{range .Imports}}{{$p}} code {{.}}{{"\n"}}{{end}}{{range .TestImports}}{{$p}} tests {{.}}{{"\n"}}{{end}}{{range .XTestImports}}{{$p}} tests {{.}}{{"\n"}}{{end}}' "$@")
+	refused=$(printf '%s\n%s\n' "$outside_exceptions" "$listed" | awk -v module="$module" -v rows="$(printf '%s\n' "$outside_exceptions" | grep -c . || true)" '
+		function under(path, folder) {
+			return path == module "/" folder || index(path, module "/" folder "/") == 1
+		}
+		NR <= rows {
+			if (NF != 3 || ($2 != "code" && $2 != "tests")) {
+				print "a row of outside_exceptions is not <importer> code|tests <imported>: " $0
+				next
+			}
+			excepted[++n] = $0
+			next
+		}
+		function allowed(importer, kind, imported, i, row) {
+			if (under(importer, "cmd")) return 1
+			for (i = 1; i <= n; i++) {
+				split(excepted[i], row, " ")
+				if (under(importer, row[1]) && kind == row[2] && under(imported, row[3])) return 1
+			}
+			return 0
+		}
+		NF == 3 && !under($1, "internal/slices") && under($3, "internal/slices") && !allowed($1, $2, $3) {
+			if (seen[$1 " " $3]++) next
+			from = ""
+			if ($2 == "tests") from = " from its tests"
+			print $1 " imports " $3 from "; only cmd imports a package under internal/slices, and what a row of outside_exceptions allows (ADR-0053)"
+		}')
+	[ -z "$refused" ] && return 0
+	printf '%s\n' "$refused" | while IFS= read -r line; do
+		echo "architecture-check: $line" >&2
+	done
+	return 1
+}
+
+case "${1-}" in
+--linked)
+	[ $# -eq 2 ] || usage
+	linked "$2"
+	exit 0
+	;;
+--siblings)
+	[ $# -ge 2 ] || usage
+	shift
+	siblings "$@"
+	exit 0
+	;;
+--outside)
+	[ $# -ge 2 ] || usage
+	shift
+	outside "$@"
+	exit 0
+	;;
+-*) usage ;;
+esac
+[ $# -eq 0 ] || usage
+
+root=$(CDPATH='' cd -- "$(dirname -- "$0")/../.." && pwd)
+cd "$root"
+linked ./cmd/itos
+siblings ./...
+outside ./...
+ARCHITECTURE_ROOT=$root
+ARCHITECTURE_LINTER=$(tools/bin/pinned --path golangci-lint)
+export ARCHITECTURE_ROOT ARCHITECTURE_LINTER
+go test ./tools/testdata/architecture -count=1

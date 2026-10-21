@@ -1,0 +1,89 @@
+version: "2"
+issues:
+  # Every finding in one run.
+  max-same-issues: 0
+  max-issues-per-linter: 0
+linters:
+  # itos-cc's linters that today's tree passes unchanged (T-194); errcheck,
+  # gosec, ineffassign, staticcheck (go tool staticcheck is its own step) and
+  # revive's file-length-limit wait on the idea p1-lint-itos-cc-linters.
+  default: none
+  enable:
+    # ADR-0053 (5): a context is the first parameter, never held in a
+    # struct; the fixtures prove both refuse.
+    - containedctx
+    - depguard
+    # A type switch over a sealed set (//sumtype:decl) names every kind.
+    - gochecksumtype
+    - govet
+    - revive
+    - unused
+  settings:
+    gochecksumtype:
+      default-signifies-exhaustive: false
+    # Only the rules listed run: revive's defaults stay off.
+    revive:
+      rules:
+        - name: context-as-argument
+    # ADR-0053's arrows, from itos-cc's .golangci.yml, adapted to this module.
+    # No package is under internal/slices yet (docs/plans/slices-and-ports.md),
+    # so these rules hold over tools/testdata/architecture's fixtures alone
+    # until the moves land; tools/bin/architecture-check runs the fixtures and
+    # holds what depguard cannot: a slice importing another, within a slice
+    # the domain and the adapters importing only the domain, who imports a
+    # slice, and the binary linking a fake. A move whose import a rule refuses
+    # extends the rule, with a fixture, never loosens it.
+    depguard:
+      rules:
+        # A slice's domain, its tests and subpackages with it, imports nothing
+        # of ours outside internal/slices: no UI, engine, adapter or cmd. It
+        # reaches the outside through its port.
+        slice-domain:
+          list-mode: lax
+          files:
+            - "**/internal/slices/*/domain/**"
+          allow:
+            - github.com/donvargax/itos/v8/internal/slices/
+          deny:
+            - pkg: github.com/donvargax/itos/v8
+              desc: "a slice's domain imports nothing of ours outside internal/slices (ADR-0053): reach the outside through its port; extend the rule, with a fixture, never loosen it"
+        # The domain's own code does no I/O; its tests may read fixtures.
+        slice-domain-io:
+          files:
+            - "**/internal/slices/*/domain/**"
+            - "!$test"
+          deny:
+            - pkg: os
+              desc: "a slice's domain does no I/O (ADR-0053): do it in an adapter behind the domain's port"
+            - pkg: net
+              desc: "a slice's domain does no I/O (ADR-0053): reach networks from an adapter behind the domain's port"
+        # An adapter's code imports nothing of ours outside internal/slices:
+        # of its slice, the domain it serves (architecture-check holds that).
+        # Its tests may use the port's fake.
+        slice-adapters:
+          list-mode: lax
+          files:
+            - "**/internal/slices/*/adapters/**"
+            - "!$test"
+          allow:
+            - github.com/donvargax/itos/v8/internal/slices/
+          deny:
+            - pkg: github.com/donvargax/itos/v8
+              desc: "an adapter imports nothing of ours but its slice's domain and the libraries its rule allows (ADR-0053); extend the rule, with a fixture, never loosen it"
+        mocks:
+          files:
+            - $all
+          deny:
+            - pkg: github.com/golang/mock
+              desc: "no mocking library: write an in-memory fake of the port in its porttest package"
+            - pkg: go.uber.org/mock
+              desc: "no mocking library: write an in-memory fake of the port in its porttest package"
+            - pkg: github.com/stretchr/testify/mock
+              desc: "no mocking library: write an in-memory fake of the port in its porttest package"
+            - pkg: github.com/vektra/mockery
+              desc: "no mocking library: write an in-memory fake of the port in its porttest package"
+            - pkg: github.com/maxbrunsfeld/counterfeiter
+              desc: "no mocking library: write an in-memory fake of the port in its porttest package"
+formatters:
+  enable:
+    - gofmt

@@ -43,6 +43,10 @@ jobs:
       # itself asks no network.
       - name: dprint
         run: tools/bin/pinned dprint output-resolved-config > /dev/null
+      # golangci-lint, for the plan's lint and architecture-check steps (T-194), fetched and
+      # checked here as dprint is, so neither step asks the network.
+      - name: golangci-lint
+        run: tools/bin/pinned --path golangci-lint > /dev/null
       # Where the range starts, computed once for every step below: a pull
       # request's base, else the last green run on main, else empty (run
       # everything). See `tools/bin/itos ci range --help`. Read from --json, since
