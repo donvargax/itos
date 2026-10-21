@@ -127,7 +127,7 @@ What every command meets:
   `--json` less `message` and `fix`, the files itos writes. The commands the
   plugin calls are never renamed or removed ([ADR-0041]).
 - **A behaviour change is a `feat` or a `fix`** with its scenario and, where
-  the corpus records the old behaviour, its case (`help.yaml` for help text).
+  the corpus records the old behaviour, its case.
 - **The gate programs use the standard library alone**, so no module they
   judge runs inside them.
 
