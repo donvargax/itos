@@ -11,6 +11,8 @@ import (
 	"testing"
 
 	"github.com/donvargax/itos/v8/internal/git"
+	"github.com/donvargax/itos/v8/internal/store/tree/port"
+	"github.com/donvargax/itos/v8/internal/store/tree/port/porttest"
 )
 
 func gitIn(t *testing.T, dir string, args ...string) {
@@ -32,12 +34,29 @@ func write(t *testing.T, path, text string) {
 	}
 }
 
-// The working tree, the index and a commit each hold their own files, read
-// through one Source, and Texts reads a tree's files at once; a tree that
-// cannot be read has none.
-func TestTrees(t *testing.T) {
-	dir := t.TempDir()
+// laidOut stands the test in a new folder laid out as
+// porttest.TreesContract asks, a repository when repository, with no git
+// setting from outside and no repository above it.
+func laidOut(t *testing.T, repository bool) port.Trees {
+	t.Helper()
+	for _, name := range []string{"GIT_DIR", "GIT_INDEX_FILE", "GIT_WORK_TREE", "GIT_COMMON_DIR"} {
+		t.Setenv(name, "")
+		os.Unsetenv(name)
+	}
+	t.Setenv("GIT_CONFIG_GLOBAL", os.DevNull)
+	t.Setenv("GIT_CONFIG_NOSYSTEM", "1")
+	dir, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("GIT_CEILING_DIRECTORIES", filepath.Dir(dir))
+	if !repository {
+		write(t, filepath.Join(dir, "tasks/phase-1.yaml"), "worktree\n")
+		t.Chdir(dir)
+		return Trees{}
+	}
 	gitIn(t, dir, "init", "-q")
+	write(t, filepath.Join(dir, "tasks/done/phase-0.yaml"), "zero\n")
 	write(t, filepath.Join(dir, "tasks/phase-1.yaml"), "one\n")
 	gitIn(t, dir, "add", "tasks")
 	gitIn(t, dir, "commit", "-qm", "one")
@@ -45,39 +64,14 @@ func TestTrees(t *testing.T) {
 	write(t, filepath.Join(dir, "tasks/phase-2.yaml"), "staged two\n")
 	gitIn(t, dir, "add", "tasks")
 	write(t, filepath.Join(dir, "tasks/phase-1.yaml"), "worktree\n")
+	write(t, filepath.Join(dir, ".git/itos/tasks/phase-1.yaml"), "aside\n")
 	t.Chdir(dir)
+	return Trees{}
+}
 
-	for tree, want := range map[string][]string{
-		"worktree": {"worktree\n", "phase-1.yaml phase-2.yaml"},
-		"index":    {"staged\n", "phase-1.yaml phase-2.yaml"},
-		"HEAD":     {"one\n", "phase-1.yaml"},
-	} {
-		s, err := Trees{}.At(t.Context(), tree)
-		if err != nil {
-			t.Fatal(err)
-		}
-		text, err := s.Read(t.Context(), "tasks/phase-1.yaml")
-		listed, _ := s.List(t.Context(), "tasks")
-		if names := strings.Join(listed, " "); err != nil || text != want[0] || names != want[1] {
-			t.Errorf("%s: %q %q %v", tree, text, names, err)
-		}
-	}
-	head, _ := Trees{}.At(t.Context(), "HEAD")
-	if _, err := head.Read(t.Context(), "tasks/phase-2.yaml"); err == nil || err.Error() != "HEAD holds no tasks/phase-2.yaml" {
-		t.Errorf("HEAD read %v", err)
-	}
-	if _, err := head.List(t.Context(), "gone"); err == nil || err.Error() != "HEAD holds no folder gone" {
-		t.Errorf("HEAD list %v", err)
-	}
-	all := func(string) bool { return true }
-	if got := (Trees{}).Texts(t.Context(), "index", "tasks", all); !reflect.DeepEqual(got, map[string]string{
-		"tasks/phase-1.yaml": "staged\n", "tasks/phase-2.yaml": "staged two\n",
-	}) {
-		t.Errorf("index texts %q", got)
-	}
-	if got := (Trees{}).Texts(t.Context(), "no-such-commit", "tasks", all); len(got) != 0 {
-		t.Errorf("unreadable tree's texts %q", got)
-	}
+// The adapter reads the disk and git as the fake reads its trees.
+func TestTreesKeepTheContract(t *testing.T) {
+	porttest.TreesContract(t, laidOut)
 }
 
 // Texts and List read a tree's paths as they are named (bug 31): a path git
