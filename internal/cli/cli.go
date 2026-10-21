@@ -208,17 +208,20 @@ func applyGlobals(g Globals) (origin string, err error) {
 	return origin, nil
 }
 
+// getwd is os.Getwd, which a test swaps to reach moveTo's failures.
+var getwd = os.Getwd
+
 // moveTo makes the repository's top the folder itos runs in, and gives
 // where the person stood, relative to it.
 func moveTo(top string) (string, error) {
-	here, err := os.Getwd()
+	here, err := getwd()
 	if err != nil {
 		return "", err
 	}
 	if err := os.Chdir(top); err != nil {
 		return "", fmt.Errorf("%s: %w", top, err)
 	}
-	if top, err = os.Getwd(); err != nil {
+	if top, err = getwd(); err != nil {
 		return "", err
 	}
 	if real, err := filepath.EvalSymlinks(here); err == nil {
