@@ -10836,3 +10836,23 @@ items:
     status: todo
     depends_on: []
     kind: task
+
+  - id: p1-slices-and-ports
+    title: Each command is a vertical slice over shared engines, its outside world reached through ports with fakes and contract suites, as itos-cc's layout
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The user, 2026-10-21: itos takes the architecture itos-cc reached (its docs/architecture.md,
+      ADR-0051, ADR-0047, ADR-0053): commands under internal/slices/<command> with their CLI, Query,
+      Handler and Ports; shared engines behind stable APIs; depguard and architecture-check gates
+      copied from itos-cc (no sibling slice imports, no mocks, no fake linked); ports with in-memory
+      fakes and contract suites, the OS a value. Behaviour-neutral refactors in v8.x, one command
+      per task, the scenarios, corpus and previous-release check the proof. First ports: the VCS
+      (git) and the tracker store (the YAML registry, ledgers, questions), the seams
+      p2-vcs-and-tracker-seams needs for Fossil. Kong (p1-cli-kong) and itos-cc's exit codes are
+      designed now and land in v9.0; an in-process second driver is out unless it proves itself.
+      Features freeze after bug-114's release until the layout is done; p2-adopt-go-template-itos
+      stays later. The plan and the ADR follow the inventory.
