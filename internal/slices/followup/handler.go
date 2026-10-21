@@ -175,15 +175,16 @@ func (h Handler) doc(ctx context.Context, q Query, a *Answer) (*out.Problem, err
 	case err != nil && !errors.Is(err, fs.ErrNotExist):
 		return nil, err
 	}
-	if err := os.MkdirAll(filepath.Dir(target), 0o700); err != nil {
-		return nil, err
-	}
-	if err := os.WriteFile(target, []byte(a.Markdown), 0o600); err != nil {
-		return nil, err
+	err = os.MkdirAll(filepath.Dir(target), 0o700)
+	if err == nil {
+		err = os.WriteFile(target, []byte(a.Markdown), 0o600)
 	}
 	// A file --force wrote over keeps its mode through WriteFile; the thread
 	// is no less private in it.
-	if err := os.Chmod(target, 0o600); err != nil {
+	if err == nil {
+		err = os.Chmod(target, 0o600)
+	}
+	if err != nil {
 		return nil, err
 	}
 	a.Exposed = h.ports.NotIgnored(ctx, q.Typed)
@@ -204,8 +205,8 @@ func (h Handler) load(ctx context.Context, path string) (domain.File, error) {
 // save writes the threads back whole.
 func (h Handler) save(ctx context.Context, threads domain.File) error {
 	text, err := domain.Encode(threads)
-	if err != nil {
-		return err
+	if err == nil {
+		err = h.ports.Write(ctx, domain.FileName, text)
 	}
-	return h.ports.Write(ctx, domain.FileName, text)
+	return err
 }

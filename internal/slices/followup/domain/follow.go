@@ -117,18 +117,17 @@ func parse(path string, text []byte) (File, error) {
 }
 
 // Encode is the threads' file's text as itos writes it whole: its head
-// comment, then the threads as YAML indented by two.
+// comment, then the threads as YAML indented by two. The text is nothing to
+// write when there is an error.
 func Encode(f File) ([]byte, error) {
 	var body bytes.Buffer
 	enc := yaml.NewEncoder(&body)
 	enc.SetIndent(2)
-	if err := enc.Encode(f); err != nil {
-		return nil, err
+	err := enc.Encode(f)
+	if err == nil {
+		err = enc.Close()
 	}
-	if err := enc.Close(); err != nil {
-		return nil, err
-	}
-	return append([]byte(head), body.Bytes()...), nil
+	return append([]byte(head), body.Bytes()...), err
 }
 
 // Find is the thread with the id, or nil.

@@ -65,21 +65,20 @@ func (s Store) Write(ctx context.Context, name string, text []byte) error {
 		return err
 	}
 	defer os.Remove(tmp.Name())
-	if _, err := tmp.Write(text); err != nil {
-		tmp.Close()
-		return err
+	_, err = tmp.Write(text)
+	if err == nil {
+		err = tmp.Sync()
 	}
-	if err := tmp.Sync(); err != nil {
-		tmp.Close()
-		return err
+	if closed := tmp.Close(); err == nil {
+		err = closed
 	}
-	if err := tmp.Close(); err != nil {
-		return err
+	if err == nil {
+		err = os.Chmod(tmp.Name(), 0o600)
 	}
-	if err := os.Chmod(tmp.Name(), 0o600); err != nil {
-		return err
+	if err == nil {
+		err = os.Rename(tmp.Name(), path)
 	}
-	return os.Rename(tmp.Name(), path)
+	return err
 }
 
 // Hold is lock.Hold of name's file: its lock file beside it, waiting up to
