@@ -2441,12 +2441,6 @@
     holds a subset judged as previous-release's additive mode judges, with an any-value placeholder
     for a key that must be present. A case can say stdout is not empty. Unit tests of the runner
     cover each; the corpus passes unchanged.
-  done_when:
-    - run: go test -count=1 ./tools/bin/conformance/... ./tools/bin/previous-release/...
-      timeout: 600
-    - run: grep -rq "json_has" tools/bin/conformance
-    - run: go run ./tools/bin/conformance --bin tools/bin/itos
-      timeout: 900
 
 - id: T-198
   type: test

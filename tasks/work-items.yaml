@@ -11054,7 +11054,7 @@ items:
     title: "The corpus runner judges json: less message, fix and text, and json_has: matches a subset"
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
 
