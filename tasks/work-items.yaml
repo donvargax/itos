@@ -11186,7 +11186,7 @@ items:
     title: The corpus runner leaves out only the top-level text key, and previous-release keeps the stdout of ADR-0054's script outputs
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
 

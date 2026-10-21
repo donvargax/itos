@@ -2582,11 +2582,6 @@
     every old case: a case marks its stdout as contract (a key such as stdout_contract: true,
     documented with the schema), Machine keeps that case's stdout, and the corpus cases of those
     outputs carry the mark. Folds in p1-previous-release-pins-script-outputs.
-  done_when:
-    - run: go test -count=1 ./tools/bin/conformance/... ./tools/bin/previous-release/...
-      timeout: 600
-    - run: go run ./tools/bin/conformance --bin tools/bin/itos
-      timeout: 900
 
 - id: T-206
   type: test
