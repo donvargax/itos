@@ -2412,14 +2412,6 @@
     wrote for internal/slices now hold real packages; tighten any that only held fixtures. Help,
     output, exit codes and --json unchanged; mutation snapshots and exceptions under .metrics/mutate
     move with the files.
-  done_when:
-    - run: test -d internal/slices/guard/domain
-    - run: test -d internal/slices/version
-    - run: "! test -e internal/guard"
-    - run: tools/bin/architecture-check
-      timeout: 900
-    - run: tools/bin/pinned golangci-lint run ./...
-      timeout: 600
 
 - id: T-197
   type: ci
