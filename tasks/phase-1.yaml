@@ -2435,3 +2435,23 @@
       timeout: 900
     - run: tools/bin/pinned golangci-lint run ./...
       timeout: 600
+
+- id: T-197
+  type: ci
+  title: "The corpus runner judges json: less message, fix and text, and json_has: matches a subset"
+  why: >
+    ADR-0052 and ADR-0054, before any corpus file converts. Today json: compares the whole object,
+    message and fix included (73 of the 183 json: cases pin sentences that way), and nothing matches
+    part of an object: guide's and go's text key, init's git_shim.link (a path beside the binary)
+    and the large status, work and go objects would freeze incidental keys if pinned whole. json:
+    leaves out every key named message, fix or text, as previous-release's File.Machine already does
+    for message and fix (reuse it; previous-release leaves out text too, per ADR-0054). json_has:
+    holds a subset judged as previous-release's additive mode judges, with an any-value placeholder
+    for a key that must be present. A case can say stdout is not empty. Unit tests of the runner
+    cover each; the corpus passes unchanged.
+  done_when:
+    - run: go test -count=1 ./tools/bin/conformance/... ./tools/bin/previous-release/...
+      timeout: 600
+    - run: grep -rq "json_has" tools/bin/conformance
+    - run: go run ./tools/bin/conformance --bin tools/bin/itos
+      timeout: 900

@@ -11035,3 +11035,11 @@ items:
       refuse naming git branch --set-upstream-to=origin/<main>, or push to the configured main
       branch. The guard also refuses git push --delete, so the stray branch needs gh api to remove:
       the push could say which branch it created.
+
+  - id: T-197
+    title: "The corpus runner judges json: less message, fix and text, and json_has: matches a subset"
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task
