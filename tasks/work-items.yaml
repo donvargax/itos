@@ -11021,8 +11021,8 @@ items:
   - id: T-195
     title: "Process-global state out of internal/cli and internal/tests: draft promote runs Main through a value, not an init re-entry"
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
 
