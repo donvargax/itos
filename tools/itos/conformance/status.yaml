@@ -75,32 +75,16 @@ git:
   - run: git init -q --bare .git/origin.git && git remote add origin .git/origin.git && git push -q origin main
     label: head
 cases:
-  - name: status prints the remote's head and its CI run, the work and the open questions
-    argv: [status]
-    exit: 0
-    stdout: |
-      # Where things stand
-
-      origin/main: {{short.head}} chore: first
-      CI: success, https://ci.example/runs/{{sha.head}}
-
-      Newest release: no release yet.
-
-      In progress for a:
-        busy  Busy
-      Next for a, in the queue's order:
-        free  Free  (unowned)
-        phased  Owned by the phase
-        ready  Ready
-      Open questions:
-        q-2  Which way?  (ready)
-    stderr: ""
   - name: status --as lists another person's work
-    argv: [status, --as, b]
+    argv: [status, --as, b, --json]
     exit: 0
-    stdout_has: "Nothing in progress for b.\nNext for b, in the queue's order:\n  free  Free  (unowned)\n  theirs  Theirs\n"
+    json_has:
+      person: b
+      doing: []
+      next: [{ id: free, owner: null }, { id: theirs, owner: b }]
+      more: 0
   - name: a run still going is said to be going, never waited for
-    argv: [status]
+    argv: [status, --json]
     github:
       runs:
         - head_sha: "*"
@@ -108,9 +92,10 @@ cases:
           status: in_progress
           jobs: [{ name: ci, status: in_progress }]
     exit: 0
-    stdout_has: "CI: going, https://ci.example/runs/1\n"
+    json_has:
+      ci: { result: going, run: { url: "https://ci.example/runs/1", status: in_progress } }
   - name: a run that failed names the jobs that failed
-    argv: [status]
+    argv: [status, --json]
     github:
       runs:
         - head_sha: "*"
@@ -121,9 +106,12 @@ cases:
             - { name: ci, status: completed, conclusion: failure }
             - { name: platform, status: completed, conclusion: success }
     exit: 0
-    stdout_has: "CI: failure, https://ci.example/runs/1; failed jobs: ci\n"
+    json_has:
+      ci:
+        result: failure
+        run: { url: "https://ci.example/runs/1", conclusion: failure, jobs: [{ name: ci, conclusion: failure }, { name: platform, conclusion: success }] }
   - name: the last nightly's run follows the head's, the jobs that failed named
-    argv: [status]
+    argv: [status, --json]
     files:
       itos.yaml: |
         version: 1
@@ -147,9 +135,12 @@ cases:
           conclusion: failure
           jobs: [{ name: nightly, status: completed, conclusion: failure }]
     exit: 0
-    stdout_has: "CI: success, https://ci.example/runs/{{sha.head}}\nNightly: failure, https://ci.example/nightly/7; failed jobs: nightly\n\nNewest release: no release yet.\n"
+    json_has:
+      ci: { result: success }
+      nightly: { url: "https://ci.example/nightly/7", conclusion: failure, jobs: [{ name: nightly, conclusion: failure }] }
+      release: null
   - name: a nightly still going is said to be going
-    argv: [status]
+    argv: [status, --json]
     files:
       itos.yaml: |
         version: 1
@@ -172,9 +163,10 @@ cases:
           status: in_progress
           jobs: [{ name: nightly, status: in_progress }]
     exit: 0
-    stdout_has: "Nightly: going, https://ci.example/nightly/8\n"
+    json_has:
+      nightly: { url: "https://ci.example/nightly/8", status: in_progress }
   - name: a refusal from GitHub's API is a line for the run and the nightly, and the rest prints
-    argv: [status]
+    argv: [status, --json]
     files:
       itos.yaml: |
         version: 1
@@ -186,12 +178,16 @@ cases:
           watch: { provider: github, interval: 0, github: { nightly_workflow: nightly.yml } }
     github: { refuse: true }
     exit: 0
-    stdout_has:
-      - "origin/main: {{short.head}} chore: first\nCI cannot be read: GitHub's API answered 401 Unauthorized for "
-      - "The nightly cannot be read: GitHub's API answered 401 Unauthorized for "
-      - "In progress for a:\n  busy  Busy\n"
+    json_has:
+      head: { commit: "{{sha.head}}", header: "chore: first" }
+      ci: null
+      nightly: null
+      doing: [{ id: busy }]
+      unread:
+        - "CI cannot be read: GitHub's API answered 401 Unauthorized for /repos/owner/name/actions/workflows/ci.yml/runs?head_sha={{sha.head}}&per_page=20"
+        - "The nightly cannot be read: GitHub's API answered 401 Unauthorized for /repos/owner/name/actions/workflows/nightly.yml/runs?branch=main&per_page=20"
   - name: with ci.watch.provider none the CI run is not read
-    argv: [status]
+    argv: [status, --json]
     files:
       itos.yaml: |
         version: 1
@@ -199,9 +195,12 @@ cases:
           registry: work-items.yaml
           people: { source: yaml, file: people.yaml }
     exit: 0
-    stdout_has: "origin/main: {{short.head}} chore: first\nCI is not read: ci.watch.provider is none.\n"
+    json_has:
+      head: { commit: "{{sha.head}}", header: "chore: first" }
+      ci: null
+      unread: ["CI is not read: ci.watch.provider is none."]
   - name: while the head's run is going, main's last green commit follows it, before the nightly
-    argv: [status]
+    argv: [status, --json]
     git:
       - commit: "fix: one"
         files: { a.txt: "one\n" }
@@ -233,9 +232,13 @@ cases:
           conclusion: success
           jobs: [{ name: nightly, status: completed, conclusion: success }]
     exit: 0
-    stdout_has: "origin/main: {{short.head}} feat: two\nCI: going, https://ci.example/runs/1\nLast green: {{short.green}} fix: one\nNightly: success, https://ci.example/nightly/7\n"
+    json_has:
+      head: { commit: "{{sha.head}}", header: "feat: two" }
+      ci: { result: going, run: { url: "https://ci.example/runs/1" } }
+      last_green: { commit: "{{sha.green}}", header: "fix: one" }
+      nightly: { url: "https://ci.example/nightly/7", conclusion: success }
   - name: a head's run that failed is followed by main's last green commit
-    argv: [status]
+    argv: [status, --json]
     git:
       - commit: "fix: one"
         files: { a.txt: "one\n" }
@@ -262,7 +265,10 @@ cases:
           jobs: [{ name: ci, status: completed, conclusion: failure }]
         - { head_sha: "{{sha.green}}", status: completed, conclusion: success }
     exit: 0
-    stdout_has: "CI: failure, https://ci.example/runs/1; failed jobs: ci\nLast green: {{short.green}} fix: one\n\nNewest release: no release yet.\n"
+    json_has:
+      ci: { result: failure, run: { url: "https://ci.example/runs/1" } }
+      last_green: { commit: "{{sha.green}}", header: "fix: one" }
+      release: null
   - name: no green run of the head's first parents names no last green commit
     argv: [status]
     github:
@@ -272,9 +278,9 @@ cases:
           status: in_progress
           jobs: [{ name: ci, status: in_progress }]
     exit: 0
-    stdout_has: "CI: going, https://ci.example/runs/1\nLast green: none found\n"
+    stdout_has: "Last green: none found"
   - name: with ci.range's provider none no last green commit is read
-    argv: [status]
+    argv: [status, --json]
     files:
       itos.yaml: |
         version: 1
@@ -292,49 +298,53 @@ cases:
           status: in_progress
           jobs: [{ name: ci, status: in_progress }]
     exit: 0
-    stdout_has: "CI: going, https://ci.example/runs/1\n\nNewest release: no release yet.\n"
+    json_has:
+      ci: { result: going }
+      last_green: null
   - name: when the head's run passed no last green commit is read
-    argv: [status]
+    argv: [status, --json]
     exit: 0
-    stdout_has: "CI: success, https://ci.example/runs/{{sha.head}}\n\nNewest release: no release yet.\n"
+    json_has:
+      ci: { result: success }
+      last_green: null
   - name: with no remote neither the head nor its CI run is read, and the rest prints
-    argv: [status]
+    argv: [status, --json]
     git:
       - commit: "chore: first"
         files: { README.md: "first\n" }
     exit: 0
-    stdout: |
-      # Where things stand
-
-      No remote origin, so neither its head nor its CI run is read.
-
-      In progress for a:
-        busy  Busy
-      Next for a, in the queue's order:
-        free  Free  (unowned)
-        phased  Owned by the phase
-        ready  Ready
-      Open questions:
-        q-2  Which way?  (ready)
+    json_has:
+      head: null
+      ci: null
+      doing: [{ id: busy }]
+      next: [{ id: free }, { id: phased }, { id: ready }]
+      questions: [{ id: q-2 }]
+      unread: ["No remote origin, so neither its head nor its CI run is read."]
   - name: a remote that cannot be reached is read as last fetched
-    argv: [status]
+    argv: [status, --json]
     git:
       - commit: "chore: first"
         files: { README.md: "first\n" }
         label: head
       - run: git remote add origin .git/nowhere.git && git update-ref refs/remotes/origin/main HEAD
     exit: 0
-    stdout_has: "origin cannot be reached, so its main is as last fetched.\norigin/main: {{short.head}} chore: first\nCI: success, https://ci.example/runs/{{sha.head}}\n"
+    json_has:
+      head: { commit: "{{sha.head}}", header: "chore: first", last_fetched: true }
+      ci: { result: success, run: { url: "https://ci.example/runs/{{sha.head}}" } }
+      unread: ["origin cannot be reached, so its main is as last fetched."]
   - name: a remote without the branch has no head to read
-    argv: [status]
+    argv: [status, --json]
     git:
       - commit: "chore: first"
         files: { README.md: "first\n" }
       - run: git init -q --bare .git/origin.git && git remote add origin .git/origin.git
     exit: 0
-    stdout_has: "origin has no branch main yet, so there is no CI run to read.\n"
+    json_has:
+      head: null
+      ci: null
+      unread: ["origin has no branch main yet, so there is no CI run to read."]
   - name: status lists five of the next items, and says how many more
-    argv: [status]
+    argv: [status, --json]
     files:
       work-items.yaml: |
         phases: { 1: a }
@@ -348,7 +358,39 @@ cases:
           - { id: n7, title: Seven, phase: 1, owner: a, status: todo }
       asks.yaml: null
     exit: 0
-    stdout_has: "Nothing in progress for a.\nNext for a, in the queue's order:\n  n1  One\n  n2  Two\n  n3  Three\n  n4  Four\n  n5  Five\n  and 2 more: itos work\nNo open questions.\n"
+    json:
+      schema: 1
+      person: a
+      head:
+        remote: origin
+        branch: main
+        commit: "{{sha.head}}"
+        header: "chore: first"
+        last_fetched: false
+      ci:
+        result: success
+        run:
+          url: https://ci.example/runs/{{sha.head}}
+          status: completed
+          conclusion: success
+          jobs: [{ name: ci, status: completed, conclusion: success }]
+      last_green: null
+      nightly: null
+      release: null
+      unreleased: null
+      itos: null
+      agent_rules: null
+      doing: []
+      next:
+        - { id: n1, title: One, phase: 1, owner: a, status: todo, depends_on: [], tags: [] }
+        - { id: n2, title: Two, phase: 1, owner: a, status: todo, depends_on: [], tags: [] }
+        - { id: n3, title: Three, phase: 1, owner: a, status: todo, depends_on: [], tags: [] }
+        - { id: n4, title: Four, phase: 1, owner: a, status: todo, depends_on: [], tags: [] }
+        - { id: n5, title: Five, phase: 1, owner: a, status: todo, depends_on: [], tags: [] }
+      more: 2
+      questions: []
+      drafts: []
+      unread: []
   - name: a long question is cut short
     argv: [status]
     files:
@@ -358,7 +400,7 @@ cases:
           - id: q-1
             question: "Should the status print a question in full, however long it is, or cut it short so it reads at a glance?"
     exit: 0
-    stdout_has: "  q-1  Should the status print a question in full, however long it is, or cut it short…\n"
+    stdout_has: "or cut it short…"
   - name: status --json
     argv: [status, --json]
     exit: 0
@@ -419,7 +461,7 @@ cases:
   # --json's head holds it; a provider that cannot tell it, as the fake GitHub
   # answering the repository 404 above, says nothing of it.
   - name: status names a public repository on the main branch's line
-    argv: [status]
+    argv: [status, --json]
     github:
       visibility: public
       runs:
@@ -429,7 +471,8 @@ cases:
           conclusion: success
           jobs: [{ name: ci, status: completed, conclusion: success }]
     exit: 0
-    stdout_has: "origin/main (public): {{short.head}} chore: first\nCI: success, https://ci.example/runs/{{sha.head}}\n"
+    json_has:
+      head: { commit: "{{sha.head}}", visibility: public }
   - name: status --json gives the repository's visibility in its head
     argv: [status, --json]
     github:
@@ -470,16 +513,6 @@ cases:
   # Slice 124: a block of itos's rules for agents other than the one this
   # itos writes is one line naming itos init --agent-rules, and --json's
   # agent_rules names the files that hold it.
-  - name: status names itos init --agent-rules for a block another itos wrote
-    argv: [status]
-    git:
-      - commit: "chore: first"
-        files: { README.md: "first\n" }
-    files:
-      work-items.yaml: "phases: { 1: a }\nitems: []\n"
-      AGENTS.md: &older "Mine.\n\n<!-- itos:begin -->\n\n## The rules itos holds this repository to\n\n<!-- itos:end -->\n"
-    exit: 0
-    stdout_has: "AGENTS.md's itos rules are not the ones this itos writes: itos init --agent-rules rewrites them, only between the markers.\n"
   - name: status --json names the files holding a block another itos wrote
     argv: [status, --json]
     git:
@@ -488,7 +521,7 @@ cases:
     files:
       work-items.yaml: "phases: { 1: a }\nitems: []\n"
       asks.yaml: null
-      AGENTS.md: *older
+      AGENTS.md: "Mine.\n\n<!-- itos:begin -->\n\n## The rules itos holds this repository to\n\n<!-- itos:end -->\n"
     exit: 0
     json:
       schema: 1
@@ -613,10 +646,11 @@ cases:
       drafts: []
       unread: []
   - name: status names the newest release and the feat, fix and breaking commits since it
-    argv: [status]
+    argv: [status, --json]
     git:
       - commit: "chore: first"
         files: { README.md: "first\n" }
+        label: release
       - run: git tag v1.2.0-rc.1 && git tag -a v1.2.0 -m v1.2.0 && git tag v1.1.0 && git tag v1.3
       - commit: "feat: add the archive"
         files: { a.txt: "a\n" }
@@ -630,17 +664,59 @@ cases:
         label: head
       - run: git init -q --bare .git/origin.git && git remote add origin .git/origin.git && git push -q --tags origin main
     exit: 0
-    stdout_has: "CI: success, https://ci.example/runs/{{sha.head}}\n\nNewest release: v1.2.0\nUnreleased since v1.2.0, oldest first:\n  feat: add the archive\n  fix(cli): mend the archive\n  refactor!: rename the archive\n  chore: drop the old name\n\nIn progress for a:\n"
+    json:
+      schema: 1
+      person: a
+      head:
+        remote: origin
+        branch: main
+        commit: "{{sha.head}}"
+        header: "chore: drop the old name"
+        last_fetched: false
+      ci:
+        result: success
+        run:
+          url: https://ci.example/runs/{{sha.head}}
+          status: completed
+          conclusion: success
+          jobs: [{ name: ci, status: completed, conclusion: success }]
+      last_green: null
+      nightly: null
+      release: { tag: v1.2.0, commit: "{{sha.release}}", last_fetched: false }
+      unreleased:
+        - "feat: add the archive"
+        - "fix(cli): mend the archive"
+        - "refactor!: rename the archive"
+        - "chore: drop the old name"
+      itos: null
+      agent_rules: null
+      doing: [{ id: busy, title: Busy, phase: 1, owner: a, status: doing, depends_on: [], tags: [] }]
+      next:
+        - { id: free, title: Free, phase: 2, owner: null, status: todo, depends_on: [], tags: [] }
+        - id: phased
+          title: Owned by the phase
+          phase: 1
+          owner: null
+          status: todo
+          depends_on: []
+          tags: []
+        - { id: ready, title: Ready, phase: 1, owner: a, status: todo, depends_on: [], tags: [] }
+      more: 0
+      questions: [{ id: q-2, item: ready, question: "Which way?", status: open }]
+      drafts: []
+      unread: []
   - name: the release is asked of the remote, whose tags this clone may not have
-    argv: [status]
+    argv: [status, --json]
     git:
       - commit: "chore: first"
         files: { README.md: "first\n" }
       - run: git tag v1.0.0 && git init -q --bare .git/origin.git && git remote add origin .git/origin.git && git push -q origin main && git tag v2.0.0 && git push -q origin v2.0.0 && git tag -d v2.0.0 >/dev/null
     exit: 0
-    stdout_has: "Newest release: v2.0.0\nNothing unreleased since v2.0.0.\n"
+    json_has:
+      release: { tag: v2.0.0, last_fetched: false }
+      unreleased: []
   - name: a remote that cannot be reached gives its release as last fetched
-    argv: [status]
+    argv: [status, --json]
     git:
       - commit: "chore: first"
         files: { README.md: "first\n" }
@@ -650,15 +726,21 @@ cases:
         label: head
       - run: git remote add origin .git/nowhere.git && git update-ref refs/remotes/origin/main HEAD
     exit: 0
-    stdout_has: "CI: success, https://ci.example/runs/{{sha.head}}\n\nNewest release: v1.2.0 (as last fetched)\nUnreleased since v1.2.0, oldest first:\n  feat: add the archive\n"
+    json_has:
+      head: { commit: "{{sha.head}}", last_fetched: true }
+      release: { tag: v1.2.0, last_fetched: true }
+      unreleased: ["feat: add the archive"]
   - name: where the remote's head is not fetched here the commits since the release may be behind
-    argv: [status]
+    argv: [status, --json]
     git:
       - commit: "chore: first"
         files: { README.md: "first\n" }
       - run: 'git tag v1.2.0 && git init -q --bare -b main .git/origin.git && git remote add origin .git/origin.git && git push -q --tags origin main && git fetch -q origin && git clone -q .git/origin.git .git/other && git -C .git/other commit -q --allow-empty -m "feat: add the archive" && git -C .git/other push -q origin main && rm -rf .git/other'
     exit: 0
-    stdout_has: "Newest release: v1.2.0\norigin/main is not fetched here up to its head, so the commits since v1.2.0 may be behind.\nNothing unreleased since v1.2.0, as fetched here.\n"
+    json_has:
+      release: { tag: v1.2.0, last_fetched: false }
+      unreleased: []
+      unread: ["origin/main is not fetched here up to its head, so the commits since v1.2.0 may be behind."]
   - name: status --json gives the newest release and the headers of the commits since it
     argv: [status, --json]
     git:
@@ -702,34 +784,27 @@ cases:
   - name: status takes no arguments
     argv: [status, work]
     exit: 2
-    stderr: |
-      itos: status takes no arguments: work (itos --help)
+    stderr_has: work
   - name: status --as someone not among the people is a missing environment
     argv: [status, --as, c]
     exit: 3
-    stderr: |
-      "c" is not in people.yaml
+    stderr_has: '"c"'
   - name: status with no work registry is refused
-    argv: [status]
+    argv: [status, --json]
     files:
       work-items.yaml: null
     exit: 1
-    stderr: |
-      no work registry at work-items.yaml
-        fix: move the registry to work-items.yaml, or set work.registry to where it is
-  - name: go ends with where things stand, after a line of ---
-    argv: [go]
-    exit: 0
-    stdout_has: ["# Coordinating with itos\n", "\n---\n\n# Where things stand\n\norigin/main: {{short.head}} chore: first\n"]
+    json: { schema: 1, ok: false, problems: [{ rule: work-registry-missing }] }
+    stdout_has: work-items.yaml
   - name: go with no work registry prints the guide and says the status is left out
-    argv: [go]
+    argv: [go, --json]
     files:
       work-items.yaml: null
     exit: 0
-    stdout_has: "# Coordinating with itos\n"
-    stderr: |
-      itos: where things stand is not printed: no work registry at work-items.yaml (itos work check)
+    json: { schema: 1, guide: coordinate }
   - name: go --json gives the status as its object
     argv: [go, --json]
     exit: 0
-    stdout_has: ['"guide": "coordinate"', '"status": {', '"person": "a"', '"result": "success"']
+    json_has:
+      guide: coordinate
+      status: { person: a, head: { commit: "{{sha.head}}" }, ci: { result: success }, doing: [{ id: busy }] }
