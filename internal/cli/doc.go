@@ -626,17 +626,12 @@
 //
 // # followup, draft, decision, go and status
 //
-// followup (follow.go over internal/follow) reads no config, so it runs in
-// any git repository; its file is in config.StealthFolder of the absolute
-// git common dir (git rev-parse --path-format=absolute --git-common-dir).
-// Every subcommand that writes loads through heldThreads, which holds the
-// file's lock until the command returns. followNow alone reads the clock.
-// followup doc writes follow.Markdown where the person typed, 0600 in
-// folders made 0700, refuses a file already there without --force, and
-// records the absolute path in the thread's docs; when git check-ignore
-// exits 1 for the path (in the work tree, not ignored) it warns, and -
-// prints the Markdown and writes nothing (followDocOut). A refusal is
-// refuseWork's problem, exit 1; no git repository is exit 3.
+// followup is the followup slice (internal/slices/followup); follow.go
+// parses its line, binds its Ports to the private store's adapter
+// (internal/store/private/adapter) and the clock, and reports a threads'
+// file its domain refuses (domain.Invalid) as a usage error's exit 2.
+// subArgs, which followup's arguments were read with, stays in follow.go for
+// decision, status and work list.
 //
 // draft (draft.go over internal/draft) keeps its list in the drafts folder
 // beside follow's file, every writer through heldDrafts. A change draft is

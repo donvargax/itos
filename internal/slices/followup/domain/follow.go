@@ -1,21 +1,16 @@
-package follow
+package domain
 
 import (
 	"bytes"
 	"errors"
 	"fmt"
 	"io"
-	"io/fs"
-	"os"
-	"path/filepath"
 	"regexp"
 	"slices"
 	"strings"
 	"time"
 
 	"go.yaml.in/yaml/v3"
-
-	"github.com/donvargax/itos/v8/internal/kind"
 )
 
 // FileName is the threads' file in itos's folder of the git common dir.
@@ -68,24 +63,29 @@ var idPattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]*$`)
 // ValidID is whether an id may name a thread.
 func ValidID(id string) bool { return idPattern.MatchString(id) }
 
-// Load reads the threads' file at path; one not there is no threads yet.
-// A file that is not as itos writes it is an error naming it, since saving
-// what was read would drop the rest (bug 16): an unknown key, a thread with
-// no id or two with one id, a status neither open nor closed, a second YAML
-// document, or no document at all, which itos never writes (it writes
-// "threads: []" for none), so an empty file is a write cut short, not a
-// clone with no threads. Each is a data file itos refuses, kind.Usage
-// (exit 2).
-func Load(path string) (File, error) {
-	text, err := os.ReadFile(path)
-	if errors.Is(err, fs.ErrNotExist) {
-		return File{}, nil
-	}
-	if err != nil {
-		return File{}, err
-	}
+// Invalid is a threads' file that is not as itos writes it, which itos
+// refuses as a data file, exit 2 (the command line gives it kind.Usage).
+type Invalid struct{ Err error }
+
+func (e *Invalid) Error() string { return e.Err.Error() }
+
+// Unwrap is why the file is refused.
+func (e *Invalid) Unwrap() error { return e.Err }
+
+// Parse reads the threads' file's text, path naming it in a refusal. A file
+// that is not as itos writes it is *Invalid, since saving what was read
+// would drop the rest (bug 16): an unknown key, a thread with no id or two
+// with one id, a status neither open nor closed, a second YAML document, or
+// no document at all, which itos never writes (it writes "threads: []" for
+// none), so an empty file is a write cut short, not a clone with no
+// threads. A file not there is no threads yet, which the caller knows
+// before it parses.
+func Parse(path string, text []byte) (File, error) {
 	f, err := parse(path, text)
-	return f, kind.Wrap(kind.Usage, err)
+	if err != nil {
+		return File{}, &Invalid{err}
+	}
+	return f, nil
 }
 
 func parse(path string, text []byte) (File, error) {
@@ -116,44 +116,19 @@ func parse(path string, text []byte) (File, error) {
 	return f, nil
 }
 
-// Save writes the threads' file at path, readable by its owner alone: the
-// text written to a file beside it and synced to the disk, then moved over
-// it, so a reader never sees half of it and a crash leaves the old file or
-// the new one, never an empty one. Its folder is made when it is not there.
-func Save(path string, f File) error {
+// Encode is the threads' file's text as itos writes it whole: its head
+// comment, then the threads as YAML indented by two.
+func Encode(f File) ([]byte, error) {
 	var body bytes.Buffer
 	enc := yaml.NewEncoder(&body)
 	enc.SetIndent(2)
 	if err := enc.Encode(f); err != nil {
-		return err
+		return nil, err
 	}
 	if err := enc.Close(); err != nil {
-		return err
+		return nil, err
 	}
-	dir := filepath.Dir(path)
-	if err := os.MkdirAll(dir, 0o700); err != nil {
-		return err
-	}
-	tmp, err := os.CreateTemp(dir, "."+FileName+".*")
-	if err != nil {
-		return err
-	}
-	defer os.Remove(tmp.Name())
-	if _, err := tmp.WriteString(head + body.String()); err != nil {
-		tmp.Close()
-		return err
-	}
-	if err := tmp.Sync(); err != nil {
-		tmp.Close()
-		return err
-	}
-	if err := tmp.Close(); err != nil {
-		return err
-	}
-	if err := os.Chmod(tmp.Name(), 0o600); err != nil {
-		return err
-	}
-	return os.Rename(tmp.Name(), path)
+	return append([]byte(head), body.Bytes()...), nil
 }
 
 // Find is the thread with the id, or nil.

@@ -1,9 +1,7 @@
-package follow
+package domain
 
 import (
-	"os"
-	"path/filepath"
-	"runtime"
+	"errors"
 	"strings"
 	"testing"
 	"time"
@@ -11,27 +9,21 @@ import (
 
 var at = time.Date(2026, 10, 4, 9, 30, 15, 0, time.FixedZone("", -7*3600))
 
-func TestSaveThenLoadKeepsEveryThread(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "itos", FileName)
+func TestEncodeThenParseKeepsEveryThread(t *testing.T) {
 	var f File
 	f.Add("sync-ana", "ana", "The sync design", "She covered\nthe retries.", at)
 	b := f.Add("flaky-bo", "bo", "The flaky login test", "Started.", at)
 	b.Close("Fixed: 2 retries.", at.Add(time.Hour))
 	b.Wrote("/notes/flaky.md")
 	b.Wrote("/notes/flaky.md")
-	if err := Save(path, f); err != nil {
-		t.Fatal(err)
-	}
-	info, err := os.Stat(path)
+	text, err := Encode(f)
 	if err != nil {
 		t.Fatal(err)
 	}
-	// Windows keeps no Unix permission bits: Go reports a writable file
-	// there as 0666 whatever it was given.
-	if runtime.GOOS != "windows" && info.Mode().Perm() != 0o600 {
-		t.Errorf("the file's mode is %v, not 0600", info.Mode().Perm())
+	if !strings.HasPrefix(string(text), head) {
+		t.Errorf("the file does not start with its head comment:\n%s", text)
 	}
-	got, err := Load(path)
+	got, err := Parse(FileName, text)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -50,54 +42,41 @@ func TestSaveThenLoadKeepsEveryThread(t *testing.T) {
 	}
 }
 
-func TestLoadReadsNoFileAndAnEmptyListAsNoThreads(t *testing.T) {
-	dir := t.TempDir()
-	if f, err := Load(filepath.Join(dir, "missing.yaml")); err != nil || len(f.Threads) != 0 {
-		t.Errorf("no file: %v, %d threads", err, len(f.Threads))
-	}
-	path := filepath.Join(dir, FileName)
-	if err := Save(path, File{}); err != nil {
+func TestParseReadsAnEmptyListAsNoThreads(t *testing.T) {
+	text, err := Encode(File{})
+	if err != nil {
 		t.Fatal(err)
 	}
-	if f, err := Load(path); err != nil || len(f.Threads) != 0 {
+	if f, err := Parse(FileName, text); err != nil || len(f.Threads) != 0 {
 		t.Errorf("a file of no threads: %v, %d threads", err, len(f.Threads))
 	}
 }
 
 // Bug 16: saving what was read would drop what was not, so an empty file
-// (a write cut short) and a second document are refused, the file as it was.
-func TestLoadRefusesAnEmptyFileAndASecondDocument(t *testing.T) {
+// (a write cut short) and a second document are refused, Invalid.
+func TestParseRefusesAnEmptyFileAndASecondDocument(t *testing.T) {
 	for text, want := range map[string]string{
 		"":                         "holds no threads",
 		"# only a comment\n":       "holds no threads",
 		"threads: []\n---\nx: 1\n": "more than one YAML document",
 	} {
-		path := filepath.Join(t.TempDir(), FileName)
-		if err := os.WriteFile(path, []byte(text), 0o600); err != nil {
-			t.Fatal(err)
-		}
-		if _, err := Load(path); err == nil || !strings.Contains(err.Error(), want) {
-			t.Errorf("%q: %v, not an error saying %q", text, err, want)
-		}
-		if now, _ := os.ReadFile(path); string(now) != text {
-			t.Errorf("%q: the file changed to %q", text, now)
+		var invalid *Invalid
+		if _, err := Parse(FileName, []byte(text)); !errors.As(err, &invalid) || !strings.Contains(err.Error(), want) {
+			t.Errorf("%q: %v, not an Invalid saying %q", text, err, want)
 		}
 	}
 }
 
-func TestLoadRefusesAFileItosDoesNotWrite(t *testing.T) {
+func TestParseRefusesAFileItosDoesNotWrite(t *testing.T) {
 	for text, want := range map[string]string{
 		"threads:\n  - { id: a, with: x, title: t, status: open, notes: [], colour: red }\n":                         "colour",
 		"threads:\n  - { id: a, with: x, title: t, status: open }\n  - { id: a, with: y, title: u, status: open }\n": "two threads have the id a",
 		"threads:\n  - { id: a, with: x, title: t, status: done }\n":                                                 `"done", not open or closed`,
 		"threads:\n  - { id: 'a b', with: x, title: t, status: open }\n":                                             "no id",
 	} {
-		path := filepath.Join(t.TempDir(), FileName)
-		if err := os.WriteFile(path, []byte(text), 0o600); err != nil {
-			t.Fatal(err)
-		}
-		if _, err := Load(path); err == nil || !strings.Contains(err.Error(), want) {
-			t.Errorf("%q: %v, not an error saying %q", text, err, want)
+		_, err := Parse(FileName, []byte(text))
+		if err == nil || !strings.Contains(err.Error(), want) || !strings.HasPrefix(err.Error(), FileName) || errors.Unwrap(err) == nil {
+			t.Errorf("%q: %v, not an error naming the file and saying %q", text, err, want)
 		}
 	}
 }

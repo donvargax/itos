@@ -5,7 +5,7 @@ package cli
 // is going on. The list is drafts.yaml in the drafts folder of itos's folder
 // under the git common dir (internal/draft), each change's patch beside it;
 // add, drop and promote hold the list's lock from before they read it to
-// after they write it (heldDrafts, as itos followup's heldThreads, bug 16).
+// after they write it (heldDrafts, as the followup slice's Handle, bug 16).
 //
 // A change is drafted against HEAD through a scratch index: HEAD read into
 // it, the paths added to it as the working tree has them (new files too),

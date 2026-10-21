@@ -88,7 +88,7 @@ What every command meets:
   proof: `internal/proof`.
 - The work registry: `internal/work` judges, `internal/cli` writes.
 - Questions and decision records: `internal/ask`, `internal/adr`; follow-ups
-  and drafts: `internal/follow`, `internal/draft`.
+  and drafts: `internal/slices/followup`, `internal/draft`.
 - The guides `itos go` and `itos guide` print: `internal/guide`.
 - The Claude Code guard: `internal/slices/guard`.
 - YAML read as itos reads it, and edited in place: `internal/value`.
