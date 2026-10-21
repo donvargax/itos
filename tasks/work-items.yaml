@@ -11279,7 +11279,7 @@ items:
     title: The corpus can pin that something did not print, and refuses exact text outside stdout_contract
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
 

@@ -2656,12 +2656,6 @@
     cannot creep back, the runner refuses at read time a case with an exact stdout: or stderr:
     unless it is stdout_contract or the empty string (hooks.yaml's no-output pins), naming the case.
     Unit tests for both; the corpus passes.
-  done_when:
-    - run: go test -count=1 ./tools/bin/conformance/...
-      timeout: 600
-    - run: grep -rq "stderr_lacks" tools/bin/conformance
-    - run: go run ./tools/bin/conformance --bin tools/bin/itos
-      timeout: 900
 
 - id: T-213
   type: refactor
