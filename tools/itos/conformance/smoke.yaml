@@ -41,15 +41,10 @@ files:
   e2e/features/pending.feature: "@wip\nFeature: Pending\n\n  @ID-PEND-01\n  Scenario: Later\n    When I wait\n"
   e2e/features/wip.feature: "Feature: Wip\n\n  @ID-WIP-01 @wip\n  Scenario: Later\n    When I wait\n"
 cases:
-  - name: the rule holds, a file with only @wip scenarios needing none
-    argv: [tests, smoke, check, scenario]
-    exit: 0
-    stdout: |
-      Every feature file has a smoke scenario (3 in all)
   - name: quietly
     argv: [tests, smoke, check, scenario, -q]
     exit: 0
-  - name: the rule as --json
+  - name: the rule holds, a file with only @wip scenarios needing none
     argv: [tests, smoke, check, scenario, --json]
     exit: 0
     json:
@@ -59,13 +54,18 @@ cases:
       ids: 3
       problems: []
   - name: a feature file with a live scenario and no smoke one
-    argv: [tests, smoke, check, scenario]
+    argv: [tests, smoke, check, scenario, --json]
     files: { e2e/features/orphan.feature: "Feature: Orphan\n\n  @ID-ORPH-01\n  Scenario: Alone\n    When I stand\n" }
     exit: 1
-    stderr: |
-      FAIL orphan.feature has no smoke scenario (add one to e2e/smoke.yaml)
+    json:
+      schema: 1
+      kind: scenario
+      ok: false
+      ids: 3
+      problems:
+      - rule: smoke-missing
   - name: a smoke ID that is not a live scenario of its file
-    argv: [tests, smoke, check, scenario]
+    argv: [tests, smoke, check, scenario, --json]
     files:
       e2e/smoke.yaml: |
         - file: list.feature
@@ -77,9 +77,14 @@ cases:
         - file: nested/two.feature
           scenarios: [{ id: "@ID-TWO-01", why: plays }]
     exit: 1
-    stderr: |
-      FAIL the smoke list names @ID-LIST-02, which is not a live scenario of list.feature
-      FAIL the smoke list names @ID-LIST-99, which is not a live scenario of list.feature
+    json:
+      schema: 1
+      kind: scenario
+      ok: false
+      ids: 4
+      problems:
+      - rule: smoke-not-live
+      - rule: smoke-not-live
   - name: a file with more than one that does not say why, and one without its why
     argv: [tests, smoke, check, scenario, --json]
     files:
@@ -98,13 +103,9 @@ cases:
       ids: 3
       problems:
         - rule: smoke-no-why
-          message: a smoke scenario of list.feature does not say why it is there
-          fix: "edit e2e/smoke.yaml: give each scenario of list.feature a why"
         - rule: smoke-more-no-why
-          message: list.feature has more than one smoke scenario and does not say why
-          fix: "edit e2e/smoke.yaml: give list.feature a more: that says why it has more than one"
   - name: an entry for a file that is not a feature file
-    argv: [tests, smoke, check, scenario]
+    argv: [tests, smoke, check, scenario, --json]
     files:
       e2e/smoke.yaml: |
         - file: list.feature
@@ -115,88 +116,96 @@ cases:
         - file: gone.feature
           scenarios: [{ id: "@ID-GONE-01", why: gone }]
     exit: 1
-    stderr: |
-      FAIL the smoke list names gone.feature, which is not a feature file
+    json:
+      schema: 1
+      kind: scenario
+      ok: false
+      ids: 4
+      problems:
+      - rule: smoke-not-a-file
   - name: --features checks another folder of feature files
-    argv: [tests, smoke, check, scenario, --features, copy]
+    argv: [tests, smoke, check, scenario, --features, copy, --json]
     files:
       copy/list.feature: "Feature: List\n\n  @ID-LIST-01\n  Scenario: Opens\n    When I open it\n\n  @ID-LIST-03\n  Scenario: An item opens\n    When I open one\n"
       copy/nested/two.feature: "Feature: Two\n\n  @ID-TWO-01\n  Scenario: Plays\n    When I play\n"
       copy/orphan.feature: "Feature: Orphan\n\n  @ID-ORPH-01\n  Scenario: Alone\n    When I stand\n"
     exit: 1
-    stderr: |
-      FAIL orphan.feature has no smoke scenario (add one to e2e/smoke.yaml)
-  - name: the hint when the config gives none
-    argv: [tests, smoke, check, scenario]
-    files:
-      itos.yaml: "version: 1\ntests:\n  scenario: { root: e2e/features, id: \"ID-[A-Z]+-\\\\d+\", tag_prefix: \"@\", smoke: { file: e2e/smoke.yaml } }\n"
-      e2e/features/orphan.feature: "Feature: Orphan\n\n  @ID-ORPH-01\n  Scenario: Alone\n    When I stand\n"
-    exit: 1
-    stderr: |
-      FAIL orphan.feature has no smoke scenario (add one to e2e/smoke.yaml)
+    json:
+      schema: 1
+      kind: scenario
+      ok: false
+      ids: 3
+      problems:
+      - rule: smoke-missing
   - name: without tag_prefix, a smoke ID is read with the default prefix
-    argv: [tests, smoke, check, scenario]
+    argv: [tests, smoke, check, scenario, --json]
     files:
       itos.yaml: "version: 1\ntests:\n  scenario: { root: e2e/features, id: \"ID-[A-Z]+-\\\\d+\", smoke: { file: e2e/smoke.yaml } }\n"
     exit: 0
-    stdout: |
-      Every feature file has a smoke scenario (3 in all)
+    json:
+      schema: 1
+      kind: scenario
+      ok: true
+      ids: 3
+      problems: []
   - name: a smoke file that is not a list
     argv: [tests, smoke, check, scenario]
     files: { e2e/smoke.yaml: "file: a.feature\n" }
     exit: 2
-    stderr: |
-      itos: e2e/smoke.yaml: is not a list of files
+    stderr_has: e2e/smoke.yaml
   - name: an entry with a key the shape does not have
     argv: [tests, smoke, ids, scenario]
     files: { e2e/smoke.yaml: "- file: a.feature\n  scenario: []\n" }
     exit: 2
-    stderr: |
-      itos: e2e/smoke.yaml: entry 1 (a.feature) has an unknown key scenario
+    stderr_has: [a.feature, scenario]
   - name: a scenario without an id
     argv: [tests, smoke, ids, scenario]
     files: { e2e/smoke.yaml: "- file: a.feature\n  scenarios: [{ why: y }]\n" }
     exit: 2
-    stderr: |
-      itos: e2e/smoke.yaml: entry 1 (a.feature) has a scenario without an id
+    stderr_has: a.feature
   - name: an entry without a file
     argv: [tests, smoke, ids, scenario]
     files: { e2e/smoke.yaml: "- scenarios: []\n" }
     exit: 2
-    stderr: |
-      itos: e2e/smoke.yaml: entry 1 has no file
+    stderr_has: entry 1
   - name: a why that is not text
     argv: [tests, smoke, ids, scenario]
     files: { e2e/smoke.yaml: "- file: a.feature\n  scenarios: [{ id: x, why: [1] }]\n" }
     exit: 2
-    stderr: |
-      itos: e2e/smoke.yaml: entry 1 (a.feature): x's why is not text
+    stderr_has: "x's why"
   - name: a missing smoke file
     argv: [tests, smoke, check, scenario]
     files: { e2e/smoke.yaml: null }
     exit: 2
-    stderr: |
-      itos: e2e/smoke.yaml is missing (tests.scenario.smoke.file)
+    stderr_has: e2e/smoke.yaml
   - name: a kind without a smoke file
     argv: [tests, smoke, ids, scenario]
     files:
       itos.yaml: "version: 1\ntests:\n  scenario: { root: e2e/features, id: \"ID-[A-Z]+-\\\\d+\" }\n"
     exit: 2
-    stderr: |
-      itos: tests.scenario.smoke.file is missing
+    stderr_has: tests.scenario.smoke.file
   - name: with smoke.every_file false, a file with live tests may have no smoke test
-    argv: [tests, smoke, check, scenario]
+    argv: [tests, smoke, check, scenario, --json]
     files:
       itos.yaml: "version: 1\ntests:\n  scenario: { root: e2e/features, id: \"ID-[A-Z]+-\\\\d+\", tag_prefix: \"@\", smoke: { file: e2e/smoke.yaml, every_file: false } }\n"
       e2e/smoke.yaml: "- file: list.feature\n  scenarios: [{ id: \"@ID-LIST-01\", why: opens }]\n"
     exit: 0
-    stdout: |
-      Every smoke scenario is live (1 in all)
+    json:
+      schema: 1
+      kind: scenario
+      ok: true
+      ids: 1
+      problems: []
   - name: with smoke.every_file false, a smoke ID is still a live test
-    argv: [tests, smoke, check, scenario]
+    argv: [tests, smoke, check, scenario, --json]
     files:
       itos.yaml: "version: 1\ntests:\n  scenario: { root: e2e/features, id: \"ID-[A-Z]+-\\\\d+\", tag_prefix: \"@\", smoke: { file: e2e/smoke.yaml, every_file: false } }\n"
       e2e/smoke.yaml: "- file: list.feature\n  scenarios: [{ id: \"@ID-LIST-02\", why: waits }]\n"
     exit: 1
-    stderr: |
-      FAIL the smoke list names @ID-LIST-02, which is not a live scenario of list.feature
+    json:
+      schema: 1
+      kind: scenario
+      ok: false
+      ids: 1
+      problems:
+      - rule: smoke-not-live

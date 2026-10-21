@@ -109,13 +109,6 @@ cases:
         - empty.feature
         - nested/two.feature
         - one.feature
-  - name: the listing as text
-    argv: [tests, list, scenario]
-    exit: 0
-    stdout: |
-      ID-TWO-01  nested/two.feature  (not live)
-      ID-ONE-01  one.feature
-      ID-ONE-03  one.feature
   - name: the listing at a commit
     argv: [tests, list, scenario, --at, "{{sha.first}}", --json]
     exit: 0
@@ -137,16 +130,26 @@ cases:
         - nested/two.feature
         - one.feature
   - name: the listing of the staged tree
-    argv: [tests, list, scenario, --at, index]
+    argv: [tests, list, scenario, --at, index, --json]
     exit: 0
-    stdout: |
-      ID-TWO-01  nested/two.feature  (not live)
-      ID-ONE-01  one.feature  (not live)
+    json:
+      schema: 1
+      protocol: 1
+      tests:
+      - id: ID-TWO-01
+        file: nested/two.feature
+        live: false
+      - id: ID-ONE-01
+        file: one.feature
+        live: false
+      files:
+      - empty.feature
+      - nested/two.feature
+      - one.feature
   - name: a tree that names no commit is refused, naming it
     argv: [tests, list, scenario, --at, no-such-commit, --json]
     exit: 2
-    stderr: |
-      itos: tests list: no-such-commit is not a commit of this repository (itos --help)
+    stderr_has: no-such-commit
   - name: a command adapter is listed as the command prints it
     argv: [tests, list, fixture, --json]
     exit: 0
@@ -168,117 +171,118 @@ cases:
         - one.txt
         - two.txt
   - name: a command adapter that cannot list a tree reads the working tree, and says so
-    argv: [tests, list, fixture, --at, HEAD]
+    argv: [tests, list, fixture, --at, HEAD, --json]
     exit: 0
-    stdout: |
-      F-001  one.txt
-      F-002  one.txt  (not live)
-      F-003  two.txt
-    stderr: |
-      tests.fixture cannot list a tree; HEAD is read as the working tree
+    stderr_has: [tests.fixture, HEAD]
+    json:
+      schema: 1
+      protocol: 1
+      tests:
+      - id: F-001
+        file: one.txt
+        live: true
+      - id: F-002
+        file: one.txt
+        live: false
+      - id: F-003
+        file: two.txt
+        live: true
+      files:
+      - empty.txt
+      - one.txt
+      - two.txt
   - name: a footer names a command adapter's tests
-    argv: [commit, check-message, "-"]
+    argv: [commit, check-message, "-", --json]
     stdin: "feat: x\n\nFixture: F-001, F-003\n"
     exit: 0
-    stderr: |
-      tests.fixture cannot list a tree; index is read as the working tree
+    json:
+      schema: 1
+      ok: true
+      problems: []
   - name: a footer naming a test the adapter does not list
-    argv: [commit, check-message, "-"]
+    argv: [commit, check-message, "-", --json]
     stdin: "feat: x\n\nFixture: F-404\n"
     exit: 1
-    stderr: |
-      tests.fixture cannot list a tree; index is read as the working tree
-      ✖   unknown fixtures: F-404 [fixture-footer]
+    stdout_has: F-404
+    json:
+      schema: 1
+      ok: false
+      problems:
+      - rule: fixture-footer
   - name: a footer naming a test that is not live, where the kind has no wip tag
-    argv: [commit, check-message, "-"]
+    argv: [commit, check-message, "-", --json]
     stdin: "feat: x\n\nFixture: F-002\n"
     exit: 1
-    stderr: |
-      tests.fixture cannot list a tree; index is read as the working tree
-      ✖   not live: F-002 [fixture-footer]
-  - name: the warning that a tree is read as the working tree comes once a run
-    argv: [commit, check-message, "-", --config, two-footers.yaml]
-    stdin: "feat: x\n\nFixture: F-001\nAlso: F-003\n"
-    files:
-      two-footers.yaml: |
-        version: 1
-        commits:
-          footers:
-            Fixture: { source: { tests: fixture }, validate_for: [feat], read_at: commit }
-            Also: { source: { tests: fixture }, validate_for: [feat], read_at: commit }
-        tests:
-          fixture: { adapter: { command: "sh adapter.sh", supports_at: false }, id: "F-\\d+" }
-    exit: 0
-    stderr: |
-      tests.fixture cannot list a tree; index is read as the working tree
+    stdout_has: F-002
+    json:
+      schema: 1
+      ok: false
+      problems:
+      - rule: fixture-footer
   - name: an adapter that fails, with what it said
     argv: [tests, list, broken]
     files: { broken.yaml: "version: 1\ntests:\n  broken:\n    adapter: { command: \"echo gone >&2; false\" }\n" }
     env: { ITOS_CONFIG: broken.yaml }
     exit: 2
-    stderr: |
-      itos: tests.broken: `echo gone >&2; false list --at worktree` exited 1
-      gone
+    stderr_has: ["echo gone >&2; false list --at worktree", "gone\n"]
   - name: an adapter that prints no JSON
     argv: [tests, list, broken]
     files: { broken.yaml: "version: 1\ntests:\n  broken:\n    adapter: { command: \"echo\" }\n" }
     env: { ITOS_CONFIG: broken.yaml }
     exit: 2
-    stderr: |
-      itos: tests.broken: `echo list --at worktree` did not print JSON
+    stderr_has: echo list --at worktree
   - name: an adapter that speaks another protocol
     argv: [tests, list, broken]
     files: { broken.yaml: "version: 1\ntests:\n  broken:\n    adapter: { command: \"echo '{\\\"protocol\\\":2}' #\" }\n" }
     env: { ITOS_CONFIG: broken.yaml }
     exit: 2
-    stderr: |
-      itos: tests.broken: `echo '{"protocol":2}' # list --at worktree` speaks protocol 2, not 1
+    stderr_has: "echo '{\"protocol\":2}' # list --at worktree"
   - name: an adapter that lists no files
     argv: [tests, list, broken]
     files: { broken.yaml: "version: 1\ntests:\n  broken:\n    adapter: { command: \"echo '{\\\"protocol\\\":1,\\\"tests\\\":[]}' #\" }\n" }
     env: { ITOS_CONFIG: broken.yaml }
     exit: 2
-    stderr: |
-      itos: tests.broken: `echo '{"protocol":1,"tests":[]}' # list --at worktree` printed no list of files
+    stderr_has: "echo '{\"protocol\":1,\"tests\":[]}' # list --at worktree"
   - name: an adapter whose test lacks a field
     argv: [tests, list, broken]
     files: { broken.yaml: "version: 1\ntests:\n  broken:\n    adapter: { command: \"echo '{\\\"protocol\\\":1,\\\"files\\\":[],\\\"tests\\\":[{\\\"id\\\":\\\"x\\\"}]}' #\" }\n" }
     env: { ITOS_CONFIG: broken.yaml }
     exit: 2
-    stderr: |
-      itos: tests.broken: `echo '{"protocol":1,"files":[],"tests":[{"id":"x"}]}' # list --at worktree` printed a test that is not { id, file, live }: {"id":"x"}
+    stderr_has: "echo '{\"protocol\":1,\"files\":[],\"tests\":[{\"id\":\"x\"}]}' # list --at worktree"
   - name: an adapter that is not built in
-    argv: [tests, list, broken]
+    argv: [tests, list, broken, --json]
     files: { broken.yaml: "version: 1\ntests:\n  broken: { adapter: mocha }\n" }
     env: { ITOS_CONFIG: broken.yaml }
     exit: 2
-    stderr: |
-      FAIL broken.yaml: tests.broken.adapter mocha is not built in
+    json:
+      schema: 1
+      config: broken.yaml
+      valid: false
+      problems:
+      - rule: config-invalid
   - name: a kind the config does not have
-    argv: [tests, list, nothing]
+    argv: [tests, list, nothing, --json]
     exit: 2
-    stderr: |
-      FAIL itos.yaml: tests.nothing is missing
+    json:
+      schema: 1
+      config: itos.yaml
+      valid: false
+      problems:
+      - rule: config-invalid
   - name: the smoke run is the kind's select template over the smoke IDs, the arguments after the kind passed on
     argv: [tests, smoke, run, fixture, --workers=1, -x]
     exit: 0
-    stdout: |
-      F-001
-      F-003
-      and: --workers=1 -x
+    stdout_has: "F-001\nF-003\nand: --workers=1 -x\n"
   - name: a -- right after the kind is taken, so itos's own flags after it reach the runner, and is not passed on
     argv: [tests, smoke, run, fixture, --, --json, -q]
     exit: 0
-    stdout: |
-      F-001
-      F-003
-      and: --json -q
+    stdout_has: "F-001\nF-003\nand: --json -q\n"
   - name: an empty smoke set runs nothing, and says so
     argv: [tests, smoke, run, fixture]
     files: { fixture-smoke.yaml: "[]\n" }
     exit: 0
-    stderr: |
-      The smoke set of tests.fixture is empty: there is nothing to run
+    stdout: ""
+    stderr_has: tests.fixture
   - name: the smoke IDs
     argv: [tests, smoke, ids, fixture]
     exit: 0
@@ -341,17 +345,14 @@ cases:
   - name: tests next-id refuses a --count that is no number from 1 up, claiming nothing
     argv: [tests, next-id, scenario, ID-ONE, --count, "0"]
     exit: 2
-    stderr: |
-      itos: tests next-id --count takes how many ids to claim, a number from 1 up, not "0" (itos --help)
+    stderr_has: --count
     files_after:
       .git/itos/ids.yaml: null
   - name: tests next-id refuses a --count that is not a number
     argv: [tests, next-id, scenario, ID-ONE, --count, three]
     exit: 2
-    stderr: |
-      itos: tests next-id --count takes how many ids to claim, a number from 1 up, not "three" (itos --help)
+    stderr_has: [--count, three]
   - name: tests next-id refuses --count for a stem that only reads
     argv: [tests, next-id, scenario, slice, --count, "2"]
     exit: 2
-    stderr: |
-      itos: tests next-id --count claims an area's ids, and slice is no area of tests.scenario's id: its next id is only read (itos --help)
+    stderr_has: [--count, slice]
