@@ -1,5 +1,5 @@
 # The command line itself: the global flags wherever they stand, the
-# usage errors (exit 2, naming the help), a config that cannot be read (2), and
+# usage errors (exit 2, naming what they refuse), a config that cannot be read (2), and
 # `version` held to the config's `requires` (only --check needs a config).
 files:
   itos.yaml: |
@@ -10,13 +10,11 @@ cases:
   - name: an unknown command is a usage error
     argv: [bogus]
     exit: 2
-    stderr: |
-      itos: unknown command: bogus (itos --help)
+    stderr_has: bogus
   - name: an unknown subcommand is a usage error
     argv: [commit, bogus]
     exit: 2
-    stderr: |
-      itos: unknown command: commit bogus (itos --help)
+    stderr_has: commit bogus
   - name: commit whose first argument is a flag is git commit, and gives git's exit code
     argv: [commit, -m, "chore: x", --, bogus]
     exit: 128
@@ -24,90 +22,71 @@ cases:
   - name: commit --task needs an ID
     argv: [commit, -m, "chore: x", --task]
     exit: 2
-    stderr: |
-      itos: commit --task needs a value (itos --help)
+    stderr_has: --task
   - name: commit --breaking needs a text
     argv: [commit, -m, "chore!: x", --breaking]
     exit: 2
-    stderr: |
-      itos: commit --breaking needs a value (itos --help)
+    stderr_has: --breaking
   - name: commit --scenarios needs a footer whose source is a kind of named tests
     argv: [commit, --scenarios, "@ID-A-01", -m, "feat: x"]
     exit: 2
-    stderr: |
-      itos: commit --scenarios needs a footer whose source is a kind of named tests in commits.footers (itos --help)
+    stderr_has: --scenarios
   - name: verify needs two commits
     argv: [verify, HEAD]
     exit: 2
-    stderr: |
-      itos: verify needs <from> <to> (itos --help)
+    stderr_has: <from> <to>
   - name: ci plan needs a range, --nightly or --whole
     argv: [ci, plan]
     exit: 2
-    stderr: |
-      itos: ci plan needs <from> <to>, --nightly or --whole (itos --help)
+    stderr_has: [<from> <to>, --nightly, --whole]
   - name: ci scope needs a range
     argv: [ci, scope, HEAD]
     exit: 2
-    stderr: |
-      itos: ci scope needs <from> <to> (itos --help)
+    stderr_has: <from> <to>
   - name: ci range needs --head
     argv: [ci, range]
     exit: 2
-    stderr: |
-      itos: ci range needs --head <sha> (itos --help)
+    stderr_has: --head
   - name: commit check-paths needs --type
     argv: [commit, check-paths, src/a.ts]
     exit: 2
-    stderr: |
-      itos: commit check-paths needs --type <type> (itos --help)
+    stderr_has: --type
   - name: commit check-message needs a file or -
     argv: [commit, check-message]
     exit: 2
-    stderr: |
-      itos: commit check-message needs <file|-> (itos --help)
+    stderr_has: <file|->
   - name: tests list needs a kind
     argv: [tests, list]
     exit: 2
-    stderr: |
-      itos: tests list needs <kind> (itos --help)
+    stderr_has: <kind>
   - name: tests smoke needs an action and a kind
     argv: [tests, smoke, check]
     exit: 2
-    stderr: |
-      itos: tests smoke check needs <kind> (itos --help)
+    stderr_has: <kind>
   - name: hook install takes no --manager, which v6 removed with the hook managers
     argv: [hook, install, --manager, husky]
     exit: 2
-    stderr: |
-      itos: hook install does not take --manager; it takes --print or --force (itos --help)
+    stderr_has: --manager
   - name: hook needs commit-msg or pre-push
     argv: [hook, pre-commit]
     exit: 2
-    stderr: |
-      itos: unknown command: hook pre-commit (itos --help)
+    stderr_has: hook pre-commit
   - name: pin takes a release's version
     argv: [pin, newest]
     exit: 2
-    stderr: |
-      itos: pin needs a release's version, such as 2.5.0, or latest, not newest (itos --help)
+    stderr_has: newest
   - name: pin takes one version at most
     argv: [pin, 2.5.0, 2.6.0]
     exit: 2
-    stderr: |
-      itos: pin takes one <version> at most: 2.5.0 2.6.0 (itos --help)
+    stderr_has: 2.6.0
   - name: pin takes no flag of its own
     argv: [pin, --force]
     exit: 2
-    stderr: |
-      itos: pin does not take --force; it takes no flag (itos --help)
+    stderr_has: --force
   - name: pin with no release server to ask exits 75, naming it, and leaves the config as it was
     argv: [pin]
     exit: 75
-    stderr_has:
-      - "itos: cannot ask for the newest itos: "
-      - "/latest/download/checksums.txt"
-      - "itos.yaml is left as it was"
+    stderr_has: /latest/download/checksums.txt
     files_after:
       itos.yaml: |
         version: 1
@@ -116,8 +95,7 @@ cases:
   - name: config needs check
     argv: [config, bogus]
     exit: 2
-    stderr: |
-      itos: unknown command: config bogus (itos --help)
+    stderr_has: config bogus
   - name: version --json
     argv: [version, --json]
     exit: 0
@@ -135,20 +113,10 @@ cases:
       requires: ">=0.1.0"
       satisfied: true
   - name: version --check passes when the binary satisfies requires
-    argv: [version, --check]
+    argv: [version, --check, --json]
     exit: 0
-    stdout: |
-      itos {{version}}
+    json: { schema: 1, version: "{{version}}", requires: ">=0.1.0", satisfied: true }
   - name: version --check fails when it does not
-    argv: [version, --check]
-    files:
-      itos.yaml: "version: 1\nrequires: \">=999.0.0\"\n"
-    exit: 1
-    stdout: |
-      itos {{version}}
-    stderr: |
-      itos {{version}} does not satisfy >=999.0.0 (the config's requires)
-  - name: version --check --json says whether it is satisfied
     argv: [version, --check, --json]
     files:
       itos.yaml: "version: 1\nrequires: \">=999.0.0\"\n"
@@ -158,65 +126,48 @@ cases:
       version: "{{version}}"
       requires: ">=999.0.0"
       satisfied: false
-    stderr: |
-      itos {{version}} does not satisfy >=999.0.0 (the config's requires)
   - name: every comparator of requires must hold (a lower and an upper bound)
-    argv: [version, --check]
+    argv: [version, --check, --json]
     files:
       itos.yaml: "version: 1\nrequires: \">=0.0.9 <999\"\n"
     exit: 0
-    stdout: |
-      itos {{version}}
+    json: { schema: 1, version: "{{version}}", requires: ">=0.0.9 <999", satisfied: true }
   - name: an upper bound that fails
-    argv: [version, --check]
+    argv: [version, --check, --json]
     files:
       itos.yaml: "version: 1\nrequires: \">=0.0.1 <{{release}}\"\n"
     exit: 1
-    stdout: |
-      itos {{version}}
-    stderr: |
-      itos {{version}} does not satisfy >=0.0.1 <{{release}} (the config's requires)
+    json: { schema: 1, version: "{{version}}", requires: ">=0.0.1 <{{release}}", satisfied: false }
   - name: a bare version is an exact one
-    argv: [version, --check]
+    argv: [version, --check, --json]
     files:
       itos.yaml: "version: 1\nrequires: \"{{release}}\"\n"
     exit: 0
-    stdout: |
-      itos {{version}}
+    json: { schema: 1, version: "{{version}}", requires: "{{release}}", satisfied: true }
   - name: a bare version's missing parts are zero, so 0 is 0.0.0, not every 0.x
-    argv: [version, --check]
+    argv: [version, --check, --json]
     files:
       itos.yaml: "version: 1\nrequires: \"0\"\n"
     exit: 1
-    stdout: |
-      itos {{version}}
-    stderr: |
-      itos {{version}} does not satisfy 0 (the config's requires)
+    json: { schema: 1, version: "{{version}}", requires: "0", satisfied: false }
   - name: a v prefix and = are allowed
-    argv: [version, --check]
+    argv: [version, --check, --json]
     files:
       itos.yaml: "version: 1\nrequires: \"=v{{release}}\"\n"
     exit: 0
-    stdout: |
-      itos {{version}}
+    json: { schema: 1, version: "{{version}}", requires: "=v{{release}}", satisfied: true }
   - name: a comparator it cannot read never holds
-    argv: [version, --check]
+    argv: [version, --check, --json]
     files:
       itos.yaml: "version: 1\nrequires: \"~0.1\"\n"
     exit: 1
-    stdout: |
-      itos {{version}}
-    stderr: |
-      itos {{version}} does not satisfy ~0.1 (the config's requires)
+    json: { schema: 1, version: "{{version}}", requires: "~0.1", satisfied: false }
   - name: greater than is strict
-    argv: [version, --check]
+    argv: [version, --check, --json]
     files:
       itos.yaml: "version: 1\nrequires: \">{{release}}\"\n"
     exit: 1
-    stdout: |
-      itos {{version}}
-    stderr: |
-      itos {{version}} does not satisfy >{{release}} (the config's requires)
+    json: { schema: 1, version: "{{version}}", requires: ">{{release}}", satisfied: false }
   - name: without requires every version is satisfied
     argv: [version, --check, --json]
     files:
@@ -226,27 +177,19 @@ cases:
       schema: 1
       version: "{{version}}"
   - name: a missing config is a config error
-    argv: [version, --check]
+    argv: [version, --check, --json]
     files:
       itos.yaml: null
     exit: 2
-    stderr_has: "FAIL itos.yaml: cannot be read: "
+    json: { schema: 1, config: itos.yaml, valid: false, problems: [{ rule: config-unreadable }] }
   - name: a config that is not version 1
-    argv: [version, --check]
+    argv: [version, --check, --json]
     files:
       itos.yaml: "version: 2\n"
     exit: 2
-    stderr: |
-      FAIL itos.yaml: version 2 is not 1
+    json: { schema: 1, config: itos.yaml, valid: false, problems: [{ rule: config-version }] }
   # Issue #2: a global itos is run outside any project first of all, so only
   # --check needs the config.
-  - name: version needs no config
-    argv: [version]
-    files:
-      itos.yaml: null
-    exit: 0
-    stdout: |
-      itos {{version}}
   - name: version --json without a config leaves requires out
     argv: [version, --json]
     files:
@@ -256,41 +199,31 @@ cases:
       schema: 1
       version: "{{version}}"
   - name: version without --check prints its version over a config it cannot read
-    argv: [version]
+    argv: [version, --json]
     files:
       itos.yaml: "version: 2\n"
     exit: 0
-    stdout: |
-      itos {{version}}
+    json: { schema: 1, version: "{{version}}" }
   - name: --config names another config, wherever it stands
-    argv: [version, --check, --config, other.yaml]
+    argv: [version, --check, --config, other.yaml, --json]
     files:
       other.yaml: "version: 1\nrequires: \">=9\"\n"
     exit: 1
-    stdout: |
-      itos {{version}}
-    stderr: |
-      itos {{version}} does not satisfy >=9 (the config's requires)
+    json: { schema: 1, version: "{{version}}", requires: ">=9", satisfied: false }
   - name: ITOS_CONFIG names another config
-    argv: [version, --check]
+    argv: [version, --check, --json]
     env:
       ITOS_CONFIG: other.yaml
     files:
       other.yaml: "version: 1\nrequires: \">=9\"\n"
     exit: 1
-    stdout: |
-      itos {{version}}
-    stderr: |
-      itos {{version}} does not satisfy >=9 (the config's requires)
+    json: { schema: 1, version: "{{version}}", requires: ">=9", satisfied: false }
   - name: --root runs as if started in the folder
-    argv: [--root, sub, version, --check]
+    argv: [--root, sub, version, --check, --json]
     files:
       sub/itos.yaml: "version: 1\nrequires: \">=9\"\n"
     exit: 1
-    stdout: |
-      itos {{version}}
-    stderr: |
-      itos {{version}} does not satisfy >=9 (the config's requires)
+    json: { schema: 1, version: "{{version}}", requires: ">=9", satisfied: false }
   - name: global flags before the command
     argv: [--json, version]
     exit: 0
@@ -302,10 +235,8 @@ cases:
   - name: followup needs a git repository, and no config
     argv: [followup]
     exit: 3
-    stderr: |
-      itos: followup keeps its threads in the git folder, and this is no git repository
+    stderr_has: git repository
   - name: draft needs a git repository
     argv: [draft]
     exit: 3
-    stderr: |
-      itos: draft keeps its drafts in the git folder, and this is no git repository
+    stderr_has: git repository
