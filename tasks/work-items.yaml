@@ -11216,7 +11216,7 @@ items:
   - id: T-208
     title: The corpus runner prints a case's actual output, so a case can be converted without a probe
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
