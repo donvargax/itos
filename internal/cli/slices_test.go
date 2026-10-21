@@ -82,6 +82,12 @@ func TestFollowupPorts(t *testing.T) {
 	if code, _, stderr := run("followup", "add", "a", "--with", "ana", "--title", "T", "--note", "N"); code != 0 || stderr != "" {
 		t.Fatalf("followup add: exit %d, stderr %q", code, stderr)
 	}
+	// Git names the folder by its long, resolved spelling; a Windows
+	// runner's temp dir may be an 8.3 short one.
+	dir, err := filepath.EvalSymlinks(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
 	file := filepath.Join(dir, ".git", "itos", "follow-ups.yaml")
 	text, err := os.ReadFile(file)
 	if err != nil {
