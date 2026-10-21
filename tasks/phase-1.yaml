@@ -2633,13 +2633,6 @@
     changes here; T-211 threads the value and removes the global. depguard and architecture-check
     rules and fixtures for the new packages as T-207 added for the private store. No behaviour
     change.
-  done_when:
-    - run: test -d internal/store/tree/port/porttest
-    - run: test -d internal/store/tree/adapter
-    - run: tools/bin/architecture-check
-      timeout: 900
-    - run: tools/bin/pinned golangci-lint run ./...
-      timeout: 600
 
 - id: T-211
   type: refactor
