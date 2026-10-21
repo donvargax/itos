@@ -11083,3 +11083,11 @@ items:
     status: todo
     depends_on: []
     kind: task
+
+  - id: T-203
+    title: The config and ci-run corpus files pin only the contract
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task
