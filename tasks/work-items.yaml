@@ -11241,3 +11241,11 @@ items:
     status: todo
     depends_on: []
     kind: task
+
+  - id: T-211
+    title: The tree reader's value is passed to every reader, and internal/source's global current is gone
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task

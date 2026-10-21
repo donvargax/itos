@@ -2662,3 +2662,21 @@
       timeout: 900
     - run: tools/bin/pinned golangci-lint run ./...
       timeout: 600
+
+- id: T-211
+  type: refactor
+  title: The tree reader's value is passed to every reader, and internal/source's global current is gone
+  why: >
+    ADR-0053, step 6, after T-210: the package-global current source swapped by ReadingFrom is why a
+    command cannot run twice in one process and why the commit-msg hook's staged reading is a global
+    switch. Each reader takes the tree port's value instead (about 40 call sites in config.Load and
+    its locating, ledger, work, adr, tests, message, plan, providers.People, the hooks and
+    internal/cli), from a Reading value or a parameter, the commit-msg hook passing the index tree
+    and everything else the working tree. config's locating (rev-parse, merge-base, the .git and
+    commondir reads) stays where it is until the VCS port, but reads files through the value.
+    internal/source's Current, ReadingFrom and package-level Has, Read and List are deleted. No
+    behaviour change: the scenarios, corpus and previous-release hold it.
+  done_when:
+    - run: "! grep -rn \"source\\.ReadingFrom\\|source\\.Current()\" internal cmd"
+    - run: go test -count=1 ./internal/... ./cmd/...
+      timeout: 900
