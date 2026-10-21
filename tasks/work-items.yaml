@@ -11051,3 +11051,11 @@ items:
     status: todo
     depends_on: []
     kind: task
+
+  - id: T-199
+    title: "The small corpus files pin only the contract: globs, scopes, range, plans, push, watch, smoke, tests"
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task
