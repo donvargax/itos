@@ -73,14 +73,12 @@ cases:
       guide: coordinate
       notes: .git/itos/notes.md
   - name: config get gives a stealth config's guide.orchestrating beside it
-    argv: [config, get, guide.orchestrating]
+    argv: [config, get, guide.orchestrating, --json]
     git: []
     files:
       .git/itos/itos.yaml: "version: 1\n"
     exit: 0
-    stdout_contract: true
-    stdout: |
-      .git/itos/docs/ORCHESTRATING.md
+    json: { schema: 1, key: guide.orchestrating, value: .git/itos/docs/ORCHESTRATING.md }
   - name: guide with a name it has no guide by names those it has
     argv: [guide, review]
     exit: 2

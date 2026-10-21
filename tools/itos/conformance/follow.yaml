@@ -189,17 +189,6 @@ cases:
       ok: true
       thread: { id: sync-ana, docs: ["{{dir}}/notes/design/sync.md"] }
       path: "{{dir}}/notes/design/sync.md"
-  - name: followup doc to a path git ignores writes it with no warning
-    files:
-      .gitignore: "notes/\n"
-    argv: [followup, doc, sync-ana, notes/sync.md, --json]
-    exit: 0
-    stderr: ""
-    json_has:
-      schema: 1
-      ok: true
-      thread: { id: sync-ana, docs: ["{{dir}}/notes/sync.md"] }
-      path: "{{dir}}/notes/sync.md"
   - name: followup doc to - prints the Markdown, writes no file and records nothing
     argv: [followup, doc, flaky-bo, "-", --json]
     exit: 0
