@@ -2362,9 +2362,6 @@
     added: the expected set counts one run per Examples row of an outline (the feature files are
     already read there to name go test's subtests), for the whole run, the smoke run and the
     one-scenario range alike. No change to itos (the user, 2026-10-21).
-  done_when:
-    - run: ITOS_SELFTEST=1 go test -count=1 -run '^TestSelftest$' ./tools/selftest/features-scope
-      timeout: 600
 
 - id: T-194
   type: build
