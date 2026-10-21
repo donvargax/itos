@@ -11151,6 +11151,12 @@ items:
       before the ledger existed has its Task: footer read against the working tree, which only the
       note on stderr says.
 
+      T-202 found more (2026-10-21). task list --json does not name the work registry it found
+      missing, which the note on stderr names. status --json gives last_green null both where no
+      green run is found and where none is read (ci.range's provider none); only the text says none
+      was found. init --json does not name .claude/settings.json, which a project-scope plugin
+      install writes, among what to commit.
+
   - id: p1-lint-itos-cc-linters
     title: Turn on the itos-cc linters the tree fails today
     phase: 1
