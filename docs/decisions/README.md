@@ -52,5 +52,6 @@ file and leaves this list, which itos decision record writes.
 - [ADR-0049: Every mutation site a change touches is judged by the nightly; a push samples one](0049-every-mutation-site-a-change-touches-is-judged-by-the-nightly-a-push-samples-one.md)
 - [ADR-0050: itos adopts go-template-itos as a linked project](0050-itos-adopts-go-template-itos-as-a-linked-project.md)
 - [ADR-0051: Each check runs at the cheapest tier that catches what it catches](0051-each-check-runs-at-the-cheapest-tier-that-catches-what-it-catches.md)
+- [ADR-0052: The corpus pins only the contract: exit codes, json less message and fix, and files written](0052-the-corpus-pins-only-the-contract-exit-codes-json-less-message-and-fix-and-files-written.md)
 
 <!-- itos:decisions:end -->
