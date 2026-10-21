@@ -71,6 +71,23 @@ Feature: itos push, the pull-rebase-push routine as one command
     And its output says "taken"
     And the remote's registry gives "slice-9" the owner "ana"
 
+  # Bug 118 (#107): two sessions that each add a different item append at the
+  # registry's end, so the rebase stops on a textual conflict though no item
+  # clashes. The take-clash advice, git rebase --skip, would drop the whole
+  # commit; with no clash the push says to keep both sides and continue.
+  # ID-PUSH-05's wording and advice for a real clash stay as they are.
+  @wip @ID-PUSH-15 @bug-118
+  Scenario: Two different items added on both sides are not called the same item, and nothing advises skipping
+    Given the work registry has the item "slice-9" owned by nobody with the status "todo"
+    And the remote has gained the commit "docs: add p1-from-ana" adding the idea "p1-from-ana" to the registry
+    And the clone has the commit "docs: add p1-from-bo" adding the idea "p1-from-bo" to the registry
+    When itos runs "push"
+    Then itos exits with code 1
+    And its output says "tasks/work-items.yaml"
+    And its output does not say "the same item"
+    And its output does not say "rebase --skip"
+    And its output says "rebase --continue"
+
   # git resolves HEAD before the pre-push hook runs, but itos push read HEAD
   # again after git push returned, so a commit made while the hook ran (its
   # unit tests take minutes) was named as pushed, and push waited on a CI run
