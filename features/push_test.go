@@ -4,7 +4,8 @@
 // the pre-push hook and hooks.pre_push's commands, a push of a new branch,
 // and what the remote's branches hold afterwards; two takes of one item of
 // the work registry, one the remote's and one the clone's, and the owner the
-// remote's registry gives it (slice 66); a tag on the remote's head, and a
+// remote's registry gives it (slice 66), or a new idea added on each side
+// (bug 118); a tag on the remote's head, and a
 // fetch of the remote into the clone (status.feature, slice 70); ci.range's
 // command printing one of the remote's commits (slice 73), the full SHA of
 // a commit of the remote's main by its header (bug 24's fake GitHub too), and
@@ -67,6 +68,8 @@ func initializePushSteps(sc *godog.ScenarioContext, w *world) {
 	sc.Step(`^the remote's branch has "([^"]*)"$`, w.remoteHas)
 	sc.Step(`^the remote has gained the commit "([^"]*)" making "([^"]*)" the owner of "([^"]*)"$`, w.remoteGainsTake)
 	sc.Step(`^the clone has the commit "([^"]*)" making "([^"]*)" the owner of "([^"]*)"$`, w.cloneTakes)
+	sc.Step(`^the remote has gained the commit "([^"]*)" adding the idea "([^"]*)" to the registry$`, w.remoteGainsIdea)
+	sc.Step(`^the clone has the commit "([^"]*)" adding the idea "([^"]*)" to the registry$`, w.cloneAddsIdea)
 	sc.Step(`^the remote's registry gives "([^"]*)" the owner "([^"]*)"$`, w.remoteRegistryOwner)
 	sc.Step(`^the clone has a commit no remote has that takes "([^"]*)" for "([^"]*)"$`, w.cloneTakesUnpushed)
 
@@ -348,11 +351,22 @@ func writeLine(dir, path, subject string) error {
 	return os.WriteFile(full, []byte("A line for "+subject+".\n"), 0o644)
 }
 
-// A take of the item pushed to the remote's main from another clone: the
-// clone's registry, as the scenario wrote it, pushed first, so both start
-// from it, then the item made the owner's and doing there, as itos work take
-// edits it, and committed and pushed past the hooks.
+// A take of the item pushed to the remote's main from another clone, as
+// remoteGainsRegistry commits it.
 func (w *world) remoteGainsTake(subject, owner, id string) error {
+	return w.remoteGainsRegistry(subject, func(dir string) error { return w.takeIn(dir, id, owner) })
+}
+
+// A new idea pushed to the remote's main from another clone, as
+// remoteGainsRegistry commits it.
+func (w *world) remoteGainsIdea(subject, id string) error {
+	return w.remoteGainsRegistry(subject, func(dir string) error { return w.addIdeaIn(dir, id) })
+}
+
+// The clone's registry, as the scenario wrote it, pushed to the remote's
+// main first, so both start from it, then edited in another clone by edit,
+// and committed and pushed past the hooks.
+func (w *world) remoteGainsRegistry(subject string, edit func(dir string) error) error {
 	if err := w.git("push", "-q", "--no-verify", "origin", "HEAD:refs/heads/main"); err != nil {
 		return err
 	}
@@ -369,7 +383,7 @@ func (w *world) remoteGainsTake(subject, owner, id string) error {
 			return err
 		}
 	}
-	if err := w.takeIn(other, id, owner); err != nil {
+	if err := edit(other); err != nil {
 		return err
 	}
 	if err := w.gitIn(other, "commit", "-q", "--no-verify", "-am", subject); err != nil {
@@ -380,7 +394,17 @@ func (w *world) remoteGainsTake(subject, owner, id string) error {
 
 // A take of the item committed in the clone, past the hooks.
 func (w *world) cloneTakes(subject, owner, id string) error {
-	if err := w.takeIn(w.dir, id, owner); err != nil {
+	return w.cloneCommitsRegistry(subject, func() error { return w.takeIn(w.dir, id, owner) })
+}
+
+// A new idea committed in the clone, past the hooks.
+func (w *world) cloneAddsIdea(subject, id string) error {
+	return w.cloneCommitsRegistry(subject, func() error { return w.addIdeaIn(w.dir, id) })
+}
+
+// The clone's registry edited by edit and committed alone, past the hooks.
+func (w *world) cloneCommitsRegistry(subject string, edit func() error) error {
+	if err := edit(); err != nil {
 		return err
 	}
 	path := w.data(startingRegistry)
@@ -440,6 +464,23 @@ func (w *world) takeIn(dir, id, owner string) error {
 		return fmt.Errorf("the registry in %s has no item %s:\n%s", dir, id, text)
 	}
 	return os.WriteFile(file, []byte(strings.Join(lines, "\n")), 0o644)
+}
+
+// The registry of the repository in dir with one more idea of phase 1, todo
+// and owned by nobody, its line after the last item's, where itos work add
+// puts one: two such ideas, one on each side, meet at the same place.
+func (w *world) addIdeaIn(dir, id string) error {
+	file := filepath.Join(dir, w.data(startingRegistry))
+	text, err := os.ReadFile(file)
+	if err != nil {
+		return err
+	}
+	line := fmt.Sprintf("  - { id: %s, title: %s, phase: 1, owner: null, status: todo, kind: idea, depends_on: [] }\n", id, id)
+	at := strings.Index(string(text), "\nqueue:")
+	if at < 0 {
+		return os.WriteFile(file, append(text, line...), 0o644)
+	}
+	return os.WriteFile(file, []byte(string(text[:at+1])+line+string(text[at+1:])), 0o644)
 }
 
 // The registry on the remote's main gives the item the owner.
