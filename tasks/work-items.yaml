@@ -11061,8 +11061,8 @@ items:
   - id: T-198
     title: "help.yaml pins only what help must do: exit 0, stdout, the subcommands named"
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
 
