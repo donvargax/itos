@@ -10979,21 +10979,9 @@ items:
     title: itos push tells an append clash in the registry from a same-item clash, and never advises rebase --skip for it
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: bug
-    why: >
-      Issue #107. When itos push's rebase stops on a conflict in the work registry, registryConflict
-      (internal/cli/push.go) always says a commit upstream changed the same item as yours and
-      advises git rebase --skip, even when work.Clashes finds no item both sides changed: two
-      sessions that each append a different new item (work add, promote, task add) conflict
-      textually at the registry's end every time. --skip then drops the agent's whole commit, its
-      new items or a close. The fix: with no clash, the message says both sides added or changed
-      different items, names none as taken, and says to keep both sides' items in the file, git add
-      it and git rebase --continue (or git rebase --abort to leave it); the take-clash wording and
-      its --skip advice (ID-PUSH-05) stay. Exit code and the --json problem rule unchanged. Out of
-      scope: merging the registry itself (p1-registry-merge) and the ledger's adjacent-hunk
-      conflicts (#107's comment, noted there).
     refs: [internal/cli/push.go, internal/work, features/push.feature]
 
   - id: p1-work-list-fields
