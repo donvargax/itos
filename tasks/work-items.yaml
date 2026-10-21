@@ -10879,8 +10879,8 @@ items:
   - id: bug-118
     title: itos push tells an append clash in the registry from a same-item clash, and never advises rebase --skip for it
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: bug
     why: >
