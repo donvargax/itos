@@ -11188,8 +11188,8 @@ items:
   - id: T-205
     title: The corpus runner leaves out only the top-level text key, and previous-release keeps the stdout of ADR-0054's script outputs
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
 
