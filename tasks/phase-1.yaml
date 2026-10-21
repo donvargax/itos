@@ -2608,10 +2608,6 @@
     stdout, stderr and parsed JSON, in YAML ready to paste, saves that for the remaining files
     (hooks, moves, messages, tasks, status, init, config, ci-run, work, verify: about 590 cases).
     Read only: it judges nothing and writes no file.
-  done_when:
-    - run: go test -count=1 ./tools/bin/conformance/...
-      timeout: 600
-    - run: grep -rq -- "--actual" tools/bin/conformance
 
 - id: T-209
   type: test

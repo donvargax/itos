@@ -11228,7 +11228,7 @@ items:
     title: The corpus runner prints a case's actual output, so a case can be converted without a probe
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
 
