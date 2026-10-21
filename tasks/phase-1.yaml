@@ -2533,3 +2533,22 @@
     - run: go run ./tools/bin/conformance --bin tools/bin/itos --only tools/itos/conformance/hooks.yaml tools/itos/conformance/moves.yaml tools/itos/conformance/messages.yaml
       timeout: 900
     - run: "! grep -nE '^ +(stdout|stderr):' tools/itos/conformance/moves.yaml tools/itos/conformance/messages.yaml"
+
+- id: T-202
+  type: test
+  title: The tasks, status and init corpus files pin only the contract
+  why: >
+    ADR-0052 and ADR-0054, after T-197's runner: each case pins only the contract. A case checking
+    behaviour through text converts to json: (or json_has:), exit and files_after, adding --json
+    where the command has it; a case checking only wording, or with a --json twin over the same
+    argv, is deleted; a usage case keeps its exit code and a loose stderr_has naming the offending
+    flag or argument; a case whose command prints no JSON (or prints JSON lacking the fact) keeps at
+    most a loose stdout_has or stderr_has on its key fact, and the missing JSON is listed in
+    p1-json-gaps; output from a child process (a task check, git, a hook) stays a loose _has.
+    ADR-0054's script outputs (ci scope docs_only=, ci range FROM= TO=, config get, tests next-id,
+    tests smoke ids) and guard claude-code's hook JSON keep their exact pins. No product change;
+    previous-release is unaffected until the next release. Files: tasks.yaml status.yaml init.yaml.
+  done_when:
+    - run: go run ./tools/bin/conformance --bin tools/bin/itos --only tools/itos/conformance/tasks.yaml tools/itos/conformance/status.yaml tools/itos/conformance/init.yaml
+      timeout: 900
+    - run: "! grep -nE '^ +(stdout|stderr):' tools/itos/conformance/tasks.yaml tools/itos/conformance/status.yaml tools/itos/conformance/init.yaml"

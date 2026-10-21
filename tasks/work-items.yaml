@@ -11075,3 +11075,11 @@ items:
     status: todo
     depends_on: []
     kind: task
+
+  - id: T-202
+    title: The tasks, status and init corpus files pin only the contract
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task
