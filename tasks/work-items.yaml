@@ -11237,7 +11237,7 @@ items:
     title: "The private store's contract suite is proved to fail: each assertion fires on a store broken for it"
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
 

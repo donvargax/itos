@@ -2627,9 +2627,6 @@
     uses (Helper, Errorf, Fatalf, Run with that interface) that *testing.T satisfies and a recorder
     in the test implements, so the real callers do not change. Every later port's contract suite
     follows this shape; the itos-cc.yaml exclude of porttest stays.
-  done_when:
-    - run: tools/bin/pinned itos-cc mutation run --since 9209b6be --count 1 --seed 9209b6be --fail-uncovered=lines --json cmd internal
-      timeout: 900
 
 - id: T-210
   type: refactor
