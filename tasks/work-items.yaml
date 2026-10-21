@@ -11098,8 +11098,8 @@ items:
   - id: T-203
     title: The config and ci-run corpus files pin only the contract
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
 
