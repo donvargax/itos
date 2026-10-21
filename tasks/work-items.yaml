@@ -10856,3 +10856,15 @@ items:
       designed now and land in v9.0; an in-process second driver is out unless it proves itself.
       Features freeze after bug-114's release until the layout is done; p2-adopt-go-template-itos
       stays later. The plan and the ADR follow the inventory.
+
+  - id: p1-conformance-only-by-name
+    title: tools/bin/conformance --only takes a corpus file by its name as well as its path
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      bug-114's agent (2026-10-21): --only init.yaml failed with 'open init.yaml: no such file or
+      directory'; only tools/itos/conformance/init.yaml worked. A bare name resolved against the
+      corpus folder saves a retry each time an agent runs one corpus file.
