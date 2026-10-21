@@ -31,4 +31,4 @@ Feature: A rerun reports the existing config separately from requested setup wri
     Then itos exits with code 0
     And its first existing-config status explicitly says that the config contents were kept
     And its rules result separately says that the block is already current
-    And no files changed
+    And no file changed since the last run
