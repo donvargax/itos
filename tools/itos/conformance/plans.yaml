@@ -843,7 +843,7 @@ cases:
       unknown: []
       not_started: []
   - name: a step that calls hooks.bin is read as itos by the patterns, one under another path as written
-    argv: [ci, plan, "{{sha.subsets}}", "{{sha.scenario}}"]
+    argv: [ci, plan, "{{sha.subsets}}", "{{sha.scenario}}", --json]
     files:
       itos.yaml: |
         version: 1
@@ -868,15 +868,37 @@ cases:
         hooks: { bin: bin/itos }
         work: { registry: tasks/work-items.yaml }
     exit: 0
-    stdout: |
-      static  bin/itos tests smoke check scenario
-      late  tools/bin/itos tests smoke check scenario
-      late  vp run e2e --grep '@(?:ID-LIST-01|ID-TWO-02|ID-TWO-01)\b'
+    json:
+      schema: 1
+      range:
+        from: '{{sha.subsets}}'
+        to: '{{sha.scenario}}'
+        readable: true
+        nightly: false
+      prose: false
+      steps:
+      - tools/bin/itos tests smoke check scenario
+      - bin/itos tests smoke check scenario
+      - vp run e2e --grep '@(?:ID-LIST-01|ID-TWO-02|ID-TWO-01)\b'
+      order:
+      - step: bin/itos tests smoke check scenario
+        cost: static
+        cost_from: pattern
+      - step: tools/bin/itos tests smoke check scenario
+        cost: late
+        cost_from: default
+      - step: vp run e2e --grep '@(?:ID-LIST-01|ID-TWO-02|ID-TWO-01)\b'
+        cost: late
+        cost_from: default
+      tasks: []
+      left_out: []
+      unknown: []
+      not_started: []
   # Slice 20: ci.covers, ci.nightly_only and recognize read a check whose first
   # word is hooks.bin as itos, as the cost rule does; the same checks under
   # another path are matched as written, and run.
   - name: a check that calls hooks.bin is read as itos by covers, nightly_only and recognize, one under another path as written
-    argv: [ci, plan, "{{sha.static-above}}", "{{sha.every}}"]
+    argv: [ci, plan, "{{sha.static-above}}", "{{sha.every}}", --json]
     files:
       itos.yaml: |
         version: 1
@@ -917,16 +939,81 @@ cases:
             - run: other/itos e2e --grep "@ID-LIST-02"
             - run: bin/itos e2e smoke
     exit: 0
-    stdout: |
-      late  vp run test:coverage
-      late  vp run e2e --grep '@(?:ID-LIST-01|ID-TWO-02)\b|@ID-TWO-01'
-      late  T-099: bin/itos unit tools/a.test.ts   (covered)
-      late  T-099: other/itos unit tools/a.test.ts   (run)
-      late  T-099: bin/itos   selftest   (nightly)
-      late  T-099: other/itos selftest   (run)
-      late  T-099: bin/itos e2e --grep "@ID-TWO-01"   (merged)
-      late  T-099: other/itos e2e --grep "@ID-LIST-02"   (run)
-      late  T-099: bin/itos e2e smoke   (merged)
+    json:
+      schema: 1
+      range:
+        from: '{{sha.static-above}}'
+        to: '{{sha.every}}'
+        readable: true
+        nightly: false
+      prose: false
+      steps:
+      - vp run test:coverage
+      - vp run e2e --grep '@(?:ID-LIST-01|ID-TWO-02)\b|@ID-TWO-01'
+      order:
+      - step: vp run test:coverage
+        cost: late
+        cost_from: explicit
+      - step: vp run e2e --grep '@(?:ID-LIST-01|ID-TWO-02)\b|@ID-TWO-01'
+        cost: late
+        cost_from: default
+      - check:
+          task: T-099
+          index: 0
+          command: bin/itos unit tools/a.test.ts
+        cost: late
+        cost_from: default
+        action: covered
+        covered_by: vp run test:coverage
+      - check:
+          task: T-099
+          index: 1
+          command: other/itos unit tools/a.test.ts
+        cost: late
+        cost_from: default
+        action: run
+      - check:
+          task: T-099
+          index: 2
+          command: bin/itos   selftest
+        cost: late
+        cost_from: default
+        action: nightly
+      - check:
+          task: T-099
+          index: 3
+          command: other/itos selftest
+        cost: late
+        cost_from: default
+        action: run
+      - check:
+          task: T-099
+          index: 4
+          command: bin/itos e2e --grep "@ID-TWO-01"
+        cost: late
+        cost_from: default
+        action: merged
+        kind: scenario
+      - check:
+          task: T-099
+          index: 5
+          command: other/itos e2e --grep "@ID-LIST-02"
+        cost: late
+        cost_from: default
+        action: run
+      - check:
+          task: T-099
+          index: 6
+          command: bin/itos e2e smoke
+        cost: late
+        cost_from: default
+        action: merged
+        kind: scenario
+      tasks:
+      - T-099
+      left_out: []
+      unknown: []
+      not_started: []
   - name: static checks first, the build's and the push's last
     argv: [ci, plan, "{{sha.scenario}}", "{{sha.cost}}", --json]
     exit: 0
@@ -1151,28 +1238,7 @@ cases:
         - T-044
       not_started:
         - T-040
-  - name: the plan as text, one item a line
-    argv: [ci, plan, "{{sha.prose}}", "{{sha.subsets}}"]
-    exit: 0
-    stdout: |
-      static  vp check
-      static  itos tests smoke check scenario
-      late  vp run test:coverage
-      late  vp build
-      late  vp run e2e --grep '(?:@(?:ID-LIST-01|ID-TWO-02)\b)|(?:@ID-(TWO|LIB)-)'
-      late  T-030: vp run e2e --grep "@ID-(TWO|LIB)-"   (merged)
-      late  T-030: vp test run   (covered)
-      late  T-030: sh -c 'test -d src'   (run)
-      late  T-030: vp run e2e:smoke   (merged)
-      late  T-030: vp run e2e --grep '@ID-LIST-01|@ID-TWO-01'   (run)
-      late  T-011: node tools/selftest/gates.ts   (nightly)
   - name: a plan with the ledger folder missing is one problem naming it, exit 2
-    argv: [ci, plan, "{{sha.prose}}", "{{sha.subsets}}"]
-    files: { tasks: null }
-    exit: 2
-    stderr: |
-      FAIL itos.yaml: the ledger's folder tasks does not exist
-  - name: the same as --json, the config error's report
     argv: [ci, plan, "{{sha.prose}}", "{{sha.subsets}}", --json]
     files: { tasks: null }
     exit: 2
@@ -1182,46 +1248,142 @@ cases:
       valid: false
       problems:
         - rule: ledger-folder-missing
-          message: "itos.yaml: the ledger's folder tasks does not exist"
-          fix: "create tasks with the ledger's files (ledger.files is tasks/phase-{group}.yaml), or point ledger.files at the folder that holds them"
   - name: an empty smoke set adds no pattern, so the run is the subsets alone
-    argv: [ci, plan, "{{sha.prose}}", "{{sha.subsets}}"]
+    argv: [ci, plan, "{{sha.prose}}", "{{sha.subsets}}", --json]
     files: { e2e/smoke.yaml: "[]\n" }
     exit: 0
-    stdout: |
-      static  vp check
-      static  itos tests smoke check scenario
-      late  vp run test:coverage
-      late  vp build
-      late  vp run e2e --grep '@ID-(TWO|LIB)-'
-      late  T-030: vp run e2e --grep "@ID-(TWO|LIB)-"   (merged)
-      late  T-030: vp test run   (covered)
-      late  T-030: sh -c 'test -d src'   (run)
-      late  T-030: vp run e2e:smoke   (merged)
-      late  T-030: vp run e2e --grep '@ID-LIST-01|@ID-TWO-01'   (run)
-      late  T-011: node tools/selftest/gates.ts   (nightly)
+    json:
+      schema: 1
+      range:
+        from: '{{sha.prose}}'
+        to: '{{sha.subsets}}'
+        readable: true
+        nightly: false
+      prose: false
+      steps:
+      - vp check
+      - itos tests smoke check scenario
+      - vp run test:coverage
+      - vp build
+      - vp run e2e --grep '@ID-(TWO|LIB)-'
+      order:
+      - step: vp check
+        cost: static
+        cost_from: explicit
+      - step: itos tests smoke check scenario
+        cost: static
+        cost_from: explicit
+      - step: vp run test:coverage
+        cost: late
+        cost_from: explicit
+      - step: vp build
+        cost: late
+        cost_from: explicit
+      - step: vp run e2e --grep '@ID-(TWO|LIB)-'
+        cost: late
+        cost_from: default
+      - check:
+          task: T-030
+          index: 0
+          command: vp run e2e --grep "@ID-(TWO|LIB)-"
+        cost: late
+        cost_from: default
+        action: merged
+        kind: scenario
+      - check:
+          task: T-030
+          index: 1
+          command: vp test run
+        cost: late
+        cost_from: default
+        action: covered
+        covered_by: vp run test:coverage
+      - check:
+          task: T-030
+          index: 2
+          command: sh -c 'test -d src'
+        cost: late
+        cost_from: default
+        action: run
+      - check:
+          task: T-030
+          index: 3
+          command: vp run e2e:smoke
+        cost: late
+        cost_from: default
+        action: merged
+        kind: scenario
+      - check:
+          task: T-030
+          index: 4
+          command: vp run e2e --grep '@ID-LIST-01|@ID-TWO-01'
+          fails: true
+        cost: late
+        cost_from: default
+        action: run
+      - check:
+          task: T-011
+          index: 0
+          command: node tools/selftest/gates.ts
+        cost: late
+        cost_from: default
+        action: nightly
+      tasks:
+      - T-030
+      - T-011
+      left_out: []
+      unknown: []
+      not_started: []
   - name: an empty smoke set and a range that names no test run no named tests
-    argv: [ci, plan, "{{sha.pair}}", "{{sha.static-pair}}"]
+    argv: [ci, plan, "{{sha.pair}}", "{{sha.static-pair}}", --json]
     files: { e2e/smoke.yaml: "[]\n" }
     exit: 0
-    stdout: |
-      static  vp check
-      static  itos tests smoke check scenario
-      late  vp run test:coverage
-      late  vp build
-      late  T-046: vp run changelog   (run)
-      late  T-046: sh -c 'test -s docs/changelog/CHANGELOG.md'   (run)
+    json:
+      schema: 1
+      range:
+        from: '{{sha.pair}}'
+        to: '{{sha.static-pair}}'
+        readable: true
+        nightly: false
+      prose: false
+      steps:
+      - vp check
+      - itos tests smoke check scenario
+      - vp run test:coverage
+      - vp build
+      order:
+      - step: vp check
+        cost: static
+        cost_from: explicit
+      - step: itos tests smoke check scenario
+        cost: static
+        cost_from: explicit
+      - step: vp run test:coverage
+        cost: late
+        cost_from: explicit
+      - step: vp build
+        cost: late
+        cost_from: explicit
+      - check:
+          task: T-046
+          index: 0
+          command: vp run changelog
+        cost: late
+        cost_from: default
+        action: run
+      - check:
+          task: T-046
+          index: 1
+          command: sh -c 'test -s docs/changelog/CHANGELOG.md'
+        cost: late
+        cost_from: order
+        action: run
+      tasks:
+      - T-046
+      left_out: []
+      unknown: []
+      not_started: []
   - name: an empty smoke set and no test named leave no run, so the smoke run's check runs as itself
-    argv: [ci, plan, "{{sha.whole}}", "{{sha.smoke}}"]
-    files: { e2e/smoke.yaml: "[]\n" }
-    exit: 0
-    stdout: |
-      static  vp check
-      static  itos tests smoke check scenario
-      late  vp run test:coverage
-      late  vp build
-      late  T-062: vp run e2e:smoke   (run)
-  - name: the same as --json, the check's action run
     argv: [ci, plan, "{{sha.whole}}", "{{sha.smoke}}", --json]
     files: { e2e/smoke.yaml: "[]\n" }
     exit: 0

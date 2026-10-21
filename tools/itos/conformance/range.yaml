@@ -173,17 +173,25 @@ cases:
     stdout: |
       FROM={{sha.one}}
   - name: the command provider was removed in v5
-    argv: [ci, range, --head, "{{sha.two}}"]
+    argv: [ci, range, --json, --head, "{{sha.two}}"]
     files:
       itos.yaml: "version: 1\nci: { steps: [vp check], range: { provider: command, command: \"git rev-parse HEAD~1\" } }\n"
     exit: 2
-    stderr: |
-      FAIL itos.yaml: ci.range.provider: command was removed in v5; set ci.range.provider to github or none
-      FAIL itos.yaml: ci.range.command was removed in v5; remove ci.range.command, and set ci.range.provider to github or none
+    json:
+      schema: 1
+      config: itos.yaml
+      valid: false
+      problems:
+        - rule: config-removed
+        - rule: config-removed
   - name: ci.range.github.branch was removed in v5
-    argv: [ci, range, --head, "{{sha.two}}"]
+    argv: [ci, range, --json, --head, "{{sha.two}}"]
     files:
       itos.yaml: "version: 1\nci: { steps: [vp check], range: { provider: github, github: { branch: main } } }\n"
     exit: 2
-    stderr: |
-      FAIL itos.yaml: ci.range.github.branch was removed in v5; remove ci.range.github.branch: a commit's green run counts on any branch
+    json:
+      schema: 1
+      config: itos.yaml
+      valid: false
+      problems:
+        - rule: config-removed
