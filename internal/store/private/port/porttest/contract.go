@@ -2,10 +2,10 @@ package porttest
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"path/filepath"
 	"strings"
-	"testing"
 
 	"github.com/donvargax/itos/v8/internal/store/private/port"
 )
@@ -18,14 +18,24 @@ type Fixture struct {
 	Kept, Ignored, Outside string
 }
 
+// T is what StoreContract asks of the test it runs in: *testing.T is one,
+// and so is the recorder that proves each assertion fires.
+type T[C any] interface {
+	Helper()
+	Context() context.Context
+	Errorf(format string, args ...any)
+	Fatalf(format string, args ...any)
+	Run(name string, f func(t C)) bool
+}
+
 // StoreContract holds what every private store does, the fake and the
 // adapter's alike. open lays out a fixture: a clone whose work tree holds
 // Kept and ignores Ignored when repository, else a folder in no repository,
 // its store empty, its lock wait short. The disk's own (modes, a cut-short
 // write) stays the adapter's tests'.
-func StoreContract(t *testing.T, open func(t *testing.T, repository bool) Fixture) {
+func StoreContract[C T[C]](t C, open func(t C, repository bool) Fixture) {
 	t.Helper()
-	t.Run("paths", func(t *testing.T) {
+	t.Run("paths", func(t C) {
 		s := open(t, true).Store
 		first, err := s.Path(t.Context(), "threads.yaml")
 		if err != nil || !filepath.IsAbs(first) || filepath.Base(first) != "threads.yaml" {
@@ -39,14 +49,14 @@ func StoreContract(t *testing.T, open func(t *testing.T, repository bool) Fixtur
 			t.Errorf("Path moved: %q then %q, %v", first, again, err)
 		}
 	})
-	t.Run("reads and writes", func(t *testing.T) {
+	t.Run("reads and writes", func(t C) {
 		s := open(t, true).Store
 		if text, ok, err := s.Read(t.Context(), "threads.yaml"); ok || err != nil || len(text) != 0 {
 			t.Fatalf("a file never written: %q, %v, %v", text, ok, err)
 		}
 		given := []byte("threads: []\n")
 		if err := s.Write(t.Context(), "threads.yaml", given); err != nil {
-			t.Fatal(err)
+			t.Fatalf("Write: %v", err)
 		}
 		given[0] = 'X'
 		text, ok, err := s.Read(t.Context(), "threads.yaml")
@@ -55,7 +65,7 @@ func StoreContract(t *testing.T, open func(t *testing.T, repository bool) Fixtur
 		}
 		text[0] = 'Y'
 		if err := s.Write(t.Context(), "threads.yaml", []byte("threads:\n  - id: a\n")); err != nil {
-			t.Fatal(err)
+			t.Fatalf("a second Write: %v", err)
 		}
 		if again, _, err := s.Read(t.Context(), "threads.yaml"); err != nil || !bytes.Equal(again, []byte("threads:\n  - id: a\n")) {
 			t.Errorf("a second write is not what is read: %q, %v", again, err)
@@ -64,16 +74,16 @@ func StoreContract(t *testing.T, open func(t *testing.T, repository bool) Fixtur
 			t.Errorf("one name's write reads under another: %q, %v, %v", other, ok, err)
 		}
 	})
-	t.Run("locks", func(t *testing.T) {
+	t.Run("locks", func(t C) {
 		s := open(t, true).Store
 		held, err := s.Hold(t.Context(), "threads.yaml")
 		if err != nil {
-			t.Fatal(err)
+			t.Fatalf("Hold: %v", err)
 		}
 		path, _ := s.Path(t.Context(), "threads.yaml")
 		if again, err := s.Hold(t.Context(), "threads.yaml"); err == nil {
 			again.Release(t.Context())
-			t.Fatal("a held lock was taken again")
+			t.Fatalf("a held lock was taken again")
 		} else if !strings.Contains(err.Error(), path+".lock") {
 			t.Errorf("a held lock's refusal does not name %s.lock: %v", path, err)
 		}
@@ -82,26 +92,26 @@ func StoreContract(t *testing.T, open func(t *testing.T, repository bool) Fixtur
 			t.Fatalf("one name's lock holds another's: %v", err)
 		}
 		if err := other.Release(t.Context()); err != nil {
-			t.Fatal(err)
+			t.Fatalf("Release of the other name: %v", err)
 		}
 		if err := s.Write(t.Context(), "threads.yaml", []byte("threads: []\n")); err != nil {
 			t.Errorf("a write under the lock: %v", err)
 		}
 		if err := held.Release(t.Context()); err != nil {
-			t.Fatal(err)
+			t.Fatalf("Release: %v", err)
 		}
 		if err := held.Release(t.Context()); err == nil {
-			t.Error("a lock given back twice")
+			t.Errorf("a lock given back twice")
 		}
 		after, err := s.Hold(t.Context(), "threads.yaml")
 		if err != nil {
 			t.Fatalf("a lock given back cannot be taken: %v", err)
 		}
 		if err := after.Release(t.Context()); err != nil {
-			t.Fatal(err)
+			t.Fatalf("Release after a retake: %v", err)
 		}
 	})
-	t.Run("ignored", func(t *testing.T) {
+	t.Run("ignored", func(t C) {
 		f := open(t, true)
 		for p, want := range map[string]bool{f.Kept: true, f.Ignored: false, f.Outside: false} {
 			if got := f.Store.NotIgnored(t.Context(), p); got != want {
@@ -109,7 +119,7 @@ func StoreContract(t *testing.T, open func(t *testing.T, repository bool) Fixtur
 			}
 		}
 	})
-	t.Run("no repository", func(t *testing.T) {
+	t.Run("no repository", func(t C) {
 		f := open(t, false)
 		var none *port.NoRepository
 		if _, err := f.Store.Path(t.Context(), "threads.yaml"); !errors.As(err, &none) {
