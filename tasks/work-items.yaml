@@ -10884,3 +10884,16 @@ items:
       scope: merging the registry itself (p1-registry-merge) and the ledger's adjacent-hunk
       conflicts (#107's comment, noted there).
     refs: [internal/cli/push.go, internal/work, features/push.feature]
+
+  - id: p1-work-list-fields
+    title: itos work list prints chosen fields (tags, refs, depends_on) for many items, in text and --json
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The refactor inventory's agent (2026-10-21) needed each startable item's tags and refs to see
+      which ones touch internal/cli, and parsed tasks/work-items.yaml with Python: work show takes
+      one item, work list prints no fields beyond id, kind, status and title. A --fields option (or
+      work list --json carrying every field) answers it read-only.
