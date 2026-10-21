@@ -10907,6 +10907,10 @@ items:
     status: todo
     depends_on: []
     kind: task
+    deferred: >
+      Its checks re-run the nightlies' mutation draws at their seeds, which draw the same sites only
+      while product Go is unchanged; the slices refactor (ADR-0053) changes it with every move, so
+      the sites shift. Resume after the moves, re-deriving its sites from the nightly then.
 
   - id: T-192
     title: The Nightly red comment says why a job log could not be read
