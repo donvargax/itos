@@ -10788,3 +10788,11 @@ items:
     status: todo
     depends_on: []
     kind: task
+
+  - id: T-192
+    title: The Nightly red comment says why a job log could not be read
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task

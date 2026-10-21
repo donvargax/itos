@@ -2333,3 +2333,22 @@
       timeout: 900
     - run: tools/bin/pinned itos-cc mutation run --since 9397855d98441c2276c0333e4938ca16e46a7aeb --count 60 --fail-uncovered=lines --json --seed 39594715946 $(go run ./tools/bin/nightly-base -linux-files cmd internal)
       timeout: 900
+
+- id: T-192
+  type: ci
+  title: The Nightly red comment says why a job log could not be read
+  why: >
+    Every Nightly red comment since tools/bin/nightly-report landed (T-185; issue #29, runs
+    39124515762 to 39594715946, 2026-10-18 to 2026-10-21) reads 'Its log could not be read: see the
+    run.', so the issue never names a failing step or survivor. The same program run locally on run
+    39594715946 with a person's token reads the log and renders all four failed steps and their
+    survivors, so the fault is in how the report job fetches the log (gh api
+    repos/<repo>/actions/jobs/<id>/logs under the job's GITHUB_TOKEN with actions: read), and
+    main.go drops the error execRun returns, gh's stderr included. The comment gives that error (a
+    line of it, under the 'could not be read' sentence) and the program writes it to stderr too, so
+    the next red nightly shows the cause; a fix for the cause itself waits for that text and is not
+    guessed here. Its unit test feeds a failing log fetch and asserts the error's text reaches the
+    body.
+  done_when:
+    - run: go test -count=1 ./tools/bin/nightly-report
+    - run: grep -q "could not be read" tools/bin/nightly-report/main.go
