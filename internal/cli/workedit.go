@@ -51,7 +51,7 @@ func workAdd(args []string, o Out) (int, error) {
 		return code, err
 	}
 	if kind != "idea" {
-		id, err = newItemID(cfg, kind, itemIDs(registry))
+		id, err = newItemID(cfg, kind, itemIDs(registry), o.reserved)
 		if err != nil {
 			return 0, err
 		}

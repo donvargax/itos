@@ -102,10 +102,8 @@ func TestWorkPromoteRefusesAReservedIDAfterMinting(t *testing.T) {
 		t.Run(c.id, func(t *testing.T) {
 			promoteRepo(t)
 			head := gitIn(t, "rev-parse", "HEAD")
-			reserved = c.id
-			defer func() { reserved = "" }()
 			var stderr strings.Builder
-			code, err := workPromote([]string{"p1-idea", "--kind", "task", "--type", "build", "--check", "true"}, Out{Stderr: &stderr})
+			code, err := workPromote([]string{"p1-idea", "--kind", "task", "--type", "build", "--check", "true"}, Out{Stderr: &stderr, reserved: c.id})
 			if code != ExitPolicy || err != nil || !strings.Contains(stderr.String(), c.says) {
 				t.Fatalf("workPromote = (%d, %v), stderr=%q, want %q", code, err, stderr.String(), c.says)
 			}

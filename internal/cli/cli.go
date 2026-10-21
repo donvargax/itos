@@ -89,6 +89,16 @@ type Out struct {
 	Stdout, Stderr io.Writer
 	Tests          *tests.Warnings
 	Origin         string
+	// reserved is the item id a draft reserved for the command itos draft
+	// promote runs in this process (runReserved), which the command writes
+	// instead of minting one (newItemID); "" otherwise. Only promote sets
+	// it, for the one command it runs: no command line can, so a person
+	// passing an id is still refused.
+	reserved string
+	// runLine is mainWith, which Main hands each command for draft promote
+	// to run a minting draft's line through: mainWith reaches every
+	// command, so no command may name it.
+	runLine func(args []string, stdout, stderr io.Writer, reserved string) int
 }
 
 // usageError is a command called wrongly: exit 2, naming the help.
@@ -237,8 +247,15 @@ func typed(origin, p string) string {
 
 // Main runs itos with the arguments after its name and gives the exit code.
 func Main(args []string, stdout, stderr io.Writer) int {
+	return mainWith(args, stdout, stderr, "")
+}
+
+// mainWith is Main with the item id a draft reserved for the command (Out's
+// reserved), "" for none.
+func mainWith(args []string, stdout, stderr io.Writer, reserved string) int {
 	g := Parse(args)
-	o := Out{JSON: g.JSON, Quiet: g.Quiet, Stdout: stdout, Stderr: stderr, Tests: tests.NewWarnings(stderr)}
+	o := Out{JSON: g.JSON, Quiet: g.Quiet, Stdout: stdout, Stderr: stderr, Tests: tests.NewWarnings(stderr),
+		reserved: reserved, runLine: mainWith}
 	origin, err := applyGlobals(g)
 	if err != nil {
 		return failure(err, o)

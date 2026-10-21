@@ -6,9 +6,10 @@ package cli
 // (idmint.go), prints it and keeps it in the draft (draft.Draft.Minted), so a
 // later draft, a spec's tags and a brief can write it before the item exists.
 // itos draft promote then runs the command in this process, not as a child
-// itos, with the id in reserved (idmint.go), which the command writes
-// instead of minting another: no flag or argument hands an id over, so the
-// commands still refuse one a person passes. A draft dropped leaves its id a
+// itos, through the run Main handed it, with the id in the command's Out
+// (reserved), which the command writes instead of minting another: no flag
+// or argument hands an id over, so the commands still refuse one a person
+// passes. A draft dropped leaves its id a
 // gap, as the counter never hands a number out twice.
 
 import (
@@ -84,22 +85,14 @@ func draftMint(command []string, o Out) (minted string, code int, err error) {
 	return minted, code, err
 }
 
-// mainReserved is Main, set when the package starts: Main runs the
-// commands, draft promote among them, which runs Main in turn.
-var mainReserved func(args []string, stdout, stderr io.Writer) int
-
-func init() { mainReserved = Main }
-
-// runReserved runs a minting draft's command in this process, with the id
-// it reserved (reserved), its output on w, and gives its exit code; one
-// that leaves this process where it cannot be put back is reported on w, as
-// a failure.
-func runReserved(d draft.Draft, w io.Writer) int {
+// runReserved runs a minting draft's command in this process through
+// runLine (mainWith, handed in Out's runLine), with the id it reserved, its output
+// on w, and gives its exit code; one that leaves this process where it
+// cannot be put back is reported on w, as a failure.
+func runReserved(d draft.Draft, w io.Writer, runLine func(args []string, stdout, stderr io.Writer, reserved string) int) int {
 	code := 0
 	if err := inPlace(func() error {
-		reserved = d.Minted
-		defer func() { reserved = "" }()
-		code = mainReserved(d.Command, w, w)
+		code = runLine(d.Command, w, w, d.Minted)
 		return nil
 	}); err != nil {
 		return failure(err, Out{Stdout: w, Stderr: w})

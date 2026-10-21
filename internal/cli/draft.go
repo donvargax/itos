@@ -849,7 +849,7 @@ func redoFix(file string, d draft.Draft) string {
 func promoteOne(file string, d draft.Draft, o Out) (header, why string, err error) {
 	before, _ := git.Output("rev-parse", "HEAD")
 	if d.Minted != "" {
-		if code := runReserved(d, o.Stderr); code != 0 {
+		if code := runReserved(d, o.Stderr, o.runLine); code != 0 {
 			return "", fmt.Sprintf("%s exited %d", d.Line(), code), nil
 		}
 		return madeSince(before, d.Line()), "", nil

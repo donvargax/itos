@@ -667,10 +667,11 @@
 // then applied as any change draft's. A command draft that mints an item's
 // id (draftmint.go, slice 103) has it minted by draftAdd through draftMint,
 // as the command would mint it under its own global flags, and kept as the
-// draft's Minted; promote runs it in this process (runReserved, Main), the
-// id in the package's reserved, which newItemID hands the command instead of
-// minting another, since no command line may give work add, task add or
-// work promote an id.
+// draft's Minted; promote runs it in this process (runReserved) through
+// mainWith, which Main hands it in Out (no package variable or init holds
+// Main), the id in the command's Out, which newItemID hands the command
+// instead of minting another, since no command line may give work add, task
+// add or work promote an id.
 //
 // decision (ask.go over internal/ask and internal/adr): add and answer write
 // the questions through writeCommitted, the file alone, docs: ask q-<n> and

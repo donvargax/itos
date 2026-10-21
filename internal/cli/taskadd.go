@@ -113,7 +113,7 @@ func taskAdd(args []string, o Out) (int, error) {
 	if cfg == nil {
 		return code, err
 	}
-	n.ID, err = newItemID(cfg, "task", itemIDs(registry))
+	n.ID, err = newItemID(cfg, "task", itemIDs(registry), o.reserved)
 	if err != nil {
 		return 0, err
 	}
