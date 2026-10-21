@@ -2619,3 +2619,21 @@
     - run: go test -count=1 ./tools/bin/conformance/...
       timeout: 600
     - run: grep -rq -- "--actual" tools/bin/conformance
+
+- id: T-209
+  type: test
+  title: "The private store's contract suite is proved to fail: each assertion fires on a store broken for it"
+  why: >
+    T-207's push proof (2026-10-21) found the 25 t.Errorf and t.Fatalf branches of
+    internal/store/private/port/porttest/contract.go uncovered: a passing run never reaches them,
+    and itos-cc 0.12.0 judges excluded files' lines under --fail-uncovered=lines anyway
+    (itos-cc#62). A contract that cannot fail proves nothing, so a test runs StoreContract against
+    stores each broken for one case (a path that is not absolute, a read that returns another write,
+    a second Hold granted, NotIgnored true for any path, no NoRepository outside a repository, and
+    so on) and asserts the case reported a failure. StoreContract takes a small interface of what it
+    uses (Helper, Errorf, Fatalf, Run with that interface) that *testing.T satisfies and a recorder
+    in the test implements, so the real callers do not change. Every later port's contract suite
+    follows this shape; the itos-cc.yaml exclude of porttest stays.
+  done_when:
+    - run: tools/bin/pinned itos-cc mutation run --since 9209b6be --count 1 --seed 9209b6be --fail-uncovered=lines --json cmd internal
+      timeout: 900

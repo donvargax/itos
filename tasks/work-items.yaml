@@ -11220,3 +11220,11 @@ items:
     status: doing
     depends_on: []
     kind: task
+
+  - id: T-209
+    title: "The private store's contract suite is proved to fail: each assertion fires on a store broken for it"
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task
