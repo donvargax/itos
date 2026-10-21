@@ -10810,3 +10810,21 @@ items:
       task the registry lists. Either commit --item accepts a ledger task and writes the Task
       footer, or the brief template in itos guide brief says --task for a task. The first removes
       the trap for every agent; the second only for the briefed ones.
+
+  - id: p1-fix-deps-releases
+    title: A fix(deps) commit that bumps what the binary links releases a patch without code or scenarios
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The user, 2026-10-21: a dependency update that ships in the binary is a fix and releases; a
+      dev dependency does not (Renovate's convention: fix(deps) for runtime, chore(deps) for dev).
+      T-190 raised go.mod's toolchain to go1.27.3 past GO-2026-6809, but a fix must change
+      {cmd,internal}/**/*.go or features/** and name a live scenario, so it went out as build and
+      released nothing; v8.5.0 stays built with 1.27.2 until the next feat or fix. Shape: fix(deps)
+      may change only go.mod and go.sum, needs no Scenarios footer, and the release counts it as a
+      patch; the change must reach the binary (the toolchain line, or a module go list -deps
+      ./cmd/itos names), else it is chore(deps) or build. Needs: per-scope rules in the commit
+      config, or a built-in deps rule; release-version reading fix(deps).
