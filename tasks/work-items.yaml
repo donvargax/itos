@@ -58,7 +58,6 @@ queue:
   - T-194
   - T-195
   - T-196
-  - bug-118
   - p1-mutation-results-committed
   - p1-text-from-file
   - p1-defer-reason-footer
