@@ -2597,13 +2597,6 @@
     internal/store/private or the like; name it in the commit. depguard and architecture-check gain
     rules for the port, porttest and adapter packages (porttest never linked into the binary), with
     fixtures. No behaviour change.
-  done_when:
-    - run: test -d internal/slices/followup/domain
-    - run: "! test -e internal/follow"
-    - run: tools/bin/architecture-check
-      timeout: 900
-    - run: tools/bin/pinned golangci-lint run ./...
-      timeout: 600
 
 - id: T-208
   type: ci

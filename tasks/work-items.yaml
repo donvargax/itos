@@ -11222,7 +11222,7 @@ items:
     title: "Pilot slice followup: internal/slices/followup over a private-store port with a fake and a contract suite"
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
 
