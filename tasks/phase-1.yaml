@@ -2286,3 +2286,50 @@
   done_when:
     - run: grep -qx "toolchain go1.27.3" go.mod
     - run: go tool govulncheck -test ./...
+
+- id: T-191
+  type: test
+  title: Tests kill the survivors the nightlies of 2026-10-18 to 2026-10-21 drew
+  why: >
+    Third batch of p1-nightly-survivors (the user, 2026-10-17: kill the recorded survivors, keep the
+    random step strict), as T-186 and T-187 did: no product Go changed since 978072f6, the head of
+    the nightlies of 2026-10-18 to 2026-10-21, so each nightly step at its run's seed draws the same
+    sites again, and the checks are those steps at those seeds (changed sites since 9397855d, the
+    last green nightly). Run 39124515762: shell/shell.go:60:42 Result.Status != to ==;
+    cli/commands.go:367:11 versionCommand == to !=; cli/hook.go:133:46 stagedMerge != to ==;
+    cli/hook.go:803:10 fixAdvice == to !=; changed: cli/commands.go:124:20 workCommand 0 to 1. Run
+    39247304847: plan/data.go:55:12 waiting && to ||; cli/initshim.go:128:84 shimOffer.run 0 to 1;
+    work/propose.go:331:21 Proposal.Print > to >=; value/docedit.go:511:18 Doc.flowSpan - to +;
+    cli/verify.go:108:28 verifier.commit 0 to 1; changed: cli/upgrade.go:453:38 walkReleases || to
+    &&; message/footers.go:354:20 CheckFooter 0 to 1; cli/hook.go:662:9 pushedRefs < to <=. Run
+    39417460356: cli/initshim.go:128:81 shimOffer.run >= to >; message/cases.go:217:50 isBreak <= to
+    <; message/footers.go:306:10 knownFor == to !=; tests/moves.go:271:44 MoveProblems ! deleted;
+    cli/nextid.go:88:11 testsNextID 0 to 1; changed: cli/watch.go:212:11 watchCovered <= to <;
+    message/trailers.go:83:12 messageEnd 0 to 1; cli/status.go:321:7 standing.readBranch ! deleted;
+    shim/shim.go:56:43 Main && to ||; cli/nextid.go:79:10 testsNextID 0 to 1. Run 39594715946:
+    plan/scope.go:89:26 TasksIn && to ||; cli/gitshim.go:52:16 gitShim > to >=; changed:
+    cli/gitcommit.go:258:8 readGitArgs + to -; cli/workdefer.go:66:14 workResume > to >=;
+    cli/initrules.go:580:19 commitPolicy 0 to 1; message/trailers.go:165:36 parseTrailers < to <=. A
+    changed-site check may also fail on an uncovered changed line, which this task covers too. Tests
+    only (_test.go, or a scenario where only a scenario reaches the code, unit tests first); no
+    change to what itos does: a test that finds a bug stops the work and is reported. A mutant
+    argued equivalent in its commit is excepted with itos-cc mutation except, its reason saying why
+    no test can kill it. Every check fails until its run's sites are all killed, so push once, when
+    itos task passes locally.
+  done_when:
+    - run: tools/bin/pinned itos-cc mutation run --count 20 --json --seed 39124515762 cmd internal
+      timeout: 900
+    - run: tools/bin/pinned itos-cc mutation run --since 9397855d98441c2276c0333e4938ca16e46a7aeb --count 60 --fail-uncovered=lines --json --seed 39124515762 $(go run ./tools/bin/nightly-base -linux-files cmd internal)
+      timeout: 900
+    - run: tools/bin/pinned itos-cc mutation run --count 20 --json --seed 39247304847 cmd internal
+      timeout: 900
+    - run: tools/bin/pinned itos-cc mutation run --since 9397855d98441c2276c0333e4938ca16e46a7aeb --count 60 --fail-uncovered=lines --json --seed 39247304847 $(go run ./tools/bin/nightly-base -linux-files cmd internal)
+      timeout: 900
+    - run: tools/bin/pinned itos-cc mutation run --count 20 --json --seed 39417460356 cmd internal
+      timeout: 900
+    - run: tools/bin/pinned itos-cc mutation run --since 9397855d98441c2276c0333e4938ca16e46a7aeb --count 60 --fail-uncovered=lines --json --seed 39417460356 $(go run ./tools/bin/nightly-base -linux-files cmd internal)
+      timeout: 900
+    - run: tools/bin/pinned itos-cc mutation run --count 20 --json --seed 39594715946 cmd internal
+      timeout: 900
+    - run: tools/bin/pinned itos-cc mutation run --since 9397855d98441c2276c0333e4938ca16e46a7aeb --count 60 --fail-uncovered=lines --json --seed 39594715946 $(go run ./tools/bin/nightly-base -linux-files cmd internal)
+      timeout: 900
