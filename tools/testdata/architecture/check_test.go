@@ -18,12 +18,15 @@ import (
 	"testing"
 )
 
-// The slices and parts the fixtures stand on. No package of itos is under
-// internal/slices yet, so these rules hold over the fixtures alone until the
-// moves of docs/plans/slices-and-ports.md land.
+// The slices and parts the fixtures stand on, beside the slices this
+// repository has moved (docs/plans/slices-and-ports.md). internal/outline
+// proves slice-packages allows internal/out alone, not every path it
+// prefixes.
 var stubs = []string{
 	"internal/cli",
 	"internal/git",
+	"internal/out",
+	"internal/outline",
 	"internal/slices/alpha",
 	"internal/slices/alpha/domain",
 	"internal/slices/alpha/domain/port",
@@ -83,7 +86,7 @@ func fixtures(module string) []fixture {
 		// under internal/slices, depguard lets by and architecture-check's
 		// siblings holds.
 		for _, layer := range []string{"internal/slices/alpha/domain", "internal/slices/alpha/domain/port"} {
-			for _, target := range []string{"internal/cli", "internal/git", "cmd/probe"} {
+			for _, target := range []string{"internal/cli", "internal/git", "internal/out", "cmd/probe"} {
 				add(layer, ours(target), "Value", "slice-domain", test)
 			}
 			for _, target := range []string{"internal/slices/alpha/domain", "internal/slices/alpha/domain/port", "internal/slices/alpha", "internal/slices/alpha/adapters/disk", "internal/slices/beta/domain"} {
@@ -91,6 +94,17 @@ func fixtures(module string) []fixture {
 			}
 			add(layer, "strings", "ToLower", "", test)
 		}
+		// A slice, outside its domain and adapters, imports nothing of ours
+		// but its own subpackages and internal/out: no UI, engine or cmd. A
+		// fixture under internal/slices/alpha is a package of that slice.
+		slice := "internal/slices/alpha"
+		for _, target := range []string{"internal/cli", "internal/git", "internal/outline", "cmd/probe"} {
+			add(slice, ours(target), "Value", "slice-packages", test)
+		}
+		for _, target := range []string{"internal/out", "internal/slices/alpha/domain", "internal/slices/alpha/domain/port"} {
+			add(slice, ours(target), "Value", "", test)
+		}
+		add(slice, "strings", "ToLower", "", test)
 		// Mocking libraries, nowhere: a slice's domain, an adapter, an engine
 		// and cmd alike.
 		for _, layer := range []string{"internal/slices/alpha/domain", "internal/slices/alpha/adapters/disk", "internal/git", "cmd/probe"} {
