@@ -2365,3 +2365,27 @@
   done_when:
     - run: ITOS_SELFTEST=1 go test -count=1 -run '^TestSelftest$' ./tools/selftest/features-scope
       timeout: 600
+
+- id: T-194
+  type: build
+  title: "The gates of itos-cc's layout: pinned golangci-lint with depguard, architecture-check and its fixtures"
+  why: >
+    ADR-0053, step 1 of docs/plans/slices-and-ports.md. Copy itos-cc's gates
+    (~/tmp/llms-safe/code-quality: .golangci.yml, tools/bin/architecture-check,
+    tools/testdata/architecture, golangci-lint in tools/bin/pinned with its checksums) and adapt
+    them to itos's module and today's tree, so every later move is held by them. depguard rules for
+    the layer arrows of itos-cc's docs/architecture.md (internal/slices/<x> imports no sibling
+    slice; a slice's domain imports no adapter, I/O or UI; adapters import their domain; nothing
+    outside internal/slices imports a slice but cmd; no porttest linked into the binary; no mocking
+    library anywhere), each with a fixture it must accept and one it must refuse, as itos-cc's
+    fixtures do; rules for paths that do not exist yet hold over the fixtures alone.
+    architecture-check's hard-coded exceptions (itos-cc#61) become itos's own (none today). Of
+    itos-cc's other linters, enable those today's tree passes unchanged; the rest go into an idea
+    naming each linter and its finding count, not fixed here (the user, 2026-10-21: as fast as
+    possible). itos.yaml's ci steps gain both, cost static, after go vet. Behaviour unchanged: no
+    product Go edits beyond what a linter enabled here requires, which should be none.
+  done_when:
+    - run: tools/bin/pinned golangci-lint run ./...
+      timeout: 600
+    - run: tools/bin/architecture-check
+      timeout: 900

@@ -10897,3 +10897,11 @@ items:
       which ones touch internal/cli, and parsed tasks/work-items.yaml with Python: work show takes
       one item, work list prints no fields beyond id, kind, status and title. A --fields option (or
       work list --json carrying every field) answers it read-only.
+
+  - id: T-194
+    title: "The gates of itos-cc's layout: pinned golangci-lint with depguard, architecture-check and its fixtures"
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task
