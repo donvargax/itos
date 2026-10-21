@@ -24,8 +24,12 @@
 //	github   a fake GitHub API the case's itos is pointed at (below); a case's replaces the
 //	         file's, and null leaves it out
 //	exit     the expected exit code (required)
-//	stdout, stderr          the exact text; stdout_has, stderr_has: text each must contain (one,
-//	                        or a list); stdout_nonempty: true, stdout holds something besides
+//	stdout, stderr          the exact text, which only a stdout_contract stdout or the empty
+//	                        string may be (ADR-0052): any other is refused as the fixture read;
+//	                        stdout_has, stderr_has: text each must contain (one, or a list);
+//	                        stdout_lacks, stderr_lacks: text each must not contain, none of it
+//	                        empty (one, or a list), so a case can pin that something did not
+//	                        run or print; stdout_nonempty: true, stdout holds something besides
 //	                        whitespace
 //	stdout_contract         true: stdout is a plain output scripts read (ADR-0054), which
 //	                        Machine keeps and Additive still judges whole; it needs a stdout
@@ -61,8 +65,8 @@
 // files_after is judged by a written file's data, its comment lines for people
 // (docs/decisions/0040-a-written-file-is-contract-by-its-data-not-its-comment-lines.md): a .yaml
 // or .yml file by what it parses to, comments dropped, held as json is, a key added passing; a
-// .md file by its text less its HTML comments; any other file whole. The exit code, stdout_has,
-// stderr_has, stdout_nonempty, json_has and git_config_after (each entry data, and one it does
+// .md file by its text less its HTML comments; any other file whole. The exit code, the _has
+// and _lacks keys, stdout_nonempty, json_has and git_config_after (each entry data, and one it does
 // not name never read, T-113) are judged as ever. Without it, as this tree's corpus runs, stdout,
 // stderr and every file are pinned exactly, comments and all, and json whole less message, fix
 // and top-level text.

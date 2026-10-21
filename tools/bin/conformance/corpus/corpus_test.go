@@ -118,6 +118,11 @@ func TestFixtureErrors(t *testing.T) {
 		{"cases:\n  - { name: a, argv: [x], exit: 0, stdout_nonempty: false }\n", "case 1 (a) has a stdout_nonempty that is not true"},
 		{"cases:\n  - { name: a, argv: [x], exit: 0, stdout: x, stdout_contract: yes }\n", "case 1 (a) has a stdout_contract that is not true"},
 		{"cases:\n  - { name: a, argv: [x], exit: 0, stdout_contract: true }\n", "case 1 (a) has a stdout_contract without a stdout"},
+		{"cases:\n  - { name: a, argv: [x], exit: 0, stdout: \"ok\\n\" }\n", "case 1 (a) pins its stdout exactly"},
+		{"cases:\n  - { name: a, argv: [x], exit: 0, stdout: \"\", stderr: \"no\\n\" }\n", "case 1 (a) pins its stderr exactly"},
+		{"cases:\n  - { name: a, argv: [x], exit: 0, stderr: x, stdout: x, stdout_contract: true }\n", "case 1 (a) pins its stderr exactly"},
+		{"cases:\n  - { name: a, argv: [x], exit: 0, stdout_lacks: [x, \"\"] }\n", "case 1 (a) has a stdout_lacks that holds the empty text"},
+		{"cases:\n  - { name: a, argv: [x], exit: 0, stderr_lacks: { x: y } }\n", "case 1 (a) has a stderr_lacks that is not text or a list of texts"},
 	} {
 		_, err := ReadFixture(writeFixture(t, c.text))
 		if err == nil || !strings.Contains(err.Error(), c.want) {
@@ -160,7 +165,7 @@ cases:
 func TestMachine(t *testing.T) {
 	file, err := ReadFile(writeFixture(t, `cases:
   - { name: a, argv: [x], exit: 0, stdout: "x\n", json: { ok: true, message: m, text: t, list: [{ fix: f, rule: r, text: t }] } }
-  - { name: b, argv: [x], exit: 0, stderr_has: y }
+  - { name: b, argv: [x], exit: 0, stderr_has: y, stdout_lacks: z, stderr_lacks: [w] }
   - { name: c, argv: [x], exit: 0, stdout_nonempty: true, json_has: { text: t, message: "<any>" } }
   - { name: d, argv: [x], exit: 0, stdout: "docs_only=true\n", stdout_contract: true, stderr: "" }
 `))
@@ -175,7 +180,7 @@ func TestMachine(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if f.Cases[0].stdout != nil || f.Cases[1].stderrHas != nil || show(f.Cases[0].json) != `{"ok":true,"list":[{"rule":"r","text":"t"}]}` ||
+	if f.Cases[0].stdout != nil || f.Cases[1].stderrHas != nil || f.Cases[1].stdoutLacks != nil || f.Cases[1].stderrLacks != nil || show(f.Cases[0].json) != `{"ok":true,"list":[{"rule":"r","text":"t"}]}` ||
 		!f.Cases[2].stdoutNonempty || show(f.Cases[2].jsonHas) != `{"text":"t","message":"<any>"}` {
 		t.Errorf("Machine left %v %v %s, %v %s", f.Cases[0].stdout, f.Cases[1].stderrHas, show(f.Cases[0].json), f.Cases[2].stdoutNonempty, show(f.Cases[2].jsonHas))
 	}
@@ -272,13 +277,16 @@ func TestJSONLeavesOutSentences(t *testing.T) {
 	}
 }
 
-// A stdout_contract case's stdout is judged whole even in additive, where any other stdout
-// passes with lines added (ADR-0054: the plain outputs scripts read).
+// A stdout_contract case's stdout is judged whole even in additive (ADR-0054: the plain
+// outputs scripts read); no other case may pin a stdout but the empty one.
 func TestStdoutContract(t *testing.T) {
-	const plain = `{ name: a, argv: [x], exit: 0, stdout: "FROM=abc\n" }`
 	const contract = `{ name: a, argv: [x], exit: 0, stdout: "FROM=abc\n", stdout_contract: true }`
-	if got := judged(t, plain, "FROM=abc\nTO=def\n", true); got != "" {
-		t.Errorf("additive should pass a line added to a plain stdout: %q", got)
+	const empty = `{ name: a, argv: [x], exit: 0, stdout: "", stderr: "" }`
+	if got := judged(t, empty, "", false); got != "" {
+		t.Errorf("an empty stdout and stderr should read and pass: %q", got)
+	}
+	if got := judged(t, empty, "x\n", false); !strings.Contains(got, "+ x") {
+		t.Errorf("an empty stdout should fail on output: %q", got)
 	}
 	for _, additive := range []bool{false, true} {
 		if got := judged(t, contract, "FROM=abc\n", additive); got != "" {
@@ -328,6 +336,33 @@ func TestStdoutNonempty(t *testing.T) {
 	for _, stdout := range []string{"", " \n\t\n"} {
 		if got := judged(t, kase, stdout, false); !strings.Contains(got, "stdout is empty") {
 			t.Errorf("stdout %q should fail: %q", stdout, got)
+		}
+	}
+}
+
+// stdout_lacks and stderr_lacks pin that a text did not print: each part, substituted, must be
+// absent; the first one present fails, named, in additive too.
+func TestLacks(t *testing.T) {
+	const kase = `{ name: a, argv: [x], exit: 0, stdout_lacks: [never, "{{dir}}/gone"], stderr_lacks: skipped }`
+	f, err := ReadFixture(writeFixture(t, "cases:\n  - "+kase+"\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := &subst{dir: "/tmp/case"}
+	exit := 0
+	for _, c := range []struct{ stdout, stderr, want string }{
+		{"ran first\n", "ran\n", ""},
+		{"/tmp/case/kept\n", "", ""},
+		{"{{dir}}/gone\n", "", ""},
+		{"ran never\n", "", `stdout holds "never", which it must not:`},
+		{"at /tmp/case/gone\n", "", `stdout holds "/tmp/case/gone", which it must not:`},
+		{"", "step skipped\n", `stderr holds "skipped", which it must not:`},
+	} {
+		for _, additive := range []bool{false, true} {
+			got := strings.Join(compare(f.Cases[0], &Outcome{Exit: &exit, Stdout: c.stdout, Stderr: c.stderr}, s, additive), "\n")
+			if (c.want == "") != (got == "") || !strings.Contains(got, c.want) {
+				t.Errorf("stdout %q, stderr %q (additive %v) said %q, want %q", c.stdout, c.stderr, additive, got, c.want)
+			}
 		}
 	}
 }

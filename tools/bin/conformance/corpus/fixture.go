@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 )
@@ -93,6 +94,8 @@ type Case struct {
 	stdout, stderr *string
 	stdoutHas      []string
 	stderrHas      []string
+	stdoutLacks    []string
+	stderrLacks    []string
 	json           any
 	hasJSON        bool
 	jsonHas        any
@@ -106,7 +109,7 @@ type Case struct {
 var (
 	caseKeys = set("name", "argv", "git", "files", "stdin", "env", "cwd", "hide", "exit", "stdout",
 		"stderr", "stdout_has", "stderr_has", "json", "json_has", "stdout_nonempty", "files_after",
-		"git_config_after", "github", "stdout_contract")
+		"git_config_after", "github", "stdout_contract", "stdout_lacks", "stderr_lacks")
 	stepKeys = set("commit", "stage", "write", "files", "branch", "checkout", "run", "label")
 	topKeys  = set("files", "git", "env", "github", "cases")
 )
@@ -173,7 +176,7 @@ func (f *File) Names() []string {
 
 // Machine leaves in each case only what itos's contract holds it to, as previous-release judges
 // the last release's corpus (docs/decisions/0035-only-machine-output-is-itos-s-contract-exit-codes-json-less-message-and-fix-and-the-files-it-writes.md):
-// it takes out every case's stdout, stderr, stdout_has and stderr_has, which pin plain text, but
+// it takes out every case's stdout, stderr and their _has and _lacks, which judge plain text, but
 // the stdout of a case marked stdout_contract, a plain output scripts read
 // (docs/decisions/0054-script-facing-plain-outputs-and-the-guard-s-hook-json-are-contract-guide-text-is-exempt-like-message-and-fix.md),
 // and the keys of its json that are sentences for people (unjudged). json_has and
@@ -188,7 +191,7 @@ func (f *File) Machine() (cases, plainOut, keys int) {
 		}
 		cases++
 		lost := false
-		plain := []string{"stderr", "stdout_has", "stderr_has"}
+		plain := []string{"stderr", "stdout_has", "stderr_has", "stdout_lacks", "stderr_lacks"}
 		if v, _ := m.get("stdout_contract"); v != true {
 			plain = append(plain, "stdout")
 		}
@@ -366,10 +369,16 @@ func readCase(raw any, names map[string]bool) (*Case, string) {
 	lists := []struct {
 		key string
 		to  *[]string
-	}{{"hide", &c.hide}, {"stdout_has", &c.stdoutHas}, {"stderr_has", &c.stderrHas}}
+	}{{"hide", &c.hide}, {"stdout_has", &c.stdoutHas}, {"stderr_has", &c.stderrHas},
+		{"stdout_lacks", &c.stdoutLacks}, {"stderr_lacks", &c.stderrLacks}}
 	for _, l := range lists {
 		if *l.to, err = stringList(m.vals[l.key], l.key); err != nil {
 			return nil, err.Error()
+		}
+	}
+	for _, l := range lists[3:] {
+		if slices.Contains(*l.to, "") {
+			return nil, "has a " + l.key + " that holds the empty text, which every output holds"
 		}
 	}
 	c.json, c.hasJSON = m.get("json")
@@ -382,6 +391,12 @@ func readCase(raw any, names map[string]bool) (*Case, string) {
 			return nil, "has a stdout_contract without a stdout"
 		}
 		c.stdoutContract = true
+	}
+	if c.stdout != nil && *c.stdout != "" && !c.stdoutContract {
+		return nil, "pins its stdout exactly, which only a stdout_contract may (ADR-0052): use json, stdout_has or stdout_lacks"
+	}
+	if c.stderr != nil && *c.stderr != "" {
+		return nil, "pins its stderr exactly, which no case may but as empty (ADR-0052): use stderr_has or stderr_lacks"
 	}
 	if v, ok := m.get("stdout_nonempty"); ok {
 		if v != true {

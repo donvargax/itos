@@ -74,8 +74,8 @@ func TestWriteActuals(t *testing.T) {
 	}
 }
 
-// What --actual writes, pasted as a case's expectations less its messages, which are for reading,
-// passes.
+// What --actual writes, pasted as a case's expectations less its messages and its stderr, which
+// are for reading (a case pins no stderr but the empty one), passes.
 func TestActualsPasteAsPassingExpectations(t *testing.T) {
 	sha := "0123456789abcdef0123456789abcdef01234567"
 	s := &subst{dir: "/tmp/case", version: "8.1.0", labels: map[string]string{"base": sha}}
@@ -95,7 +95,7 @@ func TestActualsPasteAsPassingExpectations(t *testing.T) {
 		t.Fatal(err)
 	}
 	pasted := strings.Replace(b.String(), "- file: ask.yaml\n  name: a\n", "- name: a\n", 1)
-	pasted = regexp.MustCompile(`(?m)^  messages:.*\n(?:    .*\n)*`).ReplaceAllString(pasted, "")
+	pasted = regexp.MustCompile(`(?m)^  (?:messages|stderr):.*\n(?:    .*\n)*`).ReplaceAllString(pasted, "")
 	g, err := ReadFixture(writeFixture(t, "cases:\n"+pasted))
 	if err != nil {
 		t.Fatalf("%v\n%s", err, b.String())

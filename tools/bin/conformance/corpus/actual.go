@@ -36,7 +36,8 @@ func (r *Runner) Actuals(fixtures []*Fixture) []Actual {
 }
 
 // WriteActuals writes each case's outcome as a YAML list, its expectations ready to paste: file,
-// name and argv, then exit, stdout (when it is not JSON), stderr, json (stdout's, when it is
+// name and argv, then exit, stdout (when it is not JSON) and stderr (to read, a stdout_has or
+// stderr_has picked from them, as a case pins neither but a stdout_contract or an empty one), json (stdout's, when it is
 // JSON, less the keys json: does not judge), messages (the message and fix json: leaves out,
 // where they stand in the JSON, beside the rule of the object holding them, for reading only: a
 // fact a problem names in its message alone) and files_after (the files the case names there, as

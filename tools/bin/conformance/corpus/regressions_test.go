@@ -228,7 +228,7 @@ func TestExitedCommandsGroupIsKilled(t *testing.T) {
   - name: a descendant outlives the command
     argv: [-c, 'sleep 600 & echo done']
     exit: 0
-    stdout: "done\n"
+    stdout_has: "done\n"
 `)
 	began := time.Now()
 	out, s, err := newRunner(t, git, t.TempDir(), time.Minute).RunCase(c)

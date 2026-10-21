@@ -43,6 +43,8 @@ func compare(c *Case, out *Outcome, s *subst, additive bool) []string {
 	}
 	problems = append(problems, hasProblems("stdout", c.stdoutHas, out.Stdout, s)...)
 	problems = append(problems, hasProblems("stderr", c.stderrHas, out.Stderr, s)...)
+	problems = append(problems, lacksProblems("stdout", c.stdoutLacks, out.Stdout, s)...)
+	problems = append(problems, lacksProblems("stderr", c.stderrLacks, out.Stderr, s)...)
 	if c.hasJSON {
 		problems = append(problems, jsonProblems(s.deep(c.json), out.Stdout, additive)...)
 	}
@@ -146,6 +148,17 @@ func hasProblems(stream string, wanted []string, got string, s *subst) []string 
 		part = s.text(part)
 		if !strings.Contains(got, part) {
 			return quoted(stream+" lacks "+show(part)+":", got)
+		}
+	}
+	return nil
+}
+
+// lacksProblems is the first part a stream holds of the parts it must not.
+func lacksProblems(stream string, unwanted []string, got string, s *subst) []string {
+	for _, part := range unwanted {
+		part = s.text(part)
+		if strings.Contains(got, part) {
+			return quoted(stream+" holds "+show(part)+", which it must not:", got)
 		}
 	}
 	return nil
