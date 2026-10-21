@@ -56,7 +56,6 @@ phases:
 
 queue:
   - bug-118
-  - bug-114
   - p1-mutation-results-committed
   - p1-text-from-file
   - p1-defer-reason-footer
