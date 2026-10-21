@@ -11149,3 +11149,18 @@ items:
       reasons, and whether the fmt writes are excluded from errcheck. Fixing them is product code,
       so beside or after the moves of docs/plans/slices-and-ports.md.
     refs: [T-194]
+
+  - id: p1-testdata-path-type
+    title: Give tools/testdata a change type
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Only chore and refactor may touch tools/testdata: build and ci reach tools/bin and
+      tools/selftest, and test reaches Go tests under cmd and internal. T-194 put the fixtures of
+      tools/bin/architecture-check, a gate, in tools/testdata/architecture as itos-cc does, so they
+      landed as a chore. The fixtures of a gate belong to the gate, so build and ci, or test, should
+      reach tools/testdata.
+    refs: [T-194]
