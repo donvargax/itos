@@ -12067,3 +12067,11 @@ items:
     status: todo
     depends_on: []
     kind: task
+
+  - id: T-232
+    title: "The ids engine out of internal/cli: minting item and scenario IDs, internal/engine/ids"
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task
