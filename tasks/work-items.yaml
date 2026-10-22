@@ -12059,3 +12059,11 @@ items:
     status: todo
     depends_on: []
     kind: task
+
+  - id: T-231
+    title: "The record engine out of internal/cli: committing tracker documents, internal/engine/record"
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task
