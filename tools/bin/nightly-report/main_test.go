@@ -170,6 +170,23 @@ func TestCancelledBeforeThePlan(t *testing.T) {
 	}
 }
 
+// A log's escape sequences, CSI (colours) and OSC (hyperlinks, ended by ST or BEL), reach neither
+// what is matched nor the body.
+func TestEscapeSequences(t *testing.T) {
+	got := read(log(
+		"",
+		"$ \x1b[1;32mgo run ./tools/bin/verify-release\x1b[0m",
+		"\x1b[31m    --- FAIL: TestFeatures/\x1b]8;;https://example.com/ID-CI-29\x1b\\ID-CI-29\x1b]8;;\x1b\\ (0.20s)\x1b[0m",
+		"",
+		"CI failed at: \x1b]8;;https://example.com\x07go run ./tools/bin/verify-release\x1b]8;;\x07 \x1b[2K(it exited 1)",
+	)).render()
+	want := "Failed at:\n\n- `go run ./tools/bin/verify-release`: it exited 1.\n\n" +
+		"Failing scenarios:\n\n```\n    --- FAIL: TestFeatures/ID-CI-29 (0.20s)\n```\n"
+	if got != want {
+		t.Errorf("the body says:\n%q\nwant:\n%q", got, want)
+	}
+}
+
 func TestNothingFound(t *testing.T) {
 	got := read(log("##[group]Run ITOS_SELFTEST=1 go test ./tools/selftest/gates", "--- FAIL: TestSelftest", "##[error]Process completed with exit code 1.")).render()
 	if got != "No failing scenario in its log: it failed before the features ran, or outside them. See its log.\n" {
@@ -200,7 +217,7 @@ func (f *fake) run(name string, args ...string) (string, error) {
 		return f.jobs, f.jobsErr
 	}
 	for id, text := range f.logs {
-		if call == "gh api repos/donvargax/itos/actions/jobs/"+id+"/logs" {
+		if call == "gh api --allow-escape-sequences repos/donvargax/itos/actions/jobs/"+id+"/logs" {
 			return text, nil
 		}
 	}
@@ -226,6 +243,12 @@ func TestRun(t *testing.T) {
 		"`gh: exit status 1: gh: Not Found (HTTP 404)`\n"
 	if stdout.String() != want {
 		t.Errorf("the body says:\n%s\nwant:\n%s", stdout.String(), want)
+	}
+	// Only the log fetch passes --allow-escape-sequences: the jobs list is JSON.
+	for _, call := range f.calls {
+		if strings.HasSuffix(call, "/logs") != strings.Contains(call, " --allow-escape-sequences ") {
+			t.Errorf("gh was called as %q", call)
+		}
 	}
 	// The whole error, gh's every line, goes to stderr.
 	if !strings.Contains(stderr.String(), "job platform (windows-latest) (3)") || !strings.Contains(stderr.String(), `{"message":"Not Found"}`) {

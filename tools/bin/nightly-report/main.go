@@ -6,7 +6,8 @@
 // nightly.yml's report job runs it, once every other job is done, and opens or comments on the
 // issue with what it prints. A red job is one that concluded neither success nor skipped. Each
 // one's log is read from the API (the run is still going, so not gh run view's logs) and stripped
-// of the colours, carriage returns and timestamps GitHub adds. From it:
+// of its terminal escape sequences (CSI, colours among them, and OSC, such as hyperlinks), so none
+// reaches the body, and of the carriage returns and timestamps GitHub adds. From it:
 //
 //   - the failing scenarios: go test's `--- FAIL: TestFeatures/…` lines, which the step scripts
 //     GitHub echoes into the log never start with;
@@ -74,7 +75,9 @@ func run(args []string, cmd runner, stdout, stderr io.Writer) int {
 		fmt.Fprintf(&b, "\n%s\n", code(firstLine(err), false))
 	}
 	for _, j := range jobs {
-		text, err := cmd("gh", "api", fmt.Sprintf("repos/%s/actions/jobs/%d/logs", *repo, j.ID))
+		// A newer gh (the nightly's 2.101.0) refuses to print a response holding escape
+		// sequences without the flag, and a log holds the colours its steps print.
+		text, err := cmd("gh", "api", "--allow-escape-sequences", fmt.Sprintf("repos/%s/actions/jobs/%d/logs", *repo, j.ID))
 		fmt.Fprintf(&b, "\n### %s: %s\n\n", j.Name, j.Conclusion)
 		if err != nil {
 			fmt.Fprintf(stderr, "nightly-report: the log of job %s (%d) could not be read: %v\n", j.Name, j.ID, err)
@@ -128,7 +131,9 @@ func redJobs(cmd runner, repo, runID, attempt string) ([]job, error) {
 }
 
 var (
-	colour    = regexp.MustCompile("\x1b\\[[0-9;]*[A-Za-z]")
+	// An escape sequence: a CSI, an OSC or another string (DCS, SOS, PM, APC) to its BEL or ST
+	// or the line's end, any other escape, or a lone ESC.
+	escape    = regexp.MustCompile(`\x1b(?:\[[0-?]*[ -/]*[@-~]|[\]PX^_][^\x07\x1b]*(?:\x07|\x1b\\)?|[ -/]*[0-~])?`)
 	timestamp = regexp.MustCompile(`^[0-9][0-9TZ:.-]* `)
 	scenario  = regexp.MustCompile(`^\s*--- FAIL: TestFeatures/`)
 	failedAt  = regexp.MustCompile(`^(CI failed at|also failed at)(.*)$`)
@@ -143,12 +148,12 @@ var stops = []struct{ prefix, says string }{
 	{"##[error]The operation was canceled.", "The operation was cancelled"},
 }
 
-// clean is a log as the API gives it, one line an entry, without GitHub's colours, carriage
-// returns and timestamps.
+// clean is a log as the API gives it, one line an entry, without its escape sequences and
+// GitHub's carriage returns and timestamps.
 func clean(text string) []string {
 	lines := strings.Split(strings.TrimSuffix(text, "\n"), "\n")
 	for i, l := range lines {
-		lines[i] = timestamp.ReplaceAllString(colour.ReplaceAllString(strings.TrimSuffix(l, "\r"), ""), "")
+		lines[i] = timestamp.ReplaceAllString(escape.ReplaceAllString(strings.TrimSuffix(l, "\r"), ""), "")
 	}
 	return lines
 }
