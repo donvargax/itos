@@ -4210,3 +4210,16 @@
     Tasks and named tests; internal/proof's doc named internal/cli's workdone.go;
     docs/ARCHITECTURE.md pointed at internal/cli/declare_<name>.go and did not say each command is a
     slice. The coordinator's doc pass, comments and the map only.
+
+- id: T-275
+  type: docs
+  title: AGENTS.md and ORCHESTRATING.md leave the push proof and the task checks to CI
+  why: >
+    ADR-0057 (q-95, the user, 2026-10-22): CI owns the push proof and every named task's checks
+    until ADR-0056's in-process tier runs them in the hooks; q-55 is retired. AGENTS.md's 'The push
+    proof' paragraph and its 'What no gate does for you' line on itos task, and
+    docs/ORCHESTRATING.md's brief line that agents run CI's push proof, say otherwise. The
+    coordinator's edit.
+  done_when:
+    - run: "! grep -n 'q-55' AGENTS.md docs/ORCHESTRATING.md"
+    - run: "! grep -n 'run CI.s push proof' AGENTS.md docs/ORCHESTRATING.md"
