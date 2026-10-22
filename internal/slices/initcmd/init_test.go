@@ -29,7 +29,9 @@ const sums = "aa  itos-9.2.0-linux-amd64.tar.gz\n"
 // in: the git config, and an old git that runs no hook its config
 // declares; git init failing with initErr; the newest release, or
 // releaseErr; what hook install writes, and under json, its exit and its error, each call's
-// json recorded; and what the offers come to and say, each offer recorded.
+// json recorded; what the offers come to and say, each offer recorded; and
+// a folder made absolute failing with absErr, a file's write with its
+// error in writeErrs.
 type fake struct {
 	*vcsfake.VCS
 	git        map[string][]string
@@ -44,6 +46,8 @@ type fake struct {
 	offered    Offered
 	said       string
 	offers     []Offer
+	absErr     error
+	writeErrs  map[string]error
 }
 
 func (f *fake) Init(ctx context.Context) error {
@@ -93,9 +97,17 @@ func (f *fake) Offers(_ context.Context, o Offer, log io.Writer) Offered {
 	return f.offered
 }
 
-func (f *fake) Abs(_ context.Context, path string) (string, error) { return filepath.Abs(path) }
+func (f *fake) Abs(_ context.Context, path string) (string, error) {
+	if f.absErr != nil {
+		return "", f.absErr
+	}
+	return filepath.Abs(path)
+}
 
 func (f *fake) WriteFile(_ context.Context, name string, data []byte, perm os.FileMode) error {
+	if err := f.writeErrs[name]; err != nil {
+		return err
+	}
 	return os.WriteFile(name, data, perm)
 }
 
@@ -263,6 +275,17 @@ func TestParseReadsItsFlags(t *testing.T) {
 	}
 	if got := typed("", "a"); got != "a" {
 		t.Errorf("typed with no origin: %q", got)
+	}
+}
+
+// A --git-shim-dir folder that cannot be made absolute stops Parse with
+// that error, in either form, before a later argument's usage error.
+func TestParseStopsAtAFolderItCannotMakeAbsolute(t *testing.T) {
+	f := &fake{absErr: errors.New("getwd: the working folder is gone")}
+	for _, args := range [][]string{{"--git-shim-dir", "bin", "--bogus"}, {"--git-shim-dir=bin", "--no-git-shim"}} {
+		if _, err := Parse(context.Background(), args, "sub", false, nil, f); err != f.absErr {
+			t.Errorf("init %v: %v", args, err)
+		}
 	}
 }
 

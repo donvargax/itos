@@ -3,6 +3,7 @@ package cli
 import (
 	"context"
 	"encoding/json"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -11,8 +12,9 @@ import (
 
 // runInit reads its line through the slice and binds its ports to git, the
 // working tree, pin's release, hook install and the three offers: a line it
-// refuses is the usage error; hook install writes its object under json;
-// and a first run writes the starter, the offers made as the flags answer
+// refuses is the usage error; a folder is made absolute as filepath.Abs
+// makes it; hook install writes its object under json; and a first run
+// writes the starter, the offers made as the flags answer
 // them, the rules' files written named in what to commit.
 func TestRunInitBindsItsPorts(t *testing.T) {
 	var stdout, stderr strings.Builder
@@ -24,6 +26,10 @@ func TestRunInitBindsItsPorts(t *testing.T) {
 	ctx, p := context.Background(), initPorts{o: o}
 	if p.Worktree(ctx) != trees.Worktree || len(p.TaskFlags(ctx)) == 0 {
 		t.Error("the working tree or the task flags")
+	}
+	abs, _ := filepath.Abs("bin")
+	if got, err := p.Abs(ctx, "bin"); got != abs || err != nil {
+		t.Errorf("bin made absolute: %q, %v", got, err)
 	}
 	if _, _, err := p.Release(ctx, ""); err == nil {
 		t.Error("a release server that cannot be reached answered")

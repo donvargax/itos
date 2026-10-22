@@ -35,6 +35,29 @@ func TestInitWriteStopsAtAFolderItCannotMake(t *testing.T) {
 	}
 }
 
+// A starter file init cannot write stops it with the error, before hook
+// install: the config's, nothing after it written, and the registry's, the
+// ledger before it written.
+func TestInitWriteStopsAtAFileItCannotWrite(t *testing.T) {
+	for _, c := range []struct {
+		file   string
+		ledger bool
+	}{{"itos.yaml", false}, {starterRegistry, true}} {
+		t.Run(c.file, func(t *testing.T) {
+			f := scratch(t, "commit", nil)
+			failed := errors.New("injected write failure")
+			f.writeErrs = map[string]error{c.file: failed}
+			code, stdout, _, err := call(t, f)
+			if code != 0 || err != failed || stdout != "" || len(f.installs) != 0 || len(f.offers) != 0 {
+				t.Errorf("exit %d, %v:\n%s", code, err, stdout)
+			}
+			if exists(c.file) || exists(starterLedger) != c.ledger {
+				t.Errorf("%s written, or the ledger written: %v", c.file, exists(starterLedger))
+			}
+		})
+	}
+}
+
 // Under --json init prints one object on stdout, what it says on stderr:
 // its config, the files, HEAD as since, the pin, hook install's object
 // without its schema, and the offers', whose words are discarded; with no
