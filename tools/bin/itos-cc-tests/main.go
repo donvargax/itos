@@ -4,12 +4,14 @@
 //
 //	go run ./tools/bin/itos-cc-tests
 //
-// prints one live scenario a line, its ID, a tab, then its feature file's path from the
-// repository's top. `tools/bin/itos tests list scenario --json`, run from the working folder, is
-// the source of truth; this only reshapes its JSON for itos-cc. It exits with itos's code, its
-// stderr passed on, when itos fails, and 1 when itos's JSON is not a tests list of tests each
-// with a string id, a string file and a boolean live, having printed the live tests before the
-// first invalid one. It was tools/bin/itos-cc-tests.ts until T-146.
+// prints one live scenario a line, its ID, a tab, its feature file's path from the repository's
+// top, then, for a scenario itos gives a fingerprint (slice 166, T-278), a tab and the
+// fingerprint, the third column itos-cc v0.24.0 and later date a listed kill by in place of the
+// file. `tools/bin/itos tests list scenario --json`, run from the working folder, is the source
+// of truth; this only reshapes its JSON for itos-cc. It exits with itos's code, its stderr passed
+// on, when itos fails, and 1 when itos's JSON is not a tests list of tests each with a string
+// id, a string file, a boolean live and, if any, a string fingerprint, having printed the live
+// tests before the first invalid one. It was tools/bin/itos-cc-tests.ts until T-146.
 package main
 
 import (
@@ -50,8 +52,8 @@ func run(stdout, stderr io.Writer) int {
 	return list(out.Bytes(), stdout, stderr)
 }
 
-// list writes the live tests of itos's JSON report to stdout, a line each, and returns the exit
-// code.
+// list writes the live tests of itos's JSON report to stdout, a line each, its fingerprint the
+// third column when it has one, and returns the exit code.
 func list(report []byte, stdout, stderr io.Writer) int {
 	var parsed any
 	if err := json.Unmarshal(report, &parsed); err != nil {
@@ -69,13 +71,22 @@ func list(report []byte, stdout, stderr io.Writer) int {
 		id, idOK := test["id"].(string)
 		file, fileOK := test["file"].(string)
 		live, liveOK := test["live"].(bool)
-		if !idOK || !fileOK || !liveOK {
+		fingerprint, fingerprintOK := "", true
+		if f, has := test["fingerprint"]; has {
+			fingerprint, fingerprintOK = f.(string)
+		}
+		if !idOK || !fileOK || !liveOK || !fingerprintOK {
 			fmt.Fprintln(stderr, "tools/bin/itos tests list scenario returned an invalid test")
 			return 1
 		}
-		if live {
-			fmt.Fprintf(stdout, "%s\tfeatures/%s\n", id, file)
+		if !live {
+			continue
 		}
+		line := id + "\tfeatures/" + file
+		if fingerprint != "" {
+			line += "\t" + fingerprint
+		}
+		fmt.Fprintln(stdout, line)
 	}
 	return 0
 }
