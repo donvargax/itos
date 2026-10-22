@@ -7,7 +7,7 @@
 // Today there is one proof, the code's (config proof.code). Touches says
 // whether an item's commits touch the paths that count as code, so need it;
 // Command writes the provider's check with {base}, the parent of the item's
-// first commit, which work done finds (internal/cli's workdone.go); Run runs
+// first commit, which work done finds (internal/slices/work's done.go); Run runs
 // it through the config's shell, its stderr passed through, its stdout kept
 // for Read.
 //

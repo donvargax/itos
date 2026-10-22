@@ -18,8 +18,8 @@
 //
 // # Reading a command line
 //
-// Each command declares itself (internal/declare): declare_<name>.go's
-// <name>Declared, or its slice's Command, gives its name, its Rank in itos
+// Each command declares itself (internal/declare): its slice's Command
+// gives its name, its Rank in itos
 // --help, its lines there, its --help pages and its spec. tools/bin/assemble
 // writes commands_gen.go from them, declared and dispatch, which calls
 // run<Name> in the command's own file; run it after adding, renaming or
@@ -34,9 +34,9 @@
 // together, so a value is never read as a global flag, refuses what the
 // spec does not allow (exit 2), and hands the command its arguments with
 // every flag written --flag value. ParseGlobals stays the lenient reading
-// the launcher and the extensions use. A command checks a ref with
-// commitRefs (the ci slice refs.CheckRange for a CI range, whose start may
-// be a commit a rewritten history dropped) before it uses it. The help is
+// the launcher and the extensions use. A slice checks a ref with
+// internal/engine/refs (CheckRange for a CI range, whose start may be a
+// commit a rewritten history dropped) before it uses it. The help is
 // written by hand in the declarations, which helpTexts keys by command path
 // (help.go): itos,
 // itos help … and any --help print the longest command path it knows,
@@ -83,8 +83,9 @@
 // commit and itos push's git in it, so pathspecs and an -F file mean what
 // they meant. Under --root nothing is translated. Under a stealth config
 // verify and ci plan with no range take the unpushed commits (vcsport.Unpushed):
-// runVerify and runCi ask config.IsStealth of configPath() before the usage error,
-// so a project's is unchanged and needs no config load.
+// the verify and ci slices ask their Stealth port (config.IsStealth of
+// configPath()) before the usage error, so a project's is unchanged and
+// needs no config load.
 //
 // # Commands the launcher leaves to this binary
 //
@@ -109,7 +110,7 @@
 // and the config's shell, and install.go keeps hookInstall, which init
 // runs. itos's hooks in the git config are internal/engine/hooks's, whose
 // doc says how: gitconfig.go binds it to the git adapter for the commands
-// that commit or push (hooksReady, entryDeclared, hooksPathSet).
+// that commit or push (hooksReady, hooksPathSet).
 //
 // # CI
 //
@@ -119,7 +120,7 @@
 // run through internal/engine/ciwatch, whose doc says how, with the
 // provider watcher (watch.go) gives their Watcher ports.
 //
-// # Tasks and named tests
+// # Tasks
 //
 // task is the task slice (internal/slices/task); task.go binds its Ports
 // to loadConfig and, for task add, to soundRegistry, newItemID, tracker and
@@ -142,9 +143,6 @@
 // engine words as work-commit-failed (exit 1), or as an error when a file
 // could not be put back. The engine's tests give each answer over the
 // tracker's fake; the adapter's make each failure in a scratch repository.
-//
-// commit check-paths and commit footers (commit.go) are calls into
-// internal/scope and message.Gathered.
 //
 // # The registry's commands
 //
@@ -185,8 +183,7 @@
 // readLine, workAddLine, workPromoteLine, taskAddArgs, loadConfig,
 // soundRegistry and mintItemID; newItemID hands the command it runs the id
 // reserved (Out's reserved) instead of minting another, since no command
-// line may give work add, task add or work promote an id. draftsFile, the
-// list status reads, stays in draft.go.
+// line may give work add, task add or work promote an id.
 //
 // # guard claude-code
 //
@@ -197,9 +194,9 @@
 //
 // # The slices
 //
-// The commands moved into slices (ADR-0053), guard and version so far, are
-// called from the command table and their Ports bound here, to the real
-// code, with context.Background(): internal/cli is their assembly until it
-// moves into cmd, the one package outside cmd that tools/bin/architecture-check
-// lets import a slice. A slice imports nothing of internal/cli.
+// Every command is a slice (ADR-0053), called from the command table, its
+// Ports bound here, to the real code, with context.Background():
+// internal/cli is their assembly until it moves into cmd, the one package
+// outside cmd that tools/bin/architecture-check lets import a slice. A slice
+// imports nothing of internal/cli.
 package cli
