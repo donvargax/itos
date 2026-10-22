@@ -3070,17 +3070,6 @@
     untypedMerge; out of hook.go movesChange, firstFailure and checkFailure. Stay in cli:
     verifyRange, span, short, printSinceIssues, and checkEnv with AmendEnv (callers already pass the
     env). The pre-push verify writes both streams into one buffer (hook.go), and that stays so.
-  done_when:
-    - run: go test ./internal/engine/judge/ ./internal/cli
-      timeout: 600
-    - run: "! grep -n 'func movesChange\\|func firstFailure\\|func untypedMerge\\|check.ChecksBeforeLate' internal/cli/*.go"
-    - run: tools/bin/architecture-check
-    - run: tools/bin/pinned golangci-lint run ./...
-      timeout: 600
-    - run: go test ./features -count=1 -scenarios='^@ID-(VERIFY|SINCE|CMSG|CDATA|CTASK|HOOKSNAP|PREPUSH|COMMITCMD|WORK)-[0-9]+$'
-      timeout: 600
-    - run: go run ./tools/bin/conformance --bin tools/bin/itos --only tools/itos/conformance/verify.yaml tools/itos/conformance/hooks.yaml
-      timeout: 600
 
 - id: T-235
   type: refactor

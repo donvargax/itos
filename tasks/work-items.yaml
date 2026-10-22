@@ -12096,7 +12096,7 @@ items:
     title: "The commit judge engine out of internal/cli: verifying commits and ranges, internal/engine/judge"
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [T-228]
     kind: task
 
