@@ -270,13 +270,24 @@ Feature: itos commit, a commit whose footers itos writes
     And nothing was committed
 
   # itos commit runs without an itos config: it hands the command to git. In a
-  # folder with no config, outside any repository, it panicked on the nil
-  # config (gitCommit read its comment character after checking it was there);
-  # git fails there itself, exit 128, before reading its options.
+  # folder with no config it panicked on the nil config (gitCommit read its
+  # comment character after checking the config was there), inside a
+  # repository or not. The Background writes itos.yaml, so each scenario
+  # removes it first. Outside a repository git fails before reading its
+  # options, exit 128; in a repository it refuses the unknown option, 129.
   @ID-COMMITCMD-25 @bug-120 @wip
-  Scenario: itos commit in a folder with no itos config hands the command to git and never panics
+  Scenario: itos commit outside a repository with no itos config hands the command to git and never panics
     Given a folder that is not a git repository
+    And the folder has no itos config
     When itos runs "commit --zz-bogus"
     Then itos exits with code 128
     And its output says "not a git repository"
+    And its output does not say "panic"
+
+  @ID-COMMITCMD-26 @bug-120 @wip
+  Scenario: itos commit in a repository with no itos config hands the command to git and never panics
+    Given the folder has no itos config
+    When itos runs "commit --zz-bogus"
+    Then itos exits with code 129
+    And its output says "unknown option"
     And its output does not say "panic"
