@@ -18,7 +18,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io/fs"
 	"os"
 	"slices"
 	"strings"
@@ -28,8 +27,7 @@ import (
 	"github.com/donvargax/itos/v8/internal/message"
 	"github.com/donvargax/itos/v8/internal/out"
 	"github.com/donvargax/itos/v8/internal/providers"
-	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
-	vcsport "github.com/donvargax/itos/v8/internal/vcs/port"
+	trackerport "github.com/donvargax/itos/v8/internal/store/tracker/port"
 	"github.com/donvargax/itos/v8/internal/work"
 )
 
@@ -169,23 +167,12 @@ func soundRegistry(o Out) (cfg *config.Loaded, registry work.Registry, text stri
 }
 
 // uncommitted is the problem of a file a command writes and commits that
-// git does not hold as HEAD has it, which the command's commit would sweep in
-// beside its own change; nil when it is clean. A file in the working tree is
-// clean when git tracks it and reports no change to it; a file not there,
-// which the command makes, when git knows nothing of it either: one deleted
-// and the deletion not committed, staged or not, is a change no commit holds
-// (bug 13), which a commit of the file written afresh would undo. The
-// problem names the file, the registry, a ledger file, itos decision's
-// questions, or the rule the command gives (a decision record's).
+// git does not hold as HEAD has it (the tracker's *Dirty), which the
+// command's commit would sweep in beside its own change, a deletion among
+// them (bug 13). The problem names the file, the registry, a ledger file,
+// itos decision's questions, or the rule the command gives (a decision
+// record's).
 func uncommitted(cfg *config.Loaded, file, rule string) *out.Problem {
-	_, err := os.Lstat(file)
-	there := !errors.Is(err, fs.ErrNotExist)
-	ctx := context.Background()
-	tracked := vcs.Git{}.Tracked(ctx, file)
-	status, err := vcs.Git{}.PathStatus(ctx, file)
-	if err == nil && len(status) == 0 && tracked == there {
-		return nil
-	}
 	switch {
 	case rule != "":
 	case file == cfg.Work.Registry:
@@ -220,121 +207,88 @@ type written struct {
 
 // writeCommitted writes the files and, in a project, commits them alone:
 // git commit --only, with the header and body, through the hooks, what else
-// is staged left staged. Its result is the new commit's SHA, "" under a
-// stealth config, which commits nothing. A file with changes no commit holds
-// (uncommitted), a deletion among them, is refused before anything is
-// written (exit 1). Whatever fails after the first write, a write, git add,
-// a git that cannot start or a commit a hook refuses, puts every file back
-// as it was, file and index, a new one removed (restore); a refusal exits 1,
-// the rest are errors. work's commands write the registry alone
-// (writeRegistry), but for work done closing a task with checks, which
-// writes the registry and the task's ledger file (slice 101), task add a
-// ledger file and the registry (slice 55), work promote the registry, a
-// task's ledger file and the questions (bug 105, slice 138),
+// is staged left staged (the tracker's Transact). Its result is the new
+// commit's SHA, "" under a stealth config, which commits nothing. A file
+// with changes no commit holds (uncommitted), a deletion among them, is
+// refused before anything is written (exit 1). Whatever fails after the
+// first write, a write, git add, a git that cannot start or a commit a hook
+// refuses, puts every file back as it was, file and index, a new one
+// removed; a refusal exits 1, the rest are errors. work's commands write
+// the registry alone (writeRegistry), but for work done closing a task with
+// checks, which writes the registry and the task's ledger file (slice 101),
+// task add a ledger file and the registry (slice 55), work promote the
+// registry, a task's ledger file and the questions (bug 105, slice 138),
 // decision the questions alone (slice 62), decision record the questions, a decision
 // record, the one it supersedes and their index (slice 69).
 func writeCommitted(cfg *config.Loaded, files []written, header, body string, o Out) (string, int, error) {
+	t := trackerport.Transaction{
+		Changes:    make([]trackerport.Change, len(files)),
+		Paragraphs: []string{header, selfBody(cfg, header, body)},
+		Quiet:      o.Quiet,
+		// git's words and the hooks' go to stderr: stdout is the command's
+		// own result.
+		Stdin: os.Stdin,
+		Words: o.Stderr,
+		Env:   append(withoutFooters(os.Environ()), AmendEnv+"=0"),
+	}
 	paths := make([]string, len(files))
 	for i, f := range files {
+		t.Changes[i] = trackerport.Change{Name: f.path, Old: f.old, Text: f.text, Created: f.created}
 		paths[i] = f.path
 	}
-	if p, err := commitReady(cfg, files); err != nil {
-		return "", 0, err
-	} else if p != nil {
-		code, err := refuseWork([]out.Problem{*p}, ExitPolicy, o)
-		return "", code, err
-	}
-	named := and(paths)
-	modes := make([]fs.FileMode, len(files))
-	for i, f := range files {
-		modes[i] = fs.FileMode(0o644)
-		if info, err := os.Stat(f.path); err == nil {
-			modes[i] = info.Mode().Perm()
-		}
-		if touched, err := put(f.path, f.text, modes[i]); err != nil {
-			if !touched {
-				i--
-			}
-			return "", 0, restored(cfg, files[:i+1], modes, fmt.Errorf("%s cannot be written: %w", f.path, err))
-		}
-	}
-	if cfg.Stealth {
-		return "", 0, nil
-	}
-	failed := func(step string, exit *vcsport.Failed) (string, int, error) {
-		if err := restored(cfg, files, modes, nil); err != nil {
-			return "", 0, fmt.Errorf("%s failed (git exited %d): %w", step, exit.Code, err)
-		}
+	sha, err := tracker(cfg, o.OS).Transact(context.Background(), t)
+	var refused *trackerport.Refused
+	switch {
+	case errors.As(err, &refused) && refused.Restore != nil:
+		return "", 0, fmt.Errorf("%s failed (git exited %d): %w", refused.Step, refused.Code, refused.Restore)
+	case errors.As(err, &refused):
 		as := "is as it was"
 		if len(files) > 1 {
 			as = "are as they were"
 		}
 		code, err := refuseWork([]out.Problem{{
 			Rule:    "work-commit-failed",
-			Message: fmt.Sprintf("%s failed (git exited %d), so %s %s", step, exit.Code, named, as),
+			Message: fmt.Sprintf("%s failed (git exited %d), so %s %s", refused.Step, refused.Code, and(paths), as),
 			Fix:     "fix what git or the hook above says, then run the command again",
 		}}, ExitPolicy, o)
 		return "", code, err
 	}
-	// git's words and the hooks' go to stderr: stdout is the command's own
-	// result.
-	ctx, v := context.Background(), vcs.Git{}
-	talk := vcsport.Talk{Stdin: os.Stdin, Stdout: o.Stderr, Stderr: o.Stderr}
-	var exit *vcsport.Failed
-	for _, f := range files {
-		// A path git does not know is no pathspec for --only until it is
-		// added; what git add says goes to stderr, as the commit's words do.
-		if !f.created {
-			continue
-		}
-		if err := v.Add(ctx, []string{f.path}, talk); errors.As(err, &exit) {
-			return failed("git add of "+f.path, exit)
-		} else if err != nil {
-			return "", 0, restored(cfg, files, modes, fmt.Errorf("cannot run git: %w", err))
-		}
-	}
-	talk.Env = append(withoutFooters(os.Environ()), AmendEnv+"=0")
-	commit := vcsport.Commit{Paragraphs: []string{header, selfBody(cfg, header, body)}, Only: paths, Quiet: o.Quiet}
-	if err := v.Commit(ctx, commit, talk); errors.As(err, &exit) {
-		return failed("the commit of "+named, exit)
-	} else if err != nil {
-		return "", 0, restored(cfg, files, modes, fmt.Errorf("cannot run git: %w", err))
-	}
-	// git commit --only stages the files in the real index before the hooks
-	// run on a temporary one, so a hook that rewrites them, a formatter,
-	// puts its version in the commit and the working tree while the real
-	// index keeps itos's (bug 17). Their entries are set to the commit's:
-	// they had no change of the person's, which uncommitted refused above.
-	if err := v.Unstage(ctx, paths); err != nil {
-		return "", 0, fmt.Errorf("the commit of %s was made, but git's index of them cannot be set to it: %w", named, err)
-	}
-	sha, err := v.Resolve(ctx, "HEAD")
-	if err != nil {
+	if p, err := dirty(cfg, files, err); err != nil {
 		return "", 0, err
+	} else if p != nil {
+		code, err := refuseWork([]out.Problem{*p}, ExitPolicy, o)
+		return "", code, err
 	}
 	return sha, 0, nil
 }
 
 // commitReady is what writeCommitted refuses before it writes anything, in
-// a project: itos's commit-msg hook not declared, an error, since the commit
-// runs through the hooks as any commit and git would run none of itos's
-// (slice 91); and the first file with changes no commit holds (uncommitted),
-// a problem. A command that reserves an id asks it before it does (work
-// promote, slice 138). Under a stealth config, which commits nothing,
-// nothing is.
-func commitReady(cfg *config.Loaded, files []written) (*out.Problem, error) {
-	if cfg.Stealth {
-		return nil, nil
+// a project (the tracker's Ready): itos's commit-msg hook not declared, an
+// error, since the commit runs through the hooks as any commit and git
+// would run none of itos's (slice 91); and the first file with changes no
+// commit holds (uncommitted), a problem. A command that reserves an id asks
+// it before it does (work promote, slice 138). Under a stealth config,
+// which commits nothing, nothing is.
+func commitReady(cfg *config.Loaded, files []written, o Out) (*out.Problem, error) {
+	paths := make([]string, len(files))
+	for i, f := range files {
+		paths[i] = f.path
 	}
-	if err := hooksReady("commit-msg"); err != nil {
+	return dirty(cfg, files, tracker(cfg, o.OS).Ready(context.Background(), paths))
+}
+
+// dirty is the tracker's error as writeCommitted gives it: a *Dirty file
+// the problem its rule names (uncommitted), anything else the error.
+func dirty(cfg *config.Loaded, files []written, err error) (*out.Problem, error) {
+	var d *trackerport.Dirty
+	if !errors.As(err, &d) {
 		return nil, err
 	}
-	for _, f := range files {
-		if p := uncommitted(cfg, f.path, f.rule); p != nil {
-			return p, nil
-		}
+	rule := ""
+	if at := slices.IndexFunc(files, func(f written) bool { return f.path == d.Name }); at >= 0 {
+		rule = files[at].rule
 	}
-	return nil, nil
+	return uncommitted(cfg, d.Name, rule), nil
 }
 
 // selfBody is the body of a commit itos makes of its own files, its words
@@ -348,62 +302,6 @@ func commitReady(cfg *config.Loaded, files []written) (*out.Problem, error) {
 func selfBody(cfg *config.Loaded, header, body string) string {
 	parts := []string{header, strings.Join(strings.Fields(body), " ")}
 	return message.Wrap(parts, bodyWidth, cfg.CommentChar(), cfg.Commits.Footers.Keys)[1]
-}
-
-// put writes the text to the file in the mode, as os.WriteFile does, and
-// says whether it touched the file: false when the file could not be opened,
-// so it is as it was.
-func put(path, text string, mode fs.FileMode) (bool, error) {
-	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, mode)
-	if err != nil {
-		return false, err
-	}
-	_, err = f.WriteString(text)
-	return true, errors.Join(err, f.Close())
-}
-
-// restore puts the files back as they were before the command wrote them,
-// and git's index for them as HEAD has it (they were clean before): a file
-// that was there gets its old text back, in its mode, where it differs; a
-// new one is unstaged and removed. Each file is put back whatever failed
-// with another, and what failed is the error, naming the file.
-func restore(cfg *config.Loaded, files []written, modes []fs.FileMode) error {
-	var failed error
-	for i, f := range files {
-		var err error
-		if f.created {
-			if !cfg.Stealth {
-				err = (vcs.Git{}).Untrack(context.Background(), []string{f.path})
-			}
-			if rm := os.Remove(f.path); rm != nil && !errors.Is(rm, fs.ErrNotExist) {
-				err = errors.Join(err, rm)
-			}
-		} else {
-			if now, read := os.ReadFile(f.path); read != nil || string(now) != f.old {
-				err = os.WriteFile(f.path, []byte(f.old), modes[i])
-			}
-			if !cfg.Stealth {
-				err = errors.Join(err, (vcs.Git{}).Unstage(context.Background(), []string{f.path}))
-			}
-		}
-		if err != nil {
-			failed = errors.Join(failed, fmt.Errorf("%s cannot be put back: %w", f.path, err))
-		}
-	}
-	return failed
-}
-
-// restored is cause, after restore has put the files back; when that fails
-// too, an error that says both.
-func restored(cfg *config.Loaded, files []written, modes []fs.FileMode, cause error) error {
-	err := restore(cfg, files, modes)
-	switch {
-	case err == nil:
-		return cause
-	case cause == nil:
-		return err
-	}
-	return fmt.Errorf("%w, and %w", cause, err)
 }
 
 // and is the names joined as a list is said: "a", "a and b", "a, b and c".

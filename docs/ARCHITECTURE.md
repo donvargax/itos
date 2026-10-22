@@ -87,7 +87,7 @@ What every command meets:
   `internal/tests`.
 - CI's plan and its driver: `internal/plan`, `internal/ci`; a run's code
   proof: `internal/proof`.
-- The work registry: `internal/work` judges, `internal/cli` writes.
+- The registry: `internal/work` judges, `internal/store/tracker` writes.
 - Questions and decision records: `internal/ask`, `internal/adr`; follow-ups
   and drafts: `internal/slices/followup`, `internal/draft`.
 - The guides `itos go` and `itos guide` print: `internal/guide`.

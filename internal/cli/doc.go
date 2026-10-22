@@ -502,8 +502,10 @@
 //
 // itos task add (taskadd.go) writes two files in one commit: the task
 // (ledger.Add) and its item, a task, todo and nobody's (work.Add).
-// writeCommitted is given both, each refused before anything is written when
-// git does not hold it as HEAD has it (uncommitted, naming the file): a file
+// writeCommitted is given both and hands them to the tracker store's
+// Transact (tracker.go binds its file adapter, internal/store/tracker/adapter),
+// each refused before anything is written when
+// git does not hold it as HEAD has it (a *Dirty, which uncommitted words naming the file): a file
 // there must be tracked with no change, and one not there, which the command
 // makes, unknown to git, so a file deleted and the deletion not committed is
 // refused rather than written afresh over it. A new file is git added so
@@ -512,8 +514,10 @@
 // one restore: every file written gets its old text back where it differs
 // (put says whether it touched the file), and its index entry reset to
 // HEAD's, a new one unstaged and removed; what cannot be put back is an error
-// naming the file. workwrite_test.go makes each of those fail in a scratch
-// repository.
+// naming the file. A step git refuses is the tracker's *Refused, which
+// writeCommitted words as work-commit-failed (exit 1), or as an error when a
+// file could not be put back. workwrite_test.go and the adapter's tests make
+// each of those fail in a scratch repository.
 //
 // tests list, tests smoke check and run, tests moves (tests.go) and tests
 // next-id and task next-id (nextid.go) are calls into internal/tests,

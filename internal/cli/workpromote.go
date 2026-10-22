@@ -78,7 +78,7 @@ func workPromote(args []string, o Out) (int, error) {
 		}
 		files = append([]written{{path: added.Path, old: added.Old, created: added.Created}}, files...)
 	}
-	if problem, err := commitReady(cfg, files); err != nil {
+	if problem, err := commitReady(cfg, files, o); err != nil {
 		return 0, err
 	} else if problem != nil {
 		return refuseWork([]out.Problem{*problem}, ExitPolicy, o)
