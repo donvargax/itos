@@ -172,6 +172,23 @@ linters:
           deny:
             - pkg: github.com/donvargax/itos/v8/internal/lock
               desc: "the lock is the store adapters' alone (T-226): take it through a store port's Hold, the private store's or the tracker's"
+        # The ID counter (internal/idcounter) is the tracker store's
+        # adapter's internals, which reserves through it for the port's
+        # Reserve. No other package's code imports it, a test's setup may.
+        # A slice and a port are refused it by their own rules.
+        idcounter-internals:
+          files:
+            - "**/internal/**"
+            - "**/cmd/**"
+            - "!**/internal/idcounter/**"
+            - "!**/internal/store/tracker/adapter/**"
+            - "!**/internal/slices/**"
+            - "!**/internal/store/*/port/**"
+            - "!**/internal/vcs/port/**"
+            - "!$test"
+          deny:
+            - pkg: github.com/donvargax/itos/v8/internal/idcounter
+              desc: "the ID counter is the tracker adapter's alone (T-227): reserve through the tracker port's Reserve"
         # A slice's domain, its tests and subpackages with it, imports nothing
         # of ours outside internal/slices: no UI, engine, adapter or cmd. It
         # reaches the outside through its port.
