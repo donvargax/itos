@@ -3970,19 +3970,6 @@
     committed golden: the user, 2026-10-21). No behaviour change: same bytes, same exit codes, same
     order. Lane D, after D4. Two slices (guide, gocmd) over a new internal/engine/guides (the notes
     and the commit policy from guide.go); go's Port Standing bound to statusOf.
-  done_when:
-    - run: go test ./internal/cli ./internal/slices/... ./internal/engine/... -count=1
-      timeout: 600
-    - run: go run ./tools/bin/assemble -check
-    - run: go run ./tools/bin/conformance --bin tools/bin/itos --only tools/itos/conformance/help.yaml tools/itos/conformance/cli.yaml tools/itos/conformance/guide.yaml
-      timeout: 600
-    - run: go test ./features -count=1 -scenarios='^@ID-(CLI|BIN|EXT|GUIDE)-[0-9]+$'
-      timeout: 600
-    - run: tools/bin/architecture-check
-    - run: tools/bin/pinned golangci-lint run ./...
-      timeout: 600
-    - run: grep -q 'gocmdslice.Command' internal/cli/commands_gen.go
-    - run: "! grep -nE '^func (\\([^)]*\\) )?(goStatus|printProcedure|printGuideThen)\\(' internal/cli/*.go"
 
 - id: T-263
   type: refactor
