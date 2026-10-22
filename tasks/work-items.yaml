@@ -11868,3 +11868,19 @@ items:
     status: doing
     depends_on: []
     kind: task
+
+  - id: p1-agent-self-review
+    title: The implementing guide asks for a fresh-eyes review of the diff against the item's spec before hand-back
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      From #110 (a survey of unclebob/swarm-forge). Before work done or the push, the agent reviews
+      its own diff against the item's spec, apart from writing it: a scenario text changed beyond a
+      name, a file outside the item's set, a guard reported as red evidence. These are what
+      coordinators most often catch when landing. A guide step, not a gate. Not proposed:
+      swarm-forge's role pipeline.
+    refs: [internal/guides]
+    tags: [work]
