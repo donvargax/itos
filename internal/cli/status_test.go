@@ -2,6 +2,7 @@ package cli
 
 import (
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -62,6 +63,23 @@ func TestStatusRefuses(t *testing.T) {
 	code, _, stderr := run("status", "--as", "zed")
 	if code != ExitMissing || !strings.Contains(stderr, `"zed" is not in people.yaml`) {
 		t.Errorf("--as not among the people: exit %d\n%s", code, stderr)
+	}
+}
+
+// Where git cannot name the common dir the drafts are not read, not even
+// to say they cannot be, and the rest is still read.
+func TestStatusWithNoDraftsFile(t *testing.T) {
+	statusRepo(t, map[string]string{"work-items.yaml": items("one"), "people.yaml": "- a\n",
+		filepath.Join(".git", config.StealthFolder, draft.Folder, draft.FileName): "drafts: [\n"})
+	cfg, err := loadConfig()
+	if err != nil {
+		t.Fatal(err)
+	}
+	useWrappedGit(t, "rev-parse", "", "")
+	st, found, code, err := statusOf(cfg, "a", Out{Stderr: io.Discard})
+	if err != nil || found != nil || code != 0 || st.Drafts == nil || len(st.Drafts) != 0 || len(st.Next) != 1 ||
+		strings.Contains(strings.Join(st.Unread, "\n"), "drafts") {
+		t.Errorf("no drafts file: %v %v exit %d, %+v", err, found, code, st)
 	}
 }
 

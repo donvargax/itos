@@ -2,6 +2,7 @@ package cli
 
 import (
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -23,5 +24,10 @@ func TestDecisionListsTheDecisionsRecorded(t *testing.T) {
 		"\nAnswered and recorded nowhere: itos decision record q-4 (--title <title>, or --none)\n"
 	if code != 0 || stdout != want {
 		t.Errorf("exit %d, stderr %s\n got %q\nwant %q", code, stderr, stdout, want)
+	}
+	code, stdout, stderr = run("decision", "--all", "--json")
+	if code != 0 || !strings.Contains(stdout, `"decision": 7`) || !strings.Contains(stdout, `"decision": "none"`) ||
+		strings.Count(stdout, `"decision"`) != 2 {
+		t.Errorf("--json: exit %d, stderr %s\n%s", code, stderr, stdout)
 	}
 }
