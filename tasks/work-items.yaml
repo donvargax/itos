@@ -11980,8 +11980,8 @@ items:
   - id: T-226
     title: "The tracker store, part 2: tracker documents read and locked through the stores, and internal/lock theirs alone"
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: [T-225]
     kind: task
 
