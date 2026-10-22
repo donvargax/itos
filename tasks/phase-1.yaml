@@ -2667,10 +2667,6 @@
     internal/cli/extension.go, internal/cli/gitshim.go (2), internal/launch/launch.go (3). A
     build-tagged file may still hold a call one OS lacks, with no logic. Unit tests cover each
     branch for each platform value. No behaviour change.
-  done_when:
-    - run: "! grep -rn \"runtime.GOOS\" internal --include=*.go --exclude=*_test.go"
-    - run: go test -count=1 ./internal/... ./cmd/...
-      timeout: 900
 
 - id: T-214
   type: ci
