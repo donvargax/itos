@@ -12666,3 +12666,18 @@ items:
       hook install and Ready go back to the git config alone (ADR-0037), features/old-git.feature's
       scenarios are removed in a breaking feat, and the oldest supported git rises to 2.54. Revisit
       when the common distributions ship 2.54 or later.
+
+  - id: p1-old-git-ci-job
+    title: A nightly job runs the hook scenarios against a real git 2.51
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [slice-165]
+    kind: idea
+    why: >
+      ADR-0058: slice-165's scenarios fake a git older than 2.54 with a wrapper (ITOS_GIT reporting
+      2.51 and refusing git hook list), over the runner's newer git, so they prove itos's side but
+      not that a real 2.51 runs the hook files as expected. A nightly job installs or builds git
+      2.51 (cached) and runs features/old-git.feature, and the commit and push scenarios, with it
+      first on the PATH. Nightly, not per push: slow and wide (ADR-0051). Goes with
+      p1-drop-hook-files-compat when the path is removed.
