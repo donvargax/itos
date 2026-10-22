@@ -389,3 +389,6 @@ questions:
     question: "Until the in-process tier lands (ADR-0056), do agents still run CI's push proof, or a task's checks, by hand before pushing?"
     answer: "The user, 2026-10-22: no. CI owns both: the push proof (one seeded mutant and the changed lines' coverage, every push) and every named task's checks. An agent's by-hand run repeated CI's exactly and still missed its draw (T-267 seeded from its take commit, CI from the last green run, main went red). A red CI is fixed forward by the agent that pushed. This retires q-55. When p1-agent-test-runs-once builds the in-process driver over the fakes, the pre-push hook runs the local tier automatically: task checks, changed-line coverage and a mutant of the changed functions over the unit tests and in-process scenarios, as itos-cc runs TestScenarios locally."
     decision: 57
+  - id: q-96
+    item: "slice-165"
+    question: "On a git older than 2.54, which runs no hook its config declares, how does itos install its hooks, and does the git config stay the default?"
