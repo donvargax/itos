@@ -156,3 +156,75 @@ mutation:
       replacement: "0"
       reason: "Equivalent: %0*d writes every number at least one digit wide, so a width of 0 and a width of 1 write the same ID, and every wider ID of the series raises width past both alike."
       line_text: width := 1
+    - file: internal/engine/agentrules/agentrules.go
+      function: github.com/donvargax/itos/v8/internal/engine/agentrules#blockSpan
+      hash: afef0306c809804d
+      line_in_function: 21
+      column: 19
+      original: "1"
+      replacement: "0"
+      reason: 'Equivalent: every caller passes different begin and end markers, so line e, the end marker''s, cannot match begin and searching from e finds what searching from e+1 does.'
+      line_text: if find(begin, e+1) >= 0 || find(end, e+1) >= 0 {
+    - file: internal/engine/agentrules/agentrules.go
+      function: github.com/donvargax/itos/v8/internal/engine/agentrules#blockSpan
+      hash: afef0306c809804d
+      line_in_function: 21
+      column: 22
+      original: ">="
+      replacement: ">"
+      reason: "Equivalent: the search for a second begin marker starts at line e+1, at least 1, so the index it finds is never 0 and > 0 holds exactly when >= 0 does."
+      line_text: if find(begin, e+1) >= 0 || find(end, e+1) >= 0 {
+    - file: internal/engine/agentrules/agentrules.go
+      function: github.com/donvargax/itos/v8/internal/engine/agentrules#blockSpan
+      hash: afef0306c809804d
+      line_in_function: 21
+      column: 25
+      original: "0"
+      replacement: "1"
+      reason: "Equivalent: the search for a second begin marker starts at line e+1, at least 1, so the index it finds is -1 or at least 1 and >= 1 holds exactly when >= 0 does."
+      line_text: if find(begin, e+1) >= 0 || find(end, e+1) >= 0 {
+    - file: internal/engine/agentrules/agentrules.go
+      function: github.com/donvargax/itos/v8/internal/engine/agentrules#blockSpan
+      hash: afef0306c809804d
+      line_in_function: 21
+      column: 45
+      original: ">="
+      replacement: ">"
+      reason: "Equivalent: the search for a second end marker starts at line e+1, at least 1, so the index it finds is never 0 and > 0 holds exactly when >= 0 does."
+      line_text: if find(begin, e+1) >= 0 || find(end, e+1) >= 0 {
+    - file: internal/engine/agentrules/agentrules.go
+      function: github.com/donvargax/itos/v8/internal/engine/agentrules#blockSpan
+      hash: afef0306c809804d
+      line_in_function: 21
+      column: 48
+      original: "0"
+      replacement: "1"
+      reason: "Equivalent: the search for a second end marker starts at line e+1, at least 1, so the index it finds is -1 or at least 1 and >= 1 holds exactly when >= 0 does."
+      line_text: if find(begin, e+1) >= 0 || find(end, e+1) >= 0 {
+    - file: internal/engine/agentrules/agentrules.go
+      function: github.com/donvargax/itos/v8/internal/engine/agentrules#blockSpan
+      hash: afef0306c809804d
+      line_in_function: 17
+      column: 18
+      original: <
+      replacement: <=
+      reason: "Equivalent: every caller passes different begin and end markers, so no line is both and e never equals b; e <= b holds exactly when e < b does."
+      line_text: "case b < 0 || e < b:"
+    - file: internal/engine/agentrules/agentrules.go
+      function: github.com/donvargax/itos/v8/internal/engine/agentrules#blockSpan
+      hash: afef0306c809804d
+      line_in_function: 4
+      column: 10
+      original: <
+      replacement: <=
+      reason: 'Equivalent: skip is noSpan, whose -1 no index equals, or the copy''s span, whose first line is the copy''s begin marker, which never matches the rules'' marker searched for, so looking at that line finds nothing more.'
+      line_text: if (i < skip[0] || i > skip[1]) && strings.TrimSpace(lines[i]) == marker {
+    - file: internal/engine/agentrules/agentrules.go
+      function: github.com/donvargax/itos/v8/internal/engine/agentrules#blockSpan
+      hash: afef0306c809804d
+      line_in_function: 4
+      column: 25
+      original: ">"
+      replacement: ">="
+      reason: 'Equivalent: skip is noSpan, whose -1 no index equals, or the copy''s span, whose last line is the copy''s end marker, which never matches the rules'' marker searched for, so skipping that line skips nothing found.'
+      line_text: if (i < skip[0] || i > skip[1]) && strings.TrimSpace(lines[i]) == marker {
