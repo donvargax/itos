@@ -12,10 +12,12 @@
 //   - a change to go.mod, which every package builds with, runs every package;
 //   - a Markdown-only commit, and a prose-only push, run no Go test;
 //   - pre-push runs the pinned golangci-lint, CI's lint step, when the push changes Go, and a
-//     finding refuses the push; a prose-only push runs no lint (T-220).
+//     finding refuses the push; a prose-only push runs no lint (T-220);
+//   - pre-push runs staticcheck, CI's step, over the packages the push changes, and a finding
+//     refuses the push; a prose-only push runs none (T-269).
 //
 // tools/bin/go-unit-tests picks the packages; both hooks call it. tools/bin/golangci-lint-changed
-// decides whether pre-push lints.
+// decides whether pre-push lints, tools/bin/staticcheck-changed what staticcheck checks.
 package gohooks
 
 import (
@@ -71,6 +73,9 @@ var reached = []string{"internal/version", "internal/cli", "cmd/itos"}
 // linted is golangci-lint-changed's line when it runs the linter.
 var linted = regexp.MustCompile(`(?m)^\$ tools/bin/pinned golangci-lint run `)
 
+// checked is staticcheck-changed's line when it runs staticcheck, the packages it names.
+var checked = regexp.MustCompile(`(?m)^\$ go tool staticcheck (.*)$`)
+
 func testsReached(t *testing.T, hook, output string) {
 	t.Helper()
 	ran := tested(output, anyVerdict)
@@ -121,6 +126,9 @@ func TestSelftest(t *testing.T) {
 		if !linted.MatchString(r.Output()) {
 			t.Errorf("pre-push did not lint a push that changes Go:\n%s", r.Output())
 		}
+		if m := checked.FindStringSubmatch(r.Output()); m == nil || m[1] != "./"+pkg {
+			t.Errorf("pre-push should run staticcheck over ./%s alone, the package the push changes:\n%s", pkg, r.Output())
+		}
 		testsReached(t, "pre-push", r.Output())
 	})
 
@@ -138,6 +146,24 @@ func TestSelftest(t *testing.T) {
 		}
 		if !strings.Contains(r.Output(), "(containedctx)") {
 			t.Errorf("pre-push did not name containedctx's finding:\n%s", r.Output())
+		}
+	})
+
+	// An error returned before another result, which staticcheck's ST1008 finds and golangci-lint,
+	// which runs no staticcheck, does not (T-247's and T-251's red mains): it builds and breaks no
+	// unit test, so staticcheck alone refuses the push.
+	t.Run("pre-push refuses a change staticcheck finds fault with", func(t *testing.T) {
+		reset()
+		scratch.WriteFiles(t, repo.Dir, map[string]string{
+			"internal/glob/first.go": "package glob\n\n// First returns its error first.\nfunc First() (error, int) { return nil, 0 }\n",
+		})
+		finding := repo.Commit("refactor: return an error first\n\nTask: T-269")
+		r := hooks.PrePush(t, "an error returned first", base, finding)
+		if r.Code == 0 {
+			t.Errorf("pre-push let through a finding of staticcheck:\n%s", r.Output())
+		}
+		if !strings.Contains(r.Output(), "(ST1008)") {
+			t.Errorf("pre-push did not name staticcheck's ST1008 finding:\n%s", r.Output())
 		}
 	})
 
@@ -196,7 +222,7 @@ func TestSelftest(t *testing.T) {
 		}
 		prose = repo.Commit("docs: edit the readme")
 	})
-	t.Run("a prose-only push runs no Go test and no lint", func(t *testing.T) {
+	t.Run("a prose-only push runs no Go test, no lint and no staticcheck", func(t *testing.T) {
 		if prose == "" {
 			t.Fatal("the prose change was not committed")
 		}
@@ -209,6 +235,9 @@ func TestSelftest(t *testing.T) {
 		}
 		if linted.MatchString(r.Output()) {
 			t.Errorf("a prose-only push ran golangci-lint:\n%s", r.Output())
+		}
+		if checked.MatchString(r.Output()) {
+			t.Errorf("a prose-only push ran staticcheck:\n%s", r.Output())
 		}
 	})
 }

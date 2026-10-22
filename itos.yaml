@@ -512,11 +512,12 @@ work: # internal/work; the registry is at its default, tasks/work-items.yaml
 
 hooks:
   bin: tools/bin/itos # what itos's hooks call: the Go binary, built from cmd/itos on demand
-  # CI's golangci-lint step when the push changes Go (T-220), then the unit tests the push
-  # reaches, itos's Go packages' (tools/bin/go-unit-tests, which pre-commit runs too).
+  # CI's golangci-lint step when the push changes Go (T-220), CI's staticcheck step over the
+  # packages it changes (T-269), then the unit tests the push reaches, itos's Go packages'
+  # (tools/bin/go-unit-tests, which pre-commit runs too).
   pre_push:
-    per_base: "tools/bin/golangci-lint-changed {base} && tools/bin/go-unit-tests {base}"
-    whole: "tools/bin/golangci-lint-changed --all && tools/bin/go-unit-tests --all"
+    per_base: "tools/bin/golangci-lint-changed {base} && tools/bin/staticcheck-changed {base} && tools/bin/go-unit-tests {base}"
+    whole: "tools/bin/golangci-lint-changed --all && tools/bin/staticcheck-changed --all && tools/bin/go-unit-tests --all"
 
 proof:
   code:

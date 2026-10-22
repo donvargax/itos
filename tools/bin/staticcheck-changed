@@ -1,0 +1,38 @@
+#!/bin/sh
+# staticcheck, CI's step (go tool staticcheck ./..., T-148), over the Go packages a push changes
+# (T-269): itos's pre-push hook runs it through itos.yaml's hooks.pre_push after
+# tools/bin/golangci-lint-changed, with the remote commit the push builds on (that commit against
+# the working tree, as tools/bin/go-unit-tests reads it), or --all, the whole module, when there
+# is none. A package is the folder of a changed .go file that still holds one, testdata and the
+# folders go skips (a name starting with . or _) left out; go.mod and go.sum, which pin
+# staticcheck itself, run the whole module. A push that changes none of them runs nothing.
+#
+#   tools/bin/staticcheck-changed <base> | --all
+set -eu
+
+case "${1:-}" in
+--all) ;;
+"" | -*)
+	echo "usage: tools/bin/staticcheck-changed <base> | --all" >&2
+	exit 2
+	;;
+*) changed=$(git diff --name-only --no-renames "$1") ;;
+esac
+
+cd "$(git rev-parse --show-toplevel)"
+if [ "$1" = --all ] || printf '%s\n' "$changed" | grep -qE '^go\.(mod|sum)$'; then
+	packages=" ./..."
+else
+	packages=
+	for dir in $(printf '%s\n' "$changed" | grep -E '\.go$' | grep -vE '(^|/)(testdata|[._][^/]*)/' |
+		sed -E 's|[^/]*$||; s|^|./|; s|/$||' | sort -u); do
+		if ls "$dir"/*.go >/dev/null 2>&1; then
+			packages="$packages $dir"
+		fi
+	done
+	[ -n "$packages" ] || exit 0
+fi
+
+echo "\$ go tool staticcheck$packages"
+# shellcheck disable=SC2086 # one argument per package
+exec go tool staticcheck $packages
