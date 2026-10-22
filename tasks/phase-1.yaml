@@ -3194,8 +3194,6 @@
     entry per line so a lane's change touches one or two lines. -check writes nothing and exits 1
     when the committed file differs; exits 0, 1, 2 as itos-cc's. Its tests cover every refusal, the
     Rank order, the aliases and -check. A build commit (tools/bin is a gate).
-  done_when:
-    - run: go test ./tools/bin/assemble -count=1
 
 - id: T-241
   type: refactor
