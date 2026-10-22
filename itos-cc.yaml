@@ -49,7 +49,7 @@ mutation:
       line_text: timed := false
     - file: internal/value/rename.go
       function: github.com/donvargax/itos/v8/internal/value.Doc#Rename
-      hash: ca1ca6e10f511303
+      hash: bd0d43dc398f3021
       line_in_function: 21
       column: 13
       original: <
@@ -58,7 +58,7 @@ mutation:
       line_text: for common < len(from)-1 && common < len(to)-1 && from[common] == to[common] {
     - file: internal/value/rename.go
       function: github.com/donvargax/itos/v8/internal/value.Doc#Rename
-      hash: ca1ca6e10f511303
+      hash: bd0d43dc398f3021
       line_in_function: 21
       column: 24
       original: "-"
@@ -67,7 +67,7 @@ mutation:
       line_text: for common < len(from)-1 && common < len(to)-1 && from[common] == to[common] {
     - file: internal/value/rename.go
       function: github.com/donvargax/itos/v8/internal/value.Doc#Rename
-      hash: ca1ca6e10f511303
+      hash: bd0d43dc398f3021
       line_in_function: 21
       column: 25
       original: "1"
@@ -76,7 +76,7 @@ mutation:
       line_text: for common < len(from)-1 && common < len(to)-1 && from[common] == to[common] {
     - file: internal/value/rename.go
       function: github.com/donvargax/itos/v8/internal/value.Doc#Rename
-      hash: ca1ca6e10f511303
+      hash: bd0d43dc398f3021
       line_in_function: 21
       column: 37
       original: <
@@ -85,7 +85,7 @@ mutation:
       line_text: for common < len(from)-1 && common < len(to)-1 && from[common] == to[common] {
     - file: internal/value/rename.go
       function: github.com/donvargax/itos/v8/internal/value.Doc#Rename
-      hash: ca1ca6e10f511303
+      hash: bd0d43dc398f3021
       line_in_function: 21
       column: 46
       original: "-"
@@ -94,7 +94,7 @@ mutation:
       line_text: for common < len(from)-1 && common < len(to)-1 && from[common] == to[common] {
     - file: internal/value/rename.go
       function: github.com/donvargax/itos/v8/internal/value.Doc#Rename
-      hash: ca1ca6e10f511303
+      hash: bd0d43dc398f3021
       line_in_function: 21
       column: 47
       original: "1"
