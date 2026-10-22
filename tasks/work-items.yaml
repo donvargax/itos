@@ -11540,8 +11540,8 @@ items:
   - id: T-221
     title: tools/bin/pinned caches its tools once per clone, not once per worktree
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
 
