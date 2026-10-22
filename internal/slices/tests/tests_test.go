@@ -197,6 +197,22 @@ func TestTSVPrintsTheRefusedRowsOnStderr(t *testing.T) {
 	}
 }
 
+// failingWriter refuses every write with its error.
+type failingWriter struct{ err error }
+
+func (f failingWriter) Write([]byte) (int, error) { return 0, f.err }
+
+// A row that stdout will not take stops the listing with that error.
+func TestTSVStopsAtAStdoutThatFails(t *testing.T) {
+	closed := errors.New("stdout is closed")
+	var stderr strings.Builder
+	c := CLI{Query: Query{Sub: "list", Kind: "scenario", TSV: true}}
+	code, err := c.tsv(failingWriter{closed}, &stderr, Answer{Rows: []namedtests.Row{{ID: "ID-A-01", File: "features/a.feature"}}})
+	if !errors.Is(err, closed) || code != 0 || stderr.String() != "" {
+		t.Errorf("tsv to a failing stdout = %d, %v, stderr %q, want its error", code, err, stderr.String())
+	}
+}
+
 // A tree that names no commit is refused before the config is read; a
 // config that does not load, and a kind it does not have, stop the listing.
 func TestListRefusesWhatItCannotList(t *testing.T) {
