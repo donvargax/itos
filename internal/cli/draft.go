@@ -49,9 +49,9 @@ import (
 // draftTakes is what draft takes, as a usage error names it.
 const draftTakes = "it takes add, edit, promote or drop, else nothing"
 
-// draftCommand is `draft`, `draft add`, `draft edit`, `draft promote` and
+// runDraft is `draft`, `draft add`, `draft edit`, `draft promote` and
 // `draft drop`.
-func draftCommand(args []string, o Out) (int, error) {
+func runDraft(args []string, o Out) (int, error) {
 	sub, rest := split(args)
 	switch sub {
 	case "add":

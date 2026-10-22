@@ -18,9 +18,25 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/engine/judge"
 	"github.com/donvargax/itos/v8/internal/out"
+	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
+	vcsport "github.com/donvargax/itos/v8/internal/vcs/port"
 )
+
+func runVerify(args []string, o Out) (int, error) {
+	if len(args) == 0 && config.IsStealth(vcs.Git{}, configPath()) {
+		return verifyRange(vcsport.Unpushed, "HEAD", o)
+	}
+	if len(args) < 2 {
+		return 0, usage("verify needs <from> <to>")
+	}
+	if err := commitRefs("verify", args[0], args[1]); err != nil {
+		return 0, err
+	}
+	return verifyRange(args[0], args[1], o)
+}
 
 // span is a range as --json names it.
 type span struct {

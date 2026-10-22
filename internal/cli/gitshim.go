@@ -20,9 +20,9 @@ import (
 	"github.com/donvargax/itos/v8/internal/shim"
 )
 
-// gitShim is `git-shim install [--dir <folder>]`, `git-shim uninstall [--dir
+// runGitShim is `git-shim install [--dir <folder>]`, `git-shim uninstall [--dir
 // <folder>]` and `git-shim run <commit|push> [<git args>…]`.
-func gitShim(args []string, o Out) (int, error) {
+func runGitShim(args []string, o Out) (int, error) {
 	sub, rest := split(args)
 	switch sub {
 	case "install", "uninstall":
@@ -50,7 +50,7 @@ func gitShim(args []string, o Out) (int, error) {
 		case "commit":
 			return gitCommit(gitArgs, o)
 		case "push":
-			return push(gitArgs, o)
+			return runPush(gitArgs, o)
 		}
 		return 0, usage("git-shim run needs commit or push, then git's arguments")
 	}

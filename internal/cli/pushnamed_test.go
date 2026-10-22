@@ -215,7 +215,7 @@ func TestPushFollowsNoTags(t *testing.T) {
 func TestPushNamedGitThatCannotStart(t *testing.T) {
 	namedPushRepo(t)
 	var stderr strings.Builder
-	code, err := push([]string{"--ref", "b"}, Out{Stdout: io.Discard, Stderr: &stderr, Origin: "no-such-folder"})
+	code, err := runPush([]string{"--ref", "b"}, Out{Stdout: io.Discard, Stderr: &stderr, Origin: "no-such-folder"})
 	if err != nil || code != ExitMissing || !strings.HasPrefix(stderr.String(), "itos: cannot run git: ") {
 		t.Errorf("push --ref b with no git to run = %d, %v\n%s", code, err, stderr.String())
 	}
@@ -282,7 +282,7 @@ func TestPushRefusesOtherOptions(t *testing.T) {
 	if _, err := readPushArgs([]string{"-uf"}); err == nil || !strings.HasPrefix(err.Error(), "push never forces: -uf") {
 		t.Errorf("readPushArgs(-uf) = %v", err)
 	}
-	code, err := push([]string{"--follow-tags"}, Out{Stdout: io.Discard, Stderr: io.Discard})
+	code, err := runPush([]string{"--follow-tags"}, Out{Stdout: io.Discard, Stderr: io.Discard})
 	if code != 0 || ExitCode(err) != ExitUsage {
 		t.Errorf("push --follow-tags = %d, %v", code, err)
 	}

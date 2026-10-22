@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"slices"
 	"strings"
 
 	"github.com/donvargax/itos/v8/internal/config"
@@ -12,6 +13,65 @@ import (
 	"github.com/donvargax/itos/v8/internal/tests"
 	"github.com/donvargax/itos/v8/internal/value"
 )
+
+func runTests(args []string, o Out) (int, error) {
+	sub, rest := split(args)
+	switch sub {
+	case "list":
+		name, ok := first(positional(rest, "--at"))
+		if !ok {
+			return 0, usage("tests list needs <kind>")
+		}
+		at, _ := flagValue(rest, "--at")
+		if at != "worktree" && at != "index" {
+			if err := commitRefs("tests list", at); err != nil {
+				return 0, err
+			}
+		}
+		return testsList(name, at, o)
+	case "moves":
+		name, ok := first(positional(rest))
+		if !ok {
+			return 0, usage("tests moves needs <kind>")
+		}
+		return testsMoves(name, o)
+	case "next-id":
+		return testsNextID(rest, o)
+	case "smoke":
+	default:
+		return 0, usage("unknown command: tests %s", sub)
+	}
+	action, more := split(rest)
+	name, _ := first(positional(more, "--features"))
+	if name == "" {
+		if len(rest) == 0 {
+			action = "check|ids|run"
+		}
+		return 0, usage("tests smoke %s needs <kind>", action)
+	}
+	switch action {
+	case "check":
+		var root *string
+		if features, ok := flagValue(more, "--features"); ok {
+			features = typed(o.Origin, features)
+			root = &features
+		}
+		return smokeCheck(name, root, o)
+	case "ids":
+		return smokeIDs(name, o)
+	case "run":
+		// Everything after the kind is the runner's, as given; a -- right
+		// after it is taken, so what looks like an itos flag can follow it,
+		// and is not passed on (bug 8: they were read only after a --, and
+		// --workers=1 without one was dropped without a word).
+		runner := more[slices.Index(more, name)+1:]
+		if len(runner) > 0 && runner[0] == "--" {
+			runner = runner[1:]
+		}
+		return smokeRun(name, runner, o)
+	}
+	return 0, usage("unknown command: tests smoke %s", action)
+}
 
 // testsList is `tests list <kind> [--at <tree>]` (tests-command.ts): the
 // kind's adapter's listing at the working tree, the index or a commit, one

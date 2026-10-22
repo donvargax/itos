@@ -146,7 +146,7 @@ func TestPushRefusesSkippingTheHooks(t *testing.T) {
 	t.Setenv("GIT_CONFIG_COUNT", "1")
 	t.Setenv("GIT_CONFIG_KEY_0", "core.hooksPath")
 	t.Chdir(t.TempDir())
-	code, err := push(nil, Out{Stdout: io.Discard, Stderr: io.Discard})
+	code, err := runPush(nil, Out{Stdout: io.Discard, Stderr: io.Discard})
 	if code != 0 || ExitCode(err) != ExitUsage || !strings.Contains(err.Error(), "core.hooksPath") {
 		t.Errorf("push under git -c core.hooksPath = %d, %v", code, err)
 	}

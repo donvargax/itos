@@ -60,8 +60,8 @@ func (st *standing) print(w io.Writer) { st.Print(w) }
 // fields is status.Standing.Fields.
 func (st *standing) fields() []out.Field { return st.Fields() }
 
-// statusCommand is `status [--as <handle>]`.
-func statusCommand(args []string, o Out) (int, error) {
+// runStatus is `status [--as <handle>]`.
+func runStatus(args []string, o Out) (int, error) {
 	pos, flags, _, err := subArgs("status", "", args, []string{"--as"}, nil)
 	if err != nil {
 		return 0, err

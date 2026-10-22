@@ -3,12 +3,83 @@ package cli
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/donvargax/itos/v8/internal/out"
 	"github.com/donvargax/itos/v8/internal/providers"
 	trees "github.com/donvargax/itos/v8/internal/store/tree/adapter"
 	"github.com/donvargax/itos/v8/internal/work"
 )
+
+// runWork is `work check [<file>]`, the file the argument after check
+// whatever it is, as main.ts takes it, `work list [--all]`, which takes
+// nothing else (plain work list lists the open items, --all every one,
+// slice 79), `work take` and `work promote` (workwrite.go), `work done`
+// (workdone.go), `work add` and `work edit` (workedit.go), `work queue`
+// (workwrite.go), `work drop` (workdrop.go), `work defer` and `work resume`
+// (workdefer.go), `work give-back` (workgiveback.go), `work show`
+// (workshow.go), or
+// `work [--as <handle>]`, which takes nothing else: an argument it does not
+// know is a usage error, not one ignored (bug 11).
+func runWork(args []string, o Out) (int, error) {
+	switch sub, rest := split(args); sub {
+	case "take":
+		return workTake(rest, o)
+	case "promote":
+		return workPromote(rest, o)
+	case "done":
+		return workDone(rest, o)
+	case "add":
+		return workAdd(rest, o)
+	case "edit":
+		return workEdit(rest, o)
+	case "queue":
+		return workQueue(rest, o)
+	case "drop":
+		return workDrop(rest, o)
+	case "defer":
+		return workDefer(rest, o)
+	case "resume":
+		return workResume(rest, o)
+	case "give-back":
+		return workGiveBack(rest, o)
+	case "show":
+		return workShow(rest, o)
+	case "check":
+		file, named := first(rest)
+		return workCheck(typed(o.Origin, file), named, o)
+	case "list":
+		others, values, set, err := subArgs("work", "list", rest, []string{"--tag"}, []string{"--all"})
+		if err != nil {
+			return 0, err
+		}
+		if len(others) > 0 {
+			return 0, usage("work list takes only --all and --tag <tag>: %s", strings.Join(others, " "))
+		}
+		return workList(set["--all"], values["--tag"], o)
+	}
+	as := ""
+	for i := 0; i < len(args); i++ {
+		switch arg := args[i]; {
+		case arg == "--as":
+			if i+1 >= len(args) {
+				return 0, usage("work --as needs a handle")
+			}
+			i++
+			as = args[i]
+		case strings.HasPrefix(arg, "--as="):
+			as = strings.TrimPrefix(arg, "--as=")
+		case strings.HasPrefix(arg, "-"):
+			return 0, usage("work does not take %s: %s", arg, workTakes)
+		default:
+			return 0, usage("work has no subcommand %s: %s", arg, workTakes)
+		}
+	}
+	return workProposal(as, o)
+}
+
+// workTakes is what work takes, as a usage error names it.
+const workTakes = "it takes list, show, take, promote, done, add, edit, queue, drop, defer, resume, give-back or check, else --as <handle>"
 
 // workCheck is `work check [<file>]` (work.ts's workCheck): the registry's
 // problems, each message on stderr, exit 1 on one; `<file>: sound` on stdout

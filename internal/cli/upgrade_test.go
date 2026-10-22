@@ -347,10 +347,10 @@ func pinOf(v string) string {
 	return "version: 1\npin: { version: " + v + ", checksums: " + release.SHA256([]byte(sumsOf(v))) + " }\n"
 }
 
-// upgradeRun is upgradeCommand's exit code and error, and what it printed.
+// upgradeRun is runUpgrade's exit code and error, and what it printed.
 func upgradeRun(json bool, args ...string) (int, string, error) {
 	var stdout, stderr strings.Builder
-	code, err := upgradeCommand(args, Out{JSON: json, Stdout: &stdout, Stderr: &stderr})
+	code, err := runUpgrade(args, Out{JSON: json, Stdout: &stdout, Stderr: &stderr})
 	return code, stdout.String() + stderr.String(), err
 }
 

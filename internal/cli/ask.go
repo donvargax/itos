@@ -42,8 +42,8 @@ import (
 // askTakes is what ask takes, as a usage error names it.
 const askTakes = "it takes add, answer, record or show, else --all"
 
-// askCommand is `decision [--all]`, `decision add`, `decision answer` and `decision show`.
-func askCommand(args []string, o Out) (int, error) {
+// runDecision is `decision [--all]`, `decision add`, `decision answer` and `decision show`.
+func runDecision(args []string, o Out) (int, error) {
 	sub, rest := split(args)
 	switch sub {
 	case "add":

@@ -70,7 +70,7 @@ func putFile(t *testing.T, path, text string) {
 func initRun(t *testing.T, json bool, args ...string) (int, string, string, error) {
 	t.Helper()
 	var stdout, stderr strings.Builder
-	code, err := initCommand(append(args, noOffers...), Out{JSON: json, Stdout: &stdout, Stderr: &stderr})
+	code, err := runInit(append(args, noOffers...), Out{JSON: json, Stdout: &stdout, Stderr: &stderr})
 	return code, stdout.String(), stderr.String(), err
 }
 
@@ -91,7 +91,7 @@ func readOnly(t *testing.T, dir string) {
 // last, with no folder after it, among them.
 func TestInitRefusesItsArguments(t *testing.T) {
 	for _, args := range [][]string{{"--plugin", "everywhere"}, {"--bogus"}, {"--no-git-shim", "--git-shim-dir", "x"}, {"--git-shim", "--git-shim-dir"}} {
-		if _, err := initCommand(args, Out{Stdout: &strings.Builder{}, Stderr: &strings.Builder{}}); ExitCode(err) != ExitUsage {
+		if _, err := runInit(args, Out{Stdout: &strings.Builder{}, Stderr: &strings.Builder{}}); ExitCode(err) != ExitUsage {
 			t.Errorf("init %v: %v", args, err)
 		}
 	}
@@ -119,7 +119,7 @@ func TestInitUsageErrorsWhereItRuns(t *testing.T) {
 	t.Setenv("ITOS_CONFIG", "")
 	os.Unsetenv("ITOS_CONFIG")
 	putFile(t, filepath.Join(".git", "itos", "itos.yaml"), "version: 1\n")
-	_, err := initCommand([]string{"--plugin", "project"}, Out{Stdout: &strings.Builder{}, Stderr: &strings.Builder{}})
+	_, err := runInit([]string{"--plugin", "project"}, Out{Stdout: &strings.Builder{}, Stderr: &strings.Builder{}})
 	if ExitCode(err) != ExitUsage {
 		t.Errorf("under a stealth config, --plugin project: %v", err)
 	}
@@ -441,7 +441,7 @@ func TestPolicyInitNamesWhatToCommit(t *testing.T) {
 	}
 	t.Setenv("PATH", bin+string(os.PathListSeparator)+os.Getenv("PATH"))
 	var stdout strings.Builder
-	code, err := initCommand([]string{"--policy", "p.yaml", "--plugin", "project", "--agent-rules", "--no-git-shim"},
+	code, err := runInit([]string{"--policy", "p.yaml", "--plugin", "project", "--agent-rules", "--no-git-shim"},
 		Out{Stdout: &stdout, Stderr: &stdout})
 	want := "git add itos.yaml tasks/phase-1.yaml tasks/work-items.yaml .claude/settings.json AGENTS.md CLAUDE.md, " +
 		"then itos commit --task T-1 -m 'chore: adopt itos'\n"

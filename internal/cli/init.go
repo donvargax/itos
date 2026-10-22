@@ -48,10 +48,10 @@ import (
 	"github.com/donvargax/itos/v8/internal/version"
 )
 
-// initCommand is `init [--stealth] [--policy <file>] [--plugin [<scope>]]
+// runInit is `init [--stealth] [--policy <file>] [--plugin [<scope>]]
 // [--git-shim [--git-shim-dir <folder>] | --no-git-shim] [--agent-rules |
 // --no-agent-rules]`; with --policy, policyInit (initpolicy.go).
-func initCommand(args []string, o Out) (int, error) {
+func runInit(args []string, o Out) (int, error) {
 	stealth, policy := false, ""
 	var plugin pluginFlag
 	var shim shimFlag

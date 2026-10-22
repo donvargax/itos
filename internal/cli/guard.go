@@ -9,11 +9,11 @@ import (
 	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
 )
 
-// guardCommand is `guard <harness>`, the guard slice (internal/slices/guard)
+// runGuard is `guard <harness>`, the guard slice (internal/slices/guard)
 // over its ports bound to the real code; the folder judged when the input
 // names none, and the one a relative one is read from, is where itos was
 // started, before a run from a subfolder moved to the top.
-func guardCommand(args []string, o Out) (int, error) {
+func runGuard(args []string, o Out) (int, error) {
 	c, err := guard.Parse(args, typed(o.Origin, "."))
 	if err != nil {
 		return 0, usage("%s", err)

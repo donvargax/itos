@@ -40,9 +40,9 @@ const localNotesName = "notes.md"
 // localNotesHeading heads this clone's own notes where itos go prints them.
 const localNotesHeading = "# This clone's own notes"
 
-// goCommand is itos go: the coordinator's guide, then where things stand
+// runGo is itos go: the coordinator's guide, then where things stand
 // (status.go, slice 67), so a session starts from one command.
-func goCommand(args []string, o Out) (int, error) {
+func runGo(args []string, o Out) (int, error) {
 	if len(args) > 0 {
 		return 0, usage("go takes no arguments: %s", strings.Join(args, " "))
 	}
@@ -75,8 +75,8 @@ func goStatus(o Out) *standing {
 	return st
 }
 
-// guideCommand is itos guide <name>: a guide, or a procedure (slice 119).
-func guideCommand(args []string, o Out) (int, error) {
+// runGuide is itos guide <name>: a guide, or a procedure (slice 119).
+func runGuide(args []string, o Out) (int, error) {
 	known := "the guides are " + strings.Join(guide.Names(), ", ") +
 		"; the procedures are " + strings.Join(guide.Procedures(), ", ")
 	name, rest := split(args)

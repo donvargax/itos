@@ -33,12 +33,12 @@ const (
 	statusReview  taskStatus = "review"
 )
 
-// runTask runs a task's checks in written order, every one of them whatever
+// judgeTask runs a task's checks in written order, every one of them whatever
 // the one before found: failing when one fails, pending when one waits for
 // the push, else done. A task with none is done when its work item is
 // (closed, work done having taken its checks out of the ledger, slice 101),
 // review otherwise: no item, or one not done.
-func runTask(task ledger.Task, runner *check.Runner, statuses work.Statuses) (taskStatus, []check.Result) {
+func judgeTask(task ledger.Task, runner *check.Runner, statuses work.Statuses) (taskStatus, []check.Result) {
 	if len(task.DoneWhen) == 0 {
 		if status, _ := statuses.Of(task.ID); status == "done" {
 			return statusDone, nil
@@ -173,7 +173,7 @@ type taskRow struct {
 	results []check.Result
 }
 
-func task(args []string, o Out) (int, error) {
+func runTask(args []string, o Out) (int, error) {
 	switch sub, rest := split(args); sub {
 	case "list":
 		return listTasks(rest, o)
@@ -229,7 +229,7 @@ func runTasks(args []string, o Out) (int, error) {
 	rows := make([]taskRow, len(selected))
 	code := 0
 	for i, t := range selected {
-		status, results := runTask(t, runner, statuses)
+		status, results := judgeTask(t, runner, statuses)
 		rows[i] = taskRow{t, status, results}
 		if status == statusFailing {
 			code = ExitPolicy

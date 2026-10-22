@@ -22,8 +22,8 @@ import (
 // pinTimeout bounds the one question pin asks, for a checksums.txt.
 const pinTimeout = pin.Timeout
 
-// pinCommand is `pin [<version>]`.
-func pinCommand(args []string, o Out) (int, error) {
+// runPin is `pin [<version>]`.
+func runPin(args []string, o Out) (int, error) {
 	want, err := versionArg("pin", args)
 	if err != nil {
 		return 0, err

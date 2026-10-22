@@ -3,13 +3,67 @@ package cli
 import (
 	"fmt"
 	"os"
+	"slices"
 
 	"github.com/donvargax/itos/v8/internal/ci"
 	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/out"
 	"github.com/donvargax/itos/v8/internal/plan"
 	"github.com/donvargax/itos/v8/internal/providers"
+	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
+	vcsport "github.com/donvargax/itos/v8/internal/vcs/port"
 )
+
+func runCi(args []string, o Out) (int, error) {
+	sub, rest := split(args)
+	range_ := positional(rest, "--data-at", "--head", "--base")
+	from, to := "", ""
+	if len(range_) > 0 {
+		from = range_[0]
+	}
+	if len(range_) > 1 {
+		to = range_[1]
+	}
+	nightly := slices.Contains(rest, "--nightly")
+	switch sub {
+	case "plan":
+		whole := slices.Contains(rest, "--whole")
+		if !nightly && !whole && len(range_) == 0 && config.IsStealth(vcs.Git{}, configPath()) {
+			from, to = vcsport.Unpushed, "HEAD"
+		}
+		if !nightly && !whole && to == "" {
+			return 0, usage("ci plan needs <from> <to>, --nightly or --whole")
+		}
+		dataAt, _ := flagValue(rest, "--data-at")
+		if err := rangeRefs("ci plan", from, to, dataAt); err != nil {
+			return 0, err
+		}
+		return ciPlan(from, to, nightly, dataAt, o)
+	case "run":
+		if err := rangeRefs("ci run", from, to); err != nil {
+			return 0, err
+		}
+		return ciRun(from, to, nightly, slices.Contains(rest, "--tests"), o)
+	case "scope":
+		if to == "" {
+			return 0, usage("ci scope needs <from> <to>")
+		}
+		if err := rangeRefs("ci scope", from, to); err != nil {
+			return 0, err
+		}
+		return ciScope(from, to, o)
+	case "watch":
+		return ciWatch(positional(rest), o)
+	case "range":
+		head, ok := flagValue(rest, "--head")
+		if !ok {
+			return 0, usage("ci range needs --head <sha>")
+		}
+		base, _ := flagValue(rest, "--base")
+		return ciRange(head, base, o)
+	}
+	return 0, usage("unknown command: ci %s", sub)
+}
 
 // planOf is the config and the plan a run of it carries out: the nightly's,
 // or a pushed range's with its data from the working tree or, with dataAt,

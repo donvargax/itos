@@ -1,17 +1,12 @@
 package cli
 
 import (
-	"context"
-	"path/filepath"
 	"slices"
 	"strings"
 
 	"github.com/donvargax/itos/v8/internal/config"
-	versionslice "github.com/donvargax/itos/v8/internal/slices/version"
 	trees "github.com/donvargax/itos/v8/internal/store/tree/adapter"
 	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
-	vcsport "github.com/donvargax/itos/v8/internal/vcs/port"
-	"github.com/donvargax/itos/v8/internal/version"
 )
 
 // A command takes the arguments after its name and gives its exit code, or
@@ -20,27 +15,27 @@ type command func(args []string, o Out) (int, error)
 
 // commands is the command table, main.ts's COMMANDS.
 var commands = map[string]command{
-	"task":     task,
-	"work":     workCommand,
-	"commit":   commit,
-	"verify":   verify,
-	"tests":    testsCommand,
-	"ci":       ciCommand,
-	"hook":     hook,
-	"guard":    guardCommand,
-	"config":   configCommand,
-	"version":  versionCommand,
-	"push":     push,
-	"git-shim": gitShim,
-	"pin":      pinCommand,
-	"upgrade":  upgradeCommand,
-	"init":     initCommand,
-	"followup": followCommand,
-	"decision": askCommand,
-	"draft":    draftCommand,
-	"go":       goCommand,
-	"guide":    guideCommand,
-	"status":   statusCommand,
+	"task":     runTask,
+	"work":     runWork,
+	"commit":   runCommit,
+	"verify":   runVerify,
+	"tests":    runTests,
+	"ci":       runCi,
+	"hook":     runHook,
+	"guard":    runGuard,
+	"config":   runConfig,
+	"version":  runVersion,
+	"push":     runPush,
+	"git-shim": runGitShim,
+	"pin":      runPin,
+	"upgrade":  runUpgrade,
+	"init":     runInit,
+	"followup": runFollowup,
+	"decision": runDecision,
+	"draft":    runDraft,
+	"go":       runGo,
+	"guide":    runGuide,
+	"status":   runStatus,
 }
 
 // flagValue is the value after a flag, and whether there is one.
@@ -79,310 +74,6 @@ func split(args []string) (string, []string) {
 		return "", nil
 	}
 	return args[0], args[1:]
-}
-
-// workCommand is `work check [<file>]`, the file the argument after check
-// whatever it is, as main.ts takes it, `work list [--all]`, which takes
-// nothing else (plain work list lists the open items, --all every one,
-// slice 79), `work take` and `work promote` (workwrite.go), `work done`
-// (workdone.go), `work add` and `work edit` (workedit.go), `work queue`
-// (workwrite.go), `work drop` (workdrop.go), `work defer` and `work resume`
-// (workdefer.go), `work give-back` (workgiveback.go), `work show`
-// (workshow.go), or
-// `work [--as <handle>]`, which takes nothing else: an argument it does not
-// know is a usage error, not one ignored (bug 11).
-func workCommand(args []string, o Out) (int, error) {
-	switch sub, rest := split(args); sub {
-	case "take":
-		return workTake(rest, o)
-	case "promote":
-		return workPromote(rest, o)
-	case "done":
-		return workDone(rest, o)
-	case "add":
-		return workAdd(rest, o)
-	case "edit":
-		return workEdit(rest, o)
-	case "queue":
-		return workQueue(rest, o)
-	case "drop":
-		return workDrop(rest, o)
-	case "defer":
-		return workDefer(rest, o)
-	case "resume":
-		return workResume(rest, o)
-	case "give-back":
-		return workGiveBack(rest, o)
-	case "show":
-		return workShow(rest, o)
-	case "check":
-		file, named := first(rest)
-		return workCheck(typed(o.Origin, file), named, o)
-	case "list":
-		others, values, set, err := subArgs("work", "list", rest, []string{"--tag"}, []string{"--all"})
-		if err != nil {
-			return 0, err
-		}
-		if len(others) > 0 {
-			return 0, usage("work list takes only --all and --tag <tag>: %s", strings.Join(others, " "))
-		}
-		return workList(set["--all"], values["--tag"], o)
-	}
-	as := ""
-	for i := 0; i < len(args); i++ {
-		switch arg := args[i]; {
-		case arg == "--as":
-			if i+1 >= len(args) {
-				return 0, usage("work --as needs a handle")
-			}
-			i++
-			as = args[i]
-		case strings.HasPrefix(arg, "--as="):
-			as = strings.TrimPrefix(arg, "--as=")
-		case strings.HasPrefix(arg, "-"):
-			return 0, usage("work does not take %s: %s", arg, workTakes)
-		default:
-			return 0, usage("work has no subcommand %s: %s", arg, workTakes)
-		}
-	}
-	return workProposal(as, o)
-}
-
-// workTakes is what work takes, as a usage error names it.
-const workTakes = "it takes list, show, take, promote, done, add, edit, queue, drop, defer, resume, give-back or check, else --as <handle>"
-
-// commit is a commit itself (gitCommit), every argument git commit's but
-// itos's own flags, when there is no argument or the first is a flag or "--";
-// a bare first word is itos's, one of commit's subcommands or a usage error
-// (bug 5), so a mistyped subcommand never reaches git as a pathspec. Paths for
-// git go after a flag or after "--".
-func commit(args []string, o Out) (int, error) {
-	sub, rest := split(args)
-	if sub == "" || strings.HasPrefix(sub, "-") {
-		return gitCommit(args, o)
-	}
-	switch sub {
-	case "check-message":
-		file, ok := first(positional(rest, "--at"))
-		if !ok && !slices.Contains(rest, "-") {
-			return 0, usage("commit check-message needs <file|->")
-		}
-		if !ok {
-			file = "-"
-		}
-		at, _ := flagValue(rest, "--at")
-		if err := commitRefs("commit check-message", at); err != nil {
-			return 0, err
-		}
-		return checkMessage(typed(o.Origin, file), at, o)
-	case "check-paths":
-		typ, ok := flagValue(rest, "--type")
-		if !ok {
-			return 0, usage("commit check-paths needs --type <type>")
-		}
-		var files []string
-		for _, f := range positional(rest, "--type") {
-			files = append(files, filepath.ToSlash(typed(o.Origin, f)))
-		}
-		return checkPaths(typ, files, o)
-	case "footers":
-		footers := positional(rest)
-		if len(footers) < 3 {
-			return 0, usage("commit footers needs <name> <from> <to>")
-		}
-		if err := commitRefs("commit footers", footers[1], footers[2]); err != nil {
-			return 0, err
-		}
-		return listFooters(footers[0], footers[1], footers[2], o)
-	}
-	return 0, usage("unknown command: commit %s", sub)
-}
-
-func verify(args []string, o Out) (int, error) {
-	if len(args) == 0 && config.IsStealth(vcs.Git{}, configPath()) {
-		return verifyRange(vcsport.Unpushed, "HEAD", o)
-	}
-	if len(args) < 2 {
-		return 0, usage("verify needs <from> <to>")
-	}
-	if err := commitRefs("verify", args[0], args[1]); err != nil {
-		return 0, err
-	}
-	return verifyRange(args[0], args[1], o)
-}
-
-func testsCommand(args []string, o Out) (int, error) {
-	sub, rest := split(args)
-	switch sub {
-	case "list":
-		name, ok := first(positional(rest, "--at"))
-		if !ok {
-			return 0, usage("tests list needs <kind>")
-		}
-		at, _ := flagValue(rest, "--at")
-		if at != "worktree" && at != "index" {
-			if err := commitRefs("tests list", at); err != nil {
-				return 0, err
-			}
-		}
-		return testsList(name, at, o)
-	case "moves":
-		name, ok := first(positional(rest))
-		if !ok {
-			return 0, usage("tests moves needs <kind>")
-		}
-		return testsMoves(name, o)
-	case "next-id":
-		return testsNextID(rest, o)
-	case "smoke":
-	default:
-		return 0, usage("unknown command: tests %s", sub)
-	}
-	action, more := split(rest)
-	name, _ := first(positional(more, "--features"))
-	if name == "" {
-		if len(rest) == 0 {
-			action = "check|ids|run"
-		}
-		return 0, usage("tests smoke %s needs <kind>", action)
-	}
-	switch action {
-	case "check":
-		var root *string
-		if features, ok := flagValue(more, "--features"); ok {
-			features = typed(o.Origin, features)
-			root = &features
-		}
-		return smokeCheck(name, root, o)
-	case "ids":
-		return smokeIDs(name, o)
-	case "run":
-		// Everything after the kind is the runner's, as given; a -- right
-		// after it is taken, so what looks like an itos flag can follow it,
-		// and is not passed on (bug 8: they were read only after a --, and
-		// --workers=1 without one was dropped without a word).
-		runner := more[slices.Index(more, name)+1:]
-		if len(runner) > 0 && runner[0] == "--" {
-			runner = runner[1:]
-		}
-		return smokeRun(name, runner, o)
-	}
-	return 0, usage("unknown command: tests smoke %s", action)
-}
-
-func ciCommand(args []string, o Out) (int, error) {
-	sub, rest := split(args)
-	range_ := positional(rest, "--data-at", "--head", "--base")
-	from, to := "", ""
-	if len(range_) > 0 {
-		from = range_[0]
-	}
-	if len(range_) > 1 {
-		to = range_[1]
-	}
-	nightly := slices.Contains(rest, "--nightly")
-	switch sub {
-	case "plan":
-		whole := slices.Contains(rest, "--whole")
-		if !nightly && !whole && len(range_) == 0 && config.IsStealth(vcs.Git{}, configPath()) {
-			from, to = vcsport.Unpushed, "HEAD"
-		}
-		if !nightly && !whole && to == "" {
-			return 0, usage("ci plan needs <from> <to>, --nightly or --whole")
-		}
-		dataAt, _ := flagValue(rest, "--data-at")
-		if err := rangeRefs("ci plan", from, to, dataAt); err != nil {
-			return 0, err
-		}
-		return ciPlan(from, to, nightly, dataAt, o)
-	case "run":
-		if err := rangeRefs("ci run", from, to); err != nil {
-			return 0, err
-		}
-		return ciRun(from, to, nightly, slices.Contains(rest, "--tests"), o)
-	case "scope":
-		if to == "" {
-			return 0, usage("ci scope needs <from> <to>")
-		}
-		if err := rangeRefs("ci scope", from, to); err != nil {
-			return 0, err
-		}
-		return ciScope(from, to, o)
-	case "watch":
-		return ciWatch(positional(rest), o)
-	case "range":
-		head, ok := flagValue(rest, "--head")
-		if !ok {
-			return 0, usage("ci range needs --head <sha>")
-		}
-		base, _ := flagValue(rest, "--base")
-		return ciRange(head, base, o)
-	}
-	return 0, usage("unknown command: ci %s", sub)
-}
-
-func hook(args []string, o Out) (int, error) {
-	sub, rest := split(args)
-	switch sub {
-	case "commit-msg":
-		if len(rest) == 0 {
-			return 0, usage("hook commit-msg needs <file>")
-		}
-		return hookCommitMsg(typed(o.Origin, rest[0]), o)
-	case "pre-push":
-		return hookPrePush(o)
-	case "install":
-		return hookInstall(slices.Contains(rest, "--print"), slices.Contains(rest, "--force"), o)
-	}
-	return 0, usage("unknown command: hook %s", sub)
-}
-
-func configCommand(args []string, o Out) (int, error) {
-	sub, rest := split(args)
-	if sub == "get" {
-		keys := positional(rest)
-		if len(keys) != 1 || keys[0] == "" {
-			return 0, usage("config get needs one <key>, a dotted path such as hooks.bin")
-		}
-		return configGet(keys[0], o)
-	}
-	if sub != "check" {
-		return 0, usage("unknown command: config %s", sub)
-	}
-	if slices.Contains(args, "--print-defaults") {
-		return printDefaults(o)
-	}
-	ledger, _ := flagValue(args, "--ledger")
-	return configCheck(typed(o.Origin, ledger), o)
-}
-
-// versionCommand is the version slice (internal/slices/version) over its
-// ports bound to the real code.
-func versionCommand(args []string, o Out) (int, error) {
-	h := versionslice.NewHandler(versionPorts{})
-	return versionslice.Parse(args, o.JSON).Run(context.Background(), o.Stdout, o.Stderr, h)
-}
-
-// versionPorts are the version slice's ports over the real code.
-type versionPorts struct{}
-
-// BuildVersion is version.Version.
-func (versionPorts) BuildVersion(context.Context) string {
-	return version.Version()
-}
-
-// Requires is the requires of the config config.Path names.
-func (versionPorts) Requires(context.Context) (*string, error) {
-	cfg, err := loadConfig()
-	if err != nil {
-		return nil, err
-	}
-	return cfg.Requires, nil
-}
-
-// Satisfies is version.Satisfies.
-func (versionPorts) Satisfies(_ context.Context, v, r string) bool {
-	return version.Satisfies(v, r)
 }
 
 // configPath is the config's path, as the working tree has it: every

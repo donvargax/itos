@@ -27,6 +27,7 @@ import (
 	"path"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 
 	"github.com/donvargax/itos/v8/internal/adr"
@@ -46,6 +47,22 @@ import (
 	vcsport "github.com/donvargax/itos/v8/internal/vcs/port"
 	"github.com/donvargax/itos/v8/internal/work"
 )
+
+func runHook(args []string, o Out) (int, error) {
+	sub, rest := split(args)
+	switch sub {
+	case "commit-msg":
+		if len(rest) == 0 {
+			return 0, usage("hook commit-msg needs <file>")
+		}
+		return hookCommitMsg(typed(o.Origin, rest[0]), o)
+	case "pre-push":
+		return hookPrePush(o)
+	case "install":
+		return hookInstall(slices.Contains(rest, "--print"), slices.Contains(rest, "--force"), o)
+	}
+	return 0, usage("unknown command: hook %s", sub)
+}
 
 // stagedFiles are the paths the commit stages, as git names them (repo.ts's
 // stagedFiles), read NUL-separated so that none comes back quoted (bug 31),

@@ -149,7 +149,7 @@ func TestInitWriteNamesTheProjectsPluginSettings(t *testing.T) {
 			}
 			t.Setenv("PATH", bin+string(os.PathListSeparator)+os.Getenv("PATH"))
 			var stdout strings.Builder
-			code, err := initCommand([]string{"--plugin", c.scope, "--no-agent-rules", "--no-git-shim"},
+			code, err := runInit([]string{"--plugin", c.scope, "--no-agent-rules", "--no-git-shim"},
 				Out{Stdout: &stdout, Stderr: &stdout})
 			want := c.want + "then itos commit --task T-1 -m 'chore: adopt itos'\n"
 			if code != 0 || err != nil || !strings.HasSuffix(stdout.String(), want) {

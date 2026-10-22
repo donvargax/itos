@@ -5,12 +5,62 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
+	"slices"
+	"strings"
 
 	"github.com/donvargax/itos/v8/internal/message"
 	"github.com/donvargax/itos/v8/internal/out"
 	"github.com/donvargax/itos/v8/internal/scope"
 	trees "github.com/donvargax/itos/v8/internal/store/tree/adapter"
 )
+
+// runCommit is a commit itself (gitCommit), every argument git commit's but
+// itos's own flags, when there is no argument or the first is a flag or "--";
+// a bare first word is itos's, one of commit's subcommands or a usage error
+// (bug 5), so a mistyped subcommand never reaches git as a pathspec. Paths for
+// git go after a flag or after "--".
+func runCommit(args []string, o Out) (int, error) {
+	sub, rest := split(args)
+	if sub == "" || strings.HasPrefix(sub, "-") {
+		return gitCommit(args, o)
+	}
+	switch sub {
+	case "check-message":
+		file, ok := first(positional(rest, "--at"))
+		if !ok && !slices.Contains(rest, "-") {
+			return 0, usage("commit check-message needs <file|->")
+		}
+		if !ok {
+			file = "-"
+		}
+		at, _ := flagValue(rest, "--at")
+		if err := commitRefs("commit check-message", at); err != nil {
+			return 0, err
+		}
+		return checkMessage(typed(o.Origin, file), at, o)
+	case "check-paths":
+		typ, ok := flagValue(rest, "--type")
+		if !ok {
+			return 0, usage("commit check-paths needs --type <type>")
+		}
+		var files []string
+		for _, f := range positional(rest, "--type") {
+			files = append(files, filepath.ToSlash(typed(o.Origin, f)))
+		}
+		return checkPaths(typ, files, o)
+	case "footers":
+		footers := positional(rest)
+		if len(footers) < 3 {
+			return 0, usage("commit footers needs <name> <from> <to>")
+		}
+		if err := commitRefs("commit footers", footers[1], footers[2]); err != nil {
+			return 0, err
+		}
+		return listFooters(footers[0], footers[1], footers[2], o)
+	}
+	return 0, usage("unknown command: commit %s", sub)
+}
 
 // checkMessage is `commit check-message <file|-> [--at <sha>]` (commit.ts's
 // checkMessage): one message through the header lint's delegate and the

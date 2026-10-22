@@ -179,8 +179,8 @@ func (r pushRun) report(code int, outcome string, lines ...string) (int, error) 
 // upstream is the upstream's name as people write it: origin/main.
 func (r pushRun) upstream() string { return r.remote + "/" + r.branch }
 
-// push is `itos push`.
-func push(args []string, o Out) (int, error) {
+// runPush is `itos push`.
+func runPush(args []string, o Out) (int, error) {
 	a, err := readPushArgs(args)
 	if err != nil {
 		return 0, err

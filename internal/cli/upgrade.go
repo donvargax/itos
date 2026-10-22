@@ -186,8 +186,8 @@ func namingVersion(args []string, v string) []string {
 	return slices.Insert(named, command+1, v)
 }
 
-// upgradeCommand is `upgrade [<version>]`.
-func upgradeCommand(args []string, o Out) (int, error) {
+// runUpgrade is `upgrade [<version>]`.
+func runUpgrade(args []string, o Out) (int, error) {
 	want, err := versionArg("upgrade", args)
 	if err != nil {
 		return 0, err

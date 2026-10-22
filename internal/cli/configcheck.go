@@ -22,6 +22,25 @@ import (
 	"github.com/donvargax/itos/v8/internal/work"
 )
 
+func runConfig(args []string, o Out) (int, error) {
+	sub, rest := split(args)
+	if sub == "get" {
+		keys := positional(rest)
+		if len(keys) != 1 || keys[0] == "" {
+			return 0, usage("config get needs one <key>, a dotted path such as hooks.bin")
+		}
+		return configGet(keys[0], o)
+	}
+	if sub != "check" {
+		return 0, usage("unknown command: config %s", sub)
+	}
+	if slices.Contains(args, "--print-defaults") {
+		return printDefaults(o)
+	}
+	ledger, _ := flagValue(args, "--ledger")
+	return configCheck(typed(o.Origin, ledger), o)
+}
+
 // Found is a problem config check reports, with the area it is in: the
 // config, the ledger, the registry, a smoke set, the decision records or, as
 // a warning, the ledger or the people.

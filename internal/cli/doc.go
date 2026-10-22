@@ -77,7 +77,7 @@
 // commit and itos push's git in it, so pathspecs and an -F file mean what
 // they meant. Under --root nothing is translated. Under a stealth config
 // verify and ci plan with no range take the unpushed commits (vcsport.Unpushed):
-// commands.go asks config.IsStealth of configPath() before the usage error,
+// runVerify and runCi ask config.IsStealth of configPath() before the usage error,
 // so a project's is unchanged and needs no config load.
 //
 // # Commands the launcher leaves to this binary
@@ -233,7 +233,7 @@
 //
 // # itos commit
 //
-// commit (commands.go) is a commit itself, gitCommit (gitcommit.go), when
+// runCommit (commit.go) is a commit itself, gitCommit (gitcommit.go), when
 // there is no argument or the first is a flag or --; a bare first word is
 // one of its subcommands (check-paths, check-message, footers) or a usage
 // error, so a mistyped subcommand never reaches git as a pathspec. gitCommit

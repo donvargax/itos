@@ -14,11 +14,11 @@ import (
 	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
 )
 
-// followCommand is `followup`, the followup slice (internal/slices/followup)
+// runFollowup is `followup`, the followup slice (internal/slices/followup)
 // over its ports bound to the real code; a doc path is read from where itos
 // was started, before a run from a subfolder moved to the top. A threads'
 // file the domain refuses is a data file itos refuses, exit 2.
-func followCommand(args []string, o Out) (int, error) {
+func runFollowup(args []string, o Out) (int, error) {
 	c, err := followup.Parse(args, o.Origin, o.JSON, o.Quiet)
 	if err != nil {
 		return 0, usage("%s", err)
