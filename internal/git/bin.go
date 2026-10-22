@@ -104,7 +104,7 @@ func Real(platform string) (string, error) {
 // IsItos is whether the program at p is an itos, so never the real git: this
 // binary, its links followed; a symbolic link whose target, at any link of
 // the chain, is a file named itos (itos.exe), as git-shim install makes one
-// and as linksItos (internal/cli) reads it, whatever the target holds; or a
+// and as LinksItos (internal/shim/install) reads it, whatever the target holds; or a
 // Go binary built from itos's cmd/itos, any major version, as its build
 // information records it, which a hard link or a copy of any itos keeps and
 // costs a read of the file, never a run of it.

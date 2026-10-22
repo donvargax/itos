@@ -9,7 +9,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/donvargax/itos/v8/internal/cli"
 	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/launch"
 	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
@@ -25,6 +24,11 @@ func Named(arg0, goos string) bool {
 	}
 	return name == "git"
 }
+
+// GitShimSince is the first itos with the git-shim command: the shim hands
+// git commit and git push to an older pinned itos as nothing, running the
+// real git instead (bug 7, tooOld).
+const GitShimSince = "2.2.0"
 
 // Commands are the git commands the shim runs as itos's in a repository itos
 // manages.
@@ -158,7 +162,7 @@ func (l gitLine) enter() (back string, err error) {
 // it can read, hands the command on.
 func tooOld(line gitLine, itos []string, back string, stderr io.Writer) bool {
 	v, env := launch.Handed(itos)
-	if v == "" || version.Compare(v, cli.GitShimSince) >= 0 {
+	if v == "" || version.Compare(v, GitShimSince) >= 0 {
 		return false
 	}
 	if line.dir != "." && (back == "" || os.Chdir(back) != nil) {
@@ -169,7 +173,7 @@ func tooOld(line gitLine, itos []string, back string, stderr io.Writer) bool {
 		who = launch.EnvVersion + " names"
 	}
 	fmt.Fprintf(stderr, "itos: git %s runs the real git: %s itos %s, and the git shim needs itos %s or later\n",
-		line.name, who, v, cli.GitShimSince)
+		line.name, who, v, GitShimSince)
 	return true
 }
 

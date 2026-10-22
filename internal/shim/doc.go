@@ -1,6 +1,6 @@
 // Package shim is itos started as git (features/shim.feature): a link named
 // git to the itos binary, in a folder before the real git on the PATH (itos
-// git-shim install), makes every git command pass through itos first. In a
+// git-shim install, the link internal/shim/install's), makes every git command pass through itos first. In a
 // repository itos manages (config.Managed, file checks alone), git commit
 // runs as itos commit and git push as itos push, with git's arguments, none
 // of them read as itos's global flags; every other command, every command in
@@ -21,7 +21,7 @@
 // (ITOS_VERSION when it is a version, else the pin, read as the launcher
 // reads it; never the newest release, and nothing when it is this binary's
 // version). In a repository pinned to an itos older than the shim
-// (cli.GitShimSince), that itos has no git-shim command to hand git commit
+// (GitShimSince), that itos has no git-shim command to hand git commit
 // or git push to, so the shim says so in one line on stderr, moves back and
 // runs the real git with the arguments as they came; a folder it cannot come
 // back to hands the command on. Otherwise configure appends each -c to
