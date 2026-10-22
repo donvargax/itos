@@ -32,6 +32,14 @@ func initializeIDSteps(sc *godog.ScenarioContext, w *world) {
 	sc.Step(`^the remote cannot be reached$`, func() error {
 		return w.git("remote", "set-url", "origin", filepath.Join(w.support, "not-a-remote"))
 	})
+	sc.Step(`^the git itos runs fails every command$`, func() error {
+		path := filepath.Join(w.support, "failing-git")
+		if err := w.writeProgram(path, "#!/bin/sh\nexit 1\n"); err != nil {
+			return err
+		}
+		w.vars = append(w.vars, "ITOS_GIT="+programPath(path))
+		return nil
+	})
 	sc.Step(`^the repository has a remote it pushes to$`, func() error {
 		if err := w.git("init", "-q", "--bare", w.remote()); err != nil {
 			return err
