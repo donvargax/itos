@@ -11532,3 +11532,19 @@ items:
     status: doing
     depends_on: []
     kind: task
+
+  - id: p1-pinned-shared-cache
+    title: tools/bin/pinned caches its tools once per clone, not once per worktree
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      tools/bin/pinned fetches into the worktree's own .tools, so every agent worktree and every
+      self-test scratch worktree fetches dprint, golangci-lint and itos-cc again: T-220's worktree
+      saw a reset fetch of dprint fail its work take, golangci-lint take 9.5 minutes to arrive, and
+      the gates self-test's pre-commit case spend 324 s fetching dprint into its scratch copy. A
+      cache shared by the clone's worktrees (under its common repository folder), still checked by
+      SHA-256, would fetch each pinned version once per clone; T-220's scratch.Repo.SharePinned
+      would then be unneeded.
