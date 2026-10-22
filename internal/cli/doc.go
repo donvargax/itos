@@ -493,8 +493,9 @@
 // next-id and task next-id (nextid.go) are calls into internal/tests,
 // internal/ledger and internal/nextid, reading only the working tree; tests
 // next-id of an area (tests.Area) then claims what it prints through the
-// tracker's Reserve (tracker.go), which item ids are minted through too
-// (idmint.go), the area's stem its series.
+// ids engine (internal/engine/ids, its Claim) and the tracker's Reserve
+// (tracker.go), which item ids are minted through too (idmint.go, the
+// engine's Mint), the area's stem its series.
 // commit check-paths and commit footers (commit.go) are calls into
 // internal/scope and message.Gathered.
 //

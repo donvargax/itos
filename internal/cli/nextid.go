@@ -15,30 +15,15 @@ import (
 	"strings"
 
 	"github.com/donvargax/itos/v8/internal/config"
+	"github.com/donvargax/itos/v8/internal/engine/ids"
 	"github.com/donvargax/itos/v8/internal/ledger"
 	"github.com/donvargax/itos/v8/internal/out"
 	"github.com/donvargax/itos/v8/internal/tests"
-	"github.com/donvargax/itos/v8/internal/work"
 )
 
-// registryIDs are the work registry's item ids, which name a slice, a bug
-// or a task before its scenarios or its ledger entry exist; none when the
-// config's registry is not there.
+// registryIDs are the work registry's item ids (ids.Registry).
 func registryIDs(cfg *config.Loaded) ([]string, error) {
-	if !cfg.Source.Has(context.Background(), cfg.Work.Registry) {
-		return nil, nil
-	}
-	registry, err := work.Load(cfg, cfg.Work.Registry)
-	if err != nil {
-		return nil, err
-	}
-	var ids []string
-	for _, item := range registry.Items {
-		if id, ok := item.At("id").(string); ok {
-			ids = append(ids, id)
-		}
-	}
-	return ids, nil
+	return ids.Registry(context.Background(), cfg)
 }
 
 // testsNextID is `tests next-id <kind> <stem> [--count <n>]`: the kind's
@@ -99,27 +84,10 @@ func testsNextID(args []string, o Out) (int, error) {
 	return 0, nil
 }
 
-// claimTags claims count numbers of the area stem in a row through the
-// tracker's Reserve, its series the stem, the first past the higher of the
-// counter and next's number less one (the highest the kind's files hold),
-// and gives each as next is written: its tag prefix, the stem and the
-// number, as wide as next's.
+// claimTags claims count numbers of the area stem through the tracker of
+// the config (tracker.go): ids.Claim.
 func claimTags(cfg *config.Loaded, stem, next string, count int, goos string) ([]string, error) {
-	n, err := trailingNumber(next)
-	if err != nil {
-		return nil, fmt.Errorf("cannot read the number of the next %s id %q: %w", stem, next, err)
-	}
-	head := strings.TrimRight(next, "0123456789")
-	width := len(next) - len(head)
-	first, err := tracker(cfg, goos).Reserve(context.Background(), stem, n-1, count)
-	if err != nil {
-		return nil, err
-	}
-	tags := make([]string, count)
-	for i := range tags {
-		tags[i] = fmt.Sprintf("%s%0*d", head, width, first+i)
-	}
-	return tags, nil
+	return ids.Claim(context.Background(), tracker(cfg, goos), stem, next, count)
 }
 
 // kindNames are the config's tests kinds, as a usage error lists them.

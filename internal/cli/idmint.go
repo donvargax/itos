@@ -2,15 +2,9 @@ package cli
 
 import (
 	"context"
-	"fmt"
-	"os"
-	"path/filepath"
-	"strconv"
-	"strings"
 
 	"github.com/donvargax/itos/v8/internal/config"
-	"github.com/donvargax/itos/v8/internal/ledger"
-	"github.com/donvargax/itos/v8/internal/nextid"
+	"github.com/donvargax/itos/v8/internal/engine/ids"
 	"github.com/donvargax/itos/v8/internal/work"
 )
 
@@ -23,118 +17,12 @@ func newItemID(cfg *config.Loaded, category string, registryIDs []string, reserv
 	return mintItemID(cfg, category, registryIDs, goos)
 }
 
-// itemIDs are the ids of the registry's items.
+// itemIDs are the ids of the registry's items (ids.Items).
 func itemIDs(registry work.Registry) []string {
-	ids := make([]string, 0, len(registry.Items))
-	for _, item := range registry.Items {
-		if id, ok := item.At("id").(string); ok {
-			ids = append(ids, id)
-		}
-	}
-	return ids
+	return ids.Items(registry)
 }
 
-// mintItemID reserves an item number before the registry or ledger is
-// written. Task IDs use ledger.NextIDAfter, so ledger.id remains the one
-// authority for their prefix, padding and accepted width. A slice's or a
-// bug's (slice 104) is <kind>-<n>, past the registry's and the feature
-// files' tags of its kind (taggedIDs).
+// mintItemID is ids.Mint, through the tracker of the config (tracker.go).
 func mintItemID(cfg *config.Loaded, category string, registryIDs []string, goos string) (string, error) {
-	var next string
-	var ids []string
-	switch category {
-	case "task":
-		var err error
-		next, err = ledger.NextID(cfg, registryIDs)
-		if err != nil {
-			return "", err
-		}
-	case "slice", "bug":
-		var err error
-		ids, err = taggedIDs(cfg, category, registryIDs)
-		if err != nil {
-			return "", err
-		}
-		next = nextid.Next(category+"-", ids, 1, nil)
-	default:
-		return "", fmt.Errorf("cannot mint an item of kind %q", category)
-	}
-	n, err := trailingNumber(next)
-	if err != nil {
-		return "", fmt.Errorf("cannot read the number from next %s id %q: %w", category, next, err)
-	}
-	number, err := reserveItemNumber(cfg, category, n-1, goos)
-	if err != nil {
-		return "", err
-	}
-	if category == "task" {
-		return ledger.NextIDAfter(cfg, registryIDs, number-1)
-	}
-	width := 1
-	for _, id := range ids {
-		if digits, ok := strings.CutPrefix(id, category+"-"); ok && digits != "" {
-			allDigits := true
-			for _, digit := range digits {
-				allDigits = allDigits && digit >= '0' && digit <= '9'
-			}
-			if allDigits {
-				width = max(width, len(digits))
-			}
-		}
-	}
-	return fmt.Sprintf("%s-%0*d", category, width, number), nil
-}
-
-// reserveItemNumber reserves the number of the kind's series past highest,
-// and past its counter, through the tracker (tracker.go).
-func reserveItemNumber(cfg *config.Loaded, category string, highest int, goos string) (int, error) {
-	return tracker(cfg, goos).Reserve(context.Background(), category, highest, 1)
-}
-
-// taggedIDs are the ids given and the <kind>-<n> every @<kind>-<n> tag of
-// the feature files names: slice or bug.
-func taggedIDs(cfg *config.Loaded, kind string, ids []string) ([]string, error) {
-	root := "features"
-	if scenario, ok := cfg.Tests.Get("scenario"); ok && scenario.Root != nil && *scenario.Root != "" {
-		root = *scenario.Root
-	}
-	found := append([]string(nil), ids...)
-	err := filepath.WalkDir(root, func(path string, entry os.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		if entry.IsDir() || filepath.Ext(path) != ".feature" {
-			return nil
-		}
-		data, err := os.ReadFile(path)
-		if err != nil {
-			return err
-		}
-		for _, line := range strings.Split(string(data), "\n") {
-			if !strings.HasPrefix(strings.TrimSpace(line), "@") {
-				continue
-			}
-			for _, word := range strings.Fields(line) {
-				if tag, ok := strings.CutPrefix(word, "@"+kind+"-"); ok {
-					found = append(found, kind+"-"+tag)
-				}
-			}
-		}
-		return nil
-	})
-	if os.IsNotExist(err) {
-		return found, nil
-	}
-	return found, err
-}
-
-func trailingNumber(id string) (int, error) {
-	i := len(id)
-	for i > 0 && id[i-1] >= '0' && id[i-1] <= '9' {
-		i--
-	}
-	if i == len(id) {
-		return 0, fmt.Errorf("no trailing number")
-	}
-	return strconv.Atoi(id[i:])
+	return ids.Mint(context.Background(), tracker(cfg, goos), cfg, category, registryIDs)
 }
