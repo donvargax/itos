@@ -43,11 +43,15 @@ var stubs = []string{
 	"internal/store/tree/port",
 	"internal/store/tree/port/porttest",
 	"internal/store/tree/adapter",
+	"internal/vcs/port",
+	"internal/vcs/port/porttest",
+	"internal/vcs/adapter",
 	"cmd/probe",
 }
 
-// stores are the stores this repository has moved behind a port.
-var stores = []string{"internal/store/private", "internal/store/tree"}
+// stores are the stores, and the VCS, this repository has moved behind a
+// port: each a port, its fake and its adapter, held by the same rules.
+var stores = []string{"internal/store/private", "internal/store/tree", "internal/vcs"}
 
 var mocks = []string{"github.com/golang/mock/gomock", "go.uber.org/mock/gomock", "github.com/stretchr/testify/mock", "github.com/vektra/mockery/v2", "github.com/maxbrunsfeld/counterfeiter/v6"}
 
