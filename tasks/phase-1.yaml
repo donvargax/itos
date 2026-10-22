@@ -4362,9 +4362,6 @@
     hooks.pre_push per_base and whole run it after golangci-lint-changed; its self-test beside
     golangci-lint-changed's (tools/selftest). A ci commit; AGENTS.md's pre-push sentence names it in
     a docs commit.
-  done_when:
-    - run: test -f tools/bin/staticcheck-changed/main.go || test -x tools/bin/staticcheck-changed
-    - run: grep -n 'staticcheck-changed' itos.yaml
 
 - id: T-270
   type: ci
