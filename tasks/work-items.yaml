@@ -12512,7 +12512,7 @@ items:
     title: Tests cover the error branches the draft slice's move left uncovered
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
 

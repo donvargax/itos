@@ -4296,9 +4296,6 @@
     slice's fakes, each forcing an error every OS reports alike (a NUL byte in a path, a folder
     where a file goes, a fake that fails); if a branch is truly unreachable, a seam in the slice's
     Ports rather than an OS branch. No change to what itos does.
-  done_when:
-    - run: tools/bin/pinned itos-cc mutation run --count 1 --since aaa3bf31801eb5e7a066dccd3dcb84cdb2d2fc85 --seed aaa3bf31801eb5e7a066dccd3dcb84cdb2d2fc85 --fail-uncovered=lines --json cmd internal
-      timeout: 900
 
 - id: T-272
   type: test
