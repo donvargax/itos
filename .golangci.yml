@@ -37,9 +37,9 @@ linters:
       rules:
         # A slice, outside its domain and adapters, imports nothing of ours
         # but its own subpackages (architecture-check refuses another
-        # slice's), internal/out, through which its output goes, and the
-        # stores' ports and the VCS's, with their fakes for its tests
-        # (slice-fakes keeps them out of its code). It reaches everything
+        # slice's), the engines, internal/out, through which its output
+        # goes, and the stores' ports and the VCS's, with their fakes for its
+        # tests (slice-fakes keeps them out of its code). It reaches everything
         # else through the Ports it owns, which the assembly binds;
         # internal/cli is the assembly until the step that moves it into
         # cmd, so a slice importing it would cycle. A store's adapter, and
@@ -52,6 +52,7 @@ linters:
             - "!**/internal/slices/*/adapters/**"
           allow:
             - github.com/donvargax/itos/v8/internal/slices/
+            - github.com/donvargax/itos/v8/internal/engine/
             - github.com/donvargax/itos/v8/internal/out$
             - github.com/donvargax/itos/v8/internal/store/private/port$
             - github.com/donvargax/itos/v8/internal/store/private/port/porttest$
@@ -81,6 +82,49 @@ linters:
               desc: "a slice's code links no fake (ADR-0053): a port's fake enters only through _test.go files"
             - pkg: github.com/donvargax/itos/v8/internal/vcs/port/porttest
               desc: "a slice's code links no fake (ADR-0053): a port's fake enters only through _test.go files"
+        # An engine (internal/engine/<name>) is what several commands share,
+        # which no slice owns: a slice calls it, never the reverse. It, its
+        # tests with it, imports no command, slice, store or VCS adapter,
+        # launcher or shim; it takes the ports, which its caller binds, and
+        # imports the rest of ours, another engine among them. A new engine
+        # needs no new rule. No deny entry may prefix another
+        # (TestNoDenyEntryPrefixesAnother).
+        engines:
+          list-mode: lax
+          files:
+            - "**/internal/engine/**"
+          deny:
+            - pkg: github.com/donvargax/itos/v8/internal/cli$
+              desc: "an engine imports no command (ADR-0053): internal/cli calls the engine, never the reverse"
+            - pkg: github.com/donvargax/itos/v8/internal/slices/
+              desc: "an engine imports no slice (ADR-0053): a slice calls the engine; what several slices share moves into it"
+            - pkg: github.com/donvargax/itos/v8/internal/store/private/adapter
+              desc: "an engine imports no adapter (ADR-0053): take the private store's port, which the caller binds"
+            - pkg: github.com/donvargax/itos/v8/internal/store/tree/adapter
+              desc: "an engine imports no adapter (ADR-0053): take the tree reader's port, which the caller binds"
+            - pkg: github.com/donvargax/itos/v8/internal/store/tracker/adapter
+              desc: "an engine imports no adapter (ADR-0053): take the tracker's port, which the caller binds"
+            - pkg: github.com/donvargax/itos/v8/internal/vcs/adapter
+              desc: "an engine imports no adapter (ADR-0053): take the VCS port, which the caller binds"
+            - pkg: github.com/donvargax/itos/v8/internal/launch$
+              desc: "an engine imports no launcher (ADR-0053): the launcher runs commands, which call engines"
+            - pkg: github.com/donvargax/itos/v8/internal/shim$
+              desc: "an engine imports no shim (ADR-0053): the shim runs commands, which call engines"
+        # An engine's code links no port's fake, which its tests alone may
+        # use, as slice-fakes holds for a slice.
+        engine-fakes:
+          files:
+            - "**/internal/engine/**"
+            - "!$test"
+          deny:
+            - pkg: github.com/donvargax/itos/v8/internal/store/private/port/porttest
+              desc: "an engine's code links no fake (ADR-0053): a port's fake enters only through _test.go files"
+            - pkg: github.com/donvargax/itos/v8/internal/store/tree/port/porttest
+              desc: "an engine's code links no fake (ADR-0053): a port's fake enters only through _test.go files"
+            - pkg: github.com/donvargax/itos/v8/internal/store/tracker/port/porttest
+              desc: "an engine's code links no fake (ADR-0053): a port's fake enters only through _test.go files"
+            - pkg: github.com/donvargax/itos/v8/internal/vcs/port/porttest
+              desc: "an engine's code links no fake (ADR-0053): a port's fake enters only through _test.go files"
         # A store's port and its fake (internal/store/<store>/port and
         # port/porttest), and the VCS's (internal/vcs/port), their tests
         # with them, import nothing of ours but the port and the fake: no
