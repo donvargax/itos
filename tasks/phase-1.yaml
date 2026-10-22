@@ -2683,3 +2683,17 @@
     absent or unchanged). And with exact text refused (T-212) and Machine stripping it, the runner's
     additive linesProblems for stdout and stderr only ever judges empty text, so it and doc.go's
     Additive paragraph on text go. ci commits for the runner, test commits for the corpus files.
+
+- id: T-215
+  type: test
+  title: Tests cover the lines T-211 re-plumbed that no test runs
+  why: >
+    Coverage debt of the slices refactor (the user, 2026-10-21). T-211's push proof named eight old
+    lines only re-plumbed: cli/ci.go:80 ciScope's config load error; cli/hook.go:488 and 492
+    stagedTasks' error returns for the index config and ledger; message/footers.go:269 and 272
+    needSource's registry branch; tests/moves.go:519 Moves.Index's not-gherkin error;
+    tests/smoke.go:163 and 167 LoadSmokeAt's At and Read errors. Unit tests first, using
+    porttest.Trees to break a read where that reaches the line; no change to what itos does.
+  done_when:
+    - run: tools/bin/pinned itos-cc mutation run --since d6671a27 --count 1 --seed d6671a27 --fail-uncovered=lines --json cmd internal
+      timeout: 900
