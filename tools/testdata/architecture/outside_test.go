@@ -21,6 +21,8 @@ func checkOutside(t *testing.T, check, dir string, env []string, module string) 
 		{"./internal/store/private/adapter/internal_slices_alpha_code", "internal/slices/alpha", "", ""},
 		{"./internal/store/tree/adapter/internal_slices_alpha_code", "internal/slices/alpha", "", ""},
 		{"./internal/store/tracker/adapter/internal_slices_alpha_code", "internal/slices/alpha", "", ""},
+		// An engine imports no slice: a slice calls it.
+		{"./internal/engine/alpha/internal_slices_alpha_code", "internal/slices/alpha", "", ""},
 		{"./internal/cli/internal_slices_alpha_domain_allowed_test", "internal/slices/alpha/domain", " from its tests", ""},
 		{"./internal/git/internal_slices_alpha_domain_allowed_test", "internal/slices/alpha/domain", " from its tests", ""},
 		// The row excepts git's tests, its subpackages' with them, and

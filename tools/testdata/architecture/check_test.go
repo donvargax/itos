@@ -19,16 +19,20 @@ import (
 	"testing"
 )
 
-// The slices and parts the fixtures stand on, beside the slices this
-// repository has moved (docs/plans/slices-and-ports.md). internal/outline
+// The slices, engines and parts the fixtures stand on, beside the slices
+// this repository has moved (docs/plans/slices-and-ports.md). internal/outline
 // proves slice-packages allows internal/out alone, not every path it
 // prefixes.
 var stubs = []string{
 	"internal/cli",
+	"internal/engine/alpha",
+	"internal/engine/beta",
 	"internal/git",
 	"internal/idcounter",
+	"internal/launch",
 	"internal/lock",
 	"internal/out",
+	"internal/shim",
 	"internal/outline",
 	"internal/slices/alpha",
 	"internal/slices/alpha/domain",
@@ -105,7 +109,7 @@ func fixtures(module string) []fixture {
 		// under internal/slices, depguard lets by and architecture-check's
 		// siblings holds.
 		for _, layer := range []string{"internal/slices/alpha/domain", "internal/slices/alpha/domain/port"} {
-			for _, target := range []string{"internal/cli", "internal/git", "internal/out", "cmd/probe"} {
+			for _, target := range []string{"internal/cli", "internal/engine/alpha", "internal/git", "internal/out", "cmd/probe"} {
 				add(layer, ours(target), "Value", "slice-domain", test)
 			}
 			for _, target := range []string{"internal/slices/alpha/domain", "internal/slices/alpha/domain/port", "internal/slices/alpha", "internal/slices/alpha/adapters/disk", "internal/slices/beta/domain"} {
@@ -114,25 +118,40 @@ func fixtures(module string) []fixture {
 			add(layer, "strings", "ToLower", "", test)
 		}
 		// A slice, outside its domain and adapters, imports nothing of ours
-		// but its own subpackages and internal/out: no UI, engine or cmd. A
-		// fixture under internal/slices/alpha is a package of that slice.
+		// but its own subpackages, the engines and internal/out: no UI,
+		// other internals or cmd. A fixture under internal/slices/alpha is a
+		// package of that slice.
 		slice := "internal/slices/alpha"
 		for _, target := range []string{"internal/cli", "internal/git", "internal/outline", "cmd/probe"} {
 			add(slice, ours(target), "Value", "slice-packages", test)
 		}
-		for _, target := range []string{"internal/out", "internal/slices/alpha/domain", "internal/slices/alpha/domain/port"} {
+		for _, target := range []string{"internal/out", "internal/engine/alpha", "internal/slices/alpha/domain", "internal/slices/alpha/domain/port"} {
 			add(slice, ours(target), "Value", "", test)
 		}
 		add(slice, "strings", "ToLower", "", test)
+		// An engine, its tests with it, imports no command, slice, launcher
+		// or shim; the rest of ours it may, another engine among them. A
+		// fixture under internal/engine/alpha is a package of that engine.
+		engine := "internal/engine/alpha"
+		for _, target := range []string{"internal/cli", "internal/slices/alpha", "internal/launch", "internal/shim"} {
+			add(engine, ours(target), "Value", "engines", test)
+		}
+		for _, target := range []string{"internal/out", "internal/engine/beta"} {
+			add(engine, ours(target), "Value", "", test)
+		}
+		add(engine, "strings", "ToLower", "", test)
 		for _, store := range stores {
 			// A slice imports a store's port; never its adapter, which the
-			// assembly binds.
+			// assembly binds. An engine takes the port its caller binds,
+			// likewise.
 			add(slice, ours(store+"/port"), "Value", "", test)
 			add(slice, ours(store+"/adapter"), "Value", "slice-packages", test)
+			add(engine, ours(store+"/port"), "Value", "", test)
+			add(engine, ours(store+"/adapter"), "Value", "engines", test)
 			// A store's port and its fake import nothing of ours but the
 			// port and the fake: no UI, engine, slice or adapter.
 			for _, layer := range []string{store + "/port", store + "/port/porttest"} {
-				for _, target := range []string{"internal/cli", "internal/git", "internal/slices/alpha", store + "/adapter"} {
+				for _, target := range []string{"internal/cli", "internal/engine/alpha", "internal/git", "internal/slices/alpha", store + "/adapter"} {
 					add(layer, ours(target), "Value", "store-ports", test)
 				}
 				for _, target := range []string{store + "/port", store + "/port/porttest"} {
@@ -141,9 +160,9 @@ func fixtures(module string) []fixture {
 				add(layer, "strings", "ToLower", "", test)
 			}
 		}
-		// Mocking libraries, nowhere: a slice's domain, an adapter, an engine
-		// and cmd alike.
-		for _, layer := range []string{"internal/slices/alpha/domain", "internal/slices/alpha/adapters/disk", "internal/git", "cmd/probe"} {
+		// Mocking libraries, nowhere: a slice's domain, an adapter, an
+		// engine, the internals and cmd alike.
+		for _, layer := range []string{"internal/slices/alpha/domain", "internal/slices/alpha/adapters/disk", "internal/engine/alpha", "internal/git", "cmd/probe"} {
 			for _, mock := range mocks {
 				add(layer, mock, "Value", "mocks", test)
 			}
@@ -168,9 +187,12 @@ func fixtures(module string) []fixture {
 	add(adapter, ours("internal/slices/alpha/domain/port/porttest"), "Value", "", true)
 	add(adapter, "os", "ReadFile", "", false)
 	for _, store := range stores {
-		// A slice's code links no fake, which its tests may use.
+		// A slice's code links no fake, which its tests may use; nor does
+		// an engine's.
 		add("internal/slices/alpha", ours(store+"/port/porttest"), "Value", "slice-fakes", false)
 		add("internal/slices/alpha", ours(store+"/port/porttest"), "Value", "", true)
+		add("internal/engine/alpha", ours(store+"/port/porttest"), "Value", "engine-fakes", false)
+		add("internal/engine/alpha", ours(store+"/port/porttest"), "Value", "", true)
 		// A port and its fake do no I/O in their code; their tests may.
 		add(store+"/port", "os", "ReadFile", "store-ports-io", false)
 		add(store+"/port/porttest", "net", "Dial", "store-ports-io", false)
@@ -188,7 +210,7 @@ func fixtures(module string) []fixture {
 	// git runs in the VCS's git adapter alone: internal/git, its internals,
 	// is no other package's to import, but in a test.
 	add("internal/vcs/adapter", ours("internal/git"), "Value", "", false)
-	for _, layer := range []string{"internal/store/private/adapter", "internal/store/tree/adapter", "internal/store/tracker/adapter", "internal/cli", "cmd/probe"} {
+	for _, layer := range []string{"internal/store/private/adapter", "internal/store/tree/adapter", "internal/store/tracker/adapter", "internal/cli", "internal/engine/alpha", "cmd/probe"} {
 		add(layer, ours("internal/git"), "Value", "git-internals", false)
 		add(layer, ours("internal/git"), "Value", "", true)
 	}
@@ -197,14 +219,14 @@ func fixtures(module string) []fixture {
 	for _, layer := range []string{"internal/store/private/adapter", "internal/store/tracker/adapter", "internal/idcounter"} {
 		add(layer, ours("internal/lock"), "Value", "", false)
 	}
-	for _, layer := range []string{"internal/vcs/adapter", "internal/cli", "cmd/probe"} {
+	for _, layer := range []string{"internal/vcs/adapter", "internal/cli", "internal/engine/alpha", "cmd/probe"} {
 		add(layer, ours("internal/lock"), "Value", "lock-internals", false)
 		add(layer, ours("internal/lock"), "Value", "", true)
 	}
 	// The ID counter is the tracker adapter's internals, which no other
 	// package's code imports, but in a test.
 	add("internal/store/tracker/adapter", ours("internal/idcounter"), "Value", "", false)
-	for _, layer := range []string{"internal/store/private/adapter", "internal/vcs/adapter", "internal/cli", "cmd/probe"} {
+	for _, layer := range []string{"internal/store/private/adapter", "internal/vcs/adapter", "internal/cli", "internal/engine/alpha", "cmd/probe"} {
 		add(layer, ours("internal/idcounter"), "Value", "idcounter-internals", false)
 		add(layer, ours("internal/idcounter"), "Value", "", true)
 	}
