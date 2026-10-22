@@ -417,9 +417,16 @@ ci:
       # The newest completed CI run on main passed on Linux, macOS and Windows (T-072): a push's own
       # run is still going when its plan runs, so the nightly reads the one before it. A metadata
       # run proves its reduced scope explicitly on all three jobs; otherwise each test owner and
-      # launcher must have run successfully. Missing, mixed or failed coverage never passes.
+      # launcher must have run successfully. Missing, mixed or failed coverage never passes. The
+      # run is picked from ci.yml's newest 100 runs, unfiltered (T-277): asked with --branch and
+      # --status, the list came back empty for a nightly of 2026-10-22 while main had a completed
+      # run. A run cancelled while it waited (ci.yml's concurrency) ran no job and is passed over,
+      # as the run after it checks its commits. None found is said, never asked of gh run view.
       - >-
-        id=$(gh run list --workflow ci.yml --branch main --status completed --limit 1 --json databaseId --jq '.[0].databaseId') &&
+        id=$(gh run list --workflow ci.yml --limit 100 --json databaseId,headBranch,event,status,conclusion
+        --jq '[.[] | select(.headBranch == "main" and .event == "push" and .status == "completed" and .conclusion != "cancelled")][0].databaseId // empty') &&
+        { [ -n "$id" ] || { echo "No completed CI run on main among the newest 100 runs of ci.yml, so its platform jobs cannot be judged." >&2; false; }; } &&
+        echo "The newest completed CI run on main is $id." &&
         gh run view "$id" --json jobs --jq
         '.jobs as $jobs | ["ci (ubuntu-latest)", "platform (macos-latest)", "platform (windows-latest)"] as $names |
         def passed($name): any(.steps[]?; .name == $name and .conclusion == "success");

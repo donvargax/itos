@@ -1,6 +1,7 @@
 // Package platform holds the push workflow's three-platform coverage contract. Commands run
 // against fake go/itos executables; the main job's delegated plan is read from the real planner.
-// The nightly's GitHub query runs against fixture jobs through real jq, without network access.
+// The nightly's GitHub query runs against fixture runs and jobs through real jq, without network
+// access.
 package platform
 
 import (
@@ -66,14 +67,15 @@ case "$*" in
   *) exit 92;;
 esac
 `,
+		// gh run list answers with $RUNS, gh run view with $JOBS, the run $WANT_RUN alone.
 		"gh": `#!/bin/sh
 [ "$GH_FAIL" != 1 ] || exit 93
-case "$1 $2" in
-  'run list') echo 123;;
-  'run view')
-    while [ "$1" != --jq ]; do [ "$#" -gt 0 ] || exit 94; shift; done
-    shift
-    jq -r "$1" "$JOBS";;
+sub="$1 $2" id="$3"
+while [ "$1" != --jq ]; do [ "$#" -gt 0 ] || exit 94; shift; done
+shift
+case "$sub" in
+  'run list') jq -r "$1" "$RUNS";;
+  'run view') [ "$id" = "$WANT_RUN" ] || exit 96; jq -r "$1" "$JOBS";;
   *) exit 95;;
 esac
 `,
@@ -287,7 +289,18 @@ func TestSelftest(t *testing.T) {
 		}
 		w := readWorkflow(t)
 		names := []string{w.Jobs["ci"].Name, "platform (macos-latest)", "platform (windows-latest)"}
-		for _, mode := range []string{"green", "missing Linux", "missing macOS", "missing Windows", "failed", "skipped", "duplicate macOS", "API failure", "metadata", "mixed metadata", "missing named tests", "missing launcher"} {
+		// ci.yml's newest runs when the nightly of 2026-10-22 (run 39773321788) read them, newest
+		// first, under a pull request's run: one still going, two cancelled while they waited, then
+		// the run to judge (T-277).
+		runs := []string{
+			`{"databaseId": 39773700000, "headBranch": "slice-1", "event": "pull_request", "status": "completed", "conclusion": "success"}`,
+			`{"databaseId": 39773576645, "headBranch": "main", "event": "push", "status": "in_progress", "conclusion": ""}`,
+			`{"databaseId": 39773494732, "headBranch": "main", "event": "push", "status": "completed", "conclusion": "cancelled"}`,
+			`{"databaseId": 39773386143, "headBranch": "main", "event": "push", "status": "completed", "conclusion": "cancelled"}`,
+			`{"databaseId": 39772979146, "headBranch": "main", "event": "push", "status": "completed", "conclusion": "success"}`,
+		}
+		const none = "No completed CI run on main among the newest 100 runs of ci.yml, so its platform jobs cannot be judged."
+		for _, mode := range []string{"green", "missing Linux", "missing macOS", "missing Windows", "failed", "skipped", "duplicate macOS", "API failure", "metadata", "mixed metadata", "missing named tests", "missing launcher", "no completed run", "no run"} {
 			t.Run(mode, func(t *testing.T) {
 				dir, env := fakeEnv(t)
 				var jobs []map[string]any
@@ -324,13 +337,23 @@ func TestSelftest(t *testing.T) {
 					jobs = append(jobs, map[string]any{"name": name, "conclusion": conclusion, "steps": steps})
 				}
 				data, _ := json.Marshal(map[string]any{"jobs": jobs})
-				scratch.WriteFiles(t, dir, map[string]string{"jobs.json": string(data)})
-				env = scratch.With(env, "JOBS="+filepath.Join(dir, "jobs.json"))
+				list := runs
+				switch mode {
+				case "no completed run": // none on main both completed and run
+					list = runs[:4]
+				case "no run": // the empty list the nightly of 2026-10-22 (run 39817143873) was given
+					list = nil
+				}
+				scratch.WriteFiles(t, dir, map[string]string{"jobs.json": string(data), "runs.json": "[" + strings.Join(list, ",") + "]"})
+				env = scratch.With(env, "JOBS="+filepath.Join(dir, "jobs.json"), "RUNS="+filepath.Join(dir, "runs.json"), "WANT_RUN=39772979146")
 				if mode == "API failure" {
 					env = scratch.With(env, "GH_FAIL=1")
 				}
 				r := scratch.Run(dir, env, "", "sh", "-c", command)
 				if (r.Code == 0) != (mode == "green" || mode == "metadata") {
+					t.Fatalf("%s: exit %d\n%s", mode, r.Code, r.Output())
+				}
+				if said := strings.Contains(r.Output(), none); said != (mode == "no completed run" || mode == "no run") || (said && r.Code != 1) {
 					t.Fatalf("%s: exit %d\n%s", mode, r.Code, r.Output())
 				}
 			})
