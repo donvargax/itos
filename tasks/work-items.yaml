@@ -11363,6 +11363,9 @@ items:
       design: committed (shared, in the repository beside the registry) or private (git common dir,
       as followup), or both with a flag; and whether an entry can later become an item or a decision
       (promote). Relates to p1-followup-topics: a topic thread may be the same object.
+
+      Designed as a type of p1-typed-items' one record (the user, 2026-10-21), not as a command
+      group of its own; built after it, or as its pilot.
     tags: [followup]
 
   - id: p1-followup-topics
@@ -11377,6 +11380,9 @@ items:
       as often as a person. --with becomes optional and repeatable; followup lists by topic and
       filters by person. p1-followup-state already argues one thread per topic, not per team. May
       merge with p1-research-log if a topic thread with no person is the same thing as a log.
+
+      Designed as a type of p1-typed-items' one record (the user, 2026-10-21), not as a command
+      group of its own; built after it, or as its pilot.
     tags: [followup]
 
   - id: p1-followup-drafts
@@ -11392,6 +11398,9 @@ items:
       --draft keeps it editable (followup draft edit, send marks it sent with the time), show and
       doc mark drafts, and the list shows a thread with a draft waiting. Sent notes stay
       append-only.
+
+      Designed as a type of p1-typed-items' one record (the user, 2026-10-21), not as a command
+      group of its own; built after it, or as its pilot.
     tags: [followup]
 
   - id: p1-followup-supersede
@@ -11407,6 +11416,9 @@ items:
       and doc print the superseded note struck or folded under its replacement, and doc exports only
       the standing ones unless --all. Notes stay append-only. Relates to p1-followup-state, which
       keeps a live state over the notes.
+
+      Designed as a type of p1-typed-items' one record (the user, 2026-10-21), not as a command
+      group of its own; built after it, or as its pilot.
     tags: [followup]
 
   - id: p1-risk-register
@@ -11423,6 +11435,9 @@ items:
       it), status (open, mitigated, accepted, closed) and dated notes; itos status names open high
       risks; a closed item that mitigates a risk prompts updating it. Committed beside the registry,
       as it is shared.
+
+      Designed as a type of p1-typed-items' one record (the user, 2026-10-21), not as a command
+      group of its own; built after it, or as its pilot.
     tags: [work]
 
   - id: p1-session-artifacts
@@ -11439,6 +11454,9 @@ items:
       date, privately in the git common dir; itos artifact lists them; handoff (p1-session-handoff)
       includes them; an artifact whose path is gone is marked so. Copying into .git/itos is
       optional, for paths in a scratch folder the OS may clear.
+
+      Designed as a type of p1-typed-items' one record (the user, 2026-10-21), not as a command
+      group of its own; built after it, or as its pilot.
     tags: [status]
 
   - id: p1-session-handoff
@@ -11456,6 +11474,9 @@ items:
       waiting, recorded artifacts) and takes the session's own text for the rest, writing a dated
       section; itos go prints the newest handoff in full and older ones as one line each, and itos
       handoff prune folds old ones away.
+
+      Designed as a type of p1-typed-items' one record (the user, 2026-10-21), not as a command
+      group of its own; built after it, or as its pilot.
     tags: [status]
 
   - id: p1-doc-references
@@ -11473,4 +11494,7 @@ items:
       those areas and offered in a brief; a reference whose URL stops answering is flagged. Relates
       to #100's p1-refs-doc-anchors proposal (anchors in an item's refs) and to p1-research-log (a
       log entry citing a reference).
+
+      Designed as a type of p1-typed-items' one record (the user, 2026-10-21), not as a command
+      group of its own; built after it, or as its pilot.
     tags: [docs]
