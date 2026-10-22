@@ -2121,6 +2121,9 @@
     publication/wait ownership. Update the existing guide corpus text where necessary; semantic
     correctness is reviewed against these cases, without a new feature scenario or policy-text regex
     test. Read T-178 for adjacent brief edits and retain its explicit publication scope.
+    #89: guide commit also says that each footer flag (--task, --item, --scenarios) writes its footer
+    into the message's last paragraph, so the -F text leaves those footers out; an agent wrote Task:
+    by hand and passed --task as well.
   done_when:
     - run: tools/bin/itos guide work
     - run: tools/bin/itos guide brief
