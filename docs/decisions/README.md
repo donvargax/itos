@@ -57,5 +57,6 @@ file and leaves this list, which itos decision record writes.
 - [ADR-0054: Script-facing plain outputs and the guard's hook JSON are contract; guide text is exempt like message and fix](0054-script-facing-plain-outputs-and-the-guard-s-hook-json-are-contract-guide-text-is-exempt-like-message-and-fix.md)
 - [ADR-0055: A person's sign-off on a task is a commit signed with that person's sign-off key, verified in CI](0055-a-person-s-sign-off-on-a-task-is-a-commit-signed-with-that-person-s-sign-off-key-verified-in-ci.md)
 - [ADR-0056: Task checks run in process over fakes in the hooks, and with real adapters in CI](0056-task-checks-run-in-process-over-fakes-in-the-hooks-and-with-real-adapters-in-ci.md)
+- [ADR-0057: CI owns the push proof and the task checks until the hooks run them in process](0057-ci-owns-the-push-proof-and-the-task-checks-until-the-hooks-run-them-in-process.md)
 
 <!-- itos:decisions:end -->
