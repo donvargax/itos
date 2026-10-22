@@ -11568,8 +11568,8 @@ items:
   - id: T-223
     title: Tests cover the sites T-217 re-plumbed in init, ci and status
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
 
