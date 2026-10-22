@@ -58,5 +58,6 @@ file and leaves this list, which itos decision record writes.
 - [ADR-0055: A person's sign-off on a task is a commit signed with that person's sign-off key, verified in CI](0055-a-person-s-sign-off-on-a-task-is-a-commit-signed-with-that-person-s-sign-off-key-verified-in-ci.md)
 - [ADR-0056: Task checks run in process over fakes in the hooks, and with real adapters in CI](0056-task-checks-run-in-process-over-fakes-in-the-hooks-and-with-real-adapters-in-ci.md)
 - [ADR-0057: CI owns the push proof and the task checks until the hooks run them in process](0057-ci-owns-the-push-proof-and-the-task-checks-until-the-hooks-run-them-in-process.md)
+- [ADR-0058: On a git older than 2.54, hook files are a temporary compatibility path; the git config stays the default](0058-on-a-git-older-than-2-54-hook-files-are-a-temporary-compatibility-path-the-git-config-stays-the-default.md)
 
 <!-- itos:decisions:end -->
