@@ -55,6 +55,7 @@ phases:
   3: donvargax
 
 queue:
+  - T-277
   - p1-hooks-before-git-2-54
   - T-191
   - p1-agent-test-runs-once
