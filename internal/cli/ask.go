@@ -2,7 +2,6 @@ package cli
 
 import (
 	"context"
-	"strings"
 	"time"
 
 	"github.com/donvargax/itos/v8/internal/ask"
@@ -36,17 +35,7 @@ func (p decisionPorts) Tracker(_ context.Context, cfg *config.Loaded) trackerpor
 // Now is time.Now.
 func (decisionPorts) Now(context.Context) time.Time { return time.Now() }
 
-// askEntry is a question as --json gives it (ask.Entry).
-type askEntry = ask.Entry
-
-// entryOf is ask.EntryOf.
-func entryOf(q ask.Question) askEntry { return ask.EntryOf(q) }
-
 // loadAsks is ask.Load of the config's work.asks.
 func loadAsks(cfg *config.Loaded, t trackerport.Tracker) (ask.File, string, bool, error) {
 	return ask.Load(context.Background(), t, cfg.Work.Asks)
 }
-
-// oneLine is a text on one line, its whitespace each a space, as a list and
-// a commit's body give it.
-func oneLine(text string) string { return strings.Join(strings.Fields(text), " ") }

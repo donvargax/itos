@@ -5,7 +5,6 @@ import (
 	"errors"
 	"time"
 
-	"github.com/donvargax/itos/v8/internal/engine/args"
 	"github.com/donvargax/itos/v8/internal/kind"
 	"github.com/donvargax/itos/v8/internal/slices/followup"
 	"github.com/donvargax/itos/v8/internal/slices/followup/domain"
@@ -36,8 +35,3 @@ type followupPorts struct{ adapter.Store }
 
 // Now is time.Now.
 func (followupPorts) Now(context.Context) time.Time { return time.Now() }
-
-// subArgs is args.Sub.
-func subArgs(command, sub string, list []string, valued, switches []string) ([]string, map[string]string, map[string]bool, error) {
-	return args.Sub(command, sub, list, valued, switches)
-}

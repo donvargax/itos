@@ -242,8 +242,6 @@
 // parses its line, binds its Ports to the private store's adapter
 // (internal/store/private/adapter) and the clock, and reports a threads'
 // file its domain refuses (domain.Invalid) as a usage error's exit 2.
-// subArgs, which followup's arguments were read with, stays in follow.go for
-// decision, status and work list.
 //
 // draft is the draft slice (internal/slices/draft); draft.go binds its
 // Ports to the git adapter (the VCS port and the patches it leaves to the

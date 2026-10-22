@@ -15,7 +15,6 @@ import (
 	"github.com/donvargax/itos/v8/internal/out"
 	"github.com/donvargax/itos/v8/internal/providers"
 	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
-	vcsport "github.com/donvargax/itos/v8/internal/vcs/port"
 )
 
 // watched is how a watch ended (ciwatch.Watched): its exit code, its outcome
@@ -64,12 +63,6 @@ func watchCovered(cfg *config.Loaded, wr providers.Watcher, sha, remote, branch 
 // covering is ciwatch.Covering in this clone.
 func covering(runs providers.Runs, branch, sha, remote string, cancelled *providers.Run, conclusion string) (providers.Run, bool, error) {
 	return ciwatch.Covering(context.Background(), runs, vcs.Git{}, branch, sha, remote, cancelled, conclusion)
-}
-
-// hasCommit is whether the repository has the commit rev names.
-func hasCommit(ctx context.Context, v vcsport.VCS, rev string) bool {
-	_, err := v.Resolve(ctx, rev)
-	return err == nil
 }
 
 // ended is ciwatch.Ended: the watch of a run that completed.

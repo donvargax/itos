@@ -11,9 +11,6 @@ import (
 // an error that failure reports.
 type command func(args []string, o Out) (int, error)
 
-// first is args.First.
-func first(list []string) (string, bool) { return args.First(list) }
-
 // split is args.Split.
 func split(list []string) (string, []string) { return args.Split(list) }
 
