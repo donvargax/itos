@@ -4220,3 +4220,23 @@
     or GOOS branches (Getwd for Abs's input, a Write port for the two writes, bound in
     internal/cli/init.go to the calls made today), and a branch that cannot happen is removed only
     if the change provably keeps every byte (say why in the commit). No change to what itos does.
+
+- id: T-273
+  type: ci
+  title: nightly-report reads a job log that holds terminal escape sequences
+  why: >
+    T-192 made the Nightly red comment carry why a job log could not be read, and the nightly of
+    2026-10-22 (run 39773321788, issue #29) gave it: 'gh: exit status 1: the response contains
+    terminal escape sequences; pass --allow-escape-sequences to output it anyway'. The gh the
+    nightly installs (GH_VERSION 2.101.0 in nightly.yml) refuses to print an API response holding
+    escape sequences, and a job log holds the colours go test, itos-cc and the steps print, so every
+    log fetch fails and the issue names no failing step or survivor (the same log read with gh api
+    through a person's older gh renders it). tools/bin/nightly-report passes
+    --allow-escape-sequences to its gh api call for a job's logs, and only to that one (the jobs
+    list is JSON). The body goes to a GitHub issue, not a terminal, but strip removes every escape
+    sequence the log can hold (CSI, including colours, and OSC, such as the hyperlinks newer tools
+    print), not only colours, so none reaches the body. Its unit test asserts the flag is on the log
+    fetch and that a log with a CSI and an OSC sequence renders without either. No change to itos.
+  done_when:
+    - run: go test ./tools/bin/nightly-report -count=1
+    - run: grep -q -- --allow-escape-sequences tools/bin/nightly-report/main.go

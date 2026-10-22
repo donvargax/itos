@@ -12590,3 +12590,11 @@ items:
     status: dropped
     depends_on: []
     kind: idea
+
+  - id: T-273
+    title: nightly-report reads a job log that holds terminal escape sequences
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task
