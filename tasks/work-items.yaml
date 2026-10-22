@@ -7643,6 +7643,10 @@ items:
       gain a second tag needs its old one restated (no --add-tag/--remove-tag), and a mapping of tag
       to ids cannot land as one commit. Every backlog review that tags its batch pays it, in every
       itos-driven repository.
+
+      #94: the same for notes: refreshing about thirty whys took 29 docs: edit commits, each running
+      the hooks (this session's freeze took one work defer of 27 ids, which works). One shape for
+      both: work edit reading a file of per-id changes (note, tags) and landing them as one commit.
     refs: [internal/cli]
     tags: [work]
 
