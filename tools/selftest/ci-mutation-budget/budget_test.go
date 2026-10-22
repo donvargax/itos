@@ -13,9 +13,9 @@
 // runs, so the step as the plan dispatches it is also run by a real sh, with a fake gh first on
 // the PATH and the mutation provider replaced by a fake that logs its arguments (this binary
 // again): a green run found gives its head commit, and none found, gh failing or a head commit out
-// of HEAD's history give the last 24 hours' first-parent base, said on stderr. Its paths are the
-// Go files of cmd and internal a Linux build compiles, as go list reads them for GOOS=linux, never
-// a file only another OS builds, which itos-cc cannot measure on Linux (itos-cc#18).
+// of HEAD's history give the last 24 hours' first-parent base, said on stderr. Its paths are cmd
+// and internal, as the other mutation commands' are: itos-cc leaves out a file only another OS
+// builds itself (itos-cc#18).
 package budget
 
 import (
@@ -209,7 +209,7 @@ func TestSelftest(t *testing.T) {
 
 	expectedPush := "tools/bin/pinned itos-cc mutation run --count 1 --since " + from + " --seed " + from + " --fail-uncovered=lines --json cmd internal"
 	const expectedNightly = `tools/bin/pinned itos-cc mutation run --count 20 --seed "${GITHUB_RUN_ID:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}" --json cmd internal`
-	const expectedChanged = `base=$(go run ./tools/bin/nightly-base) && files=$(go run ./tools/bin/nightly-base -linux-files cmd internal) && tools/bin/pinned itos-cc mutation run --since "$base" --count 60 --seed "${GITHUB_RUN_ID:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}" --fail-uncovered=lines --json $files`
+	const expectedChanged = `base=$(go run ./tools/bin/nightly-base) && tools/bin/pinned itos-cc mutation run --since "$base" --count 60 --seed "${GITHUB_RUN_ID:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}" --fail-uncovered=lines --json cmd internal`
 
 	// A push: one fresh mutant of the range's changed Go functions, drawn by the range's start
 	// (T-159), strict coverage of its changed lines (q-57), cmd and internal, and no other
@@ -282,33 +282,10 @@ func TestSelftest(t *testing.T) {
 		if err := json.Unmarshal(data, &args); err != nil {
 			t.Fatal(err)
 		}
-		if len(args) > 10 {
-			slices.Sort(args[10:])
-		}
 		return r, args
 	}
-	// The Go files of cmd and internal a Linux build compiles, as go list reads them, relative to
-	// the repository's top and sorted: the step's paths.
-	listed := scratch.Run(root, scratch.With(env, "GOOS=linux"), "", "go", "list", "-f", "{{range .GoFiles}}{{$.Dir}}/{{.}}\n{{end}}", "./cmd/...", "./internal/...")
-	if listed.Code != 0 {
-		t.Fatalf("go list failed:\n%s", listed.Output())
-	}
-	var linuxFiles []string
-	for _, line := range strings.Split(listed.Stdout, "\n") {
-		if line = strings.TrimSpace(line); line != "" {
-			rel, err := filepath.Rel(root, line)
-			if err != nil {
-				t.Fatal(err)
-			}
-			linuxFiles = append(linuxFiles, filepath.ToSlash(rel))
-		}
-	}
-	slices.Sort(linuxFiles)
-	if !slices.Contains(linuxFiles, "internal/ci/ci.go") || slices.ContainsFunc(linuxFiles, func(f string) bool { return strings.HasSuffix(f, "_windows.go") }) {
-		t.Fatalf("go list's Linux files are not what this test expects: %v", linuxFiles)
-	}
 	providerArgs := func(base string) []string {
-		return append([]string{"mutation", "run", "--since", base, "--count", "60", "--seed", "4321", "--fail-uncovered=lines", "--json"}, linuxFiles...)
+		return []string{"mutation", "run", "--since", base, "--count", "60", "--seed", "4321", "--fail-uncovered=lines", "--json", "cmd", "internal"}
 	}
 	// The last 24 hours' first-parent base, as git reads it: the newest commit on HEAD's
 	// first-parent line committed a day ago or earlier, else the line's oldest.
@@ -379,10 +356,10 @@ func TestSelftest(t *testing.T) {
 		}
 	})
 
-	// A provider that cannot run (itos-cc's exit 3: not Linux, no Git, a tool missing) fails it
-	// too, never a pass.
+	// A provider that cannot run (itos-cc's exit 82: not Linux or macOS, no Git, a tool missing)
+	// fails it too, never a pass.
 	t.Run("a provider that cannot run blocks a push", func(t *testing.T) {
-		code, a, _ := invocation(t, "3", "ci", "run", from, to, "--json")
+		code, a, _ := invocation(t, "82", "ci", "run", from, to, "--json")
 		if code != 1 || a.FailedAt.Step != expectedPush || len(a.FailedAt.Problems) == 0 || a.FailedAt.Problems[0].Rule != "ci-code-proof" {
 			t.Errorf("a provider that cannot run did not block CI: exit %d, %+v", code, a)
 		}

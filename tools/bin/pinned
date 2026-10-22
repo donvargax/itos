@@ -86,14 +86,14 @@ git-cliff)
 	member=git-cliff-$version/git-cliff
 	;;
 itos-cc)
-	# v0.12.0, 2026-10-11; first release whose strict coverage judges only the changed lines
-	# (--fail-uncovered=lines with --since).
-	version=0.12.0
+	# v0.26.0, 2026-10-22; first release that leaves out a Go file only another system builds
+	# (itos-cc#18). The sums are the release's own, checksums.txt.
+	version=0.26.0
 	case "$platform" in
-	linux-amd64) asset=itos-cc-$version-linux-amd64.tar.gz sum=ade5529ba9b175732c9160f70e4ce8df36a9e198f5cbe7283f70bb809dcaea1c ;;
-	linux-arm64) asset=itos-cc-$version-linux-arm64.tar.gz sum=a6e20c55f7428cf379b0383f6bd5ffdd32bd4ec63f2c21fdc202dfffc9a2999e ;;
-	darwin-amd64) asset=itos-cc-$version-darwin-amd64.tar.gz sum=6457c87a04850b3cc5035c7b2122bb3fa2f402188e7109e4cd370ebbb08054fa ;;
-	darwin-arm64) asset=itos-cc-$version-darwin-arm64.tar.gz sum=83847010c04494d5c109904e98e6edaa50fc6af683e632928bc5011240545de9 ;;
+	linux-amd64) asset=itos-cc-$version-linux-amd64.tar.gz sum=26c84b35dc41526557b7f17dd9350018d90bb8319e8a393dc99bbbbd7138e85b ;;
+	linux-arm64) asset=itos-cc-$version-linux-arm64.tar.gz sum=16e8c6faf35898e7509d84316921c02bb08d39d0b4d968c4f2e42b89d4a43815 ;;
+	darwin-amd64) asset=itos-cc-$version-darwin-amd64.tar.gz sum=82964bc2a1b8a42290ce286cf026e9ff3709fe8893e19cbd89e4e2c6be48604e ;;
+	darwin-arm64) asset=itos-cc-$version-darwin-arm64.tar.gz sum=07e9d94d5161a42a970ad06a988997cd27928d3e277f10e19d01cd9cdfe4692c ;;
 	*) die "no pinned $tool for $platform" ;;
 	esac
 	url=https://github.com/donvargax/itos-cc/releases/download/v$version/$asset

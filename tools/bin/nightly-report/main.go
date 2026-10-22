@@ -13,9 +13,11 @@
 //     GitHub echoes into the log never start with;
 //   - each failed step of the plan, from itos ci run's "CI failed at" and "also failed at" lines,
 //     with its exit code; for one that runs itos-cc mutation run, each site the --json report it
-//     printed names with rule mutation.survived or mutation.uncovered, and its count.interrupted
-//     when present. The report is read from the step's own output, the lines between its "$ "
-//     line and the next step's, with any failure line itos interleaved into it left out;
+//     printed names with rule mutation.survived or mutation.uncovered, and, when it names the rule
+//     interrupted, where its sampling says it stopped (its keys alone, never a problem's message,
+//     which itos-cc's contract leaves out). The report is read from the step's own output, the
+//     lines between its "$ " line and the next step's, with any failure line itos interleaved into
+//     it left out;
 //   - when the runner shut down or the operation was cancelled, the last step that started
 //     (the plan's, else the job's), that the steps after it did not run, and, for a mutation
 //     step, the sites its report names, as it prints one when interrupted.
@@ -171,10 +173,11 @@ type failure struct {
 }
 
 // sites is what an itos-cc mutation run's report names: its survived and uncovered sites, and
-// why the run was interrupted when it was.
+// whether the run was interrupted, with where it stopped when its sampling says.
 type sites struct {
 	found       []site
-	interrupted string
+	interrupted bool
+	stop        string
 	unread      bool // no report in the step's output, or one that is not JSON
 }
 
@@ -187,7 +190,6 @@ type site struct {
 	Original    string `json:"original"`
 	Replacement string `json:"replacement"`
 	Function    string `json:"function"`
-	Message     string `json:"message"`
 }
 
 // stepAt is a plan step's "$ " line: the first line of its command, and where it is.
@@ -349,6 +351,9 @@ func report(lines []string, skip map[int]bool, s stepAt, end int) *sites {
 	}
 	var r struct {
 		Problems []site `json:"problems"`
+		Sampling struct {
+			Stop string `json:"stop"`
+		} `json:"sampling"`
 	}
 	if start < 0 || json.Unmarshal([]byte(strings.Join(body, "\n")), &r) != nil {
 		return &sites{unread: true}
@@ -358,8 +363,8 @@ func report(lines []string, skip map[int]bool, s stepAt, end int) *sites {
 		switch p.Rule {
 		case "mutation.survived", "mutation.uncovered":
 			out.found = append(out.found, p)
-		case "count.interrupted":
-			out.interrupted = p.Message
+		case "interrupted":
+			out.interrupted, out.stop = true, r.Sampling.Stop
 		}
 	}
 	return out
@@ -424,10 +429,13 @@ func (s *sites) render(b *strings.Builder, indent string) {
 		fmt.Fprintf(b, "%s- %s %s:%d:%d %s → %s in %s\n", indent, strings.TrimPrefix(p.Rule, "mutation."),
 			p.File, p.Line, p.Column, code(p.Original, false), replacement, code(short(p.Function), false))
 	}
-	if s.interrupted != "" {
-		fmt.Fprintf(b, "%s- count.interrupted: %s\n", indent, s.interrupted)
+	switch {
+	case s.interrupted && s.stop != "":
+		fmt.Fprintf(b, "%s- interrupted: %s\n", indent, s.stop)
+	case s.interrupted:
+		b.WriteString(indent + "- interrupted\n")
 	}
-	if len(s.found) == 0 && s.interrupted == "" {
+	if len(s.found) == 0 && !s.interrupted {
 		b.WriteString(indent + "- Its itos-cc report names no survived or uncovered site.\n")
 	}
 }

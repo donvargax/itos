@@ -451,13 +451,11 @@ ci:
       # base, and never runs past the job's time. With no green nightly in reach (none, gh failing,
       # or its commit not in HEAD's history) it says so and judges the last 24 hours' first-parent
       # range instead, never every function. A survivor or an uncovered changed line fails the
-      # night. Linux only, as the job is (T-161). Its paths are the Go files of cmd and internal a
-      # Linux build compiles (nightly-base -linux-files), not the folders: Linux cannot measure code
-      # only another OS builds (itos-cc#18), so a change to a _windows.go file would keep every
-      # night red and the base, which moves only on a green night, would never move (the user,
-      # 2026-10-12). The narrowing goes when an itos-cc release fixes itos-cc#18.
+      # night. Linux only, as the job is (T-161). A Go file only another OS builds, such as a
+      # _windows.go file, is left out by itos-cc itself ("not_built" in its report, itos-cc#18) and
+      # fails nothing, so a change to one cannot keep every night red and the base from moving.
       - {
-          run: 'base=$(go run ./tools/bin/nightly-base) && files=$(go run ./tools/bin/nightly-base -linux-files cmd internal) && tools/bin/pinned itos-cc mutation run --since "$base" --count 60 --seed "${GITHUB_RUN_ID:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}" --fail-uncovered=lines --json $files',
+          run: 'base=$(go run ./tools/bin/nightly-base) && tools/bin/pinned itos-cc mutation run --since "$base" --count 60 --seed "${GITHUB_RUN_ID:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}" --fail-uncovered=lines --json cmd internal',
           cost: late,
         }
   wait_on_status: [todo] # a named task nobody has started waits
@@ -524,7 +522,7 @@ proof:
     paths: ["{cmd,internal}/**/*.go"]
     # One mutation site of the range's changed Go functions judged freshly, with no cache (q-41's
     # push budget, q-52), and strict coverage of the lines the range adds or changes (q-57,
-    # itos-cc v0.12.0's =lines): old uncovered code beside a change is not the range's, and a
+    # itos-cc's =lines): old uncovered code beside a change is not the range's, and a
     # change that only deletes judges no coverage. A range with no site is not applicable and
     # passes. Linux only, as CI's ci job is. --seed {base} draws the site by the range's start, not
     # HEAD (itos-cc's default seed), so the same site leads while the range stands: a repair push

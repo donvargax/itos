@@ -3,8 +3,7 @@
 // success, so every Go function changed since the last green night is judged, strictly covered,
 // until a green night moves the base.
 //
-//	base=$(go run ./tools/bin/nightly-base) && files=$(go run ./tools/bin/nightly-base -linux-files cmd internal) &&
-//	tools/bin/pinned itos-cc mutation run --since "$base" … $files
+//	base=$(go run ./tools/bin/nightly-base) && tools/bin/pinned itos-cc mutation run --since "$base" … cmd internal
 //
 // The run is read with gh (gh run list --workflow nightly.yml --branch main --status success
 // --limit 1), with the token gh has: the nightly's step hands it github.token, whose actions: read
@@ -23,10 +22,10 @@
 // given (relative to the repository's top, the working folder) that a Linux build compiles: the
 // files go/build matches for GOOS=linux, so a _windows.go or _darwin.go file, or one whose build
 // constraint Linux fails, is left out, as are testdata, folders go ignores and nested modules.
-// itos-cc cannot measure code only another OS builds (itos-cc#18), so a change to such a file
-// would leave the changed-sites step red every night and its base, which moves only on a green
-// night, never moving; the step judges these files alone until itos-cc#18 is fixed. It never
-// prints no file, which would let itos-cc judge the whole tree: none found is exit 2.
+// The nightly step no longer needs them, as itos-cc v0.26.0 leaves out a file only another OS
+// builds itself (itos-cc#18); T-191's checks, which replay nightlies run before it, still pass
+// them. It never prints no file, which would let itos-cc judge the whole tree: none found is
+// exit 2.
 //
 // It imports nothing but the standard library, as the other gate programs do, and runs git and gh
 // by name.

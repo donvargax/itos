@@ -48,7 +48,8 @@ func TestBothMutationStepsFailed(t *testing.T) {
 
 // Run 39029889396: the random step failed on survivors, then the runner received a shutdown
 // signal during the changed-sites step, whose report, interrupted, still names what it found, and
-// the steps after it never ran.
+// the steps after it never ran. That report is itos-cc 0.12.0's, whose count.interrupted later
+// releases replaced with interrupted (TestAnInterruptedReport), so it names no interruption.
 func TestTheRunnerShutDownDuringAStep(t *testing.T) {
 	want := "Failed at:\n\n" +
 		"- " + random + ": it exited 1.\n" +
@@ -60,10 +61,35 @@ func TestTheRunnerShutDownDuringAStep(t *testing.T) {
 		"- uncovered internal/message/header.go:138:19 `0` → `1` in `message#gluedAt`\n" +
 		"- survived internal/cli/watch.go:212:14 `0` → `1` in `cli#watchCovered`\n" +
 		"- survived internal/cli/hook.go:383:46 `!` → (deleted) in `cli#stagedRule`\n" +
-		"- count.interrupted: the counted run was interrupted by SIGTERM, so its report is partial: only the judgments it shows are proven\n" +
 		"\nNo failing scenario in its log.\n"
 	if got := read(excerpt(t, "39029889396")).render(); got != want {
 		t.Errorf("the body says:\n%s\nwant:\n%s", got, want)
+	}
+}
+
+// itos-cc 0.26.0's report of a counted run a signal stopped: the rule interrupted, exit 130, and
+// where it stopped in its sampling's stop, which the body gives rather than the problem's message.
+// A report with no stop, as a complete run's, says only that it was interrupted.
+func TestAnInterruptedReport(t *testing.T) {
+	survived := `{"rule": "mutation.survived", "file": "internal/cli/watch.go", "line": 212, "column": 14, "original": "0", "replacement": "1", "function": "github.com/donvargax/itos/v8/internal/cli#watchCovered", "message": "survived", "exit": 1}`
+	interrupted := `{"rule": "interrupted", "message": "interrupted before it finished", "fix": "Run it again and let it finish.", "exit": 130}`
+	for name, c := range map[string]struct{ sampling, want string }{
+		"counted":  {`, "sampling": {"completion": "interrupted", "stop": "interrupted while selected sites were judged"}`, "  - interrupted: interrupted while selected sites were judged\n"},
+		"complete": {"", "  - interrupted\n"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			got := read(log(
+				"", "$ tools/bin/pinned itos-cc mutation run --count 60 --json cmd internal",
+				"{", `  "ok": false,`, `  "problems": [`+survived+", "+interrupted+"]"+c.sampling+",", `  "schema": 1`, "}",
+				"", "CI failed at: tools/bin/pinned itos-cc mutation run --count 60 --json cmd internal (it exited 130)",
+			)).render()
+			want := "Failed at:\n\n- `tools/bin/pinned itos-cc mutation run --count 60 --json cmd internal`: it exited 130.\n" +
+				"  - survived internal/cli/watch.go:212:14 `0` → `1` in `cli#watchCovered`\n" + c.want +
+				"\nNo failing scenario in its log.\n"
+			if got != want {
+				t.Errorf("the body says:\n%s\nwant:\n%s", got, want)
+			}
+		})
 	}
 }
 
