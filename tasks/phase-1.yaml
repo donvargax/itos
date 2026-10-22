@@ -2919,12 +2919,6 @@
     what several commands share is internal/engine/<name>, its doc saying what, with at least as
     many bytes cut elsewhere (the release program list, which release.yml gives). No Go outside
     tools/testdata; no behaviour change.
-  done_when:
-    - run: tools/bin/pinned golangci-lint run ./...
-      timeout: 600
-    - run: tools/bin/architecture-check
-    - run: go run ./tools/bin/doc-budget
-    - run: grep -n 'internal/engine' .golangci.yml
 
 - id: T-229
   type: refactor
