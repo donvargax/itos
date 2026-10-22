@@ -12756,3 +12756,11 @@ items:
     status: done
     depends_on: []
     kind: task
+
+  - id: T-282
+    title: "tests list reads its kind once: Handler.list's unreachable KindOf error goes"
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task

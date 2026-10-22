@@ -4291,3 +4291,17 @@
     returns that error first, so no input reaches it and no test can cover it. Fingerprints returns
     its map alone (an ID pattern that does not compile gives an empty one, ParseFeature reporting
     the error), and the dead branch goes. No behaviour change; slice-166's agent wrote the patch.
+
+- id: T-282
+  type: refactor
+  title: "tests list reads its kind once: Handler.list's unreachable KindOf error goes"
+  why: >
+    slice-154's push (ace2e1ad, CI 39849155938) left internal/slices/tests/handler.go:123 uncovered:
+    Handler.list calls namedtests.KindOf after namedtests.ListTests, which has already called KindOf
+    on the same config and returned its error, so the second call cannot fail and its return never
+    runs. KindOf is called once, right after the config is read and before ListTests, for every
+    listing (the same config.Invalid tests.<kind> is missing error, which
+    TestListRefusesWhatItCannotList covers), and the TSV root is taken from that kind. No behaviour
+    change; slice-154's agent proposed it.
+  done_when:
+    - run: go test ./internal/slices/tests -count=1
