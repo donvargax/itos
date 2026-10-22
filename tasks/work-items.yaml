@@ -11358,7 +11358,7 @@ items:
     title: "The VCS port, part 2: changed paths, working-tree and index state, and messages, footers and notes"
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
 

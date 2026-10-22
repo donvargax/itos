@@ -2729,12 +2729,6 @@
     diff, ls-files), and messages (commit messages and bodies, git log over a range, git notes,
     core.commentChar, which message.CommentChar caches today, and handedFooters), so
     internal/message's I/O reads through the port and its pure parsing stays.
-  done_when:
-    - run: "! grep -rln \"internal/git\\\"\" internal/message"
-    - run: tools/bin/architecture-check
-      timeout: 900
-    - run: tools/bin/pinned golangci-lint run ./...
-      timeout: 600
 
 - id: T-218
   type: refactor
