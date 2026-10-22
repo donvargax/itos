@@ -12733,3 +12733,11 @@ items:
       guard's doc calls it not a fortress, so it is minor. Related: p1-guard-quoted-text,
       p1-guard-follows-cd.
     tags: [guard]
+
+  - id: T-278
+    title: itos-cc-tests prints each scenario's fingerprint as the third column
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task

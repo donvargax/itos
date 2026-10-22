@@ -4246,3 +4246,15 @@
     (gh api repos/donvargax/itos/actions/jobs/<id>/logs; the local gh is older than the nightly's),
     make nightly-report read v0.26.0's report, and render a multi-line command's first line. Each
     part gets a unit or self-test case built from that log. No change to itos.
+
+- id: T-278
+  type: ci
+  title: itos-cc-tests prints each scenario's fingerprint as the third column
+  why: >
+    Slice-166 (#112): tests list --json gives each Gherkin test a fingerprint;
+    tools/bin/itos-cc-tests, the command itos-cc.yaml's mutation.tests.list runs, prints <ID>, a
+    tab, <file>, a tab, <fingerprint> for a test that has one and two columns otherwise, so itos-cc
+    v0.24.0 and later date a listed kill by the scenario alone, not its feature file. The gate half
+    of slice-166, done by its agent in the same push.
+  done_when:
+    - run: go test ./tools/bin/itos-cc-tests -count=1
