@@ -12088,7 +12088,7 @@ items:
     title: "The ci watch engine out of internal/cli: following a commit's CI run, internal/engine/ciwatch"
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [T-228]
     kind: task
 

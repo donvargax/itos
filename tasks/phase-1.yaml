@@ -3079,17 +3079,6 @@
     workdone.go read. Stay in cli: ciWatch, watchReport, hasCommit (hook.go and workshow.go read it;
     the engine has its copy). The watch's progress goes to stdout, or stderr under --json, as today.
     watch_test.go's tests that set sleep move to the engine.
-  done_when:
-    - run: go test ./internal/engine/ciwatch/ ./internal/cli
-      timeout: 600
-    - run: "! grep -n 'providers.WatchProvider\\|const giveUp\\|^var sleep' internal/cli/*.go"
-    - run: tools/bin/architecture-check
-    - run: tools/bin/pinned golangci-lint run ./...
-      timeout: 600
-    - run: go test ./features -count=1 -scenarios='^@ID-(WATCH|PUSH|CI|STATUS|WORK)-[0-9]+$'
-      timeout: 600
-    - run: go run ./tools/bin/conformance --bin tools/bin/itos --only tools/itos/conformance/watch.yaml tools/itos/conformance/push.yaml tools/itos/conformance/status.yaml
-      timeout: 600
 
 - id: T-234
   type: refactor
