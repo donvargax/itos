@@ -122,6 +122,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -148,6 +149,7 @@ type failure struct {
 const self = "previous-release"
 
 func main() {
+	itosgit.Platform = runtime.GOOS
 	os.Exit(run())
 }
 
