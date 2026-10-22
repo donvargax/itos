@@ -12405,3 +12405,11 @@ items:
     status: todo
     depends_on: []
     kind: task
+
+  - id: T-265
+    title: "itos work becomes a slice, part 2: the subcommands that change an item"
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task
