@@ -57,6 +57,7 @@ phases:
 queue:
   - T-241
   - T-242
+  - T-243
   - T-191
   - p1-mutation-results-committed
   - p1-text-from-file
