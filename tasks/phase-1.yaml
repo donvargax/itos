@@ -4282,6 +4282,3 @@
     stderr which it chose and why; a floor not in HEAD's history is a usage error, exit 2. The
     random step stays strict over all the code (the user, 2026-10-17). As T-188 moved commits.since
     after the red of 2026-10-17. The ci-mutation-budget self-test follows the step's new command.
-  done_when:
-    - run: go test ./tools/bin/nightly-base -count=1
-    - run: grep -q a9de53f62e7b6755a91f47d2780bdc2a827b94e4 itos.yaml

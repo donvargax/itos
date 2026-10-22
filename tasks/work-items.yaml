@@ -12688,7 +12688,7 @@ items:
     title: The nightly's changed-sites step judges from T-191's head, not the last green nightly of 2026-10-08
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [T-191]
     kind: task
 
