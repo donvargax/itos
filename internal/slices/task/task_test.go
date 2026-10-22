@@ -129,8 +129,8 @@ func (p *ports) Write(_ context.Context, _ *config.Loaded, files []record.File, 
 }
 
 // line runs the line over p as internal/cli would, with --json and --quiet
-// as given: its exit, error, stdout and stderr.
-func line(t *testing.T, p *ports, json, quiet bool, args ...string) (int, error, string, string) {
+// as given: its exit, stdout, stderr and error.
+func line(t *testing.T, p *ports, json, quiet bool, args ...string) (int, string, string, error) {
 	t.Helper()
 	c, err := Parse(args, json, quiet)
 	if err != nil {
@@ -138,18 +138,18 @@ func line(t *testing.T, p *ports, json, quiet bool, args ...string) (int, error,
 	}
 	var stdout, stderr strings.Builder
 	code, err := c.Run(t.Context(), &stdout, &stderr, NewHandler(p))
-	return code, err, stdout.String(), stderr.String()
+	return code, stdout.String(), stderr.String(), err
 }
 
 // One task runs verbose, its checks' lines on stdout, or under --json on
 // stderr, the table after them.
 func TestRunOneTaskVerbose(t *testing.T) {
 	p := newPorts(t, configText, files)
-	code, err, stdout, stderr := line(t, p, false, false, "T-1")
+	code, stdout, stderr, err := line(t, p, false, false, "T-1")
 	if code != 0 || err != nil || stdout != "\nT-1 Passes\n  $ true\n\ndone     T-1  chore    Passes\n" || stderr != "" {
 		t.Errorf("task T-1: exit %d, %v, stdout %q, stderr %q", code, err, stdout, stderr)
 	}
-	code, err, stdout, stderr = line(t, p, true, false, "T-1")
+	code, stdout, stderr, err = line(t, p, true, false, "T-1")
 	var got struct {
 		Tasks []struct {
 			ID, Type, Title, Status string
@@ -172,21 +172,21 @@ func TestRunOneTaskVerbose(t *testing.T) {
 // item; --pending shows the tasks not done.
 func TestRunSeveralTasks(t *testing.T) {
 	p := newPorts(t, configText, files)
-	code, err, stdout, stderr := line(t, p, false, false, "--pending")
+	code, stdout, stderr, err := line(t, p, false, false, "--pending")
 	want := "\nfailing  T-2  docs     Fails\npending  T-3  chore    Waits\nreview   T-5  chore    In review\nreview   T-6  chore    Later\n"
 	if code != refused || err != nil || stdout != want || stderr != "" {
 		t.Errorf("task --pending: exit %d, %v, stdout %q, stderr %q", code, err, stdout, stderr)
 	}
-	code, err, stdout, _ = line(t, p, false, false, "--group", "01", "--skip", "T-2,T-3")
+	code, stdout, _, err = line(t, p, false, false, "--group", "01", "--skip", "T-2,T-3")
 	want = "\ndone     T-1  chore    Passes\ndone     T-4  chore    Done item\nreview   T-5  chore    In review\n"
 	if code != 0 || err != nil || stdout != want {
 		t.Errorf("task --group 01 --skip T-2,T-3: exit %d, %v, stdout %q", code, err, stdout)
 	}
-	code, err, stdout, _ = line(t, p, false, false, "T-4", "T-6")
+	code, stdout, _, err = line(t, p, false, false, "T-4", "T-6")
 	if want = "\ndone     T-4  chore    Done item\nreview   T-6  chore    Later\n"; code != 0 || err != nil || stdout != want {
 		t.Errorf("task T-4 T-6: exit %d, %v, stdout %q", code, err, stdout)
 	}
-	code, err, stdout, _ = line(t, p, true, false, "T-2", "T-5")
+	code, stdout, _, err = line(t, p, true, false, "T-2", "T-5")
 	var got struct {
 		Tasks []struct {
 			ID, Status string
@@ -209,7 +209,7 @@ func TestRunAGroupByName(t *testing.T) {
 	text := strings.Replace(configText, "group: { numeric: true }", "group: { pattern: \"[a-z]+\" }", 1)
 	p := newPorts(t, text, map[string]string{"tasks/phase-one.yaml": "- { id: T-1, type: chore, title: One }\n",
 		"tasks/phase-two.yaml": "- { id: T-2, type: chore, title: Two }\n"})
-	code, err, stdout, _ := line(t, p, false, false, "--phase", "two")
+	code, stdout, _, err := line(t, p, false, false, "--phase", "two")
 	if code != 0 || err != nil || stdout != "\nreview   T-2  chore    Two\n" {
 		t.Errorf("task --phase two: exit %d, %v, stdout %q", code, err, stdout)
 	}
@@ -219,18 +219,18 @@ func TestRunAGroupByName(t *testing.T) {
 // usage line, naming the label's own flag beside --group, exit 2.
 func TestRunNamesWhatItCannotRun(t *testing.T) {
 	p := newPorts(t, configText, files)
-	code, err, stdout, stderr := line(t, p, false, false, "T-1", "T-8", "--skip", "T-9", "T-10")
+	code, stdout, stderr, err := line(t, p, false, false, "T-1", "T-8", "--skip", "T-9", "T-10")
 	if code != refused || err != nil || stdout != "" || stderr != "No task T-8 in tasks/\nNo task T-10 in tasks/\n" {
 		t.Errorf("task T-1 T-8 T-10: exit %d, %v, stdout %q, stderr %q", code, err, stdout, stderr)
 	}
-	code, err, stdout, stderr = line(t, p, false, false, "--skip", "T-1", "T-1")
+	code, stdout, stderr, err = line(t, p, false, false, "--skip", "T-1", "T-1")
 	if code != unmatched || err != nil || stdout != "" ||
 		stderr != "No matching tasks. Usage: itos task <id>… | --group|--phase <g> [--skip <ids>] | --pending\n" {
 		t.Errorf("task --skip T-1 T-1: exit %d, %v, stdout %q, stderr %q", code, err, stdout, stderr)
 	}
 	text := strings.Replace(configText, "group: { numeric: true }", "group: { label: group }", 1)
 	p = newPorts(t, text, files)
-	if code, _, _, stderr = line(t, p, false, false); code != unmatched ||
+	if code, _, stderr, _ = line(t, p, false, false); code != unmatched ||
 		stderr != "No matching tasks. Usage: itos task <id>… | --group <g> [--skip <ids>] | --pending\n" {
 		t.Errorf("task under the label group: exit %d, stderr %q", code, stderr)
 	}
@@ -241,19 +241,19 @@ func TestRunNamesWhatItCannotRun(t *testing.T) {
 func TestRunErrors(t *testing.T) {
 	p := newPorts(t, configText, files)
 	p.cfgErr = errors.New("no config")
-	if code, err, _, _ := line(t, p, false, false, "T-1"); code != 0 || err != p.cfgErr {
+	if code, _, _, err := line(t, p, false, false, "T-1"); code != 0 || err != p.cfgErr {
 		t.Errorf("no config: exit %d, %v", code, err)
 	}
 	p = newPorts(t, "version: 1\n", files)
-	if _, err, _, _ := line(t, p, false, false, "T-1"); err == nil || !strings.Contains(err.Error(), "ledger") {
+	if _, _, _, err := line(t, p, false, false, "T-1"); err == nil || !strings.Contains(err.Error(), "ledger") {
 		t.Errorf("no ledger: %v", err)
 	}
 	p = newPorts(t, configText, map[string]string{})
-	if _, err, _, _ := line(t, p, false, false, "T-1"); err == nil || !strings.Contains(err.Error(), "tasks") {
+	if _, _, _, err := line(t, p, false, false, "T-1"); err == nil || !strings.Contains(err.Error(), "tasks") {
 		t.Errorf("no ledger folder: %v", err)
 	}
 	p = newPorts(t, configText, with(map[string]string{"tasks/phase-2.yaml": "- { id: T-6, type: chore, title: Bad, done_when: 3 }\n"}))
-	if _, err, stdout, _ := line(t, p, false, false, "T-1", "T-6"); err == nil || !strings.Contains(err.Error(), "done_when is not a list") || stdout != "" {
+	if _, stdout, _, err := line(t, p, false, false, "T-1", "T-6"); err == nil || !strings.Contains(err.Error(), "done_when is not a list") || stdout != "" {
 		t.Errorf("a task whose checks cannot run: %v, stdout %q", err, stdout)
 	}
 }
@@ -262,13 +262,13 @@ func TestRunErrors(t *testing.T) {
 // --group, and says when there is no registry.
 func TestList(t *testing.T) {
 	p := newPorts(t, configText, files)
-	code, err, stdout, stderr := line(t, p, false, false, "list")
+	code, stdout, stderr, err := line(t, p, false, false, "list")
 	want := "no item  T-1  1   chore    Passes\nno item  T-2  1   docs     Fails\nno item  T-3  1   chore    Waits\n" +
 		"done     T-4  1   chore    Done item\ndoing    T-5  1   chore    In review\nno item  T-6  2   chore    Later\n"
 	if code != 0 || err != nil || stdout != want || stderr != "" {
 		t.Errorf("task list: exit %d, %v, stdout %q, stderr %q", code, err, stdout, stderr)
 	}
-	code, err, stdout, _ = line(t, p, true, false, "list", "--group", "1")
+	code, stdout, _, err = line(t, p, true, false, "list", "--group", "1")
 	var got struct {
 		Tasks []struct {
 			ID     string
@@ -281,17 +281,17 @@ func TestList(t *testing.T) {
 		t.Errorf("--json task list --group 1: exit %d, %v, stdout %q", code, err, stdout)
 	}
 	p = newPorts(t, configText, with(map[string]string{"tasks/work-items.yaml": ""}))
-	code, err, stdout, stderr = line(t, p, false, false, "list", "--group", "2")
+	code, stdout, stderr, err = line(t, p, false, false, "list", "--group", "2")
 	if code != 0 || err != nil || stdout != "no item  T-6  2   chore    Later\n" ||
 		stderr != "No work registry at tasks/work-items.yaml, so no task has an item.\n" {
 		t.Errorf("task list with no registry: exit %d, %v, stdout %q, stderr %q", code, err, stdout, stderr)
 	}
 	p.cfgErr = errors.New("no config")
-	if _, err, _, _ := line(t, p, false, false, "list"); err != p.cfgErr {
+	if _, _, _, err := line(t, p, false, false, "list"); err != p.cfgErr {
 		t.Errorf("no config: %v", err)
 	}
 	p = newPorts(t, configText, map[string]string{})
-	if _, err, stdout, _ := line(t, p, false, false, "list"); err == nil || stdout != "" {
+	if _, stdout, _, err := line(t, p, false, false, "list"); err == nil || stdout != "" {
 		t.Errorf("no ledger folder: %v, stdout %q", err, stdout)
 	}
 }
@@ -299,22 +299,22 @@ func TestList(t *testing.T) {
 // task next-id is one past the ledger's and the registry's ids.
 func TestNextID(t *testing.T) {
 	p := newPorts(t, configText, with(map[string]string{"tasks/work-items.yaml": "phases: { 1: null }\nitems:\n  - { id: T-9, title: Nine, phase: 1, owner: null, status: todo, depends_on: [] }\n"}))
-	if code, err, stdout, _ := line(t, p, false, false, "next-id"); code != 0 || err != nil || stdout != "T-10\n" {
+	if code, stdout, _, err := line(t, p, false, false, "next-id"); code != 0 || err != nil || stdout != "T-10\n" {
 		t.Errorf("task next-id: exit %d, %v, stdout %q", code, err, stdout)
 	}
-	if code, err, stdout, _ := line(t, p, true, false, "next-id"); code != 0 || err != nil || !strings.Contains(stdout, `"id": "T-10"`) {
+	if code, stdout, _, err := line(t, p, true, false, "next-id"); code != 0 || err != nil || !strings.Contains(stdout, `"id": "T-10"`) {
 		t.Errorf("--json task next-id: exit %d, %v, stdout %q", code, err, stdout)
 	}
 	p.cfgErr = errors.New("no config")
-	if _, err, _, _ := line(t, p, false, false, "next-id"); err != p.cfgErr {
+	if _, _, _, err := line(t, p, false, false, "next-id"); err != p.cfgErr {
 		t.Errorf("no config: %v", err)
 	}
 	p = newPorts(t, configText, with(map[string]string{"tasks/work-items.yaml": "items: [\n"}))
-	if _, err, stdout, _ := line(t, p, false, false, "next-id"); err == nil || stdout != "" {
+	if _, stdout, _, err := line(t, p, false, false, "next-id"); err == nil || stdout != "" {
 		t.Errorf("a registry that is no YAML: %v, stdout %q", err, stdout)
 	}
 	p = newPorts(t, configText, map[string]string{})
-	if _, err, stdout, _ := line(t, p, false, false, "next-id"); err == nil || stdout != "" {
+	if _, stdout, _, err := line(t, p, false, false, "next-id"); err == nil || stdout != "" {
 		t.Errorf("no ledger folder: %v, stdout %q", err, stdout)
 	}
 }
@@ -327,7 +327,7 @@ var addLine = []string{"add", "--group", "1", "--type", "chore", "--title", "New
 // the item and the commit.
 func TestAdd(t *testing.T) {
 	p := newPorts(t, configText, files)
-	code, err, stdout, stderr := line(t, p, false, false, addLine...)
+	code, stdout, stderr, err := line(t, p, false, false, addLine...)
 	if code != 0 || err != nil || stderr != "" ||
 		stdout != "T-7 is a new task in tasks/phase-1.yaml, and an item in tasks/work-items.yaml: committed 0123456 docs: add T-7\n" {
 		t.Errorf("task add: exit %d, %v, stdout %q, stderr %q", code, err, stdout, stderr)
@@ -344,20 +344,20 @@ func TestAdd(t *testing.T) {
 	p.sha = ""
 	added := slices.Clone(addLine)
 	added[2] = "2"
-	code, err, stdout, _ = line(t, p, false, false, added...)
+	code, stdout, _, err = line(t, p, false, false, added...)
 	if code != 0 || err != nil ||
 		stdout != "T-7 is a new task in tasks/phase-2.yaml, and an item in tasks/work-items.yaml: the ledger and the registry are the stealth config's, so nothing is committed\n" {
 		t.Errorf("task add in group 2 under a stealth config: exit %d, %v, stdout %q", code, err, stdout)
 	}
 	p = newPorts(t, configText, with(map[string]string{"tasks/phase-2.yaml": ""}))
-	code, err, stdout, _ = line(t, p, false, false, added...)
+	code, stdout, _, err = line(t, p, false, false, added...)
 	if code != 0 || err != nil || !strings.HasPrefix(stdout, "T-7 is a new task in a new tasks/phase-2.yaml, ") || !p.written[0].Created {
 		t.Errorf("task add in a new group: exit %d, %v, stdout %q, wrote %+v", code, err, stdout, p.written)
 	}
 	for _, sha := range []string{"0123456789abcdef", ""} {
 		p = newPorts(t, configText, files)
 		p.sha = sha
-		code, err, stdout, _ = line(t, p, true, true, addLine...)
+		code, stdout, _, err = line(t, p, true, true, addLine...)
 		var got struct {
 			OK     bool
 			Task   map[string]any
@@ -375,7 +375,7 @@ func TestAdd(t *testing.T) {
 		}
 	}
 	p = newPorts(t, configText, files)
-	if code, err, stdout, stderr = line(t, p, false, true, addLine...); code != 0 || err != nil || stdout != "" || stderr != "" || p.written == nil {
+	if code, stdout, stderr, err = line(t, p, false, true, addLine...); code != 0 || err != nil || stdout != "" || stderr != "" || p.written == nil {
 		t.Errorf("--quiet task add: exit %d, %v, stdout %q, stderr %q", code, err, stdout, stderr)
 	}
 }
@@ -385,12 +385,12 @@ func TestAdd(t *testing.T) {
 func TestAddRefusals(t *testing.T) {
 	text := configText + "commits: { types: [docs] }\n"
 	p := newPorts(t, text, files)
-	code, err, stdout, stderr := line(t, p, false, false, addLine...)
+	code, stdout, stderr, err := line(t, p, false, false, addLine...)
 	if code != refused || err != nil || stdout != "" || !strings.Contains(stderr, "chore is not a commit type") ||
 		!strings.Contains(stderr, "\n  fix: ") || p.written != nil || p.released != 1 {
 		t.Errorf("a type commits.types does not list: exit %d, %v, stdout %q, stderr %q", code, err, stdout, stderr)
 	}
-	code, err, stdout, stderr = line(t, p, true, false, addLine...)
+	code, stdout, stderr, err = line(t, p, true, false, addLine...)
 	var got struct {
 		OK       bool
 		Problems []struct{ Rule, Message, Fix string }
@@ -402,7 +402,7 @@ func TestAddRefusals(t *testing.T) {
 	p = newPorts(t, configText, files)
 	added := slices.Clone(addLine)
 	added[2] = "4"
-	code, err, stdout, stderr = line(t, p, false, false, added...)
+	code, stdout, stderr, err = line(t, p, false, false, added...)
 	if code != refused || err != nil || stdout != "" || !strings.Contains(stderr, "is not listed") || p.written != nil {
 		t.Errorf("a group the registry does not list: exit %d, %v, stdout %q, stderr %q", code, err, stdout, stderr)
 	}
@@ -415,44 +415,44 @@ func TestAddRefusals(t *testing.T) {
 func TestAddErrors(t *testing.T) {
 	p := newPorts(t, configText, files)
 	p.cfgErr = errors.New("no config")
-	if code, err, _, _ := line(t, p, false, false, addLine...); code != 0 || err != p.cfgErr || p.released != 0 {
+	if code, _, _, err := line(t, p, false, false, addLine...); code != 0 || err != p.cfgErr || p.released != 0 {
 		t.Errorf("no config: exit %d, %v, released %d", code, err, p.released)
 	}
 	p = newPorts(t, configText, files)
-	if _, err, _, _ := line(t, p, false, false, append(slices.Clone(addLine), "T-7")...); err == nil || err.Error() != "task add mints the task id; do not pass one" || p.released != 0 {
+	if _, _, _, err := line(t, p, false, false, append(slices.Clone(addLine), "T-7")...); err == nil || err.Error() != "task add mints the task id; do not pass one" || p.released != 0 {
 		t.Errorf("an id given: %v, released %d", err, p.released)
 	}
 	p.soundCode = refused
-	if code, err, stdout, _ := line(t, p, false, false, addLine...); code != refused || err != nil || stdout != "" || p.released != 1 || p.registered != nil {
+	if code, stdout, _, err := line(t, p, false, false, addLine...); code != refused || err != nil || stdout != "" || p.released != 1 || p.registered != nil {
 		t.Errorf("a registry not sound: exit %d, %v, stdout %q, released %d", code, err, stdout, p.released)
 	}
 	p = newPorts(t, configText, files)
 	p.soundErr = errors.New("no lock")
-	if code, err, _, _ := line(t, p, false, false, addLine...); code != 0 || err != p.soundErr || p.released != 1 {
+	if code, _, _, err := line(t, p, false, false, addLine...); code != 0 || err != p.soundErr || p.released != 1 {
 		t.Errorf("Sound failing: exit %d, %v, released %d", code, err, p.released)
 	}
 	p = newPorts(t, configText, files)
 	p.idErr = errors.New("no counter")
-	if _, err, _, _ := line(t, p, false, false, addLine...); err != p.idErr || p.released != 1 || p.written != nil {
+	if _, _, _, err := line(t, p, false, false, addLine...); err != p.idErr || p.released != 1 || p.written != nil {
 		t.Errorf("no id: %v, released %d", err, p.released)
 	}
 	p = newPorts(t, configText, with(map[string]string{"tasks/phase-1.yaml": "[{ id: T-1, type: chore, title: Flow }]\n"}))
-	if _, err, _, _ := line(t, p, false, false, addLine...); err == nil || !strings.Contains(err.Error(), "cannot be edited in place") || p.written != nil {
+	if _, _, _, err := line(t, p, false, false, addLine...); err == nil || !strings.Contains(err.Error(), "cannot be edited in place") || p.written != nil {
 		t.Errorf("a ledger file not edited in place: %v", err)
 	}
 	p = newPorts(t, configText, with(map[string]string{"tasks/work-items.yaml": "{ phases: { 1: null }, items: [] }\n"}))
-	_, err, _, _ := line(t, p, false, false, addLine...)
+	_, _, _, err := line(t, p, false, false, addLine...)
 	if err == nil || !strings.HasPrefix(err.Error(), "tasks/work-items.yaml cannot be edited in place: ") || kind.Of(err) != kind.Usage || p.written != nil {
 		t.Errorf("a registry not edited in place: %v", err)
 	}
 	p = newPorts(t, configText, files)
 	p.writeCode = refused
-	if code, err, stdout, _ := line(t, p, false, false, addLine...); code != refused || err != nil || stdout != "" || p.released != 1 {
+	if code, stdout, _, err := line(t, p, false, false, addLine...); code != refused || err != nil || stdout != "" || p.released != 1 {
 		t.Errorf("a write refused: exit %d, %v, stdout %q", code, err, stdout)
 	}
 	p = newPorts(t, configText, files)
 	p.writeErr = errors.New("no git")
-	if code, err, stdout, _ := line(t, p, false, false, addLine...); code != 0 || err != p.writeErr || stdout != "" || p.released != 1 {
+	if code, stdout, _, err := line(t, p, false, false, addLine...); code != 0 || err != p.writeErr || stdout != "" || p.released != 1 {
 		t.Errorf("a write failing: exit %d, %v, stdout %q", code, err, stdout)
 	}
 }
