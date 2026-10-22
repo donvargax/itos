@@ -4282,3 +4282,16 @@
     stderr which it chose and why; a floor not in HEAD's history is a usage error, exit 2. The
     random step stays strict over all the code (the user, 2026-10-17). As T-188 moved commits.since
     after the red of 2026-10-17. The ci-mutation-budget self-test follows the step's new command.
+
+- id: T-281
+  type: refactor
+  title: "Fingerprints returns no error: gherkinList's unreachable error path goes"
+  why: >
+    slice-166's push (e691e8be, CI 39842691871) left internal/tests/gherkin.go:163 uncovered:
+    gherkinList's return after Fingerprints(texts[file], o) fails only when the kind's ID pattern
+    does not compile, and ParseFeature, run just before on the same Options through o.idTag(),
+    returns that error first, so no input reaches it and no test can cover it. Fingerprints returns
+    its map alone (an ID pattern that does not compile gives an empty one, ParseFeature reporting
+    the error), and the dead branch goes. No behaviour change; slice-166's agent wrote the patch.
+  done_when:
+    - run: go test ./internal/tests -count=1

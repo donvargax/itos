@@ -12771,3 +12771,11 @@ items:
       tag sits on its second tag line splits differently), and such a scenario is then listed
       without a fingerprint. Reading IDs, wip and blocks from the Gherkin AST too would leave one
       reader of a feature file; the moves rule's block comparison would need its own design.
+
+  - id: T-281
+    title: "Fingerprints returns no error: gherkinList's unreachable error path goes"
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task
