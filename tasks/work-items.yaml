@@ -11542,7 +11542,7 @@ items:
     kind: task
 
   - id: T-222
-    title: Prose under other JSON keys is pinned by presence, not word for word
+    title: No corpus case pins prose under a JSON key, not even its presence
     phase: 1
     owner: null
     status: todo
