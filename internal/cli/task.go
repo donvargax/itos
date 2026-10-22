@@ -65,18 +65,11 @@ func judgeTask(task ledger.Task, runner *check.Runner, statuses work.Statuses) (
 	return statusDone, results
 }
 
-// groupNames are the flags that name a group whatever the config's label.
-var groupNames = []string{"--group", "--phase"}
+// groupNames is ledger.GroupNames.
+var groupNames = ledger.GroupNames
 
-// groupFlags are the flags that name a group: groupNames and the label's
-// own (ledger.group.label), all the same.
-func groupFlags(cfg *config.Loaded) []string {
-	flags := slices.Clone(groupNames)
-	if own := "--" + cfg.Ledger.Group.Label; !slices.Contains(flags, own) {
-		flags = append(flags, own)
-	}
-	return flags
-}
+// groupFlags is ledger.GroupFlags.
+func groupFlags(cfg *config.Loaded) []string { return ledger.GroupFlags(cfg) }
 
 // groupFlag is the group the first of the group flags names, in their order
 // rather than the command line's, and whether one does.

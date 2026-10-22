@@ -3,7 +3,9 @@
 // wrong with them (Issues, Findings), and the tasks and checks typed
 // (Tasks). A group is called by ledger.group.label (phase by default) in
 // what the tools print; the rule IDs and the registry's item key phase keep
-// their names whatever the label.
+// their names whatever the label. GroupFlags are the flags that name a
+// group on a command line: GroupNames, --group and --phase, and the
+// label's own.
 //
 // Files lists the ledger's files by name, numeric groups by number (phase-2
 // before phase-10, slice 130). LayoutProblems are the layouts that read
