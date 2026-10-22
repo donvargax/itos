@@ -43,6 +43,19 @@ func TestShimName(t *testing.T) {
 	}
 }
 
+// Uninstalling where there is no shim removes nothing, naming the link by
+// Out's OS.
+func TestUninstallShimWithNoneThere(t *testing.T) {
+	dir := t.TempDir()
+	for goos, name := range map[string]string{"linux": "git", "windows": "git.exe"} {
+		var stdout strings.Builder
+		code, err := uninstallShim(dir, Out{Stdout: &stdout, OS: goos})
+		if want := "No git shim at " + filepath.Join(dir, name) + ": nothing to remove.\n"; code != 0 || err != nil || stdout.String() != want {
+			t.Errorf("on %s: exit %d, %v, %q", goos, code, err, stdout.String())
+		}
+	}
+}
+
 // A symbolic link that cannot be made is the error, except on windows, where
 // a hard link is made in its place: here, where the link is already there,
 // that fails too, with its own error.
