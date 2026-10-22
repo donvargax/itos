@@ -12727,8 +12727,8 @@ items:
   - id: T-278
     title: itos-cc-tests prints each scenario's fingerprint as the third column
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
 
