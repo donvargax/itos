@@ -11992,3 +11992,18 @@ items:
     status: todo
     depends_on: [T-226]
     kind: task
+
+  - id: p1-tracker-transact-makes-folders
+    title: The tracker's Transact makes the folders of the documents it creates
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      itos decision record makes the records folder itself (madeDirs in internal/cli/ask.go, os.Stat
+      and os.MkdirAll) before writeCommitted, and removes it when the commit fails (unmake), outside
+      the tracker store. Once decision is a slice (step 9 of docs/plans/slices-and-ports.md) it
+      reaches the disk only through the tracker port, so Transact should make the folders above a
+      created document and remove those it made when it puts the documents back, with a contract
+      case, and ask.go should drop madeDirs and unmake. Found during T-226.
