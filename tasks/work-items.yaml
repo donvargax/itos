@@ -65,6 +65,7 @@ queue:
   - T-251
   - T-253
   - T-258
+  - T-248
   - T-191
   - p1-mutation-results-committed
   - p1-text-from-file
