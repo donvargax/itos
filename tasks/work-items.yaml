@@ -11953,3 +11953,17 @@ items:
       superseded run. Related: #108, #107, p1-parallel-pilot.
     refs: [internal/providers]
     tags: [push, ci]
+
+  - id: bug-119
+    title: A git that fails as itos reserves an ID exits 70 again, as v8.5.2 does, not 3
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: bug
+    why: >
+      T-218 (dbb395f7, a refactor, unreleased) made it the locate's missing-environment error, exit
+      3; v8.5.2 exits 70, an error nobody classified. The user (2026-10-21): restore the exit code.
+      The new wording stays (prose is no contract, ADR-0052).
+    refs: [internal/idcounter, internal/cli, features/ids.feature]
+    tags: [work]
