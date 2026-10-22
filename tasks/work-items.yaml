@@ -12500,8 +12500,8 @@ items:
   - id: T-269
     title: The pre-push hook runs staticcheck when Go changed, as it runs golangci-lint
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
     refs: [itos.yaml, tools/bin/pre-commit]
