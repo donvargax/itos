@@ -11411,3 +11411,19 @@ items:
       risks; a closed item that mitigates a risk prompts updating it. Committed beside the registry,
       as it is shared.
     tags: [work]
+
+  - id: p1-session-artifacts
+    title: A session records the scripts and outputs it produced, with their paths, so the next session can find them
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The user, 2026-10-21: sessions leave scratch scripts, reports and downloaded logs (this
+      session: nightly logs, the inventories, helper scripts) whose paths live only in the
+      transcript. itos artifact add <path> --note records a path with what it is, its session and
+      date, privately in the git common dir; itos artifact lists them; handoff (p1-session-handoff)
+      includes them; an artifact whose path is gone is marked so. Copying into .git/itos is
+      optional, for paths in a scratch folder the OS may clear.
+    tags: [status]
