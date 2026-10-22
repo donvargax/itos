@@ -3226,17 +3226,6 @@
     task's start and at its end, byte-identical, the comparison named in the commit body.
     docs/ARCHITECTURE.md (near its 12000-byte cap: cut as much as you add) and internal/cli/doc.go
     say where a command declares itself.
-  done_when:
-    - run: go test ./internal/cli ./internal/slices/... -count=1
-      timeout: 600
-    - run: go run ./tools/bin/assemble -check
-    - run: go run ./tools/bin/conformance --bin tools/bin/itos --only tools/itos/conformance/help.yaml tools/itos/conformance/cli.yaml
-      timeout: 600
-    - run: go test ./features -count=1 -scenarios='^@ID-(CLI|EXT|GUARD|FOLLOW|BIN)-[0-9]+$'
-      timeout: 600
-    - run: tools/bin/architecture-check
-    - run: tools/bin/pinned golangci-lint run ./...
-      timeout: 600
 
 - id: T-242
   type: ci

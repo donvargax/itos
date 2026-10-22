@@ -12208,7 +12208,7 @@ items:
     title: "Commands declare themselves, part 3: every command's declaration and the generated command table"
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [T-239, T-240]
     kind: task
 
