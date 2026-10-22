@@ -54,6 +54,17 @@ type ports struct {
 	oldGit  bool
 	ran     []string
 	run     func(command string, o shell.Options) shell.Result
+	shows   int
+}
+
+// Show is the repository's, refused once shows, when set, runs out.
+func (p *ports) Show(ctx context.Context, rev string) (vcsport.Entry, error) {
+	if p.shows > 0 {
+		if p.shows--; p.shows == 0 {
+			return vcsport.Entry{}, errors.New("show refused")
+		}
+	}
+	return p.VCS.Show(ctx, rev)
 }
 
 func (p *ports) Trees(context.Context) treeport.Trees { return p.trees }
@@ -563,6 +574,21 @@ func TestCommitMsgStealth(t *testing.T) {
 	p.VCS.History[0].Tree = project
 	if code, _, stderr, err := hook(t, p, "commit-msg", "msg"); code != 0 || err != nil {
 		t.Errorf("an amend with no note: exit %d, %v\n%s", code, err, stderr)
+	}
+	p.shows = 2
+	if _, _, _, err := hook(t, p, "commit-msg", "msg"); err == nil || err.Error() != "show refused" {
+		t.Errorf("a note the lint cannot read: %v", err)
+	}
+}
+
+// A moves check whose code glob cannot be read stops the hook.
+func TestCommitMsgMovesError(t *testing.T) {
+	text := rules + "tests:\n  scenario:\n    root: features\n    id: \"ID-[A-Z]+-\\\\d+\"\n" +
+		"    range_checks: [{ name: moves, builtin: moves, code: [\"?a\"] }]\n"
+	index := with(project, map[string]string{"b.md": "b\n"})
+	p := over(t, world{head: project, index: index, work: with(index, map[string]string{"msg": "docs: b\n"}), text: text})
+	if _, _, _, err := hook(t, p, "commit-msg", "msg"); err == nil || !strings.Contains(err.Error(), "Nothing to repeat") {
+		t.Errorf("a moves glob that cannot be read: %v", err)
 	}
 }
 
