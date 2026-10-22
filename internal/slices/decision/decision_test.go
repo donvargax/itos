@@ -573,8 +573,11 @@ func TestRecordNone(t *testing.T) {
 // item and the options, updates the index, and commits the four files
 // together; --supersedes sets the old record's status.
 func TestRecord(t *testing.T) {
-	old := decisions + "/0001-old.md"
-	p, tracker := over(t, map[string]string{old: oldRecord}, map[string]string{
+	// The working tree's files are slash-separated; the tracker's fake keys a
+	// document by the name it is given, the record's path as the command
+	// joins it (filepath.Join).
+	old := filepath.Join(decisions, "0001-old.md")
+	p, tracker := over(t, map[string]string{decisions + "/0001-old.md": oldRecord}, map[string]string{
 		asks: questions("id: q-1\nquestion: \"Which\n  way?\"\nitem: p1-a\nanswer: \"Left.\""),
 		old:  oldRecord,
 	})
