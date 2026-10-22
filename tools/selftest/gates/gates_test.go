@@ -239,17 +239,20 @@ func TestSelftest(t *testing.T) {
 		}
 	})
 
-	// What the hooks leave out, CI's steps catch. A refactor that changes what verify prints, in
+	// What the hooks leave out, CI's steps catch. A refactor that changes what itos prints, in
 	// a Go package whose unit tests do not read that line, passes both hooks, pre-push's commit
-	// rules too, since it carries its task footer...
+	// rules too, since it carries its task footer... The line is the registry's unknown status
+	// problem, internal/work's: no unit test of internal/work or of a package importing it reads
+	// "unknown status", and @ID-CDATA-01, in the smoke set, does. internal/work is the registry's
+	// domain package, which the move of the commands into internal/slices leaves in place (T-268).
 	reset(base)
-	repo.Edit("internal/cli/verify.go", "commits pass the commit rules", "commits pass")
+	repo.Edit("internal/work/registry.go", "unknown status", "status")
 	var refactor string
 	t.Run("the hooks let through a refactor that changes what itos prints", func(t *testing.T) {
 		if r := hooks.PreCommit(t, "a refactor that changes what itos prints"); r.Code != 0 {
 			t.Errorf("pre-commit should not see the changed output:\n%s", r.Output())
 		}
-		refactor = repo.Commit("refactor: shorten the summary\n\nTask: T-007")
+		refactor = repo.Commit("refactor: shorten the status problem\n\nTask: T-007")
 		if r := hooks.PrePush(t, "that refactor", base, refactor); r.Code != 0 {
 			t.Errorf("pre-push should leave the features to CI:\n%s", r.Output())
 		}
