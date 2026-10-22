@@ -12265,7 +12265,7 @@ items:
     title: "Slices, prerequisite 3: the git hooks engine, and the amend environment in internal/message"
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [T-242]
     kind: task
 
