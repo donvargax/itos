@@ -54,6 +54,7 @@ func TestSelftest(t *testing.T) {
 	reset := func(base string) { repo.Git("reset", "-q", "--hard", base) }
 
 	base := repo.Open()
+	repo.SharePinned("golangci-lint")
 	const features = "go test ./features -count=1"
 	if _, err := os.Stat(filepath.Join(repo.Dir, "node_modules")); err == nil {
 		t.Fatal("the scratch copy holds node_modules")

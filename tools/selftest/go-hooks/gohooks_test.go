@@ -10,9 +10,12 @@
 //   - pre-push does the same against the remote commit the push builds on, after the commit
 //     rules (itos verify), so each commit carries its task footer;
 //   - a change to go.mod, which every package builds with, runs every package;
-//   - a Markdown-only commit, and a prose-only push, run no Go test.
+//   - a Markdown-only commit, and a prose-only push, run no Go test;
+//   - pre-push runs the pinned golangci-lint, CI's lint step, when the push changes Go, and a
+//     finding refuses the push; a prose-only push runs no lint (T-220).
 //
-// tools/bin/go-unit-tests picks the packages; both hooks call it.
+// tools/bin/go-unit-tests picks the packages; both hooks call it. tools/bin/golangci-lint-changed
+// decides whether pre-push lints.
 package gohooks
 
 import (
@@ -65,6 +68,9 @@ const (
 
 var reached = []string{"internal/version", "internal/cli", "cmd/itos"}
 
+// linted is golangci-lint-changed's line when it runs the linter.
+var linted = regexp.MustCompile(`(?m)^\$ tools/bin/pinned golangci-lint run `)
+
 func testsReached(t *testing.T, hook, output string) {
 	t.Helper()
 	ran := tested(output, anyVerdict)
@@ -83,6 +89,7 @@ func TestSelftest(t *testing.T) {
 	repo := scratch.NewRepo(t, "go-hooks-selftest")
 	hooks := scratch.Hooks{R: repo}
 	base := repo.Open()
+	repo.SharePinned("golangci-lint")
 	var every []string
 	for _, line := range strings.Split(repo.Sh("go list ./cmd/... ./internal/...", "", "").Stdout, "\n") {
 		if line != "" {
@@ -112,7 +119,27 @@ func TestSelftest(t *testing.T) {
 		if r.Code != 0 {
 			t.Errorf("pre-push refused a harmless change to %s:\n%s", pkg, r.Output())
 		}
+		if !linted.MatchString(r.Output()) {
+			t.Errorf("pre-push did not lint a push that changes Go:\n%s", r.Output())
+		}
 		testsReached(t, "pre-push", r.Output())
+	})
+
+	// A context held in a struct, which ADR-0053 refuses and only golangci-lint's containedctx
+	// catches: it builds and breaks no unit test, so the lint alone refuses the push.
+	t.Run("pre-push refuses a change golangci-lint finds fault with", func(t *testing.T) {
+		reset()
+		scratch.WriteFiles(t, repo.Dir, map[string]string{
+			"internal/glob/held.go": "package glob\n\nimport \"context\"\n\n// Held holds a context.\ntype Held struct{ Ctx context.Context }\n",
+		})
+		finding := repo.Commit("refactor: hold a context\n\nTask: T-220")
+		r := hooks.PrePush(t, "a context held in a struct", base, finding)
+		if r.Code == 0 {
+			t.Errorf("pre-push let through a finding of golangci-lint:\n%s", r.Output())
+		}
+		if !strings.Contains(r.Output(), "(containedctx)") {
+			t.Errorf("pre-push did not name containedctx's finding:\n%s", r.Output())
+		}
 	})
 
 	// The same package, broken so its unit test fails: refused at commit, in that package's
@@ -170,7 +197,7 @@ func TestSelftest(t *testing.T) {
 		}
 		prose = repo.Commit("docs: edit the readme")
 	})
-	t.Run("a prose-only push runs no Go test", func(t *testing.T) {
+	t.Run("a prose-only push runs no Go test and no lint", func(t *testing.T) {
 		if prose == "" {
 			t.Fatal("the prose change was not committed")
 		}
@@ -180,6 +207,9 @@ func TestSelftest(t *testing.T) {
 		}
 		if ran := tested(r.Output(), anyVerdict); len(ran) != 0 {
 			t.Errorf("a prose-only push ran Go tests: %s", show(ran))
+		}
+		if linted.MatchString(r.Output()) {
+			t.Errorf("a prose-only push ran golangci-lint:\n%s", r.Output())
 		}
 	})
 }
