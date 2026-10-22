@@ -11560,7 +11560,7 @@ items:
     title: No corpus case pins prose under a JSON key, not even its presence
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
 

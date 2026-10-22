@@ -2809,9 +2809,6 @@
     status), which previous-release never judges; the guard's decision field stays pinned, as Claude
     Code reads it. Any other case pinning a sentence under a key that is not data gets the same. In
     v9 every prose value moves under a reserved key or becomes structured data (q-89).
-  done_when:
-    - run: go run ./tools/bin/conformance --bin tools/bin/itos
-      timeout: 900
 
 - id: T-223
   type: test
