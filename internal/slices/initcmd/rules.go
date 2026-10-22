@@ -1,4 +1,4 @@
-package cli
+package initcmd
 
 // itos init's rules for agents (slice 59, features/init.feature;
 // docs/decisions/0033-itos-s-own-guides-say-how-to-work-with-itos-not-the-plugin.md):
@@ -23,18 +23,17 @@ package cli
 // that is AGENTS.md itself (a link to it) is left alone, as it reads the
 // block already. A file written with CRLF line endings keeps them.
 //
-// The offer is made as the plugin's is (initplugin.go): --agent-rules writes
+// The offer is made as the plugin's is (plugin.go): --agent-rules writes
 // the block, --no-agent-rules declines, a terminal is asked on the first run,
 // and anywhere else nothing is written and the report says how. Run again
 // where a config is, it never asks: a block other than the one this itos
 // writes (an older itos's, say) is reported, naming itos init --agent-rules,
 // never counted as missing, and --agent-rules rewrites it; the config does
 // not enter into it. Under a stealth config nothing tracked may change, so
-// the block goes where git never looks (initrulesstealth.go).
+// the block goes where git never looks (rulesstealth.go).
 //
-// The block, finding it, its staleness and the commit policy are
-// internal/engine/agentrules', which status, upgrade and guide share; the
-// wrappers below bind it to the real git.
+// The block, finding it and its staleness are internal/engine/agentrules',
+// which status, upgrade and guide share.
 
 import (
 	"bufio"
@@ -46,7 +45,6 @@ import (
 	"strings"
 
 	"github.com/donvargax/itos/v8/internal/engine/agentrules"
-	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
 )
 
 const (
@@ -57,29 +55,6 @@ const (
 	rulesEnd     = agentrules.End
 	rulesBlock   = agentrules.Block
 )
-
-// rulesFlag is how init's command line answered the offer: given is whether
-// it has --agent-rules or --no-agent-rules, write which.
-type rulesFlag struct {
-	given bool
-	write bool
-}
-
-// parseRulesFlag reads --agent-rules or --no-agent-rules out of init's
-// arguments at i, and gives how many arguments it read, 0 when args[i] is
-// neither.
-func parseRulesFlag(args []string, i int, f *rulesFlag) (int, error) {
-	a := args[i]
-	if a != "--agent-rules" && a != "--no-agent-rules" {
-		return 0, nil
-	}
-	write := a == "--agent-rules"
-	if f.given && f.write != write {
-		return 0, usage("init takes --agent-rules or --no-agent-rules, not both")
-	}
-	f.given, f.write = true, write
-	return 1, nil
-}
 
 // rulesOutcome is what came of the offer, init's --json "agent_rules":
 // action one of written (the block written or rewritten, or CLAUDE.md given
@@ -97,26 +72,28 @@ type rulesOutcome struct {
 
 // rulesOffer is the offer's context, as pluginOffer's: the flag, the mode,
 // whether this is a rerun where a config was there, whether a terminal may be
-// asked, where it says what it did, and where an answer is read from.
+// asked, where it says what it did, where an answer is read from, and the
+// ports.
 type rulesOffer struct {
-	flag    rulesFlag
+	flag    RulesFlag
 	stealth bool
 	rerun   bool
 	ask     bool
 	log     io.Writer
 	answers io.Reader
+	ports   Ports
 }
 
 // run makes the offer, and gives its outcome and its exit code: 1 when the
 // block asked for could not be written, else 0.
-func (r rulesOffer) run() (rulesOutcome, int) {
+func (r rulesOffer) run(ctx context.Context) (rulesOutcome, int) {
 	say := func(format string, a ...any) { fmt.Fprintf(r.log, format+"\n", a...) }
 	none := []writtenFile{}
 	switch {
-	case r.flag.given && !r.flag.write:
+	case r.flag.Given && !r.flag.Write:
 		return rulesOutcome{Action: "declined", Files: none}, 0
 	case r.stealth:
-		return r.runStealth()
+		return r.runStealth(ctx)
 	}
 	failed := func(problem string, asked bool) (rulesOutcome, int) {
 		if !asked {
@@ -124,17 +101,17 @@ func (r rulesOffer) run() (rulesOutcome, int) {
 			return rulesOutcome{Action: "failed", Files: none, Problem: problem}, 0
 		}
 		say("%s is not written: %s.", agentsFile, problem)
-		return rulesOutcome{Action: "failed", Files: none, Problem: problem}, ExitPolicy
+		return rulesOutcome{Action: "failed", Files: none, Problem: problem}, exitPolicy
 	}
 	text, _, err := agentrules.ReadText(agentsFile)
 	if err != nil {
-		return failed(err.Error(), r.flag.given)
+		return failed(err.Error(), r.flag.Given)
 	}
 	before, found, after, err := agentrules.Split(text)
 	if err != nil {
-		return failed(err.Error(), r.flag.given)
+		return failed(err.Error(), r.flag.Given)
 	}
-	if !r.flag.given && found == nil {
+	if !r.flag.Given && found == nil {
 		answer := ""
 		if r.ask && !r.rerun {
 			answer = r.question(fmt.Sprintf("Write itos's rules for agents into %s, between itos's markers, "+
@@ -150,15 +127,15 @@ func (r rulesOffer) run() (rulesOutcome, int) {
 			return rulesOutcome{Action: "offered", Files: none}, 0
 		}
 	}
-	if !r.flag.given && found != nil {
+	if !r.flag.Given && found != nil {
 		if !agentrules.StaleBlock(found) {
 			return rulesOutcome{Action: "current", Files: none}, 0
 		}
-		say("%s", staleRulesLine(false))
+		say("%s", agentrules.StaleLine(false))
 		return rulesOutcome{Action: "stale", Files: none}, 0
 	}
 
-	files, err := writeRules(text, before, found, after, rulesBlock)
+	files, err := r.writeRules(ctx, text, before, found, after, rulesBlock)
 	if err != nil {
 		return failed(err.Error(), true)
 	}
@@ -175,32 +152,6 @@ func (r rulesOffer) run() (rulesOutcome, int) {
 	say("%s holds itos's rules for agents, between %s and %s, which itos init --agent-rules rewrites; %s imports it (%s).",
 		agentsFile, rulesBegin, rulesEnd, claudeFile, claudeImport)
 	return rulesOutcome{Action: "written", Files: files}, 0
-}
-
-// staleRulesLine is agentrules.StaleLine: what a rerun says of a stale
-// block, and itos status (status.go, slice 124) with it.
-func staleRulesLine(stealth bool) string { return agentrules.StaleLine(stealth) }
-
-// staleRules is agentrules.Stale over the real git: the files holding a
-// block of the rules other than this itos's (status.go, slice 124).
-func staleRules(stealth bool) []string {
-	return agentrules.Stale(context.Background(), vcs.Git{}, stealth)
-}
-
-// rulesEdit is an agentrules.Edit as refreshedRules gives it.
-type rulesEdit struct {
-	path, disk, text string
-	crlf             bool
-}
-
-// refreshedRules is agentrules.Refreshed over the real git: each stale
-// block rewritten in this itos's words (upgrade.go, slice 126).
-func refreshedRules(stealth bool) []rulesEdit {
-	var edits []rulesEdit
-	for _, e := range agentrules.Refreshed(context.Background(), vcs.Git{}, stealth) {
-		edits = append(edits, rulesEdit{e.Path, e.Disk, e.Text, e.CRLF})
-	}
-	return edits
 }
 
 // rulesHowTo is what the offer says where nobody was asked.
@@ -234,7 +185,8 @@ func (r rulesOffer) question(prompt string) string {
 
 // writeRules writes the block into AGENTS.md, in place of the one found or
 // at its end, and the import into CLAUDE.md, and gives what it did to each.
-func writeRules(text, before string, found *string, after, block string) ([]writtenFile, error) {
+func (r rulesOffer) writeRules(ctx context.Context, text, before string, found *string, after,
+	block string) ([]writtenFile, error) {
 	_, crlf, err := agentrules.ReadText(agentsFile)
 	if err != nil {
 		return nil, err
@@ -245,7 +197,7 @@ func writeRules(text, before string, found *string, after, block string) ([]writ
 	case found != nil && *found == block:
 	case found != nil:
 		agents.Action = "updated"
-		if err := agentrules.WriteText(agentsFile, before+block+after, crlf); err != nil {
+		if err := r.ports.WriteText(ctx, agentsFile, before+block+after, crlf); err != nil {
 			return nil, err
 		}
 	case text == "":
@@ -253,12 +205,12 @@ func writeRules(text, before string, found *string, after, block string) ([]writ
 		if exists(agentsFile) {
 			agents.Action = "updated"
 		}
-		if err := agentrules.WriteText(agentsFile, block, crlf); err != nil {
+		if err := r.ports.WriteText(ctx, agentsFile, block, crlf); err != nil {
 			return nil, err
 		}
 	default:
 		agents.Action = "updated"
-		if err := agentrules.WriteText(agentsFile, agentrules.AppendBlock(text, block), crlf); err != nil {
+		if err := r.ports.WriteText(ctx, agentsFile, agentrules.AppendBlock(text, block), crlf); err != nil {
 			return nil, err
 		}
 	}
@@ -281,7 +233,7 @@ func writeRules(text, before string, found *string, after, block string) ([]writ
 			if text != "" && !strings.HasSuffix(text, "\n") {
 				text += "\n"
 			}
-			if err := agentrules.WriteText(claudeFile, text+claudeImport+"\n", crlf); err != nil {
+			if err := r.ports.WriteText(ctx, claudeFile, text+claudeImport+"\n", crlf); err != nil {
 				return nil, err
 			}
 		}
@@ -298,6 +250,3 @@ func sameFile(a, b string) bool {
 	y, err := os.Stat(b)
 	return err == nil && os.SameFile(x, y)
 }
-
-// prose is agentrules.Prose: words joined as a list in prose.
-func prose(words []string, join string) string { return agentrules.Prose(words, join) }

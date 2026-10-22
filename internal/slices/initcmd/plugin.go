@@ -1,9 +1,10 @@
-package cli
+package initcmd
 
 // itos init's offer of the itos plugin for Claude Code (slice 49,
 // features/init.feature;
 // docs/decisions/0031-itos-init-offers-the-plugin-and-the-git-shim-opt-in-everywhere.md),
-// made through Claude Code's own command line, the claude on the PATH: claude plugin list --json
+// made through Claude Code's own command line, the claude on the PATH (Ports'
+// LookPath and Command): claude plugin list --json
 // says whether itos@itos is installed (any scope, enabled where init runs),
 // and claude plugin marketplace add donvargax/itos then claude plugin install
 // itos@itos, both with --scope, install it.
@@ -30,12 +31,11 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"slices"
 	"strings"
 
-	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
+	vcsport "github.com/donvargax/itos/v8/internal/vcs/port"
 )
 
 const (
@@ -45,46 +45,7 @@ const (
 	pluginMarketplace = "donvargax/itos"
 	// localSettings is the file Claude Code writes for the local scope.
 	localSettings = ".claude/settings.local.json"
-	// projectSettings is the one it writes for the project scope, committed.
-	projectSettings = ".claude/settings.json"
 )
-
-// pluginScopes are --plugin's answers.
-var pluginScopes = []string{"project", "user", "local", "no"}
-
-// pluginFlag is how init's command line answered the offer: given is whether
-// it has --plugin, scope its value, "" for a bare one.
-type pluginFlag struct {
-	given bool
-	scope string
-}
-
-// parsePluginFlag reads --plugin out of init's arguments at i: --plugin
-// <scope>, --plugin=<scope>, or a bare --plugin, the next argument being a
-// flag or none. It gives how many arguments it read, 0 when args[i] is not
-// --plugin.
-func parsePluginFlag(args []string, i int, f *pluginFlag) (int, error) {
-	a := args[i]
-	if value, ok := strings.CutPrefix(a, "--plugin="); ok {
-		if !slices.Contains(pluginScopes, value) {
-			return 0, usage("--plugin takes project, user, local or no (%s)", value)
-		}
-		*f = pluginFlag{true, value}
-		return 1, nil
-	}
-	if a != "--plugin" {
-		return 0, nil
-	}
-	*f = pluginFlag{given: true}
-	if i+1 >= len(args) || strings.HasPrefix(args[i+1], "-") {
-		return 1, nil
-	}
-	if !slices.Contains(pluginScopes, args[i+1]) {
-		return 0, usage("--plugin takes project, user, local or no (%s)", args[i+1])
-	}
-	f.scope = args[i+1]
-	return 2, nil
-}
 
 // pluginDefault is a bare --plugin's scope, and the answer a terminal's
 // question defaults to.
@@ -133,30 +94,31 @@ func installedPlugin(list []byte) (pluginEntry, bool, error) {
 
 // pluginOffer is the offer's context: the flag, the mode, whether a terminal
 // may be asked (the first run, on a terminal, without --json), where it says
-// what it did, and where an answer is read from.
+// what it did, where an answer is read from, and the ports.
 type pluginOffer struct {
-	flag    pluginFlag
+	flag    PluginFlag
 	stealth bool
 	ask     bool
 	log     io.Writer
 	answers io.Reader
+	ports   Ports
 }
 
 // run makes the offer at the repository's top, and gives its outcome and its
 // exit code: 1 when claude failed at what --plugin or the person asked for,
 // else 0.
-func (p pluginOffer) run() (pluginOutcome, int) {
+func (p pluginOffer) run(ctx context.Context) (pluginOutcome, int) {
 	say := func(format string, a ...any) { fmt.Fprintf(p.log, format+"\n", a...) }
-	scope := p.flag.scope
-	if p.flag.given && scope == "" {
+	scope := p.flag.Scope
+	if p.flag.Given && scope == "" {
 		scope = pluginDefault(p.stealth)
 	}
 	if scope == "no" {
 		return pluginOutcome{Action: "declined"}, 0
 	}
-	claude, err := exec.LookPath("claude")
+	claude, err := p.ports.LookPath(ctx, "claude")
 	if err != nil {
-		if !p.flag.given {
+		if !p.flag.Given {
 			return pluginOutcome{Action: "no_claude"}, 0
 		}
 		say("Claude Code was not found (no claude on the PATH), so the itos plugin for it is not installed; "+
@@ -164,11 +126,7 @@ func (p pluginOffer) run() (pluginOutcome, int) {
 		return pluginOutcome{Action: "no_claude", Scope: scope}, 0
 	}
 	runClaude := func(args ...string) (string, error) {
-		cmd := exec.Command(claude, args...)
-		var output strings.Builder
-		cmd.Stdout, cmd.Stderr = &output, &output
-		err := cmd.Run()
-		return output.String(), err
+		return p.ports.Command(ctx, claude, args...)
 	}
 	failed := func(scope any, command, output string, err error) (pluginOutcome, int) {
 		problem := fmt.Sprintf("claude %s failed (%s)", command, failureOf(err))
@@ -176,7 +134,7 @@ func (p pluginOffer) run() (pluginOutcome, int) {
 			problem += ":\n" + text
 		}
 		say("%s", problem)
-		return pluginOutcome{Action: "failed", Scope: scope, Problem: problem}, ExitPolicy
+		return pluginOutcome{Action: "failed", Scope: scope, Problem: problem}, exitPolicy
 	}
 
 	list, err := runClaude("plugin", "list", "--json")
@@ -186,7 +144,7 @@ func (p pluginOffer) run() (pluginOutcome, int) {
 		entry, installed, err = installedPlugin([]byte(list))
 	}
 	if err != nil {
-		if p.flag.given {
+		if p.flag.Given {
 			return failed(scope, "plugin list --json", list, err)
 		}
 		say("claude plugin list --json failed (%s), so init cannot say whether the itos plugin for Claude Code is installed; "+
@@ -197,7 +155,7 @@ func (p pluginOffer) run() (pluginOutcome, int) {
 		say("The itos plugin for Claude Code, %s, is installed already (its %s scope).", pluginID, entry.Scope)
 		return pluginOutcome{Action: "already", Scope: entry.Scope}, 0
 	}
-	if !p.flag.given {
+	if !p.flag.Given {
 		if p.ask {
 			scope = p.question()
 		}
@@ -223,7 +181,7 @@ func (p pluginOffer) run() (pluginOutcome, int) {
 	outcome := pluginOutcome{Action: "installed", Scope: scope}
 	say("Installed the itos plugin for Claude Code, %s, at its %s scope.", pluginID, scope)
 	if p.stealth && scope == "local" {
-		excluded, err := excludeIfShown(localSettings)
+		excluded, err := excludeIfShown(ctx, p.ports, localSettings)
 		if err != nil {
 			say("Could not list %s in the git folder's info/exclude: %v", localSettings, err)
 		} else if excluded {
@@ -277,44 +235,32 @@ func (p pluginOffer) question() string {
 	}
 }
 
-// failureOf is how a command's failure is said: its exit code, or why it did
-// not run.
+// failureOf is how a command's failure is said: its exit code (an
+// *exec.ExitError's), or why it did not run.
 func failureOf(err error) string {
-	var exit *exec.ExitError
+	var exit interface{ ExitCode() int }
 	if errors.As(err, &exit) {
 		return fmt.Sprintf("exit %d", exit.ExitCode())
 	}
 	return err.Error()
 }
 
-// onTerminal is whether a person is at the other end: stdin and stdout both a
-// terminal, a character device other than the null device.
-func onTerminal() bool { return terminal(os.Stdin) && terminal(os.Stdout) }
-
-func terminal(f *os.File) bool {
-	info, err := f.Stat()
-	if err != nil || info.Mode()&os.ModeCharDevice == 0 {
-		return false
-	}
-	null, err := os.Stat(os.DevNull)
-	return err != nil || !os.SameFile(info, null)
-}
-
 // excludeIfShown lists a path of the working tree in the git folder's
 // info/exclude when git status shows it untracked, so it stays out of git
 // status, and says whether it did. Whether git shows it is git's to say: the
 // project's own ignore files, or the person's, may already leave it out.
-func excludeIfShown(p string) (bool, error) {
-	status, err := vcs.Git{}.PathStatus(context.Background(), p)
+func excludeIfShown(ctx context.Context, v vcsport.VCS, p string) (bool, error) {
+	status, err := v.PathStatus(ctx, p)
 	if err != nil || len(status) == 0 || !strings.HasPrefix(status[0], "?? ") {
 		return false, err
 	}
-	l, err := (vcs.Git{}).Locate(context.Background(), "")
+	l, err := v.Locate(ctx, "")
 	if err != nil {
 		return false, err
 	}
 	file := filepath.Join(l.Common, "info", "exclude")
-	text, _ := readIf(file)
+	raw, _ := os.ReadFile(file)
+	text := string(raw)
 	if text != "" && !strings.HasSuffix(text, "\n") {
 		text += "\n"
 	}

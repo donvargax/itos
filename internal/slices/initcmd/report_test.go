@@ -36,16 +36,17 @@ func declared(f *fake) *fake {
 func TestInitReportsNothingMissing(t *testing.T) {
 	f := declared(scratch(t, "commit", project()))
 	code, stdout, _, err := call(t, f, "--git-shim")
+	link := filepath.Join("bin", "git")
 	want := "itos.yaml is there already; init kept it as it is.\nNothing is missing: the config, its ledger, registry and " +
-		"smoke sets are sound, and the hooks call itos.\noffered\n"
+		"smoke sets are sound, and the hooks call itos.\nLinked the git shim: " + link + " to itos.\nbin stands at -1,  at -1.\n"
 	if code != 0 || err != nil || stdout != want {
 		t.Errorf("exit %d, %v:\n%s", code, err, stdout)
 	}
-	if len(f.offers) != 1 || f.offers[0] != (Offer{Shim: ShimFlag{Given: true, Install: true}, Rerun: true}) || len(f.installs) != 0 {
-		t.Errorf("offers %+v, hooks %v", f.offers, f.installs)
+	if f.asked != 0 || len(f.made) != 1 || f.made[0] != link || len(f.installs) != 0 {
+		t.Errorf("terminal asked %d times, linked %q, hooks %v", f.asked, f.made, f.installs)
 	}
 	f = declared(scratch(t, "commit", project()))
-	f.offered.Code = 1
+	f.placeErr = errors.New("no itos to link")
 	if code, _, _, err := call(t, f); code != 1 || err != nil {
 		t.Errorf("an offer failing: exit %d, %v", code, err)
 	}
@@ -68,7 +69,7 @@ func TestInitReportsWhatIsMissing(t *testing.T) {
 		"Noted, not counted as missing:\n  ",
 		"people.yaml",
 		"  the pin, itos 9.1.0, is behind the newest release, itos 9.2.0; itos upgrade moves it there, applying the config " +
-			"changes each release between them declares and naming what is left by hand\noffered\n",
+			"changes each release between them declares and naming what is left by hand\n" + shimUnasked,
 	} {
 		if !strings.Contains(stdout, want) {
 			t.Errorf("no %q in:\n%s", want, stdout)
@@ -81,7 +82,7 @@ func TestInitReportsWhatIsMissing(t *testing.T) {
 	f.oldGit = true
 	_, stdout, _, _ = call(t, f)
 	if want := "Missing:\n  the commit-msg hook: git 2.53.0 runs no hook its config declares; upgrade git to 2.54.0 or later, " +
-		"then run itos hook install\noffered\n"; !strings.HasSuffix(stdout, want) {
+		"then run itos hook install\n" + shimUnasked; !strings.HasSuffix(stdout, want) {
 		t.Errorf("an old git:\n%s", stdout)
 	}
 }
@@ -92,22 +93,23 @@ func TestInitReportsWhatIsMissing(t *testing.T) {
 func TestInitReportsUnderJSON(t *testing.T) {
 	f := declared(scratch(t, "commit", project()))
 	code, stdout, _, err := call(t, f, "--json")
+	type offer struct{ Action string }
 	var got struct {
 		Config, Action string
 		Missing, Notes []map[string]any
-		Plugin         string
-		GitShim        string `json:"git_shim"`
-		AgentRules     string `json:"agent_rules"`
+		Plugin         offer
+		GitShim        offer `json:"git_shim"`
+		AgentRules     offer `json:"agent_rules"`
 	}
 	if code != 0 || err != nil || json.Unmarshal([]byte(stdout), &got) != nil || got.Config != "itos.yaml" ||
-		got.Action != "checked" || got.Missing == nil || got.Notes == nil || got.Plugin != "plugin" ||
-		got.GitShim != "shim" || got.AgentRules != "rules" || strings.Contains(stdout, "offered") {
+		got.Action != "checked" || got.Missing == nil || got.Notes == nil || got.Plugin.Action != "no_claude" ||
+		got.GitShim.Action != "offered" || got.AgentRules.Action != "offered" || strings.Contains(stdout, "not linked") {
 		t.Errorf("exit %d, %v:\n%s", code, err, stdout)
 	}
 	f = scratch(t, "commit", project())
-	f.offered.Code = 3
+	f.placeErr = errors.New("no itos to link")
 	code, stdout, _, err = call(t, f, "--json")
-	if code != 3 || err != nil || !strings.Contains(stdout, `"rule": "hook-missing"`) {
+	if code != 1 || err != nil || !strings.Contains(stdout, `"rule": "hook-missing"`) {
 		t.Errorf("exit %d, %v:\n%s", code, err, stdout)
 	}
 }
@@ -148,9 +150,11 @@ func TestInitReportsUnderAStealthConfig(t *testing.T) {
 		t.Errorf("--plugin project: %v", err)
 	}
 	for _, args := range [][]string{nil, {"--stealth"}} {
-		f = scratch(t, "commit", map[string]string{stealth: "version: 1\n"})
+		f = withClaude(scratch(t, "commit", map[string]string{stealth: "version: 1\n"}))
 		_, stdout, _, err := call(t, f, args...)
-		if err != nil || !strings.HasPrefix(stdout, stealth+" is there already") || len(f.offers) != 1 || !f.offers[0].Stealth {
+		if err != nil || !strings.HasPrefix(stdout, stealth+" is there already") ||
+			!strings.Contains(stdout, "itos init --plugin installs it for you alone in this repository (.claude/settings.local.json, "+
+				"kept out of git status)") {
 			t.Errorf("init %v: %v:\n%s", args, err, stdout)
 		}
 	}

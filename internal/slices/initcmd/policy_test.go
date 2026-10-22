@@ -25,9 +25,10 @@ const pinned = "pin: { version: 9.1.0, checksums: \"" + "aaaaaaaaaaaaaaaaaaaaaaa
 // hook install and the offers, then what to commit, the plugin's project
 // settings and the rules for agents among it.
 func TestPolicyInitMakesTheProject(t *testing.T) {
-	f := scratch(t, "commit", map[string]string{"sub/p.yaml": "# The policy.\nversion: 1\ncommits:\n  types: [chore]\n"})
-	f.offered.ProjectPlugin, f.offered.RulesWritten = true, []string{"AGENTS.md"}
-	c, err := Parse(context.Background(), []string{"--policy", "p.yaml"}, "sub", false, nil, f)
+	f := withClaude(scratch(t, "commit", map[string]string{"sub/p.yaml": "# The policy.\nversion: 1\ncommits:\n  types: [chore]\n",
+		"CLAUDE.md": "@AGENTS.md\n"}))
+	c, err := Parse(context.Background(), []string{"--policy", "p.yaml", "--plugin", "--no-git-shim", "--agent-rules"}, "sub",
+		false, nil, f)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -36,7 +37,7 @@ func TestPolicyInitMakesTheProject(t *testing.T) {
 	want := "wrote itos.yaml\nwrote tasks/phase-1.yaml\nwrote tasks/work-items.yaml\n" +
 		"itos.yaml holds the policy of p.yaml, made fresh for this project: no task, owner, status, commit or result of " +
 		"the policy's own came with it.\ncommits.since is HEAD, 0123456: no commit before it is judged.\n" +
-		"Pinned itos 9.2.0, the newest release.\nhooks declared\noffered\n" +
+		"Pinned itos 9.2.0, the newest release.\nhooks declared\n" + pluginInstalled("project") + rulesWritten +
 		"Commit what init wrote with the task that adopts itos: git add itos.yaml tasks/phase-1.yaml tasks/work-items.yaml " +
 		".claude/settings.json AGENTS.md, then itos commit --task T-1 -m 'chore: adopt itos'\n"
 	if code != 0 || err != nil || stdout.String() != want {
@@ -49,8 +50,8 @@ func TestPolicyInitMakesTheProject(t *testing.T) {
 	if read("tasks/phase-1.yaml") != (starter{}).ledger() || read("tasks/work-items.yaml") != starterRegistryText {
 		t.Error("the fresh data is not the starter's")
 	}
-	if len(f.offers) != 1 || f.offers[0] != (Offer{Ask: true}) || len(f.installs) != 1 {
-		t.Errorf("offers %+v, hooks %v", f.offers, f.installs)
+	if f.asked != 1 || len(f.installs) != 1 {
+		t.Errorf("terminal asked %d times, hooks %v", f.asked, f.installs)
 	}
 }
 
@@ -82,11 +83,11 @@ func TestPolicyInitInAFolderWithNoRepository(t *testing.T) {
 		Pin                    map[string]string
 		PinProblem             *string `json:"pin_problem"`
 		Hooks                  map[string]any
-		Plugin                 string
+		Plugin                 struct{ Action string }
 	}
 	if code != 0 || err != nil || json.Unmarshal([]byte(stdout), &got) != nil || got.Config != "itos.yaml" ||
 		got.Action != "initialized" || got.Policy != "p.yaml" || !got.GitInit || got.Since != nil || len(got.Files) != 3 ||
-		got.Pin["version"] != "9.1.0" || got.PinProblem != nil || len(got.Hooks) != 1 || got.Plugin != "plugin" {
+		got.Pin["version"] != "9.1.0" || got.PinProblem != nil || len(got.Hooks) != 1 || got.Plugin.Action != "no_claude" {
 		t.Errorf("--json: exit %d, %v:\n%s", code, err, stdout)
 	}
 	if text := read("itos.yaml"); !strings.Contains(text, "commits: { types: [chore] }\n") {
@@ -313,13 +314,13 @@ func TestPolicyInitReportsItsPartialWork(t *testing.T) {
 // and with it not 0 nothing is named to commit.
 func TestPolicyInitTakesHookInstallsCode(t *testing.T) {
 	f := scratch(t, "commit", map[string]string{"p.yaml": "version: 1\n"})
-	f.hooksCode, f.offered.Code = 3, 1
+	f.hooksCode, f.placeErr = 3, errors.New("no itos to link")
 	code, stdout, _, err := call(t, f, "--policy", "p.yaml")
-	if code != 3 || err != nil || !strings.HasSuffix(stdout, "offered\n") {
+	if code != 3 || err != nil || !strings.HasSuffix(stdout, "The git shim is not linked: no itos to link.\n"+rulesHowTo+"\n") {
 		t.Errorf("exit %d, %v:\n%s", code, err, stdout)
 	}
 	f = scratch(t, "commit", map[string]string{"p.yaml": "version: 1\n"})
-	f.offered.Code = 1
+	f.placeErr = errors.New("no itos to link")
 	if code, _, _, err := call(t, f, "--json", "--policy", "p.yaml"); code != 1 || err != nil {
 		t.Errorf("an offer failing: exit %d, %v", code, err)
 	}

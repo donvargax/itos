@@ -66,14 +66,48 @@
 // writing began names what this run did (partial). The hooks and the
 // offers follow as for the starter, and policyNext names what to commit.
 //
-// Both ways, init then makes the offers of the itos plugin for Claude Code,
-// the git shim and the rules for agents, through Ports.Offers, which
-// internal/cli binds to its offers for now (initplugin.go, initshim.go,
-// initrules.go): a first run may ask a terminal, never under --json, and a
-// rerun where a config is never asks. Their outcomes are --json's plugin,
-// git_shim and agent_rules, their highest exit code init's when hook
-// install's is 0, and the plugin installed at the project's scope and the
-// rules' files written are named in what to commit.
+// Both ways, init then makes three offers, in this order, through
+// makeOffers
+// (docs/decisions/0031-itos-init-offers-the-plugin-and-the-git-shim-opt-in-everywhere.md,
+// docs/decisions/0032-itos-init-generates-the-config-s-rules-into-a-marked-block-of-agents-md.md).
+// The first run without a flag asks a terminal (question, only where Ports'
+// Terminal says stdin and stdout are both a character device other than the
+// null device, never under --json, the offers sharing one buffered reader of
+// Ports' Stdin so none takes another's answer) or says how; run again where
+// a config is, none asks: each says how, or installs for its flag, and the
+// checked object always holds notes and git_shim. Their outcomes are
+// --json's plugin, git_shim and agent_rules, their highest exit code init's
+// when hook install's is 0, and the plugin installed at the project's scope
+// and the rules' files written are named in what to commit.
+//
+//   - The plugin (plugin.go, pluginOffer.run): --plugin no ends it, a
+//     claude the PATH lacks (Ports' LookPath) is said only for --plugin,
+//     claude plugin list --json (Ports' Command) read as a list whose
+//     itos@itos entry, enabled where init runs, means installed; the scope
+//     is the flag's (a bare one pluginDefault's) or the terminal's answer.
+//     It runs marketplace add, whose failure alone is not one, then install,
+//     whose failure is printed with claude's output and exits 1; a local
+//     install under --stealth lists .claude/settings.local.json in
+//     info/exclude while git shows it untracked (excludeIfShown). --stealth
+//     --plugin project, or --plugin project where the config found is the
+//     stealth one, is a usage error before anything runs.
+//   - The git shim (shim.go, shimOffer.run): --no-git-shim ends it;
+//     Ports' ShimPlace gives the link git-shim install would make (its
+//     --git-shim-dir, made absolute where it was typed), unless, with no
+//     folder named, the first git on the PATH already links this itos; a
+//     link to this itos is kept, a git that is no link to itos refused for
+//     --git-shim (exit 1) and otherwise only said, a link to another itos
+//     replaced; then MakeLink and StandingLine.
+//   - The rules for agents (rules.go, rulesOffer.run): the block, its
+//     markers and their staleness are internal/engine/agentrules'.
+//     writeRules replaces the block agentrules.Split found, or appends one,
+//     and gives CLAUDE.md an @AGENTS.md line unless it has one or is
+//     AGENTS.md itself; both files keep the line endings they had. A rerun
+//     with no flag compares the block with agentrules.Block and says only
+//     that it is stale. Under a stealth config runStealth
+//     (rulesstealth.go) writes the three files agentrules.Stealth plans,
+//     never AGENTS.md or CLAUDE.md, refusing a file at the top that the
+//     project tracks.
 //
 // It is the launcher's own command, as pin is (internal/launch), where the
 // config pins nothing: where there is no config there is no pin to hand the

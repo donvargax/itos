@@ -41,7 +41,7 @@ func (h Handler) report(ctx context.Context, file string, offer Offer, o Out) (i
 		if notes == nil {
 			notes = []configcheck.Found{}
 		}
-		offered := h.ports.Offers(ctx, offer, io.Discard)
+		offered := h.makeOffers(ctx, offer, io.Discard)
 		return max(code, offered.Code), out.Emit(o.Stdout, out.Field{Key: "config", Value: file},
 			out.Field{Key: "action", Value: "checked"}, out.Field{Key: "missing", Value: found},
 			out.Field{Key: "plugin", Value: offered.Plugin}, out.Field{Key: "notes", Value: notes},
@@ -67,7 +67,7 @@ func (h Handler) report(ctx context.Context, file string, offer Offer, o Out) (i
 		fmt.Fprintln(o.Stdout, "Noted, not counted as missing:")
 		list(notes)
 	}
-	offered := h.ports.Offers(ctx, offer, o.Stdout)
+	offered := h.makeOffers(ctx, offer, o.Stdout)
 	return max(code, offered.Code), nil
 }
 

@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/donvargax/itos/v8/internal/engine/agentrules"
 	"github.com/donvargax/itos/v8/internal/kind"
 	"github.com/donvargax/itos/v8/internal/out"
 	"github.com/donvargax/itos/v8/internal/release"
@@ -29,9 +30,17 @@ const sums = "aa  itos-9.2.0-linux-amd64.tar.gz\n"
 // in: the git config, and an old git that runs no hook its config
 // declares; git init failing with initErr; the newest release, or
 // releaseErr; what hook install writes, and under json, its exit and its error, each call's
-// json recorded; what the offers come to and say, each offer recorded; and
-// a folder made absolute failing with absErr, a file's write with its
-// error in writeErrs.
+// json recorded; a folder made absolute failing with absErr, a file's
+// write with its error in writeErrs, a folder made with its error in
+// mkdirErrs.
+//
+// For the offers: whether stdin and stdout are a terminal, terminal, each
+// time it is asked counted in asked; what stdin holds; the programs on the
+// PATH, by name; claude's output and error by its arguments, each command
+// run recorded; the itos running, self, and the link to it in a folder,
+// placeErr failing that; whether a path links to this itos and to another,
+// by path; each link made, linkErr failing it; and the link's folder's and
+// the real git's places on the PATH, -1 when not there, the git realGit.
 type fake struct {
 	*vcsfake.VCS
 	git        map[string][]string
@@ -43,11 +52,25 @@ type fake struct {
 	hooksCode  int
 	hooksErr   error
 	installs   []bool
-	offered    Offered
-	said       string
-	offers     []Offer
 	absErr     error
 	writeErrs  map[string]error
+	mkdirErrs  map[string]error
+
+	terminal bool
+	asked    int
+	stdin    string
+	paths    map[string]string
+	outputs  map[string]string
+	failures map[string]error
+	ran      []string
+	self     string
+	placeErr error
+	links    map[string][2]bool
+	made     []string
+	linkErr  error
+	at       int
+	realGit  string
+	realAt   int
 }
 
 func (f *fake) Init(ctx context.Context) error {
@@ -91,12 +114,6 @@ func (f *fake) InstallHooks(_ context.Context, stdout io.Writer, json bool) (int
 	return f.hooksCode, f.hooksErr
 }
 
-func (f *fake) Offers(_ context.Context, o Offer, log io.Writer) Offered {
-	f.offers = append(f.offers, o)
-	fmt.Fprint(log, f.said)
-	return f.offered
-}
-
 func (f *fake) Abs(_ context.Context, path string) (string, error) {
 	if f.absErr != nil {
 		return "", f.absErr
@@ -110,6 +127,73 @@ func (f *fake) WriteFile(_ context.Context, name string, data []byte, perm os.Fi
 	}
 	return os.WriteFile(name, data, perm)
 }
+
+func (f *fake) MkdirAll(_ context.Context, path string, perm os.FileMode) error {
+	if err := f.mkdirErrs[path]; err != nil {
+		return err
+	}
+	return os.MkdirAll(path, perm)
+}
+
+func (f *fake) WriteText(_ context.Context, path, text string, crlf bool) error {
+	if err := f.writeErrs[path]; err != nil {
+		return err
+	}
+	return agentrules.WriteText(path, text, crlf)
+}
+
+func (f *fake) Terminal(context.Context) bool {
+	f.asked++
+	return f.terminal
+}
+
+func (f *fake) Stdin(context.Context) io.Reader { return strings.NewReader(f.stdin) }
+
+func (f *fake) LookPath(_ context.Context, file string) (string, error) {
+	if p, ok := f.paths[file]; ok {
+		return p, nil
+	}
+	return "", errors.New(file + ": not found on the PATH")
+}
+
+func (f *fake) Command(_ context.Context, name string, args ...string) (string, error) {
+	line := strings.Join(args, " ")
+	f.ran = append(f.ran, name+" "+line)
+	return f.outputs[line], f.failures[line]
+}
+
+// ShimPlace is the link in dir, in bin with none.
+func (f *fake) ShimPlace(_ context.Context, dir string) (string, string, error) {
+	if dir == "" {
+		dir = "bin"
+	}
+	return f.self, filepath.Join(dir, "git"), f.placeErr
+}
+
+func (f *fake) LinksItos(_ context.Context, link string) (bool, bool) {
+	l := f.links[link]
+	return l[0], l[1]
+}
+
+func (f *fake) MakeLink(_ context.Context, _, link string, _ bool) error {
+	f.made = append(f.made, link)
+	return f.linkErr
+}
+
+func (f *fake) PathStanding(context.Context, string) (int, string, int) {
+	return f.at, f.realGit, f.realAt
+}
+
+func (f *fake) StandingLine(_ context.Context, dir string, at int, realGit string, realAt int) string {
+	return fmt.Sprintf("%s stands at %d, %s at %d.", dir, at, realGit, realAt)
+}
+
+// exitErr is a program's exit code, as an *exec.ExitError gives it.
+type exitErr int
+
+func (e exitErr) Error() string { return fmt.Sprintf("exit status %d", int(e)) }
+
+func (e exitErr) ExitCode() int { return int(e) }
 
 // disk is the working tree, the files on disk where the test stands; the
 // only tree it has.
@@ -160,8 +244,7 @@ func scratch(t *testing.T, repo string, files map[string]string) *fake {
 		put(t, p, text)
 	}
 	f := &fake{VCS: &vcsfake.VCS{Root: dir}, git: map[string][]string{}, hooks: "hooks declared\n",
-		hooksJSON: "{\n  \"schema\": 1,\n  \"hooks\": []\n}\n",
-		offered:   Offered{Plugin: "plugin", Shim: "shim", Rules: "rules"}, said: "offered\n"}
+		hooksJSON: "{\n  \"schema\": 1,\n  \"hooks\": []\n}\n", self: "itos", at: -1, realAt: -1}
 	if repo != "" {
 		f.Located = map[string]vcsport.Location{"": {Top: dir, GitDir: ".git", Common: ".git"}}
 		put(t, ".git/HEAD", "ref: refs/heads/main\n")
@@ -172,6 +255,37 @@ func scratch(t *testing.T, repo string, files map[string]string) *fake {
 	}
 	return f
 }
+
+// withClaude is f with claude on the PATH, the itos plugin not installed.
+func withClaude(f *fake) *fake {
+	f.paths = map[string]string{"claude": "claude"}
+	f.outputs = map[string]string{"plugin list --json": "[]"}
+	return f
+}
+
+// shimUnasked is what the git shim's offer says where nobody is asked, the
+// fake linking itos as git in bin; firstUnasked is that and what the offer
+// of the rules for agents says where nobody is asked on a first run.
+const shimUnasked = "The git shim is not linked: itos init --git-shim links itos as git in bin, the folder holding itos " +
+	"(--git-shim-dir <folder> for another), so that in a repository itos manages git commit and git push are itos's.\n"
+
+var firstUnasked = shimUnasked + rulesHowTo + "\n"
+
+// stealthUnasked is what the offer of the rules for agents says under a
+// stealth config where nobody is asked on a first run.
+const stealthUnasked = "itos's rules for agents are not written: itos init --agent-rules writes them into " +
+	".git/itos/AGENTS.md, imports it from CLAUDE.local.md for Claude Code and writes it into AGENTS.override.md for " +
+	"Codex, both kept out of git by its info/exclude; --no-agent-rules declines.\n"
+
+// pluginInstalled is what the plugin's offer says of an install at scope;
+// rulesWritten what that of the rules for agents says of an AGENTS.md
+// written, its CLAUDE.md importing it already.
+func pluginInstalled(scope string) string {
+	return "Installed the itos plugin for Claude Code, itos@itos, at its " + scope + " scope.\n"
+}
+
+const rulesWritten = "wrote AGENTS.md\nAGENTS.md holds itos's rules for agents, between <!-- itos:begin --> and " +
+	"<!-- itos:end -->, which itos init --agent-rules rewrites; CLAUDE.md imports it (@AGENTS.md).\n"
 
 // put writes a file, its folder made first.
 func put(t *testing.T, p, text string) {
@@ -290,16 +404,23 @@ func TestParseStopsAtAFolderItCannotMakeAbsolute(t *testing.T) {
 }
 
 // The starter written in a repository with a commit: each file, what init
-// says of it, hook install, the offers asked on a terminal, and what to
-// commit, the project's plugin settings and the rules for agents among it.
+// says of it, hook install, the offers asked on a terminal, each its own
+// answer through the one stdin, and what to commit, the project's plugin
+// settings and the rules for agents among it.
 func TestInitWritesTheStarter(t *testing.T) {
-	f := scratch(t, "commit", nil)
+	f := withClaude(scratch(t, "commit", nil))
 	f.Work = map[string]string{"README.md": "# Scratch\n", projectSettings: "{}\n"}
-	f.offered.ProjectPlugin, f.offered.RulesWritten = true, []string{"AGENTS.md", "CLAUDE.md"}
+	f.terminal, f.stdin = true, "\nn\ny\n"
 	code, stdout, stderr, err := call(t, f)
 	want := "wrote itos.yaml\nwrote tasks/phase-1.yaml\nwrote tasks/work-items.yaml\n" +
 		"commits.since is HEAD, 0123456: no commit before it is judged.\n" +
-		"Pinned itos 9.2.0, the newest release.\nhooks declared\noffered\n" +
+		"Pinned itos 9.2.0, the newest release.\nhooks declared\n" +
+		"Install the itos plugin for Claude Code? project (this repository, in .claude/settings.json, to commit), user " +
+		"(every repository of yours), local (you alone, in this one) or no [project]: " + pluginInstalled("project") +
+		"Link itos as git at " + filepath.Join("bin", "git") + ", so that in a repository itos manages git commit and git push " +
+		"are itos's? [Y/n]: Write itos's rules for agents into AGENTS.md, between itos's markers, and import it from " +
+		"CLAUDE.md? [Y/n]: wrote AGENTS.md\nwrote CLAUDE.md\nAGENTS.md holds itos's rules for agents, between " +
+		"<!-- itos:begin --> and <!-- itos:end -->, which itos init --agent-rules rewrites; CLAUDE.md imports it (@AGENTS.md).\n" +
 		"Commit what init wrote with the task that adopts itos: git add itos.yaml tasks/phase-1.yaml " +
 		"tasks/work-items.yaml .claude/settings.json AGENTS.md CLAUDE.md, then itos commit --task T-1 -m 'chore: adopt itos'\n"
 	if code != 0 || err != nil || stdout != want || stderr != "" {
@@ -312,9 +433,11 @@ func TestInitWritesTheStarter(t *testing.T) {
 	if read("tasks/phase-1.yaml") != (starter{}).ledger() || read("tasks/work-items.yaml") != starterRegistryText {
 		t.Error("the ledger or the registry is not the starter's")
 	}
-	if len(f.installs) != 1 || f.installs[0] || len(f.offers) != 1 ||
-		f.offers[0] != (Offer{Plugin: PluginFlag{}, Ask: true}) {
-		t.Errorf("hooks %v, offers %+v", f.installs, f.offers)
+	wantRan := []string{"claude plugin list --json", "claude plugin marketplace add donvargax/itos --scope project",
+		"claude plugin install itos@itos --scope project"}
+	if len(f.installs) != 1 || f.installs[0] || f.asked != 1 || strings.Join(f.ran, "\n") != strings.Join(wantRan, "\n") ||
+		len(f.made) != 0 {
+		t.Errorf("hooks %v, terminal asked %d times, ran %q, linked %q", f.installs, f.asked, f.ran, f.made)
 	}
 }
 
@@ -322,14 +445,15 @@ func TestInitWritesTheStarter(t *testing.T) {
 // the next step names no file and no task; a plugin installed for the
 // project whose settings git does not show is left out.
 func TestInitWriteKeepsWhatIsThere(t *testing.T) {
-	f := scratch(t, "commit", map[string]string{"itos.yaml": "version: 1\n", "tasks/phase-1.yaml": "[]\n",
-		"tasks/work-items.yaml": "phases: {}\nitems: []\n"})
-	f.offered.ProjectPlugin = true
+	f := withClaude(scratch(t, "commit", map[string]string{"itos.yaml": "version: 1\n", "tasks/phase-1.yaml": "[]\n",
+		"tasks/work-items.yaml": "phases: {}\nitems: []\n"}))
 	var stdout strings.Builder
-	code, err := NewHandler(f).write(context.Background(), false, false, Offer{}, &stdout, Out{Stdout: &stdout})
+	code, err := NewHandler(f).write(context.Background(), false, false, Offer{Plugin: PluginFlag{Given: true}}, &stdout,
+		Out{Stdout: &stdout})
 	want := "kept itos.yaml\nkept tasks/phase-1.yaml\nkept tasks/work-items.yaml\n" +
 		"commits.since is HEAD, 0123456: no commit before it is judged.\nPinned itos 9.2.0, the newest release.\n" +
-		"hooks declared\noffered\nCommit what init wrote with the task that adopts itos: git add , then itos commit " +
+		"hooks declared\n" + pluginInstalled("project") + firstUnasked +
+		"Commit what init wrote with the task that adopts itos: git add , then itos commit " +
 		"--task <a task of the ledger> -m 'chore: adopt itos'\n"
 	if code != 0 || err != nil || stdout.String() != want || read("itos.yaml") != "version: 1\n" {
 		t.Errorf("exit %d, %v:\n%s", code, err, stdout.String())
@@ -370,11 +494,12 @@ func TestInitWritesTheStealthStarter(t *testing.T) {
 	stealth := filepath.Join(".git", "itos")
 	if code != 0 || err != nil || read(filepath.Join(stealth, "itos.yaml")) != (starter{stealth: true, pin: &[2]string{"9.2.0", release.SHA256([]byte(sums))}}).config() ||
 		read(filepath.Join(stealth, "tasks", "phase-1.yaml")) != (starter{stealth: true}).ledger() ||
-		!strings.HasSuffix(stdout, "offered\nNothing the project tracks changed: commit as ever, with itos commit, and push with itos push.\n") {
+		!strings.HasSuffix(stdout, shimUnasked+stealthUnasked+
+			"Nothing the project tracks changed: commit as ever, with itos commit, and push with itos push.\n") {
 		t.Errorf("exit %d, %v:\n%s", code, err, stdout)
 	}
-	if exists("itos.yaml") || !f.offers[0].Stealth {
-		t.Errorf("itos.yaml written, or the offers %+v", f.offers)
+	if exists("itos.yaml") {
+		t.Error("itos.yaml written")
 	}
 	f = scratch(t, "", nil)
 	if _, err := NewHandler(f).write(context.Background(), true, false, Offer{}, io.Discard, Out{Stdout: io.Discard}); err == nil {

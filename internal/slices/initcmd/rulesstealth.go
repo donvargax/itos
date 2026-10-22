@@ -1,7 +1,7 @@
-package cli
+package initcmd
 
 // itos init's rules for agents under a stealth config (slice 80,
-// features/init.feature), the stealth half of initrules.go. Nothing the
+// features/init.feature), the stealth half of rules.go. Nothing the
 // project tracks may change, so the rules go where git never looks: the
 // block, rulesBlock, to <git common dir>/itos/AGENTS.md,
 // beside the stealth config and shared by every worktree. Each agent then
@@ -23,7 +23,7 @@ package cli
 // A CLAUDE.local.md or an AGENTS.override.md already there is the person's:
 // it gains only the block, at its end, never the copy, its own text kept. An
 // AGENTS.override.md is itos's when it holds the copy's markers, or nothing
-// outside the rules block. The offer is initrules.go's; a rerun with no
+// outside the rules block. The offer is rules.go's; a rerun with no
 // --agent-rules reports a copy that no longer matches AGENTS.md, or a block
 // other than the one this itos writes, and --agent-rules rewrites only
 // between the markers.
@@ -34,13 +34,11 @@ package cli
 import (
 	"context"
 	"fmt"
-	"os"
 	"path/filepath"
 	"slices"
 	"strings"
 
 	"github.com/donvargax/itos/v8/internal/engine/agentrules"
-	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
 )
 
 const (
@@ -59,7 +57,7 @@ func stealthHowTo(s *agentrules.Stealth) string {
 }
 
 // runStealth is run under a stealth config.
-func (r rulesOffer) runStealth() (rulesOutcome, int) {
+func (r rulesOffer) runStealth(ctx context.Context) (rulesOutcome, int) {
 	say := func(format string, a ...any) { fmt.Fprintf(r.log, format+"\n", a...) }
 	none := []writtenFile{}
 	failed := func(problem string, asked bool) (rulesOutcome, int) {
@@ -68,14 +66,14 @@ func (r rulesOffer) runStealth() (rulesOutcome, int) {
 			return rulesOutcome{Action: "failed", Files: none, Problem: problem}, 0
 		}
 		say("The itos rules for agents are not written: %s.", problem)
-		return rulesOutcome{Action: "failed", Files: none, Problem: problem}, ExitPolicy
+		return rulesOutcome{Action: "failed", Files: none, Problem: problem}, exitPolicy
 	}
-	s, err := agentrules.ReadStealth(context.Background(), vcs.Git{})
+	s, err := agentrules.ReadStealth(ctx, r.ports)
 	if err != nil {
-		return failed(err.Error(), r.flag.given)
+		return failed(err.Error(), r.flag.Given)
 	}
 	found := s.Found()
-	if !r.flag.given && !found {
+	if !r.flag.Given && !found {
 		answer := ""
 		if r.ask && !r.rerun {
 			answer = r.question(fmt.Sprintf("Write itos's rules for agents into %s, imported from %s and written "+
@@ -93,7 +91,7 @@ func (r rulesOffer) runStealth() (rulesOutcome, int) {
 	}
 	targets := s.Plan(rulesBlock)
 
-	if !r.flag.given {
+	if !r.flag.Given {
 		var pending []string
 		for _, t := range targets {
 			if t.Next != t.Text {
@@ -107,7 +105,7 @@ func (r rulesOffer) runStealth() (rulesOutcome, int) {
 		copyStale := s.CopyStale()
 		switch {
 		case rulesStale:
-			say("%s", staleRulesLine(true))
+			say("%s", agentrules.StaleLine(true))
 		case !copyStale:
 			say("The itos rules for agents are not all in place here (%s): itos init --agent-rules writes them, "+
 				"only between the markers.", strings.Join(pending, ", "))
@@ -121,7 +119,7 @@ func (r rulesOffer) runStealth() (rulesOutcome, int) {
 
 	for _, t := range targets {
 		if t.Top && t.Next != t.Text {
-			if (vcs.Git{}).Tracked(context.Background(), t.Disk) {
+			if r.ports.Tracked(ctx, t.Disk) {
 				return failed(t.Path+" is tracked by the project, and under a stealth config itos changes nothing tracked", true)
 			}
 		}
@@ -134,10 +132,10 @@ func (r rulesOffer) runStealth() (rulesOutcome, int) {
 			if !t.Exists {
 				action = "wrote"
 			}
-			if err := os.MkdirAll(filepath.Dir(t.Disk), 0o777); err != nil {
+			if err := r.ports.MkdirAll(ctx, filepath.Dir(t.Disk), 0o777); err != nil {
 				return failed(err.Error(), true)
 			}
-			if err := agentrules.WriteText(t.Disk, t.Next, t.CRLF); err != nil {
+			if err := r.ports.WriteText(ctx, t.Disk, t.Next, t.CRLF); err != nil {
 				return failed(err.Error(), true)
 			}
 		}
@@ -148,7 +146,7 @@ func (r rulesOffer) runStealth() (rulesOutcome, int) {
 		if !t.Top {
 			continue
 		}
-		if listed, err := excludeIfShown(t.Path); err != nil {
+		if listed, err := excludeIfShown(ctx, r.ports, t.Path); err != nil {
 			say("Could not list %s in the git folder's info/exclude: %v", t.Path, err)
 		} else if listed {
 			excluded = append(excluded, t.Path)
@@ -161,7 +159,7 @@ func (r rulesOffer) runStealth() (rulesOutcome, int) {
 		}
 	}
 	if len(excluded) > 0 {
-		say("Listed %s in the git folder's info/exclude, so git status stays clean.", prose(excluded, "and"))
+		say("Listed %s in the git folder's info/exclude, so git status stays clean.", agentrules.Prose(excluded, "and"))
 	}
 	if !changed {
 		say("The itos rules for agents are in place already, in %s, %s and %s.", s.ImportPath, claudeLocalFile, overrideFile)

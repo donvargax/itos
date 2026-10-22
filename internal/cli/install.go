@@ -19,12 +19,6 @@ func exists(p string) bool {
 	return err == nil
 }
 
-// readIf is a file's text, and whether it is there.
-func readIf(p string) (string, bool) {
-	text, err := os.ReadFile(p)
-	return string(text), err == nil
-}
-
 // hookInstall is `hook install`, the hook slice's, which init runs.
 func hookInstall(print, force bool, o Out) (int, error) {
 	c := hookslice.CLI{Query: hookslice.Query{Sub: "install", Print: print, Force: force}, JSON: o.JSON, Tests: o.Tests}

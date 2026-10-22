@@ -48,7 +48,7 @@ func TestInitWriteStopsAtAFileItCannotWrite(t *testing.T) {
 			failed := errors.New("injected write failure")
 			f.writeErrs = map[string]error{c.file: failed}
 			code, stdout, _, err := call(t, f)
-			if code != 0 || err != failed || stdout != "" || len(f.installs) != 0 || len(f.offers) != 0 {
+			if code != 0 || err != failed || stdout != "" || len(f.installs) != 0 || f.asked != 0 {
 				t.Errorf("exit %d, %v:\n%s", code, err, stdout)
 			}
 			if exists(c.file) || exists(starterLedger) != c.ledger {
@@ -60,9 +60,10 @@ func TestInitWriteStopsAtAFileItCannotWrite(t *testing.T) {
 
 // Under --json init prints one object on stdout, what it says on stderr:
 // its config, the files, HEAD as since, the pin, hook install's object
-// without its schema, and the offers', whose words are discarded; with no
-// release server no pin, and why.
+// without its schema, and the offers', whose words are discarded, nobody
+// asked; with no release server no pin, and why.
 func TestInitWriteUnderJSON(t *testing.T) {
+	type offer struct{ Action string }
 	type report struct {
 		Config     string
 		Action     string
@@ -72,9 +73,9 @@ func TestInitWriteUnderJSON(t *testing.T) {
 		Pin        *struct{ Version, Checksums string }
 		PinProblem string `json:"pin_problem"`
 		Hooks      map[string]any
-		Plugin     string
-		GitShim    string `json:"git_shim"`
-		AgentRules string `json:"agent_rules"`
+		Plugin     offer
+		GitShim    offer `json:"git_shim"`
+		AgentRules offer `json:"agent_rules"`
 	}
 	for _, served := range []bool{true, false} {
 		f := scratch(t, "commit", nil)
@@ -90,7 +91,7 @@ func TestInitWriteUnderJSON(t *testing.T) {
 		if got.Config != "itos.yaml" || got.Action != "initialized" || got.GitInit || got.Since == nil || *got.Since != head ||
 			len(got.Files) != 3 || got.Files[2] != (writtenFile{"tasks/work-items.yaml", "wrote"}) ||
 			(got.Pin != nil) != served || (got.PinProblem == "") != served || len(got.Hooks) != 1 ||
-			got.Plugin != "plugin" || got.GitShim != "shim" || got.AgentRules != "rules" {
+			got.Plugin.Action != "no_claude" || got.GitShim.Action != "offered" || got.AgentRules.Action != "offered" {
 			t.Errorf("served %v:\n%s", served, stdout)
 		}
 		if served && (got.Pin.Version != "9.2.0" || got.Pin.Checksums != release.SHA256([]byte(sums))) {
@@ -99,8 +100,8 @@ func TestInitWriteUnderJSON(t *testing.T) {
 		if !served && got.PinProblem != "no server" {
 			t.Errorf("the pin's problem %q", got.PinProblem)
 		}
-		if len(f.installs) != 1 || !f.installs[0] || f.offers[0].Ask {
-			t.Errorf("hooks %v, offers %+v", f.installs, f.offers)
+		if len(f.installs) != 1 || !f.installs[0] || f.asked != 0 {
+			t.Errorf("hooks %v, terminal asked %d times", f.installs, f.asked)
 		}
 	}
 	// In an unborn repository, since is null.
@@ -116,25 +117,27 @@ func TestInitWriteUnderJSON(t *testing.T) {
 // it not 0 init names nothing to commit; hook install failing, or writing
 // what is no JSON under --json, stops init.
 func TestInitWriteTakesHookInstallsCode(t *testing.T) {
+	noItos := errors.New("no itos to link")
 	f := scratch(t, "commit", nil)
-	f.hooksCode, f.offered.Code = 3, 1
+	f.hooksCode, f.placeErr = 3, noItos
 	code, stdout, _, err := call(t, f)
-	if code != 3 || err != nil || strings.Contains(stdout, "Commit what init wrote") || !strings.HasSuffix(stdout, "offered\n") {
+	if code != 3 || err != nil || strings.Contains(stdout, "Commit what init wrote") ||
+		!strings.HasSuffix(stdout, "The git shim is not linked: no itos to link.\n"+rulesHowTo+"\n") {
 		t.Errorf("exit %d, %v:\n%s", code, err, stdout)
 	}
 	f = scratch(t, "commit", nil)
-	f.offered.Code = 1
+	f.placeErr = noItos
 	if code, _, _, err := call(t, f); code != 1 || err != nil {
 		t.Errorf("an offer failing: exit %d, %v", code, err)
 	}
 	f = scratch(t, "commit", nil)
-	f.offered.Code = 1
+	f.placeErr = noItos
 	if code, _, _, err := call(t, f, "--json"); code != 1 || err != nil {
 		t.Errorf("an offer failing under --json: exit %d, %v", code, err)
 	}
 	f = scratch(t, "commit", nil)
 	f.hooksErr = errors.New("git config failed")
-	if _, _, _, err := call(t, f); err != f.hooksErr || len(f.offers) != 0 {
+	if _, _, _, err := call(t, f); err != f.hooksErr || f.asked != 0 {
 		t.Errorf("hook install failing: %v", err)
 	}
 	f = scratch(t, "commit", nil)

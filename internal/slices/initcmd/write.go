@@ -187,7 +187,7 @@ func (h Handler) offers(ctx context.Context, offer Offer, log io.Writer, o Out) 
 	if o.JSON {
 		log = io.Discard
 	}
-	return h.ports.Offers(ctx, offer, log)
+	return h.makeOffers(ctx, offer, log)
 }
 
 // installHooks runs hook install on the config just written; under --json

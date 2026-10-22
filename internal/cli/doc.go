@@ -96,46 +96,6 @@
 // which cmd/itos hands the launcher in a launch.CLI with Parse and ExitCode:
 // the launcher imports no internal/cli.
 //
-// itos init (internal/slices/initcmd) makes three offers, both ways, through
-// its Offers port, which initPorts binds here
-// (docs/decisions/0031-itos-init-offers-the-plugin-and-the-git-shim-opt-in-everywhere.md,
-// docs/decisions/0032-itos-init-generates-the-config-s-rules-into-a-marked-block-of-agents-md.md).
-// The first run without a flag asks a terminal (question, only where stdin
-// and stdout are both a character device other than the null device, never
-// under --json, the offers sharing one buffered reader of stdin so none
-// takes another's answer) or says how; run again where a config is, none
-// asks: each says how, or installs for its flag, and the checked object
-// always holds notes and git_shim.
-//
-//   - The plugin (initplugin.go, pluginOffer.run): --plugin no ends it, a
-//     claude the PATH lacks is said only for --plugin, claude plugin list
-//     --json read as a list whose itos@itos entry, enabled where init runs,
-//     means installed; the scope is the flag's (a bare one pluginDefault's)
-//     or the terminal's answer. It runs marketplace add, whose failure alone
-//     is not one, then install, whose failure is printed with claude's output
-//     and exits 1; a local install under --stealth lists
-//     .claude/settings.local.json in info/exclude while git shows it
-//     untracked (excludeIfShown). --stealth --plugin project, or --plugin
-//     project where the config found is the stealth one, is a usage error
-//     before anything runs.
-//   - The git shim (initshim.go, shimOffer.run): --no-git-shim ends it;
-//     shimPlace gives the link git-shim install would make (its
-//     --git-shim-dir, made absolute where it was typed), unless, with no
-//     folder named, the first git on the PATH already links this itos; a
-//     link to this itos is kept, a git that is no link to itos refused for
-//     --git-shim (exit 1) and otherwise only said, a link to another itos
-//     replaced; then makeLink and standingLine.
-//   - The rules for agents (initrules.go, rulesOffer.run): the block, its
-//     markers and their staleness are internal/engine/agentrules'.
-//     writeRules replaces the block agentrules.Split found, or appends one,
-//     and gives CLAUDE.md an @AGENTS.md line unless it has one or is
-//     AGENTS.md itself; both files keep the line endings they had. A rerun
-//     with no flag compares the block with agentrules.Block and says only
-//     that it is stale. Under a stealth config runStealth
-//     (initrulesstealth.go) writes the three files agentrules.Stealth plans,
-//     never AGENTS.md or CLAUDE.md, refusing a file at the top that the
-//     project tracks.
-//
 // # itos push
 //
 // push is the push slice (internal/slices/push); push.go binds its Ports to

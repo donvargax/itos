@@ -1,6 +1,7 @@
 package initcmd
 
 import (
+	"bufio"
 	"context"
 	"errors"
 	"fmt"
@@ -37,11 +38,21 @@ type Query struct {
 // name no group, which internal/cli's flag spec holds; Release, the release
 // to pin, the version wanted or with "" the newest, and its checksums.txt
 // (pinengine.Pinned); InstallHooks, hook install run as itos hook install
-// runs, writing to stdout, its object under json, and its exit code;
-// Offers, the offers of the plugin, the git shim and the rules for agents,
-// each saying what it does on log; and Abs and WriteFile, filepath.Abs and
-// os.WriteFile, ports so a test makes them fail, as no failure of theirs
-// comes alike from every OS.
+// runs, writing to stdout, its object under json, and its exit code; and
+// Abs, WriteFile, MkdirAll and WriteText, filepath.Abs, os.WriteFile,
+// os.MkdirAll and agentrules.WriteText, ports so a test makes them fail, as
+// no failure of theirs comes alike from every OS.
+//
+// The offers reach the rest: Terminal, whether a person is at the other
+// end, stdin and stdout both a terminal, and Stdin, where a terminal's
+// answers are read from; LookPath, exec.LookPath, which finds claude and
+// the first git on the PATH, and Command, a program run with its stdout and
+// stderr together, its error an *exec.ExitError when it exits other than 0;
+// and git-shim install's ShimPlace (the itos running and the link to it in
+// dir, "" for its own folder), LinksItos (whether a path links to this
+// itos, or to another binary named itos), MakeLink, PathStanding (where a
+// folder and the real git stand on the PATH, -1 when not there) and
+// StandingLine (what that means for the shim).
 type Ports interface {
 	vcsport.VCS
 	hooks.Git
@@ -50,9 +61,19 @@ type Ports interface {
 	TaskFlags(ctx context.Context) []string
 	Release(ctx context.Context, want string) (string, []byte, error)
 	InstallHooks(ctx context.Context, stdout io.Writer, json bool) (int, error)
-	Offers(ctx context.Context, o Offer, log io.Writer) Offered
 	Abs(ctx context.Context, path string) (string, error)
 	WriteFile(ctx context.Context, name string, data []byte, perm os.FileMode) error
+	MkdirAll(ctx context.Context, path string, perm os.FileMode) error
+	WriteText(ctx context.Context, path, text string, crlf bool) error
+	Terminal(ctx context.Context) bool
+	Stdin(ctx context.Context) io.Reader
+	LookPath(ctx context.Context, file string) (string, error)
+	Command(ctx context.Context, name string, args ...string) (string, error)
+	ShimPlace(ctx context.Context, dir string) (self, link string, err error)
+	LinksItos(ctx context.Context, link string) (self, other bool)
+	MakeLink(ctx context.Context, self, link string, replace bool) error
+	PathStanding(ctx context.Context, dir string) (at int, realGit string, realAt int)
+	StandingLine(ctx context.Context, dir string, at int, realGit string, realAt int) string
 }
 
 // Offer is what the offers are told: the command line's answers, whether
@@ -73,10 +94,34 @@ type Offer struct {
 // whether the plugin was installed at the project's scope, ProjectPlugin;
 // and the files of the rules written or updated, RulesWritten.
 type Offered struct {
-	Plugin, Shim, Rules any
-	Code                int
-	ProjectPlugin       bool
-	RulesWritten        []string
+	Plugin        pluginOutcome
+	Shim          shimOutcome
+	Rules         rulesOutcome
+	Code          int
+	ProjectPlugin bool
+	RulesWritten  []string
+}
+
+// makeOffers makes the plugin's offer, the git shim's and that of the rules
+// for agents, in that order, a terminal asked where one is and the offer
+// may ask, through one reader, so the first cannot take the second's answer
+// into its buffer.
+func (h Handler) makeOffers(ctx context.Context, o Offer, log io.Writer) Offered {
+	ask, answers := o.Ask && h.ports.Terminal(ctx), bufio.NewReader(h.ports.Stdin(ctx))
+	plugin, pluginCode := pluginOffer{flag: o.Plugin, stealth: o.Stealth, ask: ask,
+		log: log, answers: answers, ports: h.ports}.run(ctx)
+	shim, shimCode := shimOffer{flag: o.Shim, ask: ask, log: log,
+		answers: answers, ports: h.ports}.run(ctx)
+	rules, rulesCode := rulesOffer{flag: o.Rules, stealth: o.Stealth, rerun: o.Rerun,
+		ask: ask, log: log, answers: answers, ports: h.ports}.run(ctx)
+	offered := Offered{Plugin: plugin, Shim: shim, Rules: rules, Code: max(pluginCode, shimCode, rulesCode),
+		ProjectPlugin: plugin.Action == "installed" && plugin.Scope == "project"}
+	for _, f := range rules.Files {
+		if f.Action != "kept" {
+			offered.RulesWritten = append(offered.RulesWritten, f.Path)
+		}
+	}
+	return offered
 }
 
 // Handler is init's application, over its ports.
