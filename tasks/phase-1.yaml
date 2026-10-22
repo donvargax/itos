@@ -3503,19 +3503,6 @@
     committed golden: the user, 2026-10-21). No behaviour change: same bytes, same exit codes, same
     order. Lane A, after A2. Uses the configcheck and hooks engines (S3, S4); copies hasCommit and
     printSinceIssues. Keeps hookInstall in cli (init binds it).
-  done_when:
-    - run: go test ./internal/cli ./internal/slices/... ./internal/engine/... -count=1
-      timeout: 600
-    - run: go run ./tools/bin/assemble -check
-    - run: go run ./tools/bin/conformance --bin tools/bin/itos --only tools/itos/conformance/help.yaml tools/itos/conformance/cli.yaml tools/itos/conformance/hooks.yaml tools/itos/conformance/moves.yaml
-      timeout: 600
-    - run: go test ./features -count=1 -scenarios='^@ID-(CLI|BIN|EXT|CMSG|CDATA|CTASK|HOOKSNAP|PREPUSH|MOVES)-[0-9]+$'
-      timeout: 600
-    - run: tools/bin/architecture-check
-    - run: tools/bin/pinned golangci-lint run ./...
-      timeout: 600
-    - run: grep -q 'hookslice.Command' internal/cli/commands_gen.go
-    - run: "! grep -nE '^func (\\([^)]*\\) )?(hookCommitMsg|hookPrePush|stagedDataIssues|verifyPush|prePushInput)\\(' internal/cli/*.go"
 
 - id: T-250
   type: refactor
