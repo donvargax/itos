@@ -31,7 +31,7 @@ func classify(cfg *config.Loaded, from, to string) (scope, error) {
 	if !plan.Readable(cfg.VCS, from, to) || !cfg.VCS.IsAncestor(context.Background(), from, to) {
 		return full, nil
 	}
-	paths := plan.Changed(from, to)
+	paths := plan.Changed(cfg.VCS, from, to)
 	if len(paths) == 0 || cfg.CI.Prose == nil || len(cfg.CI.Prose.Steps) == 0 {
 		return full, nil
 	}
