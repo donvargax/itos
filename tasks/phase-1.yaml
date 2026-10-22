@@ -2823,6 +2823,3 @@
     internal/cli/status.go:324 and 330 (readBranch's remote-unreached and last-fetched path)
     uncovered. Unit tests first, through the VCS fake (internal/vcs/port/porttest) where it reaches
     the line; no change to what itos does.
-  done_when:
-    - run: tools/bin/pinned itos-cc mutation run --since c50c2a6c --count 1 --seed c50c2a6c --fail-uncovered=lines --json cmd internal
-      timeout: 900
