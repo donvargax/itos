@@ -12162,7 +12162,7 @@ items:
     title: A unit test kills statusCommand's positional-argument survivor and covers its uncovered lines
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
 

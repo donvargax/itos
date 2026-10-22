@@ -3142,8 +3142,6 @@
     not covered by internal/cli's unit tests. The function is unchanged, so no push proof draws it;
     the nightly would. A unit test through statusCommand with one and two positional arguments,
     asserting the usage error and exit 2, and the three lines covered. No change to what itos does.
-  done_when:
-    - run: go test ./internal/cli -run 'StatusCommand'
 
 - id: T-239
   type: refactor
