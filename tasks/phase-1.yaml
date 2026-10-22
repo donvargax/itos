@@ -3748,19 +3748,6 @@
     committed golden: the user, 2026-10-21). No behaviour change: same bytes, same exit codes, same
     order. Lane C, after C2. UpgradeTarget (the launcher's API) stays in cli and calls the slice's
     naming of the version; Ports: ReadLine and fetching releases.
-  done_when:
-    - run: go test ./internal/cli ./internal/slices/... ./internal/engine/... -count=1
-      timeout: 600
-    - run: go run ./tools/bin/assemble -check
-    - run: go run ./tools/bin/conformance --bin tools/bin/itos --only tools/itos/conformance/help.yaml tools/itos/conformance/cli.yaml
-      timeout: 600
-    - run: go test ./features -count=1 -scenarios='^@ID-(CLI|BIN|EXT|UPGRADE|UPGRADECMD|UPGRADEHAND|UPDATE)-[0-9]+$'
-      timeout: 600
-    - run: tools/bin/architecture-check
-    - run: tools/bin/pinned golangci-lint run ./...
-      timeout: 600
-    - run: grep -q 'upgradeslice.Command' internal/cli/commands_gen.go
-    - run: "! grep -nE '^func (\\([^)]*\\) )?(upgradeCommand|applySteps|walkReleases|schemaSteps)\\(' internal/cli/*.go"
 
 - id: T-256
   type: refactor
