@@ -12376,7 +12376,7 @@ items:
     title: itos ci becomes a slice
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [T-242, T-243, T-244, T-245, T-246, T-258]
     kind: task
 

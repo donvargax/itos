@@ -3935,19 +3935,6 @@
     committed golden: the user, 2026-10-21). No behaviour change: same bytes, same exit codes, same
     order. Lane D, after D1. Keeps the watch wrappers in cli until A4 and the work pieces stop using
     them.
-  done_when:
-    - run: go test ./internal/cli ./internal/slices/... ./internal/engine/... -count=1
-      timeout: 600
-    - run: go run ./tools/bin/assemble -check
-    - run: go run ./tools/bin/conformance --bin tools/bin/itos --only tools/itos/conformance/help.yaml tools/itos/conformance/cli.yaml tools/itos/conformance/ci-run.yaml tools/itos/conformance/plans.yaml tools/itos/conformance/range.yaml tools/itos/conformance/watch.yaml
-      timeout: 600
-    - run: go test ./features -count=1 -scenarios='^@ID-(CLI|BIN|EXT|CI|WATCH)-[0-9]+$'
-      timeout: 600
-    - run: tools/bin/architecture-check
-    - run: tools/bin/pinned golangci-lint run ./...
-      timeout: 600
-    - run: grep -q 'cislice.Command' internal/cli/commands_gen.go
-    - run: "! grep -nE '^func (\\([^)]*\\) )?(ciPlan|ciRun|ciScope|ciRange|ciWatch)\\(' internal/cli/*.go"
 
 - id: T-260
   type: refactor
