@@ -12091,3 +12091,11 @@ items:
     status: todo
     depends_on: []
     kind: task
+
+  - id: T-235
+    title: "The agent rules engine out of internal/cli: the AGENTS.md block and its staleness, internal/engine/agentrules"
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task
