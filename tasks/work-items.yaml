@@ -12333,3 +12333,11 @@ items:
     status: todo
     depends_on: []
     kind: task
+
+  - id: T-256
+    title: "itos init becomes a slice, part 1: its core"
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task
