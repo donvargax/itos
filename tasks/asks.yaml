@@ -374,3 +374,4 @@ questions:
     question: "#100: should itos read or cross-check a plan kept in Markdown? Recommended: only the cheap half: an item's refs may carry a #heading anchor and work check refuses one that no longer exists; no status sync between prose and the registry, and no import of checklists. Low priority: the reporter's repository chose no itos."
   - id: q-93
     question: "#108: should itos push retry a push the remote refused as not a fast-forward, when a new rebase is clean? Recommended: yes, bounded (three tries), only for non-fast-forward, each retry reported, the pre-push hook running each time. Today push.go says such a refusal is never retried, on purpose; p1-pr-mode would make the race go away."
+    answer: "The user, 2026-10-21: the recommendation. A bounded retry: up to three tries, only for a non-fast-forward refusal, each reported, the pre-push hook running each time (p1-push-retry-moved-remote)."
