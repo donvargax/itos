@@ -38,9 +38,6 @@ func (h Handler) report(ctx context.Context, file string, offer Offer, o Out) (i
 		code = exitPolicy
 	}
 	if o.JSON {
-		if found == nil {
-			found = []configcheck.Found{}
-		}
 		if notes == nil {
 			notes = []configcheck.Found{}
 		}
