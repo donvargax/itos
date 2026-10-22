@@ -12756,3 +12756,18 @@ items:
       Windows can fail the same way (a bug, then a fix with a scenario) or only the test races (a
       test fix). The Windows platform-job lesson.
     tags: [windows]
+
+  - id: p1-one-gherkin-reader
+    title: Read a feature file's scenarios through the Gherkin parser alone
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Slice-166 parses feature files with github.com/cucumber/gherkin for fingerprints, while
+      ParseFeature still finds scenarios by tag lines: the two can disagree (a line starting with an
+      ID tag inside a doc string is a scenario to ParseFeature, not to Gherkin; a scenario whose ID
+      tag sits on its second tag line splits differently), and such a scenario is then listed
+      without a fingerprint. Reading IDs, wip and blocks from the Gherkin AST too would leave one
+      reader of a feature file; the moves rule's block comparison would need its own design.
