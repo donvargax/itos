@@ -59,8 +59,8 @@ cases:
       since: "{{sha.start}}"
       files: [{ path: itos.yaml, action: wrote }, { path: tasks/phase-1.yaml, action: wrote }, { path: tasks/work-items.yaml, action: wrote }]
       pin: null
-      pin_problem: "<any>"
       hooks: { hooks: [{ name: itos-commit-msg, action: wrote }, { name: itos-pre-push, action: wrote }] }
+    stdout_has: 127.0.0.1:1/no-release-server
     files_after:
       itos.yaml: |
         # itos.yaml, written by itos init: this repository's rules for its commits,
@@ -336,7 +336,8 @@ cases:
     json_has:
       action: initialized
       files: [{ path: itos.yaml, action: wrote }, { path: tasks/phase-1.yaml, action: wrote }, { path: tasks/work-items.yaml, action: wrote }]
-      agent_rules: { action: failed, files: [], problem: "<any>" }
+      agent_rules: { action: failed, files: [] }
+    stdout_has: AGENTS.md
     files_after:
       AGENTS.md: "<!-- itos:begin -->\nMine.\n"
       CLAUDE.md: null
