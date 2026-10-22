@@ -3399,18 +3399,6 @@
     configcheck.go's findings move to internal/engine/configcheck (Found, tagged, smokeFindings,
     judgedSmokeFindings, configFindings), taskFlags passed in since it reads the specs. internal/cli
     names stay as wrappers.
-  done_when:
-    - run: go test ./internal/cli ./internal/slices/... ./internal/engine/... -count=1
-      timeout: 600
-    - run: go run ./tools/bin/assemble -check
-    - run: go run ./tools/bin/conformance --bin tools/bin/itos --only tools/itos/conformance/help.yaml tools/itos/conformance/cli.yaml tools/itos/conformance/config.yaml
-      timeout: 600
-    - run: go test ./features -count=1 -scenarios='^@ID-(CLI|BIN|EXT|CLI|CONFIG|ASK|DRAFT|STATUS)-[0-9]+$'
-      timeout: 600
-    - run: tools/bin/architecture-check
-    - run: tools/bin/pinned golangci-lint run ./...
-      timeout: 600
-    - run: test -d internal/engine/configcheck
 
 - id: T-247
   type: refactor

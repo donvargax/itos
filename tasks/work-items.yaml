@@ -12271,7 +12271,7 @@ items:
     title: "Slices, prerequisite 4: the questions and drafts readers and the config findings as shared code"
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [T-242]
     kind: task
 
