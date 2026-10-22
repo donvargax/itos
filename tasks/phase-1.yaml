@@ -4223,3 +4223,29 @@
     v0.12.0. A flag or format that changed is followed, never worked around; a gate is never
     weakened to pass. Name each change in the commit body. Checks are CI's (ADR-0057): the push runs
     the push proof with the new release; the nightly runs its mutation steps with it.
+
+- id: T-277
+  type: ci
+  title: "The nightly's own steps pass again: gates self-test line, latest-CI check, v0.26.0 report"
+  why: >
+    The nightly run by hand on 2026-10-22 (39817143873; issue #29's comment of that run, the first
+    that names its steps since T-273) failed in three of its own steps, apart from the mutation
+    survivors (T-191). (1) The gates self-test (tools/selftest/gates, 'the hooks let through a
+    refactor that changes what itos prints') edits internal/work/registry.go's unknown status
+    problem because no unit test read it; T-265's internal/slices/work/work_test.go:386 now reads
+    it, so pre-commit and pre-push fail where the test expects them to pass. Pick another printed
+    line that no unit test reads and a smoke-set scenario does, as T-268 did, and say which in its
+    comment. (2) The latest-CI check (the step that runs gh run list --workflow ci.yml --branch main
+    --status completed --limit 1 then gh run view) failed both nightlies of 2026-10-22 with HTTP 404
+    on runs/ (an empty id) while CI was green: under the gh the nightly installs (2.101.0) the list
+    gives no id. Find why (flag or JSON change in gh, or the token) and make the step read the
+    latest completed run reliably, failing with a sentence when none is found rather than calling gh
+    run view with an empty id. (3) nightly-report says 'Its itos-cc report could not be read from
+    the log' for both mutation steps under itos-cc v0.26.0 (T-276), so it names no survivor; and a
+    step whose command spans several lines renders as a bullet beginning ': '. Read that run's log
+    (gh api repos/donvargax/itos/actions/jobs/<id>/logs; the local gh is older than the nightly's),
+    make nightly-report read v0.26.0's report, and render a multi-line command's first line. Each
+    part gets a unit or self-test case built from that log. No change to itos.
+  done_when:
+    - run: go test ./tools/bin/nightly-report -count=1
+    - run: ITOS_SELFTEST=1 go test -count=1 -run '^TestSelftest$' ./tools/selftest/gates

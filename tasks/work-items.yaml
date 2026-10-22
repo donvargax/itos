@@ -12646,3 +12646,11 @@ items:
     status: done
     depends_on: []
     kind: task
+
+  - id: T-277
+    title: "The nightly's own steps pass again: gates self-test line, latest-CI check, v0.26.0 report"
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task
