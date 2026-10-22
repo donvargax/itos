@@ -11327,8 +11327,8 @@ items:
   - id: T-216
     title: "The VCS port, part 1: locate, resolve, ancestry and ranges, with config's locating moved onto it"
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
 
