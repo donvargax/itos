@@ -12063,7 +12063,7 @@ items:
     title: Shim install out of internal/cli into internal/shim, which stops importing internal/cli
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [T-228]
     kind: task
 

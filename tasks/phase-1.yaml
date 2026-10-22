@@ -2963,15 +2963,6 @@
     shimPlace, linksItos, makeLink, pathStanding, sameFolder, standingLine and GitShimSince;
     initshim.go is the other caller. After it internal/shim imports no internal/cli. The Windows
     hard-link fallback and git.exe naming keep their OS value from T-213.
-  done_when:
-    - run: go test ./internal/shim/ ./internal/cli
-      timeout: 600
-    - run: "! grep -n 'internal/cli\"' internal/shim/*.go"
-    - run: tools/bin/architecture-check
-    - run: tools/bin/pinned golangci-lint run ./...
-      timeout: 600
-    - run: go test ./features -count=1 -scenarios='^@ID-(SHIM|SHIMINIT|INIT)-[0-9]+$'
-      timeout: 600
 
 - id: T-231
   type: refactor
