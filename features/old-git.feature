@@ -6,9 +6,13 @@ Feature: itos's hooks on a git that runs no hook its config declares
   into the folder git runs hooks from (git rev-parse --git-path hooks, which
   follows core.hooksPath), each one running a hook the folder already held
   first and then itos's, and every command that commits or pushes refuses
-  unless a hook file there calls itos. A git that runs its config's hooks is
-  unchanged. A hook file git tracks is the project's: itos never writes one,
-  and says which line to add to it instead.
+  unless a hook file there calls itos. A hook file git tracks is the
+  project's: itos never writes one, and says which line to add to it
+  instead. The git config stays the default and the only place itos writes
+  on a git that runs its config's hooks (config.feature's ID-CONFIG-38):
+  hook files are a compatibility path for older gits, kept a few months
+  until most people's git runs config hooks (the user, 2026-10-22), and
+  removed then.
 
   Background:
     Given a repository whose ledger has the task "T-001"
