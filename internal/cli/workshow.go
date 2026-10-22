@@ -1,13 +1,10 @@
 package cli
 
-// work show is the work slice's (internal/slices/work); what work done and
-// work edit read as it does stays here.
+// work show is the work slice's (internal/slices/work); what work done
+// reads as it does stays here.
 
 import (
-	"regexp"
-
 	"github.com/donvargax/itos/v8/internal/config"
-	"github.com/donvargax/itos/v8/internal/ledger"
 	"github.com/donvargax/itos/v8/internal/message"
 	"github.com/donvargax/itos/v8/internal/tests"
 )
@@ -26,14 +23,4 @@ func linksTo(cfg *config.Loaded, id string, scenarios []tests.Test) func(message
 		k, _ := cfg.Tests.Get(l.Tests)
 		return tagged[l.ID] || tagged[k.TagPrefix+l.ID]
 	}
-}
-
-// taskIDs is ledger.id as a pattern, nil when the config has none: an item
-// of no kind is a task by its id only where the ledger says what a task's id
-// is (work.SpecKind).
-func taskIDs(cfg *config.Loaded) *regexp.Regexp {
-	if cfg.Ledger.ID == nil {
-		return nil
-	}
-	return ledger.IDPattern(cfg)
 }

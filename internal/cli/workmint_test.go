@@ -21,43 +21,6 @@ func registryWriterRepo(t *testing.T, registry string) string {
 	return dir
 }
 
-func TestWorkArgsOptionalIDDistinguishesMissingAndExplicitIDs(t *testing.T) {
-	flags := []string{"--kind", "--title", "--why"}
-	id, hasID, values, err := workArgsOptionalID("add", []string{"--kind", "slice", "--title", "Slice", "--why", "Because."}, flags...)
-	if err != nil || id != "" || hasID || values["--kind"] != "slice" {
-		t.Fatalf("no-ID parse = (%q, %t, %v, %v)", id, hasID, values, err)
-	}
-	id, hasID, _, err = workArgsOptionalID("add", []string{"p1-idea", "--kind", "idea", "--title", "Idea", "--why", "Because."}, flags...)
-	if err != nil || id != "p1-idea" || !hasID {
-		t.Fatalf("idea-ID parse = (%q, %t, %v)", id, hasID, err)
-	}
-	if _, _, _, err := workArgsOptionalID("add", []string{"slice-1", "slice-2", "--kind", "slice"}, flags...); err == nil {
-		t.Fatal("workArgsOptionalID accepted two positional IDs")
-	}
-}
-
-// A refused command line names no ID: beside its error, workArgsOptionalID
-// gives no ID, no flags and hasID false, whether a flag or a second ID
-// refused it.
-func TestWorkArgsOptionalIDGivesNoIDBesideItsError(t *testing.T) {
-	flags := []string{"--kind", "--title"}
-	for _, test := range []struct {
-		name string
-		args []string
-		want string
-	}{
-		{name: "unknown flag", args: []string{"p1-idea", "--unknown", "value"}, want: "does not take --unknown"},
-		{name: "two IDs", args: []string{"p1-idea", "p1-other", "--kind", "idea"}, want: "takes at most one <id>"},
-	} {
-		t.Run(test.name, func(t *testing.T) {
-			id, hasID, values, err := workArgsOptionalID("add", test.args, flags...)
-			if err == nil || !strings.Contains(err.Error(), test.want) || id != "" || hasID || values != nil {
-				t.Fatalf("workArgsOptionalID = (%q, %t, %v, %v), want no ID beside the error %q", id, hasID, values, err, test.want)
-			}
-		})
-	}
-}
-
 func TestWorkArgsParsedRejectsMalformedFlagsAndAllowsDeclaredEmptyValues(t *testing.T) {
 	for _, test := range []struct {
 		name string
@@ -82,159 +45,17 @@ func TestWorkArgsParsedRejectsMalformedFlagsAndAllowsDeclaredEmptyValues(t *test
 	}
 }
 
-func TestWorkAddRejectsInvalidKindMissingIdeaIDAndBlankFields(t *testing.T) {
-	for _, test := range []struct {
-		name, want string
-		args       []string
-	}{
-		{name: "unknown flag", args: []string{"--unknown", "x"}, want: "does not take --unknown"},
-		{name: "missing title", args: []string{"--kind", "slice", "--why", "Because."}, want: "needs --title"},
-		{name: "empty title", args: []string{"--kind", "slice", "--title", "", "--why", "Because."}, want: "takes one --title"},
-		{name: "empty why", args: []string{"--kind", "slice", "--title", "Slice", "--why", ""}, want: "takes one --why"},
-		{name: "whitespace why", args: []string{"--kind", "slice", "--title", "Slice", "--why", " "}, want: "needs --title"},
-		{name: "unknown kind", args: []string{"--kind", "bogus", "--title", "Bogus", "--why", "Because."}, want: "takes --kind"},
-		{name: "idea without an author id", args: []string{"--kind", "idea", "--title", "Idea", "--why", "Because."}, want: "needs <idea-id>"},
-	} {
-		t.Run(test.name, func(t *testing.T) {
-			code, err := workAdd(test.args, Out{})
-			if code != 0 || err == nil || !strings.Contains(err.Error(), test.want) {
-				t.Fatalf("workAdd = (%d, %v), want exit code 0 and an error containing %q", code, err, test.want)
-			}
-		})
-	}
-}
-
-func TestWorkAddKeepsTheCallerIDForIdeas(t *testing.T) {
-	dir := registryWriterRepo(t, "phases: { 1: null }\nitems: []\n")
-	var stdout, stderr strings.Builder
-	code, err := workAdd([]string{"p1-note", "--kind", "idea", "--title", "Note", "--why", "Keep the author's slug."}, Out{Stdout: &stdout, Stderr: &stderr})
-	if err != nil || code != 0 || !strings.Contains(stdout.String(), "p1-note") {
-		t.Fatalf("workAdd idea = (%d, %v), stdout=%q stderr=%q, want caller ID p1-note", code, err, stdout.String(), stderr.String())
-	}
-	registry, err := os.ReadFile(filepath.Join(dir, "registry.yaml"))
-	if err != nil || !strings.Contains(string(registry), "id: p1-note") || !strings.Contains(string(registry), "kind: idea") {
-		t.Fatalf("registry after workAdd idea = %q (%v), want idea p1-note", registry, err)
-	}
-}
-
-func TestWorkAddMintsSliceAndRefusesCallerID(t *testing.T) {
-	dir := registryWriterRepo(t, "phases: { 1: null }\nitems:\n  - { id: slice-9, title: Nine, phase: 1, owner: null, status: todo, depends_on: [] }\n")
-	var stdout, stderr strings.Builder
-	code, err := workAdd([]string{"--kind", "slice", "--phase", "1", "--title", "Ten", "--why", "A slice."}, Out{Stdout: &stdout, Stderr: &stderr})
-	if err != nil || code != 0 || !strings.Contains(stdout.String(), "slice-10") {
-		t.Fatalf("workAdd = (%d, %v), stdout=%q stderr=%q", code, err, stdout.String(), stderr.String())
-	}
-	text, err := os.ReadFile(filepath.Join(dir, "registry.yaml"))
-	if err != nil || !strings.Contains(string(text), "id: slice-10") {
-		t.Fatalf("registry after workAdd = %q (%v), want slice-10", text, err)
-	}
-	before := string(text)
-	code, err = workAdd([]string{"slice-11", "--kind", "slice", "--phase", "1", "--title", "Eleven", "--why", "Not caller named."}, Out{Stdout: &stdout, Stderr: &stderr})
-	if code != 0 || err == nil || !strings.Contains(err.Error(), "mints the slice id") {
-		t.Fatalf("explicit-ID workAdd = (%d, %v), want usage error", code, err)
-	}
-	after, readErr := os.ReadFile(filepath.Join(dir, "registry.yaml"))
-	if readErr != nil || string(after) != before {
-		t.Fatalf("explicit-ID workAdd changed registry: %q (%v)", after, readErr)
-	}
-
-	stdout.Reset()
-	stderr.Reset()
-	head := gitIn(t, "rev-parse", "HEAD")
-	refusingHook(t)
-	code, err = workAdd([]string{"--kind", "slice", "--phase", "1", "--title", "Eleven", "--why", "A slice."}, Out{Stdout: &stdout, Stderr: &stderr})
-	if code != ExitPolicy || err != nil || stdout.Len() != 0 {
-		t.Fatalf("workAdd with a refusing hook = (%d, %v), stdout=%q stderr=%q", code, err, stdout.String(), stderr.String())
-	}
-	after, readErr = os.ReadFile(filepath.Join(dir, "registry.yaml"))
-	if readErr != nil || string(after) != before || gitIn(t, "rev-parse", "HEAD") != head {
-		t.Fatalf("refused workAdd changed registry or HEAD: registry=%q err=%v", after, readErr)
-	}
-}
-
-// A bug is minted as a slice is (slice 104), past the registry's bugs, an
-// item of kind bug; an id given for one is refused as for a slice.
-func TestWorkAddMintsABugAndRefusesCallerID(t *testing.T) {
-	dir := registryWriterRepo(t, "phases: { 1: null }\nitems:\n  - { id: bug-5, title: Five, phase: 1, owner: null, status: done, kind: bug, depends_on: [] }\n")
-	var stdout, stderr strings.Builder
-	code, err := workAdd([]string{"--kind", "bug", "--title", "Six", "--why", "A bug."}, Out{Stdout: &stdout, Stderr: &stderr})
-	if err != nil || code != 0 || !strings.Contains(stdout.String(), "bug-6 is a new bug") {
-		t.Fatalf("workAdd = (%d, %v), stdout=%q stderr=%q", code, err, stdout.String(), stderr.String())
-	}
-	text, err := os.ReadFile(filepath.Join(dir, "registry.yaml"))
-	if err != nil || !strings.Contains(string(text), "id: bug-6") || !strings.Contains(string(text), "kind: bug") {
-		t.Fatalf("registry after workAdd = %q (%v), want the bug bug-6", text, err)
-	}
-	code, err = workAdd([]string{"bug-7", "--kind", "bug", "--title", "Seven", "--why", "Not caller named."}, Out{Stdout: &stdout, Stderr: &stderr})
-	if code != 0 || err == nil || !strings.Contains(err.Error(), "mints the bug id") {
-		t.Fatalf("explicit-ID workAdd = (%d, %v), want usage error", code, err)
-	}
-}
-
-// A caller-supplied id is a usage error, refused before the registry is
-// read, whatever the registry would refuse: here a phase it needs and,
-// with no registry at all, the registry itself.
-func TestWorkAddRefusesACallerIDBeforeReadingTheRegistry(t *testing.T) {
-	registryWriterRepo(t, "phases: { 1: null, 2: null }\nitems: []\n")
-	var stdout, stderr strings.Builder
-	code, err := workAdd([]string{"slice-9", "--kind", "slice", "--title", "Nine", "--why", "A slice."}, Out{Stdout: &stdout, Stderr: &stderr})
-	if code != 0 || err == nil || !strings.Contains(err.Error(), "mints the slice id") || stderr.Len() != 0 {
-		t.Fatalf("workAdd without required phase and with caller ID = (%d, %v), stdout=%q stderr=%q, want the caller-ID usage error", code, err, stdout.String(), stderr.String())
-	}
-	if err := os.Remove("registry.yaml"); err != nil {
-		t.Fatal(err)
-	}
-	code, err = workAdd([]string{"T-9", "--kind", "task", "--phase", "1", "--title", "Nine", "--why", "A task."}, Out{Stdout: &stdout, Stderr: &stderr})
-	if code != 0 || err == nil || !strings.Contains(err.Error(), "mints the task id") || stderr.Len() != 0 {
-		t.Fatalf("workAdd with no registry and a caller ID = (%d, %v), stderr=%q, want the caller-ID usage error", code, err, stderr.String())
-	}
-}
-
-func TestWorkAddRefusesCallerIDsWhenTheyAreInvalidOrAlreadyTaken(t *testing.T) {
-	cases := []struct {
-		name, registry, id, kind string
-	}{
-		{name: "invalid task id", registry: "phases: { 1: null }\nitems: []\n", id: "not-a-task-id", kind: "task"},
-		{name: "duplicate slice id", registry: "phases: { 1: null }\nitems:\n  - { id: slice-9, title: Nine, phase: 1, owner: null, status: todo, depends_on: [] }\n", id: "slice-9", kind: "slice"},
-	}
-	for _, test := range cases {
-		t.Run(test.name, func(t *testing.T) {
-			registryWriterRepo(t, test.registry)
-			args := []string{test.id, "--kind", test.kind, "--phase", "1", "--title", "Numbered", "--why", "Its ID is not caller-controlled."}
-			_, err := workAdd(args, Out{})
-			if err == nil || !strings.Contains(err.Error(), "mints the "+test.kind+" id") {
-				t.Fatalf("workAdd error = %v, want supplied-ID usage error", err)
-			}
-		})
-	}
-}
-
-func TestWorkAddMintsFirstSliceWithAnEmptyRegistry(t *testing.T) {
-	registryWriterRepo(t, "phases: { 1: null }\nitems: []\n")
-	var stdout, stderr strings.Builder
-	code, err := workAdd([]string{"--kind", "slice", "--phase", "1", "--title", "First", "--why", "No prior slices."}, Out{Stdout: &stdout, Stderr: &stderr})
-	if err != nil || code != 0 || !strings.Contains(stdout.String(), "slice-1") {
-		t.Fatalf("workAdd empty registry = (%d, %v), stdout=%q stderr=%q, want slice-1", code, err, stdout.String(), stderr.String())
-	}
-}
-
+// work add's minting through the git the counter is kept by: a git that
+// fails is the error, exit 70 (bug 119).
 func TestWorkAddPropagatesIDReservationFailures(t *testing.T) {
 	registryWriterRepo(t, "phases: { 1: null }\nitems: []\n")
 	useFailingGit(t)
-	code, err := workAdd([]string{"--kind", "slice", "--phase", "1", "--title", "Slice", "--why", "Because."}, Out{})
+	code, err := runWork([]string{"add", "--kind", "slice", "--phase", "1", "--title", "Slice", "--why", "Because."}, Out{Stderr: &strings.Builder{}})
 	if code != 0 || err == nil || !strings.Contains(err.Error(), "Command failed: git rev-parse") {
-		t.Fatalf("workAdd = (%d, %v), want exit code 0 and the injected Git command failure", code, err)
+		t.Fatalf("work add = (%d, %v), want exit code 0 and the injected Git command failure", code, err)
 	}
 	if got := ExitCode(err); got != ExitSoftware {
-		t.Fatalf("workAdd's reservation failure exits %d, want %d (bug 119)", got, ExitSoftware)
-	}
-}
-
-func TestWorkAddPropagatesRegistryEditErrors(t *testing.T) {
-	registryWriterRepo(t, "{phases: {1: null}, items: []}\n")
-	code, err := workAdd([]string{"--kind", "slice", "--phase", "1", "--title", "Slice", "--why", "Because."}, Out{})
-	if code != 0 || err == nil || !strings.Contains(err.Error(), "cannot be edited in place") {
-		t.Fatalf("workAdd = (%d, %v), want exit code 0 and the uneditable-registry error", code, err)
+		t.Fatalf("work add's reservation failure exits %d, want %d (bug 119)", got, ExitSoftware)
 	}
 }
 
@@ -416,14 +237,6 @@ func registryRefusal(t *testing.T, run func(Out) (int, error)) {
 	if gitIn(t, "rev-parse", "HEAD") != head {
 		t.Fatal("the refused command moved HEAD")
 	}
-}
-
-// With no registry to read, work add returns soundRegistry's refusal and
-// mints nothing.
-func TestWorkAddReturnsTheRegistrysRefusal(t *testing.T) {
-	registryRefusal(t, func(o Out) (int, error) {
-		return workAdd([]string{"--kind", "slice", "--phase", "1", "--title", "Slice", "--why", "Because."}, o)
-	})
 }
 
 // As work add's: work promote returns soundRegistry's refusal and promotes

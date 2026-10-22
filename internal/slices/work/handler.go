@@ -3,6 +3,7 @@ package work
 import (
 	"context"
 	"fmt"
+	"io"
 	"regexp"
 	"slices"
 
@@ -23,14 +24,18 @@ import (
 // Ports are what work reaches the world through, which internal/cli binds:
 // Config, the config every command finds; Worktree, the working tree, where
 // a file work check names is looked for before the config is read;
-// Identity, work.identity's provider, asked who the session works for; and
-// Tracker, the tracker store the questions are in. The repository is the
-// config's VCS.
+// Identity, work.identity's provider, asked who the session works for;
+// Tracker, the tracker store the questions and the registry are in, which
+// a write holds, reads and commits through; and ItemID, the id work add
+// gives an item of a numbered kind: the one a draft reserved for the
+// command, else one minted past registryIDs. The repository is the config's
+// VCS.
 type Ports interface {
 	Config(ctx context.Context) (*config.Loaded, error)
 	Worktree(ctx context.Context) treeport.Source
 	Identity(ctx context.Context, cfg *config.Loaded) providers.Identity
 	Tracker(ctx context.Context, cfg *config.Loaded) trackerport.Tracker
+	ItemID(ctx context.Context, cfg *config.Loaded, kind string, registryIDs []string) (string, error)
 }
 
 // Handler is work's application, over its ports.
@@ -43,13 +48,26 @@ func NewHandler(p Ports) Handler {
 	return Handler{ports: p}
 }
 
-// Answer is what Handle found. work check: the File judged and the Found
-// problems. The proposal: Found, the problems of a registry that is not
-// sound; else the Notes said on stderr of who the session is, Missing when
-// --as is not among the people, and the Proposal. work list: Found, a
+// Out is what Handle is told of how a change is reported: Quiet, which
+// silences the commit's words, and Stderr, where git's words and the
+// hooks' go, and the line of a lock that cannot be given back.
+type Out struct {
+	Quiet  bool
+	Stderr io.Writer
+}
+
+// Answer is what Handle found or did. work check: the File judged and the
+// Found problems. The proposal: Found, the problems of a registry that is
+// not sound; else the Notes said on stderr of who the session is, Missing
+// when --as is not among the people, and the Proposal. work list: Found, a
 // registry that is not there; else the File read and the Items listed.
 // work show: Refused, a registry that is not there or an id no item has;
-// else the Shown item.
+// else the Shown item. A write: Release, nil until the registry's lock is
+// held, then for the caller to defer; Refused, the problems that refused
+// it, nothing written, Code its exit and Each the ids refused of several;
+// else the Change of one id, made for ID (work add's minted one), or the
+// Several of more, and the Commit, "" under a stealth config or when
+// nothing changed.
 type Answer struct {
 	File     string
 	Found    []out.Problem
@@ -59,6 +77,14 @@ type Answer struct {
 	Items    []*value.Map
 	Refused  []out.Problem
 	Shown    *Shown
+
+	Release func()
+	Code    int
+	Each    []string
+	ID      string
+	Change  *domain.Change
+	Several *domain.Several
+	Commit  string
 }
 
 // Shown is work show's item: the Item, whether it is a Task of the ledger,
@@ -77,8 +103,8 @@ type Shown struct {
 	ShowsErr  error
 }
 
-// Handle answers q.
-func (h Handler) Handle(ctx context.Context, q Query) (Answer, error) {
+// Handle answers q, a write reporting as o says.
+func (h Handler) Handle(ctx context.Context, q Query, o Out) (Answer, error) {
 	switch q.Sub {
 	case "check":
 		return h.check(ctx, q.File, q.Named)
@@ -86,6 +112,15 @@ func (h Handler) Handle(ctx context.Context, q Query) (Answer, error) {
 		return h.list(ctx, q.All, q.Tag)
 	case "show":
 		return h.show(ctx, q)
+	case "take":
+		return h.take(ctx, q.ID, q.As, o)
+	case "add":
+		return h.add(ctx, q.New, o)
+	case "edit", "queue", "drop", "defer", "resume", "give-back":
+		if len(q.IDs) > 1 {
+			return h.each(ctx, q, o)
+		}
+		return h.one(ctx, q, o)
 	}
 	return h.proposal(ctx, q.As)
 }

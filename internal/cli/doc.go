@@ -154,12 +154,13 @@
 // # The registry's commands
 //
 // work is the work slice (internal/slices/work), which reads every
-// subcommand's line and answers the proposal, list, check and show; work.go
-// binds its Ports to loadConfig, the working tree, work.identity's provider
-// and tracker, and calls the subcommands that write the registry, still
-// here, with the arguments after their name.
+// subcommand's line and answers all but work promote and work done; work.go
+// binds its Ports to loadConfig, the working tree, work.identity's provider,
+// tracker and newItemID, and calls those two, still here, with the
+// arguments after their name. workAddLine is the slice's AddLine, which
+// draft reads a work add line with.
 //
-// writeRegistry (workwrite.go) is the part every registry command shares:
+// writeRegistry (workwrite.go) is what the registry commands here share:
 // it starts from a sound registry (soundRegistry, the engine's Sound:
 // work.Problems, reported as work check would, exit 1), and, in a project, refuses a registry git does
 // not hold as HEAD has it (untracked, or changed, staged or not), whose
@@ -175,11 +176,8 @@
 // nothing: written under its lock (the tracker's Hold), nothing committed,
 // and --json's commit null. writeCommitted is the same for several files.
 //
-//   - work take (workwrite.go) and work promote (workpromote.go) call
-//     work.Take and work.Promote; take's person is Whoami's, nobody or one
-//     the people do not list exiting 3, and under a stealth config, or with
-//     no one in the people, nobody is asked and the owner is left as it is.
-//     promote judges all it can refuse before newItemID reserves the id
+//   - work promote (workpromote.go) calls work.Promote, and
+//     judges all it can refuse before newItemID reserves the id
 //     (slice 138): work.Promotable, the questions, and for a task its
 //     ledger entry, by ledger.Add under the id ledger.NextID would give,
 //     and commitReady, writeCommitted's own refusals; a task's ledger file
@@ -222,19 +220,6 @@
 //     files back when the commit is refused. work.Unqueue follows
 //     in a commit of its own, under a stealth config while the lock is still
 //     held.
-//   - work add and work edit (workedit.go), work queue (workwrite.go), work
-//     drop (workdrop.go), work defer and work resume (workdefer.go) and work
-//     give-back (workgiveback.go) call their writers in internal/work; drop,
-//     defer and give-back put the --why reason first in their commit's body.
-//     Give-back judges the owner against work take's person (workPerson), and
-//     with several ids a person it cannot name ends writeEach with exit 3
-//     (refusal). Defer and resume are two commands rather
-//     than a flag on one (docs/CLI.md rule 18). Edit, drop, defer, resume,
-//     give-back and queue take one id or more (workIDs, an id named twice exit 2): one runs
-//     as before, several go through writeEach (workeach.go, slice 118) and
-//     work's *Each writers, refused whole by refuseEach (exit 1, naming every
-//     id refused, --json's refused) or committed once, --json's items in the
-//     order given. work edit --title with several ids exits 2.
 //
 // # followup, draft, decision, go and status
 //

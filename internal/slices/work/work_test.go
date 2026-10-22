@@ -22,13 +22,17 @@ import (
 )
 
 // ports are work's ports over the fakes: a config or the error loading it,
-// the working tree, the identity provider and the tracker's fake.
+// the working tree, the identity provider, the tracker's fake, and the id
+// ItemID gives, past the registry's ids it was given, or its error.
 type ports struct {
 	cfg      *config.Loaded
 	err      error
 	worktree treeport.Source
 	identity providers.Identity
 	tracker  trackerport.Tracker
+	minted   string
+	mintErr  error
+	given    *[]string
 }
 
 func (p ports) Config(context.Context) (*config.Loaded, error) { return p.cfg, p.err }
@@ -38,6 +42,13 @@ func (p ports) Worktree(context.Context) treeport.Source { return p.worktree }
 func (p ports) Identity(context.Context, *config.Loaded) providers.Identity { return p.identity }
 
 func (p ports) Tracker(context.Context, *config.Loaded) trackerport.Tracker { return p.tracker }
+
+func (p ports) ItemID(_ context.Context, _ *config.Loaded, kind string, registryIDs []string) (string, error) {
+	if p.given != nil {
+		*p.given = append([]string{kind}, registryIDs...)
+	}
+	return p.minted, p.mintErr
+}
 
 // broken is the VCS fake with its log, a commit's patch or git show's text
 // failing when set.
@@ -212,10 +223,16 @@ func over(t *testing.T, f fixture) ports {
 	if err != nil {
 		t.Fatal(err)
 	}
-	tracker := &trackerfake.Tracker{}
+	tracker := &trackerfake.Tracker{Stealth: f.stealth}
+	var changes []trackerport.Change
 	if f.questions != "" {
-		change := trackerport.Change{Name: cfg.Work.Asks, Text: f.questions, Created: true}
-		if _, err := tracker.Transact(t.Context(), trackerport.Transaction{Changes: []trackerport.Change{change},
+		changes = append(changes, trackerport.Change{Name: cfg.Work.Asks, Text: f.questions, Created: true})
+	}
+	if registry, ok := f.files[cfg.Work.Registry]; ok {
+		changes = append(changes, trackerport.Change{Name: cfg.Work.Registry, Text: registry, Created: true})
+	}
+	if len(changes) > 0 {
+		if _, err := tracker.Transact(t.Context(), trackerport.Transaction{Changes: changes,
 			Paragraphs: []string{"chore: start"}, Quiet: true}); err != nil {
 			t.Fatal(err)
 		}
@@ -427,7 +444,7 @@ func TestWorkList(t *testing.T) {
 	if code != refused || err != nil || stdout != "" || stderr != "no work registry at work-items.yaml\n" {
 		t.Errorf("work list --json, no registry = %d, %v, %q, %q", code, err, stdout, stderr)
 	}
-	a, err := NewHandler(over(t, f)).Handle(t.Context(), Query{Sub: "list"})
+	a, err := NewHandler(over(t, f)).Handle(t.Context(), Query{Sub: "list"}, Out{})
 	if err != nil || len(a.Found) != 1 || a.Found[0].Fix != "move the registry to work-items.yaml, or set work.registry to where it is" {
 		t.Errorf("work list's answer, no registry = %+v, %v", a, err)
 	}

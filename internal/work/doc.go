@@ -3,7 +3,8 @@
 // which says who owns each group and each work item, its kind (slice, task,
 // idea, bug), its status, what it waits on (depends_on), its tags, and the queue.
 // The registry is written by commands, never by hand; this package judges
-// and edits its text, and internal/cli writes and commits it.
+// and edits its text, and the work slice (internal/slices/work) and
+// internal/cli write and commit it.
 //
 // # Reading and judging
 //

@@ -44,29 +44,61 @@ func TestWorkPortsBindTheRealCode(t *testing.T) {
 		t.Errorf("runWork show a b = %d, %v, want the usage error alone", code, err)
 	}
 	// A subcommand still here is the slice's line first, then its own.
-	if code, err := runWork([]string{"take"}, Out{}); code != 0 || err == nil || err.Error() != "work take needs one <id>" {
-		t.Errorf("runWork take = %d, %v, want the usage error alone", code, err)
+	if code, err := runWork([]string{"promote"}, Out{}); code != 0 || err == nil || err.Error() != "work promote needs one <id>" {
+		t.Errorf("runWork promote = %d, %v, want the usage error alone", code, err)
 	}
 	stdout.Reset()
 	stderr.Reset()
-	if code, err := runWork([]string{"take", "nope"}, Out{Stdout: &stdout, Stderr: &stderr, OS: runtime.GOOS}); code != ExitPolicy || err != nil ||
+	if code, err := runWork([]string{"promote", "nope", "--kind", "slice"}, Out{Stdout: &stdout, Stderr: &stderr, OS: runtime.GOOS}); code != ExitPolicy || err != nil ||
 		!strings.Contains(stderr.String(), "nope") {
-		t.Errorf("runWork take nope = %d, %v, stdout %q, stderr %q", code, err, stdout.String(), stderr.String())
+		t.Errorf("runWork promote nope = %d, %v, stdout %q, stderr %q", code, err, stdout.String(), stderr.String())
+	}
+}
+
+// A write the slice answers holds, reads and commits the registry through
+// the tracker of the config, and ItemID is newItemID: the id a draft
+// reserved, else one minted from the repository's counter.
+func TestWorkPortsWriteThroughTheRealCode(t *testing.T) {
+	registryWriterRepo(t, "phases: { 1: null }\nitems:\n  - { id: slice-9, title: Nine, phase: 1, owner: null, status: todo, depends_on: [] }\n")
+	var stdout, stderr strings.Builder
+	if code, err := runWork([]string{"take", "slice-9"}, Out{Stdout: &stdout, Stderr: &stderr, OS: runtime.GOOS}); code != 0 || err != nil ||
+		!strings.HasPrefix(stdout.String(), "slice-9 is in progress: committed ") {
+		t.Errorf("runWork take slice-9 = %d, %v, stdout %q, stderr %q", code, err, stdout.String(), stderr.String())
+	}
+	if header := strings.TrimSpace(gitIn(t, "log", "-1", "--format=%s")); header != "docs: take slice-9" {
+		t.Errorf("the take committed %q", header)
+	}
+	cfg, err := loadConfig()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if id, err := (workPorts{Out{OS: runtime.GOOS, reserved: "slice-77"}}).ItemID(t.Context(), cfg, "slice", []string{"slice-9"}); id != "slice-77" || err != nil {
+		t.Errorf("ItemID with a reserved id = %q, %v", id, err)
+	}
+	if id, err := (workPorts{Out{OS: runtime.GOOS}}).ItemID(t.Context(), cfg, "slice", []string{"slice-9"}); id != "slice-10" || err != nil {
+		t.Errorf("ItemID minted = %q, %v", id, err)
+	}
+}
+
+// draft reads a work add line with the slice's AddLine.
+func TestWorkAddLineIsTheSlices(t *testing.T) {
+	if n, err := workAddLine([]string{"--kind", "bug", "--title", "T", "--why", "W"}); err != nil || n.Kind != "bug" || n.ID != "" {
+		t.Errorf("workAddLine = %+v, %v", n, err)
+	}
+	if _, err := workAddLine([]string{"a", "b"}); err == nil || err.Error() != "work add takes at most one <id>" {
+		t.Errorf("workAddLine a b = %v", err)
 	}
 }
 
 // Every subcommand not yet in the slice is its function here; the ones the
 // slice answers are none.
 func TestUnmovedNamesTheSubcommandsStillHere(t *testing.T) {
-	for sub, want := range map[string]command{
-		"take": workTake, "promote": workPromote, "done": workDone, "add": workAdd, "edit": workEdit,
-		"queue": workQueue, "drop": workDrop, "defer": workDefer, "resume": workResume, "give-back": workGiveBack,
-	} {
+	for sub, want := range map[string]command{"promote": workPromote, "done": workDone} {
 		if got := unmoved(sub); got == nil || reflect.ValueOf(got).Pointer() != reflect.ValueOf(want).Pointer() {
 			t.Errorf("unmoved(%q) is not its function", sub)
 		}
 	}
-	for _, sub := range []string{"", "list", "check", "show", "nope"} {
+	for _, sub := range []string{"", "list", "check", "show", "take", "add", "edit", "queue", "drop", "defer", "resume", "give-back", "nope"} {
 		if unmoved(sub) != nil {
 			t.Errorf("unmoved(%q) is a function", sub)
 		}

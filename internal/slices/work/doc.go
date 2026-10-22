@@ -1,17 +1,18 @@
 // Package work is the work command, a slice (ADR-0053): the work registry
 // (features/work.feature, features/show.feature), what the person can start,
-// its items listed, judged and shown. Its CLI and Run are the command line,
-// its Query and Handler the application, over the Ports it owns, which
-// internal/cli binds: the config, the working tree, work.identity's provider
-// and the tracker the questions are in; the repository is the config's VCS.
+// its items listed, judged, shown and changed. Its CLI and Run are the
+// command line, its Query and Handler the application, over the Ports it
+// owns, which internal/cli binds: the config, the working tree,
+// work.identity's provider, the tracker the questions and the registry are
+// in, and the id work add mints; the repository is the config's VCS.
 //
 // Command (command.go) declares its name, help and flag spec, by which
 // internal/cli reads the line and hands Parse the arguments after work.
 // Parse reads every subcommand's line, each error a usage error before
-// anything is read. The slice answers the proposal, list, check and show;
-// the subcommands that write the registry are still internal/cli's, which
-// runWork calls with the arguments after their name once Parse has read
-// them. AddLine and PromoteLine are work add's and work promote's lines.
+// anything is read. The slice answers all but work promote and work done,
+// still internal/cli's, which runWork calls with the arguments after their
+// name once Parse has read them. AddLine and PromoteLine are work add's and
+// work promote's lines.
 //
 // The proposal, work check and work list read the registry through
 // work.Load and work.Issues, never a second reading. work check judges the
@@ -38,4 +39,31 @@
 // its notes the itos ones under a stealth config, printed after the
 // commits are listed; --json gives each commit's message and diff, every
 // patch read before anything is printed.
+//
+// The writes (write.go, slice 52) are the registry written by commands,
+// never by hand, each committing its own change (the user's calls,
+// 2026-10-03), over the record engine (internal/engine/record): the tracker
+// held (its Hold, under a stealth config the registry's lock, bug 16), the
+// registry read sound (record.Sound, its problems reported as work check
+// would, exit 1), the change made by its writer in internal/work, then
+// written and, in a project, committed alone through the hooks
+// (record.Write), git's words on stderr, a file with changes no commit
+// holds or a commit refused exit 1. Under a stealth config nothing is
+// committed and --json's commit is null. A writer's text it cannot edit in
+// place is a usage error (uneditable).
+//
+//   - work take calls work.Take; its person, as work give-back's (whoActs),
+//     is Whoami's, nobody or one the people do not list exiting 3, and under
+//     a stealth config, or with no one in the people, nobody is asked and the
+//     owner is left as it is. work add mints the id of a slice, a task or a
+//     bug through ItemID before work.Add; an idea keeps its author's.
+//   - work edit, queue, drop, defer, resume and give-back call their writers
+//     in internal/work; drop, defer and give-back put the --why reason first
+//     in their commit's body. Defer and resume are two commands rather than
+//     a flag on one (docs/CLI.md rule 18). Each takes one id or more (an id
+//     named twice exits 2): one runs as before, several go through work's
+//     *Each writers (slice 118), refused whole (exit 1, naming every id
+//     refused, --json's refused) or committed once, --json's items in the
+//     order given; give-back's person it cannot name refuses several before
+//     any is judged, exit 3. work edit --title with several ids exits 2.
 package work

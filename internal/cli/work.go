@@ -9,13 +9,14 @@ import (
 	trackerport "github.com/donvargax/itos/v8/internal/store/tracker/port"
 	trees "github.com/donvargax/itos/v8/internal/store/tree/adapter"
 	treeport "github.com/donvargax/itos/v8/internal/store/tree/port"
+	"github.com/donvargax/itos/v8/internal/work"
 )
 
 // runWork is `work`, the work slice (internal/slices/work) over its ports
 // bound to the real code, which reads every subcommand's line and answers
-// the proposal, list, check and show. The subcommands that write the
-// registry are still internal/cli's (unmoved), each called with the
-// arguments after its name once the slice has read them.
+// all but work promote and work done. Those two are still internal/cli's
+// (unmoved), each called with the arguments after its name once the slice
+// has read them.
 func runWork(args []string, o Out) (int, error) {
 	c, err := workslice.Parse(args, o.Origin, o.JSON, o.Quiet)
 	if err != nil {
@@ -32,32 +33,17 @@ func runWork(args []string, o Out) (int, error) {
 // nil for one the slice answers.
 func unmoved(sub string) command {
 	switch sub {
-	case "take":
-		return workTake
 	case "promote":
 		return workPromote
 	case "done":
 		return workDone
-	case "add":
-		return workAdd
-	case "edit":
-		return workEdit
-	case "queue":
-		return workQueue
-	case "drop":
-		return workDrop
-	case "defer":
-		return workDefer
-	case "resume":
-		return workResume
-	case "give-back":
-		return workGiveBack
 	}
 	return nil
 }
 
 // workPorts are the work slice's ports over the real code: loadConfig, the
-// working tree, work.identity's provider and the tracker on o's OS.
+// working tree, work.identity's provider, the tracker on o's OS and
+// newItemID, given the id a draft reserved.
 type workPorts struct{ o Out }
 
 // Config is loadConfig.
@@ -76,5 +62,10 @@ func (p workPorts) Tracker(_ context.Context, cfg *config.Loaded) trackerport.Tr
 	return tracker(cfg, p.o.OS)
 }
 
-// itos-cc mutation: 3 killed, 0 survived, 0 uncovered
-// end itos-cc mutation
+// ItemID is newItemID.
+func (p workPorts) ItemID(_ context.Context, cfg *config.Loaded, kind string, registryIDs []string) (string, error) {
+	return newItemID(cfg, kind, registryIDs, p.o.reserved, p.o.OS)
+}
+
+// workAddLine is workslice.AddLine, which draft reads a work add line with.
+func workAddLine(args []string) (work.New, error) { return workslice.AddLine(args) }

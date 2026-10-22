@@ -118,8 +118,8 @@ func (draftPorts) ReadLine(_ context.Context, command []string) ([]string, error
 
 // WorkAddKind is workAddLine's kind.
 func (draftPorts) WorkAddKind(_ context.Context, args []string) (string, error) {
-	_, kind, _, err := workAddLine(args)
-	return kind, err
+	n, err := workAddLine(args)
+	return n.Kind, err
 }
 
 // WorkPromoteKind is workPromoteLine's kind.

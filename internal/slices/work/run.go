@@ -10,6 +10,7 @@ import (
 	"github.com/donvargax/itos/v8/internal/ask"
 	"github.com/donvargax/itos/v8/internal/out"
 	"github.com/donvargax/itos/v8/internal/tests"
+	"github.com/donvargax/itos/v8/internal/value"
 	domain "github.com/donvargax/itos/v8/internal/work"
 )
 
@@ -34,9 +35,14 @@ type shownCommit struct {
 }
 
 // Run is work over h, for the subcommands the slice answers: the proposal,
-// list, check and show. An error is the command line's to report.
+// list, check, show and the writes but promote and done. An error is the
+// command line's to report. A lock that cannot be given back is a line on
+// stderr after everything else.
 func (c CLI) Run(ctx context.Context, stdout, stderr io.Writer, h Handler) (int, error) {
-	a, err := h.Handle(ctx, c.Query)
+	a, err := h.Handle(ctx, c.Query, Out{Quiet: c.Quiet, Stderr: stderr})
+	if a.Release != nil {
+		defer a.Release()
+	}
 	if err != nil {
 		return 0, err
 	}
@@ -47,6 +53,8 @@ func (c CLI) Run(ctx context.Context, stdout, stderr io.Writer, h Handler) (int,
 		return c.list(stdout, stderr, a)
 	case "show":
 		return c.show(stdout, stderr, a)
+	case "take", "add", "edit", "queue", "drop", "defer", "resume", "give-back":
+		return c.wrote(stdout, stderr, a)
 	}
 	return c.proposal(stdout, stderr, a)
 }
@@ -129,7 +137,7 @@ func (c CLI) list(stdout, stderr io.Writer, a Answer) (int, error) {
 // the error, after the commits are listed.
 func (c CLI) show(stdout, stderr io.Writer, a Answer) (int, error) {
 	if len(a.Refused) > 0 {
-		return c.refuse(stdout, stderr, a.Refused)
+		return c.refuse(stdout, stderr, a.Refused, refused)
 	}
 	s := a.Shown
 	if c.JSON {
@@ -156,11 +164,11 @@ func (c CLI) show(stdout, stderr io.Writer, a Answer) (int, error) {
 	return 0, nil
 }
 
-// refuse prints the problems, exit 1: on stderr with their fixes, or under
-// --json as {"ok": false, "problems": […]} on stdout.
-func (c CLI) refuse(stdout, stderr io.Writer, found []out.Problem) (int, error) {
+// refuse prints the problems and exits with code: on stderr with their
+// fixes, or under --json as {"ok": false, "problems": […]} on stdout.
+func (c CLI) refuse(stdout, stderr io.Writer, found []out.Problem, code int) (int, error) {
 	if c.JSON {
-		return refused, out.Emit(stdout, out.Field{Key: "ok", Value: false}, out.Field{Key: "problems", Value: found})
+		return code, out.Emit(stdout, out.Field{Key: "ok", Value: false}, out.Field{Key: "problems", Value: found})
 	}
 	for _, p := range found {
 		fmt.Fprintln(stderr, p.Message)
@@ -168,7 +176,228 @@ func (c CLI) refuse(stdout, stderr io.Writer, found []out.Problem) (int, error) 
 			fmt.Fprintf(stderr, "  fix: %s\n", p.Fix)
 		}
 	}
-	return refused, nil
+	return code, nil
+}
+
+// wrote is a write's answer: its refusal, a change of several ids refused
+// whole naming every id refused, else the change made.
+func (c CLI) wrote(stdout, stderr io.Writer, a Answer) (int, error) {
+	switch {
+	case len(a.Each) > 0:
+		return c.refuseEach(stdout, stderr, a.Each, a.Refused)
+	case len(a.Refused) > 0:
+		return c.refuse(stdout, stderr, a.Refused, a.Code)
+	case a.Several != nil:
+		return c.reportEach(stdout, a.Several, a.Commit)
+	}
+	return c.report(stdout, a)
+}
+
+// report prints a write of one id: its line, unless -q; under --json, ok,
+// the item, the fields the subcommand adds (edit's changed, queue's queue)
+// and the commit (null when none).
+func (c CLI) report(stdout io.Writer, a Answer) (int, error) {
+	change := a.Change
+	if c.JSON {
+		var commit any
+		if a.Commit != "" {
+			commit = a.Commit
+		}
+		fields := []out.Field{{Key: "ok", Value: true}, {Key: "item", Value: change.Item}}
+		switch c.Sub {
+		case "edit":
+			changed := make([]any, len(change.Changed))
+			for i, key := range change.Changed {
+				changed[i] = key
+			}
+			fields = append(fields, out.Field{Key: "changed", Value: changed})
+		case "queue":
+			fields = append(fields, queued(change.Queue))
+		}
+		return 0, out.Emit(stdout, append(fields, out.Field{Key: "commit", Value: commit})...)
+	}
+	if !c.Quiet {
+		fmt.Fprintln(stdout, c.line(a.ID, change, a.Commit))
+	}
+	return 0, nil
+}
+
+// line is a write of one id's line: what became of the item and the commit
+// made, or that there was nothing to change.
+func (c CLI) line(id string, change *domain.Change, sha string) string {
+	done := committed(sha, change.Header)
+	switch c.Sub {
+	case "take":
+		if change.Unchanged {
+			return id + " is already in progress" + forWhom(change) + "; nothing to change"
+		}
+		return fmt.Sprintf("%s is in progress%s: %s", id, forWhom(change), done)
+	case "add":
+		return fmt.Sprintf("%s is a new %s: %s", id, c.New.Kind, done)
+	case "edit":
+		if change.Unchanged {
+			return id + " is already so; nothing to change"
+		}
+		return fmt.Sprintf("%s's %s changed: %s", id, strings.Join(change.Changed, ", "), done)
+	case "queue":
+		if change.Unchanged {
+			return id + " is already " + c.where() + "; nothing to change"
+		}
+		return fmt.Sprintf("%s is %s: %s", id, c.where(), done)
+	case "drop":
+		if change.Unchanged {
+			return id + " is already dropped; nothing to change"
+		}
+		return fmt.Sprintf("%s is dropped: %s", id, done)
+	case "defer":
+		return fmt.Sprintf("%s is deferred: %s", id, done)
+	case "resume":
+		return fmt.Sprintf("%s is resumed: %s", id, done)
+	}
+	return fmt.Sprintf("%s is given back, todo again%s: %s", id, forWhom(change), done)
+}
+
+// forWhom is " for <owner>" of the item a change left owned, "" when it has
+// no owner.
+func forWhom(change *domain.Change) string {
+	if owner, ok := change.Item.At("owner").(string); ok && owner != "" {
+		return " for " + owner
+	}
+	return ""
+}
+
+// where is where work queue puts the items, as its lines say it.
+func (c CLI) where() string {
+	switch at := c.Place; {
+	case at.Remove:
+		return "out of the queue"
+	case at.Before != "":
+		return "before " + at.Before + " in the queue"
+	case at.After != "":
+		return "after " + at.After + " in the queue"
+	}
+	return "first in the queue"
+}
+
+// queued is work queue's --json field: the queue after.
+func queued(list []string) out.Field {
+	queue := make([]any, len(list))
+	for i, q := range list {
+		queue[i] = q
+	}
+	return out.Field{Key: "queue", Value: queue}
+}
+
+// reportEach prints a write of several ids: a line for each item, the last
+// the commit, unless -q; under --json, ok, the items in the order given,
+// work queue's queue and the commit (null when none).
+func (c CLI) reportEach(stdout io.Writer, s *domain.Several, sha string) (int, error) {
+	if c.JSON {
+		items := make([]any, len(s.Items))
+		for i, item := range s.Items {
+			items[i] = item
+		}
+		var commit any
+		if sha != "" {
+			commit = sha
+		}
+		fields := []out.Field{{Key: "ok", Value: true}, {Key: "items", Value: items}}
+		if c.Sub == "queue" {
+			fields = append(fields, queued(s.Queue))
+		}
+		return 0, out.Emit(stdout, append(fields, out.Field{Key: "commit", Value: commit})...)
+	}
+	if c.Quiet {
+		return 0, nil
+	}
+	lines := c.eachSays(s)
+	if s.Unchanged {
+		lines = append(lines, "nothing to change")
+	} else {
+		lines = append(lines, committed(sha, s.Header))
+	}
+	fmt.Fprintln(stdout, strings.Join(lines, "\n"))
+	return 0, nil
+}
+
+// eachSays is the lines of a write of several ids before its commit's:
+// work queue's one for them all, else one for each item.
+func (c CLI) eachSays(s *domain.Several) []string {
+	switch c.Sub {
+	case "queue":
+		placed := c.where()
+		if !c.Place.Remove {
+			placed += ", in that order"
+		}
+		if s.Unchanged {
+			return []string{and(c.IDs) + " are already " + placed}
+		}
+		return []string{and(c.IDs) + " are " + placed}
+	case "edit":
+		return eachLine(s, func(id string, ch domain.Change) string {
+			return fmt.Sprintf("%s's %s changed", id, strings.Join(ch.Changed, ", "))
+		}, "is already so")
+	case "drop":
+		return eachLine(s, itemIs("dropped"), "is already dropped")
+	case "defer":
+		return eachLine(s, itemIs("deferred"), "")
+	case "resume":
+		return eachLine(s, itemIs("resumed"), "")
+	}
+	return eachLine(s, itemIs("given back"), "")
+}
+
+// eachLine is a line for each item of a change of several ids: done, when
+// its change wrote something, else unchanged.
+func eachLine(s *domain.Several, done func(id string, c domain.Change) string, unchanged string) []string {
+	lines := make([]string, len(s.Each))
+	for i, c := range s.Each {
+		id := value.String(c.Item.At("id"))
+		lines[i] = id + " " + unchanged
+		if !c.Unchanged {
+			lines[i] = done(id, c)
+		}
+	}
+	return lines
+}
+
+// itemIs is the line of an item a change of several ids changed: "<id> is
+// <what>".
+func itemIs(what string) func(string, domain.Change) string {
+	return func(id string, _ domain.Change) string { return id + " is " + what }
+}
+
+// refuseEach reports a change of several ids refused, exit 1: a line naming
+// every id refused, then each problem, as refuse reports them; under
+// --json, {"ok": false, "refused": […], "problems": […]}.
+func (c CLI) refuseEach(stdout, stderr io.Writer, ids []string, found []out.Problem) (int, error) {
+	if c.JSON {
+		listed := make([]any, len(ids))
+		for i, id := range ids {
+			listed[i] = id
+		}
+		return refused, out.Emit(stdout, out.Field{Key: "ok", Value: false}, out.Field{Key: "refused", Value: listed},
+			out.Field{Key: "problems", Value: found})
+	}
+	fmt.Fprintf(stderr, "work %s refuses %s, so nothing is written:\n", c.Sub, and(ids))
+	return c.refuse(stdout, stderr, found, refused)
+}
+
+// committed is how a registry command's text output ends: the commit it
+// made, or why there is none.
+func committed(sha, header string) string {
+	if sha == "" {
+		return "the registry is the stealth config's, so nothing is committed"
+	}
+	return "committed " + sha[:min(7, len(sha))] + " " + header
+}
+
+// and is the names joined as a list is said: "a", "a and b", "a, b and c".
+func and(names []string) string {
+	if len(names) < 2 {
+		return strings.Join(names, "")
+	}
+	return strings.Join(names[:len(names)-1], ", ") + " and " + names[len(names)-1]
 }
 
 // said writes each problem's message on w, a line each, without its fix.

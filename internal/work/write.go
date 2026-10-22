@@ -19,7 +19,7 @@ import (
 // the edit made in place (value.Doc: every comment, quote and line kept), the
 // item as it is after and the commit message that records it, or the
 // problem that refuses it, nothing written. Committing the registry alone is
-// the command line's (internal/cli/workwrite.go), the same for every
+// the record engine's (internal/engine/record), the same for every
 // command that writes it.
 
 // Change is an edit of the registry: its text after, the item as it reads

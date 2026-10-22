@@ -1,7 +1,8 @@
 package cli
 
-// The commands that write the work registry (slice 52, features/work.feature):
-// work take here, work promote in workpromote.go. The registry is written by commands, never by
+// The commands that write the work registry (slice 52, features/work.feature)
+// still here: work promote in workpromote.go and work done in workdone.go,
+// the rest the work slice's (internal/slices/work). The registry is written by commands, never by
 // hand, and each commits its own change (the user's calls, 2026-10-03), so a
 // coordinator neither edits YAML nor words a registry commit. The edit is
 // work's (internal/work/write.go); what every such command shares is here,
@@ -25,7 +26,6 @@ import (
 	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/engine/record"
 	"github.com/donvargax/itos/v8/internal/out"
-	"github.com/donvargax/itos/v8/internal/providers"
 	"github.com/donvargax/itos/v8/internal/work"
 )
 
@@ -47,23 +47,6 @@ func workArgsEmpty(sub string, args []string, empty []string, flags ...string) (
 		return "", nil, usage("work %s needs one <id>", sub)
 	}
 	return ids[0], values, nil
-}
-
-// workArgsOptionalID is workArgsEmpty for a writer whose item ID is minted
-// from its kind: it leaves zero or one positional ID for the command to
-// accept (ideas) or refuse (numbered kinds).
-func workArgsOptionalID(sub string, args []string, flags ...string) (string, bool, map[string]string, error) {
-	ids, values, err := workArgsParsed(sub, args, nil, flags...)
-	if err != nil {
-		return "", false, nil, err
-	}
-	if len(ids) > 1 {
-		return "", false, nil, usage("work %s takes at most one <id>", sub)
-	}
-	if len(ids) == 0 {
-		return "", false, values, nil
-	}
-	return ids[0], true, values, nil
 }
 
 func workArgsParsed(sub string, args []string, empty []string, flags ...string) ([]string, map[string]string, error) {
@@ -239,159 +222,4 @@ func reportWork(line string, change work.Change, sha string, extra []out.Field, 
 		fmt.Fprintln(o.Stdout, line)
 	}
 	return 0, nil
-}
-
-// workTake is `work take <id> [--as <handle>]`: the item set in progress for
-// the person and the registry committed (work.Take). The person is --as,
-// else who the identity provider says, as for work; one that is nobody, or
-// not among the people, exits 3. Under a stealth config, or with no one in
-// the people (Registry.Nobody: a people file missing or listing nobody), with
-// no --as nobody is asked: every item is the session's, and its owner is left
-// as it is (bug 46).
-func workTake(args []string, o Out) (int, error) {
-	id, flags, err := workArgs("take", args, "--as")
-	if err != nil {
-		return 0, err
-	}
-	cfg, registry, text, release, code, err := soundRegistry(o)
-	defer release()
-	if cfg == nil {
-		return code, err
-	}
-	person, every, problem := workPerson(cfg, registry, flags["--as"], providers.IdentityProvider(cfg))
-	if problem != nil {
-		return refuseWork([]out.Problem{*problem}, ExitMissing, o)
-	}
-	change, problem, err := work.Take(registry, text, id, person, every)
-	if err != nil {
-		return 0, uneditable(cfg.Work.Registry, err)
-	}
-	if problem != nil {
-		return refuseWork([]out.Problem{*problem}, ExitPolicy, o)
-	}
-	forWhom := ""
-	if owner, ok := change.Item.At("owner").(string); ok && owner != "" {
-		forWhom = " for " + owner
-	}
-	if change.Unchanged {
-		return reportWork(id+" is already in progress"+forWhom+"; nothing to change", change, "", nil, o)
-	}
-	sha, code, err := writeRegistry(cfg, text, change, o)
-	if err != nil || code != 0 {
-		return code, err
-	}
-	return reportWork(fmt.Sprintf("%s is in progress%s: %s", id, forWhom, committed(sha, change.Header)), change, sha, nil, o)
-}
-
-// workPerson is who a command that judges an item's owner acts for, work
-// take and work give-back: --as (as), else who the identity provider says,
-// as for work (identify, the config's work.identity provider). every is a session that owns every item, asked of nobody: a
-// stealth config, or no one in the people (Registry.Nobody: a people file
-// missing or listing nobody), with no --as (bug 46). The problem, exit 3, is
-// a person who is nobody or not among the people.
-func workPerson(cfg *config.Loaded, registry work.Registry, as string, identify providers.Identity) (person string, every bool, problem *out.Problem) {
-	if as == "" && (cfg.Stealth || registry.Nobody()) {
-		return "", true, nil
-	}
-	listedIn := cfg.Work.People.File
-	who := work.Whoami(registry, listedIn, as, identify)
-	switch {
-	case who.Problem != "":
-		return "", false, &out.Problem{Rule: "work-no-person", Message: who.Problem, Fix: "pass --as <handle>"}
-	case !who.Listed:
-		return "", false, &out.Problem{
-			Rule:    "work-no-person",
-			Message: fmt.Sprintf("%s is not in %s, so cannot own an item", who.Handle, listedIn),
-			Fix:     "add " + who.Handle + " to " + listedIn + ", or pass --as <handle>",
-		}
-	}
-	return who.Handle, false, nil
-}
-
-// promoteKinds are what work promote makes of an idea.
-// workQueue is `work queue <id>… --top | --before <id> | --after <id> |
-// --remove` (slice 66; --drop before v6.0.0): the item put first in the registry's queue, just
-// before or after an item it holds, or taken out of it, the queue written
-// whole and the registry committed, "docs: queue <id>" (work.Queue). One
-// place, exactly, is given. Several ids go there together, in the order
-// given (work.QueueEach, writeEach).
-func workQueue(args []string, o Out) (int, error) {
-	var rest []string
-	top, remove := false, false
-	for _, arg := range args {
-		switch arg {
-		case "--top":
-			top = true
-		case "--remove":
-			remove = true
-		default:
-			rest = append(rest, arg)
-		}
-	}
-	ids, flags, err := workIDs("queue", rest, nil, "--before", "--after")
-	if err != nil {
-		return 0, err
-	}
-	at := work.Place{Top: top, Remove: remove, Before: flags["--before"], After: flags["--after"]}
-	given := 0
-	for _, on := range []bool{at.Top, at.Remove, at.Before != "", at.After != ""} {
-		if on {
-			given++
-		}
-	}
-	if given != 1 {
-		return 0, usage("work queue needs one of --top, --before <id>, --after <id> or --remove")
-	}
-	where := "first in the queue"
-	switch {
-	case at.Remove:
-		where = "out of the queue"
-	case at.Before != "":
-		where = "before " + at.Before + " in the queue"
-	case at.After != "":
-		where = "after " + at.After + " in the queue"
-	}
-	queued := func(list []string) []out.Field {
-		queue := make([]any, len(list))
-		for i, q := range list {
-			queue[i] = q
-		}
-		return []out.Field{{Key: "queue", Value: queue}}
-	}
-	if len(ids) > 1 {
-		return writeEach(o, "queue", func(_ *config.Loaded, r work.Registry, text string) (work.Several, []string, []out.Problem, error) {
-			return work.QueueEach(r, text, ids, at)
-		}, func(s work.Several) []string {
-			placed := where
-			if !at.Remove {
-				placed += ", in that order"
-			}
-			if s.Unchanged {
-				return []string{and(ids) + " are already " + placed}
-			}
-			return []string{and(ids) + " are " + placed}
-		}, func(s work.Several) []out.Field { return queued(s.Queue) })
-	}
-	id := ids[0]
-	cfg, registry, text, release, code, err := soundRegistry(o)
-	defer release()
-	if cfg == nil {
-		return code, err
-	}
-	change, problem, err := work.Queue(registry, text, id, at)
-	if err != nil {
-		return 0, uneditable(cfg.Work.Registry, err)
-	}
-	if problem != nil {
-		return refuseWork([]out.Problem{*problem}, ExitPolicy, o)
-	}
-	extra := queued(change.Queue)
-	if change.Unchanged {
-		return reportWork(id+" is already "+where+"; nothing to change", change, "", extra, o)
-	}
-	sha, code, err := writeRegistry(cfg, text, change, o)
-	if err != nil || code != 0 {
-		return code, err
-	}
-	return reportWork(fmt.Sprintf("%s is %s: %s", id, where, committed(sha, change.Header)), change, sha, extra, o)
 }
