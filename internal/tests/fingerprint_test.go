@@ -53,11 +53,7 @@ const outlined = `Feature: Outlined
 
 func prints(t *testing.T, text string) map[string]string {
 	t.Helper()
-	got, err := Fingerprints(text, fingerprintOptions)
-	if err != nil {
-		t.Fatal(err)
-	}
-	return got
+	return Fingerprints(text, fingerprintOptions)
 }
 
 // Each scenario of tests-list.feature's outlines as a unit case, and a few more: an edit of what
@@ -166,8 +162,8 @@ func TestFingerprintsKeepCellsApart(t *testing.T) {
 	}
 }
 
-// A text Gherkin does not parse gives no fingerprint, and no error; an ID pattern that does not
-// compile is one.
+// A text Gherkin does not parse gives no fingerprint, nor does an ID pattern that does not
+// compile (ParseFeature's error to report).
 func TestFingerprintsOfNoGherkin(t *testing.T) {
 	if got := prints(t, "  @ID-A-01\n  Scenario: no feature line\n    When it runs\n"); len(got) != 0 {
 		t.Errorf("%v", got)
@@ -175,7 +171,7 @@ func TestFingerprintsOfNoGherkin(t *testing.T) {
 	if got := prints(t, ""); len(got) != 0 {
 		t.Errorf("%v", got)
 	}
-	if _, err := Fingerprints(fingerprinted, Options{ID: "(", TagPrefix: "@"}); err == nil {
-		t.Error("an ID pattern that does not compile is no error")
+	if got := Fingerprints(fingerprinted, Options{ID: "(", TagPrefix: "@"}); len(got) != 0 {
+		t.Errorf("an ID pattern that does not compile gave %v", got)
 	}
 }

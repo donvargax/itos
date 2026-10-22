@@ -17,18 +17,18 @@ const fingerprintVersion = "itos scenario fingerprint v1"
 // Fingerprints are the scenarios of a feature file's text by bare ID, each the SHA-256 in
 // lowercase hex of its canonical text (Canonical). A scenario's ID is the first of its tags to
 // hold <tag_prefix><id>, as ParseFeature reads a tag line; one written twice is the last. A text
-// Gherkin does not parse has none: its tests are listed without one. An error when the kind's ID
-// pattern does not compile.
-func Fingerprints(text string, o Options) (map[string]string, error) {
+// Gherkin does not parse has none: its tests are listed without one; so does a kind whose ID
+// pattern does not compile, which ParseFeature refuses.
+func Fingerprints(text string, o Options) map[string]string {
+	prints := map[string]string{}
 	idTag, err := o.idTag()
 	if err != nil {
-		return nil, err
+		return prints
 	}
-	prints := map[string]string{}
 	var counter messages.Incrementing
 	doc, err := gherkin.ParseGherkinDocument(strings.NewReader(text), counter.NewId)
 	if err != nil || doc.Feature == nil {
-		return prints, nil
+		return prints
 	}
 	feature := doc.Feature
 	var background []*messages.Step
@@ -59,7 +59,7 @@ func Fingerprints(text string, o Options) (map[string]string, error) {
 			}
 		}
 	}
-	return prints, nil
+	return prints
 }
 
 // Canonical is the text a scenario's fingerprint is the hash of (the package's doc gives its

@@ -158,10 +158,7 @@ func gherkinList(trees port.Trees, o Options, at string) (List, error) {
 		if err != nil {
 			return List{}, err
 		}
-		prints, err := Fingerprints(texts[file], o)
-		if err != nil {
-			return List{}, err
-		}
+		prints := Fingerprints(texts[file], o)
 		for _, id := range f.IDs {
 			tests = append(tests, Test{ID: id, File: file, Live: !f.FileWip && !f.Blocks[id].Wip, Fingerprint: prints[id]})
 		}
