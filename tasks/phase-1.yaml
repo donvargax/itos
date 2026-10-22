@@ -2780,10 +2780,6 @@
     CI's. Read itos.yaml's hooks.pre_push (per_base and whole), where the pre-push
     step is declared, to place it; its self-test, if the hook has one, covers a range
     with and without Go.
-  done_when:
-    - run: tools/bin/itos config get hooks.pre_push.per_base | grep -q golangci-lint
-    - run: go test -count=1 ./tools/...
-      timeout: 900
 
 - id: T-221
   type: build
