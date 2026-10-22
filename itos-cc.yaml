@@ -128,15 +128,6 @@ mutation:
       replacement: "true"
       reason: "Equivalent: timed is read only by ledger.CheckArg for a --timeout, which refuses while no check is given (len(*checks) == 0) before reading it, and every --check sets it false, so its first value is never seen."
       line_text: timed := false
-    - file: internal/cli/draftmint.go
-      function: github.com/donvargax/itos/v8/internal/cli#mintedKind
-      hash: 2c755792ebb029dc
-      line_in_function: 3
-      column: 27
-      original: <
-      replacement: <=
-      reason: 'Equivalent: a line of exactly two words is work add, work promote or task add with no arguments (any other two words are no minting line), which workAddLine, workPromoteLine and taskAddArgs each refuse, so mintedKind returns "" whether it stops here or there.'
-      line_text: if g.Help || len(g.Rest) < 2 || !slices.Contains(mintingLines, [2]string{g.Rest[0], g.Rest[1]}) {
     - file: internal/engine/ids/ids.go
       function: github.com/donvargax/itos/v8/internal/engine/ids#Mint
       hash: 4a005cc6f4c92ba9

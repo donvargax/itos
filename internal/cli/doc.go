@@ -482,40 +482,16 @@
 // subArgs, which followup's arguments were read with, stays in follow.go for
 // decision, status and work list.
 //
-// draft (draft.go over internal/draft) keeps its list in the drafts folder
-// beside follow's file, every writer through heldDrafts. A change draft is
-// taken by takeChange: HEAD read into a scratch index (GIT_INDEX_FILE in a
-// temporary folder beside the list), the paths added to it with git add
-// --all (new files and deletions too, pathspecs literal), and git diff
-// --cached --binary --full-index --no-renames HEAD written as <id>.patch;
-// then putBack checks the touched files out of HEAD, or takes a file HEAD
-// lacks out of the index and removes it, so only those paths change. promote
-// first refuses while checkoutBusy finds the checkout unclean (a tracked
-// change, a rebase or a merge in progress), never reading the registry: an
-// item's status is no gate, since items stay doing for the coordinator's own
-// work and for agents gone. Then, from the top, it applies each draft in
-// order: a patch with git apply --index, which checks every hunk's context
-// and a binary file's preimage against the tree before writing anything, so
-// a change that no longer applies leaves the tree as it was; then git commit
-// -F - with the message, through the hooks, a failed commit put back by
-// putBack on the files git apply --numstat lists. A draft promoted leaves
-// the list (saved at once) before the next starts; the first that fails is
-// draft-not-applied, exit 1, it and those after it kept. itos status lists
-// the drafts (internal/engine/status). An edit draft (draftEdit, slice 99) never
-// touches the working tree: it writes a copy of each path from HEAD (git
-// cat-file blob, empty for a path HEAD lacks) under edits/<id>/ and records
-// HEAD as its base; promote's editPatch reads the base into a scratch index,
-// puts each copy there (git hash-object -w --no-filters, update-index
-// --cacheinfo with the base's mode; a copy removed is --force-remove, an
-// empty copy of a new file nothing) and diffs it against the base, a patch
-// then applied as any change draft's. A command draft that mints an item's
-// id (draftmint.go, slice 103) has it minted by draftAdd through draftMint,
-// as the command would mint it under its own global flags, and kept as the
-// draft's Minted; promote runs it in this process (runReserved) through
-// mainWith, which Main hands it in Out (no package variable or init holds
-// Main), the id in the command's Out, which newItemID hands the command
-// instead of minting another, since no command line may give work add, task
-// add or work promote an id.
+// draft is the draft slice (internal/slices/draft); draft.go binds its
+// Ports to the git adapter (the VCS port and the patches it leaves to the
+// adapter), the private store's lock, hooksReady, this itos's binary
+// (executable), the run Main hands each command (Out's runLine) and, for a
+// drafted line that mints an item's id, ParseGlobals, applyGlobals,
+// readLine, workAddLine, workPromoteLine, taskAddArgs, loadConfig,
+// soundRegistry and mintItemID; newItemID hands the command it runs the id
+// reserved (Out's reserved) instead of minting another, since no command
+// line may give work add, task add or work promote an id. draftsFile, the
+// list status reads, stays in draft.go.
 //
 // decision (ask.go over internal/ask and internal/adr): add and answer write
 // the questions through writeCommitted, the file alone, docs: ask q-<n> and

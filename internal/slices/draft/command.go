@@ -1,8 +1,8 @@
-package cli
+package draft
 
 import "github.com/donvargax/itos/v8/internal/declare"
 
-var draftDeclared = declare.Command{
+var Command = declare.Command{
 	Name: "draft",
 	Rank: 80,
 	Lines: `  draft                            the drafts waiting, in the order promote applies them

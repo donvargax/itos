@@ -94,7 +94,7 @@ type Out struct {
 	// detects: what differs by OS takes it from here.
 	OS string
 	// reserved is the item id a draft reserved for the command itos draft
-	// promote runs in this process (runReserved), which the command writes
+	// promote runs in this process (the draft slice), which the command writes
 	// instead of minting one (newItemID); "" otherwise. Only promote sets
 	// it, for the one command it runs: no command line can, so a person
 	// passing an id is still refused.
