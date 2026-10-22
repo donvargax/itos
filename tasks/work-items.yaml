@@ -12118,8 +12118,8 @@ items:
   - id: T-237
     title: "The status summary engine out of internal/cli: where things stand, internal/engine/status"
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: [T-228, T-229, T-233, T-235]
     kind: task
 
