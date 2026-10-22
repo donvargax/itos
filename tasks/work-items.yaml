@@ -11427,3 +11427,20 @@ items:
       includes them; an artifact whose path is gone is marked so. Copying into .git/itos is
       optional, for paths in a scratch folder the OS may clear.
     tags: [status]
+
+  - id: p1-session-handoff
+    title: itos handoff writes a session's handoff into the clone's notes, in a fixed shape the next itos go prints
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The user, 2026-10-21: every coordinator session appends its handoff to .git/itos/notes.md by
+      hand (in flight, closed, next, open questions, local-only commits, lessons), and the file
+      grows without shape (this clone's is hundreds of lines). itos handoff collects what itos knows
+      (items in progress and their pushed SHAs, unpushed commits, open questions, running CI, drafts
+      waiting, recorded artifacts) and takes the session's own text for the rest, writing a dated
+      section; itos go prints the newest handoff in full and older ones as one line each, and itos
+      handoff prune folds old ones away.
+    tags: [status]
