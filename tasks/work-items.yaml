@@ -11859,3 +11859,11 @@ items:
       and work show on this repository and count git spawns; build it only where spawns dominate. It
       never writes, never runs hooks, and the contract suite holds it to the git adapter's answers.
     tags: [providers]
+
+  - id: T-224
+    title: Tests cover the paths T-218 re-plumbed in commit, push, work show and work write
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task

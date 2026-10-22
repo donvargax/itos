@@ -2820,3 +2820,18 @@
     internal/cli/status.go:324 and 330 (readBranch's remote-unreached and last-fetched path)
     uncovered. Unit tests first, through the VCS fake (internal/vcs/port/porttest) where it reaches
     the line; no change to what itos does.
+
+- id: T-224
+  type: test
+  title: Tests cover the paths T-218 re-plumbed in commit, push, work show and work write
+  why: >
+    Coverage debt of the slices refactor (the user, 2026-10-21). T-218's push proof (since fb21d7a9)
+    left old code it only re-plumbed uncovered: internal/cli/gitcommit.go:562-563 (itos commit
+    --json's commit SHA), internal/cli/push.go:360 (the rebase when setting notes.rewriteRef fails),
+    internal/cli/workshow.go:223 (work show --json --patch when the patch fails),
+    internal/cli/workwrite.go:266 (a failed step whose rollback also fails). Unit tests through the
+    VCS fake (internal/vcs/port/porttest, now a *VCS that commands change) where it reaches the
+    line; no change to what itos does.
+  done_when:
+    - run: tools/bin/pinned itos-cc mutation run --since fb21d7a9 --count 1 --seed fb21d7a9 --fail-uncovered=lines --json cmd internal
+      timeout: 900
