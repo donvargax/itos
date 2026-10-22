@@ -11635,3 +11635,17 @@ items:
       a deferred one it says only status: todo, so it reads as ready (work take does refuse it).
       Print deferred: <why> and blocked by: <why> under the status, as itos work lists them.
     tags: [work]
+
+  - id: p1-go-without-config
+    title: itos go where there is no config says so and stops, naming both init modes
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      #96 (8.5.0, a docs-and-ops repository): with no config, itos go prints a one-line hint naming
+      only itos init, then the coordinator guide that cannot apply, exit 0. Print what is missing,
+      itos init (and what a tracked init adds to every commit) and itos init --stealth, and stop
+      with exit 3 (the environment lacks something), so a wrapper can tell it from a normal go.
+    tags: [cli]
