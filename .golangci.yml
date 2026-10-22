@@ -57,6 +57,8 @@ linters:
             - github.com/donvargax/itos/v8/internal/store/private/port/porttest$
             - github.com/donvargax/itos/v8/internal/store/tree/port$
             - github.com/donvargax/itos/v8/internal/store/tree/port/porttest$
+            - github.com/donvargax/itos/v8/internal/store/tracker/port$
+            - github.com/donvargax/itos/v8/internal/store/tracker/port/porttest$
             - github.com/donvargax/itos/v8/internal/vcs/port$
             - github.com/donvargax/itos/v8/internal/vcs/port/porttest$
           deny:
@@ -74,6 +76,8 @@ linters:
             - pkg: github.com/donvargax/itos/v8/internal/store/private/port/porttest
               desc: "a slice's code links no fake (ADR-0053): a port's fake enters only through _test.go files"
             - pkg: github.com/donvargax/itos/v8/internal/store/tree/port/porttest
+              desc: "a slice's code links no fake (ADR-0053): a port's fake enters only through _test.go files"
+            - pkg: github.com/donvargax/itos/v8/internal/store/tracker/port/porttest
               desc: "a slice's code links no fake (ADR-0053): a port's fake enters only through _test.go files"
             - pkg: github.com/donvargax/itos/v8/internal/vcs/port/porttest
               desc: "a slice's code links no fake (ADR-0053): a port's fake enters only through _test.go files"
@@ -93,6 +97,8 @@ linters:
             - github.com/donvargax/itos/v8/internal/store/private/port/porttest$
             - github.com/donvargax/itos/v8/internal/store/tree/port$
             - github.com/donvargax/itos/v8/internal/store/tree/port/porttest$
+            - github.com/donvargax/itos/v8/internal/store/tracker/port$
+            - github.com/donvargax/itos/v8/internal/store/tracker/port/porttest$
             - github.com/donvargax/itos/v8/internal/vcs/port$
             - github.com/donvargax/itos/v8/internal/vcs/port/porttest$
           deny:
@@ -126,6 +132,8 @@ linters:
             - pkg: github.com/donvargax/itos/v8/internal/store/private/port/porttest
               desc: "a store's adapter's code links no fake (ADR-0053): a port's fake enters only through _test.go files"
             - pkg: github.com/donvargax/itos/v8/internal/store/tree/port/porttest
+              desc: "a store's adapter's code links no fake (ADR-0053): a port's fake enters only through _test.go files"
+            - pkg: github.com/donvargax/itos/v8/internal/store/tracker/port/porttest
               desc: "a store's adapter's code links no fake (ADR-0053): a port's fake enters only through _test.go files"
             - pkg: github.com/donvargax/itos/v8/internal/vcs/port/porttest
               desc: "a store's adapter's code links no fake (ADR-0053): a port's fake enters only through _test.go files"
