@@ -14,7 +14,7 @@
 // repair.md and decide.md, the implementer's commit.md and push.md. Every
 // rule is in exactly one text, which guide_test.go pins by the sections of
 // the two guides the procedures were cut from. They are printed as written;
-// internal/cli/guide.go appends to the commit procedure the commit policy the
+// internal/engine/guides appends to the commit procedure the commit policy the
 // config sets, generated as AGENTS.md's block is.
 //
 // They are generic by rule: what one repository learns that holds for no
@@ -22,7 +22,7 @@
 // config (docs/ORCHESTRATING.md by default), which itos go appends after a
 // line of ---, and what holds on one machine only in the clone's own
 // notes.md in itos's folder of the git common dir, which itos go alone
-// appends after another. internal/cli/guide.go reads both; a config or notes
+// appends after another. internal/engine/guides reads both; a config or notes
 // that cannot be read are a warning on stderr, never a failure, since the
 // guide is what a session starts from.
 package guide
