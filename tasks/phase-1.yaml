@@ -4362,3 +4362,19 @@
     one, state the choice in the case's comment, keep what the case proves. Step 9 moves code out of
     internal/cli: prefer a line in a package step 9 does not move (an engine, a domain package) or
     say why it is stable. A ci commit; no product change.
+
+- id: T-269
+  type: ci
+  title: The pre-push hook runs staticcheck when Go changed, as it runs golangci-lint
+  why: >
+    T-247's and T-251's pushes (2026-10-22, step 9 lanes) each turned main red on staticcheck's
+    ST1008 in a new test: staticcheck (go tool staticcheck, T-148) is a CI step no hook runs, so
+    every lane's push stayed red until each repair landed. As T-220 did for golangci-lint:
+    tools/bin/staticcheck-changed {base} runs go tool staticcheck over the packages the pushed range
+    changes when Go changed (and nothing when it did not), --all over the module; itos.yaml's
+    hooks.pre_push per_base and whole run it after golangci-lint-changed; its self-test beside
+    golangci-lint-changed's (tools/selftest). A ci commit; AGENTS.md's pre-push sentence names it in
+    a docs commit.
+  done_when:
+    - run: test -f tools/bin/staticcheck-changed/main.go || test -x tools/bin/staticcheck-changed
+    - run: grep -n 'staticcheck-changed' itos.yaml
