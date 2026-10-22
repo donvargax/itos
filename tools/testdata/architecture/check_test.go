@@ -201,6 +201,13 @@ func fixtures(module string) []fixture {
 		add(layer, ours("internal/lock"), "Value", "lock-internals", false)
 		add(layer, ours("internal/lock"), "Value", "", true)
 	}
+	// The ID counter is the tracker adapter's internals, which no other
+	// package's code imports, but in a test.
+	add("internal/store/tracker/adapter", ours("internal/idcounter"), "Value", "", false)
+	for _, layer := range []string{"internal/store/private/adapter", "internal/vcs/adapter", "internal/cli", "cmd/probe"} {
+		add(layer, ours("internal/idcounter"), "Value", "idcounter-internals", false)
+		add(layer, ours("internal/idcounter"), "Value", "", true)
+	}
 	// What is outside internal/slices and importing a slice, which depguard
 	// lets by and architecture-check's outside holds.
 	add("internal/git", ours("internal/slices/alpha"), "Value", "", false)
