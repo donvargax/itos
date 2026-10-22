@@ -268,3 +268,15 @@ Feature: itos commit, a commit whose footers itos writes
     Then itos exits with code 3
     And its output says "git"
     And nothing was committed
+
+  # itos commit runs without an itos config: it hands the command to git. In a
+  # folder with no config, outside any repository, it panicked on the nil
+  # config (gitCommit read its comment character after checking it was there);
+  # git fails there itself, exit 128, before reading its options.
+  @ID-COMMITCMD-25 @bug-120 @wip
+  Scenario: itos commit in a folder with no itos config hands the command to git and never panics
+    Given a folder that is not a git repository
+    When itos runs "commit --zz-bogus"
+    Then itos exits with code 128
+    And its output says "not a git repository"
+    And its output does not say "panic"
