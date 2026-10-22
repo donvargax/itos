@@ -6,9 +6,9 @@ Feature: itos's hooks on a git that runs no hook its config declares
   into the folder git runs hooks from (git rev-parse --git-path hooks, which
   follows core.hooksPath), each one running a hook the folder already held
   first and then itos's, and every command that commits or pushes refuses
-  unless a hook file there calls itos. A hook file git tracks is the
-  project's: itos never writes one, and says which line to add to it
-  instead. The git config stays the default and the only place itos writes
+  unless a hook file there calls itos. A hooks folder inside the work tree
+  is the project's, whether git tracks its files or not: itos writes no file
+  there, and says which line to add to each hook file instead. The git config stays the default and the only place itos writes
   on a git that runs its config's hooks (config.feature's ID-CONFIG-38):
   hook files are a compatibility path for older gits, kept a few months
   until most people's git runs config hooks (the user, 2026-10-22), and
@@ -64,11 +64,11 @@ Feature: itos's hooks on a git that runs no hook its config declares
     And git commits with the message "chore: tidy the readme"
     Then the project's commit-msg hook ran once
 
-  # A tracked hook file (a hook manager's, committed with the project) is the
-  # project's: writing it would put a change in the tree that some commit
-  # would carry. hook install writes nothing and names the file and the line
-  # to add; the other hook is not written either, so the clone is never half
-  # installed.
+  # A hooks folder inside the work tree (a hook manager's, committed with the
+  # project) is the project's: writing a file there would put a change in the
+  # tree that some commit would carry. hook install writes nothing and names
+  # each hook file and the line to add; the other hook is not written either,
+  # so the clone is never half installed.
   @ID-OLDGIT-05 @slice-165 @wip
   Scenario: hook install refuses a hooks folder git tracks, naming the line to add
     Given the project's hooks are in ".husky" by core.hooksPath, with a commit-msg hook that records it ran
@@ -109,3 +109,15 @@ Feature: itos's hooks on a git that runs no hook its config declares
     When itos runs "push --no-wait"
     Then itos exits with code 3
     And its output says "itos hook install"
+
+  # A hooks folder inside the work tree is the project's even where git
+  # tracks none of its files: a file itos added there would show in every
+  # git status, for some commit to carry (the user, 2026-10-22).
+  @ID-OLDGIT-09 @slice-165 @wip
+  Scenario: hook install refuses a hooks folder inside the work tree that git does not track
+    Given core.hooksPath is "githooks", a folder git does not track
+    When itos runs "hook install"
+    Then itos exits with code 1
+    And its output says "githooks/commit-msg"
+    And its output says "hook commit-msg"
+    And the file "githooks/commit-msg" does not exist

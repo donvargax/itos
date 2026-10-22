@@ -18,6 +18,16 @@ func initializeOldGitSteps(sc *godog.ScenarioContext, w *world) {
 	sc.Step(`^the project's hooks are in "([^"]*)" by core\.hooksPath, with a commit-msg hook that calls itos's commit-msg hook$`,
 		w.projectHooksCallingItos)
 	sc.Step(`^the project's commit-msg hook ran once$`, w.projectHookRanOnce)
+	sc.Step(`^core\.hooksPath is "([^"]*)", a folder git does not track$`, w.untrackedHooksFolder)
+}
+
+// core.hooksPath names a folder of the work tree that is there, empty, so
+// git tracks nothing in it.
+func (w *world) untrackedHooksFolder(dir string) error {
+	if err := os.MkdirAll(filepath.Join(w.dir, dir), 0o755); err != nil {
+		return err
+	}
+	return w.git("config", "core.hooksPath", dir)
 }
 
 // git 2.51's answers to what itos asks of a git: git --version, and git
