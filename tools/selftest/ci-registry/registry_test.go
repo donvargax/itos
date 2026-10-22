@@ -22,7 +22,7 @@ func TestSelftest(t *testing.T) {
 	helper := scratch.Build(t, "ci-repo")
 	r := scratch.NewRepo(t, "ci-registry")
 	base := r.Open()
-	// The checkout's built binary and pinned formatter cache are shared, not rebuilt per range.
+	// The checkout's built binary is shared, not rebuilt per range.
 	scratch.Itos(t, root, "version")
 	if err := os.Symlink(filepath.Join(root, ".tools"), filepath.Join(r.Dir, ".tools")); err != nil {
 		t.Fatal(err)

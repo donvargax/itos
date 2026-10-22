@@ -374,25 +374,6 @@ func copyFile(from, to string) error {
 	return out.Close()
 }
 
-// SharePinned puts the checkout's pinned tool (tools/bin/pinned --path, which fetches it there
-// once) at the same place in the worktree, so a gate there runs it without fetching it again.
-func (r *Repo) SharePinned(tool string) {
-	r.t.Helper()
-	name, argv := Program(filepath.Join(r.Root, "tools", "bin", "pinned"), "--path", tool)
-	res := Run(r.Root, r.Env, "", name, argv...)
-	if res.Code != 0 {
-		r.t.Fatalf("tools/bin/pinned --path %s exited %d:\n%s", tool, res.Code, res.Output())
-	}
-	bin := strings.TrimSpace(res.Stdout)
-	rel, err := filepath.Rel(r.Root, bin)
-	if err != nil {
-		r.t.Fatal(err)
-	}
-	if err := copyFile(bin, filepath.Join(r.Dir, rel)); err != nil {
-		r.t.Fatal(err)
-	}
-}
-
 // declareHooks declares itos's hooks for the worktree alone, as itos hook install declares them
 // in a clone's git config (decision 37): the entries the worktree's own itos prints (hook install
 // --print), in a file the environment includes where the git dir is the worktree's and nowhere

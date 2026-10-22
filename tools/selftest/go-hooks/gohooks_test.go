@@ -89,7 +89,6 @@ func TestSelftest(t *testing.T) {
 	repo := scratch.NewRepo(t, "go-hooks-selftest")
 	hooks := scratch.Hooks{R: repo}
 	base := repo.Open()
-	repo.SharePinned("golangci-lint")
 	var every []string
 	for _, line := range strings.Split(repo.Sh("go list ./cmd/... ./internal/...", "", "").Stdout, "\n") {
 		if line != "" {
