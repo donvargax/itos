@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"strconv"
 	"strings"
@@ -40,7 +41,7 @@ func fixtureCase(t *testing.T, text string) *Case {
 // nativeGit is the git the tests run, internal/git's Real.
 func nativeGit(t *testing.T) string {
 	t.Helper()
-	git, err := itosgit.Real()
+	git, err := itosgit.Real(runtime.GOOS)
 	if err != nil {
 		t.Skip(err)
 	}

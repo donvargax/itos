@@ -149,7 +149,6 @@ type failure struct {
 const self = "previous-release"
 
 func main() {
-	itosgit.Platform = runtime.GOOS
 	os.Exit(run())
 }
 
@@ -477,7 +476,7 @@ func runCorpus(old readied, bin string) suite {
 		s.err = old.Err
 		return s
 	}
-	nativeGit, err := itosgit.Real()
+	nativeGit, err := itosgit.Real(runtime.GOOS)
 	if err != nil {
 		s.err = fmt.Errorf("no native git for the conformance runner: %v", err)
 		return s

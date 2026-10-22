@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -22,7 +23,7 @@ func TestMain(m *testing.M) {
 	for _, name := range []string{"GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_COMMON_DIR", "GIT_OBJECT_DIRECTORY", "GIT_PREFIX"} {
 		os.Unsetenv(name)
 	}
-	git.Export()
+	git.Export(runtime.GOOS)
 	os.Exit(m.Run())
 }
 
@@ -59,7 +60,7 @@ func newRepoAt(t *testing.T, mode, module string) repo {
 // may be an itos linked as git.
 func (r repo) git(args ...string) {
 	r.t.Helper()
-	cmd := exec.Command(git.Bin(), args...)
+	cmd := exec.Command(git.Bin(runtime.GOOS), args...)
 	cmd.Dir = r.dir
 	cmd.Env = append(os.Environ(), "GIT_AUTHOR_NAME=t", "GIT_AUTHOR_EMAIL=t@localhost",
 		"GIT_COMMITTER_NAME=t", "GIT_COMMITTER_EMAIL=t@localhost", "GIT_CONFIG_GLOBAL=/dev/null",

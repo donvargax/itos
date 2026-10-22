@@ -66,7 +66,7 @@ func New(opts Options) (*Runner, error) {
 	}
 	r.nativeGit = opts.Git
 	if r.nativeGit == "" {
-		found, err := itosgit.Real()
+		found, err := itosgit.Real(runtime.GOOS)
 		if err != nil {
 			return nil, fixtureErr("no native git: %v", err)
 		}

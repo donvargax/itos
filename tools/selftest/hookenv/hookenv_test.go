@@ -48,7 +48,7 @@ func fakeBin(t *testing.T, record string) string {
 	if err := os.WriteFile(filepath.Join(bin, "go"), []byte(goScript), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.Symlink(git.Bin(), filepath.Join(bin, "git")); err != nil {
+	if err := os.Symlink(git.Bin(runtime.GOOS), filepath.Join(bin, "git")); err != nil {
 		t.Fatal(err)
 	}
 	return bin
@@ -57,7 +57,7 @@ func fakeBin(t *testing.T, record string) string {
 // gitIn runs the real git in dir with env laid over the test's environment less the pointers.
 func gitIn(t *testing.T, dir string, env []string, args ...string) {
 	t.Helper()
-	cmd := exec.Command(git.Bin(), args...)
+	cmd := exec.Command(git.Bin(runtime.GOOS), args...)
 	cmd.Dir = dir
 	cmd.Env = append(clean(), env...)
 	if out, err := cmd.CombinedOutput(); err != nil {

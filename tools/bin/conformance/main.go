@@ -38,19 +38,16 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"runtime"
 	"slices"
 	"strings"
 	"time"
 
-	itosgit "github.com/donvargax/itos/v8/internal/git"
 	"github.com/donvargax/itos/v8/tools/bin/conformance/corpus"
 )
 
 const usage = "usage: go run ./tools/bin/conformance --bin <command> [--git <path>] [--additive] [--json] [--actual] [--case <regexp>] [--only <file>…]"
 
 func main() {
-	itosgit.Platform = runtime.GOOS
 	os.Exit(run(os.Args[1:], os.Stdout, os.Stderr))
 }
 

@@ -81,7 +81,7 @@ func Root(t testing.TB) string {
 }
 
 // Git is the real git, as internal/git finds it.
-func Git() string { return git.Bin() }
+func Git() string { return git.Bin(runtime.GOOS) }
 
 // OutsideEnv is the environment a self-test runs everything in: no hook's GIT_ variables and no
 // CI, ITOS_GIT naming the real git, as an itos run hands its git to what it starts, so a hook, a
