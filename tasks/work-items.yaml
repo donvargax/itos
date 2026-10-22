@@ -11723,3 +11723,18 @@ items:
       (repeatable) writes Amends ADR-n in the new record and Amended by ADR-new in n, status kept,
       one commit; config check holds the links as it holds supersede links.
     tags: [ask]
+
+  - id: p1-done-says-checks-end
+    title: work done says which checks stop running when it closes a task, and where a lasting one belongs
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      #109 (8.5.0): a generator's check guarding a committed file against drift stopped running when
+      its task closed, and the coordinator learned it afterwards. Ending the checks is ADR-0043's
+      design, but work done can name the checks it removes and say that one meant to keep running
+      belongs in ci.steps or ci.nightly.steps; a lasting mark that moves a check there at close is
+      the larger option.
+    tags: [work]
