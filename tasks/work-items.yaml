@@ -12413,3 +12413,11 @@ items:
     status: todo
     depends_on: []
     kind: task
+
+  - id: T-266
+    title: "itos work becomes a slice, part 3: promote"
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task
