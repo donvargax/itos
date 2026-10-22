@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"encoding/json"
 	"io"
 	"os"
 	"path/filepath"
@@ -136,5 +137,34 @@ func TestRefuseCommitArgs(t *testing.T) {
 		if got := hooksPathSet(); got != want {
 			t.Errorf("GIT_CONFIG_PARAMETERS %q: hooksPathSet = %v", params, got)
 		}
+	}
+}
+
+// Under --json, a commit made gives ok and the commit's SHA, git's own words
+// going to stderr; one the hook refuses gives ok false and no commit.
+func TestGitCommitJSONNamesTheCommit(t *testing.T) {
+	rollbackRepo(t)
+	writeFile(t, "a.md", "a\n")
+	gitIn(t, "add", "--", "a.md")
+	var stdout, stderr strings.Builder
+	code, err := gitCommit([]string{"-m", "docs: add a"}, Out{Stdout: &stdout, Stderr: &stderr, JSON: true})
+	var got struct {
+		OK     bool    `json:"ok"`
+		Commit *string `json:"commit"`
+	}
+	if code != 0 || err != nil || json.Unmarshal([]byte(stdout.String()), &got) != nil {
+		t.Fatalf("exit %d, %v\n%s%s", code, err, stdout.String(), stderr.String())
+	}
+	if head := strings.TrimSpace(gitIn(t, "rev-parse", "HEAD")); !got.OK || got.Commit == nil || *got.Commit != head {
+		t.Errorf("stdout %s, HEAD %s", stdout.String(), head)
+	}
+	refusingHook(t)
+	writeFile(t, "a.md", "b\n")
+	gitIn(t, "add", "--", "a.md")
+	stdout.Reset()
+	code, err = gitCommit([]string{"-m", "docs: change a"}, Out{Stdout: &stdout, Stderr: &stderr, JSON: true})
+	got.Commit = nil
+	if code != 1 || err != nil || json.Unmarshal([]byte(stdout.String()), &got) != nil || got.OK || got.Commit != nil {
+		t.Errorf("a refused commit: exit %d, %v\n%s", code, err, stdout.String())
 	}
 }

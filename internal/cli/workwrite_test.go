@@ -121,6 +121,22 @@ func TestRollbackHookRefuses(t *testing.T) {
 	}
 }
 
+// A commit a hook refuses, which leaves a file that cannot be put back (a
+// folder where registry.yaml was), is an error that says both, with no
+// refusal of its own: the file is not as it was.
+func TestRollbackFailsAfterTheHookRefuses(t *testing.T) {
+	cfg := rollbackRepo(t)
+	gitHook(t, "commit-msg", "#!/bin/sh\nrm registry.yaml && mkdir registry.yaml && echo x > registry.yaml/x\nexit 1\n")
+	sha, code, stderr, err := writeAndCommit(t, cfg, rollbackFiles(), "Add T-2.")
+	want := "the commit of registry.yaml and new.yaml failed (git exited 1): registry.yaml cannot be put back: "
+	if sha != "" || code != 0 || err == nil || !strings.HasPrefix(err.Error(), want) {
+		t.Fatalf("got %q, exit %d, %v\n%s", sha, code, err, stderr)
+	}
+	if strings.Contains(stderr, "as they were") {
+		t.Errorf("stderr says the files are as they were:\n%s", stderr)
+	}
+}
+
 // Where the git config declares no commit-msg hook of itos's, nothing is
 // written and nothing committed: the refusal is a missing environment (slice
 // 91).

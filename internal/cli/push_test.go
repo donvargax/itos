@@ -188,6 +188,40 @@ func TestPushRebaseStoppedWithNoConflict(t *testing.T) {
 	}
 }
 
+// Under a stealth config, a rebase whose notes.rewriteRef cannot be set,
+// git's config being locked, does not start: the push says why, exit 3, and
+// the branch is where it was.
+func TestPushRebaseWithoutNotesRewriteRef(t *testing.T) {
+	dir := gitConfigRepo(t, "version: 1\n")
+	for _, name := range []string{"GIT_AUTHOR_NAME", "GIT_COMMITTER_NAME"} {
+		t.Setenv(name, "itos")
+	}
+	for _, name := range []string{"GIT_AUTHOR_EMAIL", "GIT_COMMITTER_EMAIL"} {
+		t.Setenv(name, "itos@example.com")
+	}
+	if err := os.Remove(filepath.Join(dir, "itos.yaml")); err != nil {
+		t.Fatal(err)
+	}
+	writeFiles(t, map[string]string{filepath.Join(".git", "itos", "itos.yaml"): "version: 1\n"})
+	gitLine(t, "checkout", "-q", "-b", "main")
+	gitLine(t, "commit", "-q", "--allow-empty", "-m", "chore: start")
+	gitLine(t, "checkout", "-q", "-b", "up")
+	gitLine(t, "commit", "-q", "--allow-empty", "-m", "docs: theirs")
+	gitLine(t, "checkout", "-q", "main")
+	gitLine(t, "commit", "-q", "--allow-empty", "-m", "docs: mine")
+	head := gitLine(t, "rev-parse", "HEAD")
+	writeFile(t, filepath.Join(".git", "config.lock"), "")
+	var stdout, stderr strings.Builder
+	r := pushRun{o: Out{Stdout: &stdout, Stderr: &stderr}, git: &stderr, remote: "origin", branch: "main"}
+	code, done, err := r.rebase("up")
+	if !done || code != ExitMissing || err != nil || !strings.HasPrefix(stderr.String(), "itos: cannot set notes.rewriteRef: ") {
+		t.Fatalf("exit %d, done %v, %v\n%s%s", code, done, err, stdout.String(), stderr.String())
+	}
+	if got := gitLine(t, "rev-parse", "HEAD"); got != head || (vcs.Git{}).Rebasing(t.Context()) {
+		t.Errorf("HEAD moved to %s, or a rebase is in progress", got)
+	}
+}
+
 // A branch left with one conflicted file, by a merge stopped before the
 // push, is a rebase stopped all the same, though no rebase is in progress:
 // the push says so, exit 1, and the conflict is left to be resolved.
