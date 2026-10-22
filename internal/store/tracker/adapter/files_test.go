@@ -354,18 +354,19 @@ func TestTransactCommitsAsTheTransactionSays(t *testing.T) {
 	}
 }
 
-// A file that is not a file, or a folder that is not one, is the disk's
-// error.
+// A document that is a folder, a folder no name can be, or a lock in a
+// file, is the disk's error. A file listed as a folder is not one: Windows
+// says the path is not found, which is no folder, as adr.Next has read it.
 func TestFilesSayTheDisksErrors(t *testing.T) {
 	files, _ := project(t, false)
 	if docs, err := files.Load(t.Context(), []string{"tasks"}); err == nil {
 		t.Errorf("a folder loaded as a document: %v", docs)
 	}
+	if names, err := files.List(t.Context(), "bad\x00name"); err == nil {
+		t.Errorf("a name no folder can have listed: %q", names)
+	}
 	if err := os.WriteFile("plain", nil, 0o644); err != nil {
 		t.Fatal(err)
-	}
-	if names, err := files.List(t.Context(), "plain"); err == nil {
-		t.Errorf("a file listed as a folder: %q", names)
 	}
 	files.Stealth = true
 	files.Lock = filepath.Join("plain", "registry.yaml")
