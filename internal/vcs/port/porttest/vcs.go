@@ -92,27 +92,24 @@ func (v VCS) Shallow(context.Context) bool { return v.IsShallow }
 // a revision names no commit.
 func (v VCS) reach(revs ...string) (map[string]bool, bool) {
 	seen := map[string]bool{}
-	var walk func(string) bool
-	walk = func(rev string) bool {
-		c, ok := v.commit(rev)
-		if !ok {
-			return false
-		}
+	var walk func(Commit)
+	walk = func(c Commit) {
 		if seen[c.Name] {
-			return true
+			return
 		}
 		seen[c.Name] = true
 		for _, p := range c.Parents {
-			if !walk(p) {
-				return false
+			if parent, ok := v.commit(p); ok {
+				walk(parent)
 			}
 		}
-		return true
 	}
 	for _, rev := range revs {
-		if !walk(rev) {
+		c, ok := v.commit(rev)
+		if !ok {
 			return nil, false
 		}
+		walk(c)
 	}
 	return seen, true
 }
