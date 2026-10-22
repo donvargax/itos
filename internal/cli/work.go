@@ -2,8 +2,11 @@ package cli
 
 import (
 	"context"
+	"io"
 
 	"github.com/donvargax/itos/v8/internal/config"
+	"github.com/donvargax/itos/v8/internal/engine/judge"
+	"github.com/donvargax/itos/v8/internal/ledger"
 	"github.com/donvargax/itos/v8/internal/providers"
 	workslice "github.com/donvargax/itos/v8/internal/slices/work"
 	trackerport "github.com/donvargax/itos/v8/internal/store/tracker/port"
@@ -13,33 +16,18 @@ import (
 )
 
 // runWork is `work`, the work slice (internal/slices/work) over its ports
-// bound to the real code, which reads every subcommand's line and answers
-// all but work done. That one is still internal/cli's (unmoved), called
-// with the arguments after its name once the slice has read them.
+// bound to the real code.
 func runWork(args []string, o Out) (int, error) {
 	c, err := workslice.Parse(args, o.Origin, o.JSON, o.Quiet)
 	if err != nil {
 		return 0, err
 	}
-	if write := unmoved(c.Sub); write != nil {
-		_, rest := split(args)
-		return write(rest, o)
-	}
 	return c.Run(context.Background(), o.Stdout, o.Stderr, workslice.NewHandler(workPorts{o}))
 }
 
-// unmoved is the subcommand of work not yet in the slice that sub names,
-// nil for one the slice answers.
-func unmoved(sub string) command {
-	if sub == "done" {
-		return workDone
-	}
-	return nil
-}
-
 // workPorts are the work slice's ports over the real code: loadConfig, the
-// working tree, work.identity's provider, the tracker on o's OS and
-// newItemID, given the id a draft reserved.
+// working tree, work.identity's provider, the tracker on o's OS, newItemID,
+// given the id a draft reserved, judge.FirstFailure and watcher.
 type workPorts struct{ o Out }
 
 // Config is loadConfig.
@@ -61,6 +49,17 @@ func (p workPorts) Tracker(_ context.Context, cfg *config.Loaded) trackerport.Tr
 // ItemID is newItemID.
 func (p workPorts) ItemID(_ context.Context, cfg *config.Loaded, kind string, registryIDs []string) (string, error) {
 	return newItemID(cfg, kind, registryIDs, p.o.reserved, p.o.OS)
+}
+
+// FirstFailure is judge.FirstFailure in the environment the commit-msg
+// hook runs a task's checks in (checkEnv).
+func (workPorts) FirstFailure(_ context.Context, cfg *config.Loaded, task ledger.Task, limit float64, stderr io.Writer) (string, error) {
+	return judge.FirstFailure(cfg, task, limit, checkEnv(), stderr)
+}
+
+// Watcher is watcher.
+func (workPorts) Watcher(_ context.Context, cfg *config.Loaded, remote string) (providers.Watcher, bool, error) {
+	return watcher(cfg, remote, Out{})
 }
 
 // workAddLine is workslice.AddLine, which draft reads a work add line with.

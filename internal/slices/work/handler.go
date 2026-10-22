@@ -9,6 +9,7 @@ import (
 
 	"github.com/donvargax/itos/v8/internal/ask"
 	"github.com/donvargax/itos/v8/internal/config"
+	"github.com/donvargax/itos/v8/internal/engine/ciwatch"
 	"github.com/donvargax/itos/v8/internal/ledger"
 	"github.com/donvargax/itos/v8/internal/message"
 	"github.com/donvargax/itos/v8/internal/out"
@@ -26,16 +27,21 @@ import (
 // a file work check names is looked for before the config is read;
 // Identity, work.identity's provider, asked who the session works for;
 // Tracker, the tracker store the questions and the registry are in, which
-// a write holds, reads and commits through; and ItemID, the id work add
+// a write holds, reads and commits through; ItemID, the id work add
 // gives an item of a numbered kind: the one a draft reserved for the
-// command, else one minted past registryIDs. The repository is the config's
-// VCS.
+// command, else one minted past registryIDs; and for work done,
+// FirstFailure, a task's checks run as the commit-msg hook runs them,
+// capped at limit, the first failure's output on stderr and what went
+// wrong, "" when none failed, and Watcher, ci.watch's provider for cfg,
+// for a commit pushed to remote. The repository is the config's VCS.
 type Ports interface {
 	Config(ctx context.Context) (*config.Loaded, error)
 	Worktree(ctx context.Context) treeport.Source
 	Identity(ctx context.Context, cfg *config.Loaded) providers.Identity
 	Tracker(ctx context.Context, cfg *config.Loaded) trackerport.Tracker
 	ItemID(ctx context.Context, cfg *config.Loaded, kind string, registryIDs []string) (string, error)
+	FirstFailure(ctx context.Context, cfg *config.Loaded, task ledger.Task, limit float64, stderr io.Writer) (string, error)
+	Watcher(ctx context.Context, cfg *config.Loaded, remote string) (providers.Watcher, bool, error)
 }
 
 // Handler is work's application, over its ports.
@@ -50,10 +56,12 @@ func NewHandler(p Ports) Handler {
 
 // Out is what Handle is told of how a change is reported: Quiet, which
 // silences the commit's words, and Stderr, where git's words and the
-// hooks' go, and the line of a lock that cannot be given back.
+// hooks' go, and the line of a lock that cannot be given back; work done
+// writes the watch of its CI run as ciwatch.Out says, to Stdout, or Stderr
+// under JSON, and its notes and the task's failing checks to Stderr.
 type Out struct {
-	Quiet  bool
-	Stderr io.Writer
+	Quiet, JSON    bool
+	Stdout, Stderr io.Writer
 }
 
 // Answer is what Handle found or did. work check: the File judged and the
@@ -66,8 +74,9 @@ type Out struct {
 // held, then for the caller to defer; Refused, the problems that refused
 // it, nothing written, Code its exit and Each the ids refused of several;
 // else the Change of one id, made for ID (work add's minted one), the
-// Several of more, or what work promote Promoted, and the Commit, "" under
-// a stealth config or when nothing changed.
+// Several of more, what work promote Promoted or what work done Done, and
+// the Commit, "" under a stealth config or when nothing changed. work done
+// refused by its CI run is CI, the watch, Code its exit.
 type Answer struct {
 	File     string
 	Found    []out.Problem
@@ -85,6 +94,8 @@ type Answer struct {
 	Change   *domain.Change
 	Several  *domain.Several
 	Promoted *Promoted
+	Done     *Closed
+	CI       *ciwatch.Watched
 	Commit   string
 }
 
@@ -119,6 +130,8 @@ func (h Handler) Handle(ctx context.Context, q Query, o Out) (Answer, error) {
 		return h.add(ctx, q.New, o)
 	case "promote":
 		return h.promote(ctx, q.Promotion, o)
+	case "done":
+		return h.done(ctx, q.ID, o)
 	case "edit", "queue", "drop", "defer", "resume", "give-back":
 		if len(q.IDs) > 1 {
 			return h.each(ctx, q, o)

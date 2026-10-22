@@ -135,7 +135,7 @@ func Take(r Registry, text, id, person string, every bool) (Change, *out.Problem
 // in its spec (a slice's feature file, a task's ledger entry) and its
 // commits, the dropped text in git's history. Whether the work landed (its scenarios live, its
 // commits pushed, its CI run green, a task's checks passing) is the command
-// line's to judge (internal/cli/workdone.go), as is the ledger's edit that
+// line's to judge (internal/slices/work/done.go), as is the ledger's edit that
 // takes a closed task's checks out (slice 101); Done judges the registry
 // alone. Refused, with nothing changed: an id no item has, an idea (not yet
 // specified, so nothing of it can be done: work promote makes it a slice or

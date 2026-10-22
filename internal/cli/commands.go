@@ -2,7 +2,6 @@ package cli
 
 import (
 	"github.com/donvargax/itos/v8/internal/config"
-	"github.com/donvargax/itos/v8/internal/engine/args"
 	trees "github.com/donvargax/itos/v8/internal/store/tree/adapter"
 	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
 )
@@ -10,9 +9,6 @@ import (
 // A command takes the arguments after its name and gives its exit code, or
 // an error that failure reports.
 type command func(args []string, o Out) (int, error)
-
-// split is args.Split.
-func split(list []string) (string, []string) { return args.Split(list) }
 
 // configPath is the config's path, as the working tree has it: every
 // command but the commit-msg hook, which reads the index, reads its data

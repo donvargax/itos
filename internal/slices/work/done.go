@@ -1,104 +1,86 @@
-package cli
-
-// work done (slice 53, features/work.feature): the landing's check, run by
-// the agent after its push, then the item marked done and the registry
-// committed alone, as work take commits it (workwrite.go). An item is done
-// when its work has landed: none of its scenarios (those tagged @<id>, so
-// @slice-<n> for the item slice-<n>) still @wip, no commit that no remote
-// has, a task's static checks passing as the commit-msg hook runs them, and
-// with ci.watch the CI run green, waited for as itos ci watch waits when it
-// is still going. The commits judged are the item's own (slice 127), those
-// whose footers name it (an Item:, a Task:, or a Scenarios: footer naming one
-// of its scenarios) as work show lists them, its registry commits aside:
-// each must be on a remote, and some run whose head is the newest of them or
-// has it as an ancestor must have passed, since a later run's range starts
-// after the last green one and leaves them out, so a later red is not the
-// item's. Commits no remote has that are not the item's are passed over, so
-// closes chain and one push lands them. An item with no commit of its own is
-// judged as before: by HEAD, passing over the commits at HEAD that touch only
-// the work registry, pushed or not (slice 93): a take or a close changes
-// nothing a run judges. The judged commit, pushed with such commits after it,
-// may have no run of its own, CI running once for the push's head: the newest
-// run on the branch whose head has it judges it (bug 49), as for a cancelled
-// run (bug 41). The first that is not refuses, naming what
-// to do; without ci.watch CI is not checked, and done says so. The code
-// proof of the config's proof.code is no longer among them (slice 106, issue
-// #28): that green run judged it, over the whole range, so running it again
-// here judged nothing that ships. The registry
-// is then read again and the close made on it as it is after the wait (bug
-// 34). A task's checks, which gated the close, then leave the ledger in the
-// close commit itself (slice 101): its done_when cut from its entry as the
-// ledger reads after the wait, its why kept, the commit's body naming the
-// commit before it, which still holds them; under a stealth config the
-// ledger is written beside the registry and nothing committed. A task with
-// none leaves the ledger as it is. An item the registry's queue holds is
-// then taken out of it, in a commit of its own (slice 66).
+package work
 
 import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
+	"io/fs"
+	"path"
+	"path/filepath"
 	"slices"
 	"strings"
 
 	"github.com/donvargax/itos/v8/internal/check"
 	"github.com/donvargax/itos/v8/internal/config"
-	"github.com/donvargax/itos/v8/internal/engine/judge"
+	"github.com/donvargax/itos/v8/internal/engine/ciwatch"
+	"github.com/donvargax/itos/v8/internal/engine/record"
 	"github.com/donvargax/itos/v8/internal/ledger"
 	"github.com/donvargax/itos/v8/internal/message"
 	"github.com/donvargax/itos/v8/internal/out"
 	"github.com/donvargax/itos/v8/internal/providers"
+	trackerport "github.com/donvargax/itos/v8/internal/store/tracker/port"
 	"github.com/donvargax/itos/v8/internal/tests"
 	vcsport "github.com/donvargax/itos/v8/internal/vcs/port"
-	"github.com/donvargax/itos/v8/internal/work"
+	domain "github.com/donvargax/itos/v8/internal/work"
 )
 
-// workDone is `work done <id>`: the item done and the registry committed
+// Closed is what work done made of an item: the Line it says, unless -q,
+// the registry's Change and the Fields --json adds between the item and the
+// commit (ci, run, superseded and queue_commit).
+type Closed struct {
+	Line   string
+	Change domain.Change
+	Fields []out.Field
+}
+
+// done is `work done <id>`: the item done and the registry committed
 // (work.Done), once its work has landed.
-func workDone(args []string, o Out) (int, error) {
-	id, _, err := workArgs("done", args)
-	if err != nil {
-		return 0, err
+func (h Handler) done(ctx context.Context, id string, o Out) (Answer, error) {
+	a, s, err := h.read(ctx, o)
+	if s == nil {
+		return a, err
 	}
-	cfg, registry, text, release, code, err := soundRegistry(o)
-	defer func() { release() }()
-	if cfg == nil {
-		return code, err
-	}
-	change, code, err := doneChange(cfg, registry, text, id, o)
+	change, a, err := closing(a, s, id)
 	if change == nil {
-		return code, err
+		return a, err
 	}
+	cfg := s.cfg
 	if cfg.Stealth {
 		// The checks below run the task's checks and ask CI, which can take
 		// minutes: the stealth registry's lock is given back meanwhile, and
 		// taken again for the write below (bug 16).
-		release()
-		release = func() {}
+		a.Release()
+		a.Release = func() {}
 	}
 	tagged, err := tests.Tagged(cfg, "@"+id, "HEAD")
 	if err != nil {
-		return 0, err
+		return a, err
 	}
 	found := wipScenarios(tagged, id)
 	landing := ownCommit(cfg, id, tagged)
 	if landing.sha == "" {
-		landing = judgedCommit(cfg.VCS, cfg.Work.Registry)
+		landing = judgedCommit(ctx, cfg.VCS, cfg.Work.Registry)
 	}
 	if len(found) == 0 {
-		found = unpushed(cfg.VCS, id, landing, o)
+		found = unpushed(ctx, cfg.VCS, id, landing, o.Stderr)
 	}
 	if len(found) == 0 {
-		if found, err = failingTask(cfg, id, o); err != nil {
-			return 0, err
+		if found, err = h.failingTask(ctx, cfg, id, o.Stderr); err != nil {
+			return a, err
 		}
 	}
 	if len(found) > 0 {
-		return refuseWork(found, ExitPolicy, o)
+		a.Refused, a.Code = found, refused
+		return a, nil
 	}
-	ci, code, err := landedCI(cfg, id, landing, o)
-	if err != nil || code != 0 {
-		return code, err
+	ci, found, err := h.landedCI(ctx, cfg, id, landing, o)
+	if err != nil {
+		return a, err
+	}
+	if ci.Code != 0 {
+		a.Refused, a.Code, a.CI = found, ci.Code, &ci
+		return a, nil
 	}
 	// The checks can take minutes, and the registry can change meanwhile: a
 	// take or a queue change committed, someone's edit pulled in, another
@@ -107,41 +89,42 @@ func workDone(args []string, o Out) (int, error) {
 	// during the wait is kept rather than written over with the text read
 	// before it (bug 34), and an item no longer one work done may close is
 	// refused, nothing written.
-	if cfg, registry, text, release, code, err = soundRegistry(o); cfg == nil {
-		return code, err
+	if a, s, err = h.read(ctx, o); s == nil {
+		return a, err
 	}
-	if change, code, err = doneChange(cfg, registry, text, id, o); change == nil {
-		return code, err
+	cfg = s.cfg
+	if change, a, err = closing(a, s, id); change == nil {
+		return a, err
 	}
-	if ci.run != nil && ci.run.URL != "" {
-		change.Body += " " + landing.runOf(ci.run) + " passed: " + ci.run.URL + "."
+	if ci.Run != nil && ci.Run.URL != "" {
+		change.Body += " " + landing.runOf(ci.Run) + " passed: " + ci.Run.URL + "."
 	}
-	files := []written{{path: cfg.Work.Registry, old: text, text: change.Text}}
-	checks, err := closedChecks(cfg, id, o)
+	files := []record.File{{Path: cfg.Work.Registry, Old: s.text, Text: change.Text}}
+	checks, err := closedChecks(cfg, id, s.tracker.Load)
 	if err != nil {
-		return 0, err
+		return a, err
 	}
 	if checks != nil {
-		files = append(files, written{path: checks.Path, old: checks.Old, text: checks.Text})
+		files = append(files, record.File{Path: checks.Path, Old: checks.Old, Text: checks.Text})
 		change.Body += " Its checks are taken out of " + checks.Path + ": they were its progress while it was open, and gated this close."
 		if !cfg.Stealth {
-			if head, err := cfg.VCS.Show(context.Background(), "HEAD"); err == nil {
+			if head, err := cfg.VCS.Show(ctx, "HEAD"); err == nil {
 				change.Body += " The commit before this one, " + head.Short + ", still holds them."
 			}
 		}
 	}
-	sha, code, err := writeCommitted(cfg, files, change.Header, change.Body, o)
-	if err != nil || code != 0 {
-		return code, err
+	sha, found, err := writeAll(ctx, s, files, change.Header, change.Body, o)
+	if err != nil || len(found) > 0 {
+		return stopped(a, found, err)
 	}
 	line := fmt.Sprintf("%s is done: %s", id, committed(sha, change.Header))
 	if checks != nil {
 		line += "; its checks are out of " + checks.Path
 	}
-	fields := ci.fields()
-	unqueued, queueSHA, code, err := unqueueDone(cfg, id, o)
-	if err != nil || code != 0 {
-		return code, err
+	fields := ci.Fields()
+	unqueued, queueSHA, found, err := unqueueDone(ctx, s, id, o)
+	if err != nil || len(found) > 0 {
+		return stopped(a, found, err)
 	}
 	if unqueued != nil {
 		line += "; out of the queue: " + committed(queueSHA, unqueued.Header)
@@ -151,54 +134,69 @@ func workDone(args []string, o Out) (int, error) {
 		}
 		fields = append(fields, out.Field{Key: "queue_commit", Value: commit})
 	}
-	return reportWork(line, *change, sha, fields, o)
+	a.Commit, a.Done = sha, &Closed{Line: line, Change: *change, Fields: fields}
+	return a, nil
 }
 
 // unqueueDone takes the item just closed out of the registry's queue, in a
 // commit of its own (slice 66): the queue holds the work still to do. The
 // change is nil when the queue does not hold the item; the SHA is the
 // commit's, "" under a stealth config, whose registry is written and not
-// committed, its lock still held.
-func unqueueDone(cfg *config.Loaded, id string, o Out) (*work.Change, string, int, error) {
-	raw, err := trackedText(tracker(cfg, o.OS), cfg.Work.Registry)
+// committed, its lock still held. The problems are the commit's refusal.
+func unqueueDone(ctx context.Context, s *writing, id string, o Out) (*domain.Change, string, []out.Problem, error) {
+	cfg := s.cfg
+	raw, err := trackedText(ctx, s.tracker, cfg.Work.Registry)
 	if err != nil {
-		return nil, "", 0, err
+		return nil, "", nil, err
 	}
-	registry, err := work.Load(cfg, cfg.Work.Registry)
+	registry, err := domain.Load(cfg, cfg.Work.Registry)
 	if err != nil {
-		return nil, "", 0, err
+		return nil, "", nil, err
 	}
-	change, ok, err := work.Unqueue(registry, raw, id)
+	change, ok, err := domain.Unqueue(registry, raw, id)
 	if err != nil {
-		return nil, "", 0, uneditable(cfg.Work.Registry, err)
+		return nil, "", nil, uneditable(cfg.Work.Registry, err)
 	}
 	if !ok {
-		return nil, "", 0, nil
+		return nil, "", nil, nil
 	}
-	sha, code, err := writeRegistry(cfg, raw, change, o)
-	if err != nil || code != 0 {
-		return nil, "", code, err
+	sha, found, err := writeAll(ctx, s, []record.File{{Path: cfg.Work.Registry, Old: raw, Text: change.Text}}, change.Header, change.Body, o)
+	if err != nil || len(found) > 0 {
+		return nil, "", found, err
 	}
-	return &change, sha, 0, nil
+	return &change, sha, nil, nil
 }
 
-// doneChange is the registry's change that makes the item done (work.Done),
-// nil when there is none to make: a refusal, an item already done (reported
-// as such) or an error, with the exit code and error to end with.
-func doneChange(cfg *config.Loaded, registry work.Registry, text, id string, o Out) (*work.Change, int, error) {
-	change, found, err := work.Done(cfg, registry, text, id)
+// trackedText is the text of the document name, which the command found
+// there: one gone since is an error naming it, fs.ErrNotExist.
+func trackedText(ctx context.Context, t trackerport.Tracker, name string) (string, error) {
+	docs, err := t.Load(ctx, []string{name})
+	if err == nil && !docs[0].There {
+		err = &fs.PathError{Op: "open", Path: name, Err: fs.ErrNotExist}
+	}
 	if err != nil {
-		return nil, 0, uneditable(cfg.Work.Registry, err)
+		return "", err
+	}
+	return docs[0].Text, nil
+}
+
+// closing is the registry's change that makes the item done (work.Done),
+// nil when there is none to make: a refusal (exit 1), an item already done
+// (the Answer's Done saying so) or an error, with the Answer to end with.
+func closing(a Answer, s *writing, id string) (*domain.Change, Answer, error) {
+	change, found, err := domain.Done(s.cfg, s.registry, s.text, id)
+	if err != nil {
+		return nil, a, uneditable(s.cfg.Work.Registry, err)
 	}
 	if len(found) > 0 {
-		code, err := refuseWork(found, ExitPolicy, o)
-		return nil, code, err
+		a.Refused, a.Code = found, refused
+		return nil, a, nil
 	}
 	if change.Unchanged {
-		code, err := reportWork(id+" is already done; nothing to change", change, "", nil, o)
-		return nil, code, err
+		a.Done = &Closed{Line: id + " is already done; nothing to change", Change: change}
+		return nil, a, nil
 	}
-	return &change, 0, nil
+	return &change, a, nil
 }
 
 // wipScenarios are the problems of the item's scenarios at HEAD, those
@@ -263,8 +261,7 @@ func (j doneCommit) runOf(run *providers.Run) string {
 // commit of HEAD's first-parent line that touches more, its run named by
 // the commit's short SHA when it is not HEAD. A history whose every commit touches only the
 // registry has none, and HEAD is judged.
-func judgedCommit(v vcsport.VCS, registry string) doneCommit {
-	ctx := context.Background()
+func judgedCommit(ctx context.Context, v vcsport.VCS, registry string) doneCommit {
 	head, err := v.Resolve(ctx, "HEAD")
 	if err != nil {
 		return doneCommit{run: "HEAD's CI run"}
@@ -286,19 +283,43 @@ func judgedCommit(v vcsport.VCS, registry string) doneCommit {
 	}
 }
 
+// touchesOnlyRegistry is whether the paths some commits touch, each against
+// its first parent, are the work registry and no other path: the one rule by
+// which itos push does not wait for a run (slice 56) and work done passes
+// over a commit (slice 93), since such a commit changes nothing a run
+// judges. A merge counts what it brought in against its first parent, and a
+// commit that touches no path adds nothing to the answer, so commits that
+// touch nothing at all are not registry-only; nor are commits whose paths
+// cannot be read.
+func touchesOnlyRegistry(registry string, files []string, err error) bool {
+	if err != nil {
+		return false
+	}
+	registry = path.Clean(filepath.ToSlash(registry))
+	touched := false
+	for _, f := range files {
+		if path.Clean(f) != registry {
+			return false
+		}
+		touched = true
+	}
+	return touched
+}
+
 // unpushed is the problem of commits of the judged commit that no remote
 // has: work is landed when it is pushed. The commits after it touch only the
 // registry, or are not the item's (slice 127), and are not asked about. With
-// no remote at all there is nowhere to push to, and done says so and goes on.
-func unpushed(v vcsport.VCS, id string, j doneCommit, o Out) []out.Problem {
+// no remote at all there is nowhere to push to, and done says so on stderr
+// and goes on.
+func unpushed(ctx context.Context, v vcsport.VCS, id string, j doneCommit, stderr io.Writer) []out.Problem {
 	if j.sha == "" {
 		return nil
 	}
-	if remotes, err := v.Remotes(context.Background()); err == nil && len(remotes) == 0 {
-		fmt.Fprintln(o.Stderr, "itos: the repository has no remote, so whether its commits are pushed was not checked")
+	if remotes, err := v.Remotes(ctx); err == nil && len(remotes) == 0 {
+		fmt.Fprintln(stderr, "itos: the repository has no remote, so whether its commits are pushed was not checked")
 		return nil
 	}
-	commits, err := v.Commits(context.Background(), vcsport.Range{From: vcsport.Unpushed, To: j.sha})
+	commits, err := v.Commits(ctx, vcsport.Range{From: vcsport.Unpushed, To: j.sha})
 	if err != nil || len(commits) == 0 {
 		return nil
 	}
@@ -318,10 +339,10 @@ func unpushed(v vcsport.VCS, id string, j doneCommit, o Out) []out.Problem {
 }
 
 // failingTask is the problem of a task whose static checks fail, run as the
-// commit-msg hook runs them (judge.FirstFailure, capped by
+// commit-msg hook runs them (FirstFailure, capped by
 // hooks.commit_msg.check_timeout), each failure's output on stderr. An item
 // that is no task of the ledger has none, nor has a config with no ledger.id.
-func failingTask(cfg *config.Loaded, id string, o Out) ([]out.Problem, error) {
+func (h Handler) failingTask(ctx context.Context, cfg *config.Loaded, id string, stderr io.Writer) ([]out.Problem, error) {
 	if cfg.Ledger.ID == nil || !ledger.IDPattern(cfg).MatchString(id) {
 		return nil, nil
 	}
@@ -337,7 +358,7 @@ func failingTask(cfg *config.Loaded, id string, o Out) ([]out.Problem, error) {
 		if t := cfg.Hooks.CommitMsg.CheckTimeout; t != nil {
 			limit = *t
 		}
-		why, err := judge.FirstFailure(cfg, task, limit, checkEnv(), o.Stderr)
+		why, err := h.ports.FirstFailure(ctx, cfg, task, limit, stderr)
 		if err != nil || why == "" {
 			return nil, err
 		}
@@ -355,11 +376,11 @@ func failingTask(cfg *config.Loaded, id string, o Out) ([]out.Problem, error) {
 // registry is: nil for an item that is no task of the ledger, a config with
 // no ledger.id, or a task with no checks, whose close leaves the ledger as
 // it is.
-func closedChecks(cfg *config.Loaded, id string, o Out) (*ledger.Edited, error) {
+func closedChecks(cfg *config.Loaded, id string, load ledger.Load) (*ledger.Edited, error) {
 	if cfg.Ledger.ID == nil || !ledger.IDPattern(cfg).MatchString(id) {
 		return nil, nil
 	}
-	edited, ok, err := ledger.WithoutChecks(cfg, id, tracker(cfg, o.OS).Load)
+	edited, ok, err := ledger.WithoutChecks(cfg, id, load)
 	if err != nil || !ok {
 		return nil, err
 	}
@@ -370,76 +391,77 @@ func closedChecks(cfg *config.Loaded, id string, o Out) (*ledger.Edited, error) 
 // item's own commits, any run that covers it and passed (passedRun, slice
 // 127); else, or while there is none, its run, waited for as itos ci watch
 // waits, or, while it has none, the run on its upstream branch that covers it
-// (watchCovered, bug 49): 0 when it passed, else the refusal (1 for a run that did not pass,
-// naming its address, 3 for one that did not end or could not be looked
-// at), reported. Without ci.watch nothing is watched, and done says so on
+// (bug 49): Code 0 when it passed, else the refusal (1 for a run that did not
+// pass, its problem naming its address, 3 for one that did not end or could
+// not be looked at). Without ci.watch nothing is watched, and done says so on
 // stderr and goes on, its --json ci "unwatched".
-func landedCI(cfg *config.Loaded, id string, j doneCommit, o Out) (watched, int, error) {
+func (h Handler) landedCI(ctx context.Context, cfg *config.Loaded, id string, j doneCommit, o Out) (ciwatch.Watched, []out.Problem, error) {
 	if cfg.CI.Watch.Provider == "none" {
 		fmt.Fprintln(o.Stderr, "itos: ci.watch.provider is none, so CI was not checked")
-		return watched{outcome: "unwatched"}, 0, nil
+		return ciwatch.Watched{Outcome: "unwatched"}, nil, nil
 	}
 	sha := j.sha
 	if sha == "" {
-		return watched{}, 0, errors.New("HEAD names no commit, so it has no CI run")
+		return ciwatch.Watched{}, nil, errors.New("HEAD names no commit, so it has no CI run")
 	}
 	remote, branch := "origin", ""
-	if local := cfg.VCS.Branch(context.Background()); local != "" {
+	if local := cfg.VCS.Branch(ctx); local != "" {
 		var ref string
-		remote, ref, _ = cfg.VCS.Upstream(context.Background(), local)
+		remote, ref, _ = cfg.VCS.Upstream(ctx, local)
 		branch = strings.TrimPrefix(ref, "refs/heads/")
 	}
-	w := watched{code: ExitMissing, outcome: "error"}
-	wr, _, err := watcher(cfg, remote, o)
+	w := ciwatch.Watched{Code: missing, Outcome: "error"}
+	wr, _, err := h.ports.Watcher(ctx, cfg, remote)
 	if err != nil {
 		fmt.Fprintf(o.Stderr, "itos: %s\n", err)
-	} else if passed, ok := passedRun(wr, j, remote, branch, o); ok {
+	} else if passed, ok := passedRun(ctx, cfg.VCS, wr, j, remote, branch, o); ok {
 		w = passed
 	} else {
-		w = watchCovered(cfg, wr, sha, remote, branch, o)
+		w = ciwatch.Watch(ctx, cfg, wr, cfg.VCS, sha, remote, branch, watchOut(o))
 	}
-	if w.code == 0 {
-		return w, 0, nil
+	if w.Code == 0 || w.Outcome != "failure" {
+		return w, nil, nil
 	}
-	var found []out.Problem
-	if w.outcome == "failure" {
-		found = []out.Problem{{
-			Rule:    "work-done-ci",
-			Message: fmt.Sprintf("%s did not pass, so %s is not done: %s", j.runOf(w.run), id, w.run.URL),
-			Fix:     "fix what failed, push the fix with itos push, then run itos work done " + id + " again",
-		}}
-	}
-	if o.JSON {
-		if found == nil {
-			found = []out.Problem{}
-		}
-		fields := append([]out.Field{{Key: "ok", Value: false}, {Key: "problems", Value: found}}, w.fields()...)
-		return w, w.code, out.Emit(o.Stdout, fields...)
-	}
-	code, err := refuseWork(found, w.code, o)
-	return w, code, err
+	return w, []out.Problem{{
+		Rule:    "work-done-ci",
+		Message: fmt.Sprintf("%s did not pass, so %s is not done: %s", j.runOf(w.Run), id, w.Run.URL),
+		Fix:     "fix what failed, push the fix with itos push, then run itos work done " + id + " again",
+	}}, nil
 }
 
 // passedRun is a run that passed and covers the newest of the item's own
 // commits (slice 127): the commit's own run when it passed, else the newest
-// run on the branch that passed and whose head has it (covering). ok is false
-// for a commit that is not the item's own, and when no such run is found or a
-// look fails: watchCovered then waits for the commit's run, or the newest
-// that covers it, as before, and reports what it finds.
-func passedRun(wr providers.Watcher, j doneCommit, remote, branch string, o Out) (watched, bool) {
+// run on the branch that passed and whose head has it (ciwatch.Covering).
+// ok is false for a commit that is not the item's own, and when no such run
+// is found or a look fails: ciwatch.Watch then waits for the commit's run,
+// or the newest that covers it, as before, and reports what it finds.
+func passedRun(ctx context.Context, v vcsport.VCS, wr providers.Watcher, j doneCommit, remote, branch string, o Out) (ciwatch.Watched, bool) {
 	if !j.own {
-		return watched{}, false
+		return ciwatch.Watched{}, false
 	}
 	run, _, _ := wr.Look(j.sha)
 	if run.Conclusion != "success" {
-		run, _, _ = covering(wr.Runs, branch, j.sha, remote, nil, "success")
+		run, _, _ = ciwatch.Covering(ctx, wr.Runs, v, branch, j.sha, remote, nil, "success")
 	}
 	if run.Conclusion != "success" {
-		return watched{}, false
+		return ciwatch.Watched{}, false
 	}
 	end := o.Stdout
 	if o.JSON {
 		end = o.Stderr
 	}
-	return ended(run, o, end), true
+	return ciwatch.Ended(run, watchOut(o), end), true
+}
+
+// watchOut is o as the watch engine's writers and flags.
+func watchOut(o Out) ciwatch.Out {
+	return ciwatch.Out{Stdout: o.Stdout, Stderr: o.Stderr, JSON: o.JSON, Quiet: o.Quiet}
+}
+
+// short is a commit's abbreviation as the TypeScript's slice(0, 7) writes it.
+func short(sha string) string {
+	if len(sha) > 7 {
+		return sha[:7]
+	}
+	return sha
 }

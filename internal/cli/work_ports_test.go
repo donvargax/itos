@@ -1,21 +1,23 @@
 package cli
 
 import (
+	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
-	"reflect"
 	"runtime"
 	"strings"
 	"testing"
 
+	"github.com/donvargax/itos/v8/internal/ledger"
 	"github.com/donvargax/itos/v8/internal/store/tracker/adapter"
 )
 
 // workPorts bind the work slice to the real code: the config the working
 // tree has, the working tree, work.identity's provider and the tracker of
-// the config on the OS itos runs on; runWork reads the line, runs the slice
-// over them for what it answers and hands the rest to the subcommands still
-// here.
+// the config on the OS itos runs on; runWork reads the line and runs the
+// slice over them.
 func TestWorkPortsBindTheRealCode(t *testing.T) {
 	gitConfigRepo(t, "version: 1\nwork:\n  registry: work-items.yaml\n  identity: { provider: none, hint: say --as }\n")
 	p := workPorts{Out{OS: runtime.GOOS}}
@@ -44,7 +46,6 @@ func TestWorkPortsBindTheRealCode(t *testing.T) {
 	if code, err := runWork([]string{"show", "a", "b"}, Out{}); code != 0 || err == nil || err.Error() != "work show needs one <id>" {
 		t.Errorf("runWork show a b = %d, %v, want the usage error alone", code, err)
 	}
-	// A subcommand still here is the slice's line first, then its own.
 	if code, err := runWork([]string{"done"}, Out{}); code != 0 || err == nil || err.Error() != "work done needs one <id>" {
 		t.Errorf("runWork done = %d, %v, want the usage error alone", code, err)
 	}
@@ -136,17 +137,54 @@ func TestWorkAddLineIsTheSlices(t *testing.T) {
 	}
 }
 
-// Every subcommand not yet in the slice is its function here; the ones the
-// slice answers are none.
-func TestUnmovedNamesTheSubcommandsStillHere(t *testing.T) {
-	for sub, want := range map[string]command{"done": workDone} {
-		if got := unmoved(sub); got == nil || reflect.ValueOf(got).Pointer() != reflect.ValueOf(want).Pointer() {
-			t.Errorf("unmoved(%q) is not its function", sub)
-		}
+// work done runs a task's checks through FirstFailure, judge.FirstFailure
+// in the commit-msg hook's environment, which has no GIT_INDEX_FILE: the
+// first failure's output on stderr and what went wrong.
+func TestWorkPortsRunATasksChecksAsTheHookDoes(t *testing.T) {
+	closeRepo(t)
+	putFile(t, filepath.Join("tasks", "phase-1.yaml"), "- id: T-1\n  type: docs\n  title: One\n  why: Because.\n  done_when:\n"+
+		"    - { run: 'test -z \"$GIT_INDEX_FILE\"', cost: static }\n    - { run: \"false\", cost: static }\n")
+	t.Setenv("GIT_INDEX_FILE", "elsewhere")
+	cfg, err := loadConfig()
+	if err != nil {
+		t.Fatal(err)
 	}
-	for _, sub := range []string{"", "list", "check", "show", "take", "promote", "add", "edit", "queue", "drop", "defer", "resume", "give-back", "nope"} {
-		if unmoved(sub) != nil {
-			t.Errorf("unmoved(%q) is a function", sub)
+	tasks, err := ledger.Tasks(cfg)
+	if err != nil || len(tasks) != 1 {
+		t.Fatalf("the ledger's tasks: %v, %v", tasks, err)
+	}
+	var stderr strings.Builder
+	why, err := workPorts{}.FirstFailure(t.Context(), cfg, tasks[0], 60, &stderr)
+	if err != nil || why != "`false` exited 1" || stderr.String() != "T-1 One\n  $ false\n" {
+		t.Errorf("FirstFailure = %q, %v, stderr %q", why, err, stderr.String())
+	}
+}
+
+// work done asks for a commit's run through Watcher, ci.watch's provider
+// for the config, here GitHub's at the address the environment gives.
+func TestWorkPortsWatchThroughTheConfigsProvider(t *testing.T) {
+	gitConfigRepo(t, "version: 1\nci:\n  watch:\n    provider: github\n    interval: 0\n    github:\n      workflow: ci.yml\n")
+	server := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+		rw.Header().Set("Content-Type", "application/json")
+		if strings.HasSuffix(req.URL.Path, "/jobs") {
+			fmt.Fprint(rw, `{"jobs":[]}`)
+			return
 		}
+		fmt.Fprint(rw, `{"workflow_runs":[{"id":1,"html_url":"u","status":"completed","conclusion":"success","head_sha":"abc","head_branch":"main","created_at":"1"}]}`)
+	}))
+	t.Cleanup(server.Close)
+	t.Setenv("GITHUB_API_URL", server.URL)
+	t.Setenv("GITHUB_REPOSITORY", "owner/scratch")
+	t.Setenv("GITHUB_TOKEN", "token")
+	cfg, err := loadConfig()
+	if err != nil {
+		t.Fatal(err)
+	}
+	wr, ok, err := workPorts{}.Watcher(t.Context(), cfg, "origin")
+	if err != nil || !ok {
+		t.Fatalf("Watcher = %v, %v", ok, err)
+	}
+	if run, found, err := wr.Look("abc"); err != nil || !found || run.URL != "u" || run.Conclusion != "success" {
+		t.Errorf("Look = %+v, %v, %v", run, found, err)
 	}
 }

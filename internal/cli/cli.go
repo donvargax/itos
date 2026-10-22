@@ -142,12 +142,6 @@ func ExitCode(err error) int {
 	return ExitSoftware
 }
 
-// uneditable is a change to the work registry that cannot be made in place,
-// its text not as itos edits it: a data file itos refuses, exit 2.
-func uneditable(registry string, err error) error {
-	return kind.Wrap(kind.Usage, fmt.Errorf("%s cannot be edited in place: %w", registry, err))
-}
-
 // failure reports an error as main.ts does and gives its exit code, by its
 // kind (ExitCode): a usage error naming the help, a config error as the
 // config check prints it, anything else as its message alone.

@@ -33,11 +33,3 @@ type span struct {
 	From string `json:"from"`
 	To   string `json:"to"`
 }
-
-// short is a commit's abbreviation as the TypeScript's slice(0, 7) writes it.
-func short(sha string) string {
-	if len(sha) > 7 {
-		return sha[:7]
-	}
-	return sha
-}

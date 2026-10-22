@@ -16,10 +16,12 @@ import (
 )
 
 // The exit codes work gives itself (itos --help): a registry with problems,
-// not there or with no such item; and --as not among the people.
+// not there or with no such item; --as not among the people; and a CI run
+// work done could not look at.
 const (
 	refused  = 1
 	notAmong = 3
+	missing  = 3
 )
 
 // showWidth is the width an item's why is wrapped at.
@@ -35,12 +37,11 @@ type shownCommit struct {
 	Patch   *string `json:"patch,omitempty"`
 }
 
-// Run is work over h, for the subcommands the slice answers: the proposal,
-// list, check, show and the writes but done. An error is the
-// command line's to report. A lock that cannot be given back is a line on
-// stderr after everything else.
+// Run is work over h: the proposal, list, check, show and the writes. An
+// error is the command line's to report. A lock that cannot be given back
+// is a line on stderr after everything else.
 func (c CLI) Run(ctx context.Context, stdout, stderr io.Writer, h Handler) (int, error) {
-	a, err := h.Handle(ctx, c.Query, Out{Quiet: c.Quiet, Stderr: stderr})
+	a, err := h.Handle(ctx, c.Query, Out{Quiet: c.Quiet, JSON: c.JSON, Stdout: stdout, Stderr: stderr})
 	if a.Release != nil {
 		defer a.Release()
 	}
@@ -54,6 +55,8 @@ func (c CLI) Run(ctx context.Context, stdout, stderr io.Writer, h Handler) (int,
 		return c.list(stdout, stderr, a)
 	case "show":
 		return c.show(stdout, stderr, a)
+	case "done":
+		return c.closed(stdout, stderr, a)
 	case "take", "add", "promote", "edit", "queue", "drop", "defer", "resume", "give-back":
 		return c.wrote(stdout, stderr, a)
 	}
@@ -258,6 +261,38 @@ func (c CLI) line(id string, change *domain.Change, sha string) string {
 		return fmt.Sprintf("%s is resumed: %s", id, done)
 	}
 	return fmt.Sprintf("%s is given back, todo again%s: %s", id, forWhom(change), done)
+}
+
+// closed is work done's answer: its refusal, under --json with the watch's
+// ci, run and superseded keys when its CI run refused it; else the close
+// made, or the item already done, its line unless -q, under --json ok, the
+// item, the watch's keys and queue_commit (null when none, and only when
+// the queue held the item), then the commit (null when none).
+func (c CLI) closed(stdout, stderr io.Writer, a Answer) (int, error) {
+	switch {
+	case a.CI != nil && c.JSON:
+		found := a.Refused
+		if found == nil {
+			found = []out.Problem{}
+		}
+		fields := append([]out.Field{{Key: "ok", Value: false}, {Key: "problems", Value: found}}, a.CI.Fields()...)
+		return a.Code, out.Emit(stdout, fields...)
+	case a.Code != 0:
+		return c.refuse(stdout, stderr, a.Refused, a.Code)
+	}
+	d := a.Done
+	if c.JSON {
+		var commit any
+		if a.Commit != "" {
+			commit = a.Commit
+		}
+		fields := append([]out.Field{{Key: "ok", Value: true}, {Key: "item", Value: d.Change.Item}}, d.Fields...)
+		return 0, out.Emit(stdout, append(fields, out.Field{Key: "commit", Value: commit})...)
+	}
+	if !c.Quiet {
+		fmt.Fprintln(stdout, d.Line)
+	}
+	return 0, nil
 }
 
 // promoted prints work promote's change: the idea, what it became and the

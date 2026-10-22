@@ -5,10 +5,10 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
-	"github.com/donvargax/itos/v8/internal/store/tracker/adapter"
 	"github.com/donvargax/itos/v8/internal/store/tracker/port/porttest"
 )
 
@@ -35,22 +35,6 @@ func TestHoldTrackerGivesTheTrackerBack(t *testing.T) {
 	release()
 	if stderr.String() != "itos: the lock cannot be given back: the tracker is not held\n" {
 		t.Errorf("a second release said %q", stderr.String())
-	}
-}
-
-// trackedText is a document's text; one not there is an error naming it,
-// fs.ErrNotExist, and a document that cannot be read the disk's error.
-func TestTrackedTextOfADocumentGone(t *testing.T) {
-	tracker := &porttest.Tracker{}
-	tracker.Edit("a.yaml", "a\n")
-	if text, err := trackedText(tracker, "a.yaml"); text != "a\n" || err != nil {
-		t.Errorf("trackedText = %q, %v", text, err)
-	}
-	if text, err := trackedText(tracker, "gone.yaml"); text != "" || !errors.Is(err, fs.ErrNotExist) || !strings.Contains(err.Error(), "gone.yaml") {
-		t.Errorf("a document gone: %q, %v", text, err)
-	}
-	if text, err := trackedText(adapter.Files{}, "a\x00b"); text != "" || err == nil || errors.Is(err, fs.ErrNotExist) {
-		t.Errorf("a name no file can have: %q, %v", text, err)
 	}
 }
 
@@ -103,7 +87,7 @@ func TestWorkDoneUnqueuesThroughTheTracker(t *testing.T) {
 	putFile(t, filepath.Join("tasks", "work-items.yaml"), "queue: [T-1]\n"+closeRegistry)
 	gitIn(t, "commit", "-q", "-am", "docs: queue T-1")
 	var stdout, stderr strings.Builder
-	code, err := workDone([]string{"T-1"}, Out{Stdout: &stdout, Stderr: &stderr})
+	code, err := runWork([]string{"done", "T-1"}, Out{Stdout: &stdout, Stderr: &stderr, OS: runtime.GOOS})
 	if code != 0 || err != nil || !strings.Contains(stdout.String(), "; out of the queue: committed ") {
 		t.Fatalf("exit %d, %v\n%s%s", code, err, stdout.String(), stderr.String())
 	}

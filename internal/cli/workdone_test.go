@@ -1,15 +1,11 @@
 package cli
 
 import (
-	"fmt"
-	"net/http"
-	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
-
-	"github.com/donvargax/itos/v8/internal/providers"
 )
 
 // The ledger and registry of closeRepo, before work done.
@@ -51,7 +47,7 @@ func TestWorkDoneTakesTheChecksOut(t *testing.T) {
 	closeRepo(t)
 	before := strings.TrimSpace(gitIn(t, "rev-parse", "--short", "HEAD"))
 	var stdout, stderr strings.Builder
-	code, err := workDone([]string{"T-1"}, Out{Stdout: &stdout, Stderr: &stderr})
+	code, err := runWork([]string{"done", "T-1"}, Out{Stdout: &stdout, Stderr: &stderr, OS: runtime.GOOS})
 	if code != 0 || err != nil {
 		t.Fatalf("exit %d, %v\n%s%s", code, err, stdout.String(), stderr.String())
 	}
@@ -78,7 +74,7 @@ func TestWorkDoneRefusedKeepsTheChecks(t *testing.T) {
 	closeRepo(t)
 	refusingHook(t)
 	var stdout, stderr strings.Builder
-	code, err := workDone([]string{"T-1"}, Out{Stdout: &stdout, Stderr: &stderr})
+	code, err := runWork([]string{"done", "T-1"}, Out{Stdout: &stdout, Stderr: &stderr, OS: runtime.GOOS})
 	if code != ExitPolicy || err != nil {
 		t.Fatalf("exit %d, %v\n%s%s", code, err, stdout.String(), stderr.String())
 	}
@@ -126,26 +122,6 @@ func commitEmpty(t *testing.T, message string) string {
 	return gitLine(t, "rev-parse", "HEAD")
 }
 
-// The item's own commits are those whose footers name it (slice 127), the
-// newest judged; an item with none has no such commit.
-func TestOwnCommitIsTheNewestThatNamesTheItem(t *testing.T) {
-	closeRepoLinked(t)
-	cfg, err := loadConfig()
-	if err != nil {
-		t.Fatal(err)
-	}
-	if j := ownCommit(cfg, "T-1", nil); j.sha != "" || j.own {
-		t.Fatalf("an item with no commit of its own judges %+v", j)
-	}
-	own := commitEmpty(t, "chore: one\n\nTask: T-1\n")
-	commitEmpty(t, "chore: two\n\nTask: T-2\n")
-	j := ownCommit(cfg, "T-1", nil)
-	short := gitLine(t, "rev-parse", "--short", own)
-	if j.sha != own || !j.own || j.what != short+", the newest commit of T-1" || j.run != "The CI run of "+short+", the newest commit of T-1," {
-		t.Fatalf("T-1's commit %s is judged as %+v", own, j)
-	}
-}
-
 // work done passes over a commit no remote has that is not the item's own,
 // and refuses while one of the item's own is on no remote (slice 127).
 func TestWorkDoneJudgesTheItemsOwnCommits(t *testing.T) {
@@ -154,7 +130,7 @@ func TestWorkDoneJudgesTheItemsOwnCommits(t *testing.T) {
 	gitIn(t, "push", "-q", "origin", "HEAD")
 	commitEmpty(t, "chore: something else")
 	var stdout, stderr strings.Builder
-	code, err := workDone([]string{"T-1"}, Out{Stdout: &stdout, Stderr: &stderr})
+	code, err := runWork([]string{"done", "T-1"}, Out{Stdout: &stdout, Stderr: &stderr, OS: runtime.GOOS})
 	if code != 0 || err != nil {
 		t.Fatalf("exit %d, %v\n%s%s", code, err, stdout.String(), stderr.String())
 	}
@@ -163,107 +139,9 @@ func TestWorkDoneJudgesTheItemsOwnCommits(t *testing.T) {
 	own := commitEmpty(t, "chore: build T-1\n\nTask: T-1\n")
 	stdout.Reset()
 	stderr.Reset()
-	code, err = workDone([]string{"T-1"}, Out{Stdout: &stdout, Stderr: &stderr})
+	code, err = runWork([]string{"done", "T-1"}, Out{Stdout: &stdout, Stderr: &stderr, OS: runtime.GOOS})
 	want := "The history up to " + gitLine(t, "rev-parse", "--short", own) + ", the newest commit of T-1, has a commit no remote has"
 	if code != ExitPolicy || err != nil || !strings.Contains(stderr.String(), want) {
 		t.Fatalf("exit %d, %v\n%s%s", code, err, stdout.String(), stderr.String())
-	}
-}
-
-// A run that passed and covers the item's newest commit judges it (slice
-// 127): its own, else one on the branch whose head has it, a failed one
-// passed over; none for a commit that is not the item's own, or when no run
-// passed. Under --json the run's end goes to stderr.
-func TestPassedRunIsAnyCoveringRunThatPassed(t *testing.T) {
-	failed := providers.Run{URL: "f", Status: "completed", Conclusion: "failure", HeadSHA: "abc"}
-	passed := providers.Run{URL: "p", Status: "completed", Conclusion: "success", HeadSHA: "abc"}
-	look := func(run providers.Run) providers.Watch {
-		return func(string) (providers.Run, bool, error) { return run, true, nil }
-	}
-	runs := func(listed ...providers.Run) providers.Runs {
-		return func(string) ([]providers.Run, error) { return listed, nil }
-	}
-	own := doneCommit{sha: "abc", own: true}
-	var stdout, stderr strings.Builder
-	o := Out{Stdout: &stdout, Stderr: &stderr}
-	if _, ok := passedRun(providers.Watcher{Look: look(passed)}, doneCommit{sha: "abc"}, "", "main", o); ok {
-		t.Fatal("a commit that is not the item's own was judged by a run that passed")
-	}
-	if w, ok := passedRun(providers.Watcher{Look: look(passed)}, own, "", "main", o); !ok || w.code != 0 || w.run.URL != "p" || !strings.Contains(stdout.String(), "CI passed: p") {
-		t.Fatalf("its own run that passed: %v %+v\n%s", ok, w, stdout.String())
-	}
-	if w, ok := passedRun(providers.Watcher{Look: look(failed), Runs: runs(failed, passed)}, own, "", "main", o); !ok || w.run.URL != "p" {
-		t.Fatalf("a run on the branch that passed: %v %+v", ok, w)
-	}
-	if _, ok := passedRun(providers.Watcher{Look: look(failed), Runs: runs(failed)}, own, "", "main", o); ok {
-		t.Fatal("no run passed, yet one judged the commit")
-	}
-	stdout.Reset()
-	if _, ok := passedRun(providers.Watcher{Look: look(passed)}, own, "", "main", Out{Stdout: &stdout, Stderr: &stderr, JSON: true}); !ok || stdout.Len() > 0 || !strings.Contains(stderr.String(), "CI passed: p") {
-		t.Fatalf("under --json: %v\n%s%s", ok, stdout.String(), stderr.String())
-	}
-}
-
-// work done asks GitHub for the item's newest commit's run (slice 127): one
-// that passed lands it; one that failed, with none on the branch that
-// passed, is waited for as before and refuses, naming it.
-func TestLandedCIJudgesTheItemsOwnRun(t *testing.T) {
-	gitConfigRepo(t, "version: 1\nci:\n  watch:\n    provider: github\n    interval: 0\n    github:\n      workflow: ci.yml\n")
-	t.Setenv("GIT_AUTHOR_NAME", "itos")
-	t.Setenv("GIT_COMMITTER_NAME", "itos")
-	t.Setenv("GIT_AUTHOR_EMAIL", "itos@example.com")
-	t.Setenv("GIT_COMMITTER_EMAIL", "itos@example.com")
-	sha := commitEmpty(t, "chore: build slice-9")
-	conclusion := "success"
-	server := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-		rw.Header().Set("Content-Type", "application/json")
-		if strings.HasSuffix(req.URL.Path, "/jobs") {
-			fmt.Fprint(rw, `{"jobs":[]}`)
-			return
-		}
-		fmt.Fprintf(rw, `{"workflow_runs":[{"id":1,"html_url":"u","status":"completed","conclusion":%q,"head_sha":%q,"head_branch":"main","created_at":"1"}]}`, conclusion, sha)
-	}))
-	t.Cleanup(server.Close)
-	t.Setenv("GITHUB_API_URL", server.URL)
-	t.Setenv("GITHUB_REPOSITORY", "owner/scratch")
-	t.Setenv("GITHUB_TOKEN", "token")
-	cfg, err := loadConfig()
-	if err != nil {
-		t.Fatal(err)
-	}
-	j := doneCommit{sha: sha, run: "The CI run of it,", own: true}
-	var stdout, stderr strings.Builder
-	if w, code, err := landedCI(cfg, "slice-9", j, Out{Stdout: &stdout, Stderr: &stderr}); code != 0 || err != nil || w.run == nil || w.run.URL != "u" {
-		t.Fatalf("exit %d, %v, %+v\n%s%s", code, err, w, stdout.String(), stderr.String())
-	}
-	conclusion = "failure"
-	stdout.Reset()
-	stderr.Reset()
-	if _, code, err := landedCI(cfg, "slice-9", j, Out{Stdout: &stdout, Stderr: &stderr}); code != ExitPolicy || err != nil || !strings.Contains(stderr.String(), "The CI run of it, did not pass, so slice-9 is not done: u") {
-		t.Fatalf("exit %d, %v\n%s%s", code, err, stdout.String(), stderr.String())
-	}
-}
-
-// The run that judged a commit is named as the commit's own, unless a head
-// that has the commit ran it: then that head's run is named, with the
-// commit. No run, a run with no head, the commit's own run and a commit
-// with nothing to name it by are the commit's own.
-func TestRunOf(t *testing.T) {
-	sha, other := strings.Repeat("a", 40), strings.Repeat("b", 40)
-	j := doneCommit{sha: sha, run: "HEAD's CI run", what: "HEAD"}
-	for _, c := range []struct {
-		j    doneCommit
-		run  *providers.Run
-		want string
-	}{
-		{j, nil, "HEAD's CI run"},
-		{j, &providers.Run{}, "HEAD's CI run"},
-		{j, &providers.Run{HeadSHA: sha}, "HEAD's CI run"},
-		{doneCommit{sha: sha, run: "HEAD's CI run"}, &providers.Run{HeadSHA: other}, "HEAD's CI run"},
-		{j, &providers.Run{HeadSHA: other}, "The CI run of bbbbbbb, which has HEAD,"},
-	} {
-		if got := c.j.runOf(c.run); got != c.want {
-			t.Errorf("%+v.runOf(%+v) = %q, want %q", c.j, c.run, got, c.want)
-		}
 	}
 }

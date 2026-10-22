@@ -169,18 +169,3 @@ func TestRefuseUncommittedDeletion(t *testing.T) {
 		})
 	}
 }
-
-// A registry command that writes one item takes one id: none, or two, is a
-// usage error that gives no id and no flags.
-func TestWorkArgsTakesOneID(t *testing.T) {
-	id, values, err := workArgs("take", []string{"free", "--as", "ana"}, "--as")
-	if err != nil || id != "free" || values["--as"] != "ana" {
-		t.Fatalf("one id = (%q, %v, %v)", id, values, err)
-	}
-	for _, args := range [][]string{nil, {"--as", "ana"}, {"free", "other"}} {
-		id, values, err := workArgs("take", args, "--as")
-		if ExitCode(err) != ExitUsage || err.Error() != "work take needs one <id>" || id != "" || values != nil {
-			t.Errorf("%q = (%q, %v, %v), want the usage error alone", args, id, values, err)
-		}
-	}
-}

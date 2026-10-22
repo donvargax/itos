@@ -100,7 +100,7 @@
 //
 // push is the push slice (internal/slices/push); push.go binds its Ports to
 // git, the config file's presence, the stealth check, loadConfig and
-// watcher, and keeps touchesOnlyRegistry, which work done calls.
+// watcher.
 //
 // # The hooks
 //
@@ -115,14 +115,9 @@
 //
 // ci is the ci slice (internal/slices/ci); ci.go binds its Ports to the
 // stealth check, loadConfig, the environment, internal/ci's run and
-// watcher. The end of itos push and work done (watch.go) wait
-// for a commit's run through internal/engine/ciwatch, whose doc says how:
-// watcher, watchRun, watchCovered, covering and ended bind it to the clone
-// (vcs.Git{}, cfg.VCS for the remote's address) and map Out to its writers.
-// The outcome is a watched (code, success/failure/cancelled/timeout/error,
-// the run as last seen, the cancelled run's address when a newer one was
-// followed), whose fields are the ci, run and superseded keys both commands'
-// --json add.
+// watcher. ci watch, the end of itos push and work done wait for a commit's
+// run through internal/engine/ciwatch, whose doc says how, with the
+// provider watcher (watch.go) gives their Watcher ports.
 //
 // # Tasks and named tests
 //
@@ -153,67 +148,27 @@
 //
 // # The registry's commands
 //
-// work is the work slice (internal/slices/work), which reads every
-// subcommand's line and answers all but work done; work.go binds its Ports
-// to loadConfig, the working tree, work.identity's provider, tracker and
-// newItemID, and calls work done, still here, with the arguments after its
-// name. workAddLine and workPromoteLine are the slice's AddLine and
-// PromoteLine, which draft reads a work add and a work promote line with.
+// work is the work slice (internal/slices/work); work.go binds its Ports
+// to loadConfig, the working tree, work.identity's provider, tracker,
+// newItemID, judge.FirstFailure in the commit-msg hook's environment
+// (checkEnv) and watcher. workAddLine and workPromoteLine are the slice's
+// AddLine and PromoteLine, which draft reads a work add and a work promote
+// line with.
 //
-// writeRegistry (workwrite.go) is what the registry commands here share:
-// it starts from a sound registry (soundRegistry, the engine's Sound:
-// work.Problems, reported as work check would, exit 1), and, in a project, refuses a registry git does
-// not hold as HEAD has it (untracked, or changed, staged or not), whose
-// changes the commit would sweep in; then writes the text and runs git
-// commit --only -m <header> -m <body> -- <registry> from the top, with the
-// hooks, git's words on stderr, so the commit holds the registry alone and
-// what else is staged stays staged. A commit that fails puts the file back
-// and the index entry with git reset, exact since the registry was clean.
-// The commit is a docs one with no footer, its body wrapped by the engine
-// (message.Wrap), so no line reads as a footer or a comment: a Task: footer
-// on a take would make CI run the task's checks before its work exists.
-// Under a stealth config the registry is in the git folder, tracked by
-// nothing: written under its lock (the tracker's Hold), nothing committed,
-// and --json's commit null. writeCommitted is the same for several files.
-//
-//   - work done (workdone.go) is the landing's check, then a registry write:
-//     work.Done judges the registry alone, then the command checks, in cost
-//     order, stopping at the first that refuses (exit 1): the item's
-//     scenarios at HEAD (tests.Tagged), none still @wip; no commit of the
-//     judged commit that no remote has (said and skipped with no remote at
-//     all); a task's static checks, by the commit-msg hook's judge.FirstFailure,
-//     when the id is a task of the ledger; and with ci.watch, the judged
-//     commit's run, by watcher and watchRun. The judged commit is the newest
-//     of the item's own (ownCommit, slice 127): those whose footers link to
-//     it (linksTo, as work show's belonging reads them), its registry commits
-//     aside, so a commit no remote has that is not the item's is passed over
-//     and closes chain; any run that covers it and passed judges it
-//     (passedRun: its own, else covering with a conclusion), since a later
-//     run's range leaves it out, and with none watchCovered waits as below.
-//     An item with no commit of its own is judged by judgedCommit:
-//     HEAD, passing over the commits of its first-parent
-//     line that touch only work.registry, pushed or not, by push's own rule
-//     (touchesOnlyRegistry, slice 93), so closes made one after another land
-//     in one push. Pushed with such commits, the judged commit may have no
-//     run of its own: watchCovered then follows the newest run on the
-//     upstream branch whose head has it (covering, bug 41's rule for a
-//     cancelled run's successor; bug 49). A run still going is waited for and one that does not end
-//     exits 3 (without ci.watch CI is not checked, said on stderr, and
-//     --json's ci is unwatched). Since the checks can take minutes, the
-//     registry is then read again and work.Done judged and made afresh on
-//     it, so a registry commit made during the wait is kept, and an item no
-//     longer one work done may close is refused. The close
-//     commit is docs: close <id>, its body naming the run that passed.
-//     The code proof of the config's proof.code is not here any more
-//     (slice 106, issue #28): CI's run, which work done requires green,
-//     judges it over the range, so a second run at the close judged
-//     nothing that ships. Closing a task with checks, the same commit holds its
-//     ledger file with its done_when cut (closedChecks, ledger.WithoutChecks,
-//     slice 101), read after the wait as the registry is, its body naming
-//     the commit before it, which still holds them; writeCommitted puts both
-//     files back when the commit is refused. work.Unqueue follows
-//     in a commit of its own, under a stealth config while the lock is still
-//     held.
+// soundRegistry and writeCommitted (workwrite.go) are what task add's and
+// draft's ports write the registry through: soundRegistry starts from a
+// sound registry (the engine's Sound: work.Problems, reported as work check
+// would, exit 1); writeCommitted, in a project, refuses a file git does not
+// hold as HEAD has it (untracked, or changed, staged or not), whose changes
+// the commit would sweep in, then writes the files and runs git commit
+// --only -m <header> -m <body> -- <files> from the top, with the hooks,
+// git's words on stderr, so the commit holds those files alone and what
+// else is staged stays staged. A commit that fails puts the files back and
+// their index entries with git reset, exact since they were clean. The
+// commit's body is wrapped by the engine (message.Wrap), so no line reads as
+// a footer or a comment. Under a stealth config the registry is in the git
+// folder, tracked by nothing: written under its lock (the tracker's Hold),
+// nothing committed, and --json's commit null.
 //
 // # followup, draft, decision, go and status
 //

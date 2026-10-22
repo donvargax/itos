@@ -21,30 +21,6 @@ func registryWriterRepo(t *testing.T, registry string) string {
 	return dir
 }
 
-func TestWorkArgsParsedRejectsMalformedFlagsAndAllowsDeclaredEmptyValues(t *testing.T) {
-	for _, test := range []struct {
-		name string
-		args []string
-		want string
-	}{
-		{name: "unknown", args: []string{"item", "--unknown", "value"}, want: "does not take --unknown"},
-		{name: "missing final value", args: []string{"item", "--title"}, want: "--title needs a value"},
-		{name: "duplicate", args: []string{"item", "--title", "one", "--title", "two"}, want: "takes one --title"},
-		{name: "empty value", args: []string{"item", "--title", ""}, want: "takes one --title with a value"},
-	} {
-		t.Run(test.name, func(t *testing.T) {
-			_, _, err := workArgsParsed("edit", test.args, nil, "--title")
-			if err == nil || !strings.Contains(err.Error(), test.want) {
-				t.Fatalf("workArgsParsed error = %v, want it to contain %q", err, test.want)
-			}
-		})
-	}
-	_, values, err := workArgsParsed("edit", []string{"item", "--depends-on", ""}, []string{"--depends-on"}, "--depends-on")
-	if err != nil || values["--depends-on"] != "" {
-		t.Fatalf("workArgsParsed declared empty value = (%v, %v), want empty depends-on", values, err)
-	}
-}
-
 // work add's minting through the git the counter is kept by: a git that
 // fails is the error, exit 70 (bug 119).
 func TestWorkAddPropagatesIDReservationFailures(t *testing.T) {

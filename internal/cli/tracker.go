@@ -3,7 +3,6 @@ package cli
 import (
 	"context"
 	"fmt"
-	"io/fs"
 
 	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/store/tracker/adapter"
@@ -40,17 +39,4 @@ func holdTracker(t trackerport.Tracker, o Out) (release func(), err error) {
 			fmt.Fprintf(o.Stderr, "itos: the lock cannot be given back: %s\n", err)
 		}
 	}, nil
-}
-
-// trackedText is the text of the document name, which the command found
-// there: one gone since is an error naming it.
-func trackedText(t trackerport.Tracker, name string) (string, error) {
-	docs, err := t.Load(context.Background(), []string{name})
-	if err == nil && !docs[0].There {
-		err = &fs.PathError{Op: "open", Path: name, Err: fs.ErrNotExist}
-	}
-	if err != nil {
-		return "", err
-	}
-	return docs[0].Text, nil
 }

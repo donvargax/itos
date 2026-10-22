@@ -4,12 +4,15 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/donvargax/itos/v8/internal/config"
+	"github.com/donvargax/itos/v8/internal/ledger"
 	"github.com/donvargax/itos/v8/internal/message"
 	"github.com/donvargax/itos/v8/internal/providers"
 	trackerport "github.com/donvargax/itos/v8/internal/store/tracker/port"
@@ -22,17 +25,26 @@ import (
 )
 
 // ports are work's ports over the fakes: a config or the error loading it,
-// the working tree, the identity provider, the tracker's fake, and the id
-// ItemID gives, past the registry's ids it was given, or its error.
+// the working tree, the identity provider, the tracker's fake, the id
+// ItemID gives, past the registry's ids it was given, or its error; what
+// FirstFailure says of a task's checks, or its error, each task checked kept
+// in checked as its id and cap, during called as they run; and the watcher
+// Watcher gives, or its error.
 type ports struct {
-	cfg      *config.Loaded
-	err      error
-	worktree treeport.Source
-	identity providers.Identity
-	tracker  trackerport.Tracker
-	minted   string
-	mintErr  error
-	given    *[]string
+	cfg        *config.Loaded
+	err        error
+	worktree   treeport.Source
+	identity   providers.Identity
+	tracker    trackerport.Tracker
+	minted     string
+	mintErr    error
+	given      *[]string
+	failure    string
+	failureErr error
+	checked    *[]string
+	during     func()
+	watcher    providers.Watcher
+	watcherErr error
 }
 
 func (p ports) Config(context.Context) (*config.Loaded, error) { return p.cfg, p.err }
@@ -48,6 +60,23 @@ func (p ports) ItemID(_ context.Context, _ *config.Loaded, kind string, registry
 		*p.given = append([]string{kind}, registryIDs...)
 	}
 	return p.minted, p.mintErr
+}
+
+func (p ports) FirstFailure(_ context.Context, _ *config.Loaded, task ledger.Task, limit float64, stderr io.Writer) (string, error) {
+	if p.checked != nil {
+		*p.checked = append(*p.checked, fmt.Sprintf("%s %v", task.ID, limit))
+	}
+	if p.during != nil {
+		p.during()
+	}
+	if p.failure != "" {
+		fmt.Fprintf(stderr, "%s: the check said why\n", task.ID)
+	}
+	return p.failure, p.failureErr
+}
+
+func (p ports) Watcher(context.Context, *config.Loaded, string) (providers.Watcher, bool, error) {
+	return p.watcher, p.watcherErr == nil, p.watcherErr
 }
 
 // broken is the VCS fake with its log, a commit's patch or git show's text

@@ -4,15 +4,15 @@
 // command line, its Query and Handler the application, over the Ports it
 // owns, which internal/cli binds: the config, the working tree,
 // work.identity's provider, the tracker the questions and the registry are
-// in, and the id work add mints; the repository is the config's VCS.
+// in, the id work add mints, and for work done a task's checks, run as the
+// commit-msg hook runs them, and ci.watch's provider; the repository is the
+// config's VCS.
 //
 // Command (command.go) declares its name, help and flag spec, by which
 // internal/cli reads the line and hands Parse the arguments after work.
 // Parse reads every subcommand's line, each error a usage error before
-// anything is read. The slice answers all but work done, still
-// internal/cli's, which runWork calls with the arguments after its name
-// once Parse has read them. AddLine and PromoteLine are work add's and
-// work promote's lines.
+// anything is read. AddLine and PromoteLine are work add's and work
+// promote's lines.
 //
 // The proposal, work check and work list read the registry through
 // work.Load and work.Issues, never a second reading. work check judges the
@@ -63,6 +63,43 @@
 //     the id ledger.NextID would give, and record.Ready, the write's own
 //     refusals; a task's ledger file is committed with the registry and the
 //     questions (writeAll).
+//   - work done (done.go) is the landing's check, then a registry write:
+//     work.Done judges the registry alone, then the command checks, in cost
+//     order, stopping at the first that refuses (exit 1): the item's
+//     scenarios at HEAD (tests.Tagged), none still @wip; no commit of the
+//     judged commit that no remote has (said and skipped with no remote at
+//     all); a task's static checks, by FirstFailure, when the id is a task
+//     of the ledger; and with ci.watch, the judged commit's run, through
+//     Watcher and internal/engine/ciwatch. The judged commit is the newest of
+//     the item's own (ownCommit, slice 127): those whose footers link to it
+//     (linksTo, as work show's belonging reads them), its registry commits
+//     aside, so a commit no remote has that is not the item's is passed over
+//     and closes chain; any run that covers it and passed judges it
+//     (passedRun: its own, else ciwatch.Covering with a conclusion), since a
+//     later run's range leaves it out, and with none ciwatch.Watch waits. An
+//     item with no commit of its own is judged by judgedCommit: HEAD,
+//     passing over the commits of its first-parent line that touch only
+//     work.registry, pushed or not, by push's own rule (touchesOnlyRegistry,
+//     slice 93), so closes made one after another land in one push. Pushed
+//     with such commits, the judged commit may have no run of its own: the
+//     watch then follows the newest run on the upstream branch whose head
+//     has it (bug 41's rule for a cancelled run's successor; bug 49). A run
+//     still going is waited for; one that cannot be looked at exits 3, one
+//     that does not end 75 (without ci.watch CI is not checked, said on
+//     stderr, and --json's ci is unwatched). Under a stealth config the
+//     registry's lock is given back while the checks run. Since they can
+//     take minutes, the registry is then read again and work.Done judged and
+//     made afresh on it, so a registry commit made during the wait is kept,
+//     and an item no longer one work done may close is refused. The close
+//     commit is docs: close <id>, its body naming the run that passed; the
+//     code proof of the config's proof.code is CI's run, which work done
+//     requires green (slice 106, issue #28). Closing a task with checks, the
+//     same commit holds its ledger file with its done_when cut (closedChecks,
+//     ledger.WithoutChecks, slice 101), read after the wait as the registry
+//     is, its body naming the commit before it, which still holds them;
+//     writeAll puts both files back when the commit is refused. work.Unqueue
+//     follows in a commit of its own, under a stealth config while the lock
+//     is still held.
 //   - work edit, queue, drop, defer, resume and give-back call their writers
 //     in internal/work; drop, defer and give-back put the --why reason first
 //     in their commit's body. Defer and resume are two commands rather than
