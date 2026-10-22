@@ -6,7 +6,6 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"testing"
 
@@ -44,11 +43,11 @@ func (l located) Locate(context.Context, string) (vcs.Location, error) {
 }
 
 // A folder gone from under itos stops the reservation: the common dir
-// cannot be made absolute, or the folder cannot be read.
+// cannot be made absolute, or the folder cannot be read. Only where the OS
+// fails os.Getwd once the folder a process stands in is removed, as Linux
+// does: Windows refuses the removal, and macOS still answers the folder's
+// path, so neither error can be met there.
 func TestReserveWhereTheFolderIsGone(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("Windows cannot remove the folder a process stands in")
-	}
 	for _, common := range []string{".git", t.TempDir()} {
 		files, _ := project(t, false)
 		files.VCS = located{files.VCS, common}
@@ -58,7 +57,10 @@ func TestReserveWhereTheFolderIsGone(t *testing.T) {
 		}
 		t.Chdir(gone)
 		if err := os.Remove(gone); err != nil {
-			t.Fatal(err)
+			t.Skipf("this OS cannot remove the folder a process stands in: %v", err)
+		}
+		if here, err := os.Getwd(); err == nil {
+			t.Skipf("this OS still answers the folder a process stands in once it is removed: %s", here)
 		}
 		if first, err := files.Reserve(t.Context(), "slice", 0, 1); first != 0 || err == nil {
 			t.Errorf("%s: Reserve in a folder gone: %d, %v", common, first, err)
