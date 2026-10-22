@@ -10864,6 +10864,10 @@ items:
       static task checks stay (ADR-0013 holds for them); the waste to remove is the same test run
       again on unchanged code. Agreed: work done only accepts CI's pass for the head, and reruns
       nothing.
+
+      Met again with T-224 (2026-10-22): its check is a 900 s mutation run, and itos task T-224 runs
+      it in the foreground past the harness shell timeout; the agent stopped it. A long check could
+      run in the background or say up front how long it may take.
     refs: [internal/cli/workdone.go, internal/cli/hook.go, docs/decisions]
 
   - id: p1-inbox-marks-triaged
