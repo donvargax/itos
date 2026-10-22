@@ -11678,3 +11678,17 @@ items:
       anchor will leave the queue and names --top when it is the doing head. The warning is
       preferred: remembering old places is state for little gain.
     tags: [work]
+
+  - id: p1-commit-hints-doing-item
+    title: itos commit names the committer's item in progress when a commit that could link it does not
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      #102 (8.5.0): a docs commit made mid-task without --task landed outside the task's commits,
+      and nothing said so. When the committer owns exactly one doing item and the type accepts its
+      footer without requiring it, print one line naming the item and the flag; add nothing.
+      p3-guard-replacement's guided commits replace it.
+    tags: [commit]
