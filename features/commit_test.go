@@ -25,6 +25,9 @@ func initializeCommitSteps(sc *godog.ScenarioContext, w *world) {
 	sc.Step(`^core\.hooksPath is "([^"]*)"$`, func(dir string) error {
 		return w.git("config", "core.hooksPath", dir)
 	})
+	sc.Step(`^the folder has no itos config$`, func() error {
+		return os.Remove(filepath.Join(w.dir, w.data("itos.yaml")))
+	})
 
 	sc.Step(`^itos commits with the arguments "([^"]*)"$`, func(line string) error {
 		args, err := shellWords(line)
