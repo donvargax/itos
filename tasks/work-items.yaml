@@ -11508,3 +11508,23 @@ items:
       Designed as a type of p1-typed-items' one record (the user, 2026-10-21), not as a command
       group of its own; built after it, or as its pilot.
     tags: [docs]
+
+  - id: p2-shared-docs
+    title: Docs that hold for several repositories are kept once, not copied into each
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The user, 2026-10-21: itos, itos-cc, itos-template and the templates each keep a CLI design
+      guide, an architecture guide and engineering rules that are mostly the same text, and copies
+      drift (itos-cc's CLI.md already corrects itos's exit codes). To figure out; options seen so
+      far: (1) one canonical repository for a doc, the others linking to it and keeping only what
+      differs, as itos-cc's CLI.md cites itos's rules by number today; (2) the template owns the
+      shared docs and itos-template's upgrade keeps linked projects current, each project adding a
+      local part; (3) itos ships them as data printed by a command, as it ships its guides (itos
+      guide), so no repository holds a copy and a release updates all; (4) a docs repository pulled
+      in as a submodule or vendored by a tool. Weigh what an agent reads at the start of a session,
+      what a person browses on GitHub, and how a project overrides one rule.
+    tags: [docs]
