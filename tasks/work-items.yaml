@@ -11811,3 +11811,27 @@ items:
       never retried, on purpose; that comment and its help change. p1-pr-mode would remove the race
       later.
     tags: [push]
+
+  - id: p1-hooks-before-git-2-54
+    title: "itos's hooks run on a git older than 2.54: hook files in the hooks folder git uses, chained with any there, where config hooks do not run"
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The user, 2026-10-21: supporting older git is a requirement (Ubuntu 22.04 ships 2.34, Debian
+      12 and Xcode 2.39, Ubuntu 24.04 2.43). Since slice 91 itos declares its hooks only in the git
+      config (hook.<name>.event and .command), which git runs from 2.54.0 (configHooksSince,
+      internal/cli/gitconfig.go), so hook install and every command that commits or pushes exit 3 on
+      an older git. Where the probe (git hook list with a probe entry) shows config hooks do not
+      run, hook install writes commit-msg and pre-push scripts into git rev-parse --git-path hooks
+      (respecting core.hooksPath), keeping and chaining an existing hook (it runs first, then
+      itos's) and restoring it on uninstall; hooksReady keeps refusing a commit or push unless
+      itos's script is in the folder git will use, which covers the hook-manager and fresh-worktree
+      failures (issue #16) config hooks were chosen to avoid. 2.54 and later unchanged. Needs: the
+      oldest git to support (sets which git features itos may use elsewhere: the VCS port's commands
+      must run on it, e.g. rev-parse --path-format=absolute needs 2.31), a decision partly
+      superseding slice 91's config-hooks-only choice, the user's OK to land it as a feat during the
+      refactor freeze, and scenarios run against an old git (a pinned old git in CI).
+    tags: [hooks]
