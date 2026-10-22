@@ -11958,8 +11958,8 @@ items:
   - id: bug-119
     title: A git that fails as itos reserves an ID exits 70 again, as v8.5.2 does, not 3
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: bug
     why: >
