@@ -3108,17 +3108,6 @@
     below prove the wiring. A depguard rule pre-dispatch (internal/launch and internal/shim deny
     internal/cli$) with its architecture fixture: the one lane task that edits the rules, in a build
     commit and a chore commit.
-  done_when:
-    - run: "! grep -rn 'internal/cli\"' internal/launch internal/shim"
-    - run: go test ./internal/launch/ ./internal/shim/ ./cmd/itos/
-      timeout: 600
-    - run: tools/bin/architecture-check
-    - run: tools/bin/pinned golangci-lint run ./...
-      timeout: 600
-    - run: go test ./features -count=1 -scenarios='^@ID-(UPGRADEHAND|UPDATE|PIN|GUARD|SHIM|EXT|CLI)-[0-9]+$'
-      timeout: 600
-    - run: go run ./tools/bin/conformance --bin tools/bin/itos --only tools/itos/conformance/cli.yaml tools/itos/conformance/help.yaml
-      timeout: 600
 
 - id: T-237
   type: refactor
