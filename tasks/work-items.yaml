@@ -12168,6 +12168,13 @@ items:
       build task naming what changed in v0.13..v0.25 that touches the push proof, the nightly and
       itos-cc.yaml (exception format, --fail-uncovered, listed suites), with the four platform
       hashes together as tools/bin/pinned's header says.
+
+      Cost seen again in step 9 (T-232, T-235, T-251, 2026-10-22): moving a function with a mutation
+      exception needs a full local mutation run to rehash it (one agent reproduced UnitHash by
+      hand), and mutation run writes summary comments into the sources (itos-cc#57, open).
+      itos-cc#32 and #50 (renewing an exception after a rename or a changed line) are closed
+      upstream, so a raise removes the rehash step. Raise it right after step 9's lanes end, before
+      more moves.
     refs: [tools/bin/pinned, itos-cc.yaml]
     tags: [ci]
 
