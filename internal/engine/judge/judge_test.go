@@ -232,6 +232,16 @@ tests:
 	}
 }
 
+// A footer whose source cannot be read stops the run with its error.
+func TestOverFooterFails(t *testing.T) {
+	repo := history()
+	repo.History = append(repo.History, vcsfake.Commit{Name: "named", Parents: []string{good}, Message: "docs: x\n\nItem: p1-x\n", Tree: map[string]string{"x.md": "x\n"}})
+	cfg := configOver(t, repo, rules+"  footers:\n    Item: { source: registry, validate_for: all, read_at: commit }\n")
+	if _, err := Over(t.Context(), cfg, repo, good, "named", Out{Stdout: &strings.Builder{}, Stderr: &strings.Builder{}}); err == nil {
+		t.Error("a footer whose source cannot be read gave no error")
+	}
+}
+
 // Under a stealth config a commit's footers are its note's.
 func TestOverStealth(t *testing.T) {
 	repo := history()
