@@ -100,6 +100,7 @@ type scratchConfig struct {
 	noWork            bool            // the config has no work section, only work's defaults
 	smoke             bool            // tests.scenario has a smoke set, features/smoke.yaml
 	scenarios         bool            // the config has the kind tests.scenario, reading features/
+	scenarioRoot      string          // tests.scenario.root, features when empty
 	smokeEveryFile    *bool           // tests.scenario.smoke.every_file
 	noTagPrefix       bool            // the kind written without tag_prefix
 	hooksBin          string          // hooks.bin
@@ -134,9 +135,12 @@ type moves struct {
 }
 
 // A kind of tests beside the scenario kind, behind a command adapter: its
-// name, the wip_tag written on it, and its adapter's command, true (which
-// lists nothing) when empty.
-type commandKind struct{ name, wipTag, command string }
+// name, the wip_tag written on it, its adapter's command, true (which lists
+// nothing) when empty, and its supports_at, left out when nil.
+type commandKind struct {
+	name, wipTag, command string
+	supportsAt            *bool
+}
 
 // A footer of free text (source: text): its key, the types it is required
 // for, and the commit after which it is required (its since), when one.
@@ -435,6 +439,7 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	initializeIDSteps(sc, w)
 	initializePromoteSteps(sc, w)
 	initializeTestsListSteps(sc, w)
+	initializeTestsTSVSteps(sc, w)
 
 	sc.Step(`^itos verifies every commit up to HEAD$`, func() error { return w.itos("verify", "", "HEAD") })
 	sc.Step(`^itos checks the config$`, func() error { return w.itos("config", "check") })
@@ -914,11 +919,15 @@ func (w *world) writeConfig() error {
 	}
 	b.WriteString(w.settingsUnder("commits"))
 	if kind := w.testsKind(); kind != "" {
+		root := w.config.scenarioRoot
+		if root == "" {
+			root = "features"
+		}
 		fmt.Fprintf(&b, `tests:
   %s:
-    root: features
+    root: %q
     id: "ID-[A-Z]+-\\d+"
-`, kind)
+`, kind, root)
 		if !w.config.noTagPrefix {
 			b.WriteString("    tag_prefix: \"@\"\n")
 		}
@@ -982,7 +991,11 @@ func (w *world) writeConfig() error {
 		if command == "" {
 			command = "true"
 		}
-		fmt.Fprintf(&b, "  %s:\n    adapter: { command: %q }\n    wip_tag: %q\n", k.name, command, k.wipTag)
+		at := ""
+		if k.supportsAt != nil {
+			at = fmt.Sprintf(", supports_at: %t", *k.supportsAt)
+		}
+		fmt.Fprintf(&b, "  %s:\n    adapter: { command: %q%s }\n    wip_tag: %q\n", k.name, command, at, k.wipTag)
 	}
 	b.WriteString(w.ciSection())
 	if !w.config.noWork {
