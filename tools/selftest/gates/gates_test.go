@@ -107,8 +107,8 @@ func TestSelftest(t *testing.T) {
 	t.Run("pre-commit checks no command table when only a test file is staged", func(t *testing.T) {
 		reset(base)
 		repo.Edit("internal/cli/commands_gen.go", "package cli", "package cli\n\n// stale")
-		repo.Edit("internal/cli/verify_test.go", "package cli", "package cli\n\n// staged")
-		repo.Git("add", "internal/cli/verify_test.go")
+		repo.Edit("internal/cli/cli_test.go", "package cli", "package cli\n\n// staged")
+		repo.Git("add", "internal/cli/cli_test.go")
 		r := hooks.Gate(t, "pre-commit, a test file staged, the command table stale", "sh tools/bin/pre-commit")
 		if r.Code != 0 || strings.Contains(r.Output(), "assemble") {
 			t.Errorf("pre-commit checked the command table with only a test file staged:\n%s", r.Output())
