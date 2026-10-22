@@ -8428,6 +8428,12 @@ items:
       work done finds an item's commits and what footers name; offline, stealth and rate limits (the
       file provider stays). Its findings feed p1-typed-items' design (type and area as two label
       families).
+
+      The tracker store port (T-225..T-227, internal/store/tracker/port) is storage level: Load,
+      List, Hold, Ready, Transact of named documents committed as one change, plus Reserve; names
+      are paths and Transaction carries git's commit fields. The user (2026-10-22): fine for now;
+      Fossil tickets and a taskmapper-shaped issue provider are the two needs that will reshape it,
+      likely at the record level (list, take, done, drop) above or beside the file adapter, in v9.
     refs: [internal/work, internal/providers]
     tags: [work, providers]
 
@@ -10695,6 +10701,12 @@ items:
       itos on Fossil would need its own footer reader (event.comment for the amended text) and range
       walker. Not tried: fossil server over HTTP, --use-author/--attribute, suppressing the mirror's
       appended line.
+
+      The tracker store port (T-225..T-227, internal/store/tracker/port) is storage level: Load,
+      List, Hold, Ready, Transact of named documents committed as one change, plus Reserve; names
+      are paths and Transaction carries git's commit fields. The user (2026-10-22): fine for now;
+      Fossil tickets and a taskmapper-shaped issue provider are the two needs that will reshape it,
+      likely at the record level (list, take, done, drop) above or beside the file adapter, in v9.
     refs: [internal/providers, PLAN.md]
     tags: [providers, work, commit]
 
