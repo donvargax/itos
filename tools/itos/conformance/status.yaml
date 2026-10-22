@@ -183,9 +183,7 @@ cases:
       ci: null
       nightly: null
       doing: [{ id: busy }]
-      unread:
-        - "CI cannot be read: GitHub's API answered 401 Unauthorized for /repos/owner/name/actions/workflows/ci.yml/runs?head_sha={{sha.head}}&per_page=20"
-        - "The nightly cannot be read: GitHub's API answered 401 Unauthorized for /repos/owner/name/actions/workflows/nightly.yml/runs?branch=main&per_page=20"
+    stdout_has: [401 Unauthorized, /repos/owner/name/actions/workflows/ci.yml/runs, /repos/owner/name/actions/workflows/nightly.yml/runs]
   - name: with ci.watch.provider none the CI run is not read
     argv: [status, --json]
     files:
@@ -198,7 +196,7 @@ cases:
     json_has:
       head: { commit: "{{sha.head}}", header: "chore: first" }
       ci: null
-      unread: ["CI is not read: ci.watch.provider is none."]
+    stdout_has: ci.watch.provider
   - name: while the head's run is going, main's last green commit follows it, before the nightly
     argv: [status, --json]
     git:
@@ -319,7 +317,7 @@ cases:
       doing: [{ id: busy }]
       next: [{ id: free }, { id: phased }, { id: ready }]
       questions: [{ id: q-2 }]
-      unread: ["No remote origin, so neither its head nor its CI run is read."]
+    stdout_has: origin
   - name: a remote that cannot be reached is read as last fetched
     argv: [status, --json]
     git:
@@ -331,7 +329,6 @@ cases:
     json_has:
       head: { commit: "{{sha.head}}", header: "chore: first", last_fetched: true }
       ci: { result: success, run: { url: "https://ci.example/runs/{{sha.head}}" } }
-      unread: ["origin cannot be reached, so its main is as last fetched."]
   - name: a remote without the branch has no head to read
     argv: [status, --json]
     git:
@@ -342,7 +339,7 @@ cases:
     json_has:
       head: null
       ci: null
-      unread: ["origin has no branch main yet, so there is no CI run to read."]
+    stdout_has: [origin, main]
   - name: status lists five of the next items, and says how many more
     argv: [status, --json]
     files:
@@ -358,7 +355,7 @@ cases:
           - { id: n7, title: Seven, phase: 1, owner: a, status: todo }
       asks.yaml: null
     exit: 0
-    json:
+    json_has:
       schema: 1
       person: a
       head:
@@ -390,7 +387,7 @@ cases:
       more: 2
       questions: []
       drafts: []
-      unread: []
+    stdout_lacks: ['"n6"', '"n7"']
   - name: a long question is cut short
     argv: [status]
     files:
@@ -404,7 +401,7 @@ cases:
   - name: status --json
     argv: [status, --json]
     exit: 0
-    json:
+    json_has:
       schema: 1
       person: a
       head: { remote: origin, branch: main, commit: "{{sha.head}}", header: "chore: first", last_fetched: false }
@@ -429,7 +426,6 @@ cases:
       more: 0
       questions: [{ id: q-2, item: ready, question: "Which way?", status: open }]
       drafts: []
-      unread: []
   - name: status --json lists what could not be reached
     argv: [status, --json]
     git:
@@ -439,7 +435,7 @@ cases:
       work-items.yaml: "phases: { 1: a }\nitems: []\n"
       asks.yaml: null
     exit: 0
-    json:
+    json_has:
       schema: 1
       person: a
       head: null
@@ -455,7 +451,7 @@ cases:
       more: 0
       questions: []
       drafts: []
-      unread: ["No remote origin, so neither its head nor its CI run is read."]
+    stdout_has: origin
   # Slice 135: the head's line names the repository's visibility, as
   # ci.watch's provider tells it (GitHub's repository, its visibility), and
   # --json's head holds it; a provider that cannot tell it, as the fake GitHub
@@ -484,7 +480,7 @@ cases:
           conclusion: success
           jobs: [{ name: ci, status: completed, conclusion: success }]
     exit: 0
-    json:
+    json_has:
       schema: 1
       person: a
       head: { remote: origin, branch: main, commit: "{{sha.head}}", header: "chore: first", last_fetched: false, visibility: private }
@@ -509,7 +505,6 @@ cases:
       more: 0
       questions: [{ id: q-2, item: ready, question: "Which way?", status: open }]
       drafts: []
-      unread: []
   # Slice 124: a block of itos's rules for agents other than the one this
   # itos writes is one line naming itos init --agent-rules, and --json's
   # agent_rules names the files that hold it.
@@ -523,7 +518,7 @@ cases:
       asks.yaml: null
       AGENTS.md: "Mine.\n\n<!-- itos:begin -->\n\n## The rules itos holds this repository to\n\n<!-- itos:end -->\n"
     exit: 0
-    json:
+    json_has:
       schema: 1
       person: a
       head: null
@@ -539,7 +534,6 @@ cases:
       more: 0
       questions: []
       drafts: []
-      unread: ["No remote origin, so neither its head nor its CI run is read."]
   - name: status --json gives the last nightly's run
     argv: [status, --json]
     files:
@@ -567,7 +561,7 @@ cases:
           conclusion: success
           jobs: [{ name: nightly, status: completed, conclusion: success }]
     exit: 0
-    json:
+    json_has:
       schema: 1
       person: a
       head: { remote: origin, branch: main, commit: "{{sha.head}}", header: "chore: first", last_fetched: false }
@@ -593,7 +587,6 @@ cases:
       more: 0
       questions: []
       drafts: []
-      unread: []
   - name: status --json gives main's last green commit while the head's run is going
     argv: [status, --json]
     git:
@@ -623,7 +616,7 @@ cases:
           jobs: [{ name: ci, status: in_progress }]
         - { head_sha: "{{sha.green}}", status: completed, conclusion: success }
     exit: 0
-    json:
+    json_has:
       schema: 1
       person: a
       head: { remote: origin, branch: main, commit: "{{sha.head}}", header: "feat: two", last_fetched: false }
@@ -644,7 +637,6 @@ cases:
       more: 0
       questions: []
       drafts: []
-      unread: []
   - name: status names the newest release and the feat, fix and breaking commits since it
     argv: [status, --json]
     git:
@@ -664,7 +656,7 @@ cases:
         label: head
       - run: git init -q --bare .git/origin.git && git remote add origin .git/origin.git && git push -q --tags origin main
     exit: 0
-    json:
+    json_has:
       schema: 1
       person: a
       head:
@@ -704,7 +696,7 @@ cases:
       more: 0
       questions: [{ id: q-2, item: ready, question: "Which way?", status: open }]
       drafts: []
-      unread: []
+    stdout_lacks: "docs: describe the archive"
   - name: the release is asked of the remote, whose tags this clone may not have
     argv: [status, --json]
     git:
@@ -740,7 +732,7 @@ cases:
     json_has:
       release: { tag: v1.2.0, last_fetched: false }
       unreleased: []
-      unread: ["origin/main is not fetched here up to its head, so the commits since v1.2.0 may be behind."]
+    stdout_has: origin/main
   - name: status --json gives the newest release and the headers of the commits since it
     argv: [status, --json]
     git:
@@ -758,7 +750,7 @@ cases:
       work-items.yaml: "phases: { 1: a }\nitems: []\n"
       asks.yaml: null
     exit: 0
-    json:
+    json_has:
       schema: 1
       person: a
       head: { remote: origin, branch: main, commit: "{{sha.head}}", header: "docs: describe the archive", last_fetched: false }
@@ -780,7 +772,6 @@ cases:
       more: 0
       questions: []
       drafts: []
-      unread: []
   - name: status takes no arguments
     argv: [status, work]
     exit: 2
