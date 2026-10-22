@@ -100,6 +100,7 @@ func TestTrailers(t *testing.T) {
 		"chore: x\n\nBREAKING CHANGE: x\nTask: T-1":                       {{"BREAKING CHANGE", "x"}, {"Task", "T-1"}},
 		"chore: x\n\nBREAKING CHANGES: x\nTask: T-1":                      nil,
 		"chore: x\n\nSee : https://x.y/z":                                 {{"See", "https://x.y/z"}},
+		"chore: x\n\nA : T-1":                                             {{"A", "T-1"}},
 	} {
 		if got := trailers(message, "#"); !reflect.DeepEqual(got, want) {
 			t.Errorf("trailers(%q) = %q, want %q", message, got, want)

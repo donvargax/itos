@@ -119,7 +119,7 @@ func TestShimOfferStanding(t *testing.T) {
 	for _, c := range []struct {
 		at, realAt        int
 		onPath, beforeGit bool
-	}{{0, 1, true, true}, {2, 1, true, false}, {0, -1, true, true}, {-1, 0, false, false}} {
+	}{{0, 1, true, true}, {2, 1, true, false}, {1, 0, true, false}, {0, -1, true, true}, {-1, 0, false, false}} {
 		f := scratch(t, "commit", nil)
 		f.at, f.realAt = c.at, c.realAt
 		got, _, _ := shimRun(f, ShimFlag{Given: true, Install: true}, "")

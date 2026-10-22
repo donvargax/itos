@@ -481,8 +481,8 @@ func TestInitRunsGitInit(t *testing.T) {
 	}
 	f = scratch(t, "", nil)
 	f.initErr = errors.New("git init: injected git failure")
-	if _, _, _, err := call(t, f); err != f.initErr {
-		t.Errorf("git init failing: %v", err)
+	if code, _, _, err := call(t, f); code != 0 || err != f.initErr {
+		t.Errorf("git init failing: exit %d, %v", code, err)
 	}
 }
 

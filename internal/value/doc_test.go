@@ -86,3 +86,31 @@ func TestDocEdits(t *testing.T) {
 		}
 	}
 }
+
+// A Set refused leaves the document as it was, the value intended
+// included, so its text still reads back: a key of a list, and an index
+// before the list's first item.
+func TestDocSetRefusedChangesNothing(t *testing.T) {
+	text := "items:\n  - a\n  - b\n"
+	for name, path := range map[string][]any{
+		"a key of a list":    {"items", "id"},
+		"a negative index":   {"items", -1},
+		"an index past it":   {"items", 2},
+		"an index of a map":  {0},
+		"a key of a scalar":  {"items", 0, "id"},
+		"an empty path":      {},
+		"a step of no kind":  {"items", 1.5},
+		"a list of no items": {"none", 0},
+	} {
+		d, err := OpenDoc(text)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := d.Set(path, "z"); err == nil {
+			t.Errorf("%s: set", name)
+		}
+		if got, err := d.Text(); err != nil || got != text {
+			t.Errorf("%s: the text reads %q, %v", name, got, err)
+		}
+	}
+}

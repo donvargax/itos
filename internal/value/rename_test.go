@@ -83,8 +83,8 @@ func TestDocRenameRefuses(t *testing.T) {
 			t.Errorf("%s: %v, not one saying %q", c.name, err, c.says)
 		}
 	}
-	if _, err := (&Doc{}).Rename(nil, []string{"a"}); err == nil {
-		t.Error("no path was renamed")
+	if had, err := (&Doc{}).Rename(nil, []string{"a"}); had || err == nil {
+		t.Errorf("no path was renamed: %t, %v", had, err)
 	}
 }
 
@@ -182,8 +182,12 @@ func TestDocEditsOfAChangedText(t *testing.T) {
 		d.e.text = changed
 		return d
 	}
+	// A refused rename says from had no value moved.
 	rename := func(d *Doc, from, to string) error {
-		_, err := d.Rename(strings.Split(from, "."), strings.Split(to, "."))
+		had, err := d.Rename(strings.Split(from, "."), strings.Split(to, "."))
+		if had && err != nil {
+			t.Errorf("%s to %s: refused, yet moved", from, to)
+		}
 		return err
 	}
 	two := "r:\n  a:\n    b: 1\n  z: 0\nd:\n  e: 2\n"

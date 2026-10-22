@@ -26,6 +26,11 @@ func TestGitCalls(t *testing.T) {
 		{"A=1 B=2 git commit", []GitCall{{".", "commit"}}},
 		{"env -- A=1 git commit", nil},
 		{"command env A=1 nohup git commit", []GitCall{{".", "commit"}}},
+		// env's assignments are NAME=VALUE with a shell variable's name: a
+		// word with any other before its = ends what the guard reads.
+		{"env A-B=1 git commit", nil},
+		{"env 1A=1 git commit", nil},
+		{"env A_1=1 git commit", []GitCall{{".", "commit"}}},
 		{"exec git push", []GitCall{{".", "push"}}},
 		{"time git push", []GitCall{{".", "push"}}},
 		{"grep -n 'git commit' AGENTS.md", nil},

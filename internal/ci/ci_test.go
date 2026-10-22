@@ -136,9 +136,11 @@ func TestRunStopsAtWhatItCannotSetOrRead(t *testing.T) {
 	if _, err := Run(load(t), &plan.Plan{Ends: plan.Ends{From: "a\x00b"}}, Options{Stdout: &stdout, Stderr: &stderr}); err == nil {
 		t.Error("a range end with a NUL in it gave no error")
 	}
-	if _, err := Run(load(t), &plan.Plan{Unknown: []string{"T-9"}}, Options{Stdout: &stdout, Stderr: &stderr}); err == nil ||
+	// The error is the run's answer, so its code is 0, never a failing
+	// step's 1.
+	if code, err := Run(load(t), &plan.Plan{Unknown: []string{"T-9"}}, Options{Stdout: &stdout, Stderr: &stderr}); code != 0 || err == nil ||
 		!strings.Contains(err.Error(), "ledger is missing") {
-		t.Errorf("an unknown task with no ledger: %v", err)
+		t.Errorf("an unknown task with no ledger: exit %d, %v", code, err)
 	}
 	if _, err := Run(load(t), &plan.Plan{}, Options{JSON: true, Stdout: failingWriter{}, Stderr: &stderr}); err == nil {
 		t.Error("a verdict it cannot write gave no error")

@@ -17,8 +17,8 @@ func TestRunGitShimBindsItsPorts(t *testing.T) {
 	dir := scratchFolder(t)
 	var stdout, stderr strings.Builder
 	o := Out{Stdout: &stdout, Stderr: &stderr, Origin: "sub", OS: runtime.GOOS}
-	if _, err := runGitShim([]string{"bogus"}, o); ExitCode(err) != ExitUsage {
-		t.Errorf("bogus: %v", err)
+	if code, err := runGitShim([]string{"bogus"}, o); code != 0 || ExitCode(err) != ExitUsage {
+		t.Errorf("bogus: exit %d, %v", code, err)
 	}
 	self, link, err := (gitShimPorts{o}).Place(context.Background(), filepath.Join(dir, "sub", "bin"))
 	if err != nil || filepath.Dir(link) != filepath.Join(dir, "sub", "bin") {
