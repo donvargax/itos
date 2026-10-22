@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/donvargax/itos/v8/internal/config"
+	"github.com/donvargax/itos/v8/internal/engine/pin"
 	"github.com/donvargax/itos/v8/internal/out"
 )
 
@@ -27,12 +28,12 @@ func TestItosRuns(t *testing.T) {
 			t.Errorf("%s and no install script: runs %q", name, got)
 		}
 	}
-	if err := os.MkdirAll(filepath.Dir(installScriptPath), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(pin.InstallScript), 0o755); err != nil {
 		t.Fatal(err)
 	}
 	write := func(text string) {
 		t.Helper()
-		if err := os.WriteFile(installScriptPath, []byte(text), 0o755); err != nil {
+		if err := os.WriteFile(pin.InstallScript, []byte(text), 0o755); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -47,10 +48,10 @@ func TestItosRuns(t *testing.T) {
 	if got := itosRuns(&config.Loaded{}); got != "" {
 		t.Errorf("an install script naming no version: runs %q", got)
 	}
-	if err := os.Remove(installScriptPath); err != nil {
+	if err := os.Remove(pin.InstallScript); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.Mkdir(installScriptPath, 0o755); err != nil {
+	if err := os.Mkdir(pin.InstallScript, 0o755); err != nil {
 		t.Fatal(err)
 	}
 	if got := itosRuns(&config.Loaded{}); got != "" {

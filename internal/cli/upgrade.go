@@ -37,12 +37,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"os"
 	"regexp"
 	"slices"
 	"strings"
 
 	"github.com/donvargax/itos/v8/internal/config"
+	"github.com/donvargax/itos/v8/internal/engine/pin"
 	"github.com/donvargax/itos/v8/internal/kind"
 	"github.com/donvargax/itos/v8/internal/out"
 	"github.com/donvargax/itos/v8/internal/release"
@@ -51,13 +51,7 @@ import (
 	"github.com/donvargax/itos/v8/internal/version"
 )
 
-// installScriptPath is where a project keeps the install script the release
-// notes write, from the repository's top.
-const installScriptPath = "tools/bin/install-itos"
-
 var (
-	// scriptVersionLine is the install script's version= line.
-	scriptVersionLine = regexp.MustCompile(`(?m)^version=(\S*)`)
 	// scriptSum is a platform's line of the install script: its platform,
 	// os-arch, and the SHA-256 of that platform's archive.
 	scriptSum = regexp.MustCompile(`platform=([0-9a-z]+-[0-9a-z]+)[ \t]+sum=([0-9A-Fa-f]{64})\b`)
@@ -214,17 +208,17 @@ func upgradeCommand(args []string, o Out) (int, error) {
 		return 0, err
 	}
 	u := upgrade{o: o, to: want, releases: []any{}, edited: []string{}, applied: []appliedStep{}}
-	hasPin := config.PinVersion.MatchString(c.version)
+	hasPin := config.PinVersion.MatchString(c.Version)
 	switch {
 	case hasPin:
-		u.from = c.version
+		u.from = c.Version
 	case hasScript:
 		if u.from, err = scriptVersion(script); err != nil {
-			return 0, fmt.Errorf("cannot read %s: %w; every file is left as it was", installScriptPath, err)
+			return 0, fmt.Errorf("cannot read %s: %w; every file is left as it was", pin.InstallScript, err)
 		}
 	default:
 		return u.refuse("%s pins no itos, and there is no %s whose version to move: nothing to upgrade; "+
-			"itos pin pins a release", c.file, installScriptPath)
+			"itos pin pins a release", c.File, pin.InstallScript)
 	}
 	if want != "" && version.Compare(want, u.from) < 0 {
 		return u.refuse("itos %s is older than %s, the version this project is on: itos upgrade only moves "+
@@ -242,9 +236,9 @@ func upgradeCommand(args []string, o Out) (int, error) {
 			"upgrade; itos pin %s moves it back", v, u.from, v)
 	}
 	if v == u.from {
-		if hasPin && c.replaced(v, sum) {
+		if hasPin && c.Replaced(v, sum) {
 			return u.refuse("%s pins itos %s with the checksums %s, but its checksums.txt is %s now: the release "+
-				"changed after it was pinned; every file is left as it was", c.file, v, c.checksums, sum)
+				"changed after it was pinned; every file is left as it was", c.File, v, c.Checksums, sum)
 		}
 		if o.JSON {
 			return 0, u.emit("already")
@@ -257,13 +251,13 @@ func upgradeCommand(args []string, o Out) (int, error) {
 		return ExitCode(err), nil
 	}
 
-	text, applied, err := applySteps(c.file, c.text, u.releases)
+	text, applied, err := applySteps(c.File, c.Text, u.releases)
 	if err != nil {
 		return 0, err
 	}
 	u.applied = applied
 	if hasPin {
-		if text, err = c.moved(text, v, sum); err != nil {
+		if text, err = c.Moved(text, v, sum); err != nil {
 			return 0, err
 		}
 	}
@@ -271,21 +265,21 @@ func upgradeCommand(args []string, o Out) (int, error) {
 	newScript := script
 	if hasScript {
 		if newScript, err = moveInstallScript(script, v, sums); err != nil {
-			return 0, fmt.Errorf("cannot edit %s: %w; every file is left as it was", installScriptPath, err)
+			return 0, fmt.Errorf("cannot edit %s: %w; every file is left as it was", pin.InstallScript, err)
 		}
 	}
-	rules := refreshedRules(config.IsStealth(vcs.Git{}, c.file))
-	if text != c.text {
-		if err := writeKeepingMode(c.file, text); err != nil {
+	rules := refreshedRules(config.IsStealth(vcs.Git{}, c.File))
+	if text != c.Text {
+		if err := writeKeepingMode(c.File, text); err != nil {
 			return 0, err
 		}
-		u.edited = append(u.edited, c.file)
+		u.edited = append(u.edited, c.File)
 	}
 	if newScript != script {
-		if err := writeKeepingMode(installScriptPath, newScript); err != nil {
+		if err := writeKeepingMode(pin.InstallScript, newScript); err != nil {
 			return 0, err
 		}
-		u.edited = append(u.edited, installScriptPath)
+		u.edited = append(u.edited, pin.InstallScript)
 	}
 	for _, e := range rules {
 		if err := e.write(); err != nil {
@@ -596,29 +590,16 @@ func orEmpty[T any](list []T) []T {
 	return list
 }
 
-// readInstallScript is the install script's text and whether there is one.
+// readInstallScript is the install script's text and whether there is one
+// (pin.ReadInstallScript).
 func readInstallScript() (string, bool, error) {
-	text, err := os.ReadFile(installScriptPath)
-	if os.IsNotExist(err) {
-		return "", false, nil
-	}
-	if err != nil {
-		return "", false, fmt.Errorf("cannot read %s: %w", installScriptPath, err)
-	}
-	return string(text), true, nil
+	return pin.ReadInstallScript()
 }
 
-// scriptVersion is the version the install script installs, from its one
-// version= line.
+// scriptVersion is the version the install script installs
+// (pin.ScriptVersion).
 func scriptVersion(script string) (string, error) {
-	lines := scriptVersionLine.FindAllStringSubmatch(script, -1)
-	if len(lines) != 1 {
-		return "", kind.Wrap(kind.Usage, fmt.Errorf("it has %d version= lines, not one", len(lines)))
-	}
-	if !config.PinVersion.MatchString(lines[0][1]) {
-		return "", kind.Wrap(kind.Usage, fmt.Errorf("its version= line names no release's version: %s", lines[0][1]))
-	}
-	return lines[0][1], nil
+	return pin.ScriptVersion(script)
 }
 
 // moveInstallScript is the install script installing v: its version= line
@@ -632,7 +613,7 @@ func moveInstallScript(script, v string, sums []byte) (string, error) {
 		start, end int
 		text       string
 	}
-	at := scriptVersionLine.FindStringSubmatchIndex(script)
+	at := pin.ScriptVersionLine.FindStringSubmatchIndex(script)
 	edits := []edit{{at[2], at[3], v}}
 	for _, m := range scriptSum.FindAllStringSubmatchIndex(script, -1) {
 		platform := script[m[2]:m[3]]

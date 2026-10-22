@@ -87,8 +87,9 @@
 // but first the launcher hands an upgrade to the version it moves to when
 // that is newer than this binary, reading it with UpgradeTarget (slice 126).
 //
-// itos pin (pin.go) reads the config config.Path finds (the stealth one
-// included), asks internal/release for the version's checksums.txt, or for
+// itos pin (pin.go, its engine internal/engine/pin) reads the config
+// config.Path finds (the stealth one included), asks internal/release for
+// the version's checksums.txt, or for
 // the newest's with the version read from its archive names (asked whatever
 // CI, ITOS_NO_UPDATE or the launcher's daily state say, and not written to
 // that state), within 30 seconds, and writes pin.version and that file's
@@ -98,8 +99,8 @@
 // release changed after it was pinned, and re-pinning it quietly would
 // defeat the pin).
 //
-// itos upgrade (upgrade.go) moves the pin with pin's code (readConfigPin,
-// pinned, configPin.moved, configPin.replaced). The version it moves from is
+// itos upgrade (upgrade.go) moves the pin with pin's engine (ReadConfig,
+// Pinned, Config.Moved, Config.Replaced). The version it moves from is
 // the pin's, else the version= line of tools/bin/install-itos, the install
 // script a release's notes write; with neither, or a version older than
 // that, it refuses (exit 1) and names itos pin. It walks back from the new

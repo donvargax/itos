@@ -11,20 +11,16 @@ package cli
 
 import (
 	"fmt"
-	"io/fs"
-	"os"
 	"strings"
-	"time"
 
 	"github.com/donvargax/itos/v8/internal/config"
-	"github.com/donvargax/itos/v8/internal/kind"
+	"github.com/donvargax/itos/v8/internal/engine/pin"
 	"github.com/donvargax/itos/v8/internal/out"
 	"github.com/donvargax/itos/v8/internal/release"
-	"github.com/donvargax/itos/v8/internal/value"
 )
 
 // pinTimeout bounds the one question pin asks, for a checksums.txt.
-const pinTimeout = 30 * time.Second
+const pinTimeout = pin.Timeout
 
 // pinCommand is `pin [<version>]`.
 func pinCommand(args []string, o Out) (int, error) {
@@ -36,7 +32,7 @@ func pinCommand(args []string, o Out) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	file, was, wasSums := c.file, c.version, c.checksums
+	file, was, wasSums := c.File, c.Version, c.Checksums
 	v, sums, err := pinned(want)
 	if err != nil {
 		fmt.Fprintf(o.Stderr, "itos: %s; %s is left as it was\n", err, file)
@@ -55,7 +51,7 @@ func pinCommand(args []string, o Out) (int, error) {
 		return code, out.Emit(o.Stdout, fields...)
 	}
 	if was == v && config.PinChecksums.MatchString(wasSums) {
-		if c.replaced(v, sum) {
+		if c.Replaced(v, sum) {
 			if !o.JSON {
 				fmt.Fprintf(o.Stderr, "itos: %s pins itos %s with the checksums %s, but its checksums.txt is %s now: "+
 					"the release changed after it was pinned; the pin is left as it was\n", file, v, wasSums, sum)
@@ -69,7 +65,7 @@ func pinCommand(args []string, o Out) (int, error) {
 		fmt.Fprintf(o.Stdout, "%s already pins itos %s: nothing to change.\n", file, v)
 		return 0, nil
 	}
-	edited, err := c.moved(c.text, v, sum)
+	edited, err := c.Moved(c.Text, v, sum)
 	if err != nil {
 		return 0, err
 	}
@@ -111,84 +107,18 @@ func versionArg(name string, args []string) (string, error) {
 	return want, nil
 }
 
-// configPin is the config itos finds, its text, and the pin it holds: its
-// version and checksums as written, "" for none.
-type configPin struct{ file, text, version, checksums string }
-
 // readConfigPin reads the config itos finds, the stealth one included, and
 // its pin.
-func readConfigPin() (configPin, error) {
-	file := configPath()
-	text, err := os.ReadFile(file)
-	if err != nil {
-		return configPin{}, &config.Error{File: file, Problems: []out.Problem{{
-			Rule:    "config-unreadable",
-			Message: "cannot be read: " + err.Error(),
-			Fix:     "create " + file + ", or correct its YAML",
-		}}}
-	}
-	tree, err := value.Parse(string(text))
-	if err != nil {
-		return configPin{}, config.Invalid(file, "cannot be read: "+err.Error())
-	}
-	pin := value.Prop(tree, "pin")
-	was, _ := value.Prop(pin, "version").(string)
-	wasSums, _ := value.Prop(pin, "checksums").(string)
-	return configPin{file: file, text: string(text), version: was, checksums: wasSums}, nil
+func readConfigPin() (pin.Config, error) {
+	return pin.ReadConfig(configPath())
 }
 
-// replaced is whether the config pins the version v with other checksums
-// than sum, those of its checksums.txt now: the release changed after it was
-// pinned
-// (docs/decisions/0025-itos-pin-refuses-a-release-changed-after-it-was-pinned.md).
-func (c configPin) replaced(v, sum string) bool {
-	return c.version == v && config.PinChecksums.MatchString(c.checksums) && c.checksums != sum
-}
-
-// moved is the text, the config's, with pin.version set to v and
-// pin.checksums to sum, every other byte as it was.
-func (c configPin) moved(text, v, sum string) (string, error) {
-	edited, err := value.SetScalars(text, "pin", [][2]string{{"version", v}, {"checksums", sum}})
-	if err != nil {
-		return "", kind.Wrap(kind.Usage, fmt.Errorf("cannot edit the pin in %s (%s): set pin.version to %s and pin.checksums to %s",
-			c.file, err, v, sum))
-	}
-	return edited, nil
-}
-
-// pinned is the release to pin, the version asked for or, with none, the
-// newest, and its checksums.txt. Its errors have their kind: a server that
-// cannot be reached or fails is kind.Temporary (release.Get), a release it
-// does not have or cannot be pinned kind.Missing.
+// pinned is the release to pin and its checksums.txt (pin.Pinned).
 func pinned(want string) (string, []byte, error) {
-	if want == "" {
-		url := release.LatestURL("checksums.txt")
-		sums, err := release.Get(url, pinTimeout)
-		if err != nil {
-			return "", nil, fmt.Errorf("cannot ask for the newest itos: %w", err)
-		}
-		v := release.VersionOf(sums)
-		if v == "" {
-			return "", nil, kind.Wrap(kind.Missing, fmt.Errorf("the newest itos's checksums.txt (%s) names no archive of itos", url))
-		}
-		return v, sums, nil
-	}
-	url := release.URL(want, "checksums.txt")
-	sums, err := release.Get(url, pinTimeout)
-	if err != nil {
-		return "", nil, fmt.Errorf("cannot fetch itos %s: %w", want, err)
-	}
-	if v := release.VersionOf(sums); v != "" && v != want {
-		return "", nil, kind.Wrap(kind.Missing, fmt.Errorf("the checksums.txt of itos %s (%s) lists the archives of itos %s", want, url, v))
-	}
-	return want, sums, nil
+	return pin.Pinned(want)
 }
 
 // writeKeepingMode writes the file's new text, keeping its permissions.
 func writeKeepingMode(file, text string) error {
-	mode := fs.FileMode(0o644)
-	if info, err := os.Stat(file); err == nil {
-		mode = info.Mode().Perm()
-	}
-	return os.WriteFile(file, []byte(text), mode)
+	return pin.WriteKeepingMode(file, text)
 }

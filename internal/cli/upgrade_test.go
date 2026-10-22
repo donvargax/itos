@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/donvargax/itos/v8/internal/engine/pin"
 	"github.com/donvargax/itos/v8/internal/kind"
 	"github.com/donvargax/itos/v8/internal/release"
 )
@@ -55,15 +56,6 @@ func TestMoveInstallScriptRefuses(t *testing.T) {
 		if got, err := moveInstallScript(text, "9.3.0", newSums); err == nil {
 			t.Errorf("%s: moved, to\n%s", name, got)
 		}
-	}
-}
-
-func TestScriptVersion(t *testing.T) {
-	if v, err := scriptVersion(script("9.1.0", oldSum, oldSum)); err != nil || v != "9.1.0" {
-		t.Errorf("scriptVersion = %q, %v", v, err)
-	}
-	if v, err := scriptVersion("version=latest\n"); err == nil {
-		t.Errorf("scriptVersion of version=latest = %q", v)
 	}
 }
 
@@ -383,11 +375,11 @@ func TestUpgradeCommandRefuses(t *testing.T) {
 	expect("no config", 0, true, "cannot be read", code, err, printed)
 
 	upgradeIn(t, "9.3.0", pinOf("9.1.0"), nil)
-	if err := os.MkdirAll(installScriptPath, 0o755); err != nil {
+	if err := os.MkdirAll(pin.InstallScript, 0o755); err != nil {
 		t.Fatal(err)
 	}
 	code, printed, err = upgradeRun(false)
-	expect("an install script that cannot be read", 0, true, "cannot read "+installScriptPath, code, err, printed)
+	expect("an install script that cannot be read", 0, true, "cannot read "+pin.InstallScript, code, err, printed)
 
 	upgradeIn(t, "9.3.0", "version: 1\n", nil)
 	writeScript(t, "#!/bin/sh\n")
@@ -422,15 +414,15 @@ func TestUpgradeCommandRefuses(t *testing.T) {
 	upgradeIn(t, "9.3.0", pinOf("9.1.0"), nil)
 	writeScript(t, script("9.1.0", oldSum, oldSum)+"Darwin-arm64) platform=darwin-arm64 sum="+oldSum+" ;;\n")
 	code, printed, err = upgradeRun(false)
-	expect("a script it cannot edit", 0, true, "cannot edit "+installScriptPath, code, err, printed)
+	expect("a script it cannot edit", 0, true, "cannot edit "+pin.InstallScript, code, err, printed)
 }
 
 func writeScript(t *testing.T, text string) {
 	t.Helper()
-	if err := os.MkdirAll(filepath.Dir(installScriptPath), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(pin.InstallScript), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(installScriptPath, []byte(text), 0o755); err != nil {
+	if err := os.WriteFile(pin.InstallScript, []byte(text), 0o755); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -453,7 +445,7 @@ func TestUpgradeCommandCannotWrite(t *testing.T) {
 
 	upgradeIn(t, "9.3.0", "version: 1\n", nil)
 	writeScript(t, script("9.1.0", oldSum, oldSum))
-	if err := os.Chmod(installScriptPath, 0o555); err != nil {
+	if err := os.Chmod(pin.InstallScript, 0o555); err != nil {
 		t.Fatal(err)
 	}
 	if code, printed, err := upgradeRun(false); code != 0 || err == nil {
