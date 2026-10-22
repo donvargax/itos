@@ -12249,8 +12249,8 @@ items:
   - id: T-243
     title: "Slices, prerequisite 1: usage errors in internal/out, and the slice allow list widened to the domain packages"
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: [T-242]
     kind: task
 
