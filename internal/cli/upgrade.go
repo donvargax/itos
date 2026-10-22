@@ -154,7 +154,7 @@ func UpgradeTarget(args []string) (h launch.Handoff, ok bool, err error) {
 	if err != nil {
 		return h, false, nil
 	}
-	want, err := versionArg("upgrade", read.Rest[1:])
+	want, err := pin.VersionArg("upgrade", read.Rest[1:])
 	if err != nil {
 		return h, false, nil
 	}
@@ -188,7 +188,7 @@ func namingVersion(args []string, v string) []string {
 
 // runUpgrade is `upgrade [<version>]`.
 func runUpgrade(args []string, o Out) (int, error) {
-	want, err := versionArg("upgrade", args)
+	want, err := pin.VersionArg("upgrade", args)
 	if err != nil {
 		return 0, err
 	}

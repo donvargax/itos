@@ -11,6 +11,7 @@ import (
 
 	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/kind"
+	"github.com/donvargax/itos/v8/internal/out"
 	"github.com/donvargax/itos/v8/internal/release"
 )
 
@@ -75,6 +76,30 @@ func TestReadConfigRefuses(t *testing.T) {
 	_, err = ReadConfig(file)
 	if !errors.As(err, &cerr) || cerr.File != file || !strings.Contains(err.Error(), "cannot be read: ") {
 		t.Errorf("no YAML: %#v", err)
+	}
+}
+
+// latest is the newest, as no version is; anything else not a version is a
+// usage error.
+func TestVersionArg(t *testing.T) {
+	for args, want := range map[string]string{"": "", "latest": "", "2.5.0": "2.5.0", "v2.5.0": "2.5.0"} {
+		if got, err := VersionArg("pin", strings.Fields(args)); err != nil || got != want {
+			t.Errorf("VersionArg(%s) = %q, %v; want %q", args, got, err, want)
+		}
+	}
+	for args, want := range map[string]string{
+		"newest":        "pin needs a release's version, such as 2.5.0, or latest, not newest",
+		"Latest":        "pin needs a release's version, such as 2.5.0, or latest, not Latest",
+		"vlatest":       "pin needs a release's version, such as 2.5.0, or latest, not vlatest",
+		"latest 2.5.0":  "pin takes one <version> at most: latest 2.5.0",
+		"2.5.0 --force": "pin takes only a <version> (--force)",
+		"-":             "pin takes only a <version> (-)",
+	} {
+		_, err := VersionArg("pin", strings.Fields(args))
+		var u out.UsageError
+		if !errors.As(err, &u) || err.Error() != want {
+			t.Errorf("VersionArg(%s) = %v, want the usage error %q", args, err, want)
+		}
 	}
 }
 

@@ -17,6 +17,7 @@
 //
 // ReadInstallScript reads tools/bin/install-itos (InstallScript) from the
 // working directory, the repository's top; ScriptVersion is the version its
-// one version= line (ScriptVersionLine) names. Reading the arguments, and
-// the exit codes, are internal/cli's.
+// one version= line (ScriptVersionLine) names. VersionArg reads the one
+// <version> pin and upgrade take, its errors out.Usage; the exit codes are
+// the commands'.
 package pin

@@ -5,6 +5,7 @@ import (
 	"io/fs"
 	"os"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/donvargax/itos/v8/internal/config"
@@ -23,6 +24,28 @@ const InstallScript = "tools/bin/install-itos"
 
 // ScriptVersionLine is the install script's version= line.
 var ScriptVersionLine = regexp.MustCompile(`(?m)^version=(\S*)`)
+
+// VersionArg is the one <version> a command that moves the pin takes, a
+// leading v dropped, "" when it names none or names latest, which means the
+// newest as no version does (slice 87).
+func VersionArg(name string, args []string) (string, error) {
+	for _, a := range args {
+		if strings.HasPrefix(a, "-") {
+			return "", out.Usage("%s takes only a <version> (%s)", name, a)
+		}
+	}
+	if len(args) > 1 {
+		return "", out.Usage("%s takes one <version> at most: %s", name, strings.Join(args, " "))
+	}
+	if len(args) == 0 || args[0] == "latest" {
+		return "", nil
+	}
+	want := strings.TrimPrefix(args[0], "v")
+	if !config.PinVersion.MatchString(want) {
+		return "", out.Usage("%s needs a release's version, such as 2.5.0, or latest, not %s", name, args[0])
+	}
+	return want, nil
+}
 
 // Config is the config itos finds, its text, and the pin it holds: its
 // version and checksums as written, "" for none.

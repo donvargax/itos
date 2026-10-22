@@ -95,18 +95,6 @@
 // which cmd/itos hands the launcher in a launch.CLI with Parse and ExitCode:
 // the launcher imports no internal/cli.
 //
-// itos pin (pin.go, its engine internal/engine/pin) reads the config
-// config.Path finds (the stealth one included), asks internal/release for
-// the version's checksums.txt, or for
-// the newest's with the version read from its archive names (asked whatever
-// CI, ITOS_NO_UPDATE or the launcher's daily state say, and not written to
-// that state), within 30 seconds, and writes pin.version and that file's
-// SHA-256 with value.SetScalars. Nothing is written when the fetch fails
-// (exit 3), when the pin is already that version with those checksums (exit
-// 0), or when it is that version with other valid checksums (exit 1: the
-// release changed after it was pinned, and re-pinning it quietly would
-// defeat the pin).
-//
 // itos upgrade (upgrade.go) moves the pin with pin's engine (ReadConfig,
 // Pinned, Config.Moved, Config.Replaced). The version it moves from is
 // the pin's, else the version= line of tools/bin/install-itos, the install

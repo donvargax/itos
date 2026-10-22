@@ -76,21 +76,6 @@ func TestMoveSchemaLine(t *testing.T) {
 	}
 }
 
-// latest is the newest, as no version is; anything else not a version is a
-// usage error.
-func TestVersionArg(t *testing.T) {
-	for args, want := range map[string]string{"": "", "latest": "", "2.5.0": "2.5.0", "v2.5.0": "2.5.0"} {
-		if got, err := versionArg("pin", strings.Fields(args)); err != nil || got != want {
-			t.Errorf("versionArg(%s) = %q, %v; want %q", args, got, err, want)
-		}
-	}
-	for _, args := range []string{"newest", "Latest", "vlatest", "latest 2.5.0", "--force"} {
-		if _, err := versionArg("pin", strings.Fields(args)); err == nil {
-			t.Errorf("versionArg(%s) took it", args)
-		}
-	}
-}
-
 // releaseServer serves each path's body, 404 for any other, and 500 for
 // a body of "fail".
 func releaseServer(t *testing.T, files map[string]string) {

@@ -1,8 +1,8 @@
-package cli
+package pin
 
 import "github.com/donvargax/itos/v8/internal/declare"
 
-var pinDeclared = declare.Command{
+var Command = declare.Command{
 	Name: "pin",
 	Rank: 120,
 	Lines: `  pin [<version>|latest]           move the config's pin to a release, the newest by default
