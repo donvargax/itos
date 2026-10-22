@@ -12,6 +12,7 @@ import (
 	followupslice "github.com/donvargax/itos/v8/internal/slices/followup"
 	gitshimslice "github.com/donvargax/itos/v8/internal/slices/gitshim"
 	guardslice "github.com/donvargax/itos/v8/internal/slices/guard"
+	hookslice "github.com/donvargax/itos/v8/internal/slices/hook"
 	pinslice "github.com/donvargax/itos/v8/internal/slices/pin"
 	taskslice "github.com/donvargax/itos/v8/internal/slices/task"
 	testsslice "github.com/donvargax/itos/v8/internal/slices/tests"
@@ -39,7 +40,7 @@ var declared = []declare.Command{
 	verifyslice.Command,
 	testsslice.Command,
 	cislice.Command,
-	hookDeclared,
+	hookslice.Command,
 	guardslice.Command,
 	configslice.Command,
 	versionslice.Command,

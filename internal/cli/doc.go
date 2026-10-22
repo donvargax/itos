@@ -248,89 +248,12 @@
 //
 // # The hooks
 //
-// hook commit-msg (hook.go) is four rules, the first to fail deciding, each
-// a call to the judgement its own command makes, the last three on the
-// message git will store as the header lint reads it (message.Cleaned, bug
-// 36), so a blank or comment first line, as an editor leaves one, does not
-// hide the type from the paths and the footers:
-//
-//  1. itos's data at commit: configFindings reading the index (the tree
-//     reader's At("index"), handed to it) when a staged path (git diff
-//     --cached --name-only --no-renames) is the config, a ledger file, the
-//     registry, the questions' file (slice 130), a smoke set or a decision
-//     record or index, as
-//     the staged config names them (stagesData); data that cannot be read is
-//     one data-unreadable problem, the rejection's first line the staged
-//     commits.reject_message. Else, for each kind one of whose test files is
-//     staged (tests.StagesTestFile) and whose smoke set the index holds, the
-//     smoke rule, through config check's judgedSmokeFindings
-//     (stagedSmokeIssues, slice 117): it reads the test files as well as the
-//     set, so a feat that makes a file's tests live stages no data. It comes
-//     first because the other rules read the config, and from the index
-//     because the working tree may hold what the commit does not.
-//  2. The staged paths through scope.Of(cfg).Issues and each kind's staged
-//     range command (both only for a type Ruled), then the moves rule
-//     (tests.Moves.Between). judgedBase is HEAD's parent when amending takes
-//     the commit for an amend, else HEAD, and stagedFiles(base) reads the
-//     paths against it: an amend is judged as the commit it makes, so one
-//     that only rewords a feat still has the feat's paths. A merge being made
-//     is judged by its own paths (the VCS's StagedOwnPaths), and one with none
-//     returns before the rules.
-//  3. The header lint, message.LintFile (the built-in lint, or the
-//     commits.header_lint.hook delegate with {file} as one tests.ShellWord,
-//     inheriting the hook's streams, its exit code the hook's), beside the
-//     footer rules at the staged tree (or ITOS_AT). handedFooters gives the
-//     stealth mode's links.
-//  4. The named tasks' checks up to each task's first late one, the ledger
-//     and the registry read from the index by the staged config, the
-//     checks' costs and timeouts by the working tree's, each run by
-//     internal/engine/judge's FirstFailure; checkEnv keeps ITOS_FOOTERS and ITOS_AMEND from them. A failure rejects the
-//     commit when work.ItemStatuses says the task is done, and is only
-//     printed otherwise. hooks.commit_msg.task_checks: false turns them off.
-//
-// hook pre-push reads git's ref lines, or under pre-commit or prek the line
-// their environment gives, as pushedRefs: each ref's local commit and the
-// remote's commit it replaces when this clone has it, a deleted ref left
-// out. First it refuses a push that rewrites the remote (slice 128,
-// rewrites): a ref whose remote commit this clone lacks, or that is not an
-// ancestor of the commit pushed (git merge-base --is-ancestor), as only a
-// forced push replaces; refuseRewrite names the ref and itos push, exit 1,
-// before the config is read and with no command run. It verifies next (verifyPush): judge.Over on each distinct
-// pushedRange, <remote sha>..<local sha>, or the unpushed commits up to the
-// local one when there is no remote commit to compare with, each run's
-// report written to a buffer, so a push whose commits pass prints nothing.
-// A failing range's report is printed with fixAdvice (git commit --amend, or
-// git rebase -i from the parent of the first failing commit, --root for a
-// root commit) and the hook exits 1 with no command run. Then it runs
-// hooks.pre_push's per_base once per remote base this clone has
-// (pushBases), else whole, nothing for a deleted branch, and nothing at all
-// without hooks.pre_push.
-//
-// hook install (install.go over internal/engine/hooks;
-// docs/decisions/0037-itos-installs-its-hooks-only-in-the-git-config-and-knows-no-hook-manager.md)
-// knows no hook manager: it never reads or writes a hook file, a hook
-// manager's config or core.hooksPath. declareHooks writes
-// hook.itos-commit-msg and hook.itos-pre-push into the repository's own
-// config, which every worktree of the clone shares (git config --local
-// --replace-all, its .command <hooks.bin> hook <event>, git appending the
-// hook's arguments, and its one .event). Git runs those beside the hook in
-// core.hooksPath or the hooks folder, whatever core.hooksPath says, so a
-// hooks folder a fresh worktree lacks skips none of itos's checks and
-// nothing of the project's changes. An entry already as written is
-// unchanged; one under itos's name whose command does not call itos
-// (callsItos) is replaced only with --force. Before writing, configHooksRun
-// asks git -c hook.itos-probe.event=commit-msg -c
-// hook.itos-probe.command=true hook list commit-msg for the probe's name,
-// testing the feature rather than a version, and a git that does not list
-// it exits 3, naming configHooksSince, 2.54.0, the first git that lets the
-// config declare hooks. hooksReady asks the same before git runs in every
-// command that commits or pushes where a config is: gitCommit (and so the
-// git shim's git commit) and writeCommitted need the commit-msg entry, push
-// the pre-push one; a git that runs no config hook, or an entry the git
-// config at any level does not declare (entryDeclared: its event, and a command
-// callsItos matches), is kind.Missing, exit 3, naming itos hook install or
-// the git to upgrade to. Where there is no config nothing is checked, so the
-// shim's git commit outside an itos repository is plain git.
+// hook is the hook slice (internal/slices/hook); hook.go binds its Ports to
+// git, the trees it holds, loadConfig, the working tree, ungroupedTaskFlags
+// and the config's shell, and install.go keeps hookInstall, which init
+// runs. itos's hooks in the git config are internal/engine/hooks's, whose
+// doc says how: gitconfig.go binds it to the git adapter for the commands
+// that commit or push (hooksReady, entryDeclared, hooksPathSet).
 //
 // # CI
 //

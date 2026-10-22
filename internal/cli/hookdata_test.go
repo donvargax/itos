@@ -49,25 +49,37 @@ tests:
 `
 
 // The hook's data rule as the index holds it: nothing outside a repository
-// or where git cannot say where the index is but the error; no problem for a
-// commit in a repository without a config; data that cannot be read one
-// data-unreadable problem; and a staged feature file with no smoke scenario
-// the smoke rule's problem, under the staged reject message (slice 117).
+// or where git cannot say where the index is but the error; no rejection
+// for a commit in a repository without a config, whose missing config is
+// the next rule's error; data that cannot be read one data-unreadable
+// problem; and a staged feature file with no smoke scenario the smoke
+// rule's problem, under the staged reject message (slice 117).
 func TestStagedDataIssues(t *testing.T) {
 	scratchFolder(t)
-	if _, _, err := stagedDataIssues("", nil); err == nil {
+	// A commit made under a hook takes the author date git exports to it,
+	// which would read as an amend of HEAD.
+	t.Setenv("GIT_AUTHOR_DATE", "")
+	os.Unsetenv("GIT_AUTHOR_DATE")
+	writeFiles(t, map[string]string{"msg": "docs: x\n"})
+	hook := func() (int, string, error) {
+		t.Helper()
+		var stderr strings.Builder
+		code, err := runHook([]string{"commit-msg", "msg"}, Out{Stdout: &stderr, Stderr: &stderr})
+		return code, stderr.String(), err
+	}
+	if _, _, err := hook(); err == nil {
 		t.Error("outside a repository: no error")
 	}
 
 	gitIn(t, "init", "-q", "-b", "main")
 	writeFiles(t, map[string]string{"README.md": "scratch\n"})
 	gitIn(t, "add", "README.md")
-	if found, _, err := stagedDataIssues("", nil); err != nil || len(found) != 0 {
-		t.Errorf("no config: %v %v", found, err)
+	if code, stderr, err := hook(); code != 0 || stderr != "" || err == nil {
+		t.Errorf("no config: exit %d, %v\n%s", code, err, stderr)
 	}
 
 	useWrappedGit(t, "rev-parse", "", "")
-	if _, _, err := stagedDataIssues("", nil); err == nil {
+	if _, _, err := hook(); err == nil {
 		t.Error("an index git cannot place: no error")
 	}
 	t.Setenv("ITOS_GIT", "")
@@ -81,9 +93,9 @@ func TestStagedDataIssues(t *testing.T) {
 	gitIn(t, "commit", "-q", "-m", "docs: start")
 	writeFiles(t, map[string]string{"tasks/work-items.yaml": "phases: [\n"})
 	gitIn(t, "add", "tasks/work-items.yaml")
-	found, header, err := stagedDataIssues("", nil)
-	if err != nil || len(found) != 1 || found[0].Rule != "data-unreadable" || header != "Commit rejected:" {
-		t.Errorf("a registry that cannot be read: %v %q %v", found, header, err)
+	code, stderr, err := hook()
+	if code != ExitPolicy || err != nil || !strings.HasPrefix(stderr, "Commit rejected:\n  - ") || strings.Count(stderr, "\n") != 2 {
+		t.Errorf("a registry that cannot be read: exit %d, %v\n%s", code, err, stderr)
 	}
 	gitIn(t, "rm", "-q", "--cached", "tasks/work-items.yaml")
 
@@ -97,8 +109,8 @@ func TestStagedDataIssues(t *testing.T) {
 	gitIn(t, "commit", "-q", "-m", "test: the smoke set")
 	writeFiles(t, map[string]string{"features/b.feature": "Feature: B\n\n  @ID-B-01\n  Scenario: One\n    When it runs\n"})
 	gitIn(t, "add", "features/b.feature")
-	found, header, err = stagedDataIssues("", nil)
-	if err != nil || len(found) != 1 || found[0].Rule != "smoke-missing" || !strings.HasPrefix(found[0].Message, "b.feature ") || header != "Refused:" {
-		t.Errorf("a staged feature file with no smoke scenario: %v %q %v", found, header, err)
+	code, stderr, err = hook()
+	if code != ExitPolicy || err != nil || !strings.HasPrefix(stderr, "Refused:\n  - b.feature ") || strings.Count(stderr, "\n") != 2 {
+		t.Errorf("a staged feature file with no smoke scenario: exit %d, %v\n%s", code, err, stderr)
 	}
 }

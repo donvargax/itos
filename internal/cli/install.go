@@ -8,8 +8,10 @@ package cli
 // its own business; git runs them beside itos's.
 
 import (
-	"fmt"
+	"context"
 	"os"
+
+	hookslice "github.com/donvargax/itos/v8/internal/slices/hook"
 )
 
 func exists(p string) bool {
@@ -23,18 +25,8 @@ func readIf(p string) (string, bool) {
 	return string(text), err == nil
 }
 
-// hookInstall is `hook install`: 0 when both hooks are declared (or
-// printed), 1 when an entry under itos's name that does not call itos stood
-// in the way and --force was not given, 3 when this git runs no hook its
-// config declares.
+// hookInstall is `hook install`, the hook slice's, which init runs.
 func hookInstall(print, force bool, o Out) (int, error) {
-	cfg, err := loadConfig()
-	if err != nil {
-		return 0, err
-	}
-	log := o.Stdout
-	if o.JSON {
-		log = o.Stderr
-	}
-	return declareHooks(cfg.Hooks.Bin, print, force, o, func(line string) { fmt.Fprintln(log, line) })
+	c := hookslice.CLI{Query: hookslice.Query{Sub: "install", Print: print, Force: force}, JSON: o.JSON, Tests: o.Tests}
+	return c.Run(context.Background(), o.Stdout, o.Stderr, hookslice.NewHandler(hookPorts{}))
 }

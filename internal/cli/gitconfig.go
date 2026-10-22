@@ -35,11 +35,5 @@ func hooksReady(events ...string) error {
 	return hooks.Ready(context.Background(), vcs.Git{}, events...)
 }
 
-// declareHooks is hooks.Declare over the git adapter.
-func declareHooks(bin string, print, force bool, o Out, say func(string)) (int, error) {
-	return hooks.Declare(context.Background(), vcs.Git{}, bin, print, force,
-		hooks.Out{Stdout: o.Stdout, Stderr: o.Stderr, JSON: o.JSON}, say)
-}
-
 // hooksPathSet is whether git -c sets core.hooksPath (hooks.PathSet).
 func hooksPathSet() bool { return hooks.PathSet() }

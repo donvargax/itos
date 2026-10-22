@@ -2,10 +2,8 @@ package cli
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/donvargax/itos/v8/internal/config"
-	"github.com/donvargax/itos/v8/internal/out"
 	"github.com/donvargax/itos/v8/internal/slices/verify"
 	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
 )
@@ -42,12 +40,4 @@ func short(sha string) string {
 		return sha[:7]
 	}
 	return sha
-}
-
-// printSinceIssues says commits.since is no commit here, one FAIL line a
-// problem.
-func printSinceIssues(missing []out.Problem, o Out) {
-	for _, p := range missing {
-		fmt.Fprintf(o.Stderr, "FAIL %s\n", p.Message)
-	}
 }

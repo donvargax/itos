@@ -1,0 +1,267 @@
+package hook
+
+import (
+	"context"
+	"fmt"
+	"io"
+	"os"
+	"regexp"
+	"strings"
+
+	"github.com/donvargax/itos/v8/internal/config"
+	"github.com/donvargax/itos/v8/internal/engine/judge"
+	"github.com/donvargax/itos/v8/internal/shell"
+	vcsport "github.com/donvargax/itos/v8/internal/vcs/port"
+)
+
+// zeros is a SHA git writes for no commit: a new branch's remote side, a
+// deleted branch's local side.
+var zeros = regexp.MustCompile(`^0+$`)
+
+// pushedRef is one ref a push sends, from git's `<local ref> <local sha>
+// <remote ref> <remote sha>` line: the commit it sends, the remote's commit
+// it replaces when this clone has that one, else "" (a new branch, or a
+// remote commit the clone lacks), and the remote ref with the commit it is
+// at, "" for a new branch.
+type pushedRef struct{ local, base, ref, remote string }
+
+// pushedRefs are the refs a push sends, a deleted one (zero local SHA) left
+// out, since it sends nothing.
+func (h Handler) pushedRefs(ctx context.Context, input string) []pushedRef {
+	var refs []pushedRef
+	for _, line := range strings.Split(input, "\n") {
+		if line == "" {
+			continue
+		}
+		fields := strings.Split(line, " ")
+		field := func(i int) string {
+			if i < len(fields) {
+				return fields[i]
+			}
+			return ""
+		}
+		local, remote := field(1), field(3)
+		if local == "" || zeros.MatchString(local) {
+			continue
+		}
+		ref := pushedRef{local: local, ref: field(2)}
+		if remote != "" && !zeros.MatchString(remote) {
+			ref.remote = remote
+			if hasCommit(ctx, h.ports, remote) {
+				ref.base = remote
+			}
+		}
+		refs = append(refs, ref)
+	}
+	return refs
+}
+
+// hasCommit is whether rev names a commit v has.
+func hasCommit(ctx context.Context, v vcsport.VCS, rev string) bool {
+	_, err := v.Resolve(ctx, rev)
+	return err == nil
+}
+
+// rewrites is the first pushed ref that would replace a remote commit the
+// commit pushed does not build on (slice 128): one this clone lacks, or one
+// that is not an ancestor of the commit pushed; false when every ref is a
+// new branch or adds to the remote's commit. Such a push rewrites what
+// others may have built on, which only a forced push does.
+func (h Handler) rewrites(ctx context.Context, refs []pushedRef) (pushedRef, bool) {
+	for _, r := range refs {
+		if r.remote != "" && (r.base == "" || !h.ports.IsAncestor(ctx, r.base, r.local)) {
+			return r, true
+		}
+	}
+	return pushedRef{}, false
+}
+
+// refuseRewrite is the hook's refusal of a push that rewrites the remote's
+// ref: it names the ref and its commit, and itos push, which rebases onto the
+// remote's commits and never forces.
+func refuseRewrite(r pushedRef) Answer {
+	why := "a commit that does not build on it"
+	if r.base == "" {
+		why = "one that cannot build on it, since this clone lacks it"
+	}
+	var said strings.Builder
+	fmt.Fprintf(&said, "itos: the push would replace %s's commit %s on the remote with %s, rewriting what "+
+		"others may have built on; it is refused, and hooks.pre_push's commands did not run.\n", r.ref, short(r.remote),
+		why)
+	fmt.Fprintln(&said, "Run itos push instead: it fetches the remote's commits and rebases yours onto them, and never forces.")
+	return Answer{Code: policy, Said: said.String()}
+}
+
+// pushBases are the remote commits a push builds on (pre-push.ts's
+// pushBases). A new branch, or a remote commit this clone does not have,
+// gives no base to compare with, so the whole run is wanted; a deleted branch
+// runs nothing.
+func pushBases(refs []pushedRef) ([]string, bool) {
+	var bases []string
+	seen := map[string]bool{}
+	whole := false
+	for _, ref := range refs {
+		switch {
+		case ref.base == "":
+			whole = true
+		case !seen[ref.base]:
+			seen[ref.base] = true
+			bases = append(bases, ref.base)
+		}
+	}
+	return bases, whole
+}
+
+// span is a range of commits, from its start to its end.
+type span struct{ From, To string }
+
+// pushedRange is the range of the commits a pushed ref adds, as verify takes
+// it: the ones after the remote's commit it replaces, or, with no such commit
+// in this clone, the ones on no remote-tracking branch (vcsport.Unpushed), as
+// verify with no range judges them under a stealth config. Others' commits
+// already on the remote are not the pusher's to fix.
+func (r pushedRef) pushedRange() span {
+	if r.base == "" {
+		return span{vcsport.Unpushed, r.local}
+	}
+	return span{r.base, r.local}
+}
+
+// verifyPush is the hook's first step: verify over what each pushed ref
+// adds, each range once (judge.Over over the config's VCS), its report kept. It prints nothing when every
+// commit passes and the range checks hold, so a push of passing commits reads
+// as it did before the hook verified; else each failing range's report, how
+// to fix the commits, and 1 (2 when commits.since is no commit here, as
+// verify). A config with no commits section sets no commit rules, so there
+// is nothing to verify, and the hook runs hooks.pre_push's commands as
+// before.
+func (h Handler) verifyPush(ctx context.Context, cfg *config.Loaded, refs []pushedRef, o Out) (Answer, error) {
+	if !cfg.HasSection("commits") {
+		return Answer{}, nil
+	}
+	if missing := cfg.SinceIssues(); len(missing) > 0 {
+		var said strings.Builder
+		for _, p := range missing {
+			fmt.Fprintf(&said, "FAIL %s\n", p.Message)
+		}
+		return Answer{Code: usage, Said: said.String()}, nil
+	}
+	var report strings.Builder
+	first := ""
+	refused := false
+	seen := map[span]bool{}
+	for _, ref := range refs {
+		r := ref.pushedRange()
+		if seen[r] {
+			continue
+		}
+		seen[r] = true
+		var log strings.Builder
+		run, err := judge.Over(ctx, cfg, cfg.VCS, r.From, r.To, judge.Out{Stdout: &log, Stderr: &log, Tests: o.Tests})
+		if err != nil {
+			return Answer{}, err
+		}
+		if run.OK() {
+			continue
+		}
+		refused = true
+		report.WriteString(log.String())
+		for _, c := range run.Results {
+			if !c.OK && first == "" {
+				first = c.SHA
+			}
+		}
+	}
+	if !refused {
+		return Answer{}, nil
+	}
+	return Answer{Code: policy, Said: report.String() + h.fixAdvice(ctx, first)}, nil
+}
+
+// fixAdvice is what the refusal tells the person to do: amend the last
+// commit, or rebase from the parent of the first commit that fails (--root
+// for a root commit) to reword or edit an earlier one, then push again. With
+// no failing commit, only the range checks failed.
+func (h Handler) fixAdvice(ctx context.Context, first string) string {
+	if first == "" {
+		return "The push is refused: fix what the range checks above report, then push again.\n"
+	}
+	base := h.ports.Parent(ctx, first)
+	if base == vcsport.EmptyTree {
+		base = "--root"
+	} else {
+		base = short(base)
+	}
+	return "The push is refused: fix the commits above, then push again.\n" +
+		"  - the last commit: git commit --amend\n" +
+		"  - an earlier one: git rebase -i " + base + ", marking it reword or edit\n"
+}
+
+// prePushInput is git's ref lines on stdin, or under pre-commit or prek,
+// which keep stdin, the one line their environment gives.
+func prePushInput() (string, error) {
+	to, ok := os.LookupEnv("PRE_COMMIT_TO_REF")
+	if !ok {
+		raw, err := io.ReadAll(os.Stdin)
+		return string(raw), err
+	}
+	local, ok := os.LookupEnv("PRE_COMMIT_LOCAL_BRANCH")
+	if !ok {
+		local = "HEAD"
+	}
+	remote, ok := os.LookupEnv("PRE_COMMIT_REMOTE_BRANCH")
+	if !ok {
+		remote = "-"
+	}
+	from := os.Getenv("PRE_COMMIT_FROM_REF")
+	if from == "" {
+		from = strings.Repeat("0", 40)
+	}
+	return fmt.Sprintf("%s %s %s %s\n", local, to, remote, from), nil
+}
+
+// prePush is `hook pre-push <remote> <url>` (pre-push.ts's prePush, and
+// slice 46): a push that would rewrite a remote ref refused first (slice
+// 128, rewrites), then verify over what each pushed ref adds, then, when every commit
+// passes, the commands of hooks.pre_push, per_base once per remote base with
+// {base} filled in, else whole, each printed and run with the hook's
+// streams; without hooks.pre_push (or a hooks section), the verify alone,
+// where it was an error before. 0 when all pass, 1 when not.
+func (h Handler) prePush(ctx context.Context, o Out) (Answer, error) {
+	input, err := prePushInput()
+	if err != nil {
+		return Answer{}, err
+	}
+	refs := h.pushedRefs(ctx, input)
+	if r, ok := h.rewrites(ctx, refs); ok {
+		return refuseRewrite(r), nil
+	}
+	cfg, err := h.ports.LoadConfig(ctx)
+	if err != nil {
+		return Answer{}, err
+	}
+	if a, err := h.verifyPush(ctx, cfg, refs, o); a.Code != 0 || err != nil {
+		return a, err
+	}
+	commands := cfg.Hooks.PrePush
+	if commands == nil {
+		return Answer{}, nil
+	}
+	run := func(line string) bool {
+		fmt.Fprintf(o.Stdout, "$ %s\n", line)
+		return h.ports.Shell(ctx, cfg, line, shell.Options{Stdin: os.Stdin, Stdout: o.Stdout, Stderr: o.Stderr}).OK()
+	}
+	bases, whole := pushBases(refs)
+	ok := true
+	if whole {
+		ok = run(commands.Whole)
+	} else {
+		for _, base := range bases {
+			ok = run(strings.ReplaceAll(commands.PerBase, "{base}", base)) && ok
+		}
+	}
+	if !ok {
+		return Answer{Code: policy}, nil
+	}
+	return Answer{}, nil
+}

@@ -1,8 +1,14 @@
-package cli
+package hook
 
-import "github.com/donvargax/itos/v8/internal/declare"
+import (
+	"github.com/donvargax/itos/v8/internal/declare"
+	"github.com/donvargax/itos/v8/internal/engine/hooks"
+)
 
-var hookDeclared = declare.Command{
+// configHooksSince is the first git that runs the hooks its config declares.
+const configHooksSince = hooks.Since
+
+var Command = declare.Command{
 	Name: "hook",
 	Rank: 180,
 	Lines: `  hook commit-msg <file>           the commit-msg hook: data, paths, header lint, task checks

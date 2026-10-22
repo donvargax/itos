@@ -5,7 +5,6 @@ import (
 	"maps"
 	"slices"
 
-	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/engine/configcheck"
 	"github.com/donvargax/itos/v8/internal/out"
 	trees "github.com/donvargax/itos/v8/internal/store/tree/adapter"
@@ -20,11 +19,6 @@ type Found = configcheck.Found
 // tagged is configcheck.Tagged.
 func tagged(area string, problems []out.Problem) []Found {
 	return configcheck.Tagged(area, problems)
-}
-
-// judgedSmokeFindings is configcheck.JudgedSmokeFindings.
-func judgedSmokeFindings(cfg *config.Loaded, judged func(name, file string) bool, ws *tests.Warnings) ([]Found, []string) {
-	return configcheck.JudgedSmokeFindings(cfg, judged, ws)
 }
 
 // configFindings is configcheck.Findings over git.
