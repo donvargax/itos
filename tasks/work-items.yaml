@@ -11692,3 +11692,19 @@ items:
       footer without requiring it, print one line naming the item and the flag; add nothing.
       p3-guard-replacement's guided commits replace it.
     tags: [commit]
+
+  - id: p1-smoke-beside-feature
+    title: A feature file can declare its own smoke scenario, so the smoke set needs no shared file
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      #103 (a repository moving to vertical slices with parallel agents): every new or renamed
+      feature file edits features/smoke.yaml, the one file parallel branches always meet in. A smoke
+      tag on the scenario (the gherkin adapter; its reason in a comment above it) or a per-file
+      sidecar the smoke config globs would let tests smoke check keep its rule (one live entry per
+      file) without the shared list. The tag is preferred. Matters as soon as several lanes add
+      feature files (the slices refactor's step 9).
+    tags: [tests]
