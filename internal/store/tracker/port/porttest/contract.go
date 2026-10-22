@@ -53,8 +53,8 @@ func TrackerContract[C T[C]](t C, open func(t C, stealth bool) Fixture) {
 		if err != nil || !slices.Equal(docs, []port.Doc{{Name: registry}, {Name: first}}) {
 			t.Fatalf("Load of documents never written: %v, %v", docs, err)
 		}
-		if _, err := s.Transact(t.Context(), created(first)); err != nil {
-			t.Fatalf("Transact: %v", err)
+		if sha, err := s.Transact(t.Context(), created(first)); err != nil || sha == "" {
+			t.Fatalf("Transact: %q, %v", sha, err)
 		}
 		docs, err = s.Load(t.Context(), []string{registry, first})
 		if want := []port.Doc{{Name: registry}, {Name: first, Text: first + "\n", There: true}}; err != nil || !slices.Equal(docs, want) {
@@ -69,8 +69,8 @@ func TrackerContract[C T[C]](t C, open func(t C, stealth bool) Fixture) {
 		if names, err := s.List(t.Context(), "tasks"); len(names) != 0 || err != nil {
 			t.Errorf("List of an empty folder: %q, %v", names, err)
 		}
-		if _, err := s.Transact(t.Context(), created(second, registry, first)); err != nil {
-			t.Fatalf("Transact: %v", err)
+		if sha, err := s.Transact(t.Context(), created(second, registry, first)); err != nil || sha == "" {
+			t.Fatalf("Transact: %q, %v", sha, err)
 		}
 		want := []string{filepath.Base(first), filepath.Base(second)}
 		if names, err := s.List(t.Context(), "tasks"); err != nil || !slices.Equal(names, want) {
