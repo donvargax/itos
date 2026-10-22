@@ -2697,3 +2697,31 @@
   done_when:
     - run: tools/bin/pinned itos-cc mutation run --since d6671a27 --count 1 --seed d6671a27 --fail-uncovered=lines --json cmd internal
       timeout: 900
+
+- id: T-216
+  type: refactor
+  title: "The VCS port, part 1: locate, resolve, ancestry and ranges, with config's locating moved onto it"
+  why: >
+    ADR-0053, step 6 of docs/plans/slices-and-ports.md: the VCS port, whose git adapter a Fossil
+    backend later sits beside (p2-vcs-and-tracker-seams). The port lives at internal/vcs/port with
+    an in-memory fake in port/porttest, a contract suite in T-209's shape (generic T[C], distinct
+    messages, contract_test.go proving each assertion fires on a fake broken for it, Context() from
+    context.Background()), and the git adapter at internal/vcs/adapter, run against the contract in
+    temp repositories (git variables cleared, global config off, a ceiling directory, as the tree
+    adapter's tests are); every method takes a context.Context first; depguard and
+    architecture-check gain the vcs packages with fixtures as T-207 and T-210 did; internal/git's
+    runner becomes the adapter's internals. Callers take the port's value as T-211 threaded the tree
+    reader (on config.Loaded or a parameter), context.Background() at internal/cli's edges. No
+    behaviour change. This part: locating the repository (top, git dir, common dir, the stealth
+    folder: config's stealthFile, IsStealthIn, Top, Locate and managed.go's .git and commondir
+    reads), resolving refs and commits (rev-parse), ancestry (merge-base --is-ancestor, the parent)
+    and ranges (rev-list --first-parent, the CI range, cfg.SinceIssues, plan.Changed, Readable,
+    EndsOf where they ask history). config imports the port, not internal/git.
+  done_when:
+    - run: test -d internal/vcs/port/porttest
+    - run: test -d internal/vcs/adapter
+    - run: "! grep -rln \"internal/git\\\"\" internal/config"
+    - run: tools/bin/architecture-check
+      timeout: 900
+    - run: tools/bin/pinned golangci-lint run ./...
+      timeout: 600
