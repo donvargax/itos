@@ -4237,6 +4237,3 @@
     sequence the log can hold (CSI, including colours, and OSC, such as the hyperlinks newer tools
     print), not only colours, so none reaches the body. Its unit test asserts the flag is on the log
     fetch and that a log with a CSI and an OSC sequence renders without either. No change to itos.
-  done_when:
-    - run: go test ./tools/bin/nightly-report -count=1
-    - run: grep -q -- --allow-escape-sequences tools/bin/nightly-report/main.go

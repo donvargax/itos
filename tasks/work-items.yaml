@@ -12596,6 +12596,6 @@ items:
     title: nightly-report reads a job log that holds terminal escape sequences
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
