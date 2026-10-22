@@ -119,15 +119,6 @@ mutation:
       replacement: "1"
       reason: "Equivalent: gluedAt returns -1 or an index of at least 1, never 0: its loop runs i from len(found)-1 down to 1, and every index it returns is first, set only to such an i and returned only when below len(found), its start; every other return is -1. For every value gluedAt gives, g >= 0, g > 0 and g >= 1 are the same test, so parse marks the same line glued, or none."
       line_text: if g := gluedAt(found[:end]); g >= 0 {
-    - file: internal/cli/workpromote.go
-      function: github.com/donvargax/itos/v8/internal/cli#workPromoteLine
-      hash: 33cc80b4d309faef
-      line_in_function: 45
-      column: 11
-      original: "false"
-      replacement: "true"
-      reason: "Equivalent: timed is read only by ledger.CheckArg for a --timeout, which refuses while no check is given (len(*checks) == 0) before reading it, and every --check sets it false, so its first value is never seen."
-      line_text: timed := false
     - file: internal/engine/ids/ids.go
       function: github.com/donvargax/itos/v8/internal/engine/ids#Mint
       hash: 4a005cc6f4c92ba9

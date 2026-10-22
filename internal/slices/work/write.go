@@ -231,14 +231,19 @@ func (h Handler) each(ctx context.Context, q Query, o Out) (Answer, error) {
 	return a, nil
 }
 
-// write is the record engine's Write (record.Write) through the tracker:
-// the registry written as text and, in a project, committed alone, through
-// the hooks, git's words and the hooks' on stderr. Its result is the new
-// commit's SHA, "" under a stealth config, which commits nothing. A file
-// with changes no commit holds, or a commit refused, is a problem, the
-// registry as it was; the rest are errors.
+// write is writeAll of the registry alone, written as text.
 func write(ctx context.Context, s *writing, text, header, body string, o Out) (string, []out.Problem, error) {
-	files := []record.File{{Path: s.cfg.Work.Registry, Old: s.text, Text: text}}
+	return writeAll(ctx, s, []record.File{{Path: s.cfg.Work.Registry, Old: s.text, Text: text}}, header, body, o)
+}
+
+// writeAll is the record engine's Write (record.Write) through the tracker:
+// the files written and, in a project, committed alone, through the hooks,
+// git's words and the hooks' on stderr. Its result is the new commit's SHA,
+// "" under a stealth config, which commits nothing. A file with changes no
+// commit holds, or a commit refused, is a problem, every file as it was;
+// the rest are errors. Every write commits the registry alone but work
+// promote, which commits a task's ledger file and the questions with it.
+func writeAll(ctx context.Context, s *writing, files []record.File, header, body string, o Out) (string, []out.Problem, error) {
 	return record.Write(ctx, s.tracker, s.cfg, files, record.Commit{
 		Header: header,
 		Body:   body,

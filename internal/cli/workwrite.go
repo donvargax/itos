@@ -1,8 +1,8 @@
 package cli
 
 // The commands that write the work registry (slice 52, features/work.feature)
-// still here: work promote in workpromote.go and work done in workdone.go,
-// the rest the work slice's (internal/slices/work). The registry is written by commands, never by
+// still here: work done in workdone.go, the rest the work slice's
+// (internal/slices/work). The registry is written by commands, never by
 // hand, and each commits its own change (the user's calls, 2026-10-03), so a
 // coordinator neither edits YAML nor words a registry commit. The edit is
 // work's (internal/work/write.go); what every such command shares is here,
@@ -151,9 +151,8 @@ type written struct {
 // file as it was; the rest are errors. work's commands write the registry
 // alone (writeRegistry), but for work done closing a task with checks,
 // which writes the registry and the task's ledger file (slice 101), task
-// add a ledger file and the registry (slice 55), work promote the registry,
-// a task's ledger file and the questions (bug 105, slice 138), decision the
-// questions alone (slice 62), decision record the questions, a decision
+// add a ledger file and the registry (slice 55), decision the questions
+// alone (slice 62), decision record the questions, a decision
 // record, the one it supersedes and their index (slice 69).
 func writeCommitted(cfg *config.Loaded, files []written, header, body string, o Out) (string, int, error) {
 	sha, found, err := record.Write(context.Background(), tracker(cfg, o.OS), cfg, records(files), record.Commit{
@@ -173,14 +172,6 @@ func writeCommitted(cfg *config.Loaded, files []written, header, body string, o 
 	return "", code, err
 }
 
-// commitReady is what writeCommitted refuses before it writes anything, the
-// record engine's Ready (record.Ready) through the config's tracker: itos's
-// commit-msg hook not declared, an error, and the first file with changes
-// no commit holds, a problem.
-func commitReady(cfg *config.Loaded, files []written, o Out) (*out.Problem, error) {
-	return record.Ready(context.Background(), tracker(cfg, o.OS), cfg, records(files))
-}
-
 // records are the files as the record engine takes them.
 func records(files []written) []record.File {
 	converted := make([]record.File, len(files))
@@ -188,14 +179,6 @@ func records(files []written) []record.File {
 		converted[i] = record.File{Path: f.path, Old: f.old, Text: f.text, Created: f.created, Rule: f.rule}
 	}
 	return converted
-}
-
-// and is the names joined as a list is said: "a", "a and b", "a, b and c".
-func and(names []string) string {
-	if len(names) < 2 {
-		return strings.Join(names, "")
-	}
-	return strings.Join(names[:len(names)-1], ", ") + " and " + names[len(names)-1]
 }
 
 // committed is how a registry command's text output ends: the commit it

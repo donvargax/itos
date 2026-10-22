@@ -9,9 +9,9 @@
 // Command (command.go) declares its name, help and flag spec, by which
 // internal/cli reads the line and hands Parse the arguments after work.
 // Parse reads every subcommand's line, each error a usage error before
-// anything is read. The slice answers all but work promote and work done,
-// still internal/cli's, which runWork calls with the arguments after their
-// name once Parse has read them. AddLine and PromoteLine are work add's and
+// anything is read. The slice answers all but work done, still
+// internal/cli's, which runWork calls with the arguments after its name
+// once Parse has read them. AddLine and PromoteLine are work add's and
 // work promote's lines.
 //
 // The proposal, work check and work list read the registry through
@@ -57,6 +57,12 @@
 //     a stealth config, or with no one in the people, nobody is asked and the
 //     owner is left as it is. work add mints the id of a slice, a task or a
 //     bug through ItemID before work.Add; an idea keeps its author's.
+//   - work promote (promote.go) calls work.Promote, and judges all it can
+//     refuse before ItemID reserves the id (slice 138): work.Promotable,
+//     the questions, and for a task its ledger entry, by ledger.Add under
+//     the id ledger.NextID would give, and record.Ready, the write's own
+//     refusals; a task's ledger file is committed with the registry and the
+//     questions (writeAll).
 //   - work edit, queue, drop, defer, resume and give-back call their writers
 //     in internal/work; drop, defer and give-back put the --why reason first
 //     in their commit's body. Defer and resume are two commands rather than

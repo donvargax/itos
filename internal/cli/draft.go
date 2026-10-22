@@ -125,7 +125,7 @@ func (draftPorts) WorkAddKind(_ context.Context, args []string) (string, error) 
 // WorkPromoteKind is workPromoteLine's kind.
 func (draftPorts) WorkPromoteKind(_ context.Context, args []string) (string, error) {
 	p, err := workPromoteLine(args)
-	return p.kind, err
+	return p.Kind, err
 }
 
 // TaskAdd is taskAddArgs.

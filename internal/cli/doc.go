@@ -154,11 +154,11 @@
 // # The registry's commands
 //
 // work is the work slice (internal/slices/work), which reads every
-// subcommand's line and answers all but work promote and work done; work.go
-// binds its Ports to loadConfig, the working tree, work.identity's provider,
-// tracker and newItemID, and calls those two, still here, with the
-// arguments after their name. workAddLine is the slice's AddLine, which
-// draft reads a work add line with.
+// subcommand's line and answers all but work done; work.go binds its Ports
+// to loadConfig, the working tree, work.identity's provider, tracker and
+// newItemID, and calls work done, still here, with the arguments after its
+// name. workAddLine and workPromoteLine are the slice's AddLine and
+// PromoteLine, which draft reads a work add and a work promote line with.
 //
 // writeRegistry (workwrite.go) is what the registry commands here share:
 // it starts from a sound registry (soundRegistry, the engine's Sound:
@@ -176,12 +176,6 @@
 // nothing: written under its lock (the tracker's Hold), nothing committed,
 // and --json's commit null. writeCommitted is the same for several files.
 //
-//   - work promote (workpromote.go) calls work.Promote, and
-//     judges all it can refuse before newItemID reserves the id
-//     (slice 138): work.Promotable, the questions, and for a task its
-//     ledger entry, by ledger.Add under the id ledger.NextID would give,
-//     and commitReady, writeCommitted's own refusals; a task's ledger file
-//     is committed with the registry and the questions.
 //   - work done (workdone.go) is the landing's check, then a registry write:
 //     work.Done judges the registry alone, then the command checks, in cost
 //     order, stopping at the first that refuses (exit 1): the item's

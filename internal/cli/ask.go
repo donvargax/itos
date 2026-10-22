@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/donvargax/itos/v8/internal/ask"
 	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/slices/decision"
 	trackerport "github.com/donvargax/itos/v8/internal/store/tracker/port"
@@ -34,8 +33,3 @@ func (p decisionPorts) Tracker(_ context.Context, cfg *config.Loaded) trackerpor
 
 // Now is time.Now.
 func (decisionPorts) Now(context.Context) time.Time { return time.Now() }
-
-// loadAsks is ask.Load of the config's work.asks.
-func loadAsks(cfg *config.Loaded, t trackerport.Tracker) (ask.File, string, bool, error) {
-	return ask.Load(context.Background(), t, cfg.Work.Asks)
-}

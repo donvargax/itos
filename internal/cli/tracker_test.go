@@ -54,6 +54,30 @@ func TestTrackedTextOfADocumentGone(t *testing.T) {
 	}
 }
 
+// stealthPromoteRepo is a stealth config's folder, in the git folder: its
+// config, a ledger file of phase 1 and a registry with an idea, p1-idea.
+func stealthPromoteRepo(t *testing.T) string {
+	t.Helper()
+	dir := gitConfigRepo(t, "")
+	if err := os.Remove("itos.yaml"); err != nil {
+		t.Fatal(err)
+	}
+	itos := filepath.Join(dir, ".git", "itos")
+	for name, text := range map[string]string{
+		"itos.yaml":          "version: 1\nledger: { files: \"tasks/phase-{group}.yaml\", id: \"T-\\\\d+\" }\nwork: { registry: work-items.yaml }\n",
+		"tasks/phase-1.yaml": "- { id: T-001, type: chore, title: One }\n",
+		"work-items.yaml":    "phases: { 1: null }\nitems:\n  - { id: p1-idea, title: Idea, phase: 1, status: todo, kind: idea, why: Specified }\n",
+	} {
+		if err := os.MkdirAll(filepath.Dir(filepath.Join(itos, name)), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(itos, name), []byte(text), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	return itos
+}
+
 // Under a stealth config, a writer of the registry or the questions whose
 // registry's lock cannot be taken is the lock's error, naming the lock
 // file, and writes nothing.

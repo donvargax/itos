@@ -5,7 +5,6 @@ import (
 
 	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/engine/ids"
-	"github.com/donvargax/itos/v8/internal/work"
 )
 
 // newItemID is the item id a command that mints one writes: the id a draft
@@ -15,11 +14,6 @@ func newItemID(cfg *config.Loaded, category string, registryIDs []string, reserv
 		return reserved, nil
 	}
 	return mintItemID(cfg, category, registryIDs, goos)
-}
-
-// itemIDs are the ids of the registry's items (ids.Items).
-func itemIDs(registry work.Registry) []string {
-	return ids.Items(registry)
 }
 
 // mintItemID is ids.Mint, through the tracker of the config (tracker.go).

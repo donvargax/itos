@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"slices"
 	"strings"
 	"unicode/utf8"
 
@@ -35,7 +36,7 @@ type shownCommit struct {
 }
 
 // Run is work over h, for the subcommands the slice answers: the proposal,
-// list, check, show and the writes but promote and done. An error is the
+// list, check, show and the writes but done. An error is the
 // command line's to report. A lock that cannot be given back is a line on
 // stderr after everything else.
 func (c CLI) Run(ctx context.Context, stdout, stderr io.Writer, h Handler) (int, error) {
@@ -53,7 +54,7 @@ func (c CLI) Run(ctx context.Context, stdout, stderr io.Writer, h Handler) (int,
 		return c.list(stdout, stderr, a)
 	case "show":
 		return c.show(stdout, stderr, a)
-	case "take", "add", "edit", "queue", "drop", "defer", "resume", "give-back":
+	case "take", "add", "promote", "edit", "queue", "drop", "defer", "resume", "give-back":
 		return c.wrote(stdout, stderr, a)
 	}
 	return c.proposal(stdout, stderr, a)
@@ -180,7 +181,7 @@ func (c CLI) refuse(stdout, stderr io.Writer, found []out.Problem, code int) (in
 }
 
 // wrote is a write's answer: its refusal, a change of several ids refused
-// whole naming every id refused, else the change made.
+// whole naming every id refused, else the change made or the idea promoted.
 func (c CLI) wrote(stdout, stderr io.Writer, a Answer) (int, error) {
 	switch {
 	case len(a.Each) > 0:
@@ -189,6 +190,8 @@ func (c CLI) wrote(stdout, stderr io.Writer, a Answer) (int, error) {
 		return c.refuse(stdout, stderr, a.Refused, a.Code)
 	case a.Several != nil:
 		return c.reportEach(stdout, a.Several, a.Commit)
+	case a.Promoted != nil:
+		return c.promoted(stdout, a.Promoted, a.Commit)
 	}
 	return c.report(stdout, a)
 }
@@ -255,6 +258,54 @@ func (c CLI) line(id string, change *domain.Change, sha string) string {
 		return fmt.Sprintf("%s is resumed: %s", id, done)
 	}
 	return fmt.Sprintf("%s is given back, todo again%s: %s", id, forWhom(change), done)
+}
+
+// promoted prints work promote's change: the idea, what it became and the
+// items and questions naming it now, then the commit, unless -q; under
+// --json, ok, the item, the id it was, the items rewritten, a task's entry
+// and ledger file, the questions renamed (only when one named the idea, so
+// a promote without one reports as it did) and the commit (null when none).
+func (c CLI) promoted(stdout io.Writer, p *Promoted, sha string) (int, error) {
+	if c.JSON {
+		fields := []out.Field{{Key: "ok", Value: true}, {Key: "item", Value: p.Change.Item},
+			{Key: "was", Value: p.Was}, {Key: "rewritten", Value: anys(p.Change.Rewritten)}}
+		if p.Ledger != nil {
+			fields = append(fields, out.Field{Key: "task", Value: p.Ledger.Task}, out.Field{Key: "file", Value: p.Ledger.Path})
+		}
+		if len(p.Renamed) > 0 {
+			fields = append(fields, out.Field{Key: "questions", Value: anys(p.Renamed)})
+		}
+		var commit any
+		if sha != "" {
+			commit = sha
+		}
+		return 0, out.Emit(stdout, append(fields, out.Field{Key: "commit", Value: commit})...)
+	}
+	if c.Quiet {
+		return 0, nil
+	}
+	line := fmt.Sprintf("%s is the %s %s", p.Was, p.Kind, p.ID)
+	if p.Ledger != nil {
+		line += " of " + p.Ledger.Path
+	}
+	if namedBy := append(slices.Clone(p.Change.Rewritten), p.Renamed...); len(namedBy) > 0 {
+		line += ", named now by " + strings.Join(namedBy, ", ")
+	}
+	result := committed(sha, p.Change.Header)
+	if sha == "" && p.Ledger != nil {
+		result = "the ledger and the registry are the stealth config's, so nothing is committed"
+	}
+	fmt.Fprintln(stdout, line+": "+result)
+	return 0, nil
+}
+
+// anys is the strings as a list out.Emit writes.
+func anys(names []string) []any {
+	list := make([]any, len(names))
+	for i, n := range names {
+		list[i] = n
+	}
+	return list
 }
 
 // forWhom is " for <owner>" of the item a change left owned, "" when it has

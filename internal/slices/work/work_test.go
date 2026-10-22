@@ -159,13 +159,15 @@ const asksText = `questions:
 
 // fixture is what a test's repository holds: the working tree's files, by
 // path; the history, oldest first, HEAD the newest, none for a repository
-// with no commit; the questions; and the VCS's failures.
+// with no commit; the questions; the files the tracker holds beside the
+// registry and the questions, as committed; and the VCS's failures.
 type fixture struct {
 	files             map[string]string
 	history           []vcsfake.Commit
 	questions         string
 	config            string
 	stealth           bool
+	tracked           []string
 	log, patch, shown error
 }
 
@@ -230,6 +232,9 @@ func over(t *testing.T, f fixture) ports {
 	}
 	if registry, ok := f.files[cfg.Work.Registry]; ok {
 		changes = append(changes, trackerport.Change{Name: cfg.Work.Registry, Text: registry, Created: true})
+	}
+	for _, name := range f.tracked {
+		changes = append(changes, trackerport.Change{Name: name, Text: f.files[name], Created: true})
 	}
 	if len(changes) > 0 {
 		if _, err := tracker.Transact(t.Context(), trackerport.Transaction{Changes: changes,

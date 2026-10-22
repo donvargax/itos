@@ -2,6 +2,7 @@ package cli
 
 import (
 	"os"
+	"path/filepath"
 	"reflect"
 	"runtime"
 	"strings"
@@ -44,14 +45,59 @@ func TestWorkPortsBindTheRealCode(t *testing.T) {
 		t.Errorf("runWork show a b = %d, %v, want the usage error alone", code, err)
 	}
 	// A subcommand still here is the slice's line first, then its own.
-	if code, err := runWork([]string{"promote"}, Out{}); code != 0 || err == nil || err.Error() != "work promote needs one <id>" {
-		t.Errorf("runWork promote = %d, %v, want the usage error alone", code, err)
+	if code, err := runWork([]string{"done"}, Out{}); code != 0 || err == nil || err.Error() != "work done needs one <id>" {
+		t.Errorf("runWork done = %d, %v, want the usage error alone", code, err)
 	}
 	stdout.Reset()
 	stderr.Reset()
-	if code, err := runWork([]string{"promote", "nope", "--kind", "slice"}, Out{Stdout: &stdout, Stderr: &stderr, OS: runtime.GOOS}); code != ExitPolicy || err != nil ||
+	if code, err := runWork([]string{"done", "nope"}, Out{Stdout: &stdout, Stderr: &stderr, OS: runtime.GOOS}); code != ExitPolicy || err != nil ||
 		!strings.Contains(stderr.String(), "nope") {
-		t.Errorf("runWork promote nope = %d, %v, stdout %q, stderr %q", code, err, stdout.String(), stderr.String())
+		t.Errorf("runWork done nope = %d, %v, stdout %q, stderr %q", code, err, stdout.String(), stderr.String())
+	}
+}
+
+// A task's promotion writes the ledger file, the registry and the questions
+// through the tracker of the config, committed together, the id minted from
+// the repository's counter past the ledger's and the registry's.
+func TestWorkPortsPromoteThroughTheRealCode(t *testing.T) {
+	dir := registryWriterRepo(t, "phases: { 1: null }\nitems:\n"+
+		"  - { id: p1-idea, title: Idea, phase: 1, status: todo, kind: idea, why: Specified }\n"+
+		"  - { id: T-001, title: Existing task, phase: 1, owner: null, status: done, kind: task, depends_on: [] }\n")
+	writeFiles(t, map[string]string{
+		"tasks/phase-1.yaml": "- { id: T-001, type: chore, title: Existing task }\n",
+		"asks.yaml":          "questions:\n  - { id: q-1, item: p1-idea, question: \"Why?\" }\n",
+	})
+	gitIn(t, "add", "--", "tasks", "asks.yaml")
+	gitIn(t, "commit", "-q", "-m", "docs: a ledger")
+	var stdout, stderr strings.Builder
+	code, err := runWork([]string{"promote", "p1-idea", "--kind", "task", "--type", "build", "--check", "true"}, Out{Stdout: &stdout, Stderr: &stderr, OS: runtime.GOOS})
+	if err != nil || code != 0 || stdout.String() != "p1-idea is the task T-002 of tasks/phase-1.yaml, named now by q-1: committed "+
+		strings.TrimSpace(gitIn(t, "rev-parse", "--short=7", "HEAD"))+" docs: promote p1-idea to T-002\n" {
+		t.Fatalf("runWork promote = (%d, %v), stdout=%q stderr=%q", code, err, stdout.String(), stderr.String())
+	}
+	if text, err := os.ReadFile(filepath.Join(dir, "tasks", "phase-1.yaml")); err != nil ||
+		!strings.HasSuffix(string(text), "- id: T-002\n  type: build\n  title: Idea\n  why: >\n    Specified\n  done_when:\n    - run: \"true\"\n") {
+		t.Errorf("ledger after the promote = %q (%v)", text, err)
+	}
+	if files := strings.Fields(gitIn(t, "show", "--name-only", "--format=", "HEAD")); strings.Join(files, " ") != "asks.yaml registry.yaml tasks/phase-1.yaml" {
+		t.Errorf("the promote committed %q, want the questions, the registry and the ledger file", files)
+	}
+	if body := strings.Join(strings.Fields(gitIn(t, "log", "-1", "--format=%b")), " "); !strings.HasSuffix(body,
+		"with itos work promote, and write its ledger entry, with its why and checks, in tasks/phase-1.yaml, and rename it in q-1 of asks.yaml.") {
+		t.Errorf("the promote's body is %q", body)
+	}
+	if status := gitIn(t, "status", "--porcelain"); status != "" {
+		t.Errorf("the promote left %q", status)
+	}
+}
+
+// draft reads a work promote line with the slice's PromoteLine.
+func TestWorkPromoteLineIsTheSlices(t *testing.T) {
+	if p, err := workPromoteLine([]string{"a", "--kind", "slice"}); err != nil || p.Kind != "slice" || p.ID != "a" {
+		t.Errorf("workPromoteLine = %+v, %v", p, err)
+	}
+	if _, err := workPromoteLine([]string{"a"}); err == nil || err.Error() != "work promote needs --kind slice|task" {
+		t.Errorf("workPromoteLine a = %v", err)
 	}
 }
 
@@ -93,12 +139,12 @@ func TestWorkAddLineIsTheSlices(t *testing.T) {
 // Every subcommand not yet in the slice is its function here; the ones the
 // slice answers are none.
 func TestUnmovedNamesTheSubcommandsStillHere(t *testing.T) {
-	for sub, want := range map[string]command{"promote": workPromote, "done": workDone} {
+	for sub, want := range map[string]command{"done": workDone} {
 		if got := unmoved(sub); got == nil || reflect.ValueOf(got).Pointer() != reflect.ValueOf(want).Pointer() {
 			t.Errorf("unmoved(%q) is not its function", sub)
 		}
 	}
-	for _, sub := range []string{"", "list", "check", "show", "take", "add", "edit", "queue", "drop", "defer", "resume", "give-back", "nope"} {
+	for _, sub := range []string{"", "list", "check", "show", "take", "promote", "add", "edit", "queue", "drop", "defer", "resume", "give-back", "nope"} {
 		if unmoved(sub) != nil {
 			t.Errorf("unmoved(%q) is a function", sub)
 		}

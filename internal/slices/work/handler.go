@@ -65,9 +65,9 @@ type Out struct {
 // else the Shown item. A write: Release, nil until the registry's lock is
 // held, then for the caller to defer; Refused, the problems that refused
 // it, nothing written, Code its exit and Each the ids refused of several;
-// else the Change of one id, made for ID (work add's minted one), or the
-// Several of more, and the Commit, "" under a stealth config or when
-// nothing changed.
+// else the Change of one id, made for ID (work add's minted one), the
+// Several of more, or what work promote Promoted, and the Commit, "" under
+// a stealth config or when nothing changed.
 type Answer struct {
 	File     string
 	Found    []out.Problem
@@ -78,13 +78,14 @@ type Answer struct {
 	Refused  []out.Problem
 	Shown    *Shown
 
-	Release func()
-	Code    int
-	Each    []string
-	ID      string
-	Change  *domain.Change
-	Several *domain.Several
-	Commit  string
+	Release  func()
+	Code     int
+	Each     []string
+	ID       string
+	Change   *domain.Change
+	Several  *domain.Several
+	Promoted *Promoted
+	Commit   string
 }
 
 // Shown is work show's item: the Item, whether it is a Task of the ledger,
@@ -116,6 +117,8 @@ func (h Handler) Handle(ctx context.Context, q Query, o Out) (Answer, error) {
 		return h.take(ctx, q.ID, q.As, o)
 	case "add":
 		return h.add(ctx, q.New, o)
+	case "promote":
+		return h.promote(ctx, q.Promotion, o)
 	case "edit", "queue", "drop", "defer", "resume", "give-back":
 		if len(q.IDs) > 1 {
 			return h.each(ctx, q, o)

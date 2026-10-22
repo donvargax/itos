@@ -14,9 +14,8 @@ import (
 
 // runWork is `work`, the work slice (internal/slices/work) over its ports
 // bound to the real code, which reads every subcommand's line and answers
-// all but work promote and work done. Those two are still internal/cli's
-// (unmoved), each called with the arguments after its name once the slice
-// has read them.
+// all but work done. That one is still internal/cli's (unmoved), called
+// with the arguments after its name once the slice has read them.
 func runWork(args []string, o Out) (int, error) {
 	c, err := workslice.Parse(args, o.Origin, o.JSON, o.Quiet)
 	if err != nil {
@@ -32,10 +31,7 @@ func runWork(args []string, o Out) (int, error) {
 // unmoved is the subcommand of work not yet in the slice that sub names,
 // nil for one the slice answers.
 func unmoved(sub string) command {
-	switch sub {
-	case "promote":
-		return workPromote
-	case "done":
+	if sub == "done" {
 		return workDone
 	}
 	return nil
@@ -69,3 +65,7 @@ func (p workPorts) ItemID(_ context.Context, cfg *config.Loaded, kind string, re
 
 // workAddLine is workslice.AddLine, which draft reads a work add line with.
 func workAddLine(args []string) (work.New, error) { return workslice.AddLine(args) }
+
+// workPromoteLine is workslice.PromoteLine, which draft reads a work
+// promote line with.
+func workPromoteLine(args []string) (workslice.Promotion, error) { return workslice.PromoteLine(args) }
