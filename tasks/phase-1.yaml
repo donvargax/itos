@@ -4239,6 +4239,3 @@
     v0.12.0. A flag or format that changed is followed, never worked around; a gate is never
     weakened to pass. Name each change in the commit body. Checks are CI's (ADR-0057): the push runs
     the push proof with the new release; the nightly runs its mutation steps with it.
-  done_when:
-    - run: grep -qx '	version=0.26.0' tools/bin/pinned
-    - run: tools/bin/pinned itos-cc --help >/dev/null
