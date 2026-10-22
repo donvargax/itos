@@ -12700,3 +12700,19 @@ items:
       code and keeps sampling the moved code (the user, 2026-10-17); the moves were byte for byte
       and each push judged a site with strict changed-line coverage. As T-188 moved commits.since
       after the 2026-10-17 red.
+
+  - id: p1-gates-selftest-line-precondition
+    title: The gates self-test says which unit test reads the line it edits
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The case of the gates self-test that the hooks let through a refactor changing what itos
+      prints edits one printed line that no unit test reaching its package reads. Twice a new unit
+      test came to read it (T-268 after T-234, T-277 after T-265) and the nightly went red with a
+      failing unit test inside the pre-commit output, which reads as a gates failure. The case could
+      check that precondition first, over the _test.go files of the package and of the packages
+      depending on it, and fail with a sentence naming the test that reads the line and saying to
+      pick another, as T-277 picked the covered check line of internal/ci with a small script.
