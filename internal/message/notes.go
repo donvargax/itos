@@ -27,6 +27,23 @@ const NotesRef = vcs.NotesRef
 // footers in, a line each, under a stealth config.
 const FootersEnv = "ITOS_FOOTERS"
 
+// AmendEnv is the variable itos commit tells the commit-msg hook in whether
+// the commit amends HEAD: "1" when it does, "0" when it does not.
+const AmendEnv = "ITOS_AMEND"
+
+// WithoutFooters is an environment less ITOS_FOOTERS and ITOS_AMEND, so only
+// the footers this itos commit writes, and its own word on an amend, reach
+// the hook.
+func WithoutFooters(env []string) []string {
+	var kept []string
+	for _, kv := range env {
+		if !strings.HasPrefix(kv, FootersEnv+"=") && !strings.HasPrefix(kv, AmendEnv+"=") {
+			kept = append(kept, kv)
+		}
+	}
+	return kept
+}
+
 // typedFooter is why a footer of the config written in the message is
 // refused under a stealth config, "" when the message has none of it.
 func typedFooter(cfg *config.Loaded, key, message string) string {

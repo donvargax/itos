@@ -1,8 +1,8 @@
 package cli
 
 // `hook install [--print] [--force]`: itos's commit-msg and pre-push hooks
-// declared in the clone's git config (gitconfig.go), every worktree of it
-// sharing them. Since slice 91 (decision 37) that is the only place itos
+// declared in the clone's git config (internal/engine/hooks), every
+// worktree of it sharing them. Since slice 91 (decision 37) that is the only place itos
 // installs them: it knows no hook manager, and never reads or writes a hook
 // file, a hook manager's config or core.hooksPath. A project's own hooks are
 // its own business; git runs them beside itos's.

@@ -75,6 +75,9 @@
 // note, which the rewrite carries to the new commit; check-message, from
 // ITOS_FOOTERS; verify, from each commit's Note as the VCS shows it. The
 // range readers read each logged commit's Note in place of its Message.
+// itos commit also tells the hook in ITOS_AMEND (AmendEnv) whether it
+// amends, and WithoutFooters drops both variables from the environment it
+// inherited, so only its own reach the hook.
 //
 // # The header lint
 //

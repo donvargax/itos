@@ -406,7 +406,7 @@
 // (pushBases), else whole, nothing for a deleted branch, and nothing at all
 // without hooks.pre_push.
 //
-// hook install (install.go over gitconfig.go;
+// hook install (install.go over internal/engine/hooks;
 // docs/decisions/0037-itos-installs-its-hooks-only-in-the-git-config-and-knows-no-hook-manager.md)
 // knows no hook manager: it never reads or writes a hook file, a hook
 // manager's config or core.hooksPath. declareHooks writes

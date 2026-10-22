@@ -191,9 +191,8 @@ func commitConfig() (cfg *config.Loaded, missing, err error) {
 	return nil, err, nil
 }
 
-// AmendEnv is the variable itos commit tells the commit-msg hook in whether
-// the commit amends HEAD: "1" when it does, "0" when it does not.
-const AmendEnv = "ITOS_AMEND"
+// AmendEnv is message.AmendEnv, whether the commit amends HEAD.
+const AmendEnv = message.AmendEnv
 
 // gitValued are git commit's long options that take their value as the next
 // argument when it is not joined by "=", and gitShortValued its short ones
@@ -600,18 +599,8 @@ func exitOf(err error) (int, error) {
 	return ExitPolicy, nil
 }
 
-// withoutFooters is an environment less ITOS_FOOTERS and ITOS_AMEND, so only
-// the footers this itos commit writes, and its own word on an amend, reach
-// the hook.
-func withoutFooters(env []string) []string {
-	var kept []string
-	for _, kv := range env {
-		if !strings.HasPrefix(kv, message.FootersEnv+"=") && !strings.HasPrefix(kv, AmendEnv+"=") {
-			kept = append(kept, kv)
-		}
-	}
-	return kept
-}
+// withoutFooters is message.WithoutFooters.
+func withoutFooters(env []string) []string { return message.WithoutFooters(env) }
 
 // rewriteNotes adds refs/notes/itos to notes.rewriteRef in the repository's
 // own config unless a value already names it, so that git commit --amend and
