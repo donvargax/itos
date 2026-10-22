@@ -11649,3 +11649,17 @@ items:
       itos init (and what a tracked init adds to every commit) and itos init --stealth, and stop
       with exit 3 (the environment lacks something), so a wrapper can tell it from a normal go.
     tags: [cli]
+
+  - id: p1-defer-until
+    title: work defer takes a date from which itos work and itos status list the item as due to resume
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      #98 (an ops repository deferring hardware keys to 2027): a deferral's date can only live in
+      its free-text reason, where nothing reads it, so the item stays out of sight. work defer
+      --until <date> keeps the date beside the reason; from that date itos work and status list the
+      item as due. Same date form as p1-work-item-dates.
+    tags: [work]
