@@ -8,6 +8,7 @@ import (
 	followupslice "github.com/donvargax/itos/v8/internal/slices/followup"
 	guardslice "github.com/donvargax/itos/v8/internal/slices/guard"
 	pinslice "github.com/donvargax/itos/v8/internal/slices/pin"
+	taskslice "github.com/donvargax/itos/v8/internal/slices/task"
 	testsslice "github.com/donvargax/itos/v8/internal/slices/tests"
 	verifyslice "github.com/donvargax/itos/v8/internal/slices/verify"
 	versionslice "github.com/donvargax/itos/v8/internal/slices/version"
@@ -18,7 +19,7 @@ var declared = []declare.Command{
 	goDeclared,
 	guideDeclared,
 	statusDeclared,
-	taskDeclared,
+	taskslice.Command,
 	workDeclared,
 	decisionDeclared,
 	followupslice.Command,

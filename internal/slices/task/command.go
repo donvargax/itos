@@ -1,8 +1,8 @@
-package cli
+package task
 
 import "github.com/donvargax/itos/v8/internal/declare"
 
-var taskDeclared = declare.Command{
+var Command = declare.Command{
 	Name: "task",
 	Rank: 40,
 	Lines: `  task <id>…                       run the tasks' checks; the status table

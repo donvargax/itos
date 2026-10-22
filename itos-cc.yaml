@@ -38,9 +38,9 @@ mutation:
       original: "||"
       replacement: "&&"
       reason: 'Equivalent: the source edit binds as s == "" || (strings.ContainsAny(s, "/\\\x00") && s == ".") || s == "..", and "." holds none of those characters, so it rejects only "" and ".."; every string the original also rejects (".", or one holding a slash, backslash or NUL) has a character outside [A-Za-z0-9-], which the loop below rejects anyway, so validCategory returns the same for every input.'
-    - file: internal/cli/taskadd.go
-      function: github.com/donvargax/itos/v8/internal/cli#taskAddArgs
-      hash: 84f55089baff9512
+    - file: internal/slices/task/parse.go
+      function: github.com/donvargax/itos/v8/internal/slices/task#AddArgs
+      hash: a3c7930d817b83ab
       line_in_function: 9
       column: 11
       original: "false"

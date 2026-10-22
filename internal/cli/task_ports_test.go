@@ -8,14 +8,13 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/git"
 )
 
-func taskAddTestConfig() *config.Loaded {
-	cfg := &config.Loaded{}
-	cfg.Ledger.Group.Label = "phase"
-	return cfg
+// addTask is task add's line through runTask, the task slice over its
+// ports bound to the real code.
+func addTask(args []string, o Out) (int, error) {
+	return runTask(append([]string{"add"}, args...), o)
 }
 
 func taskAddRepo(t *testing.T, configText, ledgerText, registryText string) string {
@@ -36,67 +35,6 @@ func taskAddRepo(t *testing.T, configText, ledgerText, registryText string) stri
 	gitIn(t, "add", "--", "itos.yaml", "tasks/phase-1.yaml", "tasks/work-items.yaml")
 	gitIn(t, "commit", "-q", "-m", "docs: start")
 	return dir
-}
-
-func TestTaskAddArgsParsesChecksAndTimeouts(t *testing.T) {
-	n, err := taskAddArgs(taskAddTestConfig(), []string{
-		"--phase=1", "--type=chore", "--title=Title", "--why=Reason",
-		"--check=true", "--timeout=2", "--check", "echo done", "--timeout=0.5",
-	})
-	if err != nil {
-		t.Fatalf("taskAddArgs: %v", err)
-	}
-	if n.Group != "1" || n.Type != "chore" || n.Title != "Title" || n.Why != "Reason" {
-		t.Fatalf("taskAddArgs fields = %#v", n)
-	}
-	if len(n.Checks) != 2 || n.Checks[0].Run != "true" || n.Checks[1].Run != "echo done" {
-		t.Fatalf("taskAddArgs checks = %#v", n.Checks)
-	}
-	if n.Checks[0].Timeout == nil || *n.Checks[0].Timeout != 2 || n.Checks[1].Timeout == nil || *n.Checks[1].Timeout != 0.5 {
-		t.Fatalf("taskAddArgs timeouts = %#v, want 2 and 0.5", n.Checks)
-	}
-}
-
-func TestTaskAddArgsRejectsInvalidCheckAndTimeoutOptions(t *testing.T) {
-	base := []string{"--group", "1", "--type", "chore", "--title", "Title", "--why", "Reason"}
-	for _, test := range []struct {
-		name string
-		args []string
-		want string
-	}{
-		{name: "missing check", args: base, want: taskAddUsage},
-		{name: "missing group", args: []string{"--type", "chore", "--title", "Title", "--why", "Reason", "--check", "true"}, want: taskAddUsage},
-		{name: "missing type", args: []string{"--group", "1", "--title", "Title", "--why", "Reason", "--check", "true"}, want: taskAddUsage},
-		{name: "missing title", args: []string{"--group", "1", "--type", "chore", "--why", "Reason", "--check", "true"}, want: taskAddUsage},
-		{name: "missing why", args: []string{"--group", "1", "--type", "chore", "--title", "Title", "--check", "true"}, want: taskAddUsage},
-		{name: "unknown flag", args: append(append([]string{}, base...), "--unknown", "value"), want: "task add does not take --unknown"},
-		{name: "timeout before check", args: append(append([]string{}, base...), "--timeout", "2"), want: "task add takes one --timeout"},
-		{name: "empty check", args: append(append([]string{}, base...), "--check", " "), want: "task add --check needs a command"},
-		{name: "invalid timeout", args: append(append(append([]string{}, base...), "--check", "true", "--timeout", "nope"), "--check", "echo done"), want: "task add takes one --timeout"},
-		{name: "duplicate timeout", args: append(append(append([]string{}, base...), "--check", "true", "--timeout", "2", "--timeout", "3"), "--check", "echo done"), want: "task add takes one --timeout"},
-		{name: "missing final option value", args: []string{"--group", "1", "--type", "chore", "--title", "Title", "--why", "Reason", "--check"}, want: "task add --check needs a value"},
-		{name: "duplicate field", args: append(append([]string{}, base...), "--title", "Another title", "--check", "true"), want: "task add takes one --title"},
-		{name: "blank field", args: []string{"--group", "1", "--type", "chore", "--title", " ", "--why", "Reason", "--check", "true"}, want: "task add takes one --title"},
-		{name: "zero timeout", args: append(append([]string{}, base...), "--check", "true", "--timeout", "0"), want: "task add takes one --timeout"},
-		{name: "negative timeout", args: append(append([]string{}, base...), "--check", "true", "--timeout", "-1"), want: "task add takes one --timeout"},
-	} {
-		t.Run(test.name, func(t *testing.T) {
-			_, err := taskAddArgs(taskAddTestConfig(), test.args)
-			if err == nil || !strings.Contains(err.Error(), test.want) {
-				t.Fatalf("taskAddArgs error = %v, want it to contain %q", err, test.want)
-			}
-		})
-	}
-}
-
-func TestTaskAddArgsRefusesCallerIDs(t *testing.T) {
-	base := []string{"--group", "1", "--type", "chore", "--title", "Title", "--why", "Reason", "--check", "true"}
-	for _, ids := range [][]string{{"T-004"}, {"T-004", "T-005"}} {
-		_, err := taskAddArgs(taskAddTestConfig(), append(append([]string{}, ids...), base...))
-		if err == nil || !strings.Contains(err.Error(), "task add mints the task id; do not pass one") {
-			t.Fatalf("taskAddArgs with %v = %v, want the caller-ID usage error", ids, err)
-		}
-	}
 }
 
 // A caller-supplied id is a usage error, refused before the registry or the
@@ -126,7 +64,7 @@ func TestTaskAddRefusesACallerIDBeforeJudgingLedgerPolicy(t *testing.T) {
 
 			var stdout, stderr strings.Builder
 			args := []string{"--group", test.group, "--type", test.kind, "--title", "New task", "--why", "Because.", "--check", "true"}
-			code, err := taskAdd(append([]string{"T-002"}, args...), Out{Stdout: &stdout, Stderr: &stderr})
+			code, err := addTask(append([]string{"T-002"}, args...), Out{Stdout: &stdout, Stderr: &stderr})
 			if code != 0 || err == nil || !strings.Contains(err.Error(), "mints the task id") || stdout.Len() != 0 || stderr.Len() != 0 {
 				t.Fatalf("taskAdd with invalid %s and caller ID = (%d, %v), stdout=%q stderr=%q, want the caller-ID usage error", test.name, code, err, stdout.String(), stderr.String())
 			}
@@ -135,7 +73,7 @@ func TestTaskAddRefusesACallerIDBeforeJudgingLedgerPolicy(t *testing.T) {
 			}
 			stdout.Reset()
 			stderr.Reset()
-			code, err = taskAdd(args, Out{Stdout: &stdout, Stderr: &stderr})
+			code, err = addTask(args, Out{Stdout: &stdout, Stderr: &stderr})
 			if code != ExitPolicy || err != nil || !strings.Contains(stderr.String(), test.want) {
 				t.Fatalf("taskAdd with invalid %s = (%d, %v), stdout=%q stderr=%q, want policy refusal containing %q", test.name, code, err, stdout.String(), stderr.String(), test.want)
 			}
@@ -144,7 +82,7 @@ func TestTaskAddRefusesACallerIDBeforeJudgingLedgerPolicy(t *testing.T) {
 	t.Run("no registry", func(t *testing.T) {
 		gitConfigRepo(t, "version: 1\nledger:\n  files: \"tasks/phase-{group}.yaml\"\n  id: \"T-\\\\d+\"\n")
 		var stdout, stderr strings.Builder
-		code, err := taskAdd([]string{"T-004", "--group", "1", "--type", "docs", "--title", "Again", "--why", "A second one.", "--check", "true"}, Out{Stdout: &stdout, Stderr: &stderr})
+		code, err := addTask([]string{"T-004", "--group", "1", "--type", "docs", "--title", "Again", "--why", "A second one.", "--check", "true"}, Out{Stdout: &stdout, Stderr: &stderr})
 		if code != 0 || err == nil || !strings.Contains(err.Error(), "mints the task id") || stderr.Len() != 0 {
 			t.Fatalf("taskAdd with a caller ID and no registry = (%d, %v), stderr=%q, want the caller-ID usage error", code, err, stderr.String())
 		}
@@ -158,13 +96,13 @@ func TestTaskAddReturnsConfigAndArgumentErrors(t *testing.T) {
 		if err := os.WriteFile("itos.yaml", []byte("version: [\n"), 0o644); err != nil {
 			t.Fatal(err)
 		}
-		if code, err := taskAdd(nil, Out{}); code != 0 || err == nil {
+		if code, err := addTask(nil, Out{}); code != 0 || err == nil {
 			t.Fatalf("taskAdd with invalid config = (%d, %v), want exit code 0 and the config error", code, err)
 		}
 	})
 	t.Run("invalid arguments", func(t *testing.T) {
 		gitConfigRepo(t, "version: 1\n")
-		if _, err := taskAdd([]string{"--unknown"}, Out{}); err == nil || !strings.Contains(err.Error(), "does not take --unknown") {
+		if _, err := addTask([]string{"--unknown"}, Out{}); err == nil || !strings.Contains(err.Error(), "does not take --unknown") {
 			t.Fatalf("taskAdd error = %v, want unknown-flag usage error", err)
 		}
 	})
@@ -174,7 +112,7 @@ func TestTaskAddReturnsLedgerErrors(t *testing.T) {
 	t.Run("missing ledger section", func(t *testing.T) {
 		taskAddRepo(t, "version: 1\n", "[]\n", "phases: { 1: null }\nitems: []\n")
 		var stdout, stderr strings.Builder
-		_, err := taskAdd([]string{"--group", "1", "--type", "chore", "--title", "Task", "--why", "Reason", "--check", "true"}, Out{Stdout: &stdout, Stderr: &stderr})
+		_, err := addTask([]string{"--group", "1", "--type", "chore", "--title", "Task", "--why", "Reason", "--check", "true"}, Out{Stdout: &stdout, Stderr: &stderr})
 		if err == nil || !strings.Contains(err.Error(), "ledger is missing") {
 			t.Fatalf("taskAdd with no ledger section = %v, stderr=%q, want missing-ledger error", err, stderr.String())
 		}
@@ -182,7 +120,7 @@ func TestTaskAddReturnsLedgerErrors(t *testing.T) {
 	configText := "version: 1\nledger:\n  files: \"tasks/phase-{group}.yaml\"\n  id: \"T-\\\\d+\"\n"
 	taskAddRepo(t, configText, "- { id: T-001, type: chore\n", "phases: { 1: null }\nitems: []\n")
 	var stdout, stderr strings.Builder
-	code, err := taskAdd([]string{"--group", "1", "--type", "chore", "--title", "Task", "--why", "Reason", "--check", "true"}, Out{Stdout: &stdout, Stderr: &stderr})
+	code, err := addTask([]string{"--group", "1", "--type", "chore", "--title", "Task", "--why", "Reason", "--check", "true"}, Out{Stdout: &stdout, Stderr: &stderr})
 	if code != 0 || err == nil || !strings.Contains(err.Error(), "yaml:") {
 		t.Fatalf("taskAdd with a malformed ledger = (%d, %v), stdout=%q stderr=%q, want the ledger's YAML error", code, err, stdout.String(), stderr.String())
 	}
@@ -190,7 +128,7 @@ func TestTaskAddReturnsLedgerErrors(t *testing.T) {
 		configText := "version: 1\nledger:\n  files: \"missing/phase-{group}.yaml\"\n  id: \"T-\\\\d+\"\n"
 		taskAddRepo(t, configText, "[]\n", "phases: { 1: null }\nitems: []\n")
 		var stdout, stderr strings.Builder
-		code, err := taskAdd([]string{"--group", "1", "--type", "chore", "--title", "Task", "--why", "Reason", "--check", "true"}, Out{Stdout: &stdout, Stderr: &stderr})
+		code, err := addTask([]string{"--group", "1", "--type", "chore", "--title", "Task", "--why", "Reason", "--check", "true"}, Out{Stdout: &stdout, Stderr: &stderr})
 		problem := stderr.String()
 		if err != nil {
 			problem = err.Error()
@@ -204,7 +142,7 @@ func TestTaskAddReturnsLedgerErrors(t *testing.T) {
 func TestTaskAddPropagatesLedgerEditErrors(t *testing.T) {
 	configText := "version: 1\nledger:\n  files: \"tasks/phase-{group}.yaml\"\n  id: \"T-\\\\d+\"\n"
 	taskAddRepo(t, configText, "[{id: T-001, type: chore, title: Existing}]\n", "phases: { 1: null }\nitems: []\n")
-	code, err := taskAdd([]string{"--group", "1", "--type", "chore", "--title", "Task", "--why", "Reason", "--check", "true"}, Out{})
+	code, err := addTask([]string{"--group", "1", "--type", "chore", "--title", "Task", "--why", "Reason", "--check", "true"}, Out{})
 	if code != 0 || err == nil || !strings.Contains(err.Error(), "cannot be edited in place") {
 		t.Fatalf("taskAdd = (%d, %v), want exit code 0 and the ledger edit error", code, err)
 	}
@@ -214,7 +152,7 @@ func TestTaskAddPropagatesRegistryEditErrors(t *testing.T) {
 	configText := "version: 1\nledger:\n  files: \"tasks/phase-{group}.yaml\"\n  id: \"T-\\\\d+\"\n"
 	registry := "{phases: {1: null}, items: []}\n"
 	taskAddRepo(t, configText, "- { id: T-001, type: chore, title: Existing }\n", registry)
-	code, err := taskAdd([]string{"--group", "1", "--type", "chore", "--title", "Task", "--why", "Reason", "--check", "true"}, Out{})
+	code, err := addTask([]string{"--group", "1", "--type", "chore", "--title", "Task", "--why", "Reason", "--check", "true"}, Out{})
 	if code != 0 || err == nil || !strings.Contains(err.Error(), "cannot be edited in place") {
 		t.Fatalf("taskAdd = (%d, %v), want exit code 0 and the registry edit error", code, err)
 	}
@@ -224,7 +162,7 @@ func TestTaskAddCreatesANewGroupLedgerFile(t *testing.T) {
 	configText := "version: 1\nledger:\n  files: \"tasks/phase-{group}.yaml\"\n  id: \"T-\\\\d+\"\n  group: { pattern: \"\\\\d+\" }\n"
 	dir := taskAddRepo(t, configText, "- { id: T-001, type: docs, title: Existing }\n", "phases: { 1: null, 2: null }\nitems:\n  - { id: T-001, title: Existing, phase: 1, owner: null, status: done, depends_on: [] }\n")
 	var stdout, stderr strings.Builder
-	code, err := taskAdd([]string{"--group", "2", "--type", "docs", "--title", "Second group", "--why", "A new file.", "--check", "true"}, Out{Stdout: &stdout, Stderr: &stderr})
+	code, err := addTask([]string{"--group", "2", "--type", "docs", "--title", "Second group", "--why", "A new file.", "--check", "true"}, Out{Stdout: &stdout, Stderr: &stderr})
 	if err != nil || code != 0 || !strings.Contains(stdout.String(), "a new tasks/phase-2.yaml") {
 		t.Fatalf("taskAdd new group = (%d, %v), stdout=%q stderr=%q", code, err, stdout.String(), stderr.String())
 	}
@@ -238,7 +176,7 @@ func TestTaskAddPropagatesReservationFailures(t *testing.T) {
 	configText := "version: 1\nledger:\n  files: \"tasks/phase-{group}.yaml\"\n  id: \"T-\\\\d+\"\n"
 	taskAddRepo(t, configText, "- { id: T-001, type: chore, title: Existing }\n", "phases: { 1: null }\nitems:\n  - { id: T-001, title: Existing, phase: 1, owner: null, status: done, depends_on: [] }\n")
 	useFailingGit(t)
-	_, err := taskAdd([]string{"--group", "1", "--type", "chore", "--title", "Task", "--why", "Reason", "--check", "true"}, Out{})
+	_, err := addTask([]string{"--group", "1", "--type", "chore", "--title", "Task", "--why", "Reason", "--check", "true"}, Out{})
 	if err == nil || !strings.Contains(err.Error(), "Command failed: git rev-parse") {
 		t.Fatalf("taskAdd reservation error = %v, want injected Git command failure", err)
 	}
@@ -264,7 +202,7 @@ func TestTaskAddPropagatesLedgerErrorsAfterIDReservation(t *testing.T) {
 	t.Setenv("T129_NATIVE_GIT", git.Bin(runtime.GOOS))
 	t.Setenv("T129_LEDGER", ledgerPath)
 	t.Setenv("ITOS_GIT", fakeGit)
-	_, err := taskAdd([]string{"--group", "1", "--type", "chore", "--title", "Task", "--why", "Reason", "--check", "true"}, Out{})
+	_, err := addTask([]string{"--group", "1", "--type", "chore", "--title", "Task", "--why", "Reason", "--check", "true"}, Out{})
 	info, statErr := os.Stat(ledgerPath)
 	if err == nil || statErr != nil || !info.IsDir() {
 		t.Fatalf("taskAdd after its ledger path became a directory = %v; path info=(%v,%v)", err, info, statErr)
@@ -293,7 +231,7 @@ func TestTaskAddWritesAndReportsMintedTask(t *testing.T) {
 	gitIn(t, "commit", "-q", "-m", "docs: start")
 
 	var stdout, stderr strings.Builder
-	code, err := taskAdd([]string{
+	code, err := addTask([]string{
 		"--group", "1", "--type", "chore", "--title", "New task", "--why", "Because.", "--check", "true",
 	}, Out{Stdout: &stdout, Stderr: &stderr})
 	if err != nil || code != 0 {
@@ -315,7 +253,7 @@ func TestTaskAddWritesAndReportsMintedTask(t *testing.T) {
 	}
 	stdout.Reset()
 	stderr.Reset()
-	code, err = taskAdd([]string{
+	code, err = addTask([]string{
 		"--group", "1", "--type", "chore", "--title", "JSON task", "--why", "Because.", "--check", "true",
 	}, Out{Stdout: &stdout, Stderr: &stderr, JSON: true})
 	var report struct {
@@ -329,7 +267,7 @@ func TestTaskAddWritesAndReportsMintedTask(t *testing.T) {
 	}
 	stdout.Reset()
 	stderr.Reset()
-	code, err = taskAdd([]string{
+	code, err = addTask([]string{
 		"--group", "1", "--type", "chore", "--title", "Quiet task", "--why", "Because.", "--check", "true",
 	}, Out{Stdout: &stdout, Stderr: &stderr, Quiet: true})
 	if code != 0 || err != nil || stdout.Len() != 0 || stderr.Len() != 0 {
@@ -348,7 +286,7 @@ func TestTaskAddWritesAndReportsMintedTask(t *testing.T) {
 	stdout.Reset()
 	stderr.Reset()
 	refusingHook(t)
-	code, err = taskAdd([]string{
+	code, err = addTask([]string{
 		"--group", "1", "--type", "chore", "--title", "Refused task", "--why", "Because.", "--check", "true",
 	}, Out{Stdout: &stdout, Stderr: &stderr})
 	if code != ExitPolicy || err != nil || stdout.Len() != 0 {
@@ -361,7 +299,7 @@ func TestTaskAddWritesAndReportsMintedTask(t *testing.T) {
 	}
 	stdout.Reset()
 	stderr.Reset()
-	code, err = taskAdd([]string{
+	code, err = addTask([]string{
 		"T-006", "--group", "1", "--type", "chore", "--title", "Supplied ID", "--why", "Because.", "--check", "true",
 	}, Out{Stdout: &stdout, Stderr: &stderr})
 	if code != 0 || err == nil || !strings.Contains(err.Error(), "mints the task id") {
@@ -371,5 +309,27 @@ func TestTaskAddWritesAndReportsMintedTask(t *testing.T) {
 	registryText, _ = os.ReadFile(filepath.Join(dir, "tasks/work-items.yaml"))
 	if string(ledgerText) != beforeLedger || string(registryText) != beforeRegistry || gitIn(t, "rev-parse", "HEAD") != head {
 		t.Fatal("taskAdd with a caller ID changed the ledger, registry, or HEAD")
+	}
+}
+
+// The task slice reads the config and its ledger from the working tree: a
+// word after task next-id is a usage error before the config is read, the
+// next ID printed otherwise; task runs and lists the ledger's tasks.
+func TestTaskPorts(t *testing.T) {
+	gitConfigRepo(t, "version: 1\nledger: { files: \"tasks/phase-{group}.yaml\", id: \"T-\\\\d+\" }\n")
+	putFile(t, filepath.Join("tasks", "phase-1.yaml"), "- id: T-1\n  type: chore\n  title: One\n  done_when:\n    - run: \"true\"\n")
+	if code, stdout, stderr := run("task", "next-id", "T-1"); code != ExitUsage || stdout != "" ||
+		stderr != "itos: task next-id takes no arguments (itos --help)\n" {
+		t.Errorf("task next-id T-1: exit %d, stdout %q, stderr %q", code, stdout, stderr)
+	}
+	if code, stdout, stderr := run("task", "next-id"); code != 0 || stdout != "T-2\n" {
+		t.Errorf("task next-id: exit %d, stdout %q, stderr %q", code, stdout, stderr)
+	}
+	if code, stdout, stderr := run("task", "T-1"); code != 0 || !strings.HasSuffix(stdout, "\ndone     T-1  chore    One\n") {
+		t.Errorf("task T-1: exit %d, stdout %q, stderr %q", code, stdout, stderr)
+	}
+	if code, stdout, stderr := run("task", "list"); code != 0 || stdout != "no item  T-1  1   chore    One\n" ||
+		!strings.Contains(stderr, "No work registry at") {
+		t.Errorf("task list: exit %d, stdout %q, stderr %q", code, stdout, stderr)
 	}
 }

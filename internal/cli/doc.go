@@ -438,19 +438,11 @@
 //
 // # Tasks and named tests
 //
-// itos task (task.go) runs a task's checks through one check.Runner per
-// invocation, so a check two tasks list runs once; task list runs nothing,
-// reading each task's item status from the registry (work.ItemStatuses), so
-// it works over a registry with problems. itos task reads the statuses the
-// same way for a task with no checks: done when its item is done (work done
-// took its checks out, slice 101), review otherwise. A group flag's value is read by
-// value.ToNumber (--group 01 is group 1), the status table padded by UTF-16
-// units, and the runner's ID pattern is ^(?:<ledger.id>)$, T-\d+ without
-// one. An after: push check is pending until a remote branch holds HEAD.
-//
-// itos task add (taskadd.go) writes two files in one commit: the task
-// (ledger.Add) and its item, a task, todo and nobody's (work.Add).
-// writeCommitted is given both and hands them, through the record engine
+// task is the task slice (internal/slices/task); task.go binds its Ports
+// to loadConfig and, for task add, to soundRegistry, newItemID, tracker and
+// writeCommitted, and keeps taskAddArgs for draft, groupFlags and groupNames
+// for the flag spec and config check. writeCommitted is given task add's
+// two files and hands them, through the record engine
 // (internal/engine/record, its Write), to the tracker store's Transact
 // (tracker.go binds its file adapter, internal/store/tracker/adapter), each
 // refused before anything is written when git does not hold it as HEAD has
@@ -468,8 +460,6 @@
 // could not be put back. The engine's tests give each answer over the
 // tracker's fake; the adapter's make each failure in a scratch repository.
 //
-// task next-id (nextid.go) is a call into internal/ledger and
-// internal/nextid, reading only the working tree.
 // commit check-paths and commit footers (commit.go) are calls into
 // internal/scope and message.Gathered.
 //
