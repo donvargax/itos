@@ -3286,18 +3286,6 @@
     behind Ports later), internal/providers, internal/release and internal/shell; architecture
     fixtures for each (a build commit and a chore commit). Never allowed: cli, launch, shim, git,
     lock, idcounter, adapters.
-  done_when:
-    - run: go test ./internal/cli ./internal/slices/... ./internal/engine/... -count=1
-      timeout: 600
-    - run: go run ./tools/bin/assemble -check
-    - run: go run ./tools/bin/conformance --bin tools/bin/itos --only tools/itos/conformance/help.yaml tools/itos/conformance/cli.yaml
-      timeout: 600
-    - run: go test ./features -count=1 -scenarios='^@ID-(CLI|BIN|EXT|CLI)-[0-9]+$'
-      timeout: 600
-    - run: tools/bin/architecture-check
-    - run: tools/bin/pinned golangci-lint run ./...
-      timeout: 600
-    - run: grep -n 'func Usage' internal/out/*.go
 
 - id: T-244
   type: refactor

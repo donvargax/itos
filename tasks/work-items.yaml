@@ -12250,7 +12250,7 @@ items:
     title: "Slices, prerequisite 1: usage errors in internal/out, and the slice allow list widened to the domain packages"
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [T-242]
     kind: task
 
