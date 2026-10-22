@@ -11195,6 +11195,11 @@ items:
       tools/bin/architecture-check, a gate, in tools/testdata/architecture as itos-cc does, so they
       landed as a chore. The fixtures of a gate belong to the gate, so build and ci, or test, should
       reach tools/testdata.
+
+      T-211 (2026-10-21): a refactor commit may not touch tools/bin or tools/selftest, so a
+      signature change across internal/** and tools/bin/ci-repo left one commit where tools/bin does
+      not build until the next ci commit. The refactor type's paths could include tools/** Go code
+      callers, or the split rule could allow tools/** with internal/** in one refactor.
     refs: [T-194]
 
   - id: p1-previous-release-pins-script-outputs
