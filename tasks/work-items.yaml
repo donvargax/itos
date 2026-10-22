@@ -12182,8 +12182,8 @@ items:
   - id: T-241
     title: "Commands declare themselves, part 3: every command's declaration and the generated command table"
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: [T-239, T-240]
     kind: task
 
