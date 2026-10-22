@@ -12596,3 +12596,19 @@ items:
     status: done
     depends_on: []
     kind: task
+
+  - id: p1-test-only-code-gate
+    title: A gate for code only its own tests call
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Found by T-267 (2026-10-22): golangci unused and staticcheck U1000 count a test as a use, so a
+      function left behind by a move stays while its own test calls it. go tool staticcheck
+      -tests=false -checks U1000 ./internal/cli lists configFindings, draftsFile, wordsOf,
+      configHooksSince, hookEvents, hookEntry, hooksPathSet and span, left by the step 9 lanes, and
+      T-267 found workArgs, workArgsEmpty, workArgsParsed and trackedText the same way. A check over
+      the non-test build, run where the hooks or CI already lint, would report them when the last
+      real caller goes.
