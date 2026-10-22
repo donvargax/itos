@@ -5881,6 +5881,10 @@ items:
       after the command wrote its files; one answer in selfBody covers every registry, task and
       decision commit.
 
+      #92 (8.5.0): work drop's --why starting with a word and a colon is read as a footer and
+      refused, and the refusal's fix points at the hook, not at the --why. The fourth independent
+      report of this item (2026-10-05, 10-07, 10-10, #92).
+
   - id: T-124
     title: itos writes its coverage counters before it replaces itself with syscall.Exec
     phase: 1
