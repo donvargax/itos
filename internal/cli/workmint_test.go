@@ -225,6 +225,9 @@ func TestWorkAddPropagatesIDReservationFailures(t *testing.T) {
 	if code != 0 || err == nil || !strings.Contains(err.Error(), "Command failed: git rev-parse") {
 		t.Fatalf("workAdd = (%d, %v), want exit code 0 and the injected Git command failure", code, err)
 	}
+	if got := ExitCode(err); got != ExitSoftware {
+		t.Fatalf("workAdd's reservation failure exits %d, want %d (bug 119)", got, ExitSoftware)
+	}
 }
 
 func TestWorkAddPropagatesRegistryEditErrors(t *testing.T) {

@@ -124,7 +124,7 @@ Feature: The id counter, so an id itos mints is minted once
   # The wording is not judged: prose is no contract (ADR-0052). The git that
   # fails is the one itos runs (ITOS_GIT), set up after the clone, so the
   # repository is real and only git's answers fail.
-  @ID-IDS-08 @bug-119 @wip
+  @ID-IDS-08 @bug-119
   Scenario: A git that fails while itos reserves an ID exits 70, and writes nothing
     Given a repository whose ledger has the task "T-001"
     And a clone of it, where itos runs

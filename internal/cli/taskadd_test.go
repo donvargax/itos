@@ -242,6 +242,9 @@ func TestTaskAddPropagatesReservationFailures(t *testing.T) {
 	if err == nil || !strings.Contains(err.Error(), "Command failed: git rev-parse") {
 		t.Fatalf("taskAdd reservation error = %v, want injected Git command failure", err)
 	}
+	if got := ExitCode(err); got != ExitSoftware {
+		t.Fatalf("taskAdd's reservation failure exits %d, want %d (bug 119)", got, ExitSoftware)
+	}
 }
 
 func TestTaskAddPropagatesLedgerErrorsAfterIDReservation(t *testing.T) {

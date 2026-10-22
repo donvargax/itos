@@ -10,6 +10,7 @@ import (
 
 	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/idcounter"
+	"github.com/donvargax/itos/v8/internal/kind"
 	"github.com/donvargax/itos/v8/internal/ledger"
 	"github.com/donvargax/itos/v8/internal/nextid"
 	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
@@ -98,12 +99,15 @@ func reserveItemNumber(cfg *config.Loaded, category string, highest int, goos st
 // counterStore is where this repository's id counter is: the remote itos
 // push pushes to (the branch's upstream, else origin, as the VCS's Upstream
 // gives it) when there is one, else, and always under a stealth config, the
-// file in the git common dir.
+// file in the git common dir. The repository is located and its config
+// loaded by then, so a locate that fails here is a git failing, which no
+// kind fits (exit 70), not the missing repository internal/git's Read
+// takes it for (bug 119).
 func counterStore(cfg *config.Loaded, goos string) (idcounter.Store, error) {
 	ctx, v := context.Background(), vcs.Git{}
 	l, err := v.Locate(ctx, "")
 	if err != nil {
-		return idcounter.Store{}, err
+		return idcounter.Store{}, kind.Wrap(kind.Unknown, err)
 	}
 	common, err := filepath.Abs(l.Common)
 	if err != nil {
