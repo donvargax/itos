@@ -57,7 +57,7 @@ phases:
 queue:
   - T-277
   - T-191
-  - p1-hooks-before-git-2-54
+  - slice-165
   - p1-agent-test-runs-once
   - p1-mutation-results-committed
   - p1-text-from-file
@@ -11874,14 +11874,15 @@ items:
       later.
     tags: [push]
 
-  - id: p1-hooks-before-git-2-54
+  - id: slice-165
     title: "itos's hooks run on a git older than 2.54: hook files in the hooks folder git uses, chained with any there, where config hooks do not run"
     phase: 1
     owner: null
     status: todo
     depends_on: []
-    kind: idea
+    kind: slice
     why: >
+      Was p1-hooks-before-git-2-54.
       The user, 2026-10-21: supporting older git is a requirement (Ubuntu 22.04 ships 2.34, Debian
       12 and Xcode 2.39, Ubuntu 24.04 2.43). Since slice 91 itos declares its hooks only in the git
       config (hook.<name>.event and .command), which git runs from 2.54.0 (configHooksSince,
