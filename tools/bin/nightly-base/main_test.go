@@ -16,12 +16,14 @@ var now = time.Date(2026, 10, 12, 11, 44, 0, 0, time.UTC)
 // hoursAgo is a commit time h hours before now, as git log's %ct writes it.
 func hoursAgo(h int) string { return fmt.Sprint(now.Add(-time.Duration(h) * time.Hour).Unix()) }
 
-// fake answers gh run list with gh (or fails it with ghErr), the ancestry check with ancestor,
-// and git log with history, logging every call.
+// fake answers gh run list with gh (or fails it with ghErr), the ancestry check of a commit and
+// another ("a b") with ancestry when it names the pair, else with ancestor, and git log with
+// history, logging every call.
 type fake struct {
 	gh       string
 	ghErr    error
 	ancestor bool
+	ancestry map[string]bool
 	history  string
 	calls    []string
 }
@@ -33,7 +35,11 @@ func (f *fake) run(name string, args ...string) (string, error) {
 	case strings.HasPrefix(call, "gh run list "):
 		return f.gh, f.ghErr
 	case strings.HasPrefix(call, "git merge-base --is-ancestor "):
-		if f.ancestor {
+		is, named := f.ancestry[strings.TrimPrefix(call, "git merge-base --is-ancestor ")]
+		if !named {
+			is = f.ancestor
+		}
+		if is {
 			return "", nil
 		}
 		return "", errors.New("git: exit status 1")
@@ -51,7 +57,7 @@ var history = strings.Join([]string{
 
 func TestTheBaseIsTheLastGreenNightlysHeadCommit(t *testing.T) {
 	f := &fake{gh: `[{"databaseId":37772629517,"headSha":"9397855d","createdAt":"2026-10-08T11:49:36Z"}]`, ancestor: true, history: history}
-	base, note, err := find(f.run, now, "nightly.yml", "main")
+	base, note, err := find(f.run, now, "nightly.yml", "main", "")
 	if err != nil || base != "9397855d" {
 		t.Fatalf("base %q, err %v", base, err)
 	}
@@ -81,7 +87,7 @@ func TestWithNoGreenNightlyInReachTheBaseIsADayAgo(t *testing.T) {
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			f := &fake{gh: c.gh, ghErr: c.ghErr, ancestor: c.ancestor, history: history}
-			base, note, err := find(f.run, now, "nightly.yml", "main")
+			base, note, err := find(f.run, now, "nightly.yml", "main", "")
 			if err != nil || base != "c1" {
 				t.Fatalf("base %q, err %v; want c1, the newest commit 24 hours old", base, err)
 			}
@@ -90,6 +96,70 @@ func TestWithNoGreenNightlyInReachTheBaseIsADayAgo(t *testing.T) {
 				t.Errorf("note\n%s\nwant\n%s", note, want)
 			}
 		})
+	}
+}
+
+// green is gh's answer naming the last green nightly of 2026-10-08, at 9397855d.
+const green = `[{"databaseId":37772629517,"headSha":"9397855d","createdAt":"2026-10-08T11:49:36Z"}]`
+
+func TestWithAFloorTheBaseIsTheLaterOfItAndTheLastGreenNightly(t *testing.T) {
+	const head = "the head commit of the last green run of nightly.yml on main (run 37772629517, 2026-10-08T11:49:36Z)"
+	cases := []struct {
+		name, gh, base, note string
+		greenBelowFloor      bool
+	}{
+		{name: "a green head the floor descends from", gh: green, greenBelowFloor: true, base: "a9de53f6",
+			note: "the base is the floor a9de53f6, as " + head + ", 9397855d, is the floor or one of its ancestors"},
+		{name: "a green head later than the floor", gh: green, base: "9397855d",
+			note: "the base is 9397855d, " + head + ", later than the floor a9de53f6"},
+		{name: "no green run", gh: "[]", base: "a9de53f6",
+			note: "no green nightly in reach (no run of nightly.yml on main concluded success); the base is the floor a9de53f6"},
+		{name: "a green head out of reach", gh: `[{"databaseId":1,"headSha":"abc","createdAt":"x"}]`, base: "a9de53f6",
+			note: "no green nightly in reach (the last green run's head commit abc is not in HEAD's history); the base is the floor a9de53f6"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			f := &fake{gh: c.gh, ancestry: map[string]bool{"9397855d HEAD": true, "9397855d a9de53f6": c.greenBelowFloor}, history: history}
+			base, note, err := find(f.run, now, "nightly.yml", "main", "a9de53f6")
+			if err != nil || base != c.base {
+				t.Fatalf("base %q, err %v; want %s", base, err, c.base)
+			}
+			if note != c.note {
+				t.Errorf("note\n%s\nwant\n%s", note, c.note)
+			}
+			for _, call := range f.calls {
+				if strings.HasPrefix(call, "git log ") {
+					t.Errorf("a floor still read the last 24 hours: %v", f.calls)
+				}
+			}
+		})
+	}
+	f := &fake{ghErr: errors.New("gh: exit status 1: HTTP 403"), history: history}
+	if base, note, err := find(f.run, now, "nightly.yml", "main", "a9de53f6"); err != nil || base != "a9de53f6" ||
+		note != "no green nightly in reach (gh run list failed: gh: exit status 1: HTTP 403); the base is the floor a9de53f6" {
+		t.Errorf("gh failing: base %q, note %q, err %v", base, note, err)
+	}
+}
+
+func TestRunHoldsTheFloorToHEADsHistory(t *testing.T) {
+	var stdout, stderr strings.Builder
+	f := &fake{gh: green, ancestry: map[string]bool{"a9de53f6 HEAD": true, "9397855d HEAD": true, "9397855d a9de53f6": true}, history: history}
+	if code := run([]string{"-floor", "a9de53f6"}, f.run, now, &stdout, &stderr); code != 0 || stdout.String() != "a9de53f6\n" ||
+		!strings.HasPrefix(stderr.String(), "nightly-base: the base is the floor a9de53f6, as ") {
+		t.Errorf("exit %d, stdout %q, stderr %q", code, stdout.String(), stderr.String())
+	}
+	if f.calls[0] != "git merge-base --is-ancestor a9de53f6 HEAD" {
+		t.Errorf("the floor was not held to HEAD's history first: %v", f.calls)
+	}
+	stdout.Reset()
+	stderr.Reset()
+	f = &fake{gh: green, ancestry: map[string]bool{"elsewhere HEAD": false}, ancestor: true, history: history}
+	if code := run([]string{"-floor", "elsewhere"}, f.run, now, &stdout, &stderr); code != 2 || stdout.Len() != 0 ||
+		stderr.String() != "nightly-base: the floor elsewhere is not in HEAD's history: git: exit status 1\n" {
+		t.Errorf("a floor out of reach: exit %d, stdout %q, stderr %q", code, stdout.String(), stderr.String())
+	}
+	if len(f.calls) != 1 {
+		t.Errorf("a floor out of reach still read gh or git: %v", f.calls)
 	}
 }
 
@@ -118,7 +188,7 @@ func TestAHistoryGitCannotReadStopsIt(t *testing.T) {
 		}
 		return "", errors.New("git: exit status 128: fatal: not a git repository")
 	}
-	if _, _, err := find(broken, now, "nightly.yml", "main"); err == nil || !strings.Contains(err.Error(), "not a git repository") {
+	if _, _, err := find(broken, now, "nightly.yml", "main", ""); err == nil || !strings.Contains(err.Error(), "not a git repository") {
 		t.Errorf("err %v", err)
 	}
 	for _, history := range []string{"", "c1 yesterday\n", "c1\n"} {

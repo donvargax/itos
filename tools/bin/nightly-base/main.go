@@ -18,6 +18,14 @@
 // the step never judges every function of the tree. Stderr names the base it chose and why, so
 // the night's log says what was judged.
 //
+// With -floor <commit> the base is never older than that commit: it prints the later of the floor
+// and the last green run's head commit, the floor when that head is the floor or one of its
+// ancestors, else the head, and the floor when no green nightly is in reach, in place of the last
+// 24 hours' range. It moves the base past a pile of changes no night's batch empties (T-280: the
+// nightly passes T-191's head, which judged the slices refactor's last batch, so the nights stop
+// drawing from everything since the green night of 2026-10-08). A floor that is not HEAD or one of
+// its ancestors is a usage error, read before gh.
+//
 // With -linux-files it prints instead, one a line, the non-test Go files under the folders it is
 // given (relative to the repository's top, the working folder) that a Linux build compiles: the
 // files go/build matches for GOOS=linux, so a _windows.go or _darwin.go file, or one whose build
@@ -30,8 +38,8 @@
 // It imports nothing but the standard library, as the other gate programs do, and runs git and gh
 // by name.
 //
-// Exit status: 0 a base (or the files) printed, 2 a usage error, a git that could not read HEAD's
-// history, or no Go file a Linux build compiles.
+// Exit status: 0 a base (or the files) printed, 2 a usage error (a floor out of HEAD's history
+// among them), a git that could not read HEAD's history, or no Go file a Linux build compiles.
 package main
 
 import (
@@ -65,6 +73,7 @@ func run(args []string, cmd runner, now time.Time, stdout, stderr io.Writer) int
 	flags.SetOutput(stderr)
 	workflow := flags.String("workflow", "nightly.yml", "the workflow whose last green run is the base")
 	branch := flags.String("branch", "main", "the branch its runs are read on")
+	floor := flags.String("floor", "", "a commit in HEAD's history the base is never older than")
 	linux := flags.Bool("linux-files", false, "print the non-test Go files under the folders named that a Linux build compiles, not the base")
 	if err := flags.Parse(args); err != nil {
 		return 2
@@ -84,7 +93,13 @@ func run(args []string, cmd runner, now time.Time, stdout, stderr io.Writer) int
 		fmt.Fprintf(stderr, "nightly-base: unexpected argument %q\n", flags.Arg(0))
 		return 2
 	}
-	base, note, err := find(cmd, now, *workflow, *branch)
+	if *floor != "" {
+		if _, err := cmd("git", "merge-base", "--is-ancestor", *floor, "HEAD"); err != nil {
+			fmt.Fprintf(stderr, "nightly-base: the floor %s is not in HEAD's history: %s\n", *floor, firstLine(err.Error()))
+			return 2
+		}
+	}
+	base, note, err := find(cmd, now, *workflow, *branch, *floor)
 	if err != nil {
 		fmt.Fprintf(stderr, "nightly-base: %v\n", err)
 		return 2
@@ -102,13 +117,23 @@ type greenRun struct {
 }
 
 // find is the base and a sentence saying where it came from: the last green run's head commit,
-// or, with none in reach, the last 24 hours' first-parent base. An error only when git cannot
-// read HEAD's first-parent line.
-func find(cmd runner, now time.Time, workflow, branch string) (string, string, error) {
+// or, with none in reach, the last 24 hours' first-parent base. With a floor, already held to
+// HEAD's history, it is the later of the floor and that head, and the floor with none in reach.
+// An error only when git cannot read HEAD's first-parent line.
+func find(cmd runner, now time.Time, workflow, branch, floor string) (string, string, error) {
 	r, why := lastGreen(cmd, workflow, branch)
 	if why == "" {
-		return r.HeadSha, fmt.Sprintf("the base is %s, the head commit of the last green run of %s on %s (run %d, %s)",
-			r.HeadSha, workflow, branch, r.DatabaseID, r.CreatedAt), nil
+		green := fmt.Sprintf("the head commit of the last green run of %s on %s (run %d, %s)", workflow, branch, r.DatabaseID, r.CreatedAt)
+		if floor == "" {
+			return r.HeadSha, fmt.Sprintf("the base is %s, %s", r.HeadSha, green), nil
+		}
+		if _, err := cmd("git", "merge-base", "--is-ancestor", r.HeadSha, floor); err == nil {
+			return floor, fmt.Sprintf("the base is the floor %s, as %s, %s, is the floor or one of its ancestors", floor, green, r.HeadSha), nil
+		}
+		return r.HeadSha, fmt.Sprintf("the base is %s, %s, later than the floor %s", r.HeadSha, green, floor), nil
+	}
+	if floor != "" {
+		return floor, fmt.Sprintf("no green nightly in reach (%s); the base is the floor %s", why, floor), nil
 	}
 	base, err := dayAgo(cmd, now)
 	if err != nil {
