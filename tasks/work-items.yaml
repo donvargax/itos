@@ -11663,3 +11663,18 @@ items:
       --until <date> keeps the date beside the reason; from that date itos work and status list the
       item as due. Same date form as p1-work-item-dates.
     tags: [work]
+
+  - id: p1-queue-closed-anchor
+    title: A queue draft anchored on the item in progress still promotes after that item closes
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      #101 (8.5.0): draft add -- work queue X --after <doing item> fails at promote every time,
+      since work done takes the anchor out of the queue first. Either work queue --after or --before
+      reads an anchor that left the queue by closing as its old place, or draft add warns that the
+      anchor will leave the queue and names --top when it is the doing head. The warning is
+      preferred: remembering old places is state for little gain.
+    tags: [work]
