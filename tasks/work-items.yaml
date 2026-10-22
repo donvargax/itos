@@ -12123,3 +12123,18 @@ items:
     status: todo
     depends_on: [T-228, T-229, T-233, T-235]
     kind: task
+
+  - id: p1-tracker-adapter-dirty-deletion
+    title: The tracker adapter's tests show an uncommitted deletion counts as a dirty document (bug 13)
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Found by T-231's agent (2026-10-22): only an internal/cli test through writeCommitted shows
+      that a deletion no commit holds refuses the transaction; none of the tracker adapter's own
+      contract or adapter tests does. Add the case at the adapter (and the contract, if the fake
+      should hold it too), so the cli test can go when work becomes a slice.
+    refs: [internal/store/tracker/adapter]
+    tags: [work]
