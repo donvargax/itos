@@ -3169,3 +3169,38 @@
       timeout: 600
     - run: go run ./tools/bin/conformance --bin tools/bin/itos --only tools/itos/conformance/init.yaml tools/itos/conformance/status.yaml tools/itos/conformance/guide.yaml
       timeout: 600
+
+- id: T-236
+  type: refactor
+  title: "internal/launch stops importing internal/cli: cmd/itos hands it the parser, upgrade target and exit codes"
+  why: >
+    ADR-0053, step 7 of docs/plans/slices-and-ports.md, after T-228 (the engine gate); one of three
+    parallel lanes (the user, 2026-10-22). The engine lives at internal/engine/<name>, its doc.go
+    saying what it is for; exported functions take a context.Context first and port values or funcs,
+    never results already looked up (T-218 turned exit 70 into 3 by locating early, bug-119). The
+    logic moves; a thin wrapper with the same signature stays in the old internal/cli file, mapping
+    Out to writers and flags and binding tracker(cfg, o.OS), vcs.Git{} or cfg.VCS exactly as the
+    code does today, so no caller file changes. Engines return []out.Problem and errors: exit codes
+    and usage errors stay in internal/cli, and every kind.Wrap is kept as it is. A helper an engine
+    needs from cli (short, and, oneLine, hasCommit) gets a byte-identical private copy. Edit only
+    this engine's names in internal/cli/doc.go; touch no rule in .golangci.yml, no architecture
+    fixture and not docs/ARCHITECTURE.md (T-228's, and the coordinator's after the last task). Tests
+    of the moved logic move with it, over the ports' fakes. No behaviour change: same bytes, same
+    exit codes, same output order. internal/launch stops importing internal/cli, after T-229 (pin)
+    and T-230 (shim) on the same files: GuardSince and Handoff move to launch; launch.Main takes a
+    launch.CLI{Parse, UpgradeTarget, ExitCode} that cmd/itos/main.go builds from cli (Parse needs
+    the command table, so it stays in cli). Launch's unit tests get a stand-in CLI; the features
+    below prove the wiring. A depguard rule pre-dispatch (internal/launch and internal/shim deny
+    internal/cli$) with its architecture fixture: the one lane task that edits the rules, in a build
+    commit and a chore commit.
+  done_when:
+    - run: "! grep -rn 'internal/cli\"' internal/launch internal/shim"
+    - run: go test ./internal/launch/ ./internal/shim/ ./cmd/itos/
+      timeout: 600
+    - run: tools/bin/architecture-check
+    - run: tools/bin/pinned golangci-lint run ./...
+      timeout: 600
+    - run: go test ./features -count=1 -scenarios='^@ID-(UPGRADEHAND|UPDATE|PIN|GUARD|SHIM|EXT|CLI)-[0-9]+$'
+      timeout: 600
+    - run: go run ./tools/bin/conformance --bin tools/bin/itos --only tools/itos/conformance/cli.yaml tools/itos/conformance/help.yaml
+      timeout: 600
