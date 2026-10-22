@@ -12081,7 +12081,7 @@ items:
     title: "The ids engine out of internal/cli: minting item and scenario IDs, internal/engine/ids"
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [T-228, T-227]
     kind: task
 

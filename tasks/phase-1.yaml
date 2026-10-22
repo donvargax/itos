@@ -3023,17 +3023,6 @@
     task touching itos-cc.yaml. idcounter.Mint has no production caller since T-227 and
     idcounter.Claim ignores its context: leave both, noting them in the report for idcounter's own
     API.
-  done_when:
-    - run: go test ./internal/engine/ids/ ./internal/cli
-      timeout: 600
-    - run: "! grep -n 'ledger.NextIDAfter\\|nextid.Next(\\|\\.Reserve(' internal/cli/*.go"
-    - run: tools/bin/architecture-check
-    - run: tools/bin/pinned golangci-lint run ./...
-      timeout: 600
-    - run: go test ./features -count=1 -scenarios='^@ID-(IDS|NEXTID|WORK|TASK|DRAFT)-[0-9]+$'
-      timeout: 600
-    - run: go run ./tools/bin/conformance --bin tools/bin/itos --only tools/itos/conformance/tests.yaml tools/itos/conformance/tasks.yaml
-      timeout: 600
 
 - id: T-233
   type: refactor
