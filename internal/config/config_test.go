@@ -355,6 +355,22 @@ func TestLoadReadsFromTheSourceElseTheWorkingTree(t *testing.T) {
 	}
 }
 
+// DataFrom is the config with its data read from another tree, the config
+// it is made from left reading its own.
+func TestDataFrom(t *testing.T) {
+	trees := porttest.Trees{Common: ".git", Files: map[string]map[string]string{"worktree": {"itos.yaml": "version: 1\n"}}}
+	worktree, _ := trees.At(context.Background(), "worktree")
+	commit, _ := trees.At(context.Background(), "abc")
+	c, err := Load(trees, worktree, "itos.yaml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	at := c.DataFrom(commit)
+	if at.Source.Tree(context.Background()) != "abc" || c.Source.Tree(context.Background()) != "worktree" || at.Path != c.Path {
+		t.Errorf("DataFrom: %s from %s, path %s", at.Source.Tree(context.Background()), c.Source.Tree(context.Background()), at.Path)
+	}
+}
+
 // FromText judges a config's text as Load judges its file, the stealth one's
 // data beside it as it says, and a text that is no YAML is unreadable.
 func TestFromText(t *testing.T) {
