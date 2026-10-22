@@ -11738,3 +11738,18 @@ items:
       belongs in ci.steps or ci.nightly.steps; a lasting mark that moves a check there at close is
       the larger option.
     tags: [work]
+
+  - id: p1-task-signoff-check
+    title: A task can require the person's evidence at work done instead of, or beside, its checks
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      #95 and #99 (8.5.0, live and on-device work): a live task's file checks pass before the person
+      has done the work, and some proofs cannot be scripted at all. A task flag (say done_when:
+      [{evidence: "<what to record>"}]) makes work done refuse the close without slice-158's
+      --evidence-file and quote the evidence, dated, in the close commit; such a check never runs in
+      CI. Waits on the person's answer to the #99 question and on slice-158.
+    tags: [work]
