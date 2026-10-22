@@ -3155,3 +3155,36 @@
     asserting the usage error and exit 2, and the three lines covered. No change to what itos does.
   done_when:
     - run: go test ./internal/cli -run 'StatusCommand'
+
+- id: T-239
+  type: refactor
+  title: "Commands declare themselves, part 1: internal/declare, a leaf package for a command's name, help and flag spec"
+  why: >
+    ADR-0053, step 5 of docs/plans/slices-and-ports.md (after steps 6 and 7, before step 9's
+    parallel slice lanes; designed by the coordinator 2026-10-22 from a read-only draft, as
+    itos-cc's tools/bin/assemble and declarations): each command declares its name, help and flag
+    spec in its own file, and a generator writes the command table, so a lane moving one command
+    touches only its own files and the generated one, which the generator rewrites. The hand-written
+    parser stays; v9.0 swaps kong beneath the declarations. No behaviour change: help and usage
+    text, exit codes and parsing as before. Help text is not pinned by any committed golden (the
+    user, 2026-10-21: plain text is no contract, no transcript refactor-proof; ADR-0052). This part:
+    internal/declare, a leaf package importing nothing of ours (no os, no net), which slices and
+    internal/cli both import without cycles: Command{Name string literal, Rank int literal and
+    unique (its place in itos --help), Lines (its lines in the Commands list, verbatim), Help
+    map[string]string (the --help pages by subpath, "" its own), Spec}; Spec{Flags, Subs
+    map[string]Spec, Words, Others, Unread bool, After int, More}; Flag{Name, Takes (Bare, Needs,
+    May), Repeat} with constructors; More an enum (NoMore, GroupLabel, Footers) in place of today's
+    spec function that adds flags from the config (spec.go), which spec.go maps back to groupLabel
+    and footerFlags, so a declaration holds no function, takes no context and reads nothing.
+    internal/cli/spec.go keeps the parser, its spec and flagSpec becoming aliases of declare.Spec
+    and declare.Flag. .golangci.yml: internal/declare$ in slice-packages' allow list, and a rule
+    declare-leaf denying everything of ours and os, net to internal/declare, with architecture
+    fixtures (a build commit and a chore commit). The package is named declare because internal/cli
+    already has a type command.
+  done_when:
+    - run: go test ./internal/declare/ ./internal/cli -count=1
+      timeout: 600
+    - run: tools/bin/architecture-check
+    - run: tools/bin/pinned golangci-lint run ./...
+      timeout: 600
+    - run: grep -n 'declare-leaf' .golangci.yml

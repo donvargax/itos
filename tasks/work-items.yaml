@@ -12162,3 +12162,11 @@ items:
     status: doing
     depends_on: []
     kind: task
+
+  - id: T-239
+    title: "Commands declare themselves, part 1: internal/declare, a leaf package for a command's name, help and flag spec"
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task
