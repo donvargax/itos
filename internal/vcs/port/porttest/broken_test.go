@@ -33,8 +33,11 @@ func (b broken) entry(e port.Entry) port.Entry {
 
 func (b broken) Show(ctx context.Context, rev string) (port.Entry, error) {
 	e, err := b.VCS.Show(ctx, rev)
-	if b.fault == "show of nothing" && err != nil {
+	switch {
+	case b.fault == "show of nothing" && err != nil:
 		return port.Entry{}, nil
+	case b.fault == "show of a merge fails" && e.Merge:
+		return port.Entry{}, errBroken
 	}
 	return b.entry(e), err
 }

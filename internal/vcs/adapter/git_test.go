@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -117,10 +118,9 @@ func stopped(t *testing.T, dir string, args ...string) {
 	}
 }
 
-// laidOut stands the test at the top of a new repository laid out as
-// porttest.VCSContract asks, with no git setting from outside and no
-// repository above it.
-func laidOut(t *testing.T, l porttest.Layout) (port.VCS, string) {
+// alone is a new folder for a test's repositories, with no git setting
+// from outside and no repository above it.
+func alone(t *testing.T) string {
 	t.Helper()
 	for _, name := range []string{"GIT_DIR", "GIT_INDEX_FILE", "GIT_WORK_TREE", "GIT_COMMON_DIR",
 		"GIT_AUTHOR_NAME", "GIT_AUTHOR_EMAIL", "GIT_AUTHOR_DATE", "GIT_COMMITTER_NAME", "GIT_COMMITTER_EMAIL", "GIT_COMMITTER_DATE"} {
@@ -134,6 +134,56 @@ func laidOut(t *testing.T, l porttest.Layout) (port.VCS, string) {
 		t.Fatal(err)
 	}
 	t.Setenv("GIT_CEILING_DIRECTORIES", base)
+	return base
+}
+
+// Show refuses a revision that gives no commit, as every branch of a
+// repository with none does, and PathStatus a folder in no repository.
+func TestShowAndPathStatusRefuse(t *testing.T) {
+	dir := alone(t)
+	t.Chdir(dir)
+	if got, err := (Git{}).PathStatus(t.Context(), "a"); err == nil {
+		t.Errorf("PathStatus outside a repository is %q", got)
+	}
+	gitIn(t, dir, "", "init", "-q")
+	if got, err := (Git{}).Show(t.Context(), "--all"); err == nil {
+		t.Errorf("Show of no commit is %+v", got)
+	}
+}
+
+// A rename is both its paths (bug 32) in every list of changed paths, with
+// git's rename detection on.
+func TestRenameIsBothPaths(t *testing.T) {
+	dir := alone(t)
+	t.Chdir(dir)
+	gitIn(t, dir, "", "init", "-q", "-b", "main")
+	gitIn(t, dir, "", "config", "diff.renames", "true")
+	write(t, dir, "a", "a")
+	gitIn(t, dir, "", "add", "a")
+	gitIn(t, dir, "", "commit", "-q", "-m", "a")
+	gitIn(t, dir, "", "mv", "a", "b")
+	ctx, both := t.Context(), []string{"a", "b"}
+	if got, err := (Git{}).Staged(ctx, ""); !slices.Equal(got, both) || err != nil {
+		t.Errorf("Staged = %q, %v", got, err)
+	}
+	gitIn(t, dir, "", "commit", "-q", "-m", "rename")
+	if got, err := (Git{}).CommitPaths(ctx, "HEAD"); !slices.Equal(got, both) || err != nil {
+		t.Errorf("CommitPaths = %q, %v", got, err)
+	}
+	if got, err := (Git{}).Diff(ctx, "HEAD^", "HEAD"); !slices.Equal(got, both) || err != nil {
+		t.Errorf("Diff = %q, %v", got, err)
+	}
+	if got, err := (Git{}).Touched(ctx, port.Range{To: "HEAD"}, false); !slices.Equal(got, both) || err != nil {
+		t.Errorf("Touched = %q, %v", got, err)
+	}
+}
+
+// laidOut stands the test at the top of a new repository laid out as
+// porttest.VCSContract asks, with no git setting from outside and no
+// repository above it.
+func laidOut(t *testing.T, l porttest.Layout) (port.VCS, string) {
+	t.Helper()
+	base := alone(t)
 	repo := filepath.Join(base, "repo")
 	history(t, repo)
 	if l.Shallow {

@@ -274,6 +274,7 @@ func TestVCSContractFailsEachBrokenVCS(t *testing.T) {
 		{"show merge never", map[string][]string{"show": {"Show(m) is"}}},
 		{"show short whole", map[string][]string{"show": shown("Show(%s): the short name")}},
 		{"show of nothing", map[string][]string{"show": {"Show of no commit"}}},
+		{"show of a merge fails", map[string][]string{"show": {"Show(m): "}, "log": {"Show(m): "}}},
 		{"log newest first", map[string][]string{"log": {"Log({From:b ", "Log({From: To:m Since:c}", "Log({From:--remotes "}}},
 		{"log since kept", map[string][]string{"log": {"Log({From: To:m Since:c}"}}},
 		{"log of nothing", map[string][]string{"log": {"Log of no commit"}}},
