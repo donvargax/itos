@@ -12087,8 +12087,8 @@ items:
   - id: T-233
     title: "The ci watch engine out of internal/cli: following a commit's CI run, internal/engine/ciwatch"
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: [T-228]
     kind: task
 
