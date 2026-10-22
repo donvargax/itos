@@ -211,9 +211,6 @@ func TestJudging(t *testing.T) {
 	if got := diff("a\nb\nc\n", "a\nx\nc\n"); !slices.Equal(got, []string{"  a", "- b", "+ x", "  c"}) {
 		t.Errorf("diff %q", got)
 	}
-	if !holdsLines("a\nc\n", "a\nb\nc\nd\n") || holdsLines("c\na\n", "a\nb\nc\n") {
-		t.Errorf("holdsLines should hold lines in order, whatever lies between them")
-	}
 	if got := markdownContent("<!-- top -->\n# T\n\nready <!-- now -->\n"); got != "# T\n\nready \n" {
 		t.Errorf("markdownContent %q", got)
 	}

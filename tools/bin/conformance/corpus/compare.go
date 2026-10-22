@@ -13,8 +13,8 @@ import (
 )
 
 // compare is what differs between a case's expectations and its outcome, as lines to print.
-// With additive, stdout (but a stdout_contract one, judged whole), stderr, json and files_after
-// are judged by what they must still hold, a written file by its data.
+// With additive, json and files_after are judged by what they must still hold, a written file by
+// its data.
 func compare(c *Case, out *Outcome, s *subst, additive bool) []string {
 	var problems []string
 	if out.Exit == nil || float64(*out.Exit) != c.exit {
@@ -24,19 +24,11 @@ func compare(c *Case, out *Outcome, s *subst, additive bool) []string {
 		}
 		problems = append(problems, fmt.Sprintf("exit: expected %s, got %s", number(c.exit), got))
 	}
-	text := textProblems
-	if additive {
-		text = linesProblems
-	}
 	if c.stdout != nil {
-		judge := text
-		if c.stdoutContract {
-			judge = textProblems
-		}
-		problems = append(problems, judge("stdout", s.text(*c.stdout), out.Stdout)...)
+		problems = append(problems, textProblems("stdout", s.text(*c.stdout), out.Stdout)...)
 	}
 	if c.stderr != nil {
-		problems = append(problems, text("stderr", s.text(*c.stderr), out.Stderr)...)
+		problems = append(problems, textProblems("stderr", s.text(*c.stderr), out.Stderr)...)
 	}
 	if c.stdoutNonempty && strings.TrimSpace(out.Stdout) == "" {
 		problems = append(problems, quoted("stdout is empty, expected something besides whitespace:", out.Stdout)...)
@@ -410,46 +402,6 @@ func jsonHolds(expected, actual any, at string) []string {
 		return differs
 	}
 	return nil
-}
-
-// textLines is a text's lines, each with its newline (the last may have none).
-func textLines(text string) []string {
-	var lines []string
-	for text != "" {
-		i := strings.IndexByte(text, '\n')
-		if i < 0 {
-			lines = append(lines, text)
-			break
-		}
-		lines = append(lines, text[:i+1])
-		text = text[i+1:]
-	}
-	return lines
-}
-
-// holdsLines is whether every line of expected is in actual, in the same order, whatever lines
-// actual adds around and between them.
-func holdsLines(expected, actual string) bool {
-	have := textLines(actual)
-	at := 0
-	for _, line := range textLines(expected) {
-		for at < len(have) && have[at] != line {
-			at++
-		}
-		if at >= len(have) {
-			return false
-		}
-		at++
-	}
-	return true
-}
-
-func linesProblems(what, expected, actual string) []string {
-	if holdsLines(expected, actual) {
-		return nil
-	}
-	return append([]string{what + " lacks, in order, the lines marked - (- expected, + got; a line added is compatible):"},
-		indented(diff(expected, actual))...)
 }
 
 var (

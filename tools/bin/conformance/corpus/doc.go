@@ -56,20 +56,18 @@
 // (v8.0.0's ask.yaml), is read as YAML 1.2 reads it (quoteFlowQuestions).
 //
 // Additive (Options.Additive, the command line's --additive), which tools/bin/previous-release
-// turns on for the last release's corpus (T-076): stdout (but a stdout_contract one) and stderr
-// are lines that must all
-// appear in the output in the same order, lines added before, between or after them passing,
-// and json is what the output's JSON must hold: every key it names there with the value it
-// gives, at every depth, an array element by element at the same length, a key added anywhere
-// passing (docs/decisions/0021-ci-cuts-a-release-from-a-green-push-judged-against-the-last-release.md).
+// turns on for the last release's corpus (T-076): json is what the output's JSON must hold:
+// every key it names there with the value it gives, at every depth, an array element by element
+// at the same length, a key added anywhere passing
+// (docs/decisions/0021-ci-cuts-a-release-from-a-green-push-judged-against-the-last-release.md).
 // files_after is judged by a written file's data, its comment lines for people
 // (docs/decisions/0040-a-written-file-is-contract-by-its-data-not-its-comment-lines.md): a .yaml
 // or .yml file by what it parses to, comments dropped, held as json is, a key added passing; a
-// .md file by its text less its HTML comments; any other file whole. The exit code, the _has
-// and _lacks keys, stdout_nonempty, json_has and git_config_after (each entry data, and one it does
-// not name never read, T-113) are judged as ever. Without it, as this tree's corpus runs, stdout,
-// stderr and every file are pinned exactly, comments and all, and json whole less message, fix
-// and top-level text.
+// .md file by its text less its HTML comments; any other file whole. The exit code, stdout and
+// stderr, the _has and _lacks keys, stdout_nonempty, json_has and git_config_after (each entry
+// data, and one it does not name never read, T-113) are judged as ever. Without it, as this
+// tree's corpus runs, every file is pinned exactly, comments and all, and json whole less
+// message, fix and top-level text.
 //
 // A case's github is a fake of GitHub's API for ci.watch, status and ci range's github providers
 // (slice 85, when v5.0.0 removed the command providers the corpus faked CI with): the runner
