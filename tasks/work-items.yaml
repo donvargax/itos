@@ -11708,3 +11708,18 @@ items:
       file) without the shared list. The tag is preferred. Matters as soon as several lanes add
       feature files (the slices refactor's step 9).
     tags: [tests]
+
+  - id: p1-decision-record-amends
+    title: decision record --amends <n> links the new record and the one it amends, both ways
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      #104 (8.5.0): an answer that changes one sentence of a standing record can only supersede it
+      (wrong: it leaves the index) or say so in its own text, so the amended record never points to
+      its amendment; this repository links ADR-0035, 0052 and 0054 by hand. --amends <n>
+      (repeatable) writes Amends ADR-n in the new record and Amended by ADR-new in n, status kept,
+      one commit; config check holds the links as it holds supersede links.
+    tags: [ask]
