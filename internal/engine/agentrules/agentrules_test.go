@@ -53,8 +53,10 @@ func TestSplit(t *testing.T) {
 		t.Errorf("a block ending the file without a newline gains one: %v, %v", found, err)
 	}
 	for text, says := range map[string]string{
-		"<!-- itos:begin -->\nMine.\n": "line with no <!-- itos:end --> line after it",
-		"<!-- itos:end -->\n":          "line with no <!-- itos:begin --> line before it",
+		"<!-- itos:begin -->\nMine.\n":                                  "line with no <!-- itos:end --> line after it",
+		"<!-- itos:end -->\n":                                           "line with no <!-- itos:begin --> line before it",
+		"<!-- itos:begin -->\n<!-- itos:end -->\n<!-- itos:begin -->\n": "more than one block",
+		"<!-- itos:begin -->\n<!-- itos:end -->\n<!-- itos:end -->\n":   "more than one block",
 	} {
 		if _, _, _, err := Split(text); err == nil || !strings.Contains(err.Error(), says) {
 			t.Errorf("%q: %v, not %q", text, err, says)
@@ -107,6 +109,13 @@ func TestReadAndWriteText(t *testing.T) {
 	}
 	if text, crlf, err := ReadText("lf.md"); text != "a\n" || crlf || err != nil {
 		t.Errorf("read: %q, %v, %v", text, crlf, err)
+	}
+	// A folder is a file no system reads.
+	if err := os.Mkdir("folder.md", 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if text, crlf, err := ReadText("folder.md"); text != "" || crlf || err == nil {
+		t.Errorf("a file that cannot be read: %q, %v, %v", text, crlf, err)
 	}
 }
 
