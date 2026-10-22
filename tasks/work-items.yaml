@@ -55,7 +55,6 @@ phases:
   3: donvargax
 
 queue:
-  - T-267
   - p1-raise-pinned-itos-cc
   - T-191
   - p1-hooks-before-git-2-54
