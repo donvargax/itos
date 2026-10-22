@@ -125,6 +125,17 @@ linters:
               desc: "an engine's code links no fake (ADR-0053): a port's fake enters only through _test.go files"
             - pkg: github.com/donvargax/itos/v8/internal/vcs/port/porttest
               desc: "an engine's code links no fake (ADR-0053): a port's fake enters only through _test.go files"
+        # The launcher and the git shim (internal/launch, internal/shim) run
+        # before the command line, which cmd/itos hands them in a launch.CLI:
+        # they, their tests with them, import no internal/cli (T-236).
+        pre-dispatch:
+          list-mode: lax
+          files:
+            - "**/internal/launch/**"
+            - "**/internal/shim/**"
+          deny:
+            - pkg: github.com/donvargax/itos/v8/internal/cli$
+              desc: "the launcher and the shim run before the command line (T-236): take what they need of it from the launch.CLI cmd/itos hands them"
         # A store's port and its fake (internal/store/<store>/port and
         # port/porttest), and the VCS's (internal/vcs/port), their tests
         # with them, import nothing of ours but the port and the fake: no
