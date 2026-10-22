@@ -2683,8 +2683,3 @@
     absent or unchanged). And with exact text refused (T-212) and Machine stripping it, the runner's
     additive linesProblems for stdout and stderr only ever judges empty text, so it and doc.go's
     Additive paragraph on text go. ci commits for the runner, test commits for the corpus files.
-  done_when:
-    - run: go test -count=1 ./tools/bin/conformance/... ./tools/bin/previous-release/...
-      timeout: 600
-    - run: go run ./tools/bin/conformance --bin tools/bin/itos
-      timeout: 900

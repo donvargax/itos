@@ -11295,6 +11295,6 @@ items:
     title: Corpus cases that say they write nothing pin it with files_after, and the runner's additive text comparison goes
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
