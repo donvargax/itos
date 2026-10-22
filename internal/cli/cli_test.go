@@ -55,6 +55,58 @@ func TestUsageErrors(t *testing.T) {
 	}
 }
 
+// Each run function refuses, before it does anything, a line its spec
+// lets through but it cannot run: a word missing, a ref that names no
+// commit, a subcommand it lacks.
+func TestRunFunctionsRefuseWhatTheyCannotRun(t *testing.T) {
+	gitConfigRepo(t, "version: 1\n")
+	refs := " is not a commit of this repository"
+	for args, want := range map[string]string{
+		"ci plan":                                "ci plan needs <from> <to>, --nightly or --whole",
+		"ci run nosuch nosuch":                   "ci run: nosuch" + refs,
+		"ci scope":                               "ci scope needs <from> <to>",
+		"ci scope nosuch nosuch":                 "ci scope: nosuch" + refs,
+		"ci range":                               "ci range needs --head <sha>",
+		"commit check-message":                   "commit check-message needs <file|->",
+		"commit check-message - --at nosuch":     "commit check-message: nosuch" + refs,
+		"commit check-paths a.go":                "commit check-paths needs --type <type>",
+		"commit footers Upgrading HEAD":          "commit footers needs <name> <from> <to>",
+		"commit footers Upgrading nosuch nosuch": "commit footers: nosuch" + refs,
+		"config get":                             "config get needs one <key>, a dotted path such as hooks.bin",
+		"config nosuch":                          "unknown command: config nosuch",
+		"tests list":                             "tests list needs <kind>",
+		"tests list scenario --at nosuch":        "tests list: nosuch" + refs,
+		"verify HEAD":                            "verify needs <from> <to>",
+		"work list --tag=":                       "work list takes one --tag with a value",
+		"work list nosuch":                       "work list takes only --all and --tag <tag>: nosuch",
+		"commit nosuch":                          "unknown command: commit nosuch",
+	} {
+		code, _, stderr := run(strings.Fields(args)...)
+		if code != ExitUsage || stderr != "itos: "+want+" (itos --help)\n" {
+			t.Errorf("itos %s: exit %d, stderr %q", args, code, stderr)
+		}
+	}
+	// What the spec turns --as=<handle> into, and a flag it would refuse,
+	// reach work only when called itself.
+	for args, want := range map[string]string{
+		"--as":       "work --as needs a handle",
+		"--as=me -x": "work does not take -x: " + workTakes,
+	} {
+		if _, err := runWork(strings.Fields(args), Out{}); err == nil || err.Error() != want {
+			t.Errorf("work %s: %v", args, err)
+		}
+	}
+	// A range of new branches names no commit to check, and reaches ci scope;
+	// a kind the config lacks reaches tests smoke ids, which refuses it.
+	zeros := strings.Repeat("0", 40)
+	if _, stdout, stderr := run("ci", "scope", zeros, zeros); strings.Contains(stderr, "needs") || strings.Contains(stdout, "needs") {
+		t.Errorf("ci scope of new branches: %q %q", stdout, stderr)
+	}
+	if code, _, stderr := run("tests", "smoke", "ids", "nosuch"); code == 0 || strings.Contains(stderr, "needs <kind>") {
+		t.Errorf("tests smoke ids nosuch: exit %d, %q", code, stderr)
+	}
+}
+
 // The help is the longest command path it knows, whatever else the
 // arguments hold; a bare itos prints itos's own and exits 2.
 func TestHelp(t *testing.T) {
