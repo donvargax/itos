@@ -77,6 +77,8 @@ What every command meets:
 
 - A command's flags, help, exit code, output: `internal/cli` (`spec.go`,
   `help.go`, the command).
+- What several commands share: `internal/engine/<name>`, its doc saying
+  what.
 - Running a pinned release, the update notice: `internal/launch`; release
   addresses, checksums, the newest tag: `internal/release`.
 - The config, its defaults, stealth mode, `commits.since`: `internal/config`.
@@ -145,10 +147,9 @@ case ([ADR-0006]).
 ## The release
 
 CI cuts a release from a green push to `main`, never a person, and the tag is
-the version ([ADR-0021]). `release.yml`'s comments give the steps; the
-programs it runs (`release-version`, `release-notes`, `config-schema`,
-`pinned`) and `.goreleaser.yaml` document theirs. What it publishes is
-[ADR-0022]'s, its notes [ADR-0026]'s.
+the version ([ADR-0021]). `release.yml`'s comments give the steps, its
+programs and `.goreleaser.yaml` theirs. What it publishes is [ADR-0022]'s,
+its notes [ADR-0026]'s.
 
 ## The Claude Code plugin
 
