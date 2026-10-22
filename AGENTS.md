@@ -77,8 +77,9 @@ and the nightly run, `tools/bin/itos ci plan <from> <to>` and `ci plan
   module younger than 7 days unless `deps-check.json` excepts it, then
   govulncheck; needs the network) and the unit tests the change reaches
   (`tools/bin/go-unit-tests --cached`), both skipped when every staged file is
-  Markdown, under `docs/**` or `tasks/**`, or a feature file. staticcheck
-  (`go tool staticcheck ./...`) is a CI step, not the hook's.
+  Markdown, under `docs/**` or `tasks/**`, or a feature file. staticcheck is
+  not pre-commit's: pre-push runs it over the Go packages a push changes
+  (`tools/bin/staticcheck-changed`), after golangci-lint.
 - Every gate that calls itos runs `tools/bin/itos`; a Go tree that does not
   build stops it with exit 3 and a line naming the build.
 - **CI** (`.github/workflows/ci.yml`, every push to `main`) re-checks every
