@@ -1,6 +1,7 @@
 package agentrules
 
 import (
+	"os"
 	"testing"
 )
 
@@ -71,6 +72,33 @@ func TestStealthOverrideRewritesBetweenTheMarkers(t *testing.T) {
 	s.Plan(testBlock)
 	if s.override.Next != testBlock {
 		t.Errorf("with AGENTS.md gone: %q", s.override.Next)
+	}
+}
+
+// An override of itos's holding the copy and no rules block gains the
+// block after the copy.
+func TestStealthOverrideWithTheCopyAloneGainsTheRules(t *testing.T) {
+	copied := CopyBegin + "\n\nBe kind.\n\n" + CopyEnd + "\n"
+	s := stealthOf(t, copied, true, "Be kind.\n", true)
+	s.Plan(testBlock)
+	if want := copied + "\n" + testBlock; s.override.Next != want {
+		t.Errorf("AGENTS.override.md:\n%q\nwant\n%q", s.override.Next, want)
+	}
+}
+
+// Any of the files that cannot be read fails the reading; a folder is a
+// file no system reads.
+func TestReadStealthFailsOnAFileItCannotRead(t *testing.T) {
+	for _, folder := range []string{".git/itos/AGENTS.md", ClaudeLocalFile, OverrideFile} {
+		t.Run(folder, func(t *testing.T) {
+			v := inRepository(t)
+			if err := os.MkdirAll(folder, 0o755); err != nil {
+				t.Fatal(err)
+			}
+			if s, err := ReadStealth(t.Context(), v); err == nil {
+				t.Errorf("read: %+v", s)
+			}
+		})
 	}
 }
 

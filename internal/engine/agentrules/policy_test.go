@@ -56,6 +56,27 @@ func TestProse(t *testing.T) {
 	}
 }
 
+// A footer required for all is required for every type the config lists;
+// one with no types, or a word other than all, for none.
+func TestTypesOf(t *testing.T) {
+	cfg := loaded(t, `version: 1
+commits:
+  types: [feat, docs]
+  footers:
+    Ref: { source: text, required_for: all }
+`)
+	policy := strings.Join(CommitPolicy(cfg, Code), "\n\n")
+	if want := "- `feat`: `Ref:`.\n- `docs`: `Ref:`."; !strings.Contains(policy, want) {
+		t.Errorf("the policy does not say %q:\n%s", want, policy)
+	}
+	if got := typesOf(cfg, nil); got != nil {
+		t.Errorf("no types: %v", got)
+	}
+	if got := typesOf(cfg, &config.Types{Word: "none"}); got != nil {
+		t.Errorf("a word other than all: %v", got)
+	}
+}
+
 // A scope's except is said beside its never.
 func TestCommitPolicySaysExcept(t *testing.T) {
 	cfg := loaded(t, `version: 1

@@ -52,6 +52,14 @@ func TestSplit(t *testing.T) {
 		*found != "<!-- itos:begin -->\n<!-- itos:end -->\n" {
 		t.Errorf("a block ending the file without a newline gains one: %v, %v", found, err)
 	}
+	for text, says := range map[string]string{
+		"<!-- itos:begin -->\nMine.\n": "line with no <!-- itos:end --> line after it",
+		"<!-- itos:end -->\n":          "line with no <!-- itos:begin --> line before it",
+	} {
+		if _, _, _, err := Split(text); err == nil || !strings.Contains(err.Error(), says) {
+			t.Errorf("%q: %v, not %q", text, err, says)
+		}
+	}
 	for _, text := range []string{
 		"<!-- itos:begin -->\nMine.\n",
 		"Mine.\n<!-- itos:end -->\n",
