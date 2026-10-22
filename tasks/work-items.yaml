@@ -6117,38 +6117,9 @@ items:
     title: List live named tests as project-relative TSV for external tools
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [T-120, slice-166]
     kind: slice
-    why: >
-      Was p1-tests-list-format.
-      Issue #22: itos-cc v0.5.0 reads mutation.tests.list as one test a line, its ID, a tab and its
-      file from the project root, but itos tests list scenario prints two spaces and the file
-      relative to the kinds root, so every machine running mutation needs jq and 2>/dev/null to hide
-      the update notice. A --tsv or --format itos-cc listing live tests only, files from the
-      repository root, joins the itos-cc integration v7.0.0-rc.1 begins with proof.code (T-120); an
-      improvement, not a fault
-
-      itos-cc#30 (2026-10-09): itos-cc dates a listed kill by its test's whole feature file, so any
-      edit there (a comment, a new @wip scenario beside implemented ones) stales every kill that
-      file's scenarios made. Proposed there: tests.list prints a third column, a fingerprint of the
-      test's own text, and a kill stays fresh while it holds. This list's form should carry it: a
-      scenario's steps, tables, doc strings, Examples, the Background before it and its tags, hashed
-      without comments, descriptions or other scenarios.
-
-      First delivery is tests list <kind> --tsv [--at <tree>]: exactly two tab-separated columns,
-      bare ID and project-root-relative slash path, live tests only, one LF-terminated row each and
-      no header. Preserve adapter order, existing human output and JSON (including command-adapter
-      extra fields), and current tree/supports_at behavior. --tsv and --json together are usage
-      error 2. Before printing any rows, validate every live row for unrepresentable tab/newline/NUL
-      characters, duplicate IDs, empty IDs/files and paths outside the project; refuse such a TSV
-      projection with exit 1 and a specific diagnostic rather than emit partial or misleading data.
-      Resolve configured root correctly, including no root for a command adapter, spaces and
-      subdirectory invocation. Test listing may invoke the configured lister once, never a test
-      runner. The later fingerprint scope is now p1-listed-test-fingerprints, not a third column in
-      this delivery. Adopting the new listing in this repository and removing
-      tools/bin/itos-cc-tests is a separate gate/config task after this CLI slice lands; no mutation
-      or CI policy changes are bundled.
     refs: [features/tests-list.feature, internal/cli/tests.go, internal/cli/commands.go, internal/cli/help.go, internal/tests/tests.go, internal/tests/gherkin.go]
 
   - id: p3-opencode-plugin
