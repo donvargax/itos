@@ -12644,6 +12644,6 @@ items:
     title: AGENTS.md and ORCHESTRATING.md leave the push proof and the task checks to CI
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task

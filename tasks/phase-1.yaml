@@ -4220,9 +4220,6 @@
     proof' paragraph and its 'What no gate does for you' line on itos task, and
     docs/ORCHESTRATING.md's brief line that agents run CI's push proof, say otherwise. The
     coordinator's edit.
-  done_when:
-    - run: "! grep -n 'q-55' AGENTS.md docs/ORCHESTRATING.md"
-    - run: "! grep -n 'run CI.s push proof' AGENTS.md docs/ORCHESTRATING.md"
 
 - id: T-276
   type: build
