@@ -11842,3 +11842,20 @@ items:
       the first thing fixed (before the other issues). From now on no itos code may need a git newer
       than 2.51 outside the config-hook path this item replaces; the VCS port's commands included.
     tags: [hooks]
+
+  - id: p2-vcs-fast-read-adapter
+    title: A second VCS adapter reads history and trees in process, for the paths where spawning git dominates
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The user, 2026-10-21: keep shelling out to git (hooks, rebase, credential helpers, worktrees,
+      filters and the user's own git's behaviour all come with the CLI; go-git lacks hooks and
+      rebase), but where a command spawns git hundreds of times (history walks, verify over a range,
+      tree reads, the tracker store's loads), a read-only in-process adapter (go-git or similar)
+      behind the same VCS port could serve those reads. Measure first: profile itos status, verify
+      and work show on this repository and count git spawns; build it only where spawns dominate. It
+      never writes, never runs hooks, and the contract suite holds it to the git adapter's answers.
+    tags: [providers]
