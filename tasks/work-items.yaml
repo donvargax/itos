@@ -12572,3 +12572,18 @@ items:
     status: done
     depends_on: []
     kind: task
+
+  - id: p1-config-found-over-ports
+    title: One function finds the config a slice reads, over its ports
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Since step 9 each slice finds its config over its own VCS and tree ports with a private copy
+      of internal/cli's configPath and loadConfigFile: guide and go (T-262) each stat the path and
+      load it into guides.Config, telling a config not there from one that cannot be read; init
+      keeps configPath and loadConfigFile methods; status (T-263) will need the same.
+      internal/config could give it once (the path, the config, or why it cannot be read, or that it
+      is not there), so the slices stop carrying copies of the same glue.
