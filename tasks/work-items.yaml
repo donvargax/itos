@@ -10982,6 +10982,16 @@ items:
       Features freeze after bug-114's release until the layout is done; p2-adopt-go-template-itos
       stays later. The plan and the ADR follow the inventory.
 
+      After the refactor (the user, 2026-10-21): docs/CLI.md and docs/ARCHITECTURE.md are rewritten
+      from itos-cc's docs/CLI.md and docs/architecture.md as the base, itos-cc's references changed
+      to itos's: CLI.md keeps rules 1 to 43 (itos-cc cites them by number) and takes itos-cc's
+      exit-code and problem model (square/exit codes as v9 lands them, a rule and an exit on every
+      problem, precedence) with itos's own problem-rule table; ARCHITECTURE.md takes itos-cc's
+      layout, layer table, ports with fakes and contract suites (plus T-209's proved contracts), the
+      OS as a value, testing model, gates by tier and recipes, as the code then stands; the
+      doc-budget cap rises to fit. Waits so the docs stay true; how the same text stops being kept
+      in several repositories is p2-shared-docs.
+
   - id: p1-conformance-only-by-name
     title: tools/bin/conformance --only takes a corpus file by its name as well as its path
     phase: 1
