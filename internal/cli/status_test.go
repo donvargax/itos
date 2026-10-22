@@ -64,6 +64,13 @@ func TestStatusRefuses(t *testing.T) {
 	if code != ExitMissing || !strings.Contains(stderr, `"zed" is not in people.yaml`) {
 		t.Errorf("--as not among the people: exit %d\n%s", code, stderr)
 	}
+	if err := os.Remove("work-items.yaml"); err != nil {
+		t.Fatal(err)
+	}
+	code, _, stderr = run("status", "--as", "a")
+	if code != ExitPolicy || !strings.Contains(stderr, "no work registry at work-items.yaml") {
+		t.Errorf("no registry: exit %d\n%s", code, stderr)
+	}
 }
 
 // Where git cannot name the common dir the drafts are not read, not even

@@ -19,6 +19,7 @@ import (
 	treefake "github.com/donvargax/itos/v8/internal/store/tree/port/porttest"
 	vcsport "github.com/donvargax/itos/v8/internal/vcs/port"
 	vcsfake "github.com/donvargax/itos/v8/internal/vcs/port/porttest"
+	"github.com/donvargax/itos/v8/internal/work"
 )
 
 // configText names the registry and the people; ci.watch's provider is
@@ -120,7 +121,8 @@ func (s *secondReadFails) Read(ctx context.Context, path string) (string, error)
 func TestOfRefuses(t *testing.T) {
 	v := &vcsfake.VCS{}
 	cfg := configOf(t, v, configText, map[string]string{"people.yaml": "- a\n"})
-	if st, found, missing, err := Of(t.Context(), cfg, "a", inOf(v, nil)); st != nil || len(found) == 0 || missing || err != nil {
+	if st, found, missing, err := Of(t.Context(), cfg, "a", inOf(v, nil)); st != nil || len(found) != 1 ||
+		found[0].Fix != work.Missing("work-items.yaml", false).Fix || missing || err != nil {
 		t.Errorf("no registry: %v %v %v %v", st, found, missing, err)
 	}
 	cfg = configOf(t, v, configText, map[string]string{"work-items.yaml": "items: [\n", "people.yaml": "- a\n"})
@@ -129,8 +131,9 @@ func TestOfRefuses(t *testing.T) {
 	}
 	cfg = configOf(t, v, configText, map[string]string{"work-items.yaml": items([]string{"one"}), "people.yaml": "- a\n"})
 	cfg.Source = &secondReadFails{Source: cfg.Source}
-	if st, _, _, err := Of(t.Context(), cfg, "a", inOf(v, nil)); st != nil || err == nil || !strings.Contains(err.Error(), "changed while read") {
-		t.Errorf("the second read's failure is not the error: %v", err)
+	if st, found, missing, err := Of(t.Context(), cfg, "a", inOf(v, nil)); st != nil || found != nil || missing || err == nil ||
+		!strings.Contains(err.Error(), "changed while read") {
+		t.Errorf("the second read's failure is not the error: %v %v %v", found, missing, err)
 	}
 	cfg = configOf(t, v, configText, map[string]string{"work-items.yaml": items([]string{"one"}), "people.yaml": "- a\n"})
 	in := inOf(v, nil)
@@ -633,6 +636,37 @@ func TestRunLine(t *testing.T) {
 	}}
 	if result, line := runLine("CI", run); result != "going" || line != "CI: going; failed jobs: a, f" {
 		t.Errorf("%q %q", result, line)
+	}
+}
+
+// talks records how the remote was asked.
+type talks struct {
+	*vcsfake.VCS
+	asked []vcsport.Talk
+}
+
+func (r *talks) RemoteRefs(ctx context.Context, remote string, refs []string, talk vcsport.Talk) (map[string]string, error) {
+	r.asked = append(r.asked, talk)
+	return r.VCS.RemoteRefs(ctx, remote, refs, talk)
+}
+
+// The remote is asked for its head and its tags never prompting for
+// credentials.
+func TestAskRemoteNeverPrompts(t *testing.T) {
+	v := &talks{VCS: world()}
+	cfg := configOf(t, v, configText, nil)
+	st := &Standing{}
+	st.readBranch(t.Context(), cfg, "origin", "refs/heads/main", "main", inOf(v, nil))
+	if len(v.asked) != 2 || !v.asked[0].NoPrompt || !v.asked[1].NoPrompt {
+		t.Errorf("the remote was asked %+v", v.asked)
+	}
+}
+
+// Questions' ids are aligned to the widest, however narrow.
+func TestPrintAlignsTheQuestions(t *testing.T) {
+	st := &Standing{Questions: []ask.Entry{{Question: "Unnamed?"}}}
+	if got := printed(st); !strings.HasSuffix(got, "Open questions:\n    Unnamed?\n") {
+		t.Errorf("%q", got)
 	}
 }
 

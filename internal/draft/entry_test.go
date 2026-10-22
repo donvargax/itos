@@ -36,6 +36,9 @@ func TestLines(t *testing.T) {
 	if !slices.Equal(got, want) {
 		t.Errorf("%q\nnot\n%q", got, want)
 	}
+	if got := Lines([]Draft{{Command: []string{"go"}}}); !slices.Equal(got, []string{"    itos go"}) {
+		t.Errorf("no id: %q", got)
+	}
 	if got := Lines(nil); len(got) != 0 {
 		t.Errorf("no drafts: %q", got)
 	}
