@@ -12393,8 +12393,8 @@ items:
   - id: T-262
     title: itos guide and itos go become slices
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: [T-242, T-243, T-244, T-245, T-246, T-261]
     kind: task
 
