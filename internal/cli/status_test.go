@@ -1,9 +1,7 @@
 package cli
 
 import (
-	"context"
 	"encoding/json"
-	"errors"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -14,12 +12,7 @@ import (
 
 	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/draft"
-	"github.com/donvargax/itos/v8/internal/out"
-	"github.com/donvargax/itos/v8/internal/providers"
 	"github.com/donvargax/itos/v8/internal/release"
-	trees "github.com/donvargax/itos/v8/internal/store/tree/adapter"
-	"github.com/donvargax/itos/v8/internal/store/tree/port"
-	"github.com/donvargax/itos/v8/internal/vcs/port/porttest"
 )
 
 // statusRepo is a scratch repository as the current folder, with no remote,
@@ -69,101 +62,6 @@ func TestStatusRefuses(t *testing.T) {
 	code, _, stderr := run("status", "--as", "zed")
 	if code != ExitMissing || !strings.Contains(stderr, `"zed" is not in people.yaml`) {
 		t.Errorf("--as not among the people: exit %d\n%s", code, stderr)
-	}
-}
-
-// secondReadFails is the working tree, but for the registry, which reads as
-// it is once and fails after: a registry changed between its check and its
-// load.
-type secondReadFails struct {
-	port.Source
-	reads int
-}
-
-func (s *secondReadFails) Read(ctx context.Context, path string) (string, error) {
-	if path == "work-items.yaml" {
-		if s.reads++; s.reads > 1 {
-			return "", errors.New("changed while read")
-		}
-	}
-	return s.Source.Read(ctx, path)
-}
-
-// A registry that cannot be loaded after its check is the error.
-func TestStatusRegistryChanged(t *testing.T) {
-	statusRepo(t, map[string]string{"work-items.yaml": items("one"), "people.yaml": "- a\n"})
-	cfg, err := loadConfig()
-	if err != nil {
-		t.Fatal(err)
-	}
-	cfg.Source = &secondReadFails{Source: trees.Worktree}
-	_, _, code, err := statusOf(cfg, "a", Out{})
-	if err == nil || !strings.Contains(err.Error(), "changed while read") || code != 0 {
-		t.Errorf("the second read's failure is not the error: exit %d, %v", code, err)
-	}
-}
-
-// A remote that cannot be reached leaves the head as last fetched, said as
-// such, its header read from the fetched commit; never fetched, neither the
-// head nor its CI run is read.
-func TestStatusRemoteUnreached(t *testing.T) {
-	statusRepo(t, map[string]string{"work-items.yaml": items("one"), "people.yaml": "- a\n"})
-	cfg, err := loadConfig()
-	if err != nil {
-		t.Fatal(err)
-	}
-	fetched := strings.Repeat("f", 40)
-	down := map[string]*porttest.Remote{"origin": {URL: "https://example.invalid/o/n", Down: true}}
-	cfg.VCS = &porttest.VCS{History: []porttest.Commit{{Name: fetched, Message: "feat: fetched\n\nIts body.\n"}},
-		Named: map[string]string{"refs/remotes/origin/main": fetched}, Remote: down}
-	st := &standing{}
-	st.readBranch(cfg, "origin", "refs/heads/main", "main", Out{})
-	if h := st.Head; h == nil || h.Commit != fetched || !h.LastFetched || h.Header != "feat: fetched" ||
-		len(st.Unread) == 0 || st.Unread[0] != "origin cannot be reached, so its main is as last fetched." {
-		t.Errorf("last fetched: head %+v, unread %q", st.Head, st.Unread)
-	}
-	cfg.VCS = &porttest.VCS{Remote: down}
-	st = &standing{}
-	st.readBranch(cfg, "origin", "refs/heads/main", "main", Out{})
-	want := "origin cannot be reached and origin/main was never fetched, so neither its head nor its CI run is read."
-	if st.Head != nil || len(st.Unread) != 1 || st.Unread[0] != want {
-		t.Errorf("never fetched: head %+v, unread %q", st.Head, st.Unread)
-	}
-}
-
-// Under a stealth config with no --as the session owns every item, which
-// --json says; with nobody among the people only the unowned are listed,
-// five of them and how many more, and a question names its item.
-func TestStatusEveryAndNobody(t *testing.T) {
-	statusRepo(t, map[string]string{
-		"work-items.yaml": items("i1", "i2", "i3", "i4", "i5", "i6"),
-		"people.yaml":     "[]\n",
-		"asks.yaml":       "questions:\n  - id: q-1\n    item: i1\n    question: Which way?\n",
-	})
-	cfg, err := loadConfig()
-	if err != nil {
-		t.Fatal(err)
-	}
-	var stdout, stderr strings.Builder
-	o := Out{Stdout: &stdout, Stderr: &stderr}
-	cfg.Stealth = true
-	st, _, _, err := statusOf(cfg, "", o)
-	if err != nil || !st.Every {
-		t.Fatalf("a stealth config's session does not own every item: %v %+v", err, st)
-	}
-	var b strings.Builder
-	if err := out.Emit(&b, st.fields()...); err != nil || !strings.Contains(b.String(), `"every_item": true`) {
-		t.Errorf("--json does not say every_item: %v\n%s", err, b.String())
-	}
-	cfg.Stealth = false
-	if st, _, _, err = statusOf(cfg, "", o); err != nil {
-		t.Fatal(err)
-	}
-	st.print(&stdout)
-	for _, want := range []string{"Working for nobody", "and 1 more: itos work", "q-1  Which way?  (i1)"} {
-		if !strings.Contains(stdout.String(), want) {
-			t.Errorf("the status does not say %q:\n%s", want, stdout.String())
-		}
 	}
 }
 
@@ -250,57 +148,5 @@ func TestStatusNamesTheVisibility(t *testing.T) {
 	}
 	if code, stdout, stderr := run("status", "--as", "a"); code != 0 || !strings.Contains(stdout, "origin/main: ") {
 		t.Fatalf("exit %d\n%s%s", code, stdout, stderr)
-	}
-}
-
-// visibility is "" for no provider, one that cannot look or cannot tell, and
-// a look that fails.
-func TestVisibilityOfAProvider(t *testing.T) {
-	tells := providers.Watcher{Visibility: func() (string, error) { return "internal", nil }}
-	fails := providers.Watcher{Visibility: func() (string, error) { return "public", errors.New("no network") }}
-	for name, got := range map[string]string{
-		"none":        visibility(tells, false, nil),
-		"cannot look": visibility(tells, true, errors.New("no token")),
-		"cannot tell": visibility(providers.Watcher{}, true, nil),
-		"fails":       visibility(fails, true, nil),
-	} {
-		if got != "" {
-			t.Errorf("%s: %q", name, got)
-		}
-	}
-	if got := visibility(tells, true, nil); got != "internal" {
-		t.Errorf("tells: %q", got)
-	}
-}
-
-// readCI says why it did not read the run, for a provider that cannot look,
-// none, and a look that fails, with no CI standing; a commit with no run yet
-// is CI none, and a run found is its result, each said on the head's lines.
-func TestStatusReadsCI(t *testing.T) {
-	found := providers.Run{URL: "u", Status: "completed", Conclusion: "success"}
-	for _, c := range []struct {
-		name   string
-		ok     bool
-		err    error
-		look   providers.Watch
-		result string
-		line   string
-	}{
-		{"cannot look", true, errors.New("no token"), nil, "", "CI cannot be read: no token"},
-		{"none", false, nil, nil, "", "CI is not read: ci.watch.provider is none."},
-		{"a look that fails", true, nil, func(string) (providers.Run, bool, error) { return providers.Run{}, false, errors.New("502") }, "", "CI cannot be read: 502"},
-		{"no run yet", true, nil, func(string) (providers.Run, bool, error) { return providers.Run{}, false, nil }, "none", "CI: no run of abcdef1 yet"},
-		{"a run", true, nil, func(string) (providers.Run, bool, error) { return found, true, nil }, "success", "CI: success, u"},
-	} {
-		st := &standing{}
-		st.readCI(providers.Watcher{Look: c.look}, c.ok, c.err, "abcdef1234567")
-		result := ""
-		if st.CI != nil {
-			result = st.CI.Result
-		}
-		unread := c.result == ""
-		if result != c.result || len(st.start) != 1 || st.start[0] != c.line || (len(st.Unread) == 1) != unread {
-			t.Errorf("%s: CI %+v, lines %q, unread %q", c.name, st.CI, st.start, st.Unread)
-		}
 	}
 }

@@ -65,26 +65,11 @@ func askCommand(args []string, o Out) (int, error) {
 	return askList(set["--all"], o)
 }
 
-// askEntry is a question as --json gives it.
-type askEntry struct {
-	ID       string `json:"id"`
-	Item     string `json:"item,omitempty"`
-	Question string `json:"question"`
-	Status   string `json:"status"`
-	Answer   string `json:"answer,omitempty"`
-	// Decision is the record's number, or "none".
-	Decision any `json:"decision,omitempty"`
-}
+// askEntry is a question as --json gives it (ask.Entry).
+type askEntry = ask.Entry
 
-func entryOf(q ask.Question) askEntry {
-	e := askEntry{ID: q.ID, Item: q.Item, Question: q.Question, Status: q.Status(), Answer: q.Answer}
-	if n, err := strconv.Atoi(q.Decision); err == nil {
-		e.Decision = n
-	} else if q.Decision != "" {
-		e.Decision = q.Decision
-	}
-	return e
-}
+// entryOf is ask.EntryOf.
+func entryOf(q ask.Question) askEntry { return ask.EntryOf(q) }
 
 // decisionOf is the question's decision as the list and show say it: "decision
 // <n>", "no decision (--none)", or "" while it is neither.

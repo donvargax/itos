@@ -622,7 +622,7 @@
 // putBack on the files git apply --numstat lists. A draft promoted leaves
 // the list (saved at once) before the next starts; the first that fails is
 // draft-not-applied, exit 1, it and those after it kept. itos status lists
-// the drafts (printDrafts). An edit draft (draftEdit, slice 99) never
+// the drafts (internal/engine/status). An edit draft (draftEdit, slice 99) never
 // touches the working tree: it writes a copy of each path from HEAD (git
 // cat-file blob, empty for a path HEAD lacks) under edits/<id>/ and records
 // HEAD as its base; promote's editPatch reads the base into a scratch index,
@@ -671,35 +671,13 @@
 // as written, and the commit procedure then the commit policy the config
 // sets, from internal/engine/agentrules' CommitPolicy. They write nothing.
 //
-// status (status.go) is where the work stands, built from what already
-// records it and never written. The remote branch's head is asked of the
-// remote (git ls-remote with GIT_TERMINAL_PROMPT=0 and a 20 s timeout), the
-// branch's upstream or origin's HEAD from a detached one, and read from
-// refs/remotes/ as last fetched when the remote does not answer. Its CI run
-// is one look of the watcher's providers.Watch, never the loop; a run not
-// done is going. The last nightly (readNightly) is one look of
-// providers.NightlyProvider, read even where the head is not (no remote, no
-// branch yet) when GITHUB_REPOSITORY names the repository; the head's line
-// and the nightly's share runLine. While the head's run is going, did not
-// pass or has not started, the commit main last proved follows
-// (readLastGreen, providers.LastGreenProvider over ci.range, given the
-// branch's head as fetched). The newest release (readRelease) is asked of
-// the same remote with git ls-remote --tags under the same timeout, an
-// annotated tag's peeled commit standing for it, and read from refs/tags/ as
-// last fetched when the head was or the tags do not come; release.Newest
-// picks it, and the unreleased commits are git log <release>..<head> in this
-// clone kept where release.Releasable holds; a head not fetched here lists
-// to the remote branch as last fetched, with a line saying the list may be
-// behind. status never fetches. The itos the repository runs (itosRuns: the
-// pin, else the install script's version= line, as upgrade reads the version
-// it moves from) is set against the newest stable release (newestItos),
-// asked of the release server once as a bare pin asks, within 5 s, and not
-// at all where the launcher asks nothing (CI, ITOS_NO_UPDATE); with no
-// version run, no answer or a pre-release, there is no itos line and the key
-// is null. Only a newer major names itos upgrade. The person is work.Whoami's and the items
-// work.Propose's: in progress, then work.Startable, cut to five; the
-// questions are loadAsks' open ones. Each part that cannot be reached adds a
-// line to standing.Unread and to what is printed, and the rest goes on.
+// status (status.go) is where the work stands, internal/engine/status's
+// Of: statusOf binds it to the config's VCS for the head, the real git
+// (vcs.Git{}) for the newest release and the rules for agents, os.Getenv
+// and gh for the providers, work.identity's provider, loadAsks over the
+// config's tracker for the questions and draftsFile's list for the drafts,
+// and turns a registry's problems into exit 1 and --as not among the people
+// into exit 3. standing wraps the engine's Standing for print and fields.
 //
 // # guard claude-code
 //

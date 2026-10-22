@@ -132,47 +132,18 @@ func heldDrafts(o Out) (file string, drafts draft.File, release func(), code int
 	return file, drafts, release, 0, err
 }
 
-// draftEntry is a draft as draft --json and status --json list it.
-type draftEntry struct {
-	ID      string   `json:"id"`
-	Kind    string   `json:"kind"`
-	Header  string   `json:"header,omitempty"`
-	Paths   []string `json:"paths,omitempty"`
-	Command []string `json:"command,omitempty"`
-	Minted  string   `json:"minted,omitempty"`
-}
+// draftEntry is a draft as draft --json and status --json list it
+// (draft.Entry).
+type draftEntry = draft.Entry
 
-func entryOfDraft(d draft.Draft) draftEntry {
-	if d.IsChange() {
-		return draftEntry{ID: d.ID, Kind: "change", Header: d.Header(), Paths: d.Paths}
-	}
-	return draftEntry{ID: d.ID, Kind: "command", Command: d.Command, Minted: d.Minted}
-}
+// entryOfDraft is draft.EntryOf.
+func entryOfDraft(d draft.Draft) draftEntry { return draft.EntryOf(d) }
 
-// draftSummary is what a list says of a draft: a change's header and its
-// paths, or a command's line, and the id it makes when it mints one.
-func draftSummary(d draft.Draft) string {
-	switch {
-	case d.IsChange():
-		return d.Header() + "  (" + strings.Join(d.Paths, ", ") + ")"
-	case d.Minted != "":
-		return d.Line() + "  (makes " + d.Minted + ")"
-	}
-	return d.Line()
-}
+// draftSummary is draft.Summary: what a list says of a draft.
+func draftSummary(d draft.Draft) string { return draft.Summary(d) }
 
-// draftLines are the drafts as lists print them, indented, ids aligned.
-func draftLines(drafts []draft.Draft) []string {
-	width := 0
-	for _, d := range drafts {
-		width = max(width, len(d.ID))
-	}
-	lines := make([]string, len(drafts))
-	for i, d := range drafts {
-		lines[i] = fmt.Sprintf("  %-*s  %s", width, d.ID, draftSummary(d))
-	}
-	return lines
-}
+// draftLines is draft.Lines: the drafts as lists print them.
+func draftLines(drafts []draft.Draft) []string { return draft.Lines(drafts) }
 
 // draftList is `draft`: the drafts in the order they were added, which is
 // the order promote applies them in.

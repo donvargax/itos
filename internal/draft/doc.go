@@ -20,5 +20,6 @@
 // The command line (internal/cli/draft.go) makes and applies the patches,
 // with git, and holds the list's lock (the private store's Hold) across
 // every read-change-write, promote included, so a draft is never applied
-// twice.
+// twice. EntryOf, Summary and Lines are a draft as --json lists it and as
+// the lists print it, which itos draft and status share.
 package draft
