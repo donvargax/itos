@@ -91,7 +91,7 @@ func heldDrafts(o Out) (file string, drafts draft.File, release func(), code int
 		code, err = noRepository(o)
 		return "", drafts, release, code, err
 	}
-	held, err := lock.Hold(file)
+	held, err := lock.Hold(file, o.OS)
 	if err != nil {
 		return "", drafts, release, 0, err
 	}

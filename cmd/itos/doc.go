@@ -2,6 +2,11 @@
 // rules, the named tests, the CI plan, the work routing and the hooks, behind
 // one command line (itos --help).
 //
+// The OS is read here alone (runtime.GOOS) and handed down as a value
+// (git.Platform, launch.Platform, cli.Main's goos, Out's OS): no package
+// under internal branches on runtime.GOOS, so a unit test runs each OS's
+// path on any, and a build-tagged file holds only a call one OS lacks.
+//
 // A run passes through four packages in this order, each of which may end it:
 //
 //  1. Started under the name git, through the link itos git-shim install

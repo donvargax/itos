@@ -2,11 +2,14 @@ package git
 
 import (
 	"errors"
+	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"testing"
+	"time"
 )
 
 // The real git is the first git on the PATH that is not this binary: a link
@@ -17,6 +20,7 @@ func TestReal(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("the gits here are shell scripts and symbolic links")
 	}
+	onThisPlatform(t)
 	self, err := os.Executable()
 	if err != nil {
 		t.Fatal(err)
@@ -80,6 +84,7 @@ func TestRealPassesOverAnotherItos(t *testing.T) {
 	if err != nil {
 		t.Skip("no go to build an itos with")
 	}
+	onThisPlatform(t)
 	root := t.TempDir()
 	dir := func(name string) string {
 		d := filepath.Join(root, name)
@@ -172,4 +177,62 @@ func TestRealPassesOverAnotherItos(t *testing.T) {
 		write(other, text)
 		real1(t, filepath.Dir(other)+sep+filepath.Dir(real), other)
 	})
+}
+
+// onThisPlatform has Real read the PATH by the OS the test runs on, as
+// cmd/itos has it, until the test ends.
+func onThisPlatform(t *testing.T) {
+	t.Helper()
+	was := Platform
+	Platform = runtime.GOOS
+	t.Cleanup(func() { Platform = was })
+}
+
+// The names git may have in a PATH folder: git outside windows, whatever
+// PATHEXT says; on windows git with each PATHEXT extension in lower case,
+// else with the default extensions.
+func TestNames(t *testing.T) {
+	t.Setenv("PATHEXT", ".EXE;;.Cmd")
+	for _, goos := range []string{"linux", "darwin"} {
+		if got := names(goos); !slices.Equal(got, []string{"git"}) {
+			t.Errorf("names(%s) = %q", goos, got)
+		}
+	}
+	if got := names("windows"); !slices.Equal(got, []string{"git.exe", "git.cmd"}) {
+		t.Errorf("names(windows) with PATHEXT = %q", got)
+	}
+	t.Setenv("PATHEXT", "")
+	if got := names("windows"); !slices.Equal(got, []string{"git.com", "git.exe", "git.bat", "git.cmd"}) {
+		t.Errorf("names(windows) without PATHEXT = %q", got)
+	}
+}
+
+// mode is a file's information that has only a mode.
+type mode fs.FileMode
+
+func (m mode) Name() string       { return "git" }
+func (m mode) Size() int64        { return 0 }
+func (m mode) Mode() fs.FileMode  { return fs.FileMode(m) }
+func (m mode) ModTime() time.Time { return time.Time{} }
+func (m mode) IsDir() bool        { return fs.FileMode(m).IsDir() }
+func (m mode) Sys() any           { return nil }
+
+// A file runs when it is regular and, outside windows, has an execute bit.
+func TestExecutable(t *testing.T) {
+	for _, c := range []struct {
+		goos string
+		mode fs.FileMode
+		want bool
+	}{
+		{"linux", 0o755, true},
+		{"darwin", 0o100, true},
+		{"linux", 0o644, false},
+		{"darwin", fs.ModeDir | 0o755, false},
+		{"windows", 0o644, true},
+		{"windows", fs.ModeDir | 0o755, false},
+	} {
+		if got := executable(mode(c.mode), c.goos); got != c.want {
+			t.Errorf("executable(%v, %s) = %v", c.mode, c.goos, got)
+		}
+	}
 }

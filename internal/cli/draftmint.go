@@ -78,7 +78,7 @@ func draftMint(command []string, o Out) (minted string, code int, err error) {
 			code = refused
 			return err
 		}
-		minted, err = mintItemID(cfg, kind, itemIDs(registry))
+		minted, err = mintItemID(cfg, kind, itemIDs(registry), o.OS)
 		return err
 	})
 	return minted, code, err

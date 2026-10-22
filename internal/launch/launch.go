@@ -11,7 +11,6 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"time"
 
@@ -62,15 +61,15 @@ func Args(args []string) []string {
 // it is not this binary, and gives that version's exit code. When this binary
 // is the one to run, it gives nil, no code at all, and the caller carries on.
 // Where a repository's pin has fallen behind the newest release, it says so
-// on stderr first (update.go).
-func Main(args []string, stderr io.Writer) *int {
-	if code, handed := handUpgrade(args, stderr); handed {
+// on stderr first (update.go). A release is fetched and run for p.
+func Main(args []string, stderr io.Writer, p Platform) *int {
+	if code, handed := handUpgrade(args, stderr, p); handed {
 		return new(code)
 	}
 	if binaryCommand(args) {
 		return nil
 	}
-	t, ok := choose(args, stderr)
+	t, ok := choose(args, stderr, p)
 	if !ok {
 		return nil
 	}
@@ -78,7 +77,7 @@ func Main(args []string, stderr io.Writer) *int {
 		answerNothing(t, os.Stdin, stderr)
 		return new(0)
 	}
-	bin, err := ensure(t)
+	bin, err := ensure(t, p)
 	var code int
 	if err == nil {
 		code, err = run(bin, args, t.version)
@@ -106,7 +105,7 @@ func failed(err error) int { return cli.ExitCode(kind.Else(kind.Missing, err)) }
 // on when ITOS_UPGRADE_FROM is set, so a release that is not the version it
 // was fetched as cannot loop, nor anything cli.UpgradeTarget leaves to this
 // binary, nor an upgrade to a version no newer than it.
-func handUpgrade(args []string, stderr io.Writer) (int, bool) {
+func handUpgrade(args []string, stderr io.Writer, p Platform) (int, bool) {
 	if os.Getenv(EnvUpgradeFrom) != "" {
 		return 0, false
 	}
@@ -117,7 +116,7 @@ func handUpgrade(args []string, stderr io.Writer) (int, bool) {
 	}
 	var bin string
 	if err == nil {
-		bin, err = ensure(target{h.Version, release.SHA256(h.Checksums)})
+		bin, err = ensure(target{h.Version, release.SHA256(h.Checksums)}, p)
 	}
 	var code int
 	if err == nil {
@@ -191,7 +190,7 @@ func answerNothing(t target, stdin *os.File, stderr io.Writer) {
 // ITOS_VERSION's, else the pin's, else, with no config at all or a stealth
 // config with no pin, the newest release the launcher knows of. A project's
 // config with no pin runs this binary.
-func choose(args []string, stderr io.Writer) (target, bool) {
+func choose(args []string, stderr io.Writer, p Platform) (target, bool) {
 	own := version.Version()
 	c := readConfig(args)
 	if v := os.Getenv(EnvVersion); v != "" {
@@ -207,13 +206,13 @@ func choose(args []string, stderr io.Writer) (target, bool) {
 	switch c.state {
 	case pinned:
 		pinLine(args, c.pin.Version, own, stderr)
-		notice(c.file, c.pin.Version, own, stderr)
+		notice(c.file, c.pin.Version, own, stderr, p)
 		if c.pin.Version == own {
 			return target{}, false
 		}
 		return target{c.pin.Version, c.pin.Checksums}, true
 	case absent:
-		return newest(own)
+		return newest(own, p)
 	}
 	return target{}, false
 }
@@ -335,38 +334,43 @@ func cacheDir() (string, error) {
 	return filepath.Join(dir, "itos"), nil
 }
 
-// binaryName is the binary's name in a release's archive.
-func binaryName() string {
-	if runtime.GOOS == "windows" {
+// Platform is the OS and the architecture itos runs on, as GOOS and GOARCH
+// name them, which cmd/itos detects: a release's archive and its binary are
+// named by it.
+type Platform struct{ OS, Arch string }
+
+// binary is the binary's name in a release's archive.
+func (p Platform) binary() string {
+	if p.OS == "windows" {
 		return "itos.exe"
 	}
 	return "itos"
 }
 
-// archiveName is the release's archive for this platform
+// archive is the release's archive for the platform
 // (docs/decisions/0022-itos-is-distributed-as-release-archives-with-checksums-installed-pinned.md).
-func archiveName(v string) string {
+func (p Platform) archive(v string) string {
 	ext := "tar.gz"
-	if runtime.GOOS == "windows" {
+	if p.OS == "windows" {
 		ext = "zip"
 	}
-	return fmt.Sprintf("itos-%s-%s-%s.%s", v, runtime.GOOS, runtime.GOARCH, ext)
+	return fmt.Sprintf("itos-%s-%s-%s.%s", v, p.OS, p.Arch, ext)
 }
 
 // ensure is the path of the target's binary in the cache, fetched and checked
 // first when the cache does not have it, or has it checked against another
 // checksums.txt than the one pinned.
-func ensure(t target) (string, error) {
+func ensure(t target, p Platform) (string, error) {
 	cache, err := cacheDir()
 	if err != nil {
 		return "", err
 	}
 	dir := filepath.Join(cache, t.version)
-	bin := filepath.Join(dir, binaryName())
-	if cached(dir, t) {
+	bin := filepath.Join(dir, p.binary())
+	if cached(dir, t, p) {
 		return bin, nil
 	}
-	if err := fetch(cache, dir, t); err != nil {
+	if err := fetch(cache, dir, t, p); err != nil {
 		return "", err
 	}
 	return bin, nil
@@ -374,8 +378,8 @@ func ensure(t target) (string, error) {
 
 // cached is whether the cache holds the target's binary, checked against the
 // checksums.txt it pins when it pins one.
-func cached(dir string, t target) bool {
-	if info, err := os.Stat(filepath.Join(dir, binaryName())); err != nil || !info.Mode().IsRegular() {
+func cached(dir string, t target, p Platform) bool {
+	if info, err := os.Stat(filepath.Join(dir, p.binary())); err != nil || !info.Mode().IsRegular() {
 		return false
 	}
 	if t.checksums == "" {
@@ -387,7 +391,7 @@ func cached(dir string, t target) bool {
 
 // fetch downloads the target's release, checks it and puts its binary and
 // checksums.txt in dir.
-func fetch(cache, dir string, t target) error {
+func fetch(cache, dir string, t target, p Platform) error {
 	sums, err := release.Get(release.URL(t.version, "checksums.txt"), fetchTimeout)
 	if err != nil {
 		return fmt.Errorf("cannot fetch itos %s: %w", t.version, err)
@@ -396,15 +400,15 @@ func fetch(cache, dir string, t target) error {
 		return fmt.Errorf("the checksums.txt of itos %s is not the one pinned (pin.checksums): its SHA-256 is %s, the pin %s",
 			t.version, got, t.checksums)
 	}
-	return install(cache, dir, t.version, sums)
+	return install(cache, dir, t.version, sums, p)
 }
 
-// install fetches the version's archive for this platform, holds it to its
+// install fetches the version's archive for the platform, holds it to its
 // line in sums, the release's checksums.txt, and puts its binary and sums in
 // dir, through a folder of its own beside it that is removed whatever
 // happens, so the cache never holds a half or unchecked release.
-func install(cache, dir, v string, sums []byte) error {
-	asset := archiveName(v)
+func install(cache, dir, v string, sums []byte, p Platform) error {
+	asset := p.archive(v)
 	want, ok := release.Listed(sums, asset)
 	if !ok {
 		return fmt.Errorf("the checksums.txt of itos %s lists no %s: no release of it for this platform", v, asset)
@@ -417,16 +421,15 @@ func install(cache, dir, v string, sums []byte) error {
 		return fmt.Errorf("%s is not the archive the checksums.txt of itos %s lists: its SHA-256 is %s, the list's %s",
 			asset, v, got, want)
 	}
-	binary, err := extract(archive, asset)
+	binary, err := extract(archive, asset, p.binary())
 	if err != nil {
 		return fmt.Errorf("itos %s: %w", v, err)
 	}
-	return store(cache, dir, binary, sums)
+	return store(cache, dir, binary, sums, p)
 }
 
-// extract is the binary at the top of a release's archive.
-func extract(archive []byte, asset string) ([]byte, error) {
-	name := binaryName()
+// extract is the binary, the file name, at the top of a release's archive.
+func extract(archive []byte, asset, name string) ([]byte, error) {
 	if strings.HasSuffix(asset, ".zip") {
 		z, err := zip.NewReader(bytes.NewReader(archive), int64(len(archive)))
 		if err != nil {
@@ -466,7 +469,7 @@ func extract(archive []byte, asset string) ([]byte, error) {
 // store puts the checked binary and its checksums.txt in dir: written into a
 // folder of the run's own beside it, then moved into place whole, keeping the
 // release another run cached there first.
-func store(cache, dir string, binary, sums []byte) error {
+func store(cache, dir string, binary, sums []byte, p Platform) error {
 	if err := os.MkdirAll(cache, 0o755); err != nil {
 		return fmt.Errorf("cannot create the cache %s: %w", cache, err)
 	}
@@ -475,7 +478,7 @@ func store(cache, dir string, binary, sums []byte) error {
 		return fmt.Errorf("cannot write to the cache %s: %w", cache, err)
 	}
 	defer os.RemoveAll(tmp)
-	if err := os.WriteFile(filepath.Join(tmp, binaryName()), binary, 0o755); err != nil {
+	if err := os.WriteFile(filepath.Join(tmp, p.binary()), binary, 0o755); err != nil {
 		return fmt.Errorf("cannot write to the cache %s: %w", cache, err)
 	}
 	if err := os.WriteFile(filepath.Join(tmp, "checksums.txt"), sums, 0o644); err != nil {
@@ -486,7 +489,7 @@ func store(cache, dir string, binary, sums []byte) error {
 	// removing what the other is about to run (bug 44; on windows a running
 	// itos.exe can be neither removed nor replaced).
 	sum := target{checksums: release.SHA256(sums)}
-	if os.Rename(tmp, dir) == nil || cached(dir, sum) {
+	if os.Rename(tmp, dir) == nil || cached(dir, sum, p) {
 		return nil
 	}
 	// What the cache holds for the version was checked against another
@@ -497,7 +500,7 @@ func store(cache, dir string, binary, sums []byte) error {
 		return fmt.Errorf("cannot replace %s in the cache: %w", dir, err)
 	}
 	defer os.RemoveAll(old)
-	if err := os.Rename(tmp, dir); err != nil && !cached(dir, sum) {
+	if err := os.Rename(tmp, dir); err != nil && !cached(dir, sum, p) {
 		return fmt.Errorf("cannot write to the cache %s: %w", cache, err)
 	}
 	return nil

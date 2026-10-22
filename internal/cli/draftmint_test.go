@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"io"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -9,6 +10,11 @@ import (
 
 	"github.com/donvargax/itos/v8/internal/draft"
 )
+
+// runHere is Main's runLine on the OS the tests run on.
+func runHere(args []string, stdout, stderr io.Writer, reserved string) int {
+	return mainWith(args, stdout, stderr, runtime.GOOS, reserved)
+}
 
 // A scratch repository under a stealth config whose registry holds T-002
 // and slice-4, the ledger T-002: the repository's top and itos's folder.
@@ -113,7 +119,7 @@ func TestRunReservedWritesTheItemUnderTheReservedId(t *testing.T) {
 	_, itosDir := mintingRepo(t)
 	t.Setenv("NO_COLOR", "kept")
 	var out strings.Builder
-	code := runReserved(draft.Draft{ID: "thing", Command: append([]string{"--no-color"}, sliceLine...), Minted: "slice-9"}, &out, mainWith)
+	code := runReserved(draft.Draft{ID: "thing", Command: append([]string{"--no-color"}, sliceLine...), Minted: "slice-9"}, &out, runHere)
 	if code != 0 || !strings.Contains(out.String(), "slice-9 is a new slice") {
 		t.Fatalf("runReserved: exit %d, output %q", code, out.String())
 	}
@@ -126,7 +132,7 @@ func TestRunReservedWritesTheItemUnderTheReservedId(t *testing.T) {
 	if os.Getenv("NO_COLOR") != "kept" {
 		t.Errorf("NO_COLOR is %q, not put back", os.Getenv("NO_COLOR"))
 	}
-	if code := runReserved(draft.Draft{ID: "again", Command: sliceLine, Minted: "slice-9"}, &out, mainWith); code != ExitPolicy {
+	if code := runReserved(draft.Draft{ID: "again", Command: sliceLine, Minted: "slice-9"}, &out, runHere); code != ExitPolicy {
 		t.Errorf("a reserved id an item has: exit %d", code)
 	}
 }
@@ -149,7 +155,7 @@ func TestInPlaceGivesBackWhatFailed(t *testing.T) {
 	// cannot move back. Either way runReserved reports the folder's failure
 	// as itos's own, exit 70.
 	var out strings.Builder
-	code := runReserved(draft.Draft{ID: "thing", Command: sliceLine, Minted: "slice-9"}, &out, mainWith)
+	code := runReserved(draft.Draft{ID: "thing", Command: sliceLine, Minted: "slice-9"}, &out, runHere)
 	reported := false
 	for _, line := range strings.Split(out.String(), "\n") {
 		reported = reported || strings.HasPrefix(line, "itos: getwd") || strings.HasPrefix(line, "itos: chdir")

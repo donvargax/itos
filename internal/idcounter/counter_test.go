@@ -19,6 +19,7 @@ func TestMain(m *testing.M) {
 		os.Exit(runFailingGit(failing))
 	}
 	clearGitEnvironment()
+	git.Platform = runtime.GOOS
 	os.Exit(m.Run())
 }
 

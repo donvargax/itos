@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"runtime"
 
 	"github.com/donvargax/itos/v8/internal/cli"
 	"github.com/donvargax/itos/v8/internal/git"
@@ -10,8 +11,10 @@ import (
 )
 
 func main() {
+	goos := runtime.GOOS
+	git.Platform = goos
 	args := os.Args[1:]
-	if shim.Named(os.Args[0]) {
+	if shim.Named(os.Args[0], goos) {
 		var code int
 		var done bool
 		if args, code, done = shim.Main(args, os.Stderr); done {
@@ -20,8 +23,8 @@ func main() {
 	}
 	args = launch.Args(args)
 	git.Export()
-	if code := launch.Main(args, os.Stderr); code != nil {
+	if code := launch.Main(args, os.Stderr, launch.Platform{OS: goos, Arch: runtime.GOARCH}); code != nil {
 		os.Exit(*code)
 	}
-	os.Exit(cli.Main(args, os.Stdout, os.Stderr))
+	os.Exit(cli.Main(args, os.Stdout, os.Stderr, goos))
 }

@@ -138,7 +138,7 @@ func soundRegistry(o Out) (cfg *config.Loaded, registry work.Registry, text stri
 		return nil, work.Registry{}, "", release, 0, err
 	}
 	if cfg.Stealth {
-		held, err := lock.Hold(cfg.Work.Registry)
+		held, err := lock.Hold(cfg.Work.Registry, o.OS)
 		if err != nil {
 			return nil, work.Registry{}, "", release, 0, err
 		}

@@ -89,6 +89,9 @@ type Out struct {
 	Stdout, Stderr io.Writer
 	Tests          *tests.Warnings
 	Origin         string
+	// OS is the OS itos runs on, as GOOS names it, which Main's caller
+	// detects: what differs by OS takes it from here.
+	OS string
 	// reserved is the item id a draft reserved for the command itos draft
 	// promote runs in this process (runReserved), which the command writes
 	// instead of minting one (newItemID); "" otherwise. Only promote sets
@@ -248,17 +251,20 @@ func typed(origin, p string) string {
 	return filepath.Join(origin, p)
 }
 
-// Main runs itos with the arguments after its name and gives the exit code.
-func Main(args []string, stdout, stderr io.Writer) int {
-	return mainWith(args, stdout, stderr, "")
+// Main runs itos with the arguments after its name on the OS goos, as GOOS
+// names it (Out's OS), and gives the exit code.
+func Main(args []string, stdout, stderr io.Writer, goos string) int {
+	return mainWith(args, stdout, stderr, goos, "")
 }
 
 // mainWith is Main with the item id a draft reserved for the command (Out's
 // reserved), "" for none.
-func mainWith(args []string, stdout, stderr io.Writer, reserved string) int {
+func mainWith(args []string, stdout, stderr io.Writer, goos, reserved string) int {
 	g := Parse(args)
-	o := Out{JSON: g.JSON, Quiet: g.Quiet, Stdout: stdout, Stderr: stderr, Tests: tests.NewWarnings(stderr),
-		reserved: reserved, runLine: mainWith}
+	o := Out{JSON: g.JSON, Quiet: g.Quiet, Stdout: stdout, Stderr: stderr, Tests: tests.NewWarnings(stderr), OS: goos,
+		reserved: reserved, runLine: func(args []string, stdout, stderr io.Writer, reserved string) int {
+			return mainWith(args, stdout, stderr, goos, reserved)
+		}}
 	origin, err := applyGlobals(g)
 	if err != nil {
 		return failure(err, o)

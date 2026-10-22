@@ -1771,7 +1771,7 @@ func help(g Globals, o Out) int {
 	}
 	text := helpFor(path)
 	if text == mainHelp {
-		text = mainCommands + extensionsHelp() + "\n\n" + mainHelpTail
+		text = mainCommands + extensionsHelp(o.OS) + "\n\n" + mainHelpTail
 	}
 	fmt.Fprintln(o.Stdout, text)
 	if name == "" && !g.Help {

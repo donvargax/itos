@@ -15,7 +15,6 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 
 	"github.com/donvargax/itos/v8/internal/git"
@@ -64,9 +63,9 @@ func gitShim(args []string, o Out) (int, error) {
 	return 0, usage("git-shim needs install, uninstall or run")
 }
 
-// shimName is the link's name: git, git.exe on windows.
-func shimName() string {
-	if runtime.GOOS == "windows" {
+// shimName is the link's name on the OS goos: git, git.exe on windows.
+func shimName(goos string) string {
+	if goos == "windows" {
 		return "git.exe"
 	}
 	return "git"
@@ -74,7 +73,7 @@ func shimName() string {
 
 // shimPlace is the running itos and the link's path in dir, by default the
 // folder holding that itos, made absolute.
-func shimPlace(dir string) (self, link string, err error) {
+func shimPlace(dir, goos string) (self, link string, err error) {
 	self, err = os.Executable()
 	if err != nil {
 		return "", "", fmt.Errorf("cannot tell the itos binary running: %w", err)
@@ -85,7 +84,7 @@ func shimPlace(dir string) (self, link string, err error) {
 	if dir, err = filepath.Abs(dir); err != nil {
 		return "", "", err
 	}
-	return self, filepath.Join(dir, shimName()), nil
+	return self, filepath.Join(dir, shimName(goos)), nil
 }
 
 // linksItos is what the git at link is: this itos (a link to it, followed),
@@ -105,7 +104,7 @@ func linksItos(link string) (self, other bool) {
 // installShim links the running itos as git in dir, unless a git that is not
 // a link to itos is there, and says where dir stands on the PATH.
 func installShim(dir string, o Out) (int, error) {
-	self, link, err := shimPlace(dir)
+	self, link, err := shimPlace(dir, o.OS)
 	if err != nil {
 		fmt.Fprintf(o.Stderr, "itos: %s\n", err)
 		return ExitMissing, nil
@@ -125,7 +124,7 @@ func installShim(dir string, o Out) (int, error) {
 		return 0, err
 	}
 	if action != "kept" {
-		if err := makeLink(self, link, action == "replaced"); err != nil {
+		if err := makeLink(self, link, action == "replaced", o.OS); err != nil {
 			fmt.Fprintf(o.Stderr, "itos: cannot link %s to %s: %s\n", link, self, err)
 			return ExitMissing, nil
 		}
@@ -152,8 +151,9 @@ func installShim(dir string, o Out) (int, error) {
 }
 
 // makeLink makes link a symbolic link to self, replacing the one there when
-// told to; where symbolic links need a privilege (windows), a hard link.
-func makeLink(self, link string, replace bool) error {
+// told to; where symbolic links need a privilege (goos windows), a hard
+// link.
+func makeLink(self, link string, replace bool, goos string) error {
 	if err := os.MkdirAll(filepath.Dir(link), 0o755); err != nil {
 		return err
 	}
@@ -163,7 +163,7 @@ func makeLink(self, link string, replace bool) error {
 		}
 	}
 	err := os.Symlink(self, link)
-	if err != nil && runtime.GOOS == "windows" {
+	if err != nil && goos == "windows" {
 		err = os.Link(self, link)
 	}
 	return err
@@ -219,7 +219,7 @@ func standingLine(dir string, at int, realGit string, realAt int) string {
 // uninstallShim removes the link to itos named git in dir, and leaves alone
 // a git that is not one.
 func uninstallShim(dir string, o Out) (int, error) {
-	_, link, err := shimPlace(dir)
+	_, link, err := shimPlace(dir, o.OS)
 	if err != nil {
 		fmt.Fprintf(o.Stderr, "itos: %s\n", err)
 		return ExitMissing, nil

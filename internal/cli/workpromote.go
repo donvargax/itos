@@ -84,7 +84,7 @@ func workPromote(args []string, o Out) (int, error) {
 		return refuseWork([]out.Problem{*problem}, ExitPolicy, o)
 	}
 
-	newID, err := newItemID(cfg, p.kind, itemIDs(registry), o.reserved)
+	newID, err := newItemID(cfg, p.kind, itemIDs(registry), o.reserved, o.OS)
 	if err != nil {
 		return 0, err
 	}

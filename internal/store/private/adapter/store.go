@@ -16,8 +16,9 @@ import (
 )
 
 // Store is the private store on disk: config.StealthFolder of the absolute
-// git common dir of the folder itos runs in, read again on every call.
-type Store struct{}
+// git common dir of the folder itos runs in, read again on every call. OS is
+// the OS itos runs on, as GOOS names it, which Hold's lock waits by.
+type Store struct{ OS string }
 
 var _ port.Store = Store{}
 
@@ -88,7 +89,7 @@ func (s Store) Hold(ctx context.Context, name string) (port.Held, error) {
 	if err != nil {
 		return nil, err
 	}
-	held, err := lock.Hold(path)
+	held, err := lock.Hold(path, s.OS)
 	if err != nil {
 		return nil, err
 	}

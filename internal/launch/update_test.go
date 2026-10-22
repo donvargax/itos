@@ -92,28 +92,28 @@ func TestNoticeOnceADayPerRepository(t *testing.T) {
 	start := time.Unix(1_800_000_000, 0)
 	at(t, start)
 	var b strings.Builder
-	notice("one/itos.yaml", "9.1.0", "", &b)
+	notice("one/itos.yaml", "9.1.0", "", &b, here)
 	want := "itos 9.2.0 is out (this repository pins 9.1.0): " + s.URL + "/tag/v9.2.0 (itos upgrade moves this repository to it)\n"
 	if b.String() != want {
 		t.Fatalf("notice said %q, want %q", b.String(), want)
 	}
 	b.Reset()
-	notice("one/itos.yaml", "9.1.0", "", &b)
-	notice("two/itos.yaml", "9.2.0", "", &b)
+	notice("one/itos.yaml", "9.1.0", "", &b, here)
+	notice("two/itos.yaml", "9.2.0", "", &b, here)
 	if b.Len() != 0 {
 		t.Errorf("notice said %q again within the day, or under the newest pin", b.String())
 	}
-	notice("two/itos.yaml", "9.0.0", "", &b)
+	notice("two/itos.yaml", "9.0.0", "", &b, here)
 	if b.Len() == 0 {
 		t.Error("another repository's pin fallen behind was not told")
 	}
 	b.Reset()
 	at(t, start.Add(25*time.Hour))
 	t.Setenv("CI", "true")
-	notice("one/itos.yaml", "9.1.0", "", &b)
+	notice("one/itos.yaml", "9.1.0", "", &b, here)
 	t.Setenv("CI", "")
 	t.Setenv(EnvNoUpdateNotice, "1")
-	notice("one/itos.yaml", "9.1.0", "", &b)
+	notice("one/itos.yaml", "9.1.0", "", &b, here)
 	if b.Len() != 0 {
 		t.Errorf("notice said %q under CI or ITOS_NO_UPDATE_NOTICE", b.String())
 	}
@@ -127,12 +127,12 @@ func TestNoticeUntoldIsToldWhateverTheClockReads(t *testing.T) {
 	t.Setenv(EnvNoUpdate, "1")
 	at(t, time.Time{})
 	var b strings.Builder
-	notice("one/itos.yaml", "9.1.0", "9.2.0", &b)
+	notice("one/itos.yaml", "9.1.0", "9.2.0", &b, here)
 	if !strings.HasPrefix(b.String(), "itos 9.2.0 is out (this repository pins 9.1.0): ") {
 		t.Fatalf("a repository never told was not told, at the zero time: %q", b.String())
 	}
 	b.Reset()
-	notice("one/itos.yaml", "9.1.0", "9.2.0", &b)
+	notice("one/itos.yaml", "9.1.0", "9.2.0", &b, here)
 	if b.Len() != 0 {
 		t.Errorf("notice said %q again within the day", b.String())
 	}
@@ -151,7 +151,7 @@ func TestNoticeFailsSilent(t *testing.T) {
 			t.Fatal("cacheDir found a folder with no variable naming one")
 		}
 		var b strings.Builder
-		notice("one/itos.yaml", "9.1.0", "9.2.0", &b)
+		notice("one/itos.yaml", "9.1.0", "9.2.0", &b, here)
 		if b.Len() != 0 {
 			t.Errorf("notice said %q with no cache folder", b.String())
 		}
@@ -169,7 +169,7 @@ func TestNoticeFailsSilent(t *testing.T) {
 			t.Skip("a removed working directory still has an absolute path here")
 		}
 		var b strings.Builder
-		notice("itos.yaml", "9.1.0", "9.2.0", &b)
+		notice("itos.yaml", "9.1.0", "9.2.0", &b, here)
 		if b.Len() != 0 {
 			t.Errorf("notice said %q with no absolute path for the config", b.String())
 		}
@@ -179,7 +179,7 @@ func TestNoticeFailsSilent(t *testing.T) {
 			t.Fatal(err)
 		}
 		var b strings.Builder
-		notice("one/itos.yaml", "9.1.0", "9.2.0", &b)
+		notice("one/itos.yaml", "9.1.0", "9.2.0", &b, here)
 		if b.Len() != 0 {
 			t.Errorf("notice said %q though it could not remember saying it", b.String())
 		}
@@ -198,7 +198,7 @@ func TestNoticeNamesTheNewestReleaseKnown(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, v := range []string{"9.2.0", "9.4.0-rc.1"} {
-		if err := store(cache, filepath.Join(cache, v), []byte("binary"), []byte("sums\n")); err != nil {
+		if err := store(cache, filepath.Join(cache, v), []byte("binary"), []byte("sums\n"), here); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -210,7 +210,7 @@ func TestNoticeNamesTheNewestReleaseKnown(t *testing.T) {
 		{"five/itos.yaml", "9.0.5", "itos 9.2.0 is out"},
 	} {
 		var b strings.Builder
-		notice(c.repo, "9.0.0", c.own, &b)
+		notice(c.repo, "9.0.0", c.own, &b, here)
 		if !strings.HasPrefix(b.String(), c.want+" (this repository pins 9.0.0): ") {
 			t.Errorf("notice with own %q said %q, want %q", c.own, b.String(), c.want)
 		}
@@ -220,20 +220,20 @@ func TestNoticeNamesTheNewestReleaseKnown(t *testing.T) {
 func TestNewestRunsTheNewestStableReleaseCached(t *testing.T) {
 	cache := offline(t)
 	for _, v := range []string{"9.1.0", "9.3.0-rc.1", "9.2.0"} {
-		if err := store(cache, filepath.Join(cache, v), []byte("binary"), []byte("sums\n")); err != nil {
+		if err := store(cache, filepath.Join(cache, v), []byte("binary"), []byte("sums\n"), here); err != nil {
 			t.Fatal(err)
 		}
 	}
 	if err := os.MkdirAll(filepath.Join(cache, "9.9.9"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if got, ok := newest("2.0.0"); !ok || got.version != "9.2.0" {
+	if got, ok := newest("2.0.0", here); !ok || got.version != "9.2.0" {
 		t.Errorf("newest = %v, %t; want 9.2.0", got, ok)
 	}
-	if _, ok := newest("10.0.0"); ok {
+	if _, ok := newest("10.0.0", here); ok {
 		t.Error("newest launched another release than a binary newer than the cache")
 	}
-	if _, ok := newest("(devel)"); ok {
+	if _, ok := newest("(devel)", here); ok {
 		t.Error("newest launched another release than a build without a version")
 	}
 }
@@ -256,7 +256,7 @@ func TestNoticeTellsAReleaseCandidatesPinOfItsRelease(t *testing.T) {
 		{"two/itos.yaml", "9.3.0-rc.1", false},
 	} {
 		var b strings.Builder
-		notice(c.repo, c.pin, "", &b)
+		notice(c.repo, c.pin, "", &b, here)
 		if told := strings.HasPrefix(b.String(), "itos 9.2.0 is out (this repository pins "+c.pin+"): "); told != c.told {
 			t.Errorf("notice under the pin %s said %q, told %t, want %t", c.pin, b.String(), told, c.told)
 		}
@@ -273,7 +273,7 @@ func TestHandUpgrade(t *testing.T) {
 	try := func(name string, args []string, wantCode int, wantHanded bool, says string) {
 		t.Helper()
 		var stderr strings.Builder
-		code, handed := handUpgrade(args, &stderr)
+		code, handed := handUpgrade(args, &stderr, here)
 		if code != wantCode || handed != wantHanded || !strings.Contains(stderr.String(), says) ||
 			says == "" && stderr.Len() > 0 {
 			t.Errorf("%s: %d, %t, %q; want %d, %t, saying %q", name, code, handed, stderr.String(), wantCode, wantHanded, says)
@@ -281,7 +281,7 @@ func TestHandUpgrade(t *testing.T) {
 	}
 	try("another command", []string{"pin"}, 0, false, "")
 	try("no server", []string{"upgrade"}, 75, true, "cannot ask for the newest itos")
-	if code := Main([]string{"upgrade"}, io.Discard); code == nil || *code != 75 {
+	if code := Main([]string{"upgrade"}, io.Discard, here); code == nil || *code != 75 {
 		t.Error("Main handed no run, or not with exit 75")
 	}
 	_, asked := latestServer(t, "0.0.0")

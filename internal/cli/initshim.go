@@ -95,13 +95,14 @@ type shimOutcome struct {
 }
 
 // shimOffer is the offer's context, as pluginOffer's: the flag, whether a
-// terminal may be asked, where it says what it did, and where an answer is
-// read from.
+// terminal may be asked, where it says what it did, where an answer is
+// read from, and the OS (Out's OS).
 type shimOffer struct {
 	flag    shimFlag
 	ask     bool
 	log     io.Writer
 	answers io.Reader
+	goos    string
 }
 
 // run makes the offer, and gives its outcome and its exit code: 1 when the
@@ -111,7 +112,7 @@ func (s shimOffer) run() (shimOutcome, int) {
 	if s.flag.given && !s.flag.install {
 		return shimOutcome{Action: "declined"}, 0
 	}
-	self, link, err := shimPlace(s.flag.dir)
+	self, link, err := shimPlace(s.flag.dir, s.goos)
 	if err != nil {
 		say("The git shim is not linked: %s.", err)
 		return shimOutcome{Action: "failed", Problem: err.Error()}, ExitPolicy
@@ -171,7 +172,7 @@ func (s shimOffer) run() (shimOutcome, int) {
 			return shimOutcome{Action: "declined"}, 0
 		}
 	}
-	if err := makeLink(self, link, replace); err != nil {
+	if err := makeLink(self, link, replace, s.goos); err != nil {
 		problem := fmt.Sprintf("cannot link %s to %s: %s", link, self, err)
 		say("The git shim is not linked: %s.", problem)
 		o := outcome("failed")

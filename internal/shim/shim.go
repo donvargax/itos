@@ -5,7 +5,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"runtime"
 	"slices"
 	"strconv"
 	"strings"
@@ -17,11 +16,11 @@ import (
 	"github.com/donvargax/itos/v8/internal/version"
 )
 
-// Named is whether itos was started under the name git: argv[0]'s base name
-// git, or on windows git or git.exe in any case.
-func Named(arg0 string) bool {
+// Named is whether itos was started under the name git on the OS goos:
+// argv[0]'s base name git, or on windows git or git.exe in any case.
+func Named(arg0, goos string) bool {
 	name := filepath.Base(arg0)
-	if runtime.GOOS == "windows" {
+	if goos == "windows" {
 		name = strings.TrimSuffix(strings.ToLower(name), ".exe")
 	}
 	return name == "git"

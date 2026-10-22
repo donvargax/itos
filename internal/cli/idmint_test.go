@@ -46,15 +46,15 @@ func idMintTestConfig(t *testing.T, ledger string) (*config.Loaded, string) {
 func TestMintItemIDUsesTheLedgerAndCounterFloor(t *testing.T) {
 	cfg, _ := idMintTestConfig(t, "- { id: T-009, type: chore, title: Nine }\n")
 	registryIDs := []string{"T-010", "not-a-task-id"}
-	first, err := mintItemID(cfg, "task", registryIDs)
+	first, err := mintItemID(cfg, "task", registryIDs, runtime.GOOS)
 	if err != nil || first != "T-011" {
 		t.Fatalf("first task mint = %q, %v, want T-011", first, err)
 	}
-	second, err := mintItemID(cfg, "task", registryIDs)
+	second, err := mintItemID(cfg, "task", registryIDs, runtime.GOOS)
 	if err != nil || second != "T-012" {
 		t.Fatalf("second task mint = %q, %v, want T-012", second, err)
 	}
-	if _, err := mintItemID(cfg, "idea", registryIDs); err == nil {
+	if _, err := mintItemID(cfg, "idea", registryIDs, runtime.GOOS); err == nil {
 		t.Fatal("mintItemID accepted idea, which keeps its caller-provided slug")
 	}
 }
@@ -86,7 +86,7 @@ func TestSliceIDsReadsFeatureTagsAndIgnoresOtherFiles(t *testing.T) {
 	if slices.Contains(ids, "slice-999") {
 		t.Fatalf("taggedIDs read a non-feature file: %v", ids)
 	}
-	got, err := mintItemID(cfg, "slice", []string{"slice-009"})
+	got, err := mintItemID(cfg, "slice", []string{"slice-009"}, runtime.GOOS)
 	if err != nil || got != "slice-011" {
 		t.Fatalf("slice mint = %q, %v, want slice-011", got, err)
 	}
@@ -103,7 +103,7 @@ func TestMintItemIDMintsABugPastTheRegistrysBugsAndTheBugTags(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(features, "one.feature"), []byte("Feature: One\n  @ID-ONE-01 @bug-07 @slice-30\n  Scenario: One\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	got, err := mintItemID(cfg, "bug", []string{"bug-5", "slice-40"})
+	got, err := mintItemID(cfg, "bug", []string{"bug-5", "slice-40"}, runtime.GOOS)
 	if err != nil || got != "bug-08" {
 		t.Fatalf("bug mint = %q, %v, want bug-08", got, err)
 	}
@@ -128,7 +128,7 @@ func TestMintItemIDRefusesAFeatureFileItCannotRead(t *testing.T) {
 	if _, err := os.ReadFile(loop); err == nil || os.IsNotExist(err) {
 		t.Skipf("a link to itself reads here as %v, not as a failed read", err)
 	}
-	if got, err := mintItemID(cfg, "bug", nil); err == nil {
+	if got, err := mintItemID(cfg, "bug", nil, runtime.GOOS); err == nil {
 		t.Fatalf("mintItemID = %q, want the unreadable feature file's error", got)
 	}
 }
@@ -136,7 +136,7 @@ func TestMintItemIDRefusesAFeatureFileItCannotRead(t *testing.T) {
 // A number past the largest int cannot be read back, and nothing is minted.
 func TestMintItemIDRefusesANumberPastTheLargestInt(t *testing.T) {
 	cfg, _ := idMintTestConfig(t, "[]\n")
-	got, err := mintItemID(cfg, "bug", []string{"bug-" + strconv.Itoa(math.MaxInt)})
+	got, err := mintItemID(cfg, "bug", []string{"bug-" + strconv.Itoa(math.MaxInt)}, runtime.GOOS)
 	if err == nil || !strings.Contains(err.Error(), "cannot read the number from next bug id") {
 		t.Fatalf("mintItemID = %q, %v, want the number refused", got, err)
 	}
@@ -180,14 +180,14 @@ func TestSliceIDsUsesDefaultRootWhenScenarioRootIsNil(t *testing.T) {
 func TestMintItemIDSliceWidthUsesOnlyValidNumericSeriesIDs(t *testing.T) {
 	t.Run("keeps zero padding of the series", func(t *testing.T) {
 		cfg, _ := idMintTestConfig(t, "[]\n")
-		got, err := mintItemID(cfg, "slice", []string{"slice-009"})
+		got, err := mintItemID(cfg, "slice", []string{"slice-009"}, runtime.GOOS)
 		if err != nil || got != "slice-010" {
 			t.Fatalf("mintItemID = %q, %v, want slice-010", got, err)
 		}
 	})
 	t.Run("ignores non-series digits and malformed suffixes", func(t *testing.T) {
 		cfg, _ := idMintTestConfig(t, "[]\n")
-		got, err := mintItemID(cfg, "slice", []string{"slice-1", "slice-000x", "123"})
+		got, err := mintItemID(cfg, "slice", []string{"slice-1", "slice-000x", "123"}, runtime.GOOS)
 		if err != nil || got != "slice-2" {
 			t.Fatalf("mintItemID = %q, %v, want slice-2", got, err)
 		}
@@ -195,7 +195,7 @@ func TestMintItemIDSliceWidthUsesOnlyValidNumericSeriesIDs(t *testing.T) {
 	for _, malformed := range []string{"slice-0/", "slice-0:"} {
 		t.Run(malformed, func(t *testing.T) {
 			cfg, _ := idMintTestConfig(t, "[]\n")
-			got, err := mintItemID(cfg, "slice", []string{"slice-1", malformed})
+			got, err := mintItemID(cfg, "slice", []string{"slice-1", malformed}, runtime.GOOS)
 			if err != nil || got != "slice-2" {
 				t.Fatalf("mintItemID = %q, %v, want slice-2", got, err)
 			}
@@ -206,7 +206,7 @@ func TestMintItemIDSliceWidthUsesOnlyValidNumericSeriesIDs(t *testing.T) {
 func TestReserveItemNumberUsesLocalFallbackAndPropagatesGitErrors(t *testing.T) {
 	t.Run("no remote uses common-dir counter", func(t *testing.T) {
 		cfg, dir := idMintTestConfig(t, "[]\n")
-		first, err := reserveItemNumber(cfg, "slice", 9)
+		first, err := reserveItemNumber(cfg, "slice", 9, runtime.GOOS)
 		if err != nil || first != 10 {
 			t.Fatalf("reserveItemNumber = (%d, %v), want (10, nil)", first, err)
 		}
@@ -224,7 +224,7 @@ func TestReserveItemNumberUsesLocalFallbackAndPropagatesGitErrors(t *testing.T) 
 		gitIn(t, "remote", "add", "upstream", bare)
 		gitIn(t, "config", "branch."+branch+".remote", "upstream")
 		gitIn(t, "config", "branch."+branch+".merge", "refs/heads/main")
-		n, err := reserveItemNumber(&config.Loaded{}, "slice", 0)
+		n, err := reserveItemNumber(&config.Loaded{}, "slice", 0, runtime.GOOS)
 		if err != nil || n != 1 {
 			t.Fatalf("reserveItemNumber = (%d, %v), want (1, nil)", n, err)
 		}
@@ -236,7 +236,7 @@ func TestReserveItemNumberUsesLocalFallbackAndPropagatesGitErrors(t *testing.T) 
 	t.Run("git discovery error is returned", func(t *testing.T) {
 		gitConfigRepo(t, "version: 1\n")
 		t.Chdir(t.TempDir())
-		if n, err := reserveItemNumber(&config.Loaded{}, "slice", 0); err == nil || n != 0 {
+		if n, err := reserveItemNumber(&config.Loaded{}, "slice", 0, runtime.GOOS); err == nil || n != 0 {
 			t.Fatalf("reserveItemNumber outside a repository = (%d, %v), want (0, error)", n, err)
 		}
 	})
@@ -261,7 +261,7 @@ func TestReserveItemNumberUsesLocalFallbackAndPropagatesGitErrors(t *testing.T) 
 				t.Setenv("T129_COMMON_DIR", test.reported)
 				t.Setenv("T129_REPO_DIR", repo)
 				t.Chdir(repo)
-				if n, err := reserveItemNumber(&config.Loaded{}, "slice", 0); err == nil || n != 0 {
+				if n, err := reserveItemNumber(&config.Loaded{}, "slice", 0, runtime.GOOS); err == nil || n != 0 {
 					t.Fatalf("reserveItemNumber = (%d, %v), want (0, error)", n, err)
 				}
 			})

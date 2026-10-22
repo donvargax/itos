@@ -11,12 +11,23 @@ import (
 	"github.com/donvargax/itos/v8/internal/git"
 )
 
+// Main finds the real git by the OS the tests run on, as cmd/itos has it.
+func TestMain(m *testing.M) {
+	git.Platform = runtime.GOOS
+	os.Exit(m.Run())
+}
+
+// The name git, and on windows git.exe in any case.
 func TestNamed(t *testing.T) {
-	for arg0, want := range map[string]bool{
-		"git": true, "/usr/local/bin/git": true, "itos": false, "/x/git/itos": false, "git-shim": false,
-	} {
-		if got := Named(arg0); got != want {
-			t.Errorf("Named(%q) = %v, want %v", arg0, got, want)
+	for _, goos := range []string{"linux", "darwin", "windows"} {
+		windows := goos == "windows"
+		for arg0, want := range map[string]bool{
+			"git": true, "/usr/local/bin/git": true, "itos": false, "/x/git/itos": false, "git-shim": false,
+			"git.exe": windows, "/x/Git.EXE": windows, "GIT": windows, "itos.exe": false,
+		} {
+			if got := Named(arg0, goos); got != want {
+				t.Errorf("Named(%q, %s) = %v, want %v", arg0, goos, got, want)
+			}
 		}
 	}
 }

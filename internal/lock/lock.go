@@ -6,7 +6,6 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
-	"runtime"
 	"time"
 
 	"github.com/donvargax/itos/v8/internal/kind"
@@ -23,10 +22,10 @@ type Held struct{ path string }
 
 // Hold takes the lock of the file at path, its folder made (0700) when it
 // is not there: it makes path+Suffix, which no other process may then make,
-// waiting up to Wait while one has it. A lock still held after the wait is
+// waiting up to Wait while one has it (busy, by the OS goos). A lock still held after the wait is
 // an error naming the lock file, kind.Temporary (exit 75): the itos holding
 // it is likely still at work, and the command may pass when run again.
-func Hold(path string) (*Held, error) {
+func Hold(path, goos string) (*Held, error) {
 	file := path + Suffix
 	if err := os.MkdirAll(filepath.Dir(file), 0o700); err != nil {
 		return nil, err
@@ -43,7 +42,7 @@ func Hold(path string) (*Held, error) {
 			}
 			return &Held{file}, nil
 		}
-		if !busy(err) {
+		if !busy(err, goos) {
 			return nil, err
 		}
 		if time.Now().After(deadline) {
@@ -55,10 +54,10 @@ func Hold(path string) (*Held, error) {
 }
 
 // busy is whether making the lock file failed because another process has
-// it: it is there, or, on Windows, it is being removed, which Windows
+// it: it is there, or, on Windows (goos), it is being removed, which Windows
 // reports as access denied until the last handle on it closes.
-func busy(err error) bool {
-	return errors.Is(err, fs.ErrExist) || runtime.GOOS == "windows" && errors.Is(err, fs.ErrPermission)
+func busy(err error, goos string) bool {
+	return errors.Is(err, fs.ErrExist) || goos == "windows" && errors.Is(err, fs.ErrPermission)
 }
 
 // Release removes the lock file, so the next writer may take it.

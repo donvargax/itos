@@ -14,7 +14,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"slices"
 	"strings"
 
@@ -92,10 +91,21 @@ func Parse(args []string) Globals {
 // extension is an extension the PATH has: its command's name and its program.
 type extension struct{ name, path string }
 
+// extensionName is the command a file in a PATH folder names on the OS goos:
+// <name> of itos-<name>, its extension dropped on windows; false when the
+// file is no itos-<name>.
+func extensionName(file, goos string) (string, bool) {
+	name, ok := strings.CutPrefix(file, extensionPrefix)
+	if goos == "windows" {
+		name = strings.TrimSuffix(name, filepath.Ext(name))
+	}
+	return name, ok
+}
+
 // extensions is every extension the PATH has, by name: each itos-<name> in
 // its folders that extensionPath runs for <name>, the first folder's when
-// several have one, as the PATH is searched.
-func extensions() []extension {
+// several have one, as the PATH is searched, on the OS goos.
+func extensions(goos string) []extension {
 	seen := map[string]bool{}
 	var found []extension
 	for _, dir := range filepath.SplitList(os.Getenv("PATH")) {
@@ -107,10 +117,7 @@ func extensions() []extension {
 			continue
 		}
 		for _, e := range entries {
-			name, ok := strings.CutPrefix(e.Name(), extensionPrefix)
-			if runtime.GOOS == "windows" {
-				name = strings.TrimSuffix(name, filepath.Ext(name))
-			}
+			name, ok := extensionName(e.Name(), goos)
 			if !ok || seen[name] {
 				continue
 			}
@@ -125,9 +132,9 @@ func extensions() []extension {
 }
 
 // extensionsHelp is the main help's list of the extensions the PATH has, ""
-// when it has none, set out as the commands are.
-func extensionsHelp() string {
-	found := extensions()
+// when it has none, set out as the commands are, on the OS goos.
+func extensionsHelp(goos string) string {
+	found := extensions(goos)
 	if len(found) == 0 {
 		return ""
 	}

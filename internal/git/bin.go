@@ -20,7 +20,6 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"runtime"
 	"strings"
 	"sync"
 
@@ -35,6 +34,11 @@ const EnvGit = "ITOS_GIT"
 // environment (kind.Missing, exit 3).
 var ErrNoGit = kind.Wrap(kind.Missing, errors.New("no git on the PATH but itos"))
 
+// Platform is the OS whose file names and modes Real reads the PATH by, as
+// GOOS names it: set once by the program's boundary (cmd/itos) before
+// anything runs git, since Bin's callers cannot carry it.
+var Platform string
+
 var (
 	binMu  sync.Mutex
 	binKey string
@@ -43,9 +47,9 @@ var (
 
 // Bin is the git itos runs: the one ITOS_GIT names, unless it names an itos,
 // else Real's, else "git", which then fails as a missing git does.
-// Found again only when ITOS_GIT or the PATH changes.
+// Found again only when ITOS_GIT, the PATH or Platform changes.
 func Bin() string {
-	key := os.Getenv(EnvGit) + "\x00" + os.Getenv("PATH")
+	key := os.Getenv(EnvGit) + "\x00" + os.Getenv("PATH") + "\x00" + Platform
 	binMu.Lock()
 	defer binMu.Unlock()
 	if key == binKey && binVal != "" {
@@ -88,10 +92,10 @@ func Real() (string, error) {
 		if dir == "" || !filepath.IsAbs(dir) {
 			continue
 		}
-		for _, name := range names() {
+		for _, name := range names(Platform) {
 			p := filepath.Join(dir, name)
 			info, err := os.Stat(p)
-			if err != nil || !executable(info) || isItos(p, info) {
+			if err != nil || !executable(info, Platform) || isItos(p, info) {
 				continue
 			}
 			return p, nil
@@ -173,8 +177,8 @@ var selfInfo = sync.OnceValue(func() os.FileInfo {
 
 // names are the file names git may have in a PATH folder: git, or on windows
 // git with each of PATHEXT's extensions.
-func names() []string {
-	if runtime.GOOS != "windows" {
+func names(goos string) []string {
+	if goos != "windows" {
 		return []string{"git"}
 	}
 	exts := os.Getenv("PATHEXT")
@@ -192,6 +196,6 @@ func names() []string {
 
 // executable is whether a file can be run: a regular file, with an execute
 // bit outside windows.
-func executable(info os.FileInfo) bool {
-	return info.Mode().IsRegular() && (runtime.GOOS == "windows" || info.Mode().Perm()&0o111 != 0)
+func executable(info os.FileInfo, goos string) bool {
+	return info.Mode().IsRegular() && (goos == "windows" || info.Mode().Perm()&0o111 != 0)
 }

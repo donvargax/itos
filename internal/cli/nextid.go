@@ -84,7 +84,7 @@ func testsNextID(args []string, o Out) (int, error) {
 	}
 	ids := []string{next}
 	if area {
-		if ids, err = claimTags(cfg, stem, next, count); err != nil {
+		if ids, err = claimTags(cfg, stem, next, count, o.OS); err != nil {
 			return 0, err
 		}
 	}
@@ -105,14 +105,14 @@ func testsNextID(args []string, o Out) (int, error) {
 // and next's number less one (the highest the kind's files hold), and gives
 // each as next is written: its tag prefix, the stem and the number, as wide
 // as next's.
-func claimTags(cfg *config.Loaded, stem, next string, count int) ([]string, error) {
+func claimTags(cfg *config.Loaded, stem, next string, count int, goos string) ([]string, error) {
 	n, err := trailingNumber(next)
 	if err != nil {
 		return nil, fmt.Errorf("cannot read the number of the next %s id %q: %w", stem, next, err)
 	}
 	head := strings.TrimRight(next, "0123456789")
 	width := len(next) - len(head)
-	store, err := counterStore(cfg)
+	store, err := counterStore(cfg, goos)
 	if err != nil {
 		return nil, err
 	}

@@ -1,17 +1,36 @@
 package lock
 
 import (
+	"io/fs"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 	"testing"
 	"time"
 )
 
+// The lock file there is busy on every OS; access denied, a lock file being
+// removed, only on windows; any other error never.
+func TestBusy(t *testing.T) {
+	for _, goos := range []string{"linux", "darwin", "windows"} {
+		for err, want := range map[error]bool{
+			fs.ErrExist:                       true,
+			&fs.PathError{Err: fs.ErrExist}:   true,
+			fs.ErrPermission:                  goos == "windows",
+			&fs.PathError{Err: os.ErrInvalid}: false,
+		} {
+			if got := busy(err, goos); got != want {
+				t.Errorf("busy(%v, %s) = %v", err, goos, got)
+			}
+		}
+	}
+}
+
 func TestHoldMakesTheLockFileAndReleaseRemovesIt(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "itos", "follow-ups.yaml")
-	held, err := Hold(path)
+	held, err := Hold(path, runtime.GOOS)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -34,7 +53,7 @@ func TestHoldWaitsForTheLockAndRefusesOneStillHeld(t *testing.T) {
 	if err := os.WriteFile(path+Suffix, []byte("1\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	_, err := Hold(path)
+	_, err := Hold(path, runtime.GOOS)
 	if err == nil || !strings.Contains(err.Error(), path+Suffix) || !strings.Contains(err.Error(), "remove") {
 		t.Fatalf("a lock held past the wait gave %v, not an error naming %s", err, path+Suffix)
 	}
@@ -42,7 +61,7 @@ func TestHoldWaitsForTheLockAndRefusesOneStillHeld(t *testing.T) {
 		time.Sleep(20 * time.Millisecond)
 		os.Remove(path + Suffix)
 	}()
-	held, err := Hold(path)
+	held, err := Hold(path, runtime.GOOS)
 	if err != nil {
 		t.Fatalf("a lock released during the wait gave %v", err)
 	}
@@ -61,7 +80,7 @@ func TestHoldLetsOneHolderInAtATime(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			held, err := Hold(path)
+			held, err := Hold(path, runtime.GOOS)
 			if err != nil {
 				t.Error(err)
 				return

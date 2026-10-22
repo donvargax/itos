@@ -126,7 +126,7 @@ func heldAsks(o Out) (cfg *config.Loaded, release func(), err error) {
 		return nil, release, err
 	}
 	if cfg.Stealth {
-		held, err := lock.Hold(cfg.Work.Registry)
+		held, err := lock.Hold(cfg.Work.Registry, o.OS)
 		if err != nil {
 			return nil, release, err
 		}

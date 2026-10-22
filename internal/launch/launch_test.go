@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -17,6 +18,29 @@ import (
 )
 
 const sums = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+
+// here is the platform the tests run on, as cmd/itos detects it.
+var here = Platform{runtime.GOOS, runtime.GOARCH}
+
+// A release's binary and archive are named by the OS and the architecture:
+// itos in a tar.gz, itos.exe in a zip on windows.
+func TestPlatformNames(t *testing.T) {
+	for _, c := range []struct {
+		p               Platform
+		binary, archive string
+	}{
+		{Platform{"linux", "amd64"}, "itos", "itos-9.1.0-linux-amd64.tar.gz"},
+		{Platform{"darwin", "arm64"}, "itos", "itos-9.1.0-darwin-arm64.tar.gz"},
+		{Platform{"windows", "amd64"}, "itos.exe", "itos-9.1.0-windows-amd64.zip"},
+	} {
+		if got := c.p.binary(); got != c.binary {
+			t.Errorf("%v's binary is %s", c.p, got)
+		}
+		if got := c.p.archive("9.1.0"); got != c.archive {
+			t.Errorf("%v's archive is %s", c.p, got)
+		}
+	}
+}
 
 // offline keeps a test off the network and off any real cache: an empty
 // cache of its own, nothing to ask, and no CI or silencing set. It gives the
@@ -65,7 +89,7 @@ func TestChoose(t *testing.T) {
 			offline(t)
 			writeConfig(t, c.config)
 			t.Setenv(EnvVersion, c.env)
-			got, launch := choose(nil, io.Discard)
+			got, launch := choose(nil, io.Discard, here)
 			if got != c.want || launch != c.launch {
 				t.Errorf("choose = %v, %t; want %v, %t", got, launch, c.want, c.launch)
 			}
@@ -146,7 +170,7 @@ func TestChooseReadsTheConfigWhereItosDoes(t *testing.T) {
 		{"--root", "sub", "--config", "other.yaml", "version"},
 		{"version", "--config", "sub/other.yaml"},
 	} {
-		if got, launch := choose(args, io.Discard); !launch || got.version != "9.1.0" {
+		if got, launch := choose(args, io.Discard, here); !launch || got.version != "9.1.0" {
 			t.Errorf("choose(%q) = %v, %t; want 9.1.0", args, got, launch)
 		}
 	}
@@ -179,7 +203,7 @@ func TestReadConfigFindsTheStealthConfig(t *testing.T) {
 		}
 	}
 	write(stealth, "version: 1\npin: { version: \"9.1.0\", checksums: \""+sums+"\" }\n")
-	if got, launch := choose(nil, io.Discard); !launch || got.version != "9.1.0" {
+	if got, launch := choose(nil, io.Discard, here); !launch || got.version != "9.1.0" {
 		t.Errorf("a pinned stealth config: choose = %v, %t; want 9.1.0", got, launch)
 	}
 	if c := readConfig([]string{"--root", dir, "version"}); c.state != pinned {
@@ -216,11 +240,11 @@ func tarGz(t *testing.T, name, text string) []byte {
 }
 
 func TestExtract(t *testing.T) {
-	got, err := extract(tarGz(t, binaryName(), "binary"), "a.tar.gz")
+	got, err := extract(tarGz(t, "itos", "binary"), "a.tar.gz", "itos")
 	if err != nil || string(got) != "binary" {
 		t.Errorf("extract = %q, %v; want the binary", got, err)
 	}
-	if _, err := extract(tarGz(t, "other", "x"), "a.tar.gz"); err == nil {
+	if _, err := extract(tarGz(t, "other", "x"), "a.tar.gz", "itos"); err == nil {
 		t.Error("extract found a binary in an archive without one")
 	}
 }
@@ -230,16 +254,16 @@ func TestStoreAndCached(t *testing.T) {
 	dir := filepath.Join(cache, "9.1.0")
 	text := []byte("checksums\n")
 	pinned := target{"9.1.0", release.SHA256(text)}
-	if cached(dir, pinned) {
+	if cached(dir, pinned, here) {
 		t.Fatal("an empty cache holds the release")
 	}
-	if err := store(cache, dir, []byte("binary"), text); err != nil {
+	if err := store(cache, dir, []byte("binary"), text, here); err != nil {
 		t.Fatal(err)
 	}
-	if !cached(dir, pinned) || !cached(dir, target{version: "9.1.0"}) {
+	if !cached(dir, pinned, here) || !cached(dir, target{version: "9.1.0"}, here) {
 		t.Error("the stored release is not cached")
 	}
-	if cached(dir, target{"9.1.0", sums}) {
+	if cached(dir, target{"9.1.0", sums}, here) {
 		t.Error("a release checked against another checksums.txt counts as cached")
 	}
 	entries, err := os.ReadDir(cache)
@@ -254,29 +278,29 @@ func TestStoreKeepsWhatAnotherRunCached(t *testing.T) {
 	cache := t.TempDir()
 	dir := filepath.Join(cache, "9.1.0")
 	text := []byte("checksums\n")
-	if err := store(cache, dir, []byte("first"), text); err != nil {
+	if err := store(cache, dir, []byte("first"), text, here); err != nil {
 		t.Fatal(err)
 	}
 	before, err := os.Stat(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := store(cache, dir, []byte("second"), text); err != nil {
+	if err := store(cache, dir, []byte("second"), text, here); err != nil {
 		t.Fatal(err)
 	}
 	after, err := os.Stat(dir)
 	if err != nil || !os.SameFile(before, after) {
 		t.Fatalf("the release cached first was replaced (%v)", err)
 	}
-	if got, _ := os.ReadFile(filepath.Join(dir, binaryName())); string(got) != "first" {
+	if got, _ := os.ReadFile(filepath.Join(dir, here.binary())); string(got) != "first" {
 		t.Errorf("the cached binary is %q, not the one cached first", got)
 	}
 
 	other := []byte("other checksums\n")
-	if err := store(cache, dir, []byte("third"), other); err != nil {
+	if err := store(cache, dir, []byte("third"), other, here); err != nil {
 		t.Fatal(err)
 	}
-	if !cached(dir, target{"9.1.0", release.SHA256(other)}) {
+	if !cached(dir, target{"9.1.0", release.SHA256(other)}, here) {
 		t.Error("the release checked against another checksums.txt was not replaced")
 	}
 	entries, err := os.ReadDir(cache)
@@ -387,7 +411,7 @@ func TestPinLine(t *testing.T) {
 			writeConfig(t, c.config)
 			t.Setenv(EnvVersion, "")
 			var stderr bytes.Buffer
-			choose(strings.Fields(c.args), &stderr)
+			choose(strings.Fields(c.args), &stderr, here)
 			if stderr.String() != c.want {
 				t.Errorf("stderr %q, want %q", stderr.String(), c.want)
 			}

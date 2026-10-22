@@ -65,7 +65,7 @@ func mayAsk() bool { return !set("CI") && !set(EnvNoUpdate) }
 // cache first, when the launcher asks and the cache does not have it. A
 // binary that does not know its own version (a build without one) runs
 // itself and asks nothing.
-func newest(own string) (target, bool) {
+func newest(own string, p Platform) (target, bool) {
 	if own == version.Unstamped {
 		return target{}, false
 	}
@@ -76,13 +76,13 @@ func newest(own string) (target, bool) {
 	if mayAsk() {
 		if v, sums, asked := announced(cache, true); asked && stable.MatchString(v) && version.Compare(v, own) > 0 {
 			dir := filepath.Join(cache, v)
-			if !cached(dir, target{version: v}) {
-				_ = install(cache, dir, v, sums)
+			if !cached(dir, target{version: v}, p) {
+				_ = install(cache, dir, v, sums, p)
 			}
 		}
 	}
 	best := own
-	for _, v := range cachedVersions(cache) {
+	for _, v := range cachedVersions(cache, p) {
 		if version.Compare(v, best) > 0 {
 			best = v
 		}
@@ -98,7 +98,7 @@ func newest(own string) (target, bool) {
 var stable = regexp.MustCompile(`^\d+\.\d+\.\d+$`)
 
 // cachedVersions are the releases the cache holds, pre-releases left out.
-func cachedVersions(cache string) []string {
+func cachedVersions(cache string, p Platform) []string {
 	entries, err := os.ReadDir(cache)
 	if err != nil {
 		return nil
@@ -106,7 +106,7 @@ func cachedVersions(cache string) []string {
 	var found []string
 	for _, e := range entries {
 		v := e.Name()
-		if e.IsDir() && stable.MatchString(v) && cached(filepath.Join(cache, v), target{version: v}) {
+		if e.IsDir() && stable.MatchString(v) && cached(filepath.Join(cache, v), target{version: v}, p) {
 			found = append(found, v)
 		}
 	}
@@ -122,7 +122,7 @@ func cachedVersions(cache string) []string {
 // stable releases the cache holds and own, the itos that runs, when that is
 // a release. The server's answer alone could be hours behind what the cache,
 // or the itos saying it, already shows is out.
-func notice(file, pin, own string, stderr io.Writer) {
+func notice(file, pin, own string, stderr io.Writer, p Platform) {
 	if set("CI") || set(EnvNoUpdateNotice) {
 		return
 	}
@@ -131,7 +131,7 @@ func notice(file, pin, own string, stderr io.Writer) {
 		return
 	}
 	latest, _, _ := announced(cache, mayAsk())
-	known := cachedVersions(cache)
+	known := cachedVersions(cache, p)
 	if stable.MatchString(own) {
 		known = append(known, own)
 	}

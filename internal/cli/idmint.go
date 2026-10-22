@@ -17,11 +17,11 @@ import (
 
 // newItemID is the item id a command that mints one writes: the id a draft
 // reserved for it (Out's reserved), else one minted now.
-func newItemID(cfg *config.Loaded, category string, registryIDs []string, reserved string) (string, error) {
+func newItemID(cfg *config.Loaded, category string, registryIDs []string, reserved, goos string) (string, error) {
 	if reserved != "" {
 		return reserved, nil
 	}
-	return mintItemID(cfg, category, registryIDs)
+	return mintItemID(cfg, category, registryIDs, goos)
 }
 
 // itemIDs are the ids of the registry's items.
@@ -40,7 +40,7 @@ func itemIDs(registry work.Registry) []string {
 // authority for their prefix, padding and accepted width. A slice's or a
 // bug's (slice 104) is <kind>-<n>, past the registry's and the feature
 // files' tags of its kind (taggedIDs).
-func mintItemID(cfg *config.Loaded, category string, registryIDs []string) (string, error) {
+func mintItemID(cfg *config.Loaded, category string, registryIDs []string, goos string) (string, error) {
 	var next string
 	var ids []string
 	switch category {
@@ -64,7 +64,7 @@ func mintItemID(cfg *config.Loaded, category string, registryIDs []string) (stri
 	if err != nil {
 		return "", fmt.Errorf("cannot read the number from next %s id %q: %w", category, next, err)
 	}
-	number, err := reserveItemNumber(cfg, category, n-1)
+	number, err := reserveItemNumber(cfg, category, n-1, goos)
 	if err != nil {
 		return "", err
 	}
@@ -86,8 +86,8 @@ func mintItemID(cfg *config.Loaded, category string, registryIDs []string) (stri
 	return fmt.Sprintf("%s-%0*d", category, width, number), nil
 }
 
-func reserveItemNumber(cfg *config.Loaded, category string, highest int) (int, error) {
-	store, err := counterStore(cfg)
+func reserveItemNumber(cfg *config.Loaded, category string, highest int, goos string) (int, error) {
+	store, err := counterStore(cfg, goos)
 	if err != nil {
 		return 0, err
 	}
@@ -98,7 +98,7 @@ func reserveItemNumber(cfg *config.Loaded, category string, highest int) (int, e
 // push pushes to (the branch's upstream, else origin, as git.Upstream gives
 // it) when there is one, else, and always under a stealth config, the file
 // in the git common dir.
-func counterStore(cfg *config.Loaded) (idcounter.Store, error) {
+func counterStore(cfg *config.Loaded, goos string) (idcounter.Store, error) {
 	common, err := git.Output("rev-parse", "--git-common-dir")
 	if err != nil {
 		return idcounter.Store{}, err
@@ -118,7 +118,7 @@ func counterStore(cfg *config.Loaded) (idcounter.Store, error) {
 			remote = ""
 		}
 	}
-	return idcounter.Store{Root: root, CommonDir: common, Remote: remote, LocalOnly: cfg.Stealth}, nil
+	return idcounter.Store{Root: root, CommonDir: common, Remote: remote, OS: goos, LocalOnly: cfg.Stealth}, nil
 }
 
 // taggedIDs are the ids given and the <kind>-<n> every @<kind>-<n> tag of

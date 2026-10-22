@@ -92,7 +92,7 @@ func initCommand(args []string, o Out) (int, error) {
 	if policy != "" {
 		ask, answers := !o.JSON && onTerminal(), bufio.NewReader(os.Stdin)
 		return policyInit(policy, stealth, pluginOffer{flag: plugin, stealth: stealth, ask: ask, answers: answers},
-			shimOffer{flag: shim, ask: ask, answers: answers}, rulesOffer{flag: rules, stealth: stealth, ask: ask, answers: answers},
+			shimOffer{flag: shim, ask: ask, answers: answers, goos: o.OS}, rulesOffer{flag: rules, stealth: stealth, ask: ask, answers: answers},
 			log, o)
 	}
 	initialized, err := atTop(log)
@@ -111,7 +111,7 @@ func initCommand(args []string, o Out) (int, error) {
 		if stealth && plugin.scope == "project" {
 			return 0, pluginRefused()
 		}
-		return initReport(file, pluginOffer{flag: plugin, stealth: stealth}, shimOffer{flag: shim},
+		return initReport(file, pluginOffer{flag: plugin, stealth: stealth}, shimOffer{flag: shim, goos: o.OS},
 			rulesOffer{flag: rules, stealth: stealth, rerun: true}, o)
 	}
 	if named := os.Getenv("ITOS_CONFIG"); named != "" {
@@ -122,7 +122,7 @@ func initCommand(args []string, o Out) (int, error) {
 	// answer into its buffer.
 	ask, answers := !o.JSON && onTerminal(), bufio.NewReader(os.Stdin)
 	return initWrite(stealth, initialized, pluginOffer{flag: plugin, stealth: stealth, ask: ask, answers: answers},
-		shimOffer{flag: shim, ask: ask, answers: answers}, rulesOffer{flag: rules, stealth: stealth, ask: ask, answers: answers},
+		shimOffer{flag: shim, ask: ask, answers: answers, goos: o.OS}, rulesOffer{flag: rules, stealth: stealth, ask: ask, answers: answers},
 		log, o)
 }
 

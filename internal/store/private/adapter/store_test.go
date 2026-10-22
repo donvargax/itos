@@ -49,7 +49,7 @@ func TestStoreKeepsTheContract(t *testing.T) {
 	porttest.StoreContract(t, func(t *testing.T, repository bool) porttest.Fixture {
 		dir := clone(t, repository)
 		return porttest.Fixture{
-			Store:   Store{},
+			Store:   Store{OS: runtime.GOOS},
 			Kept:    filepath.Join(dir, "kept.md"),
 			Ignored: filepath.Join(dir, "ignored.md"),
 			Outside: filepath.Join(t.TempDir(), "outside.md"),

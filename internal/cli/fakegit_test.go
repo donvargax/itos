@@ -104,6 +104,7 @@ func TestMain(m *testing.M) {
 	if os.Getenv(wrappedGitEnv) != "" {
 		os.Exit(wrappedGit(os.Args[1:]))
 	}
+	git.Platform = runtime.GOOS
 	os.Exit(m.Run())
 }
 

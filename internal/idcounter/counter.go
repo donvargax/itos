@@ -28,10 +28,12 @@ const (
 
 // Store says where a reservation is made. Remote is the configured git
 // remote name, empty when the counter must be local. CommonDir is the result
-// of git rev-parse --git-common-dir, resolved to an absolute path.
+// of git rev-parse --git-common-dir, resolved to an absolute path. OS is the
+// OS itos runs on, as GOOS names it, which the local counter's lock waits
+// by.
 type Store struct {
-	Root, CommonDir, Remote string
-	LocalOnly               bool
+	Root, CommonDir, Remote, OS string
+	LocalOnly                   bool
 }
 
 // Mint reserves one number greater than both repositoryHighest and the
@@ -78,7 +80,7 @@ func mintLocal(store Store, category string, highest, count int) (int, error) {
 	}
 	dir := filepath.Join(store.CommonDir, "itos")
 	file := filepath.Join(dir, localFile)
-	held, err := lock.Hold(filepath.Join(dir, "ids"))
+	held, err := lock.Hold(filepath.Join(dir, "ids"), store.OS)
 	if err != nil {
 		return 0, err
 	}
