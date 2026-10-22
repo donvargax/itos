@@ -2802,3 +2802,21 @@
     - run: tools/bin/itos config get hooks.pre_push.per_base | grep -q golangci-lint
     - run: go test -count=1 ./tools/...
       timeout: 900
+
+- id: T-221
+  type: build
+  title: tools/bin/pinned caches its tools once per clone, not once per worktree
+  why: >
+    T-220's agent (2026-10-21): tools/bin/pinned fetches into each worktree's own .tools, so every
+    agent and self-test worktree fetches dprint, golangci-lint and itos-cc again (golangci-lint 9.5
+    minutes in one worktree, dprint 324 s in a self-test, a reset fetch failing a take). The cache
+    moves to the clone's common git folder (git rev-parse --git-common-dir, e.g.
+    <common>/itos/tools/<tool>-<version>), shared by every worktree of the clone, still verified by
+    SHA-256 on fetch and written atomically (fetch to a temp folder, rename) so two worktrees
+    fetching at once do not corrupt it; .tools in the worktree is no longer used (or kept as a
+    fallback outside a repository). T-220's scratch.Repo.SharePinned goes if the scratch worktrees
+    then share the cache, or stays if they are separate clones. Windows (zip, .exe) keeps working.
+  done_when:
+    - run: grep -q "git-common-dir" tools/bin/pinned
+    - run: go test -count=1 ./tools/...
+      timeout: 900
