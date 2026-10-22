@@ -12532,3 +12532,19 @@ items:
       and the push proof counts it uncovered. Reading them once, before the path rule, and handing
       them to both would remove the branch and a call to the repository. Found moving hook into its
       slice (T-249).
+
+  - id: p1-scratch-author-date
+    title: scratch test repositories clear the author date a hook exports
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The commit-msg and pre-commit hooks export GIT_AUTHOR_DATE to the unit tests they run, and
+      scratchFolder in internal/cli fixes the author name and email but not the date, so every
+      commit a test makes in its scratch repository takes the date of the commit being made, and the
+      guess of amending in hook commit-msg reads the next commit as an amend of HEAD.
+      TestStagedDataIssues passed run by hand and failed under the hook until it cleared the date
+      itself (T-249). Clearing GIT_AUTHOR_DATE and GIT_COMMITTER_DATE in scratchFolder, notesRepo
+      and gitConfigRepo would keep a test from passing or failing by where it runs.
