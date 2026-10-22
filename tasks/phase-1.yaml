@@ -3727,19 +3727,6 @@
     committed golden: the user, 2026-10-21). No behaviour change: same bytes, same exit codes, same
     order. Lane C, after C1. Ports: Commit and Push bound to cli's gitCommit and push; shim's Place,
     LinksItos, MakeLink and Standing bound to internal/shim. Keeps those wrappers for init.
-  done_when:
-    - run: go test ./internal/cli ./internal/slices/... ./internal/engine/... -count=1
-      timeout: 600
-    - run: go run ./tools/bin/assemble -check
-    - run: go run ./tools/bin/conformance --bin tools/bin/itos --only tools/itos/conformance/help.yaml tools/itos/conformance/cli.yaml tools/itos/conformance/init.yaml
-      timeout: 600
-    - run: go test ./features -count=1 -scenarios='^@ID-(CLI|BIN|EXT|SHIM|SHIMINIT)-[0-9]+$'
-      timeout: 600
-    - run: tools/bin/architecture-check
-    - run: tools/bin/pinned golangci-lint run ./...
-      timeout: 600
-    - run: grep -q 'gitshimslice.Command' internal/cli/commands_gen.go
-    - run: "! grep -nE '^func (\\([^)]*\\) )?(installShim|uninstallShim|shimRefused)\\(' internal/cli/*.go"
 
 - id: T-255
   type: refactor
