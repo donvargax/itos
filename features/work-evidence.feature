@@ -26,6 +26,11 @@ Feature: Final evidence is recorded by the same transaction that closes project 
   Background:
     Given a repository whose ledger has the task "T-001"
 
+  # #95: a live task (the person runs the steps after the agent writes the
+  # runbook) needs work done to require evidence, since its file checks pass
+  # before the live work: p1-task-signoff-check builds on this slice. #109's
+  # second part (a note of how the work was verified, in the close commit) is
+  # this slice's --evidence-file.
   @wip @ID-WORK-137 @slice-158
   Scenario: Evidence follows validated implementation directly into the close commit
     Given task "T-001" is doing and queued with a current recording acceptance check
