@@ -1,13 +1,12 @@
 package cli
 
-// Every built-in command's flags, declared in one place and read by one
-// parser (slice 88, decision 36; docs/CLI.md rules 19 to 21 and 25). The
-// spec (internal/declare's Spec) says which flags a command takes, whether
-// each takes a value and whether it may be given more than once, and which
-// the config adds; readLine applies it before the command runs, so a command
-// reads its flags by name from arguments the spec has already judged. The
-// help text stays hand-written (help.go): the spec is for parsing, not for
-// writing help.
+// Every built-in command's flags, read by one parser (slice 88, decision 36;
+// docs/CLI.md rules 19 to 21 and 25). A command declares its spec beside its
+// help (internal/declare: declare_<name>.go, or its slice's Command): which
+// flags it takes, whether each takes a value and whether it may be given
+// more than once, and which the config adds; readLine applies it before the
+// command runs, so a command reads its flags by name from arguments the spec
+// has already judged.
 
 import (
 	"context"
@@ -30,24 +29,14 @@ type (
 	flagSpec = declare.Flag
 )
 
-var (
-	sw   = declare.Switch
-	val  = declare.Value
-	vals = declare.Values
-)
-
-// joined is a list of flags and more, a new slice, so no spec shares an
-// array with another.
+// joined is a list of flags and more, a new slice, so a declared spec's
+// array is never appended to.
 func joined(list []flagSpec, more ...flagSpec) []flagSpec {
 	return append(slices.Clone(list), more...)
 }
 
-// group is the flags that name a ledger's group; groupLabel adds the
-// label's own (ledger.group.label).
-var group = []flagSpec{val("--group"), val("--phase")}
-
 // groupLabel is the flag of the config's group label, when it is not one
-// of group's: --milestone for ledger.group.label milestone.
+// of groupNames: --milestone for ledger.group.label milestone.
 func groupLabel() ([]flagSpec, error) {
 	cfg, err := loadConfig()
 	if err != nil {
@@ -55,8 +44,8 @@ func groupLabel() ([]flagSpec, error) {
 	}
 	var flags []flagSpec
 	for _, name := range groupFlags(cfg) {
-		if _, has := find(group, name); !has {
-			flags = append(flags, val(name))
+		if !slices.Contains(groupNames, name) {
+			flags = append(flags, declare.Value(name))
 		}
 	}
 	return flags, nil
@@ -72,7 +61,7 @@ func footerFlags() ([]flagSpec, error) {
 	}
 	var flags []flagSpec
 	for name := range message.TextFlags(cfg) {
-		flags = append(flags, vals(name))
+		flags = append(flags, declare.Values(name))
 	}
 	return flags, nil
 }
@@ -89,102 +78,14 @@ func moreFlags(more declare.More) ([]flagSpec, error) {
 	return nil, nil
 }
 
-// specs is every built-in command's spec, by its name.
-var specs = map[string]spec{
-	"task": {Flags: joined(group, val("--skip"), sw("--pending")), More: declare.GroupLabel, Words: true, Subs: map[string]spec{
-		"list": {Flags: group, More: declare.GroupLabel},
-		"add": {Flags: joined(group, val("--type"), val("--title"), val("--why"), vals("--check"), vals("--timeout")),
-			More: declare.GroupLabel},
-		"next-id": {},
-	}},
-	"work": {Flags: []flagSpec{val("--as")}, Subs: map[string]spec{
-		"list": {Flags: []flagSpec{sw("--all"), val("--tag")}},
-		"show": {Flags: []flagSpec{sw("--patch")}},
-		"take": {Flags: []flagSpec{val("--as")}},
-		"promote": {Flags: []flagSpec{val("--id"), val("--kind"), val("--title"), val("--why"), val("--type"),
-			vals("--check"), vals("--timeout")}},
-		"done": {},
-		"add": {Flags: []flagSpec{val("--title"), val("--why"), val("--kind"), val("--phase"), val("--owner"),
-			val("--depends-on"), val("--refs"), val("--tags")}},
-		"edit":      {Flags: []flagSpec{val("--title"), val("--depends-on"), val("--refs"), val("--tags"), val("--note")}},
-		"queue":     {Flags: []flagSpec{sw("--top"), sw("--remove"), val("--before"), val("--after")}},
-		"drop":      {Flags: []flagSpec{val("--why")}},
-		"defer":     {Flags: []flagSpec{val("--why")}},
-		"resume":    {},
-		"give-back": {Flags: []flagSpec{val("--why"), val("--as")}},
-		"check":     {},
-	}},
-	"commit": {Flags: []flagSpec{vals("--task"), vals("--item"), vals("--scenarios"), vals("--breaking")},
-		More: declare.Footers, Others: true, Subs: map[string]spec{
-			"check-message": {Flags: []flagSpec{val("--at")}},
-			"check-paths":   {Flags: []flagSpec{val("--type")}},
-			"footers":       {},
-		}},
-	"verify": {},
-	"tests": {Subs: map[string]spec{
-		"list":    {Flags: []flagSpec{val("--at")}},
-		"moves":   {},
-		"next-id": {Flags: []flagSpec{val("--count")}},
-		"smoke": {Subs: map[string]spec{
-			"check": {Flags: []flagSpec{val("--features")}},
-			"ids":   {},
-			"run":   {Unread: true, After: 1},
-		}},
-	}},
-	"ci": {Subs: map[string]spec{
-		"plan":  {Flags: []flagSpec{sw("--nightly"), sw("--whole"), val("--data-at")}},
-		"run":   {Flags: []flagSpec{sw("--nightly"), sw("--tests")}},
-		"scope": {},
-		"watch": {},
-		"range": {Flags: []flagSpec{val("--head"), val("--base")}},
-	}},
-	"hook": {Subs: map[string]spec{
-		"commit-msg": {},
-		"pre-push":   {},
-		"install":    {Flags: []flagSpec{sw("--print"), sw("--force")}},
-	}},
-	"guard": {Subs: map[string]spec{
-		"claude-code": {},
-	}},
-	"config": {Subs: map[string]spec{
-		"check": {Flags: []flagSpec{sw("--print-defaults"), val("--ledger")}},
-		"get":   {},
-	}},
-	"version": {Flags: []flagSpec{sw("--check")}},
-	"push":    {Unread: true},
-	"git-shim": {Subs: map[string]spec{
-		"install":   {Flags: []flagSpec{val("--dir")}},
-		"uninstall": {Flags: []flagSpec{val("--dir")}},
-		"run":       {Unread: true},
-	}},
-	"pin":     {},
-	"upgrade": {},
-	"init": {Flags: []flagSpec{sw("--stealth"), val("--policy"), declare.Optional("--plugin"), sw("--git-shim"), sw("--no-git-shim"),
-		val("--git-shim-dir"), sw("--agent-rules"), sw("--no-agent-rules")}},
-	"followup": {Flags: []flagSpec{sw("--all")}, Subs: map[string]spec{
-		"add":   {Flags: []flagSpec{val("--with"), val("--title"), val("--note")}},
-		"note":  {},
-		"close": {Flags: []flagSpec{val("--note")}},
-		"show":  {},
-		"doc":   {Flags: []flagSpec{sw("--force")}},
-	}},
-	"decision": {Flags: []flagSpec{sw("--all")}, Subs: map[string]spec{
-		"add":    {Flags: []flagSpec{val("--item")}},
-		"answer": {},
-		"record": {Flags: []flagSpec{val("--title"), vals("--option"), val("--consequences"), val("--supersedes"),
-			sw("--none")}},
-		"show": {},
-	}},
-	"draft": {Subs: map[string]spec{
-		"add":     {Flags: []flagSpec{val("-m"), val("--message")}},
-		"edit":    {Flags: []flagSpec{val("-m"), val("--message")}},
-		"promote": {},
-		"drop":    {},
-	}},
-	"go":     {},
-	"guide":  {},
-	"status": {Flags: []flagSpec{val("--as")}},
-}
+// specs is every built-in command's spec, by its name, as it declares it.
+var specs = func() map[string]spec {
+	found := make(map[string]spec, len(declared))
+	for _, d := range declared {
+		found[d.Name] = d.Spec
+	}
+	return found
+}()
 
 // flagShaped is an argument that reads as a flag: a dash or two and a name
 // with no space in it, then a value after "=" or nothing. "-" (stdin) and

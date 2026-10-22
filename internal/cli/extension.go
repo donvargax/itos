@@ -35,7 +35,7 @@ const (
 // builtin is whether itos has the command itself, or had it before v6.0.0
 // renamed it (renamed.go).
 func builtin(name string) bool {
-	_, ok := commands[name]
+	_, ok := dispatch(name)
 	return ok || name == "help" || retiredName(name)
 }
 

@@ -18,8 +18,13 @@
 //
 // # Reading a command line
 //
-// specs (spec.go) declares every built-in command's flags by command path,
-// in internal/declare's Spec, each a switch, a flag that needs a value or one
+// Each command declares itself (internal/declare): declare_<name>.go's
+// <name>Declared, or its slice's Command, gives its name, its Rank in itos
+// --help, its lines there, its --help pages and its spec. tools/bin/assemble
+// writes commands_gen.go from them, declared and dispatch, which calls
+// run<Name> in the command's own file; run it after adding, renaming or
+// re-ranking one. specs (spec.go) is each command's spec by name, in
+// internal/declare's Spec: each flag a switch, one that needs a value or one
 // that may take one (init --plugin), and whether it may be repeated; More
 // names the flags the config adds (the group label's, commit's free-text
 // footers'), which moreFlags reads the config for, others lets git
@@ -32,11 +37,11 @@
 // the launcher and the extensions use. A command checks a ref with
 // commitRefs (rangeRefs for a CI range, whose start may be a commit a
 // rewritten history dropped) before it uses it. The help is written by hand
-// in one table keyed by command path (help.go): itos, itos help … and any
-// --help print the longest command path the table knows, before any config
-// is read; TestUsageFlagsAreInTheSpecs holds every flag a usage line names to
-// the spec; the corpus's help.yaml pins only that help exits 0 and names
-// the subcommands, not its words (ADR-0052).
+// in the declarations, which helpTexts keys by command path (help.go): itos,
+// itos help … and any --help print the longest command path it knows,
+// before any config is read; TestUsageFlagsAreInTheSpecs holds every flag a
+// usage line names to the spec; the corpus's help.yaml pins only that help
+// exits 0 and names the subcommands, not its words (ADR-0052).
 //
 // The commands and flags v6.0.0 renamed (renamed.go,
 // docs/decisions/0036-v6-0-0-renames-commands-by-the-cli-guidelines-parses-every-flag-from-a-spec-and-takes-exit-codes-from-the-error-s-kind.md)
@@ -138,7 +143,7 @@
 // nothing and is a doctor: initReport lists configFindings' problems and
 // hookProblems' (a git that runs no hook its config declares,
 // configHooksRun, else each of itos's two entries the git config does not
-// declare, declared), exit 1 when there is any; then its notes, never
+// declare, entryDeclared), exit 1 when there is any; then its notes, never
 // counted as missing, under their own heading and in the checked object's
 // notes: configFindings' warnings and pinBehind, a pin older than the newest
 // release, naming itos upgrade (slice 115), left out when the release server
@@ -422,7 +427,7 @@
 // command that commits or pushes where a config is: gitCommit (and so the
 // git shim's git commit) and writeCommitted need the commit-msg entry, push
 // the pre-push one; a git that runs no config hook, or an entry the git
-// config at any level does not declare (declared: its event, and a command
+// config at any level does not declare (entryDeclared: its event, and a command
 // callsItos matches), is kind.Missing, exit 3, naming itos hook install or
 // the git to upgrade to. Where there is no config nothing is checked, so the
 // shim's git commit outside an itos repository is plain git.

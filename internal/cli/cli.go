@@ -295,7 +295,7 @@ func mainWith(args []string, stdout, stderr io.Writer, goos, reserved string) in
 	if g.Help || name == "" || name == "help" {
 		return help(g, o)
 	}
-	command, ok := commands[name]
+	command, ok := dispatch(name)
 	if !ok {
 		return failure(usage("unknown command: %s", name), o)
 	}

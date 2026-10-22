@@ -71,10 +71,10 @@ func configHooksRun() bool { return (vcs.Git{}).ConfigHooksRun(context.Backgroun
 // prints it after those words.
 func gitVersion() string { return (vcs.Git{}).Version(context.Background()) }
 
-// declared is whether the git config, at any of its levels, declares itos's
+// entryDeclared is whether the git config, at any of its levels, declares itos's
 // hook for the event: its entry's event is the event and its command runs
 // itos's hook.
-func declared(event string) bool {
+func entryDeclared(event string) bool {
 	name := hookEntry(event)
 	commands := configValues(false, "hook."+name+".command")
 	return len(commands) > 0 && callsItos.MatchString(commands[len(commands)-1]) &&
@@ -100,7 +100,7 @@ func hooksReady(events ...string) error {
 	}
 	var missing []string
 	for _, event := range events {
-		if !declared(event) {
+		if !entryDeclared(event) {
 			missing = append(missing, event)
 		}
 	}

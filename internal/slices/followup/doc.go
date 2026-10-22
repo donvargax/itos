@@ -4,7 +4,8 @@
 // application, and its domain (internal/slices/followup/domain) the threads
 // and their file.
 //
-// internal/cli's flag spec reads the line and hands Parse the arguments
+// Command (command.go) declares its name, help and flag spec, by which
+// internal/cli reads the line and hands Parse the arguments
 // after followup, with the folder itos was started in, which a relative doc
 // path is read from; every error Parse gives is a usage error. Handle reaches
 // the world through Ports, which the slice owns and internal/cli binds: the

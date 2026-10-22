@@ -2,7 +2,8 @@
 // are the command line, its Query and Handler the application, and its
 // domain (internal/slices/guard/domain) what the guard judges.
 //
-// internal/cli's flag spec reads the line and hands Parse the arguments
+// Command (command.go) declares its name, help and flag spec, by which
+// internal/cli reads the line and hands Parse the arguments
 // after guard, with the folder itos was started in, before a run from a
 // subfolder moved to the top. Run reads Claude Code's input, makes that
 // folder absolute and builds the Query, the one copy of the line's values;

@@ -2,7 +2,8 @@
 // of its own: its CLI and Run are the command line, its Query and Handler
 // the application.
 //
-// internal/cli's flag spec reads the line and hands Parse the arguments
+// Command (command.go) declares its name, help and flag spec, by which
+// internal/cli reads the line and hands Parse the arguments
 // after version, with the global --json. Run builds the Query, the one copy
 // of the line's values; Handle reads the version and the config's requires
 // through Ports, which the slice owns and internal/cli binds to

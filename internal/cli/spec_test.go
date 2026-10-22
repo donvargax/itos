@@ -73,8 +73,8 @@ func TestMoreFlags(t *testing.T) {
 		"commits:\n  footers:\n    Upgrading: { source: text }\n")
 	for more, want := range map[declare.More][]flagSpec{
 		declare.NoMore:     nil,
-		declare.GroupLabel: {val("--milestone")},
-		declare.Footers:    {vals("--upgrading")},
+		declare.GroupLabel: {declare.Value("--milestone")},
+		declare.Footers:    {declare.Values("--upgrading")},
 	} {
 		got, err := moreFlags(more)
 		if err != nil || !slices.Equal(got, want) {

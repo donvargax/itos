@@ -257,7 +257,7 @@ func groupLabelProblems(cfg *config.Loaded) []out.Problem {
 			Message: fmt.Sprintf("ledger.group.label %q cannot be typed as itos task's flag %s", label, flag),
 			Fix:     "set ledger.group.label to one word, with no space, = or leading -, such as phase or milestone",
 		}}
-	case !slices.Contains(group, val(flag)) && slices.Contains(taskFlags(), flag):
+	case !slices.Contains(groupNames, flag) && slices.Contains(taskFlags(), flag):
 		return []out.Problem{{
 			Rule:    "config-group-label",
 			Message: "ledger.group.label is " + label + ", and " + flag + " is already another flag of itos task, so it never takes a group",

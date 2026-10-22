@@ -13,31 +13,6 @@ import (
 // an error that failure reports.
 type command func(args []string, o Out) (int, error)
 
-// commands is the command table, main.ts's COMMANDS.
-var commands = map[string]command{
-	"task":     runTask,
-	"work":     runWork,
-	"commit":   runCommit,
-	"verify":   runVerify,
-	"tests":    runTests,
-	"ci":       runCi,
-	"hook":     runHook,
-	"guard":    runGuard,
-	"config":   runConfig,
-	"version":  runVersion,
-	"push":     runPush,
-	"git-shim": runGitShim,
-	"pin":      runPin,
-	"upgrade":  runUpgrade,
-	"init":     runInit,
-	"followup": runFollowup,
-	"decision": runDecision,
-	"draft":    runDraft,
-	"go":       runGo,
-	"guide":    runGuide,
-	"status":   runStatus,
-}
-
 // flagValue is the value after a flag, and whether there is one.
 func flagValue(args []string, name string) (string, bool) {
 	i := slices.Index(args, name)

@@ -53,9 +53,9 @@ itos ──────────────────┴─> cmd/itos ─>
 3. **The launcher** (`internal/launch`): runs the release a repository pins,
    fetched into a cache and checked against the pin's checksums, in its own
    place, or runs itself ([ADR-0024]). A global itos is this launcher.
-4. **The command line** (`internal/cli`): the flags, read by each command's
-   spec, the extensions (`itos-<name>` on the `PATH`), the move to the
-   repository's top, then the command. Its doc has a heading per command group.
+4. **The command line** (`internal/cli`): the flags, the extensions
+   (`itos-<name>` on the `PATH`), the move to the repository's top, then the
+   command. Its doc has a heading per command group.
 
 What every command meets:
 
@@ -75,8 +75,8 @@ What every command meets:
 
 ## Where to look
 
-- A command's flags, help, exit code, output: `internal/cli` (`spec.go`,
-  `help.go`, the command).
+- A command's help and flags: its declaration (`internal/declare`),
+  `internal/cli/declare_<name>.go` or its slice's `Command`.
 - What several commands share: `internal/engine/<name>`, its doc saying
   what.
 - Running a pinned release, the update notice: `internal/launch`; release
@@ -109,11 +109,10 @@ What every command meets:
   footer's `source`, never its key), feature files (the Gherkin adapter), the
   config (`config.Load`), a commit's type (`message.Type`), a run of named
   tests (`tests.CommandFor`).
-- **Every git is the real git**, run by `internal/vcs/adapter` alone.
-  Paths are read NUL-separated,
-  changes with `--no-renames` and no type filtered out, so the hook, verify
-  and the plan agree on what a commit touches; a merge is judged by its own
-  changes.
+- **Every git is the real git**, run by `internal/vcs/adapter` alone. Paths
+  are read NUL-separated, changes with `--no-renames` and no type filtered
+  out, so the hook, verify and the plan agree on what a commit touches; a
+  merge is judged by its own changes.
 - **A gate never passes on what it could not read**: a shallow clone, a range
   start that is no commit, a release it cannot fetch exit 2 or 3, never 0.
 - **Files people edit are edited in place** through `internal/value`'s

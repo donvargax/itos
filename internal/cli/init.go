@@ -500,7 +500,7 @@ func hookProblems() []out.Problem {
 		return problems
 	}
 	for _, event := range hookEvents {
-		if !declared(event) {
+		if !entryDeclared(event) {
 			missing(event, "hook."+hookEntry(event)+" in the git config does not run itos", "run itos hook install")
 		}
 	}
