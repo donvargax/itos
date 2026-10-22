@@ -12513,7 +12513,7 @@ items:
   - id: T-271
     title: Tests cover the error branches the draft slice's move left uncovered
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
