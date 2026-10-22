@@ -12049,8 +12049,8 @@ items:
   - id: T-228
     title: "Engines have a home and a gate: internal/engine with depguard rules and architecture fixtures"
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
 
