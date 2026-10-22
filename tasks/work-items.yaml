@@ -12612,3 +12612,18 @@ items:
       T-267 found workArgs, workArgsEmpty, workArgsParsed and trackedText the same way. A check over
       the non-test build, run where the hooks or CI already lint, would report them when the last
       real caller goes.
+
+  - id: p1-vcs-fake-parent-revs
+    title: The VCS fake resolves a revision with a ^ suffix as git does
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Found by T-267 (2026-10-22): work done walks HEAD back with Resolve of <rev>^, which git
+      answers and internal/vcs/port/porttest does not, so a slice test of judgedCommit names each
+      parent in the fake by hand (Named of c-4a^) or the walk stops at HEAD and the test passes for
+      the wrong reason, as one of T-267 did until its coverage showed it. The fake reading a
+      trailing ^ (and ^N, ~N) as the first parent, held by the port contract against the git
+      adapter, would keep the fake honest for every slice that walks history.
