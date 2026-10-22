@@ -9999,6 +9999,10 @@ items:
       imply registry closure; preserve task execution, exit codes and lifecycle gates. Source is the
       issue comment and its captured-output claim; no new reproduction or independent check
       execution was performed here.
+
+      #90 (8.5.0) reports the same: itos task printed done for a doing task whose checks passed. Its
+      side remark (checks that grep a runbook pass before the evidence exists) is
+      p1-task-signoff-check's.
     refs: [internal/cli/task.go, features/task.feature]
 
   - id: p1-listed-test-fingerprints
