@@ -12742,3 +12742,11 @@ items:
     status: todo
     depends_on: []
     kind: task
+
+  - id: T-279
+    title: itos-cc reads itos tests list scenario --tsv; tools/bin/itos-cc-tests goes
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task

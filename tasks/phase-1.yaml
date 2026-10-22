@@ -4258,3 +4258,17 @@
     of slice-166, done by its agent in the same push.
   done_when:
     - run: go test ./tools/bin/itos-cc-tests -count=1
+
+- id: T-279
+  type: build
+  title: itos-cc reads itos tests list scenario --tsv; tools/bin/itos-cc-tests goes
+  why: >
+    The user, 2026-10-22 (#22, #112): once slice-154's --tsv prints live scenarios with
+    project-relative paths and slice-166's fingerprint column, itos-cc.yaml's mutation.tests.list
+    runs tools/bin/itos tests list scenario --tsv directly, and tools/bin/itos-cc-tests (the JSON
+    reshaper, with T-278's third column) is removed with its tests and any mention in itos.yaml,
+    docs and the gates' self-tests. The push proof's and the nightly's listed kills keep being dated
+    by fingerprint. The gate half of slice-154, done by its agent in the same push.
+  done_when:
+    - run: test ! -e tools/bin/itos-cc-tests
+    - run: grep -q 'tests list scenario --tsv' itos-cc.yaml
