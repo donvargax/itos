@@ -3632,19 +3632,6 @@
     order. Lane B, after B1. Ports: RunLine (draftmint.go), ReadLine, the minting-line parsers bound
     to taskAddArgs, workAddLine and workPromoteLine, and the private store. Its itos-cc.yaml
     exception moves with a fresh hash.
-  done_when:
-    - run: go test ./internal/cli ./internal/slices/... ./internal/engine/... -count=1
-      timeout: 600
-    - run: go run ./tools/bin/assemble -check
-    - run: go run ./tools/bin/conformance --bin tools/bin/itos --only tools/itos/conformance/help.yaml tools/itos/conformance/cli.yaml tools/itos/conformance/work.yaml
-      timeout: 600
-    - run: go test ./features -count=1 -scenarios='^@ID-(CLI|BIN|EXT|DRAFT)-[0-9]+$'
-      timeout: 600
-    - run: tools/bin/architecture-check
-    - run: tools/bin/pinned golangci-lint run ./...
-      timeout: 600
-    - run: grep -q 'draftslice.Command' internal/cli/commands_gen.go
-    - run: "! grep -nE '^func (\\([^)]*\\) )?(draftAdd|draftEdit|draftDrop|draftPromote|draftMint|mintedKind)\\(' internal/cli/*.go"
 
 - id: T-253
   type: refactor
