@@ -11444,3 +11444,20 @@ items:
       section; itos go prints the newest handoff in full and older ones as one line each, and itos
       handoff prune folds old ones away.
     tags: [status]
+
+  - id: p1-doc-references
+    title: Reference documents an area's work should read, tracked so briefs and agents find them
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The user, 2026-10-21, not yet sure how it helps; to think through. Vendor docs, specs, RFCs,
+      ADRs of other projects and internal guides that an implementation or a fix should be read
+      against are found again by memory each time. One shape: a references list (title, URL or path,
+      the areas or tags it serves, why it matters, last checked), shown by work show for items of
+      those areas and offered in a brief; a reference whose URL stops answering is flagged. Relates
+      to #100's p1-refs-doc-anchors proposal (anchors in an item's refs) and to p1-research-log (a
+      log entry citing a reference).
+    tags: [docs]
