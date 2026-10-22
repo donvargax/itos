@@ -23,7 +23,7 @@ import (
 // this repository has moved (docs/plans/slices-and-ports.md). internal/outline
 // proves slice-packages allows internal/out alone, not every path it
 // prefixes.
-var stubs = []string{
+var stubs = append([]string{
 	"internal/cli",
 	"internal/declare",
 	"internal/engine/alpha",
@@ -57,6 +57,19 @@ var stubs = []string{
 	"internal/vcs/port/porttest",
 	"internal/vcs/adapter",
 	"cmd/probe",
+}, domains...)
+
+// domains are the packages the commands share, which a slice imports
+// (T-243): the domain packages, and as debt (p1-slice-io-behind-ports)
+// providers, release and shell, which do I/O a slice should reach through
+// its Ports.
+var domains = []string{
+	"internal/adr", "internal/ask", "internal/check", "internal/ci",
+	"internal/config", "internal/draft", "internal/glob", "internal/guide",
+	"internal/kind", "internal/ledger", "internal/message", "internal/nextid",
+	"internal/plan", "internal/proof", "internal/scope", "internal/tests",
+	"internal/value", "internal/version", "internal/work",
+	"internal/providers", "internal/release", "internal/shell",
 }
 
 // stores are the stores, and the VCS, this repository has moved behind a
@@ -119,14 +132,14 @@ func fixtures(module string) []fixture {
 			add(layer, "strings", "ToLower", "", test)
 		}
 		// A slice, outside its domain and adapters, imports nothing of ours
-		// but its own subpackages, the engines and internal/out: no UI,
-		// other internals or cmd. A fixture under internal/slices/alpha is a
-		// package of that slice.
+		// but its own subpackages, the engines, internal/out and the domain
+		// packages: no UI, launcher, shim, other internals or cmd. A
+		// fixture under internal/slices/alpha is a package of that slice.
 		slice := "internal/slices/alpha"
-		for _, target := range []string{"internal/cli", "internal/git", "internal/outline", "cmd/probe"} {
+		for _, target := range []string{"internal/cli", "internal/git", "internal/lock", "internal/idcounter", "internal/launch", "internal/shim", "internal/outline", "cmd/probe"} {
 			add(slice, ours(target), "Value", "slice-packages", test)
 		}
-		for _, target := range []string{"internal/out", "internal/engine/alpha", "internal/slices/alpha/domain", "internal/slices/alpha/domain/port"} {
+		for _, target := range append([]string{"internal/out", "internal/engine/alpha", "internal/slices/alpha/domain", "internal/slices/alpha/domain/port"}, domains...) {
 			add(slice, ours(target), "Value", "", test)
 		}
 		add(slice, "strings", "ToLower", "", test)
