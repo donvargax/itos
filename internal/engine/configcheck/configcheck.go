@@ -39,14 +39,14 @@ func Tagged(area string, problems []out.Problem) []Found {
 
 // SmokeFindings are each kind's smoke set against its tests, and the line
 // each sound one prints; a set that cannot be read is one problem.
-func SmokeFindings(cfg *config.Loaded, ws *tests.Warnings) ([]Found, []string, error) {
+func SmokeFindings(cfg *config.Loaded, ws *tests.Warnings) ([]Found, []string) {
 	return JudgedSmokeFindings(cfg, nil, ws)
 }
 
 // JudgedSmokeFindings are SmokeFindings for the kinds judged picks by name
 // and smoke file (the commit-msg hook's, slice 117), or for every kind with a
 // smoke set when judged is nil.
-func JudgedSmokeFindings(cfg *config.Loaded, judged func(name, file string) bool, ws *tests.Warnings) ([]Found, []string, error) {
+func JudgedSmokeFindings(cfg *config.Loaded, judged func(name, file string) bool, ws *tests.Warnings) ([]Found, []string) {
 	var found []Found
 	var lines []string
 	for _, name := range cfg.Tests.Keys {
@@ -75,7 +75,7 @@ func JudgedSmokeFindings(cfg *config.Loaded, judged func(name, file string) bool
 			lines = append(lines, fmt.Sprintf("%s: every smoke test is live (%d in all)", file, count))
 		}
 	}
-	return found, lines, nil
+	return found, lines
 }
 
 // Findings is what config check finds, what it warns of, and the
@@ -92,12 +92,8 @@ func JudgedSmokeFindings(cfg *config.Loaded, judged func(name, file string) bool
 func Findings(ctx context.Context, v vcsport.VCS, trees port.Trees, src port.Source, ledgerFile string, taskFlags []string, ws *tests.Warnings) (int, []Found, []Found, []string, error) {
 	path := config.Path(v, src)
 	cfg, err := config.Load(v, trees, src, path)
-	var invalid *config.Error
-	if errors.As(err, &invalid) {
-		return 2, prefixed(invalid, "config"), nil, nil, nil
-	}
 	if err != nil {
-		return 0, nil, nil, nil, err
+		return failed(err, "config")
 	}
 	// A commits.since, or a footer's since, this repository does not have makes the config
 	// unusable for verify, as an invalid key does.
@@ -115,20 +111,14 @@ func Findings(ctx context.Context, v vcsport.VCS, trees port.Trees, src port.Sou
 		listed, err := ledger.Files(cfg)
 		// The ledger's folder missing is a config error too: nothing of the
 		// ledger can be read, so it is the one problem.
-		if errors.As(err, &invalid) {
-			return 2, prefixed(invalid, "ledger"), nil, nil, nil
-		}
 		if err != nil {
-			return 0, nil, nil, nil, err
+			return failed(err, "ledger")
 		}
 		for _, f := range listed {
 			files = append(files, f.Path)
 		}
 	}
-	smoke, smokeLines, err := SmokeFindings(cfg, ws)
-	if err != nil {
-		return 0, nil, nil, nil, err
-	}
+	smoke, smokeLines := SmokeFindings(cfg, ws)
 	ledgerProblems, ledgerWarnings := ledger.Findings(cfg, files)
 	// Values the config loads with that nothing reads as written (slice 129),
 	// and the ledger layout's.
@@ -247,6 +237,16 @@ func groupLabelProblems(cfg *config.Loaded, taskFlags []string) []out.Problem {
 		}}
 	}
 	return nil
+}
+
+// failed is what Findings gives for an error: a config error's problems in
+// the area given, code 2, since nothing past it can be read; else the error.
+func failed(err error, area string) (int, []Found, []Found, []string, error) {
+	var invalid *config.Error
+	if errors.As(err, &invalid) {
+		return 2, prefixed(invalid, area), nil, nil, nil
+	}
+	return 0, nil, nil, nil, err
 }
 
 // prefixed are a config error's problems, each message after the file's

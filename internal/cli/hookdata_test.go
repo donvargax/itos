@@ -3,7 +3,6 @@ package cli
 import (
 	"os"
 	"path/filepath"
-	"slices"
 	"strings"
 	"testing"
 )
@@ -48,40 +47,6 @@ tests:
   scenario: { root: features, id: "ID-[A-Z]+-\\d+", tag_prefix: "@", smoke: { file: features/smoke.yaml, every_file: false } }
   unsmoked: { root: features, id: "ID-[A-Z]+-\\d+" }
 `
-
-// The kinds judged picks are the ones judged, among those with a smoke set
-// (unsmoked has none): a sound set prints its line
-// (without every_file, that every smoke test is live), and a set that
-// cannot be read is one smoke-unreadable problem.
-func TestJudgedSmokeFindings(t *testing.T) {
-	scratchFolder(t)
-	writeFiles(t, map[string]string{
-		"itos.yaml":           smokedConfig,
-		"features/a.feature":  "Feature: A\n\n  @ID-A-01\n  Scenario: One\n    When it runs\n",
-		"features/smoke.yaml": "- file: a.feature\n  scenarios: [{ id: \"@ID-A-01\", why: listed }]\n",
-	})
-	cfg, err := loadConfigFile("itos.yaml")
-	if err != nil {
-		t.Fatal(err)
-	}
-	found, lines, err := judgedSmokeFindings(cfg, nil, nil)
-	if err != nil || len(found) != 0 || !slices.Equal(lines, []string{"features/smoke.yaml: every smoke test is live (1 in all)"}) {
-		t.Errorf("a sound set: %v %q %v", found, lines, err)
-	}
-	var asked []string
-	found, lines, _ = judgedSmokeFindings(cfg, func(name, file string) bool {
-		asked = append(asked, name+" "+file)
-		return false
-	}, nil)
-	if len(found) != 0 || len(lines) != 0 || !slices.Equal(asked, []string{"scenario features/smoke.yaml"}) {
-		t.Errorf("a kind left out: %v %q, asked %q", found, lines, asked)
-	}
-	writeFiles(t, map[string]string{"features/smoke.yaml": "- [\n"})
-	found, _, _ = judgedSmokeFindings(cfg, nil, nil)
-	if len(found) != 1 || found[0].Rule != "smoke-unreadable" || found[0].Fix != "correct features/smoke.yaml" || found[0].Area != "smoke" {
-		t.Errorf("a set that cannot be read: %v", found)
-	}
-}
 
 // The hook's data rule as the index holds it: nothing outside a repository
 // or where git cannot say where the index is but the error; no problem for a

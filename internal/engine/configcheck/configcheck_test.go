@@ -334,13 +334,13 @@ func TestJudgedSmokeFindings(t *testing.T) {
 		"other/smoke.yaml":    "- file: b.feature\n  scenarios: [{ id: \"@OT-B-01\", why: listed }]\n",
 	}
 	cfg := smokedOf(t, files)
-	found, lines, err := SmokeFindings(cfg, &tests.Warnings{})
+	found, lines := SmokeFindings(cfg, &tests.Warnings{})
 	want := []string{"features/smoke.yaml: every smoke test is live (1 in all)", "other/smoke.yaml: every file has a smoke test (1 in all)"}
-	if err != nil || len(found) != 0 || !slices.Equal(lines, want) {
-		t.Errorf("sound sets: %v %q %v", found, lines, err)
+	if len(found) != 0 || !slices.Equal(lines, want) {
+		t.Errorf("sound sets: %v %q", found, lines)
 	}
 	var asked []string
-	found, lines, _ = JudgedSmokeFindings(cfg, func(name, file string) bool {
+	found, lines = JudgedSmokeFindings(cfg, func(name, file string) bool {
 		asked = append(asked, name+" "+file)
 		return name == "every"
 	}, nil)
@@ -349,13 +349,13 @@ func TestJudgedSmokeFindings(t *testing.T) {
 	}
 
 	cfg = smokedOf(t, with(files, map[string]string{"features/smoke.yaml": "- file: a.feature\n  scenarios: [{ id: \"@ID-A-09\", why: gone }]\n"}))
-	found, _, _ = JudgedSmokeFindings(cfg, nil, nil)
+	found, _ = JudgedSmokeFindings(cfg, nil, nil)
 	if len(found) != 1 || found[0].Area != "smoke" || found[0].Rule == "smoke-unreadable" {
 		t.Errorf("a set naming no live test: %+v", found)
 	}
 
 	cfg = smokedOf(t, with(files, map[string]string{"features/smoke.yaml": "- [\n"}))
-	found, _, _ = JudgedSmokeFindings(cfg, nil, nil)
+	found, _ = JudgedSmokeFindings(cfg, nil, nil)
 	if len(found) != 1 || found[0].Rule != "smoke-unreadable" || found[0].Fix != "correct features/smoke.yaml" || found[0].Area != "smoke" {
 		t.Errorf("a set that cannot be read: %v", found)
 	}

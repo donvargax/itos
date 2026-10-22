@@ -45,7 +45,7 @@ func tagged(area string, problems []out.Problem) []Found {
 }
 
 // judgedSmokeFindings is configcheck.JudgedSmokeFindings.
-func judgedSmokeFindings(cfg *config.Loaded, judged func(name, file string) bool, ws *tests.Warnings) ([]Found, []string, error) {
+func judgedSmokeFindings(cfg *config.Loaded, judged func(name, file string) bool, ws *tests.Warnings) ([]Found, []string) {
 	return configcheck.JudgedSmokeFindings(cfg, judged, ws)
 }
 

@@ -303,7 +303,7 @@ func stagedSmokeIssues(index port.Source, staged []string, base string, ws *test
 	if base == "" {
 		base = "HEAD"
 	}
-	found, _, _ := judgedSmokeFindings(cfg, func(name, file string) bool {
+	found, _ := judgedSmokeFindings(cfg, func(name, file string) bool {
 		return index.Has(context.Background(), file) && tests.StagesTestFile(cfg, name, staged, base, ws)
 	}, ws)
 	var problems []out.Problem
