@@ -12585,3 +12585,21 @@ items:
       keeps configPath and loadConfigFile methods; status (T-263) will need the same.
       internal/config could give it once (the path, the config, or why it cannot be read, or that it
       is not there), so the slices stop carrying copies of the same glue.
+
+  - id: p1-stealth-rules-terminal-yes
+    title: A yes at the terminal writes the rules for agents under a stealth config
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Under a stealth config, the first run of itos init asks a terminal whether to write the rules
+      for agents, and a yes does not write them: runStealth
+      (internal/slices/initcmd/rulesstealth.go) falls through from the question to its branch for no
+      flag, which reports the files as not all in place and returns stale, so only --agent-rules
+      writes them. Outside a stealth config a yes writes the block. Found while moving the offers
+      into the init slice (T-257), whose before/after comparison ran the old and new binaries
+      through script(1) and saw the same stale line from both; the move kept it, as it changes no
+      behaviour. A fix is a bug scenario, which needs a terminal the features can drive, or a unit
+      test over the slice's fake ports.
