@@ -2183,6 +2183,9 @@ items:
       naming neither the footer nor its length. itos commit builds that line itself, so it can
       refuse before git runs: '--upgrading's footer line would be 126 characters, over 100: shorten
       the text to 88 or fewer'; for a footer from the message file, name the footer and its length.
+
+      Met again in #111 (2026-10-21): a long --upgrading is refused by footer-max-line-length
+      instead of being wrapped onto continuation lines as --scenarios is.
     refs: [internal/cli/gitcommit.go, internal/message/footers.go]
     tags: [commit]
 
