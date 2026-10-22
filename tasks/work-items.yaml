@@ -6847,6 +6847,12 @@ items:
       one local mutation run of that file, kept uncommitted. Revisit if pushes get slow, starting
       from itos-cc#30's per-test fingerprint.
 
+      The slices refactor (T-225, T-226, 2026-10-22) leaves the cache staler with each move:
+      snapshots of moved and split functions (internal/cli workwrite, taskadd, workpromote,
+      workdone, ask; ledger) are out of date and the new store packages have none, since recording
+      one is a local mutation run q-41 rules out. docs/plans/slices-and-ports.md's line that each
+      move carries its snapshots is dropped in T-227.
+
   - id: slice-112
     title: init --policy keeps a smoke set the project already has when it passes the smoke check
     phase: 1
