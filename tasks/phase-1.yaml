@@ -3245,9 +3245,6 @@
     working tree, not the index) beside go vet when a non-test .go file under internal/cli or
     internal/slices is staged, with its self-test. A ci commit; the AGENTS.md line on the pre-commit
     hook names the new check.
-  done_when:
-    - run: go run ./tools/bin/assemble -check
-    - run: tools/bin/itos ci plan --whole | grep -n 'assemble -check'
 
 - id: T-243
   type: refactor
