@@ -26,6 +26,8 @@ import (
 var stubs = []string{
 	"internal/cli",
 	"internal/git",
+	"internal/idcounter",
+	"internal/lock",
 	"internal/out",
 	"internal/outline",
 	"internal/slices/alpha",
@@ -189,6 +191,15 @@ func fixtures(module string) []fixture {
 	for _, layer := range []string{"internal/store/private/adapter", "internal/store/tree/adapter", "internal/store/tracker/adapter", "internal/cli", "cmd/probe"} {
 		add(layer, ours("internal/git"), "Value", "git-internals", false)
 		add(layer, ours("internal/git"), "Value", "", true)
+	}
+	// The lock is the stores' internals: their adapters', and the ID
+	// counter's, which no other package's code imports, but in a test.
+	for _, layer := range []string{"internal/store/private/adapter", "internal/store/tracker/adapter", "internal/idcounter"} {
+		add(layer, ours("internal/lock"), "Value", "", false)
+	}
+	for _, layer := range []string{"internal/vcs/adapter", "internal/cli", "cmd/probe"} {
+		add(layer, ours("internal/lock"), "Value", "lock-internals", false)
+		add(layer, ours("internal/lock"), "Value", "", true)
 	}
 	// What is outside internal/slices and importing a slice, which depguard
 	// lets by and architecture-check's outside holds.
