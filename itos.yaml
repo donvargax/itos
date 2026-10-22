@@ -159,6 +159,10 @@ ci:
     - { run: tools/bin/pinned dprint check, cost: static }
     # gofmt names each file it would change.
     - { run: "! gofmt -l features cmd internal | grep .", cost: static }
+    # internal/cli/commands_gen.go is what tools/bin/assemble writes from the commands'
+    # declarations (T-240): -check writes nothing and fails, naming the file, when the committed
+    # one differs.
+    - { run: go run ./tools/bin/assemble -check, cost: static }
     - { run: go vet ./..., cost: static }
     # The pinned golangci-lint over the whole module (.golangci.yml, T-194): ADR-0053's depguard
     # arrows, no mocking library, and the linters of itos-cc's the tree passes. Linux only, as the

@@ -8,6 +8,8 @@
 //   - pre-commit formats a root .yml file, as it must format action.yml (T-127);
 //   - pre-commit refuses a staged file over its doc budget, judging the staged size, and runs
 //     doc-budget only when a file it caps is staged (T-167);
+//   - pre-commit refuses a command table a staged declaration in internal/cli or a slice leaves
+//     stale, and checks none when only a test file there is staged (T-242);
 //   - pre-push passes a prose-only push;
 //   - pre-push runs neither the scenarios a commit's Scenarios: footer names nor the checks of
 //     the tasks its Task: footer names; CI reads those footers from the pushed range and runs
@@ -83,6 +85,33 @@ func TestSelftest(t *testing.T) {
 		}
 		if got, _ := os.ReadFile(yml); string(got) != "name: itos\n" {
 			t.Errorf("pre-commit left a root .yml file unformatted: %q", got)
+		}
+	})
+
+	// A declaration re-ranked ahead of every other one moves its command to the top of the table
+	// tools/bin/assemble writes, so the committed table is stale (T-242).
+	const stale = "assemble: internal/cli/commands_gen.go is not what the command declarations make"
+	for file, rank := range map[string]string{
+		"internal/cli/declare_config.go":     "Rank: 200,",
+		"internal/slices/version/command.go": "Rank: 210,",
+	} {
+		t.Run("pre-commit refuses a stale command table, "+file, func(t *testing.T) {
+			reset(base)
+			repo.Edit(file, rank, "Rank: 1,")
+			r := hooks.PreCommit(t, "a re-ranked declaration in "+file)
+			if r.Code != 1 || !strings.Contains(r.Output(), stale) {
+				t.Errorf("pre-commit did not refuse the command table %s leaves stale:\n%s", file, r.Output())
+			}
+		})
+	}
+	t.Run("pre-commit checks no command table when only a test file is staged", func(t *testing.T) {
+		reset(base)
+		repo.Edit("internal/cli/commands_gen.go", "package cli", "package cli\n\n// stale")
+		repo.Edit("internal/cli/verify_test.go", "package cli", "package cli\n\n// staged")
+		repo.Git("add", "internal/cli/verify_test.go")
+		r := hooks.Gate(t, "pre-commit, a test file staged, the command table stale", "sh tools/bin/pre-commit")
+		if r.Code != 0 || strings.Contains(r.Output(), "assemble") {
+			t.Errorf("pre-commit checked the command table with only a test file staged:\n%s", r.Output())
 		}
 	})
 

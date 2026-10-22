@@ -7,8 +7,9 @@
 #   git config hook.repo-pre-commit.command tools/bin/pre-commit
 #
 # It formats what is staged and stages it again: Markdown and YAML by dprint (dprint.json says
-# which files), Go by gofmt, then go vet when Go is staged, and the doc budget, judging the staged
-# sizes, when a file it caps is. A file with changes left unstaged is only checked, never
+# which files), Go by gofmt, then go vet when Go is staged, assemble -check (the command table is
+# current) when a non-test Go file under internal/cli or internal/slices is, and the doc budget,
+# judging the staged sizes, when a file it caps is. A file with changes left unstaged is only checked, never
 # rewritten, since its working copy is not what is committed. Then, unless every staged file is
 # prose or itos's own data, the dependency check when go.mod or go.sum is staged and the unit
 # tests the change reaches. staticcheck is CI's (T-148).
@@ -66,6 +67,11 @@ if [ -n "$gofiles" ]; then
 	format "gofmt -w" gofmt_check $gofiles
 	# go vet reads packages, not files: the whole module.
 	go vet ./...
+	# The command table, when a file that may declare a command is staged (T-242). assemble reads
+	# the working tree, not the index, so it only checks: it never writes what is committed.
+	if [ -n "$(staged 'internal/cli/*.go' 'internal/slices/*.go' ':(exclude)*_test.go')" ]; then
+		go run ./tools/bin/assemble -check
+	fi
 fi
 caps=tools/bin/doc-budget/caps.json
 capped=$(git show ":$caps" | grep -o '"file": *"[^"]*"' | sed 's/.*"\([^"]*\)"$/\1/')
