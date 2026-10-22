@@ -11991,6 +11991,11 @@ items:
       and exit distinctly when the failing run holds others' commits; keep following until a later
       descendant goes green, as work done already accepts; and say in the guides never to rerun a
       superseded run. Related: #108, #107, p1-parallel-pilot.
+
+      Seen again 2026-10-22 in the step 7 lanes: T-231's run (c8ec4153) was cancelled by T-235's
+      push, and the descendant run 39738845857 went red on T-235's survivor; a watch of c8ec4153
+      reported that red as T-231's. Also: CI seeds the push proof by the range's start, so while
+      main is red every later push draws the same site and stays red until the repair lands.
     refs: [internal/providers]
     tags: [push, ci]
 
