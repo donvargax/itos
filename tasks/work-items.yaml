@@ -12776,7 +12776,7 @@ items:
   - id: T-281
     title: "Fingerprints returns no error: gherkinList's unreachable error path goes"
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
