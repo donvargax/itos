@@ -80,6 +80,7 @@ queue:
   - T-263
   - T-264
   - T-265
+  - T-266
   - T-191
   - p1-mutation-results-committed
   - p1-text-from-file
