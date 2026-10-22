@@ -10706,6 +10706,17 @@ items:
       are paths and Transaction carries git's commit fields. The user (2026-10-22): fine for now;
       Fossil tickets and a taskmapper-shaped issue provider are the two needs that will reshape it,
       likely at the record level (list, take, done, drop) above or beside the file adapter, in v9.
+
+      Direction (the user, 2026-10-22): itos a thin layer over issue trackers, as taskmapper is
+      (beads, t, Trello, GitHub, Fossil all candidates), limiting what is doable so items move
+      freely between trackers; its weight stays in guiding agents and enforcing verification. That
+      is a record-level provider (list, show, create, take, give back, done, drop, tags, queue) with
+      a small required core and optional capabilities (dependencies, queue order) that degrade where
+      a tracker lacks them; IDs the tracker mints must be accepted. The storage port (T-225..T-227)
+      becomes the YAML provider's internals. Ledger: tracking can go behind a provider, its checks
+      stay core verification; an itos-task extension is a later discussion. Fossil and GitHub start
+      in core behind the interface; extensions once it has survived two or three providers (far
+      future).
     refs: [internal/providers, PLAN.md]
     tags: [providers, work, commit]
 
