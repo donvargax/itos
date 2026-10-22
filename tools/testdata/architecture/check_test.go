@@ -25,6 +25,7 @@ import (
 // prefixes.
 var stubs = []string{
 	"internal/cli",
+	"internal/declare",
 	"internal/engine/alpha",
 	"internal/engine/beta",
 	"internal/git",
@@ -148,6 +149,17 @@ func fixtures(module string) []fixture {
 			add(layer, ours("internal/out"), "Value", "", test)
 		}
 		add("internal/shim", ours("internal/launch"), "Value", "", test)
+		// A command's declaration, its tests with it, is a leaf: nothing of
+		// ours and no I/O. A slice and internal/cli import it.
+		for _, target := range []string{"internal/cli", "internal/engine/alpha", "internal/out"} {
+			add("internal/declare", ours(target), "Value", "declare-leaf", test)
+		}
+		for _, io := range []struct{ pkg, symbol string }{{"os", "ReadFile"}, {"os/exec", "Command"}, {"net", "Dial"}} {
+			add("internal/declare", io.pkg, io.symbol, "declare-leaf", test)
+		}
+		add("internal/declare", "strings", "ToLower", "", test)
+		add(slice, ours("internal/declare"), "Value", "", test)
+		add("internal/cli", ours("internal/declare"), "Value", "", test)
 		for _, store := range stores {
 			// A slice imports a store's port; never its adapter, which the
 			// assembly binds. An engine takes the port its caller binds,
