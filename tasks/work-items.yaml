@@ -12178,3 +12178,11 @@ items:
     status: todo
     depends_on: []
     kind: task
+
+  - id: T-241
+    title: "Commands declare themselves, part 3: every command's declaration and the generated command table"
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task

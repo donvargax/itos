@@ -3216,3 +3216,46 @@
     Rank order, the aliases and -check. A build commit (tools/bin is a gate).
   done_when:
     - run: go test ./tools/bin/assemble -count=1
+
+- id: T-241
+  type: refactor
+  title: "Commands declare themselves, part 3: every command's declaration and the generated command table"
+  why: >
+    ADR-0053, step 5 of docs/plans/slices-and-ports.md (after steps 6 and 7, before step 9's
+    parallel slice lanes; designed by the coordinator 2026-10-22 from a read-only draft, as
+    itos-cc's tools/bin/assemble and declarations): each command declares its name, help and flag
+    spec in its own file, and a generator writes the command table, so a lane moving one command
+    touches only its own files and the generated one, which the generator rewrites. The hand-written
+    parser stays; v9.0 swaps kong beneath the declarations. No behaviour change: help and usage
+    text, exit codes and parsing as before. Help text is not pinned by any committed golden (the
+    user, 2026-10-21: plain text is no contract, no transcript refactor-proof; ADR-0052). This part,
+    after parts 1 and 2: the 21 commands declare themselves and the table is generated. Each command
+    still in internal/cli gets internal/cli/declare_<name>.go holding var <camel>Declared =
+    declare.Command{...}, its pages moved byte for byte from help.go's helpTexts (backtick and +
+    texts exactly) and its spec from spec.go's specs; the slices (guard, followup, version) declare
+    var Command in internal/slices/<name>/command.go. Ranks 10 to 210 in today's itos --help order;
+    version's Lines carries both its lines (the --version one too). Run functions follow
+    run<Pascal(Name)> in each command's own internal/cli file; version's port wiring to
+    internal/cli/version.go. commands.go loses its table (dispatch replaces commands at cli.go,
+    help.go and extension.go's builtin), spec.go its specs literal, help.go keeps the global flags,
+    the tail text, help and helpFor; specs, helpTexts and mainCommands become variables built from
+    declared (mainCommands the fixed header plus each command's Lines). The run functions stay out
+    of declared: readLine (draftmint.go, upgrade.go) reads specs, and holding run functions in the
+    same table is an initialization cycle. Help pages using another command's constant
+    (configHooksSince in the hook and init pages) keep it for now; step 9 moves it. The proof of no
+    help change is one local comparison, not a committed golden: every help page (each helpTexts
+    key's --help, itos --help, itos help <path>) and the usage lines from the binary built at the
+    task's start and at its end, byte-identical, the comparison named in the commit body.
+    docs/ARCHITECTURE.md (near its 12000-byte cap: cut as much as you add) and internal/cli/doc.go
+    say where a command declares itself.
+  done_when:
+    - run: go test ./internal/cli ./internal/slices/... -count=1
+      timeout: 600
+    - run: go run ./tools/bin/assemble -check
+    - run: go run ./tools/bin/conformance --bin tools/bin/itos --only tools/itos/conformance/help.yaml tools/itos/conformance/cli.yaml
+      timeout: 600
+    - run: go test ./features -count=1 -scenarios='^@ID-(CLI|EXT|GUARD|FOLLOW|BIN)-[0-9]+$'
+      timeout: 600
+    - run: tools/bin/architecture-check
+    - run: tools/bin/pinned golangci-lint run ./...
+      timeout: 600
