@@ -43,6 +43,7 @@ import (
 
 	"github.com/donvargax/itos/v8/internal/check"
 	"github.com/donvargax/itos/v8/internal/config"
+	"github.com/donvargax/itos/v8/internal/engine/judge"
 	"github.com/donvargax/itos/v8/internal/ledger"
 	"github.com/donvargax/itos/v8/internal/message"
 	"github.com/donvargax/itos/v8/internal/out"
@@ -317,7 +318,7 @@ func unpushed(v vcsport.VCS, id string, j doneCommit, o Out) []out.Problem {
 }
 
 // failingTask is the problem of a task whose static checks fail, run as the
-// commit-msg hook runs them (firstFailure, capped by
+// commit-msg hook runs them (judge.FirstFailure, capped by
 // hooks.commit_msg.check_timeout), each failure's output on stderr. An item
 // that is no task of the ledger has none, nor has a config with no ledger.id.
 func failingTask(cfg *config.Loaded, id string, o Out) ([]out.Problem, error) {
@@ -336,7 +337,7 @@ func failingTask(cfg *config.Loaded, id string, o Out) ([]out.Problem, error) {
 		if t := cfg.Hooks.CommitMsg.CheckTimeout; t != nil {
 			limit = *t
 		}
-		why, err := firstFailure(cfg, task, limit, checkEnv(), o.Stderr)
+		why, err := judge.FirstFailure(cfg, task, limit, checkEnv(), o.Stderr)
 		if err != nil || why == "" {
 			return nil, err
 		}

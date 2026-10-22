@@ -373,11 +373,10 @@
 //     inheriting the hook's streams, its exit code the hook's), beside the
 //     footer rules at the staged tree (or ITOS_AT). handedFooters gives the
 //     stealth mode's links.
-//  4. The named tasks' checks up to each task's first late one
-//     (check.ChecksBeforeLate), the ledger and the registry read from the
-//     index by the staged config, the checks' costs and timeouts by the
-//     working tree's, each through check.RunCaptured (firstFailure); checkEnv
-//     keeps ITOS_FOOTERS and ITOS_AMEND from them. A failure rejects the
+//  4. The named tasks' checks up to each task's first late one, the ledger
+//     and the registry read from the index by the staged config, the
+//     checks' costs and timeouts by the working tree's, each run by
+//     internal/engine/judge's FirstFailure; checkEnv keeps ITOS_FOOTERS and ITOS_AMEND from them. A failure rejects the
 //     commit when work.ItemStatuses says the task is done, and is only
 //     printed otherwise. hooks.commit_msg.task_checks: false turns them off.
 //
@@ -388,7 +387,7 @@
 // rewrites): a ref whose remote commit this clone lacks, or that is not an
 // ancestor of the commit pushed (git merge-base --is-ancestor), as only a
 // forced push replaces; refuseRewrite names the ref and itos push, exit 1,
-// before the config is read and with no command run. It verifies next (verifyPush): verifier.over on each distinct
+// before the config is read and with no command run. It verifies next (verifyPush): judge.Over on each distinct
 // pushedRange, <remote sha>..<local sha>, or the unpushed commits up to the
 // local one when there is no remote commit to compare with, each run's
 // report written to a buffer, so a push whose commits pass prints nothing.
@@ -427,19 +426,12 @@
 //
 // # verify
 //
-// verify (verify.go) takes the range's commits from git rev-list --reverse
-// over cfg.Range(from, to) (commits.since and its ancestors left out),
-// each one's message through message.Check at that commit (the delegate's
-// report on stdout, stderr under --json), then, only when the message holds,
-// its paths (the VCS's CommitPaths, or a merge's own, OwnPaths) through scope
-// and its moves as one rejection; then tests.RangeCommands, each kind's
-// range commands, run until one fails. That walk is verifier.over, which
-// returns each commit's result (verifyRun), so verifyRange adds only the
-// config's checks, --json and the exit code, and the pre-push hook calls it
-// on each pushed range. A merge with no paths of its own passes whatever its
-// message; one with some is judged as its first line's type and refused
-// under merge-type when that type is none of the commit types
-// (untypedMerge).
+// verify (verify.go) walks the range through internal/engine/judge, whose
+// doc says how: judge.Over, bound to the config's VCS, returns each commit's
+// result (judge.Run), so verifyRange adds only the config's checks, --json
+// and the exit code, and the pre-push hook calls it on each pushed range.
+// The commit-msg hook asks the same engine of a merge being made
+// (judge.UntypedMerge) and of the moves rule's change (judge.MovesChange).
 //
 // # CI
 //
@@ -542,7 +534,7 @@
 //     order, stopping at the first that refuses (exit 1): the item's
 //     scenarios at HEAD (tests.Tagged), none still @wip; no commit of the
 //     judged commit that no remote has (said and skipped with no remote at
-//     all); a task's static checks, by the commit-msg hook's firstFailure,
+//     all); a task's static checks, by the commit-msg hook's judge.FirstFailure,
 //     when the id is a task of the ledger; and with ci.watch, the judged
 //     commit's run, by watcher and watchRun. The judged commit is the newest
 //     of the item's own (ownCommit, slice 127): those whose footers link to

@@ -128,8 +128,8 @@
 // changes (the VCS's OwnPaths): one with none passes whatever its message; one
 // with some is judged as its first line's type, its paths its own and its
 // moves its own paths against its first parent, and refused under merge-type
-// when that type is none of the commit types (untypedMerge, in
-// internal/cli). Other headers the lint leaves alone that name no type (a
+// when that type is none of the commit types (UntypedMerge, in
+// internal/engine/judge). Other headers the lint leaves alone that name no type (a
 // "Merge …" header on a commit with one parent, a bare version) keep the
 // word they start with, which no rule judges.
 //

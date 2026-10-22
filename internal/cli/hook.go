@@ -32,6 +32,7 @@ import (
 	"github.com/donvargax/itos/v8/internal/adr"
 	"github.com/donvargax/itos/v8/internal/check"
 	"github.com/donvargax/itos/v8/internal/config"
+	"github.com/donvargax/itos/v8/internal/engine/judge"
 	"github.com/donvargax/itos/v8/internal/ledger"
 	"github.com/donvargax/itos/v8/internal/message"
 	"github.com/donvargax/itos/v8/internal/out"
@@ -88,7 +89,7 @@ func hookCommitMsg(file string, o Out) (int, error) {
 	}
 	// A merge with no change of its own passes whatever its message says
 	// (bug 30): what it brings was judged in the commits that made it.
-	if merge != nil && len(merge.files) == 0 {
+	if merge != nil && len(merge.Files) == 0 {
 		return 0, nil
 	}
 	// The message git will store, as the header lint reads it (bug 36): a
@@ -119,7 +120,7 @@ func hookCommitMsg(file string, o Out) (int, error) {
 // first parent; nil when it is not a merge. Its parents are HEAD and the
 // commits a merge in progress brings (MERGE_HEAD), with which git refuses an
 // amend, or for an amend HEAD's own.
-func stagedMerge() (*judged, error) {
+func stagedMerge() (*judge.Judged, error) {
 	ctx, v := context.Background(), vcs.Git{}
 	var parents []string
 	if heads := v.MergeHeads(ctx); len(heads) > 0 {
@@ -141,7 +142,7 @@ func stagedMerge() (*judged, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &judged{files: own, after: "index", parent: parents[0], merge: true}, nil
+	return &judge.Judged{Files: own, After: "index", Parent: parents[0], Merge: true}, nil
 }
 
 // handedFooters are the footers a commit being made under a stealth config
@@ -347,13 +348,13 @@ func stagedCheckIssues(cfg *config.Loaded, c config.RangeCheck, typ string) []ou
 // against the index. The paths and the moves rule judge an amend against
 // base, HEAD's parent (judgedBase), and a merge (merge not nil) by its own
 // changes against its first parent, as verify does, refusing one whose type
-// is none of the commit types (untypedMerge). The paths and the staged
+// is none of the commit types (judge.UntypedMerge). The paths and the staged
 // commands are nothing for a type with no path rule (unknown types are the
 // header lint's); the moves rule judges the types it says it judges. The
 // type is the one the message is judged as (message.Type: a revert git wrote
 // is a revert, a fixup! commit the type of the header it names). 0 when they
 // hold, else the rejection and 1.
-func stagedRule(cfg *config.Loaded, text, base string, merge *judged, o Out) (int, error) {
+func stagedRule(cfg *config.Loaded, text, base string, merge *judge.Judged, o Out) (int, error) {
 	typ := message.Type(text)
 	rules, err := scope.Of(cfg)
 	if err != nil {
@@ -361,13 +362,13 @@ func stagedRule(cfg *config.Loaded, text, base string, merge *judged, o Out) (in
 	}
 	found := []out.Problem{}
 	if merge != nil {
-		merge.typ = typ
-		found = append(found, untypedMerge(cfg, *merge)...)
+		merge.Type = typ
+		found = append(found, judge.UntypedMerge(cfg, *merge)...)
 	}
 	if rules.Ruled(typ) {
 		var staged []string
 		if merge != nil {
-			staged = merge.files
+			staged = merge.Files
 		} else if staged, err = stagedFiles(base); err != nil {
 			return 0, err
 		}
@@ -394,7 +395,7 @@ func stagedRule(cfg *config.Loaded, text, base string, merge *judged, o Out) (in
 	}
 	var moved []out.Problem
 	if merge != nil {
-		moved, err = tests.NewMoves(cfg, o.Tests).Merge(typ, merge.parent, "index", merge.files, change)
+		moved, err = tests.NewMoves(cfg, o.Tests).Merge(typ, merge.Parent, "index", merge.Files, change)
 	} else {
 		moved, err = tests.NewMoves(cfg, o.Tests).Between(typ, before, "index", change)
 	}
@@ -413,7 +414,7 @@ func stagedRule(cfg *config.Loaded, text, base string, merge *judged, o Out) (in
 // its trees (slice 134): the tests its footers name, the message's own or,
 // under a stealth config, those its note will hold (handedFooters), and the
 // paths it stages, a merge's own.
-func stagedChange(cfg *config.Loaded, text, base string, merge *judged) (tests.Change, error) {
+func stagedChange(cfg *config.Loaded, text, base string, merge *judge.Judged) (tests.Change, error) {
 	footers := text
 	if cfg.Stealth {
 		var err error
@@ -422,26 +423,13 @@ func stagedChange(cfg *config.Loaded, text, base string, merge *judged) (tests.C
 		}
 	}
 	if merge != nil {
-		return movesChange(cfg, footers, merge.files), nil
+		return judge.MovesChange(cfg, footers, merge.Files), nil
 	}
 	staged, err := stagedFiles(base)
 	if err != nil {
 		return tests.Change{}, err
 	}
-	return movesChange(cfg, footers, staged), nil
-}
-
-// movesChange is a commit as the moves rule reads it beside its trees: the
-// IDs its footers (a message, or a note) name, by kind of named tests, and
-// the paths it changes.
-func movesChange(cfg *config.Loaded, footers string, paths []string) tests.Change {
-	change := tests.Change{Named: map[string][]string{}, Paths: paths}
-	for _, l := range message.Links(cfg, footers) {
-		if l.Tests != "" {
-			change.Named[l.Tests] = append(change.Named[l.Tests], l.ID)
-		}
-	}
-	return change
+	return judge.MovesChange(cfg, footers, staged), nil
 }
 
 // namedTask is a task the message names, with its work item's status as
@@ -521,58 +509,6 @@ func checkEnv() []string {
 	return env
 }
 
-// checkFailure is what went wrong with a failed check, in a few words.
-func checkFailure(c ledger.Check, run check.Captured) string {
-	command := "`" + c.Command() + "`"
-	switch {
-	case run.TimedOut && run.Capped:
-		return fmt.Sprintf("%s ran past hooks.commit_msg.check_timeout (%ss)", command, value.Number(run.Seconds))
-	case run.TimedOut:
-		return fmt.Sprintf("%s ran past its timeout (%ss)", command, value.Number(run.Seconds))
-	case c.MustFail() && run.Code == 0:
-		return command + " passed, and must fail"
-	case run.Code < 0:
-		return command + " was stopped"
-	}
-	return fmt.Sprintf("%s exited %d", command, run.Code)
-}
-
-// firstFailure runs one task's checks before its first late one, an after:
-// push check pending since the commit is not pushed, and gives the first
-// failure, if any, with its output printed under the task's title and the
-// check, as `itos task` prints them.
-func firstFailure(cfg *config.Loaded, task ledger.Task, cap float64, env []string, stderr io.Writer) (string, error) {
-	if task.Err != nil {
-		return "", task.Err
-	}
-	for _, costed := range check.ChecksBeforeLate(cfg, task) {
-		c := costed.Check
-		if c.Pushed() {
-			continue
-		}
-		run, err := check.RunCaptured(cfg, c, cap, env)
-		if err != nil {
-			return "", err
-		}
-		if run.Result == check.Pass {
-			continue
-		}
-		mode := ""
-		if c.MustFail() {
-			mode = "   (must fail)"
-		}
-		fmt.Fprintf(stderr, "%s %s\n  $ %s%s\n", task.ID, task.Title, c.Command(), mode)
-		if run.Output != "" {
-			fmt.Fprint(stderr, run.Output)
-			if !strings.HasSuffix(run.Output, "\n") {
-				fmt.Fprintln(stderr)
-			}
-		}
-		return checkFailure(c, run), nil
-	}
-	return "", nil
-}
-
 // verdict is what one failing task does to the commit: when its item is
 // done, the line it adds to the rejection; else its report, printed now, and
 // nothing.
@@ -615,7 +551,7 @@ func tasksRule(cfg *config.Loaded, text string, o Out) (int, error) {
 	}
 	var rejected []string
 	for _, n := range named {
-		why, err := firstFailure(cfg, n.task, cap, env, o.Stderr)
+		why, err := judge.FirstFailure(cfg, n.task, cap, env, o.Stderr)
 		if err != nil {
 			return 0, err
 		}
@@ -737,7 +673,7 @@ func (r pushedRef) pushedRange() span {
 }
 
 // verifyPush is the hook's first step: verify over what each pushed ref
-// adds, each range once, its report kept. It prints nothing when every
+// adds, each range once (judge.Over over the config's VCS), its report kept. It prints nothing when every
 // commit passes and the range checks hold, so a push of passing commits reads
 // as it did before the hook verified; else each failing range's report, how
 // to fix the commits, and 1 (2 when commits.since is no commit here, as
@@ -763,16 +699,16 @@ func verifyPush(cfg *config.Loaded, refs []pushedRef, o Out) (int, error) {
 		}
 		seen[r] = true
 		var log strings.Builder
-		run, err := newVerifier(cfg, Out{Stdout: &log, Stderr: &log, Tests: o.Tests, Origin: o.Origin}).over(r.From, r.To)
+		run, err := judge.Over(context.Background(), cfg, cfg.VCS, r.From, r.To, judge.Out{Stdout: &log, Stderr: &log, Tests: o.Tests})
 		if err != nil {
 			return 0, err
 		}
-		if run.ok() {
+		if run.OK() {
 			continue
 		}
 		refused = true
 		report.WriteString(log.String())
-		for _, c := range run.results {
+		for _, c := range run.Results {
 			if !c.OK && first == "" {
 				first = c.SHA
 			}

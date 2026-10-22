@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/donvargax/itos/v8/internal/config"
+	"github.com/donvargax/itos/v8/internal/engine/judge"
 	"github.com/donvargax/itos/v8/internal/git"
 	"github.com/donvargax/itos/v8/internal/message"
 	trees "github.com/donvargax/itos/v8/internal/store/tree/adapter"
@@ -46,7 +47,7 @@ tests:
 	if err != nil || !reflect.DeepEqual(got, want) {
 		t.Errorf("staged: %+v, %v, want %+v", got, err, want)
 	}
-	got, err = stagedChange(cfg, msg, "", &judged{files: []string{"own.go"}})
+	got, err = stagedChange(cfg, msg, "", &judge.Judged{Files: []string{"own.go"}})
 	want.Paths = []string{"own.go"}
 	if err != nil || !reflect.DeepEqual(got, want) {
 		t.Errorf("a merge: %+v, %v, want %+v", got, err, want)
