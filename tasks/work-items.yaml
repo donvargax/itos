@@ -10033,6 +10033,13 @@ items:
       interpreting unknown test formats. Do not claim itos-cc currently consumes a third column: its
       issue #30 remains open as of the 2026-10-15 gh api read. Do not implement cached-evidence
       reuse or weaken current proof gates in this item.
+
+      Asked for in #112 (2026-10-21): a third column from tests list for scenario kinds, stable when
+      a scenario moves unchanged. Timing: itos-cc up to v0.22.0 reads a third column as part of the
+      file name, so gate it on the itos-cc release with its slice-39 or make it opt-in (a flag or
+      key the project's mutation.tests.list command passes); itos-cc notes the release on #112. Why
+      here: every spec commit to a feature file stales every kill its scenarios made, so CI's
+      mutation check goes red after commits no test sees.
     refs: [internal/tests/gherkin.go, internal/tests/tests.go]
 
   - id: p1-reusable-completion-evidence
