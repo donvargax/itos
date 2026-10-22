@@ -12516,3 +12516,19 @@ items:
     status: doing
     depends_on: []
     kind: task
+
+  - id: p1-hook-stealth-footers-once
+    title: hook commit-msg reads the stealth footers once
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Under a stealth config hook commit-msg reads the footers the note of the commit will hold
+      (handedFooters: ITOS_FOOTERS, else the HEAD note of an amend) twice: in stagedChange for the
+      moves rule, then again for the header lint and the task checks. The second read can only fail
+      where the first already did, so its error branch in commitMsg of internal/slices/hook is dead
+      and the push proof counts it uncovered. Reading them once, before the path rule, and handing
+      them to both would remove the branch and a call to the repository. Found moving hook into its
+      slice (T-249).
