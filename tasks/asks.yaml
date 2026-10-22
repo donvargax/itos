@@ -367,6 +367,7 @@ questions:
   - id: q-90
     question: "#97: should itos offer a tracked registry-only starter for a docs-and-ops repository (registry, queue, decisions, deferrals; no required footers, no smoke set, no CI plan)? Recommended: no new init mode; ship and document a policy file for it, used through the existing itos init --policy <file> (a mode is a second starter to keep in step; a policy file is data). To check before answering: that such a policy passes init and config check."
     answer: "The user, 2026-10-21: the recommendation. No new init mode: a shipped, documented policy file for a registry-only repository, used through itos init --policy (p1-registry-only-policy)."
+    decision: none
   - id: q-91
     item: "p1-task-signoff-check"
     question: "#99 with #95: should a task be able to say its proof is a person's sign-off rather than a command? Recommended: yes, only as an evidence requirement on top of slice-158 (work done refuses such a task without --evidence-file and records it with its date); no --check-on <host> runner, since a command that reaches a host is already a valid check."
