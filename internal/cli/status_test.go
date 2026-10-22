@@ -19,6 +19,7 @@ import (
 	"github.com/donvargax/itos/v8/internal/release"
 	trees "github.com/donvargax/itos/v8/internal/store/tree/adapter"
 	"github.com/donvargax/itos/v8/internal/store/tree/port"
+	"github.com/donvargax/itos/v8/internal/vcs/port/porttest"
 )
 
 // statusRepo is a scratch repository as the current folder, with no remote,
@@ -99,6 +100,34 @@ func TestStatusRegistryChanged(t *testing.T) {
 	_, _, code, err := statusOf(cfg, "a", Out{})
 	if err == nil || !strings.Contains(err.Error(), "changed while read") || code != 0 {
 		t.Errorf("the second read's failure is not the error: exit %d, %v", code, err)
+	}
+}
+
+// A remote that cannot be reached leaves the head as last fetched, said as
+// such, its header read from the fetched commit; never fetched, neither the
+// head nor its CI run is read.
+func TestStatusRemoteUnreached(t *testing.T) {
+	statusRepo(t, map[string]string{"work-items.yaml": items("one"), "people.yaml": "- a\n"})
+	gitIn(t, "remote", "add", "origin", filepath.Join(t.TempDir(), "gone.git"))
+	cfg, err := loadConfig()
+	if err != nil {
+		t.Fatal(err)
+	}
+	fetched := strings.Repeat("f", 40)
+	cfg.VCS = porttest.VCS{History: []porttest.Commit{{Name: fetched, Message: "feat: fetched\n\nIts body.\n"}},
+		Refs: map[string]string{"refs/remotes/origin/main": fetched}}
+	st := &standing{}
+	st.readBranch(cfg, "origin", "refs/heads/main", "main", Out{})
+	if h := st.Head; h == nil || h.Commit != fetched || !h.LastFetched || h.Header != "feat: fetched" ||
+		len(st.Unread) == 0 || st.Unread[0] != "origin cannot be reached, so its main is as last fetched." {
+		t.Errorf("last fetched: head %+v, unread %q", st.Head, st.Unread)
+	}
+	cfg.VCS = porttest.VCS{}
+	st = &standing{}
+	st.readBranch(cfg, "origin", "refs/heads/main", "main", Out{})
+	want := "origin cannot be reached and origin/main was never fetched, so neither its head nor its CI run is read."
+	if st.Head != nil || len(st.Unread) != 1 || st.Unread[0] != want {
+		t.Errorf("never fetched: head %+v, unread %q", st.Head, st.Unread)
 	}
 }
 

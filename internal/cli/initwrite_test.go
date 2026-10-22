@@ -23,7 +23,7 @@ func writeDirect(t *testing.T, stealth bool) error {
 }
 
 // A file init cannot write, or a folder it cannot make, stops it with the
-// error, each of its starter files in turn.
+// error and no exit code of its own, each of its starter files in turn.
 func TestInitWriteStopsAtAFileItCannotWrite(t *testing.T) {
 	for _, c := range []struct {
 		name   string
@@ -41,9 +41,9 @@ func TestInitWriteStopsAtAFileItCannotWrite(t *testing.T) {
 			if c.locked != "" {
 				readOnly(t, filepath.Join(dir, c.locked))
 			}
-			_, _, _, err := initRun(t, false)
-			if err == nil || !strings.Contains(err.Error(), c.want) {
-				t.Errorf("%v", err)
+			code, _, _, err := initRun(t, false)
+			if code != 0 || err == nil || !strings.Contains(err.Error(), c.want) {
+				t.Errorf("exit %d, %v", code, err)
 			}
 		})
 	}

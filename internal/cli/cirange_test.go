@@ -32,6 +32,39 @@ func TestCIScopeRefusesABrokenConfig(t *testing.T) {
 	}
 }
 
+// ci scope says whether the range changes prose alone: a range of a
+// Markdown change is, one that also changes code is not, under --json too.
+func TestCIScopeSaysWhetherTheRangeIsProse(t *testing.T) {
+	gitConfigRepo(t, "version: 1\nci: { steps: [], prose: { paths: [\"**/*.md\"], steps: [echo prose] } }\n")
+	commit := func(file string) string {
+		t.Helper()
+		if err := os.WriteFile(file, []byte(file+"\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		gitIn(t, "add", file)
+		gitIn(t, "-c", "user.name=a", "-c", "user.email=a@example.com", "commit", "-q", "-m", "chore: "+file)
+		return strings.TrimSpace(gitIn(t, "rev-parse", "HEAD"))
+	}
+	start := commit("start.txt")
+	readme := commit("README.md")
+	code := commit("main.go")
+	for _, c := range []struct {
+		to   string
+		json bool
+		want string
+	}{
+		{readme, false, "docs_only=true\n"},
+		{code, false, "docs_only=false\n"},
+		{readme, true, `"docs_only": true`},
+	} {
+		var stdout strings.Builder
+		exit, err := ciScope(start, c.to, Out{Stdout: &stdout, JSON: c.json})
+		if exit != 0 || err != nil || !strings.Contains(stdout.String(), c.want) {
+			t.Errorf("%s..%s, json %v: exit %d, %v, stdout %q", start, c.to, c.json, exit, err, stdout.String())
+		}
+	}
+}
+
 // With --json, ci range's start, commits.since's commit here with provider
 // none (slice 109), is the from of one object, and the exit is 0.
 func TestCIRangeJSONGivesTheStart(t *testing.T) {
