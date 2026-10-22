@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	"github.com/donvargax/itos/v8/internal/git"
+	"github.com/donvargax/itos/v8/internal/kind"
 	"github.com/donvargax/itos/v8/internal/release"
 	"github.com/donvargax/itos/v8/internal/version"
 )
@@ -21,6 +22,45 @@ const sums = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 
 // here is the platform the tests run on, as cmd/itos detects it.
 var here = Platform{runtime.GOOS, runtime.GOARCH}
+
+// standIn stands in for internal/cli's command line, which cmd/itos hands
+// the launcher: Parse reads --config and --root with their values, and the
+// switches the tests write, wherever they stand, the rest the command, and
+// names no extension; UpgradeTarget hands nothing on; ExitCode gives 75 to an
+// error that may pass when run again, 3 to a missing environment and 70 to
+// any other.
+var standIn = CLI{
+	Parse: func(args []string) Line {
+		var l Line
+		for i := 0; i < len(args); i++ {
+			switch a := args[i]; a {
+			case "--config", "--root":
+				i++
+				if a == "--config" {
+					l.Config = args[i]
+				} else {
+					l.Root = args[i]
+				}
+			case "-h", "--help":
+				l.Help = true
+			case "--json":
+			default:
+				l.Rest = append(l.Rest, a)
+			}
+		}
+		return l
+	},
+	UpgradeTarget: func([]string) (Handoff, bool, error) { return Handoff{}, false, nil },
+	ExitCode: func(err error) int {
+		switch kind.Of(err) {
+		case kind.Temporary:
+			return 75
+		case kind.Missing:
+			return 3
+		}
+		return 70
+	},
+}
 
 // A release's binary and archive are named by the OS and the architecture:
 // itos in a tar.gz, itos.exe in a zip on windows.
@@ -89,7 +129,7 @@ func TestChoose(t *testing.T) {
 			offline(t)
 			writeConfig(t, c.config)
 			t.Setenv(EnvVersion, c.env)
-			got, launch := choose(nil, io.Discard, here)
+			got, launch := choose(standIn, nil, io.Discard, here)
 			if got != c.want || launch != c.launch {
 				t.Errorf("choose = %v, %t; want %v, %t", got, launch, c.want, c.launch)
 			}
@@ -118,7 +158,7 @@ func TestHanded(t *testing.T) {
 			offline(t)
 			writeConfig(t, c.config)
 			t.Setenv(EnvVersion, c.env)
-			if got, byEnv := Handed(nil); got != c.want || byEnv != c.byEnv {
+			if got, byEnv := Handed(standIn, nil); got != c.want || byEnv != c.byEnv {
 				t.Errorf("Handed = %q, %t; want %q, %t", got, byEnv, c.want, c.byEnv)
 			}
 		})
@@ -148,7 +188,7 @@ func TestUnguarded(t *testing.T) {
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			if got := unguarded(c.args, target{version: c.v}); got != c.want {
+			if got := unguarded(standIn, c.args, target{version: c.v}); got != c.want {
 				t.Errorf("unguarded(%q, %q) = %t; want %t", c.args, c.v, got, c.want)
 			}
 		})
@@ -170,8 +210,8 @@ func TestChooseReadsTheConfigWhereItosDoes(t *testing.T) {
 		{"--root", "sub", "--config", "other.yaml", "version"},
 		{"version", "--config", "sub/other.yaml"},
 	} {
-		if got, launch := choose(args, io.Discard, here); !launch || got.version != "9.1.0" {
-			t.Errorf("choose(%q) = %v, %t; want 9.1.0", args, got, launch)
+		if got, launch := choose(standIn, args, io.Discard, here); !launch || got.version != "9.1.0" {
+			t.Errorf("choose(standIn, %q) = %v, %t; want 9.1.0", args, got, launch)
 		}
 	}
 }
@@ -203,18 +243,18 @@ func TestReadConfigFindsTheStealthConfig(t *testing.T) {
 		}
 	}
 	write(stealth, "version: 1\npin: { version: \"9.1.0\", checksums: \""+sums+"\" }\n")
-	if got, launch := choose(nil, io.Discard, here); !launch || got.version != "9.1.0" {
+	if got, launch := choose(standIn, nil, io.Discard, here); !launch || got.version != "9.1.0" {
 		t.Errorf("a pinned stealth config: choose = %v, %t; want 9.1.0", got, launch)
 	}
-	if c := readConfig([]string{"--root", dir, "version"}); c.state != pinned {
+	if c := readConfig(standIn, []string{"--root", dir, "version"}); c.state != pinned {
 		t.Errorf("a pinned stealth config under --root: %+v", c)
 	}
 	write(stealth, "version: 1\n")
-	if c := readConfig(nil); c.state != absent {
+	if c := readConfig(standIn, nil); c.state != absent {
 		t.Errorf("a stealth config with no pin: %+v, want absent", c)
 	}
 	write("itos.yaml", "version: 1\n")
-	if c := readConfig(nil); c.state != unpinned || c.file != "itos.yaml" {
+	if c := readConfig(standIn, nil); c.state != unpinned || c.file != "itos.yaml" {
 		t.Errorf("an itos.yaml in the root with no pin: %+v, want unpinned", c)
 	}
 }
@@ -329,7 +369,7 @@ func TestBinaryCommand(t *testing.T) {
 		"work --as someone":      false,
 		"--config pin.yaml work": false,
 	} {
-		if got := binaryCommand(strings.Fields(args)); got != want {
+		if got := binaryCommand(standIn, strings.Fields(args)); got != want {
 			t.Errorf("binaryCommand(%s) = %v, want %v", args, got, want)
 		}
 	}
@@ -365,7 +405,7 @@ func TestBinaryCommandLeavesInitToThePin(t *testing.T) {
 			if err := os.WriteFile(filepath.Join(dir, "other.yaml"), []byte(pinned), 0o644); err != nil {
 				t.Fatal(err)
 			}
-			if got := binaryCommand(strings.Fields(c.args)); got != c.want {
+			if got := binaryCommand(standIn, strings.Fields(c.args)); got != c.want {
 				t.Errorf("binaryCommand(%s) = %v, want %v", c.args, got, c.want)
 			}
 		})
@@ -411,7 +451,7 @@ func TestPinLine(t *testing.T) {
 			writeConfig(t, c.config)
 			t.Setenv(EnvVersion, "")
 			var stderr bytes.Buffer
-			choose(strings.Fields(c.args), &stderr, here)
+			choose(standIn, strings.Fields(c.args), &stderr, here)
 			if stderr.String() != c.want {
 				t.Errorf("stderr %q, want %q", stderr.String(), c.want)
 			}

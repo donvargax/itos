@@ -44,8 +44,9 @@ var Commands = []string{"commit", "push"}
 // (tooOld). Otherwise it runs the real git with the arguments and gives its exit
 // code, done; on unix it does not return, git replacing this process. No git
 // on the PATH but itos is a missing environment, exit 3. v is the git
-// adapter, which finds the real git.
-func Main(args []string, stderr io.Writer, v vcs.Git) (itos []string, code int, done bool) {
+// adapter, which finds the real git; cl is the launcher's CLI, which tooOld
+// asks launch.Handed with.
+func Main(args []string, stderr io.Writer, v vcs.Git, cl launch.CLI) (itos []string, code int, done bool) {
 	real := v.Inherited()
 	under := real != ""
 	if !under {
@@ -71,7 +72,7 @@ func Main(args []string, stderr io.Writer, v vcs.Git) (itos []string, code int, 
 				return nil, 128, true
 			}
 			itos := append([]string{"git-shim", "run", "--", line.name}, line.rest...)
-			if !tooOld(line, itos, back, stderr) {
+			if !tooOld(cl, line, itos, back, stderr) {
 				line.configure(real)
 				return itos, 0, false
 			}
@@ -160,8 +161,8 @@ func (l gitLine) enter() (back string, err error) {
 // back to the folder git was started in, for the real git to run the command
 // as it is. A folder it cannot come back to, or a version neither names that
 // it can read, hands the command on.
-func tooOld(line gitLine, itos []string, back string, stderr io.Writer) bool {
-	v, env := launch.Handed(itos)
+func tooOld(cl launch.CLI, line gitLine, itos []string, back string, stderr io.Writer) bool {
+	v, env := launch.Handed(cl, itos)
 	if v == "" || version.Compare(v, GitShimSince) >= 0 {
 		return false
 	}

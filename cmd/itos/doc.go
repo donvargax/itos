@@ -19,5 +19,7 @@
 //     launcher runs included, so no git itos starts is ever the shim again.
 //  4. internal/launch picks the version of itos to run, and runs it when it
 //     is not this binary; only when it hands the run back does internal/cli,
-//     the command line, run.
+//     the command line, run. Neither the launcher nor the shim imports
+//     internal/cli: commandLine hands them its parser, upgrade target and
+//     exit codes (launch.CLI).
 package main

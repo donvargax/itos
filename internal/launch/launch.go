@@ -14,7 +14,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/donvargax/itos/v8/internal/cli"
 	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/kind"
 	"github.com/donvargax/itos/v8/internal/release"
@@ -37,6 +36,45 @@ const (
 	// hands an upgrade on again.
 	EnvUpgradeFrom = "ITOS_UPGRADE_FROM"
 )
+
+// GuardSince is the first itos with guard claude-code (v6.0.0, decision 36;
+// guard claude-code before it): the launcher answers nothing for the guard
+// where it would hand it to an older itos, which has no such command, and
+// whose usage error's exit 2 Claude Code would take as a block (slice 44).
+const GuardSince = "6.0.0"
+
+// CLI is what the launcher needs of the command line, internal/cli's, which
+// cmd/itos gives it: the launcher runs before the command line and imports
+// none of it.
+type CLI struct {
+	// Parse reads the arguments as the command line does.
+	Parse func(args []string) Line
+	// UpgradeTarget reads the arguments for an itos upgrade the launcher can
+	// hand on: ok is false for anything left to this binary, and an error is
+	// a version that cannot be had, its kind as upgrade gives it.
+	UpgradeTarget func(args []string) (h Handoff, ok bool, err error)
+	// ExitCode is the exit code of an error's kind.
+	ExitCode func(err error) int
+}
+
+// Line is what the launcher reads of the command line, as CLI.Parse reads
+// it: the global flags it needs, the command and its arguments in Rest, and
+// the program of an extension the command names, "" for none.
+type Line struct {
+	Help bool
+	// Config and Root are "" when not given.
+	Config, Root string
+	Rest         []string
+	Extension    string
+}
+
+// Handoff is the upgrade the launcher hands to the version it moves to: that
+// version, its checksums.txt and the command line to run it with.
+type Handoff struct {
+	Version   string
+	Checksums []byte
+	Args      []string
+}
 
 // fetchTimeout bounds each download, so a server that stops answering cannot
 // hold a commit for ever.
@@ -62,19 +100,20 @@ func Args(args []string) []string {
 // it is not this binary, and gives that version's exit code. When this binary
 // is the one to run, it gives nil, no code at all, and the caller carries on.
 // Where a repository's pin has fallen behind the newest release, it says so
-// on stderr first (update.go). A release is fetched and run for p.
-func Main(args []string, stderr io.Writer, p Platform) *int {
-	if code, handed := handUpgrade(args, stderr, p); handed {
+// on stderr first (update.go). A release is fetched and run for p; cl reads
+// the arguments.
+func Main(cl CLI, args []string, stderr io.Writer, p Platform) *int {
+	if code, handed := handUpgrade(cl, args, stderr, p); handed {
 		return new(code)
 	}
-	if binaryCommand(args) {
+	if binaryCommand(cl, args) {
 		return nil
 	}
-	t, ok := choose(args, stderr, p)
+	t, ok := choose(cl, args, stderr, p)
 	if !ok {
 		return nil
 	}
-	if unguarded(args, t) {
+	if unguarded(cl, args, t) {
 		answerNothing(t, os.Stdin, stderr)
 		return new(0)
 	}
@@ -85,7 +124,7 @@ func Main(args []string, stderr io.Writer, p Platform) *int {
 	}
 	if err != nil {
 		fmt.Fprintf(stderr, "itos: %s\n", err)
-		code = failed(err)
+		code = failed(cl, err)
 	}
 	return new(code)
 }
@@ -94,7 +133,7 @@ func Main(args []string, stderr io.Writer, p Platform) *int {
 // or run: a release server that cannot be reached, or fails, may answer when
 // asked again (75, release.Get); any other failure is one this machine does
 // not have (3).
-func failed(err error) int { return cli.ExitCode(kind.Else(kind.Missing, err)) }
+func failed(cl CLI, err error) int { return cl.ExitCode(kind.Else(kind.Missing, err)) }
 
 // handUpgrade hands itos upgrade to the version it moves to when that is
 // newer than this binary, by semver's precedence alone, a build of a
@@ -104,13 +143,13 @@ func failed(err error) int { return cli.ExitCode(kind.Else(kind.Missing, err)) }
 // upgrade's. It writes nothing of its own but the one line of a version it
 // cannot fetch or run, as upgrade says it, exit 75 or 3. It hands nothing
 // on when ITOS_UPGRADE_FROM is set, so a release that is not the version it
-// was fetched as cannot loop, nor anything cli.UpgradeTarget leaves to this
+// was fetched as cannot loop, nor anything cl.UpgradeTarget leaves to this
 // binary, nor an upgrade to a version no newer than it.
-func handUpgrade(args []string, stderr io.Writer, p Platform) (int, bool) {
+func handUpgrade(cl CLI, args []string, stderr io.Writer, p Platform) (int, bool) {
 	if os.Getenv(EnvUpgradeFrom) != "" {
 		return 0, false
 	}
-	h, ok, err := cli.UpgradeTarget(args)
+	h, ok, err := cl.UpgradeTarget(args)
 	own := version.Version()
 	if !ok || err == nil && version.Compare(h.Version, own) <= 0 {
 		return 0, false
@@ -128,7 +167,7 @@ func handUpgrade(args []string, stderr io.Writer, p Platform) (int, bool) {
 	}
 	if err != nil {
 		fmt.Fprintf(stderr, "itos: %s; every file is left as it was\n", err)
-		code = failed(err)
+		code = failed(cl, err)
 	}
 	return code, true
 }
@@ -144,13 +183,13 @@ func handUpgrade(args []string, stderr io.Writer, p Platform) (int, bool) {
 // own only where the config pins nothing: where it pins a version, that
 // version runs init as it runs every other command (bug 104), so a newer itos
 // called never writes its own agent rules block and hooks over the pin's.
-func binaryCommand(args []string) bool {
-	rest := cli.Parse(args).Rest
+func binaryCommand(cl CLI, args []string) bool {
+	rest := cl.Parse(args).Rest
 	switch {
 	case len(rest) >= 1 && (rest[0] == "pin" || rest[0] == "upgrade"):
 		return true
 	case len(rest) >= 1 && rest[0] == "init":
-		return readConfig(args).state != pinned
+		return readConfig(cl, args).state != pinned
 	case len(rest) >= 2 && rest[0] == "git-shim":
 		return rest[1] == "install" || rest[1] == "uninstall"
 	}
@@ -161,10 +200,10 @@ func binaryCommand(args []string) bool {
 // they would be handed to predates it, so has no such command to answer it
 // (slice 44). A version the launcher cannot read (an ITOS_VERSION that is
 // none) is handed on, to fail as it does for any command.
-func unguarded(args []string, t target) bool {
-	rest := cli.Parse(args).Rest
+func unguarded(cl CLI, args []string, t target) bool {
+	rest := cl.Parse(args).Rest
 	return len(rest) >= 2 && rest[0] == "guard" && rest[1] == "claude-code" &&
-		config.PinVersion.MatchString(t.version) && version.Compare(t.version, cli.GuardSince) < 0
+		config.PinVersion.MatchString(t.version) && version.Compare(t.version, GuardSince) < 0
 }
 
 // answerNothing is the guard's answer for the version t, which has none:
@@ -184,16 +223,16 @@ func answerNothing(t target, stdin *os.File, stderr io.Writer) {
 		who = "this repository pins"
 	}
 	fmt.Fprintf(stderr, "itos: guard claude-code answers nothing: %s itos %s, and the guard needs itos %s or later\n",
-		who, t.version, cli.GuardSince)
+		who, t.version, GuardSince)
 }
 
 // choose is the version to run and whether it is another than this binary:
 // ITOS_VERSION's, else the pin's, else, with no config at all or a stealth
 // config with no pin, the newest release the launcher knows of. A project's
 // config with no pin runs this binary.
-func choose(args []string, stderr io.Writer, p Platform) (target, bool) {
+func choose(cl CLI, args []string, stderr io.Writer, p Platform) (target, bool) {
 	own := version.Version()
-	c := readConfig(args)
+	c := readConfig(cl, args)
 	if v := os.Getenv(EnvVersion); v != "" {
 		if v == own {
 			return target{}, false
@@ -206,7 +245,7 @@ func choose(args []string, stderr io.Writer, p Platform) (target, bool) {
 	}
 	switch c.state {
 	case pinned:
-		pinLine(args, c.pin.Version, own, stderr)
+		pinLine(cl, args, c.pin.Version, own, stderr)
 		notice(c.file, c.pin.Version, own, stderr, p)
 		if c.pin.Version == own {
 			return target{}, false
@@ -223,8 +262,8 @@ func choose(args []string, stderr io.Writer, p Platform) (target, bool) {
 // called, is: the version line on stdout is the pin's, which alone does not
 // say it is a pin's (slice 87). Human output, on stderr
 // (docs/decisions/0035-only-machine-output-is-itos-s-contract-exit-codes-json-less-message-and-fix-and-the-files-it-writes.md).
-func pinLine(args []string, pin, own string, stderr io.Writer) {
-	g := cli.Parse(args)
+func pinLine(cl CLI, args []string, pin, own string, stderr io.Writer) {
+	g := cl.Parse(args)
 	if g.Extension != "" || g.Help || len(g.Rest) == 0 || g.Rest[0] != "version" {
 		return
 	}
@@ -236,14 +275,15 @@ func pinLine(args []string, pin, own string, stderr io.Writer) {
 // whether ITOS_VERSION named it; "" when it runs this binary, when neither
 // names a version it can use (a pin it cannot read, an ITOS_VERSION that is
 // no version) or when only the newest release would (no config). It reads
-// the pin as choose does, and asks the release server nothing.
-func Handed(args []string) (v string, env bool) {
+// the pin as choose does, the arguments read by cl, and asks the release
+// server nothing.
+func Handed(cl CLI, args []string) (v string, env bool) {
 	if v = os.Getenv(EnvVersion); v != "" {
 		env = true
 		if !config.PinVersion.MatchString(v) {
 			return "", false
 		}
-	} else if c := readConfig(args); c.state == pinned {
+	} else if c := readConfig(cl, args); c.state == pinned {
 		v = c.pin.Version
 	}
 	if v == version.Version() {
@@ -278,12 +318,12 @@ type foundConfig struct {
 // readConfig reads the config where itos reads it (--config, ITOS_CONFIG,
 // itos.yaml or the stealth config, under --root, or, from a subfolder of a
 // repository whose config is at its top, there (config.Top), the global flags
-// read as the command line reads them: for an extension, only those before
-// its name). Only the pin is read, not the rest of the config, so a config
-// written for a newer itos than the launcher still reaches the version it
-// pins.
-func readConfig(args []string) foundConfig {
-	g := cli.Parse(args)
+// read as the command line reads them, by cl: for an extension, only those
+// before its name). Only the pin is read, not the rest of the config, so a
+// config written for a newer itos than the launcher still reaches the
+// version it pins.
+func readConfig(cl CLI, args []string) foundConfig {
+	g := cl.Parse(args)
 	root := g.Root
 	if g.Config == "" && root == "" {
 		root = config.Top(vcs.Git{}, "")

@@ -1,26 +1,29 @@
 package launch
 
 import (
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
 
+	"github.com/donvargax/itos/v8/internal/kind"
 	"github.com/donvargax/itos/v8/internal/release"
 )
 
 func TestReadConfigTellsNoConfigFromNoPin(t *testing.T) {
 	t.Chdir(t.TempDir())
-	if c := readConfig(nil); c.state != absent {
+	if c := readConfig(standIn, nil); c.state != absent {
 		t.Errorf("no itos.yaml reads as %v, not absent", c.state)
 	}
 	writeConfig(t, "version: 1\n")
-	if c := readConfig(nil); c.state != unpinned {
+	if c := readConfig(standIn, nil); c.state != unpinned {
 		t.Errorf("a config with no pin reads as %v, not unpinned", c.state)
 	}
 }
@@ -264,37 +267,46 @@ func TestNoticeTellsAReleaseCandidatesPinOfItsRelease(t *testing.T) {
 }
 
 // An upgrade to a version newer than this binary is handed to it (slice
-// 126): a version it cannot fetch is said in one line, as upgrade says it,
-// and exits 75 or 3; one no newer, an ITOS_UPGRADE_FROM already set and
-// another command are left to this binary.
+// 126): a version it cannot have or fetch is said in one line, as upgrade
+// says it, and exits 75 or 3; one no newer, an ITOS_UPGRADE_FROM already set
+// and another command are left to this binary. What the arguments name is
+// the command line's (CLI.UpgradeTarget), here a stand-in's answer.
 func TestHandUpgrade(t *testing.T) {
 	offline(t)
 	t.Setenv(EnvUpgradeFrom, "")
-	try := func(name string, args []string, wantCode int, wantHanded bool, says string) {
+	try := func(name string, h Handoff, ok bool, err error, wantCode int, wantHanded bool, says string) {
 		t.Helper()
+		asked := 0
+		c := standIn
+		c.UpgradeTarget = func(args []string) (Handoff, bool, error) {
+			asked++
+			if !slices.Equal(args, []string{"upgrade"}) {
+				t.Errorf("%s: UpgradeTarget(%q)", name, args)
+			}
+			return h, ok, err
+		}
 		var stderr strings.Builder
-		code, handed := handUpgrade(args, &stderr, here)
+		code, handed := handUpgrade(c, []string{"upgrade"}, &stderr, here)
 		if code != wantCode || handed != wantHanded || !strings.Contains(stderr.String(), says) ||
 			says == "" && stderr.Len() > 0 {
 			t.Errorf("%s: %d, %t, %q; want %d, %t, saying %q", name, code, handed, stderr.String(), wantCode, wantHanded, says)
 		}
+		if want := map[bool]int{false: 1, true: 0}[os.Getenv(EnvUpgradeFrom) != ""]; asked != want {
+			t.Errorf("%s: UpgradeTarget asked %d times, not %d", name, asked, want)
+		}
 	}
-	try("another command", []string{"pin"}, 0, false, "")
-	try("no server", []string{"upgrade"}, 75, true, "cannot ask for the newest itos")
-	if code := Main([]string{"upgrade"}, io.Discard, here); code == nil || *code != 75 {
+	try("another command", Handoff{}, false, nil, 0, false, "")
+	unanswered := kind.Wrap(kind.Temporary, errors.New("cannot ask for the newest itos"))
+	try("no server", Handoff{}, true, unanswered, 75, true, "itos: cannot ask for the newest itos; every file is left as it was\n")
+	c := standIn
+	c.UpgradeTarget = func([]string) (Handoff, bool, error) { return Handoff{}, true, unanswered }
+	if code := Main(c, []string{"upgrade"}, io.Discard, here); code == nil || *code != 75 {
 		t.Error("Main handed no run, or not with exit 75")
 	}
-	_, asked := latestServer(t, "0.0.0")
-	try("a version no newer than this binary", []string{"upgrade"}, 0, false, "")
+	try("a version no newer than this binary", Handoff{Version: "0.0.0"}, true, nil, 0, false, "")
 	latestServer(t, "99.0.0")
-	try("a newer version that cannot be fetched", []string{"upgrade"}, 3, true, "itos 99.0.0")
-	if asked.Load() != 1 {
-		t.Errorf("the server was asked %d times, not once", asked.Load())
-	}
+	newer := Handoff{Version: "99.0.0", Checksums: []byte("sums\n"), Args: []string{"upgrade", "99.0.0"}}
+	try("a newer version that cannot be fetched", newer, true, nil, 3, true, "itos: cannot fetch itos 99.0.0")
 	t.Setenv(EnvUpgradeFrom, "9.1.0")
-	_, asked = latestServer(t, "99.0.0")
-	try("an upgrade handed off already", []string{"upgrade"}, 0, false, "")
-	if asked.Load() != 0 {
-		t.Errorf("an upgrade handed off already asked the server %d times", asked.Load())
-	}
+	try("an upgrade handed off already", newer, true, nil, 0, false, "")
 }

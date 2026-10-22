@@ -85,7 +85,9 @@
 // uninstall, and init where the config pins no version (bug 104), to the
 // binary that was called, and says no notice;
 // but first the launcher hands an upgrade to the version it moves to when
-// that is newer than this binary, reading it with UpgradeTarget (slice 126).
+// that is newer than this binary, reading it with UpgradeTarget (slice 126),
+// which cmd/itos hands the launcher in a launch.CLI with Parse and ExitCode:
+// the launcher imports no internal/cli.
 //
 // itos pin (pin.go, its engine internal/engine/pin) reads the config
 // config.Path finds (the stealth one included), asks internal/release for
@@ -704,8 +706,7 @@
 // guard claude-code is a group of its own, apart from git's hooks: the
 // guard slice (internal/slices/guard), which guard.go hands Out.Origin,
 // where itos was started before applyGlobals moved to the top, and binds
-// to config.Managed. GuardSince is the first itos with the command, which
-// the launcher reads.
+// to config.Managed. launch.GuardSince is the first itos with the command.
 //
 // # The slices
 //

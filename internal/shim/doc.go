@@ -17,7 +17,8 @@
 // Otherwise parse reads git's options before the command, and for commit or
 // push, with no GIT_DIR or GIT_WORK_TREE, config.Managed decides. Then enter
 // moves to the -C folder, keeping the one to come back to, and tooOld asks
-// launch.Handed the version the launcher would hand git-shim run to
+// launch.Handed, with the launch.CLI cmd/itos gives Main, the version the
+// launcher would hand git-shim run to
 // (ITOS_VERSION when it is a version, else the pin, read as the launcher
 // reads it; never the newest release, and nothing when it is this binary's
 // version). In a repository pinned to an itos older than the shim

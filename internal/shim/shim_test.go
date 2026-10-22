@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/donvargax/itos/v8/internal/git"
+	"github.com/donvargax/itos/v8/internal/launch"
 	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
 )
 
@@ -123,7 +124,7 @@ func TestMainRefusesSweepingStages(t *testing.T) {
 	t.Chdir(dir)
 	for _, args := range [][]string{{"add", "-A"}, {"-C", "sub", "stage", "."}} {
 		var stderr strings.Builder
-		itos, code, done := Main(args, &stderr, vcs.Git{Platform: runtime.GOOS})
+		itos, code, done := Main(args, &stderr, vcs.Git{Platform: runtime.GOOS}, launch.CLI{})
 		if itos != nil || code != 2 || !done || !strings.Contains(stderr.String(), "git add <path>") ||
 			!strings.Contains(stderr.String(), "git "+args[len(args)-2]+" "+args[len(args)-1]+" would stage") {
 			t.Errorf("Main(%q) = %q, %d, %v:\n%s", args, itos, code, done, stderr.String())

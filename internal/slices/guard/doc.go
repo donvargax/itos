@@ -11,6 +11,6 @@
 // internal/cli binds to config.Managed. Run never returns an error, since a
 // usage error's exit 2 is what Claude Code takes as a block: an input the
 // domain cannot read, a folder it cannot tell or an answer it cannot write
-// is one stderr line and exit 1. cli.GuardSince, the first itos with the
-// command, stays with the command line, which the launcher reads.
+// is one stderr line and exit 1. launch.GuardSince, the first itos with the
+// command, is the launcher's, which reads it.
 package guard

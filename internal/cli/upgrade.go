@@ -44,6 +44,7 @@ import (
 	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/engine/pin"
 	"github.com/donvargax/itos/v8/internal/kind"
+	"github.com/donvargax/itos/v8/internal/launch"
 	"github.com/donvargax/itos/v8/internal/out"
 	"github.com/donvargax/itos/v8/internal/release"
 	"github.com/donvargax/itos/v8/internal/value"
@@ -137,14 +138,6 @@ type releaseNotes struct {
 	Notes   string `json:"notes"`
 }
 
-// Handoff is the upgrade the launcher hands to the version it moves to: that
-// version, its checksums.txt and the command line to run it with.
-type Handoff struct {
-	Version   string
-	Checksums []byte
-	Args      []string
-}
-
 // UpgradeTarget reads the arguments, as the launcher gets them, for an itos
 // upgrade it can hand on (slice 126): the version it moves to, <version> or
 // the newest, asked for as upgrade asks, and the same command line with
@@ -152,7 +145,7 @@ type Handoff struct {
 // false for anything else, left to this binary: another command, an
 // extension, --help, a line upgrade refuses as written, or one with a "--".
 // An error is a version that cannot be had, its kind as upgrade gives it.
-func UpgradeTarget(args []string) (h Handoff, ok bool, err error) {
+func UpgradeTarget(args []string) (h launch.Handoff, ok bool, err error) {
 	g := Parse(args)
 	if g.Extension != "" || g.Help || len(g.Rest) == 0 || g.Rest[0] != "upgrade" || slices.Contains(args, "--") {
 		return h, false, nil

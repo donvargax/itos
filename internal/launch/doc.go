@@ -13,6 +13,11 @@
 // "version", which every release answers; a --version anywhere else stays
 // what it was.
 //
+// The launcher runs before the command line and imports none of it: cmd/itos
+// hands Main a CLI, internal/cli's Parse, UpgradeTarget and ExitCode, by
+// which it reads the arguments, an upgrade's target and an error's exit
+// code, and internal/shim hands Handed the same.
+//
 // The version to run is ITOS_VERSION when it is set, else the config's
 // pin.version. A binary whose own version is the one to run runs itself, so
 // the version the launcher runs, which it tells by ITOS_VERSION, never
@@ -108,7 +113,7 @@
 // # Handing an upgrade on
 //
 // upgrade runs as the binary called, which knows only its own release's
-// steps, so before binaryCommand handUpgrade asks cli.UpgradeTarget for the
+// steps, so before binaryCommand handUpgrade asks CLI.UpgradeTarget for the
 // version an upgrade moves to (features/upgrade-handoff.feature, slice 126).
 // When that version is newer than this binary, by version alone, a build of
 // a checkout included, it is fetched and checked as a pinned one is, against
@@ -120,7 +125,7 @@
 // the version it was fetched as cannot loop.
 //
 // guard claude-code is handed on as any other run, but not to an itos older
-// than it (cli.GuardSince), which has no such command: its usage error's
+// than it (GuardSince), which has no such command: its usage error's
 // exit 2 would make Claude Code block the tool, so unguarded catches it, by
 // any of choose's branches, and answerNothing reads stdin to its end (not a
 // terminal's), says why in one stderr line and exits 0 with nothing on

@@ -9,13 +9,6 @@ import (
 	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
 )
 
-// GuardSince is the first itos with guard claude-code (v6.0.0, decision 36;
-// guard claude-code before it): the launcher answers nothing for the guard
-// where it would hand it to an older itos, which has no such command, and
-// whose usage error's exit 2 Claude Code would take as a block (slice 44,
-// internal/launch).
-const GuardSince = "6.0.0"
-
 // guardCommand is `guard <harness>`, the guard slice (internal/slices/guard)
 // over its ports bound to the real code; the folder judged when the input
 // names none, and the one a relative one is read from, is where itos was
