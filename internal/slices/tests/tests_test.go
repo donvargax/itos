@@ -171,7 +171,8 @@ func TestListPrintsTheKindsTestsAtATree(t *testing.T) {
 		{[]string{"list", "scenario", "--at", "index"}, "ID-A-01  a.feature\n"},
 		{[]string{"list", "scenario", "--at", "HEAD"}, "ID-A-09  a.feature  (not live)\n"},
 		{[]string{"--json", "list", "scenario", "--at", "index"},
-			`{"schema":1,"protocol":1,"tests":[{"id":"ID-A-01","file":"a.feature","live":true}],"files":["a.feature"]}`},
+			`{"schema":1,"protocol":1,"tests":[{"id":"ID-A-01","file":"a.feature","live":true,` +
+				`"fingerprint":"13652fa0cb9e647dcda863f34bd523b67488ed1286c08dcb4a236f61fe1c4ce6"}],"files":["a.feature"]}`},
 	} {
 		code, stdout, stderr, err := call(t, over(t, configText("true"), trees), c.args...)
 		if c.args[0] == "--json" {

@@ -20,6 +20,11 @@ type Options struct {
 	Root, ID, TagPrefix, WipTag string
 }
 
+// idTag finds <tag_prefix><id> as a whole word, the ID its first group.
+func (o Options) idTag() (*regexp.Regexp, error) {
+	return regexp.Compile(regexp.QuoteMeta(o.TagPrefix) + "(" + o.ID + `)\b`)
+}
+
 // Block is one scenario as written: its tag line, its Scenario line and its
 // steps, and whether its tag line holds the wip tag.
 type Block struct {
@@ -45,7 +50,7 @@ func startsWithTag(line string) bool { return strings.HasPrefix(value.Trim(line)
 // <tag_prefix><id> as a whole word, up to the next such line. An error when
 // the kind's ID pattern does not compile.
 func ParseFeature(text string, o Options) (Feature, error) {
-	idTag, err := regexp.Compile(regexp.QuoteMeta(o.TagPrefix) + "(" + o.ID + `)\b`)
+	idTag, err := o.idTag()
 	if err != nil {
 		return Feature{}, err
 	}
@@ -153,8 +158,12 @@ func gherkinList(trees port.Trees, o Options, at string) (List, error) {
 		if err != nil {
 			return List{}, err
 		}
+		prints, err := Fingerprints(texts[file], o)
+		if err != nil {
+			return List{}, err
+		}
 		for _, id := range f.IDs {
-			tests = append(tests, Test{ID: id, File: file, Live: !f.FileWip && !f.Blocks[id].Wip})
+			tests = append(tests, Test{ID: id, File: file, Live: !f.FileWip && !f.Blocks[id].Wip, Fingerprint: prints[id]})
 		}
 	}
 	return List{Protocol: 1, Tests: tests, Files: files}, nil

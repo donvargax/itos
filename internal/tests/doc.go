@@ -8,7 +8,8 @@
 // # Adapters
 //
 // The built-in Gherkin adapter (gherkin.go, ParseFeature) is the only reader
-// of a feature file; a scenario is live when neither its tag line nor its
+// of a feature file's scenarios, by their tag lines, but for their
+// fingerprints (below); a scenario is live when neither its tag line nor its
 // file's header holds @wip. A command adapter is `<command> list --at
 // <tree>` through the config's shell, its output read by value.ParseJSON
 // (keys in JavaScript's order) and held to the protocol, its failures
@@ -22,6 +23,36 @@
 // Gherkin kinds' scenarios whose tag line, or their file's, holds a tag
 // (@slice-<n> for the item slice-<n>), for itos work done and itos work
 // show; a command adapter's list carries no tags and is left out.
+//
+// # Fingerprints
+//
+// The Gherkin adapter gives each scenario it lists a fingerprint
+// (fingerprint.go, slice 166), which itos-cc dates a kill by in place of the
+// scenario's file: the SHA-256, in lowercase hex, of its canonical text
+// (Canonical), what the scenario runs as Gherkin parses it
+// (github.com/cucumber/gherkin, godog's parser), never its name, a comment,
+// a description or another scenario. Its lines, each ending in LF:
+//
+//	itos scenario fingerprint v1
+//	tag <name>                   each effective tag, sorted bytewise, once
+//	step <text>                  each step, the Backgrounds' before it first
+//	doc <media type>\t<content>  a step's doc string
+//	row <cell>\t<cell>…          each row of a step's table
+//	examples                     each of an outline's Examples, then
+//	tag <name>                   its own tags, sorted, once each,
+//	header <cell>\t<cell>…       its header row, when it has one,
+//	row <cell>\t<cell>…          and each row of its body
+//
+// The effective tags are the scenario's own, its rule's and its feature's;
+// the Backgrounds are its feature's, then its rule's. A step's keyword is
+// left out, since godog matches a step's text alone, and a cell is its value
+// as Gherkin reads it (trimmed, \| \n \\ unescaped). Every field is escaped,
+// a backslash as \\, a newline as \n, a carriage return as \r and a tab as
+// \t, so no field holds a separator and two scenarios that run differently
+// never write one text. A change of what the text holds is a new version on
+// its first line. A text Gherkin cannot parse gives its scenarios none, and
+// a command adapter's tests carry none: tests list --json leaves the key
+// out.
 //
 // # Run templates
 //

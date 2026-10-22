@@ -21,9 +21,14 @@ var Command = declare.Command{
 
 The kind's adapter's listing: each named test's ID, file and whether it is
 live, at the working tree (default), the index or a commit. A command
-adapter may give a test a title too.
+adapter may give a test a title too. Under --json a Gherkin kind gives each
+scenario a fingerprint, the SHA-256 of what it runs (its steps, tables, doc
+strings, Examples, the Background steps before it and its tags, its own and
+its feature's): a comment, its name, the feature's description, another
+scenario, or a move to a file with the same Background and feature tags
+leaves it as it was.
 
---json: {"schema":1,"protocol":1,"tests":[{"id","file","live","title"?}],"files"}`,
+--json: {"schema":1,"protocol":1,"tests":[{"id","file","live","title"?,"fingerprint"?}],"files"}`,
 
 		"smoke": `Usage: itos tests smoke check <kind> [--features <dir>]
        itos tests smoke ids <kind>

@@ -130,7 +130,7 @@ Feature: Live named tests have a directly consumable TSV listing
   # not a silent shift. A command adapter's tests carry none. The text
   # listing is unchanged. tools/bin/itos-cc-tests prints it as the third
   # column (a ci commit beside the feat).
-  @wip @ID-TESTLIST-07 @slice-166
+  @ID-TESTLIST-07 @slice-166
   Scenario: tests list --json gives each scenario a fingerprint of what it runs
     Given the scenario kind has live IDs "ID-A-01" and "ID-B-01" in two feature files
     When itos runs "tests list scenario --json"
@@ -138,7 +138,7 @@ Feature: Live named tests have a directly consumable TSV listing
     And each listed test has a fingerprint of 64 lowercase hex digits
     And "ID-A-01" and "ID-B-01" have different fingerprints
 
-  @wip @ID-TESTLIST-08 @slice-166
+  @ID-TESTLIST-08 @slice-166
   Scenario Outline: A scenario's fingerprint holds through edits that change nothing it runs
     Given the scenario kind has live IDs "ID-A-01" and "ID-B-01" in two feature files
     And itos has listed the scenario kind's fingerprints
@@ -153,7 +153,7 @@ Feature: Live named tests have a directly consumable TSV listing
       | the scenario "ID-A-01" is renamed                                     |
       | the scenario "ID-A-01" moves unchanged to the feature file of "ID-B-01" |
 
-  @wip @ID-TESTLIST-09 @slice-166
+  @ID-TESTLIST-09 @slice-166
   Scenario Outline: A scenario's fingerprint changes with what it runs
     Given the scenario kind has live IDs "ID-A-01" and "ID-B-01" in two feature files
     And itos has listed the scenario kind's fingerprints
@@ -169,14 +169,14 @@ Feature: Live named tests have a directly consumable TSV listing
       | the scenario "ID-A-01" gains the tag "@slow"                       |
       | the feature holding "ID-A-01" gains the tag "@slow"                |
 
-  @wip @ID-TESTLIST-10 @slice-166
+  @ID-TESTLIST-10 @slice-166
   Scenario: An outline's fingerprint changes with its Examples
     Given the scenario kind has the live outline "ID-A-01" with two Examples rows
     And itos has listed the scenario kind's fingerprints
     When a row of the Examples of "ID-A-01" is changed
     Then the fingerprint of "ID-A-01" has changed
 
-  @wip @ID-TESTLIST-11 @slice-166
+  @ID-TESTLIST-11 @slice-166
   Scenario: A command adapter's tests carry no fingerprint, and the text listing is unchanged
     Given a kind whose command adapter lists the live test "T-A" in "a.txt"
     When itos runs "tests list fixture --json"

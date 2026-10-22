@@ -16,12 +16,15 @@ import (
 // the kind's root (the smoke rule's unit), whether it is live, and its title
 // when the adapter gives one (optional in the protocol; the built-in moves
 // rule holds a live test's title on a command kind). The Gherkin adapter
-// gives none: its moves rule compares the whole scenario.
+// gives none: its moves rule compares the whole scenario. It gives each
+// scenario its Fingerprint instead (Fingerprints), "" for a command
+// adapter's test.
 type Test struct {
-	ID    string  `json:"id"`
-	File  string  `json:"file"`
-	Live  bool    `json:"live"`
-	Title *string `json:"title,omitempty"`
+	ID          string  `json:"id"`
+	File        string  `json:"file"`
+	Live        bool    `json:"live"`
+	Title       *string `json:"title,omitempty"`
+	Fingerprint string  `json:"fingerprint,omitempty"`
 }
 
 // List is the adapter protocol's answer: the tests, and every file, the ones
