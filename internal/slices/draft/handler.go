@@ -41,6 +41,9 @@ type Query struct {
 // is run by this itos's binary, Self, through Exec, which gives its exit
 // code; one whose id was minted when drafted, in this process through
 // RunLine. Minting reads a drafted line as its command would (Minting).
+// Getwd, CreateTemp and Save are os.Getwd, os.CreateTemp and domain.Save,
+// ports so a test makes them fail, as no failure of theirs comes alike
+// from every OS.
 type Ports interface {
 	vcsport.VCS
 	Minting
@@ -54,6 +57,9 @@ type Ports interface {
 	Self(ctx context.Context) (string, error)
 	Exec(ctx context.Context, self string, args []string, w io.Writer) (int, error)
 	RunLine(ctx context.Context, args []string, w io.Writer, reserved string) int
+	Getwd(ctx context.Context) (string, error)
+	CreateTemp(ctx context.Context, dir, pattern string) (*os.File, error)
+	Save(ctx context.Context, file string, drafts domain.File) error
 }
 
 // Minting is how a drafted command line that mints an item's id is read
@@ -176,7 +182,7 @@ func (h Handler) Handle(ctx context.Context, q Query, p Progress) (a Answer, err
 	case "edit":
 		return h.edit(ctx, q, file, drafts)
 	case "drop":
-		return drop(q, file, drafts)
+		return h.drop(ctx, q, file, drafts)
 	}
 	return h.promote(ctx, file, drafts, p)
 }
@@ -218,7 +224,7 @@ func (h Handler) add(ctx context.Context, q Query, file string, drafts domain.Fi
 		}
 	}
 	drafts.Drafts = append(drafts.Drafts, d)
-	if err := domain.Save(file, drafts); err != nil {
+	if err := h.ports.Save(ctx, file, drafts); err != nil {
 		os.Remove(domain.Patch(file, d.ID))
 		return Answer{}, err
 	}
@@ -289,7 +295,7 @@ func (h Handler) edit(ctx context.Context, q Query, file string, drafts domain.F
 	}
 	d := domain.Draft{ID: id, Message: q.Draft.Message, Paths: paths, Base: base}
 	drafts.Drafts = append(drafts.Drafts, d)
-	if err := domain.Save(file, drafts); err != nil {
+	if err := h.ports.Save(ctx, file, drafts); err != nil {
 		os.RemoveAll(copies)
 		return Answer{}, err
 	}
@@ -305,7 +311,7 @@ func isAre(n int) string {
 
 // drop is `draft drop`: the draft taken out of the list, and its patch
 // removed, nothing applied.
-func drop(q Query, file string, drafts domain.File) (Answer, error) {
+func (h Handler) drop(ctx context.Context, q Query, file string, drafts domain.File) (Answer, error) {
 	id := q.Draft.ID
 	d := drafts.Find(id)
 	if d == nil {
@@ -313,7 +319,7 @@ func drop(q Query, file string, drafts domain.File) (Answer, error) {
 	}
 	dropped := *d
 	drafts.Remove(id)
-	if err := domain.Save(file, drafts); err != nil {
+	if err := h.ports.Save(ctx, file, drafts); err != nil {
 		return Answer{}, err
 	}
 	if err := removeDraftFiles(file, id); err != nil {
@@ -434,7 +440,7 @@ func (h Handler) promote(ctx context.Context, file string, drafts domain.File, p
 			return a, nil
 		}
 		drafts.Drafts = drafts.Drafts[1:]
-		if err := domain.Save(file, drafts); err != nil {
+		if err := h.ports.Save(ctx, file, drafts); err != nil {
 			return Answer{}, fmt.Errorf("%s is promoted, but the list cannot be saved without it, so a promote would apply it again: %w", d.ID, err)
 		}
 		if err := removeDraftFiles(file, d.ID); err != nil {

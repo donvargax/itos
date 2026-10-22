@@ -78,7 +78,7 @@ func (h Handler) editPatch(ctx context.Context, file string, d domain.Draft) (pa
 	if text == "" {
 		return "", "no copy differs from what it was taken from (" + domain.Copies(file, d.ID) + ")", nil
 	}
-	made, err := os.CreateTemp(filepath.Dir(file), "."+d.ID+".*"+domain.PatchSuffix)
+	made, err := h.ports.CreateTemp(ctx, filepath.Dir(file), "."+d.ID+".*"+domain.PatchSuffix)
 	if err != nil {
 		return "", "", err
 	}
@@ -104,7 +104,7 @@ func (h Handler) topPaths(ctx context.Context, command string, typedPaths []stri
 	if real, err := filepath.EvalSymlinks(top); err == nil {
 		top = real
 	}
-	here, err := os.Getwd()
+	here, err := h.ports.Getwd(ctx)
 	if err != nil {
 		return nil, err
 	}

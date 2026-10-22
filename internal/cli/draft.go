@@ -86,6 +86,19 @@ func (p draftPorts) RunLine(_ context.Context, args []string, w io.Writer, reser
 	return p.o.runLine(args, w, w, reserved)
 }
 
+// Getwd is os.Getwd.
+func (draftPorts) Getwd(context.Context) (string, error) { return os.Getwd() }
+
+// CreateTemp is os.CreateTemp.
+func (draftPorts) CreateTemp(_ context.Context, dir, pattern string) (*os.File, error) {
+	return os.CreateTemp(dir, pattern)
+}
+
+// Save is draft.Save.
+func (draftPorts) Save(_ context.Context, file string, drafts draft.File) error {
+	return draft.Save(file, drafts)
+}
+
 // Globals is ParseGlobals.
 func (draftPorts) Globals(_ context.Context, command []string) draftslice.Line {
 	g := ParseGlobals(command)

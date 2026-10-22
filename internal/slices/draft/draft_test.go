@@ -142,6 +142,16 @@ func (f *fake) RunLine(_ context.Context, args []string, w io.Writer, reserved s
 	return f.runCode
 }
 
+func (f *fake) Getwd(context.Context) (string, error) { return os.Getwd() }
+
+func (f *fake) CreateTemp(_ context.Context, dir, pattern string) (*os.File, error) {
+	return os.CreateTemp(dir, pattern)
+}
+
+func (f *fake) Save(_ context.Context, file string, drafts domain.File) error {
+	return domain.Save(file, drafts)
+}
+
 func (f *fake) after() {
 	if f.then != nil {
 		f.then()
