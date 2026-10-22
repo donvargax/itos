@@ -12739,3 +12739,21 @@ items:
     status: todo
     depends_on: []
     kind: task
+
+  - id: p1-idcounter-windows-lock-flake
+    title: TestMintLocalSerializesLinkedWorktrees fails on Windows with Access is denied opening ids.lock
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      CI run 39834376834 (2026-10-22, on 22042b97, a docs-only push; the next runs passed):
+      internal/idcounter's TestMintLocalSerializesLinkedWorktrees (counter_test.go:80) failed on
+      windows-latest: open ...\itos\ids.lock: Access is denied. Windows refuses to open a file
+      another handle is deleting or holds without share-delete, so two linked worktrees minting at
+      once can fail where Unix serializes. Find whether the lock (internal/lock) retries an open
+      Windows denies while another process removes the file, and whether real concurrent mints on
+      Windows can fail the same way (a bug, then a fix with a scenario) or only the test races (a
+      test fix). The Windows platform-job lesson.
+    tags: [windows]
