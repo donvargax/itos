@@ -11576,3 +11576,18 @@ items:
       last on every commit itos makes and kept last by itos commit, settles both. The report's stray
       blank lines after work done's message did not reproduce here.
     tags: [commit]
+
+  - id: p1-upgrade-consumer-summary
+    title: itos upgrade opens with what a consumer must decide, and leaves itos's own changed cases out
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      #86 (6.5.1 to 8.5.0 in a config-only repository): 343 lines, most of them itos's own scenario
+      and corpus ids under Changes on purpose, which mean nothing to a project that runs none of
+      them; the three decisions it needed were buried. Print per release the breaking changes and
+      Upgrading notes first, then the config edits made; summarise Changes on purpose as one count
+      per release unless asked for (--cases).
+    tags: [upgrade]
