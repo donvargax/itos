@@ -188,15 +188,10 @@ func staleRules(stealth bool) []string {
 	return agentrules.Stale(context.Background(), vcs.Git{}, stealth)
 }
 
-// rulesEdit is an agentrules.Edit as upgrade.go writes it.
+// rulesEdit is an agentrules.Edit as refreshedRules gives it.
 type rulesEdit struct {
 	path, disk, text string
 	crlf             bool
-}
-
-// write writes the edit, keeping the file's line endings.
-func (e rulesEdit) write() error {
-	return agentrules.Edit{Path: e.path, Disk: e.disk, Text: e.text, CRLF: e.crlf}.Write()
 }
 
 // refreshedRules is agentrules.Refreshed over the real git: each stale

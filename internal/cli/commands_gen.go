@@ -14,6 +14,7 @@ import (
 	pinslice "github.com/donvargax/itos/v8/internal/slices/pin"
 	taskslice "github.com/donvargax/itos/v8/internal/slices/task"
 	testsslice "github.com/donvargax/itos/v8/internal/slices/tests"
+	upgradeslice "github.com/donvargax/itos/v8/internal/slices/upgrade"
 	verifyslice "github.com/donvargax/itos/v8/internal/slices/verify"
 	versionslice "github.com/donvargax/itos/v8/internal/slices/version"
 )
@@ -32,7 +33,7 @@ var declared = []declare.Command{
 	pushDeclared,
 	gitshimslice.Command,
 	pinslice.Command,
-	upgradeDeclared,
+	upgradeslice.Command,
 	initDeclared,
 	verifyslice.Command,
 	testsslice.Command,

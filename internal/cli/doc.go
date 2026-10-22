@@ -96,35 +96,6 @@
 // which cmd/itos hands the launcher in a launch.CLI with Parse and ExitCode:
 // the launcher imports no internal/cli.
 //
-// itos upgrade (upgrade.go) moves the pin with pin's engine (ReadConfig,
-// Pinned, Config.Moved, Config.Replaced). The version it moves from is
-// the pin's, else the version= line of tools/bin/install-itos, the install
-// script a release's notes write; with neither, or a version older than
-// that, it refuses (exit 1) and names itos pin. It walks back from the new
-// release through each upgrading.json's previous until the old version; a
-// 404 (release.NotFound), a release cut before upgrading.json existed, ends
-// the walk naming its notes, while any other failure exits 3, and a file of
-// a schema it does not read is named by its notes too. Every edit is made in
-// memory first: the pin, the config's first line when it is a
-// yaml-language-server schema line naming a release's itos.schema.json (only
-// its version changes), and the script's version= value and each
-// platform=<os-arch> sum=<hash> hash, looked up in the new checksums.txt by
-// release.Listed; a layout it cannot edit so exits 2. Each release's
-// itos.schema.json is fetched in the walk too (schemaSteps; none, a 404, is
-// no edit), and the renames (a property's x-itos-renamed-from) and removals
-// (its top-level x-itos-removed) it declares are made in the config's text,
-// release by release, oldest first, by value.Doc's Rename and Remove
-// (applySteps), each on the text the one before left; one the editor cannot
-// make byte for byte exits 2 naming the key. Only then are the files
-// written, so a failed fetch or edit leaves every file as it was. A block of
-// the rules for agents other than the one this itos writes, in AGENTS.md or
-// a stealth config's copies, is rewritten with them, only between the
-// markers (internal/engine/agentrules' Refreshed), and listed among the
-// edits. It prints each release's edits and lists oldest first, then By hand: the breaking
-// changes and Upgrading footers, all that a commit's text asks, or under
-// --json returns the releases as upgrading.json holds them with applied and
-// manual beside them, and commits nothing.
-//
 // itos init (init.go, starter.go;
 // docs/decisions/0030-itos-init-readies-a-repository-and-doubles-as-a-doctor.md)
 // moves to the repository's top, after a git init where no repository is

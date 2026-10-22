@@ -1,8 +1,8 @@
-package cli
+package upgrade
 
 import "github.com/donvargax/itos/v8/internal/declare"
 
-var upgradeDeclared = declare.Command{
+var Command = declare.Command{
 	Name: "upgrade",
 	Rank: 130,
 	Lines: `  upgrade [<version>|latest]       move to a newer itos, listing what each release since asks
