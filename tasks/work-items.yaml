@@ -11913,3 +11913,16 @@ items:
       scenario-level tags only. Refuse, or name the example-level @wip blocks the close leaves.
     refs: [internal/tests/gherkin.go, features/work.feature]
     tags: [work]
+
+  - id: p1-commit-adds-untracked-paths
+    title: itos commit <paths> adds the untracked files it is given
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      From #111. itos commit with a new untracked path fails with the pathspec did-not-match error
+      from git, so the agent adds it by hand first. A path named explicitly is the caller's file;
+      adding it keeps the explicit-path rule the shim enforces.
+    tags: [commit]
