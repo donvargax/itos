@@ -129,6 +129,23 @@ linters:
               desc: "a store's adapter's code links no fake (ADR-0053): a port's fake enters only through _test.go files"
             - pkg: github.com/donvargax/itos/v8/internal/vcs/port/porttest
               desc: "a store's adapter's code links no fake (ADR-0053): a port's fake enters only through _test.go files"
+        # git runs in the VCS's git adapter alone (internal/vcs/adapter):
+        # internal/git is its internals, which no other package's code
+        # imports, a test's setup may. A slice and a port are refused it by
+        # their own rules.
+        git-internals:
+          files:
+            - "**/internal/**"
+            - "**/cmd/**"
+            - "!**/internal/git/**"
+            - "!**/internal/vcs/adapter/**"
+            - "!**/internal/slices/**"
+            - "!**/internal/store/*/port/**"
+            - "!**/internal/vcs/port/**"
+            - "!$test"
+          deny:
+            - pkg: github.com/donvargax/itos/v8/internal/git
+              desc: "git runs in the VCS's git adapter alone (T-218): ask the VCS port (internal/vcs/port), or the adapter at the assembly"
         # A slice's domain, its tests and subpackages with it, imports nothing
         # of ours outside internal/slices: no UI, engine, adapter or cmd. It
         # reaches the outside through its port.
