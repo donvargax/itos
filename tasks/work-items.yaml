@@ -12421,3 +12421,11 @@ items:
     status: todo
     depends_on: []
     kind: task
+
+  - id: T-267
+    title: "itos work becomes a slice, part 4: done, and the fall-through removed"
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task
