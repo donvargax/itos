@@ -12491,3 +12491,19 @@ items:
       exit codes (ADR-0053, 80-82, 100, 130) then change in one place. After step 9's lanes.
     refs: [internal/kind, internal/cli/cli.go, internal/slices/pin]
     tags: [cli]
+
+  - id: p1-staticcheck-before-push
+    title: The pre-push hook runs staticcheck when Go changed, as it runs golangci-lint
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      T-247's push (2026-10-22) turned main red on staticcheck's ST1008 in a new test: staticcheck
+      is a CI step (T-148) that no hook runs, so a step 9 lane met it only in CI, and every lane's
+      push stayed red until the repair landed. T-220 put the pinned golangci-lint in the pre-push
+      hook for the same reason. Run go tool staticcheck on the packages the pushed range changes
+      (cached, seconds), or fold its checks into golangci-lint's config if it covers ST1008.
+    refs: [itos.yaml, tools/bin/pre-commit]
+    tags: [hooks]
