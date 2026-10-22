@@ -12552,3 +12552,20 @@ items:
       TestStagedDataIssues passed run by hand and failed under the hook until it cleared the date
       itself (T-249). Clearing GIT_AUTHOR_DATE and GIT_COMMITTER_DATE in scratchFolder, notesRepo
       and gitConfigRepo would keep a test from passing or failing by where it runs.
+
+  - id: p1-record-glue-in-engine
+    title: The record glue the slices copy (hold, write around record.Write, the refusal printing) lives in the record engine
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Step 9 (T-251, T-261, 2026-10-22): the task and decision slices each copy internal/cli's glue
+      around internal/engine/record (holding the tracker, calling record.Write with the commit's
+      stdin, words and environment, printing the refusals), and work and draft will need it too.
+      Move it into the record engine once, after the work slice lands, so the copies go. Also from
+      T-271: the draft slice's inPlace still reaches os.Getwd directly (its test skips on Windows);
+      with the Getwd port it can take it through Ports.
+    refs: [internal/engine/record, internal/slices/task, internal/slices/decision]
+    tags: [work]
