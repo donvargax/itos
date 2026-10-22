@@ -1,8 +1,10 @@
 @phase-1
 Feature: Live named tests have a directly consumable TSV listing
   # #22: tests list <kind> --tsv [--at <tree>] prints only live tests:
-  # <bare ID><TAB><project-relative slash path><LF>, exactly two columns,
-  # no heading, quoting, summary or fingerprint. Preserve listing order.
+  # <bare ID><TAB><project-relative slash path><LF>, and for a kind that
+  # gives its tests a fingerprint (a Gherkin kind, slice-166) a third
+  # column, <TAB><fingerprint>, as itos-cc v0.24.0 and later read it; no
+  # heading, quoting or summary. Preserve listing order.
   # Resolve the effective kind root against the project root, then each
   # listed file against that root; a command kind without root uses the
   # project root. Do not hard-code features/ or use the invoking subfolder.
@@ -13,8 +15,9 @@ Feature: Live named tests have a directly consumable TSV listing
   # adapter errors remain unchanged. --tsv with --json is usage error 2.
   # Keep current --at and supports_at semantics and stderr warnings.
   # A command adapter may run once to list; no test runner is invoked.
-  # Per-test fingerprints belong to p1-listed-test-fingerprints. Adopting
-  # this output in itos-cc.yaml/removing the wrapper is separate gate work.
+  # The fingerprint is slice-166's (#112); itos-cc.yaml's mutation.tests.list
+  # runs this listing, and tools/bin/itos-cc-tests goes (T-279, with this
+  # slice; the user, 2026-10-22).
 
   Background:
     Given a repository whose ledger has the task "T-001"
@@ -25,9 +28,9 @@ Feature: Live named tests have a directly consumable TSV listing
     And another scenario is tagged @wip and a third feature is tagged @wip
     When itos runs "tests list scenario --tsv"
     Then itos exits with code 0
-    And stdout consists only of the two live IDs and their project-relative files, separated by one literal tab per LF-terminated row
+    And stdout consists only of the two live IDs, their project-relative files and their fingerprints, the columns separated by one literal tab, one LF-terminated row each
     And the rows retain the normal adapter listing order
-    And stdout has no tag prefix, wip rows, heading, status words or extra column
+    And stdout has no tag prefix, wip rows, heading, status words or other column
     When I obtain the ordinary text and JSON listings of the same kind
     Then those listings retain their existing file paths, live flags and output shape
     And no test runner, hook or CI provider has run
@@ -39,7 +42,7 @@ Feature: Live named tests have a directly consumable TSV listing
     And the repository uses <layout> configuration
     When I run "itos tests list scenario --tsv" from a project subfolder
     Then itos exits with code 0
-    And stdout is exactly ID "ID-A-01", one tab, path "specs with spaces/acceptance/nested/a.feature" and one LF
+    And stdout is exactly ID "ID-A-01", one tab, path "specs with spaces/acceptance/nested/a.feature", one tab, its fingerprint and one LF
     And the path has slash separators on every supported platform
     And neither configuration data, HEAD nor the index changed
 
@@ -105,7 +108,7 @@ Feature: Live named tests have a directly consumable TSV listing
     Then itos exits with code 2 before invoking the adapter
     And its diagnostic names the mutually exclusive output formats
     When itos runs "help tests list"
-    Then its help explains the two-column live-only TSV format and project-relative paths
+    Then its help explains the live-only TSV format, the fingerprint column a Gherkin kind adds, and project-relative paths
     And it explains that warnings and diagnostics stay on stderr
 
   # Slice 166 (#112, the user, 2026-10-22: as soon as possible): itos-cc dates
