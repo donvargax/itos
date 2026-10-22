@@ -17,7 +17,7 @@ import (
 	"path/filepath"
 
 	"github.com/donvargax/itos/v8/internal/out"
-	"github.com/donvargax/itos/v8/internal/shim/install"
+	"github.com/donvargax/itos/v8/internal/shim"
 )
 
 // gitShim is `git-shim install [--dir <folder>]`, `git-shim uninstall [--dir
@@ -57,13 +57,13 @@ func gitShim(args []string, o Out) (int, error) {
 	return 0, usage("git-shim needs install, uninstall or run")
 }
 
-// shimPlace is install.Place, of os.Executable.
+// shimPlace is shim.Place, of os.Executable.
 func shimPlace(dir, goos string) (self, link string, err error) {
-	return install.Place(os.Executable, dir, goos)
+	return shim.Place(os.Executable, dir, goos)
 }
 
-// linksItos is install.LinksItos.
-func linksItos(link string) (self, other bool) { return install.LinksItos(link) }
+// linksItos is shim.LinksItos.
+func linksItos(link string) (self, other bool) { return shim.LinksItos(link) }
 
 // installShim links the running itos as git in dir, unless a git that is not
 // a link to itos is there, and says where dir stands on the PATH.
@@ -114,19 +114,19 @@ func installShim(dir string, o Out) (int, error) {
 	return 0, nil
 }
 
-// makeLink is install.MakeLink.
+// makeLink is shim.MakeLink.
 func makeLink(self, link string, replace bool, goos string) error {
-	return install.MakeLink(self, link, replace, goos)
+	return shim.MakeLink(self, link, replace, goos)
 }
 
-// pathStanding is install.PathStanding.
+// pathStanding is shim.PathStanding.
 func pathStanding(dir, goos string) (at int, realGit string, realAt int) {
-	return install.PathStanding(dir, goos)
+	return shim.PathStanding(dir, goos)
 }
 
-// standingLine is install.StandingLine.
+// standingLine is shim.StandingLine.
 func standingLine(dir string, at int, realGit string, realAt int) string {
-	return install.StandingLine(dir, at, realGit, realAt)
+	return shim.StandingLine(dir, at, realGit, realAt)
 }
 
 // uninstallShim removes the link to itos named git in dir, and leaves alone

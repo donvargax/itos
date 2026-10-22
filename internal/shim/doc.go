@@ -1,6 +1,6 @@
 // Package shim is itos started as git (features/shim.feature): a link named
 // git to the itos binary, in a folder before the real git on the PATH (itos
-// git-shim install, the link internal/shim/install's), makes every git command pass through itos first. In a
+// git-shim install, the link install.go places and makes), makes every git command pass through itos first. In a
 // repository itos manages (config.Managed, file checks alone), git commit
 // runs as itos commit and git push as itos push, with git's arguments, none
 // of them read as itos's global flags; every other command, every command in
@@ -47,6 +47,21 @@
 // run the real git. git commit's and git push's refusals (--no-verify, -n,
 // -a, a -c that sets core.hooksPath) are itos commit's and itos push's, which
 // read the -c the shim hands on in GIT_CONFIG_KEY_<n>.
+//
+// Where the link goes and what stands there (install.go) is what itos
+// git-shim install and uninstall and itos init's offer of the shim share
+// (internal/cli's gitshim.go and initshim.go). Place is the running itos
+// (os.Executable, which the caller gives) and the link's path in a folder, by
+// default the one holding that itos, made absolute, named git, or git.exe on
+// the OS windows (Name). LinksItos is what a git there is: this itos, its
+// links followed (the git adapter's IsSelf), or a symbolic link to another
+// binary named itos, as an older install's. MakeLink makes the symbolic link,
+// replacing the one there when told to, and on windows, where symbolic links
+// need a privilege, a hard link where that fails. PathStanding places the
+// link's folder and the real git's (the git adapter's Real) among the PATH's
+// folders by os.SameFile, and StandingLine says where that leaves the shim.
+// Reading the arguments, the messages of a refusal and the exit codes are
+// internal/cli's.
 //
 // Of git's options before the command, -C <path> and -c <name>=<value> are
 // honoured, since tools write git -C <dir> commit and git -c <key>=<value>

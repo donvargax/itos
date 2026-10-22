@@ -222,7 +222,7 @@
 //     project tracks.
 //
 // itos git-shim install and uninstall (gitshim.go, the link's place and
-// making internal/shim/install's) link os.Executable as git
+// making internal/shim's) link os.Executable as git
 // (git.exe) in --dir, typed from where the person stood, or its own folder, a
 // symbolic link or on windows a hard link where that fails; a git there that
 // is this binary is kept, a symbolic link to another binary named itos
