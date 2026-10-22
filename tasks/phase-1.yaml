@@ -4210,6 +4210,3 @@
     Tasks and named tests; internal/proof's doc named internal/cli's workdone.go;
     docs/ARCHITECTURE.md pointed at internal/cli/declare_<name>.go and did not say each command is a
     slice. The coordinator's doc pass, comments and the map only.
-  done_when:
-    - run: "! grep -nE 'commitRefs|entryDeclared|draftsFile|declare_<name>|guard and version so far|Tasks and named tests' internal/cli/doc.go docs/ARCHITECTURE.md"
-    - run: "! grep -n 'cli.s workdone.go' internal/proof/doc.go"

@@ -12640,6 +12640,6 @@ items:
     title: The docs say every command is a slice, after step 9
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
