@@ -12639,7 +12639,7 @@ items:
   - id: T-274
     title: The docs say every command is a slice, after step 9
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
