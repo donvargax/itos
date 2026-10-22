@@ -11293,8 +11293,8 @@ items:
   - id: T-220
     title: The pre-push hook runs the pinned golangci-lint when Go changed, so a lint finding never first shows in CI
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
 
