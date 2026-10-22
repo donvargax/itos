@@ -55,7 +55,8 @@ itos ──────────────────┴─> cmd/itos ─>
    place, or runs itself ([ADR-0024]). A global itos is this launcher.
 4. **The command line** (`internal/cli`): the flags, the extensions
    (`itos-<name>` on the `PATH`), the move to the repository's top, then the
-   command. Its doc has a heading per command group.
+   command: a slice, `internal/slices/<name>`, its ports bound in
+   `internal/cli`, whose doc heads each command group.
 
 What every command meets:
 
@@ -75,8 +76,7 @@ What every command meets:
 
 ## Where to look
 
-- A command's help and flags: its declaration (`internal/declare`),
-  `internal/cli/declare_<name>.go` or its slice's `Command`.
+- A command's help and flags: its slice's `Command` (`internal/declare`).
 - What several commands share: `internal/engine/<name>`, its doc saying
   what.
 - Running a pinned release, the update notice: `internal/launch`; release
