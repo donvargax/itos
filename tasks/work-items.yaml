@@ -58,7 +58,7 @@ queue:
   - T-191
   - p1-nightly-base-floor
   - slice-165
-  - p1-listed-test-fingerprints
+  - slice-166
   - p1-agent-test-runs-once
   - p1-mutation-results-committed
   - p1-text-from-file
@@ -10048,14 +10048,15 @@ items:
       p1-task-signoff-check's.
     refs: [internal/cli/task.go, features/task.feature]
 
-  - id: p1-listed-test-fingerprints
-    title: Fingerprint individual named tests independently of neighboring scenarios
+  - id: slice-166
+    title: tests list gives each scenario a fingerprint of what it runs, and itos-cc's listing prints it (#112)
     phase: 1
     owner: null
     status: todo
     depends_on: []
-    kind: idea
+    kind: slice
     why: >
+      Was p1-listed-test-fingerprints.
       Split the later itos-cc#30 proposal out of #22 TSV interoperability work. A Gherkin
       fingerprint should depend on the selected scenario executable content, tables, doc strings,
       outline Examples, applicable Background steps and effective tags; unrelated scenarios,
