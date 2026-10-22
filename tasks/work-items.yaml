@@ -12103,8 +12103,8 @@ items:
   - id: T-235
     title: "The agent rules engine out of internal/cli: the AGENTS.md block and its staleness, internal/engine/agentrules"
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: [T-228]
     kind: task
 
