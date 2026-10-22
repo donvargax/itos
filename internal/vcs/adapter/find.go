@@ -66,7 +66,8 @@ func gitFolder(d string) bool {
 }
 
 // gitdirOf is the git folder a .git file names ("gitdir: <path>", relative
-// to the folder holding it), as a linked worktree or a submodule has one.
+// to the folder holding it), as a linked worktree or a submodule has one,
+// in the system's form: git writes it with forward slashes on Windows too.
 func gitdirOf(d, file string) (string, bool) {
 	text, err := os.ReadFile(file)
 	if err != nil {
@@ -76,10 +77,16 @@ func gitdirOf(d, file string) (string, bool) {
 	if p = strings.TrimSpace(p); !ok || p == "" {
 		return "", false
 	}
+	return within(d, p), true
+}
+
+// within is the path p names from the folder d, cleaned to the system's
+// form.
+func within(d, p string) string {
 	if !filepath.IsAbs(p) {
-		p = filepath.Join(d, p)
+		return filepath.Join(d, p)
 	}
-	return p, true
+	return filepath.Clean(p)
 }
 
 // commonDir is the git folder's common dir: the folder its commondir file
@@ -93,8 +100,5 @@ func commonDir(gitdir string) string {
 	if p == "" {
 		return gitdir
 	}
-	if !filepath.IsAbs(p) {
-		p = filepath.Join(gitdir, p)
-	}
-	return p
+	return within(gitdir, p)
 }

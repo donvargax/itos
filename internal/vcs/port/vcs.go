@@ -6,7 +6,8 @@ import "context"
 // top folder, absolute, "" where there is none (inside the git folder).
 // GitDir is the folder's git folder and Common the common dir every linked
 // worktree of the repository shares, each as Locate names them, relative
-// to the folder asked from or absolute, and as Find names them, absolute.
+// to the folder asked from or absolute, and as Find names them, absolute;
+// each cleaned, in the system's form (backslashes on Windows).
 type Location struct {
 	Top, GitDir, Common string
 }

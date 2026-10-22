@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 
@@ -57,7 +58,7 @@ func (Git) Locate(_ context.Context, dir string) (port.Location, error) {
 func locate(dir string) (port.Location, error) {
 	if out, err := git.Output(in(dir, "rev-parse", "--show-toplevel", "--git-dir", "--git-common-dir")...); err == nil {
 		if lines := strings.Split(strings.TrimSpace(out), "\n"); len(lines) == 3 {
-			return port.Location{Top: lines[0], GitDir: lines[1], Common: lines[2]}, nil
+			return port.Location{Top: native(lines[0]), GitDir: native(lines[1]), Common: native(lines[2])}, nil
 		}
 	}
 	out, err := git.Output(in(dir, "rev-parse", "--git-dir", "--git-common-dir")...)
@@ -65,7 +66,16 @@ func locate(dir string) (port.Location, error) {
 	if err != nil || len(lines) != 2 {
 		return port.Location{}, fmt.Errorf("no git repository holds the folder %q", dir)
 	}
-	return port.Location{GitDir: lines[0], Common: lines[1]}, nil
+	return port.Location{GitDir: native(lines[0]), Common: native(lines[1])}, nil
+}
+
+// native is a path git printed in the system's form, cleaned: git prints
+// forward slashes on Windows too.
+func native(p string) string {
+	if p = strings.TrimSpace(p); p == "" {
+		return ""
+	}
+	return filepath.Clean(p)
 }
 
 func (Git) Resolve(_ context.Context, rev string) (string, error) {
