@@ -6115,8 +6115,8 @@ items:
   - id: slice-154
     title: List live named tests as project-relative TSV for external tools
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: [T-120, slice-166]
     kind: slice
     why: >
