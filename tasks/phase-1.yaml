@@ -4198,3 +4198,18 @@
     sequence the log can hold (CSI, including colours, and OSC, such as the hyperlinks newer tools
     print), not only colours, so none reaches the body. Its unit test asserts the flag is on the log
     fetch and that a log with a CSI and an OSC sequence renders without either. No change to itos.
+
+- id: T-274
+  type: refactor
+  title: The docs say every command is a slice, after step 9
+  why: >
+    ADR-0053, after step 9 of docs/plans/slices-and-ports.md (T-267 moved the last command,
+    2026-10-22): internal/cli's doc still named the helpers the moves deleted (commitRefs,
+    entryDeclared, draftsFile, runVerify and runCi asking IsStealth, declare_<name>.go, commit
+    check-paths in commit.go), said guard and version were the only slices and headed a section
+    Tasks and named tests; internal/proof's doc named internal/cli's workdone.go;
+    docs/ARCHITECTURE.md pointed at internal/cli/declare_<name>.go and did not say each command is a
+    slice. The coordinator's doc pass, comments and the map only.
+  done_when:
+    - run: "! grep -nE 'commitRefs|entryDeclared|draftsFile|declare_<name>|guard and version so far|Tasks and named tests' internal/cli/doc.go docs/ARCHITECTURE.md"
+    - run: "! grep -n 'cli.s workdone.go' internal/proof/doc.go"

@@ -12635,3 +12635,11 @@ items:
       the wrong reason, as one of T-267 did until its coverage showed it. The fake reading a
       trailing ^ (and ^N, ~N) as the first parent, held by the port contract against the git
       adapter, would keep the fake honest for every slice that walks history.
+
+  - id: T-274
+    title: The docs say every command is a slice, after step 9
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task
