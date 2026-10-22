@@ -12389,3 +12389,11 @@ items:
     status: todo
     depends_on: []
     kind: task
+
+  - id: T-263
+    title: itos status becomes a slice
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task
