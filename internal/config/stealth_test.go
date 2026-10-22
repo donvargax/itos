@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"testing"
 
+	vcsgit "github.com/donvargax/itos/v8/internal/vcs/adapter"
+
 	"github.com/donvargax/itos/v8/internal/store/tree/adapter"
 	"github.com/donvargax/itos/v8/internal/store/tree/port/porttest"
 	"github.com/donvargax/itos/v8/internal/value"
@@ -25,8 +27,8 @@ func writeFile(t *testing.T, path, text string) {
 
 // at is the VCS fake locating each folder as located says, in no
 // repository when it lacks the folder.
-func at(located map[string]vcs.Location) vcstest.VCS {
-	return vcstest.VCS{Located: located}
+func at(located map[string]vcs.Location) *vcstest.VCS {
+	return &vcstest.VCS{Located: located}
 }
 
 const stealthText = "version: 1\nledger: { files: \"tasks/phase-{group}.yaml\" }\n" +
@@ -52,7 +54,7 @@ func TestStealthConfig(t *testing.T) {
 		t.Fatalf("Path = %q, want %q", got, stealth)
 	}
 	beside := filepath.Join(".git", "itos")
-	c, err := Load(repo, adapter.Trees{}, adapter.Worktree, Path(repo, adapter.Worktree))
+	c, err := Load(repo, adapter.Trees{VCS: vcsgit.Git{}}, adapter.Worktree, Path(repo, adapter.Worktree))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -66,12 +68,12 @@ func TestStealthConfig(t *testing.T) {
 	}
 	abs, _ := filepath.Abs(stealth)
 	t.Setenv("ITOS_CONFIG", abs)
-	if c, err := Load(repo, adapter.Trees{}, adapter.Worktree, Path(repo, adapter.Worktree)); err != nil || !c.Stealth || c.Ledger.Files != filepath.Join(filepath.Dir(abs), "tasks/phase-{group}.yaml") {
+	if c, err := Load(repo, adapter.Trees{VCS: vcsgit.Git{}}, adapter.Worktree, Path(repo, adapter.Worktree)); err != nil || !c.Stealth || c.Ledger.Files != filepath.Join(filepath.Dir(abs), "tasks/phase-{group}.yaml") {
 		t.Errorf("ITOS_CONFIG naming the stealth config: %+v, %v", c, err)
 	}
 	writeFile(t, "other.yaml", stealthText)
 	t.Setenv("ITOS_CONFIG", "other.yaml")
-	if c, err := Load(repo, adapter.Trees{}, adapter.Worktree, Path(repo, adapter.Worktree)); err != nil || c.Stealth || c.Ledger.Files != "tasks/phase-{group}.yaml" ||
+	if c, err := Load(repo, adapter.Trees{VCS: vcsgit.Git{}}, adapter.Worktree, Path(repo, adapter.Worktree)); err != nil || c.Stealth || c.Ledger.Files != "tasks/phase-{group}.yaml" ||
 		c.Work.People.File != "people.yaml" || c.Hooks.Bin != "tools/bin/itos" {
 		t.Errorf("ITOS_CONFIG naming another config: %+v, %v", c, err)
 	}

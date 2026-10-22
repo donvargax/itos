@@ -172,7 +172,7 @@ func TestProgramFindsShBesideGit(t *testing.T) {
 // laid out otherwise, or none found, skips the test that uses this.
 func gitLayout(t *testing.T) (gitDir, sh string) {
 	t.Helper()
-	gitExe := git.Bin()
+	gitExe := git.Bin(runtime.GOOS)
 	if filepath.Base(gitExe) != "git.exe" {
 		t.Skipf("no git.exe on this machine, only %s", gitExe)
 	}

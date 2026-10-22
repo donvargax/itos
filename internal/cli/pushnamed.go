@@ -20,23 +20,23 @@ package cli
 // the plain push's (slice 90).
 
 import (
-	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
-	"os"
 	"strings"
 
-	"github.com/donvargax/itos/v8/internal/git"
 	"github.com/donvargax/itos/v8/internal/kind"
 	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
+	vcsport "github.com/donvargax/itos/v8/internal/vcs/port"
 )
 
 // namedRemote is the remote --tag and --ref push to: the current branch's
 // upstream's, else origin.
 func namedRemote() string {
-	if branch := (vcs.Git{}).Branch(context.Background()); branch != "" {
-		remote, _, _ := git.Upstream(branch)
+	ctx, v := context.Background(), vcs.Git{}
+	if branch := v.Branch(ctx); branch != "" {
+		remote, _, _ := v.Upstream(ctx, branch)
 		return remote
 	}
 	return "origin"
@@ -46,6 +46,7 @@ func namedRemote() string {
 // the same name, in one atomic push.
 func (r pushRun) pushNamed(tags, refs []string) (int, error) {
 	r.remote, r.tags, r.refs = namedRemote(), tags, refs
+	ctx, v := context.Background(), vcs.Git{}
 	local := map[string]string{}
 	var named []string
 	for _, t := range tags {
@@ -55,12 +56,12 @@ func (r pushRun) pushNamed(tags, refs []string) (int, error) {
 		named = append(named, "refs/heads/"+b)
 	}
 	for _, ref := range named {
-		sha, err := git.Output("rev-parse", "--verify", "--quiet", ref)
+		sha, err := v.Ref(ctx, ref)
 		if err != nil {
 			return r.report(ExitPolicy, "no-such-ref",
 				fmt.Sprintf("itos push: this clone has no %s; nothing was pushed", strings.TrimPrefix(ref, "refs/")))
 		}
-		local[ref] = strings.TrimSpace(sha)
+		local[ref] = sha
 	}
 	theirs, failure, failed := r.remoteTags(tags)
 	if failed {
@@ -81,23 +82,18 @@ func (r pushRun) pushNamed(tags, refs []string) (int, error) {
 	if len(specs) == 0 {
 		return r.report(0, "nothing-to-push", fmt.Sprintf("Nothing to push: %s has every tag named.", r.remote))
 	}
-	argv := []string{"push", "--atomic", "--no-follow-tags"}
-	if r.o.Quiet {
-		argv = append(argv, "--quiet")
-	}
-	var stderr bytes.Buffer
-	code, err := r.run(io.MultiWriter(r.o.Stderr, &stderr), append(append(argv, r.remote), specs...)...)
+	outcome := v.Push(ctx, r.remote, specs, vcsport.Pushing{Atomic: true, Quiet: r.o.Quiet}, r.talk(r.o.Stderr))
+	code, err := exitOf(outcome)
 	if err != nil {
 		fmt.Fprintf(r.o.Stderr, "itos: cannot run git: %s\n", err)
 		return ExitMissing, nil
 	}
 	what := strings.Join(namesOf(specs), ", ")
 	if code != 0 {
-		words := stderr.String()
-		if failure := git.RemoteFailure(words); failure != kind.Unknown {
+		if failure := remoteKind(outcome); failure != kind.Unknown {
 			return r.report(remoteExit(failure), "push-failed", r.remoteLines("the push of "+what+" failed", failure)...)
 		}
-		return r.report(refusalExit(words), "push-failed",
+		return r.report(refusalExit(outcome), "push-failed",
 			fmt.Sprintf("itos push: the push of %s to %s failed (git's message above); nothing was forced, and none "+
 				"of them landed.", what, r.remote),
 			"If the remote has commits a branch lacks, rebase the branch onto them first; if a hook refused the push, "+
@@ -110,24 +106,18 @@ func (r pushRun) pushNamed(tags, refs []string) (int, error) {
 // names there; a tag the remote does not have is not among them. failed when
 // the remote cannot be read, failure then its kind.
 func (r pushRun) remoteTags(tags []string) (map[string]string, kind.Kind, bool) {
-	theirs := map[string]string{}
 	if len(tags) == 0 {
-		return theirs, kind.Unknown, false
+		return map[string]string{}, kind.Unknown, false
 	}
-	argv := []string{"ls-remote", "--tags", r.remote}
+	var refs []string
 	for _, t := range tags {
-		argv = append(argv, "refs/tags/"+t)
+		refs = append(refs, "refs/tags/"+t)
 	}
-	var stdout, stderr bytes.Buffer
-	code, err := runGit(argv, os.Environ(), &stdout, Out{Stderr: &stderr, Origin: r.o.Origin})
-	if err != nil || code != 0 {
-		r.o.Stderr.Write(stderr.Bytes())
-		return nil, git.RemoteFailure(stderr.String()), true
-	}
-	for _, line := range strings.Split(stdout.String(), "\n") {
-		if fields := strings.Fields(line); len(fields) == 2 {
-			theirs[fields[1]] = fields[0]
-		}
+	theirs, err := (vcs.Git{}).RemoteRefs(context.Background(), r.remote, refs,
+		talking(nil, io.Discard, Out{Origin: r.o.Origin}))
+	if err != nil {
+		io.WriteString(r.o.Stderr, words(err))
+		return nil, remoteKind(err), true
 	}
 	return theirs, kind.Unknown, false
 }
@@ -149,8 +139,9 @@ func namesOf(specs []string) []string {
 
 // refusalExit is the exit code of a push git failed that reached no remote
 // failure: 1 when the remote or a hook refused it, else 70.
-func refusalExit(words string) int {
-	if git.Refused(words) {
+func refusalExit(err error) int {
+	var failed *vcsport.Failed
+	if errors.As(err, &failed) && failed.Failure == vcsport.Refused {
 		return ExitPolicy
 	}
 	return ExitSoftware

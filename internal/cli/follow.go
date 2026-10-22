@@ -11,6 +11,7 @@ import (
 	"github.com/donvargax/itos/v8/internal/slices/followup"
 	"github.com/donvargax/itos/v8/internal/slices/followup/domain"
 	"github.com/donvargax/itos/v8/internal/store/private/adapter"
+	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
 )
 
 // followCommand is `followup`, the followup slice (internal/slices/followup)
@@ -22,7 +23,7 @@ func followCommand(args []string, o Out) (int, error) {
 	if err != nil {
 		return 0, usage("%s", err)
 	}
-	code, err := c.Run(context.Background(), o.Stdout, o.Stderr, followup.NewHandler(followupPorts{adapter.Store{OS: o.OS}}))
+	code, err := c.Run(context.Background(), o.Stdout, o.Stderr, followup.NewHandler(followupPorts{adapter.Store{OS: o.OS, VCS: vcs.Git{}}}))
 	var invalid *domain.Invalid
 	if errors.As(err, &invalid) {
 		err = kind.Wrap(kind.Usage, err)

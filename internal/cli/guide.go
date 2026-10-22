@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -9,10 +10,10 @@ import (
 	"strings"
 
 	"github.com/donvargax/itos/v8/internal/config"
-	"github.com/donvargax/itos/v8/internal/git"
 	"github.com/donvargax/itos/v8/internal/guide"
 	"github.com/donvargax/itos/v8/internal/out"
 	"github.com/donvargax/itos/v8/internal/value"
+	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
 )
 
 // itos go and itos guide (features/guide.feature, slice 64) print the guides
@@ -191,11 +192,11 @@ func orchestratingNotes(o Out) (text, path string) { return readNotes(notesPath(
 // file the repository's notes were read from (a stealth config's
 // guide.orchestrating naming it), which is printed once, as those.
 func localNotes(printed string, o Out) (text, path string) {
-	common, err := git.Output("rev-parse", "--git-common-dir")
-	if common = strings.TrimSpace(common); err != nil || common == "" {
+	l, err := (vcs.Git{}).Locate(context.Background(), "")
+	if err != nil || l.Common == "" {
 		return "", ""
 	}
-	path = filepath.Join(common, config.StealthFolder, localNotesName)
+	path = filepath.Join(l.Common, config.StealthFolder, localNotesName)
 	if printed != "" {
 		a, errA := os.Stat(printed)
 		b, errB := os.Stat(path)
@@ -246,13 +247,36 @@ func notesPath(o Out) string {
 	}
 	// The way up to the top, "" at the top itself: a relative path, as the
 	// config's paths are, whatever links the folders' names go through.
-	up, err := git.Output("rev-parse", "--show-cdup")
-	if err != nil {
+	up, ok := upToTop()
+	if !ok {
 		return ""
 	}
 	p, _ := value.Prop(value.Prop(config.DefaultsFor(value.NewMap(), false), "guide"), "orchestrating").(string)
 	if p == "" || filepath.IsAbs(p) {
 		return p
 	}
-	return filepath.Join(strings.TrimSpace(up), filepath.FromSlash(p))
+	return filepath.Join(up, filepath.FromSlash(p))
+}
+
+// upToTop is the way from the folder itos runs in up to the work tree's top
+// as git rev-parse --show-cdup gives it, a ../ for each folder between, the
+// folder's links resolved as the top's are, none in the git folder; not ok
+// outside a repository.
+func upToTop() (string, bool) {
+	l, err := (vcs.Git{}).Locate(context.Background(), "")
+	if err != nil || l.Top == "" {
+		return "", err == nil
+	}
+	here, err := os.Getwd()
+	if err != nil {
+		return "", false
+	}
+	if real, err := filepath.EvalSymlinks(here); err == nil {
+		here = real
+	}
+	rel, err := filepath.Rel(l.Top, here)
+	if err != nil || rel == "." {
+		return "", err == nil
+	}
+	return strings.Repeat("../", len(strings.Split(filepath.ToSlash(rel), "/"))), true
 }

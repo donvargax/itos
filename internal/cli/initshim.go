@@ -125,11 +125,11 @@ func (s shimOffer) run() (shimOutcome, int) {
 		}
 	}
 	outcome := func(action string) shimOutcome {
-		at, _, realAt := pathStanding(filepath.Dir(link))
+		at, _, realAt := pathStanding(filepath.Dir(link), s.goos)
 		return shimOutcome{Action: action, Link: link, OnPath: at >= 0, BeforeGit: at >= 0 && (realAt < 0 || at < realAt)}
 	}
 	standing := func() {
-		at, realGit, realAt := pathStanding(filepath.Dir(link))
+		at, realGit, realAt := pathStanding(filepath.Dir(link), s.goos)
 		say("%s", standingLine(filepath.Dir(link), at, realGit, realAt))
 	}
 

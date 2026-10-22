@@ -5,6 +5,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -151,7 +152,7 @@ func TestMovesMerge(t *testing.T) {
 		os.Unsetenv(name)
 	}
 	t.Chdir(dir)
-	gitBin := git.Bin()
+	gitBin := git.Bin(runtime.GOOS)
 	git := func(args ...string) string {
 		t.Helper()
 		out, err := exec.Command(gitBin, append([]string{"-c", "user.name=t", "-c", "user.email=t@t"}, args...)...).CombinedOutput()

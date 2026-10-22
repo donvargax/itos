@@ -1,21 +1,20 @@
 package idcounter
 
 import (
-	"bytes"
+	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
 	"fmt"
 	"math"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
 
-	"github.com/donvargax/itos/v8/internal/git"
 	"github.com/donvargax/itos/v8/internal/kind"
 	"github.com/donvargax/itos/v8/internal/lock"
+	vcs "github.com/donvargax/itos/v8/internal/vcs/port"
 	"go.yaml.in/yaml/v3"
 )
 
@@ -26,13 +25,15 @@ const (
 	localFile      = "ids.yaml"
 )
 
-// Store says where a reservation is made. Remote is the configured git
-// remote name, empty when the counter must be local. CommonDir is the result
-// of git rev-parse --git-common-dir, resolved to an absolute path. OS is the
-// OS itos runs on, as GOOS names it, which the local counter's lock waits
-// by.
+// Store says where a reservation is made. Root is the repository's folder,
+// "" when none was located, and VCS the repository, which reserves on the
+// remote. Remote is the configured git remote name, empty when the counter
+// must be local. CommonDir is the git common dir, resolved to an absolute
+// path. OS is the OS itos runs on, as GOOS names it, which the local
+// counter's lock waits by.
 type Store struct {
 	Root, CommonDir, Remote, OS string
+	VCS                         vcs.VCS
 	LocalOnly                   bool
 }
 
@@ -175,32 +176,34 @@ func mintRemote(store Store, category string, highest, count int) (int, error) {
 	if store.Root == "" {
 		return 0, kind.Wrap(kind.Missing, errors.New("cannot locate the repository for the id counter"))
 	}
+	ctx := context.Background()
 	for attempt := 0; attempt < 16; attempt++ {
-		parent, err := fetchCounter(store)
+		parent, err := fetchCounter(ctx, store)
 		if err != nil {
 			return 0, remoteError("fetching", err)
 		}
 		current := 0
 		if parent != "" {
-			data, err := run(store.Root, nil, "show", parent+":counters/"+category)
-			if err == nil {
-				current, err = strconv.Atoi(strings.TrimSpace(string(data)))
+			data, ok, err := store.VCS.File(ctx, parent, "counters/"+category)
+			switch {
+			case err != nil:
+				return 0, remoteError("reading", err)
+			case ok:
+				current, err = strconv.Atoi(strings.TrimSpace(data))
 				if err != nil || current < 0 {
 					return 0, fmt.Errorf("remote id counter %s is not a non-negative integer", category)
 				}
-			} else if !missingPath(err) {
-				return 0, remoteError("reading", err)
 			}
 		}
 		first, err := firstAfter(category, max(highest, current), count)
 		if err != nil {
 			return 0, err
 		}
-		commit, err := counterCommit(store.Root, parent, category, first+count-1)
+		commit, err := counterCommit(ctx, store.VCS, parent, category, first+count-1)
 		if err != nil {
 			return 0, fmt.Errorf("build id counter commit: %w", err)
 		}
-		_, err = run(store.Root, nil, "push", "--no-verify", store.Remote, commit+":"+remoteRef)
+		err = store.VCS.Push(ctx, store.Remote, []string{commit + ":" + remoteRef}, vcs.Pushing{NoVerify: true}, vcs.Talk{})
 		if err == nil {
 			return first, nil
 		}
@@ -220,105 +223,29 @@ func firstAfter(category string, floor, count int) (int, error) {
 	return floor + 1, nil
 }
 
-func fetchCounter(store Store) (string, error) {
-	data, err := run(store.Root, nil, "ls-remote", store.Remote, remoteRef)
-	if err != nil {
+// fetchCounter is the remote's counter commit, fetched, "" when the remote
+// has none yet. A concurrent update between asking and fetching is fine:
+// the fetched commit, not the earlier answer, is the parent for this
+// attempt.
+func fetchCounter(ctx context.Context, store Store) (string, error) {
+	refs, err := store.VCS.RemoteRefs(ctx, store.Remote, []string{remoteRef}, vcs.Talk{})
+	if err != nil || len(refs) == 0 {
 		return "", err
 	}
-	line := strings.TrimSpace(string(data))
-	if line == "" {
-		return "", nil
-	}
-	refspec := "+" + remoteRef + ":" + fetchedCounter
-	if _, err := run(store.Root, nil, "fetch", "--quiet", "--no-tags", store.Remote, refspec); err != nil {
-		return "", err
-	}
-	fetched, err := run(store.Root, nil, "rev-parse", "--verify", "--quiet", fetchedCounter+"^{commit}")
-	if err != nil {
-		return "", err
-	}
-	// A concurrent update between ls-remote and fetch is fine; the fetched
-	// commit, not the earlier advertisement, is the parent for this attempt.
-	return strings.TrimSpace(string(fetched)), nil
+	return store.VCS.Fetch(ctx, store.Remote, "+"+remoteRef+":"+fetchedCounter, vcs.Talk{})
 }
 
 // counterCommit gives otherwise identical attempts a random message nonce:
 // two clones racing from the same parent must not push the same commit object
 // and both believe they reserved the number.
-func counterCommit(root, parent, category string, n int) (string, error) {
+func counterCommit(ctx context.Context, v vcs.VCS, parent, category string, n int) (string, error) {
 	// crypto/rand.Read never returns an error (since Go 1.24): where the
 	// system cannot give random bytes, it stops the program.
 	var nonce [16]byte
 	_, _ = rand.Read(nonce[:])
-	// The index is a path no file holds yet, in a folder of its own, so git
-	// makes it, and its lock beside it, where nothing else writes.
-	scratch, err := os.MkdirTemp("", "itos-id-index-")
-	if err != nil {
-		return "", err
-	}
-	defer os.RemoveAll(scratch)
-	env := []string{"GIT_INDEX_FILE=" + filepath.Join(scratch, "index")}
-	if parent == "" {
-		if _, err := run(root, env, "read-tree", "--empty"); err != nil {
-			return "", err
-		}
-	} else {
-		if _, err := run(root, env, "read-tree", parent+"^{tree}"); err != nil {
-			return "", err
-		}
-	}
-	blob, err := runWithInput(root, nil, []byte(strconv.Itoa(n)+"\n"), "hash-object", "-w", "--stdin")
-	if err != nil {
-		return "", err
-	}
-	entry := "100644," + strings.TrimSpace(string(blob)) + ",counters/" + category
-	if _, err := run(root, env, "update-index", "--add", "--cacheinfo", entry); err != nil {
-		return "", err
-	}
-	tree, err := run(root, env, "write-tree")
-	if err != nil {
-		return "", err
-	}
-	args := []string{"commit-tree", strings.TrimSpace(string(tree))}
-	if parent != "" {
-		args = append(args, "-p", parent)
-	}
-	args = append(args, "-m", fmt.Sprintf("itos: reserve %s %d (%s)", category, n, hex.EncodeToString(nonce[:])))
-	identity := []string{
-		"GIT_AUTHOR_NAME=itos id counter",
-		"GIT_AUTHOR_EMAIL=itos-id-counter@localhost",
-		"GIT_COMMITTER_NAME=itos id counter",
-		"GIT_COMMITTER_EMAIL=itos-id-counter@localhost",
-	}
-	commit, err := runWithInput(root, identity, nil, args...)
-	if err != nil {
-		return "", err
-	}
-	return strings.TrimSpace(string(commit)), nil
-}
-
-func run(root string, extraEnv []string, args ...string) ([]byte, error) {
-	return runWithInput(root, extraEnv, nil, args...)
-}
-
-func runWithInput(root string, extraEnv []string, input []byte, args ...string) ([]byte, error) {
-	cmd := exec.Command(git.Bin(), args...)
-	cmd.Dir = root
-	cmd.Env = append(os.Environ(), extraEnv...)
-	if input != nil {
-		cmd.Stdin = bytes.NewReader(input)
-	}
-	var stderr bytes.Buffer
-	cmd.Stderr = &stderr
-	out, err := cmd.Output()
-	if err != nil {
-		return nil, fmt.Errorf("git %s: %w: %s", strings.Join(args, " "), err, strings.TrimSpace(stderr.String()))
-	}
-	return out, nil
-}
-
-func missingPath(err error) bool {
-	return strings.Contains(err.Error(), "does not exist in") || strings.Contains(err.Error(), "path '")
+	return v.CommitFile(ctx, parent, "counters/"+category, strconv.Itoa(n)+"\n",
+		fmt.Sprintf("itos: reserve %s %d (%s)", category, n, hex.EncodeToString(nonce[:])),
+		"itos id counter", "itos-id-counter@localhost")
 }
 
 func nonFastForward(err error) bool {

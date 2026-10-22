@@ -22,12 +22,15 @@ type T[C any] interface {
 // remote branches point at (refs/remotes/origin/<tag>), and Shallow a
 // shallow clone of the history, one commit deep, of which only Shallow is
 // asked. CommentChar sets core.commentChar; Dirty, Merging and Rebasing
-// leave the work tree as VCSContract says.
+// leave the work tree as VCSContract says, and Ours has HEAD on the branch
+// ours. Origin adds the remote origin VCSContract says; None is a folder
+// in no repository at all, of which only Init is asked.
 type Layout struct {
 	Remotes                  []string
 	Shallow                  bool
 	CommentChar              string
 	Dirty, Merging, Rebasing bool
+	Ours, Origin, None       bool
 }
 
 // The folders VCSContract locates from the repository's top.
@@ -54,12 +57,14 @@ const (
 //     first paragraph two lines, "c" and "wrapped"; c's itos note is
 //     "Task: T-1", and b has a note of another ref;
 //   - sub is a folder of the work tree, ../wt a linked worktree of it and
-//     ../outside a folder in no repository; the git folder is .git.
+//     ../outside a folder in no repository; the git folder is .git;
+//   - r is an annotated tag of c; the work tree ignores debug.log.
 //
 // Dirty stages a.txt set to staged, b.txt deleted and new.txt (new) added,
 // then sets c.txt to changed in the work tree and leaves u.txt (u)
 // untracked; Merging merges t into m, Rebasing rebases ours onto t, each
-// stopped by the conflict on a.txt.
+// stopped by the conflict on a.txt. Origin is a remote whose main is b and
+// theirs t, HEAD's branch main tracking its main.
 func VCSContract[C T[C]](t C, open func(t C, l Layout) (port.VCS, string)) {
 	t.Helper()
 	main := Layout{Remotes: []string{"b"}}
@@ -258,4 +263,7 @@ func VCSContract[C T[C]](t C, open func(t C, l Layout) (port.VCS, string)) {
 	logContract(t, open)
 	pathsContract(t, open)
 	stateContract(t, open)
+	treeContract(t, open)
+	remoteContract(t, open)
+	commitContract(t, open)
 }

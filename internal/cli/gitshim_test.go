@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -15,18 +16,18 @@ import (
 // git on the PATH there is no real git's place, even for the folder the
 // test stands in.
 func TestPathStanding(t *testing.T) {
-	real, err := git.Real()
+	real, err := git.Real(runtime.GOOS)
 	if err != nil {
 		t.Skip("no git on the PATH")
 	}
 	gitDir, link := filepath.Dir(real), t.TempDir()
 	t.Setenv("PATH", strings.Join([]string{gitDir, link, gitDir, link}, string(os.PathListSeparator)))
-	if at, realGit, realAt := pathStanding(link); at != 1 || realGit != real || realAt != 0 {
+	if at, realGit, realAt := pathStanding(link, runtime.GOOS); at != 1 || realGit != real || realAt != 0 {
 		t.Errorf("pathStanding = %d, %q, %d", at, realGit, realAt)
 	}
 	t.Chdir(link)
 	t.Setenv("PATH", link)
-	if at, realGit, realAt := pathStanding(link); at != 0 || realGit != "" || realAt != -1 {
+	if at, realGit, realAt := pathStanding(link, runtime.GOOS); at != 0 || realGit != "" || realAt != -1 {
 		t.Errorf("with no git: pathStanding = %d, %q, %d", at, realGit, realAt)
 	}
 }

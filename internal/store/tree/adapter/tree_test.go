@@ -13,11 +13,12 @@ import (
 	"github.com/donvargax/itos/v8/internal/git"
 	"github.com/donvargax/itos/v8/internal/store/tree/port"
 	"github.com/donvargax/itos/v8/internal/store/tree/port/porttest"
+	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
 )
 
 func gitIn(t *testing.T, dir string, args ...string) {
 	t.Helper()
-	cmd := exec.Command(git.Bin(), append([]string{"-c", "user.name=t", "-c", "user.email=t@t", "-c", "commit.gpgsign=false"}, args...)...)
+	cmd := exec.Command(git.Bin(runtime.GOOS), append([]string{"-c", "user.name=t", "-c", "user.email=t@t", "-c", "commit.gpgsign=false"}, args...)...)
 	cmd.Dir = dir
 	if out, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("git %s: %s", strings.Join(args, " "), out)
@@ -53,7 +54,7 @@ func laidOut(t *testing.T, repository bool) port.Trees {
 	if !repository {
 		write(t, filepath.Join(dir, "tasks/phase-1.yaml"), "worktree\n")
 		t.Chdir(dir)
-		return Trees{}
+		return Trees{VCS: vcs.Git{}}
 	}
 	gitIn(t, dir, "init", "-q")
 	write(t, filepath.Join(dir, "tasks/done/phase-0.yaml"), "zero\n")
@@ -66,7 +67,7 @@ func laidOut(t *testing.T, repository bool) port.Trees {
 	write(t, filepath.Join(dir, "tasks/phase-1.yaml"), "worktree\n")
 	write(t, filepath.Join(dir, ".git/itos/tasks/phase-1.yaml"), "aside\n")
 	t.Chdir(dir)
-	return Trees{}
+	return Trees{VCS: vcs.Git{}}
 }
 
 // The adapter reads the disk and git as the fake reads its trees.
@@ -83,7 +84,7 @@ func TestTextsOfNamesGitQuotes(t *testing.T) {
 	dir := t.TempDir()
 	gitIn(t, dir, "init", "-q")
 	write(t, filepath.Join(dir, "blob"), "text\n")
-	out, err := exec.Command(git.Bin(), "-C", dir, "hash-object", "-w", "blob").Output()
+	out, err := exec.Command(git.Bin(runtime.GOOS), "-C", dir, "hash-object", "-w", "blob").Output()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -99,14 +100,14 @@ func TestTextsOfNamesGitQuotes(t *testing.T) {
 	}
 	t.Chdir(dir)
 	all := func(string) bool { return true }
-	if got := (Trees{}).Texts(t.Context(), "index", "features", all); !reflect.DeepEqual(got, want) {
+	if got := (Trees{VCS: vcs.Git{}}).Texts(t.Context(), "index", "features", all); !reflect.DeepEqual(got, want) {
 		t.Errorf("index texts %q, want %q", got, want)
 	}
 	gitIn(t, dir, "commit", "-qm", "names")
-	if got := (Trees{}).Texts(t.Context(), "HEAD", "features", all); !reflect.DeepEqual(got, want) {
+	if got := (Trees{VCS: vcs.Git{}}).Texts(t.Context(), "HEAD", "features", all); !reflect.DeepEqual(got, want) {
 		t.Errorf("HEAD texts %q, want %q", got, want)
 	}
-	head, _ := Trees{}.At(t.Context(), "HEAD")
+	head, _ := Trees{VCS: vcs.Git{}}.At(t.Context(), "HEAD")
 	listed, err := head.List(t.Context(), "features")
 	if err != nil || len(listed) != len(names) || !slices.Contains(listed, "café.feature") {
 		t.Errorf("HEAD list %q, %v", listed, err)
@@ -120,7 +121,7 @@ func TestGitFolderIsReadWhereItIs(t *testing.T) {
 	gitIn(t, dir, "init", "-q")
 	write(t, filepath.Join(dir, ".git/itos/tasks/phase-1.yaml"), "aside\n")
 	t.Chdir(dir)
-	index, err := Trees{}.At(t.Context(), "index")
+	index, err := Trees{VCS: vcs.Git{}}.At(t.Context(), "index")
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -195,10 +195,10 @@ func (v VCS) index() map[string]string {
 
 // files are the work tree's files, the index's when Files is nil.
 func (v VCS) files() map[string]string {
-	if v.Files == nil {
+	if v.Work == nil {
 		return v.index()
 	}
-	return v.Files
+	return v.Work
 }
 
 func (v VCS) Staged(_ context.Context, base string) ([]string, error) {

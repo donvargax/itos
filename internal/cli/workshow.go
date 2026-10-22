@@ -24,11 +24,11 @@ import (
 
 	"github.com/donvargax/itos/v8/internal/ask"
 	"github.com/donvargax/itos/v8/internal/config"
-	"github.com/donvargax/itos/v8/internal/git"
 	"github.com/donvargax/itos/v8/internal/ledger"
 	"github.com/donvargax/itos/v8/internal/message"
 	"github.com/donvargax/itos/v8/internal/out"
 	"github.com/donvargax/itos/v8/internal/tests"
+	vcsport "github.com/donvargax/itos/v8/internal/vcs/port"
 	"github.com/donvargax/itos/v8/internal/work"
 )
 
@@ -108,7 +108,7 @@ func workShow(args []string, o Out) (int, error) {
 	}
 	questions := asks.About(id)
 	if o.JSON {
-		return 0, emitShown(shown, task, scenarios, questions, commits, patch, o)
+		return 0, emitShown(cfg.VCS, shown, task, scenarios, questions, commits, patch, o)
 	}
 	shown.Print(o.Stdout, showWidth)
 	printScenarios(scenarios, id, o)
@@ -126,7 +126,9 @@ func workShow(args []string, o Out) (int, error) {
 	if !patch {
 		return 0, nil
 	}
-	shows, err := git.Read(append(showArgs(cfg), shas...)...)
+	// The itos notes alone, under a stealth config, where a commit's links
+	// are.
+	shows, err := cfg.VCS.Shown(context.Background(), shas, cfg.Stealth)
 	if err != nil {
 		return 0, err
 	}
@@ -202,22 +204,11 @@ func printQuestions(questions []ask.Question, id string, o Out) {
 	}
 }
 
-// showArgs are git show's arguments for a commit's message and diff as work
-// show --patch prints them: no color, and the itos notes alone under a
-// stealth config, where a commit's links are.
-func showArgs(cfg *config.Loaded) []string {
-	args := []string{"show", "--no-color", "--patch", "--no-notes"}
-	if cfg.Stealth {
-		args = append(args, "--notes="+message.NotesRef)
-	}
-	return args
-}
-
 // emitShown prints work show --json: the item (less a registry why that
 // repeats its ledger_why, as the text prints it once), the ids of the items
 // depending on it, its scenarios, the questions naming it and its commits,
 // with --patch each one's message and diff.
-func emitShown(shown work.Shown, task bool, scenarios []tests.Test, questions []ask.Question, commits []message.Logged, patch bool, o Out) error {
+func emitShown(v vcsport.VCS, shown work.Shown, task bool, scenarios []tests.Test, questions []ask.Question, commits []message.Logged, patch bool, o Out) error {
 	if scenarios == nil {
 		scenarios = []tests.Test{}
 	}
@@ -229,7 +220,7 @@ func emitShown(shown work.Shown, task bool, scenarios []tests.Test, questions []
 	for _, c := range commits {
 		s := shownCommit{SHA: c.SHA, Short: c.Short, Header: c.Header}
 		if patch {
-			diff, err := git.Read("show", "--no-color", "--patch", "--format=", c.SHA)
+			diff, err := v.Patch(context.Background(), c.SHA)
 			if err != nil {
 				return err
 			}

@@ -27,36 +27,59 @@ type Commit struct {
 // VCS is the repository in memory. Root is the folder the test stands in,
 // absolute; Located is what Locate gives from each folder, a folder it
 // lacks being in no repository. History is every commit, oldest first, as
-// git lists a range whose commits were made in that order; Refs names
-// commits by full ref name (HEAD, refs/heads/…, refs/tags/…), those under
-// refs/remotes/ being the remote branches; IsShallow is Shallow's answer.
+// git lists a range whose commits were made in that order; Named names
+// commits, or tags of Tags, by full ref name (HEAD, refs/heads/…,
+// refs/tags/…), those under refs/remotes/ being the remote branches;
+// IsShallow is Shallow's answer.
 //
 // The work tree's state: OnBranch is the branch HEAD is on, "" when it is
-// detached; Index and Files are the index's and the work tree's files,
-// HEAD's tree and the index's when nil, a file of Files the index lacks
+// detached; Index and Work are the index's and the work tree's files,
+// HEAD's tree and the index's when nil, a file of Work the index lacks
 // being untracked; Unmerged are the paths left in conflict, MergeHead the
 // commits a merge in progress brings and InRebase whether a rebase is in
 // progress. Comment is core.commentChar, "" when it is not set.
 //
 // A merge's own paths are those whose content is no parent's, which git
-// tells by hunks; the contract's merges tell them apart alike. The zero
-// VCS is a folder in no repository; VCS never changes its fields.
+// tells by hunks; the contract's merges tell them apart alike.
+//
+// Tags are annotated tags' objects, each the commit it names; a ref may
+// name one. Remote are the remotes by name, and Tracking each branch's
+// upstream as its config sets it, its remote and the remote's ref. Ignored
+// are the paths the work tree ignores.
+//
+// The zero VCS is a folder in no repository. The commands that change the
+// repository (committing, the remote's, Init) change its fields, so a test
+// holds a *VCS; those that read it change nothing.
 type VCS struct {
 	Root      string
 	Located   map[string]port.Location
 	History   []Commit
-	Refs      map[string]string
+	Named     map[string]string
+	Tags      map[string]string
 	IsShallow bool
 
-	OnBranch     string
-	Index, Files map[string]string
-	Unmerged     []string
-	MergeHead    []string
-	InRebase     bool
-	Comment      string
+	OnBranch    string
+	Index, Work map[string]string
+	Unmerged    []string
+	MergeHead   []string
+	InRebase    bool
+	Comment     string
+	Ignored     []string
+
+	Remote   map[string]*Remote
+	Tracking map[string][2]string
 }
 
-var _ port.VCS = VCS{}
+// Remote is a remote of the fake: its address and its refs, each naming a
+// commit of the fake's History or an annotated tag of its Tags; Down is a
+// remote out of reach.
+type Remote struct {
+	URL  string
+	Refs map[string]string
+	Down bool
+}
+
+var _ port.VCS = &VCS{}
 
 var errNoRepository = errors.New("not a git repository")
 
@@ -85,14 +108,18 @@ func (v VCS) Find(_ context.Context, dir string) (port.Location, bool) {
 }
 
 // commit is the commit of History rev names: its own name, a full ref
-// name, or a tag's, a branch's or a remote branch's short one.
+// name, or a tag's, a branch's or a remote branch's short one; an
+// annotated tag names its commit.
 func (v VCS) commit(rev string) (Commit, bool) {
 	name := rev
 	for _, ref := range []string{rev, "refs/tags/" + rev, "refs/heads/" + rev, "refs/remotes/" + rev} {
-		if sha, ok := v.Refs[ref]; ok {
+		if sha, ok := v.Named[ref]; ok {
 			name = sha
 			break
 		}
+	}
+	if peeled, ok := v.Tags[name]; ok {
+		name = peeled
 	}
 	i := slices.IndexFunc(v.History, func(c Commit) bool { return c.Name == name })
 	if i < 0 {
@@ -184,7 +211,7 @@ func (v VCS) FirstParents(_ context.Context, rev string, skip, most int) ([]stri
 // remotes are the remote branches' commits.
 func (v VCS) remotes() []string {
 	var tips []string
-	for ref, sha := range v.Refs {
+	for ref, sha := range v.Named {
 		if strings.HasPrefix(ref, "refs/remotes/") {
 			tips = append(tips, sha)
 		}

@@ -14,7 +14,7 @@ import (
 // A shim linked in a folder the PATH names after the real git's, the
 // first, is on the PATH but not before git.
 func TestShimOfferLinkedAfterTheFirstGit(t *testing.T) {
-	real, err := git.Real()
+	real, err := git.Real(runtime.GOOS)
 	if err != nil {
 		t.Skip("no git on the PATH")
 	}

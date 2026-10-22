@@ -28,7 +28,6 @@ func readIf(p string) (string, bool) {
 // in the way and --force was not given, 3 when this git runs no hook its
 // config declares.
 func hookInstall(print, force bool, o Out) (int, error) {
-	const root = "."
 	cfg, err := loadConfig()
 	if err != nil {
 		return 0, err
@@ -37,5 +36,5 @@ func hookInstall(print, force bool, o Out) (int, error) {
 	if o.JSON {
 		log = o.Stderr
 	}
-	return declareHooks(root, cfg.Hooks.Bin, print, force, o, func(line string) { fmt.Fprintln(log, line) })
+	return declareHooks(cfg.Hooks.Bin, print, force, o, func(line string) { fmt.Fprintln(log, line) })
 }

@@ -9,8 +9,8 @@
 // An error takes its kind where what failed is known, wrapped with Wrap (the
 // outermost kind wins, so a caller that knows better can reclassify) or Else
 // (which keeps a kind already there): release.Get makes a server it cannot
-// reach Temporary, and git.RemoteFailure reads a failed fetch's or push's
-// kind from git's stderr. The command line reads it with Of, through any
-// wrapping added after (cli.ExitCode); an error with no kind is the 70 that
-// says nobody classified it.
+// reach Temporary, and itos push reads a failed fetch's or push's kind
+// from the VCS port's Failure (cli's remoteKind). The command line reads it
+// with Of, through any wrapping added after (cli.ExitCode); an error with
+// no kind is the 70 that says nobody classified it.
 package kind

@@ -777,7 +777,7 @@ func (w *world) git(args ...string) error { return w.gitIn(w.dir, args...) }
 
 // git run in the folder dir.
 func (w *world) gitIn(dir string, args ...string) error {
-	cmd := exec.Command(git.Bin(), args...)
+	cmd := exec.Command(git.Bin(runtime.GOOS), args...)
 	cmd.Dir = dir
 	cmd.Env = w.env()
 	out, err := cmd.CombinedOutput()
@@ -788,7 +788,7 @@ func (w *world) gitIn(dir string, args ...string) error {
 }
 
 func (w *world) head() (string, error) {
-	cmd := exec.Command(git.Bin(), "rev-parse", "HEAD")
+	cmd := exec.Command(git.Bin(runtime.GOOS), "rev-parse", "HEAD")
 	cmd.Dir = w.dir
 	cmd.Env = w.env()
 	out, err := cmd.Output()
@@ -1390,7 +1390,7 @@ func (w *world) mergeCommit(message, own string) error {
 	}
 	index := filepath.Join(w.support, "merge-index")
 	plumb := func(args ...string) (string, error) {
-		cmd := exec.Command(git.Bin(), args...)
+		cmd := exec.Command(git.Bin(runtime.GOOS), args...)
 		cmd.Dir = w.dir
 		cmd.Env = append(w.env(), "GIT_INDEX_FILE="+index)
 		out, err := cmd.Output()
@@ -1616,7 +1616,7 @@ func (w *world) shallowClone() error {
 // The files the scratch repository has not committed, laid into a clone of
 // it.
 func (w *world) layUncommitted(clone string) error {
-	cmd := exec.Command(git.Bin(), "ls-files", "-z", "--modified", "--others", "--exclude-standard")
+	cmd := exec.Command(git.Bin(runtime.GOOS), "ls-files", "-z", "--modified", "--others", "--exclude-standard")
 	cmd.Dir = w.dir
 	cmd.Env = w.env()
 	out, err := cmd.Output()

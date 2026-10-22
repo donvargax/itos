@@ -20,7 +20,6 @@ func TestReal(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("the gits here are shell scripts and symbolic links")
 	}
-	onThisPlatform(t)
 	self, err := os.Executable()
 	if err != nil {
 		t.Fatal(err)
@@ -38,26 +37,26 @@ func TestReal(t *testing.T) {
 	t.Setenv(EnvGit, "")
 
 	t.Setenv("PATH", "relative"+sep+shim+sep+other)
-	if got, err := Real(); err != nil || got != real {
+	if got, err := Real(runtime.GOOS); err != nil || got != real {
 		t.Errorf("Real = %q, %v; want %q", got, err, real)
 	}
 	if !IsSelf(link) || IsSelf(real) {
 		t.Errorf("IsSelf(link) = %v, IsSelf(real) = %v", IsSelf(link), IsSelf(real))
 	}
-	if got := Bin(); got != real {
+	if got := Bin(runtime.GOOS); got != real {
 		t.Errorf("Bin = %q, want %q", got, real)
 	}
 
 	t.Setenv("PATH", shim)
-	if _, err := Real(); !errors.Is(err, ErrNoGit) {
+	if _, err := Real(runtime.GOOS); !errors.Is(err, ErrNoGit) {
 		t.Errorf("with only the link, Real's error is %v", err)
 	}
-	if got := Bin(); got != "git" {
+	if got := Bin(runtime.GOOS); got != "git" {
 		t.Errorf("with only the link, Bin = %q, want git", got)
 	}
 
 	t.Setenv(EnvGit, real)
-	if got := Bin(); got != real {
+	if got := Bin(runtime.GOOS); got != real {
 		t.Errorf("with ITOS_GIT, Bin = %q, want %q", got, real)
 	}
 	t.Setenv(EnvGit, link)
@@ -84,7 +83,6 @@ func TestRealPassesOverAnotherItos(t *testing.T) {
 	if err != nil {
 		t.Skip("no go to build an itos with")
 	}
-	onThisPlatform(t)
 	root := t.TempDir()
 	dir := func(name string) string {
 		d := filepath.Join(root, name)
@@ -116,7 +114,7 @@ func TestRealPassesOverAnotherItos(t *testing.T) {
 	real1 := func(t *testing.T, path string, want string) {
 		t.Helper()
 		t.Setenv("PATH", path)
-		if got, err := Real(); err != nil || got != want {
+		if got, err := Real(runtime.GOOS); err != nil || got != want {
 			t.Errorf("Real = %q, %v; want %q", got, err, want)
 		}
 	}
@@ -177,15 +175,6 @@ func TestRealPassesOverAnotherItos(t *testing.T) {
 		write(other, text)
 		real1(t, filepath.Dir(other)+sep+filepath.Dir(real), other)
 	})
-}
-
-// onThisPlatform has Real read the PATH by the OS the test runs on, as
-// cmd/itos has it, until the test ends.
-func onThisPlatform(t *testing.T) {
-	t.Helper()
-	was := Platform
-	Platform = runtime.GOOS
-	t.Cleanup(func() { Platform = was })
 }
 
 // The names git may have in a PATH folder: git outside windows, whatever

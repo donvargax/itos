@@ -240,8 +240,9 @@
 // symbolic link or on windows a hard link where that fails; a git there that
 // is this binary is kept, a symbolic link to another binary named itos
 // replaced, anything else refused (exit 1); pathStanding places the folder
-// and git.Real's folder among the PATH's by os.SameFile. GitShimSince is the
-// first itos with git-shim, which internal/shim reads.
+// and the real git's folder (the git adapter's Real) among the PATH's by
+// os.SameFile. GitShimSince is the first itos with git-shim, which
+// internal/shim reads.
 //
 // # itos commit
 //

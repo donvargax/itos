@@ -7,6 +7,8 @@ import (
 	"slices"
 	"testing"
 
+	vcsgit "github.com/donvargax/itos/v8/internal/vcs/adapter"
+
 	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/store/tree/adapter"
 	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
@@ -25,7 +27,7 @@ func configIn(t *testing.T, text string, files ...string) *config.Loaded {
 			t.Fatal(err)
 		}
 	}
-	cfg, err := config.Load(vcs.Git{}, adapter.Trees{}, adapter.Worktree, "itos.yaml")
+	cfg, err := config.Load(vcs.Git{}, adapter.Trees{VCS: vcsgit.Git{}}, adapter.Worktree, "itos.yaml")
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -1,0 +1,302 @@
+package porttest
+
+import (
+	"context"
+	"errors"
+	"maps"
+	"strings"
+
+	"github.com/donvargax/itos/v8/internal/vcs/port"
+)
+
+// The broken fake's files at a tree, patches, refs, remotes, commits and
+// repository.
+
+func (b broken) File(ctx context.Context, tree, path string) (string, bool, error) {
+	text, ok, err := b.VCS.File(ctx, tree, path)
+	switch {
+	case b.fault == "file deleted as empty" && err == nil && !ok:
+		return "", true, nil
+	case b.fault == "file of nothing" && err != nil:
+		return "", false, nil
+	}
+	return text, ok, err
+}
+
+func (b broken) Files(ctx context.Context, tree, dir string) ([]string, error) {
+	switch b.fault {
+	case "files unfiltered":
+		dir = ""
+	case "files of nothing":
+		if _, ok := b.at(tree); !ok {
+			return nil, nil
+		}
+	}
+	return b.VCS.Files(ctx, tree, dir)
+}
+
+func (b broken) Texts(ctx context.Context, tree string, paths []string) (map[string]string, error) {
+	switch b.fault {
+	case "texts of a missing file left out":
+		files, _ := b.at(tree)
+		var there []string
+		for _, p := range paths {
+			if _, ok := files[p]; ok {
+				there = append(there, p)
+			}
+		}
+		paths = there
+	case "texts of the head":
+		tree = "HEAD"
+	}
+	return b.VCS.Texts(ctx, tree, paths)
+}
+
+func (b broken) Patch(ctx context.Context, rev string) (string, error) {
+	c, ok := b.commit(rev)
+	switch {
+	case b.fault == "patch against nothing" && ok:
+		return patch(nil, c.Tree), nil
+	case b.fault == "patch of nothing" && !ok:
+		return "", nil
+	}
+	return b.VCS.Patch(ctx, rev)
+}
+
+func (b broken) Shown(ctx context.Context, revs []string, notes bool) (string, error) {
+	switch b.fault {
+	case "shown notes always":
+		notes = true
+	case "shown of nothing":
+		var there []string
+		for _, rev := range revs {
+			if _, ok := b.commit(rev); ok {
+				there = append(there, rev)
+			}
+		}
+		revs = there
+	}
+	return b.VCS.Shown(ctx, revs, notes)
+}
+
+func (b broken) Ref(ctx context.Context, ref string) (string, error) {
+	sha, err := b.VCS.Ref(ctx, ref)
+	switch {
+	case b.fault == "ref peeled" && err == nil:
+		return b.VCS.Resolve(ctx, ref)
+	case b.fault == "ref of nothing" && err != nil:
+		return "", nil
+	}
+	return sha, err
+}
+
+func (b broken) Refs(ctx context.Context, prefix string) (map[string]string, error) {
+	refs, err := b.VCS.Refs(ctx, prefix)
+	switch b.fault {
+	case "refs unpeeled":
+		maps.DeleteFunc(refs, func(ref, _ string) bool { return strings.HasSuffix(ref, "^{}") })
+	case "refs unfiltered":
+		return b.VCS.Refs(ctx, "")
+	}
+	return refs, err
+}
+
+func (b broken) Upstream(ctx context.Context, branch string) (string, string, bool) {
+	remote, ref, set := b.VCS.Upstream(ctx, branch)
+	switch b.fault {
+	case "upstream always set":
+		return remote, ref, true
+	case "upstream never set":
+		return "origin", "refs/heads/" + branch, false
+	}
+	return remote, ref, set
+}
+
+func (b broken) Remotes(ctx context.Context) ([]string, error) {
+	if b.fault == "remotes of remote branches" && len(b.Remote) == 0 {
+		for ref := range b.Named {
+			if strings.HasPrefix(ref, "refs/remotes/origin/") {
+				return []string{"origin"}, nil
+			}
+		}
+	}
+	return b.VCS.Remotes(ctx)
+}
+
+func (b broken) RemoteURL(ctx context.Context, remote string) (string, error) {
+	url, err := b.VCS.RemoteURL(ctx, remote)
+	if b.fault == "remote url of nothing" && err != nil {
+		return "", nil
+	}
+	return url, err
+}
+
+func (b broken) RemoteRefs(ctx context.Context, remote string, refs []string, talk port.Talk) (map[string]string, error) {
+	found, err := b.VCS.RemoteRefs(ctx, remote, refs, talk)
+	switch {
+	case b.fault == "remote refs unfiltered":
+		return b.VCS.RemoteRefs(ctx, remote, nil, talk)
+	case b.fault == "remote refs failing plainly" && err != nil:
+		return nil, errBroken
+	}
+	return found, err
+}
+
+func (b broken) Fetch(ctx context.Context, remote, refspec string, talk port.Talk) (string, error) {
+	switch {
+	case b.fault == "fetch no destination":
+		refspec, _, _ = strings.Cut(strings.TrimPrefix(refspec, "+"), ":")
+	case b.fault == "fetch of a missing branch" && strings.HasSuffix(refspec, "nope"):
+		return "", nil
+	case b.fault == "fetch without branches" && refspec == "":
+		return "", nil
+	}
+	sha, err := b.VCS.Fetch(ctx, remote, refspec, talk)
+	var failed *port.Failed
+	if b.fault == "fetch failure unknown" && errors.As(err, &failed) {
+		failed.Failure = port.Other
+	}
+	return sha, err
+}
+
+func (b broken) Push(ctx context.Context, remote string, specs []string, p port.Pushing, talk port.Talk) error {
+	switch {
+	case b.fault == "push forced":
+		r, ok := b.Remote[remote]
+		if !ok {
+			break
+		}
+		for _, spec := range specs {
+			src, dst, _ := strings.Cut(spec, ":")
+			r.Refs[dst] = src
+		}
+		return nil
+	case b.fault == "push not atomic":
+		p.Atomic = false
+	case b.fault == "push nowhere fine" && b.Remote[remote] == nil:
+		return nil
+	}
+	return b.VCS.Push(ctx, remote, specs, p, talk)
+}
+
+func (b broken) Rebase(ctx context.Context, onto string, quiet bool, talk port.Talk) error {
+	before := *b.VCS
+	err := b.VCS.Rebase(ctx, onto, quiet, talk)
+	switch {
+	case b.fault == "rebase stops nothing" && err != nil:
+		*b.VCS = before
+		return nil
+	case b.fault == "rebase detaches" && err == nil:
+		b.OnBranch = ""
+	}
+	return err
+}
+
+func (b broken) Commit(ctx context.Context, c port.Commit, talk port.Talk) error {
+	switch b.fault {
+	case "commit of everything":
+		c.Only = nil
+	case "commit paragraphs joined":
+		if len(c.Paragraphs) > 0 {
+			c.Message, c.Paragraphs = strings.Join(c.Paragraphs, "\n"), nil
+		}
+	}
+	err := b.VCS.Commit(ctx, c, talk)
+	if b.fault == "commit of nothing" && err != nil {
+		return nil
+	}
+	return err
+}
+
+func (b broken) Add(ctx context.Context, paths []string, talk port.Talk) error {
+	err := b.VCS.Add(ctx, paths, talk)
+	if b.fault == "add of nothing" && err != nil {
+		return nil
+	}
+	return err
+}
+
+func (b broken) Unstage(ctx context.Context, paths []string) error {
+	if b.fault == "unstage untracks" {
+		return b.VCS.Untrack(ctx, paths)
+	}
+	return b.VCS.Unstage(ctx, paths)
+}
+
+func (b broken) Untrack(ctx context.Context, paths []string) error {
+	err := b.VCS.Untrack(ctx, paths)
+	if b.fault == "untrack deletes" {
+		for _, p := range paths {
+			delete(b.Work, p)
+		}
+	}
+	return err
+}
+
+func (b broken) Restore(ctx context.Context, paths []string) error {
+	switch b.fault {
+	case "restore index only":
+		return b.VCS.Unstage(ctx, paths)
+	case "restore of nothing":
+		var there []string
+		for _, p := range paths {
+			if _, ok := b.head()[p]; ok {
+				there = append(there, p)
+			}
+		}
+		paths = there
+	}
+	return b.VCS.Restore(ctx, paths)
+}
+
+func (b broken) Note(ctx context.Context, rev, text string) error {
+	switch {
+	case b.fault == "note appended":
+		if c, ok := b.commit(rev); ok {
+			text = c.Note + text
+		}
+	case b.fault == "note of nothing":
+		if _, ok := b.commit(rev); !ok {
+			return nil
+		}
+	}
+	return b.VCS.Note(ctx, rev, text)
+}
+
+func (b broken) CommitFile(ctx context.Context, parent, path, text, message, name, email string) (string, error) {
+	switch b.fault {
+	case "commit file on HEAD":
+		if parent == "" {
+			parent = "HEAD"
+		}
+	case "commit file alone":
+		parent = ""
+	case "commit file on nothing":
+		if _, ok := b.commit(parent); !ok {
+			parent = ""
+		}
+	}
+	sha, err := b.VCS.CommitFile(ctx, parent, path, text, message, name, email)
+	if b.fault == "commit file moves head" && err == nil {
+		b.moveHead(b.OnBranch, sha)
+	}
+	return sha, err
+}
+
+func (b broken) Init(ctx context.Context) error {
+	if b.fault == "init nothing" {
+		return nil
+	}
+	return b.VCS.Init(ctx)
+}
+
+func (b broken) NotIgnored(ctx context.Context, path string) bool {
+	switch b.fault {
+	case "ignored nothing":
+		return true
+	case "ignored untracked":
+		_, tracked := b.index()[path]
+		return tracked && b.VCS.NotIgnored(ctx, path)
+	}
+	return b.VCS.NotIgnored(ctx, path)
+}

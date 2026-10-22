@@ -239,7 +239,7 @@ func TestTaskAddPropagatesReservationFailures(t *testing.T) {
 	taskAddRepo(t, configText, "- { id: T-001, type: chore, title: Existing }\n", "phases: { 1: null }\nitems:\n  - { id: T-001, title: Existing, phase: 1, owner: null, status: done, depends_on: [] }\n")
 	useFailingGit(t)
 	_, err := taskAdd([]string{"--group", "1", "--type", "chore", "--title", "Task", "--why", "Reason", "--check", "true"}, Out{})
-	if err == nil || !strings.Contains(err.Error(), "exit status 1") {
+	if err == nil || !strings.Contains(err.Error(), "Command failed: git rev-parse") {
 		t.Fatalf("taskAdd reservation error = %v, want injected Git command failure", err)
 	}
 }
@@ -252,11 +252,13 @@ func TestTaskAddPropagatesLedgerErrorsAfterIDReservation(t *testing.T) {
 	dir := taskAddRepo(t, configText, "- { id: T-001, type: chore, title: Existing }\n", "phases: { 1: null }\nitems:\n  - { id: T-001, title: Existing, phase: 1, owner: null, status: done, depends_on: [] }\n")
 	ledgerPath := filepath.Join(dir, "tasks/phase-1.yaml")
 	fakeGit := filepath.Join(t.TempDir(), "git-wrapper")
-	script := "#!/bin/sh\nout=$(\"$T129_NATIVE_GIT\" \"$@\") || exit $?\nif [ \"$1\" = rev-parse ] && [ \"$2\" = --git-common-dir ]; then rm \"$T129_LEDGER\" && mkdir \"$T129_LEDGER\"; fi\nprintf '%s\\n' \"$out\"\n"
+	// The reservation asks for the remote just before it mints, the ledger's
+	// path a folder from then on.
+	script := "#!/bin/sh\nout=$(\"$T129_NATIVE_GIT\" \"$@\")\ncode=$?\nif [ \"$1\" = remote ] && [ \"$2\" = get-url ]; then rm -f \"$T129_LEDGER\" && mkdir -p \"$T129_LEDGER\"; fi\nprintf '%s\\n' \"$out\"\nexit $code\n"
 	if err := os.WriteFile(fakeGit, []byte(script), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv("T129_NATIVE_GIT", git.Bin())
+	t.Setenv("T129_NATIVE_GIT", git.Bin(runtime.GOOS))
 	t.Setenv("T129_LEDGER", ledgerPath)
 	t.Setenv("ITOS_GIT", fakeGit)
 	_, err := taskAdd([]string{"--group", "1", "--type", "chore", "--title", "Task", "--why", "Reason", "--check", "true"}, Out{})

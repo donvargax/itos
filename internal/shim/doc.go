@@ -5,14 +5,15 @@
 // runs as itos commit and git push as itos push, with git's arguments, none
 // of them read as itos's global flags; every other command, every command in
 // any other folder, and every git started under an itos run (ITOS_GIT set,
-// git.EnvGit) runs the real git with its arguments, its streams and its exit
+// EnvGit) runs the real git with its arguments, its streams and its exit
 // code untouched. The pass-through costs a start, the PATH's lookup and a
 // few file checks: no git runs before the real one, and neither the launcher
 // nor the command line is reached.
 //
 // cmd/itos asks Named(os.Args[0]) first (base name git, or on windows
 // git/git.exe in any case) and, when it is, Main before anything else. The
-// real git is git.Inherited or git.Real (internal/git); none is exit 3.
+// real git is the git adapter's Inherited or Real (internal/vcs/adapter,
+// on the platform cmd/itos gives it); none is exit 3.
 // Otherwise parse reads git's options before the command, and for commit or
 // push, with no GIT_DIR or GIT_WORK_TREE, config.Managed decides. Then enter
 // moves to the -C folder, keeping the one to come back to, and tooOld asks

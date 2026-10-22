@@ -5,30 +5,43 @@ import (
 	"errors"
 	"io/fs"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"strings"
 
 	"github.com/donvargax/itos/v8/internal/config"
-	"github.com/donvargax/itos/v8/internal/git"
 	"github.com/donvargax/itos/v8/internal/lock"
 	"github.com/donvargax/itos/v8/internal/store/private/port"
+	vcs "github.com/donvargax/itos/v8/internal/vcs/port"
 )
 
 // Store is the private store on disk: config.StealthFolder of the absolute
-// git common dir of the folder itos runs in, read again on every call. OS is
-// the OS itos runs on, as GOOS names it, which Hold's lock waits by.
-type Store struct{ OS string }
+// git common dir of the folder itos runs in, located on every call. OS is
+// the OS itos runs on, as GOOS names it, which Hold's lock waits by, and VCS
+// the repository, which locates the common dir.
+type Store struct {
+	OS  string
+	VCS vcs.VCS
+}
 
 var _ port.Store = Store{}
 
-// Path is name in itos's folder of the git common dir (git rev-parse
-// --path-format=absolute --git-common-dir); a git that fails or says
-// nothing is no repository.
-func (Store) Path(_ context.Context, name string) (string, error) {
-	common, err := git.Output("rev-parse", "--path-format=absolute", "--git-common-dir")
-	if common = strings.TrimSpace(common); err != nil || common == "" {
+// Path is name in itos's folder of the common dir as VCS locates it, made
+// absolute from the working folder with its links resolved, as git names
+// it; a folder in no repository is no repository.
+func (s Store) Path(ctx context.Context, name string) (string, error) {
+	l, err := s.VCS.Locate(ctx, "")
+	if err != nil || l.Common == "" {
 		return "", &port.NoRepository{}
+	}
+	common := l.Common
+	if !filepath.IsAbs(common) {
+		cwd, err := os.Getwd()
+		if err != nil {
+			return "", &port.NoRepository{}
+		}
+		if real, err := filepath.EvalSymlinks(cwd); err == nil {
+			cwd = real
+		}
+		common = filepath.Join(cwd, common)
 	}
 	return filepath.Join(common, config.StealthFolder, name), nil
 }
@@ -102,11 +115,5 @@ type released struct{ held *lock.Held }
 // Release is lock.Held's Release.
 func (r released) Release(context.Context) error { return r.held.Release() }
 
-// NotIgnored is whether git check-ignore exits 1 for path: in the work
-// tree and not ignored. Outside the work tree or in no repository it exits
-// 128, and for an ignored path 0.
-func (Store) NotIgnored(_ context.Context, path string) bool {
-	err := exec.Command(git.Bin(), "check-ignore", "-q", "--", path).Run()
-	var exit *exec.ExitError
-	return errors.As(err, &exit) && exit.ExitCode() == 1
-}
+// NotIgnored is VCS's: whether path is in the work tree and not ignored.
+func (s Store) NotIgnored(ctx context.Context, path string) bool { return s.VCS.NotIgnored(ctx, path) }

@@ -7,10 +7,10 @@ import (
 	"strings"
 
 	"github.com/donvargax/itos/v8/internal/config"
-	"github.com/donvargax/itos/v8/internal/git"
 	versionslice "github.com/donvargax/itos/v8/internal/slices/version"
 	trees "github.com/donvargax/itos/v8/internal/store/tree/adapter"
 	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
+	vcsport "github.com/donvargax/itos/v8/internal/vcs/port"
 	"github.com/donvargax/itos/v8/internal/version"
 )
 
@@ -200,7 +200,7 @@ func commit(args []string, o Out) (int, error) {
 
 func verify(args []string, o Out) (int, error) {
 	if len(args) == 0 && config.IsStealth(vcs.Git{}, configPath()) {
-		return verifyRange(git.Unpushed, "HEAD", o)
+		return verifyRange(vcsport.Unpushed, "HEAD", o)
 	}
 	if len(args) < 2 {
 		return 0, usage("verify needs <from> <to>")
@@ -285,7 +285,7 @@ func ciCommand(args []string, o Out) (int, error) {
 	case "plan":
 		whole := slices.Contains(rest, "--whole")
 		if !nightly && !whole && len(range_) == 0 && config.IsStealth(vcs.Git{}, configPath()) {
-			from, to = git.Unpushed, "HEAD"
+			from, to = vcsport.Unpushed, "HEAD"
 		}
 		if !nightly && !whole && to == "" {
 			return 0, usage("ci plan needs <from> <to>, --nightly or --whole")
@@ -393,7 +393,7 @@ func configPath() string { return config.Path(vcs.Git{}, trees.Worktree) }
 // loadConfigFile is the config at file, it and its data read from the
 // working tree.
 func loadConfigFile(file string) (*config.Loaded, error) {
-	return config.Load(vcs.Git{}, trees.Trees{}, trees.Worktree, file)
+	return config.Load(vcs.Git{}, trees.Trees{VCS: vcs.Git{}}, trees.Worktree, file)
 }
 
 // loadConfig is the config at its path, read from the working tree.

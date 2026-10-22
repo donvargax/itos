@@ -30,8 +30,8 @@ func Revs(from, to string) []string {
 // (every commit up to to, as a new branch's range has it): with no remote,
 // or with the unpushed commits growing from several remote branches' tips,
 // none of them an ancestor of another, which no one start can say.
-func UnpushedBase(to string) string {
-	lines, err := Lines(append([]string{"rev-list", "--boundary"}, Revs(Unpushed, to)...)...)
+func (r Runner) UnpushedBase(to string) string {
+	lines, err := r.Lines(append([]string{"rev-list", "--boundary"}, Revs(Unpushed, to)...)...)
 	if err != nil {
 		return ""
 	}
@@ -45,7 +45,7 @@ func UnpushedBase(to string) string {
 		}
 	}
 	if len(bounds) > 1 {
-		if bounds, err = Lines(append([]string{"merge-base", "--independent"}, bounds...)...); err != nil {
+		if bounds, err = r.Lines(append([]string{"merge-base", "--independent"}, bounds...)...); err != nil {
 			return ""
 		}
 	}
@@ -53,24 +53,4 @@ func UnpushedBase(to string) string {
 		return ""
 	}
 	return bounds[0]
-}
-
-// UnpushedPaths are the paths the unpushed commits of to touch, each once,
-// in the order git log first names them: the files the range changed, as
-// git diff names them for a range with one start, a rename both its paths
-// (bug 32).
-func UnpushedPaths(to string) ([]string, error) {
-	lines, err := Paths(append([]string{"log", "--format=", "--name-only", "--no-renames"}, Revs(Unpushed, to)...)...)
-	if err != nil {
-		return nil, err
-	}
-	seen := map[string]bool{}
-	var paths []string
-	for _, p := range lines {
-		if !seen[p] {
-			seen[p] = true
-			paths = append(paths, p)
-		}
-	}
-	return paths, nil
 }

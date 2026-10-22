@@ -45,7 +45,7 @@ func rollbackRepo(t *testing.T) *config.Loaded {
 
 func gitIn(t *testing.T, args ...string) string {
 	t.Helper()
-	out, err := exec.Command(git.Bin(), args...).CombinedOutput()
+	out, err := exec.Command(git.Bin(runtime.GOOS), args...).CombinedOutput()
 	if err != nil {
 		t.Fatalf("git %s: %v\n%s", strings.Join(args, " "), err, out)
 	}

@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"slices"
 	"strings"
 
@@ -280,7 +281,7 @@ func (w *world) rootConfigWithout(task string) error {
 
 // git status sees no change, staged, unstaged or untracked.
 func (w *world) nothingToCommit() error {
-	cmd := exec.Command(git.Bin(), "status", "--porcelain", "--untracked-files=all")
+	cmd := exec.Command(git.Bin(runtime.GOOS), "status", "--porcelain", "--untracked-files=all")
 	cmd.Dir = w.dir
 	cmd.Env = w.env()
 	out, err := cmd.Output()

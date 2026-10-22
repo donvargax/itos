@@ -10,6 +10,8 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+
+	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
 )
 
 // nextIDRepo is a scratch repository, never this checkout, whose scenario
@@ -115,6 +117,7 @@ func TestTestsNextIDRefusesWhatItCannotClaim(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Setenv("GIT_CEILING_DIRECTORIES", filepath.Dir(dir))
+	(vcs.Git{}).Forget()
 	writeFile(t, filepath.Join(dir, "features", "a.feature"), "Feature: A\n  @ID-A-01\n  Scenario: One\n")
 	if got, err := nextID(t, "scenario", "ID-A"); err == nil || got != "" {
 		t.Fatalf("tests next-id outside a repository = %q, %v, want the counter's error", got, err)

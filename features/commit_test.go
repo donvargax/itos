@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"strings"
 
@@ -35,7 +36,7 @@ func initializeCommitSteps(sc *godog.ScenarioContext, w *world) {
 
 	sc.Step(`^itos has committed with the arguments "([^"]*)"$`, w.itosHasCommitted)
 	sc.Step(`^git commits with the message "([^"]*)"$`, func(message string) error {
-		return w.run(w.dir, git.Bin(), "commit", "-m", message)
+		return w.run(w.dir, git.Bin(runtime.GOOS), "commit", "-m", message)
 	})
 	sc.Step(`^git amends HEAD with the message "([^"]*)"$`, w.amendHead)
 
@@ -232,7 +233,7 @@ func (w *world) amendHead(message string) error {
 	if len(w.commits) == 0 {
 		return errors.New("the repository has no commit of the scenario's to amend")
 	}
-	if err := w.run(w.dir, git.Bin(), "commit", "--amend", "-m", message); err != nil {
+	if err := w.run(w.dir, git.Bin(runtime.GOOS), "commit", "--amend", "-m", message); err != nil {
 		return err
 	}
 	if w.exit != 0 {
@@ -391,7 +392,7 @@ func shellWords(line string) ([]string, error) {
 
 // A git command's stdout in the scratch repository.
 func (w *world) gitOutput(args ...string) (string, error) {
-	cmd := exec.Command(git.Bin(), args...)
+	cmd := exec.Command(git.Bin(runtime.GOOS), args...)
 	cmd.Dir = w.dir
 	cmd.Env = w.env()
 	out, err := cmd.Output()

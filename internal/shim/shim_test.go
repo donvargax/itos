@@ -9,11 +9,11 @@ import (
 	"testing"
 
 	"github.com/donvargax/itos/v8/internal/git"
+	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
 )
 
 // Main finds the real git by the OS the tests run on, as cmd/itos has it.
 func TestMain(m *testing.M) {
-	git.Platform = runtime.GOOS
 	os.Exit(m.Run())
 }
 
@@ -123,7 +123,7 @@ func TestMainRefusesSweepingStages(t *testing.T) {
 	t.Chdir(dir)
 	for _, args := range [][]string{{"add", "-A"}, {"-C", "sub", "stage", "."}} {
 		var stderr strings.Builder
-		itos, code, done := Main(args, &stderr)
+		itos, code, done := Main(args, &stderr, vcs.Git{Platform: runtime.GOOS})
 		if itos != nil || code != 2 || !done || !strings.Contains(stderr.String(), "git add <path>") ||
 			!strings.Contains(stderr.String(), "git "+args[len(args)-2]+" "+args[len(args)-1]+" would stage") {
 			t.Errorf("Main(%q) = %q, %d, %v:\n%s", args, itos, code, done, stderr.String())

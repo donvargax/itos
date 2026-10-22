@@ -6,10 +6,12 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
 	"github.com/donvargax/itos/v8/internal/git"
+	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
 )
 
 // A scratch repository with a commit of its own past its upstream, a bare
@@ -29,7 +31,7 @@ func lateCommitRepo(t *testing.T) string {
 	// The real git for every git the scripts and the hooks start, as an itos
 	// run hands it to what it starts (git.Export): an itos linked as git
 	// would run git push here as itos push (T-104).
-	t.Setenv(git.EnvGit, git.Bin())
+	t.Setenv(git.EnvGit, git.Bin(runtime.GOOS))
 	sh := func(script string) {
 		t.Helper()
 		cmd := exec.Command("sh", "-c", script)
@@ -51,7 +53,7 @@ func lateCommitRepo(t *testing.T) string {
 // What git prints for the arguments in the current folder, trimmed.
 func gitLine(t *testing.T, args ...string) string {
 	t.Helper()
-	out, err := exec.Command(git.Bin(), args...).Output()
+	out, err := exec.Command(git.Bin(runtime.GOOS), args...).Output()
 	if err != nil {
 		t.Fatalf("git %s: %s", strings.Join(args, " "), err)
 	}
@@ -105,7 +107,7 @@ func TestPushJSONCommitIsTheOnePushed(t *testing.T) {
 // (slice 90) exits 75, not git's 128, and says the remote cannot be reached.
 func TestPushToARemoteOutOfReachExits75(t *testing.T) {
 	lateCommitRepo(t)
-	if out, err := exec.Command(git.Bin(), "config", "remote.origin.pushurl", "https://127.0.0.1:1/itos.git").CombinedOutput(); err != nil {
+	if out, err := exec.Command(git.Bin(runtime.GOOS), "config", "remote.origin.pushurl", "https://127.0.0.1:1/itos.git").CombinedOutput(); err != nil {
 		t.Fatalf("%s: %s", err, out)
 	}
 	code, stdout, stderr := run("push", "--no-wait")
@@ -181,8 +183,8 @@ func TestPushRebaseStoppedWithNoConflict(t *testing.T) {
 	if !done || code != ExitPolicy || err != nil || json.Unmarshal([]byte(stdout.String()), &got) != nil || got.Outcome != "rebase-stopped" {
 		t.Fatalf("exit %d, done %v, %v\n%s%s", code, done, err, stdout.String(), stderr.String())
 	}
-	if !git.Rebasing() || len(git.Conflicted()) > 0 {
-		t.Errorf("rebasing %v, conflicted %v", git.Rebasing(), git.Conflicted())
+	if !(vcs.Git{}).Rebasing(t.Context()) || len((vcs.Git{}).Conflicted(t.Context())) > 0 {
+		t.Errorf("rebasing %v, conflicted %v", (vcs.Git{}).Rebasing(t.Context()), (vcs.Git{}).Conflicted(t.Context()))
 	}
 }
 
@@ -209,7 +211,7 @@ func TestPushRebaseStoppedOnOneConflictedFile(t *testing.T) {
 	commit("theirs\n", "docs: theirs")
 	gitLine(t, "checkout", "-q", "main")
 	commit("mine\n", "docs: mine")
-	if err := exec.Command(git.Bin(), "merge", "-q", "up").Run(); err == nil {
+	if err := exec.Command(git.Bin(runtime.GOOS), "merge", "-q", "up").Run(); err == nil {
 		t.Fatal("the merge did not stop on its conflict")
 	}
 	var stdout, stderr strings.Builder
@@ -221,8 +223,8 @@ func TestPushRebaseStoppedOnOneConflictedFile(t *testing.T) {
 	if !done || code != ExitPolicy || err != nil || json.Unmarshal([]byte(stdout.String()), &got) != nil || got.Outcome != "rebase-stopped" {
 		t.Fatalf("exit %d, done %v, %v\n%s%s", code, done, err, stdout.String(), stderr.String())
 	}
-	if git.Rebasing() || len(git.Conflicted()) != 1 {
-		t.Errorf("rebasing %v, conflicted %v", git.Rebasing(), git.Conflicted())
+	if (vcs.Git{}).Rebasing(t.Context()) || len((vcs.Git{}).Conflicted(t.Context())) != 1 {
+		t.Errorf("rebasing %v, conflicted %v", (vcs.Git{}).Rebasing(t.Context()), (vcs.Git{}).Conflicted(t.Context()))
 	}
 }
 

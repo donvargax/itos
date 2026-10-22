@@ -34,18 +34,15 @@ package cli
 // (guide.go), and there skips one that cannot be computed with a line.
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
 	"strings"
 	"time"
 
 	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/draft"
-	"github.com/donvargax/itos/v8/internal/git"
 	"github.com/donvargax/itos/v8/internal/out"
 	"github.com/donvargax/itos/v8/internal/providers"
 	"github.com/donvargax/itos/v8/internal/release"
@@ -300,7 +297,7 @@ func (st *standing) unread(line string) {
 func (st *standing) readHead(cfg *config.Loaded, o Out) {
 	remote, ref := "origin", "HEAD"
 	if branch := cfg.VCS.Branch(context.Background()); branch != "" {
-		remote, ref, _ = git.Upstream(branch)
+		remote, ref, _ = cfg.VCS.Upstream(context.Background(), branch)
 	}
 	branch := strings.TrimPrefix(ref, "refs/heads/")
 	st.readBranch(cfg, remote, ref, branch, o)
@@ -310,12 +307,12 @@ func (st *standing) readHead(cfg *config.Loaded, o Out) {
 // readBranch reads the remote branch's head, its CI run and the newest
 // release.
 func (st *standing) readBranch(cfg *config.Loaded, remote, ref, branch string, o Out) {
-	if _, err := git.Output("remote", "get-url", remote); err != nil {
+	if !hasRemote(cfg.VCS, remote) {
 		st.unread(fmt.Sprintf("No remote %s, so neither its head nor its CI run is read.", remote))
 		return
 	}
 	head := &remoteHead{Remote: remote, Branch: branch}
-	sha, reached := lsRemote(remote, ref)
+	sha, reached := lsRemote(cfg.VCS, remote, ref)
 	switch {
 	case reached && sha == "":
 		st.unread(fmt.Sprintf("%s has no branch %s yet, so there is no CI run to read.", remote, branch))
@@ -359,42 +356,30 @@ func (st *standing) readBranch(cfg *config.Loaded, remote, ref, branch string, o
 // lsRemote is the commit the remote's ref names, "" when it has no such
 // ref; reached is false when the remote did not answer in time, or at all.
 // It never prompts for credentials.
-func lsRemote(remote, ref string) (sha string, reached bool) {
-	refs, reached := askRemote(remote, ref)
+func lsRemote(v vcsport.VCS, remote, ref string) (sha string, reached bool) {
+	refs, reached := askRemote(v, remote, ref)
 	return refs[ref], reached
 }
 
-// askRemote is git ls-remote's refs, each name the commit or object it
-// names; reached is false when the remote did not answer in time, or at all.
-// It never prompts for credentials.
-func askRemote(args ...string) (refs map[string]string, reached bool) {
+// askRemote is the remote's refs, those given or else all, each name the
+// commit or object it names; reached is false when the remote did not
+// answer in time, or at all. It never prompts for credentials.
+func askRemote(v vcsport.VCS, remote string, refs ...string) (map[string]string, bool) {
 	ctx, cancel := context.WithTimeout(context.Background(), lsRemoteTimeout)
 	defer cancel()
-	cmd := exec.CommandContext(ctx, git.Bin(), append([]string{"ls-remote"}, args...)...)
-	cmd.Env = append(os.Environ(), "GIT_TERMINAL_PROMPT=0")
-	var stdout bytes.Buffer
-	cmd.Stdout = &stdout
-	if err := cmd.Run(); err != nil {
-		return nil, false
-	}
-	refs = map[string]string{}
-	for _, line := range strings.Split(stdout.String(), "\n") {
-		if fields := strings.Fields(line); len(fields) == 2 {
-			refs[fields[1]] = fields[0]
-		}
-	}
-	return refs, true
+	found, err := v.RemoteRefs(ctx, remote, refs, vcsport.Talk{NoPrompt: true})
+	return found, err == nil
 }
 
 // releaseTags are the tags the remote has, each the commit it names, an
 // annotated tag peeled to its commit; reached is false when the remote did
 // not answer. Asked of the remote alone when it answered for the head, so
 // a remote that did not is not waited for twice.
-func releaseTags(remote string, ask bool) (tags map[string]string, reached bool) {
+func releaseTags(v vcsport.VCS, remote string, ask bool) (tags map[string]string, reached bool) {
 	if !ask {
 		return nil, false
 	}
-	refs, reached := askRemote("--tags", remote)
+	refs, reached := askRemote(v, remote)
 	if !reached {
 		return nil, false
 	}
@@ -403,20 +388,10 @@ func releaseTags(remote string, ask bool) (tags map[string]string, reached bool)
 
 // fetchedTags are the tags this clone has, as last fetched, each the commit
 // it names.
-func fetchedTags() map[string]string {
-	out, err := git.Output("for-each-ref", "--format=%(objectname) %(refname) %(*objectname)", "refs/tags/")
+func fetchedTags(v vcsport.VCS) map[string]string {
+	refs, err := v.Refs(context.Background(), "refs/tags/")
 	if err != nil {
 		return map[string]string{}
-	}
-	refs := map[string]string{}
-	for _, line := range strings.Split(out, "\n") {
-		fields := strings.Fields(line)
-		if len(fields) >= 2 {
-			refs[fields[1]] = fields[0]
-		}
-		if len(fields) == 3 {
-			refs[fields[1]+"^{}"] = fields[2]
-		}
 	}
 	return peeled(refs, func(ref string) (string, bool) { return strings.CutPrefix(ref, "refs/tags/") })
 }
@@ -448,12 +423,12 @@ func peeled(refs map[string]string, name func(string) (string, bool)) map[string
 // Where the head is not fetched here, they are listed to the remote branch
 // as last fetched, and a line says the list may be behind.
 func (st *standing) readRelease(remote, branch string, head *remoteHead) {
-	tags, reached := releaseTags(remote, !head.LastFetched)
+	tags, reached := releaseTags(vcs.Git{}, remote, !head.LastFetched)
 	if !reached {
 		if !head.LastFetched {
 			st.releaseUnread(fmt.Sprintf("%s's tags cannot be read, so its newest release is as last fetched.", remote))
 		}
-		tags = fetchedTags()
+		tags = fetchedTags(vcs.Git{})
 	}
 	names := make([]string, 0, len(tags))
 	for name := range tags {
@@ -608,7 +583,7 @@ func (st *standing) readCI(wr providers.Watcher, ok bool, err error, sha string)
 // ci.range's provider, from the head of the branch as fetched (bug 24), and
 // prints nothing when the provider is none.
 func (st *standing) readLastGreen(cfg *config.Loaded, remote, branch string, o Out) {
-	remoteURL, _ := git.Output("remote", "get-url", remote)
+	remoteURL, _ := cfg.VCS.RemoteURL(context.Background(), remote)
 	look, ok, err := providers.LastGreenProvider(cfg, providers.WatchSetup{
 		Env:       os.Getenv,
 		RemoteURL: strings.TrimSpace(remoteURL),
@@ -642,7 +617,7 @@ func (st *standing) readLastGreen(cfg *config.Loaded, remote, branch string, o O
 // readNightly looks once at the last nightly's run on the branch through
 // ci.watch's provider, and prints nothing when it names no nightly.
 func (st *standing) readNightly(cfg *config.Loaded, remote, branch string, o Out) {
-	remoteURL, _ := git.Output("remote", "get-url", remote)
+	remoteURL, _ := cfg.VCS.RemoteURL(context.Background(), remote)
 	look, ok, err := providers.NightlyProvider(cfg, branch, providers.WatchSetup{
 		Env:       os.Getenv,
 		RemoteURL: strings.TrimSpace(remoteURL),

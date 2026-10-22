@@ -17,7 +17,7 @@ import (
 
 func gitAt(t *testing.T, dir string, args ...string) string {
 	t.Helper()
-	cmd := exec.Command(git.Bin(), args...)
+	cmd := exec.Command(git.Bin(runtime.GOOS), args...)
 	cmd.Dir = dir
 	out, err := cmd.CombinedOutput()
 	if err != nil {

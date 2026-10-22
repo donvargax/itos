@@ -30,7 +30,6 @@ package cli
 // takes of one item meet there, and the remote keeps the first.
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -41,7 +40,6 @@ import (
 	"strings"
 
 	"github.com/donvargax/itos/v8/internal/config"
-	"github.com/donvargax/itos/v8/internal/git"
 	"github.com/donvargax/itos/v8/internal/kind"
 	"github.com/donvargax/itos/v8/internal/out"
 	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
@@ -220,12 +218,12 @@ func push(args []string, o Out) (int, error) {
 	if branch == "" {
 		return r.report(ExitPolicy, "detached", "itos push: HEAD is not on a branch; check out the branch to push first")
 	}
-	remote, ref, set := git.Upstream(branch)
+	remote, ref, set := v.Upstream(ctx, branch)
 	r.remote, r.branch = remote, strings.TrimPrefix(ref, "refs/heads/")
 	if _, err := v.Resolve(ctx, "HEAD"); err != nil {
 		return r.report(0, "nothing-to-push", fmt.Sprintf("Nothing to push: %s has no commit yet.", branch))
 	}
-	if !set && !git.Succeeds("remote", "get-url", remote) {
+	if !set && !hasRemote(v, remote) {
 		return r.report(ExitMissing, "no-remote", fmt.Sprintf("itos push: %s has no upstream and there is no remote %s to push to", branch, remote))
 	}
 	onto, exists, failure, failed := r.fetch(remote, ref)
@@ -275,27 +273,58 @@ func (r pushRun) ready() (int, bool, error) {
 // fetch fetches the upstream's branch and gives the commit fetched; exists
 // is false when the remote has no such branch yet, which a push creates.
 // git's own words are printed only when the fetch fails, and failure is then
-// their kind (git.RemoteFailure). A remote out of reach, or no repository, is
-// not asked again whether it has the branch: the answer would be the same
+// their kind (remoteKind). A remote out of reach, or no repository, is not
+// asked again whether it has the branch: the answer would be the same
 // failure, after a second wait for a connection that times out.
 func (r pushRun) fetch(remote, ref string) (onto string, exists bool, failure kind.Kind, failed bool) {
-	var stderr bytes.Buffer
-	code, err := r.run(&stderr, "fetch", "--quiet", "--no-tags", remote, ref)
-	if err == nil && code == 0 {
-		sha, err := git.Output("rev-parse", "--verify", "--quiet", "FETCH_HEAD^{commit}")
-		if err == nil {
-			return strings.TrimSpace(sha), true, kind.Unknown, false
-		}
+	ctx, v := context.Background(), vcs.Git{}
+	sha, err := v.Fetch(ctx, remote, ref, r.talk(nil))
+	if err == nil {
+		return sha, true, kind.Unknown, false
 	}
-	failure = git.RemoteFailure(stderr.String())
-	// A remote without the branch says so with ls-remote's exit 2.
+	failure = remoteKind(err)
+	// A remote without the branch lists none of it.
 	if failure == kind.Unknown {
-		if lsCode, _ := r.run(io.Discard, "ls-remote", "--exit-code", remote, ref); lsCode == 2 {
+		if refs, err := v.RemoteRefs(ctx, remote, []string{ref}, talking(nil, io.Discard, Out{Origin: r.o.Origin})); err == nil && len(refs) == 0 {
 			return "", false, kind.Unknown, false
 		}
 	}
-	r.o.Stderr.Write(stderr.Bytes())
+	io.WriteString(r.o.Stderr, words(err))
 	return "", false, failure, true
+}
+
+// words is what git said on stderr of a command that failed, as it said
+// it; none when it did not run.
+func words(err error) string {
+	var failed *vcsport.Failed
+	if errors.As(err, &failed) {
+		return failed.Words
+	}
+	return ""
+}
+
+// remoteKind is the kind of a fetch's or a push's failure, read from git's
+// words: kind.Temporary for a remote out of reach, kind.Missing for one that
+// is no repository or cannot be found, and kind.Unknown for any other
+// failure, a refusal among them.
+func remoteKind(err error) kind.Kind {
+	var failed *vcsport.Failed
+	if !errors.As(err, &failed) {
+		return kind.Unknown
+	}
+	switch failed.Failure {
+	case vcsport.Unreachable:
+		return kind.Temporary
+	case vcsport.NoRepository:
+		return kind.Missing
+	}
+	return kind.Unknown
+}
+
+// hasRemote is whether the repository has the remote.
+func hasRemote(v vcsport.VCS, remote string) bool {
+	_, err := v.RemoteURL(context.Background(), remote)
+	return err == nil
 }
 
 // remoteExit is the exit code of a fetch's or a push's failure of the kind:
@@ -328,23 +357,18 @@ func (r pushRun) remoteLines(what string, failure kind.Kind) []string {
 // or left a conflict, with the outcome reported: nothing is pushed then.
 func (r pushRun) rebase(onto string) (int, bool, error) {
 	if config.IsStealth(vcs.Git{}, configPath()) {
-		if err := rewriteNotes(); err != nil {
+		if err := rewriteNotes(vcs.Git{}); err != nil {
 			fmt.Fprintf(r.o.Stderr, "itos: cannot set notes.rewriteRef: %s\n", err)
 			return ExitMissing, true, nil
 		}
 	}
-	// git's hint on a stop advises git rebase --skip, which drops the whole
-	// commit being replayed (bug 118); itos says how to go on instead.
-	argv := []string{"-c", "advice.mergeConflict=false", "rebase", "--no-autostash"}
-	if r.o.Quiet {
-		argv = append(argv, "--quiet")
-	}
-	code, err := r.run(r.o.Stderr, append(argv, onto)...)
+	ctx, v := context.Background(), vcs.Git{}
+	code, err := exitOf(v.Rebase(ctx, onto, r.o.Quiet, r.talk(r.o.Stderr)))
 	if err != nil {
 		fmt.Fprintf(r.o.Stderr, "itos: cannot run git: %s\n", err)
 		return ExitMissing, true, nil
 	}
-	if ctx, v := context.Background(), (vcs.Git{}); v.Rebasing(ctx) || len(v.Conflicted(ctx)) > 0 {
+	if v.Rebasing(ctx) || len(v.Conflicted(ctx)) > 0 {
 		lines := []string{
 			fmt.Sprintf("itos push: the rebase onto %s stopped; nothing was pushed.", r.upstream()),
 			"Resolve the conflicts, git add the files and run git rebase --continue, then itos push again;",
@@ -390,7 +414,7 @@ func (r pushRun) registryConflict() []string {
 		return nil
 	}
 	show := func(rev string) string {
-		text, _ := git.Output("show", rev+":"+registry)
+		text, _, _ := (vcs.Git{}).File(context.Background(), rev, registry)
 		return text
 	}
 	clashes := work.Clashes(show("REBASE_HEAD^"), show("HEAD"), show("REBASE_HEAD"))
@@ -422,22 +446,18 @@ func (r pushRun) registryConflict() []string {
 // when the push makes the branch. HEAD is not read again: a commit made
 // while the hook ran is not the one pushed.
 func (r pushRun) push(remote, ref, onto string) (int, error) {
-	argv := []string{"push", "--no-follow-tags"}
-	if r.o.Quiet {
-		argv = append(argv, "--quiet")
-	}
-	var stderr bytes.Buffer
-	code, err := r.run(io.MultiWriter(r.o.Stderr, &stderr), append(argv, remote, r.sha+":"+ref)...)
+	outcome := (vcs.Git{}).Push(context.Background(), remote, []string{r.sha + ":" + ref}, vcsport.Pushing{Quiet: r.o.Quiet},
+		r.talk(r.o.Stderr))
+	code, err := exitOf(outcome)
 	if err != nil {
 		fmt.Fprintf(r.o.Stderr, "itos: cannot run git: %s\n", err)
 		return ExitMissing, nil
 	}
 	if code != 0 {
-		words := stderr.String()
-		if failure := git.RemoteFailure(words); failure != kind.Unknown {
+		if failure := remoteKind(outcome); failure != kind.Unknown {
 			return r.report(remoteExit(failure), "push-failed", r.remoteLines("the push to "+r.upstream()+" failed", failure)...)
 		}
-		return r.report(refusalExit(words), "push-failed",
+		return r.report(refusalExit(outcome), "push-failed",
 			fmt.Sprintf("itos push: the push to %s failed (git's message above); nothing was forced.", r.upstream()),
 			"If the remote moved, run itos push again to rebase onto it; if a hook refused it, fix what it reported first.")
 	}
@@ -528,8 +548,8 @@ func touchesOnlyRegistry(registry string, files []string, err error) bool {
 	return touched
 }
 
-// run runs git, its stdout the run's, its stderr to stderr, and gives its
-// exit code.
-func (r pushRun) run(stderr io.Writer, argv ...string) (int, error) {
-	return runGit(argv, os.Environ(), r.git, Out{Stderr: stderr, Origin: r.o.Origin})
+// talk is how the push runs git: as talking has it, its output the run's
+// and its words to stderr.
+func (r pushRun) talk(stderr io.Writer) vcsport.Talk {
+	return talking(nil, r.git, Out{Stderr: stderr, Origin: r.o.Origin})
 }

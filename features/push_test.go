@@ -23,6 +23,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"slices"
 	"strings"
 
@@ -80,7 +81,7 @@ func initializePushSteps(sc *godog.ScenarioContext, w *world) {
 	sc.Step(`^hooks\.pre_push's command commits "([^"]*)" touching "([^"]*)" in the clone$`, w.committingPrePush)
 	sc.Step(`^its output names the remote branch's head as the commit pushed$`, w.outputNamesRemoteHead)
 	sc.Step(`^git pushes HEAD to the remote's new branch "([^"]*)"$`, func(branch string) error {
-		return w.run(w.dir, git.Bin(), "push", "origin", "HEAD:refs/heads/"+branch)
+		return w.run(w.dir, git.Bin(runtime.GOOS), "push", "origin", "HEAD:refs/heads/"+branch)
 	})
 	// The real git, past any shim, in the clone, its hooks running.
 	sc.Step(`^the real git runs "([^"]*)"$`, func(line string) error {
@@ -88,7 +89,7 @@ func initializePushSteps(sc *godog.ScenarioContext, w *world) {
 		if err != nil {
 			return err
 		}
-		return w.run(w.dir, git.Bin(), args...)
+		return w.run(w.dir, git.Bin(runtime.GOOS), args...)
 	})
 	sc.Step(`^the real git exits with code (\d+)$`, w.gitExitsWith)
 	sc.Step(`^the remote has no branch "([^"]*)"$`, w.remoteHasNoBranch)
@@ -149,7 +150,7 @@ func (w *world) pushPrePushConfig(subject string) error {
 // The output's "Pushed <sha>" names the commit the remote's main is at: the
 // short SHA it prints is the start of that commit's full one.
 func (w *world) outputNamesRemoteHead() error {
-	cmd := exec.Command(git.Bin(), "rev-parse", "main")
+	cmd := exec.Command(git.Bin(runtime.GOOS), "rev-parse", "main")
 	cmd.Dir = w.remote()
 	cmd.Env = w.env()
 	out, err := cmd.Output()
@@ -182,7 +183,7 @@ func (w *world) remoteHas(subject string) error {
 }
 
 func (w *world) remoteHasNoBranch(branch string) error {
-	cmd := exec.Command(git.Bin(), "show-ref", "--verify", "--quiet", "refs/heads/"+branch)
+	cmd := exec.Command(git.Bin(runtime.GOOS), "show-ref", "--verify", "--quiet", "refs/heads/"+branch)
 	cmd.Dir = w.remote()
 	cmd.Env = w.env()
 	if err := cmd.Run(); err == nil {
@@ -257,7 +258,7 @@ func (w *world) remoteGainsCommit(subject, path string) error {
 
 // The full SHA of the commit with the header on the remote's main.
 func (w *world) remoteCommit(header string) (string, error) {
-	cmd := exec.Command(git.Bin(), "log", "--format=%H %s", "main")
+	cmd := exec.Command(git.Bin(runtime.GOOS), "log", "--format=%H %s", "main")
 	cmd.Dir = w.remote()
 	cmd.Env = w.env()
 	out, err := cmd.Output()
@@ -298,7 +299,7 @@ func (w *world) cloneBranchCommits(branch, subject, path string) error {
 
 // What the ref names in the repository in dir, "" when it names nothing.
 func (w *world) refIn(dir, ref string) string {
-	cmd := exec.Command(git.Bin(), "rev-parse", "--verify", "--quiet", ref)
+	cmd := exec.Command(git.Bin(runtime.GOOS), "rev-parse", "--verify", "--quiet", ref)
 	cmd.Dir = dir
 	cmd.Env = w.env()
 	out, _ := cmd.Output()
@@ -328,7 +329,7 @@ func (w *world) remoteLacksTag(tag string) error {
 
 // The remote's branch of the name has the commit with the subject.
 func (w *world) remoteBranchHas(branch, subject string) error {
-	cmd := exec.Command(git.Bin(), "log", "--format=%s", "refs/heads/"+branch)
+	cmd := exec.Command(git.Bin(runtime.GOOS), "log", "--format=%s", "refs/heads/"+branch)
 	cmd.Dir = w.remote()
 	cmd.Env = w.env()
 	out, err := cmd.Output()
@@ -485,7 +486,7 @@ func (w *world) addIdeaIn(dir, id string) error {
 
 // The registry on the remote's main gives the item the owner.
 func (w *world) remoteRegistryOwner(id, owner string) error {
-	cmd := exec.Command(git.Bin(), "show", "main:"+filepath.ToSlash(w.data(startingRegistry)))
+	cmd := exec.Command(git.Bin(runtime.GOOS), "show", "main:"+filepath.ToSlash(w.data(startingRegistry)))
 	cmd.Dir = w.remote()
 	cmd.Env = w.env()
 	text, err := cmd.Output()
@@ -538,7 +539,7 @@ func (w *world) stillUncommitted(path string) error {
 // The subjects of the remote's main, newest first, and its merge commits.
 func (w *world) remoteHistory() (subjects, merges []string, err error) {
 	read := func(args ...string) ([]string, error) {
-		cmd := exec.Command(git.Bin(), args...)
+		cmd := exec.Command(git.Bin(runtime.GOOS), args...)
 		cmd.Dir = w.remote()
 		cmd.Env = w.env()
 		out, err := cmd.Output()

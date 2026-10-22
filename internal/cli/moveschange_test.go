@@ -5,8 +5,11 @@ import (
 	"os"
 	"os/exec"
 	"reflect"
+	"runtime"
 	"strings"
 	"testing"
+
+	vcsgit "github.com/donvargax/itos/v8/internal/vcs/adapter"
 
 	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/git"
@@ -28,7 +31,7 @@ func TestStagedChange(t *testing.T) {
 	}
 	writeFile(t, "src/app.go", "package app\n")
 	gitIn(t, "add", "src/app.go")
-	cfg, err := config.FromText(vcs.Git{}, trees.Trees{}, trees.Worktree, "itos.yaml", `version: 1
+	cfg, err := config.FromText(vcs.Git{}, trees.Trees{VCS: vcsgit.Git{}}, trees.Worktree, "itos.yaml", `version: 1
 commits:
   types: [test]
   footers:
@@ -66,7 +69,7 @@ tests:
 	os.Unsetenv(message.FootersEnv)
 	t.Setenv(AmendEnv, "1")
 	unborn := t.TempDir()
-	if out, err := exec.Command(git.Bin(), "init", "-q", unborn).CombinedOutput(); err != nil {
+	if out, err := exec.Command(git.Bin(runtime.GOOS), "init", "-q", unborn).CombinedOutput(); err != nil {
 		t.Fatalf("git init: %s", out)
 	}
 	t.Chdir(unborn)
@@ -82,7 +85,7 @@ func TestStagedRuleSkipsTheExceptTypes(t *testing.T) {
 	notesRepo(t)
 	writeFile(t, "a.md", "a\n")
 	gitIn(t, "add", "a.md")
-	cfg, err := config.FromText(vcs.Git{}, trees.Trees{}, trees.Worktree, "itos.yaml", `version: 1
+	cfg, err := config.FromText(vcs.Git{}, trees.Trees{VCS: vcsgit.Git{}}, trees.Worktree, "itos.yaml", `version: 1
 commits:
   types: [feat, docs]
   scopes: { feat: {}, docs: {} }

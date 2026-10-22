@@ -199,7 +199,7 @@ func stagesData(src port.Source, staged []string) bool {
 	if files[path.Clean(file)] {
 		return true
 	}
-	cfg, err := config.Load(vcs.Git{}, trees.Trees{}, src, file)
+	cfg, err := config.Load(vcs.Git{}, trees.Trees{VCS: vcs.Git{}}, src, file)
 	if err != nil {
 		return false
 	}
@@ -243,7 +243,7 @@ func stagedDataIssues(base string, ws *tests.Warnings) ([]out.Problem, string, e
 	if err != nil {
 		return nil, "", err
 	}
-	index, err := trees.Trees{}.At(context.Background(), "index")
+	index, err := trees.Trees{VCS: vcs.Git{}}.At(context.Background(), "index")
 	if err != nil {
 		return nil, "", err
 	}
@@ -263,7 +263,7 @@ func stagedDataIssues(base string, ws *tests.Warnings) ([]out.Problem, string, e
 		return nil, "", nil
 	}
 	header := "Commit rejected:"
-	if cfg, err := config.Load(vcs.Git{}, trees.Trees{}, index, config.Path(vcs.Git{}, index)); err == nil {
+	if cfg, err := config.Load(vcs.Git{}, trees.Trees{VCS: vcs.Git{}}, index, config.Path(vcs.Git{}, index)); err == nil {
 		header = cfg.Commits.RejectMessage
 	}
 	return found, header, nil
@@ -278,7 +278,7 @@ func stagedDataIssues(base string, ws *tests.Warnings) ([]out.Problem, string, e
 // the index lacks is config check's to report, and a config that does not
 // load the hook's other rules'.
 func stagedSmokeIssues(index port.Source, staged []string, base string, ws *tests.Warnings) []out.Problem {
-	cfg, err := config.Load(vcs.Git{}, trees.Trees{}, index, config.Path(vcs.Git{}, index))
+	cfg, err := config.Load(vcs.Git{}, trees.Trees{VCS: vcs.Git{}}, index, config.Path(vcs.Git{}, index))
 	if err != nil {
 		return nil
 	}
@@ -478,11 +478,11 @@ func namedTaskIDs(cfg *config.Loaded, text string) []string {
 // stagedTasks). A staged tree whose ledger cannot be read names none: the
 // header lint has judged the footer by then.
 func stagedTasks(ids []string) ([]namedTask, error) {
-	index, err := trees.Trees{}.At(context.Background(), "index")
+	index, err := trees.Trees{VCS: vcs.Git{}}.At(context.Background(), "index")
 	if err != nil {
 		return nil, err
 	}
-	cfg, err := config.Load(vcs.Git{}, trees.Trees{}, index, config.Path(vcs.Git{}, index))
+	cfg, err := config.Load(vcs.Git{}, trees.Trees{VCS: vcs.Git{}}, index, config.Path(vcs.Git{}, index))
 	if err != nil {
 		return nil, nil
 	}

@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"strings"
 	"testing"
@@ -24,7 +25,7 @@ func gitIn(t *testing.T, dir, date string, args ...string) {
 
 // gitCmd is git run in dir as gitIn runs it.
 func gitCmd(dir, date string, args ...string) *exec.Cmd {
-	cmd := exec.Command(git.Bin(), append([]string{"-c", "user.name=t", "-c", "user.email=t@t", "-c", "commit.gpgsign=false", "-c", "tag.gpgsign=false"}, args...)...)
+	cmd := exec.Command(git.Bin(runtime.GOOS), append([]string{"-c", "user.name=t", "-c", "user.email=t@t", "-c", "commit.gpgsign=false", "-c", "tag.gpgsign=false"}, args...)...)
 	cmd.Dir = dir
 	if date != "" {
 		cmd.Env = append(os.Environ(), "GIT_AUTHOR_DATE="+date, "GIT_COMMITTER_DATE="+date)
@@ -45,6 +46,8 @@ func write(t *testing.T, dir, name, line string) {
 func history(t *testing.T, dir string) {
 	t.Helper()
 	gitIn(t, "", "", "init", "-q", "-b", "main", dir)
+	gitIn(t, dir, "", "config", "user.name", "t")
+	gitIn(t, dir, "", "config", "user.email", "t@t")
 	at := func(second int) string { return fmt.Sprintf("2026-01-01T00:00:0%dZ", second) }
 	commit := func(name string, second int, paragraphs ...string) {
 		if len(paragraphs) == 0 {
@@ -86,6 +89,10 @@ func history(t *testing.T, dir string) {
 		commit(name, 6+i)
 	}
 	gitIn(t, dir, "", "checkout", "-q", "main")
+	gitIn(t, dir, at(8), "tag", "-a", "r", "-m", "release", "c")
+	if err := os.WriteFile(filepath.Join(dir, ".git", "info", "exclude"), []byte("debug.log\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
 }
 
 // leave sets the work tree's state as l asks, in the repository at dir.
@@ -95,6 +102,8 @@ func leave(t *testing.T, dir string, l porttest.Layout) {
 		gitIn(t, dir, "", "config", "core.commentChar", l.CommentChar)
 	}
 	switch {
+	case l.Ours:
+		gitIn(t, dir, "", "checkout", "-q", "ours")
 	case l.Dirty:
 		write(t, dir, "a.txt", "staged")
 		write(t, dir, "new.txt", "new")
@@ -185,7 +194,22 @@ func laidOut(t *testing.T, l porttest.Layout) (port.VCS, string) {
 	t.Helper()
 	base := alone(t)
 	repo := filepath.Join(base, "repo")
+	if l.None {
+		if err := os.MkdirAll(repo, 0o755); err != nil {
+			t.Fatal(err)
+		}
+		t.Chdir(repo)
+		return Git{}, repo
+	}
 	history(t, repo)
+	if l.Origin {
+		origin := filepath.Join(base, "origin.git")
+		gitIn(t, base, "", "init", "-q", "--bare", "-b", "main", origin)
+		gitIn(t, repo, "", "push", "-q", origin, "b:refs/heads/main", "t:refs/heads/theirs")
+		gitIn(t, repo, "", "remote", "add", "origin", origin)
+		gitIn(t, repo, "", "config", "branch.main.remote", "origin")
+		gitIn(t, repo, "", "config", "branch.main.merge", "refs/heads/main")
+	}
 	if l.Shallow {
 		clone := filepath.Join(base, "clone")
 		gitIn(t, base, "", "clone", "-q", "--depth", "1", "file://"+filepath.ToSlash(repo), clone)

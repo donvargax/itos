@@ -34,22 +34,19 @@ const EnvGit = "ITOS_GIT"
 // environment (kind.Missing, exit 3).
 var ErrNoGit = kind.Wrap(kind.Missing, errors.New("no git on the PATH but itos"))
 
-// Platform is the OS whose file names and modes Real reads the PATH by, as
-// GOOS names it: set once by the program's boundary (cmd/itos) before
-// anything runs git, since Bin's callers cannot carry it.
-var Platform string
-
 var (
 	binMu  sync.Mutex
 	binKey string
 	binVal string
 )
 
-// Bin is the git itos runs: the one ITOS_GIT names, unless it names an itos,
-// else Real's, else "git", which then fails as a missing git does.
-// Found again only when ITOS_GIT, the PATH or Platform changes.
-func Bin() string {
-	key := os.Getenv(EnvGit) + "\x00" + os.Getenv("PATH") + "\x00" + Platform
+// Bin is the git itos runs on the platform, the OS whose file names and
+// modes Real reads the PATH by, as GOOS names it: the one ITOS_GIT names,
+// unless it names an itos, else Real's, else "git", which then fails as a
+// missing git does. Found again only when ITOS_GIT, the PATH or the
+// platform changes.
+func Bin(platform string) string {
+	key := os.Getenv(EnvGit) + "\x00" + os.Getenv("PATH") + "\x00" + platform
 	binMu.Lock()
 	defer binMu.Unlock()
 	if key == binKey && binVal != "" {
@@ -58,7 +55,7 @@ func Bin() string {
 	binKey, binVal = key, "git"
 	if p := Inherited(); p != "" {
 		binVal = p
-	} else if p, err := Real(); err == nil {
+	} else if p, err := Real(platform); err == nil {
 		binVal = p
 	}
 	return binVal
@@ -75,27 +72,27 @@ func Inherited() string {
 	return p
 }
 
-// Export sets ITOS_GIT to the git Bin finds, when it finds one, for every
-// program this run starts.
-func Export() {
-	if b := Bin(); b != "git" {
+// Export sets ITOS_GIT to the git Bin finds on the platform, when it finds
+// one, for every program this run starts.
+func Export(platform string) {
+	if b := Bin(platform); b != "git" {
 		_ = os.Setenv(EnvGit, b)
 	}
 }
 
-// Real is the first git on the PATH that is not an itos (IsItos), so this
-// binary's shim and another itos's, linked symbolically or hard, are skipped
-// alike. A relative PATH folder is not searched, as exec.LookPath refuses one
-// (exec.ErrDot).
-func Real() (string, error) {
+// Real is the first git on the PATH, read as the platform names files, that
+// is not an itos (IsItos), so this binary's shim and another itos's, linked
+// symbolically or hard, are skipped alike. A relative PATH folder is not
+// searched, as exec.LookPath refuses one (exec.ErrDot).
+func Real(platform string) (string, error) {
 	for _, dir := range filepath.SplitList(os.Getenv("PATH")) {
 		if dir == "" || !filepath.IsAbs(dir) {
 			continue
 		}
-		for _, name := range names(Platform) {
+		for _, name := range names(platform) {
 			p := filepath.Join(dir, name)
 			info, err := os.Stat(p)
-			if err != nil || !executable(info, Platform) || isItos(p, info) {
+			if err != nil || !executable(info, platform) || isItos(p, info) {
 				continue
 			}
 			return p, nil

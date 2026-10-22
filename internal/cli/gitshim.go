@@ -17,8 +17,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/donvargax/itos/v8/internal/git"
 	"github.com/donvargax/itos/v8/internal/out"
+	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
 )
 
 // GitShimSince is the first itos with the git-shim command: the shim hands
@@ -90,7 +90,7 @@ func shimPlace(dir, goos string) (self, link string, err error) {
 // linksItos is what the git at link is: this itos (a link to it, followed),
 // or a symbolic link to another binary named itos, as an older install's.
 func linksItos(link string) (self, other bool) {
-	if git.IsSelf(link) {
+	if (vcs.Git{}).IsSelf(link) {
 		return true, false
 	}
 	target, err := os.Readlink(link)
@@ -129,7 +129,7 @@ func installShim(dir string, o Out) (int, error) {
 			return ExitMissing, nil
 		}
 	}
-	at, realGit, realAt := pathStanding(filepath.Dir(link))
+	at, realGit, realAt := pathStanding(filepath.Dir(link), o.OS)
 	if o.JSON {
 		fields := []out.Field{{Key: "link", Value: link}, {Key: "target", Value: self}, {Key: "action", Value: action},
 			{Key: "on_path", Value: at >= 0}, {Key: "before_git", Value: at >= 0 && (realAt < 0 || at < realAt)}}
@@ -170,10 +170,11 @@ func makeLink(self, link string, replace bool, goos string) error {
 }
 
 // pathStanding is the place of the folder dir among the PATH's folders and
-// the real git's, git.Real's, -1 when it is not there or there is none.
-func pathStanding(dir string) (at int, realGit string, realAt int) {
+// the real git's on goos (the git adapter's Real), -1 when it is not there or
+// there is none.
+func pathStanding(dir, goos string) (at int, realGit string, realAt int) {
 	at, realAt = -1, -1
-	realGit, _ = git.Real()
+	realGit, _ = vcs.Git{Platform: goos}.Real()
 	for i, entry := range filepath.SplitList(os.Getenv("PATH")) {
 		if entry == "" || !filepath.IsAbs(entry) {
 			continue

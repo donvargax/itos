@@ -1,22 +1,25 @@
-// Package git is how itos asks the repository: it shells out to git, never
-// reading .git itself, and always to the real git (Bin), never to a git
-// looked up on the PATH, which may be itos's own git shim.
+// Package git is the internals of the VCS port's git adapter
+// (internal/vcs/adapter), the one package whose code imports it (depguard's
+// git-internals): it shells out to git, never reading .git itself, and
+// always to the real git (Bin), never to a git looked up on the PATH,
+// which may be itos's own git shim. A Runner runs it, its platform the OS
+// whose PATH Bin reads, in its folder Dir.
 //
 // # The real git
 //
 // Bin is Inherited (ITOS_GIT, unless it is an itos), else Real, else plain
-// git, found again when ITOS_GIT or the PATH changes (a unit test swaps the
-// PATH's git). Real is the first git (on windows each PATHEXT extension) in
-// the PATH's absolute folders that is an executable regular file and not an
-// itos (IsItos): not os.SameFile with os.Executable, not a symbolic link
-// whose target, at any link of the chain, is named itos (itos.exe), and not
-// a Go binary whose build information (debug/buildinfo) names cmd/itos of
-// the itos module at any major version. So this binary's shim and another
-// itos's (the global one's, seen from a pinned release run from the cache,
-// or a repository's own build), linked symbolically, hard or copied, are all
-// skipped, by reading files and never by running one; none at all is
-// ErrNoGit, exit 3. cmd/itos calls Export before the launcher, setting
-// ITOS_GIT for everything a run starts.
+// git, found again when ITOS_GIT, the PATH or the platform changes (a unit
+// test swaps the PATH's git). Real is the first git (on windows each PATHEXT
+// extension) in the PATH's absolute folders that is an executable regular
+// file and not an itos (IsItos): not os.SameFile with os.Executable, not a
+// symbolic link whose target, at any link of the chain, is named itos
+// (itos.exe), and not a Go binary whose build information (debug/buildinfo)
+// names cmd/itos of the itos module at any major version. So this binary's
+// shim and another itos's (the global one's, seen from a pinned release run
+// from the cache, or a repository's own build), linked symbolically, hard or
+// copied, are all skipped, by reading files and never by running one; none
+// at all is ErrNoGit, exit 3. cmd/itos has the adapter call Export before the
+// launcher, setting ITOS_GIT for everything a run starts.
 //
 // # Paths and ranges
 //
@@ -43,9 +46,8 @@
 // A range's start is a string everywhere a range goes. Revs(from, to) is
 // the arguments git rev-list and git log take: from..to, or, for the
 // stealth mode's range Unpushed ("--remotes"), to --not --remotes, every
-// commit of HEAD no remote has. UnpushedPaths gives the paths those commits
-// touch, there being no one commit to diff from in general, and
-// UnpushedBase the pushed commit they grow from (one boundary of rev-list
+// commit of HEAD no remote has. UnpushedBase is the pushed commit they grow
+// from (one boundary of rev-list
 // --boundary left by merge-base --independent), the end itself when nothing
 // is unpushed, else empty, as a new branch's.
 //

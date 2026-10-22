@@ -2,9 +2,10 @@
 // or before tests next-id prints a scenario area's: Mint one, Claim a run of
 // them in a row, raising the counter past the last in one reservation.
 // A project with a remote reserves from refs/itos/ids on the same remote itos
-// pushes to: each reservation is a counter-tree commit pushed by fast-forward
-// only. A failed non-fast-forward push is retried from the newly fetched
-// counter, so two clones never hand out the same number. The ref and refspec
+// pushes to, through the VCS port (Store.VCS: RemoteRefs, Fetch, File,
+// CommitFile, Push): each reservation is a counter-tree commit pushed by
+// fast-forward only. A failed non-fast-forward push is retried from the
+// newly fetched counter, so two clones never hand out the same number. The ref and refspec
 // are constants in this package; its only hook bypass is the push of that
 // counter ref, which changes no branch or tag.
 //

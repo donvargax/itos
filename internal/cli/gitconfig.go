@@ -22,18 +22,17 @@ package cli
 // command relies on (commit-msg for a commit, pre-push for a push).
 
 import (
+	"context"
 	"fmt"
 	"os"
-	"os/exec"
 	"regexp"
 	"slices"
 	"strconv"
 	"strings"
 
-	"github.com/donvargax/itos/v8/internal/git"
 	"github.com/donvargax/itos/v8/internal/kind"
 	"github.com/donvargax/itos/v8/internal/out"
-	"github.com/donvargax/itos/v8/internal/value"
+	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
 )
 
 // configHooksSince is the first git that runs the hooks its config declares:
@@ -64,31 +63,22 @@ func (h configHook) section() string {
 	return fmt.Sprintf("[hook %q]\n\tevent = %s\n\tcommand = %s", h.Name, h.Event, h.Command)
 }
 
-// configHooksRun is whether this git runs the hooks its config declares: git
-// hook list names a hook declared for the one command. A git without them
-// has no git hook list, or lists only the hooks folder's.
-func configHooksRun(root string) bool {
-	const probe = "itos-probe"
-	listed, err := git.Output("-C", root, "-c", "hook."+probe+".event=commit-msg",
-		"-c", "hook."+probe+".command=true", "hook", "list", "commit-msg")
-	return err == nil && slices.Contains(strings.Fields(listed), probe)
-}
+// configHooksRun is whether this git runs the hooks its config declares
+// (the git adapter's ConfigHooksRun).
+func configHooksRun() bool { return (vcs.Git{}).ConfigHooksRun(context.Background()) }
 
 // gitVersion is the version the git itos runs gives, as "git version"
 // prints it after those words.
-func gitVersion() string {
-	version, _ := git.Output("--version")
-	return strings.TrimPrefix(value.Trim(version), "git version ")
-}
+func gitVersion() string { return (vcs.Git{}).Version(context.Background()) }
 
 // declared is whether the git config, at any of its levels, declares itos's
 // hook for the event: its entry's event is the event and its command runs
 // itos's hook.
-func declared(root, event string) bool {
+func declared(event string) bool {
 	name := hookEntry(event)
-	commands := configValues(root, "", "hook."+name+".command")
+	commands := configValues(false, "hook."+name+".command")
 	return len(commands) > 0 && callsItos.MatchString(commands[len(commands)-1]) &&
-		slices.Contains(configValues(root, "", "hook."+name+".event"), event)
+		slices.Contains(configValues(false, "hook."+name+".event"), event)
 }
 
 // errOldGit is the refusal of a git that runs no hook its config declares.
@@ -102,16 +92,15 @@ func errOldGit() error {
 // its config declares, then each event's entry declared in the git config.
 // Outside a git repository it is nil: git's own refusal says why there.
 func hooksReady(events ...string) error {
-	const root = "."
-	if !git.Succeeds("-C", root, "rev-parse", "--git-dir") {
+	if _, err := (vcs.Git{}).Locate(context.Background(), ""); err != nil {
 		return nil
 	}
-	if !configHooksRun(root) {
+	if !configHooksRun() {
 		return errOldGit()
 	}
 	var missing []string
 	for _, event := range events {
-		if !declared(root, event) {
+		if !declared(event) {
 			missing = append(missing, event)
 		}
 	}
@@ -128,32 +117,15 @@ func hooksReady(events ...string) error {
 }
 
 // configValues are the values of a key in the git config: the repository's
-// own when scope is "--local", every level's when it is "".
-func configValues(root, scope, key string) []string {
-	args := []string{"-C", root, "config"}
-	if scope != "" {
-		args = append(args, scope)
-	}
-	got, err := git.Output(append(args, "--get-all", key)...)
-	if err != nil {
-		return nil
-	}
-	return strings.Split(strings.TrimRight(got, "\n"), "\n")
-}
-
-// gitConfig runs git config on the repository's own config.
-func gitConfig(root string, args ...string) error {
-	cmd := exec.Command(git.Bin(), append([]string{"-C", root, "config", "--local"}, args...)...)
-	if text, err := cmd.CombinedOutput(); err != nil {
-		return fmt.Errorf("git config %s: %s", strings.Join(args, " "), value.Trim(string(text)))
-	}
-	return nil
+// own when local, every level's else.
+func configValues(local bool, key string) []string {
+	return (vcs.Git{}).Config(context.Background(), key, local)
 }
 
 // declare is what becomes of one entry: printed, left as it is, refused, or
 // written.
-func declare(root string, h configHook, print, force bool) (string, error) {
-	commands := configValues(root, "--local", "hook."+h.Name+".command")
+func declare(h configHook, print, force bool) (string, error) {
+	commands := configValues(true, "hook."+h.Name+".command")
 	current := ""
 	if len(commands) > 0 {
 		current = commands[len(commands)-1]
@@ -161,17 +133,17 @@ func declare(root string, h configHook, print, force bool) (string, error) {
 	switch {
 	case print:
 		return "printed", nil
-	case current == h.Command && slices.Equal(configValues(root, "--local", "hook."+h.Name+".event"), []string{h.Event}):
+	case current == h.Command && slices.Equal(configValues(true, "hook."+h.Name+".event"), []string{h.Event}):
 		return "unchanged", nil
 	}
 	foreign := current != "" && !callsItos.MatchString(current)
 	if foreign && !force {
 		return "refused", nil
 	}
-	if err := gitConfig(root, "--replace-all", "hook."+h.Name+".command", h.Command); err != nil {
+	if err := (vcs.Git{}).SetConfig(context.Background(), "hook."+h.Name+".command", h.Command); err != nil {
 		return "", err
 	}
-	if err := gitConfig(root, "--replace-all", "hook."+h.Name+".event", h.Event); err != nil {
+	if err := (vcs.Git{}).SetConfig(context.Background(), "hook."+h.Name+".event", h.Event); err != nil {
 		return "", err
 	}
 	if foreign {
@@ -184,15 +156,15 @@ func declare(root string, h configHook, print, force bool) (string, error) {
 // when every entry is in place (or printed), 1 when one under itos's name
 // that does not call itos stood in the way, 3 when this git runs no hook its
 // config declares.
-func declareHooks(root, bin string, print, force bool, o Out, say func(string)) (int, error) {
-	if !print && !configHooksRun(root) {
+func declareHooks(bin string, print, force bool, o Out, say func(string)) (int, error) {
+	if !print && !configHooksRun() {
 		fmt.Fprintf(o.Stderr, "itos: hook install: %s\n", errOldGit())
 		return ExitMissing, nil
 	}
 	var hooks []configHook
 	for _, event := range hookEvents {
 		h := configHook{Name: hookEntry(event), Event: event, Command: bin + " hook " + event}
-		action, err := declare(root, h, print, force)
+		action, err := declare(h, print, force)
 		if err != nil {
 			return 0, err
 		}

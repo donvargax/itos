@@ -1,6 +1,11 @@
 package port
 
-import "context"
+import (
+	"context"
+	"io"
+	"strconv"
+	"strings"
+)
 
 // Location is where a repository is from a folder. Top is its work tree's
 // top folder, absolute, "" where there is none (inside the git folder).
@@ -41,6 +46,71 @@ type Entry struct {
 	SHA, Short, Subject, Message, Note string
 	Author, Email, Date                string
 	Merge                              bool
+}
+
+// Index names the index where a tree is asked for: the files it stages.
+const Index = ":"
+
+// Failure is why a command that reached for a remote failed, read from the
+// VCS's own words: Unreachable, a remote out of reach, worth trying again;
+// NoRepository, one that is no repository the VCS can find; Refused, a push
+// the remote or a hook refused; Other, any other failure.
+type Failure int
+
+const (
+	Other Failure = iota
+	Unreachable
+	NoRepository
+	Refused
+)
+
+// Failed is a VCS command that ran and failed: the command as a person
+// would type it, its exit code, its own words on stderr and, for one that
+// reached for a remote, why (Failure). Its error says all three: "git push
+// origin x: exit status 1: <words>".
+type Failed struct {
+	Command string
+	Code    int
+	Words   string
+	Failure Failure
+}
+
+func (f *Failed) Error() string {
+	return f.Command + ": exit status " + strconv.Itoa(f.Code) + ": " + strings.TrimSpace(f.Words)
+}
+
+// Talk is how a command that may talk to the person runs: in Dir, "" for
+// the folder itos runs in; its input Stdin, none when nil; its output and
+// its own words to Stdout and Stderr, dropped when nil (Failed keeps the
+// words either way); in the environment Env, itos's own when nil. NoPrompt
+// never asks for credentials; Owns leaves an interrupt to the command and
+// the editor it opens while it runs, so itos does not end first.
+type Talk struct {
+	Dir            string
+	Stdin          io.Reader
+	Stdout, Stderr io.Writer
+	Env            []string
+	NoPrompt, Owns bool
+}
+
+// Pushing is how a push goes: Atomic, every ref or none; Quiet, without
+// progress; NoVerify, without the pre-push hook.
+type Pushing struct {
+	Atomic, Quiet, NoVerify bool
+}
+
+// Commit is a commit to make, of the index unless Only names paths, whose
+// files are committed as the work tree has them and nothing else. Its
+// message is Paragraphs, each a paragraph, else Message, as written, unless
+// Args give it: Args are the person's own arguments to the commit, given
+// through as they are (itos commit's). Quiet asks for no summary. A trailer
+// the message already has is not added twice.
+type Commit struct {
+	Paragraphs []string
+	Message    string
+	Only       []string
+	Args       []string
+	Quiet      bool
 }
 
 // VCS is the repository itos runs in. A folder is relative to the folder
@@ -146,4 +216,87 @@ type VCS interface {
 	// Branch is the branch HEAD is on, its short name; "" when HEAD is
 	// detached.
 	Branch(ctx context.Context) string
+
+	// A tree is a revision, or Index; its files are named from the top.
+
+	// File is the text of the file path at tree; not ok when the tree has
+	// no such file, and an error when the tree cannot be read.
+	File(ctx context.Context, tree, path string) (text string, ok bool, err error)
+	// Files are the files the tree holds under the folder dir, "" for every
+	// one, in byte order; none for a folder it lacks, and an error when the
+	// tree cannot be read.
+	Files(ctx context.Context, tree, dir string) ([]string, error)
+	// Texts are the texts of the files at tree, by path; an error when the
+	// tree lacks one or cannot be read.
+	Texts(ctx context.Context, tree string, paths []string) (map[string]string, error)
+	// Patch is the change a commit makes, as a patch; an error when rev
+	// names no commit.
+	Patch(ctx context.Context, rev string) (string, error)
+	// Shown are the commits as the VCS shows them to a person, each its
+	// message and its patch, with its itos note when notes is set; an
+	// error when one names no commit.
+	Shown(ctx context.Context, revs []string, notes bool) (string, error)
+	// Ref is the object a ref names, an annotated tag's own and not its
+	// commit; an error when it names none.
+	Ref(ctx context.Context, ref string) (string, error)
+	// Refs are the refs under prefix, each the object it names, and for
+	// an annotated tag its ref with ^{} too, its commit; none when it holds
+	// none.
+	Refs(ctx context.Context, prefix string) (map[string]string, error)
+
+	// The remote.
+
+	// Upstream is where the branch pulls from and pushes to: its remote
+	// and the remote's ref it merges, as its config sets them, else origin
+	// and refs/heads/<branch>; set is whether the config sets them.
+	Upstream(ctx context.Context, branch string) (remote, ref string, set bool)
+	// Remotes are the remotes' names, in byte order; an error outside a
+	// repository.
+	Remotes(ctx context.Context) ([]string, error)
+	// RemoteURL is the remote's address; an error when there is no such
+	// remote.
+	RemoteURL(ctx context.Context, remote string) (string, error)
+	// RemoteRefs are the remote's refs, each the object it names and an
+	// annotated tag's ^{} its commit, those refs alone when refs are given;
+	// a Failed error when the remote cannot be read.
+	RemoteRefs(ctx context.Context, remote string, refs []string, talk Talk) (map[string]string, error)
+	// Fetch fetches refspec of the remote and gives the commit fetched; its
+	// default refspecs, and nothing given, when refspec is "". A Failed
+	// error when the fetch fails.
+	Fetch(ctx context.Context, remote, refspec string, talk Talk) (string, error)
+	// Push pushes the refspecs (<commit or ref>:<ref>) to the remote, never
+	// forcing; a Failed error when it fails.
+	Push(ctx context.Context, remote string, specs []string, p Pushing, talk Talk) error
+	// Rebase replays HEAD's commits onto onto; a Failed error when it
+	// stops on a conflict, left in progress (Rebasing, Conflicted), or does
+	// not run.
+	Rebase(ctx context.Context, onto string, quiet bool, talk Talk) error
+
+	// Committing.
+
+	// Commit makes the commit, through the hooks; a Failed error when it
+	// fails, nothing then committed.
+	Commit(ctx context.Context, c Commit, talk Talk) error
+	// Add stages the paths as the work tree has them; a Failed error when
+	// it fails.
+	Add(ctx context.Context, paths []string, talk Talk) error
+	// Unstage sets the index's entries of the paths to HEAD's.
+	Unstage(ctx context.Context, paths []string) error
+	// Untrack takes the paths out of the index, leaving the work tree's
+	// files; a path the index lacks is passed over.
+	Untrack(ctx context.Context, paths []string) error
+	// Restore sets the paths, in the index and the work tree, to HEAD's.
+	Restore(ctx context.Context, paths []string) error
+	// Note sets a commit's itos note (NotesRef) to text, replacing the one
+	// it has.
+	Note(ctx context.Context, rev, text string) error
+	// CommitFile makes a commit outside every branch: parent's files ("" for
+	// none, and no parent) with path set to text, its message message, by
+	// the author name <email>. It gives the commit.
+	CommitFile(ctx context.Context, parent, path, text, message, name, email string) (string, error)
+
+	// Init makes the folder itos runs in a repository.
+	Init(ctx context.Context) error
+	// NotIgnored is whether the path is in the work tree and not ignored.
+	NotIgnored(ctx context.Context, path string) bool
 }

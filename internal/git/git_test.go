@@ -45,35 +45,35 @@ func TestPaths(t *testing.T) {
 		slices.Sort(paths)
 		return paths
 	}
-	if got := sorted(Paths("diff", "--cached", "--name-only")); !slices.Equal(got, want) {
+	if got := sorted(here.Paths("diff", "--cached", "--name-only")); !slices.Equal(got, want) {
 		t.Fatalf("staged paths = %q, want %q", got, want)
 	}
-	if got := sorted(Paths("ls-files", "--cached")); !slices.Equal(got, append([]string{"a"}, want...)) {
+	if got := sorted(here.Paths("ls-files", "--cached")); !slices.Equal(got, append([]string{"a"}, want...)) {
 		t.Fatalf("index paths = %q, want a and %q", got, want)
 	}
 	gitIn(t, dir, "commit", "-q", "-m", "names")
-	if got := sorted(CommitPaths("HEAD")); !slices.Equal(got, want) {
+	if got := sorted(here.CommitPaths("HEAD")); !slices.Equal(got, want) {
 		t.Fatalf("CommitPaths = %q, want %q", got, want)
 	}
-	if got := sorted(Paths("log", "--format=", "--name-only", "HEAD~1..HEAD")); !slices.Equal(got, want) {
+	if got := sorted(here.Paths("log", "--format=", "--name-only", "HEAD~1..HEAD")); !slices.Equal(got, want) {
 		t.Fatalf("the range's paths = %q, want %q", got, want)
 	}
-	if got := sorted(Paths("ls-tree", "-r", "--name-only", "HEAD", "--", "señal")); !slices.Equal(got, []string{"señal/é.md"}) {
+	if got := sorted(here.Paths("ls-tree", "-r", "--name-only", "HEAD", "--", "señal")); !slices.Equal(got, []string{"señal/é.md"}) {
 		t.Fatalf("the tree's paths under señal = %q", got)
 	}
-	if got, err := Paths("diff", "--name-only", "HEAD", "HEAD"); err != nil || got != nil {
+	if got, err := here.Paths("diff", "--name-only", "HEAD", "HEAD"); err != nil || got != nil {
 		t.Fatalf("no change lists %q, %v", got, err)
 	}
-	if _, err := Paths("diff", "--name-only", "no-such-commit"); err == nil {
+	if _, err := here.Paths("diff", "--name-only", "no-such-commit"); err == nil {
 		t.Fatal("a command git refuses lists paths")
 	}
-	if got, err := Paths(); err != nil || got != nil {
+	if got, err := here.Paths(); err != nil || got != nil {
 		t.Fatalf("no command lists %q, %v", got, err)
 	}
 
 	gitIn(t, dir, "reset", "-q", "--hard")
 	gitIn(t, dir, "mv", "a", "b é")
-	if got := Changed(); !slices.Equal(got, []string{"R  a -> b é"}) {
+	if got := here.Changed(); !slices.Equal(got, []string{"R  a -> b é"}) {
 		t.Fatalf("renamed, Changed = %q, want [\"R  a -> b é\"]", got)
 	}
 }

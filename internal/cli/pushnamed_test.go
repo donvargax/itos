@@ -7,10 +7,12 @@ import (
 	"os/exec"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"strings"
 	"testing"
 
 	"github.com/donvargax/itos/v8/internal/git"
+	vcsport "github.com/donvargax/itos/v8/internal/vcs/port"
 )
 
 // A scratch repository on main, pushed to a bare origin in its git folder,
@@ -24,7 +26,7 @@ func namedPushRepo(t *testing.T) (dir string, sh func(string)) {
 		{"GIT_AUTHOR_EMAIL", "itos@example.com"}, {"GIT_COMMITTER_EMAIL", "itos@example.com"}} {
 		t.Setenv(kv[0], kv[1])
 	}
-	t.Setenv(git.EnvGit, git.Bin())
+	t.Setenv(git.EnvGit, git.Bin(runtime.GOOS))
 	sh = func(script string) {
 		t.Helper()
 		cmd := exec.Command("sh", "-c", script)
@@ -43,7 +45,7 @@ func namedPushRepo(t *testing.T) (dir string, sh func(string)) {
 // What the ref names in the bare origin, "" for nothing.
 func originRef(t *testing.T, ref string) string {
 	t.Helper()
-	out, _ := exec.Command(git.Bin(), "--git-dir", ".git/origin.git", "rev-parse", "--verify", "--quiet", ref).Output()
+	out, _ := exec.Command(git.Bin(runtime.GOOS), "--git-dir", ".git/origin.git", "rev-parse", "--verify", "--quiet", ref).Output()
 	return strings.TrimSpace(string(out))
 }
 
@@ -222,10 +224,10 @@ func TestPushNamedGitThatCannotStart(t *testing.T) {
 // A failed push git says was refused exits 1; any other failure of no kind
 // 70.
 func TestRefusalExit(t *testing.T) {
-	if got := refusalExit("error: failed to push some refs to 'origin'\n"); got != ExitPolicy {
+	if got := refusalExit(&vcsport.Failed{Failure: vcsport.Refused}); got != ExitPolicy {
 		t.Errorf("a refused push exits %d", got)
 	}
-	if got := refusalExit("fatal: the remote end hung up unexpectedly\n"); got != ExitSoftware {
+	if got := refusalExit(&vcsport.Failed{Failure: vcsport.Other}); got != ExitSoftware {
 		t.Errorf("a push failed for no known reason exits %d", got)
 	}
 }
@@ -241,7 +243,7 @@ func TestPushRoutineEdges(t *testing.T) {
 		{"GIT_AUTHOR_EMAIL", "itos@example.com"}, {"GIT_COMMITTER_EMAIL", "itos@example.com"}} {
 		t.Setenv(kv[0], kv[1])
 	}
-	t.Setenv(git.EnvGit, git.Bin())
+	t.Setenv(git.EnvGit, git.Bin(runtime.GOOS))
 	sh := func(script string) {
 		t.Helper()
 		if out, err := exec.Command("sh", "-c", script).CombinedOutput(); err != nil {

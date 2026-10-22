@@ -199,7 +199,7 @@ func (w *world) staged(path string, want bool) error {
 }
 
 func (w *world) plainHeadSays(text string) error {
-	cmd := exec.Command(git.Bin(), "log", "-1", "--format=%B")
+	cmd := exec.Command(git.Bin(runtime.GOOS), "log", "-1", "--format=%B")
 	cmd.Dir = w.plain()
 	cmd.Env = w.env()
 	out, err := cmd.Output()

@@ -188,7 +188,7 @@ func TestReadConfigFindsTheStealthConfig(t *testing.T) {
 		os.Unsetenv(name)
 	}
 	dir := t.TempDir()
-	if out, err := exec.Command(git.Bin(), "init", "-q", dir).CombinedOutput(); err != nil {
+	if out, err := exec.Command(git.Bin(runtime.GOOS), "init", "-q", dir).CombinedOutput(); err != nil {
 		t.Fatalf("git init: %s", out)
 	}
 	t.Chdir(dir)

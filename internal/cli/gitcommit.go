@@ -38,17 +38,15 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
-	"os/signal"
 	"path"
 	"slices"
 	"strings"
 
 	"github.com/donvargax/itos/v8/internal/config"
-	"github.com/donvargax/itos/v8/internal/git"
 	"github.com/donvargax/itos/v8/internal/message"
 	"github.com/donvargax/itos/v8/internal/out"
 	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
+	vcsport "github.com/donvargax/itos/v8/internal/vcs/port"
 )
 
 // commitFlags are what itos commit reads of its arguments: the IDs --task,
@@ -510,7 +508,7 @@ func gitCommit(args []string, o Out) (int, error) {
 			return 0, err
 		}
 	}
-	argv := []string{"-c", "trailer.ifExists=addIfDifferent", "commit"}
+	ctx, v := context.Background(), vcs.Git{}
 	env := withoutFooters(os.Environ())
 	amend := "0"
 	if g.amend {
@@ -518,21 +516,19 @@ func gitCommit(args []string, o Out) (int, error) {
 	}
 	env = append(env, AmendEnv+"="+amend)
 	before := ""
+	var trailed []string
 	if stealth {
-		if err := rewriteNotes(); err != nil {
+		if err := rewriteNotes(v); err != nil {
 			fmt.Fprintf(o.Stderr, "itos: cannot set notes.rewriteRef: %s\n", err)
 			return ExitMissing, nil
 		}
 		if len(links) > 0 {
 			env = append(env, message.FootersEnv+"="+strings.Join(links, "\n"))
 		}
-		before, _ = git.Output("rev-parse", "--verify", "--quiet", "HEAD")
-		argv = append(argv, trailers(content)...)
+		before, _ = v.Resolve(ctx, "HEAD")
+		trailed = trailers(content)
 	} else {
-		argv = append(argv, trailers(slices.Concat(links, content))...)
-	}
-	if o.Quiet {
-		argv = append(argv, "--quiet")
+		trailed = trailers(slices.Concat(links, content))
 	}
 	var keys []string
 	if cfg != nil {
@@ -545,18 +541,17 @@ func gitCommit(args []string, o Out) (int, error) {
 	if written != "" {
 		defer os.Remove(written)
 	}
-	argv = append(argv, given...)
 	stdout := o.Stdout
 	if o.JSON {
 		stdout = o.Stderr
 	}
-	code, err := runGit(argv, env, stdout, o)
+	code, err := exitOf(v.Commit(ctx, vcsport.Commit{Args: append(trailed, given...), Quiet: o.Quiet}, talking(env, stdout, o)))
 	if err != nil {
 		fmt.Fprintf(o.Stderr, "itos: cannot run git: %s\n", err)
 		return ExitMissing, nil
 	}
 	if code == 0 && stealth && len(links) > 0 {
-		if err := writeNote(before, links); err != nil {
+		if err := writeNote(v, before, links); err != nil {
 			fmt.Fprintf(o.Stderr, "itos: the commit is made, but its note is not: %s\n", err)
 			return ExitPolicy, nil
 		}
@@ -564,8 +559,8 @@ func gitCommit(args []string, o Out) (int, error) {
 	if o.JSON {
 		fields := []out.Field{{Key: "ok", Value: code == 0}}
 		if code == 0 {
-			if sha, err := git.Output("rev-parse", "HEAD"); err == nil {
-				fields = append(fields, out.Field{Key: "commit", Value: strings.TrimSpace(sha)})
+			if sha, err := v.Resolve(ctx, "HEAD"); err == nil {
+				fields = append(fields, out.Field{Key: "commit", Value: sha})
 			}
 		}
 		if err := out.Emit(o.Stdout, fields...); err != nil {
@@ -575,29 +570,31 @@ func gitCommit(args []string, o Out) (int, error) {
 	return code, nil
 }
 
-// runGit runs git with the terminal's stdin, so an editor can open, and gives
-// its exit code; the error is why it could not start. An interrupt is git's
-// and the editor's to act on while it runs, not a reason for itos to leave
-// first. It runs in the folder the person stood in, so the paths and the
-// files they gave git mean what they mean there, though itos moved to the
-// repository's top to read its config (slice 40).
-func runGit(argv, env []string, stdout io.Writer, o Out) (int, error) {
-	cmd := exec.Command(git.Bin(), argv...)
-	cmd.Dir = o.Origin
-	cmd.Env = env
-	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, stdout, o.Stderr
-	interrupts := make(chan os.Signal, 1)
-	signal.Notify(interrupts, os.Interrupt)
-	defer signal.Stop(interrupts)
-	err := cmd.Run()
-	var exit *exec.ExitError
-	if errors.As(err, &exit) {
-		if code := exit.ExitCode(); code > 0 {
-			return code, nil
-		}
-		return ExitPolicy, nil
+// talking is how git runs for a command the person typed: with the
+// terminal's stdin, so an editor can open, its output to stdout and its
+// words to o's stderr, an interrupt git's and the editor's to act on while
+// it runs, not a reason for itos to leave first. It runs in the folder the
+// person stood in, so the paths and the files they gave git mean what they
+// mean there, though itos moved to the repository's top to read its config
+// (slice 40); in env, itos's own when nil.
+func talking(env []string, stdout io.Writer, o Out) vcsport.Talk {
+	return vcsport.Talk{Dir: o.Origin, Stdin: os.Stdin, Stdout: stdout, Stderr: o.Stderr, Env: env, Owns: true}
+}
+
+// exitOf is the exit code of a git command that failed (err a
+// vcsport.Failed), 1 for one a signal ended; 0 when err is nil, and the
+// error itself, with no code, when git could not start.
+func exitOf(err error) (int, error) {
+	var failed *vcsport.Failed
+	switch {
+	case err == nil:
+		return 0, nil
+	case !errors.As(err, &failed):
+		return 0, err
+	case failed.Code > 0:
+		return failed.Code, nil
 	}
-	return 0, err
+	return ExitPolicy, nil
 }
 
 // withoutFooters is an environment less ITOS_FOOTERS and ITOS_AMEND, so only
@@ -617,30 +614,29 @@ func withoutFooters(env []string) []string {
 // own config unless a value already names it, so that git commit --amend and
 // git rebase, which copy the notes of the refs it names to the commits they
 // make, carry a commit's footers along.
-func rewriteNotes() error {
-	set, _ := git.Output("config", "--get-all", "notes.rewriteRef")
-	for _, ref := range strings.Split(set, "\n") {
+func rewriteNotes(v vcs.Git) error {
+	for _, ref := range v.Config(context.Background(), "notes.rewriteRef", false) {
 		if ok, _ := path.Match(strings.TrimSpace(ref), message.NotesRef); ok {
 			return nil
 		}
 	}
-	return exec.Command(git.Bin(), "config", "--local", "--add", "notes.rewriteRef", message.NotesRef).Run()
+	return v.AddConfig(context.Background(), "notes.rewriteRef", message.NotesRef)
 }
 
 // writeNote writes the footers as the itos note of the commit git just made,
 // replacing the one an amend carried over; nothing when HEAD is still the
 // commit it was before (a dry run made none).
-func writeNote(before string, lines []string) error {
-	head, err := git.Output("rev-parse", "HEAD")
+func writeNote(v vcsport.VCS, before string, lines []string) error {
+	ctx := context.Background()
+	head, err := v.Resolve(ctx, "HEAD")
 	if err != nil {
 		return err
 	}
-	if strings.TrimSpace(head) == strings.TrimSpace(before) {
+	if head == before {
 		return nil
 	}
-	note := strings.Join(lines, "\n")
-	if out, err := exec.Command(git.Bin(), "notes", "--ref="+message.NotesRef, "add", "-f", "-m", note, "HEAD").CombinedOutput(); err != nil {
-		return fmt.Errorf("git notes add: %s", strings.TrimSpace(string(out)))
+	if err := v.Note(ctx, "HEAD", strings.Join(lines, "\n")); err != nil {
+		return fmt.Errorf("git notes add: %s", wordsOf(err))
 	}
 	return nil
 }

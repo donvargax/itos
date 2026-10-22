@@ -4,6 +4,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"testing"
@@ -75,7 +76,7 @@ func TestScratchReposDisableAutoMaintenance(t *testing.T) {
 				for _, setting := range []struct{ kind, key, want string }{
 					{"--bool", "maintenance.auto", "false"}, {"--int", "gc.auto", "0"},
 				} {
-					out, err := exec.Command(git.Bin(), "config", setting.kind, "--get", setting.key).CombinedOutput()
+					out, err := exec.Command(git.Bin(runtime.GOOS), "config", setting.kind, "--get", setting.key).CombinedOutput()
 					if err != nil || strings.TrimSpace(string(out)) != setting.want {
 						t.Errorf("effective %s = %q (%v), want %s", setting.key, out, err, setting.want)
 					}

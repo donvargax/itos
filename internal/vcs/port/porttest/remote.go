@@ -1,0 +1,218 @@
+package porttest
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"maps"
+	"slices"
+	"strings"
+
+	"github.com/donvargax/itos/v8/internal/vcs/port"
+)
+
+// The fake's remotes.
+
+func (v VCS) Upstream(_ context.Context, branch string) (string, string, bool) {
+	if up, ok := v.Tracking[branch]; ok {
+		return up[0], up[1], true
+	}
+	return "origin", "refs/heads/" + branch, false
+}
+
+func (v VCS) Remotes(context.Context) ([]string, error) {
+	if _, ok := v.Located[""]; !ok {
+		return nil, errNoRepository
+	}
+	return slices.Sorted(maps.Keys(v.Remote)), nil
+}
+
+func (v VCS) RemoteURL(_ context.Context, remote string) (string, error) {
+	if r, ok := v.Remote[remote]; ok {
+		return r.URL, nil
+	}
+	return "", errors.New("no remote " + remote)
+}
+
+// reach is the remote by name: a Failed error, as git's would read, when
+// there is none or it is out of reach.
+func (v VCS) reachRemote(command, remote string) (*Remote, error) {
+	r, ok := v.Remote[remote]
+	switch {
+	case !ok:
+		return nil, &port.Failed{Command: command, Code: 128, Failure: port.NoRepository,
+			Words: "fatal: '" + remote + "' does not appear to be a git repository\n"}
+	case r.Down:
+		return nil, &port.Failed{Command: command, Code: 128, Failure: port.Unreachable,
+			Words: "fatal: unable to access '" + r.URL + "': Could not resolve host\n"}
+	}
+	return r, nil
+}
+
+// matches is whether a ref is one of the patterns as git ls-remote matches
+// them: the whole ref, or its end from a slash.
+func matches(ref string, patterns []string) bool {
+	if len(patterns) == 0 {
+		return true
+	}
+	for _, p := range patterns {
+		if ref == p || strings.HasSuffix(ref, "/"+p) {
+			return true
+		}
+	}
+	return false
+}
+
+func (v VCS) RemoteRefs(_ context.Context, remote string, refs []string, _ port.Talk) (map[string]string, error) {
+	r, err := v.reachRemote("git ls-remote "+remote, remote)
+	if err != nil {
+		return nil, err
+	}
+	listed := maps.Clone(r.Refs)
+	if main, ok := r.Refs["refs/heads/main"]; ok {
+		listed["HEAD"] = main
+	}
+	return v.refsOf(listed, func(ref string) bool { return matches(ref, refs) }), nil
+}
+
+// Fetch sets the refspec's destination, a + before it dropped, to the
+// remote's commit; with no refspec, refs/remotes/<remote>/<branch> to each
+// branch's.
+func (v *VCS) Fetch(_ context.Context, remote, refspec string, _ port.Talk) (string, error) {
+	command := "git fetch " + remote + " " + refspec
+	r, err := v.reachRemote(command, remote)
+	if err != nil {
+		return "", err
+	}
+	v.Named = maps.Clone(v.Named)
+	if refspec == "" {
+		for ref, sha := range r.Refs {
+			if branch, ok := strings.CutPrefix(ref, "refs/heads/"); ok {
+				v.Named["refs/remotes/"+remote+"/"+branch] = sha
+			}
+		}
+		return "", nil
+	}
+	src, dst, _ := strings.Cut(strings.TrimPrefix(refspec, "+"), ":")
+	sha, ok := r.Refs[src]
+	if !ok {
+		return "", &port.Failed{Command: command, Code: 128, Words: "fatal: couldn't find remote ref " + src + "\n"}
+	}
+	if dst != "" {
+		v.Named[dst] = sha
+	}
+	c, _ := v.commit(sha)
+	return c.Name, nil
+}
+
+// Push sets each refspec's destination on the remote to its source's
+// object, a branch only forward and a tag only where it has none: a
+// refusal, as git words it, fails the push, and the refs it set stay
+// unless it is atomic.
+func (v *VCS) Push(_ context.Context, remote string, specs []string, p port.Pushing, _ port.Talk) error {
+	command := "git push " + remote + " " + strings.Join(specs, " ")
+	r, err := v.reachRemote(command, remote)
+	if err != nil {
+		return err
+	}
+	refs := maps.Clone(r.Refs)
+	var refused []string
+	for _, spec := range specs {
+		src, dst, _ := strings.Cut(spec, ":")
+		object, ok := v.Named[src]
+		if !ok {
+			c, found := v.commit(src)
+			if !found {
+				return &port.Failed{Command: command, Code: 1, Words: "error: src refspec " + src + " does not match any\n"}
+			}
+			object = c.Name
+		}
+		at, there := refs[dst]
+		forward := !there || at == object || !strings.HasPrefix(dst, "refs/tags/") && v.IsAncestor(context.Background(), at, object)
+		if !forward {
+			refused = append(refused, dst)
+			continue
+		}
+		refs[dst] = object
+		if !p.Atomic {
+			r.Refs = maps.Clone(r.Refs)
+			r.Refs[dst] = object
+		}
+	}
+	if len(refused) > 0 {
+		return &port.Failed{Command: command, Code: 1, Failure: port.Refused,
+			Words: " ! [rejected] " + strings.Join(refused, ", ") + "\nerror: failed to push some refs\n"}
+	}
+	r.Refs = refs
+	return nil
+}
+
+// Rebase replays the commits of HEAD that onto lacks, oldest first and
+// merges left out, onto it: a path whose content a commit changes where
+// the replay has moved it on is a conflict, which stops the rebase there,
+// HEAD detached at the commits replayed so far.
+func (v *VCS) Rebase(ctx context.Context, onto string, _ bool, _ port.Talk) error {
+	base, ok := v.commit(onto)
+	if !ok {
+		return &port.Failed{Command: "git rebase " + onto, Code: 128, Words: "fatal: invalid upstream '" + onto + "'\n"}
+	}
+	if v.IsAncestor(ctx, onto, "HEAD") {
+		return nil
+	}
+	replayed, err := v.Log(ctx, port.Range{From: onto, To: "HEAD"})
+	if err != nil {
+		return err
+	}
+	branch, at, tree := v.OnBranch, base.Name, base.Tree
+	for _, e := range replayed {
+		if e.Merge {
+			continue
+		}
+		c, _ := v.commit(e.SHA)
+		parent, _ := v.tree(v.Parent(ctx, c.Name))
+		next := maps.Clone(tree)
+		var conflicts []string
+		for _, p := range differ(parent, c.Tree) {
+			mine, in := c.Tree[p]
+			now, there := tree[p]
+			was, had := parent[p]
+			switch {
+			case there == had && now == was, there == in && now == mine:
+				if in {
+					next[p] = mine
+				} else {
+					delete(next, p)
+				}
+			default:
+				conflicts = append(conflicts, p)
+			}
+		}
+		if len(conflicts) > 0 {
+			v.Named = maps.Clone(v.Named)
+			v.Named["HEAD"], v.OnBranch, v.InRebase, v.Unmerged = at, "", true, conflicts
+			v.Index, v.Work = nil, nil
+			return &port.Failed{Command: "git rebase " + onto, Code: 1, Words: "CONFLICT (content): Merge conflict in " + conflicts[0] + "\n"}
+		}
+		made := c
+		made.Name, made.Parents, made.Tree = v.newName(), []string{at}, next
+		v.History = append(v.History, made)
+		at, tree = made.Name, next
+	}
+	v.moveHead(branch, at)
+	v.Index, v.Work = nil, nil
+	return nil
+}
+
+// newName is a name no commit of the history has.
+func (v VCS) newName() string {
+	return fmt.Sprintf("n-%d", len(v.History))
+}
+
+// moveHead sets HEAD, and the branch when it is on one, to the commit.
+func (v *VCS) moveHead(branch, commit string) {
+	v.Named = maps.Clone(v.Named)
+	v.Named["HEAD"] = commit
+	if branch != "" {
+		v.Named["refs/heads/"+branch] = commit
+	}
+}

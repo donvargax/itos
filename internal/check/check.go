@@ -1,16 +1,17 @@
 package check
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
 	"time"
 
 	"github.com/donvargax/itos/v8/internal/config"
-	"github.com/donvargax/itos/v8/internal/git"
 	"github.com/donvargax/itos/v8/internal/ledger"
 	"github.com/donvargax/itos/v8/internal/shell"
 	"github.com/donvargax/itos/v8/internal/value"
+	vcs "github.com/donvargax/itos/v8/internal/vcs/port"
 )
 
 // Result is what a check came to: it passed (its exit status is the one its
@@ -23,11 +24,11 @@ const (
 	Pending Result = "pending"
 )
 
-// Pushed is whether a remote branch holds HEAD (`git branch -r --contains
-// HEAD`), when an after: push check may run; not when git cannot say.
-func Pushed() bool {
-	branches, err := git.Output("branch", "-r", "--contains", "HEAD")
-	return err == nil && value.Trim(branches) != ""
+// Pushed is whether a remote branch holds HEAD: no commit of HEAD is on no
+// remote branch, when an after: push check may run; not when v cannot say.
+func Pushed(v vcs.VCS) bool {
+	unpushed, err := v.Commits(context.Background(), vcs.Range{From: vcs.Unpushed, To: "HEAD"})
+	return err == nil && len(unpushed) == 0
 }
 
 // Timeout is a check's own timeout in seconds: its timeout:, else the
@@ -84,7 +85,7 @@ func NewRunner(cfg *config.Loaded, stdout, stderr io.Writer) *Runner {
 // read by its run: or fails:. The command runs through the config's shell
 // with its timeout; one past it is stopped, its status not 0.
 func (r *Runner) Run(c ledger.Check) Result {
-	if c.Pushed() && !Pushed() {
+	if c.Pushed() && !Pushed(r.Cfg.VCS) {
 		return Pending
 	}
 	key := Key(r.Cfg, c)

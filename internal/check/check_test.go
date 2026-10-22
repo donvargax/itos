@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"testing"
 
+	vcsgit "github.com/donvargax/itos/v8/internal/vcs/adapter"
+
 	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/ledger"
 	"github.com/donvargax/itos/v8/internal/store/tree/adapter"
@@ -18,7 +20,7 @@ func load(t *testing.T, text string) *config.Loaded {
 	if err := os.WriteFile(file, []byte(text), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	cfg, err := config.Load(vcs.Git{}, adapter.Trees{}, adapter.Worktree, file)
+	cfg, err := config.Load(vcs.Git{}, adapter.Trees{VCS: vcsgit.Git{}}, adapter.Worktree, file)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"github.com/donvargax/itos/v8/internal/config"
-	"github.com/donvargax/itos/v8/internal/git"
 	"github.com/donvargax/itos/v8/internal/idcounter"
 	"github.com/donvargax/itos/v8/internal/ledger"
 	"github.com/donvargax/itos/v8/internal/nextid"
@@ -97,15 +96,16 @@ func reserveItemNumber(cfg *config.Loaded, category string, highest int, goos st
 }
 
 // counterStore is where this repository's id counter is: the remote itos
-// push pushes to (the branch's upstream, else origin, as git.Upstream gives
-// it) when there is one, else, and always under a stealth config, the file
-// in the git common dir.
+// push pushes to (the branch's upstream, else origin, as the VCS's Upstream
+// gives it) when there is one, else, and always under a stealth config, the
+// file in the git common dir.
 func counterStore(cfg *config.Loaded, goos string) (idcounter.Store, error) {
-	common, err := git.Output("rev-parse", "--git-common-dir")
+	ctx, v := context.Background(), vcs.Git{}
+	l, err := v.Locate(ctx, "")
 	if err != nil {
 		return idcounter.Store{}, err
 	}
-	common, err = filepath.Abs(strings.TrimSpace(common))
+	common, err := filepath.Abs(l.Common)
 	if err != nil {
 		return idcounter.Store{}, err
 	}
@@ -115,12 +115,12 @@ func counterStore(cfg *config.Loaded, goos string) (idcounter.Store, error) {
 	}
 	remote := ""
 	if !cfg.Stealth {
-		remote, _, _ = git.Upstream(vcs.Git{}.Branch(context.Background()))
-		if !git.Succeeds("remote", "get-url", remote) {
+		remote, _, _ = v.Upstream(ctx, v.Branch(ctx))
+		if _, err := v.RemoteURL(ctx, remote); err != nil {
 			remote = ""
 		}
 	}
-	return idcounter.Store{Root: root, CommonDir: common, Remote: remote, OS: goos, LocalOnly: cfg.Stealth}, nil
+	return idcounter.Store{Root: root, CommonDir: common, Remote: remote, OS: goos, VCS: v, LocalOnly: cfg.Stealth}, nil
 }
 
 // taggedIDs are the ids given and the <kind>-<n> every @<kind>-<n> tag of

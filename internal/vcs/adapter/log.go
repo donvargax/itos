@@ -5,7 +5,6 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/donvargax/itos/v8/internal/git"
 	"github.com/donvargax/itos/v8/internal/value"
 	"github.com/donvargax/itos/v8/internal/vcs/port"
 )
@@ -36,8 +35,8 @@ func entries(out string) []port.Entry {
 }
 
 // Show is git log -1; its error is git's, worded as git.Read words it.
-func (Git) Show(_ context.Context, rev string) (port.Entry, error) {
-	out, err := git.Read(logArgs("-1", rev, "--")...)
+func (g Git) Show(_ context.Context, rev string) (port.Entry, error) {
+	out, err := g.git().Read(logArgs("-1", rev, "--")...)
 	if err != nil {
 		return port.Entry{}, err
 	}
@@ -49,8 +48,8 @@ func (Git) Show(_ context.Context, rev string) (port.Entry, error) {
 
 // Log is git log --reverse over the range; its error is git's, worded as
 // git.Read words it.
-func (Git) Log(_ context.Context, r port.Range) ([]port.Entry, error) {
-	out, err := git.Read(logArgs(append(append([]string{"--reverse"}, revs(r)...), "--")...)...)
+func (g Git) Log(_ context.Context, r port.Range) ([]port.Entry, error) {
+	out, err := g.git().Read(logArgs(append(append([]string{"--reverse"}, revs(r)...), "--")...)...)
 	if err != nil {
 		return nil, err
 	}
@@ -58,8 +57,8 @@ func (Git) Log(_ context.Context, r port.Range) ([]port.Entry, error) {
 }
 
 // CommentChar is core.commentChar.
-func (Git) CommentChar(context.Context) string {
-	out, _ := git.Output("config", "core.commentChar")
+func (g Git) CommentChar(context.Context) string {
+	out, _ := g.git().Output("config", "core.commentChar")
 	if c := value.Trim(out); c != "" {
 		return c
 	}

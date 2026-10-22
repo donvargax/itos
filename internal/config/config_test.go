@@ -9,6 +9,8 @@ import (
 	"strings"
 	"testing"
 
+	vcsgit "github.com/donvargax/itos/v8/internal/vcs/adapter"
+
 	"github.com/donvargax/itos/v8/internal/store/tree/adapter"
 	"github.com/donvargax/itos/v8/internal/store/tree/port"
 	"github.com/donvargax/itos/v8/internal/store/tree/port/porttest"
@@ -22,13 +24,13 @@ func load(t *testing.T, text string) (*Loaded, error) {
 	if err := os.WriteFile(file, []byte(text), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	return Load(vcstest.VCS{}, adapter.Trees{}, adapter.Worktree, file)
+	return Load(&vcstest.VCS{}, adapter.Trees{VCS: vcsgit.Git{}}, adapter.Worktree, file)
 }
 
 // CommentChar is the VCS's for a loaded config, its copies with other data
 // among them, and # for one Load did not make.
 func TestCommentChar(t *testing.T) {
-	loaded, err := FromText(vcstest.VCS{Comment: ";"}, adapter.Trees{}, adapter.Worktree, "itos.yaml", "version: 1\n", false)
+	loaded, err := FromText(&vcstest.VCS{Comment: ";"}, adapter.Trees{VCS: vcsgit.Git{}}, adapter.Worktree, "itos.yaml", "version: 1\n", false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -220,12 +222,12 @@ func TestReadings(t *testing.T) {
 
 func TestPath(t *testing.T) {
 	t.Setenv("ITOS_CONFIG", "")
-	if Path(vcstest.VCS{}, adapter.Worktree) != "itos.yaml" {
-		t.Errorf("Path = %q without ITOS_CONFIG", Path(vcstest.VCS{}, adapter.Worktree))
+	if Path(&vcstest.VCS{}, adapter.Worktree) != "itos.yaml" {
+		t.Errorf("Path = %q without ITOS_CONFIG", Path(&vcstest.VCS{}, adapter.Worktree))
 	}
 	t.Setenv("ITOS_CONFIG", "other.yaml")
-	if Path(vcstest.VCS{}, adapter.Worktree) != "other.yaml" {
-		t.Errorf("Path = %q with ITOS_CONFIG=other.yaml", Path(vcstest.VCS{}, adapter.Worktree))
+	if Path(&vcstest.VCS{}, adapter.Worktree) != "other.yaml" {
+		t.Errorf("Path = %q with ITOS_CONFIG=other.yaml", Path(&vcstest.VCS{}, adapter.Worktree))
 	}
 }
 
@@ -358,15 +360,15 @@ func TestLoadReadsFromTheSourceElseTheWorkingTree(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	c, err := Load(vcstest.VCS{}, trees, index, "itos.yaml")
+	c, err := Load(&vcstest.VCS{}, trees, index, "itos.yaml")
 	if err != nil || c.Source.Tree(context.Background()) != "index" || c.Trees == nil {
 		t.Fatalf("the index's config: %+v, %v", c, err)
 	}
-	if _, err := Load(vcstest.VCS{}, trees, index, "other.yaml"); err != nil {
+	if _, err := Load(&vcstest.VCS{}, trees, index, "other.yaml"); err != nil {
 		t.Errorf("a config only the working tree holds: %v", err)
 	}
 	var e *Error
-	if _, err := Load(vcstest.VCS{}, noWorktree{trees}, index, "other.yaml"); !errors.As(err, &e) || !strings.Contains(e.Problems[0].Message, "no working tree") {
+	if _, err := Load(&vcstest.VCS{}, noWorktree{trees}, index, "other.yaml"); !errors.As(err, &e) || !strings.Contains(e.Problems[0].Message, "no working tree") {
 		t.Errorf("a working tree that cannot be opened: %v", err)
 	}
 }
@@ -377,7 +379,7 @@ func TestDataFrom(t *testing.T) {
 	trees := porttest.Trees{Common: ".git", Files: map[string]map[string]string{"worktree": {"itos.yaml": "version: 1\n"}}}
 	worktree, _ := trees.At(context.Background(), "worktree")
 	commit, _ := trees.At(context.Background(), "abc")
-	c, err := Load(vcstest.VCS{}, trees, worktree, "itos.yaml")
+	c, err := Load(&vcstest.VCS{}, trees, worktree, "itos.yaml")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -391,15 +393,15 @@ func TestDataFrom(t *testing.T) {
 // data beside it as it says, and a text that is no YAML is unreadable.
 func TestFromText(t *testing.T) {
 	text := "version: 1\nledger: { files: \"work/phase-{group}.yaml\" }\n"
-	loaded, err := FromText(vcstest.VCS{}, adapter.Trees{}, adapter.Worktree, filepath.Join("g", "itos", "itos.yaml"), text, true)
+	loaded, err := FromText(&vcstest.VCS{}, adapter.Trees{VCS: vcsgit.Git{}}, adapter.Worktree, filepath.Join("g", "itos", "itos.yaml"), text, true)
 	if err != nil || !loaded.Stealth || loaded.Ledger.Files != filepath.Join("g", "itos", "work", "phase-{group}.yaml") {
 		t.Fatalf("stealth: %v, %+v", err, loaded)
 	}
-	if loaded, err = FromText(vcstest.VCS{}, adapter.Trees{}, adapter.Worktree, "itos.yaml", text, false); err != nil || loaded.Stealth || loaded.Ledger.Files != "work/phase-{group}.yaml" {
+	if loaded, err = FromText(&vcstest.VCS{}, adapter.Trees{VCS: vcsgit.Git{}}, adapter.Worktree, "itos.yaml", text, false); err != nil || loaded.Stealth || loaded.Ledger.Files != "work/phase-{group}.yaml" {
 		t.Fatalf("not stealth: %v, %+v", err, loaded)
 	}
 	var e *Error
-	if _, err := FromText(vcstest.VCS{}, adapter.Trees{}, adapter.Worktree, "p.yaml", "version: [1", false); !errors.As(err, &e) || e.Problems[0].Rule != "config-unreadable" {
+	if _, err := FromText(&vcstest.VCS{}, adapter.Trees{VCS: vcsgit.Git{}}, adapter.Worktree, "p.yaml", "version: [1", false); !errors.As(err, &e) || e.Problems[0].Rule != "config-unreadable" {
 		t.Errorf("no YAML: %v", err)
 	}
 }
@@ -417,7 +419,7 @@ func TestLoadFailsWhereTheTypedConfigCannotBeRead(t *testing.T) {
 			}
 			return was(tree, into)
 		}
-		if _, err := FromText(vcstest.VCS{}, adapter.Trees{}, adapter.Worktree, "itos.yaml", "version: 1\n", false); err == nil || err.Error() != "unreadable" {
+		if _, err := FromText(&vcstest.VCS{}, adapter.Trees{VCS: vcsgit.Git{}}, adapter.Worktree, "itos.yaml", "version: 1\n", false); err == nil || err.Error() != "unreadable" {
 			t.Errorf("decode %d failing: %v", failing, err)
 		}
 	}
@@ -427,7 +429,7 @@ func TestLoadFailsWhereTheTypedConfigCannotBeRead(t *testing.T) {
 // commits.scopes' are, a set the config lacks a problem; and refused, as
 // allowed_renames is, on a check that is not builtin: moves.
 func TestRangeCheckCode(t *testing.T) {
-	loaded, err := FromText(vcstest.VCS{}, adapter.Trees{}, adapter.Worktree, "itos.yaml", `version: 1
+	loaded, err := FromText(&vcstest.VCS{}, adapter.Trees{VCS: vcsgit.Git{}}, adapter.Worktree, "itos.yaml", `version: 1
 commits: { path_sets: { app: ["src/**", "go.mod"] } }
 tests:
   scenario:
@@ -441,7 +443,7 @@ tests:
 	if got, want := loaded.Tests.Values["scenario"].RangeChecks[0].Code, []string{"src/**", "go.mod", "cmd/**"}; !slices.Equal(got, want) {
 		t.Errorf("code %q, want %q", got, want)
 	}
-	_, err = FromText(vcstest.VCS{}, adapter.Trees{}, adapter.Worktree, "itos.yaml", `version: 1
+	_, err = FromText(&vcstest.VCS{}, adapter.Trees{VCS: vcsgit.Git{}}, adapter.Worktree, "itos.yaml", `version: 1
 tests:
   scenario:
     root: features

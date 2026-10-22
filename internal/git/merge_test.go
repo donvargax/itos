@@ -38,23 +38,23 @@ func TestOwnPaths(t *testing.T) {
 
 	gitIn(t, dir, "merge", "-q", "--no-ff", "-m", "Merge branch 'topic'", "topic")
 	clean := gitIn(t, dir, "rev-parse", "HEAD")
-	if got, err := OwnPaths(clean); err != nil || len(got) != 0 {
+	if got, err := here.OwnPaths(clean); err != nil || len(got) != 0 {
 		t.Fatalf("a clean merge's own paths = %q, %v", got, err)
 	}
-	if got, err := Parents(clean); err != nil || len(got) != 2 || got[0] != main {
+	if got, err := here.Parents(clean); err != nil || len(got) != 2 || got[0] != main {
 		t.Fatalf("Parents = %q, %v, want main's first", got, err)
 	}
-	if got, err := Parents(gitIn(t, dir, "rev-list", "--max-parents=0", "HEAD")); err != nil || len(got) != 0 {
+	if got, err := here.Parents(gitIn(t, dir, "rev-list", "--max-parents=0", "HEAD")); err != nil || len(got) != 0 {
 		t.Fatalf("a root commit's Parents = %q, %v", got, err)
 	}
 
 	gitIn(t, dir, "reset", "-q", "--hard", main)
 	gitIn(t, dir, "merge", "-q", "--no-ff", "--no-commit", "topic")
-	if got := MergeHeads(); len(got) != 1 || got[0] != gitIn(t, dir, "rev-parse", "topic") {
+	if got := here.MergeHeads(); len(got) != 1 || got[0] != gitIn(t, dir, "rev-parse", "topic") {
 		t.Fatalf("MergeHeads = %q", got)
 	}
-	parents := append([]string{main}, MergeHeads()...)
-	if got, err := StagedOwnPaths(parents); err != nil || len(got) != 0 {
+	parents := append([]string{main}, here.MergeHeads()...)
+	if got, err := here.StagedOwnPaths(parents); err != nil || len(got) != 0 {
 		t.Fatalf("the clean merge being made's own paths = %q, %v", got, err)
 	}
 	write("new.js", "new\n")
@@ -62,20 +62,20 @@ func TestOwnPaths(t *testing.T) {
 	write("f", strings.Replace(strings.Replace(lines, "2\n", "two\n", 1), "9\n", "nine\n5½\n", 1))
 	gitIn(t, dir, "add", "new.js", "señal.md", "f")
 	want := []string{"f", "new.js", "señal.md"}
-	if got, err := StagedOwnPaths(parents); err != nil || !slices.Equal(got, want) {
+	if got, err := here.StagedOwnPaths(parents); err != nil || !slices.Equal(got, want) {
 		t.Fatalf("the merge being made's own paths = %q, %v, want %q", got, err, want)
 	}
 	gitIn(t, dir, "commit", "-q", "-m", "Merge branch 'topic'")
-	if got := MergeHeads(); len(got) != 0 {
+	if got := here.MergeHeads(); len(got) != 0 {
 		t.Fatalf("MergeHeads after the commit = %q", got)
 	}
-	if got, err := OwnPaths(gitIn(t, dir, "rev-parse", "HEAD")); err != nil || !slices.Equal(got, want) {
+	if got, err := here.OwnPaths(gitIn(t, dir, "rev-parse", "HEAD")); err != nil || !slices.Equal(got, want) {
 		t.Fatalf("the merge's own paths = %q, %v, want %q", got, err, want)
 	}
 
 	gitIn(t, dir, "reset", "-q", "--hard", main)
 	gitIn(t, dir, "merge", "-q", "--no-ff", "-s", "ours", "-m", "Merge branch 'topic'", "topic")
-	if got, err := OwnPaths(gitIn(t, dir, "rev-parse", "HEAD")); err != nil || len(got) != 0 {
+	if got, err := here.OwnPaths(gitIn(t, dir, "rev-parse", "HEAD")); err != nil || len(got) != 0 {
 		t.Fatalf("a merge that keeps one side's tree has own paths %q, %v", got, err)
 	}
 }

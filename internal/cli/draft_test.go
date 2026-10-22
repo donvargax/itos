@@ -23,7 +23,7 @@ func editDraft(t *testing.T) (string, draft.Draft) {
 		{"add", "notes.md"},
 		{"-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "--no-verify", "-m", "docs: add notes"},
 	} {
-		if out, err := exec.Command(git.Bin(), append([]string{"-C", dir}, args...)...).CombinedOutput(); err != nil {
+		if out, err := exec.Command(git.Bin(runtime.GOOS), append([]string{"-C", dir}, args...)...).CombinedOutput(); err != nil {
 			t.Fatalf("git %s: %s", strings.Join(args, " "), out)
 		}
 	}
@@ -92,7 +92,7 @@ func changedNotes(t *testing.T) (file, itosDir string) {
 	}
 	writeFile(t, filepath.Join(dir, "notes.md"), "Old.\n")
 	for _, args := range [][]string{{"add", "notes.md"}, {"commit", "-q", "--no-verify", "-m", "docs: add notes"}} {
-		if out, err := exec.Command(git.Bin(), append([]string{"-C", dir}, args...)...).CombinedOutput(); err != nil {
+		if out, err := exec.Command(git.Bin(runtime.GOOS), append([]string{"-C", dir}, args...)...).CombinedOutput(); err != nil {
 			t.Fatalf("git %s: %s", strings.Join(args, " "), out)
 		}
 	}
@@ -138,14 +138,14 @@ func TestDraftAddRefusals(t *testing.T) {
 }
 
 // The drafts' file is in the folder git names as the common one; where git
-// cannot name it, failing even after it printed one, there is none, and
-// draft and draft promote say they need a git repository, exit 3.
+// cannot name it, there is none, and draft and draft promote say they need
+// a git repository, exit 3.
 func TestDraftsFileIsWhereGitSays(t *testing.T) {
 	changedNotes(t)
 	if got := draftsFile(); !strings.HasSuffix(got, filepath.Join("itos", draft.Folder, draft.FileName)) {
 		t.Errorf("draftsFile = %q", got)
 	}
-	useWrappedGit(t, "", "rev-parse --path-format=absolute --git-common-dir", "fail")
+	useWrappedGit(t, "rev-parse", "", "")
 	if got := draftsFile(); got != "" {
 		t.Errorf("draftsFile of a git that failed = %q", got)
 	}

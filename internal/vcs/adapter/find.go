@@ -17,9 +17,12 @@ var abs = filepath.Abs
 // folder with a .git, or the first that is a git folder itself (no work
 // tree then). Symbolic links in dir are resolved first, as git's working
 // folder is the physical one.
-func (Git) Find(_ context.Context, dir string) (port.Location, bool) {
+func (g Git) Find(_ context.Context, dir string) (port.Location, bool) {
 	if dir == "" {
 		dir = "."
+	}
+	if !filepath.IsAbs(dir) {
+		dir = filepath.Join(g.Dir, dir)
 	}
 	d, err := abs(dir)
 	if err != nil {

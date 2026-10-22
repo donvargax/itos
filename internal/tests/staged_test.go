@@ -3,6 +3,7 @@ package tests
 import (
 	"os"
 	"os/exec"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -53,7 +54,7 @@ func TestStagesTestFileCommand(t *testing.T) {
 	t.Chdir(dir)
 	run := func(args ...string) {
 		t.Helper()
-		out, err := exec.Command(git.Bin(), append([]string{"-c", "user.name=t", "-c", "user.email=t@t"}, args...)...).CombinedOutput()
+		out, err := exec.Command(git.Bin(runtime.GOOS), append([]string{"-c", "user.name=t", "-c", "user.email=t@t"}, args...)...).CombinedOutput()
 		if err != nil {
 			t.Fatalf("git %s: %s", strings.Join(args, " "), out)
 		}

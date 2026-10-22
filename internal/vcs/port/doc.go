@@ -6,13 +6,20 @@
 // stores' ports (internal/store/<store>/port).
 //
 // It holds locating the repository (Locate, and Find, which the git shim
-// asks on every command and so reads files alone), resolving a revision to
-// its commit, ancestry (IsAncestor, Parent, Parents, FirstParents) and
-// ranges (Range: Commits, Readable, UnpushedBase), commits as a log reads
-// them (Entry: Show, Log, with the itos note of NotesRef) and the comment
-// character, changed paths (a commit's, a merge's own, between two commits,
-// a range's, the index's) and the work tree's state (Changes, PathStatus,
-// Tracked, Conflicted, Rebasing, MergeHeads, Branch). The rest of what itos
-// asks of git (committing, the remote, hooks) joins it operation group by
-// operation group.
+// asks on every command and so reads files alone) and making one (Init),
+// resolving a revision to its commit, ancestry (IsAncestor, Parent,
+// Parents, FirstParents) and ranges (Range: Commits, Readable,
+// UnpushedBase), commits as a log reads them (Entry: Show, Log, with the
+// itos note of NotesRef) and the comment character, changed paths (a
+// commit's, a merge's own, between two commits, a range's, the index's)
+// and the work tree's state (Changes, PathStatus, Tracked, Conflicted,
+// Rebasing, MergeHeads, Branch, NotIgnored); the files at a tree (File,
+// Files, Texts, Index the index's), a commit's patch (Patch, Shown) and the
+// refs (Ref, Refs); the remote (Upstream, Remotes, RemoteURL, RemoteRefs,
+// Fetch, Push, Rebase), whose failures are a Failed with its Failure; and
+// committing (Commit, Add, Unstage, Untrack, Restore, Note, and CommitFile,
+// a commit outside every branch, as the ID counter makes one). A command
+// that may talk to the person runs as its Talk says. What is git's alone
+// (its config and the hooks it declares, a draft's patch plumbing, finding
+// the real git) is the adapter's, beside the port.
 package port

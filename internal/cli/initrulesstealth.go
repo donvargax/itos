@@ -37,8 +37,6 @@ import (
 	"strings"
 
 	"github.com/donvargax/itos/v8/internal/config"
-	"github.com/donvargax/itos/v8/internal/git"
-	"github.com/donvargax/itos/v8/internal/value"
 	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
 )
 
@@ -85,11 +83,11 @@ type stealthRules struct {
 // readStealthRules reads the files of the stealth rules, from the
 // worktree's top; markers out of order are an error, as in AGENTS.md.
 func readStealthRules() (*stealthRules, error) {
-	common, err := git.Read("rev-parse", "--git-common-dir")
+	l, err := (vcs.Git{}).Locate(context.Background(), "")
 	if err != nil {
 		return nil, err
 	}
-	disk := filepath.Join(value.Trim(common), config.StealthFolder, agentsFile)
+	disk := filepath.Join(l.Common, config.StealthFolder, agentsFile)
 	s := &stealthRules{importPath: filepath.ToSlash(disk)}
 	read := func(t *stealthTarget, path, disk string, top bool) error {
 		t.path, t.disk, t.top = path, disk, top

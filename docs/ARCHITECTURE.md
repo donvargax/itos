@@ -48,8 +48,8 @@ itos ──────────────────┴─> cmd/itos ─>
    except, in a repository itos manages, `git commit` and `git push`, which
    become `itos git-shim run`, and a `git add` staging more than the files it
    names, which it refuses.
-2. **The real git** (`internal/git`): `git.Export` sets `ITOS_GIT`, so nothing
-   the run starts reaches the shim again.
+2. **The real git** (`internal/vcs`): `Export` sets `ITOS_GIT`, so
+   nothing the run starts reaches the shim again.
 3. **The launcher** (`internal/launch`): runs the release a repository pins,
    fetched into a cache and checked against the pin's checksums, in its own
    place, or runs itself ([ADR-0024]). A global itos is this launcher.
@@ -107,7 +107,8 @@ What every command meets:
   footer's `source`, never its key), feature files (the Gherkin adapter), the
   config (`config.Load`), a commit's type (`message.Type`), a run of named
   tests (`tests.CommandFor`).
-- **Every git is the real git**, `git.Bin()`, via `internal/vcs`. Paths are read NUL-separated,
+- **Every git is the real git**, run by `internal/vcs/adapter` alone.
+  Paths are read NUL-separated,
   changes with `--no-renames` and no type filtered out, so the hook, verify
   and the plan agree on what a commit touches; a merge is judged by its own
   changes.

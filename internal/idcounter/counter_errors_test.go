@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/donvargax/itos/v8/internal/git"
+	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
 )
 
 const (
@@ -43,7 +44,7 @@ func runFailingGit(failing string) int {
 // real git for the rest.
 func failGit(t *testing.T, subcommand string) {
 	t.Helper()
-	realGit, err := git.Real()
+	realGit, err := git.Real(runtime.GOOS)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -87,7 +88,7 @@ func TestMintRemoteReturnsNoNumberWhenGitFails(t *testing.T) {
 		t.Run(tc.subcommand, func(t *testing.T) {
 			root, remote := counterRemote(t, "3\n")
 			failGit(t, tc.subcommand)
-			n, err := Mint(Store{Root: root, Remote: "origin"}, "slice", 0)
+			n, err := Mint(Store{Root: root, VCS: vcs.Git{Platform: runtime.GOOS, Dir: root}, Remote: "origin"}, "slice", 0)
 			if n != 0 || err == nil || !strings.Contains(err.Error(), tc.want) ||
 				!strings.Contains(err.Error(), "injected git failure") {
 				t.Fatalf("Mint = (%d, %v), want (0, %q error)", n, err, tc.want)
@@ -103,7 +104,7 @@ func TestMintRemoteReturnsNoNumberWhenGitFails(t *testing.T) {
 // Zero is a counter a remote may hold: the next reservation follows it.
 func TestMintRemoteAcceptsAZeroCounter(t *testing.T) {
 	root, remote := counterRemote(t, "0\n")
-	n, err := Mint(Store{Root: root, Remote: "origin"}, "slice", 0)
+	n, err := Mint(Store{Root: root, VCS: vcs.Git{Platform: runtime.GOOS, Dir: root}, Remote: "origin"}, "slice", 0)
 	if err != nil || n != 1 {
 		t.Fatalf("Mint = (%d, %v), want (1, nil)", n, err)
 	}
@@ -119,7 +120,7 @@ func TestMintRemoteReturnsNoNumberWhenTheFirstCounterCommitFails(t *testing.T) {
 	root, remote := counterRemote(t, "")
 	gitRun(t, remote, "update-ref", "-d", "refs/itos/ids")
 	failGit(t, "read-tree")
-	n, err := Mint(Store{Root: root, Remote: "origin"}, "slice", 0)
+	n, err := Mint(Store{Root: root, VCS: vcs.Git{Platform: runtime.GOOS, Dir: root}, Remote: "origin"}, "slice", 0)
 	if n != 0 || err == nil || !strings.Contains(err.Error(), "build id counter commit") ||
 		!strings.Contains(err.Error(), "injected git failure") {
 		t.Fatalf("Mint = (%d, %v), want (0, build id counter commit error)", n, err)
@@ -139,7 +140,7 @@ func TestCounterCommitStopsWhereItsIndexCannotBeMade(t *testing.T) {
 	for _, name := range []string{"TMPDIR", "TMP", "TEMP"} {
 		t.Setenv(name, missing)
 	}
-	if commit, err := counterCommit(root, "", "slice", 1); commit != "" || err == nil {
+	if commit, err := counterCommit(t.Context(), vcs.Git{Platform: runtime.GOOS, Dir: root}, "", "slice", 1); commit != "" || err == nil {
 		t.Fatalf("counterCommit = (%q, %v), want an error", commit, err)
 	}
 }

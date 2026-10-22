@@ -22,8 +22,8 @@ import (
 )
 
 // Parents are a commit's parents, the first first; none for a root commit.
-func Parents(sha string) ([]string, error) {
-	out, err := Read("rev-list", "--parents", "-n", "1", sha)
+func (r Runner) Parents(sha string) ([]string, error) {
+	out, err := r.Read("rev-list", "--parents", "-n", "1", sha)
 	if err != nil {
 		return nil, err
 	}
@@ -37,12 +37,12 @@ func Parents(sha string) ([]string, error) {
 // MergeHeads are the commits a merge in progress brings into HEAD, as git
 // keeps them in MERGE_HEAD until the merge is committed or aborted; none
 // when no merge is in progress.
-func MergeHeads() []string {
-	file, err := Output("rev-parse", "--git-path", "MERGE_HEAD")
+func (r Runner) MergeHeads() []string {
+	file, err := r.Output("rev-parse", "--git-path", "MERGE_HEAD")
 	if err != nil {
 		return nil
 	}
-	text, err := os.ReadFile(strings.TrimSpace(file))
+	text, err := os.ReadFile(r.in(file))
 	if err != nil {
 		return nil
 	}
@@ -55,8 +55,8 @@ const combinedHeader = "diff --cc "
 // OwnPaths are the paths a merge commit changes of its own: those its dense
 // combined diff has a hunk in, in git's order. A path git quotes (a quote, a
 // backslash, a control character or a byte above ASCII in it) is unquoted.
-func OwnPaths(merge string) ([]string, error) {
-	out, err := Read("diff-tree", "--cc", "--no-commit-id", merge)
+func (r Runner) OwnPaths(merge string) ([]string, error) {
+	out, err := r.Read("diff-tree", "--cc", "--no-commit-id", merge)
 	if err != nil {
 		return nil, err
 	}
@@ -82,8 +82,8 @@ func OwnPaths(merge string) ([]string, error) {
 // that commit's own paths, so that the hook and verify judge a merge by one
 // reading. The commit, which nothing keeps, is made as itos (where git's
 // environment names no one) and never signed.
-func StagedOwnPaths(parents []string) ([]string, error) {
-	tree, err := Read("write-tree")
+func (r Runner) StagedOwnPaths(parents []string) ([]string, error) {
+	tree, err := r.Read("write-tree")
 	if err != nil {
 		return nil, err
 	}
@@ -92,9 +92,9 @@ func StagedOwnPaths(parents []string) ([]string, error) {
 	for _, p := range parents {
 		args = append(args, "-p", p)
 	}
-	sha, err := Read(args...)
+	sha, err := r.Read(args...)
 	if err != nil {
 		return nil, err
 	}
-	return OwnPaths(strings.TrimSpace(sha))
+	return r.OwnPaths(strings.TrimSpace(sha))
 }

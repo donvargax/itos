@@ -32,12 +32,10 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
 	"strings"
 	"time"
 
 	"github.com/donvargax/itos/v8/internal/config"
-	"github.com/donvargax/itos/v8/internal/git"
 	"github.com/donvargax/itos/v8/internal/kind"
 	"github.com/donvargax/itos/v8/internal/out"
 	"github.com/donvargax/itos/v8/internal/providers"
@@ -87,7 +85,7 @@ const giveUp = 6
 // for a commit pushed to remote: ok is false when the provider is none.
 // With no config there is nothing to watch with, as with none.
 func watcher(cfg *config.Loaded, remote string, o Out) (providers.Watcher, bool, error) {
-	remoteURL, _ := git.Output("remote", "get-url", remote)
+	remoteURL, _ := cfg.VCS.RemoteURL(context.Background(), remote)
 	return providers.WatchProvider(cfg, providers.WatchSetup{
 		Env:       os.Getenv,
 		RemoteURL: strings.TrimSpace(remoteURL),
@@ -259,7 +257,7 @@ func covering(runs providers.Runs, branch, sha, remote string, cancelled *provid
 		}
 		if r.HeadSHA != sha && !fetched && !hasCommit(ctx, v, r.HeadSHA) {
 			fetched = true
-			fetchQuietly(remote)
+			fetchQuietly(v, remote)
 		}
 		if r.HeadSHA == sha || v.IsAncestor(ctx, sha, r.HeadSHA) {
 			return r, true, nil
@@ -277,15 +275,13 @@ func hasCommit(ctx context.Context, v vcsport.VCS, rev string) bool {
 // fetchQuietly fetches the remote's branches, never prompting for
 // credentials, within lsRemoteTimeout; a fetch that fails leaves the clone as
 // it was.
-func fetchQuietly(remote string) {
+func fetchQuietly(v vcsport.VCS, remote string) {
 	if remote == "" {
 		return
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), lsRemoteTimeout)
 	defer cancel()
-	cmd := exec.CommandContext(ctx, git.Bin(), "fetch", "-q", remote)
-	cmd.Env = append(os.Environ(), "GIT_TERMINAL_PROMPT=0")
-	_ = cmd.Run()
+	_, _ = v.Fetch(ctx, remote, "", vcsport.Talk{NoPrompt: true})
 }
 
 // ended is the watch of a run that completed: 0 when it succeeded, else 1,
@@ -336,7 +332,7 @@ func ciWatch(args []string, o Out) (int, error) {
 	}
 	remote := "origin"
 	if branch := v.Branch(ctx); branch != "" {
-		remote, _, _ = git.Upstream(branch)
+		remote, _, _ = v.Upstream(ctx, branch)
 	}
 	wr, ok, err := watcher(cfg, remote, o)
 	if err != nil {

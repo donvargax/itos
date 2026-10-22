@@ -108,21 +108,21 @@ func TestStatusRegistryChanged(t *testing.T) {
 // head nor its CI run is read.
 func TestStatusRemoteUnreached(t *testing.T) {
 	statusRepo(t, map[string]string{"work-items.yaml": items("one"), "people.yaml": "- a\n"})
-	gitIn(t, "remote", "add", "origin", filepath.Join(t.TempDir(), "gone.git"))
 	cfg, err := loadConfig()
 	if err != nil {
 		t.Fatal(err)
 	}
 	fetched := strings.Repeat("f", 40)
-	cfg.VCS = porttest.VCS{History: []porttest.Commit{{Name: fetched, Message: "feat: fetched\n\nIts body.\n"}},
-		Refs: map[string]string{"refs/remotes/origin/main": fetched}}
+	down := map[string]*porttest.Remote{"origin": {URL: "https://example.invalid/o/n", Down: true}}
+	cfg.VCS = &porttest.VCS{History: []porttest.Commit{{Name: fetched, Message: "feat: fetched\n\nIts body.\n"}},
+		Named: map[string]string{"refs/remotes/origin/main": fetched}, Remote: down}
 	st := &standing{}
 	st.readBranch(cfg, "origin", "refs/heads/main", "main", Out{})
 	if h := st.Head; h == nil || h.Commit != fetched || !h.LastFetched || h.Header != "feat: fetched" ||
 		len(st.Unread) == 0 || st.Unread[0] != "origin cannot be reached, so its main is as last fetched." {
 		t.Errorf("last fetched: head %+v, unread %q", st.Head, st.Unread)
 	}
-	cfg.VCS = porttest.VCS{}
+	cfg.VCS = &porttest.VCS{Remote: down}
 	st = &standing{}
 	st.readBranch(cfg, "origin", "refs/heads/main", "main", Out{})
 	want := "origin cannot be reached and origin/main was never fetched, so neither its head nor its CI run is read."

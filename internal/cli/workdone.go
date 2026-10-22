@@ -44,7 +44,6 @@ import (
 
 	"github.com/donvargax/itos/v8/internal/check"
 	"github.com/donvargax/itos/v8/internal/config"
-	"github.com/donvargax/itos/v8/internal/git"
 	"github.com/donvargax/itos/v8/internal/ledger"
 	"github.com/donvargax/itos/v8/internal/message"
 	"github.com/donvargax/itos/v8/internal/out"
@@ -295,7 +294,7 @@ func unpushed(v vcsport.VCS, id string, j doneCommit, o Out) []out.Problem {
 	if j.sha == "" {
 		return nil
 	}
-	if remotes, err := git.Output("remote"); err == nil && strings.TrimSpace(remotes) == "" {
+	if remotes, err := v.Remotes(context.Background()); err == nil && len(remotes) == 0 {
 		fmt.Fprintln(o.Stderr, "itos: the repository has no remote, so whether its commits are pushed was not checked")
 		return nil
 	}
@@ -387,7 +386,7 @@ func landedCI(cfg *config.Loaded, id string, j doneCommit, o Out) (watched, int,
 	remote, branch := "origin", ""
 	if local := cfg.VCS.Branch(context.Background()); local != "" {
 		var ref string
-		remote, ref, _ = git.Upstream(local)
+		remote, ref, _ = cfg.VCS.Upstream(context.Background(), local)
 		branch = strings.TrimPrefix(ref, "refs/heads/")
 	}
 	w := watched{code: ExitMissing, outcome: "error"}

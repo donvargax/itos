@@ -12,8 +12,8 @@ import (
 )
 
 // Branch is the branch HEAD is on, its short name; "" when HEAD is detached.
-func Branch() string {
-	out, err := Output("symbolic-ref", "--quiet", "--short", "HEAD")
+func (r Runner) Branch() string {
+	out, err := r.Output("symbolic-ref", "--quiet", "--short", "HEAD")
 	if err != nil {
 		return ""
 	}
@@ -24,9 +24,9 @@ func Branch() string {
 // remote and the remote branch it merges (branch.<name>.remote and
 // branch.<name>.merge), else origin and refs/heads/<name>; set is whether
 // the branch has an upstream of its own.
-func Upstream(branch string) (remote, ref string, set bool) {
-	remote = strings.TrimSpace(config("branch." + branch + ".remote"))
-	ref = strings.TrimSpace(config("branch." + branch + ".merge"))
+func (r Runner) Upstream(branch string) (remote, ref string, set bool) {
+	remote = strings.TrimSpace(r.config("branch." + branch + ".remote"))
+	ref = strings.TrimSpace(r.config("branch." + branch + ".merge"))
 	if remote != "" && ref != "" {
 		return remote, ref, true
 	}
@@ -34,8 +34,8 @@ func Upstream(branch string) (remote, ref string, set bool) {
 }
 
 // config is a git config value, "" when it is not set.
-func config(key string) string {
-	out, _ := Output("config", "--get", key)
+func (r Runner) config(key string) string {
+	out, _ := r.Output("config", "--get", key)
 	return out
 }
 
@@ -44,9 +44,9 @@ func config(key string) string {
 // NUL-separated, where a rename or a copy names its new path and then its
 // old one, which the line puts first (`R  old -> new`); untracked files are
 // not among them.
-func Changed() []string {
-	out, _ := Output("status", "-z", "--porcelain", "--untracked-files=no")
-	entries := splitNUL(out)
+func (r Runner) Changed() []string {
+	out, _ := r.Output("status", "-z", "--porcelain", "--untracked-files=no")
+	entries := SplitNUL(out)
 	var lines []string
 	for i := 0; i < len(entries); i++ {
 		line := entries[i]
@@ -61,13 +61,13 @@ func Changed() []string {
 
 // Rebasing is whether a rebase is in progress: git keeps its state in
 // rebase-merge or rebase-apply in the git folder until it ends.
-func Rebasing() bool {
+func (r Runner) Rebasing() bool {
 	for _, name := range []string{"rebase-merge", "rebase-apply"} {
-		dir, err := Output("rev-parse", "--git-path", name)
+		dir, err := r.Output("rev-parse", "--git-path", name)
 		if err != nil {
 			continue
 		}
-		if info, err := os.Stat(strings.TrimSpace(dir)); err == nil && info.IsDir() {
+		if info, err := os.Stat(r.in(dir)); err == nil && info.IsDir() {
 			return true
 		}
 	}
@@ -75,7 +75,7 @@ func Rebasing() bool {
 }
 
 // Conflicted are the paths a merge or a rebase left unmerged.
-func Conflicted() []string {
-	lines, _ := Paths("diff", "--name-only", "--diff-filter=U")
+func (r Runner) Conflicted() []string {
+	lines, _ := r.Paths("diff", "--name-only", "--diff-filter=U")
 	return lines
 }

@@ -1,26 +1,21 @@
 package adapter
 
 import (
-	"bufio"
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"os"
-	"os/exec"
 	"path"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"syscall"
 
-	"github.com/donvargax/itos/v8/internal/git"
 	"github.com/donvargax/itos/v8/internal/store/tree/port"
+	vcs "github.com/donvargax/itos/v8/internal/vcs/port"
 )
 
-// Trees is the tree reader over the disk and git.
-type Trees struct{}
+// Trees is the tree reader over the disk and the VCS.
+type Trees struct{ VCS vcs.VCS }
 
 var _ port.Trees = Trees{}
 
@@ -59,15 +54,14 @@ func (worktree) List(_ context.Context, dir string) ([]string, error) {
 }
 
 // At is the source a tree names: the working tree for "worktree", else a tree
-// git holds, "index" for the staged tree or a commit. An error outside a
+// the VCS holds, "index" for the staged tree or a commit. An error outside a
 // repository.
-func (Trees) At(_ context.Context, tree string) (port.Source, error) {
+func (t Trees) At(ctx context.Context, tree string) (port.Source, error) {
 	if tree == "worktree" {
 		return Worktree, nil
 	}
-	out, err := git.Output("rev-parse", "--show-toplevel", "--path-format=absolute", "--git-common-dir")
-	lines := strings.Split(strings.TrimSpace(out), "\n")
-	if err != nil || len(lines) != 2 {
+	l, err := t.VCS.Locate(ctx, "")
+	if err != nil || l.Top == "" {
 		return nil, fmt.Errorf("%s cannot be read outside a git repository", tree)
 	}
 	cwd, err := os.Getwd()
@@ -78,12 +72,19 @@ func (Trees) At(_ context.Context, tree string) (port.Source, error) {
 	if real, err := filepath.EvalSymlinks(cwd); err == nil {
 		cwd = real
 	}
-	return gitTree{tree: tree, top: lines[0], common: filepath.Clean(lines[1]), cwd: cwd}, nil
+	common := l.Common
+	if !filepath.IsAbs(common) {
+		common = filepath.Join(cwd, common)
+	}
+	return gitTree{v: t.VCS, tree: tree, top: l.Top, common: filepath.Clean(common), cwd: cwd}, nil
 }
 
-// gitTree is a tree git holds: the index or a commit. common is the git
-// common dir, absolute.
-type gitTree struct{ tree, top, common, cwd string }
+// gitTree is a tree the VCS v holds: the index or a commit. common is the
+// git common dir, absolute.
+type gitTree struct {
+	v                      vcs.VCS
+	tree, top, common, cwd string
+}
 
 // aside is whether a path is in the git folder, which no tree git holds can
 // have: it is read from the file where it is.
@@ -117,28 +118,28 @@ func (t gitTree) inRepo(p string) string {
 	return filepath.ToSlash(rel)
 }
 
-// spec is a path as git show and cat-file take it: `:<path>` in the index,
-// `<commit>:<path>` in a commit.
-func (t gitTree) spec(p string) string {
-	if t.tree == "index" {
-		return ":" + t.inRepo(p)
+// at is the tree as the VCS names it: vcs.Index for "index".
+func at(tree string) string {
+	if tree == "index" {
+		return vcs.Index
 	}
-	return t.tree + ":" + t.inRepo(p)
+	return tree
 }
 
 func (t gitTree) Has(ctx context.Context, p string) bool {
 	if t.aside(p) {
 		return Worktree.Has(ctx, p)
 	}
-	return git.Succeeds("cat-file", "-e", t.spec(p))
+	_, ok, err := t.v.File(ctx, at(t.tree), t.inRepo(p))
+	return ok && err == nil
 }
 
 func (t gitTree) Read(ctx context.Context, p string) (string, error) {
 	if t.aside(p) {
 		return Worktree.Read(ctx, p)
 	}
-	text, err := git.Output("show", t.spec(p))
-	if err != nil {
+	text, ok, err := t.v.File(ctx, at(t.tree), t.inRepo(p))
+	if err != nil || !ok {
 		return "", fmt.Errorf("%s holds no %s", t.name(), p)
 	}
 	return text, nil
@@ -148,14 +149,14 @@ func (t gitTree) List(ctx context.Context, dir string) ([]string, error) {
 	if t.aside(dir) {
 		return Worktree.List(ctx, dir)
 	}
-	at := t.inRepo(dir)
-	listed, err := listTree(t.tree, at)
+	in := t.inRepo(dir)
+	listed, err := t.v.Files(ctx, at(t.tree), in)
 	if err != nil {
 		return nil, err
 	}
 	var files []string
 	for _, f := range listed {
-		if path.Dir(f) == path.Clean(at) {
+		if path.Dir(f) == path.Clean(in) {
 			files = append(files, path.Base(f))
 		}
 	}
@@ -165,91 +166,26 @@ func (t gitTree) List(ctx context.Context, dir string) ([]string, error) {
 	return files, nil
 }
 
-// listTree is the files git holds under a folder at a tree, as git names
-// them: read NUL-separated, so that a path git would quote is listed as it
-// is named (bug 31).
-func listTree(tree, dir string) ([]string, error) {
-	if tree == "index" {
-		return git.Paths("ls-files", "--cached", "--", dir)
-	}
-	return git.Paths("ls-tree", "-r", "--name-only", tree, "--", dir)
-}
-
-// Texts are the files of a tree git holds under a folder, "index" for the
-// staged tree or a commit, that keep accepts, as path to text, paths as git
-// gives them. A tree that cannot be read (no HEAD yet, no such commit) has
-// none. git cat-file reads them in one run, where the TypeScript runs git show
-// per file: the same texts, in a run per tree rather than per file.
-func (Trees) Texts(ctx context.Context, tree, dir string, keep func(string) bool) map[string]string {
-	listed, err := listTree(tree, dir)
+// Texts are the files of a tree the VCS holds under a folder, "index" for
+// the staged tree or a commit, that keep accepts, as path to text, paths as
+// the VCS gives them. A tree that cannot be read (no HEAD yet, no such
+// commit) has none.
+func (t Trees) Texts(ctx context.Context, tree, dir string, keep func(string) bool) map[string]string {
+	listed, err := t.VCS.Files(ctx, at(tree), dir)
 	if err != nil {
 		return map[string]string{}
 	}
-	spec := tree + ":"
-	if tree == "index" {
-		spec = ":"
-	}
-	texts := map[string]string{}
-	var paths []string
-	var specs bytes.Buffer
+	var kept []string
 	for _, f := range listed {
-		if !keep(f) {
-			continue
+		if keep(f) {
+			kept = append(kept, f)
 		}
-		// git cat-file --batch takes one name a line, a carriage return at
-		// its end dropped, so a path with a line break in it is read alone.
-		if strings.ContainsAny(f, "\r\n") {
-			text, err := git.Output("show", spec+f)
-			if err != nil {
-				return map[string]string{}
-			}
-			texts[f] = text
-			continue
-		}
-		paths = append(paths, f)
-		specs.WriteString(spec + f + "\n")
 	}
-	if len(paths) == 0 {
-		return texts
-	}
-	cmd := exec.CommandContext(ctx, git.Bin(), "cat-file", "--batch")
-	cmd.Stdin = &specs
-	out, err := cmd.Output()
+	texts, err := t.VCS.Texts(ctx, at(tree), kept)
 	if err != nil {
 		return map[string]string{}
-	}
-	r := bufio.NewReader(bytes.NewReader(out))
-	for _, p := range paths {
-		text, ok := batchEntry(r)
-		if !ok {
-			return map[string]string{}
-		}
-		texts[p] = text
 	}
 	return texts
-}
-
-// batchEntry is the next object of git cat-file --batch's output: its header
-// (`<sha> <type> <size>`), its contents and a line break; not ok when git
-// found no object, as git show would fail on it.
-func batchEntry(r *bufio.Reader) (string, bool) {
-	header, err := r.ReadString('\n')
-	if err != nil {
-		return "", false
-	}
-	fields := strings.Fields(header)
-	if len(fields) != 3 {
-		return "", false
-	}
-	size, err := strconv.Atoi(fields[2])
-	if err != nil {
-		return "", false
-	}
-	content := make([]byte, size+1)
-	if _, err := io.ReadFull(r, content); err != nil {
-		return "", false
-	}
-	return string(content[:size]), true
 }
 
 // nodeError is a failed file operation as Node reports it: the code, what it

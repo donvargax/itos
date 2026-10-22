@@ -35,7 +35,6 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/donvargax/itos/v8/internal/git"
 	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
 )
 
@@ -316,11 +315,11 @@ func excludeIfShown(p string) (bool, error) {
 	if err != nil || len(status) == 0 || !strings.HasPrefix(status[0], "?? ") {
 		return false, err
 	}
-	file, err := git.Read("rev-parse", "--git-path", "info/exclude")
+	l, err := (vcs.Git{}).Locate(context.Background(), "")
 	if err != nil {
 		return false, err
 	}
-	file = strings.TrimSpace(file)
+	file := filepath.Join(l.Common, "info", "exclude")
 	text, _ := readIf(file)
 	if text != "" && !strings.HasSuffix(text, "\n") {
 		text += "\n"

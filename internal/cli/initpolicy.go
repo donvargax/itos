@@ -52,7 +52,6 @@ import (
 	"strings"
 
 	"github.com/donvargax/itos/v8/internal/config"
-	"github.com/donvargax/itos/v8/internal/git"
 	"github.com/donvargax/itos/v8/internal/ledger"
 	"github.com/donvargax/itos/v8/internal/out"
 	"github.com/donvargax/itos/v8/internal/release"
@@ -178,7 +177,7 @@ func policyPlanned(policy string, stealth bool, origin string) (policyPlan, *pol
 		return plan, nil, &config.Error{File: policy, Problems: []out.Problem{{Rule: "config-unreadable",
 			Message: "cannot be read: " + err.Error(), Fix: "name the itos config whose policy the project takes"}}}
 	}
-	src, err := config.FromText(vcs.Git{}, trees.Trees{}, trees.Worktree, policy, string(text), false)
+	src, err := config.FromText(vcs.Git{}, trees.Trees{VCS: vcs.Git{}}, trees.Worktree, policy, string(text), false)
 	if err != nil {
 		return plan, nil, err
 	}
@@ -188,8 +187,8 @@ func policyPlanned(policy string, stealth bool, origin string) (policyPlan, *pol
 	found, common := "", ".git"
 	if plan.inRepo {
 		found = configPath()
-		if out, err := git.Output("rev-parse", "--git-common-dir"); err == nil {
-			common = value.Trim(out)
+		if l, err := (vcs.Git{}).Locate(context.Background(), ""); err == nil {
+			common = l.Common
 		}
 		if head, err := (vcs.Git{}).Resolve(context.Background(), "HEAD"); err == nil {
 			plan.since = head
@@ -327,7 +326,7 @@ func policyConfig(policy, text string, src *config.Loaded, plan policyPlan) (*co
 	for _, section := range tail {
 		made += nl + strings.ReplaceAll(section, "\n", nl)
 	}
-	cfg, err := config.FromText(vcs.Git{}, trees.Trees{}, trees.Worktree, plan.file, made, plan.stealth)
+	cfg, err := config.FromText(vcs.Git{}, trees.Trees{VCS: vcs.Git{}}, trees.Worktree, plan.file, made, plan.stealth)
 	return cfg, made, err
 }
 

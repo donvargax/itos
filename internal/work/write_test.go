@@ -6,6 +6,8 @@ import (
 	"strings"
 	"testing"
 
+	vcsgit "github.com/donvargax/itos/v8/internal/vcs/adapter"
+
 	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/store/tree/adapter"
 	"github.com/donvargax/itos/v8/internal/value"
@@ -272,7 +274,7 @@ func addConfigWith(t *testing.T, work string) *config.Loaded {
 	if err := os.WriteFile("itos.yaml", []byte("version: 1\nwork: { "+work+"registry: work-items.yaml }\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	cfg, err := config.Load(vcs.Git{}, adapter.Trees{}, adapter.Worktree, "itos.yaml")
+	cfg, err := config.Load(vcs.Git{}, adapter.Trees{VCS: vcsgit.Git{}}, adapter.Worktree, "itos.yaml")
 	if err != nil {
 		t.Fatal(err)
 	}

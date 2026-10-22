@@ -7,8 +7,11 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
+
+	vcsgit "github.com/donvargax/itos/v8/internal/vcs/adapter"
 
 	"github.com/donvargax/itos/v8/internal/check"
 	"github.com/donvargax/itos/v8/internal/config"
@@ -26,7 +29,7 @@ func load(t *testing.T, text string) *config.Loaded {
 	if err := os.WriteFile(file, []byte(text), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	cfg, err := config.Load(vcs.Git{}, adapter.Trees{}, adapter.Worktree, file)
+	cfg, err := config.Load(vcs.Git{}, adapter.Trees{VCS: vcsgit.Git{}}, adapter.Worktree, file)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -414,7 +417,7 @@ func gitRange(t *testing.T) (from, to string) {
 	t.Chdir(t.TempDir())
 	run := func(args ...string) string {
 		t.Helper()
-		got, err := exec.Command(git.Bin(), args...).CombinedOutput()
+		got, err := exec.Command(git.Bin(runtime.GOOS), args...).CombinedOutput()
 		if err != nil {
 			t.Fatalf("git %s: %s", strings.Join(args, " "), got)
 		}

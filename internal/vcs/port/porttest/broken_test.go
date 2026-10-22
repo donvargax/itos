@@ -161,7 +161,7 @@ func (b broken) Changes(ctx context.Context) []string {
 	switch {
 	case b.fault == "changes unstaged only":
 		lines = slices.DeleteFunc(lines, func(l string) bool { return l[0] != ' ' })
-	case b.fault == "changes untracked listed" && b.Files != nil:
+	case b.fault == "changes untracked listed" && b.Work != nil:
 		lines = append(lines, "?? u.txt")
 	case b.fault == "changes of a clean tree" && len(lines) == 0:
 		lines = []string{"M  a.txt"}

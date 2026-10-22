@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -110,7 +111,7 @@ func (w *world) counterGitWrapper(barrier, name string) (string, error) {
 	marker := quote(barrier + "/" + name)
 	first := quote(barrier + "/first")
 	second := quote(barrier + "/second")
-	native := quote(filepath.ToSlash(git.Bin()))
+	native := quote(filepath.ToSlash(git.Bin(runtime.GOOS)))
 	script := fmt.Sprintf(`#!/bin/sh
 if [ "$1" = push ]; then
   mkdir -p %s
@@ -181,7 +182,7 @@ func (w *world) seedRemoteCounter(kind, id string) error {
 }
 
 func (w *world) remoteCounter(kind string) (string, error) {
-	cmd := exec.Command(git.Bin(), "show", "refs/itos/ids:counters/"+kind)
+	cmd := exec.Command(git.Bin(runtime.GOOS), "show", "refs/itos/ids:counters/"+kind)
 	cmd.Dir, cmd.Env = w.remote(), w.env()
 	out, err := cmd.Output()
 	if err != nil {
@@ -191,7 +192,7 @@ func (w *world) remoteCounter(kind string) (string, error) {
 }
 
 func (w *world) noLocalRef(ref string) error {
-	cmd := exec.Command(git.Bin(), "show-ref", "--verify", "--quiet", ref)
+	cmd := exec.Command(git.Bin(runtime.GOOS), "show-ref", "--verify", "--quiet", ref)
 	cmd.Dir, cmd.Env = w.dir, w.env()
 	if err := cmd.Run(); err == nil {
 		return fmt.Errorf("repository has ref %s", ref)
@@ -200,7 +201,7 @@ func (w *world) noLocalRef(ref string) error {
 }
 
 func (w *world) noRemoteRef(ref string) error {
-	cmd := exec.Command(git.Bin(), "show-ref", "--verify", "--quiet", ref)
+	cmd := exec.Command(git.Bin(runtime.GOOS), "show-ref", "--verify", "--quiet", ref)
 	cmd.Dir, cmd.Env = w.remote(), w.env()
 	if err := cmd.Run(); err == nil {
 		return fmt.Errorf("remote has ref %s", ref)

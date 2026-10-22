@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/donvargax/itos/v8/internal/git"
+	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
 )
 
 func TestMain(m *testing.M) {
@@ -19,7 +20,6 @@ func TestMain(m *testing.M) {
 		os.Exit(runFailingGit(failing))
 	}
 	clearGitEnvironment()
-	git.Platform = runtime.GOOS
 	os.Exit(m.Run())
 }
 
@@ -167,11 +167,11 @@ func TestCounterCommitIsUniqueForConcurrentSameNumberClaims(t *testing.T) {
 	gitRun(t, root, "init", "-q")
 	t.Setenv("GIT_AUTHOR_DATE", "2000-01-01T00:00:00Z")
 	t.Setenv("GIT_COMMITTER_DATE", "2000-01-01T00:00:00Z")
-	first, err := counterCommit(root, "", "slice", 1)
+	first, err := counterCommit(t.Context(), vcs.Git{Platform: runtime.GOOS, Dir: root}, "", "slice", 1)
 	if err != nil {
 		t.Fatal(err)
 	}
-	second, err := counterCommit(root, "", "slice", 1)
+	second, err := counterCommit(t.Context(), vcs.Git{Platform: runtime.GOOS, Dir: root}, "", "slice", 1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -186,7 +186,7 @@ func TestMintRemoteRejectsMissingRepositoryAndRemoteErrors(t *testing.T) {
 	}
 	root := t.TempDir()
 	gitRun(t, root, "init", "-q")
-	if n, err := mintRemote(Store{Root: root, Remote: "missing"}, "slice", 0, 1); err == nil || n != 0 {
+	if n, err := mintRemote(Store{Root: root, VCS: vcs.Git{Platform: runtime.GOOS, Dir: root}, Remote: "missing"}, "slice", 0, 1); err == nil || n != 0 {
 		t.Fatalf("mintRemote without remote = (%d, %v), want (0, error)", n, err)
 	}
 }
@@ -195,7 +195,7 @@ func TestMintRemoteReadsOnlyNonNegativeIntegerCounters(t *testing.T) {
 	for _, data := range []string{"not-an-integer\n", "-1\n"} {
 		t.Run(strings.TrimSpace(data), func(t *testing.T) {
 			root, remote := counterRemote(t, data)
-			n, err := Mint(Store{Root: root, Remote: "origin"}, "slice", 0)
+			n, err := Mint(Store{Root: root, VCS: vcs.Git{Platform: runtime.GOOS, Dir: root}, Remote: "origin"}, "slice", 0)
 			if n != 0 || err == nil || !strings.Contains(err.Error(), "not a non-negative integer") {
 				t.Fatalf("Mint = (%d, %v), want invalid-counter error", n, err)
 			}
@@ -208,7 +208,7 @@ func TestMintRemoteReadsOnlyNonNegativeIntegerCounters(t *testing.T) {
 
 func TestMintRemoteTreatsMissingCategoryAsZero(t *testing.T) {
 	root, remote := counterRemote(t, "")
-	n, err := Mint(Store{Root: root, Remote: "origin"}, "slice", 0)
+	n, err := Mint(Store{Root: root, VCS: vcs.Git{Platform: runtime.GOOS, Dir: root}, Remote: "origin"}, "slice", 0)
 	if err != nil || n != 1 {
 		t.Fatalf("Mint = (%d, %v), want (1, nil)", n, err)
 	}
@@ -224,7 +224,7 @@ func TestMintRemoteStopsAfterSixteenNonFastForwardPushes(t *testing.T) {
 	root, remote := counterRemote(t, "")
 	base := filepath.Dir(remote)
 	pushes := filepath.Join(base, "pushes")
-	native, err := git.Real()
+	native, err := git.Real(runtime.GOOS)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -235,7 +235,7 @@ func TestMintRemoteStopsAfterSixteenNonFastForwardPushes(t *testing.T) {
 	}
 	t.Setenv("ITOS_GIT", wrapper)
 	t.Setenv("ITOS_COUNTER_TEST_PUSHES", pushes)
-	n, err := Mint(Store{Root: root, Remote: "origin"}, "slice", 0)
+	n, err := Mint(Store{Root: root, VCS: vcs.Git{Platform: runtime.GOOS, Dir: root}, Remote: "origin"}, "slice", 0)
 	if n != 0 || err == nil || !strings.Contains(err.Error(), "kept advancing") {
 		t.Fatalf("Mint = (%d, %v), want retry-exhaustion error", n, err)
 	}
@@ -274,7 +274,7 @@ func counterRemote(t *testing.T, sliceValue string) (root, remote string) {
 
 func gitAt(t *testing.T, dir string, args ...string) string {
 	t.Helper()
-	cmd := exec.Command(git.Bin(), args...)
+	cmd := exec.Command(git.Bin(runtime.GOOS), args...)
 	cmd.Dir = dir
 	cmd.Env = withoutGitIdentity(os.Environ())
 	cmd.Env = append(cmd.Env, "GIT_CONFIG_GLOBAL="+os.DevNull, "GIT_CONFIG_NOSYSTEM=1")
@@ -286,14 +286,6 @@ func gitAt(t *testing.T, dir string, args ...string) string {
 }
 
 func TestCounterErrorClassifiers(t *testing.T) {
-	for _, message := range []string{"object does not exist in tree", "path 'counters/slice' is missing"} {
-		if !missingPath(errors.New(message)) {
-			t.Errorf("missingPath(%q) = false", message)
-		}
-	}
-	if missingPath(errors.New("permission denied")) {
-		t.Error("missingPath classified permission denied as a missing path")
-	}
 	for _, message := range []string{"non-fast-forward", "fetch first", "stale info", "reference already exists"} {
 		if !nonFastForward(errors.New(message)) {
 			t.Errorf("nonFastForward(%q) = false", message)
@@ -332,7 +324,7 @@ func TestMintRemoteRetriesConcurrentFastForward(t *testing.T) {
 		root := filepath.Join(base, "clone-"+strconv.Itoa(i))
 		gitRun(t, base, "clone", "-q", remote, root)
 		gitIdentity(t, root)
-		stores[i] = Store{Root: root, CommonDir: filepath.Join(root, ".git"), Remote: "origin"}
+		stores[i] = Store{Root: root, VCS: vcs.Git{Platform: runtime.GOOS, Dir: root}, CommonDir: filepath.Join(root, ".git"), Remote: "origin"}
 	}
 	var wg sync.WaitGroup
 	got := make(chan int, len(stores))
@@ -361,7 +353,7 @@ func TestMintRemoteRetriesConcurrentFastForward(t *testing.T) {
 	if !seen[1] || !seen[2] {
 		t.Fatalf("concurrent reservations = %v, want 1 and 2", seen)
 	}
-	cmd := exec.Command(git.Bin(), "show", "refs/itos/ids:counters/slice")
+	cmd := exec.Command(git.Bin(runtime.GOOS), "show", "refs/itos/ids:counters/slice")
 	cmd.Dir = remote
 	data, err := cmd.Output()
 	if err != nil {
@@ -374,7 +366,7 @@ func TestMintRemoteRetriesConcurrentFastForward(t *testing.T) {
 
 func gitRun(t *testing.T, dir string, args ...string) {
 	t.Helper()
-	cmd := exec.Command(git.Bin(), args...)
+	cmd := exec.Command(git.Bin(runtime.GOOS), args...)
 	cmd.Dir = dir
 	cmd.Env = withoutGitIdentity(os.Environ())
 	cmd.Env = append(cmd.Env, "GIT_CONFIG_GLOBAL="+os.DevNull, "GIT_CONFIG_NOSYSTEM=1")

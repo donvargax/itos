@@ -4,6 +4,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -27,7 +28,7 @@ func notesRepo(t *testing.T) (dir, gitDir string) {
 		{"init", "-q", dir},
 		{"-C", dir, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "--allow-empty", "-m", "docs: start"},
 	} {
-		if out, err := exec.Command(git.Bin(), args...).CombinedOutput(); err != nil {
+		if out, err := exec.Command(git.Bin(runtime.GOOS), args...).CombinedOutput(); err != nil {
 			t.Fatalf("git %s: %s", strings.Join(args, " "), out)
 		}
 	}
@@ -51,7 +52,7 @@ func TestLocalNotesInALinkedWorktree(t *testing.T) {
 	dir, gitDir := notesRepo(t)
 	writeFile(t, filepath.Join(gitDir, "itos", "notes.md"), "Shared by every worktree.\n")
 	linked := filepath.Join(t.TempDir(), "linked")
-	if out, err := exec.Command(git.Bin(), "-C", dir, "worktree", "add", "-q", "--detach", linked).CombinedOutput(); err != nil {
+	if out, err := exec.Command(git.Bin(runtime.GOOS), "-C", dir, "worktree", "add", "-q", "--detach", linked).CombinedOutput(); err != nil {
 		t.Fatalf("git worktree add: %s", out)
 	}
 	t.Chdir(linked)

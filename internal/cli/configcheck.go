@@ -90,7 +90,7 @@ func judgedSmokeFindings(cfg *config.Loaded, judged func(name, file string) bool
 // read from src.
 func configFindings(src port.Source, ledgerFile string, ws *tests.Warnings) (int, []Found, []Found, []string, error) {
 	path := config.Path(vcs.Git{}, src)
-	cfg, err := config.Load(vcs.Git{}, trees.Trees{}, src, path)
+	cfg, err := config.Load(vcs.Git{}, trees.Trees{VCS: vcs.Git{}}, src, path)
 	var invalid *config.Error
 	if errors.As(err, &invalid) {
 		return 2, prefixed(invalid, "config"), nil, nil, nil

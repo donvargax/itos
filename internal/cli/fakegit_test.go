@@ -69,7 +69,7 @@ func wrappedGit(args []string) int {
 // wrappedGitThen).
 func useWrappedGit(t *testing.T, fails, after, then string) {
 	t.Helper()
-	real := git.Bin()
+	real := git.Bin(runtime.GOOS)
 	bin, err := os.Executable()
 	if err != nil {
 		t.Fatal(err)
@@ -104,7 +104,6 @@ func TestMain(m *testing.M) {
 	if os.Getenv(wrappedGitEnv) != "" {
 		os.Exit(wrappedGit(os.Args[1:]))
 	}
-	git.Platform = runtime.GOOS
 	os.Exit(m.Run())
 }
 

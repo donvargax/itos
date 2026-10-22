@@ -11,7 +11,6 @@ import (
 
 	"github.com/donvargax/itos/v8/internal/cli"
 	"github.com/donvargax/itos/v8/internal/config"
-	"github.com/donvargax/itos/v8/internal/git"
 	"github.com/donvargax/itos/v8/internal/launch"
 	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
 	"github.com/donvargax/itos/v8/internal/version"
@@ -40,12 +39,13 @@ var Commands = []string{"commit", "push"}
 // line, unless the itos they would be handed to is older than the shim
 // (tooOld). Otherwise it runs the real git with the arguments and gives its exit
 // code, done; on unix it does not return, git replacing this process. No git
-// on the PATH but itos is a missing environment, exit 3.
-func Main(args []string, stderr io.Writer) (itos []string, code int, done bool) {
-	real := git.Inherited()
+// on the PATH but itos is a missing environment, exit 3. v is the git
+// adapter, which finds the real git.
+func Main(args []string, stderr io.Writer, v vcs.Git) (itos []string, code int, done bool) {
+	real := v.Inherited()
 	under := real != ""
 	if !under {
-		p, err := git.Real()
+		p, err := v.Real()
 		if err != nil {
 			fmt.Fprintln(stderr, "itos: git runs itos's git shim here, and the PATH has no other git to run; "+
 				"install git, or remove the shim (itos git-shim uninstall)")
@@ -56,11 +56,11 @@ func Main(args []string, stderr io.Writer) (itos []string, code int, done bool) 
 	if line, ok := parse(args); ok && !under && !namedRepository() {
 		switch {
 		case slices.Contains(Staging, line.name):
-			if arg, what := sweeping(line.dir, line.rest); arg != "" && config.Managed(vcs.Git{}, line.dir) {
+			if arg, what := sweeping(line.dir, line.rest); arg != "" && config.Managed(v, line.dir) {
 				fmt.Fprintln(stderr, refuseAdd(line.name, arg, what))
 				return nil, 2, true
 			}
-		case itosCommand(line.name) && config.Managed(vcs.Git{}, line.dir):
+		case itosCommand(line.name) && config.Managed(v, line.dir):
 			back, err := line.enter()
 			if err != nil {
 				fmt.Fprintf(stderr, "itos: git -C %s: %s\n", line.dir, err)
@@ -190,5 +190,5 @@ func (l gitLine) configure(real string) {
 		}
 		_ = os.Setenv("GIT_CONFIG_COUNT", strconv.Itoa(n))
 	}
-	_ = os.Setenv(git.EnvGit, real)
+	_ = os.Setenv(vcs.EnvGit, real)
 }

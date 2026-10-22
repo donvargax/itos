@@ -222,7 +222,7 @@ func TestWorkAddPropagatesIDReservationFailures(t *testing.T) {
 	registryWriterRepo(t, "phases: { 1: null }\nitems: []\n")
 	useFailingGit(t)
 	code, err := workAdd([]string{"--kind", "slice", "--phase", "1", "--title", "Slice", "--why", "Because."}, Out{})
-	if code != 0 || err == nil || !strings.Contains(err.Error(), "exit status 1") {
+	if code != 0 || err == nil || !strings.Contains(err.Error(), "Command failed: git rev-parse") {
 		t.Fatalf("workAdd = (%d, %v), want exit code 0 and the injected Git command failure", code, err)
 	}
 }

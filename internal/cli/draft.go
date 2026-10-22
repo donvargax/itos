@@ -40,10 +40,10 @@ import (
 
 	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/draft"
-	"github.com/donvargax/itos/v8/internal/git"
 	"github.com/donvargax/itos/v8/internal/lock"
 	"github.com/donvargax/itos/v8/internal/out"
 	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
+	vcsport "github.com/donvargax/itos/v8/internal/vcs/port"
 )
 
 // draftTakes is what draft takes, as a usage error names it.
@@ -71,11 +71,32 @@ func draftCommand(args []string, o Out) (int, error) {
 // draftsFile is where the drafts are: drafts.yaml in the drafts folder of
 // itos's folder of the git common dir, "" outside a git repository.
 func draftsFile() string {
-	common, err := git.Output("rev-parse", "--path-format=absolute", "--git-common-dir")
-	if common = strings.TrimSpace(common); err != nil || common == "" {
+	common := absCommon(vcs.Git{})
+	if common == "" {
 		return ""
 	}
 	return filepath.Join(common, config.StealthFolder, draft.Folder, draft.FileName)
+}
+
+// absCommon is the git common dir v locates from the folder itos runs in,
+// absolute, the folder's links resolved as git resolves them; "" outside a
+// repository.
+func absCommon(v vcsport.VCS) string {
+	l, err := v.Locate(context.Background(), "")
+	if err != nil || l.Common == "" {
+		return ""
+	}
+	if filepath.IsAbs(l.Common) {
+		return l.Common
+	}
+	cwd, err := os.Getwd()
+	if err != nil {
+		return ""
+	}
+	if real, err := filepath.EvalSymlinks(cwd); err == nil {
+		cwd = real
+	}
+	return filepath.Join(cwd, l.Common)
 }
 
 // noRepository says draft needs a git repository, exit 3.
@@ -335,7 +356,7 @@ func draftEdit(args []string, o Out) (int, error) {
 	}
 	var folders []string
 	for _, p := range paths {
-		if e, ok := had[p]; p == "." || ok && e.kind != "blob" {
+		if e, ok := had[p]; p == "." || ok && e.Kind != "blob" {
 			folders = append(folders, p)
 		}
 	}
@@ -352,7 +373,7 @@ func draftEdit(args []string, o Out) (int, error) {
 	for i, p := range paths {
 		var content string
 		if e, ok := had[p]; ok {
-			if content, err = draftGit(draftGitEnv(), "cat-file", "blob", e.object); err != nil {
+			if content, err = (vcs.Git{}).Blob(context.Background(), e.Object); err != nil {
 				os.RemoveAll(copies)
 				return 0, fmt.Errorf("git cat-file blob HEAD:%s: %w", p, err)
 			}
@@ -386,24 +407,12 @@ func isAre(n int) string {
 	return "are"
 }
 
-// treeEntry is one entry of a tree as git ls-tree lists it.
-type treeEntry struct{ mode, kind, object string }
-
 // treeEntries are the commit's entries at the paths, named from the top: a
 // path it lacks is not among them.
-func treeEntries(commit string, paths []string) (map[string]treeEntry, error) {
-	listed, err := draftGit(draftGitEnv(), append([]string{"ls-tree", "-z", "--full-tree", commit, "--"}, paths...)...)
+func treeEntries(commit string, paths []string) (map[string]vcs.TreeEntry, error) {
+	entries, err := (vcs.Git{}).TreeEntries(context.Background(), commit, paths)
 	if err != nil {
 		return nil, fmt.Errorf("git ls-tree %s: %w", commit, err)
-	}
-	entries := map[string]treeEntry{}
-	for _, line := range splitNULs(listed) {
-		meta, name, ok := strings.Cut(line, "\t")
-		fields := strings.Fields(meta)
-		if !ok || len(fields) != 3 {
-			continue
-		}
-		entries[name] = treeEntry{mode: fields[0], kind: fields[1], object: fields[2]}
 	}
 	return entries, nil
 }
@@ -419,8 +428,8 @@ func editPatch(file string, d draft.Draft) (patch, why string, err error) {
 		return "", "", err
 	}
 	defer os.RemoveAll(scratch)
-	env := draftGitEnv("GIT_INDEX_FILE=" + filepath.Join(scratch, "index"))
-	if _, err := draftGit(env, "read-tree", d.Base); err != nil {
+	ctx, index := context.Background(), (vcs.Git{}).Scratch(filepath.Join(scratch, "index"))
+	if err := index.ReadTree(ctx, d.Base); err != nil {
 		return "", "the commit its copies were taken from, " + d.Base + ", is gone (" + oneLine(err.Error()) + ")", nil
 	}
 	had, err := treeEntries(d.Base, d.Paths)
@@ -433,7 +442,7 @@ func editPatch(file string, d draft.Draft) (patch, why string, err error) {
 		switch {
 		case errors.Is(err, fs.ErrNotExist):
 			if inBase {
-				if _, err := draftGit(env, "update-index", "--force-remove", "--", p); err != nil {
+				if err := index.Remove(ctx, p); err != nil {
 					return "", "", fmt.Errorf("git update-index --force-remove %s: %w", p, err)
 				}
 			}
@@ -443,20 +452,19 @@ func editPatch(file string, d draft.Draft) (patch, why string, err error) {
 		case !inBase && info.Size() == 0:
 			continue
 		}
-		object, err := draftGit(env, "hash-object", "-w", "--no-filters", "--", draft.Copy(file, d.ID, p))
+		object, err := index.Store(ctx, draft.Copy(file, d.ID, p))
 		if err != nil {
 			return "", "", fmt.Errorf("git hash-object %s's copy of %s: %w", d.ID, p, err)
 		}
 		mode := "100644"
 		if inBase {
-			mode = e.mode
+			mode = e.Mode
 		}
-		if _, err := draftGit(env, "update-index", "--add", "--cacheinfo", mode+","+strings.TrimSpace(object)+","+p); err != nil {
+		if err := index.Set(ctx, mode, object, p); err != nil {
 			return "", "", fmt.Errorf("git update-index --cacheinfo %s: %w", p, err)
 		}
 	}
-	text, err := draftGit(env, append([]string{"diff", "--cached", "--binary", "--full-index", "--no-renames", "--no-color",
-		"--no-ext-diff", d.Base, "--"}, d.Paths...)...)
+	text, err := index.Diff(ctx, d.Base, d.Paths)
 	if err != nil {
 		return "", "", fmt.Errorf("git diff --cached --binary: %w", err)
 	}
@@ -475,37 +483,17 @@ func editPatch(file string, d draft.Draft) (patch, why string, err error) {
 	return made.Name(), "", nil
 }
 
-// draftGitEnv is the environment draft's git commands run in: pathspecs
-// read literally, so a path is the file it names and never a pattern.
-func draftGitEnv(more ...string) []string {
-	return append(append(os.Environ(), "GIT_LITERAL_PATHSPECS=1"), more...)
-}
-
-// draftGit runs git in env, giving its stdout; its error says what git said
-// on stderr.
-func draftGit(env []string, args ...string) (string, error) {
-	var stdout, stderr strings.Builder
-	cmd := exec.Command(git.Bin(), args...)
-	cmd.Env = env
-	cmd.Stdout, cmd.Stderr = &stdout, &stderr
-	if err := cmd.Run(); err != nil {
-		var exit *exec.ExitError
-		if errors.As(err, &exit) {
-			return stdout.String(), fmt.Errorf("%s", strings.TrimSpace(stderr.String()))
-		}
-		return "", err
-	}
-	return stdout.String(), nil
-}
-
 // topPaths are the typed paths as the repository's top names them, with
 // itos at the top; a path outside the work tree is a usage error.
 func topPaths(command string, typedPaths []string, origin string) ([]string, error) {
-	top, err := git.Output("rev-parse", "--show-toplevel")
+	l, err := (vcs.Git{}).Locate(context.Background(), "")
+	if err == nil && l.Top == "" {
+		err = errors.New("no work tree")
+	}
 	if err != nil {
 		return nil, fmt.Errorf("the work tree's top cannot be read: %w", err)
 	}
-	top = strings.TrimSpace(top)
+	top := l.Top
 	if real, err := filepath.EvalSymlinks(top); err == nil {
 		top = real
 	}
@@ -544,7 +532,8 @@ func takeChange(file, id string, typedPaths []string, origin string) (paths, nam
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	if _, err := (vcs.Git{}).Resolve(context.Background(), "HEAD"); err != nil {
+	ctx, v := context.Background(), vcs.Git{}
+	if _, err := v.Resolve(ctx, "HEAD"); err != nil {
 		return nil, nil, &out.Problem{Rule: "draft-no-head", Message: "the repository has no commit yet, and a change is drafted against HEAD",
 			Fix: "commit something first"}, nil
 	}
@@ -553,25 +542,23 @@ func takeChange(file, id string, typedPaths []string, origin string) (paths, nam
 		return nil, nil, nil, err
 	}
 	defer os.RemoveAll(scratch)
-	env := draftGitEnv("GIT_INDEX_FILE=" + filepath.Join(scratch, "index"))
-	if _, err := draftGit(env, "read-tree", "HEAD"); err != nil {
+	index := v.Scratch(filepath.Join(scratch, "index"))
+	if err := index.ReadTree(ctx, "HEAD"); err != nil {
 		return nil, nil, nil, fmt.Errorf("git read-tree HEAD: %w", err)
 	}
-	if _, err := draftGit(env, append([]string{"add", "--all", "--"}, paths...)...); err != nil {
+	if err := index.AddAll(ctx, paths); err != nil {
 		return nil, nil, &out.Problem{Rule: "draft-paths", Message: fmt.Sprintf("%s cannot be drafted: %s", and(paths), err),
 			Fix: "name files the work tree or HEAD has, and git does not ignore"}, nil
 	}
-	listed, err := draftGit(env, append([]string{"diff", "--cached", "-z", "--name-only", "--no-renames", "HEAD", "--"}, paths...)...)
+	names, err = index.Changed(ctx, "HEAD", paths)
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("git diff --cached: %w", err)
 	}
-	names = splitNULs(listed)
 	if len(names) == 0 {
 		return nil, nil, &out.Problem{Rule: "draft-no-change", Message: fmt.Sprintf("%s has no change against HEAD to draft", and(paths)),
 			Fix: "change the files first, or draft a command line with -- <itos args>…"}, nil
 	}
-	patch, err := draftGit(env, append([]string{"diff", "--cached", "--binary", "--full-index", "--no-renames", "--no-color",
-		"--no-ext-diff", "HEAD", "--"}, paths...)...)
+	patch, err := index.Diff(ctx, "HEAD", paths)
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("git diff --cached --binary: %w", err)
 	}
@@ -592,29 +579,39 @@ func splitNULs(text string) []string {
 	return entries
 }
 
+// wordsOf is what git said of a failure on stderr, when err is a command
+// that failed, else err's own words.
+func wordsOf(err error) string {
+	var failed *vcsport.Failed
+	if errors.As(err, &failed) {
+		return strings.TrimSpace(failed.Words)
+	}
+	return err.Error()
+}
+
 // putBack puts the files, named from the top, back as HEAD has them, in
 // the index and the working tree: one HEAD has is checked out of it, one it
 // lacks is taken out of the index and removed, with the folders it leaves
 // empty. Nothing else is touched.
 func putBack(names []string) error {
+	ctx, v := context.Background(), vcs.Git{}
 	var kept, made []string
 	for _, name := range names {
-		if git.Succeeds("cat-file", "-e", "HEAD:"+name) {
+		if _, ok, err := v.File(ctx, "HEAD", name); ok && err == nil {
 			kept = append(kept, name)
 		} else {
 			made = append(made, name)
 		}
 	}
-	env := draftGitEnv()
 	var failed error
 	if len(kept) > 0 {
-		if _, err := draftGit(env, append([]string{"checkout", "HEAD", "--"}, kept...)...); err != nil {
-			failed = fmt.Errorf("git checkout HEAD -- %s: %w", and(kept), err)
+		if err := v.Restore(ctx, kept); err != nil {
+			failed = fmt.Errorf("git checkout HEAD -- %s: %s", and(kept), wordsOf(err))
 		}
 	}
 	if len(made) > 0 {
-		if _, err := draftGit(env, append([]string{"rm", "-q", "--cached", "--ignore-unmatch", "--"}, made...)...); err != nil {
-			failed = errors.Join(failed, fmt.Errorf("git rm --cached -- %s: %w", and(made), err))
+		if err := v.Untrack(ctx, made); err != nil {
+			failed = errors.Join(failed, fmt.Errorf("git rm --cached -- %s: %s", and(made), wordsOf(err)))
 		}
 	}
 	for _, name := range made {
@@ -772,8 +769,8 @@ func draftPromote(args []string, o Out) (int, error) {
 	}
 	// The patches name files from the work tree's top, as git apply reads
 	// them where it runs.
-	if top, err := git.Output("rev-parse", "--show-toplevel"); err == nil {
-		if err := os.Chdir(strings.TrimSpace(top)); err != nil {
+	if l, err := (vcs.Git{}).Locate(context.Background(), ""); err == nil && l.Top != "" {
+		if err := os.Chdir(l.Top); err != nil {
 			return 0, err
 		}
 	}
@@ -873,27 +870,26 @@ func promoteOne(file string, d draft.Draft, o Out) (header, why string, err erro
 	} else if _, err := os.Stat(patch); err != nil {
 		return "", "", fmt.Errorf("%s's patch cannot be read: %w", d.ID, err)
 	}
-	listed, err := draftGit(draftGitEnv(), "apply", "--numstat", "-z", patch)
+	ctx, v := context.Background(), vcs.Git{}
+	listed, err := v.PatchFiles(ctx, patch)
 	if err != nil {
 		return "", "", fmt.Errorf("%s's patch cannot be read: %w", d.ID, err)
 	}
 	names := patchNames(listed)
-	if _, err := draftGit(draftGitEnv(), "apply", "--index", "--whitespace=nowarn", patch); err != nil {
+	if err := v.Apply(ctx, patch); err != nil {
 		return "", "the change no longer applies to the tree (" + oneLine(err.Error()) + ")", nil
 	}
-	cmd := exec.Command(git.Bin(), "commit", "-q", "-F", "-")
-	cmd.Env = append(withoutFooters(os.Environ()), AmendEnv+"=0")
-	cmd.Stdin = strings.NewReader(d.Message)
-	cmd.Stdout, cmd.Stderr = o.Stderr, o.Stderr
-	if err := cmd.Run(); err != nil {
-		var exit *exec.ExitError
-		if !errors.As(err, &exit) {
+	err = v.Commit(ctx, vcsport.Commit{Message: d.Message, Quiet: true},
+		vcsport.Talk{Env: append(withoutFooters(os.Environ()), AmendEnv+"=0"), Stdout: o.Stderr, Stderr: o.Stderr})
+	if err != nil {
+		var failed *vcsport.Failed
+		if !errors.As(err, &failed) {
 			return "", "", errors.Join(err, putBack(names))
 		}
 		if err := putBack(names); err != nil {
 			return "", "", fmt.Errorf("the commit of %s failed, and its files cannot be put back: %w", d.ID, err)
 		}
-		return "", fmt.Sprintf("its commit failed (git exited %d)", exit.ExitCode()), nil
+		return "", fmt.Sprintf("its commit failed (git exited %d)", failed.Code), nil
 	}
 	return madeSince(before, d.Header()), "", nil
 }

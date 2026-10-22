@@ -4,10 +4,14 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"strings"
 	"testing"
 )
+
+// here runs the real git of the OS the tests run on.
+var here = Runner{Platform: runtime.GOOS}
 
 // gitIn is git's output in dir, away from the repository a hook runs the
 // tests in.
@@ -17,7 +21,7 @@ func gitIn(t *testing.T, dir string, args ...string) string {
 		t.Setenv(name, "")
 		os.Unsetenv(name)
 	}
-	cmd := exec.Command(Bin(), append([]string{"-c", "user.name=t", "-c", "user.email=t@t", "-c", "commit.gpgsign=false"}, args...)...)
+	cmd := exec.Command(Bin(runtime.GOOS), append([]string{"-c", "user.name=t", "-c", "user.email=t@t", "-c", "commit.gpgsign=false"}, args...)...)
 	cmd.Dir = dir
 	out, err := cmd.CombinedOutput()
 	if err != nil {
@@ -47,39 +51,33 @@ func TestUnpushed(t *testing.T) {
 	t.Chdir(dir)
 	first := commitFile(t, dir, "a")
 	commitFile(t, dir, "b")
-	if got := UnpushedBase("HEAD"); got != "" {
+	if got := here.UnpushedBase("HEAD"); got != "" {
 		t.Fatalf("with no remote, UnpushedBase = %q, want \"\"", got)
-	}
-	if got, _ := UnpushedPaths("HEAD"); !slices.Equal(got, []string{"b", "a"}) {
-		t.Fatalf("with no remote, UnpushedPaths = %q, want [b a]", got)
 	}
 	gitIn(t, dir, "init", "-q", "--bare", filepath.Join(dir, ".git", "remote.git"))
 	gitIn(t, dir, "remote", "add", "origin", filepath.Join(dir, ".git", "remote.git"))
 	gitIn(t, dir, "push", "-q", "origin", "HEAD:refs/heads/main")
-	if got := UnpushedBase("HEAD"); got != "HEAD" {
+	if got := here.UnpushedBase("HEAD"); got != "HEAD" {
 		t.Fatalf("with everything pushed, UnpushedBase = %q, want HEAD", got)
 	}
 	pushed := gitIn(t, dir, "rev-parse", "HEAD")
 	commitFile(t, dir, "c")
-	if got := UnpushedBase("HEAD"); got != pushed {
+	if got := here.UnpushedBase("HEAD"); got != pushed {
 		t.Fatalf("UnpushedBase = %q, want the pushed %s", got, pushed)
-	}
-	if got, _ := UnpushedPaths("HEAD"); !slices.Equal(got, []string{"c"}) {
-		t.Fatalf("UnpushedPaths = %q, want [c]", got)
 	}
 	gitIn(t, dir, "checkout", "-q", "-b", "other", first)
 	commitFile(t, dir, "d")
 	gitIn(t, dir, "push", "-q", "origin", "HEAD:refs/heads/other")
 	gitIn(t, dir, "checkout", "-q", "main")
 	gitIn(t, dir, "merge", "-q", "--no-edit", "other")
-	if got := UnpushedBase("HEAD"); got != "" {
+	if got := here.UnpushedBase("HEAD"); got != "" {
 		t.Fatalf("growing from two remote branches, UnpushedBase = %q, want \"\"", got)
 	}
 }
 
-// A rename is both its paths (bug 32), in the unpushed commits' paths and in
-// a commit's, with git's rename detection on: the old path's deletion and the
-// new path's addition, as the commit-msg hook reads the staged ones.
+// A rename is both its paths (bug 32) in a commit's, with git's rename
+// detection on: the old path's deletion and the new path's addition, as the
+// commit-msg hook reads the staged ones.
 func TestRenameIsBothPaths(t *testing.T) {
 	dir := t.TempDir()
 	gitIn(t, dir, "init", "-q", "-b", "main")
@@ -88,10 +86,7 @@ func TestRenameIsBothPaths(t *testing.T) {
 	commitFile(t, dir, "a")
 	gitIn(t, dir, "mv", "a", "b")
 	gitIn(t, dir, "commit", "-q", "-m", "rename")
-	if got, _ := UnpushedPaths("HEAD"); !slices.Equal(got, []string{"a", "b"}) {
-		t.Fatalf("UnpushedPaths = %q, want [a b]", got)
-	}
-	if got, _ := CommitPaths("HEAD"); !slices.Equal(got, []string{"a", "b"}) {
+	if got, _ := here.CommitPaths("HEAD"); !slices.Equal(got, []string{"a", "b"}) {
 		t.Fatalf("CommitPaths = %q, want [a b]", got)
 	}
 }

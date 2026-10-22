@@ -4,6 +4,7 @@ import (
 	"io"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"strings"
 	"testing"
@@ -206,7 +207,7 @@ func TestRewrites(t *testing.T) {
 	}
 	run := func(args ...string) string {
 		t.Helper()
-		out, err := exec.Command(git.Bin(), args...).Output()
+		out, err := exec.Command(git.Bin(runtime.GOOS), args...).Output()
 		if err != nil {
 			t.Fatalf("git %s: %v", strings.Join(args, " "), err)
 		}

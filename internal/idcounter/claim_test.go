@@ -2,8 +2,11 @@ package idcounter
 
 import (
 	"math"
+	"runtime"
 	"strings"
 	"testing"
+
+	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
 )
 
 // A claim of three takes three numbers in a row past the higher of the
@@ -21,7 +24,7 @@ func TestClaimTakesARunAndRaisesTheCounterPastIt(t *testing.T) {
 		t.Fatalf("Mint past a higher repository = (%d, %v), want (10, nil)", n, err)
 	}
 	root, remote := counterRemote(t, "4\n")
-	if first, err := Claim(Store{Root: root, Remote: "origin"}, "slice", 2, 3); err != nil || first != 5 {
+	if first, err := Claim(Store{Root: root, VCS: vcs.Git{Platform: runtime.GOOS, Dir: root}, Remote: "origin"}, "slice", 2, 3); err != nil || first != 5 {
 		t.Fatalf("remote Claim = (%d, %v), want (5, nil)", first, err)
 	}
 	if got := strings.TrimSpace(gitAt(t, remote, "show", "refs/itos/ids:counters/slice")); got != "7" {
@@ -45,7 +48,7 @@ func TestClaimRefusesAnEmptyRunAndOnePastTheLargestInt(t *testing.T) {
 		t.Fatalf("Claim up to the largest int = (%d, %v), want (%d, nil)", first, err, math.MaxInt-1)
 	}
 	root, remote := counterRemote(t, "4\n")
-	if first, err := Claim(Store{Root: root, Remote: "origin"}, "slice", math.MaxInt, 1); err == nil || first != 0 {
+	if first, err := Claim(Store{Root: root, VCS: vcs.Git{Platform: runtime.GOOS, Dir: root}, Remote: "origin"}, "slice", math.MaxInt, 1); err == nil || first != 0 {
 		t.Fatalf("remote Claim past the largest int = (%d, %v), want a refusal", first, err)
 	}
 	if got := strings.TrimSpace(gitAt(t, remote, "show", "refs/itos/ids:counters/slice")); got != "4" {

@@ -34,12 +34,10 @@ import (
 	"io"
 	"io/fs"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 
 	"github.com/donvargax/itos/v8/internal/config"
-	"github.com/donvargax/itos/v8/internal/git"
 	"github.com/donvargax/itos/v8/internal/kind"
 	"github.com/donvargax/itos/v8/internal/out"
 	"github.com/donvargax/itos/v8/internal/release"
@@ -141,21 +139,21 @@ func atTop(log io.Writer) (bool, error) {
 // toTop moves to the top of the repository the folder is in, and says
 // whether it is in one; in a git folder it is a usage error.
 func toTop() (bool, error) {
-	if _, err := git.Output("rev-parse", "--git-dir"); err != nil {
+	l, err := (vcs.Git{}).Locate(context.Background(), "")
+	if err != nil {
 		return false, nil
 	}
-	top, err := git.Output("rev-parse", "--show-toplevel")
-	if top = value.Trim(top); err != nil || top == "" {
+	if l.Top == "" {
 		return false, kind.Wrap(kind.Usage, errors.New("init runs in a repository's working tree, not in its git folder"))
 	}
-	return true, os.Chdir(top)
+	return true, os.Chdir(l.Top)
 }
 
-// gitInit makes the folder a git repository, and says so.
+// gitInit makes the folder a git repository, and says so; the git adapter
+// locates it afresh from then on.
 func gitInit(log io.Writer) error {
-	cmd := exec.Command(git.Bin(), "init", "-q")
-	if text, err := cmd.CombinedOutput(); err != nil {
-		return fmt.Errorf("git init: %s", value.Trim(string(text)))
+	if err := (vcs.Git{}).Init(context.Background()); err != nil {
+		return err
 	}
 	here, _ := os.Getwd()
 	fmt.Fprintf(log, "Ran git init: %s is a git repository now.\n", here)
@@ -177,11 +175,11 @@ func initWrite(stealth, initialized bool, offer pluginOffer, shimOffer shimOffer
 	o Out) (int, error) {
 	file := "itos.yaml"
 	if stealth {
-		common, err := git.Read("rev-parse", "--git-common-dir")
+		l, err := (vcs.Git{}).Locate(context.Background(), "")
 		if err != nil {
 			return 0, err
 		}
-		file = filepath.Join(value.Trim(common), config.StealthFolder, "itos.yaml")
+		file = filepath.Join(l.Common, config.StealthFolder, "itos.yaml")
 	}
 	beside := func(p string) string {
 		if stealth {
@@ -219,7 +217,7 @@ func initWrite(stealth, initialized bool, offer pluginOffer, shimOffer shimOffer
 	// footer is required of no type, and the config written says so.
 	smoke, smokeIDs := "", 0
 	if s.scenarios {
-		cfg, err := config.FromText(vcs.Git{}, trees.Trees{}, trees.Worktree, file, s.config(), stealth)
+		cfg, err := config.FromText(vcs.Git{}, trees.Trees{VCS: vcs.Git{}}, trees.Worktree, file, s.config(), stealth)
 		if exists(file) {
 			cfg, err = loadConfigFile(file)
 		}
@@ -492,18 +490,17 @@ func pinBehind(cfg *config.Loaded) *out.Problem {
 // declares, which no entry can mend, else each event whose entry is missing
 // or does not run itos.
 func hookProblems() []out.Problem {
-	const root = "."
 	var problems []out.Problem
 	missing := func(event, message, fix string) {
 		problems = append(problems, out.Problem{Rule: "hook-missing", Message: "the " + event + " hook: " + message, Fix: fix})
 	}
-	if !configHooksRun(root) {
+	if !configHooksRun() {
 		missing("commit-msg", "git "+gitVersion()+" runs no hook its config declares",
 			"upgrade git to "+configHooksSince+" or later, then run itos hook install")
 		return problems
 	}
 	for _, event := range hookEvents {
-		if !declared(root, event) {
+		if !declared(event) {
 			missing(event, "hook."+hookEntry(event)+" in the git config does not run itos", "run itos hook install")
 		}
 	}

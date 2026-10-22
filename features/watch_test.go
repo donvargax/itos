@@ -19,6 +19,7 @@ import (
 	"errors"
 	"fmt"
 	"os/exec"
+	"runtime"
 	"slices"
 	"strings"
 
@@ -250,7 +251,7 @@ func (w *world) pushedRunCancelled(url, a, b string) error {
 		if err != nil {
 			return err
 		}
-		cmd := exec.Command(git.Bin(), "rev-parse", "main")
+		cmd := exec.Command(git.Bin(runtime.GOOS), "rev-parse", "main")
 		cmd.Dir = w.remote()
 		cmd.Env = w.env()
 		out, err := cmd.Output()
@@ -311,7 +312,7 @@ func (w *world) runOfRemoteHeadAlone() error {
 	if w.github == nil {
 		return errors.New("no fake GitHub: start one first")
 	}
-	cmd := exec.Command(git.Bin(), "rev-parse", "main")
+	cmd := exec.Command(git.Bin(runtime.GOOS), "rev-parse", "main")
 	cmd.Dir = w.remote()
 	cmd.Env = w.env()
 	out, err := cmd.Output()
@@ -400,7 +401,7 @@ func (w *world) fakeGitHubGivenRemoteHead() error {
 	if w.github == nil {
 		return errors.New("no fake GitHub: start one first")
 	}
-	cmd := exec.Command(git.Bin(), "rev-parse", "main")
+	cmd := exec.Command(git.Bin(runtime.GOOS), "rev-parse", "main")
 	cmd.Dir = w.remote()
 	cmd.Env = w.env()
 	out, err := cmd.Output()
@@ -540,7 +541,7 @@ func (w *world) fakeRunOf(sha, url, ended string) error {
 
 // The full SHA of the remote's main.
 func (w *world) remoteHead() (string, error) {
-	cmd := exec.Command(git.Bin(), "rev-parse", "main")
+	cmd := exec.Command(git.Bin(runtime.GOOS), "rev-parse", "main")
 	cmd.Dir = w.remote()
 	cmd.Env = w.env()
 	out, err := cmd.Output()

@@ -18,20 +18,18 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"io/fs"
 	"os"
-	"os/exec"
 	"slices"
 	"strings"
 
 	"github.com/donvargax/itos/v8/internal/config"
-	"github.com/donvargax/itos/v8/internal/git"
 	"github.com/donvargax/itos/v8/internal/lock"
 	"github.com/donvargax/itos/v8/internal/message"
 	"github.com/donvargax/itos/v8/internal/out"
 	"github.com/donvargax/itos/v8/internal/providers"
 	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
+	vcsport "github.com/donvargax/itos/v8/internal/vcs/port"
 	"github.com/donvargax/itos/v8/internal/work"
 )
 
@@ -263,9 +261,9 @@ func writeCommitted(cfg *config.Loaded, files []written, header, body string, o 
 	if cfg.Stealth {
 		return "", 0, nil
 	}
-	failed := func(step string, exit *exec.ExitError) (string, int, error) {
+	failed := func(step string, exit *vcsport.Failed) (string, int, error) {
 		if err := restored(cfg, files, modes, nil); err != nil {
-			return "", 0, fmt.Errorf("%s failed (git exited %d): %w", step, exit.ExitCode(), err)
+			return "", 0, fmt.Errorf("%s failed (git exited %d): %w", step, exit.Code, err)
 		}
 		as := "is as it was"
 		if len(files) > 1 {
@@ -273,31 +271,31 @@ func writeCommitted(cfg *config.Loaded, files []written, header, body string, o 
 		}
 		code, err := refuseWork([]out.Problem{{
 			Rule:    "work-commit-failed",
-			Message: fmt.Sprintf("%s failed (git exited %d), so %s %s", step, exit.ExitCode(), named, as),
+			Message: fmt.Sprintf("%s failed (git exited %d), so %s %s", step, exit.Code, named, as),
 			Fix:     "fix what git or the hook above says, then run the command again",
 		}}, ExitPolicy, o)
 		return "", code, err
 	}
-	var exit *exec.ExitError
+	// git's words and the hooks' go to stderr: stdout is the command's own
+	// result.
+	ctx, v := context.Background(), vcs.Git{}
+	talk := vcsport.Talk{Stdin: os.Stdin, Stdout: o.Stderr, Stderr: o.Stderr}
+	var exit *vcsport.Failed
 	for _, f := range files {
 		// A path git does not know is no pathspec for --only until it is
 		// added; what git add says goes to stderr, as the commit's words do.
 		if !f.created {
 			continue
 		}
-		if err := gitTo(o.Stderr, nil, "add", "--", f.path); errors.As(err, &exit) {
+		if err := v.Add(ctx, []string{f.path}, talk); errors.As(err, &exit) {
 			return failed("git add of "+f.path, exit)
 		} else if err != nil {
 			return "", 0, restored(cfg, files, modes, fmt.Errorf("cannot run git: %w", err))
 		}
 	}
-	argv := []string{"commit", "--only", "-m", header, "-m", selfBody(cfg, header, body)}
-	if o.Quiet {
-		argv = append(argv, "--quiet")
-	}
-	argv = append(argv, "--")
-	argv = append(argv, paths...)
-	if err := gitTo(o.Stderr, append(withoutFooters(os.Environ()), AmendEnv+"=0"), argv...); errors.As(err, &exit) {
+	talk.Env = append(withoutFooters(os.Environ()), AmendEnv+"=0")
+	commit := vcsport.Commit{Paragraphs: []string{header, selfBody(cfg, header, body)}, Only: paths, Quiet: o.Quiet}
+	if err := v.Commit(ctx, commit, talk); errors.As(err, &exit) {
 		return failed("the commit of "+named, exit)
 	} else if err != nil {
 		return "", 0, restored(cfg, files, modes, fmt.Errorf("cannot run git: %w", err))
@@ -307,14 +305,14 @@ func writeCommitted(cfg *config.Loaded, files []written, header, body string, o 
 	// puts its version in the commit and the working tree while the real
 	// index keeps itos's (bug 17). Their entries are set to the commit's:
 	// they had no change of the person's, which uncommitted refused above.
-	if err := gitErr(append([]string{"reset", "-q", "--"}, paths...)...); err != nil {
+	if err := v.Unstage(ctx, paths); err != nil {
 		return "", 0, fmt.Errorf("the commit of %s was made, but git's index of them cannot be set to it: %w", named, err)
 	}
-	sha, err := git.Output("rev-parse", "HEAD")
+	sha, err := v.Resolve(ctx, "HEAD")
 	if err != nil {
 		return "", 0, err
 	}
-	return strings.TrimSpace(sha), 0, nil
+	return sha, 0, nil
 }
 
 // commitReady is what writeCommitted refuses before it writes anything, in
@@ -364,17 +362,6 @@ func put(path, text string, mode fs.FileMode) (bool, error) {
 	return true, errors.Join(err, f.Close())
 }
 
-// gitTo runs git with its stdout and stderr to w, and stdin the command's,
-// under env (nil: the command's own).
-func gitTo(w io.Writer, env []string, args ...string) error {
-	cmd := exec.Command(git.Bin(), args...)
-	cmd.Env = env
-	// stdout is the command's own result; git's and the hooks' words go to
-	// stderr.
-	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, w, w
-	return cmd.Run()
-}
-
 // restore puts the files back as they were before the command wrote them,
 // and git's index for them as HEAD has it (they were clean before): a file
 // that was there gets its old text back, in its mode, where it differs; a
@@ -386,7 +373,7 @@ func restore(cfg *config.Loaded, files []written, modes []fs.FileMode) error {
 		var err error
 		if f.created {
 			if !cfg.Stealth {
-				err = gitErr("rm", "-q", "--cached", "--ignore-unmatch", "--", f.path)
+				err = (vcs.Git{}).Untrack(context.Background(), []string{f.path})
 			}
 			if rm := os.Remove(f.path); rm != nil && !errors.Is(rm, fs.ErrNotExist) {
 				err = errors.Join(err, rm)
@@ -396,7 +383,7 @@ func restore(cfg *config.Loaded, files []written, modes []fs.FileMode) error {
 				err = os.WriteFile(f.path, []byte(f.old), modes[i])
 			}
 			if !cfg.Stealth {
-				err = errors.Join(err, gitErr("reset", "-q", "--", f.path))
+				err = errors.Join(err, (vcs.Git{}).Unstage(context.Background(), []string{f.path}))
 			}
 		}
 		if err != nil {
@@ -417,18 +404,6 @@ func restored(cfg *config.Loaded, files []written, modes []fs.FileMode, cause er
 		return err
 	}
 	return fmt.Errorf("%w, and %w", cause, err)
-}
-
-// gitErr runs git, its output dropped; the error says what git said on
-// stderr when it fails.
-func gitErr(args ...string) error {
-	var stderr strings.Builder
-	cmd := exec.Command(git.Bin(), args...)
-	cmd.Stderr = &stderr
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("git %s: %w: %s", strings.Join(args, " "), err, strings.TrimSpace(stderr.String()))
-	}
-	return nil
 }
 
 // and is the names joined as a list is said: "a", "a and b", "a, b and c".
