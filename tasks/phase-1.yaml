@@ -2820,3 +2820,19 @@
     - run: grep -q "git-common-dir" tools/bin/pinned
     - run: go test -count=1 ./tools/...
       timeout: 900
+
+- id: T-222
+  type: test
+  title: Prose under other JSON keys is pinned by presence, not word for word
+  why: >
+    ADR-0052 and ADR-0054 exempt only message, fix and the guide's top-level text, but the
+    conversion (T-201, T-202) pinned other prose exactly: the guard's permissionDecisionReason in
+    hooks.yaml and status --json's unread sentences (a URL path included) in status.yaml, so once a
+    release ships previous-release would hold their words. Those cases keep the JSON's structure as
+    contract and pin the prose with json_has and "<any>", plus a loose stdout_has or stderr_has on
+    the key fact (the refused command, the HTTP status), and any other case pinning a sentence under
+    a key that is not data gets the same. The exemption list does not grow: a key name would hide
+    real data elsewhere. status's unread lacking a structured reason is p1-json-gaps'.
+  done_when:
+    - run: go run ./tools/bin/conformance --bin tools/bin/itos
+      timeout: 900
