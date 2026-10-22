@@ -12325,3 +12325,11 @@ items:
     status: todo
     depends_on: []
     kind: task
+
+  - id: T-255
+    title: itos upgrade becomes a slice
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task
