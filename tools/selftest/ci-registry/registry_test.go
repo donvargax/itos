@@ -10,8 +10,6 @@ import (
 	"strings"
 	"testing"
 
-	vcsgit "github.com/donvargax/itos/v8/internal/vcs/adapter"
-
 	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/store/tree/adapter"
 	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
@@ -50,7 +48,7 @@ func TestSelftest(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	cfg, err := config.FromText(vcs.Git{}, adapter.Trees{VCS: vcsgit.Git{}}, adapter.Worktree, "itos.yaml", string(cfgBytes), false)
+	cfg, err := config.FromText(vcs.Git{}, adapter.Trees{VCS: vcs.Git{}}, adapter.Worktree, "itos.yaml", string(cfgBytes), false)
 	if err != nil {
 		t.Fatal(err)
 	}
