@@ -465,28 +465,13 @@
 // the config first, so a broken ci.range is a config error even with --base,
 // then asks
 // providers.RangeStart, giving it commits.since's commit to fall back on. ci watch and the end of itos push (watch.go) wait
-// for a commit's run: watcher builds the providers.Watch from ci.watch, and
-// watchRun looks, then sleeps min(interval, time left) (sleep, a variable a
-// unit test makes instant), or after a rate limit (bug 40) as long as GitHub
-// asked (providers.Wait) when that is longer, still never past the deadline, until the run is done (completed with a
-// conclusion: GitHub can say completed a moment before it records one) or
-// the deadline passes. The run's address is printed when first seen and
-// each job's result once, keyed by its name, as it finishes, to stdout
-// (stderr under --json, nowhere under -q); the end goes to stdout for a
-// success, else to stderr with the jobs that did not succeed, skipped and
-// neutral ones aside. A kind.Temporary error is remembered and looked past,
-// and named if the timeout comes first, until giveUp in a row exit 75; the
-// timeout exits 75 too, and any other error 3, each naming itos ci watch
-// <sha>. A run that completed cancelled is no
-// result (bug 41): successor lists the workflow's runs on its branch
-// (providers.Watcher.Runs), newest first, and takes the first newer than it
-// whose head has the commit as an ancestor (git merge-base --is-ancestor,
-// after one quiet fetch of the remote when a head is not in the clone); the
-// watch says so and looks at that head's run from then on, under the same
-// deadline. None to follow ends it with 75, outcome cancelled. The outcome is
-// a watched (code, success/failure/cancelled/timeout/error, the run as last
-// seen, the cancelled run's address when a newer one was followed), whose
-// fields are the ci, run and superseded keys both commands' --json add.
+// for a commit's run through internal/engine/ciwatch, whose doc says how:
+// watcher, watchRun, watchCovered, covering and ended bind it to the clone
+// (vcs.Git{}, cfg.VCS for the remote's address) and map Out to its writers.
+// The outcome is a watched (code, success/failure/cancelled/timeout/error,
+// the run as last seen, the cancelled run's address when a newer one was
+// followed), whose fields are the ci, run and superseded keys both commands'
+// --json add.
 //
 // # Tasks and named tests
 //

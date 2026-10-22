@@ -1,6 +1,7 @@
-package cli
+package ciwatch
 
 import (
+	"context"
 	"errors"
 	"strings"
 	"testing"
@@ -10,6 +11,7 @@ import (
 	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/kind"
 	"github.com/donvargax/itos/v8/internal/providers"
+	"github.com/donvargax/itos/v8/internal/vcs/port/porttest"
 )
 
 // watchConfig is a loaded config whose watch has the interval and timeout.
@@ -17,6 +19,11 @@ func watchConfig(interval, timeout float64) *config.Loaded {
 	cfg := &config.Loaded{}
 	cfg.CI.Watch.Interval, cfg.CI.Watch.Timeout = &interval, &timeout
 	return cfg
+}
+
+// watchRun is a watch of the commit's own run, in an empty repository.
+func watchRun(cfg *config.Loaded, wr providers.Watcher, sha, remote string, o Out) Watched {
+	return Watch(context.Background(), cfg, wr, &porttest.VCS{}, sha, remote, "", o)
 }
 
 // noSleep makes a watch's wait between two looks a millisecond, whatever
@@ -39,8 +46,8 @@ func TestAWatchWaitsForTheRunToAppear(t *testing.T) {
 	}
 	var stdout, stderr strings.Builder
 	w := watchRun(watchConfig(0, 60), providers.Watcher{Look: look}, "abc", "", Out{Stdout: &stdout, Stderr: &stderr})
-	if w.code != 0 || w.outcome != "success" || looks != 3 {
-		t.Fatalf("code %d, outcome %s, looks %d\n%s%s", w.code, w.outcome, looks, stdout.String(), stderr.String())
+	if w.Code != 0 || w.Outcome != "success" || looks != 3 {
+		t.Fatalf("code %d, outcome %s, looks %d\n%s%s", w.Code, w.Outcome, looks, stdout.String(), stderr.String())
 	}
 }
 
@@ -56,8 +63,8 @@ func TestATransientFailureIsLookedPast(t *testing.T) {
 	}
 	var stdout, stderr strings.Builder
 	w := watchRun(watchConfig(0, 60), providers.Watcher{Look: look}, "abc", "", Out{Stdout: &stdout, Stderr: &stderr})
-	if w.code != ExitPolicy || w.outcome != "failure" || !strings.Contains(stderr.String(), "CI failure: u") {
-		t.Fatalf("code %d, outcome %s\n%s%s", w.code, w.outcome, stdout.String(), stderr.String())
+	if w.Code != exitPolicy || w.Outcome != "failure" || !strings.Contains(stderr.String(), "CI failure: u") {
+		t.Fatalf("code %d, outcome %s\n%s%s", w.Code, w.Outcome, stdout.String(), stderr.String())
 	}
 }
 
@@ -79,8 +86,8 @@ func TestACancelledRunIsFollowedOr75(t *testing.T) {
 	alone := func(string) ([]providers.Run, error) { return []providers.Run{cancelled}, nil }
 	var stdout, stderr strings.Builder
 	w := watchRun(watchConfig(0, 60), providers.Watcher{Look: look, Runs: alone}, "abc", "", Out{Stdout: &stdout, Stderr: &stderr})
-	if w.code != ExitTemporary || w.outcome != "cancelled" || w.superseded != "" {
-		t.Fatalf("code %d, outcome %s, superseded %q\n%s", w.code, w.outcome, w.superseded, stderr.String())
+	if w.Code != exitTemporary || w.Outcome != "cancelled" || w.Superseded != "" {
+		t.Fatalf("code %d, outcome %s, superseded %q\n%s", w.Code, w.Outcome, w.Superseded, stderr.String())
 	}
 
 	rerun := providers.Run{URL: "v", Status: "completed", Conclusion: "success", ID: 2, HeadSHA: "abc", Branch: "main", Created: "2"}
@@ -95,8 +102,8 @@ func TestACancelledRunIsFollowedOr75(t *testing.T) {
 	stdout.Reset()
 	stderr.Reset()
 	w = watchRun(watchConfig(0, 60), providers.Watcher{Look: look, Runs: newer}, "abc", "", Out{Stdout: &stdout, Stderr: &stderr})
-	if w.code != 0 || w.outcome != "success" || w.superseded != "u" || !strings.Contains(stdout.String(), "following v") {
-		t.Fatalf("code %d, outcome %s, superseded %q\n%s%s", w.code, w.outcome, w.superseded, stdout.String(), stderr.String())
+	if w.Code != 0 || w.Outcome != "success" || w.Superseded != "u" || !strings.Contains(stdout.String(), "following v") {
+		t.Fatalf("code %d, outcome %s, superseded %q\n%s%s", w.Code, w.Outcome, w.Superseded, stdout.String(), stderr.String())
 	}
 }
 
@@ -106,20 +113,13 @@ func TestACancelledRunIsFollowedOr75(t *testing.T) {
 // verdict, and without a branch the watch waits for the commit's own run.
 func TestACommitWithNoRunIsJudgedByTheRunThatCoversIt(t *testing.T) {
 	noSleep(t)
-	gitConfigRepo(t, "version: 1\n")
-	t.Setenv("GIT_AUTHOR_NAME", "itos")
-	t.Setenv("GIT_COMMITTER_NAME", "itos")
-	t.Setenv("GIT_AUTHOR_EMAIL", "itos@example.com")
-	t.Setenv("GIT_COMMITTER_EMAIL", "itos@example.com")
-	gitLine(t, "commit", "-q", "--allow-empty", "-m", "chore: base")
-	gitLine(t, "checkout", "-q", "-b", "aside")
-	gitLine(t, "commit", "-q", "--allow-empty", "-m", "chore: aside")
-	aside := gitLine(t, "rev-parse", "HEAD")
-	gitLine(t, "checkout", "-q", "-")
-	gitLine(t, "commit", "-q", "--allow-empty", "-m", "fix: judged")
-	judged := gitLine(t, "rev-parse", "HEAD")
-	gitLine(t, "commit", "-q", "--allow-empty", "-m", "docs: close")
-	head := gitLine(t, "rev-parse", "HEAD")
+	aside, judged, head := "aside", "judged", "head"
+	repo := &porttest.VCS{History: []porttest.Commit{
+		{Name: "base"},
+		{Name: aside, Parents: []string{"base"}},
+		{Name: judged, Parents: []string{"base"}},
+		{Name: head, Parents: []string{judged}},
+	}}
 
 	headRun := providers.Run{URL: "h", Status: "completed", Conclusion: "success", ID: 2, HeadSHA: head, Branch: "main", Created: "2"}
 	asideRun := providers.Run{URL: "a", Status: "completed", Conclusion: "failure", ID: 3, HeadSHA: aside, Branch: "main", Created: "3"}
@@ -133,16 +133,16 @@ func TestACommitWithNoRunIsJudgedByTheRunThatCoversIt(t *testing.T) {
 	}
 	runs := func(string) ([]providers.Run, error) { return []providers.Run{asideRun, headRun}, nil }
 	var stdout, stderr strings.Builder
-	w := watchCovered(watchConfig(0, 60), providers.Watcher{Look: look, Runs: runs}, judged, "", "main", Out{Stdout: &stdout, Stderr: &stderr})
-	if w.code != 0 || w.run == nil || w.run.HeadSHA != head || !strings.Contains(stdout.String(), "following h") {
-		t.Fatalf("code %d, asked %v\n%s%s", w.code, asked, stdout.String(), stderr.String())
+	w := Watch(context.Background(), watchConfig(0, 60), providers.Watcher{Look: look, Runs: runs}, repo, judged, "", "main", Out{Stdout: &stdout, Stderr: &stderr})
+	if w.Code != 0 || w.Run == nil || w.Run.HeadSHA != head || !strings.Contains(stdout.String(), "following h") {
+		t.Fatalf("code %d, asked %v\n%s%s", w.Code, asked, stdout.String(), stderr.String())
 	}
 
 	stdout.Reset()
 	stderr.Reset()
-	w = watchCovered(watchConfig(0, 0.05), providers.Watcher{Look: look, Runs: runs}, judged, "", "", Out{Stdout: &stdout, Stderr: &stderr})
-	if w.code != ExitTemporary || w.outcome != "timeout" {
-		t.Fatalf("code %d, outcome %s\n%s%s", w.code, w.outcome, stdout.String(), stderr.String())
+	w = Watch(context.Background(), watchConfig(0, 0.05), providers.Watcher{Look: look, Runs: runs}, repo, judged, "", "", Out{Stdout: &stdout, Stderr: &stderr})
+	if w.Code != exitTemporary || w.Outcome != "timeout" {
+		t.Fatalf("code %d, outcome %s\n%s%s", w.Code, w.Outcome, stdout.String(), stderr.String())
 	}
 }
 
@@ -151,8 +151,8 @@ func TestAnErrorEndsTheWatch(t *testing.T) {
 	look := func(string) (providers.Run, bool, error) { return providers.Run{}, false, errors.New("401") }
 	var stdout, stderr strings.Builder
 	w := watchRun(watchConfig(0, 60), providers.Watcher{Look: look}, "abc", "", Out{Stdout: &stdout, Stderr: &stderr})
-	if w.code != ExitMissing || !strings.Contains(stderr.String(), "itos ci watch abc") {
-		t.Fatalf("code %d\n%s", w.code, stderr.String())
+	if w.Code != exitMissing || !strings.Contains(stderr.String(), "itos ci watch abc") {
+		t.Fatalf("code %d\n%s", w.Code, stderr.String())
 	}
 }
 
@@ -160,8 +160,8 @@ func TestARunThatNeverAppearsTimesOut(t *testing.T) {
 	look := func(string) (providers.Run, bool, error) { return providers.Run{}, false, nil }
 	var stdout, stderr strings.Builder
 	w := watchRun(watchConfig(0, 0.05), providers.Watcher{Look: look}, "abc", "", Out{Stdout: &stdout, Stderr: &stderr})
-	if w.code != ExitTemporary || w.outcome != "timeout" || !strings.Contains(stderr.String(), "has not appeared") {
-		t.Fatalf("code %d, outcome %s\n%s", w.code, w.outcome, stderr.String())
+	if w.Code != exitTemporary || w.Outcome != "timeout" || !strings.Contains(stderr.String(), "has not appeared") {
+		t.Fatalf("code %d, outcome %s\n%s", w.Code, w.Outcome, stderr.String())
 	}
 }
 
@@ -180,8 +180,8 @@ func TestTemporaryFailuresInARowGiveUpWith75(t *testing.T) {
 	}
 	var stdout, stderr strings.Builder
 	w := watchRun(watchConfig(0, 600), providers.Watcher{Look: look}, "abc", "", Out{Stdout: &stdout, Stderr: &stderr})
-	if w.code != ExitTemporary || w.outcome != "error" || looks != 2*giveUp || !strings.Contains(stderr.String(), "itos ci watch abc") {
-		t.Fatalf("code %d, outcome %s, looks %d\n%s", w.code, w.outcome, looks, stderr.String())
+	if w.Code != exitTemporary || w.Outcome != "error" || looks != 2*giveUp || !strings.Contains(stderr.String(), "itos ci watch abc") {
+		t.Fatalf("code %d, outcome %s, looks %d\n%s", w.Code, w.Outcome, looks, stderr.String())
 	}
 }
 
@@ -197,9 +197,9 @@ func TestARateLimitsWaitIsBoundedByTheTimeout(t *testing.T) {
 	var stdout, stderr strings.Builder
 	start := time.Now()
 	w := watchRun(watchConfig(0, 0.05), providers.Watcher{Look: look}, "abc", "", Out{Stdout: &stdout, Stderr: &stderr})
-	if w.code != ExitTemporary || w.outcome != "timeout" || time.Since(start) > 10*time.Second ||
+	if w.Code != exitTemporary || w.Outcome != "timeout" || time.Since(start) > 10*time.Second ||
 		len(slept) == 0 || slept[0] > 50*time.Millisecond || !strings.Contains(stdout.String(), "rate limit") {
-		t.Fatalf("code %d, outcome %s, slept %v\n%s%s", w.code, w.outcome, slept, stdout.String(), stderr.String())
+		t.Fatalf("code %d, outcome %s, slept %v\n%s%s", w.Code, w.Outcome, slept, stdout.String(), stderr.String())
 	}
 }
 
@@ -220,9 +220,9 @@ func TestARateLimitsWaitReplacesAShorterInterval(t *testing.T) {
 	}
 	var stdout, stderr strings.Builder
 	w := watchRun(watchConfig(10, 600), providers.Watcher{Look: look}, "abc", "", Out{Stdout: &stdout, Stderr: &stderr})
-	if w.code != 0 || len(slept) != 2 || slept[0] != 30*time.Second || slept[1] != 10*time.Second ||
+	if w.Code != 0 || len(slept) != 2 || slept[0] != 30*time.Second || slept[1] != 10*time.Second ||
 		strings.Count(stdout.String(), "rate limit") != 1 {
-		t.Fatalf("code %d, slept %v\n%s%s", w.code, slept, stdout.String(), stderr.String())
+		t.Fatalf("code %d, slept %v\n%s%s", w.Code, slept, stdout.String(), stderr.String())
 	}
 }
 
@@ -240,8 +240,8 @@ func TestAWatchLooksAgainWhileAnyTimeIsLeft(t *testing.T) {
 		}
 		var stdout, stderr strings.Builder
 		w := watchRun(watchConfig(0, 1e-9), providers.Watcher{Look: look}, "abc", "", Out{Stdout: &stdout, Stderr: &stderr})
-		if w.code != 0 || w.outcome != "success" || looks != 2 {
-			t.Fatalf("code %d, outcome %s, looks %d\n%s%s", w.code, w.outcome, looks, stdout.String(), stderr.String())
+		if w.Code != 0 || w.Outcome != "success" || looks != 2 {
+			t.Fatalf("code %d, outcome %s, looks %d\n%s%s", w.Code, w.Outcome, looks, stdout.String(), stderr.String())
 		}
 	})
 }
