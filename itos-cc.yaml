@@ -1,7 +1,6 @@
 # A port's fake and contract suite (ADR-0053) are test code outside
 # _test.go files, never linked into the binary: no command measures them.
 exclude: ["**/porttest/**"]
-
 mutation:
   tests:
     list: go run ./tools/bin/itos-cc-tests
@@ -228,3 +227,30 @@ mutation:
       replacement: ">="
       reason: 'Equivalent: skip is noSpan, whose -1 no index equals, or the copy''s span, whose last line is the copy''s end marker, which never matches the rules'' marker searched for, so skipping that line skips nothing found.'
       line_text: if (i < skip[0] || i > skip[1]) && strings.TrimSpace(lines[i]) == marker {
+    - file: internal/engine/status/status.go
+      function: github.com/donvargax/itos/v8/internal/engine/status#short
+      hash: bff5190f13d4d389
+      line_in_function: 2
+      column: 14
+      original: ">"
+      replacement: ">="
+      reason: "Equivalent: a name of exactly seven characters cut to its first seven is itself, so > 7 and >= 7 return the same."
+      line_text: if len(sha) > 7 {
+    - file: internal/engine/status/status.go
+      function: github.com/donvargax/itos/v8/internal/engine/status#itosRuns
+      hash: 6a27bca5b7599dd0
+      line_in_function: 6
+      column: 16
+      original: "||"
+      replacement: "&&"
+      reason: "Equivalent: pin.ReadInstallScript returns no text whenever it fails or finds no script, and pin.ScriptVersion of no text names no version, so returning early on either alone or on both returns the same empty version."
+      line_text: if err != nil || !found {
+    - file: internal/cli/status.go
+      function: github.com/donvargax/itos/v8/internal/cli#statusOf
+      hash: af6ba74d85f8ad56
+      line_in_function: 14
+      column: 26
+      original: "false"
+      replacement: "true"
+      reason: "Equivalent: with no drafts file the func returns no drafts and no error, and status.Of reads a drafts file that is there but holds no drafts and no error exactly as one that is not there: no line, no entry."
+      line_text: return draft.File{}, false, nil
