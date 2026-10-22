@@ -177,10 +177,15 @@ func fixtures(module string) []fixture {
 		add(adapter, ours("internal/slices/alpha"), "Value", "store-adapters", false)
 		add(adapter, ours(store+"/port/porttest"), "Value", "store-adapters", false)
 		add(adapter, ours(store+"/port/porttest"), "Value", "", true)
-		for _, target := range []string{store + "/port", "internal/git"} {
-			add(adapter, ours(target), "Value", "", false)
-		}
+		add(adapter, ours(store+"/port"), "Value", "", false)
 		add(adapter, "os", "ReadFile", "", false)
+	}
+	// git runs in the VCS's git adapter alone: internal/git, its internals,
+	// is no other package's to import, but in a test.
+	add("internal/vcs/adapter", ours("internal/git"), "Value", "", false)
+	for _, layer := range []string{"internal/store/private/adapter", "internal/store/tree/adapter", "internal/cli", "cmd/probe"} {
+		add(layer, ours("internal/git"), "Value", "git-internals", false)
+		add(layer, ours("internal/git"), "Value", "", true)
 	}
 	// What is outside internal/slices and importing a slice, which depguard
 	// lets by and architecture-check's outside holds.
