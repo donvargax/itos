@@ -57,7 +57,6 @@ phases:
 queue:
   - T-281
   - slice-165
-  - slice-166
   - slice-154
   - p1-agent-test-runs-once
   - p1-mutation-results-committed
