@@ -105,13 +105,11 @@ type Out struct {
 	runLine func(args []string, stdout, stderr io.Writer, reserved string) int
 }
 
-// usageError is a command called wrongly: exit 2, naming the help.
-type usageError struct{ message string }
-
-func (e usageError) Error() string { return e.message }
+// usageError is a command called wrongly, internal/cli's or a slice's alike.
+type usageError = out.UsageError
 
 func usage(format string, a ...any) error {
-	return usageError{strings.TrimSpace(fmt.Sprintf(format, a...))}
+	return out.Usage(format, a...)
 }
 
 // Exit codes, as itos --help lists them. 70 and 75 are sysexits'
@@ -158,7 +156,7 @@ func failure(err error, o Out) int {
 	var c *config.Error
 	switch {
 	case errors.As(err, &u):
-		fmt.Fprintf(o.Stderr, "itos: %s (itos --help)\n", u.message)
+		fmt.Fprintf(o.Stderr, "itos: %s (itos --help)\n", u.Error())
 		return ExitUsage
 	case errors.As(err, &c):
 		return configFailure(c, o)

@@ -7,4 +7,8 @@
 // JavaScript's { schema: 1, ...value } does, so a command adapter's listing
 // that itos tests list --json prints key for key keeps its order. Logs go to
 // stderr while --json holds stdout for the one object.
+//
+// A command called wrongly reports a UsageError (Usage), from internal/cli
+// or a slice alike: the command line prints it as "itos: <message> (itos
+// --help)" and exits 2.
 package out
