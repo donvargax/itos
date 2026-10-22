@@ -37,9 +37,10 @@ linters:
       rules:
         # A slice, outside its domain and adapters, imports nothing of ours
         # but its own subpackages (architecture-check refuses another
-        # slice's), the engines, internal/out, through which its output
-        # goes, and the stores' ports and the VCS's, with their fakes for its
-        # tests (slice-fakes keeps them out of its code). It reaches everything
+        # slice's), internal/declare, which its command is declared by, the
+        # engines, internal/out, through which its output goes, and the
+        # stores' ports and the VCS's, with their fakes for its tests
+        # (slice-fakes keeps them out of its code). It reaches everything
         # else through the Ports it owns, which the assembly binds;
         # internal/cli is the assembly until the step that moves it into
         # cmd, so a slice importing it would cycle. A store's adapter, and
@@ -52,6 +53,7 @@ linters:
             - "!**/internal/slices/*/adapters/**"
           allow:
             - github.com/donvargax/itos/v8/internal/slices/
+            - github.com/donvargax/itos/v8/internal/declare$
             - github.com/donvargax/itos/v8/internal/engine/
             - github.com/donvargax/itos/v8/internal/out$
             - github.com/donvargax/itos/v8/internal/store/private/port$
@@ -65,6 +67,20 @@ linters:
           deny:
             - pkg: github.com/donvargax/itos/v8
               desc: "a slice imports nothing of ours but its own subpackages, internal/out and the stores' and the VCS's ports (ADR-0053): reach the rest through its Ports; extend the rule, with a fixture, never loosen it"
+        # A command's declaration (internal/declare), its tests with it, is a
+        # leaf: it imports nothing of ours, so a slice and internal/cli both
+        # import it with no cycle, and does no I/O, so declaring a command
+        # costs help and version nothing.
+        declare-leaf:
+          files:
+            - "**/internal/declare/**"
+          deny:
+            - pkg: github.com/donvargax/itos/v8
+              desc: "a declaration imports nothing of ours (T-239): it is data a slice and internal/cli both import"
+            - pkg: os
+              desc: "a declaration reads nothing (T-239): the parser reads the config for the flags its More names"
+            - pkg: net
+              desc: "a declaration reads nothing (T-239): it is data, which help and version read"
         # A slice's code links no port's fake, which its tests alone may use:
         # slice-packages allows each store's porttest for the tests, so this
         # rule refuses it by name over the code. architecture-check --linked
