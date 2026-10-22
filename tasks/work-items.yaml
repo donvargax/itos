@@ -12748,3 +12748,17 @@ items:
       reports the commit-msg hook missing, naming an upgrade of git, even where hook install, which
       init runs, has just written them. It should judge each event as hooks.Ready does on such a
       git; needs a scenario.
+
+  - id: p1-hook-file-not-executable
+    title: Ready refuses a hook file git would not run because it is not executable
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      slice-165: on a git that runs no config hook, Ready accepts a commit or push when the event's
+      hook file in the hooks folder calls itos's hook, but git skips a hook file that is not
+      executable (with a hint), so a project's own .husky/commit-msg calling itos with mode 644
+      passes Ready while git runs nothing. The Folder port would report whether the file is
+      executable (moot on Windows, where Git for Windows runs it through sh).
