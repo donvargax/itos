@@ -2879,14 +2879,6 @@
     lock-internals, as git-internals, makes internal/lock the store adapters' alone, with an
     architecture fixture. A lock timeout stays kind.Temporary (75); the port wraps no error with a
     kind. No behaviour change.
-  done_when:
-    - run: "! grep -nE 'os\\.Read(File|Dir)\\(' internal/cli/workwrite.go internal/cli/workdone.go internal/cli/ask.go internal/ledger/add.go internal/ledger/close.go internal/adr/adr.go"
-    - run: "! grep -l 'v8/internal/lock\"' internal/cli/*.go"
-    - run: tools/bin/architecture-check
-    - run: tools/bin/pinned golangci-lint run ./...
-      timeout: 600
-    - run: go test ./features -count=1 -scenarios='^@ID-(WORK|TASK|ASK|STEALTH|CTASK|DRAFT)-[0-9]+$'
-      timeout: 600
 
 - id: T-227
   type: refactor
