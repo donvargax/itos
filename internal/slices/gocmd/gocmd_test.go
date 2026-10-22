@@ -192,7 +192,9 @@ func TestRunLeavesWhereThingsStandOut(t *testing.T) {
 		p.found, p.err = c.found, c.err
 		code, stdout, stderr, err := call(t, p)
 		lead := "itos: where things stand is not printed: " + c.line
-		warning := strings.Index(stderr, "itos: docs/ORCHESTRATING.md cannot be read, so the guide prints without it: ")
+		// The notes' path is the config's with one, else joined in the
+		// system's form, and the error's words are the system's.
+		warning := strings.Index(stderr, "ORCHESTRATING.md cannot be read, so the guide prints without it: ")
 		if code != 0 || err != nil || !strings.HasPrefix(stderr, lead) || warning < len(lead) ||
 			!strings.HasSuffix(stdout, "\n\nMine.\n") || strings.Contains(stdout, "# Where things stand") {
 			t.Errorf("%s: exit %d, %v, stdout ends %q, stderr %q", c.name, code, err, stdout[max(0, len(stdout)-80):], stderr)
