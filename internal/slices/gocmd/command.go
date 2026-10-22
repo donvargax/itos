@@ -1,8 +1,8 @@
-package cli
+package gocmd
 
 import "github.com/donvargax/itos/v8/internal/declare"
 
-var goDeclared = declare.Command{
+var Command = declare.Command{
 	Name: "go",
 	Rank: 10,
 	Lines: `  go                               the coordinator's guide, the repository's own notes, the status

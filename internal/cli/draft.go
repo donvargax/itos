@@ -6,7 +6,6 @@ import (
 	"io"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"strings"
 
 	"github.com/donvargax/itos/v8/internal/config"
@@ -156,16 +155,6 @@ var executable = os.Executable
 // draftsFile is draft.Path over git.
 func draftsFile() string {
 	return draft.Path(context.Background(), vcs.Git{})
-}
-
-// physical is the folder itos runs in, its links resolved as git resolves
-// them.
-func physical() string {
-	cwd, _ := os.Getwd()
-	if real, err := filepath.EvalSymlinks(cwd); err == nil {
-		cwd = real
-	}
-	return cwd
 }
 
 // wordsOf is what git said of a failure on stderr, when err is a command

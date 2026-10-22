@@ -10,7 +10,7 @@ package cli
 // one boundary no gate holds yet, staging only your own files. AGENTS.md is
 // read by every session for every task, so the commit policy the config
 // sets, which the block held before, is printed by itos guide commit
-// (commitPolicy, guide.go) for the session about to commit; how to work with
+// (internal/engine/guides) for the session about to commit; how to work with
 // itos is itos's own guides (itos go, itos guide work).
 //
 // The block is written formatter-stable: one line per paragraph, a blank
@@ -45,7 +45,6 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/engine/agentrules"
 	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
 )
@@ -300,14 +299,5 @@ func sameFile(a, b string) bool {
 	return err == nil && os.SameFile(x, y)
 }
 
-// code is agentrules.Code: a value from the config as a Markdown code span.
-func code(s string) string { return agentrules.Code(s) }
-
 // prose is agentrules.Prose: words joined as a list in prose.
 func prose(words []string, join string) string { return agentrules.Prose(words, join) }
-
-// commitPolicy is agentrules.CommitPolicy: the sections on commits the
-// config sets, as itos guide commit prints them (guide.go, slice 119).
-func commitPolicy(cfg *config.Loaded, data func(string) string) []string {
-	return agentrules.CommitPolicy(cfg, data)
-}

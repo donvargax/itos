@@ -12,7 +12,9 @@ import (
 	draftslice "github.com/donvargax/itos/v8/internal/slices/draft"
 	followupslice "github.com/donvargax/itos/v8/internal/slices/followup"
 	gitshimslice "github.com/donvargax/itos/v8/internal/slices/gitshim"
+	gocmdslice "github.com/donvargax/itos/v8/internal/slices/gocmd"
 	guardslice "github.com/donvargax/itos/v8/internal/slices/guard"
+	guideslice "github.com/donvargax/itos/v8/internal/slices/guide"
 	hookslice "github.com/donvargax/itos/v8/internal/slices/hook"
 	initcmdslice "github.com/donvargax/itos/v8/internal/slices/initcmd"
 	pinslice "github.com/donvargax/itos/v8/internal/slices/pin"
@@ -25,8 +27,8 @@ import (
 
 // declared is every command's declaration, in Rank order: itos --help's.
 var declared = []declare.Command{
-	goDeclared,
-	guideDeclared,
+	gocmdslice.Command,
+	guideslice.Command,
 	statusDeclared,
 	taskslice.Command,
 	workDeclared,

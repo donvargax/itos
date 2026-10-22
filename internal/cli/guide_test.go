@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/donvargax/itos/v8/internal/engine/guides"
 	"github.com/donvargax/itos/v8/internal/git"
 )
 
@@ -57,7 +58,7 @@ func TestLocalNotesInALinkedWorktree(t *testing.T) {
 	}
 	t.Chdir(linked)
 	code, stdout, stderr := run("go")
-	if code != 0 || !strings.Contains(stdout, localNotesHeading) || !strings.Contains(stdout, "Shared by every worktree.") {
+	if code != 0 || !strings.Contains(stdout, guides.LocalNotesHeading) || !strings.Contains(stdout, "Shared by every worktree.") {
 		t.Errorf("exit %d, stdout ends %q, stderr %s", code, stdout[max(0, len(stdout)-300):], stderr)
 	}
 }
@@ -69,7 +70,7 @@ func TestLocalNotesNamedByTheStealthConfigPrintOnce(t *testing.T) {
 	writeFile(t, filepath.Join(gitDir, "itos", "itos.yaml"), "version: 1\nguide:\n  orchestrating: notes.md\n")
 	writeFile(t, filepath.Join(gitDir, "itos", "notes.md"), "Printed once.\n")
 	code, stdout, stderr := run("go", "--json")
-	if code != 0 || strings.Count(stdout, "Printed once.") != 1 || strings.Contains(stdout, localNotesHeading) ||
+	if code != 0 || strings.Count(stdout, "Printed once.") != 1 || strings.Contains(stdout, guides.LocalNotesHeading) ||
 		strings.Contains(stdout, `"local_notes"`) || !strings.Contains(stdout, `"notes"`) {
 		t.Errorf("exit %d, stdout %s, stderr %s", code, stdout, stderr)
 	}

@@ -1,8 +1,8 @@
-package cli
+package guide
 
 import "github.com/donvargax/itos/v8/internal/declare"
 
-var guideDeclared = declare.Command{
+var Command = declare.Command{
 	Name: "guide",
 	Rank: 20,
 	Lines: `  guide <name>                     a guide (coordinate, work) or the procedure read before a step

@@ -2,7 +2,6 @@ package cli
 
 import (
 	"errors"
-	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -44,26 +43,6 @@ func TestRemoteKindAndWords(t *testing.T) {
 	plain := errors.New("no git")
 	if remoteKind(plain) != kind.Unknown || words(plain) != "" || words(&port.Failed{Words: "said\n"}) != "said\n" {
 		t.Errorf("remoteKind or words of an error git did not give")
-	}
-}
-
-// The way up to the top is a ../ a folder, none at the top or in the git
-// folder; outside a repository there is none to give.
-func TestUpToTop(t *testing.T) {
-	dir := gitConfigRepo(t, "version: 1\n")
-	for folder, want := range map[string]string{"a/b": "../../", ".git": "", ".": ""} {
-		if err := os.MkdirAll(filepath.Join(dir, folder), 0o755); err != nil {
-			t.Fatal(err)
-		}
-		t.Chdir(filepath.Join(dir, folder))
-		if got, ok := upToTop(); got != want || !ok {
-			t.Errorf("upToTop from %s = %q, %v; want %q", folder, got, ok, want)
-		}
-	}
-	t.Chdir(t.TempDir())
-	t.Setenv("GIT_CEILING_DIRECTORIES", filepath.Dir(dir))
-	if got, ok := upToTop(); ok {
-		t.Errorf("upToTop outside a repository = %q", got)
 	}
 }
 

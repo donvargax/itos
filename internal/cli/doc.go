@@ -365,22 +365,6 @@
 // line may give work add, task add or work promote an id. draftsFile, the
 // list status reads, stays in draft.go.
 //
-// go and guide (guide.go over internal/guide) print a guide; itos go (and
-// itos guide coordinate) appends the repository's notes, guide.orchestrating
-// read where the config's other paths are, after a line of ---; with no
-// config the default is read from the repository's top (git rev-parse
-// --show-cdup, so the path stays relative), and outside a repository the
-// guide prints alone. itos go alone then prints the clone's own notes
-// (localNotes: notes.md in itos's folder of the git common dir) after
-// another --- under # This clone's own notes, named by local_notes under
-// --json; a file missing or holding only blanks prints nothing, and one that
-// is the file guide.orchestrating resolved to prints once (os.SameFile).
-// Then goStatus prints the status after a second ---, or under --json as the
-// status key; a config not there or not read, or a registry with problems,
-// is one line on stderr instead. guide also prints a procedure (slice 119),
-// as written, and the commit procedure then the commit policy the config
-// sets, from internal/engine/agentrules' CommitPolicy. They write nothing.
-//
 // status (status.go) is where the work stands, internal/engine/status's
 // Of: statusOf binds it to the config's VCS for the head, the real git
 // (vcs.Git{}) for the newest release and the rules for agents, os.Getenv
