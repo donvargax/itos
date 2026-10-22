@@ -11765,3 +11765,16 @@ items:
       --evidence-file and quote the evidence, dated, in the close commit; such a check never runs in
       CI. Waits on the person's answer to the #99 question and on slice-158.
     tags: [work]
+
+  - id: p1-check-message-help-tree
+    title: commit check-message's help says which tree it reads footer ids at when no --at is given
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      #106: its help says only that --at reads the footers' ids at that commit; with no --at a
+      read_at: commit footer is read at the staged tree (the index) and others at the working tree,
+      which a person checking an unstaged untagging does not expect.
+    tags: [commit]
