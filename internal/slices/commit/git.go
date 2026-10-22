@@ -1,4 +1,4 @@
-package cli
+package commit
 
 // itos commit with no subcommand (slice 31, features/commit-command.feature):
 // git commit with the footers itos writes. itos reads --task, --item (slice
@@ -34,18 +34,17 @@ package cli
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"os"
-	"path"
 	"slices"
 	"strings"
 
 	"github.com/donvargax/itos/v8/internal/config"
+	"github.com/donvargax/itos/v8/internal/engine/gitrun"
+	"github.com/donvargax/itos/v8/internal/engine/hooks"
 	"github.com/donvargax/itos/v8/internal/message"
 	"github.com/donvargax/itos/v8/internal/out"
-	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
 	vcsport "github.com/donvargax/itos/v8/internal/vcs/port"
 )
 
@@ -100,7 +99,7 @@ func readCommitFlags(args []string, texts map[string]string) (commitFlags, error
 				if name == "--breaking" {
 					what = "<text>"
 				}
-				return f, usage("commit %s needs %s", name, what)
+				return f, out.Usage("commit %s needs %s", name, what)
 			}
 			if isText {
 				f.texts = append(f.texts, said{key, text})
@@ -122,7 +121,7 @@ func readCommitFlags(args []string, texts map[string]string) (commitFlags, error
 			if name == "--scenarios" {
 				what = "<ids>"
 			}
-			return f, usage("commit %s needs %s", name, what)
+			return f, out.Usage("commit %s needs %s", name, what)
 		}
 		*into = append(*into, ids...)
 	}
@@ -155,7 +154,7 @@ func (f commitFlags) footerLines(cfg *config.Loaded, missing error) (links, cont
 			}
 			key, ok := flag.key(cfg)
 			if !ok {
-				return nil, nil, usage("commit %s needs a footer whose source is %s in commits.footers", flag.name, flag.source)
+				return nil, nil, out.Usage("commit %s needs a footer whose source is %s in commits.footers", flag.name, flag.source)
 			}
 			links = append(links, message.FooterLines(key, flag.ids)...)
 		}
@@ -174,25 +173,6 @@ func (f commitFlags) footerLines(cfg *config.Loaded, missing error) (links, cont
 	}
 	return links, content, nil
 }
-
-// commitConfig is the config itos commit reads its flags by: none, with the
-// error loading it gave, when there is no config file, so that itos commit
-// still runs git where itos is not set up; an error when there is one that
-// does not load.
-func commitConfig() (cfg *config.Loaded, missing, err error) {
-	file := configPath()
-	cfg, err = loadConfigFile(file)
-	if err == nil {
-		return cfg, nil, nil
-	}
-	if _, statErr := os.Stat(file); statErr == nil {
-		return nil, nil, err
-	}
-	return nil, err, nil
-}
-
-// AmendEnv is message.AmendEnv, whether the commit amends HEAD.
-const AmendEnv = message.AmendEnv
 
 // gitValued are git commit's long options that take their value as the next
 // argument when it is not joined by "=", and gitShortValued its short ones
@@ -218,7 +198,7 @@ type gitArgs struct {
 	fileAt        valueAt
 	amend, noEdit bool
 	refused       string
-	// origin is the run's Out.Origin, where -F's file is read from.
+	// origin is the query's Origin, where -F's file is read from.
 	origin string
 }
 
@@ -228,18 +208,6 @@ func (g *gitArgs) refuse(option string) {
 		g.refused = option
 	}
 }
-
-// abbreviates is whether arg is the long option full, or an abbreviation of
-// it git takes, at least min characters long: git reads any unambiguous start
-// of a long option as the option, so --no-veri is --no-verify.
-func abbreviates(arg, full string, min int) bool {
-	return len(arg) >= min && strings.HasPrefix(full, arg)
-}
-
-// noVerify is whether the argument is --no-verify, as git commit and git
-// push read it: the option, or its start down to --no-veri, the shortest
-// that is no other option's.
-func noVerify(arg string) bool { return abbreviates(arg, "--no-verify", len("--no-veri")) }
 
 // valueAt is where an option's value sits among git's arguments: the
 // argument's index, -1 when there is none, and what comes before the value
@@ -270,7 +238,7 @@ func readGitArgs(args []string) gitArgs {
 			g.amend = arg == "--amend"
 		case arg == "--no-edit", arg == "--edit":
 			g.noEdit = arg == "--no-edit"
-		case noVerify(arg), arg == "--all":
+		case gitrun.NoVerify(arg), arg == "--all":
 			g.refuse(arg)
 		case strings.HasPrefix(arg, "--") && slices.Contains(gitValued, name):
 			at := valueAt{index: i, prefix: name + "="}
@@ -322,8 +290,9 @@ func (g *gitArgs) readCluster(cluster string, index int, next func() (string, va
 
 // message is the commit's message as far as itos can read it before git
 // runs: the -m ones joined as git joins them, the -F file (not stdin), or,
-// for an amend with --no-edit, HEAD's; false when it comes from the editor.
-func (g gitArgs) message() (string, bool) {
+// for an amend with --no-edit, HEAD's in v; false when it comes from the
+// editor.
+func (g gitArgs) message(ctx context.Context, v vcsport.VCS) (string, bool) {
 	switch {
 	case len(g.messages) > 0:
 		return strings.Join(g.messages, "\n\n"), true
@@ -331,7 +300,7 @@ func (g gitArgs) message() (string, bool) {
 		text, err := os.ReadFile(typed(g.origin, g.file))
 		return string(text), err == nil
 	case g.amend && g.noEdit:
-		head, err := vcs.Git{}.Show(context.Background(), "HEAD")
+		head, err := v.Show(ctx, "HEAD")
 		return head.Message, err == nil
 	}
 	return "", false
@@ -344,9 +313,10 @@ func (g gitArgs) message() (string, bool) {
 // config the links are the flags' or, for an amend that gives none, HEAD's
 // note, which the amend carries, and the content the message's and the
 // flags'. Nothing when itos cannot read the message (the editor's, or -F -),
-// which the hook judges; a footer no flag writes is the hook's too.
-func lacking(cfg *config.Loaded, g gitArgs, links, content []string, stealth bool) []out.Problem {
-	text, ok := g.message()
+// which the hook judges; a footer no flag writes is the hook's too. HEAD's
+// message, for an amend with --no-edit, is v's.
+func lacking(ctx context.Context, cfg *config.Loaded, v vcsport.VCS, g gitArgs, links, content []string, stealth bool) []out.Problem {
+	text, ok := g.message(ctx, v)
 	typ := message.Type(text)
 	if !ok || typ == "" {
 		return nil
@@ -355,7 +325,7 @@ func lacking(cfg *config.Loaded, g gitArgs, links, content []string, stealth boo
 	if stealth {
 		linked = strings.Join(links, "\n")
 		if len(links) == 0 && g.amend {
-			head, _ := cfg.VCS.Show(context.Background(), "HEAD")
+			head, _ := cfg.VCS.Show(ctx, "HEAD")
 			linked = head.Note
 		}
 	}
@@ -372,19 +342,6 @@ func lacking(cfg *config.Loaded, g gitArgs, links, content []string, stealth boo
 		})
 	}
 	return found
-}
-
-// refuseCommit reports the footers a commit lacks, as the hook reports a
-// rejection, and exits 1: no commit is made.
-func refuseCommit(cfg *config.Loaded, found []out.Problem, o Out) (int, error) {
-	if o.JSON {
-		return ExitPolicy, out.Emit(o.Stdout, out.Field{Key: "ok", Value: false}, out.Field{Key: "problems", Value: found})
-	}
-	fmt.Fprintln(o.Stderr, cfg.Commits.RejectMessage)
-	for _, p := range found {
-		fmt.Fprintf(o.Stderr, "  - %s\n", p.Message)
-	}
-	return ExitPolicy, nil
 }
 
 // wrapBody is git's arguments with the message they give wrapped to the
@@ -441,20 +398,20 @@ func wrapBody(args []string, g gitArgs, limit int, keys []string, comment string
 
 // refuseCommitArgs refuses, before anything else, what would commit past the
 // gates (slice 128): an option that skips the hooks (--no-verify, -n), a
-// core.hooksPath set by git -c (hooksPathSet), which moves the hooks git
+// core.hooksPath set by git -c (hooks.PathSet), which moves the hooks git
 // runs, and an option that stages every change to a tracked file (-a,
 // --all), someone else's work in progress among them. A usage error, exit 2,
 // naming what is refused; nothing is committed.
 func refuseCommitArgs(g gitArgs) error {
 	switch {
 	case g.refused == "-a" || g.refused == "--all":
-		return usage("commit refuses %s: it stages every change to a tracked file, someone else's work in progress "+
+		return out.Usage("commit refuses %s: it stages every change to a tracked file, someone else's work in progress "+
 			"among them; stage your own files by path (git add <path>), then commit without it", g.refused)
 	case g.refused != "":
-		return usage("commit refuses %s: it skips git's hooks, and the checks they run; commit without it, and fix "+
+		return out.Usage("commit refuses %s: it skips git's hooks, and the checks they run; commit without it, and fix "+
 			"what the hooks report", g.refused)
-	case hooksPathSet():
-		return usage("commit refuses core.hooksPath set by git -c: it moves the hooks git runs, skipping the " +
+	case hooks.PathSet():
+		return out.Usage("commit refuses core.hooksPath set by git -c: it moves the hooks git runs, skipping the " +
 			"repository's own; commit without it")
 	}
 	return nil
@@ -469,57 +426,56 @@ func trailers(lines []string) []string {
 	return args
 }
 
-// gitCommit is `itos commit [--task <ids>] [--item <ids>] [--scenarios
+// commit is `itos commit [--task <ids>] [--item <ids>] [--scenarios
 // <ids>] [--<footer> <text>] [--breaking <text>] [<git commit args>…]`: a commit missing a
 // footer its type requires refused before git runs, else git commit with the
 // footers as trailers, or under a stealth config the links as the new
 // commit's note and the content as trailers, git's streams the terminal's
-// (its stdout on stderr under --json, which prints the outcome), -q passed on
-// as git's --quiet, and git's exit code handed back. trailer.ifExists is
-// addIfDifferent for the commit, so a footer the message already has, as an
-// amend's does, is not written twice.
-func gitCommit(args []string, o Out) (int, error) {
-	cfg, missing, err := commitConfig()
+// (its stdout on stderr under --json), -q passed on as git's --quiet, and
+// git's exit code handed back, with HEAD under --json once it made one.
+// trailer.ifExists is addIfDifferent for the commit, so a footer the
+// message already has, as an amend's does, is not written twice.
+func (h Handler) commit(ctx context.Context, q Query, o Out) (Answer, error) {
+	cfg, absent, err := h.ports.CommitConfig(ctx)
 	if err != nil {
-		return 0, err
+		return Answer{}, err
 	}
-	flags, err := readCommitFlags(args, message.TextFlags(cfg))
+	flags, err := readCommitFlags(q.Args, message.TextFlags(cfg))
 	if err != nil {
-		return 0, err
+		return Answer{}, err
 	}
 	g := readGitArgs(flags.git)
-	g.origin = o.Origin
+	g.origin = q.Origin
 	if err := refuseCommitArgs(g); err != nil {
-		return 0, err
+		return Answer{}, err
 	}
-	links, content, err := flags.footerLines(cfg, missing)
+	links, content, err := flags.footerLines(cfg, absent)
 	if err != nil {
-		return 0, err
+		return Answer{}, err
 	}
-	stealth := config.IsStealth(vcs.Git{}, configPath())
+	stealth := h.ports.Stealth(ctx)
 	if cfg != nil {
-		if found := lacking(cfg, g, links, content, stealth); len(found) > 0 {
-			return refuseCommit(cfg, found, o)
+		if found := lacking(ctx, cfg, h.ports, g, links, content, stealth); len(found) > 0 {
+			return Answer{Code: refused, Reject: cfg.Commits.RejectMessage, Problems: found}, nil
 		}
 		// Where itos is set up, a commit git would make without itos's
 		// commit-msg hook is refused before git runs (slice 91).
-		if err := hooksReady("commit-msg"); err != nil {
-			return 0, err
+		if err := hooks.Ready(ctx, h.ports, "commit-msg"); err != nil {
+			return Answer{}, err
 		}
 	}
-	ctx, v := context.Background(), vcs.Git{}
-	env := withoutFooters(os.Environ())
+	v := h.ports
+	env := message.WithoutFooters(os.Environ())
 	amend := "0"
 	if g.amend {
 		amend = "1"
 	}
-	env = append(env, AmendEnv+"="+amend)
+	env = append(env, message.AmendEnv+"="+amend)
 	before := ""
 	var trailed []string
 	if stealth {
-		if err := rewriteNotes(v); err != nil {
-			fmt.Fprintf(o.Stderr, "itos: cannot set notes.rewriteRef: %s\n", err)
-			return ExitMissing, nil
+		if err := gitrun.RewriteNotes(ctx, v); err != nil {
+			return Answer{Code: missing, Said: fmt.Sprintf("itos: cannot set notes.rewriteRef: %s\n", err)}, nil
 		}
 		if len(links) > 0 {
 			env = append(env, message.FootersEnv+"="+strings.Join(links, "\n"))
@@ -538,7 +494,7 @@ func gitCommit(args []string, o Out) (int, error) {
 	}
 	given, written, err := wrapBody(flags.git, g, message.BodyLimit(cfg), keys, comment)
 	if err != nil {
-		return 0, err
+		return Answer{}, err
 	}
 	if written != "" {
 		defer os.Remove(written)
@@ -547,88 +503,21 @@ func gitCommit(args []string, o Out) (int, error) {
 	if o.JSON {
 		stdout = o.Stderr
 	}
-	code, err := exitOf(v.Commit(ctx, vcsport.Commit{Args: append(trailed, given...), Quiet: o.Quiet}, talking(env, stdout, o)))
+	code, err := gitrun.ExitOf(v.Commit(ctx, vcsport.Commit{Args: append(trailed, given...), Quiet: o.Quiet},
+		gitrun.Talking(q.Origin, env, stdout, o.Stderr)))
 	if err != nil {
-		fmt.Fprintf(o.Stderr, "itos: cannot run git: %s\n", err)
-		return ExitMissing, nil
+		return Answer{Code: missing, Said: fmt.Sprintf("itos: cannot run git: %s\n", err)}, nil
 	}
 	if code == 0 && stealth && len(links) > 0 {
-		if err := writeNote(v, before, links); err != nil {
-			fmt.Fprintf(o.Stderr, "itos: the commit is made, but its note is not: %s\n", err)
-			return ExitPolicy, nil
+		if err := gitrun.WriteNote(ctx, v, before, links); err != nil {
+			return Answer{Code: refused, Said: fmt.Sprintf("itos: the commit is made, but its note is not: %s\n", err)}, nil
 		}
 	}
-	if o.JSON {
-		fields := []out.Field{{Key: "ok", Value: code == 0}}
-		if code == 0 {
-			if sha, err := v.Resolve(ctx, "HEAD"); err == nil {
-				fields = append(fields, out.Field{Key: "commit", Value: sha})
-			}
-		}
-		if err := out.Emit(o.Stdout, fields...); err != nil {
-			return 0, err
+	a := Answer{Code: code}
+	if o.JSON && code == 0 {
+		if sha, err := v.Resolve(ctx, "HEAD"); err == nil {
+			a.Commit = sha
 		}
 	}
-	return code, nil
-}
-
-// talking is how git runs for a command the person typed: with the
-// terminal's stdin, so an editor can open, its output to stdout and its
-// words to o's stderr, an interrupt git's and the editor's to act on while
-// it runs, not a reason for itos to leave first. It runs in the folder the
-// person stood in, so the paths and the files they gave git mean what they
-// mean there, though itos moved to the repository's top to read its config
-// (slice 40); in env, itos's own when nil.
-func talking(env []string, stdout io.Writer, o Out) vcsport.Talk {
-	return vcsport.Talk{Dir: o.Origin, Stdin: os.Stdin, Stdout: stdout, Stderr: o.Stderr, Env: env, Owns: true}
-}
-
-// exitOf is the exit code of a git command that failed (err a
-// vcsport.Failed), 1 for one a signal ended; 0 when err is nil, and the
-// error itself, with no code, when git could not start.
-func exitOf(err error) (int, error) {
-	var failed *vcsport.Failed
-	switch {
-	case err == nil:
-		return 0, nil
-	case !errors.As(err, &failed):
-		return 0, err
-	case failed.Code > 0:
-		return failed.Code, nil
-	}
-	return ExitPolicy, nil
-}
-
-// withoutFooters is message.WithoutFooters.
-func withoutFooters(env []string) []string { return message.WithoutFooters(env) }
-
-// rewriteNotes adds refs/notes/itos to notes.rewriteRef in the repository's
-// own config unless a value already names it, so that git commit --amend and
-// git rebase, which copy the notes of the refs it names to the commits they
-// make, carry a commit's footers along.
-func rewriteNotes(v vcs.Git) error {
-	for _, ref := range v.Config(context.Background(), "notes.rewriteRef", false) {
-		if ok, _ := path.Match(strings.TrimSpace(ref), message.NotesRef); ok {
-			return nil
-		}
-	}
-	return v.AddConfig(context.Background(), "notes.rewriteRef", message.NotesRef)
-}
-
-// writeNote writes the footers as the itos note of the commit git just made,
-// replacing the one an amend carried over; nothing when HEAD is still the
-// commit it was before (a dry run made none).
-func writeNote(v vcsport.VCS, before string, lines []string) error {
-	ctx := context.Background()
-	head, err := v.Resolve(ctx, "HEAD")
-	if err != nil {
-		return err
-	}
-	if head == before {
-		return nil
-	}
-	if err := v.Note(ctx, "HEAD", strings.Join(lines, "\n")); err != nil {
-		return fmt.Errorf("git notes add: %s", wordsOf(err))
-	}
-	return nil
+	return a, nil
 }

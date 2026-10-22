@@ -9,16 +9,13 @@ package cli
 // has already judged.
 
 import (
-	"context"
 	"maps"
 	"regexp"
 	"slices"
 	"strings"
 
 	"github.com/donvargax/itos/v8/internal/declare"
-	"github.com/donvargax/itos/v8/internal/engine/refs"
 	"github.com/donvargax/itos/v8/internal/message"
-	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
 )
 
 // A spec and its flags are what a command declares (internal/declare); the
@@ -265,9 +262,4 @@ func find(list []flagSpec, name string) (flagSpec, bool) {
 		return flagSpec{}, false
 	}
 	return list[i], true
-}
-
-// commitRefs is refs.Check over git.
-func commitRefs(command string, names ...string) error {
-	return refs.Check(context.Background(), vcs.Git{}, command, names...)
 }

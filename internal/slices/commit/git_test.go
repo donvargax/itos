@@ -1,14 +1,21 @@
-package cli
+package commit
 
 import (
-	"encoding/json"
-	"io"
+	"errors"
 	"os"
 	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
+
+	"github.com/donvargax/itos/v8/internal/out"
 )
+
+// isUsage is whether err is a usage error, exit 2, whose words have text.
+func isUsage(err error, text string) bool {
+	var u out.UsageError
+	return errors.As(err, &u) && strings.Contains(err.Error(), text)
+}
 
 // Each -m is wrapped in its place, however it is written; -F's text goes to
 // a file of its own, named where the file was; nothing changes without a
@@ -62,7 +69,7 @@ func TestReadCommitFlags(t *testing.T) {
 		t.Errorf("readCommitFlags = %+v, %v", f, err)
 	}
 	for _, args := range [][]string{{"--task"}, {"-m", "x", "--item"}, {"--scenarios", "-m", "x"}} {
-		if _, err := readCommitFlags(args, nil); ExitCode(err) != ExitUsage || !strings.Contains(err.Error(), "needs <") {
+		if _, err := readCommitFlags(args, nil); !isUsage(err, "needs <") {
 			t.Errorf("readCommitFlags(%q) = %v, not a usage error", args, err)
 		}
 	}
@@ -101,15 +108,13 @@ func TestReadGitArgsRefuses(t *testing.T) {
 // A refused option is a usage error naming it and why; a core.hooksPath that
 // git -c sets, handed on by the shim or by git, in any case, is refused too.
 func TestRefuseCommitArgs(t *testing.T) {
-	t.Setenv("ITOS_CONFIG", "")
-	t.Chdir(t.TempDir())
 	for _, name := range []string{"GIT_CONFIG_COUNT", "GIT_CONFIG_PARAMETERS"} {
 		t.Setenv(name, "")
 	}
 	for refused, says := range map[string]string{"-a": "git add <path>", "--all": "stages every change",
 		"-n": "skips git's hooks", "--no-verify": "skips git's hooks"} {
 		err := refuseCommitArgs(gitArgs{refused: refused})
-		if ExitCode(err) != ExitUsage || !strings.Contains(err.Error(), refused+":") || !strings.Contains(err.Error(), says) {
+		if !isUsage(err, refused+":") || !strings.Contains(err.Error(), says) {
 			t.Errorf("refusing %s: %v", refused, err)
 		}
 	}
@@ -119,65 +124,34 @@ func TestRefuseCommitArgs(t *testing.T) {
 	t.Setenv("GIT_CONFIG_COUNT", "2")
 	t.Setenv("GIT_CONFIG_KEY_0", "user.name")
 	t.Setenv("GIT_CONFIG_KEY_1", "Core.HooksPath")
-	if err := refuseCommitArgs(gitArgs{}); ExitCode(err) != ExitUsage || !strings.Contains(err.Error(), "core.hooksPath") {
+	if err := refuseCommitArgs(gitArgs{}); !isUsage(err, "core.hooksPath") {
 		t.Errorf("git -c core.hooksPath through the shim: %v", err)
 	}
-	if code, err := gitCommit([]string{"-m", "chore: x"}, Out{Stdout: io.Discard, Stderr: io.Discard}); code != 0 ||
-		ExitCode(err) != ExitUsage {
-		t.Errorf("gitCommit under git -c core.hooksPath = %d, %v", code, err)
-	}
-	t.Setenv("GIT_CONFIG_KEY_1", "core.editor")
-	if hooksPathSet() {
-		t.Error("no core.hooksPath among the shim's keys")
-	}
-	for params, want := range map[string]bool{"'core.hooksPath'='/x'": true, "'core.hookspath=/x'": true,
-		"'user.name'='core.hooksPath'": false, "'a'='x' 'CORE.HOOKSPATH'='y'": true,
-		"'a'='x '\\''core.hooksPath='": false, "": false} {
-		t.Setenv("GIT_CONFIG_PARAMETERS", params)
-		if got := hooksPathSet(); got != want {
-			t.Errorf("GIT_CONFIG_PARAMETERS %q: hooksPathSet = %v", params, got)
+}
+
+// An amend is --amend among git commit's options, never a value of one, nor
+// a path after --; a long option that takes no value takes no argument after
+// it as one.
+func TestAmends(t *testing.T) {
+	for _, c := range []struct {
+		args []string
+		want bool
+	}{
+		{[]string{"--amend", "--no-edit"}, true},
+		{[]string{"-m", "x", "--amend"}, true},
+		{[]string{"--allow-empty", "--amend"}, true},
+		{[]string{"-am", "x", "--amend"}, true},
+		{[]string{"-m", "--amend"}, false},
+		{[]string{"-m--amend"}, false},
+		{[]string{"--message", "--amend"}, false},
+		{[]string{"--message=--amend"}, false},
+		{[]string{"-C", "--amend"}, false},
+		{[]string{"-q", "--", "--amend"}, false},
+		{[]string{"--amend", "--no-amend"}, false},
+		{[]string{"-m", "x"}, false},
+	} {
+		if got := readGitArgs(c.args).amend; got != c.want {
+			t.Errorf("readGitArgs(%q).amend = %v", c.args, got)
 		}
-	}
-}
-
-// With no itos config, the command reaches git, whose exit code is itos's
-// (bug 120): an unknown option is git's to refuse, 129.
-func TestGitCommitWithoutAConfig(t *testing.T) {
-	t.Setenv("ITOS_CONFIG", "")
-	t.Chdir(t.TempDir())
-	gitIn(t, "init", "-q")
-	var stderr strings.Builder
-	code, err := gitCommit([]string{"--zz-bogus"}, Out{Stdout: io.Discard, Stderr: &stderr})
-	if code != 129 || err != nil || !strings.Contains(stderr.String(), "unknown option") {
-		t.Errorf("exit %d, %v\n%s", code, err, stderr.String())
-	}
-}
-
-// Under --json, a commit made gives ok and the commit's SHA, git's own words
-// going to stderr; one the hook refuses gives ok false and no commit.
-func TestGitCommitJSONNamesTheCommit(t *testing.T) {
-	rollbackRepo(t)
-	writeFile(t, "a.md", "a\n")
-	gitIn(t, "add", "--", "a.md")
-	var stdout, stderr strings.Builder
-	code, err := gitCommit([]string{"-m", "docs: add a"}, Out{Stdout: &stdout, Stderr: &stderr, JSON: true})
-	var got struct {
-		OK     bool    `json:"ok"`
-		Commit *string `json:"commit"`
-	}
-	if code != 0 || err != nil || json.Unmarshal([]byte(stdout.String()), &got) != nil {
-		t.Fatalf("exit %d, %v\n%s%s", code, err, stdout.String(), stderr.String())
-	}
-	if head := strings.TrimSpace(gitIn(t, "rev-parse", "HEAD")); !got.OK || got.Commit == nil || *got.Commit != head {
-		t.Errorf("stdout %s, HEAD %s", stdout.String(), head)
-	}
-	refusingHook(t)
-	writeFile(t, "a.md", "b\n")
-	gitIn(t, "add", "--", "a.md")
-	stdout.Reset()
-	code, err = gitCommit([]string{"-m", "docs: change a"}, Out{Stdout: &stdout, Stderr: &stderr, JSON: true})
-	got.Commit = nil
-	if code != 1 || err != nil || json.Unmarshal([]byte(stdout.String()), &got) != nil || got.OK || got.Commit != nil {
-		t.Errorf("a refused commit: exit %d, %v\n%s", code, err, stdout.String())
 	}
 }

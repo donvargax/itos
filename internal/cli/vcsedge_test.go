@@ -1,7 +1,6 @@
 package cli
 
 import (
-	"context"
 	"errors"
 	"os"
 	"path/filepath"
@@ -10,7 +9,6 @@ import (
 
 	"github.com/donvargax/itos/v8/internal/kind"
 	"github.com/donvargax/itos/v8/internal/vcs/port"
-	"github.com/donvargax/itos/v8/internal/vcs/port/porttest"
 )
 
 // A git that failed exits as it did, one a signal ended 1; one that did not
@@ -46,28 +44,6 @@ func TestRemoteKindAndWords(t *testing.T) {
 	plain := errors.New("no git")
 	if remoteKind(plain) != kind.Unknown || words(plain) != "" || words(&port.Failed{Words: "said\n"}) != "said\n" {
 		t.Errorf("remoteKind or words of an error git did not give")
-	}
-}
-
-// refusedNote is the fake, its notes refused.
-type refusedNote struct{ *porttest.VCS }
-
-func (refusedNote) Note(context.Context, string, string) error {
-	return &port.Failed{Command: "git notes", Code: 1, Words: "refused\n"}
-}
-
-// The note of a commit just made that cannot be written says git's words;
-// none is written when HEAD did not move.
-func TestWriteNote(t *testing.T) {
-	v := refusedNote{&porttest.VCS{History: []porttest.Commit{{Name: "c-a"}}, Named: map[string]string{"HEAD": "c-a"}}}
-	if err := writeNote(v, "", []string{"Task: T-1"}); err == nil || err.Error() != "git notes add: refused" {
-		t.Errorf("writeNote = %v", err)
-	}
-	if err := writeNote(v, "c-a", []string{"Task: T-1"}); err != nil {
-		t.Errorf("writeNote with HEAD as it was = %v", err)
-	}
-	if err := writeNote(refusedNote{&porttest.VCS{}}, "", nil); err == nil {
-		t.Error("writeNote with no HEAD: no error")
 	}
 }
 

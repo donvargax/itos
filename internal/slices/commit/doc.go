@@ -1,0 +1,71 @@
+// Package commit is the commit command, a slice (ADR-0053): git commit with
+// the footers itos writes (slice 31, features/commit-command.feature), and
+// its subcommands check-message, check-paths and footers. Its CLI and Run
+// are the command line, its Query and Handler the application.
+//
+// Command (command.go) declares its name, help and flag spec. Parse takes a
+// commit itself when there is no argument or the first is a flag or --; a
+// bare first word is one of its subcommands or a usage error, so a mistyped
+// subcommand never reaches git as a pathspec. Git is a commit itself
+// whatever the first argument, the git shim's git commit. A path a
+// subcommand is given is read from where the person stood (Query's Origin).
+//
+// A commit (git.go) first loads the config (the CommitConfig port: none,
+// with no error, where there is no config file, so itos commit still runs
+// git where itos is not set up). readCommitFlags takes itos's flags out of
+// the arguments before any --, leaving the rest to git in order: --task,
+// --item and --scenarios (repeatable, split by message.SplitIDs), the flag
+// of each free-text footer (message.TextFlags) and --breaking, whose value
+// is the next argument whatever it is. footerLines gives the links, each
+// flag's footer found by its source and its IDs packed onto lines within
+// the header lint's 100 characters, and the content, <Key>: <text> in the
+// config's order, then BREAKING-CHANGE: <text>. readGitArgs reads git's own
+// arguments as git reads them (a valued option's value skipped, so -m
+// --amend is a message): the -m messages, the -F file, --amend and
+// --no-edit, and the first option itos commit refuses (slice 128):
+// --no-verify or -n, which skip the hooks, or -a or --all, which stage
+// every change to a tracked file, each in a cluster too (-am) and
+// --no-verify as git abbreviates it (gitrun.NoVerify). refuseCommitArgs
+// refuses it before anything else, as it does a core.hooksPath git -c sets
+// (hooks.PathSet: the shim's GIT_CONFIG_KEY_<n>, or git's
+// GIT_CONFIG_PARAMETERS), a usage error, exit 2. lacking refuses up front
+// what the hook would: from the message itos can read (-m, -F <file>, or
+// HEAD's for --amend --no-edit; nothing for the editor's or -F -), its
+// type's required footers that neither it nor the flags give
+// (message.Missing), each named by its flag; Run reports them as a
+// rejection, exit 1, before git runs. Where itos is set up, hooks.Ready
+// refuses with exit 3 a commit git would make without itos's commit-msg
+// hook. wrapBody then wraps the message (message.Wrap); each -m value is
+// rewritten in its argument, and an -F text (stdin's for -F -) goes to a
+// temporary file named in its place, removed once git exits. trailers makes
+// each footer line a --trailer, which git applies before the editor and the
+// commit-msg hook, under -c trailer.ifExists=addIfDifferent, so a footer an
+// amend already has is not written again.
+//
+// Under a stealth config the links go to the hook in ITOS_FOOTERS (any
+// inherited one dropped first) and the content stays trailers, and once git
+// exits 0 with a new HEAD, gitrun.WriteNote writes the links as its note in
+// refs/notes/itos (git notes add -f, replacing what an amend carried over),
+// gitrun.RewriteNotes first adding that ref to notes.rewriteRef in the
+// local config unless a value already names it. git tells a hook nothing of
+// an amend, so a commit sets ITOS_AMEND (message.AmendEnv) to 1 or 0 every
+// time; the hook's amending takes that word, and only when it is absent, a
+// commit made without itos commit, guesses from the author git exports,
+// which an amend keeps from HEAD to the second. git commit runs as a child,
+// not by exec, so itos can act after it, with the terminal's stdin for the
+// editor and an interrupt left to git (gitrun.Talking); its exit code is
+// itos's (gitrun.ExitOf), and one git cannot start exits 3. A global -q is
+// passed on as --quiet; under --json git's stdout goes to stderr and stdout
+// has {"schema":1,"ok","commit"?}. With no config the comment character the
+// message is wrapped around is git's (bug 120).
+//
+// check-message runs one message through message.Check, its --at ref
+// checked first (internal/engine/refs); check-paths the path rules alone
+// (internal/scope); footers a range's footers of free text
+// (message.Gathered), its refs checked first.
+//
+// Handle reaches the world through Ports, which the slice owns and
+// internal/cli binds: the repository (the VCS port, git behind it), its git
+// config (hooks.Git and gitrun.Config), the stealth check, the config's two
+// loads and the working tree's files.
+package commit

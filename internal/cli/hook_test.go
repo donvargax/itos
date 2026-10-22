@@ -46,33 +46,6 @@ func TestProblemLine(t *testing.T) {
 	}
 }
 
-// An amend is --amend among git commit's options, never a value of one, nor
-// a path after --; a long option that takes no value takes no argument after
-// it as one.
-func TestAmends(t *testing.T) {
-	for _, c := range []struct {
-		args []string
-		want bool
-	}{
-		{[]string{"--amend", "--no-edit"}, true},
-		{[]string{"-m", "x", "--amend"}, true},
-		{[]string{"--allow-empty", "--amend"}, true},
-		{[]string{"-am", "x", "--amend"}, true},
-		{[]string{"-m", "--amend"}, false},
-		{[]string{"-m--amend"}, false},
-		{[]string{"--message", "--amend"}, false},
-		{[]string{"--message=--amend"}, false},
-		{[]string{"-C", "--amend"}, false},
-		{[]string{"-q", "--", "--amend"}, false},
-		{[]string{"--amend", "--no-amend"}, false},
-		{[]string{"-m", "x"}, false},
-	} {
-		if got := readGitArgs(c.args).amend; got != c.want {
-			t.Errorf("readGitArgs(%q).amend = %v", c.args, got)
-		}
-	}
-}
-
 // A staged tree whose config or ledger cannot be read names no task, and is
 // no error: the header lint has judged the footer by then.
 func TestStagedTasksOfAnUnreadableTree(t *testing.T) {
