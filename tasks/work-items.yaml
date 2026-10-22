@@ -55,7 +55,6 @@ phases:
   3: donvargax
 
 queue:
-  - T-224
   - bug-119
   - T-191
   - p1-mutation-results-committed
