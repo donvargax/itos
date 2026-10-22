@@ -12253,3 +12253,11 @@ items:
     status: todo
     depends_on: []
     kind: task
+
+  - id: T-246
+    title: "Slices, prerequisite 4: the questions and drafts readers and the config findings as shared code"
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task
