@@ -4378,3 +4378,18 @@
   done_when:
     - run: test -f tools/bin/staticcheck-changed/main.go || test -x tools/bin/staticcheck-changed
     - run: grep -n 'staticcheck-changed' itos.yaml
+
+- id: T-270
+  type: ci
+  title: The gates self-test edits a test file that stays in internal/cli through step 9
+  why: >
+    Found by T-269's agent (2026-10-22): tools/selftest/gates/gates_test.go (lines 110-111) edits
+    internal/cli/verify_test.go, which T-247 (f5261dda) moved into internal/slices/verify, so the
+    nightly-only self-test fails to open it. Point the case at a test file that stays in
+    internal/cli while commands move (cli_test.go: internal/cli remains the assembly), and grep
+    tools/selftest for every other internal/cli path a step 9 move could take away; fix any the
+    merged moves already broke. The agent verified cli_test.go locally. A ci commit; no product
+    change.
+  done_when:
+    - run: ITOS_SELFTEST=1 go test -count=1 -run '^TestSelftest$' ./tools/selftest/gates
+      timeout: 900

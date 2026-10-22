@@ -12506,3 +12506,11 @@ items:
     kind: task
     refs: [itos.yaml, tools/bin/pre-commit]
     tags: [hooks]
+
+  - id: T-270
+    title: The gates self-test edits a test file that stays in internal/cli through step 9
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task
