@@ -12341,3 +12341,11 @@ items:
     status: todo
     depends_on: []
     kind: task
+
+  - id: T-257
+    title: "itos init becomes a slice, part 2: its offers"
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task
