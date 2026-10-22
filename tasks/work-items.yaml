@@ -12055,8 +12055,8 @@ items:
   - id: T-229
     title: "The pin engine out of internal/cli: the pinned version and the install script, internal/engine/pin"
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: [T-228]
     kind: task
 
