@@ -12351,8 +12351,8 @@ items:
   - id: T-257
     title: "itos init becomes a slice, part 2: its offers"
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: [T-242, T-243, T-244, T-245, T-246, T-256]
     kind: task
 
