@@ -11,12 +11,6 @@ import (
 // an error that failure reports.
 type command func(args []string, o Out) (int, error)
 
-// flagValue is args.FlagValue.
-func flagValue(list []string, name string) (string, bool) { return args.FlagValue(list, name) }
-
-// positional is args.Positional.
-func positional(list []string, valued ...string) []string { return args.Positional(list, valued...) }
-
 // first is args.First.
 func first(list []string) (string, bool) { return args.First(list) }
 

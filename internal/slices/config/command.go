@@ -1,8 +1,8 @@
-package cli
+package config
 
 import "github.com/donvargax/itos/v8/internal/declare"
 
-var configDeclared = declare.Command{
+var Command = declare.Command{
 	Name: "config",
 	Rank: 200,
 	Lines: `  config check [--print-defaults]  validate the config, ledger, registry and smoke sets

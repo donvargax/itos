@@ -7,6 +7,7 @@ import (
 	"github.com/donvargax/itos/v8/internal/declare"
 	cislice "github.com/donvargax/itos/v8/internal/slices/ci"
 	commitslice "github.com/donvargax/itos/v8/internal/slices/commit"
+	configslice "github.com/donvargax/itos/v8/internal/slices/config"
 	followupslice "github.com/donvargax/itos/v8/internal/slices/followup"
 	gitshimslice "github.com/donvargax/itos/v8/internal/slices/gitshim"
 	guardslice "github.com/donvargax/itos/v8/internal/slices/guard"
@@ -38,7 +39,7 @@ var declared = []declare.Command{
 	cislice.Command,
 	hookDeclared,
 	guardslice.Command,
-	configDeclared,
+	configslice.Command,
 	versionslice.Command,
 }
 
