@@ -10051,8 +10051,8 @@ items:
   - id: slice-166
     title: tests list gives each scenario a fingerprint of what it runs, and itos-cc's listing prints it (#112)
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: slice
     why: >
