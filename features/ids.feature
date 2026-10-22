@@ -117,3 +117,19 @@ Feature: The id counter, so an id itos mints is minted once
     Then every run exited 0
     And the concurrent clones minted "slice-10" and "slice-11"
     And the remote's id counter for "slice" is 11
+
+  # A git that fails as itos reserves an ID is an error nobody classified:
+  # exit 70, as v8.5.2 exits. T-218's refactor made it the locate's
+  # missing-environment error, exit 3; the user restored 70 (2026-10-21).
+  # The wording is not judged: prose is no contract (ADR-0052). The git that
+  # fails is the one itos runs (ITOS_GIT), set up after the clone, so the
+  # repository is real and only git's answers fail.
+  @ID-IDS-08 @bug-119 @wip
+  Scenario: A git that fails while itos reserves an ID exits 70, and writes nothing
+    Given a repository whose ledger has the task "T-001"
+    And a clone of it, where itos runs
+    And the work registry has the item "slice-9" owned by nobody with the status "todo"
+    And the git itos runs fails every command
+    When itos runs the command line "work add --kind slice --title 'Do the thing' --why 'Because.'"
+    Then itos exits with code 70
+    And the registry has no item "slice-10"
