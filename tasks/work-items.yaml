@@ -55,7 +55,6 @@ phases:
   3: donvargax
 
 queue:
-  - T-240
   - T-241
   - T-242
   - T-191
