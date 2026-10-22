@@ -11982,3 +11982,11 @@ items:
     status: todo
     depends_on: []
     kind: task
+
+  - id: T-227
+    title: "The tracker store, part 3: IDs reserved through the tracker port, internal/idcounter its adapter's internals"
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task
