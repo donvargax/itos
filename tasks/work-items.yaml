@@ -11334,3 +11334,20 @@ items:
     status: todo
     depends_on: []
     kind: task
+
+  - id: p1-research-log
+    title: "Dated notes with no person, item or task: a research log of findings, spikes, guidance and conclusions"
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The user, 2026-10-21: vendor research, spikes and their conclusions, and guidance found along
+      the way have no natural home today: an item's why is for its own work, a followup thread needs
+      a person, a decision needs a question. A log of dated entries, each with a title and optional
+      tags and links to items, decisions or threads; listed and searched by tag or text. Open
+      design: committed (shared, in the repository beside the registry) or private (git common dir,
+      as followup), or both with a flag; and whether an entry can later become an item or a decision
+      (promote). Relates to p1-followup-topics: a topic thread may be the same object.
+    tags: [followup]
