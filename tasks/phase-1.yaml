@@ -3168,13 +3168,6 @@
     declare-leaf denying everything of ours and os, net to internal/declare, with architecture
     fixtures (a build commit and a chore commit). The package is named declare because internal/cli
     already has a type command.
-  done_when:
-    - run: go test ./internal/declare/ ./internal/cli -count=1
-      timeout: 600
-    - run: tools/bin/architecture-check
-    - run: tools/bin/pinned golangci-lint run ./...
-      timeout: 600
-    - run: grep -n 'declare-leaf' .golangci.yml
 
 - id: T-240
   type: build

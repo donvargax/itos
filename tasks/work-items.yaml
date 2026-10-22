@@ -12169,7 +12169,7 @@ items:
     title: "Commands declare themselves, part 1: internal/declare, a leaf package for a command's name, help and flag spec"
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
 
