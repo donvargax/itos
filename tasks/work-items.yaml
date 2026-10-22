@@ -12215,8 +12215,8 @@ items:
   - id: T-242
     title: "Commands declare themselves, part 4: CI and the pre-commit hook check the generated table is current"
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: [T-241]
     kind: task
 
