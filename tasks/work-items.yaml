@@ -6149,10 +6149,6 @@ items:
       tools/bin/itos-cc-tests is a separate gate/config task after this CLI slice lands; no mutation
       or CI policy changes are bundled.
     refs: [features/tests-list.feature, internal/cli/tests.go, internal/cli/commands.go, internal/cli/help.go, internal/tests/tests.go, internal/tests/gherkin.go]
-    deferred: >
-      Feature freeze for the slices and ports refactor (ADR-0053, the user 2026-10-21): only repairs
-      and moves until the layout is done, since most of these touch internal/cli files the moves
-      rewrite. Resume after the last slice moves.
 
   - id: p3-opencode-plugin
     title: An opencode v2 plugin guards git commit and git push, and init wires it
