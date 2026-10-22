@@ -1,0 +1,25 @@
+#!/bin/sh
+# The pinned golangci-lint over the whole module, CI's lint step, when a push changes Go (T-220):
+# itos's pre-push hook runs it through itos.yaml's hooks.pre_push with the remote commit the push
+# builds on (that commit against the working tree, as tools/bin/go-unit-tests reads it), or --all
+# when there is none. Go is any .go file, go.mod, go.sum, or the linter's own .golangci.yml; a push
+# of none of them runs nothing. tools/bin/architecture-check, whose fixtures take longer, stays CI's.
+#
+#   tools/bin/golangci-lint-changed <base> | --all
+set -eu
+
+case "${1:-}" in
+--all) ;;
+"" | -*)
+	echo "usage: tools/bin/golangci-lint-changed <base> | --all" >&2
+	exit 2
+	;;
+*)
+	changed=$(git diff --name-only --no-renames "$1")
+	printf '%s\n' "$changed" | grep -qE '(\.go|^go\.(mod|sum)|^\.golangci\.yml)$' || exit 0
+	;;
+esac
+
+cd "$(git rev-parse --show-toplevel)"
+echo "\$ tools/bin/pinned golangci-lint run ./..."
+exec tools/bin/pinned golangci-lint run ./...
