@@ -2771,3 +2771,18 @@
       timeout: 900
     - run: tools/bin/pinned golangci-lint run ./...
       timeout: 600
+
+- id: T-219
+  type: test
+  title: Tests kill the survivors and cover the line T-213 and T-216 left in the push proof's range
+  why: >
+    Coverage debt of the slices refactor (the user, 2026-10-21). CI run 39706013330 (since b240fc04)
+    failed on internal/lock/lock.go:52:20 '*' to '/' in Hold, which survived its own tests and
+    ID-FOLLOW-08 and ID-STEALTH-23 (T-213 touched Hold). T-216's push proof left
+    internal/vcs/adapter/find.go:22 uncovered (filepath.Abs's error, reachable only when Getwd
+    fails: a seam, as T-206's getwd, or argued unreachable and left) and a survivor at
+    internal/cli/push.go:345 'len(git.Conflicted()) > 0' to '> 1' in pushRun.rebase (a rebase
+    stopped on exactly one conflicted file). Unit tests first; no change to what itos does.
+  done_when:
+    - run: tools/bin/pinned itos-cc mutation run --since b240fc04 --count 1 --seed b240fc04 --fail-uncovered=lines --json cmd internal
+      timeout: 900
