@@ -16,6 +16,11 @@ Feature: Upgrade reports a commit heading once for all of its entries
     And the itos that runs is the itos under test, as the version "9.3.0"
     And the config pins the version "9.1.0" of the release server
 
+  # #86: one commit's consecutive Upgrading footers are often one wrapped
+  # note (371596cb in v7.0.0 wrote four lines, and its upgrading.json holds
+  # four entries); under its commit heading print them as one paragraph in
+  # text output, keeping the entries in JSON. Say which wins over keeping
+  # every text entry before this slice is built.
   @wip @ID-UPGRADECMD-26 @slice-152
   Scenario: Many changed cases share one commit heading
     Given release "9.2.0" declares 38 distinct Changes entries from one full commit identity and header
