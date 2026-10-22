@@ -38,12 +38,12 @@ linters:
         # A slice, outside its domain and adapters, imports nothing of ours
         # but its own subpackages (architecture-check refuses another
         # slice's), internal/out, through which its output goes, and the
-        # stores' ports, with their fakes for its tests (slice-fakes keeps
-        # them out of its code). It reaches everything else through the
-        # Ports it owns, which the assembly binds; internal/cli is the
-        # assembly until the step that moves it into cmd, so a slice
-        # importing it would cycle. A store's adapter is the assembly's to
-        # bind, never a slice's to import.
+        # stores' ports and the VCS's, with their fakes for its tests
+        # (slice-fakes keeps them out of its code). It reaches everything
+        # else through the Ports it owns, which the assembly binds;
+        # internal/cli is the assembly until the step that moves it into
+        # cmd, so a slice importing it would cycle. A store's adapter, and
+        # the VCS's, is the assembly's to bind, never a slice's to import.
         slice-packages:
           list-mode: lax
           files:
@@ -57,9 +57,11 @@ linters:
             - github.com/donvargax/itos/v8/internal/store/private/port/porttest$
             - github.com/donvargax/itos/v8/internal/store/tree/port$
             - github.com/donvargax/itos/v8/internal/store/tree/port/porttest$
+            - github.com/donvargax/itos/v8/internal/vcs/port$
+            - github.com/donvargax/itos/v8/internal/vcs/port/porttest$
           deny:
             - pkg: github.com/donvargax/itos/v8
-              desc: "a slice imports nothing of ours but its own subpackages, internal/out and the stores' ports (ADR-0053): reach the rest through its Ports; extend the rule, with a fixture, never loosen it"
+              desc: "a slice imports nothing of ours but its own subpackages, internal/out and the stores' and the VCS's ports (ADR-0053): reach the rest through its Ports; extend the rule, with a fixture, never loosen it"
         # A slice's code links no port's fake, which its tests alone may use:
         # slice-packages allows each store's porttest for the tests, so this
         # rule refuses it by name over the code. architecture-check --linked
@@ -73,42 +75,50 @@ linters:
               desc: "a slice's code links no fake (ADR-0053): a port's fake enters only through _test.go files"
             - pkg: github.com/donvargax/itos/v8/internal/store/tree/port/porttest
               desc: "a slice's code links no fake (ADR-0053): a port's fake enters only through _test.go files"
+            - pkg: github.com/donvargax/itos/v8/internal/vcs/port/porttest
+              desc: "a slice's code links no fake (ADR-0053): a port's fake enters only through _test.go files"
         # A store's port and its fake (internal/store/<store>/port and
-        # port/porttest), their tests with them, import nothing of ours but
-        # the port and the fake: no slice, engine, adapter or UI. A slice
-        # and the store's adapter import them, never the reverse. The list
-        # names every store's, so it lets one store's port import another's.
+        # port/porttest), and the VCS's (internal/vcs/port), their tests
+        # with them, import nothing of ours but the port and the fake: no
+        # slice, engine, adapter or UI. A slice and the adapter import them,
+        # never the reverse. The list names every port's, so it lets one
+        # port import another's.
         store-ports:
           list-mode: lax
           files:
             - "**/internal/store/*/port/**"
+            - "**/internal/vcs/port/**"
           allow:
             - github.com/donvargax/itos/v8/internal/store/private/port$
             - github.com/donvargax/itos/v8/internal/store/private/port/porttest$
             - github.com/donvargax/itos/v8/internal/store/tree/port$
             - github.com/donvargax/itos/v8/internal/store/tree/port/porttest$
+            - github.com/donvargax/itos/v8/internal/vcs/port$
+            - github.com/donvargax/itos/v8/internal/vcs/port/porttest$
           deny:
             - pkg: github.com/donvargax/itos/v8
-              desc: "a store's port and its fake import nothing of ours but the port and the fake (ADR-0053); extend the rule, with a fixture, never loosen it"
+              desc: "a store's or the VCS's port and its fake import nothing of ours but the port and the fake (ADR-0053); extend the rule, with a fixture, never loosen it"
         # A port and its fake do no I/O in their code: the fake keeps its
         # state in memory. The adapter does the I/O; tests may read fixtures.
         store-ports-io:
           files:
             - "**/internal/store/*/port/**"
+            - "**/internal/vcs/port/**"
             - "!$test"
           deny:
             - pkg: os
               desc: "a port and its fake do no I/O (ADR-0053): the fake keeps its state in memory, the adapter reaches the disk"
             - pkg: net
               desc: "a port and its fake do no I/O (ADR-0053): the fake keeps its state in memory, the adapter reaches the network"
-        # A store's adapter (internal/store/<store>/adapter) wraps the
-        # libraries it needs (git, the lock, the config's folder) and serves
-        # every slice through the assembly: its code imports no slice and
-        # links no fake. Its tests run the port's contract suite, the fake's
-        # package with it.
+        # A store's adapter (internal/store/<store>/adapter), and the VCS's
+        # (internal/vcs/adapter), wraps the libraries it needs (git, the
+        # lock, the config's folder) and serves every slice through the
+        # assembly: its code imports no slice and links no fake. Its tests
+        # run the port's contract suite, the fake's package with it.
         store-adapters:
           files:
             - "**/internal/store/*/adapter/**"
+            - "**/internal/vcs/adapter/**"
             - "!$test"
           deny:
             - pkg: github.com/donvargax/itos/v8/internal/slices/
@@ -116,6 +126,8 @@ linters:
             - pkg: github.com/donvargax/itos/v8/internal/store/private/port/porttest
               desc: "a store's adapter's code links no fake (ADR-0053): a port's fake enters only through _test.go files"
             - pkg: github.com/donvargax/itos/v8/internal/store/tree/port/porttest
+              desc: "a store's adapter's code links no fake (ADR-0053): a port's fake enters only through _test.go files"
+            - pkg: github.com/donvargax/itos/v8/internal/vcs/port/porttest
               desc: "a store's adapter's code links no fake (ADR-0053): a port's fake enters only through _test.go files"
         # A slice's domain, its tests and subpackages with it, imports nothing
         # of ours outside internal/slices: no UI, engine, adapter or cmd. It
