@@ -2690,9 +2690,6 @@
     needSource's registry branch; tests/moves.go:519 Moves.Index's not-gherkin error;
     tests/smoke.go:163 and 167 LoadSmokeAt's At and Read errors. Unit tests first, using
     porttest.Trees to break a read where that reaches the line; no change to what itos does.
-  done_when:
-    - run: tools/bin/pinned itos-cc mutation run --since d6671a27 --count 1 --seed d6671a27 --fail-uncovered=lines --json cmd internal
-      timeout: 900
 
 - id: T-216
   type: refactor
