@@ -432,15 +432,6 @@
 // the git to upgrade to. Where there is no config nothing is checked, so the
 // shim's git commit outside an itos repository is plain git.
 //
-// # verify
-//
-// verify (verify.go) walks the range through internal/engine/judge, whose
-// doc says how: judge.Over, bound to the config's VCS, returns each commit's
-// result (judge.Run), so verifyRange adds only the config's checks, --json
-// and the exit code, and the pre-push hook calls it on each pushed range.
-// The commit-msg hook asks the same engine of a merge being made
-// (judge.UntypedMerge) and of the moves rule's change (judge.MovesChange).
-//
 // # CI
 //
 // ci plan and ci scope (ci.go) print internal/plan's plan; ci run makes the

@@ -2,8 +2,14 @@ package cli
 
 import (
 	"encoding/json"
+	"errors"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/donvargax/itos/v8/internal/out"
+	vcsport "github.com/donvargax/itos/v8/internal/vcs/port"
 )
 
 // Under --json verify prints one object: the range, commits.since when the
@@ -17,7 +23,7 @@ func TestVerifyRangeJSON(t *testing.T) {
 	gitIn(t, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "-m", "docs: add the config")
 	head := strings.TrimSpace(gitIn(t, "rev-parse", "HEAD"))
 	var stdout, stderr strings.Builder
-	code, err := verifyRange("", "HEAD", Out{JSON: true, Stdout: &stdout, Stderr: &stderr})
+	code, err := runVerify([]string{"", "HEAD"}, Out{JSON: true, Stdout: &stdout, Stderr: &stderr})
 	if err != nil || code != 0 {
 		t.Fatalf("exit %d, %v\n%s", code, err, stderr.String())
 	}
@@ -41,5 +47,37 @@ func TestVerifyRangeJSON(t *testing.T) {
 	}
 	if !strings.Contains(stderr.String(), "1/1 commits pass the commit rules\n") {
 		t.Errorf("stderr %q", stderr.String())
+	}
+}
+
+// The ports bind the stealth check to the config's path: with no range, a
+// project's config is a usage error, and the stealth one judges the
+// commits on no remote branch, every one here.
+func TestVerifyPortsAskTheStealthConfig(t *testing.T) {
+	_, gitDir := notesRepo(t)
+	writeFile(t, "itos.yaml", "version: 1\ncommits:\n  types: [docs]\n")
+	var stdout, stderr strings.Builder
+	_, err := runVerify(nil, Out{Stdout: &stdout, Stderr: &stderr})
+	var u out.UsageError
+	if !errors.As(err, &u) || !strings.Contains(err.Error(), "verify needs <from> <to>") {
+		t.Fatalf("a project's config: %v", err)
+	}
+	if err := os.Remove("itos.yaml"); err != nil {
+		t.Fatal(err)
+	}
+	writeFile(t, filepath.Join(gitDir, "itos", "itos.yaml"), "version: 1\ncommits:\n  types: [docs]\n")
+	code, err := runVerify(nil, Out{JSON: true, Stdout: &stdout, Stderr: &stderr})
+	if err != nil || code != 0 {
+		t.Fatalf("exit %d, %v\n%s", code, err, stderr.String())
+	}
+	var got struct {
+		Range span `json:"range"`
+		Total int  `json:"total"`
+	}
+	if err := json.Unmarshal([]byte(stdout.String()), &got); err != nil {
+		t.Fatalf("%v: %s", err, stdout.String())
+	}
+	if got.Range != (span{vcsport.Unpushed, "HEAD"}) || got.Total != 1 {
+		t.Errorf("got %+v", got)
 	}
 }

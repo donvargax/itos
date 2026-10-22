@@ -7,6 +7,7 @@ import (
 	"github.com/donvargax/itos/v8/internal/declare"
 	followupslice "github.com/donvargax/itos/v8/internal/slices/followup"
 	guardslice "github.com/donvargax/itos/v8/internal/slices/guard"
+	verifyslice "github.com/donvargax/itos/v8/internal/slices/verify"
 	versionslice "github.com/donvargax/itos/v8/internal/slices/version"
 )
 
@@ -26,7 +27,7 @@ var declared = []declare.Command{
 	pinDeclared,
 	upgradeDeclared,
 	initDeclared,
-	verifyDeclared,
+	verifyslice.Command,
 	testsDeclared,
 	ciDeclared,
 	hookDeclared,

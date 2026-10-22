@@ -1,8 +1,8 @@
-package cli
+package verify
 
 import "github.com/donvargax/itos/v8/internal/declare"
 
-var verifyDeclared = declare.Command{
+var Command = declare.Command{
 	Name: "verify",
 	Rank: 150,
 	Lines: `  verify <from> <to>               re-check every commit of a range
