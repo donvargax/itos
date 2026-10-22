@@ -9414,6 +9414,11 @@ items:
       (hook, push, ci watch: today ci watch prints only the failed jobs); done_when holds only what
       no gate runs. Needs a design and an ADR first: the in-process driver for the features (option
       C of the refactor plan) and which hook runs the local tier.
+
+      2026-10-22, q-95/ADR-0057: the in-process tier also carries the local mutant of the changed
+      functions and changed-line coverage, over the unit tests and in-process scenarios (itos-cc's
+      TestScenarios model), run by the pre-push hook. Until then CI owns the push proof and the task
+      checks.
     refs: [internal/guide/brief.md, internal/guide/work.md, internal/guide/push.md, AGENTS.md, tools/bin/go-unit-tests, itos.yaml]
     tags: [tests, hooks, docs]
 
