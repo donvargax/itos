@@ -2931,3 +2931,34 @@
     - run: tools/bin/architecture-check
     - run: go run ./tools/bin/doc-budget
     - run: grep -n 'internal/engine' .golangci.yml
+
+- id: T-229
+  type: refactor
+  title: "The pin engine out of internal/cli: the pinned version and the install script, internal/engine/pin"
+  why: >
+    ADR-0053, step 7 of docs/plans/slices-and-ports.md, after T-228 (the engine gate); one of three
+    parallel lanes (the user, 2026-10-22). The engine lives at internal/engine/<name>, its doc.go
+    saying what it is for; exported functions take a context.Context first and port values or funcs,
+    never results already looked up (T-218 turned exit 70 into 3 by locating early, bug-119). The
+    logic moves; a thin wrapper with the same signature stays in the old internal/cli file, mapping
+    Out to writers and flags and binding tracker(cfg, o.OS), vcs.Git{} or cfg.VCS exactly as the
+    code does today, so no caller file changes. Engines return []out.Problem and errors: exit codes
+    and usage errors stay in internal/cli, and every kind.Wrap is kept as it is. A helper an engine
+    needs from cli (short, and, oneLine, hasCommit) gets a byte-identical private copy. Edit only
+    this engine's names in internal/cli/doc.go; touch no rule in .golangci.yml, no architecture
+    fixture and not docs/ARCHITECTURE.md (T-228's, and the coordinator's after the last task). Tests
+    of the moved logic move with it, over the ports' fakes. No behaviour change: same bytes, same
+    exit codes, same output order. The pin engine (internal/engine/pin): out of internal/cli/pin.go
+    pinned, configPin and readConfigPin (taking the file), writeKeepingMode and pinTimeout; out of
+    upgrade.go readInstallScript and scriptVersion. Stay in cli: versionArg, whose usage errors
+    print the help line. Callers: init.go, initpolicy.go, upgrade.go (pinned), status.go (the
+    install script). pin's configPath keeps its call point.
+  done_when:
+    - run: go test ./internal/engine/pin/ ./internal/cli
+      timeout: 600
+    - run: "! grep -n 'release.LatestURL\\|installScriptPath' internal/cli/pin.go internal/cli/upgrade.go"
+    - run: tools/bin/architecture-check
+    - run: tools/bin/pinned golangci-lint run ./...
+      timeout: 600
+    - run: go test ./features -count=1 -scenarios='^@ID-(PIN|UPGRADE|UPGRADECMD|UPGRADEHAND|UPDATE|INIT)-[0-9]+$'
+      timeout: 600
