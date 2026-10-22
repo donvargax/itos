@@ -15,11 +15,10 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/declare"
+	"github.com/donvargax/itos/v8/internal/engine/refs"
 	"github.com/donvargax/itos/v8/internal/message"
 	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
-	vcsport "github.com/donvargax/itos/v8/internal/vcs/port"
 )
 
 // A spec and its flags are what a command declares (internal/declare); the
@@ -268,40 +267,12 @@ func find(list []flagSpec, name string) (flagSpec, bool) {
 	return list[i], true
 }
 
-// objectName is a commit's full name, as a CI provider gives a range's
-// start.
-var objectName = regexp.MustCompile(`^(?:[0-9a-f]{40}|[0-9a-f]{64})$`)
-
-// rangeRefs is commitRefs for a range a CI run reads (ci plan, run and
-// scope): its start may be a full commit name the repository does not have,
-// a history rewritten since the provider saw it, which the plan reads as a
-// range it cannot read, and runs everything for (internal/plan).
+// rangeRefs is refs.CheckRange over git.
 func rangeRefs(command, from, to string, more ...string) error {
-	if objectName.MatchString(from) {
-		from = ""
-	}
-	return commitRefs(command, append([]string{from, to}, more...)...)
+	return refs.CheckRange(context.Background(), vcs.Git{}, command, from, to, more...)
 }
 
-// commitRefs refuses a ref that names no commit, before command uses it: a
-// usage error naming the ref, in a line for people rather than git's
-// command line (rule 25 of docs/CLI.md). An empty or all-zero start (a new
-// branch, which ranges read as everything up to its end) and vcsport.Unpushed
-// name none to check; outside a git repository nothing is checked, and the
-// command says what it says there.
-func commitRefs(command string, refs ...string) error {
-	ctx, v := context.Background(), vcs.Git{}
-	for _, ref := range refs {
-		if ref == vcsport.Unpushed || config.NewBranch(ref) {
-			continue
-		}
-		if _, err := v.Resolve(ctx, ref); err == nil {
-			continue
-		}
-		if _, err := v.Locate(ctx, ""); err != nil {
-			return nil
-		}
-		return usage("%s: %s is not a commit of this repository", command, ref)
-	}
-	return nil
+// commitRefs is refs.Check over git.
+func commitRefs(command string, names ...string) error {
+	return refs.Check(context.Background(), vcs.Git{}, command, names...)
 }
