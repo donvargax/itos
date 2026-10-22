@@ -140,6 +140,14 @@ func fixtures(module string) []fixture {
 			add(engine, ours(target), "Value", "", test)
 		}
 		add(engine, "strings", "ToLower", "", test)
+		// The launcher and the shim, their tests with them, import no
+		// internal/cli, which runs after them; the rest of ours they may,
+		// the shim the launcher among it.
+		for _, layer := range []string{"internal/launch", "internal/shim"} {
+			add(layer, ours("internal/cli"), "Value", "pre-dispatch", test)
+			add(layer, ours("internal/out"), "Value", "", test)
+		}
+		add("internal/shim", ours("internal/launch"), "Value", "", test)
 		for _, store := range stores {
 			// A slice imports a store's port; never its adapter, which the
 			// assembly binds. An engine takes the port its caller binds,
