@@ -11008,6 +11008,9 @@ items:
       that can be fixed within v8 (the triage of #85 to #109 included), before any v9 planning; q-89
       (prose in JSON) and the other v9 questions wait for that planning.
 
+      Minimum git 2.51 (the user, 2026-10-21): no move or port may use a git feature newer than
+      2.51. After the refactor, p1-hooks-before-git-2-54 is the first item, before the other issues.
+
   - id: p1-conformance-only-by-name
     title: tools/bin/conformance --only takes a corpus file by its name as well as its path
     phase: 1
