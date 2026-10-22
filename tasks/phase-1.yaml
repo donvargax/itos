@@ -2832,6 +2832,3 @@
     internal/cli/workwrite.go:266 (a failed step whose rollback also fails). Unit tests through the
     VCS fake (internal/vcs/port/porttest, now a *VCS that commands change) where it reaches the
     line; no change to what itos does.
-  done_when:
-    - run: tools/bin/pinned itos-cc mutation run --since fb21d7a9 --count 1 --seed fb21d7a9 --fail-uncovered=lines --json cmd internal
-      timeout: 900

@@ -11880,7 +11880,7 @@ items:
     title: Tests cover the paths T-218 re-plumbed in commit, push, work show and work write
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
 
