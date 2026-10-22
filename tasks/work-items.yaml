@@ -11884,3 +11884,18 @@ items:
       swarm-forge's role pipeline.
     refs: [internal/guides]
     tags: [work]
+
+  - id: p1-agent-questions
+    title: Agents' questions to the coordinator are recorded beside the item, with their answers
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [p1-parallel-pilot]
+    kind: idea
+    why: >
+      From #110. In parallel runs agents stop mid-item to ask the coordinator for a scope grant (a
+      shared file), a spec correction or a call; today that is free text in a message and nothing
+      records it. Something like an ask and an answer kept with the item, distinct from itos
+      decision (the person's), leaves the grant where the next reader of the item's commits looks.
+      Waits on the parallel pilot, where the need shows.
+    tags: [work]
