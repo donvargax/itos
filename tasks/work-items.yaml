@@ -11350,7 +11350,7 @@ items:
     title: "The VCS port, part 1: locate, resolve, ancestry and ranges, with config's locating moved onto it"
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
 
