@@ -12076,7 +12076,7 @@ items:
     title: "The record engine out of internal/cli: committing tracker documents, internal/engine/record"
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [T-228]
     kind: task
 
