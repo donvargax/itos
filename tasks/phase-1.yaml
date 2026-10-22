@@ -2836,3 +2836,17 @@
   done_when:
     - run: go run ./tools/bin/conformance --bin tools/bin/itos
       timeout: 900
+
+- id: T-223
+  type: test
+  title: Tests cover the sites T-217 re-plumbed in init, ci and status
+  why: >
+    Coverage debt of the slices refactor (the user, 2026-10-21). T-217's push proof (since c50c2a6c)
+    left old code it only re-plumbed: internal/cli/init.go:240:10 '0' to '1' survived (initWrite's
+    return 0, err when a write fails); internal/cli/ci.go:84 (ciScope) uncovered;
+    internal/cli/status.go:324 and 330 (readBranch's remote-unreached and last-fetched path)
+    uncovered. Unit tests first, through the VCS fake (internal/vcs/port/porttest) where it reaches
+    the line; no change to what itos does.
+  done_when:
+    - run: tools/bin/pinned itos-cc mutation run --since c50c2a6c --count 1 --seed c50c2a6c --fail-uncovered=lines --json cmd internal
+      timeout: 900

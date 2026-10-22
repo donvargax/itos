@@ -11548,3 +11548,11 @@ items:
     status: todo
     depends_on: []
     kind: task
+
+  - id: T-223
+    title: Tests cover the sites T-217 re-plumbed in init, ci and status
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task
