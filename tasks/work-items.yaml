@@ -11380,3 +11380,18 @@ items:
       doc mark drafts, and the list shows a thread with a draft waiting. Sent notes stay
       append-only.
     tags: [followup]
+
+  - id: p1-followup-supersede
+    title: A followup note can supersede an earlier one, instead of the newest winning by convention
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The user, 2026-10-21: a correction or an updated plan is a new note, and readers must know the
+      newest wins. followup note --supersedes <n> links the new note to the one it replaces; show
+      and doc print the superseded note struck or folded under its replacement, and doc exports only
+      the standing ones unless --all. Notes stay append-only. Relates to p1-followup-state, which
+      keeps a live state over the notes.
+    tags: [followup]
