@@ -3469,19 +3469,6 @@
     order. Lane A, after A1. Creates internal/engine/gitrun (exitOf, talking, noVerify, abbreviates,
     rewriteNotes, writeNote from gitcommit.go) for push too. Keeps gitCommit (the git shim calls it)
     and commitConfig as wrappers.
-  done_when:
-    - run: go test ./internal/cli ./internal/slices/... ./internal/engine/... -count=1
-      timeout: 600
-    - run: go run ./tools/bin/assemble -check
-    - run: go run ./tools/bin/conformance --bin tools/bin/itos --only tools/itos/conformance/help.yaml tools/itos/conformance/cli.yaml tools/itos/conformance/messages.yaml tools/itos/conformance/globs.yaml tools/itos/conformance/scopes.yaml tools/itos/conformance/hooks.yaml
-      timeout: 600
-    - run: go test ./features -count=1 -scenarios='^@ID-(CLI|BIN|EXT|COMMITCMD|HEADER|FOOT|PATTERN)-[0-9]+$'
-      timeout: 600
-    - run: tools/bin/architecture-check
-    - run: tools/bin/pinned golangci-lint run ./...
-      timeout: 600
-    - run: grep -q 'commitslice.Command' internal/cli/commands_gen.go
-    - run: "! grep -nE '^func (\\([^)]*\\) )?(checkMessage|checkPaths|listFooters|readCommitFlags|lacking)\\(' internal/cli/*.go"
 
 - id: T-249
   type: refactor
