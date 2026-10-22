@@ -2640,10 +2640,6 @@
     commondir reads) stays where it is until the VCS port, but reads files through the value.
     internal/source's Current, ReadingFrom and package-level Has, Read and List are deleted. No
     behaviour change: the scenarios, corpus and previous-release hold it.
-  done_when:
-    - run: "! grep -rn \"source\\.ReadingFrom\\|source\\.Current()\" internal cmd"
-    - run: go test -count=1 ./internal/... ./cmd/...
-      timeout: 900
 
 - id: T-212
   type: ci

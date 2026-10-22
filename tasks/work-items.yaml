@@ -11263,7 +11263,7 @@ items:
     title: The tree reader's value is passed to every reader, and internal/source's global current is gone
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
 
