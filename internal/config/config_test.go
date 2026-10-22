@@ -1,6 +1,7 @@
 package config
 
 import (
+	"context"
 	"errors"
 	"os"
 	"path/filepath"
@@ -9,6 +10,8 @@ import (
 	"testing"
 
 	"github.com/donvargax/itos/v8/internal/store/tree/adapter"
+	"github.com/donvargax/itos/v8/internal/store/tree/port"
+	"github.com/donvargax/itos/v8/internal/store/tree/port/porttest"
 	"github.com/donvargax/itos/v8/internal/value"
 )
 
@@ -317,6 +320,38 @@ func TestSectionReadsADottedKey(t *testing.T) {
 	c, err = load(t, "version: 1\nci:\n  steps: []\n")
 	if err != nil || c.Section("ci.steps") != nil {
 		t.Fatalf("ci.steps written: %v", err)
+	}
+}
+
+// noWorktree is trees whose working tree cannot be opened.
+type noWorktree struct{ porttest.Trees }
+
+func (noWorktree) At(context.Context, string) (port.Source, error) {
+	return nil, errors.New("no working tree")
+}
+
+// A config the source does not hold is read from the working tree, which
+// the trees open: one they cannot open leaves it unreadable, saying why. The
+// loaded config carries the trees and the source its data is read from.
+func TestLoadReadsFromTheSourceElseTheWorkingTree(t *testing.T) {
+	trees := porttest.Trees{Common: ".git", Files: map[string]map[string]string{
+		"index":    {"itos.yaml": "version: 1\n"},
+		"worktree": {"other.yaml": "version: 1\n"},
+	}}
+	index, err := trees.At(context.Background(), "index")
+	if err != nil {
+		t.Fatal(err)
+	}
+	c, err := Load(trees, index, "itos.yaml")
+	if err != nil || c.Source.Tree(context.Background()) != "index" || c.Trees == nil {
+		t.Fatalf("the index's config: %+v, %v", c, err)
+	}
+	if _, err := Load(trees, index, "other.yaml"); err != nil {
+		t.Errorf("a config only the working tree holds: %v", err)
+	}
+	var e *Error
+	if _, err := Load(noWorktree{trees}, index, "other.yaml"); !errors.As(err, &e) || !strings.Contains(e.Problems[0].Message, "no working tree") {
+		t.Errorf("a working tree that cannot be opened: %v", err)
 	}
 }
 

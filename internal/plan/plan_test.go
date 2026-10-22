@@ -1,6 +1,7 @@
 package plan
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"os"
@@ -15,6 +16,7 @@ import (
 	"github.com/donvargax/itos/v8/internal/ledger"
 	"github.com/donvargax/itos/v8/internal/out"
 	"github.com/donvargax/itos/v8/internal/store/tree/adapter"
+	"github.com/donvargax/itos/v8/internal/store/tree/port/porttest"
 )
 
 func load(t *testing.T, text string) *config.Loaded {
@@ -495,5 +497,32 @@ func TestEndsOfAnEmptyStart(t *testing.T) {
 		if e := EndsOf(cfg, from, ""); e.From != "" {
 			t.Errorf("from %q gives %q", from, e.From)
 		}
+	}
+}
+
+// --data-at reads the ledger and the registry at the commit, by the working
+// tree's config, whose own source stays the working tree; a commit that
+// cannot be read is the error.
+func TestDataAtReadsTheCommit(t *testing.T) {
+	cfg := load(t, "version: 1\nledger:\n  files: tasks/phase-{group}.yaml\nci:\n  steps: [unit]\n")
+	cfg.Trees = porttest.Trees{Common: ".git", Files: map[string]map[string]string{
+		"abc": {
+			"tasks/phase-1.yaml":    "- { id: T-9, title: Nine, done_when: [] }\n",
+			"tasks/work-items.yaml": "items:\n  - { id: T-9, status: todo }\n",
+		},
+	}}
+	d, err := DataAt(cfg, "abc")
+	if err != nil || len(d.Tasks) != 1 || d.Tasks[0].ID != "T-9" {
+		t.Fatalf("the commit's ledger: %+v, %v", d.Tasks, err)
+	}
+	if status, ok := d.Statuses.Of("T-9"); !ok || status != "todo" {
+		t.Errorf("the commit's registry: %v, %v", status, ok)
+	}
+	if tree := cfg.Source.Tree(context.Background()); tree != "worktree" {
+		t.Errorf("the config's source became %s", tree)
+	}
+	cfg.Trees = porttest.Trees{}
+	if _, err := DataAt(cfg, "abc"); err == nil {
+		t.Error("a commit outside a repository is read")
 	}
 }

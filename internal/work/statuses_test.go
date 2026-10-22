@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/donvargax/itos/v8/internal/store/tree/adapter"
+	"github.com/donvargax/itos/v8/internal/store/tree/port/porttest"
 )
 
 func statusesOf(t *testing.T, text string) Statuses {
@@ -36,5 +37,19 @@ func TestItemStatuses(t *testing.T) {
 	}
 	if _, ok := ItemStatuses(adapter.Worktree, filepath.Join(t.TempDir(), "none.yaml")).Of("T-1"); ok {
 		t.Error("a missing registry has a status")
+	}
+}
+
+// IDsAt reads the working tree for "", else the tree it names, opened by the
+// trees it is handed: one that cannot be opened is the error.
+func TestIDsAtOpensTheTree(t *testing.T) {
+	trees := porttest.Trees{Files: map[string]map[string]string{
+		"worktree": {"work-items.yaml": "items:\n  - { id: S-1 }\n"},
+	}}
+	if ids, err := IDsAt(trees, "work-items.yaml", ""); err != nil || !ids["S-1"] || len(ids) != 1 {
+		t.Errorf("the working tree's ids: %v, %v", ids, err)
+	}
+	if _, err := IDsAt(trees, "work-items.yaml", "abc"); err == nil {
+		t.Error("a commit outside a repository is read")
 	}
 }
