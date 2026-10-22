@@ -12186,3 +12186,11 @@ items:
     status: todo
     depends_on: []
     kind: task
+
+  - id: T-242
+    title: "Commands declare themselves, part 4: CI and the pre-commit hook check the generated table is current"
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task

@@ -3259,3 +3259,25 @@
     - run: tools/bin/architecture-check
     - run: tools/bin/pinned golangci-lint run ./...
       timeout: 600
+
+- id: T-242
+  type: ci
+  title: "Commands declare themselves, part 4: CI and the pre-commit hook check the generated table is current"
+  why: >
+    ADR-0053, step 5 of docs/plans/slices-and-ports.md (after steps 6 and 7, before step 9's
+    parallel slice lanes; designed by the coordinator 2026-10-22 from a read-only draft, as
+    itos-cc's tools/bin/assemble and declarations): each command declares its name, help and flag
+    spec in its own file, and a generator writes the command table, so a lane moving one command
+    touches only its own files and the generated one, which the generator rewrites. The hand-written
+    parser stays; v9.0 swaps kong beneath the declarations. No behaviour change: help and usage
+    text, exit codes and parsing as before. Help text is not pinned by any committed golden (the
+    user, 2026-10-21: plain text is no contract, no transcript refactor-proof; ADR-0052). This part,
+    after part 3: the generated table is checked current. itos.yaml gains a static ci step right
+    after gofmt, go run ./tools/bin/assemble -check (as itos-cc's itos.yaml); tools/bin/pre-commit
+    runs go run ./tools/bin/assemble -check (check only, never regenerating: the generator reads the
+    working tree, not the index) beside go vet when a non-test .go file under internal/cli or
+    internal/slices is staged, with its self-test. A ci commit; the AGENTS.md line on the pre-commit
+    hook names the new check.
+  done_when:
+    - run: go run ./tools/bin/assemble -check
+    - run: tools/bin/itos ci plan --whole | grep -n 'assemble -check'
