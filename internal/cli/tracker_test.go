@@ -7,9 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
-	"time"
 
-	"github.com/donvargax/itos/v8/internal/lock"
 	"github.com/donvargax/itos/v8/internal/store/tracker/adapter"
 	"github.com/donvargax/itos/v8/internal/store/tracker/port/porttest"
 )
@@ -56,21 +54,15 @@ func TestTrackedTextOfADocumentGone(t *testing.T) {
 	}
 }
 
-// Under a stealth config, a writer of the registry or the questions that
-// finds the registry's lock held past the wait exits 75, naming the lock
+// Under a stealth config, a writer of the registry or the questions whose
+// registry's lock cannot be taken is the lock's error, naming the lock
 // file, and writes nothing.
-func TestStealthWritersWaitForTheRegistrysLock(t *testing.T) {
+func TestStealthWritersStopWhenTheRegistrysLockFails(t *testing.T) {
 	itos := stealthPromoteRepo(t)
-	was := lock.Wait
-	lock.Wait = 20 * time.Millisecond
-	t.Cleanup(func() { lock.Wait = was })
-	held := filepath.Join(itos, "work-items.yaml") + lock.Suffix
-	if err := os.WriteFile(held, []byte("1\n"), 0o600); err != nil {
-		t.Fatal(err)
-	}
+	readOnly(t, itos)
 	for _, args := range [][]string{{"work", "take", "p1-idea"}, {"decision", "add", "Why?"}} {
 		code, stdout, stderr := run(args...)
-		if code != ExitTemporary || stdout != "" || !strings.Contains(stderr, "work-items.yaml"+lock.Suffix) {
+		if code != ExitSoftware || stdout != "" || !strings.Contains(stderr, "work-items.yaml.lock") {
 			t.Errorf("itos %s: exit %d, stdout %q, stderr %q", strings.Join(args, " "), code, stdout, stderr)
 		}
 	}
