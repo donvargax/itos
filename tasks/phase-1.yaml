@@ -3142,3 +3142,16 @@
       timeout: 600
     - run: go run ./tools/bin/conformance --bin tools/bin/itos --only tools/itos/conformance/status.yaml tools/itos/conformance/guide.yaml
       timeout: 600
+
+- id: T-238
+  type: test
+  title: A unit test kills statusCommand's positional-argument survivor and covers its uncovered lines
+  why: >
+    Coverage debt of the slices refactor (the user's rule for the moves, 2026-10-21). T-237's agent
+    (2026-10-22) found internal/cli/status.go statusCommand's len(pos) > 0 surviving as > 1: no unit
+    test runs itos status with an extra argument (exit 2), and three of statusCommand's lines are
+    not covered by internal/cli's unit tests. The function is unchanged, so no push proof draws it;
+    the nightly would. A unit test through statusCommand with one and two positional arguments,
+    asserting the usage error and exit 2, and the three lines covered. No change to what itos does.
+  done_when:
+    - run: go test ./internal/cli -run 'StatusCommand'

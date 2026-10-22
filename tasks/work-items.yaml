@@ -12153,3 +12153,11 @@ items:
       hashes together as tools/bin/pinned's header says.
     refs: [tools/bin/pinned, itos-cc.yaml]
     tags: [ci]
+
+  - id: T-238
+    title: A unit test kills statusCommand's positional-argument survivor and covers its uncovered lines
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task
