@@ -21,10 +21,13 @@ type T[C any] interface {
 // Layout is the repository VCSContract asks open for: Remotes are the tags
 // remote branches point at (refs/remotes/origin/<tag>), and Shallow a
 // shallow clone of the history, one commit deep, of which only Shallow is
-// asked.
+// asked. CommentChar sets core.commentChar; Dirty, Merging and Rebasing
+// leave the work tree as VCSContract says.
 type Layout struct {
-	Remotes []string
-	Shallow bool
+	Remotes                  []string
+	Shallow                  bool
+	CommentChar              string
+	Dirty, Merging, Rebasing bool
 }
 
 // The folders VCSContract locates from the repository's top.
@@ -39,10 +42,24 @@ const (
 // open stands the test at the top of a repository laid out as l asks and
 // gives it with the top, absolute:
 //
-//   - its history is a, b on a, c on b, s on a and m merging s into c, made
-//     in that order, each tagged with its name; HEAD is m;
+//   - its history is a, b on a, c on b, s on a, m merging s into c, then t
+//     and o each on c, made in that order a second apart from
+//     2026-01-01T00:00:01Z by t <t@t>, each tagged with its name; HEAD is
+//     m on the branch main, t is the branch theirs and o the branch ours;
+//   - a holds a.txt (a) and x.md (x); b sets a.txt to b and adds b.txt
+//     (b); c deletes x.md and adds c.txt (c); s adds s.txt (s); m sets
+//     a.txt to m of its own; t sets it to t and o to o, each file's
+//     content a line;
+//   - each message is its name, a blank line and "the body of <name>", c's
+//     first paragraph two lines, "c" and "wrapped"; c's itos note is
+//     "Task: T-1", and b has a note of another ref;
 //   - sub is a folder of the work tree, ../wt a linked worktree of it and
 //     ../outside a folder in no repository; the git folder is .git.
+//
+// Dirty stages a.txt set to staged, b.txt deleted and new.txt (new) added,
+// then sets c.txt to changed in the work tree and leaves u.txt (u)
+// untracked; Merging merges t into m, Rebasing rebases ours onto t, each
+// stopped by the conflict on a.txt.
 func VCSContract[C T[C]](t C, open func(t C, l Layout) (port.VCS, string)) {
 	t.Helper()
 	main := Layout{Remotes: []string{"b"}}
@@ -242,4 +259,7 @@ func VCSContract[C T[C]](t C, open func(t C, l Layout) (port.VCS, string)) {
 			t.Errorf("Shallow: a clone one commit deep is not shallow")
 		}
 	})
+	logContract(t, open)
+	pathsContract(t, open)
+	stateContract(t, open)
 }

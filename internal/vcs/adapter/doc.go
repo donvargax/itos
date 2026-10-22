@@ -12,6 +12,10 @@
 //
 // A range (port.Range) is git rev-list's arguments: ^Since first, then
 // From..To, To alone for an empty From, or To --not --remotes for
-// port.Unpushed. Its tests run porttest.VCSContract in temporary
+// port.Unpushed. Show and Log read every field of an Entry in one git log,
+// NUL-separated with each commit's ended by a record separator, the itos
+// notes alone shown as %N. The changed paths are read as internal/git reads
+// them, NUL-separated and with no rename detection; the work tree's state
+// is internal/git's. Its tests run porttest.VCSContract in temporary
 // repositories, with no git setting from outside and no repository above.
 package adapter

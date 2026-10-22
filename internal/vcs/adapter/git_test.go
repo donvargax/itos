@@ -1,6 +1,7 @@
 package adapter
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -15,34 +16,105 @@ import (
 // gitIn runs git in dir, its commits dated date when it is not empty.
 func gitIn(t *testing.T, dir, date string, args ...string) {
 	t.Helper()
+	if out, err := gitCmd(dir, date, args...).CombinedOutput(); err != nil {
+		t.Fatalf("git %s: %s", strings.Join(args, " "), out)
+	}
+}
+
+// gitCmd is git run in dir as gitIn runs it.
+func gitCmd(dir, date string, args ...string) *exec.Cmd {
 	cmd := exec.Command(git.Bin(), append([]string{"-c", "user.name=t", "-c", "user.email=t@t", "-c", "commit.gpgsign=false", "-c", "tag.gpgsign=false"}, args...)...)
 	cmd.Dir = dir
 	if date != "" {
 		cmd.Env = append(os.Environ(), "GIT_AUTHOR_DATE="+date, "GIT_COMMITTER_DATE="+date)
 	}
-	if out, err := cmd.CombinedOutput(); err != nil {
-		t.Fatalf("git %s: %s", strings.Join(args, " "), out)
+	return cmd
+}
+
+// write writes a file of dir, its content a line.
+func write(t *testing.T, dir, name, line string) {
+	t.Helper()
+	if err := os.WriteFile(filepath.Join(dir, name), []byte(line+"\n"), 0o644); err != nil {
+		t.Fatal(err)
 	}
 }
 
-// history makes porttest.VCSContract's history in a new repository at dir:
-// a, b, c, s on a, and m merging s into c, a second apart, each tagged.
+// history makes porttest.VCSContract's history in a new repository at dir,
+// its commits a second apart, each tagged.
 func history(t *testing.T, dir string) {
 	t.Helper()
-	gitIn(t, "", "", "init", "-q", dir)
-	at := func(second string) string { return "2026-01-01T00:00:0" + second + "Z" }
-	commit := func(name, second string) {
-		gitIn(t, dir, at(second), "commit", "-q", "--allow-empty", "-m", name)
+	gitIn(t, "", "", "init", "-q", "-b", "main", dir)
+	at := func(second int) string { return fmt.Sprintf("2026-01-01T00:00:0%dZ", second) }
+	commit := func(name string, second int, paragraphs ...string) {
+		if len(paragraphs) == 0 {
+			paragraphs = []string{name}
+		}
+		args := []string{"commit", "-q", "--allow-empty"}
+		for _, p := range append(paragraphs, "the body of "+name) {
+			args = append(args, "-m", p)
+		}
+		gitIn(t, dir, at(second), args...)
 		gitIn(t, dir, "", "tag", name)
 	}
-	commit("a", "1")
-	commit("b", "2")
-	commit("c", "3")
+	change := func(files ...string) {
+		for i := 0; i < len(files); i += 2 {
+			write(t, dir, files[i], files[i+1])
+			gitIn(t, dir, "", "add", files[i])
+		}
+	}
+	change("a.txt", "a", "x.md", "x")
+	commit("a", 1)
+	change("a.txt", "b", "b.txt", "b")
+	commit("b", 2)
+	gitIn(t, dir, "", "rm", "-q", "x.md")
+	change("c.txt", "c")
+	commit("c", 3, "c\nwrapped")
+	gitIn(t, dir, "", "notes", "--ref="+port.NotesRef, "add", "-m", "Task: T-1", "c")
+	gitIn(t, dir, "", "notes", "add", "-m", "elsewhere", "b")
 	gitIn(t, dir, "", "checkout", "-q", "-b", "side", "a")
-	commit("s", "4")
-	gitIn(t, dir, "", "checkout", "-q", "-")
-	gitIn(t, dir, at("5"), "merge", "-q", "--no-ff", "--no-edit", "-m", "m", "side")
-	gitIn(t, dir, "", "tag", "m")
+	change("s.txt", "s")
+	commit("s", 4)
+	gitIn(t, dir, "", "checkout", "-q", "main")
+	gitIn(t, dir, "", "merge", "-q", "--no-ff", "--no-commit", "side")
+	change("a.txt", "m")
+	commit("m", 5)
+	for i, name := range []string{"t", "o"} {
+		branch := map[string]string{"t": "theirs", "o": "ours"}[name]
+		gitIn(t, dir, "", "checkout", "-q", "-b", branch, "c")
+		change("a.txt", name)
+		commit(name, 6+i)
+	}
+	gitIn(t, dir, "", "checkout", "-q", "main")
+}
+
+// leave sets the work tree's state as l asks, in the repository at dir.
+func leave(t *testing.T, dir string, l porttest.Layout) {
+	t.Helper()
+	if l.CommentChar != "" {
+		gitIn(t, dir, "", "config", "core.commentChar", l.CommentChar)
+	}
+	switch {
+	case l.Dirty:
+		write(t, dir, "a.txt", "staged")
+		write(t, dir, "new.txt", "new")
+		gitIn(t, dir, "", "add", "a.txt", "new.txt")
+		gitIn(t, dir, "", "rm", "-q", "b.txt")
+		write(t, dir, "c.txt", "changed")
+		write(t, dir, "u.txt", "u")
+	case l.Merging:
+		stopped(t, dir, "merge", "-q", "theirs")
+	case l.Rebasing:
+		gitIn(t, dir, "", "checkout", "-q", "ours")
+		stopped(t, dir, "rebase", "-q", "theirs")
+	}
+}
+
+// stopped runs a git command that a conflict stops.
+func stopped(t *testing.T, dir string, args ...string) {
+	t.Helper()
+	if out, err := gitCmd(dir, "", args...).CombinedOutput(); err == nil {
+		t.Fatalf("git %s was not stopped: %s", strings.Join(args, " "), out)
+	}
 }
 
 // laidOut stands the test at the top of a new repository laid out as
@@ -50,7 +122,8 @@ func history(t *testing.T, dir string) {
 // repository above it.
 func laidOut(t *testing.T, l porttest.Layout) (port.VCS, string) {
 	t.Helper()
-	for _, name := range []string{"GIT_DIR", "GIT_INDEX_FILE", "GIT_WORK_TREE", "GIT_COMMON_DIR"} {
+	for _, name := range []string{"GIT_DIR", "GIT_INDEX_FILE", "GIT_WORK_TREE", "GIT_COMMON_DIR",
+		"GIT_AUTHOR_NAME", "GIT_AUTHOR_EMAIL", "GIT_AUTHOR_DATE", "GIT_COMMITTER_NAME", "GIT_COMMITTER_EMAIL", "GIT_COMMITTER_DATE"} {
 		t.Setenv(name, "")
 		os.Unsetenv(name)
 	}
@@ -78,6 +151,7 @@ func laidOut(t *testing.T, l porttest.Layout) (port.VCS, string) {
 		}
 	}
 	gitIn(t, repo, "", "worktree", "add", "-q", "--detach", filepath.Join(base, "wt"))
+	leave(t, repo, l)
 	t.Chdir(repo)
 	return Git{}, repo
 }

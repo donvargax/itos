@@ -218,6 +218,13 @@ func TestVCSContractFailsEachBrokenVCS(t *testing.T) {
 		}
 		return want
 	}
+	shown := func(format string) []string {
+		var want []string
+		for _, name := range []string{"a", "b", "c", "s", "m"} {
+			want = append(want, fmt.Sprintf(format, name))
+		}
+		return want
+	}
 	for _, c := range []struct {
 		fault string
 		want  map[string][]string
@@ -259,6 +266,52 @@ func TestVCSContractFailsEachBrokenVCS(t *testing.T) {
 		{"unpushed base of several", map[string][]string{"unpushed base": {"UnpushedBase(m) with remote branches at [\"c\" \"s\"]"}}},
 		{"shallow always", map[string][]string{"shallow": {"Shallow: a whole history"}}},
 		{"shallow never", map[string][]string{"shallow": {"Shallow: a clone one commit deep"}}},
+		{"show subject as first line", map[string][]string{"show": {"Show(c) is"}}},
+		{"show message trimmed", map[string][]string{"show": shown("Show(%s) is")}},
+		{"show note of another ref", map[string][]string{"show": {"Show(b) is"}}},
+		{"show no note", map[string][]string{"show": {"Show(c) is"}}},
+		{"show no author", map[string][]string{"show": shown("Show(%s) is")}},
+		{"show merge never", map[string][]string{"show": {"Show(m) is"}}},
+		{"show short whole", map[string][]string{"show": shown("Show(%s): the short name")}},
+		{"show of nothing", map[string][]string{"show": {"Show of no commit"}}},
+		{"log newest first", map[string][]string{"log": {"Log({From:b ", "Log({From: To:m Since:c}", "Log({From:--remotes "}}},
+		{"log since kept", map[string][]string{"log": {"Log({From: To:m Since:c}"}}},
+		{"log of nothing", map[string][]string{"log": {"Log of no commit"}}},
+		{"log without notes", map[string][]string{"log": {"Log({From:b ", "Log({From:--remotes "}}},
+		{"comment char always #", map[string][]string{"comment char": {"CommentChar set to ;"}}},
+		{"comment char unset empty", map[string][]string{"comment char": {"CommentChar unset"}}},
+		{"commit paths of a root none", map[string][]string{"commit paths": {"CommitPaths(a) are"}}},
+		{"commit paths of a merge against its first parent", map[string][]string{"commit paths": {"CommitPaths(m) are"}}},
+		{"commit paths of nothing", map[string][]string{"commit paths": {"CommitPaths of no commit"}}},
+		{"own paths against the first parent", map[string][]string{"commit paths": {"OwnPaths(m) are"}}},
+		{"own paths of one parent", map[string][]string{"commit paths": {"OwnPaths(b) are"}}},
+		{"own paths of nothing", map[string][]string{"commit paths": {"OwnPaths of no commit"}}},
+		{"diff from the empty tree fails", map[string][]string{"diff": {"Diff(the empty tree, a) are"}}},
+		{"diff without deletions", map[string][]string{"diff": {"Diff(b, m) are"}}},
+		{"diff of nothing", map[string][]string{"diff": {"Diff(nope, m) of no commit", "Diff(b, nope) of no commit"}}},
+		{"touched oldest first", map[string][]string{"touched": {"Touched(a..m) without merges", "Touched(a..m) with merges"}}},
+		{"touched merges always", map[string][]string{"touched": {"Touched(a..m) without merges"}}},
+		{"touched merges never", map[string][]string{"touched": {"Touched(a..m) with merges"}}},
+		{"touched of nothing", map[string][]string{"touched": {"Touched of no commit"}}},
+		{"staged against HEAD always", map[string][]string{"staged": {"Staged(c) are"}}},
+		{"staged against the empty tree", map[string][]string{"staged": {"Staged(HEAD) are"}}},
+		{"staged of nothing", map[string][]string{"staged": {"Staged against no commit"}}},
+		{"staged own as staged", map[string][]string{"staged": {"StagedOwnPaths(c, s) are"}}},
+		{"staged own of nothing", map[string][]string{"staged": {"StagedOwnPaths on no commit"}}},
+		{"changes unstaged only", map[string][]string{"work tree": {"Changes are"}}},
+		{"changes untracked listed", map[string][]string{"work tree": {"Changes are"}}},
+		{"changes of a clean tree", map[string][]string{"work tree": {"Changes of a clean work tree"}}},
+		{"path status untracked hidden", map[string][]string{"work tree": {"PathStatus(u.txt)"}}},
+		{"path status of every path", map[string][]string{"work tree": {"PathStatus(c.txt)", "PathStatus(u.txt)", "PathStatus(s.txt)"}}},
+		{"tracked by the work tree", map[string][]string{"work tree": {"Tracked(u.txt)"}}},
+		{"tracked by HEAD", map[string][]string{"work tree": {"Tracked(new.txt)", "Tracked(b.txt)"}}},
+		{"branch never", map[string][]string{"state": {"Branch in a clean work tree", "Branch in a merge"}}},
+		{"branch always main", map[string][]string{"state": {"Branch in a rebase"}}},
+		{"rebasing never", map[string][]string{"state": {"Rebasing in a rebase"}}},
+		{"rebasing when conflicted", map[string][]string{"state": {"Rebasing in a merge"}}},
+		{"conflicted none", map[string][]string{"state": {"Conflicted in a merge", "Conflicted in a rebase"}}},
+		{"merge heads none", map[string][]string{"state": {"MergeHeads in a merge"}}},
+		{"merge heads in a rebase", map[string][]string{"state": {"MergeHeads in a rebase"}}},
 	} {
 		r := &recorder{failures: map[string][]string{}}
 		VCSContract(r, func(_ *recorder, l Layout) (port.VCS, string) {

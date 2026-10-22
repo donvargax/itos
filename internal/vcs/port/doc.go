@@ -8,6 +8,11 @@
 // It holds locating the repository (Locate, and Find, which the git shim
 // asks on every command and so reads files alone), resolving a revision to
 // its commit, ancestry (IsAncestor, Parent, Parents, FirstParents) and
-// ranges (Range: Commits, Readable, UnpushedBase). The rest of what itos
-// asks of git joins it operation group by operation group.
+// ranges (Range: Commits, Readable, UnpushedBase), commits as a log reads
+// them (Entry: Show, Log, with the itos note of NotesRef) and the comment
+// character, changed paths (a commit's, a merge's own, between two commits,
+// a range's, the index's) and the work tree's state (Changes, PathStatus,
+// Tracked, Conflicted, Rebasing, MergeHeads, Branch). The rest of what itos
+// asks of git (committing, the remote, hooks) joins it operation group by
+// operation group.
 package port

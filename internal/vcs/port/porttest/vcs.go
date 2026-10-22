@@ -11,10 +11,17 @@ import (
 )
 
 // Commit is a commit of the fake's history: its name and its parents, the
-// first first.
+// first first; its message, its itos note and its author's name, email and
+// date, as Entry gives them; and its tree, each file's content by path.
 type Commit struct {
 	Name    string
 	Parents []string
+	Message string
+	Note    string
+	Author  string
+	Email   string
+	Date    string
+	Tree    map[string]string
 }
 
 // VCS is the repository in memory. Root is the folder the test stands in,
@@ -23,13 +30,30 @@ type Commit struct {
 // git lists a range whose commits were made in that order; Refs names
 // commits by full ref name (HEAD, refs/heads/…, refs/tags/…), those under
 // refs/remotes/ being the remote branches; IsShallow is Shallow's answer.
-// The zero VCS is a folder in no repository; VCS never changes its fields.
+//
+// The work tree's state: OnBranch is the branch HEAD is on, "" when it is
+// detached; Index and Files are the index's and the work tree's files,
+// HEAD's tree and the index's when nil, a file of Files the index lacks
+// being untracked; Unmerged are the paths left in conflict, MergeHead the
+// commits a merge in progress brings and InRebase whether a rebase is in
+// progress. Comment is core.commentChar, "" when it is not set.
+//
+// A merge's own paths are those whose content is no parent's, which git
+// tells by hunks; the contract's merges tell them apart alike. The zero
+// VCS is a folder in no repository; VCS never changes its fields.
 type VCS struct {
 	Root      string
 	Located   map[string]port.Location
 	History   []Commit
 	Refs      map[string]string
 	IsShallow bool
+
+	OnBranch     string
+	Index, Files map[string]string
+	Unmerged     []string
+	MergeHead    []string
+	InRebase     bool
+	Comment      string
 }
 
 var _ port.VCS = VCS{}
