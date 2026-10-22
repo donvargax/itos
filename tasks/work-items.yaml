@@ -11365,8 +11365,8 @@ items:
   - id: T-218
     title: "The VCS port, part 3: commit, remote, hooks and ID reservation, and no git call outside the adapter"
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
 
