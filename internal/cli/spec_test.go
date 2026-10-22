@@ -5,6 +5,8 @@ import (
 	"slices"
 	"strings"
 	"testing"
+
+	"github.com/donvargax/itos/v8/internal/declare"
 )
 
 // readLine reads a built-in command's line by its spec: --flag=value as
@@ -64,6 +66,23 @@ func TestReadLineRefuses(t *testing.T) {
 	}
 }
 
+// The flags a spec's More names are the config's: the group label's for
+// task, the free-text footers' for commit, none for NoMore.
+func TestMoreFlags(t *testing.T) {
+	gitConfigRepo(t, "version: 1\nledger:\n  files: \"tasks/phase-{group}.yaml\"\n  id: \"T-\\\\d+\"\n  group: { label: milestone }\n"+
+		"commits:\n  footers:\n    Upgrading: { source: text }\n")
+	for more, want := range map[declare.More][]flagSpec{
+		declare.NoMore:     nil,
+		declare.GroupLabel: {val("--milestone")},
+		declare.Footers:    {vals("--upgrading")},
+	} {
+		got, err := moreFlags(more)
+		if err != nil || !slices.Equal(got, want) {
+			t.Errorf("More %d: %v, %v; not %v", more, got, err, want)
+		}
+	}
+}
+
 // Every flag a command's usage lines name is in its spec: the help is
 // written by hand, and a flag it documents that the spec does not have
 // would be refused.
@@ -95,11 +114,11 @@ func TestUsageFlagsAreInTheSpecs(t *testing.T) {
 				}
 				path, s = commandPath(words)
 			}
-			if s.others || s.unread {
+			if s.Others || s.Unread {
 				continue
 			}
 			for _, f := range flag.FindAllString(line, -1) {
-				if _, ok := find(s.flags, f); !ok && !(f == "--version" && path[0] == "version") {
+				if _, ok := find(s.Flags, f); !ok && !(f == "--version" && path[0] == "version") {
 					t.Errorf("help %q: itos %s documents %s, which its spec does not have", key, strings.Join(path, " "), f)
 				}
 			}

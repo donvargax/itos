@@ -122,9 +122,9 @@ func configValues(local bool, key string) []string {
 	return (vcs.Git{}).Config(context.Background(), key, local)
 }
 
-// declare is what becomes of one entry: printed, left as it is, refused, or
-// written.
-func declare(h configHook, print, force bool) (string, error) {
+// declareHook is what becomes of one entry: printed, left as it is,
+// refused, or written.
+func declareHook(h configHook, print, force bool) (string, error) {
 	commands := configValues(true, "hook."+h.Name+".command")
 	current := ""
 	if len(commands) > 0 {
@@ -164,7 +164,7 @@ func declareHooks(bin string, print, force bool, o Out, say func(string)) (int, 
 	var hooks []configHook
 	for _, event := range hookEvents {
 		h := configHook{Name: hookEntry(event), Event: event, Command: bin + " hook " + event}
-		action, err := declare(h, print, force)
+		action, err := declareHook(h, print, force)
 		if err != nil {
 			return 0, err
 		}

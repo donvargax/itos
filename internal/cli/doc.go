@@ -19,9 +19,10 @@
 // # Reading a command line
 //
 // specs (spec.go) declares every built-in command's flags by command path,
-// each a switch, a flag that needs a value or one that may take one (init
-// --plugin), and whether it may be repeated; more adds the flags the config
-// names (the group label's, commit's free-text footers'), others lets git
+// in internal/declare's Spec, each a switch, a flag that needs a value or one
+// that may take one (init --plugin), and whether it may be repeated; More
+// names the flags the config adds (the group label's, commit's free-text
+// footers'), which moreFlags reads the config for, others lets git
 // commit's own pass, and unread leaves a run's arguments to the program it
 // runs. readLine applies the spec in Main, after the help and the extensions
 // and before the command: it judges the global flags and the command's

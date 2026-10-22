@@ -256,9 +256,9 @@ func taskFlags() []string {
 		names = append(names, name)
 	}
 	task := specs["task"]
-	for _, s := range append([]spec{task}, slices.Collect(maps.Values(task.subs))...) {
-		for _, f := range s.flags {
-			names = append(names, f.name)
+	for _, s := range append([]spec{task}, slices.Collect(maps.Values(task.Subs))...) {
+		for _, f := range s.Flags {
+			names = append(names, f.Name)
 		}
 	}
 	return names

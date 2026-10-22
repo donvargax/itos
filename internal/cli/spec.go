@@ -2,11 +2,12 @@ package cli
 
 // Every built-in command's flags, declared in one place and read by one
 // parser (slice 88, decision 36; docs/CLI.md rules 19 to 21 and 25). The
-// spec says which flags a command takes, whether each takes a value and
-// whether it may be given more than once; readLine applies it before the
-// command runs, so a command reads its flags by name from arguments the spec
-// has already judged. The help text stays hand-written (help.go): the spec is
-// for parsing, not for writing help.
+// spec (internal/declare's Spec) says which flags a command takes, whether
+// each takes a value and whether it may be given more than once, and which
+// the config adds; readLine applies it before the command runs, so a command
+// reads its flags by name from arguments the spec has already judged. The
+// help text stays hand-written (help.go): the spec is for parsing, not for
+// writing help.
 
 import (
 	"context"
@@ -16,59 +17,24 @@ import (
 	"strings"
 
 	"github.com/donvargax/itos/v8/internal/config"
+	"github.com/donvargax/itos/v8/internal/declare"
 	"github.com/donvargax/itos/v8/internal/message"
 	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
 	vcsport "github.com/donvargax/itos/v8/internal/vcs/port"
 )
 
-// takes is what a flag takes after its name.
-type takes int
-
-const (
-	// bare is a switch: no value, and --flag=value is refused.
-	bare takes = iota
-	// needs is a value, always: --flag value or --flag=value.
-	needs
-	// may is a value when the next argument is no flag, else none (init
-	// --plugin [<scope>], which rule 22 of docs/CLI.md has yet to settle).
-	may
+// A spec and its flags are what a command declares (internal/declare); the
+// parser is this file's.
+type (
+	spec     = declare.Spec
+	flagSpec = declare.Flag
 )
 
-// flagSpec is one flag a command takes.
-type flagSpec struct {
-	name   string
-	takes  takes
-	repeat bool
-}
-
-func sw(name string) flagSpec   { return flagSpec{name: name} }
-func val(name string) flagSpec  { return flagSpec{name: name, takes: needs} }
-func vals(name string) flagSpec { return flagSpec{name: name, takes: needs, repeat: true} }
-
-// spec is what a command, or one of its subcommands, takes.
-type spec struct {
-	flags []flagSpec
-	// subs are its subcommands by name, each read by its own spec when it
-	// is the first argument after the command's name.
-	subs map[string]spec
-	// words is whether a command with subcommands takes words of its own
-	// (task's IDs); one that does not refuses a first word that names none
-	// of them, and says so before any flag after it is judged.
-	words bool
-	// more are the flags the config adds, read only when an argument is
-	// none of flags: the group label's flag, commit's free-text footers'.
-	more func() ([]flagSpec, error)
-	// others is whether a flag the spec does not have is the command's to
-	// pass on (git commit's own), rather than refused.
-	others bool
-	// unread is whether, after the first `after` positional arguments,
-	// every argument but a global flag is the command's, unread: a program
-	// it runs takes them (the smoke runner's, git commit's and git push's
-	// through the shim, and itos push, which refuses each itself, saying
-	// why a forcing one is refused).
-	unread bool
-	after  int
-}
+var (
+	sw   = declare.Switch
+	val  = declare.Value
+	vals = declare.Values
+)
 
 // joined is a list of flags and more, a new slice, so no spec shares an
 // array with another.
@@ -111,101 +77,113 @@ func footerFlags() ([]flagSpec, error) {
 	return flags, nil
 }
 
+// moreFlags are the flags the config adds to a spec, by what its More
+// names: groupLabel's, footerFlags' or none.
+func moreFlags(more declare.More) ([]flagSpec, error) {
+	switch more {
+	case declare.GroupLabel:
+		return groupLabel()
+	case declare.Footers:
+		return footerFlags()
+	}
+	return nil, nil
+}
+
 // specs is every built-in command's spec, by its name.
 var specs = map[string]spec{
-	"task": {flags: joined(group, val("--skip"), sw("--pending")), more: groupLabel, words: true, subs: map[string]spec{
-		"list": {flags: group, more: groupLabel},
-		"add": {flags: joined(group, val("--type"), val("--title"), val("--why"), vals("--check"), vals("--timeout")),
-			more: groupLabel},
+	"task": {Flags: joined(group, val("--skip"), sw("--pending")), More: declare.GroupLabel, Words: true, Subs: map[string]spec{
+		"list": {Flags: group, More: declare.GroupLabel},
+		"add": {Flags: joined(group, val("--type"), val("--title"), val("--why"), vals("--check"), vals("--timeout")),
+			More: declare.GroupLabel},
 		"next-id": {},
 	}},
-	"work": {flags: []flagSpec{val("--as")}, subs: map[string]spec{
-		"list": {flags: []flagSpec{sw("--all"), val("--tag")}},
-		"show": {flags: []flagSpec{sw("--patch")}},
-		"take": {flags: []flagSpec{val("--as")}},
-		"promote": {flags: []flagSpec{val("--id"), val("--kind"), val("--title"), val("--why"), val("--type"),
+	"work": {Flags: []flagSpec{val("--as")}, Subs: map[string]spec{
+		"list": {Flags: []flagSpec{sw("--all"), val("--tag")}},
+		"show": {Flags: []flagSpec{sw("--patch")}},
+		"take": {Flags: []flagSpec{val("--as")}},
+		"promote": {Flags: []flagSpec{val("--id"), val("--kind"), val("--title"), val("--why"), val("--type"),
 			vals("--check"), vals("--timeout")}},
 		"done": {},
-		"add": {flags: []flagSpec{val("--title"), val("--why"), val("--kind"), val("--phase"), val("--owner"),
+		"add": {Flags: []flagSpec{val("--title"), val("--why"), val("--kind"), val("--phase"), val("--owner"),
 			val("--depends-on"), val("--refs"), val("--tags")}},
-		"edit":      {flags: []flagSpec{val("--title"), val("--depends-on"), val("--refs"), val("--tags"), val("--note")}},
-		"queue":     {flags: []flagSpec{sw("--top"), sw("--remove"), val("--before"), val("--after")}},
-		"drop":      {flags: []flagSpec{val("--why")}},
-		"defer":     {flags: []flagSpec{val("--why")}},
+		"edit":      {Flags: []flagSpec{val("--title"), val("--depends-on"), val("--refs"), val("--tags"), val("--note")}},
+		"queue":     {Flags: []flagSpec{sw("--top"), sw("--remove"), val("--before"), val("--after")}},
+		"drop":      {Flags: []flagSpec{val("--why")}},
+		"defer":     {Flags: []flagSpec{val("--why")}},
 		"resume":    {},
-		"give-back": {flags: []flagSpec{val("--why"), val("--as")}},
+		"give-back": {Flags: []flagSpec{val("--why"), val("--as")}},
 		"check":     {},
 	}},
-	"commit": {flags: []flagSpec{vals("--task"), vals("--item"), vals("--scenarios"), vals("--breaking")},
-		more: footerFlags, others: true, subs: map[string]spec{
-			"check-message": {flags: []flagSpec{val("--at")}},
-			"check-paths":   {flags: []flagSpec{val("--type")}},
+	"commit": {Flags: []flagSpec{vals("--task"), vals("--item"), vals("--scenarios"), vals("--breaking")},
+		More: declare.Footers, Others: true, Subs: map[string]spec{
+			"check-message": {Flags: []flagSpec{val("--at")}},
+			"check-paths":   {Flags: []flagSpec{val("--type")}},
 			"footers":       {},
 		}},
 	"verify": {},
-	"tests": {subs: map[string]spec{
-		"list":    {flags: []flagSpec{val("--at")}},
+	"tests": {Subs: map[string]spec{
+		"list":    {Flags: []flagSpec{val("--at")}},
 		"moves":   {},
-		"next-id": {flags: []flagSpec{val("--count")}},
-		"smoke": {subs: map[string]spec{
-			"check": {flags: []flagSpec{val("--features")}},
+		"next-id": {Flags: []flagSpec{val("--count")}},
+		"smoke": {Subs: map[string]spec{
+			"check": {Flags: []flagSpec{val("--features")}},
 			"ids":   {},
-			"run":   {unread: true, after: 1},
+			"run":   {Unread: true, After: 1},
 		}},
 	}},
-	"ci": {subs: map[string]spec{
-		"plan":  {flags: []flagSpec{sw("--nightly"), sw("--whole"), val("--data-at")}},
-		"run":   {flags: []flagSpec{sw("--nightly"), sw("--tests")}},
+	"ci": {Subs: map[string]spec{
+		"plan":  {Flags: []flagSpec{sw("--nightly"), sw("--whole"), val("--data-at")}},
+		"run":   {Flags: []flagSpec{sw("--nightly"), sw("--tests")}},
 		"scope": {},
 		"watch": {},
-		"range": {flags: []flagSpec{val("--head"), val("--base")}},
+		"range": {Flags: []flagSpec{val("--head"), val("--base")}},
 	}},
-	"hook": {subs: map[string]spec{
+	"hook": {Subs: map[string]spec{
 		"commit-msg": {},
 		"pre-push":   {},
-		"install":    {flags: []flagSpec{sw("--print"), sw("--force")}},
+		"install":    {Flags: []flagSpec{sw("--print"), sw("--force")}},
 	}},
-	"guard": {subs: map[string]spec{
+	"guard": {Subs: map[string]spec{
 		"claude-code": {},
 	}},
-	"config": {subs: map[string]spec{
-		"check": {flags: []flagSpec{sw("--print-defaults"), val("--ledger")}},
+	"config": {Subs: map[string]spec{
+		"check": {Flags: []flagSpec{sw("--print-defaults"), val("--ledger")}},
 		"get":   {},
 	}},
-	"version": {flags: []flagSpec{sw("--check")}},
-	"push":    {unread: true},
-	"git-shim": {subs: map[string]spec{
-		"install":   {flags: []flagSpec{val("--dir")}},
-		"uninstall": {flags: []flagSpec{val("--dir")}},
-		"run":       {unread: true},
+	"version": {Flags: []flagSpec{sw("--check")}},
+	"push":    {Unread: true},
+	"git-shim": {Subs: map[string]spec{
+		"install":   {Flags: []flagSpec{val("--dir")}},
+		"uninstall": {Flags: []flagSpec{val("--dir")}},
+		"run":       {Unread: true},
 	}},
 	"pin":     {},
 	"upgrade": {},
-	"init": {flags: []flagSpec{sw("--stealth"), val("--policy"), {name: "--plugin", takes: may}, sw("--git-shim"), sw("--no-git-shim"),
+	"init": {Flags: []flagSpec{sw("--stealth"), val("--policy"), declare.Optional("--plugin"), sw("--git-shim"), sw("--no-git-shim"),
 		val("--git-shim-dir"), sw("--agent-rules"), sw("--no-agent-rules")}},
-	"followup": {flags: []flagSpec{sw("--all")}, subs: map[string]spec{
-		"add":   {flags: []flagSpec{val("--with"), val("--title"), val("--note")}},
+	"followup": {Flags: []flagSpec{sw("--all")}, Subs: map[string]spec{
+		"add":   {Flags: []flagSpec{val("--with"), val("--title"), val("--note")}},
 		"note":  {},
-		"close": {flags: []flagSpec{val("--note")}},
+		"close": {Flags: []flagSpec{val("--note")}},
 		"show":  {},
-		"doc":   {flags: []flagSpec{sw("--force")}},
+		"doc":   {Flags: []flagSpec{sw("--force")}},
 	}},
-	"decision": {flags: []flagSpec{sw("--all")}, subs: map[string]spec{
-		"add":    {flags: []flagSpec{val("--item")}},
+	"decision": {Flags: []flagSpec{sw("--all")}, Subs: map[string]spec{
+		"add":    {Flags: []flagSpec{val("--item")}},
 		"answer": {},
-		"record": {flags: []flagSpec{val("--title"), vals("--option"), val("--consequences"), val("--supersedes"),
+		"record": {Flags: []flagSpec{val("--title"), vals("--option"), val("--consequences"), val("--supersedes"),
 			sw("--none")}},
 		"show": {},
 	}},
-	"draft": {subs: map[string]spec{
-		"add":     {flags: []flagSpec{val("-m"), val("--message")}},
-		"edit":    {flags: []flagSpec{val("-m"), val("--message")}},
+	"draft": {Subs: map[string]spec{
+		"add":     {Flags: []flagSpec{val("-m"), val("--message")}},
+		"edit":    {Flags: []flagSpec{val("-m"), val("--message")}},
 		"promote": {},
 		"drop":    {},
 	}},
 	"go":     {},
 	"guide":  {},
-	"status": {flags: []flagSpec{val("--as")}},
+	"status": {Flags: []flagSpec{val("--as")}},
 }
 
 // flagShaped is an argument that reads as a flag: a dash or two and a name
@@ -221,7 +199,7 @@ func commandPath(rest []string) ([]string, spec) {
 	s := specs[rest[0]]
 	path := []string{rest[0]}
 	for _, word := range rest[1:] {
-		sub, ok := s.subs[word]
+		sub, ok := s.Subs[word]
 		if !ok {
 			break
 		}
@@ -243,7 +221,7 @@ func readLine(args []string) (Globals, error) {
 	var g Globals
 	read := ParseGlobals(args)
 	path, s := commandPath(read.Rest)
-	if rest := read.Rest[len(path):]; len(s.subs) > 0 && !s.words && len(rest) > 0 && !strings.HasPrefix(rest[0], "-") {
+	if rest := read.Rest[len(path):]; len(s.Subs) > 0 && !s.Words && len(rest) > 0 && !strings.HasPrefix(rest[0], "-") {
 		// A subcommand it does not have: the command names those it has,
 		// which a usage error for a flag after it would hide.
 		return read, nil
@@ -299,7 +277,7 @@ func readLine(args []string) (Globals, error) {
 			g.Rest = append(g.Rest, arg)
 			words--
 			continue
-		case s.unread && positionals >= s.after:
+		case s.Unread && positionals >= s.After:
 			g.Rest = append(g.Rest, arg)
 			continue
 		case flag == "":
@@ -307,11 +285,11 @@ func readLine(args []string) (Globals, error) {
 			positionals++
 			continue
 		}
-		f, ok := find(s.flags, flag)
-		if !ok && s.more != nil {
+		f, ok := find(s.Flags, flag)
+		if !ok && s.More != declare.NoMore {
 			if !loaded {
 				var err error
-				if more, err = s.more(); err != nil {
+				if more, err = moreFlags(s.More); err != nil {
 					return g, err
 				}
 				loaded = true
@@ -319,30 +297,30 @@ func readLine(args []string) (Globals, error) {
 			f, ok = find(more, flag)
 		}
 		switch {
-		case !ok && s.others:
+		case !ok && s.Others:
 			g.Rest = append(g.Rest, arg)
 			continue
 		case !ok && renamedFlag(name, flag) != nil:
 			return g, renamedFlag(name, flag)
 		case !ok:
-			return g, usage("%s does not take %s; %s", name, flag, takesWhat(joined(s.flags, more...), s.subs))
-		case seen[f.name] && !f.repeat:
+			return g, usage("%s does not take %s; %s", name, flag, takesWhat(joined(s.Flags, more...), s.Subs))
+		case seen[f.Name] && !f.Repeat:
 			return g, usage("%s takes one %s", name, flag)
 		}
-		seen[f.name] = true
-		switch f.takes {
-		case bare:
+		seen[f.Name] = true
+		switch f.Takes {
+		case declare.Bare:
 			if hasValue {
 				return g, usage("%s %s takes no value", name, flag)
 			}
 			g.Rest = append(g.Rest, flag)
-		case may:
+		case declare.May:
 			g.Rest = append(g.Rest, arg)
 			if !hasValue && i+1 < len(args) && !strings.HasPrefix(args[i+1], "-") {
 				i++
 				g.Rest = append(g.Rest, args[i])
 			}
-		case needs:
+		case declare.Needs:
 			v, err := value(&i, name+" "+flag, after, hasValue)
 			if err != nil {
 				return g, err
@@ -358,7 +336,7 @@ func readLine(args []string) (Globals, error) {
 func takesWhat(list []flagSpec, subs map[string]spec) string {
 	names := make([]string, len(list))
 	for i, f := range list {
-		names[i] = f.name
+		names[i] = f.Name
 	}
 	words := slices.Sorted(maps.Keys(subs))
 	switch {
@@ -382,7 +360,7 @@ func either(list []string) string {
 
 // find is the flag of the list by its name, and whether it has one.
 func find(list []flagSpec, name string) (flagSpec, bool) {
-	i := slices.IndexFunc(list, func(f flagSpec) bool { return f.name == name })
+	i := slices.IndexFunc(list, func(f flagSpec) bool { return f.Name == name })
 	if i < 0 {
 		return flagSpec{}, false
 	}
