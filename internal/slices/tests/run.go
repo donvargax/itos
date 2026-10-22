@@ -17,7 +17,8 @@ import (
 const refused = 1
 
 // Run is the tests command over h: list's tests one a line, or under --json
-// the protocol's object as the adapter gave it; the moves rule's and the
+// the protocol's object as the adapter gave it, or under --tsv the live
+// tests' rows, exit 1 with each row it cannot print on stderr; the moves rule's and the
 // smoke rule's problems on stderr, or under --json in the one object, exit
 // 1; the smoke set's IDs; next-id's tags one a line; smoke run's exit the
 // runner's. An error is the command line's to report.
@@ -28,6 +29,9 @@ func (c CLI) Run(ctx context.Context, stdout, stderr io.Writer, h Handler) (int,
 	}
 	switch c.Sub {
 	case "list":
+		if c.TSV {
+			return c.tsv(stdout, stderr, a)
+		}
 		return c.list(stdout, a.List)
 	case "moves":
 		return c.moves(stdout, stderr, a.Problems)
@@ -57,6 +61,23 @@ func (c CLI) list(stdout io.Writer, list namedtests.List) (int, error) {
 			live = "  (not live)"
 		}
 		fmt.Fprintf(stdout, "%s  %s%s\n", t.ID, t.File, live)
+	}
+	return 0, nil
+}
+
+// tsv prints the live tests' rows, or with a row it cannot print, nothing
+// on stdout and each such row on stderr, exit 1.
+func (c CLI) tsv(stdout, stderr io.Writer, a Answer) (int, error) {
+	if len(a.Refused) > 0 {
+		for _, why := range a.Refused {
+			fmt.Fprintf(stderr, "tests list --tsv: tests.%s's %s, which a project-relative TSV row cannot hold\n", c.Kind, why)
+		}
+		return refused, nil
+	}
+	for _, r := range a.Rows {
+		if _, err := io.WriteString(stdout, r.Line()); err != nil {
+			return 0, err
+		}
 	}
 	return 0, nil
 }

@@ -10,7 +10,9 @@
 // smoke check, ids and run, and tests moves are calls into internal/tests,
 // reading only the working tree but for list's --at and the moves rule's
 // index and HEAD; list's --at commit is checked to be one (the refs
-// engine) before the config is read, and smoke run runs the kind's select
+// engine) before the config is read, list --tsv (refused beside --json,
+// before anything is read) projects its live tests through namedtests.TSV
+// from the folder itos runs in, and smoke run runs the kind's select
 // template over the smoke IDs through the Shell port, its exit the
 // runner's. tests next-id reads the next free tag (namedtests.NextTag),
 // counting the registry's ids (the ids engine's Registry); of an area

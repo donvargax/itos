@@ -221,6 +221,9 @@ func initializeTestsTSVSteps(sc *godog.ScenarioContext, w *world) {
 
 	sc.Step(`^HEAD has a committed live scenario in "([^"]*)"$`, func(file string) error {
 		w.config.scenarios = true
+		if err := w.writeConfig(); err != nil {
+			return err
+		}
 		if err := w.write(file, fingerprintedFeature(filepath.Base(file), "ID-OLD-01")); err != nil {
 			return err
 		}

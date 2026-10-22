@@ -31,7 +31,11 @@ func Parse(args []string, origin string, json, quiet bool) (CLI, error) {
 			return c, out.Usage("tests list needs <kind>")
 		}
 		at, _ := argsengine.FlagValue(rest, "--at")
-		c.Query = Query{Sub: sub, Kind: name, At: at}
+		tsv := slices.Contains(rest, "--tsv")
+		if tsv && json {
+			return c, out.Usage("tests list takes one output format: --tsv or --json, not both")
+		}
+		c.Query = Query{Sub: sub, Kind: name, At: at, TSV: tsv}
 	case "moves":
 		name, ok := argsengine.First(argsengine.Positional(rest))
 		if !ok {

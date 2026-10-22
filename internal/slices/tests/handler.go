@@ -2,6 +2,7 @@ package tests
 
 import (
 	"context"
+	"os"
 	"strings"
 
 	"github.com/donvargax/itos/v8/internal/config"
@@ -16,13 +17,15 @@ import (
 
 // Query is what the tests command asks: Sub, list, moves, next-id or smoke,
 // with smoke's Action, check, ids or run; the Kind; list's tree At, "" when
-// --at is not given; smoke check's Features, the folder standing in for a
-// Gherkin kind's root, nil without --features; smoke run's Runner arguments;
-// next-id's Stem and Count, Counted when --count gave it.
+// --at is not given, and TSV, its live tests as rows (--tsv); smoke check's
+// Features, the folder standing in for a Gherkin kind's root, nil without
+// --features; smoke run's Runner arguments; next-id's Stem and Count,
+// Counted when --count gave it.
 type Query struct {
 	Sub, Action string
 	Kind        string
 	At          string
+	TSV         bool
 	Features    *string
 	Runner      []string
 	Stem        string
@@ -55,13 +58,16 @@ func NewHandler(p Ports, ws *namedtests.Warnings) Handler {
 	return Handler{ports: p, warnings: ws}
 }
 
-// Answer is what Handle found or did: list's List; the moves rule's or the
+// Answer is what Handle found or did: list's List, and under TSV its Rows
+// or the Refused rows that keep it from having any; the moves rule's or the
 // smoke rule's Problems, with the smoke set's Count of IDs and whether its
 // rule is EveryFile; smoke ids' and next-id's IDs, Claimed when next-id
 // claimed them; smoke run's Empty, a smoke set with nothing to run, or the
 // runner's Code.
 type Answer struct {
 	List      namedtests.List
+	Rows      []namedtests.Row
+	Refused   []string
 	Problems  []out.Problem
 	Count     int
 	EveryFile bool
@@ -90,9 +96,10 @@ func (h Handler) Handle(ctx context.Context, q Query) (Answer, error) {
 	return h.smokeRun(ctx, q)
 }
 
-// list is `tests list <kind> [--at <tree>]` (tests-command.ts): the kind's
-// adapter's listing at the working tree, the index or a commit, a commit
-// checked to be one before the config is read.
+// list is `tests list <kind> [--at <tree>] [--tsv]` (tests-command.ts): the
+// kind's adapter's listing at the working tree, the index or a commit, a
+// commit checked to be one before the config is read; under TSV its live
+// tests as rows from the project's top, the folder itos runs in.
 func (h Handler) list(ctx context.Context, q Query) (Answer, error) {
 	at := q.At
 	if at != "worktree" && at != "index" {
@@ -108,7 +115,20 @@ func (h Handler) list(ctx context.Context, q Query) (Answer, error) {
 		at = "worktree"
 	}
 	list, err := namedtests.ListTests(cfg, q.Kind, at, h.warnings)
-	return Answer{List: list}, err
+	if err != nil || !q.TSV {
+		return Answer{List: list}, err
+	}
+	k, err := namedtests.KindOf(cfg, q.Kind)
+	if err != nil {
+		return Answer{}, err
+	}
+	root := ""
+	if k.Root != nil {
+		root = *k.Root
+	}
+	project, _ := os.Getwd()
+	rows, refused := namedtests.TSV(list, root, project)
+	return Answer{List: list, Rows: rows, Refused: refused}, nil
 }
 
 // moves is `tests moves <kind>` (moves.ts's testsMoves): the staged

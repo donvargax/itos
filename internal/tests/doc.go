@@ -54,6 +54,19 @@
 // a command adapter's tests carry none: tests list --json leaves the key
 // out.
 //
+// # The TSV projection
+//
+// TSV (tsv.go, slice 154) is tests list --tsv: a listing's live tests as
+// Rows, in its order, each a line of its ID, a tab and its file from the
+// project's top (the kind's root joined to it, slash separated; a command
+// kind with no root lists the project's own), then a tab and its
+// fingerprint when it has one, the form itos-cc's mutation.tests.list reads.
+// It is pure: the listing comes in, and the folder itos runs in reads an
+// absolute file. A live test no row can hold (an empty ID or file, a tab, a
+// carriage return, a newline or a NUL in one, an ID another live test has, a
+// file outside the project) refuses every row, so a listing is never printed
+// in part; a test that is not live is not judged.
+//
 // # Run templates
 //
 // CommandFor(cfg, kind, selections) is the one function that turns

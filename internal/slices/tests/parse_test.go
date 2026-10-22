@@ -16,8 +16,8 @@ func described(q Query) string {
 	if q.Features != nil {
 		features = *q.Features
 	}
-	return fmt.Sprintf("sub %q action %q kind %q at %q features %q runner %q stem %q count %d counted %v",
-		q.Sub, q.Action, q.Kind, q.At, features, q.Runner, q.Stem, q.Count, q.Counted)
+	return fmt.Sprintf("sub %q action %q kind %q at %q tsv %v features %q runner %q stem %q count %d counted %v",
+		q.Sub, q.Action, q.Kind, q.At, q.TSV, features, q.Runner, q.Stem, q.Count, q.Counted)
 }
 
 func TestParseReadsEachSubcommand(t *testing.T) {
@@ -28,6 +28,7 @@ func TestParseReadsEachSubcommand(t *testing.T) {
 	}{
 		{[]string{"list", "scenario"}, Query{Sub: "list", Kind: "scenario"}},
 		{[]string{"list", "--at", "HEAD", "scenario"}, Query{Sub: "list", Kind: "scenario", At: "HEAD"}},
+		{[]string{"list", "--tsv", "scenario"}, Query{Sub: "list", Kind: "scenario", TSV: true}},
 		{[]string{"moves", "scenario"}, Query{Sub: "moves", Kind: "scenario"}},
 		{[]string{"next-id", "scenario", "ID-A"}, Query{Sub: "next-id", Kind: "scenario", Stem: "ID-A", Count: 1}},
 		{[]string{"next-id", "scenario", "--count", "3", "ID-A"}, Query{Sub: "next-id", Kind: "scenario", Stem: "ID-A", Count: 3, Counted: true}},
@@ -38,8 +39,9 @@ func TestParseReadsEachSubcommand(t *testing.T) {
 		{[]string{"smoke", "run", "scenario", "--", "--workers=1", "--"}, Query{Sub: "smoke", Action: "run", Kind: "scenario", Runner: []string{"--workers=1", "--"}}},
 		{[]string{"smoke", "run", "scenario", "-v", "x"}, Query{Sub: "smoke", Action: "run", Kind: "scenario", Runner: []string{"-v", "x"}}},
 	} {
-		got, err := Parse(c.args, "sub", true, true)
-		if err != nil || !got.JSON || !got.Quiet || described(got.Query) != described(c.want) {
+		json := !c.want.TSV
+		got, err := Parse(c.args, "sub", json, true)
+		if err != nil || got.JSON != json || !got.Quiet || described(got.Query) != described(c.want) {
 			t.Errorf("Parse(%q) = %s, %v\nwant %s", c.args, described(got.Query), err, described(c.want))
 		}
 	}
@@ -68,6 +70,11 @@ func TestParseRefusesAWrongLineAsAUsageError(t *testing.T) {
 		if !errors.As(err, &u) || !strings.Contains(err.Error(), c.want) {
 			t.Errorf("Parse(%q) = %v, want a usage error saying %q", c.args, err, c.want)
 		}
+	}
+	_, err := Parse([]string{"list", "scenario", "--tsv"}, "", true, false)
+	var u out.UsageError
+	if !errors.As(err, &u) || !strings.Contains(err.Error(), "--tsv or --json, not both") {
+		t.Errorf("Parse(list --tsv) under --json = %v, want a usage error naming both formats", err)
 	}
 }
 

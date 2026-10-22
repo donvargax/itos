@@ -5,19 +5,20 @@ import "github.com/donvargax/itos/v8/internal/declare"
 var Command = declare.Command{
 	Name: "tests",
 	Rank: 160,
-	Lines: `  tests list <kind> [--at <tree>]  the kind's named tests
+	Lines: `  tests list <kind> [--at <tree>] [--tsv]
+                                   the kind's named tests
   tests smoke check|ids|run <kind> the smoke rule, the smoke IDs, the smoke run
   tests moves <kind>               the staged feature files by the moves rule
   tests next-id <kind> <stem> [--count <n>]
                                    the kind's next free tag of the stem, claimed for an area
 `,
 	Help: map[string]string{
-		"": `Usage: itos tests list <kind> [--at <tree>]
+		"": `Usage: itos tests list <kind> [--at <tree>] [--tsv]
        itos tests smoke check|ids|run <kind>
        itos tests moves <kind>
        itos tests next-id <kind> <stem> [--count <n>]`,
 
-		"list": `Usage: itos tests list <kind> [--at <tree>]
+		"list": `Usage: itos tests list <kind> [--at <tree>] [--tsv]
 
 The kind's adapter's listing: each named test's ID, file and whether it is
 live, at the working tree (default), the index or a commit. A command
@@ -27,6 +28,15 @@ strings, Examples, the Background steps before it and its tags, its own and
 its feature's): a comment, its name, the feature's description, another
 scenario, or a move to a file with the same Background and feature tags
 leaves it as it was.
+
+--tsv prints the live tests alone, one a line in the listing's order: its
+ID, a tab and its file from the project's top (the kind's root joined to it,
+slash separated), then for a Gherkin kind a tab and its fingerprint; no
+heading, each line ending in LF. A live test no such row can hold (an empty
+id or file, a tab, carriage return, newline or NUL in one, an id two live
+tests have, a file outside the project) refuses the whole listing: nothing
+on stdout, each such test named on stderr, exit 1. Warnings and diagnostics
+stay on stderr. --tsv and --json together are a usage error (exit 2).
 
 --json: {"schema":1,"protocol":1,"tests":[{"id","file","live","title"?,"fingerprint"?}],"files"}`,
 
@@ -84,7 +94,7 @@ changes none of that code. Exit 1 with each problem.
 --json: {"schema":1,"kind","ok","problems":[{"rule","message"}]}`,
 	},
 	Spec: declare.Spec{Subs: map[string]declare.Spec{
-		"list":    {Flags: []declare.Flag{declare.Value("--at")}},
+		"list":    {Flags: []declare.Flag{declare.Value("--at"), declare.Switch("--tsv")}},
 		"moves":   {},
 		"next-id": {Flags: []declare.Flag{declare.Value("--count")}},
 		"smoke": {Subs: map[string]declare.Spec{

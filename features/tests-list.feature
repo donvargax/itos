@@ -16,13 +16,13 @@ Feature: Live named tests have a directly consumable TSV listing
   # Keep current --at and supports_at semantics and stderr warnings.
   # A command adapter may run once to list; no test runner is invoked.
   # The fingerprint is slice-166's (#112); itos-cc.yaml's mutation.tests.list
-  # runs this listing, and tools/bin/itos-cc-tests goes (T-279, with this
+  # runs this listing itself, with no wrapper between (T-279, with this
   # slice; the user, 2026-10-22).
 
   Background:
     Given a repository whose ledger has the task "T-001"
 
-  @wip @ID-TESTLIST-01 @slice-154
+  @ID-TESTLIST-01 @slice-154
   Scenario: TSV prints exact live-test rows without changing the other listing formats
     Given the scenario kind has live IDs "ID-A-01" and "ID-B-01" in two feature files
     And another scenario is tagged @wip and a third feature is tagged @wip
@@ -35,7 +35,7 @@ Feature: Live named tests have a directly consumable TSV listing
     Then those listings retain their existing file paths, live flags and output shape
     And no test runner, hook or CI provider has run
 
-  @wip @ID-TESTLIST-02 @slice-154
+  @ID-TESTLIST-02 @slice-154
   Scenario Outline: TSV paths use the effective kind root and project root
     Given the scenario kind root is "specs with spaces/acceptance"
     And it contains the live scenario "ID-A-01" in "nested/a.feature"
@@ -51,7 +51,7 @@ Feature: Live named tests have a directly consumable TSV listing
       | project |
       | stealth |
 
-  @wip @ID-TESTLIST-03 @slice-154
+  @ID-TESTLIST-03 @slice-154
   Scenario: TSV uses the requested content tree without activating draft scenarios
     Given HEAD has a committed live scenario in "features/old.feature"
     And the index has moved it to "features/staged.feature" and added a live scenario
@@ -62,7 +62,7 @@ Feature: Live named tests have a directly consumable TSV listing
     And none lists the @wip scenario
     And the staged changes, unstaged changes and HEAD remain unchanged
 
-  @wip @ID-TESTLIST-04 @slice-154
+  @ID-TESTLIST-04 @slice-154
   Scenario: Command adapters need no Gherkin-specific formatting wrapper
     Given a command adapter lists live IDs "F-003" and "F-001" in that order, with an intervening non-live test
     And that kind has no configured root and lists project-relative files
@@ -78,7 +78,7 @@ Feature: Live named tests have a directly consumable TSV listing
     Then its existing working-tree fallback warning goes to stderr
     And stdout still contains only TSV rows
 
-  @wip @ID-TESTLIST-05 @slice-154
+  @ID-TESTLIST-05 @slice-154
   Scenario Outline: A row that TSV cannot represent refuses the entire projection
     Given a command adapter lists one valid live row followed by <problem>
     When itos runs "tests list fixture --tsv"
@@ -99,7 +99,7 @@ Feature: Live named tests have a directly consumable TSV listing
       | a live file resolving outside the project     |
       | a live file under a root outside the project  |
 
-  @wip @ID-TESTLIST-06 @slice-154
+  @ID-TESTLIST-06 @slice-154
   Scenario: TSV is an explicit format with a valid empty listing
     Given a kind whose valid listing contains only non-live tests
     When itos runs "tests list fixture --tsv"
@@ -128,8 +128,8 @@ Feature: Live named tests have a directly consumable TSV listing
   # the same Background and feature tags keeps it. The canonical text starts
   # with a version line, so a later change of what counts is a new version,
   # not a silent shift. A command adapter's tests carry none. The text
-  # listing is unchanged. tools/bin/itos-cc-tests prints it as the third
-  # column (a ci commit beside the feat).
+  # listing is unchanged. tests list --tsv prints it as the third column
+  # (slice 154).
   @ID-TESTLIST-07 @slice-166
   Scenario: tests list --json gives each scenario a fingerprint of what it runs
     Given the scenario kind has live IDs "ID-A-01" and "ID-B-01" in two feature files

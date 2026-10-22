@@ -170,6 +170,9 @@ func TestListPrintsTheKindsTestsAtATree(t *testing.T) {
 		{[]string{"list", "scenario", "--at", "worktree"}, "ID-A-01  a.feature\nID-A-02  a.feature  (not live)\n"},
 		{[]string{"list", "scenario", "--at", "index"}, "ID-A-01  a.feature\n"},
 		{[]string{"list", "scenario", "--at", "HEAD"}, "ID-A-09  a.feature  (not live)\n"},
+		{[]string{"list", "scenario", "--at", "index", "--tsv"},
+			"ID-A-01\tfeatures/a.feature\t13652fa0cb9e647dcda863f34bd523b67488ed1286c08dcb4a236f61fe1c4ce6\n"},
+		{[]string{"list", "scenario", "--at", "HEAD", "--tsv"}, ""},
 		{[]string{"--json", "list", "scenario", "--at", "index"},
 			`{"schema":1,"protocol":1,"tests":[{"id":"ID-A-01","file":"a.feature","live":true,` +
 				`"fingerprint":"13652fa0cb9e647dcda863f34bd523b67488ed1286c08dcb4a236f61fe1c4ce6"}],"files":["a.feature"]}`},
@@ -179,6 +182,18 @@ func TestListPrintsTheKindsTestsAtATree(t *testing.T) {
 			stdout = compact(stdout)
 		}
 		want(t, c.args, 0, c.stdout, "", code, stdout, stderr, err)
+	}
+}
+
+// A TSV listing with a test no row can hold prints nothing on stdout and each
+// such test on stderr, exit 1.
+func TestTSVPrintsTheRefusedRowsOnStderr(t *testing.T) {
+	var stdout, stderr strings.Builder
+	c := CLI{Query: Query{Sub: "list", Kind: "fixture", TSV: true}}
+	code, err := c.tsv(&stdout, &stderr, Answer{Rows: []namedtests.Row{{ID: "F-1", File: "a"}}, Refused: []string{"test 2 (id \"\", file \"b\"): its id is empty"}})
+	want := "tests list --tsv: tests.fixture's test 2 (id \"\", file \"b\"): its id is empty, which a project-relative TSV row cannot hold\n"
+	if err != nil || code != 1 || stdout.String() != "" || stderr.String() != want {
+		t.Errorf("tsv = %d, %v, stdout %q, stderr %q, want 1 and %q on stderr alone", code, err, stdout.String(), stderr.String(), want)
 	}
 }
 

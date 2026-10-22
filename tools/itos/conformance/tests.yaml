@@ -154,6 +154,20 @@ cases:
       - empty.feature
       - nested/two.feature
       - one.feature
+  - name: --tsv prints the live scenarios alone, each file from the project's top, its fingerprint the third column
+    argv: [tests, list, scenario, --tsv]
+    exit: 0
+    stdout_contract: true
+    stdout: "ID-ONE-01\tfeatures/one.feature\t901cf935fe946f70f53cacc233f7fb52d4d361034941ef04c84a975114757457\nID-ONE-03\tfeatures/one.feature\td2b35643e8510609098f6748a02f2e2a8b5c6ac279782485f85b388619d86a43\n"
+  - name: --tsv of a command adapter's listing, its live tests' IDs and files as listed
+    argv: [tests, list, fixture, --tsv]
+    exit: 0
+    stdout_contract: true
+    stdout: "F-001\tone.txt\nF-003\ttwo.txt\n"
+  - name: --tsv and --json together are a usage error
+    argv: [tests, list, scenario, --tsv, --json]
+    exit: 2
+    stdout: ""
   - name: a tree that names no commit is refused, naming it
     argv: [tests, list, scenario, --at, no-such-commit, --json]
     exit: 2
