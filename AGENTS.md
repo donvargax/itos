@@ -96,9 +96,10 @@ is reported by CI if it is in the smoke set, else by the nightly.
 
 ## What no gate does for you
 
-- `tools/bin/itos task <id>`: CI runs the checks of every task your commits
-  name, the push does not. An `after: push` check stays pending until the
-  commit is on the remote.
+- A task's checks: CI runs those of every task your commits name, the push
+  does not (ADR-0057); a red one is yours to fix forward. `itos task <id>`
+  is for reading why one failed. An `after: push` check stays pending until
+  the commit is on the remote.
 - At the end of a slice, `go test ./features -count=1
   -scenarios='^@slice-<n>$'` if your commits didn't name all its scenarios.
 - Before the push, when your change touches something many scenarios pass
@@ -111,14 +112,10 @@ is reported by CI if it is in the smoke set, else by the nightly.
 
 Other people and sessions push to `main` too; expect the remote to have moved.
 
-**The push proof.** No local mutation runs (q-41) but one: before pushing a Go
-change, run CI's push proof once (q-55), `tools/bin/pinned itos-cc mutation
-run --count 1 --since $(git rev-parse origin/main)
---seed $(git rev-parse origin/main) --fail-uncovered=lines --json cmd internal`.
-It judges one mutation site of the changed functions and the coverage of the
-lines added or changed (q-57). The seed is the range's start, as CI's is
-(T-159), so the local run draws the site CI will while main is green. A
-survivor, or an uncovered changed line, is real: kill it with a test.
+**The push proof** is CI's (ADR-0057): no local mutation runs. Each push
+judges one mutation site of the changed functions and the coverage of the
+lines added or changed (q-57). A survivor, or an uncovered changed line, is
+real: kill it with a test, or show the mutant equivalent and except it.
 
 1. **Push with `tools/bin/itos push --no-wait`** in the background, straight
    to `main` (no branches or pull requests), and take its result from the

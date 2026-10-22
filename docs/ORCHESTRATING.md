@@ -99,9 +99,8 @@ handoff line below replaces the template's "wait for CI … close the item":
   one site of a push's changed Go functions, seeded by the range's start
   (T-159), with the coverage of its changed lines, and 20 a night, seeded by
   the run, without strict coverage. A pass is sampled assurance; a survivor,
-  or an uncovered changed line, is real and needs a test. Agents run CI's
-  push proof once before pushing Go (q-55), its `--since` and
-  `--seed $(git rev-parse origin/main)` both; no other local mutation runs.
+  or an uncovered changed line, is real and needs a test. No local mutation
+  or task-check run before a push: CI owns both (ADR-0057).
   Push with `tools/bin/itos push --no-wait`, then report the exact pushed SHA,
   commits, checks and remaining work from a clean checkout. Do not watch CI or
   close the item: the coordinator watches and closes only on green.
