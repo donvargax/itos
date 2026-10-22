@@ -11591,3 +11591,19 @@ items:
       Upgrading notes first, then the config edits made; summarise Changes on purpose as one count
       per release unless asked for (--cases).
     tags: [upgrade]
+
+  - id: p1-push-skips-ignored-paths
+    title: itos push and ci watch expect no run when the watched workflow's push trigger ignores every changed path
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      #87 (5.3.0, github provider): a workflow with on.push.paths-ignore starts no run for a
+      docs-only push, and itos push waits until ci.watch.timeout and exits 3. itos already skips the
+      wait for registry-only pushes; read on.push.paths, paths-ignore and branches from the workflow
+      file ci.watch.github.workflow names, at the pushed commit, apply GitHub's matching (negations
+      included), and say no run is expected (exit 0). Reading the workflow is preferred to a
+      ci.watch.ignore_paths key, which drifts.
+    tags: [push]
