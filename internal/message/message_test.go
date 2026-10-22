@@ -12,7 +12,34 @@ import (
 	"github.com/donvargax/itos/v8/internal/store/tree/adapter"
 	"github.com/donvargax/itos/v8/internal/store/tree/port/porttest"
 	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
+	vcstest "github.com/donvargax/itos/v8/internal/vcs/port/porttest"
 )
+
+// Gathered reads a range's free-text footers through the config's VCS,
+// every commit up to the end from an all-zero start, the merges and the
+// footers that say none left out, and the comment character the config's.
+func TestGatheredReadsTheVCS(t *testing.T) {
+	file := filepath.Join(t.TempDir(), "itos.yaml")
+	if err := os.WriteFile(file, []byte("version: 1\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	v := vcstest.VCS{Comment: ";", History: []vcstest.Commit{
+		{Name: "c-a", Message: "feat: a\n\nUpgrading: run x\n"},
+		{Name: "c-b", Parents: []string{"c-a"}, Message: "fix: b\n\nUpgrading: none\n; Upgrading: a comment\n"},
+		{Name: "c-m", Parents: []string{"c-b", "c-a"}, Message: "Merge\n\nUpgrading: merged\n"},
+	}}
+	cfg, err := config.Load(v, adapter.Trees{}, adapter.Worktree, file)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []Said{{SHA: "c-a", Subject: "feat: a", Text: "run x"}}
+	if got, err := Gathered(cfg, "0000000", "c-m", "Upgrading"); !reflect.DeepEqual(got, want) || err != nil {
+		t.Errorf("Gathered from zeros = %+v, %v; want %+v", got, err, want)
+	}
+	if got, err := Gathered(cfg, "nope", "c-m", "Upgrading"); err == nil {
+		t.Errorf("Gathered of no commit = %+v", got)
+	}
+}
 
 // A footer's IDs over several lines, split at whitespace and commas, the
 // prefix taken off where it is given, read as git reads trailers (bug 110):

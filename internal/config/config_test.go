@@ -25,6 +25,21 @@ func load(t *testing.T, text string) (*Loaded, error) {
 	return Load(vcstest.VCS{}, adapter.Trees{}, adapter.Worktree, file)
 }
 
+// CommentChar is the VCS's for a loaded config, its copies with other data
+// among them, and # for one Load did not make.
+func TestCommentChar(t *testing.T) {
+	loaded, err := FromText(vcstest.VCS{Comment: ";"}, adapter.Trees{}, adapter.Worktree, "itos.yaml", "version: 1\n", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := loaded.DataFrom(adapter.Worktree).CommentChar(); got != ";" {
+		t.Errorf("CommentChar of a loaded config = %q", got)
+	}
+	if got := (&Loaded{}).CommentChar(); got != "#" {
+		t.Errorf("CommentChar of a bare config = %q", got)
+	}
+}
+
 func TestLoadReadsRequires(t *testing.T) {
 	c, err := load(t, "version: 1\nrequires: \">=0.1.0\"\n")
 	if err != nil || c.Requires == nil || *c.Requires != ">=0.1.0" {
