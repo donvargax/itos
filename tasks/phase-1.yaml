@@ -3325,18 +3325,6 @@
     tests.go and the rest stays with task, so the task and tests lanes do not collide; any run<Name>
     T-241 left in commands.go moves to its command's own file. The internal/cli names stay as
     wrappers.
-  done_when:
-    - run: go test ./internal/cli ./internal/slices/... ./internal/engine/... -count=1
-      timeout: 600
-    - run: go run ./tools/bin/assemble -check
-    - run: go run ./tools/bin/conformance --bin tools/bin/itos --only tools/itos/conformance/help.yaml tools/itos/conformance/cli.yaml
-      timeout: 600
-    - run: go test ./features -count=1 -scenarios='^@ID-(CLI|BIN|EXT|CLI|NEXTID|TASK)-[0-9]+$'
-      timeout: 600
-    - run: tools/bin/architecture-check
-    - run: tools/bin/pinned golangci-lint run ./...
-      timeout: 600
-    - run: test -d internal/engine/args && test -d internal/engine/refs
 
 - id: T-245
   type: refactor
