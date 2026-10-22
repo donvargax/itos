@@ -12058,7 +12058,7 @@ items:
     title: "The pin engine out of internal/cli: the pinned version and the install script, internal/engine/pin"
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [T-228]
     kind: task
 

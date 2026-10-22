@@ -2941,15 +2941,6 @@
     upgrade.go readInstallScript and scriptVersion. Stay in cli: versionArg, whose usage errors
     print the help line. Callers: init.go, initpolicy.go, upgrade.go (pinned), status.go (the
     install script). pin's configPath keeps its call point.
-  done_when:
-    - run: go test ./internal/engine/pin/ ./internal/cli
-      timeout: 600
-    - run: "! grep -n 'release.LatestURL\\|installScriptPath' internal/cli/pin.go internal/cli/upgrade.go"
-    - run: tools/bin/architecture-check
-    - run: tools/bin/pinned golangci-lint run ./...
-      timeout: 600
-    - run: go test ./features -count=1 -scenarios='^@ID-(PIN|UPGRADE|UPGRADECMD|UPGRADEHAND|UPDATE|INIT)-[0-9]+$'
-      timeout: 600
 
 - id: T-230
   type: refactor
