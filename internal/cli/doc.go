@@ -121,8 +121,8 @@
 // written, so a failed fetch or edit leaves every file as it was. A block of
 // the rules for agents other than the one this itos writes, in AGENTS.md or
 // a stealth config's copies, is rewritten with them, only between the
-// markers (refreshedRules, initrules.go), and listed among the edits. It prints
-// each release's edits and lists oldest first, then By hand: the breaking
+// markers (internal/engine/agentrules' Refreshed), and listed among the
+// edits. It prints each release's edits and lists oldest first, then By hand: the breaking
 // changes and Upgrading footers, all that a commit's text asks, or under
 // --json returns the releases as upgrading.json holds them with applied and
 // manual beside them, and commits nothing.
@@ -207,33 +207,16 @@
 //     link to this itos is kept, a git that is no link to itos refused for
 //     --git-shim (exit 1) and otherwise only said, a link to another itos
 //     replaced; then makeLink and standingLine.
-//   - The rules for agents (initrules.go, rulesOffer.run): rulesBlock is a
-//     constant, the entry line and the staging boundary under a heading
-//     (slice 120), in Markdown a formatter leaves alone: one line a
-//     paragraph, a blank line between blocks. commitPolicy renders the
-//     loaded config (commits.types, the header lint, each footer's source
-//     and required_for with in_place_of as an alternative, commits.scopes
-//     with its $sets expanded) the same way for itos guide commit, every
-//     config value through code, a one-line code span fenced past any
-//     backtick it holds. splitBlock cuts AGENTS.md
-//     around <!-- itos:begin --> and <!-- itos:end -->, refusing a lone or
-//     misordered marker or a second block; writeRules replaces that block, or
-//     appends one, and gives CLAUDE.md an @AGENTS.md line unless it has one or
-//     is AGENTS.md itself; both files keep the line endings they had. A rerun
-//     with no flag compares the block with rulesBlock and says only that it
-//     is stale. Under a stealth config runStealth (initrulesstealth.go)
-//     writes three files, never AGENTS.md or CLAUDE.md: the block to <git
-//     common dir>/itos/AGENTS.md; a CLAUDE.local.md whose block imports
-//     @AGENTS.md when the project has one and then that file, by the path git
-//     rev-parse --git-common-dir gives; and an AGENTS.override.md holding a
-//     copy of AGENTS.md between <!-- itos:agents-md:begin --> and <!--
-//     itos:agents-md:end -->, then the block. blockSpan finds a block's
-//     markers while skipping another's. An AGENTS.override.md is itos's, and
-//     gets the copy, when it is missing, holds the copy's markers or holds
-//     nothing outside the rules block; any other is the person's and only
-//     gains the block, as a CLAUDE.local.md always does. plan computes each
-//     file's next text, so a rerun compares texts; a rewrite refuses a file
-//     at the top that the project tracks.
+//   - The rules for agents (initrules.go, rulesOffer.run): the block, its
+//     markers and their staleness are internal/engine/agentrules'.
+//     writeRules replaces the block agentrules.Split found, or appends one,
+//     and gives CLAUDE.md an @AGENTS.md line unless it has one or is
+//     AGENTS.md itself; both files keep the line endings they had. A rerun
+//     with no flag compares the block with agentrules.Block and says only
+//     that it is stale. Under a stealth config runStealth
+//     (initrulesstealth.go) writes the three files agentrules.Stealth plans,
+//     never AGENTS.md or CLAUDE.md, refusing a file at the top that the
+//     project tracks.
 //
 // itos git-shim install and uninstall (gitshim.go) link os.Executable as git
 // (git.exe) in --dir, typed from where the person stood, or its own folder, a
@@ -690,8 +673,7 @@
 // status key; a config not there or not read, or a registry with problems,
 // is one line on stderr instead. guide also prints a procedure (slice 119),
 // as written, and the commit procedure then the commit policy the config
-// sets, from initrules.go's commitPolicy, the generator of AGENTS.md's block,
-// so the two never differ. They write nothing.
+// sets, from internal/engine/agentrules' CommitPolicy. They write nothing.
 //
 // status (status.go) is where the work stands, built from what already
 // records it and never written. The remote branch's head is asked of the

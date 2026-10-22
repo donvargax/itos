@@ -27,6 +27,9 @@ package cli
 // --agent-rules reports a copy that no longer matches AGENTS.md, or a block
 // other than the one this itos writes, and --agent-rules rewrites only
 // between the markers.
+//
+// The files' reading, their staleness and each one's next text are
+// internal/engine/agentrules' (Stealth); writing them is init's, here.
 
 import (
 	"context"
@@ -36,226 +39,22 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/donvargax/itos/v8/internal/config"
+	"github.com/donvargax/itos/v8/internal/engine/agentrules"
 	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
 )
 
 const (
-	// claudeLocalFile is Claude Code's file of one person's, never committed.
-	claudeLocalFile = "CLAUDE.local.md"
-	// overrideFile is Codex's, which it reads in place of AGENTS.md.
-	overrideFile = "AGENTS.override.md"
-	// copyBegin and copyEnd are the lines the copy of AGENTS.md in
-	// overrideFile is written between.
-	copyBegin = "<!-- itos:agents-md:begin -->"
-	copyEnd   = "<!-- itos:agents-md:end -->"
+	claudeLocalFile = agentrules.ClaudeLocalFile
+	overrideFile    = agentrules.OverrideFile
+	copyBegin       = agentrules.CopyBegin
+	copyEnd         = agentrules.CopyEnd
 )
 
-// stealthTarget is a file the stealth rules are written to: its path as said
-// (slashes) and on disk, its text (LF), whether it is there and used CRLF,
-// whether it holds a block of itos's, whether it is at the worktree's top
-// (kept out of git by info/exclude), and the text itos would give it.
-type stealthTarget struct {
-	path, disk string
-	text       string
-	exists     bool
-	crlf       bool
-	found      bool
-	top        bool
-	next       string
-}
-
-// stealthRules is what the stealth rules are made from, as read: the three
-// files and the project's AGENTS.md (LF, "" when it is not there).
-type stealthRules struct {
-	rules, claude, override stealthTarget
-	agents                  string
-	hasAgents               bool
-	importPath              string
-	// The spans of overrideFile's lines (strings.SplitAfter) that hold the
-	// copy and the rules block, noSpan for none, and whether the file is
-	// itos's own, so that it holds the copy.
-	lines           []string
-	copyAt, rulesAt [2]int
-	ours            bool
-}
-
-// readStealthRules reads the files of the stealth rules, from the
-// worktree's top; markers out of order are an error, as in AGENTS.md.
-func readStealthRules() (*stealthRules, error) {
-	l, err := (vcs.Git{}).Locate(context.Background(), "")
-	if err != nil {
-		return nil, err
-	}
-	disk := filepath.Join(l.Common, config.StealthFolder, agentsFile)
-	s := &stealthRules{importPath: filepath.ToSlash(disk)}
-	read := func(t *stealthTarget, path, disk string, top bool) error {
-		t.path, t.disk, t.top = path, disk, top
-		var err error
-		t.text, t.crlf, err = readText(disk)
-		t.exists = exists(disk)
-		return err
-	}
-	if err := read(&s.rules, s.importPath, disk, false); err != nil {
-		return nil, err
-	}
-	if err := read(&s.claude, claudeLocalFile, claudeLocalFile, true); err != nil {
-		return nil, err
-	}
-	if err := read(&s.override, overrideFile, overrideFile, true); err != nil {
-		return nil, err
-	}
-	s.agents, _, err = readText(agentsFile)
-	if err != nil {
-		return nil, err
-	}
-	s.hasAgents = exists(agentsFile)
-	return s, s.parse()
-}
-
-// parse finds itos's blocks in the files as read.
-func (s *stealthRules) parse() error {
-	var err error
-	for _, t := range []*stealthTarget{&s.rules, &s.claude} {
-		_, found, _, err := splitBlockOf(t.text, t.path, rulesBegin, rulesEnd)
-		if err != nil {
-			return err
-		}
-		t.found = found != nil
-	}
-	s.lines = strings.SplitAfter(s.override.text, "\n")
-	if s.copyAt, err = blockSpan(s.lines, overrideFile, copyBegin, copyEnd, noSpan); err != nil {
-		return err
-	}
-	if s.rulesAt, err = blockSpan(s.lines, overrideFile, rulesBegin, rulesEnd, s.copyAt); err != nil {
-		return err
-	}
-	s.override.found = s.copyAt != noSpan || s.rulesAt != noSpan
-	outside := ""
-	for i, l := range s.lines {
-		if i < s.rulesAt[0] || i > s.rulesAt[1] {
-			outside += l
-		}
-	}
-	s.ours = !s.override.exists || s.copyAt != noSpan || strings.TrimSpace(outside) == ""
-	return nil
-}
-
-// found is whether any of the files holds a block of itos's.
-func (s *stealthRules) found() bool { return s.rules.found || s.claude.found || s.override.found }
-
-// staleBlocks are the paths of the rules file and overrideFile, as read,
-// that hold a rules block other than the one this itos writes.
-func (s *stealthRules) staleBlocks() []string {
-	var stale []string
-	for _, t := range []stealthTarget{s.rules, s.override} {
-		if _, at, _, _ := splitBlockOf(t.text, t.path, rulesBegin, rulesEnd); staleBlock(at) {
-			stale = append(stale, t.path)
-		}
-	}
-	return stale
-}
-
-// refreshed are the rules file and overrideFile, as read, that hold a rules
-// block other than the one this itos writes, each with that block, and
-// nothing else, rewritten in this itos's words: overrideFile's copy of
-// AGENTS.md is left as it is.
-func (s *stealthRules) refreshed() []rulesEdit {
-	var edits []rulesEdit
-	if before, found, after, err := splitBlockOf(s.rules.text, s.rules.path, rulesBegin, rulesEnd); err == nil &&
-		staleBlock(found) {
-		edits = append(edits, rulesEdit{s.rules.path, s.rules.disk, before + rulesBlock + after, s.rules.crlf})
-	}
-	if s.rulesAt == noSpan {
-		return edits
-	}
-	block := strings.Join(s.lines[s.rulesAt[0]:s.rulesAt[1]+1], "")
-	if !strings.HasSuffix(block, "\n") {
-		block += "\n"
-	}
-	if block != rulesBlock {
-		text := strings.Join(s.lines[:s.rulesAt[0]], "") + rulesBlock + strings.Join(s.lines[s.rulesAt[1]+1:], "")
-		edits = append(edits, rulesEdit{s.override.path, s.override.disk, text, s.override.crlf})
-	}
-	return edits
-}
-
-// copyBlock is the marked copy of the project's AGENTS.md, "" when it has
-// none or an empty one.
-func (s *stealthRules) copyBlock() string {
-	body := strings.Trim(s.agents, "\n")
-	if strings.TrimSpace(body) == "" {
-		return ""
-	}
-	return copyBegin + "\n\n" + body + "\n\n" + copyEnd + "\n"
-}
-
-// importBlock is CLAUDE.local.md's block: @AGENTS.md when the project has
-// one, and the rules, each import a paragraph of its own so a formatter
-// never joins them into one line.
-func (s *stealthRules) importBlock() string {
-	paras := []string{rulesBegin}
-	if s.hasAgents {
-		paras = append(paras, claudeImport)
-	}
-	paras = append(paras, "@"+s.importPath, rulesEnd)
-	return strings.Join(paras, "\n\n") + "\n"
-}
-
-// plan sets the text each file would have with the rules block, and gives
-// the files in the order they are written.
-func (s *stealthRules) plan(block string) []*stealthTarget {
-	put := func(t *stealthTarget, block string) {
-		before, found, after, _ := splitBlockOf(t.text, t.path, rulesBegin, rulesEnd)
-		if found != nil {
-			t.next = before + block + after
-		} else {
-			t.next = appendBlock(t.text, block)
-		}
-	}
-	put(&s.rules, block)
-	put(&s.claude, s.importBlock())
-
-	copied := s.copyBlock()
-	switch {
-	case !s.ours:
-		put(&s.override, block)
-	case s.copyAt == noSpan:
-		s.override.next = block
-		if copied != "" {
-			s.override.next = copied + "\n" + block
-		}
-	default:
-		var b strings.Builder
-		for i := 0; i < len(s.lines); i++ {
-			switch {
-			case i == s.copyAt[0]:
-				b.WriteString(copied)
-				i = s.copyAt[1]
-			case i == s.rulesAt[0]:
-				b.WriteString(block)
-				i = s.rulesAt[1]
-			default:
-				b.WriteString(s.lines[i])
-			}
-		}
-		next := b.String()
-		if copied == "" {
-			next = strings.TrimLeft(next, "\n")
-		}
-		if s.rulesAt == noSpan {
-			next = appendBlock(next, block)
-		}
-		s.override.next = next
-	}
-	return []*stealthTarget{&s.rules, &s.claude, &s.override}
-}
-
-// howTo is what the offer says under a stealth config where nobody
+// stealthHowTo is what the offer says under a stealth config where nobody
 // was asked.
-func (s *stealthRules) howTo() string {
+func stealthHowTo(s *agentrules.Stealth) string {
 	return "itos's rules for agents are not written: itos init --agent-rules writes them into " +
-		s.importPath + ", imports it from " + claudeLocalFile + " for Claude Code and writes it into " + overrideFile +
+		s.ImportPath + ", imports it from " + claudeLocalFile + " for Claude Code and writes it into " + overrideFile +
 		" for Codex, both kept out of git by its info/exclude; --no-agent-rules declines."
 }
 
@@ -271,42 +70,41 @@ func (r rulesOffer) runStealth() (rulesOutcome, int) {
 		say("The itos rules for agents are not written: %s.", problem)
 		return rulesOutcome{Action: "failed", Files: none, Problem: problem}, ExitPolicy
 	}
-	s, err := readStealthRules()
+	s, err := agentrules.ReadStealth(context.Background(), vcs.Git{})
 	if err != nil {
 		return failed(err.Error(), r.flag.given)
 	}
-	found := s.found()
+	found := s.Found()
 	if !r.flag.given && !found {
 		answer := ""
 		if r.ask && !r.rerun {
 			answer = r.question(fmt.Sprintf("Write itos's rules for agents into %s, imported from %s and written "+
-				"into %s, both kept out of git?", s.importPath, claudeLocalFile, overrideFile))
+				"into %s, both kept out of git?", s.ImportPath, claudeLocalFile, overrideFile))
 		}
 		switch {
 		case answer == "no":
 			return rulesOutcome{Action: "declined", Files: none}, 0
 		case answer == "" && !r.rerun:
-			say("%s", s.howTo())
+			say("%s", stealthHowTo(s))
 			fallthrough
 		case answer == "":
 			return rulesOutcome{Action: "offered", Files: none}, 0
 		}
 	}
-	targets := s.plan(rulesBlock)
+	targets := s.Plan(rulesBlock)
 
 	if !r.flag.given {
 		var pending []string
 		for _, t := range targets {
-			if t.next != t.text {
-				pending = append(pending, t.path)
+			if t.Next != t.Text {
+				pending = append(pending, t.Path)
 			}
 		}
 		if len(pending) == 0 {
 			return rulesOutcome{Action: "current", Files: none}, 0
 		}
-		rulesStale := len(s.staleBlocks()) > 0
-		copyStale := s.copyAt != noSpan &&
-			strings.Join(s.lines[s.copyAt[0]:s.copyAt[1]+1], "") != s.copyBlock()
+		rulesStale := len(s.StaleBlocks()) > 0
+		copyStale := s.CopyStale()
 		switch {
 		case rulesStale:
 			say("%s", staleRulesLine(true))
@@ -322,38 +120,38 @@ func (r rulesOffer) runStealth() (rulesOutcome, int) {
 	}
 
 	for _, t := range targets {
-		if t.top && t.next != t.text {
-			if (vcs.Git{}).Tracked(context.Background(), t.disk) {
-				return failed(t.path+" is tracked by the project, and under a stealth config itos changes nothing tracked", true)
+		if t.Top && t.Next != t.Text {
+			if (vcs.Git{}).Tracked(context.Background(), t.Disk) {
+				return failed(t.Path+" is tracked by the project, and under a stealth config itos changes nothing tracked", true)
 			}
 		}
 	}
 	files := []writtenFile{}
 	for _, t := range targets {
 		action := "kept"
-		if t.next != t.text {
+		if t.Next != t.Text {
 			action = "updated"
-			if !t.exists {
+			if !t.Exists {
 				action = "wrote"
 			}
-			if err := os.MkdirAll(filepath.Dir(t.disk), 0o777); err != nil {
+			if err := os.MkdirAll(filepath.Dir(t.Disk), 0o777); err != nil {
 				return failed(err.Error(), true)
 			}
-			if err := writeText(t.disk, t.next, t.crlf); err != nil {
+			if err := agentrules.WriteText(t.Disk, t.Next, t.CRLF); err != nil {
 				return failed(err.Error(), true)
 			}
 		}
-		files = append(files, writtenFile{t.path, action})
+		files = append(files, writtenFile{t.Path, action})
 	}
 	var excluded []string
 	for _, t := range targets {
-		if !t.top {
+		if !t.Top {
 			continue
 		}
-		if listed, err := excludeIfShown(t.path); err != nil {
-			say("Could not list %s in the git folder's info/exclude: %v", t.path, err)
+		if listed, err := excludeIfShown(t.Path); err != nil {
+			say("Could not list %s in the git folder's info/exclude: %v", t.Path, err)
 		} else if listed {
-			excluded = append(excluded, t.path)
+			excluded = append(excluded, t.Path)
 		}
 	}
 	changed := slices.ContainsFunc(files, func(f writtenFile) bool { return f.Action != "kept" })
@@ -366,15 +164,15 @@ func (r rulesOffer) runStealth() (rulesOutcome, int) {
 		say("Listed %s in the git folder's info/exclude, so git status stays clean.", prose(excluded, "and"))
 	}
 	if !changed {
-		say("The itos rules for agents are in place already, in %s, %s and %s.", s.importPath, claudeLocalFile, overrideFile)
+		say("The itos rules for agents are in place already, in %s, %s and %s.", s.ImportPath, claudeLocalFile, overrideFile)
 		return rulesOutcome{Action: "current", Files: files}, 0
 	}
 	copied := ""
-	if s.ours && s.copyBlock() != "" {
+	if s.Ours && s.CopyBlock() != "" {
 		copied = ", after a copy of " + agentsFile + " between " + copyBegin + " and " + copyEnd
 	}
 	say("%s holds itos's rules for agents, between %s and %s, which itos init --agent-rules rewrites; %s imports it for "+
-		"Claude Code, and %s holds them for Codex%s.", s.importPath, rulesBegin, rulesEnd, claudeLocalFile,
+		"Claude Code, and %s holds them for Codex%s.", s.ImportPath, rulesBegin, rulesEnd, claudeLocalFile,
 		overrideFile, copied)
 	return rulesOutcome{Action: "written", Files: files}, 0
 }
