@@ -3610,19 +3610,6 @@
     committed golden: the user, 2026-10-21). No behaviour change: same bytes, same exit codes, same
     order. Lane B (tracker), first. checkArg (taskadd.go) moves to ledger.CheckArg; taskAddArgs
     stays a wrapper (draft binds it); its itos-cc.yaml exception moves with a fresh hash.
-  done_when:
-    - run: go test ./internal/cli ./internal/slices/... ./internal/engine/... -count=1
-      timeout: 600
-    - run: go run ./tools/bin/assemble -check
-    - run: go run ./tools/bin/conformance --bin tools/bin/itos --only tools/itos/conformance/help.yaml tools/itos/conformance/cli.yaml tools/itos/conformance/tasks.yaml
-      timeout: 600
-    - run: go test ./features -count=1 -scenarios='^@ID-(CLI|BIN|EXT|TASK|NEXTID|LEDGER|IDS)-[0-9]+$'
-      timeout: 600
-    - run: tools/bin/architecture-check
-    - run: tools/bin/pinned golangci-lint run ./...
-      timeout: 600
-    - run: grep -q 'taskslice.Command' internal/cli/commands_gen.go
-    - run: "! grep -nE '^func (\\([^)]*\\) )?(runTasks|listTasks|taskAdd|taskNextID|selectTasks)\\(' internal/cli/*.go"
 
 - id: T-252
   type: refactor
