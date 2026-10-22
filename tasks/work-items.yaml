@@ -12397,3 +12397,11 @@ items:
     status: todo
     depends_on: []
     kind: task
+
+  - id: T-264
+    title: "itos work becomes a slice, part 1: the slice, its parsing and the read-only subcommands"
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task
