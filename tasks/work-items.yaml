@@ -12107,3 +12107,11 @@ items:
     status: todo
     depends_on: []
     kind: task
+
+  - id: T-237
+    title: "The status summary engine out of internal/cli: where things stand, internal/engine/status"
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task
