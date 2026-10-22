@@ -12468,15 +12468,9 @@ items:
     title: itos commit run where there is no itos config hands the command to git instead of panicking
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: bug
-    why: >
-      Found by T-241's help comparison (2026-10-22): itos commit with any git commit argument, in a
-      folder with no itos config and outside any repository, panics with a nil pointer dereference
-      (exit 2, a Go trace): gitCommit calls cfg.CommentChar() on a nil config just after a cfg !=
-      nil check. v8.5.3 does it too. itos commit runs without a config, so it reaches git, which
-      fails outside a repository with exit 128.
     refs: [internal/cli/gitcommit.go, features/commit-command.feature]
     tags: [commit]
 
