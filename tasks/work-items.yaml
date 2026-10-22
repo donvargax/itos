@@ -55,7 +55,6 @@ phases:
   3: donvargax
 
 queue:
-  - T-191
   - p1-nightly-base-floor
   - slice-165
   - slice-166
