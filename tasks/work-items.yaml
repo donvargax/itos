@@ -12761,7 +12761,7 @@ items:
   - id: T-282
     title: "tests list reads its kind once: Handler.list's unreachable KindOf error goes"
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
