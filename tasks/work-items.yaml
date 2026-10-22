@@ -11395,3 +11395,19 @@ items:
       the standing ones unless --all. Notes stay append-only. Relates to p1-followup-state, which
       keeps a live state over the notes.
     tags: [followup]
+
+  - id: p1-risk-register
+    title: "A risk register: risks with likelihood, impact, owner, mitigation and status, shown beside the work"
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The user, 2026-10-21. Risks today live in item whys and notes (a pinned tool may vanish, a
+      gate may not hold, a dependency may break) and nothing tracks whether they still stand. A
+      register entry: title, likelihood and impact, owner, mitigation (text and the items that carry
+      it), status (open, mitigated, accepted, closed) and dated notes; itos status names open high
+      risks; a closed item that mitigates a risk prompts updating it. Committed beside the registry,
+      as it is shared.
+    tags: [work]
