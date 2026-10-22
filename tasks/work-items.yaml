@@ -11879,8 +11879,8 @@ items:
   - id: slice-165
     title: "itos's hooks run on a git older than 2.54: hook files in the hooks folder git uses, chained with any there, where config hooks do not run"
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: slice
     why: >
