@@ -12083,3 +12083,11 @@ items:
     status: todo
     depends_on: []
     kind: task
+
+  - id: T-234
+    title: "The commit judge engine out of internal/cli: verifying commits and ranges, internal/engine/judge"
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task
