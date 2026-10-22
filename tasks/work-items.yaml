@@ -11365,3 +11365,18 @@ items:
       filters by person. p1-followup-state already argues one thread per topic, not per team. May
       merge with p1-research-log if a topic thread with no person is the same thing as a log.
     tags: [followup]
+
+  - id: p1-followup-drafts
+    title: A followup note is a draft until sent, and a draft can be edited before it is
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The user, 2026-10-21: notes written to send to someone (an email, a message) are drafted,
+      revised and then sent, but every followup note is final and dated when written. followup note
+      --draft keeps it editable (followup draft edit, send marks it sent with the time), show and
+      doc mark drafts, and the list shows a thread with a draft waiting. Sent notes stay
+      append-only.
+    tags: [followup]
