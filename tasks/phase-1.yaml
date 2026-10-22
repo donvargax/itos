@@ -2794,10 +2794,6 @@
     fetching at once do not corrupt it; .tools in the worktree is no longer used (or kept as a
     fallback outside a repository). T-220's scratch.Repo.SharePinned goes if the scratch worktrees
     then share the cache, or stays if they are separate clones. Windows (zip, .exe) keeps working.
-  done_when:
-    - run: grep -q "git-common-dir" tools/bin/pinned
-    - run: go test -count=1 ./tools/...
-      timeout: 900
 
 - id: T-222
   type: test

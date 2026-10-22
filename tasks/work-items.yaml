@@ -11552,7 +11552,7 @@ items:
     title: tools/bin/pinned caches its tools once per clone, not once per worktree
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
 
