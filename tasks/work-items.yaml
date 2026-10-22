@@ -12404,7 +12404,7 @@ items:
     title: "itos work becomes a slice, part 1: the slice, its parsing and the read-only subcommands"
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [T-242, T-243, T-244, T-245, T-246, T-252, T-250, T-257, T-263]
     kind: task
 

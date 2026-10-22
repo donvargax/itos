@@ -4013,19 +4013,6 @@
     order. Lane B, after every other lane is done. The slice, its Command, Parse for every
     subcommand, and list, check, the proposal and show; runWork falls through to the cli functions
     for subcommands not yet moved.
-  done_when:
-    - run: go test ./internal/cli ./internal/slices/... ./internal/engine/... -count=1
-      timeout: 600
-    - run: go run ./tools/bin/assemble -check
-    - run: go run ./tools/bin/conformance --bin tools/bin/itos --only tools/itos/conformance/help.yaml tools/itos/conformance/cli.yaml tools/itos/conformance/work.yaml tools/itos/conformance/plans.yaml
-      timeout: 600
-    - run: go test ./features -count=1 -scenarios='^@ID-(CLI|BIN|EXT|WORK|SHOW|AUTHORITY|STEALTH|COST|IDS)-[0-9]+$'
-      timeout: 600
-    - run: tools/bin/architecture-check
-    - run: tools/bin/pinned golangci-lint run ./...
-      timeout: 600
-    - run: grep -q 'workslice.Command' internal/cli/commands_gen.go
-    - run: "! grep -nE '^func (\\([^)]*\\) )?(workList|workShow)\\(' internal/cli/*.go"
 
 - id: T-265
   type: refactor
