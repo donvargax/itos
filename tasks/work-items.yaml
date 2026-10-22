@@ -12533,6 +12533,10 @@ items:
       them to both would remove the branch and a call to the repository. Found moving hook into its
       slice (T-249).
 
+      Correction (T-249's agent, 2026-10-22): the second read's error branch is now covered by a
+      test with a fake that refuses the second Show, so the push proof no longer counts it
+      uncovered; the idea stands for reading the stealth footers once.
+
   - id: p1-scratch-author-date
     title: scratch test repositories clear the author date a hook exports
     phase: 1
