@@ -2,6 +2,7 @@ package cli
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -11,6 +12,7 @@ import (
 
 	"github.com/donvargax/itos/v8/internal/draft"
 	"github.com/donvargax/itos/v8/internal/git"
+	vcsport "github.com/donvargax/itos/v8/internal/vcs/port"
 )
 
 // An edit draft of a committed notes.md and a new.md HEAD lacks, made by
@@ -449,5 +451,8 @@ func TestDraftEditOfATreeGitCannotList(t *testing.T) {
 func TestWordsOf(t *testing.T) {
 	if got := wordsOf(errors.New("no git")); got != "no git" {
 		t.Errorf("wordsOf = %q", got)
+	}
+	if got := wordsOf(fmt.Errorf("wrapped: %w", &vcsport.Failed{Words: " refused \n"})); got != "refused" {
+		t.Errorf("wordsOf of a command that failed = %q", got)
 	}
 }
