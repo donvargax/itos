@@ -30,7 +30,7 @@
     "internal/ledger/ledger_test.go": "5227d0cf7a27b3051d0476f1be2f4b0ec1b9866663014f8da4e2bbd98afecf97",
     "internal/ledger/nextid_test.go": "0e616ff917ee5f37a6f3f5049efdc500e2a106e71cc2dd5768c5af8fbeb6edde",
     "internal/message/header_test.go": "2c9febc5ff602e36f2fc6418dda6026b28e180e4c7bf81108e4e507d9d5d69a2",
-    "internal/message/message_test.go": "a241bceeb3cae63405a3721ea11f3b0e5031681438e7fe2f254e4c1ec8462a8b",
+    "internal/message/message_test.go": "77c016d6a326ec0cdd4fce84c5b753c5e2587de8d37dc39c3c504f086f23adca",
     "internal/message/notes_test.go": "74260b99da77e9f815803dd73e4f6aeb406f72395d97541eaf3815444e7ec1f2",
     "internal/message/wrap_test.go": "db5bb6009d214244cad69cad02936bef0ae08aa189d3e569a456b1e316387f09",
     "internal/plan/plan_test.go": "eeb18f9c0cef82ce37902d46870b4c6b8a5275aee7962f73702891529967d2d1",
@@ -41,13 +41,13 @@
     "internal/slices/decision/decision_test.go": "6c3ec61d08ce5ff2f159e02f1af8ad2572830b79aab0779fe615598c0cec4e88",
     "internal/slices/hook/hook_test.go": "6a7131f9ab6118f9ce070dbbd88bb15b7e409932c59dc0cfa21882d21d5e78f1",
     "internal/slices/hook/prepush_test.go": "3c3a93e3b986a26ee1917022941db2f189dd22babcc726a507ac3f5fce9d9eea",
-    "internal/slices/initcmd/init_test.go": "5e268dde6ef6527e574b2370d63a5c766ba64b0e9efb6c773b1c9decce5a7d23",
+    "internal/slices/initcmd/init_test.go": "7779bf4e51161e8a7a7bd6d7517265a7debf2ad89a2e5f9660ceae12e32f7957",
     "internal/slices/initcmd/plugin_test.go": "8e4306c4c0d7279bb120f85df1571fb3a42be06edf1d8ff13b75b4d8ed5b779f",
     "internal/slices/initcmd/policy_test.go": "32a4dc739d930de0083545c3abd027f8f22c40ad11344b8de3efceda666573b2",
     "internal/slices/initcmd/report_test.go": "0f72c9753d5d87d4e1436a40c4f1606efb7a2d1b5153d1f12b550fed1e3f577e",
     "internal/slices/initcmd/rules_test.go": "e39ecf687bf7cf5d3ed24e20a310c70c77717fac53bd09f54e935062c706850f",
     "internal/slices/initcmd/rulesstealth_test.go": "7d550fbf6a24d2a37a0e4735b810513fbfab63d11517dee6ec492203d1a8eb53",
-    "internal/slices/initcmd/shim_test.go": "0d1cee2289523cf8bdebc20a15ae42b209eb702bd3ee36c2e48255fadadc6696",
+    "internal/slices/initcmd/shim_test.go": "7ac00830d9e0f50930a59081fc04a57cfd83234bef79a491f5bd003b88a6ae7a",
     "internal/slices/initcmd/starter_test.go": "2ae2c888a9594b525f6b3debb4483a60d292cc58b88e29b3ba3f1962b5d3c478",
     "internal/slices/initcmd/write_test.go": "17474709d6072a60efd9686c8201bcee5f8a6df0511cd19edbd74377ce029c9f",
     "internal/slices/task/parse_test.go": "8be0f7b408c79024b1a145c7ca0c932fc39a1b8bf1979ff61d009d4b42b95660",
@@ -69,13 +69,14 @@
     "internal/tests/smoke_test.go": "f35d85eafc5d4f5a4f8a03e7379ad3e7c0fc948cff87dd6c5b198e18cf492ad6",
     "internal/tests/staged_test.go": "bcf7dcfd347ca0265350f286596e7038e73659244582ece8bc1020576a0f1a68",
     "internal/tests/tests_test.go": "86935076c85e7b4aeb437653a42dc69a807b3e0a0351641299fa09cb719ef390",
-    "internal/value/doc_test.go": "c4cb327c8d4f1e3d442a784546b9c72b77e5f08180b67a13e66080f1082d238b",
+    "internal/value/doc_test.go": "972680db6da271e70a633dbc1a359d06d35a35a2eed4dc95a6cecf6555e3cab7",
     "internal/value/docedit_test.go": "c3b32287a9c987b168f40dd1ec6dfaaf0623696dcfd3be2ace1ba626be5d3ce9",
     "internal/value/edit_test.go": "8c6ce8c9c45222c3c00c88017dbc01e8e4a4c79e9cb3f0da9f7e8c2fb2feb53b",
     "internal/value/json_test.go": "6fc3f48e12e17e28e284d411b39e3429ba35db6ebe4428d03f971be0583ceb8b",
-    "internal/value/rename_test.go": "a20715234a722c9bba89c651f3a9ace6a1c52ff9bf58cfbc5f983c5a4498ac49",
+    "internal/value/rename_test.go": "ae9912a59a71cc383bb851f068b076eedd6534a05fc5f334153cef7d644164e6",
     "internal/value/value_test.go": "0acdd6ac753d4d46fd71c50626c697c4ae639174e025d4d4eb653a5eeb2e3a8c",
     "internal/vcs/adapter/git_test.go": "b25533061cfedcde8ea1ade331e4e53564d7cb69712f9488515e58e18c892c92",
+    "internal/vcs/adapter/locate_test.go": "0fffdca17d5584d8d7a572d122d18903fd7dfb339157bdc0c17f10264d0dc1e1",
     "internal/vcs/adapter/run_test.go": "963a4302dae6b65d5d5c7a2dd2c1a4a7ebe8f5481a6776ec543c9c78f350ca87",
     "internal/vcs/adapter/write_test.go": "1f17e4d28990c705fd0378712615122751c6be1893d320e39d94140e4bdaab8c",
     "internal/work/defer_test.go": "2b2cb18a22e88264af3f1e95924fcb54561fdc9cd37d4e60799664ebe4a68f55",
@@ -99,8 +100,8 @@
       "hash": "bd0d43dc398f3021",
       "start_line": 33,
       "end_line": 86,
-      "killed": 36,
-      "survived": 15,
+      "killed": 41,
+      "survived": 10,
       "uncovered": 0,
       "sites": 51,
       "mutants": [
@@ -159,7 +160,7 @@
           "offset": 102,
           "original": "false",
           "replacement": "true",
-          "outcome": "survived"
+          "outcome": "killed"
         },
         {
           "line": 37,
@@ -451,7 +452,7 @@
           "offset": 802,
           "original": "false",
           "replacement": "true",
-          "outcome": "survived"
+          "outcome": "killed"
         },
         {
           "line": 60,
@@ -523,7 +524,7 @@
           "offset": 1073,
           "original": "false",
           "replacement": "true",
-          "outcome": "survived"
+          "outcome": "killed"
         },
         {
           "line": 72,
@@ -539,7 +540,7 @@
           "offset": 1234,
           "original": "false",
           "replacement": "true",
-          "outcome": "survived"
+          "outcome": "killed"
         },
         {
           "line": 78,
@@ -555,7 +556,7 @@
           "offset": 1346,
           "original": "false",
           "replacement": "true",
-          "outcome": "survived"
+          "outcome": "killed"
         },
         {
           "line": 81,

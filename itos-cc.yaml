@@ -244,3 +244,21 @@ mutation:
       replacement: "true"
       reason: "Equivalent: with no drafts file the func returns no drafts and no error, and status.Of reads a drafts file that is there but holds no drafts and no error exactly as one that is not there: no line, no entry."
       line_text: return draft.File{}, false, nil
+    - file: internal/value/rename.go
+      function: github.com/donvargax/itos/v8/internal/value.Doc#insert
+      hash: 303c66b9e31817bb
+      line_in_function: 23
+      column: 50
+      original: "0"
+      replacement: "1"
+      reason: "Equivalent: token reads only the SingleQuotedStyle and DoubleQuotedStyle bits of the style it is given, and 1 is yaml.TaggedStyle, neither of them, so token(path[have], 1) writes the key exactly as token(path[have], 0) does."
+      line_text: if err := d.addLast(n, false, token(path[have], 0), block+shifted, ""); err != nil {
+    - file: internal/ledger/tasks.go
+      function: github.com/donvargax/itos/v8/internal/ledger#IDs
+      hash: 7d6af0d07a67d83b
+      line_in_function: 21
+      column: 17
+      original: "||"
+      replacement: "&&"
+      reason: "Equivalent: value.Parse returns no value with every error, so err != nil never holds beside ok; and where err is nil and ok is not, list is the nil a failed type assertion gives, which the loop after it runs over without adding an ID, the last thing the iteration does. Skipping it and running it give the same IDs."
+      line_text: if err != nil || !ok {
