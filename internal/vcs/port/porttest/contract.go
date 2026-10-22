@@ -67,11 +67,7 @@ func VCSContract[C T[C]](t C, open func(t C, l Layout) (port.VCS, string)) {
 		t.Helper()
 		shas := make([]string, len(revs))
 		for i, rev := range revs {
-			sha, err := v.Resolve(t.Context(), rev)
-			if err != nil {
-				t.Fatalf("Resolve(%s): %v", rev, err)
-			}
-			shas[i] = sha
+			shas[i] = sha(t, v, rev)
 		}
 		return shas
 	}

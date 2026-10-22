@@ -71,12 +71,7 @@ func locate(dir string) (port.Location, error) {
 
 // native is a path git printed in the system's form, cleaned: git prints
 // forward slashes on Windows too.
-func native(p string) string {
-	if p = strings.TrimSpace(p); p == "" {
-		return ""
-	}
-	return filepath.Clean(p)
-}
+func native(p string) string { return filepath.Clean(strings.TrimSpace(p)) }
 
 func (Git) Resolve(_ context.Context, rev string) (string, error) {
 	out, err := git.Output("rev-parse", "--verify", "--quiet", rev+"^{commit}")
