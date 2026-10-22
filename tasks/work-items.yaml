@@ -12035,3 +12035,11 @@ items:
       reaches the disk only through the tracker port, so Transact should make the folders above a
       created document and remove those it made when it puts the documents back, with a contract
       case, and ask.go should drop madeDirs and unmake. Found during T-226.
+
+  - id: T-228
+    title: "Engines have a home and a gate: internal/engine with depguard rules and architecture fixtures"
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task

@@ -2899,3 +2899,35 @@
     - run: go test ./internal/cli -run 'Reservation|Mint|NextID'
     - run: go test ./features -count=1 -scenarios='^@ID-IDS-[0-9]+$'
     - run: tools/bin/architecture-check
+
+- id: T-228
+  type: build
+  title: "Engines have a home and a gate: internal/engine with depguard rules and architecture fixtures"
+  why: >
+    ADR-0053, step 7 of docs/plans/slices-and-ports.md: the engines out of internal/cli, which run
+    in three parallel lanes (the user, 2026-10-22). This task lands the gate once so no engine task
+    edits a rule or fixture. Engines live at internal/engine/<name> (the coordinator's call,
+    2026-10-22: one parent folder, so one glob holds them; itos-cc's rules otherwise, its
+    .golangci.yml engine rules being the model). .golangci.yml: a rule engines (files
+    **/internal/engine/**, list-mode lax) denying internal/cli$, internal/slices/, the four store
+    and VCS adapters (internal/store/private/adapter, internal/store/tree/adapter,
+    internal/store/tracker/adapter, internal/vcs/adapter), internal/launch$ and internal/shim$, no
+    entry a prefix of another (TestNoDenyEntryPrefixesAnother); a rule engine-fakes
+    (**/internal/engine/** and !$test) denying the four porttests as slice-fakes does;
+    internal/engine/ added to slice-packages' allow list. git-internals, lock-internals and
+    idcounter-internals already cover engines through **/internal/**. tools/testdata/architecture:
+    stubs internal/engine/alpha and beta; fixtures in code and test for an engine importing
+    internal/cli, a slice, each adapter (refused), a port, internal/out, another engine and the
+    standard library (accepted), a porttest (refused in code, accepted in a test), internal/git,
+    internal/lock and internal/idcounter (refused by their rules, the engine stub added to their
+    layer lists), and a slice importing an engine (accepted); outside_test.go one case for an engine
+    importing a slice. docs/ARCHITECTURE.md (11988 of 12000 bytes): one bullet in Where to look,
+    what several commands share is internal/engine/<name>, its doc saying what, with at least as
+    many bytes cut elsewhere (the release program list, which release.yml gives). No Go outside
+    tools/testdata; no behaviour change.
+  done_when:
+    - run: tools/bin/pinned golangci-lint run ./...
+      timeout: 600
+    - run: tools/bin/architecture-check
+    - run: go run ./tools/bin/doc-budget
+    - run: grep -n 'internal/engine' .golangci.yml
