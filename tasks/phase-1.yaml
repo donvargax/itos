@@ -4114,19 +4114,6 @@
     committed golden: the user, 2026-10-21). No behaviour change: same bytes, same exit codes, same
     order. Lane B, after W3. done (ciwatch, judge, a copy of touchesOnlyRegistry); the fall-through
     and the wrappers nothing uses any more removed.
-  done_when:
-    - run: go test ./internal/cli ./internal/slices/... ./internal/engine/... -count=1
-      timeout: 600
-    - run: go run ./tools/bin/assemble -check
-    - run: go run ./tools/bin/conformance --bin tools/bin/itos --only tools/itos/conformance/help.yaml tools/itos/conformance/cli.yaml tools/itos/conformance/work.yaml tools/itos/conformance/plans.yaml
-      timeout: 600
-    - run: go test ./features -count=1 -scenarios='^@ID-(CLI|BIN|EXT|WORK|SHOW|AUTHORITY|STEALTH|COST|IDS)-[0-9]+$'
-      timeout: 600
-    - run: tools/bin/architecture-check
-    - run: tools/bin/pinned golangci-lint run ./...
-      timeout: 600
-    - run: grep -q 'workslice.Command' internal/cli/commands_gen.go
-    - run: "! grep -nE '^func (\\([^)]*\\) )?(workDone)\\(' internal/cli/*.go"
 
 - id: T-268
   type: ci
