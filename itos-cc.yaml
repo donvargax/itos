@@ -217,6 +217,14 @@ mutation:
       original: ">"
       replacement: ">="
       reason: "Equivalent: a name of exactly seven characters cut to its first seven is itself, so > 7 and >= 7 return the same."
+    - file: internal/slices/work/done.go
+      function: github.com/donvargax/itos/v8/internal/slices/work#short
+      hash: bff5190f13d4d389
+      line_in_function: 2
+      column: 14
+      original: ">"
+      replacement: ">="
+      reason: "Equivalent: a name of exactly seven characters cut to its first seven is itself, so > 7 and >= 7 return the same."
       line_text: if len(sha) > 7 {
     - file: internal/engine/status/status.go
       function: github.com/donvargax/itos/v8/internal/engine/status#itosRuns
