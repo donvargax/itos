@@ -12569,3 +12569,11 @@ items:
       with the Getwd port it can take it through Ports.
     refs: [internal/engine/record, internal/slices/task, internal/slices/decision]
     tags: [work]
+
+  - id: T-272
+    title: Tests cover the branches the init slice's move left uncovered
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task
