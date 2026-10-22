@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-// The testdata are excerpts of the "nightly" job's log of two runs, as the API gives it
+// The testdata are excerpts of the "nightly" job's log of three runs, as the API gives it
 // (timestamps and colours kept): the plan's step lines, the mutation steps' progress and their
 // itos-cc reports, the failure lines itos ci run interleaved into those reports where they fell,
 // and the job's end. Each report keeps its ok, problems, sampling and schema keys, and of its
@@ -63,6 +63,32 @@ func TestTheRunnerShutDownDuringAStep(t *testing.T) {
 		"- survived internal/cli/hook.go:383:46 `!` → (deleted) in `cli#stagedRule`\n" +
 		"\nNo failing scenario in its log.\n"
 	if got := read(excerpt(t, "39029889396")).render(); got != want {
+		t.Errorf("the body says:\n%s\nwant:\n%s", got, want)
+	}
+}
+
+// Run 39817143873, under itos-cc 0.26.0: two steps failed before the mutation steps, the second a
+// command of several lines whose failure the next step's blank line split, so the random step's
+// "$ " line follows that failure's last line and the changed-sites step's follows its failure
+// line, neither after a blank one. The changed-sites report names unexecuted blocks
+// (mutation.uncovered-statement) by their line alone. Each report keeps two of its problems, the
+// changed-sites one two of each rule.
+func TestItosCC026Reports(t *testing.T) {
+	const latestCI = "`id=$(gh run list --workflow ci.yml --branch main --status completed --limit 1 --json databaseId --jq '.[0].databaseId') && gh run view \"$id\" --json jobs --jq '.jobs as $jobs | [\"ci (ubuntu-latest)\", \"platform (macos-latest)\", \"platform (windows-latest)\"] as $names | def passed($name): any(.steps[]?; .name == $name and .conclusion == \"success\"); ($names | all(. as $name | [$jobs[] | select(.name == $name)] | length == 1 and all(.conclusion == \"success\"))) and ([$jobs[] | select(.name as $name | $names | index($name))] |` …"
+	const changed026 = "`base=$(go run ./tools/bin/nightly-base) && tools/bin/pinned itos-cc mutation run --since \"$base\" --count 60 --seed \"${GITHUB_RUN_ID:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}\" --fail-uncovered=lines --json cmd internal`"
+	want := "Failed at:\n\n" +
+		"- `ITOS_SELFTEST=1 go test -count=1 -run '^TestSelftest$' ./tools/selftest/gates`: it exited 1.\n" +
+		"- " + latestCI + ": it exited 1.\n" +
+		"- `tools/bin/pinned itos-cc mutation run --count 20 --seed \"${GITHUB_RUN_ID:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}\" --json cmd internal`: it exited 1.\n" +
+		"  - survived internal/value/doc.go:132:14 `||` → `&&` in `value.Doc#Set`\n" +
+		"  - survived internal/message/trailers.go:69:77 `0` → `1` in `message#trailerLine`\n" +
+		"- " + changed026 + ": it exited 1.\n" +
+		"  - survived internal/message/trailers.go:69:77 `0` → `1` in `message#trailerLine`\n" +
+		"  - survived internal/value/rename.go:264:50 `0` → `1` in `value.Doc#insert`\n" +
+		"  - uncovered-statement internal/cli/workwrite.go:59 in `cli#soundRegistry`\n" +
+		"  - uncovered-statement internal/store/tree/adapter/tree.go:69 in `adapter.Trees#At`\n" +
+		"\nNo failing scenario in its log.\n"
+	if got := read(excerpt(t, "39817143873")).render(); got != want {
 		t.Errorf("the body says:\n%s\nwant:\n%s", got, want)
 	}
 }
@@ -134,11 +160,15 @@ func TestAStepOfSeveralLinesFailed(t *testing.T) {
 		"also failed at: go run ./tools/bin/verify-release (it gave no exit code)",
 		"",
 		"also failed at T-002 (a task), its check: exit 5",
+		"",
+		"also failed at: gh run view \"$id\" --jq '.jobs",
+		"  | length' | grep -qx true",
 	))
 	want := "Failed at:\n\n" +
 		"- `id=$(gh run list) && gh run view \"$id\" --jq '.jobs` …: it exited 1.\n" +
 		"- `go run ./tools/bin/verify-release`: it gave no exit code.\n" +
 		"- T-002 (a task), its check: exit 5\n" +
+		"- `gh run view \"$id\" --jq '.jobs` …: its exit code is not in the log.\n" +
 		"\nNo failing scenario in its log.\n"
 	if got := a.render(); got != want {
 		t.Errorf("the body says:\n%s\nwant:\n%s", got, want)

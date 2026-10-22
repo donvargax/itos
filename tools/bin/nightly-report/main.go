@@ -12,12 +12,16 @@
 //   - the failing scenarios: go test's `--- FAIL: TestFeatures/…` lines, which the step scripts
 //     GitHub echoes into the log never start with;
 //   - each failed step of the plan, from itos ci run's "CI failed at" and "also failed at" lines,
-//     with its exit code; for one that runs itos-cc mutation run, each site the --json report it
-//     printed names with rule mutation.survived or mutation.uncovered, and, when it names the rule
-//     interrupted, where its sampling says it stopped (its keys alone, never a problem's message,
-//     which itos-cc's contract leaves out). The report is read from the step's own output, the
-//     lines between its "$ " line and the next step's, with any failure line itos interleaved into
-//     it left out;
+//     with its exit code, and a command of several lines by its first; for one that runs itos-cc
+//     mutation run, each site the --json report it printed names with rule mutation.survived,
+//     mutation.uncovered or mutation.uncovered-statement (itos-cc 0.26.0's unexecuted block,
+//     named by its line alone), and, when it names the rule interrupted, where its sampling says
+//     it stopped (its keys alone, never a problem's message, which itos-cc's contract leaves out).
+//     The report is read from the step's own output, the lines between its "$ " line and the next
+//     step's, with any failure line itos interleaved into it left out. itos prints a step's "$ "
+//     line, after a blank one, on stdout and a failure, after a blank one, on stderr, and the log
+//     merges the two by line: a step's blank line may fall inside the failure before it, so a "$ "
+//     line just after a failure starts a step too, and a failure's blank lines do not end it;
 //   - when the runner shut down or the operation was cancelled, the last step that started
 //     (the plan's, else the job's), that the steps after it did not run, and, for a mutation
 //     step, the sites its report names, as it prints one when interrupted.
@@ -166,7 +170,7 @@ type failure struct {
 	text    string // after the lead, for a failure that is not a step's
 	command string // the step's command, its first line; empty when not a step's
 	more    bool   // the command goes on past its first line
-	code    string // "exited 1", "gave no exit code", or empty when not a step's
+	code    string // "exited 1", "gave no exit code", or empty when not a step's or not in the log
 	from    int    // its first line
 	to      int    // its last line
 	sites   *sites // a mutation step's report
@@ -215,12 +219,13 @@ func read(text string) analysis {
 	var steps []stepAt
 	skip := map[int]bool{} // the failure lines, which may fall inside a step's output
 	lastJobStep := ""
+	failureEnd := -1 // the last line of the last failure
 	for i := 0; i < len(lines); i++ {
 		l := lines[i]
 		switch {
 		case scenario.MatchString(l):
 			a.scenarios = append(a.scenarios, l)
-		case strings.HasPrefix(l, "$ ") && (i == 0 || lines[i-1] == ""):
+		case strings.HasPrefix(l, "$ ") && (i == 0 || lines[i-1] == "" || i-1 == failureEnd):
 			steps = append(steps, stepAt{command: l[2:], line: i})
 		case failedAt.MatchString(l):
 			f := failureAt(lines, i)
@@ -228,7 +233,7 @@ func read(text string) analysis {
 				skip[j] = true
 			}
 			a.failures = append(a.failures, f)
-			i = f.to
+			i, failureEnd = f.to, f.to
 		case jobStep.MatchString(l):
 			lastJobStep = jobStep.FindStringSubmatch(l)[1]
 		case a.stopped == "":
@@ -270,7 +275,8 @@ func read(text string) analysis {
 
 // failureAt is the failure whose first line is lines[i]. A step's failure ends with its exit code;
 // a command of several lines carries it on its last, so a first line without one looks ahead for
-// it, as far as the command could reach.
+// it, as far as the command could reach, past the blank lines the next step's stdout may put
+// inside it. One whose exit code is not found is named by its first line alone.
 func failureAt(lines []string, i int) *failure {
 	m := failedAt.FindStringSubmatch(lines[i])
 	f := &failure{text: strings.TrimPrefix(m[2], " "), from: i, to: i}
@@ -282,12 +288,13 @@ func failureAt(lines []string, i int) *failure {
 		f.command, f.code = command, code
 		return f
 	}
+	f.command, f.more = rest, true
 	for j := i + 1; j < len(lines) && j <= i+50; j++ {
-		if failedAt.MatchString(lines[j]) || lines[j] == "" {
+		if failedAt.MatchString(lines[j]) {
 			break
 		}
 		if _, code, ok := exitOf(lines[j]); ok {
-			f.command, f.code, f.more, f.to = rest, code, true, j
+			f.code, f.to = code, j
 			return f
 		}
 	}
@@ -361,7 +368,7 @@ func report(lines []string, skip map[int]bool, s stepAt, end int) *sites {
 	out := &sites{}
 	for _, p := range r.Problems {
 		switch p.Rule {
-		case "mutation.survived", "mutation.uncovered":
+		case "mutation.survived", "mutation.uncovered", "mutation.uncovered-statement":
 			out.found = append(out.found, p)
 		case "interrupted":
 			out.interrupted, out.stop = true, r.Sampling.Stop
@@ -376,11 +383,15 @@ func (a analysis) render() string {
 	if len(a.failures) > 0 {
 		b.WriteString("Failed at:\n\n")
 		for _, f := range a.failures {
-			if f.command == "" {
+			switch {
+			case f.command == "":
 				fmt.Fprintf(&b, "- %s\n", f.text)
 				continue
+			case f.code == "":
+				fmt.Fprintf(&b, "- %s: its exit code is not in the log.\n", code(f.command, f.more))
+			default:
+				fmt.Fprintf(&b, "- %s: it %s.\n", code(f.command, f.more), f.code)
 			}
-			fmt.Fprintf(&b, "- %s: it %s.\n", code(f.command, f.more), f.code)
 			f.sites.render(&b, "  ")
 		}
 		b.WriteString("\n")
@@ -422,11 +433,17 @@ func (s *sites) render(b *strings.Builder, indent string) {
 		return
 	}
 	for _, p := range s.found {
+		rule := strings.TrimPrefix(p.Rule, "mutation.")
+		if p.Original == "" {
+			// An unexecuted block: no mutant, so no column or change.
+			fmt.Fprintf(b, "%s- %s %s:%d in %s\n", indent, rule, p.File, p.Line, code(short(p.Function), false))
+			continue
+		}
 		replacement := code(p.Replacement, false)
 		if p.Replacement == "" {
 			replacement = "(deleted)"
 		}
-		fmt.Fprintf(b, "%s- %s %s:%d:%d %s → %s in %s\n", indent, strings.TrimPrefix(p.Rule, "mutation."),
+		fmt.Fprintf(b, "%s- %s %s:%d:%d %s → %s in %s\n", indent, rule,
 			p.File, p.Line, p.Column, code(p.Original, false), replacement, code(short(p.Function), false))
 	}
 	switch {
