@@ -2826,3 +2826,51 @@
     internal/cli/workwrite.go:266 (a failed step whose rollback also fails). Unit tests through the
     VCS fake (internal/vcs/port/porttest, now a *VCS that commands change) where it reaches the
     line; no change to what itos does.
+
+- id: T-225
+  type: refactor
+  title: "The tracker store, part 1: a port with a fake and a contract suite, and the file adapter writeCommitted runs through"
+  why: >
+    ADR-0053, step 6 of docs/plans/slices-and-ports.md: the tracker store, the last port before the
+    engines (step 7), designed by the coordinator 2026-10-22 from a read-only draft. Storage level,
+    never a method per record kind, so typed items (p1-typed-items) or Fossil tickets
+    (p2-vcs-and-tracker-seams) fit behind the same methods. Packages
+    internal/store/tracker/{port,port/porttest,adapter}, every method with a context.Context first,
+    a contract suite in T-209's shape (generic T[C], distinct messages, contract_test.go with a
+    recorder and a broken wrapper over the fake, one fault per assertion), depguard (slice-packages,
+    slice-fakes, store-ports, store-adapters) and architecture-check (the stores list in
+    tools/testdata/architecture/check_test.go) gaining the packages with fixtures, as T-207 and
+    T-210 did. The port: Doc{Name, Text, There}, Change{Name, Old, Text, Created},
+    Transaction{Changes, Paragraphs (already wrapped), Quiet, Stdin, Words, Env}, the refusals
+    *Dirty{Name} and *Refused{Step, Code, Restore}, Held{Release(ctx)}; Tracker{Load(names) []Doc in
+    order, absent There false; List(dir) names, none when missing; Hold() one writer from read to
+    Transact, at once when commits order writers; Ready(names) the hooks-not-ready error, else the
+    first *Dirty; Transact(t) Ready, write, commit those alone, "" when it commits nothing}. Reserve
+    comes in part 3. Names are as the config names them (paths today). The file adapter Files{VCS,
+    OS, Stealth, Lock, HooksReady} is writeCommitted's body moved (uncommitted, put, restore,
+    restored in internal/cli/workwrite.go); Load and List read the disk directly, never through the
+    tree adapter (it rewords errors). internal/cli binds it in one constructor
+    (internal/cli/tracker.go) with vcs.Git{} as today and HooksReady as hooksReady("commit-msg");
+    writeCommitted keeps its signature and maps *Dirty to its rule's problem (exit 1) and *Refused
+    to work-commit-failed or the "failed (git exited N)" error when Restore is set; commitReady
+    becomes Ready plus that mapping. Kept exactly: the order inside Transact (hooks, dirty files in
+    order, each mode stat with 0644 by default, put with O_TRUNC, the partial-write rollback, return
+    when stealth, add created files, commit with Only, Unstage, Resolve HEAD); the step texts ("git
+    add of X", "the commit of " and its and(...) list, "cannot run git:", "cannot be written",
+    "cannot be put back", the unstage message); Dirty.Name as given, so the rules map; Env and Stdin
+    read when the transaction is made. Exit kinds unchanged: the port wraps no error with a kind;
+    refusals stay exit 1, write and restore failures unclassified (70), the hooks error kind.Missing
+    (3); hooksReady returns nil when Locate fails, and the adapter must not locate early (T-218
+    turned 70 into 3 that way, bug-119). Out of this part: soundRegistry, heldAsks, the written list
+    and its rules, selfBody (step 7); gitcommit, push and pushnamed building vcs.Git{} (their slice
+    moves). No behaviour change.
+  done_when:
+    - run: go test ./internal/store/tracker/...
+    - run: "! grep -nE 'vcs\\.Git\\{\\}|os\\.(Stat|Lstat|OpenFile|Remove|WriteFile)\\(' internal/cli/workwrite.go"
+    - run: tools/bin/architecture-check
+    - run: tools/bin/pinned golangci-lint run ./...
+      timeout: 600
+    - run: go test ./features -count=1 -scenarios='^@ID-(WORK|TASK|ASK|STEALTH|CTASK)-[0-9]+$'
+      timeout: 600
+    - run: go run ./tools/bin/conformance --bin tools/bin/itos --only tools/itos/conformance/work.yaml tools/itos/conformance/ask.yaml tools/itos/conformance/tasks.yaml
+      timeout: 600
