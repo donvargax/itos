@@ -8,6 +8,7 @@ import (
 	followupslice "github.com/donvargax/itos/v8/internal/slices/followup"
 	guardslice "github.com/donvargax/itos/v8/internal/slices/guard"
 	pinslice "github.com/donvargax/itos/v8/internal/slices/pin"
+	testsslice "github.com/donvargax/itos/v8/internal/slices/tests"
 	verifyslice "github.com/donvargax/itos/v8/internal/slices/verify"
 	versionslice "github.com/donvargax/itos/v8/internal/slices/version"
 )
@@ -29,7 +30,7 @@ var declared = []declare.Command{
 	upgradeDeclared,
 	initDeclared,
 	verifyslice.Command,
-	testsDeclared,
+	testsslice.Command,
 	ciDeclared,
 	hookDeclared,
 	guardslice.Command,

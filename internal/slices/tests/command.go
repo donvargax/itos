@@ -1,8 +1,8 @@
-package cli
+package tests
 
 import "github.com/donvargax/itos/v8/internal/declare"
 
-var testsDeclared = declare.Command{
+var Command = declare.Command{
 	Name: "tests",
 	Rank: 160,
 	Lines: `  tests list <kind> [--at <tree>]  the kind's named tests

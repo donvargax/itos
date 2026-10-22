@@ -35,7 +35,7 @@ func nextID(t *testing.T, args ...string) (string, error) {
 	if len(args) > 0 && args[0] == "--json" {
 		o.JSON, args = true, args[1:]
 	}
-	_, err := testsNextID(args, o)
+	_, err := runTests(append([]string{"next-id"}, args...), o)
 	return stdout.String(), err
 }
 

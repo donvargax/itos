@@ -468,13 +468,8 @@
 // could not be put back. The engine's tests give each answer over the
 // tracker's fake; the adapter's make each failure in a scratch repository.
 //
-// tests list, tests smoke check and run, tests moves (tests.go) and tests
-// next-id and task next-id (nextid.go) are calls into internal/tests,
-// internal/ledger and internal/nextid, reading only the working tree; tests
-// next-id of an area (tests.Area) then claims what it prints through the
-// ids engine (internal/engine/ids, its Claim) and the tracker's Reserve
-// (tracker.go), which item ids are minted through too (idmint.go, the
-// engine's Mint), the area's stem its series.
+// task next-id (nextid.go) is a call into internal/ledger and
+// internal/nextid, reading only the working tree.
 // commit check-paths and commit footers (commit.go) are calls into
 // internal/scope and message.Gathered.
 //
