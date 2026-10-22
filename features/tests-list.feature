@@ -107,3 +107,77 @@ Feature: Live named tests have a directly consumable TSV listing
     When itos runs "help tests list"
     Then its help explains the two-column live-only TSV format and project-relative paths
     And it explains that warnings and diagnostics stay on stderr
+
+  # Slice 166 (#112, the user, 2026-10-22: as soon as possible): itos-cc dates
+  # a kill by a listed test by the test's file, so any edit to a feature file
+  # (a comment, a new @wip scenario beside live ones) stales every kill any of
+  # its scenarios made, and the code proof goes red after spec commits no
+  # test can see. Since itos-cc v0.24.0 (this repository pins v0.26.0, T-276)
+  # a listed test may carry a fingerprint, opaque to itos-cc, and its kill
+  # holds while the fingerprint does. tests list --json gives each test of a
+  # Gherkin kind a "fingerprint": the SHA-256, in lowercase hex, of a
+  # canonical text of what the scenario runs: its effective tags (its own and
+  # its feature's, sorted, once each), the Background steps before it, then
+  # its steps, each step its text with its doc string or table rows, the
+  # keyword left out (godog matches step text alone), and for an outline
+  # its Examples' header and rows. Never its name, a comment, the feature's
+  # description or another scenario; so moving it unchanged to a file with
+  # the same Background and feature tags keeps it. The canonical text starts
+  # with a version line, so a later change of what counts is a new version,
+  # not a silent shift. A command adapter's tests carry none. The text
+  # listing is unchanged. tools/bin/itos-cc-tests prints it as the third
+  # column (a ci commit beside the feat).
+  @wip @ID-TESTLIST-07 @slice-166
+  Scenario: tests list --json gives each scenario a fingerprint of what it runs
+    Given the scenario kind has live IDs "ID-A-01" and "ID-B-01" in two feature files
+    When itos runs "tests list scenario --json"
+    Then itos exits with code 0
+    And each listed test has a fingerprint of 64 lowercase hex digits
+    And "ID-A-01" and "ID-B-01" have different fingerprints
+
+  @wip @ID-TESTLIST-08 @slice-166
+  Scenario Outline: A scenario's fingerprint holds through edits that change nothing it runs
+    Given the scenario kind has live IDs "ID-A-01" and "ID-B-01" in two feature files
+    And itos has listed the scenario kind's fingerprints
+    When <edit>
+    Then the fingerprint of "ID-A-01" is unchanged
+
+    Examples:
+      | edit                                                                  |
+      | a comment is added above the scenario "ID-A-01"                       |
+      | the description of the feature holding "ID-A-01" is reworded          |
+      | a @wip scenario is added to the feature file holding "ID-A-01"        |
+      | the scenario "ID-A-01" is renamed                                     |
+      | the scenario "ID-A-01" moves unchanged to the feature file of "ID-B-01" |
+
+  @wip @ID-TESTLIST-09 @slice-166
+  Scenario Outline: A scenario's fingerprint changes with what it runs
+    Given the scenario kind has live IDs "ID-A-01" and "ID-B-01" in two feature files
+    And itos has listed the scenario kind's fingerprints
+    When <edit>
+    Then the fingerprint of "ID-A-01" has changed
+    And the fingerprint of "ID-B-01" is unchanged
+
+    Examples:
+      | edit                                                               |
+      | a step of the scenario "ID-A-01" is reworded                       |
+      | a table row of a step of the scenario "ID-A-01" is changed         |
+      | the Background of the feature holding "ID-A-01" gains a step       |
+      | the scenario "ID-A-01" gains the tag "@slow"                       |
+      | the feature holding "ID-A-01" gains the tag "@slow"                |
+
+  @wip @ID-TESTLIST-10 @slice-166
+  Scenario: An outline's fingerprint changes with its Examples
+    Given the scenario kind has the live outline "ID-A-01" with two Examples rows
+    And itos has listed the scenario kind's fingerprints
+    When a row of the Examples of "ID-A-01" is changed
+    Then the fingerprint of "ID-A-01" has changed
+
+  @wip @ID-TESTLIST-11 @slice-166
+  Scenario: A command adapter's tests carry no fingerprint, and the text listing is unchanged
+    Given a kind whose command adapter lists the live test "T-A" in "a.txt"
+    When itos runs "tests list fixture --json"
+    Then itos exits with code 0
+    And the listed test "T-A" has no fingerprint
+    When itos runs "tests list scenario"
+    Then its output does not say "fingerprint"
