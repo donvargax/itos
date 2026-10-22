@@ -12243,16 +12243,9 @@ items:
     title: itos commit panics where there is no config
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: []
     kind: idea
-    why: >
-      Found by the T-241 help comparison: itos commit --zz-bogus (any argument for git commit) run
-      in a folder with no itos config, outside any repository, panics with a nil pointer
-      dereference, exit 2 and a Go trace on stderr: gitCommit (internal/cli/gitcommit.go) calls
-      cfg.CommentChar() while cfg is nil, though it checks cfg != nil just above, and commit is
-      meant to run without a config. The binaries before and after T-241 both do so. A fix with its
-      bug scenario: commit with no config reaches git, or says what is wrong, instead of panicking.
 
   - id: T-243
     title: "Slices, prerequisite 1: usage errors in internal/out, and the slice allow list widened to the domain packages"
