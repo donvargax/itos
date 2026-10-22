@@ -1,6 +1,7 @@
 # The hooks: `hook install` declaring the two hooks in the git config (slice
 # 91: no hook manager, no hook file, never over an entry of the project's own
-# without --force, refused by a git that runs no hook its config declares),
+# without --force, and hook files instead on a git that runs no hook its config
+# declares, slice 165),
 # and itos commit and itos push refusing, exit 3, where git would run none of
 # itos's hooks (the runner declares stand-ins in every case's repository);
 # `hook commit-msg` (the staged paths, each kind's staged range check, then
@@ -200,7 +201,9 @@ cases:
           event: pre-push
           command: itos hook pre-push
           action: wrote
-  - name: a git that runs no hook its config declares makes hook install exit 3, naming the git to upgrade to
+  # Slice 165: such a git gets hook files in the folder it runs hooks from,
+  # each running itos's hook, the git config left as it was.
+  - name: a git that runs no hook its config declares gets hook install's hook files in .git/hooks
     argv: [hook, install]
     files:
       old-git: &old-git
@@ -220,8 +223,28 @@ cases:
         executable: true
     env: { ITOS_GIT: "{{dir}}/old-git" }
     git_config_after: *stand-ins
-    exit: 3
-    stderr_has: ["2.30.0", "2.54.0"]
+    exit: 0
+    files_after:
+      .git/hooks/commit-msg:
+        text: |
+          #!/bin/sh
+          # itos hook install wrote this file (a git older than 2.54.0 runs no hook its config declares).
+          # A hook this folder held before is kept as commit-msg.before-itos, and runs first with the same input.
+          kept="$0.before-itos"
+          if [ -x "$kept" ]; then
+            input=$(mktemp) || exit 1
+            cat > "$input"
+            "$kept" "$@" < "$input"
+            status=$?
+            if [ "$status" -eq 0 ]; then
+              tools/bin/itos hook commit-msg "$@" < "$input"
+              status=$?
+            fi
+            rm -f "$input"
+            exit "$status"
+          fi
+          exec tools/bin/itos hook commit-msg "$@"
+        executable: true
   - name: itos commit refuses, exit 3, where the git config declares no commit-msg hook of itos's, and commits nothing
     argv: [commit, -m, "docs: tidy"]
     git:
@@ -244,7 +267,7 @@ cases:
     files: { old-git: *old-git }
     env: { ITOS_GIT: "{{dir}}/old-git" }
     exit: 3
-    stderr_has: ["2.30.0", "2.54.0"]
+    stderr_has: ["2.30.0", ".git/hooks", "itos hook install"]
   - name: itos push refuses, exit 3, where the git config declares no pre-push hook of itos's
     argv: [--json, push]
     git:

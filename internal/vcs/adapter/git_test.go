@@ -160,6 +160,29 @@ func TestShowAndPathStatusRefuse(t *testing.T) {
 	}
 }
 
+// HooksPath is the folder git runs hook files from, absolute, the git
+// folder's hooks or core.hooksPath's, from Dir when one is given; an error
+// outside a repository.
+func TestHooksPath(t *testing.T) {
+	dir := alone(t)
+	t.Chdir(dir)
+	if got, err := (Git{}).HooksPath(t.Context()); err == nil {
+		t.Errorf("outside a repository: %q", got)
+	}
+	gitIn(t, dir, "", "init", "-q")
+	if got, err := (Git{}).HooksPath(t.Context()); err != nil || got != filepath.Join(dir, ".git", "hooks") {
+		t.Errorf("the git folder's: %q, %v", got, err)
+	}
+	gitIn(t, dir, "", "config", "core.hooksPath", "tools/hooks")
+	if got, err := (Git{}).HooksPath(t.Context()); err != nil || got != filepath.Join(dir, "tools", "hooks") {
+		t.Errorf("core.hooksPath's: %q, %v", got, err)
+	}
+	t.Chdir(t.TempDir())
+	if got, err := (Git{Dir: dir}).HooksPath(t.Context()); err != nil || got != filepath.Join(dir, "tools", "hooks") {
+		t.Errorf("under Dir: %q, %v", got, err)
+	}
+}
+
 // A rename is both its paths (bug 32) in every list of changed paths, with
 // git's rename detection on.
 func TestRenameIsBothPaths(t *testing.T) {

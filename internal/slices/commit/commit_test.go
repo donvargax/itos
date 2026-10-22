@@ -88,6 +88,25 @@ func (f *fake) ConfigHooksRun(context.Context) bool { return !f.oldGit }
 
 func (f *fake) Version(context.Context) string { return "2.53.0" }
 
+// The hooks folder is .git/hooks, its files the working tree's.
+func (f *fake) HooksPath(context.Context) (string, error) { return filepath.Join(".git", "hooks"), nil }
+
+func (f *fake) HookFile(_ context.Context, path string) (string, error) {
+	text, ok := f.files[filepath.ToSlash(path)]
+	if !ok {
+		return "", os.ErrNotExist
+	}
+	return text, nil
+}
+
+func (f *fake) WriteHookFile(context.Context, string, string) error {
+	return errors.New("no hook file is written")
+}
+
+func (f *fake) MoveHookFile(context.Context, string, string) error {
+	return errors.New("no hook file is moved")
+}
+
 func (f *fake) Commit(_ context.Context, c vcsport.Commit, talk vcsport.Talk) error {
 	f.made, f.talks = append(f.made, c), append(f.talks, talk)
 	if f.failure != nil {
@@ -508,9 +527,16 @@ func TestCommitRefusesAMissingFooter(t *testing.T) {
 func TestCommitNeedsTheHook(t *testing.T) {
 	f := over(t, repository(true), rules)
 	f.oldGit = true
-	if _, _, _, err := run(t, f, "", false, "-m", "docs: x"); err == nil || !strings.Contains(err.Error(), "upgrade git") ||
+	if _, _, _, err := run(t, f, "", false, "-m", "docs: x"); err == nil || !strings.Contains(err.Error(), "itos hook install") ||
 		len(f.made) != 0 {
 		t.Errorf("an old git: %v", err)
+	}
+	if f.files == nil {
+		f.files = map[string]string{}
+	}
+	f.files[".git/hooks/commit-msg"] = "#!/bin/sh\nitos hook commit-msg \"$@\"\n"
+	if code, _, _, err := run(t, f, "", false, "-m", "docs: x"); code != 0 || err != nil || len(f.made) != 1 {
+		t.Errorf("an old git with itos's hook file: exit %d, %v", code, err)
 	}
 }
 

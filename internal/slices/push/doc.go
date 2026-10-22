@@ -87,6 +87,7 @@
 //
 // Handle reaches the world through Ports, which the slice owns and
 // internal/cli binds: the repository (the VCS port, git behind it), its git
-// config (hooks.Git and gitrun.Config), whether a config file is there, the
-// stealth check, the config's load and ci.watch's provider.
+// config and hooks folder (hooks.Ports and gitrun.Config), whether a config
+// file is there, the stealth check, the config's load and ci.watch's
+// provider.
 package push

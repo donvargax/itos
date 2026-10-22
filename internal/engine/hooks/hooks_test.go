@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io/fs"
+	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
@@ -14,13 +16,24 @@ import (
 
 // fakeGit is a git in memory: a repository unless outside, whose config is
 // local, the repository's own, after global, every other level's; old runs
-// no hook its config declares; failing makes setting that key fail.
+// no hook its config declares; failing makes setting that key, or writing
+// or moving to that file, fail, and reading it with a "?" after it. Its
+// top is /repo and its hooks folder hooks under it, .git/hooks when that is
+// "", or folder's error when set; files are the folder's, by their paths
+// from the top (key).
 type fakeGit struct {
 	outside, old  bool
 	local, global map[string][]string
 	failing       string
 	sets          []string
+	hooks         string
+	folder        error
+	files         map[string]string
 }
+
+// key is a file's path as fakeGit's files hold it: from its top, with
+// forward slashes.
+func key(path string) string { return strings.TrimPrefix(filepath.ToSlash(path), "/repo/") }
 
 func (g *fakeGit) Locate(context.Context, string) (vcsport.Location, error) {
 	if g.outside {
@@ -51,6 +64,50 @@ func (g *fakeGit) SetConfig(_ context.Context, key, value string) error {
 func (g *fakeGit) ConfigHooksRun(context.Context) bool { return !g.old }
 
 func (g *fakeGit) Version(context.Context) string { return "2.30.0" }
+
+func (g *fakeGit) HooksPath(context.Context) (string, error) {
+	hooks := g.hooks
+	if hooks == "" {
+		hooks = ".git/hooks"
+	}
+	if strings.HasPrefix(hooks, "/") {
+		return filepath.FromSlash(hooks), g.folder
+	}
+	return filepath.Join("/repo", filepath.FromSlash(hooks)), g.folder
+}
+
+func (g *fakeGit) HookFile(_ context.Context, path string) (string, error) {
+	if key(path)+"?" == g.failing {
+		return "", errors.New("permission denied")
+	}
+	text, ok := g.files[key(path)]
+	if !ok {
+		return "", fs.ErrNotExist
+	}
+	return text, nil
+}
+
+func (g *fakeGit) WriteHookFile(_ context.Context, path, text string) error {
+	if key(path) == g.failing {
+		return errors.New("read-only file system")
+	}
+	if g.files == nil {
+		g.files = map[string]string{}
+	}
+	g.files[key(path)] = text
+	g.sets = append(g.sets, key(path))
+	return nil
+}
+
+func (g *fakeGit) MoveHookFile(_ context.Context, from, to string) error {
+	if key(to) == g.failing {
+		return errors.New("read-only file system")
+	}
+	g.files[key(to)] = g.files[key(from)]
+	delete(g.files, key(from))
+	g.sets = append(g.sets, "moved to "+key(to))
+	return nil
+}
 
 // declared is a config with itos's entry for each event, running bin.
 func declared(bin string, events ...string) map[string][]string {
@@ -125,8 +182,9 @@ func TestReady(t *testing.T) {
 		t.Errorf("outside a repository: %v", err)
 	}
 	err := Ready(ctx, &fakeGit{old: true, local: declared("itos", Events...)}, "commit-msg")
-	if kind.Of(err) != kind.Missing || err.Error() != "git 2.30.0 runs no hook its config declares, so it would run "+
-		"none of itos's checks: upgrade git to 2.54.0 or later" {
+	if kind.Of(err) != kind.Missing || err.Error() != "git 2.30.0 runs no hook its config declares, and no hook "+
+		"file in .git/hooks calls itos's commit-msg hook, so git would run none of its checks: run itos hook "+
+		"install once in the clone, then run this again" {
 		t.Errorf("an old git: %v", err)
 	}
 	if err := Ready(ctx, &fakeGit{local: declared("itos", Events...)}, Events...); err != nil {
@@ -228,7 +286,7 @@ func TestDeclareRefusesAForeignEntryUnlessForced(t *testing.T) {
 }
 
 func TestDeclarePrintsAndWritesNothing(t *testing.T) {
-	g := &fakeGit{old: true}
+	g := &fakeGit{}
 	code, stdout, stderr, said := declare(t, g, true, false, false)
 	want := "[hook \"itos-commit-msg\"]\n\tevent = commit-msg\n\tcommand = itos hook commit-msg\n" +
 		"[hook \"itos-pre-push\"]\n\tevent = pre-push\n\tcommand = itos hook pre-push\n"
@@ -256,16 +314,6 @@ func TestDeclareJSONSaysWhatItDid(t *testing.T) {
 	if strings.Count(stdout, `"action": "wrote"`) != 2 || !strings.Contains(stdout, `"hooks": [`) ||
 		!slices.Equal(said, []string{"wrote hook.itos-commit-msg", "wrote hook.itos-pre-push"}) {
 		t.Errorf("said %q\n%s", said, stdout)
-	}
-}
-
-func TestDeclareRefusesAnOldGit(t *testing.T) {
-	g := &fakeGit{old: true}
-	code, stdout, stderr, said := declare(t, g, false, false, false)
-	if code != exitMissing || stdout != "" || len(said) != 0 || len(g.sets) != 0 ||
-		stderr != "itos: hook install: git 2.30.0 runs no hook its config declares, so it would run none of "+
-			"itos's checks: upgrade git to 2.54.0 or later\n" {
-		t.Errorf("exit %d, said %q\n%s%s", code, said, stdout, stderr)
 	}
 }
 

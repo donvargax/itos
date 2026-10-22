@@ -29,9 +29,12 @@ func gitCommit(args []string, o Out) (int, error) {
 }
 
 // commitPorts are the commit slice's ports over the real code: git, the
-// stealth check of the config's path, the config's two loads and the
+// hooks folder's files, the stealth check of the config's path, the config's two loads and the
 // working tree's files.
-type commitPorts struct{ vcs.Git }
+type commitPorts struct {
+	vcs.Git
+	hookFiles
+}
 
 // Stealth is config.IsStealth of configPath().
 func (commitPorts) Stealth(context.Context) bool { return config.IsStealth(vcs.Git{}, configPath()) }

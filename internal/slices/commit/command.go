@@ -66,8 +66,9 @@ of short flags (-am) and anything after -- are git's.
 
 Where itos is set up (a config is there), it refuses before git runs, exit 3,
 when git would run none of its checks: the git config declares no commit-msg
-hook of itos's (run itos hook install once in the clone), or the git runs no
-hook its config declares (git older than ` + configHooksSince + `).
+hook of itos's (run itos hook install once in the clone), or, on a git that
+runs no hook its config declares (older than ` + configHooksSince + `), no commit-msg hook
+file in the folder git runs hooks from calls itos's (hook install writes one).
 
 Exit: git's own code; 1 when a required footer is missing; 2 when the first
 word is no subcommand, a flag has no value or the config no footer for it, or

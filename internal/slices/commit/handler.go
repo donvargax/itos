@@ -35,15 +35,15 @@ type Query struct {
 
 // Ports are what commit reaches the world through, which internal/cli
 // binds: the repository (the VCS port), whose refs a subcommand's must
-// name, and its git config (hooks.Git, gitrun.Config), which declares
-// itos's hooks and the notes' rewriting; Stealth, whether the config is
+// name, its git config and hooks folder (hooks.Ports, gitrun.Config),
+// which hold itos's hooks and the notes' rewriting; Stealth, whether the config is
 // the stealth one; LoadConfig, the config, loaded from the working tree;
 // CommitConfig, the one a commit reads its flags by, nil with the error
 // loading it gave as missing where there is no config file; and Read, a
 // file of the working tree.
 type Ports interface {
 	vcsport.VCS
-	hooks.Git
+	hooks.Ports
 	gitrun.Config
 	Stealth(ctx context.Context) bool
 	LoadConfig(ctx context.Context) (*config.Loaded, error)

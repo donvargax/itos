@@ -45,7 +45,9 @@ Nothing to push is success. -q is git's --quiet and leaves out the success
 lines. Where itos is set up (a config is there), it refuses before anything
 is fetched, exit 3, when git would run none of its checks: the git config
 declares no pre-push hook of itos's (run itos hook install once in the
-clone), or the git runs no hook its config declares (git older than ` + configHooksSince + `).
+clone), or, on a git that runs no hook its config declares (older than
+` + configHooksSince + `), no pre-push hook file in the folder git runs hooks from calls
+itos's (hook install writes one).
 
 With ci.watch's provider (none by default), it then waits for the CI run of
 the commit it pushed as itos ci watch does, printing each job's result as it

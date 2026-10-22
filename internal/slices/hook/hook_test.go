@@ -53,8 +53,10 @@ type ports struct {
 	setErr  error
 	oldGit  bool
 	ran     []string
-	run     func(command string, o shell.Options) shell.Result
-	shows   int
+	// hookFiles are the hooks folder's files, by their paths.
+	hookFiles map[string]string
+	run       func(command string, o shell.Options) shell.Result
+	shows     int
 }
 
 // Show is the repository's, refused once shows, when set, runs out.
@@ -99,6 +101,33 @@ func (p *ports) SetConfig(_ context.Context, key, value string) error {
 func (p *ports) ConfigHooksRun(context.Context) bool { return !p.oldGit }
 
 func (p *ports) Version(context.Context) string { return "2.53.0" }
+
+// The hooks folder is .git/hooks, its files hookFiles.
+func (p *ports) HooksPath(context.Context) (string, error) {
+	return filepath.Join(".git", "hooks"), nil
+}
+
+func (p *ports) HookFile(_ context.Context, path string) (string, error) {
+	text, ok := p.hookFiles[filepath.ToSlash(path)]
+	if !ok {
+		return "", os.ErrNotExist
+	}
+	return text, nil
+}
+
+func (p *ports) WriteHookFile(_ context.Context, path, text string) error {
+	if p.hookFiles == nil {
+		p.hookFiles = map[string]string{}
+	}
+	p.hookFiles[filepath.ToSlash(path)] = text
+	return nil
+}
+
+func (p *ports) MoveHookFile(_ context.Context, from, to string) error {
+	p.hookFiles[filepath.ToSlash(to)] = p.hookFiles[filepath.ToSlash(from)]
+	delete(p.hookFiles, filepath.ToSlash(from))
+	return nil
+}
 
 // world is a repository whose HEAD, root, holds head, the index index and
 // the working tree work; the working tree's config is text, none when "".
@@ -751,8 +780,10 @@ func TestInstall(t *testing.T) {
 		t.Error("an entry that cannot be written: no error")
 	}
 	p.oldGit = true
-	if code, _, stderr, _ := hook(t, p, "install"); code != 3 || !strings.Contains(stderr, "2.54.0") {
-		t.Errorf("an old git: exit %d\n%s", code, stderr)
+	if code, stdout, stderr, _ := hook(t, p, "install"); code != 0 || len(p.hookFiles) != 2 ||
+		!strings.Contains(p.hookFiles[".git/hooks/pre-push"], `itos hook pre-push "$@"`) ||
+		stdout != "written .git/hooks/commit-msg\nwritten .git/hooks/pre-push\n" {
+		t.Errorf("an old git: exit %d, files %q\n%s%s", code, p.hookFiles, stdout, stderr)
 	}
 	p.cfg, p.loadErr = nil, errors.New("broken")
 	if _, _, _, err := hook(t, p, "install"); err == nil {

@@ -24,10 +24,13 @@ func runHook(args []string, o Out) (int, error) {
 	return c.Run(context.Background(), o.Stdout, o.Stderr, hookslice.NewHandler(hookPorts{}))
 }
 
-// hookPorts are the hook slice's ports over the real code: git, its trees,
-// the config loaded from the working tree, the working tree's files, config
-// check's task flags and the config's shell.
-type hookPorts struct{ vcs.Git }
+// hookPorts are the hook slice's ports over the real code: git, the hooks
+// folder's files, its trees, the config loaded from the working tree, the
+// working tree's files, config check's task flags and the config's shell.
+type hookPorts struct {
+	vcs.Git
+	hookFiles
+}
 
 // Trees are the trees git holds.
 func (hookPorts) Trees(context.Context) treeport.Trees { return trees.Trees{VCS: vcs.Git{}} }

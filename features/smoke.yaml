@@ -112,6 +112,10 @@
   scenarios:
     - id: "@ID-NEXTID-01"
       why: the next tag past the highest of a stem, live and @wip scenarios both counted, the command's point
+- file: old-git.feature
+  scenarios:
+    - id: "@ID-OLDGIT-02"
+      why: hook install's hook file on a git that runs no config hook running itos's check, the file's point
 - file: patterns.feature
   scenarios:
     - id: "@ID-PATTERN-01"

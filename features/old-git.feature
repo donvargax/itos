@@ -21,7 +21,7 @@ Feature: itos's hooks on a git that runs no hook its config declares
   # Slice 165 (the user, 2026-10-21: git older than 2.54 is supported, 2.51
   # the oldest): hook install exited 3 on such a git, and so did every
   # command that commits or pushes, so itos could not be used there at all.
-  @ID-OLDGIT-01 @slice-165 @wip
+  @ID-OLDGIT-01 @slice-165
   Scenario: hook install writes itos's hooks into the hooks folder, declaring none in the git config
     When itos runs "hook install"
     Then itos exits with code 0
@@ -30,7 +30,7 @@ Feature: itos's hooks on a git that runs no hook its config declares
     And the git config declares no "commit-msg" hook
     And the git config declares no "pre-push" hook
 
-  @ID-OLDGIT-02 @slice-165 @wip
+  @ID-OLDGIT-02 @slice-165
   Scenario: The hook file hook install wrote runs itos's commit-msg check
     Given itos has installed the hooks
     And a change to "README.md" is staged
@@ -41,7 +41,7 @@ Feature: itos's hooks on a git that runs no hook its config declares
 
   # A hook the folder already held is kept and runs first; when it refuses,
   # itos's check does not run and the commit stops, as git would stop at it.
-  @ID-OLDGIT-03 @slice-165 @wip
+  @ID-OLDGIT-03 @slice-165
   Scenario: A commit-msg hook the hooks folder held runs first, then itos's
     Given the hooks folder holds a commit-msg hook that records it ran
     And itos has installed the hooks
@@ -53,7 +53,7 @@ Feature: itos's hooks on a git that runs no hook its config declares
 
   # A second install must not take itos's own hook file for the project's
   # and chain it again.
-  @ID-OLDGIT-04 @slice-165 @wip
+  @ID-OLDGIT-04 @slice-165
   Scenario: hook install twice changes nothing, the project's hook still running once
     Given the hooks folder holds a commit-msg hook that records it ran
     And itos has installed the hooks
@@ -69,7 +69,7 @@ Feature: itos's hooks on a git that runs no hook its config declares
   # tree that some commit would carry. hook install writes nothing and names
   # each hook file and the line to add; the other hook is not written either,
   # so the clone is never half installed.
-  @ID-OLDGIT-05 @slice-165 @wip
+  @ID-OLDGIT-05 @slice-165
   Scenario: hook install refuses a hooks folder git tracks, naming the line to add
     Given the project's hooks are in ".husky" by core.hooksPath, with a commit-msg hook that records it ran
     When itos runs "hook install"
@@ -81,14 +81,14 @@ Feature: itos's hooks on a git that runs no hook its config declares
 
   # The project adds the line itself: a hook file that calls itos is enough,
   # whoever wrote it.
-  @ID-OLDGIT-06 @slice-165 @wip
+  @ID-OLDGIT-06 @slice-165
   Scenario: itos commit accepts a project's hook file that calls itos's hook
     Given the project's hooks are in ".husky" by core.hooksPath, with a commit-msg hook that calls itos's commit-msg hook
     And a change to "README.md" is staged
     When itos runs the command line "commit --task T-001 -m 'chore: tidy the readme'"
     Then itos exits with code 0
 
-  @ID-OLDGIT-07 @slice-165 @wip
+  @ID-OLDGIT-07 @slice-165
   Scenario: itos commit refuses when no hook file in the hooks folder calls itos
     Given the hooks folder holds a commit-msg hook that records it ran
     And a change to "README.md" is staged
@@ -102,7 +102,7 @@ Feature: itos's hooks on a git that runs no hook its config declares
   # hooks; a later reset of core.hooksPath to another folder leaves itos's
   # hooks out of git's reach, and itos push says so rather than pushing
   # unchecked.
-  @ID-OLDGIT-08 @slice-165 @wip
+  @ID-OLDGIT-08 @slice-165
   Scenario: itos push refuses when core.hooksPath moved away from the folder itos's hooks are in
     Given itos has installed the hooks
     And core.hooksPath is "missing/hooks"
@@ -113,7 +113,7 @@ Feature: itos's hooks on a git that runs no hook its config declares
   # A hooks folder inside the work tree is the project's even where git
   # tracks none of its files: a file itos added there would show in every
   # git status, for some commit to carry (the user, 2026-10-22).
-  @ID-OLDGIT-09 @slice-165 @wip
+  @ID-OLDGIT-09 @slice-165
   Scenario: hook install refuses a hooks folder inside the work tree that git does not track
     Given core.hooksPath is "githooks", a folder git does not track
     When itos runs "hook install"

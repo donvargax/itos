@@ -72,6 +72,18 @@ func (g Git) ConfigHooksRun(context.Context) bool {
 	return err == nil && slices.Contains(strings.Fields(listed), probe)
 }
 
+// HooksPath is the folder git runs hook files from, absolute: git rev-parse
+// --path-format=absolute --git-path hooks (git 2.31 on; --git-path follows
+// core.hooksPath since 2.9), the common git folder's hooks or
+// core.hooksPath's folder.
+func (g Git) HooksPath(context.Context) (string, error) {
+	got, err := g.git().Read("rev-parse", "--path-format=absolute", "--git-path", "hooks")
+	if err != nil {
+		return "", err
+	}
+	return native(got), nil
+}
+
 // Version is the version of the git itos runs, as git version prints it
 // after those words.
 func (g Git) Version(context.Context) string {

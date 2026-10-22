@@ -21,11 +21,8 @@ import (
 // configuration files, and run multiple of them for the same hook event."
 const Since = "2.54.0"
 
-// The exit codes of Declare, internal/cli's ExitPolicy and ExitMissing.
-const (
-	exitPolicy  = 1
-	exitMissing = 3
-)
+// exitPolicy is Declare's refusal, internal/cli's ExitPolicy.
+const exitPolicy = 1
 
 // Events are the two hooks itos declares, in the order it writes them.
 var Events = []string{"commit-msg", "pre-push"}
@@ -71,39 +68,45 @@ func Declared(ctx context.Context, g Git, event string) bool {
 		slices.Contains(g.Config(ctx, "hook."+name+".event", false), event)
 }
 
-// errOldGit is the refusal of a git that runs no hook its config declares.
-func errOldGit(ctx context.Context, g Git) error {
-	return kind.Wrap(kind.Missing, fmt.Errorf("git %s runs no hook its config declares, so it would run none of "+
-		"itos's checks: upgrade git to %s or later", g.Version(ctx), Since))
+// Ports are the git whose config declares the hooks and the hooks folder a
+// git that runs none of them runs hook files from.
+type Ports interface {
+	Git
+	Folder
 }
 
 // Ready is nil when git will run itos's hook for each event, else the
-// missing environment (exit 3), naming what to do: a git that runs the hooks
-// its config declares, then each event's entry declared in the git config.
-// Outside a git repository it is nil: git's own refusal says why there.
-func Ready(ctx context.Context, g Git, events ...string) error {
-	if _, err := g.Locate(ctx, ""); err != nil {
+// missing environment (exit 3), naming what to do: each event's entry
+// declared in the git config, or, on a git that runs no hook its config
+// declares, each event's hook file calling itos (filesReady). Outside a git
+// repository it is nil: git's own refusal says why there.
+func Ready(ctx context.Context, p Ports, events ...string) error {
+	if _, err := p.Locate(ctx, ""); err != nil {
 		return nil
 	}
-	if !g.ConfigHooksRun(ctx) {
-		return errOldGit(ctx, g)
+	if !p.ConfigHooksRun(ctx) {
+		return filesReady(ctx, p, events)
 	}
 	var missing []string
 	for _, event := range events {
-		if !Declared(ctx, g, event) {
+		if !Declared(ctx, p, event) {
 			missing = append(missing, event)
 		}
 	}
 	if len(missing) == 0 {
 		return nil
 	}
-	hooks := "hook is"
-	if len(missing) > 1 {
-		hooks = "hooks are"
-	}
 	return kind.Wrap(kind.Missing, fmt.Errorf("itos's %s %s not declared in this clone's git config, so git "+
 		"would run none of its checks: run itos hook install once in the clone (its worktrees share it), "+
-		"then run this again", and(missing), hooks))
+		"then run this again", and(missing), plural(missing, "hook is", "hooks are")))
+}
+
+// plural is one for a single name, else many.
+func plural(names []string, one, many string) string {
+	if len(names) > 1 {
+		return many
+	}
+	return one
 }
 
 // and joins names as a sentence lists them: "a", "a and b", "a, b and c"
@@ -154,13 +157,14 @@ type Out struct {
 
 // Declare declares both hooks, each running bin's `hook <event>`: 0
 // when every entry is in place (or printed), 1 when one under itos's name
-// that does not call itos stood in the way, 3 when this git runs no hook its
-// config declares. say takes each entry's line but a printed one.
-func Declare(ctx context.Context, g Git, bin string, print, force bool, o Out, say func(string)) (int, error) {
-	if !print && !g.ConfigHooksRun(ctx) {
-		fmt.Fprintf(o.Stderr, "itos: hook install: %s\n", errOldGit(ctx, g))
-		return exitMissing, nil
+// that does not call itos stood in the way. On a git that runs no hook its
+// config declares it writes hook files instead (writeFiles). say takes each
+// entry's line but a printed one.
+func Declare(ctx context.Context, p Ports, bin string, print, force bool, o Out, say func(string)) (int, error) {
+	if !p.ConfigHooksRun(ctx) {
+		return writeFiles(ctx, p, bin, print, o, say)
 	}
+	g := Git(p)
 	var hooks []configHook
 	for _, event := range Events {
 		h := configHook{Name: Entry(event), Event: event, Command: bin + " hook " + event}

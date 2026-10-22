@@ -73,11 +73,22 @@ its hook manager's files and its settings stay as they are: itos writes none of
 them. Run it once in each clone; itos commit, itos push and the commands that
 commit the work registry refuse, exit 3, where it has not run. --print prints
 the entries and writes nothing. An entry under itos's name that does not call
-itos is left alone, and the exit is 1, unless --force replaces it. It needs a
-git that runs the hooks its config declares, git ` + configHooksSince + ` or later
-(git hook list shows them), else it exits 3.
+itos is left alone, and the exit is 1, unless --force replaces it.
 
---json: {"schema":1,"hooks":[{"name","event","command","action"}]}`,
+A git older than ` + configHooksSince + ` runs no hook its config declares (git hook list
+shows the ones it runs), so there it writes commit-msg and pre-push hook files
+into the folder git runs hooks from (git rev-parse --git-path hooks, which
+follows core.hooksPath), each a sh script running the same command with git's
+arguments. A hook file already there is kept beside it as <event>.before-itos
+and runs first, with the same arguments and input; when it fails, the hook
+does. A file that calls itos's hook already is left as it is. A hooks folder
+inside the work tree is the project's, whether git tracks its files or not:
+itos writes no file there, and the exit is 1, naming each hook file and the
+line to add to it. --print prints the files; --force changes nothing there.
+
+--json: {"schema":1,"hooks":[{"name","event","command","action"}]}, each
+action printed, unchanged, refused, replaced or wrote, and in the hooks folder
+written for a new file; there name is the file's path.`,
 	},
 	Spec: declare.Spec{Subs: map[string]declare.Spec{
 		"commit-msg": {},

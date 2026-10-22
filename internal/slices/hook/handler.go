@@ -25,8 +25,8 @@ type Query struct {
 }
 
 // Ports are what hook reaches the world through, which internal/cli binds:
-// the repository (the VCS port) and its git config (hooks.Git), which hook
-// install declares itos's hooks in; Trees, the trees it holds (the tree
+// the repository (the VCS port), its git config and hooks folder
+// (hooks.Ports), where hook install puts itos's hooks; Trees, the trees it holds (the tree
 // port), the index the commit-msg hook reads its data from; LoadConfig, the
 // config, loaded from the working tree; Read, a file of the working tree;
 // TaskFlags, the flags ledger.group.label may not name, as config check
@@ -34,7 +34,7 @@ type Query struct {
 // command's and hooks.pre_push's.
 type Ports interface {
 	vcsport.VCS
-	hooks.Git
+	hooks.Ports
 	Trees(ctx context.Context) treeport.Trees
 	LoadConfig(ctx context.Context) (*config.Loaded, error)
 	Read(ctx context.Context, path string) (string, error)
@@ -86,10 +86,11 @@ func (h Handler) Handle(ctx context.Context, q Query, o Out) (Answer, error) {
 	return h.install(ctx, q, o)
 }
 
-// install is `hook install`: 0 when both hooks are declared (or printed), 1
-// when an entry under itos's name that does not call itos stood in the way
-// and --force was not given, 3 when this git runs no hook its config
-// declares (hooks.Declare). Its lines go to stdout, to stderr under --json.
+// install is `hook install`: 0 when both hooks are declared, or on a git
+// that runs no hook its config declares written as hook files (or
+// printed), 1 when an entry under itos's name that does not call itos stood
+// in the way and --force was not given, or a hooks folder inside the work
+// tree (hooks.Declare). Its lines go to stdout, to stderr under --json.
 func (h Handler) install(ctx context.Context, q Query, o Out) (Answer, error) {
 	cfg, err := h.ports.LoadConfig(ctx)
 	if err != nil {

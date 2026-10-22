@@ -2,7 +2,8 @@
 // <file>` and `hook pre-push <remote> <url>`, the two entry points git runs
 // (hooks.ts, commit-data.ts, commit-scope.ts, commit.ts, commit-tasks.ts and
 // pre-push.ts), and `hook install`, which declares them in the clone's git
-// config (internal/engine/hooks, whose doc says how). Its CLI and Run are
+// config, or on an older git writes them as hook files
+// (internal/engine/hooks, whose doc says how). Its CLI and Run are
 // the command line, its Query and Handler the application. Claude Code's
 // entry point is `guard claude-code`, in a group of its own since v6.0.0.
 //
@@ -74,8 +75,8 @@
 //
 // Handle reaches the world through Ports, which the slice owns and
 // internal/cli binds: the repository (the VCS port, git behind it), its
-// trees, its git config (hooks.Git), the config loaded from the working
-// tree, the working tree's files, config check's task flags and the
-// config's shell. A rejection is in Handle's Answer, which Run prints;
+// trees, its git config and hooks folder (hooks.Ports), the config loaded
+// from the working tree, the working tree's files, config check's task
+// flags and the config's shell. A rejection is in Handle's Answer, which Run prints;
 // what the rules run writes as it runs.
 package hook

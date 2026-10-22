@@ -19,10 +19,13 @@ func runPush(args []string, o Out) (int, error) {
 	return c.Run(context.Background(), o.Stdout, o.Stderr, push.NewHandler(pushPorts{}))
 }
 
-// pushPorts are the push slice's ports over the real code: git, the config
-// file's presence, the stealth check of its path, its load and ci.watch's
-// provider.
-type pushPorts struct{ vcs.Git }
+// pushPorts are the push slice's ports over the real code: git, the hooks
+// folder's files, the config file's presence, the stealth check of its
+// path, its load and ci.watch's provider.
+type pushPorts struct {
+	vcs.Git
+	hookFiles
+}
 
 // ConfigFound is whether configPath() is there.
 func (pushPorts) ConfigFound(context.Context) bool { return exists(configPath()) }

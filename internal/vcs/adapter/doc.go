@@ -35,7 +35,8 @@
 //
 // Beside the port, Git holds what is git's alone: the git config (Config,
 // SetConfig, AddConfig), whether git runs the hooks its config declares
-// (ConfigHooksRun, git 2.54.0 on) and its Version, and a draft's patch
+// (ConfigHooksRun, git 2.54.0 on) and its Version, the folder it runs hook
+// files from where it does not (HooksPath), and a draft's patch
 // plumbing (TreeEntries, Blob, Scratch, PatchFiles, Apply). Its tests run
 // porttest.VCSContract in temporary repositories, with no git setting from
 // outside and no repository above.

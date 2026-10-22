@@ -237,8 +237,15 @@ project's business and itos writes none of them. Run it once in each clone.
 `itos commit`, `itos push`, the git shim's `git commit` and `git push`, and
 the commands that commit the work registry refuse, exit 3, where git would
 run none of itos's checks: no hook of itos's declared (run `itos hook
-install`), or a git older than 2.54.0, the first that runs the hooks its
-config declares (upgrade git). A project that called `itos hook commit-msg`
+install`). A git older than 2.54.0, the first that runs the hooks its config
+declares, gets hook files instead: `hook install` writes `commit-msg` and
+`pre-push` into the folder git runs hooks from (`git rev-parse --git-path
+hooks`, which follows `core.hooksPath`), keeping a hook already there as
+`<event>.before-itos`, which runs first; a hooks folder inside the work tree
+(`core.hooksPath` naming `.husky`, say) is the project's, and `hook install`
+writes nothing there, naming the line to add to each hook file. On such a
+git the commands above refuse unless that folder's hook file calls itos. A
+project that called `itos hook commit-msg`
 or `itos hook pre-push` from its hook manager's files takes those lines out,
 or the checks run twice, and drops `hooks.manager` from its config, which
 v6.0.0 refuses.
@@ -548,8 +555,9 @@ commits a push adds and you have no CI of the project's to judge them. Git
 project's own in `core.hooksPath` or `.git/hooks`, so the project's hooks and
 settings stay as they are, both run on every commit, and a hook manager that
 resets `core.hooksPath` cannot remove itos's. Running it again changes
-nothing. An older git, which does not run them, makes `hook install` say so
-and exit 3. If an earlier `hook install` wrote shims into `.git/hooks`,
+nothing. On an older git, which does not run them, `hook install` writes
+hook files into `.git/hooks` (or `core.hooksPath`'s folder) instead, keeping
+and running first any hook there. If an earlier `hook install` wrote shims into `.git/hooks`,
 delete them, or the hooks run twice; if your config named another
 `hooks.bin`, run `itos hook install` again so its hooks call `itos`.
 

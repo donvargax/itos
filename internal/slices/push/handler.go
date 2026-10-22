@@ -26,15 +26,16 @@ type Query struct {
 }
 
 // Ports are what push reaches the world through, which internal/cli binds:
-// the repository (the VCS port) and its git config (hooks.Git, which
-// declares itos's pre-push hook, and gitrun.Config, the notes' rewriting);
+// the repository (the VCS port), its git config and hooks folder
+// (hooks.Ports, which hold itos's pre-push hook, and gitrun.Config, the
+// notes' rewriting);
 // ConfigFound, whether there is a config file, itos being set up; Stealth,
 // whether the config is the stealth one; LoadConfig, the config, loaded from
 // the working tree; and Watcher, ci.watch's provider for cfg, for a commit
 // pushed to remote, ok false when it is none.
 type Ports interface {
 	vcsport.VCS
-	hooks.Git
+	hooks.Ports
 	gitrun.Config
 	ConfigFound(ctx context.Context) bool
 	Stealth(ctx context.Context) bool

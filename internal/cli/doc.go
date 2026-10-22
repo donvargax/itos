@@ -108,9 +108,10 @@
 // hook is the hook slice (internal/slices/hook); hook.go binds its Ports to
 // git, the trees it holds, loadConfig, the working tree, ungroupedTaskFlags
 // and the config's shell, and install.go keeps hookInstall, which init
-// runs. itos's hooks in the git config are internal/engine/hooks's, whose
-// doc says how: gitconfig.go binds it to the git adapter for the commands
-// that commit or push (hooksReady, hooksPathSet).
+// runs. itos's hooks in the git config, or in the hooks folder on an older
+// git, are internal/engine/hooks's, whose doc says how: gitconfig.go binds
+// it to the git adapter and the hooks folder's files on the OS (hookFiles)
+// for the commands that commit or push (hooksReady, hooksPathSet).
 //
 // # CI
 //

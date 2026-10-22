@@ -228,16 +228,45 @@ func TestDeclareHooksOldGit(t *testing.T) {
 	t.Setenv("PATH", bin+string(os.PathListSeparator)+os.Getenv("PATH"))
 	// A run under itos (a hook's) names the real git, which would win.
 	t.Setenv(git.EnvGit, "")
-	code, _, stderr := run("hook", "install")
-	if code != ExitMissing || !strings.Contains(stderr, "git 2.30.0 runs no hook its config declares") ||
-		!strings.Contains(stderr, "upgrade git to "+configHooksSince) {
-		t.Errorf("exit %d, stderr %q", code, stderr)
-	}
 	if err := hooksReady("commit-msg"); kind.Of(err) != kind.Missing ||
-		!strings.Contains(err.Error(), configHooksSince) {
+		!strings.Contains(err.Error(), "git 2.30.0 runs no hook its config declares, and no hook file in .git/hooks") {
 		t.Errorf("ready with an old git: %v", err)
+	}
+	kept := filepath.Join(".git", "hooks", "pre-push")
+	if err := os.WriteFile(kept, []byte("#!/bin/sh\nexit 0\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	code, stdout, stderr := run("hook", "install")
+	if code != 0 || !strings.Contains(stdout, "written .git/hooks/commit-msg") ||
+		!strings.Contains(stdout, "replaced .git/hooks/pre-push") {
+		t.Errorf("exit %d\n%s%s", code, stdout, stderr)
+	}
+	if err := hooksReady(hookEvents...); err != nil {
+		t.Errorf("ready with itos's hook files: %v", err)
+	}
+	if text, err := os.ReadFile(kept + ".before-itos"); err != nil || string(text) != "#!/bin/sh\nexit 0\n" {
+		t.Errorf("the kept hook: %q, %v", text, err)
+	}
+	if info, err := os.Stat(kept); err != nil || runtime.GOOS != "windows" && info.Mode().Perm()&0o100 == 0 {
+		t.Errorf("itos's pre-push hook is not executable: %v", err)
 	}
 	if got := localConfig(t, "hook.itos-commit-msg.command"); got != "" {
 		t.Errorf("declared anyway: %q", got)
+	}
+}
+
+// A hook file that cannot be written, its folder under a file or the file
+// a folder, is hookFiles' error.
+func TestHookFilesWriteFails(t *testing.T) {
+	dir := t.TempDir()
+	file := filepath.Join(dir, "file")
+	if err := os.WriteFile(file, nil, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := (hookFiles{}).WriteHookFile(t.Context(), filepath.Join(file, "commit-msg"), "x"); err == nil {
+		t.Error("a folder under a file: no error")
+	}
+	if err := (hookFiles{}).WriteHookFile(t.Context(), dir, "x"); err == nil {
+		t.Error("a file that is a folder: no error")
 	}
 }

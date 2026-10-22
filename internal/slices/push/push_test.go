@@ -6,6 +6,8 @@ import (
 	"errors"
 	"io"
 	"maps"
+	"os"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
@@ -36,22 +38,23 @@ const (
 // how git talks are recorded.
 type fake struct {
 	*vcsfake.VCS
-	found    bool
-	cfg      *config.Loaded
-	loadErr  error
-	stealth  bool
-	git      map[string][]string
-	addErr   error
-	oldGit   bool
-	watcher  providers.Watcher
-	watchOK  bool
-	watchErr error
-	fetchErr error
-	refsErr  error
-	pushErr  error
-	rebase   func() error
-	pushed   [][]string
-	talk     vcsport.Talk
+	found     bool
+	cfg       *config.Loaded
+	loadErr   error
+	stealth   bool
+	git       map[string][]string
+	addErr    error
+	oldGit    bool
+	hookFiles map[string]string
+	watcher   providers.Watcher
+	watchOK   bool
+	watchErr  error
+	fetchErr  error
+	refsErr   error
+	pushErr   error
+	rebase    func() error
+	pushed    [][]string
+	talk      vcsport.Talk
 }
 
 func (f *fake) ConfigFound(context.Context) bool { return f.found }
@@ -82,6 +85,25 @@ func (f *fake) AddConfig(_ context.Context, key, value string) error {
 func (f *fake) ConfigHooksRun(context.Context) bool { return !f.oldGit }
 
 func (f *fake) Version(context.Context) string { return "2.53.0" }
+
+// The hooks folder is .git/hooks, holding hookFiles.
+func (f *fake) HooksPath(context.Context) (string, error) { return filepath.Join(".git", "hooks"), nil }
+
+func (f *fake) HookFile(_ context.Context, path string) (string, error) {
+	text, ok := f.hookFiles[filepath.ToSlash(path)]
+	if !ok {
+		return "", os.ErrNotExist
+	}
+	return text, nil
+}
+
+func (f *fake) WriteHookFile(context.Context, string, string) error {
+	return errors.New("no hook file is written")
+}
+
+func (f *fake) MoveHookFile(context.Context, string, string) error {
+	return errors.New("no hook file is moved")
+}
 
 func (f *fake) Fetch(ctx context.Context, remote, refspec string, talk vcsport.Talk) (string, error) {
 	if f.fetchErr != nil {
@@ -302,12 +324,18 @@ func TestPushRefusesWhereTheHookWouldNotRun(t *testing.T) {
 	}
 	f = repo(t)
 	f.oldGit = true
-	if code, _, stderr, _ := call(t, f, "--no-wait"); code != missing || !strings.Contains(stderr, "upgrade git to ") {
+	if code, _, stderr, _ := call(t, f, "--no-wait"); code != missing || !strings.Contains(stderr, "itos hook install") {
 		t.Errorf("an old git: exit %d\n%s", code, stderr)
 	}
 	f.found = false
 	if code, stdout, stderr, _ := call(t, f, "--no-wait"); code != 0 || !strings.HasPrefix(stdout, "Pushed ") {
 		t.Errorf("no config: exit %d\n%s%s", code, stdout, stderr)
+	}
+	f = repo(t)
+	f.oldGit = true
+	f.hookFiles = map[string]string{".git/hooks/pre-push": "#!/bin/sh\nitos hook pre-push \"$@\"\n"}
+	if code, stdout, stderr, _ := call(t, f, "--no-wait"); code != 0 || !strings.HasPrefix(stdout, "Pushed ") {
+		t.Errorf("an old git with itos's hook file: exit %d\n%s%s", code, stdout, stderr)
 	}
 }
 
