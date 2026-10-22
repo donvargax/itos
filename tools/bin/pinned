@@ -1,10 +1,11 @@
 #!/bin/sh
 # pinned: runs a release tool at the version pinned here, fetched once into
-# .tools/<tool>-<version>/ (ignored by git) from its GitHub release and checked
-# against the SHA-256 written below before it is unpacked, so the machine's
-# own copy, whatever its version, never decides what runs, and a replaced
-# release asset is refused. The release workflow and its self-tests run them
-# through this script alone (T-069).
+# <git common dir>/itos/tools/<tool>-<version>/, which every worktree of the
+# clone shares (T-221), or .tools/<tool>-<version>/ outside a git repository,
+# from its GitHub release and checked against the SHA-256 written below before
+# it is unpacked, so the machine's own copy, whatever its version, never
+# decides what runs, and a replaced release asset is refused. The release
+# workflow and its self-tests run them through this script alone (T-069).
 #
 #   tools/bin/pinned goreleaser <args>…   GoReleaser, which builds, packs and
 #                                         publishes a release (.goreleaser.yaml)
@@ -134,13 +135,24 @@ golangci-lint)
 *) die "no pinned tool named $tool (goreleaser, git-cliff, itos-cc, dprint, golangci-lint)" ;;
 esac
 
-dir=$root/.tools/$tool-$version
+# The checkout's own clone, whatever repository a caller's GIT_ variables name.
+cache=$root/.tools
+if common=$(cd -- "$root" && unset GIT_DIR GIT_COMMON_DIR GIT_WORK_TREE && git rev-parse --git-common-dir 2>/dev/null) &&
+	common=$(cd -- "$root" && cd -- "$common" && pwd); then
+	cache=$common/itos/tools
+fi
+dir=$cache/$tool-$version
 bin=$dir/$tool${exe-}
 if [ ! -x "$bin" ]; then
 	command -v curl >/dev/null 2>&1 || die "curl is not on the PATH, to fetch $tool $version"
 	if command -v sha256sum >/dev/null 2>&1; then check="sha256sum -c -"; else check="shasum -a 256 -c -"; fi
-	tmp=$(mktemp -d)
+	mkdir -p "$dir" || die "cannot make $dir"
+	# Fetched beside the cache, on its file system, and renamed into place last: a fetch cut
+	# short leaves no binary to run, and two worktrees fetching at once each rename a whole,
+	# checked binary over the other's.
+	tmp=$(mktemp -d "$cache/.fetch.XXXXXX") || die "cannot make a folder in $cache"
 	trap 'rm -rf "$tmp"' EXIT
+	trap 'exit 2' INT TERM
 	curl -fsSL -o "$tmp/$asset" "$url" || die "cannot fetch $url"
 	(cd "$tmp" && echo "$sum  $asset" | $check >/dev/null) ||
 		die "$asset is not the one pinned: its SHA-256 is not $sum"
@@ -151,11 +163,11 @@ if [ ! -x "$bin" ]; then
 		;;
 	*) tar -xzf "$tmp/$asset" -C "$tmp" "$member" || die "$asset holds no $member" ;;
 	esac
-	mkdir -p "$dir"
-	# Moved into place last, so a fetch cut short leaves no binary to run.
-	mv -f "$tmp/$member" "$bin.$$" && chmod +x "$bin.$$" && mv -f "$bin.$$" "$bin"
+	chmod +x "$tmp/$member" || die "cannot make $member executable"
+	# Windows refuses to replace an .exe that is running: another fetch's binary is as good.
+	mv -f "$tmp/$member" "$bin" || [ -x "$bin" ] || die "cannot move $tool into $dir"
 	rm -rf "$tmp"
-	trap - EXIT
+	trap - EXIT INT TERM
 fi
 if [ -n "$print" ]; then
 	echo "$bin"
