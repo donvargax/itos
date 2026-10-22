@@ -7,5 +7,6 @@
 // moves it over, so a reader in another worktree never sees half of it and
 // a crash leaves the old file or the new; Hold is internal/lock's lock file;
 // NotIgnored asks git check-ignore. internal/cli binds it to the slices'
-// ports; its tests run porttest.StoreContract, as the fake's do.
+// ports, and holds itos draft's list through its Hold; its tests run
+// porttest.StoreContract, as the fake's do.
 package adapter

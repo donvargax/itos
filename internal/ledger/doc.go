@@ -36,5 +36,7 @@
 // writes a file's first task). WithoutChecks is the ledger with a task's
 // done_when cut, in place with value.Doc's Drop, for itos work done (slice
 // 101): a task's checks gate its close, then leave the ledger, its why
-// staying and git's history keeping them.
+// staying and git's history keeping them. Both read the file they edit
+// through the Load they are handed, the tracker store's (internal/cli binds
+// it), the rest of the ledger through the config's source.
 package ledger

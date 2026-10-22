@@ -5,6 +5,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -181,7 +182,7 @@ func TestPromotedTaskNeedsAGroupAndAWhy(t *testing.T) {
 		{value.NewMap("id", "p1-idea", "title", "Idea", "phase", 1.0), "Given.", ""},
 	} {
 		p.why = c.why
-		n, _, found, err := promotedTask(cfg, registry, c.idea, p)
+		n, _, found, err := promotedTask(cfg, registry, c.idea, p, tracker(cfg, runtime.GOOS).Load)
 		switch {
 		case err != nil:
 			t.Errorf("promotedTask(%v) error: %v", c.idea, err)

@@ -32,8 +32,9 @@
 // folder, since itos decision record writes it whole at every record and
 // nothing regenerates it on demand.
 //
-// The functions here are text in, text out, but for List and Next, which
-// read the folder, List through the tree it is handed so that the commit-msg
-// hook reads the records as staged (a folder that is not there holds none);
-// internal/cli/ask.go writes and commits.
+// The functions here are text in, text out, but for List, which reads the
+// folder through the tree it is handed so that the commit-msg hook reads the
+// records as staged (a folder that is not there holds none). Next is handed
+// the folder's names, which internal/cli/ask.go lists through the tracker
+// store, as it writes and commits.
 package adr

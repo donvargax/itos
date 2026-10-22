@@ -261,7 +261,7 @@ func statusOf(cfg *config.Loaded, as string, o Out) (*standing, []out.Problem, i
 		st.Next = append(st.Next, item)
 	}
 	st.More = len(next) - len(st.Next)
-	asks, _, _, err := loadAsks(cfg)
+	asks, _, _, err := loadAsks(cfg, tracker(cfg, o.OS))
 	if err != nil {
 		st.unread(fmt.Sprintf("The questions cannot be read: %s", err))
 	}

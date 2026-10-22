@@ -554,8 +554,8 @@
 // (message.Wrap), so no line reads as a footer or a comment: a Task: footer
 // on a take would make CI run the task's checks before its work exists.
 // Under a stealth config the registry is in the git folder, tracked by
-// nothing: written under its lock (internal/lock), nothing committed, and
-// --json's commit null. writeCommitted is the same for several files.
+// nothing: written under its lock (the tracker's Hold), nothing committed,
+// and --json's commit null. writeCommitted is the same for several files.
 //
 //   - work take (workwrite.go) and work promote (workpromote.go) call
 //     work.Take and work.Promote; take's person is Whoami's, nobody or one

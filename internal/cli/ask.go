@@ -22,9 +22,7 @@ package cli
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"io/fs"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -35,8 +33,8 @@ import (
 	"github.com/donvargax/itos/v8/internal/adr"
 	"github.com/donvargax/itos/v8/internal/ask"
 	"github.com/donvargax/itos/v8/internal/config"
-	"github.com/donvargax/itos/v8/internal/lock"
 	"github.com/donvargax/itos/v8/internal/out"
+	trackerport "github.com/donvargax/itos/v8/internal/store/tracker/port"
 	"github.com/donvargax/itos/v8/internal/value"
 	"github.com/donvargax/itos/v8/internal/work"
 )
@@ -100,43 +98,38 @@ func decisionOf(q ask.Question) string {
 	return "decision " + q.Decision
 }
 
-// loadAsks is the questions in the config's work.asks, the file's text and
-// whether it is there: none, "" and false when it is not.
-func loadAsks(cfg *config.Loaded) (ask.File, string, bool, error) {
-	raw, err := os.ReadFile(cfg.Work.Asks)
-	if errors.Is(err, fs.ErrNotExist) {
-		return ask.File{}, "", false, nil
-	}
+// loadAsks is the questions in the config's work.asks, as the tracker t
+// loads them, the file's text and whether it is there: none, "" and false
+// when it is not.
+func loadAsks(cfg *config.Loaded, t trackerport.Tracker) (ask.File, string, bool, error) {
+	docs, err := t.Load(context.Background(), []string{cfg.Work.Asks})
 	if err != nil {
 		return ask.File{}, "", false, err
 	}
-	f, err := ask.Parse(cfg.Work.Asks, string(raw))
-	return f, string(raw), true, err
+	if !docs[0].There {
+		return ask.File{}, "", false, nil
+	}
+	text := docs[0].Text
+	f, err := ask.Parse(cfg.Work.Asks, text)
+	return f, text, true, err
 }
 
-// heldAsks is the config for a subcommand that writes the questions: under
-// a stealth config with the registry's lock taken, given back by release,
-// never nil and deferred by the caller, so the questions are read and
-// written as every stealth writer reads and writes the registry and the
-// ledger, one at a time (bug 16). A project's file takes none: its writes
-// are commits.
-func heldAsks(o Out) (cfg *config.Loaded, release func(), err error) {
+// heldAsks is the config for a subcommand that writes the questions, and
+// its tracker: under a stealth config with the registry's lock taken (the
+// tracker's Hold), given back by release, never nil and deferred by the
+// caller, so the questions are read and written as every stealth writer
+// reads and writes the registry and the ledger, one at a time (bug 16). A
+// project's file takes none: its writes are commits.
+func heldAsks(o Out) (cfg *config.Loaded, t trackerport.Tracker, release func(), err error) {
 	release = func() {}
 	if cfg, err = loadConfig(); err != nil {
-		return nil, release, err
+		return nil, nil, release, err
 	}
-	if cfg.Stealth {
-		held, err := lock.Hold(cfg.Work.Registry, o.OS)
-		if err != nil {
-			return nil, release, err
-		}
-		release = func() {
-			if err := held.Release(); err != nil {
-				fmt.Fprintf(o.Stderr, "itos: the lock cannot be given back: %s\n", err)
-			}
-		}
+	t = tracker(cfg, o.OS)
+	if release, err = holdTracker(t, o); err != nil {
+		return nil, nil, release, err
 	}
-	return cfg, release, nil
+	return cfg, t, release, nil
 }
 
 // askID is the question id a subcommand names first, checked; the arguments
@@ -226,7 +219,7 @@ func askAdd(args []string, o Out) (int, error) {
 	if text == "" {
 		return 0, usage("decision add needs <text>, the question")
 	}
-	cfg, release, err := heldAsks(o)
+	cfg, t, release, err := heldAsks(o)
 	defer release()
 	if err != nil {
 		return 0, err
@@ -241,7 +234,7 @@ func askAdd(args []string, o Out) (int, error) {
 			return refuseWork([]out.Problem{*problem}, ExitPolicy, o)
 		}
 	}
-	f, old, there, err := loadAsks(cfg)
+	f, old, there, err := loadAsks(cfg, t)
 	if err != nil {
 		return 0, err
 	}
@@ -276,12 +269,12 @@ func askAnswer(args []string, o Out) (int, error) {
 	if text == "" {
 		return 0, usage("decision answer needs <id> <text>, the answer")
 	}
-	cfg, release, err := heldAsks(o)
+	cfg, t, release, err := heldAsks(o)
 	defer release()
 	if err != nil {
 		return 0, err
 	}
-	f, old, _, err := loadAsks(cfg)
+	f, old, _, err := loadAsks(cfg, t)
 	if err != nil {
 		return 0, err
 	}
@@ -307,12 +300,12 @@ func askAnswer(args []string, o Out) (int, error) {
 }
 
 // readAsks is the config and the questions, for a subcommand that reads.
-func readAsks() (ask.File, error) {
+func readAsks(o Out) (ask.File, error) {
 	cfg, err := loadConfig()
 	if err != nil {
 		return ask.File{}, err
 	}
-	f, _, _, err := loadAsks(cfg)
+	f, _, _, err := loadAsks(cfg, tracker(cfg, o.OS))
 	return f, err
 }
 
@@ -335,7 +328,7 @@ func askShow(args []string, o Out) (int, error) {
 	if len(rest) > 0 {
 		return 0, usage("decision show takes one <id>, not %s", strings.Join(rest, " "))
 	}
-	f, err := readAsks()
+	f, err := readAsks(o)
 	if err != nil {
 		return 0, err
 	}
@@ -363,7 +356,7 @@ func askShow(args []string, o Out) (int, error) {
 // askList is `decision [--all]`: the open questions, or with --all every one, the
 // answered ones after them, each with its answer.
 func askList(all bool, o Out) (int, error) {
-	f, err := readAsks()
+	f, err := readAsks(o)
 	if err != nil {
 		return 0, err
 	}
@@ -472,12 +465,12 @@ func askRecord(args []string, o Out) (int, error) {
 	case !none && adr.Slug(title) == "":
 		return 0, usage("decision record --title needs a letter or a digit, which the record's file is named by")
 	}
-	cfg, release, err := heldAsks(o)
+	cfg, t, release, err := heldAsks(o)
 	defer release()
 	if err != nil {
 		return 0, err
 	}
-	f, old, _, err := loadAsks(cfg)
+	f, old, _, err := loadAsks(cfg, t)
 	if err != nil {
 		return 0, err
 	}
@@ -515,10 +508,12 @@ func askRecord(args []string, o Out) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	n, err := adr.Next(dir)
+	ctx := context.Background()
+	names, err := t.List(ctx, dir)
 	if err != nil {
 		return 0, err
 	}
+	n := adr.Next(names)
 	context := strings.TrimSpace(q.Question) + "\n\nAsked as " + id
 	if q.Item != "" {
 		context += ", about " + q.Item
@@ -549,13 +544,13 @@ func askRecord(args []string, o Out) (int, error) {
 	}
 	files[1].text = record.Text
 	index := filepath.Join(dir, adr.IndexName)
-	before, err := os.ReadFile(index)
-	there := err == nil
-	if err != nil && !errors.Is(err, fs.ErrNotExist) {
+	docs, err := t.Load(ctx, []string{index})
+	if err != nil {
 		return 0, err
 	}
-	files = append(files, written{path: index, old: string(before), text: adr.Index(string(before), append(records, record)),
-		created: !there, rule: "decision-index-uncommitted"})
+	before := docs[0]
+	files = append(files, written{path: index, old: before.Text, text: adr.Index(before.Text, append(records, record)),
+		created: !before.There, rule: "decision-index-uncommitted"})
 	q.Decision = strconv.Itoa(n)
 	files[0].text = ask.Text(f)
 	made, err := madeDirs(dir)

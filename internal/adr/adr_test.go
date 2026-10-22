@@ -134,15 +134,15 @@ func TestSlug(t *testing.T) {
 // The next number is past the highest name, the records listed by number.
 func TestListNext(t *testing.T) {
 	dir := filepath.Join(t.TempDir(), "docs/decisions")
-	if n, err := Next(dir); err != nil || n != 1 {
-		t.Errorf("next in no folder: %d, %v", n, err)
+	if n := Next(nil); n != 1 {
+		t.Errorf("next in no folder: %d", n)
 	}
 	write(t, filepath.Join(dir, "0007-use-go.md"), "# Use Go\n")
 	write(t, filepath.Join(dir, "0010-later.md"), "---\nstatus: accepted\n---\n\n# Later\n")
 	write(t, filepath.Join(dir, "README.md"), "index\n")
 	write(t, filepath.Join(dir, "0012-notes.txt"), "not a record\n")
-	if n, err := Next(dir); err != nil || n != 13 {
-		t.Errorf("next: %d, %v", n, err)
+	if n := Next([]string{"0007-use-go.md", "0010-later.md", "0012-notes.txt", "README.md"}); n != 13 {
+		t.Errorf("next: %d", n)
 	}
 	records, err := List(adapter.Worktree, dir)
 	if err != nil || len(records) != 2 || records[0].Number != 7 || records[1].Title() != "Later" {

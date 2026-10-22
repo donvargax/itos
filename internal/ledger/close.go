@@ -1,8 +1,9 @@
 package ledger
 
 import (
+	"context"
 	"fmt"
-	"os"
+	"io/fs"
 
 	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/value"
@@ -23,18 +24,22 @@ type Edited struct {
 // quote kept, a block task's or a flow one's, the file's line breaks as they
 // were. The task's why, its spec, stays. ok is false, with nothing to write,
 // when no ledger file has the task or the task has no checks (no done_when,
-// or an empty one).
-func WithoutChecks(cfg *config.Loaded, id string) (edited Edited, ok bool, err error) {
+// or an empty one). Each file is read by load, as it will be written; one
+// gone since Files listed it is an error.
+func WithoutChecks(cfg *config.Loaded, id string, load Load) (edited Edited, ok bool, err error) {
 	files, err := Files(cfg)
 	if err != nil {
 		return Edited{}, false, err
 	}
 	for _, f := range files {
-		raw, err := os.ReadFile(f.Path)
+		docs, err := load(context.Background(), []string{f.Path})
+		if err == nil && !docs[0].There {
+			err = &fs.PathError{Op: "open", Path: f.Path, Err: fs.ErrNotExist}
+		}
 		if err != nil {
 			return Edited{}, false, err
 		}
-		text := string(raw)
+		text := docs[0].Text
 		tasks, err := value.Parse(text)
 		if err != nil {
 			return Edited{}, false, fmt.Errorf("%s: %w", f.Path, err)

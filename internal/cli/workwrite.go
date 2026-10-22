@@ -11,8 +11,8 @@ package cli
 // header and body the change gives. Under a stealth config the registry is
 // in the git folder, tracked by nothing, so it is written and nothing is
 // committed; and since every linked worktree writes the same files there,
-// soundRegistry takes the registry's lock (internal/lock) before it reads,
-// held until the command's write is done (bug 16).
+// soundRegistry takes the registry's lock (the tracker store's Hold) before
+// it reads, held until the command's write is done (bug 16).
 
 import (
 	"context"
@@ -23,7 +23,6 @@ import (
 	"strings"
 
 	"github.com/donvargax/itos/v8/internal/config"
-	"github.com/donvargax/itos/v8/internal/lock"
 	"github.com/donvargax/itos/v8/internal/message"
 	"github.com/donvargax/itos/v8/internal/out"
 	"github.com/donvargax/itos/v8/internal/providers"
@@ -135,16 +134,9 @@ func soundRegistry(o Out) (cfg *config.Loaded, registry work.Registry, text stri
 	if cfg, err = loadConfig(); err != nil {
 		return nil, work.Registry{}, "", release, 0, err
 	}
-	if cfg.Stealth {
-		held, err := lock.Hold(cfg.Work.Registry, o.OS)
-		if err != nil {
-			return nil, work.Registry{}, "", release, 0, err
-		}
-		release = func() {
-			if err := held.Release(); err != nil {
-				fmt.Fprintf(o.Stderr, "itos: the lock cannot be given back: %s\n", err)
-			}
-		}
+	t := tracker(cfg, o.OS)
+	if release, err = holdTracker(t, o); err != nil {
+		return nil, work.Registry{}, "", release, 0, err
 	}
 	found, err := work.Problems(cfg)
 	if err != nil {
@@ -155,15 +147,14 @@ func soundRegistry(o Out) (cfg *config.Loaded, registry work.Registry, text stri
 		return nil, work.Registry{}, "", release, code, err
 	}
 	file := cfg.Work.Registry
-	raw, err := os.ReadFile(file)
-	if err != nil {
+	if text, err = trackedText(t, file); err != nil {
 		return nil, work.Registry{}, "", release, 0, err
 	}
 	registry, err = work.Load(cfg, file)
 	if err != nil {
 		return nil, work.Registry{}, "", release, 0, err
 	}
-	return cfg, registry, string(raw), release, 0, nil
+	return cfg, registry, text, release, 0, nil
 }
 
 // uncommitted is the problem of a file a command writes and commits that

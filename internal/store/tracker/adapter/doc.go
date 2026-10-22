@@ -25,6 +25,9 @@
 // with another exit than the step that asks (bug-119). Hold is
 // internal/lock's lock of Lock under a stealth config, where every linked
 // worktree writes the same files, else at once: a project's commits are
-// ordered by git's index lock. internal/cli binds Files (tracker.go); its
-// tests run porttest.TrackerContract, as the fake's do.
+// ordered by git's index lock: the one lock (Lock, the registry's) covers
+// every document, so a writer of the questions holds it as the registry's
+// writers do. internal/cli binds Files (tracker.go) and reads through it the
+// documents it writes, the ledger handed its Load; its tests run
+// porttest.TrackerContract, as the fake's do.
 package adapter

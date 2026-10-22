@@ -102,7 +102,7 @@ func workShow(args []string, o Out) (int, error) {
 		}
 		commits = belonging(cfg, id, scenarios, history)
 	}
-	asks, _, _, err := loadAsks(cfg)
+	asks, _, _, err := loadAsks(cfg, tracker(cfg, o.OS))
 	if err != nil {
 		return 0, err
 	}

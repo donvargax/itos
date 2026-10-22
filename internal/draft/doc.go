@@ -18,6 +18,7 @@
 // The package reads and writes the list, whole and with typed structs (Load
 // refuses what itos did not write; Save writes beside it and moves it over).
 // The command line (internal/cli/draft.go) makes and applies the patches,
-// with git, and holds the list's lock (internal/lock) across every
-// read-change-write, promote included, so a draft is never applied twice.
+// with git, and holds the list's lock (the private store's Hold) across
+// every read-change-write, promote included, so a draft is never applied
+// twice.
 package draft

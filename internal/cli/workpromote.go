@@ -20,6 +20,7 @@ import (
 	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/ledger"
 	"github.com/donvargax/itos/v8/internal/out"
+	trackerport "github.com/donvargax/itos/v8/internal/store/tracker/port"
 	"github.com/donvargax/itos/v8/internal/value"
 	"github.com/donvargax/itos/v8/internal/work"
 )
@@ -58,7 +59,8 @@ func workPromote(args []string, o Out) (int, error) {
 	if problem != nil {
 		return refuseWork([]out.Problem{*problem}, ExitPolicy, o)
 	}
-	asks, old, problem, err := promotionAsks(cfg, p.id)
+	t := tracker(cfg, o.OS)
+	asks, old, problem, err := promotionAsks(cfg, t, p.id)
 	if err != nil {
 		return 0, err
 	}
@@ -73,7 +75,7 @@ func workPromote(args []string, o Out) (int, error) {
 	if p.kind == "task" {
 		var added ledger.Added
 		var found []out.Problem
-		if task, added, found, err = promotedTask(cfg, registry, idea, p); err != nil || len(found) > 0 {
+		if task, added, found, err = promotedTask(cfg, registry, idea, p, t.Load); err != nil || len(found) > 0 {
 			return stopped(found, err, o)
 		}
 		files = append([]written{{path: added.Path, old: added.Old, created: added.Created}}, files...)
@@ -101,7 +103,7 @@ func workPromote(args []string, o Out) (int, error) {
 	if p.kind == "task" {
 		task.ID = newID
 		var found []out.Problem
-		if added, found, err = ledger.Add(cfg, task); err != nil || len(found) > 0 {
+		if added, found, err = ledger.Add(cfg, task, t.Load); err != nil || len(found) > 0 {
 			return stopped(found, err, o)
 		}
 		files[0].text = added.Text
@@ -162,8 +164,8 @@ func anys(names []string) []any {
 // an id is minted; an empty file when it is not there. The problem, which
 // refuses the promote, is a file that cannot be read as itos decision writes
 // it.
-func promotionAsks(cfg *config.Loaded, id string) (ask.File, string, *out.Problem, error) {
-	f, old, there, err := loadAsks(cfg)
+func promotionAsks(cfg *config.Loaded, t trackerport.Tracker, id string) (ask.File, string, *out.Problem, error) {
+	f, old, there, err := loadAsks(cfg, t)
 	if err != nil && there {
 		return ask.File{}, "", &out.Problem{
 			Rule:    "asks-invalid",
@@ -181,7 +183,7 @@ func promotionAsks(cfg *config.Loaded, id string) (ask.File, string, *out.Proble
 // cannot name. The task is the idea's group, its title and why unless the
 // line gives others, and the line's type and checks; an idea with no group
 // or no why, and no --why, is refused too.
-func promotedTask(cfg *config.Loaded, registry work.Registry, idea *value.Map, p promotion) (ledger.NewTask, ledger.Added, []out.Problem, error) {
+func promotedTask(cfg *config.Loaded, registry work.Registry, idea *value.Map, p promotion, load ledger.Load) (ledger.NewTask, ledger.Added, []out.Problem, error) {
 	refuse := func(rule, message, fix string) (ledger.NewTask, ledger.Added, []out.Problem, error) {
 		return ledger.NewTask{}, ledger.Added{}, []out.Problem{{Rule: rule, Message: message, Fix: fix}}, nil
 	}
@@ -211,7 +213,7 @@ func promotedTask(cfg *config.Loaded, registry work.Registry, idea *value.Map, p
 	if n.ID, err = ledger.NextID(cfg, itemIDs(registry)); err != nil {
 		return ledger.NewTask{}, ledger.Added{}, nil, err
 	}
-	added, found, err := ledger.Add(cfg, n)
+	added, found, err := ledger.Add(cfg, n, load)
 	return n, added, found, err
 }
 

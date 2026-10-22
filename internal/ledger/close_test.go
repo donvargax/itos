@@ -1,14 +1,24 @@
 package ledger
 
 import (
+	"context"
+	"errors"
+	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/donvargax/itos/v8/internal/config"
+	trackeradapter "github.com/donvargax/itos/v8/internal/store/tracker/adapter"
+	trackerport "github.com/donvargax/itos/v8/internal/store/tracker/port"
 	"github.com/donvargax/itos/v8/internal/store/tree/adapter"
 	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
 )
+
+// disk is the tracker's Load from the disk, as internal/cli binds it.
+var disk = trackeradapter.Files{}.Load
 
 // A ledger in a scratch folder, its files written, and its config loaded.
 func scratchLedger(t *testing.T, files map[string]string) *config.Loaded {
@@ -61,7 +71,7 @@ func TestWithoutChecks(t *testing.T) {
 				files["tasks/phase-1.yaml"] = "- { id: T-001, type: docs, title: One, done_when: [{ run: \"true\" }] }\n"
 			}
 			cfg := scratchLedger(t, files)
-			edited, ok, err := WithoutChecks(cfg, c.id)
+			edited, ok, err := WithoutChecks(cfg, c.id, disk)
 			if err != nil || !ok {
 				t.Fatalf("ok %v, err %v", ok, err)
 			}
@@ -82,7 +92,7 @@ func TestWithoutChecksNone(t *testing.T) {
 		"tasks/phase-1.yaml": "- { id: T-001, type: docs, title: One }\n- { id: T-002, type: docs, title: Two, done_when: [] }\n",
 	})
 	for _, id := range []string{"T-001", "T-002", "T-404"} {
-		if edited, ok, err := WithoutChecks(cfg, id); ok || err != nil || edited != (Edited{}) {
+		if edited, ok, err := WithoutChecks(cfg, id, disk); ok || err != nil || edited != (Edited{}) {
 			t.Errorf("%s: %+v, %v, %v", id, edited, ok, err)
 		}
 	}
@@ -94,7 +104,27 @@ func TestWithoutChecksUneditable(t *testing.T) {
 	cfg := scratchLedger(t, map[string]string{
 		"tasks/phase-1.yaml": "- done_when: [{ run: \"true\" }]\n  id: T-001\n  type: docs\n  title: One\n",
 	})
-	if _, ok, err := WithoutChecks(cfg, "T-001"); ok || err == nil {
+	if _, ok, err := WithoutChecks(cfg, "T-001", disk); ok || err == nil {
 		t.Errorf("ok %v, err %v", ok, err)
+	}
+}
+
+// A file load cannot read is load's error, and one gone since the ledger
+// was listed an error naming it as not there, nothing to write.
+func TestWithoutChecksUnread(t *testing.T) {
+	cfg := scratchLedger(t, map[string]string{
+		"tasks/phase-1.yaml": "- { id: T-001, type: docs, title: One, done_when: [{ run: \"true\" }] }\n",
+	})
+	refused := errors.New("refused")
+	failing := func(context.Context, []string) ([]trackerport.Doc, error) { return nil, refused }
+	if edited, ok, err := WithoutChecks(cfg, "T-001", failing); ok || !errors.Is(err, refused) || edited != (Edited{}) {
+		t.Errorf("a failing load: %+v, %v, %v", edited, ok, err)
+	}
+	gone := func(_ context.Context, names []string) ([]trackerport.Doc, error) {
+		return []trackerport.Doc{{Name: names[0]}}, nil
+	}
+	edited, ok, err := WithoutChecks(cfg, "T-001", gone)
+	if ok || !errors.Is(err, fs.ErrNotExist) || !strings.Contains(fmt.Sprint(err), "tasks/phase-1.yaml") || edited != (Edited{}) {
+		t.Errorf("a file gone: %+v, %v, %v", edited, ok, err)
 	}
 }

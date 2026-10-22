@@ -38,7 +38,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
 	"slices"
 	"strings"
 
@@ -117,7 +116,7 @@ func workDone(args []string, o Out) (int, error) {
 		change.Body += " " + landing.runOf(ci.run) + " passed: " + ci.run.URL + "."
 	}
 	files := []written{{path: cfg.Work.Registry, old: text, text: change.Text}}
-	checks, err := closedChecks(cfg, id)
+	checks, err := closedChecks(cfg, id, o)
 	if err != nil {
 		return 0, err
 	}
@@ -160,7 +159,7 @@ func workDone(args []string, o Out) (int, error) {
 // commit's, "" under a stealth config, whose registry is written and not
 // committed, its lock still held.
 func unqueueDone(cfg *config.Loaded, id string, o Out) (*work.Change, string, int, error) {
-	raw, err := os.ReadFile(cfg.Work.Registry)
+	raw, err := trackedText(tracker(cfg, o.OS), cfg.Work.Registry)
 	if err != nil {
 		return nil, "", 0, err
 	}
@@ -168,14 +167,14 @@ func unqueueDone(cfg *config.Loaded, id string, o Out) (*work.Change, string, in
 	if err != nil {
 		return nil, "", 0, err
 	}
-	change, ok, err := work.Unqueue(registry, string(raw), id)
+	change, ok, err := work.Unqueue(registry, raw, id)
 	if err != nil {
 		return nil, "", 0, uneditable(cfg.Work.Registry, err)
 	}
 	if !ok {
 		return nil, "", 0, nil
 	}
-	sha, code, err := writeRegistry(cfg, string(raw), change, o)
+	sha, code, err := writeRegistry(cfg, raw, change, o)
 	if err != nil || code != 0 {
 		return nil, "", code, err
 	}
@@ -355,11 +354,11 @@ func failingTask(cfg *config.Loaded, id string, o Out) ([]out.Problem, error) {
 // registry is: nil for an item that is no task of the ledger, a config with
 // no ledger.id, or a task with no checks, whose close leaves the ledger as
 // it is.
-func closedChecks(cfg *config.Loaded, id string) (*ledger.Edited, error) {
+func closedChecks(cfg *config.Loaded, id string, o Out) (*ledger.Edited, error) {
 	if cfg.Ledger.ID == nil || !ledger.IDPattern(cfg).MatchString(id) {
 		return nil, nil
 	}
-	edited, ok, err := ledger.WithoutChecks(cfg, id)
+	edited, ok, err := ledger.WithoutChecks(cfg, id, tracker(cfg, o.OS).Load)
 	if err != nil || !ok {
 		return nil, err
 	}

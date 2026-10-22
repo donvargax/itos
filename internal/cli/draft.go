@@ -40,8 +40,8 @@ import (
 
 	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/draft"
-	"github.com/donvargax/itos/v8/internal/lock"
 	"github.com/donvargax/itos/v8/internal/out"
+	private "github.com/donvargax/itos/v8/internal/store/private/adapter"
 	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
 	vcsport "github.com/donvargax/itos/v8/internal/vcs/port"
 )
@@ -108,21 +108,23 @@ func noRepository(o Out) (int, error) {
 	return ExitMissing, nil
 }
 
-// heldDrafts is the drafts' file and its drafts, read under the file's lock,
-// which release, never nil and deferred by the caller, gives back. The file
-// is "" outside a git repository, where code is 3.
+// heldDrafts is the drafts' file and its drafts, read under the file's lock
+// (the private store's Hold of it), which release, never nil and deferred by
+// the caller, gives back. The file is "" outside a git repository, where
+// code is 3.
 func heldDrafts(o Out) (file string, drafts draft.File, release func(), code int, err error) {
 	release = func() {}
 	if file = draftsFile(); file == "" {
 		code, err = noRepository(o)
 		return "", drafts, release, code, err
 	}
-	held, err := lock.Hold(file, o.OS)
+	ctx := context.Background()
+	held, err := private.Store{OS: o.OS, VCS: vcs.Git{}}.Hold(ctx, filepath.Join(draft.Folder, draft.FileName))
 	if err != nil {
 		return "", drafts, release, 0, err
 	}
 	release = func() {
-		if err := held.Release(); err != nil {
+		if err := held.Release(ctx); err != nil {
 			fmt.Fprintf(o.Stderr, "itos: the lock cannot be given back: %s\n", err)
 		}
 	}

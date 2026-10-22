@@ -1,18 +1,22 @@
 package ledger
 
 import (
-	"errors"
+	"context"
 	"fmt"
-	"io/fs"
-	"os"
 	"path"
 	"path/filepath"
 	"strings"
 
 	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/out"
+	trackerport "github.com/donvargax/itos/v8/internal/store/tracker/port"
 	"github.com/donvargax/itos/v8/internal/value"
 )
+
+// Load reads the ledger's files as they will be written: the tracker store's
+// Load (internal/store/tracker/port), each of names, in order, one not there
+// not There.
+type Load func(ctx context.Context, names []string) ([]trackerport.Doc, error)
 
 // NewTask is the task itos task add writes (slice 55): its id, type, title
 // and why, its group, and its checks in order.
@@ -44,7 +48,8 @@ type Added struct {
 // commits.types does not list, a ledger that has problems (config check's)
 // or already has the id, and a group whose file ledger.files cannot name
 // (ledger.group.pattern). A ledger folder that is missing is Files' error.
-func Add(cfg *config.Loaded, n NewTask) (Added, []out.Problem, error) {
+// The file's text before is load's, as the file will be written.
+func Add(cfg *config.Loaded, n NewTask, load Load) (Added, []out.Problem, error) {
 	refuse := func(rule, message, fix string) (Added, []out.Problem, error) {
 		return Added{}, []out.Problem{problem(rule, message, fix)}, nil
 	}
@@ -113,12 +118,12 @@ func Add(cfg *config.Loaded, n NewTask) (Added, []out.Problem, error) {
 		}
 		return Added{}, found, nil
 	}
-	old, err := os.ReadFile(file)
-	created := errors.Is(err, fs.ErrNotExist)
-	if err != nil && !created {
+	docs, err := load(context.Background(), []string{file})
+	if err != nil {
 		return Added{}, nil, err
 	}
-	text, err := appendTask(string(old), task)
+	old, created := docs[0].Text, !docs[0].There
+	text, err := appendTask(old, task)
 	if err != nil {
 		return Added{}, nil, fmt.Errorf("%s cannot be edited in place: %w", file, err)
 	}
@@ -127,7 +132,7 @@ func Add(cfg *config.Loaded, n NewTask) (Added, []out.Problem, error) {
 		return Added{}, nil, err
 	}
 	list := read.([]any)
-	return Added{Path: file, Old: string(old), Text: text, Created: created, Task: list[len(list)-1].(*value.Map)}, nil, nil
+	return Added{Path: file, Old: old, Text: text, Created: created, Task: list[len(list)-1].(*value.Map)}, nil, nil
 }
 
 // sameGroup is whether a file's group is the one given: Number() of each

@@ -2,10 +2,7 @@ package adr
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"io/fs"
-	"os"
 	"path"
 	"path/filepath"
 	"regexp"
@@ -186,23 +183,16 @@ func List(src port.Source, dir string) ([]Record, error) {
 	return records, nil
 }
 
-// Next is the next record's number: one past the highest number any name in
-// the folder starts with, 1 when there is none or no folder.
-func Next(dir string) (int, error) {
-	entries, err := os.ReadDir(dir)
-	if errors.Is(err, fs.ErrNotExist) {
-		return 1, nil
-	}
-	if err != nil {
-		return 0, err
-	}
+// Next is the next record's number: one past the highest number any of
+// names, the folder's entries, starts with, 1 when there is none.
+func Next(names []string) int {
 	highest := 0
-	for _, e := range entries {
-		if n, ok := numberOf(e.Name()); ok {
+	for _, name := range names {
+		if n, ok := numberOf(name); ok {
 			highest = max(highest, n)
 		}
 	}
-	return highest + 1, nil
+	return highest + 1
 }
 
 // Slug is the title as a file name: lowercase, each run of characters that

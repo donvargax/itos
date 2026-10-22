@@ -117,7 +117,7 @@ func taskAdd(args []string, o Out) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	added, found, err := ledger.Add(cfg, n)
+	added, found, err := ledger.Add(cfg, n, tracker(cfg, o.OS).Load)
 	if err != nil {
 		return 0, err
 	}

@@ -87,14 +87,15 @@ What every command meets:
   `internal/tests`.
 - CI's plan and its driver: `internal/plan`, `internal/ci`; a run's code
   proof: `internal/proof`.
-- The registry: `internal/work` judges, `internal/store/tracker` writes.
+- The registry: `internal/work` judges, `internal/store/tracker` reads,
+  locks and writes.
 - Questions and decision records: `internal/ask`, `internal/adr`; follow-ups
   and drafts: `internal/slices/followup`, `internal/draft`.
 - The guides `itos go` and `itos guide` print: `internal/guide`.
 - The Claude Code guard: `internal/slices/guard`.
 - YAML read as itos reads it, and edited in place: `internal/value`.
-- The lock, new IDs and their remote counter, the version: `internal/lock`,
-  `internal/nextid`, `internal/idcounter` ([ADR-0045]), `internal/version`.
+- New IDs and their remote counter, the version: `internal/nextid`,
+  `internal/idcounter` ([ADR-0045]), `internal/version`.
 
 ## Rules that cross packages
 
@@ -119,7 +120,7 @@ What every command meets:
   read back as meant; itos's own files are written whole.
 - **The registry is written by commands, never by hand**, each committing its
   change alone ([ADR-0034]); under a stealth config nothing is committed and
-  `internal/lock` orders writers.
+  the store's lock orders writers.
 - **Stealth mode** is known to few places: the config, the source, the
   footers (git notes), `itos commit`, `itos push`, the unpushed range.
 - **itos's words follow its first implementation**, TypeScript: YAML by the
