@@ -4300,5 +4300,3 @@
     listing (the same config.Invalid tests.<kind> is missing error, which
     TestListRefusesWhatItCannotList covers), and the TSV root is taken from that kind. No behaviour
     change; slice-154's agent proposed it.
-  done_when:
-    - run: go test ./internal/slices/tests -count=1
