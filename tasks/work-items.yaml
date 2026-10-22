@@ -12454,3 +12454,19 @@ items:
     status: todo
     depends_on: [T-242, T-243, T-244, T-245, T-246, T-266]
     kind: task
+
+  - id: p1-slice-io-behind-ports
+    title: Slices reach providers, releases and the shell through Ports, and slice-packages stops allowing them
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      T-243 (2026-10-22, the coordinator's call to fix forward) lets slices import
+      internal/providers, internal/release and internal/shell as named debt. They do I/O (GitHub,
+      release downloads, the config's shell), so each slice should reach them through its Ports,
+      bound in run<Name>, and the allow list drop them, as ADR-0053 puts the outside world behind
+      ports. After step 9.
+    refs: [.golangci.yml, internal/providers, internal/release, internal/shell]
+    tags: [cli]
