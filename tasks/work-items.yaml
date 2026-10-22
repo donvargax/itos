@@ -8336,6 +8336,19 @@ items:
       every consumer's data: a plan document after v8.0.0 ships, built as v9, which stays
       semi-stable for a while before v10 (the stable release) so what is stable is known. Narrow
       additions to the work commands wait on it (p1-work-merge).
+
+      The user, 2026-10-21: types for everything, not for work items alone. The records itos keeps
+      or is asked to keep (work items, decisions and their questions, followup threads and notes,
+      and the ideas of 2026-10-21: research log entries, topic threads, risks, session artifacts,
+      handoffs, document references) are one record with a type, a status the type's lifecycle
+      allows, dated notes, links to other records, tags and an owner, read and changed by one small
+      set of commands (add, note, link, set status, show, list by type, tag or text) rather than a
+      command group each. A type says what it adds: a feat or fix its scenarios, a risk its
+      likelihood and impact, a followup note its draft or sent state and what it supersedes, a
+      decision its question and record. Where a record lives (committed or the clone's private
+      store) is the type's or the record's. Weigh with p2-itos-data-store, which the store behind it
+      may need, and with the slices refactor's tracker-store port (ADR-0053), which should not
+      freeze today's per-kind files into its interface.
     tags: [work]
 
   - id: p1-promote-renames-asks
