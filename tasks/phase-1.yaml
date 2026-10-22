@@ -2751,3 +2751,30 @@
       timeout: 900
     - run: tools/bin/pinned golangci-lint run ./...
       timeout: 600
+
+- id: T-218
+  type: refactor
+  title: "The VCS port, part 3: commit, remote, hooks and ID reservation, and no git call outside the adapter"
+  why: >
+    ADR-0053, step 6 of docs/plans/slices-and-ports.md: the VCS port, whose git adapter a Fossil
+    backend later sits beside (p2-vcs-and-tracker-seams). The port lives at internal/vcs/port with
+    an in-memory fake in port/porttest, a contract suite in T-209's shape (generic T[C], distinct
+    messages, contract_test.go proving each assertion fires on a fake broken for it, Context() from
+    context.Background()), and the git adapter at internal/vcs/adapter, run against the contract in
+    temp repositories (git variables cleared, global config off, a ceiling directory, as the tree
+    adapter's tests are); every method takes a context.Context first; depguard and
+    architecture-check gain the vcs packages with fixtures as T-207 and T-210 did; internal/git's
+    runner becomes the adapter's internals. Callers take the port's value as T-211 threaded the tree
+    reader (on config.Loaded or a parameter), context.Background() at internal/cli's edges. No
+    behaviour change. This part, after part 2: committing (writeCommitted's commit of named paths,
+    amend), the remote (fetch, ls-remote, rebase, push and their outcomes), hook installation and
+    the git config's hook entries, and reserving IDs on the counter ref (idcounter), plus the raw
+    exec.Command(git.Bin()) sites left anywhere. At the end only internal/vcs/adapter (with
+    internal/git as its internals) runs git; the git shim and launcher keep finding the real git as
+    they do (bug 45), through the adapter.
+  done_when:
+    - run: "! grep -rln \"exec.Command(git.Bin()\" internal cmd --include=*.go --exclude=*_test.go"
+    - run: tools/bin/architecture-check
+      timeout: 900
+    - run: tools/bin/pinned golangci-lint run ./...
+      timeout: 600
