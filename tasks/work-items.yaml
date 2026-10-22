@@ -12711,8 +12711,8 @@ items:
   - id: T-279
     title: itos-cc reads itos tests list scenario --tsv; tools/bin/itos-cc-tests goes
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
 
