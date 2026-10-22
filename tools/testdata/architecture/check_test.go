@@ -43,6 +43,9 @@ var stubs = []string{
 	"internal/store/tree/port",
 	"internal/store/tree/port/porttest",
 	"internal/store/tree/adapter",
+	"internal/store/tracker/port",
+	"internal/store/tracker/port/porttest",
+	"internal/store/tracker/adapter",
 	"internal/vcs/port",
 	"internal/vcs/port/porttest",
 	"internal/vcs/adapter",
@@ -51,7 +54,7 @@ var stubs = []string{
 
 // stores are the stores, and the VCS, this repository has moved behind a
 // port: each a port, its fake and its adapter, held by the same rules.
-var stores = []string{"internal/store/private", "internal/store/tree", "internal/vcs"}
+var stores = []string{"internal/store/private", "internal/store/tree", "internal/store/tracker", "internal/vcs"}
 
 var mocks = []string{"github.com/golang/mock/gomock", "go.uber.org/mock/gomock", "github.com/stretchr/testify/mock", "github.com/vektra/mockery/v2", "github.com/maxbrunsfeld/counterfeiter/v6"}
 
@@ -183,7 +186,7 @@ func fixtures(module string) []fixture {
 	// git runs in the VCS's git adapter alone: internal/git, its internals,
 	// is no other package's to import, but in a test.
 	add("internal/vcs/adapter", ours("internal/git"), "Value", "", false)
-	for _, layer := range []string{"internal/store/private/adapter", "internal/store/tree/adapter", "internal/cli", "cmd/probe"} {
+	for _, layer := range []string{"internal/store/private/adapter", "internal/store/tree/adapter", "internal/store/tracker/adapter", "internal/cli", "cmd/probe"} {
 		add(layer, ours("internal/git"), "Value", "git-internals", false)
 		add(layer, ours("internal/git"), "Value", "", true)
 	}
