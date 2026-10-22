@@ -55,7 +55,6 @@ phases:
   3: donvargax
 
 queue:
-  - T-281
   - slice-165
   - slice-154
   - p1-agent-test-runs-once
