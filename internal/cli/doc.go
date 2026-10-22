@@ -416,23 +416,6 @@
 // line may give work add, task add or work promote an id. draftsFile, the
 // list status reads, stays in draft.go.
 //
-// decision (ask.go over internal/ask and internal/adr): add and answer write
-// the questions through writeCommitted, the file alone, docs: ask q-<n> and
-// docs: answer q-<n>, refused while the file has changes no commit holds
-// (asks-file-uncommitted); add --item reads the registry, unjudged, for the
-// id. Under a stealth config they hold the registry's lock (heldAsks) and
-// commit nothing. decision record writes an answered question as a record:
-// Considered Options from --option, which repeated takes out of the
-// arguments before subArgs reads the rest; a supersede sets the old record's
-// status and the new one names it in More Information. The question gains
-// decision: <n> (or none for --none), and the questions, the new record, the
-// one it supersedes and the index go through one writeCommitted, each
-// written naming its own rule for changes no commit holds
-// (decision-file-uncommitted, decision-index-uncommitted); the folders made
-// for the record are removed again when the write fails (madeDirs, unmake).
-// decision ends with one line naming each question answered with no
-// decision.
-//
 // go and guide (guide.go over internal/guide) print a guide; itos go (and
 // itos guide coordinate) appends the repository's notes, guide.orchestrating
 // read where the config's other paths are, after a line of ---; with no

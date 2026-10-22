@@ -1,8 +1,8 @@
-package cli
+package decision
 
 import "github.com/donvargax/itos/v8/internal/declare"
 
-var decisionDeclared = declare.Command{
+var Command = declare.Command{
 	Name: "decision",
 	Rank: 60,
 	Lines: `  decision [--all]                 the open decisions waiting on the person the work is for

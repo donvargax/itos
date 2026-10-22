@@ -29,10 +29,6 @@ import (
 	"github.com/donvargax/itos/v8/internal/work"
 )
 
-// bodyWidth is the width a registry commit's body is wrapped at, the record
-// engine's.
-const bodyWidth = record.BodyWidth
-
 // workArgs reads a registry command's arguments: one id, and the valued
 // flags it takes, each given at most once, "--flag value" or "--flag=value".
 // Anything else is a usage error.

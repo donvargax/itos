@@ -1,0 +1,456 @@
+package decision
+
+import (
+	"context"
+	"fmt"
+	"io"
+	"os"
+	"path/filepath"
+	"strconv"
+	"strings"
+	"time"
+	"unicode/utf8"
+
+	"github.com/donvargax/itos/v8/internal/adr"
+	"github.com/donvargax/itos/v8/internal/ask"
+	"github.com/donvargax/itos/v8/internal/config"
+	"github.com/donvargax/itos/v8/internal/engine/record"
+	"github.com/donvargax/itos/v8/internal/message"
+	"github.com/donvargax/itos/v8/internal/out"
+	trackerport "github.com/donvargax/itos/v8/internal/store/tracker/port"
+	"github.com/donvargax/itos/v8/internal/value"
+	"github.com/donvargax/itos/v8/internal/work"
+)
+
+// Query is what the decision command asks: Sub, "" for the list, or add,
+// answer, record or show; the list's All, under --all; the question's ID;
+// add's and answer's Text; add's Item; record's Title, Options,
+// Consequences and Supersedes, or None, under --none.
+type Query struct {
+	Sub          string
+	All          bool
+	ID           string
+	Text         string
+	Item         string
+	Title        string
+	Options      []string
+	Consequences string
+	Supersedes   int
+	None         bool
+}
+
+// Ports are what the decision command reaches the world through, which
+// internal/cli binds: Config, the config every command finds; Tracker, the
+// tracker store the config's documents are in, the questions and the
+// decision records, committed through git's hooks unless the config is the
+// stealth one; and Now, the clock a record is dated by.
+type Ports interface {
+	Config(ctx context.Context) (*config.Loaded, error)
+	Tracker(ctx context.Context, cfg *config.Loaded) trackerport.Tracker
+	Now(ctx context.Context) time.Time
+}
+
+// Handler is the decision command's application, over its ports.
+type Handler struct {
+	ports Ports
+}
+
+// NewHandler is the handler over p.
+func NewHandler(p Ports) Handler {
+	return Handler{ports: p}
+}
+
+// Out is what Handle is told of how a change is reported: Quiet, which
+// silences the commit's words, and Stderr, where git's words and the
+// hooks' go, and the line of a lock that cannot be given back.
+type Out struct {
+	Quiet  bool
+	Stderr io.Writer
+}
+
+// Answer is what Handle found or did: Release, nil until the registry's
+// lock is held, then for the caller to defer; the Problems that refused
+// it, nothing written; the list's Open and Answered questions and the
+// Unrecorded ones, each as itos decision record would record it; the
+// Question shown, or as a change left it; the change's Commit, "" under a
+// stealth config, with its Header; and record's Number and Record, the
+// file it wrote.
+type Answer struct {
+	Release        func()
+	Problems       []out.Problem
+	Open, Answered []ask.Question
+	Unrecorded     []string
+	Question       ask.Question
+	Commit, Header string
+	Number         int
+	Record         string
+}
+
+// Handle answers q.
+func (h Handler) Handle(ctx context.Context, q Query, o Out) (Answer, error) {
+	switch q.Sub {
+	case "add":
+		return h.add(ctx, q, o)
+	case "answer":
+		return h.answer(ctx, q, o)
+	case "record":
+		return h.record(ctx, q, o)
+	case "show":
+		return h.show(ctx, q.ID)
+	}
+	return h.list(ctx, q.All)
+}
+
+// held is the config for a subcommand that writes the questions, and its
+// tracker: under a stealth config with the registry's lock taken (the
+// tracker's Hold), given back by the Answer's Release, so the questions are
+// read and written as every stealth writer reads and writes the registry
+// and the ledger, one at a time (bug 16). A project's file takes none: its
+// writes are commits.
+func (h Handler) held(ctx context.Context, o Out) (*config.Loaded, trackerport.Tracker, Answer, error) {
+	a := Answer{Release: func() {}}
+	cfg, err := h.ports.Config(ctx)
+	if err != nil {
+		return nil, nil, a, err
+	}
+	t := h.ports.Tracker(ctx, cfg)
+	if a.Release, err = hold(ctx, t, o.Stderr); err != nil {
+		return nil, nil, a, err
+	}
+	return cfg, t, a, nil
+}
+
+// hold is the tracker's Hold, taken for a command that reads and writes its
+// documents: release, never nil and deferred by the caller, gives it back,
+// saying on stderr when it cannot.
+func hold(ctx context.Context, t trackerport.Tracker, stderr io.Writer) (release func(), err error) {
+	release = func() {}
+	held, err := t.Hold(ctx)
+	if err != nil {
+		return release, err
+	}
+	return func() {
+		if err := held.Release(ctx); err != nil {
+			fmt.Fprintf(stderr, "itos: the lock cannot be given back: %s\n", err)
+		}
+	}, nil
+}
+
+// asks is the config and the questions, for a subcommand that reads.
+func (h Handler) asks(ctx context.Context) (ask.File, error) {
+	cfg, err := h.ports.Config(ctx)
+	if err != nil {
+		return ask.File{}, err
+	}
+	f, _, _, err := ask.Load(ctx, h.ports.Tracker(ctx, cfg), cfg.Work.Asks)
+	return f, err
+}
+
+// write is the record engine's Write (record.Write) through the tracker:
+// the files written and, in a project, committed alone, through the hooks,
+// git's words and the hooks' on stderr. Its result is the new commit's
+// SHA, "" under a stealth config, which commits nothing. A file with
+// changes no commit holds, or a commit refused, is a problem, every file
+// as it was; the rest are errors.
+func write(ctx context.Context, t trackerport.Tracker, cfg *config.Loaded, files []record.File, header, body string, o Out) (string, []out.Problem, error) {
+	return record.Write(ctx, t, cfg, files, record.Commit{
+		Header: header,
+		Body:   body,
+		Quiet:  o.Quiet,
+		// git's words and the hooks' go to stderr: stdout is the command's
+		// own result.
+		Stdin: os.Stdin,
+		Words: o.Stderr,
+		Env:   append(message.WithoutFooters(os.Environ()), message.AmendEnv+"=0"),
+	})
+}
+
+// noQuestion refuses an id no question has.
+func noQuestion(id string) []out.Problem {
+	return []out.Problem{{
+		Rule:    "ask-no-question",
+		Message: fmt.Sprintf("there is no question %s", id),
+		Fix:     "itos decision --all lists the questions",
+	}}
+}
+
+// itemProblem is the problem of an item the registry does not have, or of no
+// registry where itos looks; nil when the item is there.
+func itemProblem(ctx context.Context, cfg *config.Loaded, item string) (*out.Problem, error) {
+	file := cfg.Work.Registry
+	if !cfg.Source.Has(ctx, file) {
+		p := work.Missing(file, false)
+		return &p, nil
+	}
+	registry, err := work.Load(cfg, file)
+	if err != nil {
+		return nil, err
+	}
+	for _, it := range registry.Items {
+		if value.String(it.At("id")) == item {
+			return nil, nil
+		}
+	}
+	return &out.Problem{
+		Rule:    "ask-unknown-item",
+		Message: fmt.Sprintf("no item %s in %s, so no question can name it", item, file),
+		Fix:     "itos work list --all names every item; --item may be left out",
+	}, nil
+}
+
+// add is `decision add <text>… [--item <id>]`: a question, open, with the
+// next free id, naming the item when --item gives one, which the registry
+// must have; the file committed alone, "docs: ask q-<n>".
+func (h Handler) add(ctx context.Context, q Query, o Out) (Answer, error) {
+	cfg, t, a, err := h.held(ctx, o)
+	if err != nil {
+		return a, err
+	}
+	if q.Item != "" {
+		problem, err := itemProblem(ctx, cfg, q.Item)
+		if err != nil {
+			return a, err
+		}
+		if problem != nil {
+			a.Problems = []out.Problem{*problem}
+			return a, nil
+		}
+	}
+	f, old, there, err := ask.Load(ctx, t, cfg.Work.Asks)
+	if err != nil {
+		return a, err
+	}
+	question := *f.Add(q.Text, q.Item)
+	about := ""
+	if q.Item != "" {
+		about = " about " + q.Item
+	}
+	header := "docs: ask " + question.ID
+	body := fmt.Sprintf("Ask %s%s (\"%s\"), with itos decision add.", question.ID, about, oneLine(q.Text))
+	file := record.File{Path: cfg.Work.Asks, Old: old, Text: ask.Text(f), Created: !there}
+	return h.committed(ctx, t, cfg, a, []record.File{file}, header, body, question, o)
+}
+
+// committed is a's change written and committed (write), the question as
+// it left it; a refusal its problems.
+func (h Handler) committed(ctx context.Context, t trackerport.Tracker, cfg *config.Loaded, a Answer, files []record.File, header, body string,
+	question ask.Question, o Out,
+) (Answer, error) {
+	sha, found, err := write(ctx, t, cfg, files, header, body, o)
+	if err != nil {
+		return a, err
+	}
+	if len(found) > 0 {
+		a.Problems = found
+		return a, nil
+	}
+	a.Question, a.Commit, a.Header = question, sha, header
+	return a, nil
+}
+
+// answer is `decision answer <id> <text>…`: the answer kept beside the
+// question, which is then answered; the file committed alone,
+// "docs: answer q-<n>". A question already answered is refused.
+func (h Handler) answer(ctx context.Context, q Query, o Out) (Answer, error) {
+	cfg, t, a, err := h.held(ctx, o)
+	if err != nil {
+		return a, err
+	}
+	f, old, _, err := ask.Load(ctx, t, cfg.Work.Asks)
+	if err != nil {
+		return a, err
+	}
+	question := f.Find(q.ID)
+	if question == nil {
+		a.Problems = noQuestion(q.ID)
+		return a, nil
+	}
+	if question.Answer != "" {
+		a.Problems = []out.Problem{{
+			Rule:    "ask-answered",
+			Message: fmt.Sprintf("%s is already answered: %s", q.ID, oneLine(question.Answer)),
+			Fix:     "itos decision add asks a new question",
+		}}
+		return a, nil
+	}
+	question.Answer = q.Text
+	header := "docs: answer " + q.ID
+	body := fmt.Sprintf("Answer %s (\"%s\") with \"%s\", by itos decision answer.", q.ID, oneLine(question.Question), oneLine(q.Text))
+	return h.committed(ctx, t, cfg, a, []record.File{{Path: cfg.Work.Asks, Old: old, Text: ask.Text(f)}}, header, body, *question, o)
+}
+
+// show is `decision show <id>`: the question, or the problem of none with
+// the id.
+func (h Handler) show(ctx context.Context, id string) (Answer, error) {
+	f, err := h.asks(ctx)
+	if err != nil {
+		return Answer{}, err
+	}
+	q := f.Find(id)
+	if q == nil {
+		return Answer{Problems: noQuestion(id)}, nil
+	}
+	return Answer{Question: *q}, nil
+}
+
+// list is `decision [--all]`: the open questions, or with all every one,
+// the answered ones after them; and the answered questions recorded
+// nowhere.
+func (h Handler) list(ctx context.Context, all bool) (Answer, error) {
+	f, err := h.asks(ctx)
+	if err != nil {
+		return Answer{}, err
+	}
+	var a Answer
+	for _, q := range f.Questions {
+		if q.Unrecorded() {
+			a.Unrecorded = append(a.Unrecorded, "itos decision record "+q.ID)
+		}
+		if q.Answer == "" {
+			a.Open = append(a.Open, q)
+		} else if all {
+			a.Answered = append(a.Answered, q)
+		}
+	}
+	return a, nil
+}
+
+// record is `decision record <id> --title <title> [--option <text>]…
+// [--consequences <text>] [--supersedes <n>]`, or `decision record <id>
+// --none`: the answered question written as the next decision record, or
+// marked as recorded nowhere.
+func (h Handler) record(ctx context.Context, q Query, o Out) (Answer, error) {
+	cfg, t, a, err := h.held(ctx, o)
+	if err != nil {
+		return a, err
+	}
+	f, old, _, err := ask.Load(ctx, t, cfg.Work.Asks)
+	if err != nil {
+		return a, err
+	}
+	id := q.ID
+	question := f.Find(id)
+	switch {
+	case question == nil:
+		a.Problems = noQuestion(id)
+		return a, nil
+	case question.Answer == "":
+		a.Problems = []out.Problem{{
+			Rule:    "ask-unanswered",
+			Message: fmt.Sprintf("%s is not answered, so it holds no decision to record", id),
+			Fix:     "itos decision answer " + id + " <text> answers it first",
+		}}
+		return a, nil
+	case question.Decision != "":
+		a.Problems = []out.Problem{{
+			Rule:    "ask-recorded",
+			Message: fmt.Sprintf("%s is already recorded, as %s", id, decisionOf(*question)),
+			Fix:     "itos decision show " + id + " shows it",
+		}}
+		return a, nil
+	}
+	asks := record.File{Path: cfg.Work.Asks, Old: old}
+	if q.None {
+		question.Decision = ask.None
+		asks.Text = ask.Text(f)
+		header := "docs: mark " + id + " as recorded nowhere"
+		body := fmt.Sprintf("Mark %s (\"%s\") as recorded nowhere, its answer having concerned its item alone, so itos decision stops naming it. By itos decision record --none.", id, oneLine(question.Question))
+		return h.committed(ctx, t, cfg, a, []record.File{asks}, header, body, *question, o)
+	}
+	title, supersedes := q.Title, q.Supersedes
+	dir := filepath.FromSlash(cfg.Work.Decisions)
+	records, err := adr.List(cfg.Source, dir)
+	if err != nil {
+		return a, err
+	}
+	names, err := t.List(ctx, dir)
+	if err != nil {
+		return a, err
+	}
+	n := adr.Next(names)
+	asked := strings.TrimSpace(question.Question) + "\n\nAsked as " + id
+	if question.Item != "" {
+		asked += ", about " + question.Item
+	}
+	written := adr.Record{Number: n, File: adr.FileName(n, title)}
+	written.Text = adr.Text(adr.New{Title: title, Date: h.ports.Now(ctx).Format(time.DateOnly), Context: asked + ".",
+		Options: q.Options, Decision: question.Answer, Consequences: q.Consequences, Supersedes: supersedes})
+	files := []record.File{asks, {Path: filepath.Join(dir, written.File), Created: true, Rule: "decision-file-uncommitted"}}
+	if supersedes != 0 {
+		at := -1
+		for i, r := range records {
+			if r.Number == supersedes {
+				at = i
+				break
+			}
+		}
+		if at < 0 {
+			a.Problems = []out.Problem{{
+				Rule:    "ask-no-decision",
+				Message: fmt.Sprintf("there is no decision record %d in %s, so none can be superseded", supersedes, dir),
+				Fix:     "--supersedes takes the number of a record there",
+			}}
+			return a, nil
+		}
+		older := records[at]
+		records[at].Text = adr.SetStatus(older.Text, adr.SupersededBy(n))
+		files = append(files, record.File{Path: filepath.Join(dir, older.File), Old: older.Text, Text: records[at].Text,
+			Rule: "decision-file-uncommitted"})
+	}
+	files[1].Text = written.Text
+	index := filepath.Join(dir, adr.IndexName)
+	docs, err := t.Load(ctx, []string{index})
+	if err != nil {
+		return a, err
+	}
+	before := docs[0]
+	files = append(files, record.File{Path: index, Old: before.Text, Text: adr.Index(before.Text, append(records, written)),
+		Created: !before.There, Rule: "decision-index-uncommitted"})
+	question.Decision = strconv.Itoa(n)
+	files[0].Text = ask.Text(f)
+	made, err := madeDirs(dir)
+	if err != nil {
+		return a, err
+	}
+	header := fmt.Sprintf("docs: record %s as decision %d", id, n)
+	// The record's path is one word, which the body's wrap leaves whole: one
+	// longer than a body line, a long title's slug, would put a line over
+	// the lint's limit and the commit would be refused, so the body names
+	// its folder instead, the file being the commit's to show (bug 22).
+	in := filepath.ToSlash(files[1].Path)
+	if utf8.RuneCountInString(in+",") > record.BodyWidth {
+		in = filepath.ToSlash(dir)
+	}
+	body := fmt.Sprintf("Record %s (\"%s\") as decision %d, %s, in %s, by itos decision record.", id, oneLine(question.Question), n, title, in)
+	if supersedes != 0 {
+		body += fmt.Sprintf(" It supersedes decision %d, which leaves the index.", supersedes)
+	}
+	a, err = h.committed(ctx, t, cfg, a, files, header, body, *question, o)
+	if err != nil || len(a.Problems) > 0 {
+		unmake(made)
+		return a, err
+	}
+	a.Number, a.Record = n, files[1].Path
+	return a, nil
+}
+
+// madeDirs makes the folder and those above it that are not there, and
+// says which it made, the deepest first, for unmake.
+func madeDirs(dir string) ([]string, error) {
+	var made []string
+	for at := dir; at != "." && at != string(filepath.Separator) && at != ""; at = filepath.Dir(at) {
+		if _, err := os.Stat(at); err == nil {
+			break
+		}
+		made = append(made, at)
+	}
+	return made, os.MkdirAll(dir, 0o755)
+}
+
+// unmake removes the folders madeDirs made, when they are empty again.
+func unmake(made []string) {
+	for _, dir := range made {
+		// A folder something else wrote into stays.
+		_ = os.Remove(dir)
+	}
+}

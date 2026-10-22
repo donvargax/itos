@@ -1,0 +1,757 @@
+package decision
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"os"
+	"path/filepath"
+	"slices"
+	"strings"
+	"testing"
+	"time"
+
+	"github.com/donvargax/itos/v8/internal/config"
+	"github.com/donvargax/itos/v8/internal/out"
+	trackerport "github.com/donvargax/itos/v8/internal/store/tracker/port"
+	trackerfake "github.com/donvargax/itos/v8/internal/store/tracker/port/porttest"
+	treeport "github.com/donvargax/itos/v8/internal/store/tree/port"
+	treefake "github.com/donvargax/itos/v8/internal/store/tree/port/porttest"
+	vcsfake "github.com/donvargax/itos/v8/internal/vcs/port/porttest"
+)
+
+var at = time.Date(2026, 10, 22, 9, 30, 0, 0, time.UTC)
+
+// ports are the decision command's ports over the fakes: a config, or the
+// error loading it, the tracker's fake and a stopped clock.
+type ports struct {
+	cfg     *config.Loaded
+	err     error
+	tracker trackerport.Tracker
+}
+
+func (p ports) Config(context.Context) (*config.Loaded, error) { return p.cfg, p.err }
+
+func (p ports) Tracker(context.Context, *config.Loaded) trackerport.Tracker { return p.tracker }
+
+func (ports) Now(context.Context) time.Time { return at }
+
+// The default config's files: the registry, the questions and the records'
+// folder.
+const (
+	registry  = "tasks/work-items.yaml"
+	asks      = "tasks/asks.yaml"
+	decisions = "docs/decisions"
+)
+
+// A registry holding the item p1-a.
+const registryText = "phases: { 1: null }\nitems:\n  - { id: p1-a, title: A, phase: 1, owner: null, status: todo, depends_on: [], kind: idea, why: A }\n"
+
+// A record numbered 1, accepted.
+const oldRecord = "---\nstatus: accepted\ndate: 2026-01-01\n---\n\n# Old\n\n## Context and Problem Statement\n\nOld.\n"
+
+// over is the ports of a project from an empty folder: the working tree's
+// files, read through the config's source, and the tracker, its documents
+// committed (none when committed is nil).
+func over(t *testing.T, files map[string]string, committed map[string]string) (ports, *trackerfake.Tracker) {
+	t.Helper()
+	t.Chdir(t.TempDir())
+	src, err := treefake.Trees{Files: map[string]map[string]string{"worktree": files}}.At(t.Context(), "worktree")
+	if err != nil {
+		t.Fatal(err)
+	}
+	return withSource(t, src, committed)
+}
+
+// withSource is over with the config's source src.
+func withSource(t *testing.T, src treeport.Source, committed map[string]string) (ports, *trackerfake.Tracker) {
+	t.Helper()
+	cfg, err := config.FromText(&vcsfake.VCS{}, treefake.Trees{}, src, "itos.yaml", "version: 1\n", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tracker := &trackerfake.Tracker{}
+	commit(t, tracker, committed)
+	return ports{cfg: cfg, tracker: tracker}, tracker
+}
+
+// commit commits the documents in the tracker.
+func commit(t *testing.T, tracker trackerport.Tracker, docs map[string]string) {
+	t.Helper()
+	if len(docs) == 0 {
+		return
+	}
+	var changes []trackerport.Change
+	for name, text := range docs {
+		changes = append(changes, trackerport.Change{Name: name, Text: text, Created: true})
+	}
+	if _, err := tracker.Transact(t.Context(), trackerport.Transaction{Changes: changes, Paragraphs: []string{"chore: start"}, Quiet: true}); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// call is the command's line run over p: its exit, stdout, stderr and
+// error; a --json or --quiet first sets the global flag.
+func call(t *testing.T, p Ports, args ...string) (int, string, string, error) {
+	t.Helper()
+	json, quiet := false, false
+	for len(args) > 0 && (args[0] == "--json" || args[0] == "--quiet") {
+		json, quiet = json || args[0] == "--json", quiet || args[0] == "--quiet"
+		args = args[1:]
+	}
+	c, err := Parse(args, json, quiet)
+	if err != nil {
+		t.Fatalf("decision %s: %v", strings.Join(args, " "), err)
+	}
+	var stdout, stderr strings.Builder
+	code, err := c.Run(t.Context(), &stdout, &stderr, NewHandler(p))
+	return code, stdout.String(), stderr.String(), err
+}
+
+// doc is the tracker's text of name, "" when it is not there.
+func doc(t *testing.T, tracker trackerport.Tracker, name string) string {
+	t.Helper()
+	docs, err := tracker.Load(t.Context(), []string{name})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return docs[0].Text
+}
+
+// questions is an asks file of the questions, each a YAML mapping's lines.
+func questions(qs ...string) string {
+	text := "questions:\n"
+	for _, q := range qs {
+		text += "  - " + strings.ReplaceAll(strings.TrimSuffix(q, "\n"), "\n", "\n    ") + "\n"
+	}
+	return text
+}
+
+func TestParseRefuses(t *testing.T) {
+	for _, test := range []struct {
+		args []string
+		want string
+	}{
+		{[]string{"nope"}, "decision has no subcommand nope: it takes add, answer, record or show, else --all"},
+		{[]string{"--bogus"}, "decision does not take --bogus"},
+		{[]string{"add"}, "decision add needs <text>, the question"},
+		{[]string{"add", "  "}, "decision add needs <text>, the question"},
+		{[]string{"add", "--bogus"}, "decision add does not take --bogus"},
+		{[]string{"answer", "--bogus"}, "decision answer does not take --bogus"},
+		{[]string{"answer"}, "decision answer needs <id> <text>"},
+		{[]string{"answer", "x-1", "Yes"}, `decision answer: "x-1" is no question id (q-<n>)`},
+		{[]string{"answer", "q-1"}, "decision answer needs <id> <text>, the answer"},
+		{[]string{"show", "--bogus"}, "decision show does not take --bogus"},
+		{[]string{"show"}, "decision show needs <id>"},
+		{[]string{"show", "q-1", "q-2"}, "decision show takes one <id>, not q-2"},
+		{[]string{"record", "q-1", "--option"}, "decision record --option needs a value"},
+		{[]string{"record", "q-1", "--option=  "}, "decision record --option needs a value"},
+		{[]string{"record", "q-1", "--bogus"}, "decision record does not take --bogus"},
+		{[]string{"record", "--title", "T"}, "decision record needs <id>"},
+		{[]string{"record", "q-1", "q-2", "--title", "T"}, "decision record takes one <id>, not q-2"},
+		{[]string{"record", "q-1", "--title", "T", "--supersedes", "x"}, `decision record --supersedes takes a decision record's number, not "x"`},
+		{[]string{"record", "q-1", "--title", "T", "--supersedes", "0"}, `decision record --supersedes takes a decision record's number, not "0"`},
+		{[]string{"record", "q-1", "--none", "--title", "T"}, "decision record --none writes no record, so it takes no --title, --option, --consequences or --supersedes"},
+		{[]string{"record", "q-1", "--none", "--consequences", "C"}, "decision record --none writes no record, so it takes no --title, --option, --consequences or --supersedes"},
+		{[]string{"record", "q-1", "--none", "--supersedes", "1"}, "decision record --none writes no record, so it takes no --title, --option, --consequences or --supersedes"},
+		{[]string{"record", "q-1", "--none", "--option", "O"}, "decision record --none writes no record, so it takes no --title, --option, --consequences or --supersedes"},
+		{[]string{"record", "q-1"}, "decision record needs --title <title>, the decision's, or --none"},
+		{[]string{"record", "q-1", "--title", "!!"}, "decision record --title needs a letter or a digit, which the record's file is named by"},
+	} {
+		_, err := Parse(test.args, false, false)
+		var usage out.UsageError
+		if !errors.As(err, &usage) || err.Error() != test.want {
+			t.Errorf("Parse(%q) = %v, want the usage error %q", test.args, err, test.want)
+		}
+	}
+}
+
+func TestParseReads(t *testing.T) {
+	for _, test := range []struct {
+		args []string
+		want Query
+	}{
+		{nil, Query{}},
+		{[]string{"--all"}, Query{All: true}},
+		{[]string{"add", "Which", "way?", "--item", "p1-a"}, Query{Sub: "add", Text: "Which way?", Item: "p1-a"}},
+		{[]string{"answer", "q-2", " Left ", "now"}, Query{Sub: "answer", ID: "q-2", Text: "Left  now"}},
+		{[]string{"show", "q-3"}, Query{Sub: "show", ID: "q-3"}},
+		{[]string{"record", "q-1", "--none"}, Query{Sub: "record", ID: "q-1", None: true}},
+		{
+			[]string{"record", "q-1", "--title", " A  title ", "--option", "One", "--option=Two  too", "--consequences", " C ", "--supersedes", "3"},
+			Query{Sub: "record", ID: "q-1", Title: "A title", Options: []string{"One", "Two too"}, Consequences: "C", Supersedes: 3},
+		},
+		{
+			[]string{"record", "q-1", "--title", "T", "--", "--option"},
+			Query{},
+		},
+	} {
+		c, err := Parse(test.args, true, true)
+		if len(test.args) > 3 && test.args[len(test.args)-2] == "--" {
+			// After "--" --option is no flag: a second <id>.
+			if err == nil || err.Error() != "decision record takes one <id>, not --option" {
+				t.Errorf("Parse(%q) = %v, want --option read as an id", test.args, err)
+			}
+			continue
+		}
+		if err != nil || !c.JSON || !c.Quiet || c.Sub != test.want.Sub || c.All != test.want.All || c.ID != test.want.ID ||
+			c.Text != test.want.Text || c.Item != test.want.Item || c.Title != test.want.Title || !slices.Equal(c.Options, test.want.Options) ||
+			c.Consequences != test.want.Consequences || c.Supersedes != test.want.Supersedes || c.None != test.want.None {
+			t.Errorf("Parse(%q) = %+v, %v; want %+v", test.args, c, err, test.want)
+		}
+	}
+}
+
+// The list: the open questions, or with --all every one, each answered one
+// with its answer and its decision, then the nudge.
+func TestList(t *testing.T) {
+	p, _ := over(t, nil, map[string]string{asks: questions(
+		"id: q-1\nquestion: \"Open?\"\nitem: p1-a",
+		"id: q-2\nquestion: \"Recorded?\"\nanswer: \"Yes.\"\ndecision: 7",
+		"id: q-3\nquestion: \"Item only?\"\nanswer: \"Yes.\"\ndecision: none",
+		"id: q-10\nquestion: \"Not yet?\"\nanswer: \"No.\"",
+	)})
+	code, stdout, stderr, err := call(t, p, "--all")
+	want := "Open questions:\n  q-1   Open?  (p1-a)\n\nAnswered questions:\n" +
+		"  q-2   Recorded?\n        → Yes.\n          decision 7\n" +
+		"  q-3   Item only?\n        → Yes.\n          no decision (--none)\n" +
+		"  q-10  Not yet?\n        → No.\n" +
+		"\nAnswered and recorded nowhere: itos decision record q-10 (--title <title>, or --none)\n"
+	if code != 0 || err != nil || stdout != want || stderr != "" {
+		t.Errorf("--all: %d, %v, stderr %q\n got %q\nwant %q", code, err, stderr, stdout, want)
+	}
+	code, stdout, _, err = call(t, p)
+	want = "Open questions:\n  q-1  Open?  (p1-a)\n\nAnswered and recorded nowhere: itos decision record q-10 (--title <title>, or --none)\n"
+	if code != 0 || err != nil || stdout != want {
+		t.Errorf("the open ones: %d, %v\n got %q\nwant %q", code, err, stdout, want)
+	}
+	code, stdout, _, err = call(t, p, "--json", "--all")
+	var listed struct{ Questions []map[string]any }
+	if code != 0 || err != nil || json.Unmarshal([]byte(stdout), &listed) != nil || len(listed.Questions) != 4 ||
+		listed.Questions[0]["id"] != "q-1" || listed.Questions[3]["id"] != "q-10" {
+		t.Errorf("--json --all: %d, %v, %s", code, err, stdout)
+	}
+}
+
+// With no open question the list says so, and the nudge follows; with none
+// at all, --all says there are none; --json lists none as [].
+func TestListNone(t *testing.T) {
+	p, tracker := over(t, nil, map[string]string{asks: questions("id: q-1\nquestion: \"Done?\"\nanswer: \"Yes.\"")})
+	code, stdout, _, err := call(t, p)
+	want := "No open questions.\n\nAnswered and recorded nowhere: itos decision record q-1 (--title <title>, or --none)\n"
+	if code != 0 || err != nil || stdout != want {
+		t.Errorf("none open: %d, %v, %q", code, err, stdout)
+	}
+	code, stdout, _, err = call(t, p, "--all")
+	want = "No open questions.\n\nAnswered questions:\n  q-1  Done?\n       → Yes.\n\nAnswered and recorded nowhere: itos decision record q-1 (--title <title>, or --none)\n"
+	if code != 0 || err != nil || stdout != want {
+		t.Errorf("none open, --all: %d, %v, %q", code, err, stdout)
+	}
+	commit(t, tracker, map[string]string{asks: "questions: []\n"})
+	if code, stdout, _, err = call(t, p, "--all"); code != 0 || err != nil || stdout != "No questions.\n" {
+		t.Errorf("none, --all: %d, %v, %q", code, err, stdout)
+	}
+	if code, stdout, _, err = call(t, p); code != 0 || err != nil || stdout != "No open questions.\n" {
+		t.Errorf("none: %d, %v, %q", code, err, stdout)
+	}
+	if code, stdout, _, err = call(t, p, "--json"); code != 0 || err != nil || !strings.Contains(stdout, `"questions": []`) {
+		t.Errorf("none, --json: %d, %v, %q", code, err, stdout)
+	}
+}
+
+// show prints the question, its status, item and decision, then its answer;
+// an id no question has is refused, exit 1.
+func TestShow(t *testing.T) {
+	p, _ := over(t, nil, map[string]string{asks: questions(
+		"id: q-1\nquestion: \"Which\n  way?\"\nitem: p1-a\nanswer: \"Left.\\n\"\ndecision: 4",
+		"id: q-2\nquestion: \"Open?\"",
+	)})
+	code, stdout, _, err := call(t, p, "show", "q-1")
+	if want := "q-1: Which way?\nanswered, about p1-a, decision 4\n\nLeft.\n"; code != 0 || err != nil || stdout != want {
+		t.Errorf("show q-1: %d, %v\n got %q\nwant %q", code, err, stdout, want)
+	}
+	code, stdout, _, err = call(t, p, "show", "q-2")
+	if want := "q-2: Open?\nopen\n"; code != 0 || err != nil || stdout != want {
+		t.Errorf("show q-2: %d, %v, %q", code, err, stdout)
+	}
+	code, stdout, _, err = call(t, p, "--json", "show", "q-2")
+	if code != 0 || err != nil || !strings.Contains(stdout, `"ok": true`) || !strings.Contains(stdout, `"id": "q-2"`) {
+		t.Errorf("show q-2 --json: %d, %v, %q", code, err, stdout)
+	}
+	code, stdout, stderr, err := call(t, p, "show", "q-9")
+	if code != 1 || err != nil || stdout != "" || stderr != "there is no question q-9\n  fix: itos decision --all lists the questions\n" {
+		t.Errorf("show q-9: %d, %v, %q, %q", code, err, stdout, stderr)
+	}
+	code, stdout, stderr, err = call(t, p, "--json", "show", "q-9")
+	var refused struct {
+		OK       bool
+		Problems []out.Problem
+	}
+	if code != 1 || err != nil || stderr != "" || json.Unmarshal([]byte(stdout), &refused) != nil || refused.OK ||
+		len(refused.Problems) != 1 || refused.Problems[0].Rule != "ask-no-question" {
+		t.Errorf("show q-9 --json: %d, %v, %q, %q", code, err, stdout, stderr)
+	}
+}
+
+// A refusal with no fix prints its message alone.
+func TestRefuseWithNoFix(t *testing.T) {
+	var stdout, stderr strings.Builder
+	code, err := CLI{}.refuse(&stdout, &stderr, []out.Problem{{Rule: "r", Message: "no"}})
+	if code != 1 || err != nil || stdout.Len() != 0 || stderr.String() != "no\n" {
+		t.Errorf("refuse: %d, %v, %q, %q", code, err, stdout.String(), stderr.String())
+	}
+}
+
+// A config that does not load, and questions the tracker cannot load, are
+// the errors of every subcommand, nothing printed.
+func TestErrors(t *testing.T) {
+	broken := errors.New("broken")
+	p := ports{err: broken}
+	for _, args := range [][]string{nil, {"show", "q-1"}, {"add", "Q"}, {"answer", "q-1", "A"}, {"record", "q-1", "--none"}} {
+		if code, stdout, stderr, err := call(t, p, args...); code != 0 || !errors.Is(err, broken) || stdout != "" || stderr != "" {
+			t.Errorf("%q with no config: %d, %v, %q, %q", args, code, err, stdout, stderr)
+		}
+	}
+	p, _ = over(t, nil, nil)
+	p.tracker = unloadable{&trackerfake.Tracker{}, broken, ""}
+	for _, args := range [][]string{nil, {"show", "q-1"}, {"add", "Q"}, {"answer", "q-1", "A"}, {"record", "q-1", "--none"}} {
+		if code, _, _, err := call(t, p, args...); code != 0 || !errors.Is(err, broken) {
+			t.Errorf("%q with questions not loaded: %d, %v", args, code, err)
+		}
+	}
+}
+
+// unloadable is a tracker whose Load fails, of every document or of those
+// whose name ends with suffix.
+type unloadable struct {
+	*trackerfake.Tracker
+	err    error
+	suffix string
+}
+
+func (u unloadable) Load(ctx context.Context, names []string) ([]trackerport.Doc, error) {
+	if strings.HasSuffix(names[0], u.suffix) {
+		return nil, u.err
+	}
+	return u.Tracker.Load(ctx, names)
+}
+
+// add asks a question with the next id, about the item --item names, and
+// commits the file alone; under --json the question and the commit; under
+// --quiet nothing.
+func TestAdd(t *testing.T) {
+	p, tracker := over(t, map[string]string{registry: registryText}, nil)
+	code, stdout, stderr, err := call(t, p, "add", "Which", "way?", "--item", "p1-a")
+	if code != 0 || err != nil || stdout != "q-1 asked about p1-a: committed 0000000 docs: ask q-1\n" || stderr != "[1] docs: ask q-1\n" {
+		t.Errorf("add: %d, %v, %q, %q", code, err, stdout, stderr)
+	}
+	if text := doc(t, tracker, asks); !strings.Contains(text, "id: q-1") || !strings.Contains(text, "item: \"p1-a\"") || !strings.Contains(text, "Which way?") {
+		t.Errorf("the questions are %q", text)
+	}
+	code, stdout, _, err = call(t, p, "--json", "add", "Again?")
+	var added struct {
+		OK       bool
+		Question map[string]any
+		Commit   any
+	}
+	if code != 0 || err != nil || json.Unmarshal([]byte(stdout), &added) != nil || !added.OK || added.Question["id"] != "q-2" ||
+		added.Commit != strings.Repeat("0", 39)+"2" {
+		t.Errorf("add --json: %d, %v, %s", code, err, stdout)
+	}
+	if code, stdout, stderr, err = call(t, p, "--quiet", "add", "Quiet?"); code != 0 || err != nil || stdout != "" || stderr != "" {
+		t.Errorf("add --quiet: %d, %v, %q, %q", code, err, stdout, stderr)
+	}
+	code, stdout, _, err = call(t, p, "add", "Plain?")
+	if code != 0 || err != nil || stdout != "q-4 asked: committed 0000000 docs: ask q-4\n" {
+		t.Errorf("add with no item: %d, %v, %q", code, err, stdout)
+	}
+}
+
+// The commit's body says what was asked, on one line, the item it names.
+func TestAddBody(t *testing.T) {
+	p, tracker := over(t, map[string]string{registry: registryText}, nil)
+	seen := &seeing{Tracker: tracker}
+	p.tracker = seen
+	if code, _, _, err := call(t, p, "add", "Which\n  way?", "--item", "p1-a"); code != 0 || err != nil {
+		t.Fatalf("add: %d, %v", code, err)
+	}
+	if want := []string{"docs: ask q-1", `Ask q-1 about p1-a ("Which way?"), with itos decision add.`}; !slices.Equal(flat(seen.paragraphs), want) {
+		t.Errorf("the commit is %q, want %q", seen.paragraphs, want)
+	}
+}
+
+// seeing is the tracker's fake keeping the paragraphs of its last
+// transaction.
+type seeing struct {
+	*trackerfake.Tracker
+	paragraphs []string
+}
+
+func (s *seeing) Transact(ctx context.Context, tx trackerport.Transaction) (string, error) {
+	s.paragraphs = tx.Paragraphs
+	return s.Tracker.Transact(ctx, tx)
+}
+
+// flat is the paragraphs, each unwrapped onto one line.
+func flat(paragraphs []string) []string {
+	lines := make([]string, len(paragraphs))
+	for i, p := range paragraphs {
+		lines[i] = strings.Join(strings.Fields(p), " ")
+	}
+	return lines
+}
+
+// add refuses an item the registry does not have, or no registry, exit 1,
+// nothing written; a registry it cannot read is the error.
+func TestAddItem(t *testing.T) {
+	p, _ := over(t, nil, nil)
+	code, stdout, stderr, err := call(t, p, "add", "Q?", "--item", "p1-a")
+	if code != 1 || err != nil || stdout != "" || !strings.HasPrefix(stderr, "no work registry at "+registry+"\n") {
+		t.Errorf("no registry: %d, %v, %q, %q", code, err, stdout, stderr)
+	}
+	p, tracker := over(t, map[string]string{registry: registryText}, nil)
+	code, _, stderr, err = call(t, p, "add", "Q?", "--item", "p1-b")
+	if code != 1 || err != nil || stderr != "no item p1-b in "+registry+", so no question can name it\n  fix: itos work list --all names every item; --item may be left out\n" {
+		t.Errorf("unknown item: %d, %v, %q", code, err, stderr)
+	}
+	if doc(t, tracker, asks) != "" {
+		t.Error("a refused add wrote the questions")
+	}
+	p, _ = over(t, map[string]string{registry: "items: [\n"}, nil)
+	if code, _, _, err = call(t, p, "add", "Q?", "--item", "p1-a"); code != 0 || err == nil {
+		t.Errorf("a registry that does not parse: %d, %v", code, err)
+	}
+}
+
+// A file with changes no commit holds, and a commit a hook refuses, are
+// refused, exit 1; hooks not ready are the error.
+func TestAddWriteRefused(t *testing.T) {
+	p, tracker := over(t, nil, nil)
+	tracker.Edit(asks, "questions: []\n")
+	code, _, stderr, err := call(t, p, "add", "Q?")
+	if code != 1 || err != nil || !strings.HasPrefix(stderr, asks+" has changes no commit holds") {
+		t.Errorf("dirty: %d, %v, %q", code, err, stderr)
+	}
+	p, tracker = over(t, nil, nil)
+	tracker.Refuse = true
+	code, stdout, stderr, err := call(t, p, "add", "Q?")
+	if code != 1 || err != nil || stdout != "" || !strings.Contains(stderr, "refused\nthe commit of "+asks+" failed (git exited 1)") {
+		t.Errorf("refused: %d, %v, %q, %q", code, err, stdout, stderr)
+	}
+	p, tracker = over(t, nil, nil)
+	tracker.Unready = errors.New("no hooks")
+	if code, _, _, err = call(t, p, "add", "Q?"); code != 0 || err == nil || err.Error() != "no hooks" {
+		t.Errorf("unready: %d, %v", code, err)
+	}
+}
+
+// Under a stealth config nothing is committed: the line says so, --json's
+// commit is null; the lock is held while the command writes, and one held
+// already is the error.
+func TestStealth(t *testing.T) {
+	p, tracker := over(t, nil, nil)
+	tracker.Stealth = true
+	code, stdout, _, err := call(t, p, "add", "Q?")
+	if code != 0 || err != nil || stdout != "q-1 asked: the questions are the stealth config's, so nothing is committed\n" {
+		t.Errorf("stealth add: %d, %v, %q", code, err, stdout)
+	}
+	code, stdout, _, err = call(t, p, "--json", "answer", "q-1", "A.")
+	if code != 0 || err != nil || !strings.Contains(stdout, `"commit": null`) {
+		t.Errorf("stealth answer --json: %d, %v, %q", code, err, stdout)
+	}
+	held, err := tracker.Hold(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, args := range [][]string{{"add", "Q?"}, {"answer", "q-1", "A"}, {"record", "q-1", "--none"}} {
+		if code, _, _, err = call(t, p, args...); code != 0 || err == nil {
+			t.Errorf("%q with the lock held: %d, %v", args, code, err)
+		}
+	}
+	if err := held.Release(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+	p.tracker = stuck{tracker}
+	code, stdout, stderr, err := call(t, p, "add", "Q?")
+	if code != 0 || err != nil || !strings.HasPrefix(stdout, "q-2 asked") || stderr != "itos: the lock cannot be given back: stuck\n" {
+		t.Errorf("a lock that cannot be given back: %d, %v, %q, %q", code, err, stdout, stderr)
+	}
+}
+
+// stuck is a tracker whose lock cannot be given back.
+type stuck struct{ *trackerfake.Tracker }
+
+func (s stuck) Hold(context.Context) (trackerport.Held, error) { return stuckHeld{}, nil }
+
+type stuckHeld struct{}
+
+func (stuckHeld) Release(context.Context) error { return errors.New("stuck") }
+
+// answer keeps the answer beside the question and commits the file alone; a
+// question already answered, or none with the id, is refused.
+func TestAnswer(t *testing.T) {
+	p, tracker := over(t, nil, map[string]string{asks: questions("id: q-1\nquestion: \"Which\n  way?\"", "id: q-2\nquestion: \"Done?\"\nanswer: \"Yes\n  indeed.\"")})
+	seen := &seeing{Tracker: tracker}
+	p.tracker = seen
+	code, stdout, _, err := call(t, p, "answer", "q-1", "Left,", "then", "right.")
+	if code != 0 || err != nil || stdout != "q-1 answered: committed 0000000 docs: answer q-1\n" {
+		t.Errorf("answer: %d, %v, %q", code, err, stdout)
+	}
+	if want := []string{"docs: answer q-1", `Answer q-1 ("Which way?") with "Left, then right.", by itos decision answer.`}; !slices.Equal(flat(seen.paragraphs), want) {
+		t.Errorf("the commit is %q", seen.paragraphs)
+	}
+	if text := doc(t, tracker, asks); !strings.Contains(text, "Left, then right.") {
+		t.Errorf("the questions are %q", text)
+	}
+	code, _, stderr, err := call(t, p, "answer", "q-2", "No.")
+	if code != 1 || err != nil || stderr != "q-2 is already answered: Yes indeed.\n  fix: itos decision add asks a new question\n" {
+		t.Errorf("answered: %d, %v, %q", code, err, stderr)
+	}
+	if code, _, stderr, err = call(t, p, "answer", "q-9", "No."); code != 1 || err != nil || !strings.HasPrefix(stderr, "there is no question q-9\n") {
+		t.Errorf("no question: %d, %v, %q", code, err, stderr)
+	}
+	tracker.Refuse = true
+	if code, _, _, err = call(t, p, "answer", "q-1", "Again."); code != 1 || err != nil {
+		t.Errorf("refused: %d, %v", code, err)
+	}
+}
+
+// record --none marks the question as recorded nowhere, the file committed
+// alone; one unanswered, one recorded, or none with the id, is refused.
+func TestRecordNone(t *testing.T) {
+	p, tracker := over(t, nil, map[string]string{asks: questions(
+		"id: q-1\nquestion: \"Which\n  way?\"\nanswer: \"Left.\"",
+		"id: q-2\nquestion: \"Open?\"",
+		"id: q-3\nquestion: \"Done?\"\nanswer: \"Yes.\"\ndecision: none",
+	)})
+	seen := &seeing{Tracker: tracker}
+	p.tracker = seen
+	code, stdout, _, err := call(t, p, "record", "q-1", "--none")
+	if code != 0 || err != nil || stdout != "q-1 marked as recorded nowhere: committed 0000000 docs: mark q-1 as recorded nowhere\n" {
+		t.Errorf("--none: %d, %v, %q", code, err, stdout)
+	}
+	want := []string{"docs: mark q-1 as recorded nowhere", `Mark q-1 ("Which way?") as recorded nowhere, its answer having concerned its item alone, so itos decision stops naming it. By itos decision record --none.`}
+	if !slices.Equal(flat(seen.paragraphs), want) {
+		t.Errorf("the commit is %q", seen.paragraphs)
+	}
+	if text := doc(t, tracker, asks); !strings.Contains(text, "decision: none") {
+		t.Errorf("the questions are %q", text)
+	}
+	for id, wantErr := range map[string]string{
+		"q-1": "q-1 is already recorded, as no decision (--none)\n  fix: itos decision show q-1 shows it\n",
+		"q-2": "q-2 is not answered, so it holds no decision to record\n  fix: itos decision answer q-2 <text> answers it first\n",
+		"q-9": "there is no question q-9\n  fix: itos decision --all lists the questions\n",
+	} {
+		if code, _, stderr, err := call(t, p, "record", id, "--none"); code != 1 || err != nil || stderr != wantErr {
+			t.Errorf("record %s --none: %d, %v, %q", id, code, err, stderr)
+		}
+	}
+	code, stdout, _, err = call(t, p, "--json", "record", "q-3", "--title", "T")
+	if code != 1 || err != nil || !strings.Contains(stdout, `"rule": "ask-recorded"`) {
+		t.Errorf("record q-3 --json: %d, %v, %q", code, err, stdout)
+	}
+	p, _ = over(t, nil, map[string]string{asks: questions("id: q-1\nquestion: \"Q?\"\nanswer: \"A.\"")})
+	code, stdout, _, err = call(t, p, "--json", "record", "q-1", "--none")
+	var recorded struct {
+		OK       bool
+		Question map[string]any
+		Record   any
+		Commit   any
+	}
+	if code != 0 || err != nil || json.Unmarshal([]byte(stdout), &recorded) != nil || !recorded.OK || recorded.Record != nil ||
+		recorded.Commit == nil || recorded.Question["decision"] != "none" {
+		t.Errorf("--none --json: %d, %v, %s", code, err, stdout)
+	}
+	p, tracker = over(t, nil, map[string]string{asks: questions("id: q-1\nquestion: \"Q?\"\nanswer: \"A.\"")})
+	tracker.Refuse = true
+	if code, _, _, err = call(t, p, "record", "q-1", "--none"); code != 1 || err != nil {
+		t.Errorf("--none refused: %d, %v", code, err)
+	}
+}
+
+// record writes the answer as the next record, dated by the clock, with the
+// item and the options, updates the index, and commits the four files
+// together; --supersedes sets the old record's status.
+func TestRecord(t *testing.T) {
+	old := decisions + "/0001-old.md"
+	p, tracker := over(t, map[string]string{old: oldRecord}, map[string]string{
+		asks: questions("id: q-1\nquestion: \"Which\n  way?\"\nitem: p1-a\nanswer: \"Left.\""),
+		old:  oldRecord,
+	})
+	seen := &seeing{Tracker: tracker}
+	p.tracker = seen
+	code, stdout, stderr, err := call(t, p, "record", "q-1", "--title", "Go left", "--option", "Left", "--option", "Right",
+		"--consequences", "None.", "--supersedes", "1")
+	file := filepath.Join(decisions, "0002-go-left.md")
+	if code != 0 || err != nil || stdout != "q-1 recorded as decision 2, docs/decisions/0002-go-left.md: committed 0000000 docs: record q-1 as decision 2\n" {
+		t.Errorf("record: %d, %v, %q, %q", code, err, stdout, stderr)
+	}
+	want := []string{"docs: record q-1 as decision 2", `Record q-1 ("Which way?") as decision 2, Go left, in docs/decisions/0002-go-left.md, by itos decision record. It supersedes decision 1, which leaves the index.`}
+	if !slices.Equal(flat(seen.paragraphs), want) {
+		t.Errorf("the commit is %q", seen.paragraphs)
+	}
+	text := doc(t, tracker, file)
+	for _, part := range []string{"date: 2026-10-22", "# Go left", "Which way?\n\nAsked as q-1, about p1-a.", "- Left\n- Right", "Left.", "None.", "Supersedes ADR-0001."} {
+		if !strings.Contains(text, part) {
+			t.Errorf("the record lacks %q:\n%s", part, text)
+		}
+	}
+	if text := doc(t, tracker, old); !strings.Contains(text, "status: superseded by ADR-0002") {
+		t.Errorf("the old record is %q", text)
+	}
+	if text := doc(t, tracker, filepath.Join(decisions, "README.md")); !strings.Contains(text, "0002-go-left.md") || strings.Contains(text, "0001-old.md") {
+		t.Errorf("the index is %q", text)
+	}
+	if text := doc(t, tracker, asks); !strings.Contains(text, "decision: 2") {
+		t.Errorf("the questions are %q", text)
+	}
+	if _, err := os.Stat(decisions); err != nil {
+		t.Errorf("the records' folder was not made: %v", err)
+	}
+}
+
+// --json gives the record's path; a title long enough makes the body name
+// the folder rather than the file; a question with no item says none.
+func TestRecordJSONAndLongTitle(t *testing.T) {
+	p, tracker := over(t, nil, map[string]string{asks: questions("id: q-1\nquestion: \"Q?\"\nanswer: \"A.\"")})
+	seen := &seeing{Tracker: tracker}
+	p.tracker = seen
+	title := strings.Repeat("word ", 18)
+	code, stdout, _, err := call(t, p, "--json", "record", "q-1", "--title", title)
+	var recorded struct {
+		Record any
+		Commit any
+	}
+	if code != 0 || err != nil || json.Unmarshal([]byte(stdout), &recorded) != nil ||
+		recorded.Record != "docs/decisions/0001-"+strings.TrimSuffix(strings.Repeat("word-", 18), "-")+".md" || recorded.Commit == nil {
+		t.Errorf("record --json: %d, %v, %s", code, err, stdout)
+	}
+	if len(seen.paragraphs) != 2 || !strings.Contains(seen.paragraphs[1], " in docs/decisions, by itos decision record.") {
+		t.Errorf("the commit is %q", seen.paragraphs)
+	}
+	if text := doc(t, tracker, filepath.Join(decisions, strings.TrimPrefix(recorded.Record.(string), decisions+"/"))); !strings.Contains(text, "Q?\n\nAsked as q-1.") {
+		t.Errorf("the record is %q", text)
+	}
+}
+
+// A path of exactly a body line is the record's own; one past it, the
+// folder's.
+func TestRecordBodyWidth(t *testing.T) {
+	for _, test := range []struct {
+		width int
+		file  bool
+	}{{100, true}, {101, false}} {
+		p, tracker := over(t, nil, map[string]string{asks: questions("id: q-1\nquestion: \"Q?\"\nanswer: \"A.\"")})
+		seen := &seeing{Tracker: tracker}
+		p.tracker = seen
+		// docs/decisions/0001-<slug>.md, and its comma.
+		slug := strings.Repeat("a", test.width-len("docs/decisions/0001-.md,"))
+		if code, _, _, err := call(t, p, "record", "q-1", "--title", slug); code != 0 || err != nil {
+			t.Fatalf("record: %d, %v", code, err)
+		}
+		in := " in docs/decisions/0001-" + slug + ".md, by"
+		if got := len(seen.paragraphs) == 2 && strings.Contains(strings.Join(strings.Fields(seen.paragraphs[1]), " "), in); got != test.file {
+			t.Errorf("a path of %d: the body %q names the file: %v", test.width, seen.paragraphs, got)
+		}
+	}
+}
+
+// --supersedes naming no record is refused, nothing written or made.
+func TestRecordSupersedesNone(t *testing.T) {
+	p, tracker := over(t, nil, map[string]string{asks: questions("id: q-1\nquestion: \"Q?\"\nanswer: \"A.\"")})
+	code, _, stderr, err := call(t, p, "record", "q-1", "--title", "T", "--supersedes", "4")
+	if code != 1 || err != nil || stderr != "there is no decision record 4 in "+filepath.FromSlash(decisions)+", so none can be superseded\n  fix: --supersedes takes the number of a record there\n" {
+		t.Errorf("supersedes 4: %d, %v, %q", code, err, stderr)
+	}
+	if text := doc(t, tracker, asks); strings.Contains(text, "decision:") {
+		t.Errorf("the questions are %q", text)
+	}
+	if _, err := os.Stat("docs"); !errors.Is(err, os.ErrNotExist) {
+		t.Errorf("a refused record made a folder: %v", err)
+	}
+}
+
+// A commit refused, or an error writing, removes the folders made for the
+// record, every file as it was.
+func TestRecordRefusedUnmakes(t *testing.T) {
+	p, tracker := over(t, nil, map[string]string{asks: questions("id: q-1\nquestion: \"Q?\"\nanswer: \"A.\"")})
+	tracker.Refuse = true
+	if code, _, _, err := call(t, p, "record", "q-1", "--title", "T"); code != 1 || err != nil {
+		t.Errorf("refused: %d, %v", code, err)
+	}
+	if _, err := os.Stat("docs"); !errors.Is(err, os.ErrNotExist) {
+		t.Errorf("a refused record left its folder: %v", err)
+	}
+	tracker.Refuse = false
+	tracker.Unready = errors.New("no hooks")
+	if code, _, _, err := call(t, p, "record", "q-1", "--title", "T"); code != 0 || err == nil || err.Error() != "no hooks" {
+		t.Errorf("unready: %d, %v", code, err)
+	}
+	if _, err := os.Stat("docs"); !errors.Is(err, os.ErrNotExist) {
+		t.Errorf("a record that failed left its folder: %v", err)
+	}
+	if err := os.MkdirAll("docs", 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if code, _, _, err := call(t, p, "record", "q-1", "--title", "T"); code != 0 || err == nil {
+		t.Errorf("unready, docs there: %d, %v", code, err)
+	}
+	if _, err := os.Stat("docs"); err != nil {
+		t.Errorf("a failed record removed a folder it did not make: %v", err)
+	}
+	if _, err := os.Stat(decisions); !errors.Is(err, os.ErrNotExist) {
+		t.Errorf("a failed record left the folder it made: %v", err)
+	}
+}
+
+// The records' folder that cannot be made, a folder it cannot list, and an
+// index it cannot load are the errors, nothing written.
+func TestRecordErrors(t *testing.T) {
+	committed := map[string]string{asks: questions("id: q-1\nquestion: \"Q?\"\nanswer: \"A.\"")}
+	p, tracker := over(t, nil, committed)
+	// A file where the folder above the records' would be.
+	if err := os.WriteFile("docs", nil, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if code, _, _, err := call(t, p, "record", "q-1", "--title", "T"); code != 0 || err == nil {
+		t.Errorf("a folder that cannot be made: %d, %v", code, err)
+	}
+	if text := doc(t, tracker, asks); strings.Contains(text, "decision:") {
+		t.Errorf("the questions are %q", text)
+	}
+	broken := errors.New("broken")
+	p, tracker = over(t, nil, committed)
+	p.tracker = unloadable{tracker, broken, "README.md"}
+	if code, _, _, err := call(t, p, "record", "q-1", "--title", "T"); code != 0 || !errors.Is(err, broken) {
+		t.Errorf("an index that cannot be loaded: %d, %v", code, err)
+	}
+	p, tracker = over(t, nil, committed)
+	p.tracker = unlistable{tracker, broken}
+	if code, _, _, err := call(t, p, "record", "q-1", "--title", "T"); code != 0 || !errors.Is(err, broken) {
+		t.Errorf("a folder the tracker cannot list: %d, %v", code, err)
+	}
+	src, err := treefake.Trees{Files: map[string]map[string]string{"worktree": {decisions + "/0001-old.md": oldRecord}}}.At(t.Context(), "worktree")
+	if err != nil {
+		t.Fatal(err)
+	}
+	p, _ = withSource(t, unreadable{src, broken}, committed)
+	if code, _, _, err := call(t, p, "record", "q-1", "--title", "T"); code != 0 || !errors.Is(err, broken) {
+		t.Errorf("a records' folder that cannot be read: %d, %v", code, err)
+	}
+}
+
+// unlistable is a tracker that cannot list a folder.
+type unlistable struct {
+	*trackerfake.Tracker
+	err error
+}
+
+func (u unlistable) List(context.Context, string) ([]string, error) { return nil, u.err }
+
+// unreadable is a working tree whose folders cannot be listed.
+type unreadable struct {
+	treeport.Source
+	err error
+}
+
+func (u unreadable) List(context.Context, string) ([]string, error) { return nil, u.err }
