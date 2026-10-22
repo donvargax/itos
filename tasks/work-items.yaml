@@ -12261,3 +12261,11 @@ items:
     status: todo
     depends_on: []
     kind: task
+
+  - id: T-247
+    title: itos verify becomes a slice
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task
