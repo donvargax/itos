@@ -452,17 +452,20 @@ ci:
       # covered on the lines changed (ADR-0049, q-57): a push judges one site of its range, so the
       # rest of a slice's survivors are judged here, not one red push at a time. The base is the
       # head commit of nightly.yml's last run on main that concluded success, read with gh and the
-      # job's token (tools/bin/nightly-base). Capped and seeded per run (the user, 2026-10-12): a
-      # range of 60 sites or fewer is judged whole, a bigger one (after a red streak) gets a fresh
-      # sample of 60 each night, seeded as the twenty above are, until a green night moves the
-      # base, and never runs past the job's time. With no green nightly in reach (none, gh failing,
-      # or its commit not in HEAD's history) it says so and judges the last 24 hours' first-parent
-      # range instead, never every function. A survivor or an uncovered changed line fails the
-      # night. Linux only, as the job is (T-161). A Go file only another OS builds, such as a
-      # _windows.go file, is left out by itos-cc itself ("not_built" in its report, itos-cc#18) and
-      # fails nothing, so a change to one cannot keep every night red and the base from moving.
+      # job's token (tools/bin/nightly-base), or the floor when that is later: T-191's head, which
+      # judged the last batch of the slices refactor, so the nights stop drawing from all it moved
+      # since the green night of 2026-10-08 (T-280). Capped and seeded per run (the user,
+      # 2026-10-12): a range of 60 sites or fewer is judged whole, a bigger one (after a red
+      # streak) gets a fresh sample of 60 each night, seeded as the twenty above are, until a
+      # green night moves the base, and never runs past the job's time. With no green nightly in
+      # reach (none, gh failing, or its commit not in HEAD's history) it says so and judges from
+      # the floor, never every function. The twenty above still draw from all of the code, no
+      # floor (the user, 2026-10-17). A survivor or an uncovered changed line fails the night.
+      # Linux only, as the job is (T-161). A Go file only another OS builds, such as a _windows.go
+      # file, is left out by itos-cc itself ("not_built" in its report, itos-cc#18) and fails
+      # nothing, so a change to one cannot keep every night red and the base from moving.
       - {
-          run: 'base=$(go run ./tools/bin/nightly-base) && tools/bin/pinned itos-cc mutation run --since "$base" --count 60 --seed "${GITHUB_RUN_ID:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}" --fail-uncovered=lines --json cmd internal',
+          run: 'base=$(go run ./tools/bin/nightly-base -floor a9de53f62e7b6755a91f47d2780bdc2a827b94e4) && tools/bin/pinned itos-cc mutation run --since "$base" --count 60 --seed "${GITHUB_RUN_ID:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}" --fail-uncovered=lines --json cmd internal',
           cost: late,
         }
   wait_on_status: [todo] # a named task nobody has started waits

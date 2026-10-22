@@ -12,10 +12,11 @@
 // The changed-sites step's base is read by tools/bin/nightly-base, which the fake shell never
 // runs, so the step as the plan dispatches it is also run by a real sh, with a fake gh first on
 // the PATH and the mutation provider replaced by a fake that logs its arguments (this binary
-// again): a green run found gives its head commit, and none found, gh failing or a head commit out
-// of HEAD's history give the last 24 hours' first-parent base, said on stderr. Its paths are cmd
-// and internal, as the other mutation commands' are: itos-cc leaves out a file only another OS
-// builds itself (itos-cc#18).
+// again): a green run found later than the step's floor, T-191's head (T-280), gives its head
+// commit, and a green head the floor descends from, none found, gh failing or a head commit out
+// of HEAD's history give the floor, said on stderr; a floor out of HEAD's history stops the step
+// before the provider. Its paths are cmd and internal, as the other mutation commands' are:
+// itos-cc leaves out a file only another OS builds itself (itos-cc#18).
 package budget
 
 import (
@@ -28,7 +29,6 @@ import (
 	"strconv"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/donvargax/itos/v8/tools/selftest/scratch"
 )
@@ -209,7 +209,9 @@ func TestSelftest(t *testing.T) {
 
 	expectedPush := "tools/bin/pinned itos-cc mutation run --count 1 --since " + from + " --seed " + from + " --fail-uncovered=lines --json cmd internal"
 	const expectedNightly = `tools/bin/pinned itos-cc mutation run --count 20 --seed "${GITHUB_RUN_ID:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}" --json cmd internal`
-	const expectedChanged = `base=$(go run ./tools/bin/nightly-base) && tools/bin/pinned itos-cc mutation run --since "$base" --count 60 --seed "${GITHUB_RUN_ID:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}" --fail-uncovered=lines --json cmd internal`
+	// The changed sites' floor: T-191's head, which judged the slices refactor's last batch (T-280).
+	const floor = "a9de53f62e7b6755a91f47d2780bdc2a827b94e4"
+	const expectedChanged = `base=$(go run ./tools/bin/nightly-base -floor ` + floor + `) && tools/bin/pinned itos-cc mutation run --since "$base" --count 60 --seed "${GITHUB_RUN_ID:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}" --fail-uncovered=lines --json cmd internal`
 
 	// A push: one fresh mutant of the range's changed Go functions, drawn by the range's start
 	// (T-159), strict coverage of its changed lines (q-57), cmd and internal, and no other
@@ -265,12 +267,15 @@ func TestSelftest(t *testing.T) {
 		t.Fatal(err)
 	}
 	providerLog := filepath.Join(dir, "provider.json")
+	step := func(command, gh string) scratch.Result {
+		os.Remove(providerLog)
+		command = strings.Replace(command, "tools/bin/pinned itos-cc", "'"+self+"'", 1)
+		return scratch.Run(root, scratch.With(env, "PATH="+fakeBin+string(os.PathListSeparator)+os.Getenv("PATH"),
+			envGh+"="+gh, envProvider+"="+providerLog, "GITHUB_RUN_ID=4321"), "", "sh", "-c", command)
+	}
 	changed := func(t *testing.T, gh string) (scratch.Result, []string) {
 		t.Helper()
-		os.Remove(providerLog)
-		command := strings.Replace(expectedChanged, "tools/bin/pinned itos-cc", "'"+self+"'", 1)
-		r := scratch.Run(root, scratch.With(env, "PATH="+fakeBin+string(os.PathListSeparator)+os.Getenv("PATH"),
-			envGh+"="+gh, envProvider+"="+providerLog, "GITHUB_RUN_ID=4321"), "", "sh", "-c", command)
+		r := step(expectedChanged, gh)
 		if r.Code != 0 {
 			t.Fatalf("the changed-sites step failed with gh %q: exit %d\n%s", gh, r.Code, r.Output())
 		}
@@ -287,44 +292,58 @@ func TestSelftest(t *testing.T) {
 	providerArgs := func(base string) []string {
 		return []string{"mutation", "run", "--since", base, "--count", "60", "--seed", "4321", "--fail-uncovered=lines", "--json", "cmd", "internal"}
 	}
-	// The last 24 hours' first-parent base, as git reads it: the newest commit on HEAD's
-	// first-parent line committed a day ago or earlier, else the line's oldest.
-	dayAgo := func(t *testing.T) string {
-		t.Helper()
-		if base := git("", "rev-list", "--first-parent", "-1", fmt.Sprintf("--before=@%d", time.Now().Add(-24*time.Hour).Unix()), "HEAD"); base != "" {
-			return base
-		}
-		line := strings.Split(git("", "rev-list", "--first-parent", "HEAD"), "\n")
-		return line[len(line)-1]
-	}
-
 	t.Run("the changed sites' base is the last green nightly's head commit", func(t *testing.T) {
 		green := git("", "rev-parse", "HEAD~1")
 		r, args := changed(t, "green "+green)
 		if !slices.Equal(args, providerArgs(green)) {
 			t.Errorf("the provider was handed %v, not %v", args, providerArgs(green))
 		}
-		if !strings.Contains(r.Stderr, "the base is "+green+", the head commit of the last green run of nightly.yml on main (run 4242") {
-			t.Errorf("the step does not say which run its base is:\n%s", r.Output())
+		if want := "the base is " + green + ", the head commit of the last green run of nightly.yml on main (run 4242, 2026-10-08T11:49:36Z), later than the floor " + floor; !strings.Contains(r.Stderr, want) {
+			t.Errorf("the step does not say %q:\n%s", want, r.Output())
+		}
+	})
+
+	t.Run("a green nightly the floor descends from leaves the base at the floor", func(t *testing.T) {
+		green := git("", "rev-parse", floor+"~1")
+		r, args := changed(t, "green "+green)
+		if !slices.Equal(args, providerArgs(floor)) {
+			t.Errorf("the provider was handed %v, not %v", args, providerArgs(floor))
+		}
+		if want := "the base is the floor " + floor + ", as the head commit of the last green run of nightly.yml on main (run 4242, 2026-10-08T11:49:36Z), " + green + ", is the floor or one of its ancestors"; !strings.Contains(r.Stderr, want) {
+			t.Errorf("the step does not say %q:\n%s", want, r.Output())
 		}
 	})
 
 	for _, c := range []struct{ name, gh, why string }{
-		{"with no green nightly the changed sites are the last day's", "none", "no run of nightly.yml on main concluded success"},
-		{"with gh failing the changed sites are the last day's", "fail", "gh run list failed: gh: exit status 1: HTTP 401: Bad credentials (https://api.github.com/graphql)"},
-		{"with the green nightly out of reach the changed sites are the last day's", "green 0123456789abcdef0123456789abcdef01234567", "the last green run's head commit 0123456789abcdef0123456789abcdef01234567 is not in HEAD's history"},
+		{"with no green nightly the changed sites are the floor's", "none", "no run of nightly.yml on main concluded success"},
+		{"with gh failing the changed sites are the floor's", "fail", "gh run list failed: gh: exit status 1: HTTP 401: Bad credentials (https://api.github.com/graphql)"},
+		{"with the green nightly out of reach the changed sites are the floor's", "green 0123456789abcdef0123456789abcdef01234567", "the last green run's head commit 0123456789abcdef0123456789abcdef01234567 is not in HEAD's history"},
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			r, args := changed(t, c.gh)
-			base := dayAgo(t)
-			if !slices.Equal(args, providerArgs(base)) {
-				t.Errorf("the provider was handed %v, not %v", args, providerArgs(base))
+			if !slices.Equal(args, providerArgs(floor)) {
+				t.Errorf("the provider was handed %v, not %v", args, providerArgs(floor))
 			}
-			if want := "no green nightly in reach (" + c.why + "); judging the last 24 hours' first-parent range instead, since " + base; !strings.Contains(r.Stderr, want) {
+			if want := "no green nightly in reach (" + c.why + "); the base is the floor " + floor; !strings.Contains(r.Stderr, want) {
 				t.Errorf("the step does not say %q:\n%s", want, r.Output())
 			}
 		})
 	}
+
+	t.Run("a floor out of HEAD's history stops the changed sites before the provider", func(t *testing.T) {
+		const away = "0123456789abcdef0123456789abcdef01234567"
+		r := step(strings.Replace(expectedChanged, floor, away, 1), "none")
+		// go run exits 1 for nightly-base's usage error, exit 2.
+		if r.Code != 1 {
+			t.Errorf("the step exited %d, not 1:\n%s", r.Code, r.Output())
+		}
+		if _, err := os.Stat(providerLog); err == nil {
+			t.Error("the provider ran without a base")
+		}
+		if want := "nightly-base: the floor " + away + " is not in HEAD's history: "; !strings.Contains(r.Stderr, want) {
+			t.Errorf("the step does not say %q:\n%s", want, r.Output())
+		}
+	})
 
 	// The seed as the nightly's sh expands it: GitHub's run id, so two runs of one commit draw
 	// differently; by hand, the time.
