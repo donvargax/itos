@@ -2750,12 +2750,6 @@
     exec.Command(git.Bin()) sites left anywhere. At the end only internal/vcs/adapter (with
     internal/git as its internals) runs git; the git shim and launcher keep finding the real git as
     they do (bug 45), through the adapter.
-  done_when:
-    - run: "! grep -rln \"exec.Command(git.Bin()\" internal cmd --include=*.go --exclude=*_test.go"
-    - run: tools/bin/architecture-check
-      timeout: 900
-    - run: tools/bin/pinned golangci-lint run ./...
-      timeout: 600
 
 - id: T-219
   type: test

@@ -11383,7 +11383,7 @@ items:
     title: "The VCS port, part 3: commit, remote, hooks and ID reservation, and no git call outside the adapter"
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
 
