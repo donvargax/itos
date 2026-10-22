@@ -9,11 +9,8 @@ import (
 	"strings"
 
 	"github.com/donvargax/itos/v8/internal/config"
-	"github.com/donvargax/itos/v8/internal/idcounter"
-	"github.com/donvargax/itos/v8/internal/kind"
 	"github.com/donvargax/itos/v8/internal/ledger"
 	"github.com/donvargax/itos/v8/internal/nextid"
-	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
 	"github.com/donvargax/itos/v8/internal/work"
 )
 
@@ -88,43 +85,10 @@ func mintItemID(cfg *config.Loaded, category string, registryIDs []string, goos 
 	return fmt.Sprintf("%s-%0*d", category, width, number), nil
 }
 
+// reserveItemNumber reserves the number of the kind's series past highest,
+// and past its counter, through the tracker (tracker.go).
 func reserveItemNumber(cfg *config.Loaded, category string, highest int, goos string) (int, error) {
-	store, err := counterStore(cfg, goos)
-	if err != nil {
-		return 0, err
-	}
-	return idcounter.Mint(store, category, highest)
-}
-
-// counterStore is where this repository's id counter is: the remote itos
-// push pushes to (the branch's upstream, else origin, as the VCS's Upstream
-// gives it) when there is one, else, and always under a stealth config, the
-// file in the git common dir. The repository is located and its config
-// loaded by then, so a locate that fails here is a git failing, which no
-// kind fits (exit 70), not the missing repository internal/git's Read
-// takes it for (bug 119).
-func counterStore(cfg *config.Loaded, goos string) (idcounter.Store, error) {
-	ctx, v := context.Background(), vcs.Git{}
-	l, err := v.Locate(ctx, "")
-	if err != nil {
-		return idcounter.Store{}, kind.Wrap(kind.Unknown, err)
-	}
-	common, err := filepath.Abs(l.Common)
-	if err != nil {
-		return idcounter.Store{}, err
-	}
-	root, err := os.Getwd()
-	if err != nil {
-		return idcounter.Store{}, err
-	}
-	remote := ""
-	if !cfg.Stealth {
-		remote, _, _ = v.Upstream(ctx, v.Branch(ctx))
-		if _, err := v.RemoteURL(ctx, remote); err != nil {
-			remote = ""
-		}
-	}
-	return idcounter.Store{Root: root, CommonDir: common, Remote: remote, OS: goos, VCS: v, LocalOnly: cfg.Stealth}, nil
+	return tracker(cfg, goos).Reserve(context.Background(), category, highest, 1)
 }
 
 // taggedIDs are the ids given and the <kind>-<n> every @<kind>-<n> tag of

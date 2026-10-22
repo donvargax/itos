@@ -13,4 +13,8 @@
 // the git common directory's itos folder. The file lock and atomic replacement
 // make that fallback coherent across linked worktrees. Reservations are never
 // returned, so a later validation or write failure may leave a gap.
+//
+// It is the tracker store's adapter's internals: the tracker port's Reserve
+// (internal/store/tracker/adapter) claims through it, and depguard's
+// idcounter-internals refuses it to any other package's code.
 package idcounter

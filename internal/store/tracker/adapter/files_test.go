@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/donvargax/itos/v8/internal/git"
+	"github.com/donvargax/itos/v8/internal/kind"
 	"github.com/donvargax/itos/v8/internal/lock"
 	"github.com/donvargax/itos/v8/internal/store/tracker/port"
 	"github.com/donvargax/itos/v8/internal/store/tracker/port/porttest"
@@ -144,6 +145,15 @@ func (b broken) Untrack(ctx context.Context, paths []string) error {
 		return errBroken
 	}
 	return b.VCS.Untrack(ctx, paths)
+}
+
+// Locate fails as internal/git's Read fails a repository it cannot find:
+// kind.Missing.
+func (b broken) Locate(ctx context.Context, dir string) (vcs.Location, error) {
+	if b.step == "locate" {
+		return vcs.Location{}, kind.Wrap(kind.Missing, errBroken)
+	}
+	return b.VCS.Locate(ctx, dir)
 }
 
 func (b broken) Resolve(ctx context.Context, rev string) (string, error) {

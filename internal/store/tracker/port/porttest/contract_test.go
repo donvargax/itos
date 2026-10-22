@@ -177,6 +177,37 @@ func (b *broken) Transact(ctx context.Context, t port.Transaction) (string, erro
 	return sha, err
 }
 
+func (b *broken) Reserve(ctx context.Context, series string, floor, count int) (int, error) {
+	switch {
+	case b.fault == "floor ignored":
+		floor = 0
+	case b.fault == "counter ignored":
+		b.mu.Lock()
+		delete(b.counters, series)
+		b.mu.Unlock()
+	case b.fault == "series shared" && validSeries(series):
+		series = "slice"
+	case b.fault == "any series" && !validSeries(series):
+		return 1, nil
+	case b.fault == "any count" && count < 1:
+		return 1, nil
+	}
+	first, err := b.Tracker.Reserve(ctx, series, floor, count)
+	switch {
+	case b.fault == "runs overlap" && err == nil:
+		b.mu.Lock()
+		b.counters[series] = first
+		b.mu.Unlock()
+	case b.fault == "refusal reserves" && err != nil && validSeries(series):
+		b.mu.Lock()
+		b.counters[series]++
+		b.mu.Unlock()
+	case b.fault == "overflow wraps" && err != nil && validSeries(series) && count >= 1:
+		return floor + 1, nil
+	}
+	return first, err
+}
+
 // brokenHeld is a Hold broken's Hold took, its nth.
 type brokenHeld struct {
 	port.Held
@@ -239,6 +270,14 @@ func TestTrackerContractFailsEachBrokenTracker(t *testing.T) {
 		{"release fails", map[string][]string{"holds under stealth": {"Release: "}}},
 		{"release keeps", map[string][]string{"holds under stealth": {"a tracker given back cannot be taken"}}},
 		{"last release fails", map[string][]string{"holds under stealth": {"Release after a retake"}}},
+		{"floor ignored", map[string][]string{"reserves": {"Reserve past the floor", "Reserve past the counter", "Reserve past the largest number", "Reserve of the largest number", "Reserve past a counter at the largest number"}}},
+		{"counter ignored", map[string][]string{"reserves": {"Reserve past the counter", "Reserve after a run", "Reserve past a counter at the largest number"}}},
+		{"series shared", map[string][]string{"reserves": {"Reserve of a series of its own", "Reserve of a run", "Reserve after a run", "Reserve after a refusal"}}},
+		{"runs overlap", map[string][]string{"reserves": {"Reserve after a run"}}},
+		{"any series", map[string][]string{"reserves": {"Reserve of the series \"\"", "Reserve of the series \"a/b\"", "Reserve of the series \"a b\""}}},
+		{"any count", map[string][]string{"reserves": {"Reserve of 0 numbers", "Reserve of -1 numbers"}}},
+		{"refusal reserves", map[string][]string{"reserves": {"Reserve after a refusal"}}},
+		{"overflow wraps", map[string][]string{"reserves": {"Reserve past the largest number", "Reserve past a counter at the largest number"}}},
 	} {
 		r := &recorder{failures: map[string][]string{}}
 		TrackerContract(r, func(_ *recorder, stealth bool) Fixture {

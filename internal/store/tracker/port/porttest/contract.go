@@ -3,6 +3,7 @@ package porttest
 import (
 	"context"
 	"errors"
+	"math"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -43,7 +44,7 @@ var (
 // adapter's alike. open stands the test in a project with no document, its
 // folder tasks there and empty, whose commits the tracker makes, or under
 // a stealth config, which commits nothing, when stealth; its lock's wait
-// short. The disk's own (modes, a write cut short, a git that cannot run)
+// short, and no ID reserved yet. The disk's own (modes, a write cut short, a git that cannot run)
 // stays the adapter's tests'.
 func TrackerContract[C T[C]](t C, open func(t C, stealth bool) Fixture) {
 	t.Helper()
@@ -230,6 +231,49 @@ func TrackerContract[C T[C]](t C, open func(t C, stealth bool) Fixture) {
 		}
 		if err := after.Release(t.Context()); err != nil {
 			t.Errorf("Release after a retake: %v", err)
+		}
+	})
+	t.Run("reserves", func(t C) {
+		s := open(t, false).Tracker
+		reserve := func(series string, floor, count int) (int, error) {
+			return s.Reserve(t.Context(), series, floor, count)
+		}
+		if first, err := reserve("slice", 9, 1); err != nil || first != 10 {
+			t.Errorf("Reserve past the floor: %d, %v; want 10", first, err)
+		}
+		if first, err := reserve("slice", 0, 1); err != nil || first != 11 {
+			t.Errorf("Reserve past the counter: %d, %v; want 11", first, err)
+		}
+		if first, err := reserve("bug", 0, 1); err != nil || first != 1 {
+			t.Errorf("Reserve of a series of its own: %d, %v; want 1", first, err)
+		}
+		if first, err := reserve("run", 0, 3); err != nil || first != 1 {
+			t.Errorf("Reserve of a run: %d, %v; want 1", first, err)
+		}
+		if first, err := reserve("run", 0, 1); err != nil || first != 4 {
+			t.Errorf("Reserve after a run: %d, %v; want 4", first, err)
+		}
+		for _, series := range []string{"", "a/b", "a b"} {
+			if first, err := reserve(series, 0, 1); err == nil {
+				t.Errorf("Reserve of the series %q: %d", series, first)
+			}
+		}
+		for _, count := range []int{0, -1} {
+			if first, err := reserve("count", 0, count); err == nil {
+				t.Errorf("Reserve of %d numbers: %d", count, first)
+			}
+		}
+		if first, err := reserve("count", 0, 1); err != nil || first != 1 {
+			t.Errorf("Reserve after a refusal: %d, %v; want 1", first, err)
+		}
+		if first, err := reserve("top", math.MaxInt-1, 2); err == nil {
+			t.Errorf("Reserve past the largest number: %d", first)
+		}
+		if first, err := reserve("top", math.MaxInt-1, 1); err != nil || first != math.MaxInt {
+			t.Errorf("Reserve of the largest number: %d, %v", first, err)
+		}
+		if first, err := reserve("top", 0, 1); err == nil {
+			t.Errorf("Reserve past a counter at the largest number: %d", first)
 		}
 	})
 }

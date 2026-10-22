@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"maps"
+	"math"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -17,18 +18,19 @@ import (
 // and of the last commit, which a transaction commits to unless Stealth,
 // where nothing is committed and Hold orders the writers. Unready is the
 // error of the hooks not ready, nil when they are; Refuse refuses every
-// commit, its words "refused". The zero Tracker is an empty project; a
-// Tracker is safe for concurrent use.
+// commit, its words "refused". Its ID counters start at 0. The zero Tracker
+// is an empty project; a Tracker is safe for concurrent use.
 type Tracker struct {
 	Stealth bool
 	Unready error
 	Refuse  bool
 
-	mu      sync.Mutex
-	disk    map[string]string
-	head    map[string]string
-	commits int
-	held    bool
+	mu       sync.Mutex
+	disk     map[string]string
+	head     map[string]string
+	counters map[string]int
+	commits  int
+	held     bool
 }
 
 var _ port.Tracker = &Tracker{}
@@ -153,6 +155,39 @@ func (s *Tracker) Transact(ctx context.Context, t port.Transaction) (string, err
 		say(t, fmt.Sprintf("[%d] %s\n", s.commits, t.Paragraphs[0]))
 	}
 	return fmt.Sprintf("%040d", s.commits), nil
+}
+
+// Reserve raises the series' counter by count from the higher of floor and
+// the counter, and gives the first number past that higher one.
+func (s *Tracker) Reserve(_ context.Context, series string, floor, count int) (int, error) {
+	if !validSeries(series) {
+		return 0, fmt.Errorf("%q is no series", series)
+	}
+	if count < 1 {
+		return 0, fmt.Errorf("cannot reserve %d numbers", count)
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	floor = max(floor, s.counters[series])
+	if floor > math.MaxInt-count {
+		return 0, fmt.Errorf("%s cannot reserve %d past %d", series, count, floor)
+	}
+	if s.counters == nil {
+		s.counters = map[string]int{}
+	}
+	s.counters[series] = floor + count
+	return floor + 1, nil
+}
+
+// validSeries is whether the series is one or more ASCII letters, digits
+// and hyphens.
+func validSeries(series string) bool {
+	for _, r := range series {
+		if !(r >= 'a' && r <= 'z' || r >= 'A' && r <= 'Z' || r >= '0' && r <= '9' || r == '-') {
+			return false
+		}
+	}
+	return series != ""
 }
 
 // say writes the words to the transaction's Words, when it has one.

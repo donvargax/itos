@@ -72,8 +72,9 @@ type Held interface {
 // first, which carries cancellation and nothing else; callers pass
 // context.Background() until v9 threads cancellation (ADR-0053). No error is
 // wrapped with an exit kind here: what a method returns carries the kind
-// its cause gave it. porttest.TrackerContract holds what every one, the
-// fake and the adapter's, must do.
+// its cause gave it, but one, which the adapter's doc names (Reserve's
+// repository not located). porttest.TrackerContract holds what every one,
+// the fake and the adapter's, must do.
 type Tracker interface {
 	// Load is the documents names, in their order; one not there is a Doc
 	// not There.
@@ -96,4 +97,12 @@ type Tracker interface {
 	// document back as it was, a created one removed: a step refused is a
 	// *Refused, any other failure an error.
 	Transact(ctx context.Context, t Transaction) (string, error)
+	// Reserve reserves count numbers of the series in a row, the first
+	// past the higher of floor and the series' counter, and gives the first;
+	// the counter is raised past the last in one reservation, never given
+	// back, so no other reservation lands inside the run. A series is one or
+	// more ASCII letters, digits and hyphens; a series that is not, a count
+	// below 1, and a run whose last number would pass the largest int are
+	// refused, and reserve nothing.
+	Reserve(ctx context.Context, series string, floor, count int) (int, error)
 }

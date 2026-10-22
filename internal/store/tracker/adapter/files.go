@@ -6,17 +6,21 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
+	"path/filepath"
 	"strings"
 
+	"github.com/donvargax/itos/v8/internal/idcounter"
+	"github.com/donvargax/itos/v8/internal/kind"
 	"github.com/donvargax/itos/v8/internal/lock"
 	"github.com/donvargax/itos/v8/internal/store/tracker/port"
 	vcs "github.com/donvargax/itos/v8/internal/vcs/port"
 )
 
 // Files is the tracker on disk, each document the file its name is a path
-// of. VCS is the repository its commits go to; OS the OS itos runs on, as
-// GOOS names it, which Hold's lock waits by; Stealth a config that commits
-// nothing; Lock the file whose lock Hold takes under it; HooksReady the
+// of. VCS is the repository its commits and its ID counter go to; OS the OS
+// itos runs on, as GOOS names it, which Hold's lock and the local ID
+// counter's wait by; Stealth a config that commits nothing, its counter
+// local; Lock the file whose lock Hold takes under it; HooksReady the
 // error of the hooks that check a commit not ready, nil when they are.
 type Files struct {
 	VCS        vcs.VCS
@@ -177,6 +181,46 @@ func (f Files) Transact(ctx context.Context, t port.Transaction) (string, error)
 		return "", fmt.Errorf("the commit of %s was made, but git's index of them cannot be set to it: %w", named, err)
 	}
 	return f.VCS.Resolve(ctx, "HEAD")
+}
+
+// Reserve is idcounter.Claim of the run at the counter's store (counter),
+// located first, as the counter has always been.
+func (f Files) Reserve(ctx context.Context, series string, floor, count int) (int, error) {
+	store, err := f.counter(ctx)
+	if err != nil {
+		return 0, err
+	}
+	return idcounter.Claim(store, series, floor, count)
+}
+
+// counter is where this repository's ID counter is: the remote itos push
+// pushes to (the branch's upstream, else origin, as the VCS's Upstream
+// gives it) when there is one, else, and always under Stealth, the file in
+// the git common dir. The repository is located and its config loaded by
+// then, so a locate that fails here is a git failing, which no kind fits
+// (exit 70), not the missing repository internal/git's Read takes it for
+// (bug 119).
+func (f Files) counter(ctx context.Context) (idcounter.Store, error) {
+	l, err := f.VCS.Locate(ctx, "")
+	if err != nil {
+		return idcounter.Store{}, kind.Wrap(kind.Unknown, err)
+	}
+	common, err := filepath.Abs(l.Common)
+	if err != nil {
+		return idcounter.Store{}, err
+	}
+	root, err := os.Getwd()
+	if err != nil {
+		return idcounter.Store{}, err
+	}
+	remote := ""
+	if !f.Stealth {
+		remote, _, _ = f.VCS.Upstream(ctx, f.VCS.Branch(ctx))
+		if _, err := f.VCS.RemoteURL(ctx, remote); err != nil {
+			remote = ""
+		}
+	}
+	return idcounter.Store{Root: root, CommonDir: common, Remote: remote, OS: f.OS, VCS: f.VCS, LocalOnly: f.Stealth}, nil
 }
 
 // put writes the text to the file in the mode, as os.WriteFile does, and

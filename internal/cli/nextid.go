@@ -15,7 +15,6 @@ import (
 	"strings"
 
 	"github.com/donvargax/itos/v8/internal/config"
-	"github.com/donvargax/itos/v8/internal/idcounter"
 	"github.com/donvargax/itos/v8/internal/ledger"
 	"github.com/donvargax/itos/v8/internal/out"
 	"github.com/donvargax/itos/v8/internal/tests"
@@ -100,11 +99,11 @@ func testsNextID(args []string, o Out) (int, error) {
 	return 0, nil
 }
 
-// claimTags claims count numbers of the area stem in a row through the id
-// counter, its category the stem, the first past the higher of the counter
-// and next's number less one (the highest the kind's files hold), and gives
-// each as next is written: its tag prefix, the stem and the number, as wide
-// as next's.
+// claimTags claims count numbers of the area stem in a row through the
+// tracker's Reserve, its series the stem, the first past the higher of the
+// counter and next's number less one (the highest the kind's files hold),
+// and gives each as next is written: its tag prefix, the stem and the
+// number, as wide as next's.
 func claimTags(cfg *config.Loaded, stem, next string, count int, goos string) ([]string, error) {
 	n, err := trailingNumber(next)
 	if err != nil {
@@ -112,11 +111,7 @@ func claimTags(cfg *config.Loaded, stem, next string, count int, goos string) ([
 	}
 	head := strings.TrimRight(next, "0123456789")
 	width := len(next) - len(head)
-	store, err := counterStore(cfg, goos)
-	if err != nil {
-		return nil, err
-	}
-	first, err := idcounter.Claim(store, stem, n-1, count)
+	first, err := tracker(cfg, goos).Reserve(context.Background(), stem, n-1, count)
 	if err != nil {
 		return nil, err
 	}
