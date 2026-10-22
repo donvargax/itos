@@ -11974,3 +11974,11 @@ items:
     status: todo
     depends_on: []
     kind: task
+
+  - id: T-226
+    title: "The tracker store, part 2: tracker documents read and locked through the stores, and internal/lock theirs alone"
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task

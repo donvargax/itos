@@ -2874,3 +2874,26 @@
       timeout: 600
     - run: go run ./tools/bin/conformance --bin tools/bin/itos --only tools/itos/conformance/work.yaml tools/itos/conformance/ask.yaml tools/itos/conformance/tasks.yaml
       timeout: 600
+
+- id: T-226
+  type: refactor
+  title: "The tracker store, part 2: tracker documents read and locked through the stores, and internal/lock theirs alone"
+  why: >
+    ADR-0053, step 6, after T-225 (the tracker port's first part). The raw tracker reads and the
+    locks go through the stores: internal/cli's os.ReadFile and os.ReadDir of tracker documents
+    (workwrite.go, workdone.go, ask.go) through the tracker port's Load and List; ledger.Add and
+    ledger.WithoutChecks take a read function; adr.Next takes the names and becomes pure. The
+    stealth locks go through the tracker port's Hold, the lock file staying cfg.Work.Registry plus
+    ".lock" so an older itos in another worktree still excludes a newer one; the drafts lock through
+    the private store's Hold on the same file draft.go computes today. A depguard rule
+    lock-internals, as git-internals, makes internal/lock the store adapters' alone, with an
+    architecture fixture. A lock timeout stays kind.Temporary (75); the port wraps no error with a
+    kind. No behaviour change.
+  done_when:
+    - run: "! grep -nE 'os\\.Read(File|Dir)\\(' internal/cli/workwrite.go internal/cli/workdone.go internal/cli/ask.go internal/ledger/add.go internal/ledger/close.go internal/adr/adr.go"
+    - run: "! grep -l 'v8/internal/lock\"' internal/cli/*.go"
+    - run: tools/bin/architecture-check
+    - run: tools/bin/pinned golangci-lint run ./...
+      timeout: 600
+    - run: go test ./features -count=1 -scenarios='^@ID-(WORK|TASK|ASK|STEALTH|CTASK|DRAFT)-[0-9]+$'
+      timeout: 600
