@@ -75,7 +75,7 @@ func over(t *testing.T, repo *vcsfake.VCS, text string, stealth bool) ports {
 }
 
 // run is verify's command line over p, its exit, error and streams.
-func run(t *testing.T, args []string, json bool, p ports) (int, error, string, string) {
+func run(t *testing.T, args []string, json bool, p ports) (int, string, string, error) {
 	t.Helper()
 	c, err := Parse(args, json, &tests.Warnings{})
 	if err != nil {
@@ -83,7 +83,7 @@ func run(t *testing.T, args []string, json bool, p ports) (int, error, string, s
 	}
 	var stdout, stderr strings.Builder
 	code, err := c.Run(t.Context(), &stdout, &stderr, NewHandler(p))
-	return code, err, stdout.String(), stderr.String()
+	return code, stdout.String(), stderr.String(), err
 }
 
 func isUsage(err error, text string) bool {
@@ -110,11 +110,11 @@ func TestParseTakesARangeOrNone(t *testing.T) {
 // exit 1.
 func TestRunJudgesTheRange(t *testing.T) {
 	p := over(t, repository(true), rules, false)
-	code, err, stdout, stderr := run(t, []string{root, "good"}, false, p)
+	code, stdout, stderr, err := run(t, []string{root, "good"}, false, p)
 	if err != nil || code != 0 || stdout != "1/1 commits pass the commit rules\n" || stderr != "" {
 		t.Errorf("root..good: exit %d, %v, stdout %q, stderr %q", code, err, stdout, stderr)
 	}
-	code, err, stdout, _ = run(t, []string{root, "HEAD"}, false, p)
+	code, stdout, _, err = run(t, []string{root, "HEAD"}, false, p)
 	if err != nil || code != refused || !strings.HasSuffix(stdout, "1/2 commits pass the commit rules\n") {
 		t.Errorf("root..HEAD: exit %d, %v, stdout %q", code, err, stdout)
 	}
@@ -127,7 +127,7 @@ func TestRunJudgesTheRange(t *testing.T) {
 // names one, and the logs go to stderr.
 func TestRunJSON(t *testing.T) {
 	p := over(t, repository(true), rules+"  since: "+root+"\n", false)
-	code, err, stdout, stderr := run(t, []string{"", "HEAD"}, true, p)
+	code, stdout, stderr, err := run(t, []string{"", "HEAD"}, true, p)
 	if err != nil || code != refused {
 		t.Fatalf("exit %d, %v", code, err)
 	}
@@ -140,7 +140,7 @@ func TestRunJSON(t *testing.T) {
 	if !strings.Contains(stderr, "Not checked: abababa (commits.since)") || !strings.HasSuffix(stderr, "1/2 commits pass the commit rules\n") {
 		t.Errorf("stderr %q", stderr)
 	}
-	_, _, stdout, _ = run(t, []string{root, "good"}, true, over(t, repository(true), rules, false))
+	_, stdout, _, _ = run(t, []string{root, "good"}, true, over(t, repository(true), rules, false))
 	var got map[string]any
 	if err := json.Unmarshal([]byte(stdout), &got); err != nil {
 		t.Fatal(err)
@@ -154,11 +154,11 @@ func TestRunJSON(t *testing.T) {
 // check; the stealth one judges HEAD's commits on no remote branch.
 func TestRunWithNoRangeAsksTheStealthCheck(t *testing.T) {
 	p := over(t, repository(true), rules, false)
-	if _, err, _, _ := run(t, nil, false, p); !isUsage(err, "verify needs <from> <to>") || *p.asked != 1 {
+	if _, _, _, err := run(t, nil, false, p); !isUsage(err, "verify needs <from> <to>") || *p.asked != 1 {
 		t.Errorf("a project's config: %v, the stealth check asked %d times", err, *p.asked)
 	}
 	p = over(t, repository(true), rules, true)
-	code, err, stdout, _ := run(t, nil, true, p)
+	code, stdout, _, err := run(t, nil, true, p)
 	var got struct {
 		Range span `json:"range"`
 		Total int  `json:"total"`
@@ -173,7 +173,7 @@ func TestRunWithNoRangeAsksTheStealthCheck(t *testing.T) {
 func TestRunRefusesARefThatNamesNoCommit(t *testing.T) {
 	p := over(t, repository(true), rules, false)
 	p.cfg, p.err = nil, errors.New("read")
-	if _, err, _, _ := run(t, []string{root, "nope"}, false, p); !isUsage(err, "verify: nope is not a commit of this repository") {
+	if _, _, _, err := run(t, []string{root, "nope"}, false, p); !isUsage(err, "verify: nope is not a commit of this repository") {
 		t.Errorf("got %v", err)
 	}
 }
@@ -184,11 +184,11 @@ func TestRunPassesOnErrors(t *testing.T) {
 	p := over(t, repository(true), rules, false)
 	read := errors.New("read")
 	p.cfg, p.err = nil, read
-	if code, err, _, _ := run(t, []string{root, "HEAD"}, false, p); code != 0 || !errors.Is(err, read) {
+	if code, _, _, err := run(t, []string{root, "HEAD"}, false, p); code != 0 || !errors.Is(err, read) {
 		t.Errorf("the config: exit %d, %v", code, err)
 	}
 	p = over(t, repository(false), rules, false)
-	if code, err, _, _ := run(t, []string{"nope", "HEAD"}, false, p); code != 0 || err == nil {
+	if code, _, _, err := run(t, []string{"nope", "HEAD"}, false, p); code != 0 || err == nil {
 		t.Errorf("an unreadable range: exit %d, %v", code, err)
 	}
 }
@@ -197,12 +197,12 @@ func TestRunPassesOnErrors(t *testing.T) {
 // a problem, or under --json the range and the problems.
 func TestRunRefusesASinceThatIsNoCommit(t *testing.T) {
 	p := over(t, repository(true), rules+"  since: "+missing+"\n", false)
-	code, err, stdout, stderr := run(t, []string{root, "HEAD"}, false, p)
+	code, stdout, stderr, err := run(t, []string{root, "HEAD"}, false, p)
 	want := "FAIL commits.since names " + missing + ", which is not a commit of this repository\n"
 	if err != nil || code != unusable || stdout != "" || stderr != want {
 		t.Errorf("exit %d, %v, stdout %q, stderr %q", code, err, stdout, stderr)
 	}
-	code, err, stdout, stderr = run(t, []string{root, "HEAD"}, true, p)
+	code, stdout, stderr, err = run(t, []string{root, "HEAD"}, true, p)
 	var got struct {
 		Range    span          `json:"range"`
 		Problems []out.Problem `json:"problems"`
