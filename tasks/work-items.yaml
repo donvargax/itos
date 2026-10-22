@@ -12245,3 +12245,11 @@ items:
     status: todo
     depends_on: []
     kind: task
+
+  - id: T-245
+    title: "Slices, prerequisite 3: the git hooks engine, and the amend environment in internal/message"
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task
