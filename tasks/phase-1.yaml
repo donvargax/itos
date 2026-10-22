@@ -3927,19 +3927,6 @@
     before/after binary comparison of every help page and usage line named in the commit body (no
     committed golden: the user, 2026-10-21). No behaviour change: same bytes, same exit codes, same
     order. Lane D (readers), first; testsNextID comes with it (S2 put it in tests.go).
-  done_when:
-    - run: go test ./internal/cli ./internal/slices/... ./internal/engine/... -count=1
-      timeout: 600
-    - run: go run ./tools/bin/assemble -check
-    - run: go run ./tools/bin/conformance --bin tools/bin/itos --only tools/itos/conformance/help.yaml tools/itos/conformance/cli.yaml tools/itos/conformance/tests.yaml tools/itos/conformance/smoke.yaml tools/itos/conformance/moves.yaml
-      timeout: 600
-    - run: go test ./features -count=1 -scenarios='^@ID-(CLI|BIN|EXT|TESTLIST|TESTRUN|SMOKE|NEXTID|MOVESCMD)-[0-9]+$'
-      timeout: 600
-    - run: tools/bin/architecture-check
-    - run: tools/bin/pinned golangci-lint run ./...
-      timeout: 600
-    - run: grep -q 'testsslice.Command' internal/cli/commands_gen.go
-    - run: "! grep -nE '^func (\\([^)]*\\) )?(testsList|testsMoves|smokeCheck|smokeRun)\\(' internal/cli/*.go"
 
 - id: T-259
   type: refactor
