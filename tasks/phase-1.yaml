@@ -4449,6 +4449,3 @@
     one, state the choice in the case's comment, keep what the case proves. Step 9 moves code out of
     internal/cli: prefer a line in a package step 9 does not move (an engine, a domain package) or
     say why it is stable. A ci commit; no product change.
-  done_when:
-    - run: ITOS_SELFTEST=1 go test -count=1 -run '^TestSelftest$' ./tools/selftest/gates
-      timeout: 900

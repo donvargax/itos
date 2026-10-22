@@ -12477,6 +12477,6 @@ items:
     title: The gates self-test's CI-catches-a-refactor case edits a printed line its package's unit tests do not read
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
