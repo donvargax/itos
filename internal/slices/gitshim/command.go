@@ -1,8 +1,8 @@
-package cli
+package gitshim
 
 import "github.com/donvargax/itos/v8/internal/declare"
 
-var gitShimDeclared = declare.Command{
+var Command = declare.Command{
 	Name: "git-shim",
 	Rank: 110,
 	Lines: `  git-shim install|uninstall [--dir <folder>]

@@ -1,23 +1,6 @@
 package cli
 
-import (
-	"path/filepath"
-	"strings"
-	"testing"
-)
-
-// Uninstalling where there is no shim removes nothing, naming the link by
-// Out's OS.
-func TestUninstallShimWithNoneThere(t *testing.T) {
-	dir := t.TempDir()
-	for goos, name := range map[string]string{"linux": "git", "windows": "git.exe"} {
-		var stdout strings.Builder
-		code, err := uninstallShim(dir, Out{Stdout: &stdout, OS: goos})
-		if want := "No git shim at " + filepath.Join(dir, name) + ": nothing to remove.\n"; code != 0 || err != nil || stdout.String() != want {
-			t.Errorf("on %s: exit %d, %v, %q", goos, code, err, stdout.String())
-		}
-	}
-}
+import "testing"
 
 // An extension's command is the file's name after itos-, without its
 // extension on windows alone; a file without the prefix names none.
