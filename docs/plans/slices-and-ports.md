@@ -39,8 +39,13 @@ The UI and assembly (help, the flag spec, extensions) stay in `internal/cli`.
    store.
 4. **The corpus lane** (in parallel, its own worktree): ADR-0052's
    conversion, one task per corpus file, help.yaml first.
-5. **A per-command declaration** in place of the command and spec tables,
-   after help.yaml's conversion. Help stays hand-written until v9.0.
+5. **A per-command declaration**, after 6 and 7 and before 9 (the user,
+   2026-10-21): each slice declares its name, help line, help text and flag
+   spec in its own package, in the hand-written parser's spec format, and a
+   generator (as itos-cc's `tools/bin/assemble`) writes the command table
+   from them, checked current in CI. So agents in parallel lanes change
+   their own slice, never `commands.go`, `spec.go` or `help.go`. v9.0 swaps
+   the parser beneath the declarations for kong.
 6. **The ports**: the tree reader (`source`, about 40 call sites), then git
    by operation group (locate and resolve; ancestry and ranges; trees and
    changed paths; working-tree state; messages and footers; commit; remote;
@@ -53,7 +58,7 @@ The UI and assembly (help, the flag spec, extensions) stay in `internal/cli`.
    importing `internal/cli`.
 8. **The OS as a value** at the boundary.
 9. **The rest of the slices**, least coupled first, more lanes in parallel
-   once 6 and 7 are done; status, then work in three or four pieces, last.
+   once 5, 6 and 7 are done; status, then work in three or four pieces, last.
 
 Each move carries its `.metrics/mutate` snapshots and itos-cc exceptions
 with its files. `docs/ARCHITECTURE.md` and the package doc comments follow
