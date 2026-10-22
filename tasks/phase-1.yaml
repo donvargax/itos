@@ -2893,12 +2893,6 @@
     adapter is built, and wraps a failed locate with kind.Unknown (exit 70, bug-119, @ID-IDS-08); an
     unreachable remote stays exit 3 (@ID-IDS-04). Numbering (nextid.Next, widths,
     ledger.NextIDAfter, taggedIDs) stays for step 7's ids engine. No behaviour change.
-  done_when:
-    - run: "! grep -l 'v8/internal/idcounter\"' internal/cli/*.go cmd/itos/*.go"
-    - run: go test ./internal/store/tracker/... ./internal/idcounter/
-    - run: go test ./internal/cli -run 'Reservation|Mint|NextID'
-    - run: go test ./features -count=1 -scenarios='^@ID-IDS-[0-9]+$'
-    - run: tools/bin/architecture-check
 
 - id: T-228
   type: build

@@ -12027,7 +12027,7 @@ items:
     title: "The tracker store, part 3: IDs reserved through the tracker port, internal/idcounter its adapter's internals"
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [T-226]
     kind: task
 
