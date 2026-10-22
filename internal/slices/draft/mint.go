@@ -59,7 +59,7 @@ func (h Handler) mintedKind(ctx context.Context, command []string) string {
 // mint it, under its own global flags; "" for one that mints none. A
 // registry the command would refuse is reported, its code given.
 func (h Handler) mint(ctx context.Context, command []string) (minted string, code int, err error) {
-	err = inPlace(func() error {
+	err = h.inPlace(ctx, func() error {
 		if err := h.ports.ApplyGlobals(ctx, command); err != nil {
 			return nil
 		}
@@ -85,7 +85,7 @@ func (h Handler) mint(ctx context.Context, command []string) (minted string, cod
 // reported on w as an error of no kind is, as a failure.
 func (h Handler) runReserved(ctx context.Context, d domain.Draft, w io.Writer) int {
 	var code int
-	if err := inPlace(func() error {
+	if err := h.inPlace(ctx, func() error {
 		code = h.ports.RunLine(ctx, d.Command, w, d.Minted)
 		return nil
 	}); err != nil {
@@ -97,8 +97,8 @@ func (h Handler) runReserved(ctx context.Context, d domain.Draft, w io.Writer) i
 
 // inPlace runs f, then puts back what a command's global flags change in
 // this process: the folder it runs in, ITOS_CONFIG and NO_COLOR.
-func inPlace(f func() error) error {
-	here, err := os.Getwd()
+func (h Handler) inPlace(ctx context.Context, f func() error) error {
+	here, err := h.ports.Getwd(ctx)
 	if err != nil {
 		return err
 	}

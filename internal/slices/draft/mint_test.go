@@ -129,10 +129,10 @@ func TestInPlaceGivesBackWhatFailed(t *testing.T) {
 	}
 	gone := t.TempDir()
 	t.Chdir(gone)
-	if err := inPlace(func() error { return os.Remove(gone) }); err == nil {
+	if err := NewHandler(&fake{}).inPlace(context.Background(), func() error { return os.Remove(gone) }); err == nil {
 		t.Error("inPlace gave no error when the folder it ran in went")
 	}
-	if err := inPlace(func() error { return nil }); err == nil {
+	if err := NewHandler(&fake{}).inPlace(context.Background(), func() error { return nil }); err == nil {
 		t.Error("inPlace gave no error outside any folder")
 	}
 	var out strings.Builder
@@ -141,7 +141,7 @@ func TestInPlaceGivesBackWhatFailed(t *testing.T) {
 		t.Errorf("runReserved outside any folder: exit %d, output %q", code, out.String())
 	}
 	t.Chdir(t.TempDir())
-	if err := inPlace(func() error { return os.ErrInvalid }); err != os.ErrInvalid {
+	if err := NewHandler(&fake{}).inPlace(context.Background(), func() error { return os.ErrInvalid }); err != os.ErrInvalid {
 		t.Errorf("inPlace gave %v, not f's error", err)
 	}
 }
