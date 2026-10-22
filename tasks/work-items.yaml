@@ -11351,3 +11351,17 @@ items:
       as followup), or both with a flag; and whether an entry can later become an item or a decision
       (promote). Relates to p1-followup-topics: a topic thread may be the same object.
     tags: [followup]
+
+  - id: p1-followup-topics
+    title: A followup thread is on a topic, with zero or more people, not with one person only
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The user, 2026-10-21: threads follow a topic (a vendor, an integration, a recurring meeting)
+      as often as a person. --with becomes optional and repeatable; followup lists by topic and
+      filters by person. p1-followup-state already argues one thread per topic, not per team. May
+      merge with p1-research-log if a topic thread with no person is the same thing as a log.
+    tags: [followup]
