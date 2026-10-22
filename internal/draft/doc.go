@@ -16,7 +16,8 @@
 // were taken from, its patch made from them only when it is promoted.
 //
 // The package reads and writes the list, whole and with typed structs (Load
-// refuses what itos did not write; Save writes beside it and moves it over).
+// refuses what itos did not write; Save writes beside it and moves it over),
+// at Path, from the common dir the VCS port the caller binds locates.
 // The command line (internal/cli/draft.go) makes and applies the patches,
 // with git, and holds the list's lock (the private store's Hold) across
 // every read-change-write, promote included, so a draft is never applied

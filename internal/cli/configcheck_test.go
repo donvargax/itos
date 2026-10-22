@@ -4,53 +4,21 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/donvargax/itos/v8/internal/config"
 	trees "github.com/donvargax/itos/v8/internal/store/tree/adapter"
 )
 
-// The group label is a flag of itos task's (slice 129): one word that is no
-// other flag of its, a subcommand's or a global one.
-func TestGroupLabelProblems(t *testing.T) {
-	cases := map[string]string{
-		"phase":     "",
-		"group":     "",
-		"milestone": "",
-		"étape":     "",
-		"skip":      "ledger.group.label is skip, and --skip is already another flag of itos task, so it never takes a group",
-		"pending":   "ledger.group.label is pending, and --pending is already another flag of itos task, so it never takes a group",
-		"title":     "ledger.group.label is title, and --title is already another flag of itos task, so it never takes a group",
-		"json":      "ledger.group.label is json, and --json is already another flag of itos task, so it never takes a group",
-		"root":      "ledger.group.label is root, and --root is already another flag of itos task, so it never takes a group",
-		"config":    "ledger.group.label is config, and --config is already another flag of itos task, so it never takes a group",
-		"":          `ledger.group.label "" cannot be typed as itos task's flag --`,
-		"my phase":  `ledger.group.label "my phase" cannot be typed as itos task's flag --my phase`,
-		"a\tb":      `ledger.group.label "a\tb" cannot be typed as itos task's flag --a` + "\tb",
-		"-x":        `ledger.group.label "-x" cannot be typed as itos task's flag ---x`,
-		"a=b":       `ledger.group.label "a=b" cannot be typed as itos task's flag --a=b`,
-		" phase":    `ledger.group.label " phase" cannot be typed as itos task's flag -- phase`,
-	}
-	for label, want := range cases {
-		cfg := &config.Loaded{}
-		cfg.Ledger.Group.Label = label
-		found := groupLabelProblems(cfg)
-		switch {
-		case want == "" && len(found) > 0:
-			t.Errorf("%q: got %+v, want none", label, found)
-		case want != "" && (len(found) != 1 || found[0].Message != want || found[0].Rule != "config-group-label"):
-			t.Errorf("%q: got %+v, want %q", label, found, want)
+// The flags the group label may not name (slice 129) are every other flag of
+// itos task's, a subcommand's or a global one, never a group's own.
+func TestUngroupedTaskFlags(t *testing.T) {
+	flags := ungroupedTaskFlags()
+	for _, flag := range []string{"--skip", "--pending", "--title", "--json", "--root", "--config"} {
+		if !slices.Contains(flags, flag) {
+			t.Errorf("%s is not among %q", flag, flags)
 		}
 	}
-}
-
-func TestGroupLabelProblemsSayWhatToWrite(t *testing.T) {
-	for label, fix := range map[string]string{
-		"a b":  "set ledger.group.label to one word, with no space, = or leading -, such as phase or milestone",
-		"skip": "set ledger.group.label to a word that is no other flag of itos task, such as phase or milestone",
-	} {
-		cfg := &config.Loaded{}
-		cfg.Ledger.Group.Label = label
-		if found := groupLabelProblems(cfg); len(found) != 1 || found[0].Fix != fix {
-			t.Errorf("%q: got %+v, want the fix %q", label, found, fix)
+	for _, flag := range append(slices.Clone(groupNames), "--milestone", "--étape") {
+		if slices.Contains(flags, flag) {
+			t.Errorf("%s is among %q", flag, flags)
 		}
 	}
 }

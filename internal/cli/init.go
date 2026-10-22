@@ -417,7 +417,7 @@ func initReport(file string, offer pluginOffer, shimOffer shimOffer, rulesOffer 
 	if cfg, err := loadConfigFile(file); err == nil {
 		found = append(found, tagged("hooks", hookProblems())...)
 		if behind := pinBehind(cfg); behind != nil {
-			notes = append(notes, Found{*behind, "pin"})
+			notes = append(notes, Found{Problem: *behind, Area: "pin"})
 		}
 	}
 	code := 0

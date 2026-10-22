@@ -38,7 +38,6 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/draft"
 	"github.com/donvargax/itos/v8/internal/out"
 	private "github.com/donvargax/itos/v8/internal/store/private/adapter"
@@ -68,28 +67,9 @@ func runDraft(args []string, o Out) (int, error) {
 	return 0, usage("draft has no subcommand %s: %s", sub, draftTakes)
 }
 
-// draftsFile is where the drafts are: drafts.yaml in the drafts folder of
-// itos's folder of the git common dir, "" outside a git repository.
+// draftsFile is draft.Path over git.
 func draftsFile() string {
-	common := absCommon(vcs.Git{})
-	if common == "" {
-		return ""
-	}
-	return filepath.Join(common, config.StealthFolder, draft.Folder, draft.FileName)
-}
-
-// absCommon is the git common dir v locates from the folder itos runs in,
-// absolute, the folder's links resolved as git resolves them; "" outside a
-// repository.
-func absCommon(v vcsport.VCS) string {
-	l, err := v.Locate(context.Background(), "")
-	if err != nil || l.Common == "" {
-		return ""
-	}
-	if filepath.IsAbs(l.Common) {
-		return l.Common
-	}
-	return filepath.Join(physical(), l.Common)
+	return draft.Path(context.Background(), vcs.Git{})
 }
 
 // physical is the folder itos runs in, its links resolved as git resolves

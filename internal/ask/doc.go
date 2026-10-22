@@ -18,8 +18,9 @@
 // refused, exit 2) and written whole (Text), each text a double-quoted
 // scalar written by encoding/json, whose escapes YAML reads the same, so
 // what it holds reads back exactly and no formatter has a reason to change
-// it. An id is one past the highest the file holds (NextID), so a question
-// answered or removed by hand never gives its id again. File.About lists the
-// questions naming an item, for itos work show. EntryOf is a question as
-// --json gives it, which itos decision, work show and status share.
+// it; Load reads it through the tracker port the caller binds. An id is one
+// past the highest the file holds (NextID), so a question answered or
+// removed by hand never gives its id again. File.About lists the questions
+// naming an item, for itos work show. EntryOf is a question as --json gives
+// it, which itos decision, work show and status share.
 package ask

@@ -83,20 +83,9 @@ func decisionOf(q ask.Question) string {
 	return "decision " + q.Decision
 }
 
-// loadAsks is the questions in the config's work.asks, as the tracker t
-// loads them, the file's text and whether it is there: none, "" and false
-// when it is not.
+// loadAsks is ask.Load of the config's work.asks.
 func loadAsks(cfg *config.Loaded, t trackerport.Tracker) (ask.File, string, bool, error) {
-	docs, err := t.Load(context.Background(), []string{cfg.Work.Asks})
-	if err != nil {
-		return ask.File{}, "", false, err
-	}
-	if !docs[0].There {
-		return ask.File{}, "", false, nil
-	}
-	text := docs[0].Text
-	f, err := ask.Parse(cfg.Work.Asks, text)
-	return f, text, true, err
+	return ask.Load(context.Background(), t, cfg.Work.Asks)
 }
 
 // heldAsks is the config for a subcommand that writes the questions, and
