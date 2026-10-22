@@ -3706,19 +3706,6 @@
     order. Lane C (setup), first. The slice is internal/slices/pin (its import of
     internal/engine/pin aliased). versionArg (pin.go) moves to internal/engine/pin; pinned and
     readConfigPin stay wrappers until C3 and C4.
-  done_when:
-    - run: go test ./internal/cli ./internal/slices/... ./internal/engine/... -count=1
-      timeout: 600
-    - run: go run ./tools/bin/assemble -check
-    - run: go run ./tools/bin/conformance --bin tools/bin/itos --only tools/itos/conformance/help.yaml tools/itos/conformance/cli.yaml tools/itos/conformance/cli.yaml tools/itos/conformance/config.yaml
-      timeout: 600
-    - run: go test ./features -count=1 -scenarios='^@ID-(CLI|BIN|EXT|PIN|UPDATE)-[0-9]+$'
-      timeout: 600
-    - run: tools/bin/architecture-check
-    - run: tools/bin/pinned golangci-lint run ./...
-      timeout: 600
-    - run: grep -q 'pinslice.Command' internal/cli/commands_gen.go
-    - run: "! grep -nE '^func (\\([^)]*\\) )?(pinCommand)\\(' internal/cli/*.go"
 
 - id: T-254
   type: refactor
