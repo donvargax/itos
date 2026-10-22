@@ -4167,3 +4167,50 @@
       timeout: 600
     - run: grep -q 'decisionslice.Command' internal/cli/commands_gen.go
     - run: "! grep -nE '^func (\\([^)]*\\) )?(askAdd|askAnswer|askShow|askList|askRecord)\\(' internal/cli/*.go"
+
+- id: T-262
+  type: refactor
+  title: itos guide and itos go become slices
+  why: >
+    ADR-0053, step 9 of docs/plans/slices-and-ports.md: the remaining commands become vertical
+    slices under internal/slices/<command>, in parallel lanes (the user, 2026-10-22), after step 5
+    (T-239..T-242: each command declares itself, tools/bin/assemble writes
+    internal/cli/commands_gen.go). Designed by the coordinator 2026-10-22 from a read-only draft. A
+    slice has command.go (var Command = declare.Command{...}, the declaration literal moved byte for
+    byte from internal/cli), parse.go (CLI and a pure Parse), handler.go (Query, Ports interface
+    owned by the slice with ctx first on every port-reaching method, NewHandler, Handle), run.go ((c
+    CLI) Run(ctx, stdout, stderr, h) and the slice's exit codes) and doc.go (taking over the
+    command's section of internal/cli/doc.go), as internal/slices/followup. internal/cli keeps
+    run<Pascal(Name)> (Parse, error mapping, building the <name>Ports struct that binds the adapters
+    as the code does today, Run), wrappers another unmoved command still calls, and the wiring test
+    in internal/cli/<name>_ports_test.go. A slice imports its own subpackages, internal/declare,
+    engines, internal/out, domain packages and the store and VCS ports (fakes in tests only); never
+    internal/cli, launch, shim, git, lock, idcounter or an adapter. What another command owns
+    reaches a slice as a byte-identical private copy (small pure helpers), an engine or domain
+    package (code that reaches a port, the prerequisites), or a Port bound in run<Name> to that
+    command's stable internal/cli name. Usage errors use out.Usage (T-243), the domain-to-usage
+    mapping kept in run<Name>, so stderr keeps its ' (itos --help)'. I/O commands done while parsing
+    today (the stealth check, commitRefs) move into Handle in the same order. Package names: gocmd
+    for go, initcmd for init; imports of internal/tests, config, version and engine/status are
+    aliased where a slice shares the name. After a move: rerun go run ./tools/bin/assemble (a rebase
+    conflict in commands_gen.go is resolved by rerunning it), delete only the command's own section
+    of internal/cli/doc.go; never touch the The slices paragraph, docs/ARCHITECTURE.md (the
+    coordinator's after each wave) or .metrics. The push proof counts every moved line as new: the
+    slice's unit tests over the fakes cover it. Help moves byte for byte, proved by one local
+    before/after binary comparison of every help page and usage line named in the commit body (no
+    committed golden: the user, 2026-10-21). No behaviour change: same bytes, same exit codes, same
+    order. Lane D, after D4. Two slices (guide, gocmd) over a new internal/engine/guides (the notes
+    and the commit policy from guide.go); go's Port Standing bound to statusOf.
+  done_when:
+    - run: go test ./internal/cli ./internal/slices/... ./internal/engine/... -count=1
+      timeout: 600
+    - run: go run ./tools/bin/assemble -check
+    - run: go run ./tools/bin/conformance --bin tools/bin/itos --only tools/itos/conformance/help.yaml tools/itos/conformance/cli.yaml tools/itos/conformance/guide.yaml
+      timeout: 600
+    - run: go test ./features -count=1 -scenarios='^@ID-(CLI|BIN|EXT|GUIDE)-[0-9]+$'
+      timeout: 600
+    - run: tools/bin/architecture-check
+    - run: tools/bin/pinned golangci-lint run ./...
+      timeout: 600
+    - run: grep -q 'gocmdslice.Command' internal/cli/commands_gen.go
+    - run: "! grep -nE '^func (\\([^)]*\\) )?(goStatus|printProcedure|printGuideThen)\\(' internal/cli/*.go"

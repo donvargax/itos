@@ -12381,3 +12381,11 @@ items:
     status: todo
     depends_on: []
     kind: task
+
+  - id: T-262
+    title: itos guide and itos go become slices
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task
