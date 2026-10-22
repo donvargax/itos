@@ -9406,6 +9406,12 @@ items:
       with p1-neighbor-checks-in-done-when and reconsider the separate local mutation proof, which
       repeats coverage and e2es. This records the requested workflow direction; it does not silently
       change existing gates.
+
+      2026-10-22, q-94: local tier in process over the fakes (hooks), CI tier with the real
+      adapters; agents never run done_when by hand; failures name task, command, exit and output
+      (hook, push, ci watch: today ci watch prints only the failed jobs); done_when holds only what
+      no gate runs. Needs a design and an ADR first: the in-process driver for the features (option
+      C of the refactor plan) and which hook runs the local tier.
     refs: [internal/guide/brief.md, internal/guide/work.md, internal/guide/push.md, AGENTS.md, tools/bin/go-unit-tests, itos.yaml]
     tags: [tests, hooks, docs]
 
