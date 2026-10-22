@@ -11290,18 +11290,13 @@ items:
     depends_on: []
     kind: task
 
-  - id: p1-lint-before-push
+  - id: T-220
     title: The pre-push hook runs the pinned golangci-lint when Go changed, so a lint finding never first shows in CI
     phase: 1
     owner: null
     status: todo
     depends_on: []
-    kind: idea
-    why: >
-      T-209's agent (2026-10-21) pushed a containedctx finding that only CI's lint step caught,
-      costing a red main and a repair round: T-194 put golangci-lint and architecture-check in CI
-      alone. The pinned linter is cached after its first download, so a pre-push step on a range
-      touching Go costs seconds; architecture-check's fixtures are slower and can stay CI's.
+    kind: task
 
   - id: T-212
     title: The corpus can pin that something did not print, and refuses exact text outside stdout_contract

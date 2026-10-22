@@ -2786,3 +2786,19 @@
   done_when:
     - run: tools/bin/pinned itos-cc mutation run --since b240fc04 --count 1 --seed b240fc04 --fail-uncovered=lines --json cmd internal
       timeout: 900
+
+- id: T-220
+  type: build
+  title: The pre-push hook runs the pinned golangci-lint when Go changed, so a lint finding never first shows in CI
+  why: >
+    T-209's agent (2026-10-21) pushed a containedctx finding that only CI's lint step caught,
+    costing a red main and a repair round: T-194 put golangci-lint and architecture-check in CI
+    alone. The pre-push hook runs the pinned golangci-lint over ./... when the pushed range changes
+    Go (it is cached after its first download, seconds per run); architecture-check's fixtures stay
+    CI's. Read itos.yaml's hooks: and tools/bin/pre-push (or wherever the repository's own pre-push
+    step is declared, beside itos's) to place it; its self-test, if the hook has one, covers a range
+    with and without Go.
+  done_when:
+    - run: grep -q "golangci-lint" tools/bin/pre-push
+    - run: go test -count=1 ./tools/...
+      timeout: 900
