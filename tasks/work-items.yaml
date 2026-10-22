@@ -11303,8 +11303,8 @@ items:
   - id: T-213
     title: "The OS is a value: logic takes the platform from the boundary instead of branching on runtime.GOOS"
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
 
