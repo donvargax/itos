@@ -837,6 +837,8 @@ cases:
     argv: [work, take, busy, --json]
     exit: 0
     json: { schema: 1, ok: true, item: { id: busy, title: Busy, phase: 1, owner: a, status: doing, depends_on: [], tags: [] }, commit: null }
+    files_after:
+      work-items.yaml: *registry
   - name: work take refuses a registry with changes no commit holds
     argv: [work, take, free, --json]
     git: []
@@ -1193,6 +1195,8 @@ cases:
       ok: true
       item: { id: done, title: Done, phase: 1, owner: a, status: done, depends_on: [], tags: [] }
       commit: null
+    files_after:
+      work-items.yaml: *registry
   - name: work add makes an idea at the end of the items, todo and nobody's, and commits the registry alone
     argv: [work, add, p1-new, --title, "New: a thing", --why, "A gap, found while building.", --json]
     git:
@@ -1292,6 +1296,8 @@ cases:
     argv: [work, add, bug-9, --kind, bug, --title, It breaks, --why, Found today.]
     exit: 2
     stderr_has: "bug id"
+    files_after:
+      work-items.yaml: *registry
   - name: work edit changes a title in its quoting and gives an item with no why the note, committing the registry alone
     argv: [work, edit, x, --title, "X, renamed", --note, A note., --json]
     git:
@@ -1379,6 +1385,8 @@ cases:
       item: { id: ready, title: Ready, phase: 1, owner: a, status: todo, depends_on: [done], issue: 12, tags: [] }
       changed: []
       commit: null
+    files_after:
+      .git/itos/work-items.yaml: *registry
   - name: work edit refuses a cycle, as work check would
     argv: [work, edit, ready, --depends-on, later, --json]
     exit: 1
@@ -1398,6 +1406,8 @@ cases:
       item: { id: ready, title: Ready, phase: 1, owner: a, status: todo, depends_on: [done], issue: 12, tags: [] }
       changed: []
       commit: null
+    files_after:
+      work-items.yaml: *registry
   - name: work edit needs something to change
     argv: [work, edit, ready]
     exit: 2
@@ -1406,6 +1416,8 @@ cases:
     argv: [work, edit, ready, --owner, b]
     exit: 2
     stderr_has: "--owner"
+    files_after:
+      work-items.yaml: *registry
   - name: work show prints the item, what depends on it, its scenarios and its commits, oldest first
     argv: [work, show, x, --json]
     git:
@@ -1671,6 +1683,8 @@ cases:
       .git/itos/work-items.yaml: *queued
     exit: 0
     json: { schema: 1, ok: true, item: { id: y, title: Y, phase: 1, status: todo, depends_on: [], tags: [] }, queue: [x, y, z], commit: null }
+    files_after:
+      .git/itos/work-items.yaml: *queued
   - name: work queue needs one place
     argv: [work, queue, x, --top, --remove]
     exit: 2

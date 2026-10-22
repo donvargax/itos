@@ -675,6 +675,9 @@ cases:
     argv: [task, add, T-004, --group, "1", --type, docs, --title, Again, --why, A second one., --check, "true"]
     exit: 2
     stderr_has: task id
+    files_after:
+      tasks/phase-1.yaml: *phase1
+      tasks/work-items.yaml: null
   - name: task add refuses a type commits.types does not list
     argv: [task, add, --group, "1", --type, chore, --title, Six, --why, Because., --check, "true", --json]
     files:

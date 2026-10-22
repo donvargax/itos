@@ -233,6 +233,8 @@ cases:
     exit: 3
     stdout: ""
     stderr_has: [commit-msg, itos hook install]
+    files_after:
+      .git/refs/heads/main: "{{sha.base}}\n"
   - name: itos commit refuses, exit 3, with a git that runs no hook its config declares
     argv: [commit, -m, "docs: tidy"]
     git:
