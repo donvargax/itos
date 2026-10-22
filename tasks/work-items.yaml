@@ -11926,3 +11926,20 @@ items:
       from git, so the agent adds it by hand first. A path named explicitly is the caller's file;
       adding it keeps the explicit-path rule the shim enforces.
     tags: [commit]
+
+  - id: p1-push-red-descendant
+    title: push and ci watch say a followed descendant run's red may be other commits' and name them
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      From #113. Under parallel agents, push for X follows the newest run containing X (#17); when
+      another agent's Y superseded it and went red on Y's own change, push blames X with exit 1.
+      Options from the issue: name the commits beyond the watched one (sha..head, authors or items)
+      and exit distinctly when the failing run holds others' commits; keep following until a later
+      descendant goes green, as work done already accepts; and say in the guides never to rerun a
+      superseded run. Related: #108, #107, p1-parallel-pilot.
+    refs: [internal/providers]
+    tags: [push, ci]
