@@ -27,6 +27,7 @@ package cli
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -189,8 +190,8 @@ func initWrite(stealth, initialized bool, offer pluginOffer, shimOffer shimOffer
 		return p
 	}
 	since := ""
-	if head, err := git.Output("rev-parse", "--verify", "--quiet", "HEAD^{commit}"); err == nil {
-		since = value.Trim(head)
+	if head, err := (vcs.Git{}).Resolve(context.Background(), "HEAD"); err == nil {
+		since = head
 	}
 	s := starter{stealth: stealth, since: since, scenarios: hasFeatureFiles(starterFeatures)}
 	version, sums, pinErr := pinned("")
@@ -326,7 +327,7 @@ func initWrite(stealth, initialized bool, offer pluginOffer, shimOffer shimOffer
 		// The plugin installed for the project is declared in its settings,
 		// which the commit carries.
 		if plugin.Action == "installed" && plugin.Scope == "project" {
-			if status, _ := git.Output("status", "--porcelain", "--", projectSettings); status != "" {
+			if status, _ := (vcs.Git{}).PathStatus(context.Background(), projectSettings); len(status) > 0 {
 				paths = append(paths, projectSettings)
 			}
 		}

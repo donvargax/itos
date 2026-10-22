@@ -81,7 +81,7 @@ func ciScope(from, to string, o Out) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	docs, err := plan.DocsOnly(cfg, plan.Changed(from, to))
+	docs, err := plan.DocsOnly(cfg, plan.Changed(cfg.VCS, from, to))
 	if err != nil {
 		return 0, err
 	}

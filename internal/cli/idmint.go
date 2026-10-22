@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -12,6 +13,7 @@ import (
 	"github.com/donvargax/itos/v8/internal/idcounter"
 	"github.com/donvargax/itos/v8/internal/ledger"
 	"github.com/donvargax/itos/v8/internal/nextid"
+	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
 	"github.com/donvargax/itos/v8/internal/work"
 )
 
@@ -113,7 +115,7 @@ func counterStore(cfg *config.Loaded, goos string) (idcounter.Store, error) {
 	}
 	remote := ""
 	if !cfg.Stealth {
-		remote, _, _ = git.Upstream(git.Branch())
+		remote, _, _ = git.Upstream(vcs.Git{}.Branch(context.Background()))
 		if !git.Succeeds("remote", "get-url", remote) {
 			remote = ""
 		}

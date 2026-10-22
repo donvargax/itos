@@ -74,7 +74,7 @@ func TestTrailers(t *testing.T) {
 		"chore: x\n\nBREAKING CHANGES: x\nTask: T-1":                      nil,
 		"chore: x\n\nSee : https://x.y/z":                                 {{"See", "https://x.y/z"}},
 	} {
-		if got := trailers(message); !reflect.DeepEqual(got, want) {
+		if got := trailers(message, "#"); !reflect.DeepEqual(got, want) {
 			t.Errorf("trailers(%q) = %q, want %q", message, got, want)
 		}
 	}
@@ -86,11 +86,11 @@ func TestTrailers(t *testing.T) {
 		"chore: x\n\nbody\n":          "chore: x\n\nbody\n\nTask: T-1",
 		"chore: x\n\nItem: a\n# note": "chore: x\n\nItem: a\nTask: T-1",
 	} {
-		if got := Trailed(message, []string{"Task: T-1"}); got != want {
+		if got := Trailed(message, []string{"Task: T-1"}, "#"); got != want {
 			t.Errorf("Trailed(%q) = %q, want %q", message, got, want)
 		}
 	}
-	if got := Trailed("chore: x", nil); got != "chore: x" {
+	if got := Trailed("chore: x", nil, "#"); got != "chore: x" {
 		t.Errorf("Trailed with no footers %q", got)
 	}
 }
@@ -148,7 +148,7 @@ func TestTypeOfGitsHeaders(t *testing.T) {
 func TestTexts(t *testing.T) {
 	text := "chore: x\n\nUpgrading: below\n\nSee Upgrading: below\nUpgrading: so\n\n" +
 		"Upgrading:  rename a key \nUpgrading:\nUpgrading: drop\n  the old one\nUpgrading: none\n"
-	if got, want := Texts(text, "Upgrading"), []string{"rename a key", "", "drop the old one", "none"}; !reflect.DeepEqual(got, want) {
+	if got, want := Texts(text, "Upgrading", "#"), []string{"rename a key", "", "drop the old one", "none"}; !reflect.DeepEqual(got, want) {
 		t.Errorf("Texts %q", got)
 	}
 	for text, want := range map[string]bool{"none": true, "None": false, "none.": false, "": false} {

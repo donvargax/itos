@@ -267,7 +267,7 @@ type HookStreams struct {
 // Cleaned, so the type that decides the footers it needs is the header's the
 // lint judges (bug 36).
 func LintFile(cfg *config.Loaded, file, message string, r Reading, s HookStreams) (int, error) {
-	commentChar := CommentChar()
+	commentChar := cfg.CommentChar()
 	stored := Cleaned(message, commentChar)
 	if cfg.Commits.HeaderLint.Builtin() {
 		header, err := HeaderProblems(cfg, message+"\n", commentChar)

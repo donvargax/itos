@@ -16,39 +16,22 @@ import (
 	"strings"
 
 	"github.com/donvargax/itos/v8/internal/config"
-	"github.com/donvargax/itos/v8/internal/git"
+	vcs "github.com/donvargax/itos/v8/internal/vcs/port"
 )
 
-// NotesRef is where the stealth mode keeps a commit's footers.
-const NotesRef = "refs/notes/itos"
+// NotesRef is where the stealth mode keeps a commit's footers, the VCS's
+// itos note.
+const NotesRef = vcs.NotesRef
 
 // FootersEnv is the variable itos commit hands the commit-msg hook the
 // footers in, a line each, under a stealth config.
 const FootersEnv = "ITOS_FOOTERS"
 
-// showNotes are git log's options that print only the itos notes as %N.
-var showNotes = []string{"--no-notes", "--notes=" + NotesRef}
-
-// Note is a commit's itos note, "" when it has none.
-func Note(sha string) (string, error) {
-	return git.Read(append(append([]string{"log", "-1"}, showNotes...), "--format=%N", sha)...)
-}
-
-// footersFormat is how a range log prints each commit's footers for a
-// config, each ended by a record separator: its note under a stealth config,
-// else its message.
-func footersFormat(cfg *config.Loaded) []string {
-	if cfg.Stealth {
-		return append(append([]string{}, showNotes...), "--format=%N%x1e")
-	}
-	return []string{"--format=%B%x1e"}
-}
-
 // typedFooter is why a footer of the config written in the message is
 // refused under a stealth config, "" when the message has none of it.
 func typedFooter(cfg *config.Loaded, key, message string) string {
 	f, _ := cfg.Commits.Footers.Get(key)
-	if len(Texts(message, key)) == 0 {
+	if len(Texts(message, key, cfg.CommentChar())) == 0 {
 		return ""
 	}
 	why := fmt.Sprintf("the %s: footer is in the message, where everyone would see it", key)

@@ -87,7 +87,7 @@
 // code without it; code's $path_sets are expanded as commits.scopes' are.
 //
 // NewMoves(cfg, ws) reads each kind's feature files once per tree and gives the
-// callers: Commit(sha, type, change) for verify (the commit against git.Parent, the
+// callers: Commit(sha, type, change) for verify (the commit against the VCS's Parent, the
 // empty tree for a root commit, nothing read when no check judges the type),
 // Between for the commit-msg hook (HEAD, or for an amend HEAD's parent,
 // against the index), Merge for a merge commit in both (its own paths, the

@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/donvargax/itos/v8/internal/config"
-	"github.com/donvargax/itos/v8/internal/git"
 	"github.com/donvargax/itos/v8/internal/glob"
 	"github.com/donvargax/itos/v8/internal/message"
 	vcs "github.com/donvargax/itos/v8/internal/vcs/port"
@@ -18,21 +17,23 @@ import (
 // still names what every commit up to the end names (bug 33), so the tasks
 // those commits name run their checks; a start git cannot read names nothing.
 
-// Changed are the files a pushed range touched (`git diff --name-only
-// --no-renames from to`, read NUL-separated so that none comes back quoted,
-// bug 31), the paths its commits touch for the unpushed commits
-// (git.Unpushed); none when it cannot be read or has no start or end. A
-// rename is both its paths (bug 32), so a range that moves code into prose
-// paths is not prose-only.
-func Changed(from, to string) []string {
+// Changed are the files a pushed range touched (the paths that differ
+// between its ends, each named as it is, bug 31), the paths its commits
+// touch for the unpushed commits (vcs.Unpushed), a merge's none; none when
+// it cannot be read or has no start or end. A rename is both its paths (bug
+// 32), so a range that moves code into prose paths is not prose-only.
+func Changed(v vcs.VCS, from, to string) []string {
 	if from == "" || to == "" {
 		return nil
 	}
-	if from == git.Unpushed {
-		paths, _ := git.UnpushedPaths(to)
-		return paths
+	ctx := context.Background()
+	var paths []string
+	var err error
+	if from == vcs.Unpushed {
+		paths, err = v.Touched(ctx, vcs.Range{From: from, To: to}, false)
+	} else {
+		paths, err = v.Diff(ctx, from, to)
 	}
-	paths, err := git.Paths("diff", "--name-only", "--no-renames", from, to)
 	if err != nil {
 		return nil
 	}

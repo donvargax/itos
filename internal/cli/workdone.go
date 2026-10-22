@@ -35,6 +35,7 @@ package cli
 // then taken out of it, in a commit of its own (slice 66).
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -49,6 +50,7 @@ import (
 	"github.com/donvargax/itos/v8/internal/out"
 	"github.com/donvargax/itos/v8/internal/providers"
 	"github.com/donvargax/itos/v8/internal/tests"
+	vcsport "github.com/donvargax/itos/v8/internal/vcs/port"
 	"github.com/donvargax/itos/v8/internal/work"
 )
 
@@ -82,10 +84,10 @@ func workDone(args []string, o Out) (int, error) {
 	found := wipScenarios(tagged, id)
 	landing := ownCommit(cfg, id, tagged)
 	if landing.sha == "" {
-		landing = judgedCommit(cfg.Work.Registry)
+		landing = judgedCommit(cfg.VCS, cfg.Work.Registry)
 	}
 	if len(found) == 0 {
-		found = unpushed(id, landing, o)
+		found = unpushed(cfg.VCS, id, landing, o)
 	}
 	if len(found) == 0 {
 		if found, err = failingTask(cfg, id, o); err != nil {
@@ -124,8 +126,8 @@ func workDone(args []string, o Out) (int, error) {
 		files = append(files, written{path: checks.Path, old: checks.Old, text: checks.Text})
 		change.Body += " Its checks are taken out of " + checks.Path + ": they were its progress while it was open, and gated this close."
 		if !cfg.Stealth {
-			if head, err := git.Output("rev-parse", "--short", "HEAD"); err == nil {
-				change.Body += " The commit before this one, " + strings.TrimSpace(head) + ", still holds them."
+			if head, err := cfg.VCS.Show(context.Background(), "HEAD"); err == nil {
+				change.Body += " The commit before this one, " + head.Short + ", still holds them."
 			}
 		}
 	}
@@ -262,25 +264,26 @@ func (j doneCommit) runOf(run *providers.Run) string {
 // commit of HEAD's first-parent line that touches more, its run named by
 // the commit's short SHA when it is not HEAD. A history whose every commit touches only the
 // registry has none, and HEAD is judged.
-func judgedCommit(registry string) doneCommit {
-	head, err := git.Output("rev-parse", "--verify", "--quiet", "HEAD")
+func judgedCommit(v vcsport.VCS, registry string) doneCommit {
+	ctx := context.Background()
+	head, err := v.Resolve(ctx, "HEAD")
 	if err != nil {
 		return doneCommit{run: "HEAD's CI run"}
 	}
-	head = strings.TrimSpace(head)
 	for at := head; ; {
-		if !touchesOnlyRegistry(registry, "-1", at) {
+		files, err := v.Diff(ctx, v.Parent(ctx, at), at)
+		if !touchesOnlyRegistry(registry, files, err) {
 			if at == head {
 				return doneCommit{sha: head, run: "HEAD's CI run", what: "HEAD"}
 			}
 			what := short(at) + ", the newest commit of HEAD that touches more than " + registry
 			return doneCommit{sha: at, run: "The CI run of " + what, what: what}
 		}
-		parent, err := git.Output("rev-parse", "--verify", "--quiet", at+"^")
+		parent, err := v.Resolve(ctx, at+"^")
 		if err != nil {
 			return doneCommit{sha: head, run: "HEAD's CI run", what: "HEAD"}
 		}
-		at = strings.TrimSpace(parent)
+		at = parent
 	}
 }
 
@@ -288,7 +291,7 @@ func judgedCommit(registry string) doneCommit {
 // has: work is landed when it is pushed. The commits after it touch only the
 // registry, or are not the item's (slice 127), and are not asked about. With
 // no remote at all there is nowhere to push to, and done says so and goes on.
-func unpushed(id string, j doneCommit, o Out) []out.Problem {
+func unpushed(v vcsport.VCS, id string, j doneCommit, o Out) []out.Problem {
 	if j.sha == "" {
 		return nil
 	}
@@ -296,7 +299,7 @@ func unpushed(id string, j doneCommit, o Out) []out.Problem {
 		fmt.Fprintln(o.Stderr, "itos: the repository has no remote, so whether its commits are pushed was not checked")
 		return nil
 	}
-	commits, err := git.Lines("rev-list", j.sha, "--not", "--remotes")
+	commits, err := v.Commits(context.Background(), vcsport.Range{From: vcsport.Unpushed, To: j.sha})
 	if err != nil || len(commits) == 0 {
 		return nil
 	}
@@ -382,7 +385,7 @@ func landedCI(cfg *config.Loaded, id string, j doneCommit, o Out) (watched, int,
 		return watched{}, 0, errors.New("HEAD names no commit, so it has no CI run")
 	}
 	remote, branch := "origin", ""
-	if local := git.Branch(); local != "" {
+	if local := cfg.VCS.Branch(context.Background()); local != "" {
 		var ref string
 		remote, ref, _ = git.Upstream(local)
 		branch = strings.TrimPrefix(ref, "refs/heads/")

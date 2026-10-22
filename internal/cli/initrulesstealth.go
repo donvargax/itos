@@ -29,6 +29,7 @@ package cli
 // between the markers.
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -38,6 +39,7 @@ import (
 	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/git"
 	"github.com/donvargax/itos/v8/internal/value"
+	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
 )
 
 const (
@@ -323,7 +325,7 @@ func (r rulesOffer) runStealth() (rulesOutcome, int) {
 
 	for _, t := range targets {
 		if t.top && t.next != t.text {
-			if tracked, _ := git.Output("ls-files", "--", t.disk); value.Trim(tracked) != "" {
+			if (vcs.Git{}).Tracked(context.Background(), t.disk) {
 				return failed(t.path+" is tracked by the project, and under a stealth config itos changes nothing tracked", true)
 			}
 		}

@@ -65,7 +65,7 @@
 // start is unread (Readable), so every test runs, yet the footers of every
 // commit up to the end are read, so the tasks and tests they name run too.
 // A stealth config's itos ci plan with no range plans the unpushed commits
-// (git.Unpushed; RangeOf gives the JSON's from as --remotes). The plan
+// (vcs.Unpushed; RangeOf gives the JSON's from as --remotes). The plan
 // carries its range's Ends (ends.go): the start a range check's {from} gets
 // (tests.RangeFrom: the unpushed commits' base, commits.since) and the end,
 // as full SHAs, the start empty for a range that runs everything; the

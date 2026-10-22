@@ -33,6 +33,7 @@ package cli
 // anything after "--" are read as git reads them.
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -333,8 +334,8 @@ func (g gitArgs) message() (string, bool) {
 		text, err := os.ReadFile(typed(g.origin, g.file))
 		return string(text), err == nil
 	case g.amend && g.noEdit:
-		text, err := git.Output("log", "-1", "--format=%B", "HEAD")
-		return text, err == nil
+		head, err := vcs.Git{}.Show(context.Background(), "HEAD")
+		return head.Message, err == nil
 	}
 	return "", false
 }
@@ -353,15 +354,16 @@ func lacking(cfg *config.Loaded, g gitArgs, links, content []string, stealth boo
 	if !ok || typ == "" {
 		return nil
 	}
-	linked := message.Trailed(text, slices.Concat(links, content))
+	linked := message.Trailed(text, slices.Concat(links, content), cfg.CommentChar())
 	if stealth {
 		linked = strings.Join(links, "\n")
 		if len(links) == 0 && g.amend {
-			linked, _ = message.Note("HEAD")
+			head, _ := cfg.VCS.Show(context.Background(), "HEAD")
+			linked = head.Note
 		}
 	}
 	var found []out.Problem
-	for _, key := range message.Missing(cfg, typ, linked, message.Trailed(text, content)) {
+	for _, key := range message.Missing(cfg, typ, linked, message.Trailed(text, content, cfg.CommentChar())) {
 		flag, what := message.Flag(cfg, key)
 		if flag == "" {
 			continue
@@ -390,19 +392,20 @@ func refuseCommit(cfg *config.Loaded, found []out.Problem, o Out) (int, error) {
 
 // wrapBody is git's arguments with the message they give wrapped to the
 // header lint's body line limit (message.Wrap, slice 58), no line starting
-// with one of keys, the configured footers', and the file it
+// with one of keys, the configured footers', or comment, the repository's
+// comment character, and the file it
 // wrote the message to, for the caller to remove, "" when none: each -m in
 // its place, or the -F file's text, stdin's for -F -, in a file of its own,
 // named where the file was. The arguments as given when the limit is 0, the
 // message comes from the editor or HEAD, git will refuse them (-m with -F),
 // or the -F file is already wrapped or cannot be read, which git reports.
-func wrapBody(args []string, g gitArgs, limit int, keys []string) ([]string, string, error) {
+func wrapBody(args []string, g gitArgs, limit int, keys []string, comment string) ([]string, string, error) {
 	if limit <= 0 || len(g.messages) > 0 && g.file != "" {
 		return args, "", nil
 	}
 	args = slices.Clone(args)
 	if len(g.messages) > 0 {
-		for i, text := range message.Wrap(g.messages, limit, message.CommentChar(), keys) {
+		for i, text := range message.Wrap(g.messages, limit, comment, keys) {
 			if at := g.messagesAt[i]; at.index >= 0 {
 				args[at.index] = at.prefix + text
 			}
@@ -422,7 +425,7 @@ func wrapBody(args []string, g gitArgs, limit int, keys []string) ([]string, str
 	if err != nil {
 		return args, "", nil
 	}
-	text := message.Wrap([]string{string(raw)}, limit, message.CommentChar(), keys)[0]
+	text := message.Wrap([]string{string(raw)}, limit, comment, keys)[0]
 	if text == string(raw) && g.file != "-" {
 		return args, "", nil
 	}
@@ -535,7 +538,7 @@ func gitCommit(args []string, o Out) (int, error) {
 	if cfg != nil {
 		keys = cfg.Commits.Footers.Keys
 	}
-	given, written, err := wrapBody(flags.git, g, message.BodyLimit(cfg), keys)
+	given, written, err := wrapBody(flags.git, g, message.BodyLimit(cfg), keys, cfg.CommentChar())
 	if err != nil {
 		return 0, err
 	}

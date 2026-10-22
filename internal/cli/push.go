@@ -31,6 +31,7 @@ package cli
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -44,6 +45,7 @@ import (
 	"github.com/donvargax/itos/v8/internal/kind"
 	"github.com/donvargax/itos/v8/internal/out"
 	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
+	vcsport "github.com/donvargax/itos/v8/internal/vcs/port"
 	"github.com/donvargax/itos/v8/internal/work"
 )
 
@@ -193,7 +195,8 @@ func push(args []string, o Out) (int, error) {
 	if o.JSON {
 		r.git = o.Stderr
 	}
-	if !git.Succeeds("rev-parse", "--git-dir") {
+	ctx, v := context.Background(), vcs.Git{}
+	if _, err := v.Locate(ctx, ""); err != nil {
 		fmt.Fprintln(o.Stderr, "itos: push runs in a git repository, and this is none")
 		return ExitMissing, nil
 	}
@@ -213,13 +216,13 @@ func push(args []string, o Out) (int, error) {
 	if code, done, err := r.ready(); done {
 		return code, err
 	}
-	branch := git.Branch()
+	branch := v.Branch(ctx)
 	if branch == "" {
 		return r.report(ExitPolicy, "detached", "itos push: HEAD is not on a branch; check out the branch to push first")
 	}
 	remote, ref, set := git.Upstream(branch)
 	r.remote, r.branch = remote, strings.TrimPrefix(ref, "refs/heads/")
-	if !git.Succeeds("rev-parse", "--verify", "--quiet", "HEAD") {
+	if _, err := v.Resolve(ctx, "HEAD"); err != nil {
 		return r.report(0, "nothing-to-push", fmt.Sprintf("Nothing to push: %s has no commit yet.", branch))
 	}
 	if !set && !git.Succeeds("remote", "get-url", remote) {
@@ -229,20 +232,18 @@ func push(args []string, o Out) (int, error) {
 	if failed {
 		return r.report(remoteExit(failure), "fetch-failed", r.remoteLines("fetching "+r.upstream()+" failed", failure)...)
 	}
-	if exists && !git.Succeeds("merge-base", "--is-ancestor", onto, "HEAD") {
+	if exists && !v.IsAncestor(ctx, onto, "HEAD") {
 		if code, done, err := r.rebase(onto); done {
 			return code, err
 		}
 	}
-	sha, err := git.Output("rev-parse", "--verify", "--quiet", "HEAD^{commit}")
+	r.sha, err = v.Resolve(ctx, "HEAD")
 	if err != nil {
 		fmt.Fprintf(o.Stderr, "itos: cannot resolve HEAD after the rebase: %s\n", err)
 		return ExitMissing, nil
 	}
-	r.sha = strings.TrimSpace(sha)
 	if exists {
-		ahead, _ := git.Output("rev-list", "--count", onto+".."+r.sha)
-		if strings.TrimSpace(ahead) == "0" {
+		if ahead, err := v.Commits(ctx, vcsport.Range{From: onto, To: r.sha}); err == nil && len(ahead) == 0 {
 			return r.report(0, "nothing-to-push", fmt.Sprintf("Nothing to push: %s is at %s.", branch, r.upstream()))
 		}
 	}
@@ -253,13 +254,14 @@ func push(args []string, o Out) (int, error) {
 // progress, no conflict left and no uncommitted change to a tracked file;
 // done when it cannot, with the refusal reported.
 func (r pushRun) ready() (int, bool, error) {
-	if git.Rebasing() || len(git.Conflicted()) > 0 {
+	ctx, v := context.Background(), vcs.Git{}
+	if v.Rebasing(ctx) || len(v.Conflicted(ctx)) > 0 {
 		code, err := r.report(ExitPolicy, "rebase-in-progress",
 			"itos push: a rebase is in progress or a conflict is left; nothing was pulled or pushed.",
 			"Resolve it and run git rebase --continue, or run git rebase --abort, then itos push again.")
 		return code, true, err
 	}
-	if changed := git.Changed(); len(changed) > 0 {
+	if changed := v.Changes(ctx); len(changed) > 0 {
 		lines := []string{"itos push: tracked files have uncommitted changes; commit or stash them first, then run itos push again:"}
 		for _, l := range changed {
 			lines = append(lines, "  "+l)
@@ -342,7 +344,7 @@ func (r pushRun) rebase(onto string) (int, bool, error) {
 		fmt.Fprintf(r.o.Stderr, "itos: cannot run git: %s\n", err)
 		return ExitMissing, true, nil
 	}
-	if git.Rebasing() || len(git.Conflicted()) > 0 {
+	if ctx, v := context.Background(), (vcs.Git{}); v.Rebasing(ctx) || len(v.Conflicted(ctx)) > 0 {
 		lines := []string{
 			fmt.Sprintf("itos push: the rebase onto %s stopped; nothing was pushed.", r.upstream()),
 			"Resolve the conflicts, git add the files and run git rebase --continue, then itos push again;",
@@ -381,7 +383,7 @@ func (r pushRun) registryConflict() []string {
 	}
 	registry := path.Clean(filepath.ToSlash(cfg.Work.Registry))
 	hit := false
-	for _, f := range git.Conflicted() {
+	for _, f := range (vcs.Git{}).Conflicted(context.Background()) {
 		hit = hit || path.Clean(f) == registry
 	}
 	if !hit {
@@ -439,8 +441,8 @@ func (r pushRun) push(remote, ref, onto string) (int, error) {
 			fmt.Sprintf("itos push: the push to %s failed (git's message above); nothing was forced.", r.upstream()),
 			"If the remote moved, run itos push again to rebase onto it; if a hook refused it, fix what it reported first.")
 	}
-	short, _ := git.Output("rev-parse", "--short", r.sha)
-	pushed := fmt.Sprintf("Pushed %s to %s.", strings.TrimSpace(short), r.upstream())
+	shown, _ := vcs.Git{}.Show(context.Background(), r.sha)
+	pushed := fmt.Sprintf("Pushed %s to %s.", shown.Short, r.upstream())
 	if r.noWait {
 		return r.report(0, "pushed", pushed)
 	}
@@ -499,19 +501,19 @@ func registryOnly(onto, pushed, registry string) bool {
 	if onto == "" {
 		return false
 	}
-	return touchesOnlyRegistry(registry, onto+".."+pushed)
+	files, err := vcs.Git{}.Touched(context.Background(), vcsport.Range{From: onto, To: pushed}, true)
+	return touchesOnlyRegistry(registry, files, err)
 }
 
-// touchesOnlyRegistry is whether the commits git log gives for the revisions
-// touch the work registry and no other path: the one rule by which itos push
-// does not wait for a run (slice 56) and work done passes over a commit
-// (slice 93), since such a commit changes nothing a run judges. A merge counts
-// what it brought in against its first parent, and a commit that touches no
-// path adds nothing to the answer, so commits that touch nothing at all are
-// not registry-only.
-func touchesOnlyRegistry(registry string, revs ...string) bool {
-	args := append([]string{"log", "--format=", "--name-only", "--no-renames", "--diff-merges=first-parent"}, revs...)
-	files, err := git.Paths(args...)
+// touchesOnlyRegistry is whether the paths some commits touch, each against
+// its first parent, are the work registry and no other path: the one rule by
+// which itos push does not wait for a run (slice 56) and work done passes
+// over a commit (slice 93), since such a commit changes nothing a run
+// judges. A merge counts what it brought in against its first parent, and a
+// commit that touches no path adds nothing to the answer, so commits that
+// touch nothing at all are not registry-only; nor are commits whose paths
+// cannot be read.
+func touchesOnlyRegistry(registry string, files []string, err error) bool {
 	if err != nil {
 		return false
 	}

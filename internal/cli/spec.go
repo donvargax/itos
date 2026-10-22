@@ -9,14 +9,16 @@ package cli
 // for parsing, not for writing help.
 
 import (
+	"context"
 	"maps"
 	"regexp"
 	"slices"
 	"strings"
 
 	"github.com/donvargax/itos/v8/internal/config"
-	"github.com/donvargax/itos/v8/internal/git"
 	"github.com/donvargax/itos/v8/internal/message"
+	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
+	vcsport "github.com/donvargax/itos/v8/internal/vcs/port"
 )
 
 // takes is what a flag takes after its name.
@@ -405,18 +407,19 @@ func rangeRefs(command, from, to string, more ...string) error {
 // commitRefs refuses a ref that names no commit, before command uses it: a
 // usage error naming the ref, in a line for people rather than git's
 // command line (rule 25 of docs/CLI.md). An empty or all-zero start (a new
-// branch, which ranges read as everything up to its end) and git.Unpushed
+// branch, which ranges read as everything up to its end) and vcsport.Unpushed
 // name none to check; outside a git repository nothing is checked, and the
 // command says what it says there.
 func commitRefs(command string, refs ...string) error {
+	ctx, v := context.Background(), vcs.Git{}
 	for _, ref := range refs {
-		if ref == git.Unpushed || config.NewBranch(ref) {
+		if ref == vcsport.Unpushed || config.NewBranch(ref) {
 			continue
 		}
-		if git.Succeeds("rev-parse", "--verify", "--quiet", ref+"^{commit}") {
+		if _, err := v.Resolve(ctx, ref); err == nil {
 			continue
 		}
-		if !git.Succeeds("rev-parse", "--git-dir") {
+		if _, err := v.Locate(ctx, ""); err != nil {
 			return nil
 		}
 		return usage("%s: %s is not a commit of this repository", command, ref)

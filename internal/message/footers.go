@@ -9,11 +9,11 @@ import (
 	"strings"
 
 	"github.com/donvargax/itos/v8/internal/config"
-	"github.com/donvargax/itos/v8/internal/git"
 	"github.com/donvargax/itos/v8/internal/ledger"
 	"github.com/donvargax/itos/v8/internal/out"
 	"github.com/donvargax/itos/v8/internal/tests"
 	"github.com/donvargax/itos/v8/internal/value"
+	vcs "github.com/donvargax/itos/v8/internal/vcs/port"
 	"github.com/donvargax/itos/v8/internal/work"
 )
 
@@ -74,10 +74,11 @@ func IDs(cfg *config.Loaded, links, key string) []string {
 }
 
 // Texts are the texts one free-text footer gives in a message, in order,
-// each on one line and trimmed, the empty ones kept as "".
-func Texts(message, key string) []string {
+// each on one line and trimmed, the empty ones kept as "", the lines
+// starting with the comment character passed over.
+func Texts(message, key, comment string) []string {
 	var texts []string
-	for _, t := range trailers(message) {
+	for _, t := range trailers(message, comment) {
 		if t.key == key {
 			texts = append(texts, unfolded(t.value))
 		}
@@ -383,7 +384,7 @@ func stoodIn(cfg *config.Loaded, key, typ, footers string) bool {
 // checkText is a free-text footer's rule: a type it is required for carries
 // one that says something, and a type it validates carries none empty.
 func checkText(cfg *config.Loaded, key string, f config.Footer, typ, message string, required bool) string {
-	texts := Texts(message, key)
+	texts := Texts(message, key, cfg.CommentChar())
 	said := slices.ContainsFunc(texts, func(t string) bool { return t != "" })
 	if required && !said {
 		return fmt.Sprintf("%s commits need a %s footer", typ, example(cfg, key, f))
@@ -452,11 +453,7 @@ func IDsIn(cfg *config.Loaded, from, to, key string) []string {
 	if to == "" {
 		return nil
 	}
-	revs := []string{to}
-	if from != "" {
-		revs = git.Revs(from, to)
-	}
-	log, err := git.Output(append(append([]string{"log"}, footersFormat(cfg)...), revs...)...)
+	log, err := cfg.VCS.Log(context.Background(), vcs.Range{From: from, To: to})
 	if err != nil {
 		return nil
 	}
@@ -476,8 +473,12 @@ func IDsIn(cfg *config.Loaded, from, to, key string) []string {
 		return nil
 	}
 	var ids []string
-	for _, entry := range strings.Split(log, "\x1e") {
-		for _, id := range IDs(cfg, strings.TrimLeft(entry, "\n"), key) {
+	for _, e := range slices.Backward(log) {
+		links := e.Message
+		if cfg.Stealth {
+			links = e.Note
+		}
+		for _, id := range IDs(cfg, links, key) {
 			if matches.MatchString(id) {
 				ids = append(ids, id)
 			}
@@ -514,27 +515,23 @@ type Said struct {
 // since a footer written before the rules still says what it says. A footer
 // that is empty, or says none, asks nothing and is left out. A footer of free
 // text is in the message under a stealth config too (slice 36).
-func Gathered(from, to, key string) ([]Said, error) {
-	span := []string{from + ".." + to}
+func Gathered(cfg *config.Loaded, from, to, key string) ([]Said, error) {
 	if strings.Trim(from, "0") == "" {
-		span = []string{to}
+		from = ""
 	}
-	args := append([]string{"log", "--no-merges", "--reverse", "--format=%H%x00%B%x1e"}, span...)
-	log, err := git.Read(args...)
+	log, err := cfg.VCS.Log(context.Background(), vcs.Range{From: from, To: to})
 	if err != nil {
 		return nil, err
 	}
 	said := []Said{}
-	for _, entry := range strings.Split(log, "\x1e") {
-		// The commit and its message.
-		sha, body, ok := strings.Cut(strings.TrimLeft(entry, "\n"), "\x00")
-		if !ok {
+	for _, e := range log {
+		if e.Merge {
 			continue
 		}
-		subject, _, _ := strings.Cut(body, "\n")
-		for _, text := range Texts(body, key) {
+		subject, _, _ := strings.Cut(e.Message, "\n")
+		for _, text := range Texts(e.Message, key, cfg.CommentChar()) {
 			if text != "" && !None(text) {
-				said = append(said, Said{SHA: sha, Subject: subject, Text: text})
+				said = append(said, Said{SHA: e.SHA, Subject: subject, Text: text})
 			}
 		}
 	}

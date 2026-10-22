@@ -75,7 +75,7 @@
 // file), as git reads a path typed in a subfolder, and runGit runs git
 // commit and itos push's git in it, so pathspecs and an -F file mean what
 // they meant. Under --root nothing is translated. Under a stealth config
-// verify and ci plan with no range take the unpushed commits (git.Unpushed):
+// verify and ci plan with no range take the unpushed commits (vcsport.Unpushed):
 // commands.go asks config.IsStealth of configPath() before the usage error,
 // so a project's is unchanged and needs no config load.
 //
@@ -311,7 +311,7 @@
 // runs git rebase --no-autostash <sha> (never git pull, so neither
 // pull.rebase, pull.ff nor a fork point enters it), after rewriteNotes under
 // a stealth config so the rebase carries the itos notes. A stop afterwards
-// (git.Rebasing or git.Conflicted) exits 1 saying how to go on, git's own
+// (the VCS's Rebasing or Conflicted) exits 1 saying how to go on, git's own
 // hint turned off (advice.mergeConflict) since it advises --skip, which
 // drops the commit being replayed (bug 118); when the
 // work registry is among the conflicted files, registryConflict adds what
@@ -381,7 +381,7 @@
 //     the commit for an amend, else HEAD, and stagedFiles(base) reads the
 //     paths against it: an amend is judged as the commit it makes, so one
 //     that only rewords a feat still has the feat's paths. A merge being made
-//     is judged by its own paths (git.StagedOwnPaths), and one with none
+//     is judged by its own paths (the VCS's StagedOwnPaths), and one with none
 //     returns before the rules.
 //  3. The header lint, message.LintFile (the built-in lint, or the
 //     commits.header_lint.hook delegate with {file} as one tests.ShellWord,
@@ -446,7 +446,7 @@
 // over cfg.Range(from, to) (commits.since and its ancestors left out),
 // each one's message through message.Check at that commit (the delegate's
 // report on stdout, stderr under --json), then, only when the message holds,
-// its paths (git.CommitPaths, or a merge's own, git.OwnPaths) through scope
+// its paths (the VCS's CommitPaths, or a merge's own, OwnPaths) through scope
 // and its moves as one rejection; then tests.RangeCommands, each kind's
 // range commands, run until one fails. That walk is verifier.over, which
 // returns each commit's result (verifyRun), so verifyRange adds only the

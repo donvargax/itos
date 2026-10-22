@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/donvargax/itos/v8/internal/out"
 	"github.com/donvargax/itos/v8/internal/store/tree/port"
@@ -56,6 +57,25 @@ type Loaded struct {
 	file    *value.Map
 	tree    *value.Map
 	statics []*regexp.Regexp
+	// comment is CommentChar's answer, asked of the VCS once.
+	comment func() string
+}
+
+// CommentChar is the repository's comment character (VCS.CommentChar), asked
+// once per load; # for a config Load did not make.
+func (l *Loaded) CommentChar() string {
+	if l.comment == nil {
+		return "#"
+	}
+	return l.comment()
+}
+
+// withVCS is the config reading its data through trees and src and its
+// repository through v.
+func (l *Loaded) withVCS(v vcs.VCS, trees port.Trees, src port.Source) *Loaded {
+	l.Trees, l.Source, l.VCS = trees, src, v
+	l.comment = sync.OnceValue(func() string { return v.CommentChar(context.Background()) })
+	return l
 }
 
 // File is the config file as written, without the defaults under it.
@@ -138,8 +158,7 @@ func Load(v vcs.VCS, trees port.Trees, src port.Source, file string) (*Loaded, e
 	if err != nil {
 		return nil, err
 	}
-	loaded.Trees, loaded.Source, loaded.VCS = trees, src, v
-	return loaded, nil
+	return loaded.withVCS(v, trees, src), nil
 }
 
 // DataFrom is the config with its data read from src: plan's --data-at
@@ -159,8 +178,7 @@ func FromText(v vcs.VCS, trees port.Trees, src port.Source, file, text string, s
 	if err != nil {
 		return nil, err
 	}
-	loaded.Trees, loaded.Source, loaded.VCS = trees, src, v
-	return loaded, nil
+	return loaded.withVCS(v, trees, src), nil
 }
 
 // unreadable is a config that cannot be read, or is not YAML.

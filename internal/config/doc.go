@@ -18,7 +18,8 @@
 // (internal/vcs/port, which asks git once per folder and run, so the
 // launcher and the command line ask once between them; every locating
 // function takes the VCS as a value, and Load keeps it on Loaded, which
-// reads commits.since's commits and ranges through it) and gives the top
+// reads commits.since's commits and ranges through it, and asks it the
+// comment character once, CommentChar) and gives the top
 // level when it is not the folder itself and holds
 // an itos.yaml or the stealth config; inside the git folder and outside a
 // repository it gives nothing. The command line then moves there before any

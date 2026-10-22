@@ -85,7 +85,7 @@ func workShow(args []string, o Out) (int, error) {
 	if task {
 		shown.LedgerWhy = ledgerWhy(cfg, id)
 	}
-	hasHead := git.Succeeds("rev-parse", "--verify", "--quiet", "HEAD")
+	hasHead := hasCommit(context.Background(), cfg.VCS, "HEAD")
 	at := "HEAD"
 	if !hasHead {
 		at = "worktree"

@@ -40,6 +40,7 @@ package cli
 // after the first write reports what this run wrote, and removes nothing.
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -190,8 +191,8 @@ func policyPlanned(policy string, stealth bool, origin string) (policyPlan, *pol
 		if out, err := git.Output("rev-parse", "--git-common-dir"); err == nil {
 			common = value.Trim(out)
 		}
-		if head, err := git.Output("rev-parse", "--verify", "--quiet", "HEAD^{commit}"); err == nil {
-			plan.since = value.Trim(head)
+		if head, err := (vcs.Git{}).Resolve(context.Background(), "HEAD"); err == nil {
+			plan.since = head
 		}
 	}
 	if stealth {

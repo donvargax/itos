@@ -15,7 +15,6 @@ package message
 
 import (
 	"strings"
-	"sync"
 
 	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/value"
@@ -31,10 +30,6 @@ var gitGenerated = []string{"Signed-off-by: ", "(cherry picked from commit "}
 
 // breakingKey is the one key with a space the footers read.
 const breakingKey = "BREAKING CHANGE"
-
-// repositoryComment is git's comment character in this repository, read
-// once: the one a message's trailers pass over.
-var repositoryComment = sync.OnceValue(CommentChar)
 
 // gitSpace is whether a byte is a space as git's isspace reads it.
 func gitSpace(c byte) bool { return c == ' ' || c == '\t' || c == '\n' || c == '\r' }
@@ -174,21 +169,22 @@ func parseTrailers(block []string, comment string) []trailer {
 	return found
 }
 
-// trailers are a message's footers, as git reads its trailers, the
-// repository's comment lines passed over.
-func trailers(message string) []trailer {
+// trailers are a message's footers, as git reads its trailers, the comment
+// lines passed over.
+func trailers(message, comment string) []trailer {
 	lines := strings.Split(message, "\n")
-	start, end := trailerBlock(lines, repositoryComment())
-	return parseTrailers(lines[start:end], repositoryComment())
+	start, end := trailerBlock(lines, comment)
+	return parseTrailers(lines[start:end], comment)
 }
 
 // linked are the footers a commit's links stand in: its message's, or under
-// a stealth config its note's, every line of which is a footer.
+// a stealth config its note's, every line of which is a footer, the
+// repository's comment lines passed over.
 func linked(cfg *config.Loaded, links string) []trailer {
 	if cfg.Stealth {
-		return parseTrailers(strings.Split(links, "\n"), repositoryComment())
+		return parseTrailers(strings.Split(links, "\n"), cfg.CommentChar())
 	}
-	return trailers(links)
+	return trailers(links, cfg.CommentChar())
 }
 
 // unfolded is a trailer's value on one line, each line break and the indent

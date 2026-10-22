@@ -6,10 +6,11 @@ package message
 // every reader of a made commit's links reads them (notes.go).
 
 import (
+	"context"
 	"strings"
 
 	"github.com/donvargax/itos/v8/internal/config"
-	"github.com/donvargax/itos/v8/internal/git"
+	vcs "github.com/donvargax/itos/v8/internal/vcs/port"
 )
 
 // Link is one ID a footer of IDs gives: the footer's key, the ID with its
@@ -51,26 +52,21 @@ type Logged struct {
 // History is every non-merge commit reachable from rev, oldest first, each
 // with the links its message gives, or under a stealth config its itos note.
 func History(cfg *config.Loaded, rev string) ([]Logged, error) {
-	args := []string{"log", "--no-merges", "--reverse", "--no-notes"}
-	if cfg.Stealth {
-		args = append(args, "--notes="+NotesRef)
-	}
-	log, err := git.Read(append(args, "--format=%H%x00%h%x00%B%x00%N%x1e", rev)...)
+	log, err := cfg.VCS.Log(context.Background(), vcs.Range{To: rev})
 	if err != nil {
 		return nil, err
 	}
 	var commits []Logged
-	for _, entry := range strings.Split(log, "\x1e") {
-		parts := strings.SplitN(strings.TrimLeft(entry, "\n"), "\x00", 4)
-		if len(parts) < 4 {
+	for _, e := range log {
+		if e.Merge {
 			continue
 		}
-		header, _, _ := strings.Cut(parts[2], "\n")
-		links := parts[2]
+		header, _, _ := strings.Cut(e.Message, "\n")
+		links := e.Message
 		if cfg.Stealth {
-			links = parts[3]
+			links = e.Note
 		}
-		commits = append(commits, Logged{SHA: parts[0], Short: parts[1], Message: strings.TrimRight(parts[2], "\n"), Header: header, Links: Links(cfg, links)})
+		commits = append(commits, Logged{SHA: e.SHA, Short: e.Short, Message: strings.TrimRight(e.Message, "\n"), Header: header, Links: Links(cfg, links)})
 	}
 	return commits, nil
 }

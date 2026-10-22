@@ -13,12 +13,11 @@ package tests
 // supports_at: true, since the rule lists the commit's parent.
 
 import (
+	"context"
 	"path"
 	"strconv"
-	"strings"
 
 	"github.com/donvargax/itos/v8/internal/config"
-	"github.com/donvargax/itos/v8/internal/git"
 )
 
 // testList is the kind's listing at a tree: "index", or a commit. A tree
@@ -31,8 +30,8 @@ func (m *Moves) testList(name, tree string) (List, error) {
 	}
 	at := tree
 	if tree != "index" {
-		sha, err := git.Output("rev-parse", "--verify", "--quiet", tree+"^{commit}")
-		if at = strings.TrimSpace(sha); err != nil || at == "" {
+		sha, err := m.cfg.VCS.Resolve(context.Background(), tree)
+		if at = sha; err != nil {
 			m.lists[key] = List{Protocol: 1, Tests: []Test{}, Files: []string{}}
 			return m.lists[key], nil
 		}

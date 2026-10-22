@@ -28,6 +28,7 @@ package cli
 // change draft's, so a file that moved since the base stops it.
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -42,6 +43,7 @@ import (
 	"github.com/donvargax/itos/v8/internal/git"
 	"github.com/donvargax/itos/v8/internal/lock"
 	"github.com/donvargax/itos/v8/internal/out"
+	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
 )
 
 // draftTakes is what draft takes, as a usage error names it.
@@ -322,8 +324,8 @@ func draftEdit(args []string, o Out) (int, error) {
 		seen[p] = true
 		return had
 	})
-	base, err := git.Output("rev-parse", "--verify", "--quiet", "HEAD^{commit}")
-	if base = strings.TrimSpace(base); err != nil || base == "" {
+	base, err := vcs.Git{}.Resolve(context.Background(), "HEAD")
+	if err != nil {
 		return refuseWork([]out.Problem{{Rule: "draft-no-head", Message: "the repository has no commit yet, and a copy is taken from HEAD",
 			Fix: "commit something first"}}, ExitPolicy, o)
 	}
@@ -542,7 +544,7 @@ func takeChange(file, id string, typedPaths []string, origin string) (paths, nam
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	if !git.Succeeds("rev-parse", "--verify", "--quiet", "HEAD^{commit}") {
+	if _, err := (vcs.Git{}).Resolve(context.Background(), "HEAD"); err != nil {
 		return nil, nil, &out.Problem{Rule: "draft-no-head", Message: "the repository has no commit yet, and a change is drafted against HEAD",
 			Fix: "commit something first"}, nil
 	}
@@ -691,9 +693,10 @@ func noDraft(id string, o Out) (int, error) {
 // agents that have gone, and what collides with an agent is its index and
 // work tree.
 func checkoutBusy() []out.Problem {
+	ctx, v := context.Background(), vcs.Git{}
 	var found []out.Problem
 	var changed []string
-	for _, line := range git.Changed() {
+	for _, line := range v.Changes(ctx) {
 		if len(line) > 3 {
 			changed = append(changed, line[3:])
 		}
@@ -706,10 +709,10 @@ func checkoutBusy() []out.Problem {
 		})
 	}
 	var stopped []string
-	if git.Rebasing() {
+	if v.Rebasing(ctx) {
 		stopped = append(stopped, "a rebase")
 	}
-	if merging() {
+	if len(v.MergeHeads(ctx)) > 0 {
 		stopped = append(stopped, "a merge")
 	}
 	if len(stopped) > 0 {
@@ -720,17 +723,6 @@ func checkoutBusy() []out.Problem {
 		})
 	}
 	return found
-}
-
-// merging is whether a merge is in progress: git keeps MERGE_HEAD in the
-// git folder until it is committed or aborted.
-func merging() bool {
-	path, err := git.Output("rev-parse", "--git-path", "MERGE_HEAD")
-	if err != nil {
-		return false
-	}
-	_, err = os.Stat(strings.TrimSpace(path))
-	return err == nil
 }
 
 func hasHave(n int) string {
@@ -847,7 +839,7 @@ func redoFix(file string, d draft.Draft) string {
 // be promoted, the tree then as HEAD has it; an error when itos cannot even
 // try.
 func promoteOne(file string, d draft.Draft, o Out) (header, why string, err error) {
-	before, _ := git.Output("rev-parse", "HEAD")
+	before, _ := vcs.Git{}.Resolve(context.Background(), "HEAD")
 	if d.Minted != "" {
 		if code := runReserved(d, o.Stderr, o.runLine); code != 0 {
 			return "", fmt.Sprintf("%s exited %d", d.Line(), code), nil
@@ -922,10 +914,9 @@ func patchNames(numstat string) []string {
 // madeSince is the commit HEAD is now, as a promote reports it: its short
 // SHA and header, or what was run when HEAD did not move.
 func madeSince(before, what string) string {
-	now, err := git.Output("log", "-1", "--format=%h %s")
-	after, _ := git.Output("rev-parse", "HEAD")
-	if err != nil || strings.TrimSpace(after) == strings.TrimSpace(before) {
+	now, err := vcs.Git{}.Show(context.Background(), "HEAD")
+	if err != nil || now.SHA == before {
 		return what + " (no commit)"
 	}
-	return "committed " + strings.TrimSpace(now)
+	return "committed " + now.Short + " " + now.Subject
 }

@@ -24,6 +24,7 @@ package cli
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -35,6 +36,7 @@ import (
 	"strings"
 
 	"github.com/donvargax/itos/v8/internal/git"
+	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
 )
 
 const (
@@ -310,8 +312,8 @@ func terminal(f *os.File) bool {
 // status, and says whether it did. Whether git shows it is git's to say: the
 // project's own ignore files, or the person's, may already leave it out.
 func excludeIfShown(p string) (bool, error) {
-	status, err := git.Read("status", "--porcelain", "--untracked-files=all", "--", p)
-	if err != nil || !strings.HasPrefix(status, "?? ") {
+	status, err := vcs.Git{}.PathStatus(context.Background(), p)
+	if err != nil || len(status) == 0 || !strings.HasPrefix(status[0], "?? ") {
 		return false, err
 	}
 	file, err := git.Read("rev-parse", "--git-path", "info/exclude")

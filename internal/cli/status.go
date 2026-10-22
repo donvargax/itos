@@ -50,6 +50,8 @@ import (
 	"github.com/donvargax/itos/v8/internal/providers"
 	"github.com/donvargax/itos/v8/internal/release"
 	"github.com/donvargax/itos/v8/internal/value"
+	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
+	vcsport "github.com/donvargax/itos/v8/internal/vcs/port"
 	"github.com/donvargax/itos/v8/internal/version"
 	"github.com/donvargax/itos/v8/internal/work"
 )
@@ -297,7 +299,7 @@ func (st *standing) unread(line string) {
 // HEAD.
 func (st *standing) readHead(cfg *config.Loaded, o Out) {
 	remote, ref := "origin", "HEAD"
-	if branch := git.Branch(); branch != "" {
+	if branch := cfg.VCS.Branch(context.Background()); branch != "" {
 		remote, ref, _ = git.Upstream(branch)
 	}
 	branch := strings.TrimPrefix(ref, "refs/heads/")
@@ -319,20 +321,19 @@ func (st *standing) readBranch(cfg *config.Loaded, remote, ref, branch string, o
 		st.unread(fmt.Sprintf("%s has no branch %s yet, so there is no CI run to read.", remote, branch))
 		return
 	case !reached:
-		fetched, err := git.Output("rev-parse", "--verify", "--quiet", "refs/remotes/"+remote+"/"+branch+"^{commit}")
-		if err != nil || strings.TrimSpace(fetched) == "" {
+		fetched, err := cfg.VCS.Resolve(context.Background(), "refs/remotes/"+remote+"/"+branch)
+		if err != nil {
 			st.unread(fmt.Sprintf("%s cannot be reached and %s/%s was never fetched, so neither its head nor its CI run is read.",
 				remote, remote, branch))
 			return
 		}
-		sha = strings.TrimSpace(fetched)
+		sha = fetched
 		head.LastFetched = true
 		st.unread(fmt.Sprintf("%s cannot be reached, so its %s is as last fetched.", remote, branch))
 	}
 	head.Commit = sha
-	if git.HasCommit(sha) {
-		header, _ := git.Output("log", "-1", "--format=%s", sha)
-		head.Header = strings.TrimSpace(header)
+	if shown, err := cfg.VCS.Show(context.Background(), sha); err == nil {
+		head.Header = shown.Subject
 	}
 	st.Head = head
 	wr, ok, err := watcher(cfg, remote, o)
@@ -469,30 +470,29 @@ func (st *standing) readRelease(remote, branch string, head *remoteHead) {
 		line += " (as last fetched)"
 	}
 	st.released = append(st.released, line)
+	ctx, v := context.Background(), vcs.Git{}
 	tip, asFetched := head.Commit, ""
-	if !git.HasCommit(tip) {
+	if _, err := v.Resolve(ctx, tip); err != nil {
 		asFetched = ", as fetched here"
-		fetched, err := git.Output("rev-parse", "--verify", "--quiet", "refs/remotes/"+remote+"/"+branch+"^{commit}")
-		tip = strings.TrimSpace(fetched)
-		if err != nil || tip == "" {
+		if tip, err = v.Resolve(ctx, "refs/remotes/"+remote+"/"+branch); err != nil {
 			st.releaseUnread(fmt.Sprintf("%s/%s is not fetched here, so the commits since %s are not listed.", remote, branch, tag))
 			return
 		}
 		st.releaseUnread(fmt.Sprintf("%s/%s is not fetched here up to its head, so the commits since %s may be behind.",
 			remote, branch, tag))
 	}
-	if !git.HasCommit(st.Release.Commit) {
+	if _, err := v.Resolve(ctx, st.Release.Commit); err != nil {
 		st.releaseUnread(fmt.Sprintf("%s's commit is not fetched here, so the commits since it are not listed.", tag))
 		return
 	}
-	log, err := git.Output("log", "--reverse", "--format=%B%x1e", st.Release.Commit+".."+tip)
+	log, err := v.Log(ctx, vcsport.Range{From: st.Release.Commit, To: tip})
 	if err != nil {
 		st.releaseUnread(fmt.Sprintf("The commits since %s cannot be read.", tag))
 		return
 	}
 	st.Unreleased = []string{}
-	for _, record := range strings.Split(log, "\x1e") {
-		message := strings.TrimSpace(record)
+	for _, e := range log {
+		message := strings.TrimSpace(e.Message)
 		if message != "" && release.Releasable(message) {
 			header, _, _ := strings.Cut(message, "\n")
 			st.Unreleased = append(st.Unreleased, header)
@@ -630,9 +630,8 @@ func (st *standing) readLastGreen(cfg *config.Loaded, remote, branch string, o O
 	default:
 		green := &lastGreen{Commit: sha}
 		line := "Last green: " + short(sha)
-		if git.HasCommit(sha) {
-			header, _ := git.Output("log", "-1", "--format=%s", sha)
-			green.Header = strings.TrimSpace(header)
+		if shown, err := cfg.VCS.Show(context.Background(), sha); err == nil {
+			green.Header = shown.Subject
 			line += " " + green.Header
 		}
 		st.LastGreen = green

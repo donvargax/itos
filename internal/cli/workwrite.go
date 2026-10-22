@@ -15,6 +15,7 @@ package cli
 // held until the command's write is done (bug 16).
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -30,6 +31,7 @@ import (
 	"github.com/donvargax/itos/v8/internal/message"
 	"github.com/donvargax/itos/v8/internal/out"
 	"github.com/donvargax/itos/v8/internal/providers"
+	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
 	"github.com/donvargax/itos/v8/internal/work"
 )
 
@@ -180,9 +182,10 @@ func soundRegistry(o Out) (cfg *config.Loaded, registry work.Registry, text stri
 func uncommitted(cfg *config.Loaded, file, rule string) *out.Problem {
 	_, err := os.Lstat(file)
 	there := !errors.Is(err, fs.ErrNotExist)
-	tracked := git.Succeeds("ls-files", "--error-unmatch", "--", file)
-	status, err := git.Output("status", "--porcelain", "--", file)
-	if err == nil && strings.TrimSpace(status) == "" && tracked == there {
+	ctx := context.Background()
+	tracked := vcs.Git{}.Tracked(ctx, file)
+	status, err := vcs.Git{}.PathStatus(ctx, file)
+	if err == nil && len(status) == 0 && tracked == there {
 		return nil
 	}
 	switch {
@@ -346,7 +349,7 @@ func commitReady(cfg *config.Loaded, files []written) (*out.Problem, error) {
 // commit (bug 18).
 func selfBody(cfg *config.Loaded, header, body string) string {
 	parts := []string{header, strings.Join(strings.Fields(body), " ")}
-	return message.Wrap(parts, bodyWidth, message.CommentChar(), cfg.Commits.Footers.Keys)[1]
+	return message.Wrap(parts, bodyWidth, cfg.CommentChar(), cfg.Commits.Footers.Keys)[1]
 }
 
 // put writes the text to the file in the mode, as os.WriteFile does, and

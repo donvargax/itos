@@ -54,8 +54,10 @@
 // first line does not hide the type (bug 36). Verify reads each commit
 // through FooterProblems with At set to it and Made set.
 //
-// IDsIn reads a range's links for CI's plan (git log --format=%B from..to,
-// newest first, each commit's footers its own); History logs every commit of a revision with its links
+// Its reads of the repository go through the config's VCS port
+// (config.Loaded.VCS): IDsIn reads a range's links for CI's plan (the VCS's
+// Log of from..to, newest first, each commit's footers its own); Gathered a
+// range's free-text footers; History logs every commit of a revision with its links
 // (Links: each footer whose source is the ledger or a kind of named tests,
 // its strip_prefix taken off), for itos work show.
 //
@@ -71,8 +73,8 @@
 // (stealthNeed, stealthFix). Who fills Note: the commit-msg hook, from
 // ITOS_FOOTERS (FootersEnv, which itos commit sets) or, for an amend, HEAD's
 // note, which the rewrite carries to the new commit; check-message, from
-// ITOS_FOOTERS; verify, from Note of each commit. The range readers log %N
-// with --no-notes --notes=refs/notes/itos in place of %B.
+// ITOS_FOOTERS; verify, from each commit's Note as the VCS shows it. The
+// range readers read each logged commit's Note in place of its Message.
 //
 // # The header lint
 //
@@ -96,8 +98,10 @@
 // needs, JavaScript's case mappings where Go's differ, and lengths in UTF-16
 // code units. Patterns use JavaScript's dot and \s (value.Space) and spell
 // /i out on ASCII, since RE2's differ. The hook passes the message file with
-// a line break added and git's comment character (CommentChar,
-// core.commentChar or #), whose lines and scissors it leaves out, as
+// a line break added and git's comment character (config.Loaded's
+// CommentChar, core.commentChar or #, asked once per load), whose lines and
+// scissors it leaves out, and which the trailer readers take as a
+// parameter, as
 // commitlint --edit does; check-message and verify pass the message as
 // given, as commitlint reads stdin. A blank message has no problems in the
 // hook's reading, where git aborts the empty commit itself, and on stdin
@@ -121,7 +125,7 @@
 // once the prefixes are off (Named), a named header with no type of the
 // commit types refused under named-type (namedProblems, run first among the
 // footer rules, so every lint path has it). A merge is judged by its own
-// changes (git.OwnPaths): one with none passes whatever its message; one
+// changes (the VCS's OwnPaths): one with none passes whatever its message; one
 // with some is judged as its first line's type, its paths its own and its
 // moves its own paths against its first parent, and refused under merge-type
 // when that type is none of the commit types (untypedMerge, in

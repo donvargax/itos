@@ -19,7 +19,6 @@ import (
 	"unicode/utf8"
 
 	"github.com/donvargax/itos/v8/internal/config"
-	"github.com/donvargax/itos/v8/internal/git"
 	"github.com/donvargax/itos/v8/internal/value"
 )
 
@@ -382,17 +381,6 @@ func Types(cfg *config.Loaded) []string {
 		return conventionalTypes
 	}
 	return cfg.Commits.Types
-}
-
-// CommentChar is git's comment character in this repository
-// (core.commentChar), # when it sets none, which commitlint --edit leaves
-// out of the message file as git will.
-func CommentChar() string {
-	out, _ := git.Output("config", "core.commentChar")
-	if c := value.Trim(out); c != "" {
-		return c
-	}
-	return "#"
 }
 
 // hasError is whether a list of problems holds an error, not only warnings.

@@ -21,6 +21,7 @@ package cli
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -28,12 +29,13 @@ import (
 
 	"github.com/donvargax/itos/v8/internal/git"
 	"github.com/donvargax/itos/v8/internal/kind"
+	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
 )
 
 // namedRemote is the remote --tag and --ref push to: the current branch's
 // upstream's, else origin.
 func namedRemote() string {
-	if branch := git.Branch(); branch != "" {
+	if branch := (vcs.Git{}).Branch(context.Background()); branch != "" {
 		remote, _, _ := git.Upstream(branch)
 		return remote
 	}

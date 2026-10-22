@@ -42,6 +42,8 @@ import (
 	"github.com/donvargax/itos/v8/internal/out"
 	"github.com/donvargax/itos/v8/internal/providers"
 	"github.com/donvargax/itos/v8/internal/value"
+	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
+	vcsport "github.com/donvargax/itos/v8/internal/vcs/port"
 )
 
 // watched is how a watch ended: its exit code, its outcome (success,
@@ -246,6 +248,7 @@ func covering(runs providers.Runs, branch, sha, remote string, cancelled *provid
 	if err != nil {
 		return providers.Run{}, false, err
 	}
+	ctx, v := context.Background(), vcs.Git{}
 	fetched := false
 	for _, r := range listed {
 		if cancelled != nil && (r.ID == cancelled.ID || (r.Created != "" && cancelled.Created != "" && r.Created < cancelled.Created)) {
@@ -254,15 +257,21 @@ func covering(runs providers.Runs, branch, sha, remote string, cancelled *provid
 		if r.HeadSHA == "" || (conclusion != "" && r.Conclusion != conclusion) {
 			continue
 		}
-		if r.HeadSHA != sha && !git.HasCommit(r.HeadSHA) && !fetched {
+		if r.HeadSHA != sha && !fetched && !hasCommit(ctx, v, r.HeadSHA) {
 			fetched = true
 			fetchQuietly(remote)
 		}
-		if r.HeadSHA == sha || git.Succeeds("merge-base", "--is-ancestor", sha, r.HeadSHA) {
+		if r.HeadSHA == sha || v.IsAncestor(ctx, sha, r.HeadSHA) {
 			return r, true, nil
 		}
 	}
 	return providers.Run{}, false, nil
+}
+
+// hasCommit is whether the repository has the commit rev names.
+func hasCommit(ctx context.Context, v vcsport.VCS, rev string) bool {
+	_, err := v.Resolve(ctx, rev)
+	return err == nil
 }
 
 // fetchQuietly fetches the remote's branches, never prompting for
@@ -312,21 +321,21 @@ func ciWatch(args []string, o Out) (int, error) {
 	if len(args) == 1 {
 		rev = args[0]
 	}
-	if !git.Succeeds("rev-parse", "--git-dir") {
+	ctx, v := context.Background(), vcs.Git{}
+	if _, err := v.Locate(ctx, ""); err != nil {
 		fmt.Fprintln(o.Stderr, "itos: ci watch runs in a git repository, and this is none")
 		return ExitMissing, nil
 	}
-	sha, err := git.Output("rev-parse", "--verify", "--quiet", rev+"^{commit}")
-	if err != nil || strings.TrimSpace(sha) == "" {
+	sha, err := v.Resolve(ctx, rev)
+	if err != nil {
 		return 0, usage("ci watch: %s is not a commit of this repository", rev)
 	}
-	sha = strings.TrimSpace(sha)
 	cfg, err := loadConfig()
 	if err != nil {
 		return 0, err
 	}
 	remote := "origin"
-	if branch := git.Branch(); branch != "" {
+	if branch := v.Branch(ctx); branch != "" {
 		remote, _, _ = git.Upstream(branch)
 	}
 	wr, ok, err := watcher(cfg, remote, o)

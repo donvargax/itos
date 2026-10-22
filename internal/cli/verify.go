@@ -20,7 +20,6 @@ import (
 	"strings"
 
 	"github.com/donvargax/itos/v8/internal/config"
-	"github.com/donvargax/itos/v8/internal/git"
 	"github.com/donvargax/itos/v8/internal/message"
 	"github.com/donvargax/itos/v8/internal/out"
 	"github.com/donvargax/itos/v8/internal/scope"
@@ -62,25 +61,27 @@ type verifier struct {
 // commit is one commit: its message at that commit, then its paths and its
 // moves, one rejection. A commit whose message fails is not judged further,
 // and a failing one is named under its report. A merge commit is judged by
-// its own changes (git.OwnPaths, bug 30): one with none passes whatever its
+// its own changes (VCS.OwnPaths, bug 30): one with none passes whatever its
 // message says, as the commits that brought its changes were judged, and
 // one with some is judged by them, as its first line's type.
 func (v *verifier) commit(sha string) (verified, error) {
-	text, err := git.Read("log", "-1", "--format=%B", sha)
+	ctx := context.Background()
+	shown, err := v.cfg.VCS.Show(ctx, sha)
 	if err != nil {
 		return verified{}, err
 	}
+	text := shown.Message
 	header, _, _ := strings.Cut(text, "\n")
-	parents, err := v.cfg.VCS.Parents(context.Background(), sha)
+	parents, err := v.cfg.VCS.Parents(ctx, sha)
 	if err != nil {
 		return verified{}, err
 	}
 	var files []string
 	merge := len(parents) > 1
 	if merge {
-		files, err = git.OwnPaths(sha)
+		files, err = v.cfg.VCS.OwnPaths(ctx, sha)
 	} else {
-		files, err = git.CommitPaths(sha)
+		files, err = v.cfg.VCS.CommitPaths(ctx, sha)
 	}
 	if err != nil {
 		return verified{}, err
@@ -90,9 +91,7 @@ func (v *verifier) commit(sha string) (verified, error) {
 	}
 	reading := message.Reading{At: sha, Made: true, Warn: v.o.Stderr, Tests: v.o.Tests}
 	if v.cfg.Stealth {
-		if reading.Note, err = message.Note(sha); err != nil {
-			return verified{}, err
-		}
+		reading.Note = shown.Note
 	}
 	code, err := message.Check(v.cfg, text, reading, message.Streams{Stdout: v.log, Stderr: v.o.Stderr})
 	if err != nil {

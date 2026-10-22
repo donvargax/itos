@@ -61,7 +61,7 @@ func waiting(cfg *config.Loaded, d Data, id string) bool {
 // with {base} that start.
 func For(cfg *config.Loaded, from, to string, d Data) (*Plan, error) {
 	ids := TasksIn(cfg, from, to)
-	changed := Changed(from, to)
+	changed := Changed(cfg.VCS, from, to)
 	prose, err := DocsOnly(cfg, changed)
 	if err != nil {
 		return nil, err

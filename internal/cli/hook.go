@@ -32,7 +32,6 @@ import (
 	"github.com/donvargax/itos/v8/internal/adr"
 	"github.com/donvargax/itos/v8/internal/check"
 	"github.com/donvargax/itos/v8/internal/config"
-	"github.com/donvargax/itos/v8/internal/git"
 	"github.com/donvargax/itos/v8/internal/ledger"
 	"github.com/donvargax/itos/v8/internal/message"
 	"github.com/donvargax/itos/v8/internal/out"
@@ -55,11 +54,7 @@ import (
 // of what a type may touch is judged by the path it leaves, as verify and the
 // CI plan judge the commit once it is made.
 func stagedFiles(base string) ([]string, error) {
-	args := []string{"diff", "--cached", "--name-only", "--no-renames"}
-	if base != "" {
-		args = append(args, base)
-	}
-	return git.Paths(args...)
+	return vcs.Git{}.Staged(context.Background(), base)
 }
 
 // judgedBase is the commit the commit being made is judged against, "" for
@@ -99,7 +94,7 @@ func hookCommitMsg(file string, o Out) (int, error) {
 	// The message git will store, as the header lint reads it (bug 36): a
 	// blank or comment first line, as an editor leaves one, does not hide
 	// the type from the paths and the footers.
-	stored := message.Cleaned(text, message.CommentChar())
+	stored := message.Cleaned(text, cfg.CommentChar())
 	if code, err := stagedRule(cfg, stored, base, merge, o); code != 0 || err != nil {
 		return code, err
 	}
@@ -120,28 +115,29 @@ func hookCommitMsg(file string, o Out) (int, error) {
 }
 
 // stagedMerge is the commit being made when it is a merge, as verify will
-// judge it once made (bug 30): its own changes (git.StagedOwnPaths) and its
+// judge it once made (bug 30): its own changes (VCS.StagedOwnPaths) and its
 // first parent; nil when it is not a merge. Its parents are HEAD and the
 // commits a merge in progress brings (MERGE_HEAD), with which git refuses an
 // amend, or for an amend HEAD's own.
 func stagedMerge() (*judged, error) {
+	ctx, v := context.Background(), vcs.Git{}
 	var parents []string
-	if heads := git.MergeHeads(); len(heads) > 0 {
-		head, err := git.Read("rev-parse", "--verify", "HEAD")
+	if heads := v.MergeHeads(ctx); len(heads) > 0 {
+		head, err := v.Resolve(ctx, "HEAD")
 		if err != nil {
 			return nil, err
 		}
-		parents = append([]string{strings.TrimSpace(head)}, heads...)
+		parents = append([]string{head}, heads...)
 	} else if amending() {
 		var err error
-		if parents, err = (vcs.Git{}).Parents(context.Background(), "HEAD"); err != nil {
+		if parents, err = v.Parents(ctx, "HEAD"); err != nil {
 			return nil, err
 		}
 	}
 	if len(parents) < 2 {
 		return nil, nil
 	}
-	own, err := git.StagedOwnPaths(parents)
+	own, err := v.StagedOwnPaths(ctx, parents)
 	if err != nil {
 		return nil, err
 	}
@@ -159,7 +155,8 @@ func handedFooters() (string, error) {
 	if !amending() {
 		return "", nil
 	}
-	return message.Note("HEAD")
+	head, err := vcs.Git{}.Show(context.Background(), "HEAD")
+	return head.Note, err
 }
 
 // amending is whether the commit being made amends HEAD. itos commit says so
@@ -180,11 +177,11 @@ func amending() bool {
 	if !okName || !okEmail || !okDate {
 		return false
 	}
-	head, err := git.Output("log", "-1", "--date=raw", "--format=%an%x00%ae%x00%ad", "HEAD")
+	head, err := vcs.Git{}.Show(context.Background(), "HEAD")
 	if err != nil {
 		return false
 	}
-	return strings.TrimSpace(head) == name+"\x00"+email+"\x00"+strings.TrimPrefix(date, "@")
+	return head.Author == name && head.Email == email && head.Date == strings.TrimPrefix(date, "@")
 }
 
 // stagesData is whether a staged path is the config, a ledger file, the
@@ -669,7 +666,7 @@ func pushedRefs(input string) []pushedRef {
 		ref := pushedRef{local: local, ref: field(2)}
 		if remote != "" && !zeros.MatchString(remote) {
 			ref.remote = remote
-			if git.HasCommit(remote) {
+			if hasCommit(context.Background(), vcs.Git{}, remote) {
 				ref.base = remote
 			}
 		}
@@ -685,7 +682,7 @@ func pushedRefs(input string) []pushedRef {
 // others may have built on, which only a forced push does.
 func rewrites(refs []pushedRef) (pushedRef, bool) {
 	for _, r := range refs {
-		if r.remote != "" && (r.base == "" || !git.Succeeds("merge-base", "--is-ancestor", r.base, r.local)) {
+		if r.remote != "" && (r.base == "" || !(vcs.Git{}).IsAncestor(context.Background(), r.base, r.local)) {
 			return r, true
 		}
 	}
@@ -729,12 +726,12 @@ func pushBases(refs []pushedRef) ([]string, bool) {
 
 // pushedRange is the range of the commits a pushed ref adds, as verify takes
 // it: the ones after the remote's commit it replaces, or, with no such commit
-// in this clone, the ones on no remote-tracking branch (git.Unpushed), as
+// in this clone, the ones on no remote-tracking branch (vcsport.Unpushed), as
 // verify with no range judges them under a stealth config. Others' commits
 // already on the remote are not the pusher's to fix.
 func (r pushedRef) pushedRange() span {
 	if r.base == "" {
-		return span{git.Unpushed, r.local}
+		return span{vcsport.Unpushed, r.local}
 	}
 	return span{r.base, r.local}
 }
