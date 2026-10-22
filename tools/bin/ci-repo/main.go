@@ -8,16 +8,17 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
 
 	"github.com/donvargax/itos/v8/internal/ci"
 	"github.com/donvargax/itos/v8/internal/config"
-	"github.com/donvargax/itos/v8/internal/git"
 	"github.com/donvargax/itos/v8/internal/out"
 	"github.com/donvargax/itos/v8/internal/plan"
 	"github.com/donvargax/itos/v8/internal/store/tree/adapter"
+	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
 )
 
 type scope struct {
@@ -27,7 +28,7 @@ type scope struct {
 
 func classify(cfg *config.Loaded, from, to string) (scope, error) {
 	full := scope{true, "code, requirements or unknown range"}
-	if !plan.Readable(from, to) || !git.Succeeds("merge-base", "--is-ancestor", from, to) {
+	if !plan.Readable(cfg.VCS, from, to) || !cfg.VCS.IsAncestor(context.Background(), from, to) {
 		return full, nil
 	}
 	paths := plan.Changed(from, to)
@@ -67,7 +68,7 @@ func run(args []string) (int, error) {
 	if len(args) != 3 || (args[0] != "scope" && args[0] != "plan" && args[0] != "run" && args[0] != "tests") {
 		return 2, fmt.Errorf("usage: ci-repo scope|plan|run|tests FROM TO")
 	}
-	cfg, err := config.Load(adapter.Trees{}, adapter.Worktree, config.Path(adapter.Worktree))
+	cfg, err := config.Load(vcs.Git{}, adapter.Trees{}, adapter.Worktree, config.Path(vcs.Git{}, adapter.Worktree))
 	if err != nil {
 		return 2, err
 	}
@@ -94,7 +95,7 @@ func run(args []string) (int, error) {
 		return 2, err
 	}
 	if args[0] == "plan" {
-		return 0, out.Emit(os.Stdout, p.Fields(plan.RangeOf(from, to, false))...)
+		return 0, out.Emit(os.Stdout, p.Fields(plan.RangeOf(cfg.VCS, from, to, false))...)
 	}
 	if args[0] == "tests" {
 		p = p.NamedTests()
