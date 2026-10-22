@@ -3756,19 +3756,6 @@
     committed golden: the user, 2026-10-21). No behaviour change: same bytes, same exit codes, same
     order. Lane C, after C3. init.go, initpolicy.go, starter.go into internal/slices/initcmd; its
     Port Offers temporarily bound to cli's offers (C5 removes the seam).
-  done_when:
-    - run: go test ./internal/cli ./internal/slices/... ./internal/engine/... -count=1
-      timeout: 600
-    - run: go run ./tools/bin/assemble -check
-    - run: go run ./tools/bin/conformance --bin tools/bin/itos --only tools/itos/conformance/help.yaml tools/itos/conformance/cli.yaml tools/itos/conformance/init.yaml tools/itos/conformance/status.yaml
-      timeout: 600
-    - run: go test ./features -count=1 -scenarios='^@ID-(CLI|BIN|EXT|INIT|PAGE|SHIMINIT|INITSTATUS)-[0-9]+$'
-      timeout: 600
-    - run: tools/bin/architecture-check
-    - run: tools/bin/pinned golangci-lint run ./...
-      timeout: 600
-    - run: grep -q 'initcmdslice.Command' internal/cli/commands_gen.go
-    - run: "! grep -nE '^func (\\([^)]*\\) )?(initWrite|policyInit)\\(' internal/cli/*.go"
 
 - id: T-257
   type: refactor

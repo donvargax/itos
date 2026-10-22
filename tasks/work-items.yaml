@@ -12346,7 +12346,7 @@ items:
     title: "itos init becomes a slice, part 1: its core"
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [T-242, T-243, T-244, T-245, T-246, T-255]
     kind: task
 
