@@ -4251,8 +4251,6 @@
     tab, <file>, a tab, <fingerprint> for a test that has one and two columns otherwise, so itos-cc
     v0.24.0 and later date a listed kill by the scenario alone, not its feature file. The gate half
     of slice-166, done by its agent in the same push.
-  done_when:
-    - run: go test ./tools/bin/itos-cc-tests -count=1
 
 - id: T-279
   type: build

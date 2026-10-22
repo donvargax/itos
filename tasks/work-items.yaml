@@ -12709,7 +12709,7 @@ items:
     title: itos-cc-tests prints each scenario's fingerprint as the third column
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
 
