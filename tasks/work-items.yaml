@@ -11622,3 +11622,16 @@ items:
       beside stealth, the take's output says it recorded no owner, and config check could warn that
       takes will record none.
     tags: [work]
+
+  - id: p1-work-show-deferred
+    title: work show says an item is deferred or blocked, and why
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      #93 (8.5.0): work show is what a coordinator and an agent read before taking an item, and for
+      a deferred one it says only status: todo, so it reads as ready (work take does refuse it).
+      Print deferred: <why> and blocked by: <why> under the status, as itos work lists them.
+    tags: [work]
