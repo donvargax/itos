@@ -11777,3 +11777,17 @@ items:
       read_at: commit footer is read at the staged tree (the index) and others at the working tree,
       which a person checking an unstaged untagging does not expect.
     tags: [commit]
+
+  - id: p1-registry-only-policy
+    title: A documented policy file sets up a registry-only repository through itos init --policy
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      q-90 (#97), the user 2026-10-21: no new init mode; a repository with no code (docs, ops) gets
+      a shipped, documented policy file for itos init --policy: the registry, queue, decisions and
+      deferrals, no required footers, no smoke set, no CI plan. First verify such a policy passes
+      init and config check; a gap it finds is a fix in init or config check, not a new mode.
+    tags: [init]
