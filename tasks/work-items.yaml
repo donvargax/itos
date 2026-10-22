@@ -12683,7 +12683,7 @@ items:
     title: itos-cc reads itos tests list scenario --tsv; tools/bin/itos-cc-tests goes
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
 

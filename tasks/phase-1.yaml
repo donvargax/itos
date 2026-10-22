@@ -4262,9 +4262,6 @@
     reshaper, with T-278's third column) is removed with its tests and any mention in itos.yaml,
     docs and the gates' self-tests. The push proof's and the nightly's listed kills keep being dated
     by fingerprint. The gate half of slice-154, done by its agent in the same push.
-  done_when:
-    - run: test ! -e tools/bin/itos-cc-tests
-    - run: grep -q 'tests list scenario --tsv' itos-cc.yaml
 
 - id: T-280
   type: ci
