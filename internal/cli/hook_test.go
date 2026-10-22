@@ -72,6 +72,25 @@ func TestAmends(t *testing.T) {
 	}
 }
 
+// A staged tree whose config or ledger cannot be read names no task, and is
+// no error: the header lint has judged the footer by then.
+func TestStagedTasksOfAnUnreadableTree(t *testing.T) {
+	notesRepo(t)
+	writeFile(t, "itos.yaml", "version: [\n")
+	gitIn(t, "add", "itos.yaml")
+	if named, err := stagedTasks([]string{"T-1"}); named != nil || err != nil {
+		t.Errorf("a broken staged config: %v, %v", named, err)
+	}
+	writeFiles(t, map[string]string{
+		"itos.yaml":          "version: 1\nledger: { files: \"tasks/phase-{group}.yaml\", id: \"T-\\\\d+\" }\n",
+		"tasks/phase-1.yaml": "a: 1\n",
+	})
+	gitIn(t, "add", "itos.yaml", "tasks/phase-1.yaml")
+	if named, err := stagedTasks([]string{"T-1"}); named != nil || err != nil {
+		t.Errorf("a staged ledger that is no list: %v, %v", named, err)
+	}
+}
+
 // A decision record or the index, in the folder work.decisions names, is
 // itos's data the hook checks when staged (slice 74); a file beside them
 // that is neither, or one in a folder below, is not.

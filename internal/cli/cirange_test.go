@@ -21,6 +21,17 @@ func TestCIRangeRefusesABrokenConfig(t *testing.T) {
 	}
 }
 
+// ci scope reads the config first, so a broken one is a config error, exit
+// 2, with nothing printed.
+func TestCIScopeRefusesABrokenConfig(t *testing.T) {
+	gitConfigRepo(t, "version: 1\nci: { steps: [vp check], range: { provider: command } }\n")
+	var stdout strings.Builder
+	code, err := ciScope("HEAD", "HEAD", Out{Stdout: &stdout})
+	if code != 0 || err == nil || ExitCode(err) != ExitUsage || stdout.Len() != 0 {
+		t.Errorf("exit %d, %v, stdout %q", code, err, stdout.String())
+	}
+}
+
 // With --json, ci range's start, commits.since's commit here with provider
 // none (slice 109), is the from of one object, and the exit is 0.
 func TestCIRangeJSONGivesTheStart(t *testing.T) {

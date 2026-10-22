@@ -10,6 +10,7 @@ import (
 
 	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/store/tree/adapter"
+	"github.com/donvargax/itos/v8/internal/store/tree/port/porttest"
 )
 
 // A footer's IDs over several lines, split at whitespace and commas, the
@@ -401,5 +402,34 @@ commits:
 	}
 	if got, want := Links(cfg, "docs: x\n\nItem: slice-9\n"), []Link{{Key: "Item", ID: "slice-9"}}; !reflect.DeepEqual(got, want) {
 		t.Errorf("Links %+v", got)
+	}
+}
+
+// A registry footer's source is the registry's file in the config's source:
+// present, nothing to say; missing, a config error naming the file.
+func TestNeedSourceOfTheRegistry(t *testing.T) {
+	cfg := load(t, `version: 1
+work: { registry: work-items.yaml }
+commits:
+  footers:
+    Item: { source: registry }
+`)
+	f, _ := cfg.Commits.Footers.Get("Item")
+	for files, want := range map[string]string{
+		"work-items.yaml": "",
+		"other.yaml":      "the Item: footer names items of the work registry, and its file work-items.yaml does not exist",
+	} {
+		source, err := porttest.Trees{Files: map[string]map[string]string{"worktree": {files: "items: []\n"}}}.At(t.Context(), "worktree")
+		if err != nil {
+			t.Fatal(err)
+		}
+		cfg.Source = source
+		got := ""
+		if err := needSource(cfg, "Item", f); err != nil {
+			got = err.(*config.Error).Problems[0].Message
+		}
+		if got != want {
+			t.Errorf("the registry beside %s: %q", files, got)
+		}
 	}
 }
