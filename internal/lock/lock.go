@@ -17,6 +17,10 @@ const Suffix = ".lock"
 // Wait is how long Hold waits for a lock another itos holds.
 var Wait = 10 * time.Second
 
+// sleep is time.Sleep, which a test swaps to read the pauses between Hold's
+// tries.
+var sleep = time.Sleep
+
 // Held is a lock Hold took; Release gives it back.
 type Held struct{ path string }
 
@@ -48,7 +52,7 @@ func Hold(path, goos string) (*Held, error) {
 		if time.Now().After(deadline) {
 			return nil, kind.Wrap(kind.Temporary, fmt.Errorf("%s is held by another itos, still after %s; if no itos is running, one that stopped left it: remove %s and run the command again", file, Wait, file))
 		}
-		time.Sleep(pause)
+		sleep(pause)
 		pause = min(pause*2, 50*time.Millisecond)
 	}
 }

@@ -9,6 +9,10 @@ import (
 	"github.com/donvargax/itos/v8/internal/vcs/port"
 )
 
+// abs is filepath.Abs, which a test swaps to reach its failure: it fails
+// only when the working folder cannot be read.
+var abs = filepath.Abs
+
 // Find walks up from dir as git discovers a repository, to the first
 // folder with a .git, or the first that is a git folder itself (no work
 // tree then). Symbolic links in dir are resolved first, as git's working
@@ -17,7 +21,7 @@ func (Git) Find(_ context.Context, dir string) (port.Location, bool) {
 	if dir == "" {
 		dir = "."
 	}
-	d, err := filepath.Abs(dir)
+	d, err := abs(dir)
 	if err != nil {
 		return port.Location{}, false
 	}
