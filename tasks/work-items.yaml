@@ -12273,8 +12273,8 @@ items:
   - id: T-246
     title: "Slices, prerequisite 4: the questions and drafts readers and the config findings as shared code"
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: [T-242]
     kind: task
 
