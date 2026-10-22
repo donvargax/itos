@@ -11560,3 +11560,19 @@ items:
     status: todo
     depends_on: []
     kind: task
+
+  - id: p1-commit-fixed-trailers
+    title: Every commit itos writes ends with the trailers the config names, after itos's own footers
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      #85 (8.4.0): a project whose every commit must end with one fixed trailer cannot get it on the
+      commits itos writes itself (work take, done, add, edit, queue, drop, task add, decision add,
+      answer and record, draft promote), and itos commit's --trailer footers land after a trailer
+      the message already ends with. A config key such as commits.trailers: ["Name: value"], written
+      last on every commit itos makes and kept last by itos commit, settles both. The report's stray
+      blank lines after work done's message did not reproduce here.
+    tags: [commit]
