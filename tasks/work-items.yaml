@@ -11973,8 +11973,8 @@ items:
   - id: T-225
     title: "The tracker store, part 1: a port with a fake and a contract suite, and the file adapter writeCommitted runs through"
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
 
