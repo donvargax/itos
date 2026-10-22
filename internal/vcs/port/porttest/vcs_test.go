@@ -72,7 +72,7 @@ func layout(l Layout) (*VCS, string) {
 		v.Named["refs/remotes/origin/"+tag] = "c-" + tag
 	}
 	if l.Origin {
-		v.Remote = map[string]*Remote{"origin": {URL: "/top/origin.git",
+		v.Remote = map[string]*Remote{"down": {URL: "https://itos.invalid/x.git", Down: true}, "origin": {URL: "/top/origin.git",
 			Refs: map[string]string{"refs/heads/main": "c-b", "refs/heads/theirs": "c-t"}}}
 		v.Tracking = map[string][2]string{"main": {"origin", "refs/heads/main"}}
 	}

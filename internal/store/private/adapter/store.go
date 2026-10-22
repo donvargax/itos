@@ -34,10 +34,7 @@ func (s Store) Path(ctx context.Context, name string) (string, error) {
 	}
 	common := l.Common
 	if !filepath.IsAbs(common) {
-		cwd, err := os.Getwd()
-		if err != nil {
-			return "", &port.NoRepository{}
-		}
+		cwd, _ := os.Getwd()
 		if real, err := filepath.EvalSymlinks(cwd); err == nil {
 			cwd = real
 		}

@@ -89,14 +89,17 @@ func absCommon(v vcsport.VCS) string {
 	if filepath.IsAbs(l.Common) {
 		return l.Common
 	}
-	cwd, err := os.Getwd()
-	if err != nil {
-		return ""
-	}
+	return filepath.Join(physical(), l.Common)
+}
+
+// physical is the folder itos runs in, its links resolved as git resolves
+// them.
+func physical() string {
+	cwd, _ := os.Getwd()
 	if real, err := filepath.EvalSymlinks(cwd); err == nil {
 		cwd = real
 	}
-	return filepath.Join(cwd, l.Common)
+	return cwd
 }
 
 // noRepository says draft needs a git repository, exit 3.

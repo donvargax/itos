@@ -44,6 +44,17 @@ func commitContract[C T[C]](t C, open func(t C, l Layout) (port.VCS, string)) {
 			t.Errorf("Commit of nothing staged: %v, HEAD moved", err)
 		}
 	})
+	t.Run("commit a deletion", func(t C) {
+		v, _ := open(t, dirty)
+		ctx := t.Context()
+		if err := v.Commit(ctx, port.Commit{Message: "d\n", Only: []string{"b.txt"}}, port.Talk{}); err != nil {
+			t.Fatalf("Commit of b.txt's deletion: %v", err)
+		}
+		paths, _ := v.CommitPaths(ctx, "HEAD")
+		if _, ok, err := v.File(ctx, "HEAD", "b.txt"); ok || err != nil || !slices.Equal(paths, []string{"b.txt"}) {
+			t.Errorf("Commit of b.txt's deletion: paths %q, b.txt there %v, %v", paths, ok, err)
+		}
+	})
 	t.Run("staging", func(t C) {
 		v, _ := open(t, dirty)
 		ctx := t.Context()
@@ -68,6 +79,12 @@ func commitContract[C T[C]](t C, open func(t C, l Layout) (port.VCS, string)) {
 		}
 		if err := v.Restore(ctx, []string{"u.txt"}); err == nil {
 			t.Errorf("Restore of a file HEAD lacks: no error")
+		}
+		if err := v.Unstage(ctx, []string{"b.txt"}); err != nil || !slices.Equal(status("b.txt"), []string{" D b.txt"}) {
+			t.Errorf("Unstage(b.txt), which the work tree lacks: %v, status %q", err, status("b.txt"))
+		}
+		if err := v.Add(ctx, []string{"b.txt"}, port.Talk{}); err != nil || !slices.Equal(status("b.txt"), []string{"D  b.txt"}) {
+			t.Errorf("Add(b.txt), which the work tree lacks: %v, status %q", err, status("b.txt"))
 		}
 	})
 	t.Run("notes", func(t C) {
@@ -116,6 +133,9 @@ func commitContract[C T[C]](t C, open func(t C, l Layout) (port.VCS, string)) {
 		ctx := t.Context()
 		if l, err := v.Locate(ctx, ""); err == nil {
 			t.Fatalf("Locate in no repository is %+v", l)
+		}
+		if got, err := v.Remotes(ctx); err == nil {
+			t.Errorf("Remotes in no repository are %q", got)
 		}
 		if err := v.Init(ctx); err != nil {
 			t.Fatalf("Init: %v", err)

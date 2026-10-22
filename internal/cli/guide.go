@@ -267,14 +267,7 @@ func upToTop() (string, bool) {
 	if err != nil || l.Top == "" {
 		return "", err == nil
 	}
-	here, err := os.Getwd()
-	if err != nil {
-		return "", false
-	}
-	if real, err := filepath.EvalSymlinks(here); err == nil {
-		here = real
-	}
-	rel, err := filepath.Rel(l.Top, here)
+	rel, err := filepath.Rel(l.Top, physical())
 	if err != nil || rel == "." {
 		return "", err == nil
 	}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"maps"
+	"slices"
 	"strings"
 
 	"github.com/donvargax/itos/v8/internal/vcs/port"
@@ -13,6 +14,12 @@ import (
 // repository.
 
 func (b broken) File(ctx context.Context, tree, path string) (string, bool, error) {
+	switch {
+	case b.fault == "file of the first parent" && tree == "m":
+		tree = b.VCS.Parent(ctx, tree)
+	case b.fault == "file of the index as HEAD" && tree == port.Index:
+		tree = "HEAD"
+	}
 	text, ok, err := b.VCS.File(ctx, tree, path)
 	switch {
 	case b.fault == "file deleted as empty" && err == nil && !ok:
@@ -25,6 +32,10 @@ func (b broken) File(ctx context.Context, tree, path string) (string, bool, erro
 
 func (b broken) Files(ctx context.Context, tree, dir string) ([]string, error) {
 	switch b.fault {
+	case "files of the index as HEAD":
+		if tree == port.Index {
+			tree = "HEAD"
+		}
 	case "files unfiltered":
 		dir = ""
 	case "files of nothing":
@@ -49,7 +60,13 @@ func (b broken) Texts(ctx context.Context, tree string, paths []string) (map[str
 	case "texts of the head":
 		tree = "HEAD"
 	}
-	return b.VCS.Texts(ctx, tree, paths)
+	texts, err := b.VCS.Texts(ctx, tree, paths)
+	if b.fault == "texts trimmed" {
+		for p, text := range texts {
+			texts[p] = strings.TrimRight(text, "\n")
+		}
+	}
+	return texts, err
 }
 
 func (b broken) Patch(ctx context.Context, rev string) (string, error) {
@@ -67,6 +84,8 @@ func (b broken) Shown(ctx context.Context, revs []string, notes bool) (string, e
 	switch b.fault {
 	case "shown notes always":
 		notes = true
+	case "shown without notes":
+		notes = false
 	case "shown of nothing":
 		var there []string
 		for _, rev := range revs {
@@ -82,6 +101,8 @@ func (b broken) Shown(ctx context.Context, revs []string, notes bool) (string, e
 func (b broken) Ref(ctx context.Context, ref string) (string, error) {
 	sha, err := b.VCS.Ref(ctx, ref)
 	switch {
+	case b.fault == "ref short" && err == nil:
+		return sha[:len(sha)-1], nil
 	case b.fault == "ref peeled" && err == nil:
 		return b.VCS.Resolve(ctx, ref)
 	case b.fault == "ref of nothing" && err != nil:
@@ -113,6 +134,13 @@ func (b broken) Upstream(ctx context.Context, branch string) (string, string, bo
 }
 
 func (b broken) Remotes(ctx context.Context) ([]string, error) {
+	remotes, err := b.VCS.Remotes(ctx)
+	switch {
+	case b.fault == "remotes none":
+		return nil, err
+	case b.fault == "remotes outside fine" && err != nil:
+		return nil, nil
+	}
 	if b.fault == "remotes of remote branches" && len(b.Remote) == 0 {
 		for ref := range b.Named {
 			if strings.HasPrefix(ref, "refs/remotes/origin/") {
@@ -120,20 +148,28 @@ func (b broken) Remotes(ctx context.Context) ([]string, error) {
 			}
 		}
 	}
-	return b.VCS.Remotes(ctx)
+	return remotes, err
 }
 
 func (b broken) RemoteURL(ctx context.Context, remote string) (string, error) {
 	url, err := b.VCS.RemoteURL(ctx, remote)
-	if b.fault == "remote url of nothing" && err != nil {
+	switch {
+	case b.fault == "remote url of nothing" && err != nil:
 		return "", nil
+	case b.fault == "remote url empty":
+		return "", err
 	}
 	return url, err
 }
 
 func (b broken) RemoteRefs(ctx context.Context, remote string, refs []string, talk port.Talk) (map[string]string, error) {
 	found, err := b.VCS.RemoteRefs(ctx, remote, refs, talk)
+	var failed *port.Failed
 	switch {
+	case b.fault == "remote refs failing" && refs == nil:
+		return nil, errBroken
+	case b.fault == "down reached as missing" && errors.As(err, &failed) && failed.Failure == port.Unreachable:
+		failed.Failure = port.NoRepository
 	case b.fault == "remote refs unfiltered":
 		return b.VCS.RemoteRefs(ctx, remote, nil, talk)
 	case b.fault == "remote refs failing plainly" && err != nil:
@@ -150,8 +186,13 @@ func (b broken) Fetch(ctx context.Context, remote, refspec string, talk port.Tal
 		return "", nil
 	case b.fault == "fetch without branches" && refspec == "":
 		return "", nil
+	case b.fault == "fetch of branches fails" && refspec == "":
+		return "", errBroken
 	}
 	sha, err := b.VCS.Fetch(ctx, remote, refspec, talk)
+	if b.fault == "fetch gives nothing" {
+		sha = ""
+	}
 	var failed *port.Failed
 	if b.fault == "fetch failure unknown" && errors.As(err, &failed) {
 		failed.Failure = port.Other
@@ -175,14 +216,29 @@ func (b broken) Push(ctx context.Context, remote string, specs []string, p port.
 		p.Atomic = false
 	case b.fault == "push nowhere fine" && b.Remote[remote] == nil:
 		return nil
+	case b.fault == "push nothing":
+		return nil
+	case b.fault == "push of nothing fine" && strings.HasPrefix(specs[0], "nope:"):
+		return nil
 	}
 	return b.VCS.Push(ctx, remote, specs, p, talk)
 }
 
 func (b broken) Rebase(ctx context.Context, onto string, quiet bool, talk port.Talk) error {
 	before := *b.VCS
+	_, known := b.commit(onto)
+	switch {
+	case b.fault == "rebase of nothing fine" && !known:
+		return nil
+	case b.fault == "rebase resets" && b.IsAncestor(ctx, onto, "HEAD"):
+		c, _ := b.commit(onto)
+		b.moveHead(b.OnBranch, c.Name)
+		return nil
+	}
 	err := b.VCS.Rebase(ctx, onto, quiet, talk)
 	switch {
+	case b.fault == "rebase refuses" && err == nil:
+		return errBroken
 	case b.fault == "rebase stops nothing" && err != nil:
 		*b.VCS = before
 		return nil
@@ -194,6 +250,12 @@ func (b broken) Rebase(ctx context.Context, onto string, quiet bool, talk port.T
 
 func (b broken) Commit(ctx context.Context, c port.Commit, talk port.Talk) error {
 	switch b.fault {
+	case "commit of only refused":
+		if len(c.Only) > 0 {
+			return errBroken
+		}
+	case "commit of only kept":
+		c.Only = slices.DeleteFunc(slices.Clone(c.Only), func(p string) bool { _, ok := b.files()[p]; return !ok })
 	case "commit of everything":
 		c.Only = nil
 	case "commit paragraphs joined":
@@ -209,6 +271,9 @@ func (b broken) Commit(ctx context.Context, c port.Commit, talk port.Talk) error
 }
 
 func (b broken) Add(ctx context.Context, paths []string, talk port.Talk) error {
+	if b.fault == "add of a deletion kept" {
+		paths = slices.DeleteFunc(slices.Clone(paths), func(p string) bool { _, ok := b.files()[p]; return !ok && b.Tracked(ctx, p) })
+	}
 	err := b.VCS.Add(ctx, paths, talk)
 	if b.fault == "add of nothing" && err != nil {
 		return nil
@@ -265,6 +330,10 @@ func (b broken) Note(ctx context.Context, rev, text string) error {
 
 func (b broken) CommitFile(ctx context.Context, parent, path, text, message, name, email string) (string, error) {
 	switch b.fault {
+	case "commit file of nothing fails":
+		if parent == "" {
+			return "", errBroken
+		}
 	case "commit file on HEAD":
 		if parent == "" {
 			parent = "HEAD"
@@ -284,8 +353,11 @@ func (b broken) CommitFile(ctx context.Context, parent, path, text, message, nam
 }
 
 func (b broken) Init(ctx context.Context) error {
-	if b.fault == "init nothing" {
+	switch b.fault {
+	case "init nothing":
 		return nil
+	case "init fails":
+		return errBroken
 	}
 	return b.VCS.Init(ctx)
 }

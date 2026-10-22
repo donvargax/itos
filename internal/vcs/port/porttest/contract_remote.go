@@ -31,8 +31,8 @@ func remoteContract[C T[C]](t C, open func(t C, l Layout) (port.VCS, string)) {
 		if remote, ref, set := v.Upstream(ctx, "theirs"); remote != "origin" || ref != "refs/heads/theirs" || set {
 			t.Errorf("Upstream(theirs), which tracks nothing, is %s %s %v", remote, ref, set)
 		}
-		if got, err := v.Remotes(ctx); !slices.Equal(got, []string{"origin"}) || err != nil {
-			t.Errorf("Remotes are %q, %v; want origin", got, err)
+		if got, err := v.Remotes(ctx); !slices.Equal(got, []string{"down", "origin"}) || err != nil {
+			t.Errorf("Remotes are %q, %v; want down and origin", got, err)
 		}
 		if url, err := v.RemoteURL(ctx, "origin"); url == "" || err != nil {
 			t.Errorf("RemoteURL(origin) is %q, %v", url, err)
@@ -60,6 +60,10 @@ func remoteContract[C T[C]](t C, open func(t C, l Layout) (port.VCS, string)) {
 		refs, err = v.RemoteRefs(ctx, "nowhere", nil, port.Talk{})
 		if f, ok := failureOf(err); !ok || f != port.NoRepository {
 			t.Errorf("RemoteRefs of no remote are %q, %v; want no repository", refs, err)
+		}
+		refs, err = v.RemoteRefs(ctx, "down", nil, port.Talk{NoPrompt: true})
+		if f, ok := failureOf(err); !ok || f != port.Unreachable {
+			t.Errorf("RemoteRefs of an unreachable remote are %q, %v; want unreachable", refs, err)
 		}
 	})
 	t.Run("fetch", func(t C) {
@@ -113,6 +117,9 @@ func remoteContract[C T[C]](t C, open func(t C, l Layout) (port.VCS, string)) {
 		if f, ok := failureOf(err); !ok || f != port.NoRepository {
 			t.Errorf("Push to no remote: %v; want no repository", err)
 		}
+		if err := v.Push(ctx, "origin", []string{"nope:refs/heads/x"}, port.Pushing{NoVerify: true}, port.Talk{}); err == nil {
+			t.Errorf("Push of no commit: no error")
+		}
 	})
 	t.Run("rebase", func(t C) {
 		v, _ := open(t, Layout{Ours: true})
@@ -127,6 +134,13 @@ func remoteContract[C T[C]](t C, open func(t C, l Layout) (port.VCS, string)) {
 				v.Branch(ctx), v.IsAncestor(ctx, s, "HEAD"), v.IsAncestor(ctx, c, "HEAD"), v.Rebasing(ctx), a)
 		}
 		v, _ = open(t, Layout{Ours: true})
+		o := sha(t, v, "o")
+		if err := v.Rebase(ctx, "c", true, port.Talk{}); err != nil || sha(t, v, "HEAD") != o {
+			t.Errorf("Rebase(c) of ours, which has c: %v, HEAD at %s; want o's %s", err, sha(t, v, "HEAD"), o)
+		}
+		if err := v.Rebase(ctx, "nope", true, port.Talk{}); err == nil {
+			t.Errorf("Rebase of no commit: no error")
+		}
 		err := v.Rebase(ctx, "t", true, port.Talk{})
 		if _, ok := failureOf(err); !ok || !v.Rebasing(ctx) || !slices.Equal(v.Conflicted(ctx), []string{"a.txt"}) {
 			t.Errorf("Rebase(t) of ours, both changing a.txt: %v, rebasing %v, conflicted %q", err, v.Rebasing(ctx), v.Conflicted(ctx))

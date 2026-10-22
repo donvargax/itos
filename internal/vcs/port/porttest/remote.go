@@ -147,10 +147,11 @@ func (v *VCS) Push(_ context.Context, remote string, specs []string, p port.Push
 	return nil
 }
 
-// Rebase replays the commits of HEAD that onto lacks, oldest first and
-// merges left out, onto it: a path whose content a commit changes where
-// the replay has moved it on is a conflict, which stops the rebase there,
-// HEAD detached at the commits replayed so far.
+// Rebase replays the commits of HEAD that onto lacks, oldest first, onto
+// it, each against its first parent: a path whose content a commit changes
+// where the replay has moved it on is a conflict, which stops the rebase
+// there, HEAD detached at the commits replayed so far. HEAD with onto among
+// its commits is left as it is.
 func (v *VCS) Rebase(ctx context.Context, onto string, _ bool, _ port.Talk) error {
 	base, ok := v.commit(onto)
 	if !ok {
@@ -159,15 +160,9 @@ func (v *VCS) Rebase(ctx context.Context, onto string, _ bool, _ port.Talk) erro
 	if v.IsAncestor(ctx, onto, "HEAD") {
 		return nil
 	}
-	replayed, err := v.Log(ctx, port.Range{From: onto, To: "HEAD"})
-	if err != nil {
-		return err
-	}
+	replayed, _ := v.Log(ctx, port.Range{From: onto, To: "HEAD"})
 	branch, at, tree := v.OnBranch, base.Name, base.Tree
 	for _, e := range replayed {
-		if e.Merge {
-			continue
-		}
 		c, _ := v.commit(e.SHA)
 		parent, _ := v.tree(v.Parent(ctx, c.Name))
 		next := maps.Clone(tree)

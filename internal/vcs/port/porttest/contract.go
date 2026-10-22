@@ -64,7 +64,8 @@ const (
 // then sets c.txt to changed in the work tree and leaves u.txt (u)
 // untracked; Merging merges t into m, Rebasing rebases ours onto t, each
 // stopped by the conflict on a.txt. Origin is a remote whose main is b and
-// theirs t, HEAD's branch main tracking its main.
+// theirs t, HEAD's branch main tracking its main, beside the remote down,
+// out of reach.
 func VCSContract[C T[C]](t C, open func(t C, l Layout) (port.VCS, string)) {
 	t.Helper()
 	main := Layout{Remotes: []string{"b"}}

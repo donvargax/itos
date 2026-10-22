@@ -63,6 +63,8 @@ func (b broken) Locate(ctx context.Context, dir string) (port.Location, error) {
 		l.Top = b.Root
 	case b.fault == "locate outside" && dir == outside:
 		return port.Location{Top: b.Root}, nil
+	case b.fault == "locate an empty folder" && err != nil && dir == "":
+		return port.Location{Top: b.Root}, nil
 	}
 	return l, err
 }
@@ -89,6 +91,10 @@ func (b broken) Resolve(ctx context.Context, rev string) (string, error) {
 		return "", errBroken
 	case b.fault == "resolve remote as head" && strings.HasPrefix(rev, "refs/remotes/"):
 		return b.VCS.Resolve(ctx, "HEAD")
+	case b.fault == "resolve tags unpeeled":
+		if object, ok := b.Named["refs/tags/"+rev]; ok {
+			return object, nil
+		}
 	}
 	return b.VCS.Resolve(ctx, rev)
 }
@@ -238,7 +244,7 @@ func TestVCSContractFailsEachBrokenVCS(t *testing.T) {
 		{"find git folder", map[string][]string{"find": {`Find(".git") finds`}}},
 		{"find relative", map[string][]string{"find": {`Find("") is`, `Find("sub") is`, `Find("../wt") is`}}},
 		{"find outside", map[string][]string{"find": {`Find("../outside") finds`}}},
-		{"resolve head", map[string][]string{"resolve": {"Resolve(HEAD) is"}, "commit": {"Commit of c.txt alone: parents"}, "commit file": {"CommitFile moved HEAD"}}},
+		{"resolve head", map[string][]string{"resolve": {"Resolve(HEAD) is"}, "commit": {"Commit of c.txt alone: parents"}, "commit file": {"CommitFile moved HEAD"}, "rebase": {"Rebase(c) of ours, which has c"}}},
 		{"resolve nothing", map[string][]string{"resolve": {"Resolve of no commit"}}},
 		{"resolve no remote", map[string][]string{"resolve": {"Resolve(refs/remotes/origin/b): "}, "fetch": {"Fetch(origin) of its branches: origin/theirs"}}},
 		{"resolve remote as head", map[string][]string{"resolve": {"Resolve: the remote branch is"}, "fetch": {"Fetch(origin) of its branches: origin/theirs"}}},
@@ -303,7 +309,7 @@ func TestVCSContractFailsEachBrokenVCS(t *testing.T) {
 		{"changes untracked listed", map[string][]string{"work tree": {"Changes are"}}},
 		{"changes of a clean tree", map[string][]string{"work tree": {"Changes of a clean work tree"}}},
 		{"path status untracked hidden", map[string][]string{"work tree": {"PathStatus(u.txt)"}, "staging": {"Untrack(new.txt)"}}},
-		{"path status of every path", map[string][]string{"work tree": {"PathStatus(c.txt)", "PathStatus(u.txt)", "PathStatus(s.txt)"}, "staging": {"Add(u.txt)", "Unstage(a.txt)", "Untrack(new.txt)", "Restore(c.txt)"}}},
+		{"path status of every path", map[string][]string{"work tree": {"PathStatus(c.txt)", "PathStatus(u.txt)", "PathStatus(s.txt)"}, "staging": {"Add(u.txt)", "Unstage(a.txt)", "Untrack(new.txt)", "Restore(c.txt)", "Unstage(b.txt)", "Add(b.txt)"}}},
 		{"tracked by the work tree", map[string][]string{"work tree": {"Tracked(u.txt)"}, "staging": {"Untrack(new.txt)"}}},
 		{"tracked by HEAD", map[string][]string{"work tree": {"Tracked(new.txt)", "Tracked(b.txt)"}, "staging": {"Add(u.txt)"}}},
 		{"branch never", map[string][]string{"state": {"Branch in a clean work tree", "Branch in a merge"}, "commit": {"Commit of c.txt alone: parents"}, "commit file": {"CommitFile moved HEAD"}, "rebase": {"Rebase(s) of ours: on"}}},
@@ -313,7 +319,7 @@ func TestVCSContractFailsEachBrokenVCS(t *testing.T) {
 		{"conflicted none", map[string][]string{"state": {"Conflicted in a merge", "Conflicted in a rebase"}, "rebase": {"Rebase(t) of ours"}}},
 		{"merge heads none", map[string][]string{"state": {"MergeHeads in a merge"}}},
 		{"merge heads in a rebase", map[string][]string{"state": {"MergeHeads in a rebase"}}},
-		{"file deleted as empty", map[string][]string{"files at a tree": {"File(m, x.md)"}, "the index's files": {"File(the index, b.txt)"}}},
+		{"file deleted as empty", map[string][]string{"files at a tree": {"File(m, x.md)"}, "the index's files": {"File(the index, b.txt)"}, "commit a deletion": {"Commit of b.txt's deletion: paths"}}},
 		{"file of nothing", map[string][]string{"files at a tree": {"File of no commit"}}},
 		{"files unfiltered", map[string][]string{"files at a tree": {`Files(a, "x.md")`, `Files(m, "nope")`}}},
 		{"files of nothing", map[string][]string{"files at a tree": {"Files of no commit"}}},
@@ -332,21 +338,21 @@ func TestVCSContractFailsEachBrokenVCS(t *testing.T) {
 		{"remotes of remote branches", map[string][]string{"remotes": {"Remotes with remote branches"}}},
 		{"remote url of nothing", map[string][]string{"remotes": {"RemoteURL of no remote"}}},
 		{"remote refs unfiltered", map[string][]string{"remote refs": {"RemoteRefs(origin, refs/heads/main)"}}},
-		{"remote refs failing plainly", map[string][]string{"remote refs": {"RemoteRefs of no remote"}}},
+		{"remote refs failing plainly", map[string][]string{"remote refs": {"RemoteRefs of no remote", "RemoteRefs of an unreachable remote"}}},
 		{"fetch no destination", map[string][]string{"fetch": {"Fetch: refs/fetched is"}}},
 		{"fetch of a missing branch", map[string][]string{"fetch": {"Fetch of a branch origin lacks"}}},
 		{"fetch without branches", map[string][]string{"fetch": {"Fetch(origin) of its branches: origin/theirs"}}},
 		{"fetch failure unknown", map[string][]string{"fetch": {"Fetch of no remote"}}},
-		{"push forced", map[string][]string{"push": {"Push(a to main)", "Push atomic"}}},
+		{"push forced", map[string][]string{"push": {"Push(a to main)", "Push atomic", "Push of no commit"}}},
 		{"push not atomic", map[string][]string{"push": {"Push atomic"}}},
 		{"push nowhere fine", map[string][]string{"push": {"Push to no remote"}}},
-		{"rebase stops nothing", map[string][]string{"rebase": {"Rebase(t) of ours"}}},
+		{"rebase stops nothing", map[string][]string{"rebase": {"Rebase of no commit", "Rebase(t) of ours"}}},
 		{"rebase detaches", map[string][]string{"rebase": {"Rebase(s) of ours: on"}}},
-		{"commit of everything", map[string][]string{"commit": {"Commit of c.txt alone: parents", "Commit of c.txt alone left", "Commit of the index:"}}},
+		{"commit of everything", map[string][]string{"commit": {"Commit of c.txt alone: parents", "Commit of c.txt alone left", "Commit of the index:"}, "commit a deletion": {"Commit of b.txt's deletion: paths"}}},
 		{"commit paragraphs joined", map[string][]string{"commit": {"Commit of c.txt alone: parents"}}},
 		{"commit of nothing", map[string][]string{"commit": {"Commit of nothing staged"}}},
 		{"add of nothing", map[string][]string{"staging": {"Add of a file nothing has"}}},
-		{"unstage untracks", map[string][]string{"staging": {"Unstage(a.txt)"}}},
+		{"unstage untracks", map[string][]string{"staging": {"Unstage(a.txt)", "Unstage(b.txt)", "Add(b.txt)"}}},
 		{"untrack deletes", map[string][]string{"staging": {"Untrack(new.txt)"}}},
 		{"restore index only", map[string][]string{"staging": {"Restore(c.txt)", "Restore of a file HEAD lacks"}}},
 		{"restore of nothing", map[string][]string{"staging": {"Restore of a file HEAD lacks"}}},
@@ -359,6 +365,31 @@ func TestVCSContractFailsEachBrokenVCS(t *testing.T) {
 		{"init nothing", map[string][]string{"init": {"Locate after Init is"}}},
 		{"ignored nothing", map[string][]string{"ignored": {"NotIgnored(debug.log)", "NotIgnored(../outside/x)"}}},
 		{"ignored untracked", map[string][]string{"ignored": {"NotIgnored(u.txt)"}}},
+		{"file of the first parent", map[string][]string{"files at a tree": {"File(m, a.txt)"}}},
+		{"file of the index as HEAD", map[string][]string{"the index's files": {"File(the index, new.txt)", "File(the index, b.txt)"}}},
+		{"files of the index as HEAD", map[string][]string{"the index's files": {"Files(the index)"}}},
+		{"texts trimmed", map[string][]string{"files at a tree": {"Texts(m, a.txt s.txt)"}, "the index's files": {"Texts(the index, a.txt)"}, "commit file": {"CommitFile on the first"}}},
+		{"shown without notes", map[string][]string{"patches": {`Shown(b, c) with notes does not say "Task: T-1"`}}},
+		{"ref short", map[string][]string{"refs": {"Ref(refs/tags/m)", "Refs(refs/tags/) name refs/tags/r "}, "fetch": {"Fetch: refs/fetched is"}}},
+		{"resolve tags unpeeled", map[string][]string{"refs": {"Resolve(r)"}}},
+		{"remotes none", map[string][]string{"remotes": {"Remotes are"}}},
+		{"remotes outside fine", map[string][]string{"init": {"Remotes in no repository"}}},
+		{"remote url empty", map[string][]string{"remotes": {"RemoteURL(origin)"}}},
+		{"remote refs failing", map[string][]string{"remote refs": {"RemoteRefs(origin) are", "RemoteRefs of no remote", "RemoteRefs of an unreachable remote"}}},
+		{"down reached as missing", map[string][]string{"remote refs": {"RemoteRefs of an unreachable remote"}}},
+		{"fetch gives nothing", map[string][]string{"fetch": {"Fetch(origin, theirs)", "Fetch(origin, main into refs/fetched)"}}},
+		{"fetch of branches fails", map[string][]string{"fetch": {"Fetch(origin) of its branches: broken", "Fetch(origin) of its branches: origin/theirs"}}},
+		{"push nothing", map[string][]string{"push": {"Push(m to main)", "Push(a to main)", "Push atomic", "Push to no remote", "Push of no commit"}}},
+		{"push of nothing fine", map[string][]string{"push": {"Push of no commit"}}},
+		{"rebase refuses", map[string][]string{"rebase": {"Rebase(s) of ours: broken", "Rebase(c) of ours, which has c"}}},
+		{"rebase resets", map[string][]string{"rebase": {"Rebase(c) of ours", "Rebase(t) of ours"}}},
+		{"rebase of nothing fine", map[string][]string{"rebase": {"Rebase of no commit"}}},
+		{"commit of only refused", map[string][]string{"commit": {"Commit of c.txt alone: broken"}, "commit a deletion": {"Commit of b.txt's deletion: broken"}}},
+		{"commit of only kept", map[string][]string{"commit a deletion": {"Commit of b.txt's deletion: paths"}}},
+		{"add of a deletion kept", map[string][]string{"staging": {"Add(b.txt)"}}},
+		{"commit file of nothing fails", map[string][]string{"commit file": {"CommitFile with no parent: broken"}}},
+		{"init fails", map[string][]string{"init": {"Init: broken"}}},
+		{"locate an empty folder", map[string][]string{"init": {"Locate in no repository is"}}},
 	} {
 		r := &recorder{failures: map[string][]string{}}
 		VCSContract(r, func(_ *recorder, l Layout) (port.VCS, string) {

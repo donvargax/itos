@@ -207,6 +207,7 @@ func laidOut(t *testing.T, l porttest.Layout) (port.VCS, string) {
 		gitIn(t, base, "", "init", "-q", "--bare", "-b", "main", origin)
 		gitIn(t, repo, "", "push", "-q", origin, "b:refs/heads/main", "t:refs/heads/theirs")
 		gitIn(t, repo, "", "remote", "add", "origin", origin)
+		gitIn(t, repo, "", "remote", "add", "down", "https://itos.invalid/x.git")
 		gitIn(t, repo, "", "config", "branch.main.remote", "origin")
 		gitIn(t, repo, "", "config", "branch.main.merge", "refs/heads/main")
 	}
