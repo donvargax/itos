@@ -114,13 +114,13 @@ func (h Handler) list(ctx context.Context, q Query) (Answer, error) {
 	if at == "" {
 		at = "worktree"
 	}
-	list, err := namedtests.ListTests(cfg, q.Kind, at, h.warnings)
-	if err != nil || !q.TSV {
-		return Answer{List: list}, err
-	}
 	k, err := namedtests.KindOf(cfg, q.Kind)
 	if err != nil {
 		return Answer{}, err
+	}
+	list, err := namedtests.ListTests(cfg, q.Kind, at, h.warnings)
+	if err != nil || !q.TSV {
+		return Answer{List: list}, err
 	}
 	root := ""
 	if k.Root != nil {
