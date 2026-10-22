@@ -11834,4 +11834,8 @@ items:
       must run on it, e.g. rev-parse --path-format=absolute needs 2.31), a decision partly
       superseding slice 91's config-hooks-only choice, the user's OK to land it as a feat during the
       refactor freeze, and scenarios run against an old git (a pinned old git in CI).
+
+      The user, 2026-10-21: the oldest git to support is 2.51. Held until the refactor ends, then
+      the first thing fixed (before the other issues). From now on no itos code may need a git newer
+      than 2.51 outside the config-hook path this item replaces; the VCS port's commands included.
     tags: [hooks]
