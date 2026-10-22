@@ -53,6 +53,8 @@ type fake struct {
 	// can be written to it; temp is the last file it made.
 	tempClosed bool
 	temp       string
+	// here is the folder Getwd gives, when set.
+	here string
 	// then is done after Exec, RunLine or Blob runs, when set.
 	then func()
 
@@ -152,6 +154,9 @@ func (f *fake) RunLine(_ context.Context, args []string, w io.Writer, reserved s
 func (f *fake) Getwd(context.Context) (string, error) {
 	if f.getwdErr != nil {
 		return "", f.getwdErr
+	}
+	if f.here != "" {
+		return f.here, nil
 	}
 	return os.Getwd()
 }

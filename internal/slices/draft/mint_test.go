@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"os"
-	"runtime"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -121,27 +121,28 @@ func TestRunReserved(t *testing.T) {
 	}
 }
 
-// Where the folder the process stands in goes, inPlace cannot put it
-// back, and runReserved reports that as itos's own failure, exit 70.
+// Where inPlace cannot read the folder the process stands in, it runs
+// nothing, and runReserved reports that as itos's own failure, exit 70;
+// a folder it cannot go back to is an error; else it gives f's error.
 func TestInPlaceGivesBackWhatFailed(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("a folder a process stands in cannot be removed on Windows")
-	}
-	gone := t.TempDir()
-	t.Chdir(gone)
-	if err := NewHandler(&fake{}).inPlace(context.Background(), func() error { return os.Remove(gone) }); err == nil {
-		t.Error("inPlace gave no error when the folder it ran in went")
-	}
-	if err := NewHandler(&fake{}).inPlace(context.Background(), func() error { return nil }); err == nil {
-		t.Error("inPlace gave no error outside any folder")
+	ctx := context.Background()
+	t.Chdir(t.TempDir())
+	f := &fake{getwdErr: errBroken}
+	ran := false
+	if err := NewHandler(f).inPlace(ctx, func() error { ran = true; return nil }); !errors.Is(err, errBroken) || ran {
+		t.Errorf("inPlace with no folder to read: %v, f ran: %v", err, ran)
 	}
 	var out strings.Builder
-	code := NewHandler(&fake{}).runReserved(context.Background(), domain.Draft{ID: "x", Command: []string{"work"}, Minted: "slice-9"}, &out)
-	if code != software || !strings.HasPrefix(out.String(), "itos: ") {
-		t.Errorf("runReserved outside any folder: exit %d, output %q", code, out.String())
+	code := NewHandler(f).runReserved(ctx, domain.Draft{ID: "x", Command: []string{"work"}, Minted: "slice-9"}, &out)
+	if code != software || out.String() != "itos: broken\n" {
+		t.Errorf("runReserved with no folder to read: exit %d, output %q", code, out.String())
 	}
-	t.Chdir(t.TempDir())
-	if err := NewHandler(&fake{}).inPlace(context.Background(), func() error { return os.ErrInvalid }); err != os.ErrInvalid {
+	f = &fake{here: filepath.Join(t.TempDir(), "gone")}
+	if err := NewHandler(f).inPlace(ctx, func() error { return nil }); err == nil || !strings.Contains(err.Error(), "gone") {
+		t.Errorf("inPlace with no folder to go back to: %v", err)
+	}
+	f.here = ""
+	if err := NewHandler(f).inPlace(ctx, func() error { return os.ErrInvalid }); err != os.ErrInvalid {
 		t.Errorf("inPlace gave %v, not f's error", err)
 	}
 }
