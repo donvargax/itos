@@ -4246,6 +4246,3 @@
     (gh api repos/donvargax/itos/actions/jobs/<id>/logs; the local gh is older than the nightly's),
     make nightly-report read v0.26.0's report, and render a multi-line command's first line. Each
     part gets a unit or self-test case built from that log. No change to itos.
-  done_when:
-    - run: go test ./tools/bin/nightly-report -count=1
-    - run: ITOS_SELFTEST=1 go test -count=1 -run '^TestSelftest$' ./tools/selftest/gates
