@@ -3188,3 +3188,31 @@
     - run: tools/bin/pinned golangci-lint run ./...
       timeout: 600
     - run: grep -n 'declare-leaf' .golangci.yml
+
+- id: T-240
+  type: build
+  title: "Commands declare themselves, part 2: tools/bin/assemble writes the command table from the declarations"
+  why: >
+    ADR-0053, step 5 of docs/plans/slices-and-ports.md (after steps 6 and 7, before step 9's
+    parallel slice lanes; designed by the coordinator 2026-10-22 from a read-only draft, as
+    itos-cc's tools/bin/assemble and declarations): each command declares its name, help and flag
+    spec in its own file, and a generator writes the command table, so a lane moving one command
+    touches only its own files and the generated one, which the generator rewrites. The hand-written
+    parser stays; v9.0 swaps kong beneath the declarations. No behaviour change: help and usage
+    text, exit codes and parsing as before. Help text is not pinned by any committed golden (the
+    user, 2026-10-21: plain text is no contract, no transcript refactor-proof; ADR-0052). This part,
+    beside part 1 (no shared files): tools/bin/assemble, as itos-cc's
+    (code-quality/tools/bin/assemble/main.go): go/parser over an fs.FS (works on a tree that does
+    not build; tests use an in-memory tree), reading package-level var X = declare.Command{...} in
+    internal/cli's non-test files (the generated file skipped) and var Command =
+    declare.Command{...} in each internal/slices/<name>/ package's top folder. It refuses, naming
+    the file and writing nothing: a Name or Rank not a literal, a Name or Rank used twice, a slice
+    with no Command or one in a subpackage, the same name in a slice and in internal/cli. It writes
+    internal/cli/commands_gen.go ("Code generated ... DO NOT EDIT.", go/format): imports of declare
+    and each slice aliased <pkg>slice, var declared = []declare.Command{...} in Rank order and func
+    dispatch(name string) (command, bool), a switch in Rank order calling run<Pascal(Name)>, one
+    entry per line so a lane's change touches one or two lines. -check writes nothing and exits 1
+    when the committed file differs; exits 0, 1, 2 as itos-cc's. Its tests cover every refusal, the
+    Rank order, the aliases and -check. A build commit (tools/bin is a gate).
+  done_when:
+    - run: go test ./tools/bin/assemble -count=1

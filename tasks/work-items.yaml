@@ -12170,3 +12170,11 @@ items:
     status: todo
     depends_on: []
     kind: task
+
+  - id: T-240
+    title: "Commands declare themselves, part 2: tools/bin/assemble writes the command table from the declarations"
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task
