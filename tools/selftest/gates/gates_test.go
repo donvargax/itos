@@ -92,7 +92,7 @@ func TestSelftest(t *testing.T) {
 	// tools/bin/assemble writes, so the committed table is stale (T-242).
 	const stale = "assemble: internal/cli/commands_gen.go is not what the command declarations make"
 	for file, rank := range map[string]string{
-		"internal/cli/declare_config.go":     "Rank: 200,",
+		"internal/slices/config/command.go":  "Rank: 200,",
 		"internal/slices/version/command.go": "Rank: 210,",
 	} {
 		t.Run("pre-commit refuses a stale command table, "+file, func(t *testing.T) {
