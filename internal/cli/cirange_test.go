@@ -12,7 +12,7 @@ import (
 func TestCIRangeRefusesABrokenConfig(t *testing.T) {
 	gitConfigRepo(t, "version: 1\nci: { steps: [vp check], range: { provider: command } }\n")
 	var stdout, stderr strings.Builder
-	code, err := ciRange("HEAD", "", Out{Stdout: &stdout, Stderr: &stderr})
+	code, err := runCi([]string{"range", "--head", "HEAD"}, Out{Stdout: &stdout, Stderr: &stderr})
 	if code != 0 || err == nil || ExitCode(err) != ExitUsage {
 		t.Fatalf("exit %d, %v", code, err)
 	}
@@ -26,7 +26,7 @@ func TestCIRangeRefusesABrokenConfig(t *testing.T) {
 func TestCIScopeRefusesABrokenConfig(t *testing.T) {
 	gitConfigRepo(t, "version: 1\nci: { steps: [vp check], range: { provider: command } }\n")
 	var stdout strings.Builder
-	code, err := ciScope("HEAD", "HEAD", Out{Stdout: &stdout})
+	code, err := runCi([]string{"scope", "HEAD", "HEAD"}, Out{Stdout: &stdout})
 	if code != 0 || err == nil || ExitCode(err) != ExitUsage || stdout.Len() != 0 {
 		t.Errorf("exit %d, %v, stdout %q", code, err, stdout.String())
 	}
@@ -58,7 +58,7 @@ func TestCIScopeSaysWhetherTheRangeIsProse(t *testing.T) {
 		{readme, true, `"docs_only": true`},
 	} {
 		var stdout strings.Builder
-		exit, err := ciScope(start, c.to, Out{Stdout: &stdout, JSON: c.json})
+		exit, err := runCi([]string{"scope", start, c.to}, Out{Stdout: &stdout, JSON: c.json})
 		if exit != 0 || err != nil || !strings.Contains(stdout.String(), c.want) {
 			t.Errorf("%s..%s, json %v: exit %d, %v, stdout %q", start, c.to, c.json, exit, err, stdout.String())
 		}
@@ -85,7 +85,7 @@ func TestCIRangeJSONGivesTheStart(t *testing.T) {
 	}
 
 	var stdout, stderr strings.Builder
-	code, err := ciRange(head, "", Out{Stdout: &stdout, Stderr: &stderr, JSON: true})
+	code, err := runCi([]string{"range", "--head", head}, Out{Stdout: &stdout, Stderr: &stderr, JSON: true})
 	if code != 0 || err != nil {
 		t.Fatalf("exit %d, %v\n%s", code, err, stderr.String())
 	}
@@ -105,12 +105,12 @@ func TestCINightlyIsItsStepsAlone(t *testing.T) {
 	t.Setenv("ITOS_TO", "")
 	gitConfigRepo(t, "version: 1\nci: { steps: [], nightly: { steps: [echo one, { run: echo two, cost: static }] } }\n")
 	var stdout, stderr strings.Builder
-	code, err := ciPlan("", "", true, "", Out{Stdout: &stdout, Stderr: &stderr})
+	code, err := runCi([]string{"plan", "--nightly"}, Out{Stdout: &stdout, Stderr: &stderr})
 	if code != 0 || err != nil || stdout.String() != "late  echo one\nstatic  echo two\n" {
 		t.Fatalf("plan: exit %d, %v, stdout %q", code, err, stdout.String())
 	}
 	stdout.Reset()
-	code, err = ciRun("", "", true, false, Out{Stdout: &stdout, Stderr: &stderr})
+	code, err = runCi([]string{"run", "--nightly"}, Out{Stdout: &stdout, Stderr: &stderr})
 	if code != 0 || err != nil || !strings.Contains(stdout.String(), "one\n") || !strings.Contains(stdout.String(), "CI passed") {
 		t.Errorf("run: exit %d, %v, stdout %q", code, err, stdout.String())
 	}
@@ -123,7 +123,7 @@ func TestCIRunTestsWithNoRunOfNamedTests(t *testing.T) {
 	t.Setenv("ITOS_TO", "")
 	gitConfigRepo(t, "version: 1\nci: { steps: [], nightly: { steps: [echo one] } }\n")
 	var stdout, stderr strings.Builder
-	code, err := ciRun("", "", true, true, Out{JSON: true, Stdout: &stdout, Stderr: &stderr})
+	code, err := runCi([]string{"run", "--nightly", "--tests"}, Out{JSON: true, Stdout: &stdout, Stderr: &stderr})
 	if code != 0 || err != nil || strings.Contains(stderr.String(), "one\n") ||
 		!strings.Contains(stderr.String(), "no named tests") || strings.Contains(stdout.String(), "no named tests") ||
 		!strings.Contains(stdout.String(), `"ok": true`) {

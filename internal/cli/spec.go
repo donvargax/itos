@@ -267,11 +267,6 @@ func find(list []flagSpec, name string) (flagSpec, bool) {
 	return list[i], true
 }
 
-// rangeRefs is refs.CheckRange over git.
-func rangeRefs(command, from, to string, more ...string) error {
-	return refs.CheckRange(context.Background(), vcs.Git{}, command, from, to, more...)
-}
-
 // commitRefs is refs.Check over git.
 func commitRefs(command string, names ...string) error {
 	return refs.Check(context.Background(), vcs.Git{}, command, names...)

@@ -35,9 +35,10 @@
 // spec does not allow (exit 2), and hands the command its arguments with
 // every flag written --flag value. ParseGlobals stays the lenient reading
 // the launcher and the extensions use. A command checks a ref with
-// commitRefs (rangeRefs for a CI range, whose start may be a commit a
-// rewritten history dropped) before it uses it. The help is written by hand
-// in the declarations, which helpTexts keys by command path (help.go): itos,
+// commitRefs (the ci slice refs.CheckRange for a CI range, whose start may
+// be a commit a rewritten history dropped) before it uses it. The help is
+// written by hand in the declarations, which helpTexts keys by command path
+// (help.go): itos,
 // itos help … and any --help print the longest command path it knows,
 // before any config is read; TestUsageFlagsAreInTheSpecs holds every flag a
 // usage line names to the spec; the corpus's help.yaml pins only that help
@@ -413,12 +414,9 @@
 //
 // # CI
 //
-// ci plan and ci scope (ci.go) print internal/plan's plan; ci run makes the
-// same plan and hands it to internal/ci, cut to its run of named tests under
-// --tests (plan.NamedTests, slice 132), for a platform job. ci range reads
-// the config first, so a broken ci.range is a config error even with --base,
-// then asks
-// providers.RangeStart, giving it commits.since's commit to fall back on. ci watch and the end of itos push (watch.go) wait
+// ci is the ci slice (internal/slices/ci); ci.go binds its Ports to the
+// stealth check, loadConfig, the environment, internal/ci's run and
+// watcher. The end of itos push and work done (watch.go) wait
 // for a commit's run through internal/engine/ciwatch, whose doc says how:
 // watcher, watchRun, watchCovered, covering and ended bind it to the clone
 // (vcs.Git{}, cfg.VCS for the remote's address) and map Out to its writers.

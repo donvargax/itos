@@ -1,8 +1,8 @@
-package cli
+package ci
 
 import "github.com/donvargax/itos/v8/internal/declare"
 
-var ciDeclared = declare.Command{
+var Command = declare.Command{
 	Name: "ci",
 	Rank: 170,
 	Lines: `  ci plan <from> <to> | --nightly | --whole

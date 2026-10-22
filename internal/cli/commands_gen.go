@@ -5,6 +5,7 @@ package cli
 
 import (
 	"github.com/donvargax/itos/v8/internal/declare"
+	cislice "github.com/donvargax/itos/v8/internal/slices/ci"
 	followupslice "github.com/donvargax/itos/v8/internal/slices/followup"
 	gitshimslice "github.com/donvargax/itos/v8/internal/slices/gitshim"
 	guardslice "github.com/donvargax/itos/v8/internal/slices/guard"
@@ -33,7 +34,7 @@ var declared = []declare.Command{
 	initDeclared,
 	verifyslice.Command,
 	testsslice.Command,
-	ciDeclared,
+	cislice.Command,
 	hookDeclared,
 	guardslice.Command,
 	configDeclared,
