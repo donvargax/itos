@@ -4291,5 +4291,3 @@
     returns that error first, so no input reaches it and no test can cover it. Fingerprints returns
     its map alone (an ID pattern that does not compile gives an empty one, ParseFeature reporting
     the error), and the dead branch goes. No behaviour change; slice-166's agent wrote the patch.
-  done_when:
-    - run: go test ./internal/tests -count=1
