@@ -11314,3 +11314,11 @@ items:
     status: todo
     depends_on: []
     kind: task
+
+  - id: T-217
+    title: "The VCS port, part 2: changed paths, working-tree and index state, and messages, footers and notes"
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task
