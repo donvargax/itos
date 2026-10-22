@@ -5,7 +5,8 @@
 // what the tools print; the rule IDs and the registry's item key phase keep
 // their names whatever the label. GroupFlags are the flags that name a
 // group on a command line: GroupNames, --group and --phase, and the
-// label's own.
+// label's own. CheckArg reads one --check or --timeout of a command that
+// writes a task's checks, task add or work promote.
 //
 // Files lists the ledger's files by name, numeric groups by number (phase-2
 // before phase-10, slice 130). LayoutProblems are the layouts that read

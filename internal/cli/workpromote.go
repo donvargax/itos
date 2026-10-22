@@ -220,8 +220,8 @@ func promotedTask(cfg *config.Loaded, registry work.Registry, idea *value.Map, p
 // workPromoteLine reads work promote's arguments: the idea, the kind it
 // becomes and its flags, each once but --check, given once per check in
 // order, and --timeout, once after a --check, that check's seconds
-// (checkArg, as task add reads them). A line the command refuses is a usage
-// error: no kind, an --id (the id is minted), a flag only a task's
+// (ledger.CheckArg, as task add reads them). A line the command refuses is
+// a usage error: no kind, an --id (the id is minted), a flag only a task's
 // promotion takes given for a slice, and a task with no type or no check.
 func workPromoteLine(args []string) (promotion, error) {
 	type flag struct{ name, value string }
@@ -273,7 +273,7 @@ func workPromoteLine(args []string) (promotion, error) {
 		case p.kind == "slice" && slices.Contains(promoteTaskOnly, f.name):
 			return promotion{}, usage("work promote --kind slice does not take %s, which only a task's promotion takes", f.name)
 		case f.name == "--check" || f.name == "--timeout":
-			if err := checkArg("work promote", &p.checks, &timed, f.name, f.value); err != nil {
+			if err := ledger.CheckArg("work promote", &p.checks, &timed, f.name, f.value); err != nil {
 				return promotion{}, err
 			}
 		}

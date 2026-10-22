@@ -40,12 +40,12 @@ mutation:
       reason: 'Equivalent: the source edit binds as s == "" || (strings.ContainsAny(s, "/\\\x00") && s == ".") || s == "..", and "." holds none of those characters, so it rejects only "" and ".."; every string the original also rejects (".", or one holding a slash, backslash or NUL) has a character outside [A-Za-z0-9-], which the loop below rejects anyway, so validCategory returns the same for every input.'
     - file: internal/cli/taskadd.go
       function: github.com/donvargax/itos/v8/internal/cli#taskAddArgs
-      hash: 789b09bfcb0e5815
+      hash: 84f55089baff9512
       line_in_function: 9
       column: 11
       original: "false"
       replacement: "true"
-      reason: "Equivalent: timed is read only by checkArg for a --timeout, which refuses while no check is given (len(*checks) == 0) before reading it, and every --check sets it false, so its first value is never seen."
+      reason: "Equivalent: timed is read only by ledger.CheckArg for a --timeout, which refuses while no check is given (len(*checks) == 0) before reading it, and every --check sets it false, so its first value is never seen."
       line_text: timed := false
     - file: internal/value/rename.go
       function: github.com/donvargax/itos/v8/internal/value.Doc#Rename
@@ -121,12 +121,12 @@ mutation:
       line_text: if g := gluedAt(found[:end]); g >= 0 {
     - file: internal/cli/workpromote.go
       function: github.com/donvargax/itos/v8/internal/cli#workPromoteLine
-      hash: 75aaaaba953c0f7d
+      hash: 33cc80b4d309faef
       line_in_function: 45
       column: 11
       original: "false"
       replacement: "true"
-      reason: "Equivalent: timed is read only by checkArg for a --timeout, which refuses while no check is given (len(*checks) == 0) before reading it, and every --check sets it false, so its first value is never seen."
+      reason: "Equivalent: timed is read only by ledger.CheckArg for a --timeout, which refuses while no check is given (len(*checks) == 0) before reading it, and every --check sets it false, so its first value is never seen."
       line_text: timed := false
     - file: internal/cli/draftmint.go
       function: github.com/donvargax/itos/v8/internal/cli#mintedKind

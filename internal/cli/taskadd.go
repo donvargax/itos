@@ -9,7 +9,6 @@ package cli
 
 import (
 	"fmt"
-	"strconv"
 	"strings"
 
 	"github.com/donvargax/itos/v8/internal/config"
@@ -61,7 +60,7 @@ func taskAddArgs(cfg *config.Loaded, args []string) (ledger.NewTask, error) {
 			}
 			seen[field], *field = true, v
 		default:
-			if err := checkArg("task add", &n.Checks, &timed, name, v); err != nil {
+			if err := ledger.CheckArg("task add", &n.Checks, &timed, name, v); err != nil {
 				return n, err
 			}
 		}
@@ -73,27 +72,6 @@ func taskAddArgs(cfg *config.Loaded, args []string) (ledger.NewTask, error) {
 		return n, usage(taskAddUsage)
 	}
 	return n, nil
-}
-
-// checkArg reads one --check or --timeout of a command that writes a
-// task's checks, task add or work promote (cmd, as its usage errors name
-// it): a --check's command, never blank, is the next check; a --timeout,
-// once after a --check, is that check's seconds, a number above 0. timed is
-// whether the last check has its timeout.
-func checkArg(cmd string, checks *[]ledger.NewCheck, timed *bool, name, v string) error {
-	if name == "--check" {
-		if strings.TrimSpace(v) == "" {
-			return usage("%s --check needs a command", cmd)
-		}
-		*checks, *timed = append(*checks, ledger.NewCheck{Run: v}), false
-		return nil
-	}
-	seconds, err := strconv.ParseFloat(v, 64)
-	if len(*checks) == 0 || *timed || err != nil || seconds <= 0 {
-		return usage("%s takes one --timeout <seconds> after a --check, a number above 0, for that check", cmd)
-	}
-	(*checks)[len(*checks)-1].Timeout, *timed = &seconds, true
-	return nil
 }
 
 // taskAdd is `task add --group <g> --type <type> --title <title> --why
