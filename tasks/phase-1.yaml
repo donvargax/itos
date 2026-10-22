@@ -4322,3 +4322,19 @@
     tools/selftest for every other internal/cli path a step 9 move could take away; fix any the
     merged moves already broke. The agent verified cli_test.go locally. A ci commit; no product
     change.
+
+- id: T-271
+  type: test
+  title: Tests cover the error branches the draft slice's move left uncovered
+  why: >
+    Coverage debt of step 9 (the user's rule for the moves, 2026-10-21). T-252's push (9adb6b8e)
+    moved old code whose error branches no test reaches, so the push proof's strict line coverage
+    fails: internal/slices/draft/change.go:58 (a copy's stat failing for a reason other than not
+    there), :83 (editPatch cannot create the patch file), :87 (cannot write it), :109 (topPaths
+    cannot read the working folder), handler.go:317 (drop cannot save the list). Unit tests over the
+    slice's fakes, each forcing an error every OS reports alike (a NUL byte in a path, a folder
+    where a file goes, a fake that fails); if a branch is truly unreachable, a seam in the slice's
+    Ports rather than an OS branch. No change to what itos does.
+  done_when:
+    - run: tools/bin/pinned itos-cc mutation run --count 1 --since aaa3bf31801eb5e7a066dccd3dcb84cdb2d2fc85 --seed aaa3bf31801eb5e7a066dccd3dcb84cdb2d2fc85 --fail-uncovered=lines --json cmd internal
+      timeout: 900

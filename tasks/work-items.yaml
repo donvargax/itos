@@ -12508,3 +12508,11 @@ items:
     status: done
     depends_on: []
     kind: task
+
+  - id: T-271
+    title: Tests cover the error branches the draft slice's move left uncovered
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task
