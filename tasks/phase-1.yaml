@@ -4437,3 +4437,21 @@
       timeout: 600
     - run: grep -q 'workslice.Command' internal/cli/commands_gen.go
     - run: "! grep -nE '^func (\\([^)]*\\) )?(workDone)\\(' internal/cli/*.go"
+
+- id: T-268
+  type: ci
+  title: The gates self-test's CI-catches-a-refactor case edits a printed line its package's unit tests do not read
+  why: >
+    Found by T-242's agent (2026-10-22): the gates self-test (nightly only;
+    tools/selftest/gates/gates_test.go) edits internal/cli/verify.go's line commits pass the commit
+    rules to prove that a refactor changing what itos prints passes both hooks and is caught by CI's
+    features step. T-234 (e2e9b136) moved that line into internal/engine/judge/judge.go, whose unit
+    tests read it, so the edit no longer applies and the self-test fails; the next nightly goes red
+    on it. The case needs a printed line in a Go package whose own unit tests do not read it, and
+    which a smoke-set scenario does read (so CI's features step for a push catches the change); pick
+    one, state the choice in the case's comment, keep what the case proves. Step 9 moves code out of
+    internal/cli: prefer a line in a package step 9 does not move (an engine, a domain package) or
+    say why it is stable. A ci commit; no product change.
+  done_when:
+    - run: ITOS_SELFTEST=1 go test -count=1 -run '^TestSelftest$' ./tools/selftest/gates
+      timeout: 900
