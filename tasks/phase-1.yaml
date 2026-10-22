@@ -4223,3 +4223,25 @@
   done_when:
     - run: "! grep -n 'q-55' AGENTS.md docs/ORCHESTRATING.md"
     - run: "! grep -n 'run CI.s push proof' AGENTS.md docs/ORCHESTRATING.md"
+
+- id: T-276
+  type: build
+  title: Raise the pinned itos-cc from v0.12.0 to v0.26.0
+  why: >
+    Found in the step 7 and step 9 lanes (2026-10-22): tools/bin/pinned holds itos-cc v0.12.0 while
+    v0.26.0 is out (2026-10-22), so agents hit bugs fixed upstream: mutation except restyling
+    itos-cc.yaml (#55), no command removing a stale exception (#51), renewing an exception after a
+    rename or a changed line (#32, #50: moving an excepted function needed a full local run to
+    rehash it, one agent reproduced UnitHash by hand). Raise to v0.26.0 with its four platform
+    checksums together, as tools/bin/pinned's header says, now that step 9's lanes are done and
+    nothing moves under it. Read the release notes of v0.13.0 to v0.26.0 and adapt only what touches
+    this repository: the push proof and the nightly steps in itos.yaml (flags such as
+    --fail-uncovered=lines, --since, --seed, --count, the JSON report nightly-report reads),
+    itos-cc.yaml (exception format, hashes that a new UnitHash invalidates: refresh them with the
+    release's own command, never by hand), listed suites, and itos.yaml's comments that name
+    v0.12.0. A flag or format that changed is followed, never worked around; a gate is never
+    weakened to pass. Name each change in the commit body. Checks are CI's (ADR-0057): the push runs
+    the push proof with the new release; the nightly runs its mutation steps with it.
+  done_when:
+    - run: grep -qx '	version=0.26.0' tools/bin/pinned
+    - run: tools/bin/pinned itos-cc --help >/dev/null

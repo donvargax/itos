@@ -55,7 +55,7 @@ phases:
   3: donvargax
 
 queue:
-  - p1-raise-pinned-itos-cc
+  - T-276
   - T-191
   - p1-hooks-before-git-2-54
   - p1-agent-test-runs-once
@@ -12149,28 +12149,13 @@ items:
     refs: [internal/store/tracker/adapter]
     tags: [work]
 
-  - id: p1-raise-pinned-itos-cc
-    title: Raise the pinned itos-cc from v0.12.0 to the newest release, after the step 7 lanes
+  - id: T-276
+    title: Raise the pinned itos-cc from v0.12.0 to v0.26.0
     phase: 1
     owner: null
     status: todo
     depends_on: []
-    kind: idea
-    why: >
-      Found in the step 7 lanes (2026-10-22): tools/bin/pinned holds itos-cc v0.12.0 while v0.25.0
-      is out, so agents hit fixes already released: mutation except restyling itos-cc.yaml
-      (itos-cc#55, closed), no command removing a stale exception (#51, closed). A raise changes
-      every push proof and the nightly at once, so it lands between lanes, not under them, as a
-      build task naming what changed in v0.13..v0.25 that touches the push proof, the nightly and
-      itos-cc.yaml (exception format, --fail-uncovered, listed suites), with the four platform
-      hashes together as tools/bin/pinned's header says.
-
-      Cost seen again in step 9 (T-232, T-235, T-251, 2026-10-22): moving a function with a mutation
-      exception needs a full local mutation run to rehash it (one agent reproduced UnitHash by
-      hand), and mutation run writes summary comments into the sources (itos-cc#57, open).
-      itos-cc#32 and #50 (renewing an exception after a rename or a changed line) are closed
-      upstream, so a raise removes the rehash step. Raise it right after step 9's lanes end, before
-      more moves.
+    kind: task
     refs: [tools/bin/pinned, itos-cc.yaml]
     tags: [ci]
 
