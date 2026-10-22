@@ -19,6 +19,7 @@ import (
 	initcmdslice "github.com/donvargax/itos/v8/internal/slices/initcmd"
 	pinslice "github.com/donvargax/itos/v8/internal/slices/pin"
 	pushslice "github.com/donvargax/itos/v8/internal/slices/push"
+	statusslice "github.com/donvargax/itos/v8/internal/slices/status"
 	taskslice "github.com/donvargax/itos/v8/internal/slices/task"
 	testsslice "github.com/donvargax/itos/v8/internal/slices/tests"
 	upgradeslice "github.com/donvargax/itos/v8/internal/slices/upgrade"
@@ -30,7 +31,7 @@ import (
 var declared = []declare.Command{
 	gocmdslice.Command,
 	guideslice.Command,
-	statusDeclared,
+	statusslice.Command,
 	taskslice.Command,
 	workDeclared,
 	decisionslice.Command,

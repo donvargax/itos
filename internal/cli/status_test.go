@@ -50,13 +50,6 @@ func TestStatusRefuses(t *testing.T) {
 	if code, stdout, stderr := run("status", "--as", "a"); code != ExitUsage {
 		t.Errorf("a registry that cannot be read: exit %d\n%s%s", code, stdout, stderr)
 	}
-	cfg, err := loadConfig()
-	if err != nil {
-		t.Fatal(err)
-	}
-	if st, found, code, err := statusOf(cfg, "a", Out{}); err == nil || st != nil || found != nil || code != 0 {
-		t.Errorf("a registry that cannot be read: %v %v exit %d, %v", st, found, code, err)
-	}
 	if err := os.WriteFile("work-items.yaml", []byte(items("one")), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -83,10 +76,10 @@ func TestStatusWithNoDraftsFile(t *testing.T) {
 		t.Fatal(err)
 	}
 	useWrappedGit(t, "rev-parse", "", "")
-	st, found, code, err := statusOf(cfg, "a", Out{Stderr: io.Discard})
-	if err != nil || found != nil || code != 0 || st.Drafts == nil || len(st.Drafts) != 0 || len(st.Next) != 1 ||
+	st, found, err := goPorts{o: Out{Stderr: io.Discard, OS: runtime.GOOS}}.Standing(t.Context(), cfg)
+	if err != nil || found != nil || st.Drafts == nil || len(st.Drafts) != 0 || len(st.Next) != 1 ||
 		strings.Contains(strings.Join(st.Unread, "\n"), "drafts") {
-		t.Errorf("no drafts file: %v %v exit %d, %+v", err, found, code, st)
+		t.Errorf("no drafts file: %v %v, %+v", err, found, st)
 	}
 }
 

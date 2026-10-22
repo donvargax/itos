@@ -272,14 +272,6 @@
 // line may give work add, task add or work promote an id. draftsFile, the
 // list status reads, stays in draft.go.
 //
-// status (status.go) is where the work stands, internal/engine/status's
-// Of: statusOf binds it to the config's VCS for the head, the real git
-// (vcs.Git{}) for the newest release and the rules for agents, os.Getenv
-// and gh for the providers, work.identity's provider, loadAsks over the
-// config's tracker for the questions and draftsFile's list for the drafts,
-// and turns a registry's problems into exit 1 and --as not among the people
-// into exit 3. standing wraps the engine's Standing for print and fields.
-//
 // # guard claude-code
 //
 // guard claude-code is a group of its own, apart from git's hooks: the

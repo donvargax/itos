@@ -1,7 +1,7 @@
 // Package status is the status summary, an engine (ADR-0053, step 7 of
 // docs/plans/slices-and-ports.md): where the work stands, built from what
 // already records it and never written, which itos status prints and itos
-// go prints after its guide (internal/cli, status.go and guide.go).
+// go prints after its guide (internal/slices/status and gocmd).
 //
 // Of reads it for a person: --as, else who the people make it, work.Whoami
 // asking In.Identity only among several; a registry that is not there or

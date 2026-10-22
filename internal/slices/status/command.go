@@ -1,8 +1,8 @@
-package cli
+package status
 
 import "github.com/donvargax/itos/v8/internal/declare"
 
-var statusDeclared = declare.Command{
+var Command = declare.Command{
 	Name: "status",
 	Rank: 30,
 	Lines: `  status [--as <handle>]           where things stand: head, CI, release, work, questions

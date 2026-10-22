@@ -236,9 +236,9 @@ mutation:
       replacement: "&&"
       reason: "Equivalent: pin.ReadInstallScript returns no text whenever it fails or finds no script, and pin.ScriptVersion of no text names no version, so returning early on either alone or on both returns the same empty version."
       line_text: if err != nil || !found {
-    - file: internal/cli/status.go
-      function: github.com/donvargax/itos/v8/internal/cli#statusOf
-      hash: af6ba74d85f8ad56
+    - file: internal/slices/status/handler.go
+      function: github.com/donvargax/itos/v8/internal/slices/status.Handler#Standing
+      hash: 4d3bac0f48a64157
       line_in_function: 14
       column: 26
       original: "false"
