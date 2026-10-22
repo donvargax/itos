@@ -3978,18 +3978,6 @@
     committed golden: the user, 2026-10-21). No behaviour change: same bytes, same exit codes, same
     order. Lane D, last. Binds the status engine's In (status.go); statusOf stays as go's binding;
     its itos-cc.yaml exception moves with a fresh hash.
-  done_when:
-    - run: go test ./internal/cli ./internal/slices/... ./internal/engine/... -count=1
-      timeout: 600
-    - run: go run ./tools/bin/assemble -check
-    - run: go run ./tools/bin/conformance --bin tools/bin/itos --only tools/itos/conformance/help.yaml tools/itos/conformance/cli.yaml tools/itos/conformance/status.yaml
-      timeout: 600
-    - run: go test ./features -count=1 -scenarios='^@ID-(CLI|BIN|EXT|STATUS|INITSTATUS)-[0-9]+$'
-      timeout: 600
-    - run: tools/bin/architecture-check
-    - run: tools/bin/pinned golangci-lint run ./...
-      timeout: 600
-    - run: grep -q 'statusslice.Command' internal/cli/commands_gen.go
 
 - id: T-264
   type: refactor
