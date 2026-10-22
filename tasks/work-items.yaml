@@ -12051,3 +12051,11 @@ items:
     status: todo
     depends_on: []
     kind: task
+
+  - id: T-230
+    title: Shim install out of internal/cli into internal/shim, which stops importing internal/cli
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task
