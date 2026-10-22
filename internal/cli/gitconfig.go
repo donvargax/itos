@@ -19,17 +19,6 @@ var hookEvents = hooks.Events
 // hookEntry is the name itos's entry for a hook event has in the git config.
 func hookEntry(event string) string { return hooks.Entry(event) }
 
-// configHooksRun is whether this git runs the hooks its config declares
-// (the git adapter's ConfigHooksRun).
-func configHooksRun() bool { return (vcs.Git{}).ConfigHooksRun(context.Background()) }
-
-// gitVersion is the version the git itos runs gives, as "git version"
-// prints it after those words.
-func gitVersion() string { return (vcs.Git{}).Version(context.Background()) }
-
-// entryDeclared is hooks.Declared over the git adapter.
-func entryDeclared(event string) bool { return hooks.Declared(context.Background(), vcs.Git{}, event) }
-
 // hooksReady is hooks.Ready over the git adapter.
 func hooksReady(events ...string) error {
 	return hooks.Ready(context.Background(), vcs.Git{}, events...)

@@ -95,12 +95,6 @@ func pluginDefault(stealth bool) string {
 	return "project"
 }
 
-// pluginRefused is the usage error of --plugin project under --stealth.
-func pluginRefused() error {
-	return usage("under --stealth, --plugin project would write %s, which the project commits; "+
-		"--plugin local installs it for you alone in this repository, --plugin user for every one of yours", projectSettings)
-}
-
 // pluginOutcome is what came of the offer, init's --json "plugin": action
 // one of installed, already, offered (not installed, and nobody asked),
 // declined, no_claude, unknown (claude plugin list failed, nobody asked) or

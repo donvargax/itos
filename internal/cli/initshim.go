@@ -13,7 +13,7 @@ package cli
 // how to. Run again where a config is, it never asks, and a --git-shim given
 // there links it all the same, the flag being the ask; without one the report
 // says how to, as it does of the plugin, never counting it as missing
-// (initReport).
+// (internal/slices/initcmd's report).
 //
 // A shim already in effect is kept: the link where it would go already
 // linking this itos, or, with no --git-shim-dir, the first git on the PATH
@@ -41,42 +41,6 @@ type shimFlag struct {
 	given   bool
 	install bool
 	dir     string
-}
-
-// parseShimFlag reads --git-shim, --no-git-shim or --git-shim-dir <folder>
-// (--git-shim-dir=<folder>) out of init's arguments at i, and gives how many
-// arguments it read, 0 when args[i] is none of them.
-func parseShimFlag(args []string, i int, f *shimFlag, origin string) (int, error) {
-	a := args[i]
-	switch a {
-	case "--git-shim", "--no-git-shim":
-		install := a == "--git-shim"
-		if f.given && f.install != install {
-			return 0, usage("init takes --git-shim or --no-git-shim, not both")
-		}
-		f.given, f.install = true, install
-		return 1, nil
-	}
-	folder, ok := strings.CutPrefix(a, "--git-shim-dir=")
-	n := 1
-	if !ok {
-		if a != "--git-shim-dir" {
-			return 0, nil
-		}
-		if i+1 >= len(args) {
-			return 0, usage("--git-shim-dir needs <folder>")
-		}
-		folder, n = args[i+1], 2
-	}
-	if folder == "" {
-		return 0, usage("--git-shim-dir needs <folder>")
-	}
-	dir, err := filepath.Abs(typed(origin, folder))
-	if err != nil {
-		return 0, err
-	}
-	f.dir = dir
-	return n, nil
 }
 
 // shimOutcome is what came of the offer, init's --json "git_shim": action

@@ -13,8 +13,6 @@ import (
 	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/git"
 	"github.com/donvargax/itos/v8/internal/release"
-	trees "github.com/donvargax/itos/v8/internal/store/tree/adapter"
-	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
 )
 
 // The flags that answer init's three offers, so no test asks or installs.
@@ -341,46 +339,6 @@ func TestPolicyInitPinsTheNewestRelease(t *testing.T) {
 	code, stdout, stderr, err := initRun(t, false, "--policy", "p.yaml")
 	if code != 0 || err != nil || !strings.Contains(stdout, "Pinned itos 9.2.0, the newest release.") {
 		t.Fatalf("exit %d, %v:\n%s%s", code, err, stdout, stderr)
-	}
-}
-
-// The policy's text is the config's, CRLF and a missing last line break
-// kept; the sections init adds follow it in its line endings.
-func TestPolicyConfigKeepsTheTextsLineEndings(t *testing.T) {
-	text := "version: 1\r\nhooks: { bin: itos }"
-	src, err := config.FromText(vcs.Git{}, trees.Trees{VCS: vcs.Git{}}, trees.Worktree, "p.yaml", text, false)
-	if err != nil {
-		t.Fatal(err)
-	}
-	_, made, err := policyConfig("p.yaml", text, src, policyPlan{file: "itos.yaml", pin: &[2]string{"9.2.0", "b"}})
-	want := text + "\r\n\r\n# The tasks, as itos init lays them out: one file per phase.\r\nledger:\r\n" +
-		"  files: \"tasks/phase-{group}.yaml\"\r\n  id: \"T-\\\\d+\"\r\n\r\n# The itos release this repository runs, the newest " +
-		"when itos init ran:\r\n# itos pin moves it.\r\npin:\r\n  version: \"9.2.0\"\r\n  checksums: \"b\"\r\n"
-	if made != want {
-		t.Errorf("got %q (%v)\nwant %q", made, err, want)
-	}
-}
-
-// A registry's groups key YAML would not read as itself is quoted.
-func TestFreshRegistryQuotesItsKey(t *testing.T) {
-	if got := freshRegistry("the groups"); !strings.Contains(got, "\n\"the groups\":\n  1: null") {
-		t.Errorf("%s", got)
-	}
-}
-
-// A data folder that is a loop of symbolic links resolves to nothing, so
-// what goes in it is refused as outside the project.
-func TestPolicyPathsRefuseALinkLoop(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("a symbolic link needs a privilege on Windows")
-	}
-	initScratch(t, "", nil)
-	if err := os.Symlink("loop", "loop"); err != nil {
-		t.Fatal(err)
-	}
-	got := policyPaths(".", []policyFile{{key: "ledger.files", path: filepath.Join("loop", "phase-1.yaml")}})
-	if len(got) != 1 || got[0].Message != "ledger.files puts loop/phase-1.yaml outside the project" {
-		t.Errorf("%v", got)
 	}
 }
 

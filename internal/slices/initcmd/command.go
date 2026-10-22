@@ -1,8 +1,8 @@
-package cli
+package initcmd
 
 import "github.com/donvargax/itos/v8/internal/declare"
 
-var initDeclared = declare.Command{
+var Command = declare.Command{
 	Name: "init",
 	Rank: 140,
 	Lines: `  init [--stealth] [--policy <file>] [--plugin [<scope>]]

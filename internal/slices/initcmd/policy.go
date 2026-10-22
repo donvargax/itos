@@ -1,4 +1,4 @@
-package cli
+package initcmd
 
 // itos init --policy <file> (slice 108, issue #33, decision q-49): a
 // project made from a template takes the template's reviewed policy, never
@@ -55,10 +55,8 @@ import (
 	"github.com/donvargax/itos/v8/internal/ledger"
 	"github.com/donvargax/itos/v8/internal/out"
 	"github.com/donvargax/itos/v8/internal/release"
-	trees "github.com/donvargax/itos/v8/internal/store/tree/adapter"
 	"github.com/donvargax/itos/v8/internal/tests"
 	"github.com/donvargax/itos/v8/internal/value"
-	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
 )
 
 // The adoption task init --policy writes in a project, its type and its
@@ -94,13 +92,13 @@ type policyPlan struct {
 // policyInit is init --policy: the policy judged and the project checked
 // before anything is written, then the config made of it, the fresh data,
 // the hooks and the offers.
-func policyInit(policy string, stealth bool, offer pluginOffer, shimOffer shimOffer, rulesOffer rulesOffer,
-	log io.Writer, o Out) (int, error) {
+func (h Handler) policyInit(ctx context.Context, q Query, log io.Writer, o Out) (int, error) {
+	policy, stealth := q.Policy, q.Stealth
 	if named := os.Getenv("ITOS_CONFIG"); named != "" {
-		return 0, usage("init --policy writes the project's own config, itos.yaml at its top or with --stealth in "+
+		return 0, out.Usage("init --policy writes the project's own config, itos.yaml at its top or with --stealth in "+
 			"the git folder, not the %s that --config or ITOS_CONFIG names", named)
 	}
-	plan, refusal, err := policyPlanned(policy, stealth, o.Origin)
+	plan, refusal, err := h.policyPlanned(ctx, policy, stealth, q.Origin)
 	if err != nil {
 		return 0, err
 	}
@@ -109,7 +107,7 @@ func policyInit(policy string, stealth bool, offer pluginOffer, shimOffer shimOf
 	}
 	initialized := !plan.inRepo
 	if initialized {
-		if err := gitInit(log); err != nil {
+		if err := h.gitInit(ctx, log); err != nil {
 			return 0, err
 		}
 	}
@@ -127,20 +125,14 @@ func policyInit(policy string, stealth bool, offer pluginOffer, shimOffer shimOf
 	if !o.JSON {
 		policySaid(plan, policy, written, log)
 	}
-	hooksCode, hooks, err := initHooks(o)
+	hooksCode, hooks, err := h.installHooks(ctx, o)
 	if err != nil {
 		return 0, partial(err, initialized, written)
 	}
-	offer.log, shimOffer.log, rulesOffer.log = log, log, log
-	if o.JSON {
-		offer.log, shimOffer.log, rulesOffer.log = io.Discard, io.Discard, io.Discard
-	}
-	plugin, pluginCode := offer.run()
-	shim, shimCode := shimOffer.run()
-	rules, rulesCode := rulesOffer.run()
+	offered := h.offers(ctx, h.offer(q, o), log, o)
 	code := hooksCode
 	if code == 0 {
-		code = max(pluginCode, shimCode, rulesCode)
+		code = offered.Code
 	}
 	if o.JSON {
 		var since, pin any
@@ -156,12 +148,12 @@ func policyInit(policy string, stealth bool, offer pluginOffer, shimOffer shimOf
 		if plan.pinErr != nil {
 			fields = append(fields, out.Field{Key: "pin_problem", Value: plan.pinErr.Error()})
 		}
-		fields = append(fields, out.Field{Key: "hooks", Value: hooks}, out.Field{Key: "plugin", Value: plugin},
-			out.Field{Key: "git_shim", Value: shim}, out.Field{Key: "agent_rules", Value: rules})
+		fields = append(fields, out.Field{Key: "hooks", Value: hooks}, out.Field{Key: "plugin", Value: offered.Plugin},
+			out.Field{Key: "git_shim", Value: offered.Shim}, out.Field{Key: "agent_rules", Value: offered.Rules})
 		return code, out.Emit(o.Stdout, fields...)
 	}
 	if hooksCode == 0 {
-		policyNext(plan, written, plugin, rules, log)
+		policyNext(plan, written, offered, log)
 	}
 	return code, nil
 }
@@ -170,27 +162,27 @@ func policyInit(policy string, stealth bool, offer pluginOffer, shimOffer shimOf
 // and plans what init would write of it, then finds what of a project is
 // there already and derives the smoke sets: a refusal with nothing written,
 // git init included.
-func policyPlanned(policy string, stealth bool, origin string) (policyPlan, *policyRefusal, error) {
+func (h Handler) policyPlanned(ctx context.Context, policy string, stealth bool, origin string) (policyPlan, *policyRefusal, error) {
 	plan := policyPlan{file: "itos.yaml", stealth: stealth}
 	text, err := os.ReadFile(typed(origin, policy))
 	if err != nil {
 		return plan, nil, &config.Error{File: policy, Problems: []out.Problem{{Rule: "config-unreadable",
 			Message: "cannot be read: " + err.Error(), Fix: "name the itos config whose policy the project takes"}}}
 	}
-	src, err := config.FromText(vcs.Git{}, trees.Trees{VCS: vcs.Git{}}, trees.Worktree, policy, string(text), false)
+	src, err := h.fromText(ctx, policy, string(text), false)
 	if err != nil {
 		return plan, nil, err
 	}
-	if plan.inRepo, err = toTop(); err != nil {
+	if plan.inRepo, err = h.toTop(ctx); err != nil {
 		return plan, nil, err
 	}
 	found, common := "", ".git"
 	if plan.inRepo {
-		found = configPath()
-		if l, err := (vcs.Git{}).Locate(context.Background(), ""); err == nil {
+		found = h.configPath(ctx)
+		if l, err := h.ports.Locate(ctx, ""); err == nil {
 			common = l.Common
 		}
-		if head, err := (vcs.Git{}).Resolve(context.Background(), "HEAD"); err == nil {
+		if head, err := h.ports.Resolve(ctx, "HEAD"); err == nil {
 			plan.since = head
 		}
 	}
@@ -199,12 +191,12 @@ func policyPlanned(policy string, stealth bool, origin string) (policyPlan, *pol
 	}
 	if plan.kept = src.Pin != nil; plan.kept {
 		plan.pin = &[2]string{src.Pin.Version, src.Pin.Checksums}
-	} else if version, sums, err := pinned(""); err == nil {
+	} else if version, sums, err := h.ports.Release(ctx, ""); err == nil {
 		plan.pin = &[2]string{version, release.SHA256(sums)}
 	} else {
 		plan.pinErr = err
 	}
-	cfg, made, err := policyConfig(policy, string(text), src, plan)
+	cfg, made, err := h.policyConfig(ctx, policy, string(text), src, plan)
 	if err != nil {
 		return plan, nil, err
 	}
@@ -247,7 +239,7 @@ func policySaid(plan policyPlan, policy string, written []writtenFile, log io.Wr
 
 // policyNext is what to do next: commit what init wrote with the adoption
 // task, or under --stealth nothing at all.
-func policyNext(plan policyPlan, written []writtenFile, plugin pluginOutcome, rules rulesOutcome, log io.Writer) {
+func policyNext(plan policyPlan, written []writtenFile, offered Offered, log io.Writer) {
 	if plan.stealth {
 		fmt.Fprintln(log, "Nothing the project tracks changed: commit as ever, with itos commit, and push with itos push.")
 		return
@@ -258,14 +250,10 @@ func policyNext(plan policyPlan, written []writtenFile, plugin pluginOutcome, ru
 	}
 	// The plugin installed for the project is declared in its settings,
 	// which the commit carries.
-	if plugin.Action == "installed" && plugin.Scope == "project" {
+	if offered.ProjectPlugin {
 		paths = append(paths, projectSettings)
 	}
-	for _, f := range rules.Files {
-		if f.Action != "kept" {
-			paths = append(paths, f.Path)
-		}
-	}
+	paths = append(paths, offered.RulesWritten...)
 	fmt.Fprintf(log, "Commit what init wrote with the task that adopts itos: git add %s, then itos commit --task %s -m "+
 		"'chore: adopt itos'\n", strings.Join(paths, " "), adoptionTask)
 }
@@ -275,7 +263,7 @@ func policyNext(plan policyPlan, written []writtenFile, plugin pluginOutcome, ru
 // footer's since, the starter's ledger layout where the policy has no
 // ledger, and the pin where the policy has none, every other byte as the
 // policy has it.
-func policyConfig(policy, text string, src *config.Loaded, plan policyPlan) (*config.Loaded, string, error) {
+func (h Handler) policyConfig(ctx context.Context, policy, text string, src *config.Loaded, plan policyPlan) (*config.Loaded, string, error) {
 	doc, err := value.OpenDoc(text)
 	if err != nil {
 		return nil, "", policyUnedited(policy, err)
@@ -326,7 +314,7 @@ func policyConfig(policy, text string, src *config.Loaded, plan policyPlan) (*co
 	for _, section := range tail {
 		made += nl + strings.ReplaceAll(section, "\n", nl)
 	}
-	cfg, err := config.FromText(vcs.Git{}, trees.Trees{VCS: vcs.Git{}}, trees.Worktree, plan.file, made, plan.stealth)
+	cfg, err := h.fromText(ctx, plan.file, made, plan.stealth)
 	return cfg, made, err
 }
 
@@ -499,7 +487,7 @@ type policyRefusal struct {
 // policyRefused reports the refusal and writes nothing: exit 1.
 func policyRefused(file string, refusal *policyRefusal, o Out) (int, error) {
 	if o.JSON {
-		return ExitPolicy, out.Emit(o.Stdout, out.Field{Key: "config", Value: filepath.ToSlash(file)},
+		return exitPolicy, out.Emit(o.Stdout, out.Field{Key: "config", Value: filepath.ToSlash(file)},
 			out.Field{Key: "action", Value: "refused"}, out.Field{Key: "problems", Value: refusal.problems})
 	}
 	fmt.Fprintln(o.Stderr, refusal.head)
@@ -507,7 +495,7 @@ func policyRefused(file string, refusal *policyRefusal, o Out) (int, error) {
 		fmt.Fprintf(o.Stderr, "  %s\n", strings.ReplaceAll(line, "\n", "\n  "))
 	}
 	fmt.Fprintln(o.Stderr, refusal.tail)
-	return ExitPolicy, nil
+	return exitPolicy, nil
 }
 
 // policySmokeSets keeps each smoke set the project has, when the smoke rule

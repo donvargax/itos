@@ -1,4 +1,4 @@
-package cli
+package initcmd
 
 // The starter itos init writes where there is no config (slice 48): small and
 // commented, for a person to read and grow. The Conventional Commits types

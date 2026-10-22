@@ -6,7 +6,6 @@ import (
 	"slices"
 
 	"github.com/donvargax/itos/v8/internal/engine/configcheck"
-	"github.com/donvargax/itos/v8/internal/out"
 	trees "github.com/donvargax/itos/v8/internal/store/tree/adapter"
 	"github.com/donvargax/itos/v8/internal/store/tree/port"
 	"github.com/donvargax/itos/v8/internal/tests"
@@ -15,11 +14,6 @@ import (
 
 // Found is configcheck.Found.
 type Found = configcheck.Found
-
-// tagged is configcheck.Tagged.
-func tagged(area string, problems []out.Problem) []Found {
-	return configcheck.Tagged(area, problems)
-}
 
 // configFindings is configcheck.Findings over git.
 func configFindings(src port.Source, ledgerFile string, ws *tests.Warnings) (int, []Found, []Found, []string, error) {

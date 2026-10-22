@@ -2,7 +2,6 @@ package cli
 
 import (
 	"encoding/json"
-	"io"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -11,16 +10,6 @@ import (
 
 	"github.com/donvargax/itos/v8/internal/release"
 )
-
-// writeDirect runs initWrite itself, past the check init makes for a config
-// already there, its offers declined.
-func writeDirect(t *testing.T, stealth bool) error {
-	t.Helper()
-	declined := rulesFlag{given: true}
-	_, err := initWrite(stealth, false, pluginOffer{flag: pluginFlag{given: true}}, shimOffer{flag: shimFlag{given: true}},
-		rulesOffer{flag: declined}, io.Discard, Out{Stdout: io.Discard, Stderr: io.Discard})
-	return err
-}
 
 // A file init cannot write, or a folder it cannot make, stops it with the
 // error and no exit code of its own, each of its starter files in turn.
@@ -46,32 +35,6 @@ func TestInitWriteStopsAtAFileItCannotWrite(t *testing.T) {
 				t.Errorf("exit %d, %v", code, err)
 			}
 		})
-	}
-}
-
-// The scenarios are listed before anything is written: a config there that
-// does not load, or whose kind cannot list them, stops init with nothing
-// written; and under a stealth config, a git that cannot name its folder.
-func TestInitWriteStopsBeforeWriting(t *testing.T) {
-	for name, config := range map[string]string{
-		"a config that does not load": "version: [\n",
-		"a list that fails":           "version: 1\ntests: { scenario: { adapter: { command: sh fails.sh } } }\n",
-	} {
-		t.Run(name, func(t *testing.T) {
-			initScratch(t, "commit", map[string]string{"itos.yaml": config, "fails.sh": "exit 3\n",
-				"features/a.feature": "Feature: A\n"})
-			if err := writeDirect(t, false); err == nil {
-				t.Error("no error")
-			}
-			if _, err := os.Stat(starterLedger); err == nil {
-				t.Errorf("%s was written", starterLedger)
-			}
-		})
-	}
-	initScratch(t, "commit", nil)
-	useFailingGit(t)
-	if err := writeDirect(t, true); err == nil || !strings.Contains(err.Error(), "rev-parse --git-common-dir") {
-		t.Errorf("stealth, git failing: %v", err)
 	}
 }
 

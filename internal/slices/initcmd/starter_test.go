@@ -1,6 +1,7 @@
-package cli
+package initcmd
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"slices"
@@ -9,6 +10,7 @@ import (
 
 	"github.com/donvargax/itos/v8/internal/tests"
 	"github.com/donvargax/itos/v8/internal/value"
+	vcsfake "github.com/donvargax/itos/v8/internal/vcs/port/porttest"
 )
 
 // Every shape of the starter loads as a config, with what the slice settled:
@@ -27,7 +29,7 @@ func TestStarterLoads(t *testing.T) {
 		if err := os.WriteFile(file, []byte(s.config()), 0o644); err != nil {
 			t.Fatal(err)
 		}
-		cfg, err := loadConfigFile(file)
+		cfg, err := NewHandler(&fake{VCS: &vcsfake.VCS{}}).loadConfigFile(context.Background(), file)
 		if err != nil {
 			t.Fatalf("%+v: %v\n%s", s, err, s.config())
 		}
