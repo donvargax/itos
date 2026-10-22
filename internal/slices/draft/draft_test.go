@@ -46,6 +46,13 @@ type fake struct {
 	commitErr           error
 	restoreErr          error
 	untrackErr          error
+	getwdErr            error
+	tempErr             error
+	saveErr             error
+	// tempClosed is CreateTemp giving the file it made closed, so nothing
+	// can be written to it; temp is the last file it made.
+	tempClosed bool
+	temp       string
 	// then is done after Exec, RunLine or Blob runs, when set.
 	then func()
 
@@ -142,13 +149,31 @@ func (f *fake) RunLine(_ context.Context, args []string, w io.Writer, reserved s
 	return f.runCode
 }
 
-func (f *fake) Getwd(context.Context) (string, error) { return os.Getwd() }
+func (f *fake) Getwd(context.Context) (string, error) {
+	if f.getwdErr != nil {
+		return "", f.getwdErr
+	}
+	return os.Getwd()
+}
 
 func (f *fake) CreateTemp(_ context.Context, dir, pattern string) (*os.File, error) {
-	return os.CreateTemp(dir, pattern)
+	if f.tempErr != nil {
+		return nil, f.tempErr
+	}
+	made, err := os.CreateTemp(dir, pattern)
+	if err == nil {
+		f.temp = made.Name()
+		if f.tempClosed {
+			made.Close()
+		}
+	}
+	return made, err
 }
 
 func (f *fake) Save(_ context.Context, file string, drafts domain.File) error {
+	if f.saveErr != nil {
+		return f.saveErr
+	}
 	return domain.Save(file, drafts)
 }
 
@@ -400,7 +425,7 @@ func TestTheListsLock(t *testing.T) {
 }
 
 // draft drop takes the draft out and removes what it kept; one not there
-// is refused.
+// is refused; a list it cannot save is an error, what the draft kept left.
 func TestDrop(t *testing.T) {
 	f, _, file := repo(t)
 	keep(t, file, domain.Draft{ID: "say", Message: "docs: say", Paths: []string{"notes.md"}},
@@ -440,6 +465,15 @@ func TestDrop(t *testing.T) {
 	folderAt(t, domain.Patch(file, "other"))
 	if code, _, _, err := draft(t, f, false, "drop", "other"); code != 0 || err == nil {
 		t.Errorf("a patch that cannot be removed: exit %d, %v", code, err)
+	}
+	keep(t, file, say)
+	changeOf(t, file, say)
+	f.saveErr = errBroken
+	if code, _, _, err := draft(t, f, false, "drop", "say"); code != 0 || !errors.Is(err, errBroken) {
+		t.Errorf("a list that cannot be saved: exit %d, %v", code, err)
+	}
+	if _, err := os.Stat(domain.Patch(file, "say")); err != nil || len(loaded(t, file)) != 1 {
+		t.Errorf("a drop not saved removed the patch (%v) or the draft", err)
 	}
 }
 

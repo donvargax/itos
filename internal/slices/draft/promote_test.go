@@ -2,6 +2,8 @@ package draft
 
 import (
 	"context"
+	"errors"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -202,7 +204,9 @@ func TestPromoteFails(t *testing.T) {
 
 // editPatch makes an edit draft's patch from its copies against its base:
 // a copy removed takes its file out, an empty copy of a file the base
-// lacks adds nothing, each copy's mode the base's or a file's.
+// lacks adds nothing, each copy's mode the base's or a file's. A copy it
+// cannot read (a NUL byte in its name) and a patch file it cannot make or
+// write are errors, the file it could not write removed.
 func TestEditPatch(t *testing.T) {
 	f, _, file := repo(t)
 	h := NewHandler(f)
@@ -247,6 +251,23 @@ func TestEditPatch(t *testing.T) {
 	if _, _, err := h.editPatch(ctx, filepath.Join(file, "gone", "drafts.yaml"), d); err == nil {
 		t.Error("editPatch with no folder for its index gave no error")
 	}
+	f.index = &index{diff: patched}
+	unread := domain.Draft{ID: "edit", Message: "docs: edit", Paths: []string{"bad\x00.md"}, Base: "c1"}
+	f.entries["bad\x00.md"] = TreeEntry{Mode: "100644", Kind: "blob", Object: "o3"}
+	if made, why, err := h.editPatch(ctx, file, unread); made != "" || why != "" || err == nil || errors.Is(err, fs.ErrNotExist) {
+		t.Errorf("a copy that cannot be read: %q, %q, %v", made, why, err)
+	}
+	f.tempErr = errBroken
+	if made, why, err := h.editPatch(ctx, file, d); made != "" || why != "" || !errors.Is(err, errBroken) {
+		t.Errorf("no patch file made: %q, %q, %v", made, why, err)
+	}
+	f.tempErr, f.tempClosed = nil, true
+	if made, why, err := h.editPatch(ctx, file, d); made != "" || why != "" || !errors.Is(err, os.ErrClosed) {
+		t.Errorf("a patch file not written: %q, %q, %v", made, why, err)
+	}
+	if _, err := os.Stat(f.temp); !errors.Is(err, fs.ErrNotExist) {
+		t.Errorf("the patch file not written is left: %v", err)
+	}
 }
 
 // promote's helpers: the files a patch touches, git's words of a failure,
@@ -289,5 +310,14 @@ func TestTopPathsCannotMove(t *testing.T) {
 	f.Located = map[string]vcsport.Location{"": {Top: top}}
 	if _, err := NewHandler(f).topPaths(context.Background(), "draft add", []string{filepath.Join(top, "a.md")}, ""); err == nil {
 		t.Error("topPaths gave no error for a top it cannot move to")
+	}
+}
+
+// topPaths cannot read the folder itos runs in: an error.
+func TestTopPathsCannotReadWhereItRuns(t *testing.T) {
+	f, _, _ := repo(t)
+	f.getwdErr = errBroken
+	if _, err := NewHandler(f).topPaths(context.Background(), "draft add", []string{"notes.md"}, ""); !errors.Is(err, errBroken) {
+		t.Errorf("topPaths gave %v, not Getwd's error", err)
 	}
 }
