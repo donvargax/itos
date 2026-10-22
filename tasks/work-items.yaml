@@ -8828,6 +8828,12 @@ items:
       from nightly-base -linux-files, so the windows file no longer keeps the night red. The idea is
       now to remove that narrowing, passing cmd internal again, once an itos-cc release fixes
       itos-cc#18.
+
+      T-276 raised the pin to itos-cc v0.26.0 on 2026-10-22, which fixes itos-cc#18: a Go file only
+      another OS builds is listed under not_built and fails nothing, so the step passes cmd internal
+      again. What is left: nightly-base -linux-files and its tests stay only because T-191, still to
+      do, passes its files in its eight checks; drop the flag when T-191 closes, or once its checks
+      pass cmd internal as the nightly step now does.
     refs: [itos.yaml, internal/idcounter/counter_file_windows.go]
     tags: [ci]
 
