@@ -382,3 +382,4 @@ questions:
   - id: q-94
     item: "p1-agent-test-runs-once"
     question: "Who runs a task's done_when checks, and how do agents trust it instead of running them by hand?"
+    answer: "The user, 2026-10-22: both tiers run them, as itos-cc does (its decisions 44 and 52). Locally, the hooks run each check in process over the ports' fakes, fast and without the network. CI runs the same checks with the real adapters, git and GitHub. Agents never run done_when by hand. When a check fails, itos says so with enough to fix it: the task, the check's command, its exit code and its output, in text and --json, from the hook and from itos push or ci watch. done_when holds only what no gate already runs. This brings back the in-process second driver, which the refactor plan had left out unless it proved itself (option C)."
