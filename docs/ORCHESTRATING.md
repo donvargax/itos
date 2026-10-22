@@ -155,8 +155,11 @@ was in this file when the file was reorganized that day.
   checkouts, a test asserting Unix file modes, and a test hashing a blob with
   `git hash-object`, whose CRLF warning joined the hash (bug 31: use
   `-c core.autocrlf=false` and `--no-filters`). Expect what touches files,
-  modes or line endings to need a Windows thought. Exit: permanent. Recorded
-  by 2026-10-04; last seen 2026-10-06.
+  modes or line endings to need a Windows thought. macOS too: a unit test
+  forcing a filesystem error must use one every OS reports alike (T-225: a
+  file read as a folder is not-found on Windows; T-227: a removed working
+  folder still answers Getwd on macOS); brief it. Exit: permanent. Recorded
+  by 2026-10-04; last seen 2026-10-22.
 - **The features hide `claude`, `itos` and every `itos-*` from the PATH**
   (T-087): a scenario runs the itos under test only where a step asks
   (`itosOnPath`). A task's check that should prove a fix can pass before it
