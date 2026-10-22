@@ -186,6 +186,46 @@ func TestPushRebaseStoppedWithNoConflict(t *testing.T) {
 	}
 }
 
+// A branch left with one conflicted file, by a merge stopped before the
+// push, is a rebase stopped all the same, though no rebase is in progress:
+// the push says so, exit 1, and the conflict is left to be resolved.
+func TestPushRebaseStoppedOnOneConflictedFile(t *testing.T) {
+	gitConfigRepo(t, "version: 1\n")
+	for _, name := range []string{"GIT_AUTHOR_NAME", "GIT_COMMITTER_NAME"} {
+		t.Setenv(name, "itos")
+	}
+	for _, name := range []string{"GIT_AUTHOR_EMAIL", "GIT_COMMITTER_EMAIL"} {
+		t.Setenv(name, "itos@example.com")
+	}
+	commit := func(text, subject string) {
+		t.Helper()
+		writeFile(t, "f.md", text)
+		gitLine(t, "add", "f.md")
+		gitLine(t, "commit", "-q", "-m", subject)
+	}
+	gitLine(t, "checkout", "-q", "-b", "main")
+	commit("start\n", "docs: start")
+	gitLine(t, "checkout", "-q", "-b", "up")
+	commit("theirs\n", "docs: theirs")
+	gitLine(t, "checkout", "-q", "main")
+	commit("mine\n", "docs: mine")
+	if err := exec.Command(git.Bin(), "merge", "-q", "up").Run(); err == nil {
+		t.Fatal("the merge did not stop on its conflict")
+	}
+	var stdout, stderr strings.Builder
+	r := pushRun{o: Out{Stdout: &stdout, Stderr: &stderr, JSON: true}, git: &stderr, remote: "origin", branch: "main"}
+	code, done, err := r.rebase("up")
+	var got struct {
+		Outcome string `json:"outcome"`
+	}
+	if !done || code != ExitPolicy || err != nil || json.Unmarshal([]byte(stdout.String()), &got) != nil || got.Outcome != "rebase-stopped" {
+		t.Fatalf("exit %d, done %v, %v\n%s%s", code, done, err, stdout.String(), stderr.String())
+	}
+	if git.Rebasing() || len(git.Conflicted()) != 1 {
+		t.Errorf("rebasing %v, conflicted %v", git.Rebasing(), git.Conflicted())
+	}
+}
+
 // A rebase that stops on a conflict in the work registry says, beside git,
 // what happened there: a take of the same item on both sides names the
 // upstream's owner and how to give the item up (slice 66); an item added on

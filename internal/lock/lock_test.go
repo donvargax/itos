@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -66,6 +67,33 @@ func TestHoldWaitsForTheLockAndRefusesOneStillHeld(t *testing.T) {
 		t.Fatalf("a lock released during the wait gave %v", err)
 	}
 	held.Release()
+}
+
+// Hold backs off while the lock is held: each pause doubles the last, from
+// a millisecond, up to 50ms, so a long wait does not spin.
+func TestHoldBacksOffBetweenTries(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "data.yaml")
+	if err := os.WriteFile(path+Suffix, []byte("1\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	var pauses []time.Duration
+	was := sleep
+	sleep = func(d time.Duration) {
+		if pauses = append(pauses, d); len(pauses) == 8 {
+			os.Remove(path + Suffix)
+		}
+	}
+	t.Cleanup(func() { sleep = was })
+	held, err := Hold(path, runtime.GOOS)
+	if err != nil {
+		t.Fatal(err)
+	}
+	held.Release()
+	ms := time.Millisecond
+	want := []time.Duration{ms, 2 * ms, 4 * ms, 8 * ms, 16 * ms, 32 * ms, 50 * ms, 50 * ms}
+	if !slices.Equal(pauses, want) {
+		t.Errorf("pauses %v, want %v", pauses, want)
+	}
 }
 
 // Many holders at once each get the lock alone: a count read and written

@@ -148,6 +148,17 @@ func TestFindWalksUpAsGitDoes(t *testing.T) {
 	}
 }
 
+// Find finds nothing when the folder it starts from has no absolute path:
+// the working folder cannot be read.
+func TestFindFindsNothingWithNoAbsoluteFolder(t *testing.T) {
+	was := abs
+	abs = func(string) (string, error) { return "", os.ErrNotExist }
+	t.Cleanup(func() { abs = was })
+	if l, ok := (Git{}).Find(t.Context(), "."); ok {
+		t.Errorf("Find = %+v", l)
+	}
+}
+
 // Find refuses a .git file it cannot read.
 func TestFindRefusesAnUnreadableGitFile(t *testing.T) {
 	dir := t.TempDir()
