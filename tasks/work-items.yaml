@@ -12095,8 +12095,8 @@ items:
   - id: T-234
     title: "The commit judge engine out of internal/cli: verifying commits and ranges, internal/engine/judge"
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: [T-228]
     kind: task
 
