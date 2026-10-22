@@ -68,7 +68,8 @@ func stealthPromoteRepo(t *testing.T) string {
 func TestStealthWritersStopWhenTheRegistrysLockFails(t *testing.T) {
 	itos := stealthPromoteRepo(t)
 	readOnly(t, itos)
-	for _, args := range [][]string{{"work", "take", "p1-idea"}, {"decision", "add", "Why?"}} {
+	for _, args := range [][]string{{"work", "take", "p1-idea"}, {"decision", "add", "Why?"},
+		{"task", "add", "--group", "1", "--type", "chore", "--title", "Two", "--why", "Why.", "--check", "true"}} {
 		code, stdout, stderr := run(args...)
 		if code != ExitSoftware || stdout != "" || !strings.Contains(stderr, "work-items.yaml.lock") {
 			t.Errorf("itos %s: exit %d, stdout %q, stderr %q", strings.Join(args, " "), code, stdout, stderr)
