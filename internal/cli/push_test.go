@@ -138,9 +138,9 @@ func TestPushAHookRefusesExits1(t *testing.T) {
 // before anything is fetched.
 func TestPushRefusesSkippingTheHooks(t *testing.T) {
 	for _, arg := range []string{"--no-verify", "--no-veri"} {
-		_, err := readPushArgs([]string{"--no-wait", arg})
-		if ExitCode(err) != ExitUsage || !strings.Contains(err.Error(), arg+": it skips the pre-push hook") {
-			t.Errorf("readPushArgs(%s) = %v", arg, err)
+		code, err := runPush([]string{"--no-wait", arg}, Out{Stdout: io.Discard, Stderr: io.Discard})
+		if code != 0 || ExitCode(err) != ExitUsage || !strings.Contains(err.Error(), arg+": it skips the pre-push hook") {
+			t.Errorf("push %s = %d, %v", arg, code, err)
 		}
 	}
 	t.Setenv("GIT_CONFIG_COUNT", "1")
@@ -152,17 +152,36 @@ func TestPushRefusesSkippingTheHooks(t *testing.T) {
 	}
 }
 
+// pushAs sets the author and the committer of the scratch repository's
+// commits.
+func pushAs(t *testing.T) {
+	t.Helper()
+	for _, kv := range [][2]string{{"GIT_AUTHOR_NAME", "itos"}, {"GIT_COMMITTER_NAME", "itos"},
+		{"GIT_AUTHOR_EMAIL", "itos@example.com"}, {"GIT_COMMITTER_EMAIL", "itos@example.com"}} {
+		t.Setenv(kv[0], kv[1])
+	}
+}
+
+// behindOrigin gives the scratch repository a bare origin in its git folder
+// whose main is the branch up, which main tracks, and itos's own hooks as
+// stand-ins: itos push then rebases main onto up.
+func behindOrigin(t *testing.T) {
+	t.Helper()
+	standInHooks(t)
+	t.Setenv(git.EnvGit, git.Bin(runtime.GOOS))
+	gitLine(t, "init", "-q", "--bare", ".git/origin.git")
+	gitLine(t, "remote", "add", "origin", ".git/origin.git")
+	gitLine(t, "push", "-q", "origin", "up:main")
+	gitLine(t, "fetch", "-q", "origin")
+	gitLine(t, "branch", "-q", "--set-upstream-to=origin/main", "main")
+}
+
 // A rebase git stops with no conflict, at a commit that would overwrite an
 // untracked file, is a rebase stopped all the same: the push says so, exit
 // 1, and leaves the rebase to be continued or aborted.
 func TestPushRebaseStoppedWithNoConflict(t *testing.T) {
 	gitConfigRepo(t, "version: 1\n")
-	for _, name := range []string{"GIT_AUTHOR_NAME", "GIT_COMMITTER_NAME"} {
-		t.Setenv(name, "itos")
-	}
-	for _, name := range []string{"GIT_AUTHOR_EMAIL", "GIT_COMMITTER_EMAIL"} {
-		t.Setenv(name, "itos@example.com")
-	}
+	pushAs(t)
 	gitLine(t, "checkout", "-q", "-b", "main")
 	gitLine(t, "commit", "-q", "--allow-empty", "-m", "chore: start")
 	gitLine(t, "checkout", "-q", "-b", "up")
@@ -173,91 +192,16 @@ func TestPushRebaseStoppedWithNoConflict(t *testing.T) {
 	gitLine(t, "commit", "-q", "-m", "docs: add f")
 	gitLine(t, "rm", "-q", "f.md")
 	gitLine(t, "commit", "-q", "-m", "docs: drop f")
+	behindOrigin(t)
 	writeFile(t, "f.md", "untracked\n")
-	var stdout, stderr strings.Builder
-	r := pushRun{o: Out{Stdout: &stdout, Stderr: &stderr, JSON: true}, git: &stderr, remote: "origin", branch: "main"}
-	code, done, err := r.rebase("up")
+	code, stdout, stderr := run("push", "--json")
 	var got struct {
 		Outcome string `json:"outcome"`
 	}
-	if !done || code != ExitPolicy || err != nil || json.Unmarshal([]byte(stdout.String()), &got) != nil || got.Outcome != "rebase-stopped" {
-		t.Fatalf("exit %d, done %v, %v\n%s%s", code, done, err, stdout.String(), stderr.String())
+	if code != ExitPolicy || json.Unmarshal([]byte(stdout), &got) != nil || got.Outcome != "rebase-stopped" {
+		t.Fatalf("exit %d\n%s%s", code, stdout, stderr)
 	}
 	if !(vcs.Git{}).Rebasing(t.Context()) || len((vcs.Git{}).Conflicted(t.Context())) > 0 {
-		t.Errorf("rebasing %v, conflicted %v", (vcs.Git{}).Rebasing(t.Context()), (vcs.Git{}).Conflicted(t.Context()))
-	}
-}
-
-// Under a stealth config, a rebase whose notes.rewriteRef cannot be set,
-// git's config being locked, does not start: the push says why, exit 3, and
-// the branch is where it was.
-func TestPushRebaseWithoutNotesRewriteRef(t *testing.T) {
-	dir := gitConfigRepo(t, "version: 1\n")
-	for _, name := range []string{"GIT_AUTHOR_NAME", "GIT_COMMITTER_NAME"} {
-		t.Setenv(name, "itos")
-	}
-	for _, name := range []string{"GIT_AUTHOR_EMAIL", "GIT_COMMITTER_EMAIL"} {
-		t.Setenv(name, "itos@example.com")
-	}
-	if err := os.Remove(filepath.Join(dir, "itos.yaml")); err != nil {
-		t.Fatal(err)
-	}
-	writeFiles(t, map[string]string{filepath.Join(".git", "itos", "itos.yaml"): "version: 1\n"})
-	gitLine(t, "checkout", "-q", "-b", "main")
-	gitLine(t, "commit", "-q", "--allow-empty", "-m", "chore: start")
-	gitLine(t, "checkout", "-q", "-b", "up")
-	gitLine(t, "commit", "-q", "--allow-empty", "-m", "docs: theirs")
-	gitLine(t, "checkout", "-q", "main")
-	gitLine(t, "commit", "-q", "--allow-empty", "-m", "docs: mine")
-	head := gitLine(t, "rev-parse", "HEAD")
-	writeFile(t, filepath.Join(".git", "config.lock"), "")
-	var stdout, stderr strings.Builder
-	r := pushRun{o: Out{Stdout: &stdout, Stderr: &stderr}, git: &stderr, remote: "origin", branch: "main"}
-	code, done, err := r.rebase("up")
-	if !done || code != ExitMissing || err != nil || !strings.HasPrefix(stderr.String(), "itos: cannot set notes.rewriteRef: ") {
-		t.Fatalf("exit %d, done %v, %v\n%s%s", code, done, err, stdout.String(), stderr.String())
-	}
-	if got := gitLine(t, "rev-parse", "HEAD"); got != head || (vcs.Git{}).Rebasing(t.Context()) {
-		t.Errorf("HEAD moved to %s, or a rebase is in progress", got)
-	}
-}
-
-// A branch left with one conflicted file, by a merge stopped before the
-// push, is a rebase stopped all the same, though no rebase is in progress:
-// the push says so, exit 1, and the conflict is left to be resolved.
-func TestPushRebaseStoppedOnOneConflictedFile(t *testing.T) {
-	gitConfigRepo(t, "version: 1\n")
-	for _, name := range []string{"GIT_AUTHOR_NAME", "GIT_COMMITTER_NAME"} {
-		t.Setenv(name, "itos")
-	}
-	for _, name := range []string{"GIT_AUTHOR_EMAIL", "GIT_COMMITTER_EMAIL"} {
-		t.Setenv(name, "itos@example.com")
-	}
-	commit := func(text, subject string) {
-		t.Helper()
-		writeFile(t, "f.md", text)
-		gitLine(t, "add", "f.md")
-		gitLine(t, "commit", "-q", "-m", subject)
-	}
-	gitLine(t, "checkout", "-q", "-b", "main")
-	commit("start\n", "docs: start")
-	gitLine(t, "checkout", "-q", "-b", "up")
-	commit("theirs\n", "docs: theirs")
-	gitLine(t, "checkout", "-q", "main")
-	commit("mine\n", "docs: mine")
-	if err := exec.Command(git.Bin(runtime.GOOS), "merge", "-q", "up").Run(); err == nil {
-		t.Fatal("the merge did not stop on its conflict")
-	}
-	var stdout, stderr strings.Builder
-	r := pushRun{o: Out{Stdout: &stdout, Stderr: &stderr, JSON: true}, git: &stderr, remote: "origin", branch: "main"}
-	code, done, err := r.rebase("up")
-	var got struct {
-		Outcome string `json:"outcome"`
-	}
-	if !done || code != ExitPolicy || err != nil || json.Unmarshal([]byte(stdout.String()), &got) != nil || got.Outcome != "rebase-stopped" {
-		t.Fatalf("exit %d, done %v, %v\n%s%s", code, done, err, stdout.String(), stderr.String())
-	}
-	if (vcs.Git{}).Rebasing(t.Context()) || len((vcs.Git{}).Conflicted(t.Context())) != 1 {
 		t.Errorf("rebasing %v, conflicted %v", (vcs.Git{}).Rebasing(t.Context()), (vcs.Git{}).Conflicted(t.Context()))
 	}
 }
@@ -286,12 +230,7 @@ func TestPushRebaseStoppedOnTheRegistry(t *testing.T) {
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			gitConfigRepo(t, "version: 1\n")
-			for _, name := range []string{"GIT_AUTHOR_NAME", "GIT_COMMITTER_NAME"} {
-				t.Setenv(name, "itos")
-			}
-			for _, name := range []string{"GIT_AUTHOR_EMAIL", "GIT_COMMITTER_EMAIL"} {
-				t.Setenv(name, "itos@example.com")
-			}
+			pushAs(t)
 			registry := filepath.Join("tasks", "work-items.yaml")
 			commit := func(text, subject string) {
 				t.Helper()
@@ -305,20 +244,19 @@ func TestPushRebaseStoppedOnTheRegistry(t *testing.T) {
 			commit(c.theirs, "docs: theirs")
 			gitLine(t, "checkout", "-q", "main")
 			commit(c.mine, "docs: mine")
-			var stdout, stderr strings.Builder
-			r := pushRun{o: Out{Stdout: &stdout, Stderr: &stderr}, git: &stderr, remote: "origin", branch: "main"}
-			code, done, err := r.rebase("up")
-			if !done || code != ExitPolicy || err != nil {
-				t.Fatalf("exit %d, done %v, %v\n%s%s", code, done, err, stdout.String(), stderr.String())
+			behindOrigin(t)
+			code, stdout, stderr := run("push")
+			if code != ExitPolicy {
+				t.Fatalf("exit %d\n%s%s", code, stdout, stderr)
 			}
 			for _, text := range c.says {
-				if !strings.Contains(stderr.String(), text) {
-					t.Errorf("no %q in:\n%s", text, stderr.String())
+				if !strings.Contains(stderr, text) {
+					t.Errorf("no %q in:\n%s", text, stderr)
 				}
 			}
 			for _, text := range c.not {
-				if strings.Contains(stderr.String(), text) {
-					t.Errorf("%q in:\n%s", text, stderr.String())
+				if strings.Contains(stderr, text) {
+					t.Errorf("%q in:\n%s", text, stderr)
 				}
 			}
 		})

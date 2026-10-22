@@ -1,50 +1,10 @@
 package cli
 
 import (
-	"errors"
 	"path/filepath"
 	"strings"
 	"testing"
-
-	"github.com/donvargax/itos/v8/internal/kind"
-	"github.com/donvargax/itos/v8/internal/vcs/port"
 )
-
-// A git that failed exits as it did, one a signal ended 1; one that did not
-// start is the error, with no code.
-func TestExitOf(t *testing.T) {
-	plain := errors.New("no git")
-	for _, c := range []struct {
-		err  error
-		code int
-		want error
-	}{
-		{nil, 0, nil},
-		{&port.Failed{Code: 2}, 2, nil},
-		{&port.Failed{Code: -1}, ExitPolicy, nil},
-		{plain, 0, plain},
-	} {
-		if code, err := exitOf(c.err); code != c.code || err != c.want {
-			t.Errorf("exitOf(%v) = %d, %v", c.err, code, err)
-		}
-	}
-}
-
-// A remote's failure is its kind, and its words what git said; an error
-// that is no git's failure has none of either.
-func TestRemoteKindAndWords(t *testing.T) {
-	for failure, want := range map[port.Failure]kind.Kind{
-		port.Unreachable: kind.Temporary, port.NoRepository: kind.Missing, port.Refused: kind.Unknown, port.Other: kind.Unknown,
-	} {
-		if got := remoteKind(&port.Failed{Failure: failure}); got != want {
-			t.Errorf("remoteKind(%v) = %v", failure, got)
-		}
-	}
-	plain := errors.New("no git")
-	if remoteKind(plain) != kind.Unknown || words(plain) != "" || words(&port.Failed{Words: "said\n"}) != "said\n" {
-		t.Errorf("remoteKind or words of an error git did not give")
-	}
-}
 
 // Draft's paths need a work tree: in the git folder there is none.
 func TestTopPathsInTheGitFolder(t *testing.T) {

@@ -18,6 +18,7 @@ import (
 	hookslice "github.com/donvargax/itos/v8/internal/slices/hook"
 	initcmdslice "github.com/donvargax/itos/v8/internal/slices/initcmd"
 	pinslice "github.com/donvargax/itos/v8/internal/slices/pin"
+	pushslice "github.com/donvargax/itos/v8/internal/slices/push"
 	taskslice "github.com/donvargax/itos/v8/internal/slices/task"
 	testsslice "github.com/donvargax/itos/v8/internal/slices/tests"
 	upgradeslice "github.com/donvargax/itos/v8/internal/slices/upgrade"
@@ -36,7 +37,7 @@ var declared = []declare.Command{
 	followupslice.Command,
 	draftslice.Command,
 	commitslice.Command,
-	pushDeclared,
+	pushslice.Command,
 	gitshimslice.Command,
 	pinslice.Command,
 	upgradeslice.Command,

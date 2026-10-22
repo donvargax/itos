@@ -2,16 +2,13 @@ package cli
 
 import (
 	"context"
-	"io"
 	"os"
 
 	"github.com/donvargax/itos/v8/internal/config"
-	"github.com/donvargax/itos/v8/internal/engine/gitrun"
 	"github.com/donvargax/itos/v8/internal/message"
 	"github.com/donvargax/itos/v8/internal/slices/commit"
 	trees "github.com/donvargax/itos/v8/internal/store/tree/adapter"
 	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
-	vcsport "github.com/donvargax/itos/v8/internal/vcs/port"
 )
 
 // runCommit is `commit`, the commit slice (internal/slices/commit) over its
@@ -73,17 +70,3 @@ const AmendEnv = message.AmendEnv
 
 // withoutFooters is message.WithoutFooters.
 func withoutFooters(env []string) []string { return message.WithoutFooters(env) }
-
-// noVerify is gitrun.NoVerify.
-func noVerify(arg string) bool { return gitrun.NoVerify(arg) }
-
-// talking is gitrun.Talking, from o's origin, its words to o's stderr.
-func talking(env []string, stdout io.Writer, o Out) vcsport.Talk {
-	return gitrun.Talking(o.Origin, env, stdout, o.Stderr)
-}
-
-// exitOf is gitrun.ExitOf.
-func exitOf(err error) (int, error) { return gitrun.ExitOf(err) }
-
-// rewriteNotes is gitrun.RewriteNotes over git.
-func rewriteNotes(v vcs.Git) error { return gitrun.RewriteNotes(context.Background(), v) }

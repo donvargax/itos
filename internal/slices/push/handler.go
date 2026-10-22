@@ -1,0 +1,143 @@
+package push
+
+import (
+	"context"
+	"fmt"
+	"io"
+	"strings"
+
+	"github.com/donvargax/itos/v8/internal/config"
+	"github.com/donvargax/itos/v8/internal/engine/ciwatch"
+	"github.com/donvargax/itos/v8/internal/engine/gitrun"
+	"github.com/donvargax/itos/v8/internal/engine/hooks"
+	"github.com/donvargax/itos/v8/internal/out"
+	"github.com/donvargax/itos/v8/internal/providers"
+	vcsport "github.com/donvargax/itos/v8/internal/vcs/port"
+)
+
+// Query is what push asks: NoWait, --no-wait; Tags and Refs, what --tag and
+// --ref named, in the order given (slice 131); and Origin, the folder the
+// person stood in, relative to the repository's top, where git runs; ""
+// when itos runs where it was started.
+type Query struct {
+	NoWait     bool
+	Tags, Refs []string
+	Origin     string
+}
+
+// Ports are what push reaches the world through, which internal/cli binds:
+// the repository (the VCS port) and its git config (hooks.Git, which
+// declares itos's pre-push hook, and gitrun.Config, the notes' rewriting);
+// ConfigFound, whether there is a config file, itos being set up; Stealth,
+// whether the config is the stealth one; LoadConfig, the config, loaded from
+// the working tree; and Watcher, ci.watch's provider for cfg, for a commit
+// pushed to remote, ok false when it is none.
+type Ports interface {
+	vcsport.VCS
+	hooks.Git
+	gitrun.Config
+	ConfigFound(ctx context.Context) bool
+	Stealth(ctx context.Context) bool
+	LoadConfig(ctx context.Context) (*config.Loaded, error)
+	Watcher(ctx context.Context, cfg *config.Loaded, remote string) (providers.Watcher, bool, error)
+}
+
+// Handler is push's application, over its ports.
+type Handler struct {
+	ports Ports
+}
+
+// NewHandler is the handler over p.
+func NewHandler(p Ports) Handler {
+	return Handler{ports: p}
+}
+
+// Out is where what Handle runs writes as it works, git's own output and
+// words, the lines itos says before it stops and the CI run's progress, and
+// the global flags that shape it: --json and -q.
+type Out struct {
+	Stdout, Stderr io.Writer
+	JSON, Quiet    bool
+}
+
+// Answer is how the push ended: Code, its exit; Outcome, what --json names
+// it, "" when nothing is left to report; Lines, what it says, on stdout
+// for a success, else on stderr; Remote and Branch, the upstream's; Tags
+// and Refs, what --tag and --ref named; Commit, the commit pushed; and
+// Watched, the CI run waited for after the push, if one was.
+type Answer struct {
+	Code           int
+	Outcome        string
+	Lines          []string
+	Remote, Branch string
+	Tags, Refs     []string
+	Commit         string
+	Watched        *ciwatch.Watched
+}
+
+// Handle answers q, writing where o says as it runs: the plain push, or
+// with --tag or --ref, what they name (named.go).
+func (h Handler) Handle(ctx context.Context, q Query, o Out) (Answer, error) {
+	if hooks.PathSet() {
+		return Answer{}, out.Usage("push refuses core.hooksPath set by git -c: it moves the hooks git runs, skipping the " +
+			"repository's own; push without it")
+	}
+	r := pushRun{ports: h.ports, o: o, origin: q.Origin, git: o.Stdout, noWait: q.NoWait}
+	if o.JSON {
+		r.git = o.Stderr
+	}
+	v := h.ports
+	if _, err := v.Locate(ctx, ""); err != nil {
+		fmt.Fprintln(o.Stderr, "itos: push runs in a git repository, and this is none")
+		return Answer{Code: missing}, nil
+	}
+	// Where itos is set up, a push git would make without itos's pre-push
+	// hook is refused before anything is fetched (slice 91).
+	if v.ConfigFound(ctx) {
+		if err := hooks.Ready(ctx, v, "pre-push"); err != nil {
+			if o.JSON {
+				fmt.Fprintf(o.Stderr, "itos: %s\n", err)
+			}
+			return r.report(missing, "hooks-not-run", "itos: "+err.Error()), nil
+		}
+	}
+	if len(q.Tags)+len(q.Refs) > 0 {
+		return r.pushNamed(ctx, q.Tags, q.Refs), nil
+	}
+	if a, done := r.ready(ctx); done {
+		return a, nil
+	}
+	branch := v.Branch(ctx)
+	if branch == "" {
+		return r.report(policy, "detached", "itos push: HEAD is not on a branch; check out the branch to push first"), nil
+	}
+	remote, ref, set := v.Upstream(ctx, branch)
+	r.remote, r.branch = remote, strings.TrimPrefix(ref, "refs/heads/")
+	if _, err := v.Resolve(ctx, "HEAD"); err != nil {
+		return r.report(0, "nothing-to-push", fmt.Sprintf("Nothing to push: %s has no commit yet.", branch)), nil
+	}
+	if !set && !hasRemote(ctx, v, remote) {
+		return r.report(missing, "no-remote", fmt.Sprintf("itos push: %s has no upstream and there is no remote %s to push to", branch, remote)), nil
+	}
+	onto, exists, failure, failed := r.fetch(ctx, remote, ref)
+	if failed {
+		return r.report(remoteExit(failure), "fetch-failed", r.remoteLines("fetching "+r.upstream()+" failed", failure)...), nil
+	}
+	if exists && !v.IsAncestor(ctx, onto, "HEAD") {
+		if a, done := r.rebase(ctx, onto); done {
+			return a, nil
+		}
+	}
+	var err error
+	r.sha, err = v.Resolve(ctx, "HEAD")
+	if err != nil {
+		fmt.Fprintf(o.Stderr, "itos: cannot resolve HEAD after the rebase: %s\n", err)
+		return Answer{Code: missing}, nil
+	}
+	if exists {
+		if ahead, err := v.Commits(ctx, vcsport.Range{From: onto, To: r.sha}); err == nil && len(ahead) == 0 {
+			return r.report(0, "nothing-to-push", fmt.Sprintf("Nothing to push: %s is at %s.", branch, r.upstream())), nil
+		}
+	}
+	return r.push(ctx, remote, ref, onto), nil
+}

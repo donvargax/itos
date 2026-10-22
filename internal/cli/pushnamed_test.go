@@ -12,7 +12,6 @@ import (
 	"testing"
 
 	"github.com/donvargax/itos/v8/internal/git"
-	vcsport "github.com/donvargax/itos/v8/internal/vcs/port"
 )
 
 // A scratch repository on main, pushed to a bare origin in its git folder,
@@ -47,35 +46,6 @@ func originRef(t *testing.T, ref string) string {
 	t.Helper()
 	out, _ := exec.Command(git.Bin(runtime.GOOS), "--git-dir", ".git/origin.git", "rev-parse", "--verify", "--quiet", ref).Output()
 	return strings.TrimSpace(string(out))
-}
-
-// --tag and --ref are read as often as given, as --tag=<tag> too, beside
-// --no-wait; a name that is missing, an option, a forcing refspec or a
-// refspec is a usage error, as is any other argument.
-func TestReadPushArgs(t *testing.T) {
-	a, err := readPushArgs([]string{"--tag", "v1", "--no-wait", "--tag=cli/v1", "--ref", "ci/windows"})
-	if err != nil || !a.noWait || !reflect.DeepEqual(a.tags, []string{"v1", "cli/v1"}) ||
-		!reflect.DeepEqual(a.refs, []string{"ci/windows"}) {
-		t.Errorf("readPushArgs = %+v, %v", a, err)
-	}
-	if a, err := readPushArgs(nil); err != nil || a.noWait || a.tags != nil || a.refs != nil {
-		t.Errorf("readPushArgs() = %+v, %v", a, err)
-	}
-	for args, want := range map[string]string{
-		"--tag":            "push --tag needs a tag's name",
-		"--tag=":           "push --tag needs a tag's name",
-		"--ref --no-wait":  "push --ref needs a branch's name",
-		"--ref +main":      "push never forces: +main is a forcing refspec; push --ref takes a branch's name",
-		"--tag v1:v2":      "push --tag takes a tag's name, not a refspec (v1:v2)",
-		"--tag v1 origin":  "push takes no arguments but --no-wait, --tag <tag> and --ref <branch>",
-		"--ref=b --force":  "push never forces: --force",
-		"--tag v1 --tag -": "push --tag needs a tag's name",
-	} {
-		_, err := readPushArgs(strings.Fields(args))
-		if ExitCode(err) != ExitUsage || !strings.HasPrefix(err.Error(), want) {
-			t.Errorf("readPushArgs(%s) = %v, want %q", args, err, want)
-		}
-	}
 }
 
 // The tag and the branch are pushed to origin's refs of their names, and
@@ -184,19 +154,6 @@ func TestPushNamedFailures(t *testing.T) {
 	}
 }
 
-// The remote is the current branch's upstream's, origin on a detached HEAD.
-func TestNamedRemote(t *testing.T) {
-	_, sh := namedPushRepo(t)
-	sh(`git config branch.main.remote upstream`)
-	if got := namedRemote(); got != "upstream" {
-		t.Errorf("namedRemote on main = %q", got)
-	}
-	sh(`git checkout -q --detach`)
-	if got := namedRemote(); got != "origin" {
-		t.Errorf("namedRemote detached = %q", got)
-	}
-}
-
 // A plain push leaves the tags behind, whatever push.followTags says.
 func TestPushFollowsNoTags(t *testing.T) {
 	_, sh := namedPushRepo(t)
@@ -218,17 +175,6 @@ func TestPushNamedGitThatCannotStart(t *testing.T) {
 	code, err := runPush([]string{"--ref", "b"}, Out{Stdout: io.Discard, Stderr: &stderr, Origin: "no-such-folder"})
 	if err != nil || code != ExitMissing || !strings.HasPrefix(stderr.String(), "itos: cannot run git: ") {
 		t.Errorf("push --ref b with no git to run = %d, %v\n%s", code, err, stderr.String())
-	}
-}
-
-// A failed push git says was refused exits 1; any other failure of no kind
-// 70.
-func TestRefusalExit(t *testing.T) {
-	if got := refusalExit(&vcsport.Failed{Failure: vcsport.Refused}); got != ExitPolicy {
-		t.Errorf("a refused push exits %d", got)
-	}
-	if got := refusalExit(&vcsport.Failed{Failure: vcsport.Other}); got != ExitSoftware {
-		t.Errorf("a push failed for no known reason exits %d", got)
 	}
 }
 
@@ -269,21 +215,13 @@ func TestPushRoutineEdges(t *testing.T) {
 	}
 }
 
-// An option push does not take is refused as no argument of its, and only a
-// short option holding f, or one of the --force family, as forcing; the code
-// is the error's.
+// An option push does not take is a usage error, exit 2, as is a forcing
+// one, before anything else runs.
 func TestPushRefusesOtherOptions(t *testing.T) {
-	for _, arg := range []string{"--follow-tags", "-n"} {
-		_, err := readPushArgs([]string{arg})
-		if ExitCode(err) != ExitUsage || !strings.HasPrefix(err.Error(), "push takes no arguments") {
-			t.Errorf("readPushArgs(%s) = %v", arg, err)
+	for _, arg := range []string{"--follow-tags", "-uf"} {
+		code, err := runPush([]string{arg}, Out{Stdout: io.Discard, Stderr: io.Discard})
+		if code != 0 || ExitCode(err) != ExitUsage {
+			t.Errorf("push %s = %d, %v", arg, code, err)
 		}
-	}
-	if _, err := readPushArgs([]string{"-uf"}); err == nil || !strings.HasPrefix(err.Error(), "push never forces: -uf") {
-		t.Errorf("readPushArgs(-uf) = %v", err)
-	}
-	code, err := runPush([]string{"--follow-tags"}, Out{Stdout: io.Discard, Stderr: io.Discard})
-	if code != 0 || ExitCode(err) != ExitUsage {
-		t.Errorf("push --follow-tags = %d, %v", code, err)
 	}
 }

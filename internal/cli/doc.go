@@ -138,62 +138,9 @@
 //
 // # itos push
 //
-// push (push.go) refuses every argument but --no-wait, --tag <tag> and --ref
-// <branch> (readPushArgs, pushName: a name, not an option or a refspec): a
-// force flag or a + refspec as push never forces, --no-verify as it skips the
-// pre-push hook (slice 128), anything else as push takes no arguments, all
-// usage errors, as is a core.hooksPath git -c sets (hooksPathSet). Outside a repository it exits 3.
-// ready refuses (exit 1) a rebase in progress, a conflict left and tracked
-// changes, then a detached HEAD; with no upstream a missing origin exits 3.
-// fetch runs git fetch --quiet --no-tags <remote> <ref> and takes
-// FETCH_HEAD^{commit}; when it fails, git ls-remote --exit-code exiting 2
-// says the remote has no such branch yet (a new branch: no rebase, the push
-// creates it), and anything else prints git's words and exits with its
-// kind. Unless the fetched commit is already an ancestor of HEAD, rebase
-// runs git rebase --no-autostash <sha> (never git pull, so neither
-// pull.rebase, pull.ff nor a fork point enters it), after rewriteNotes under
-// a stealth config so the rebase carries the itos notes. A stop afterwards
-// (the VCS's Rebasing or Conflicted) exits 1 saying how to go on, git's own
-// hint turned off (advice.mergeConflict) since it advises --skip, which
-// drops the commit being replayed (bug 118); when the
-// work registry is among the conflicted files, registryConflict adds what
-// happened in a person's words: each item both sides changed
-// (work.Clashes), the upstream's owner of one it took, and git rebase
-// --skip to give the item up, since two takes of one item meet there and the
-// remote keeps the first; with no such item, that both sides changed
-// different items and to keep both and git rebase --continue (bug 118).
-//
-// HEAD is then resolved to a full SHA once (pushRun.sha), and nothing after
-// reads HEAD again: git runs the pre-push hook after it resolves the
-// refspec, so a commit made during the hook's unit tests would move HEAD
-// without being pushed. A commit at or behind the fetched one is nothing to
-// push, exit 0. push runs git push --no-follow-tags <remote> <sha>:<ref>, an
-// explicit refspec, so a configured push refspec (the notes') sends nothing,
-// nor does push.followTags send a tag (slice 131), and the pre-push hook runs
-// as for any push. Each git runs with the terminal's
-// stdin (a credential prompt). itos push reads no config until it has
-// pushed, so it runs where itos is not set up. After a push that sent
-// something, unless --no-wait, wait loads the config when there is one: with
-// none, one that cannot be read, or ci.watch.provider: none it reports as
-// before; else it hands the pushed SHA to watchRun, whose code is push's,
-// and under --json adds its ci and run keys. Before that, registryOnly reads
-// the paths of the commits the push added after the rebase
-// (touchesOnlyRegistry, git log --name-only --no-renames
-// --diff-merges=first-parent, the rule work done passes over commits by):
-// when every one is work.registry, push names itos ci watch <sha> and exits 0
-// without waiting.
-//
-// With --tag or --ref, after the hooks' check, pushNamed (pushnamed.go) runs
-// instead of the routine: no fetch, no rebase, no look at the working tree
-// and no wait. Each name must be a ref of the clone (refs/tags/<tag>,
-// refs/heads/<branch>), else exit 1; remoteTags reads the remote's tags of
-// the names with git ls-remote, its failure exiting by its kind, so a tag the
-// remote has as another object is refused, exit 1, before the pre-push hook
-// runs commands for a push git would refuse, and one it has as the clone does
-// is left out. What is left goes in one git push --atomic --no-follow-tags
-// <remote> <ref>:<ref>…, to namedRemote, the current branch's upstream's
-// remote or origin; its failure exits as the routine's push does
-// (refusalExit).
+// push is the push slice (internal/slices/push); push.go binds its Ports to
+// git, the config file's presence, the stealth check, loadConfig and
+// watcher, and keeps touchesOnlyRegistry, which work done calls.
 //
 // # The hooks
 //

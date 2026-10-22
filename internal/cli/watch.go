@@ -1,7 +1,7 @@
 package cli
 
-// The end of itos push and work done, and the ci slice's ci watch through
-// its Watcher port, wait for a commit's CI run through
+// The end of work done, and the ci slice's ci watch and the push slice's
+// end through their Watcher ports, wait for a commit's CI run through
 // internal/engine/ciwatch, whose doc says how; the wrappers here bind it to
 // this clone and map Out to its writers.
 
@@ -52,11 +52,6 @@ func watcher(cfg *config.Loaded, remote string, o Out) (providers.Watcher, bool,
 		Env:     os.Getenv,
 		GhToken: providers.GhToken,
 	})
-}
-
-// watchRun waits for the commit's own run (ciwatch.Watch with no branch).
-func watchRun(cfg *config.Loaded, wr providers.Watcher, sha, remote string, o Out) watched {
-	return watchCovered(cfg, wr, sha, remote, "", o)
 }
 
 // watchCovered is ciwatch.Watch in this clone: with a branch, a commit that
