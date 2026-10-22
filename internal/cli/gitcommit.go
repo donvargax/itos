@@ -531,10 +531,13 @@ func gitCommit(args []string, o Out) (int, error) {
 		trailed = trailers(slices.Concat(links, content))
 	}
 	var keys []string
+	var comment string
 	if cfg != nil {
-		keys = cfg.Commits.Footers.Keys
+		keys, comment = cfg.Commits.Footers.Keys, cfg.CommentChar()
+	} else {
+		comment = v.CommentChar(ctx)
 	}
-	given, written, err := wrapBody(flags.git, g, message.BodyLimit(cfg), keys, cfg.CommentChar())
+	given, written, err := wrapBody(flags.git, g, message.BodyLimit(cfg), keys, comment)
 	if err != nil {
 		return 0, err
 	}

@@ -140,6 +140,19 @@ func TestRefuseCommitArgs(t *testing.T) {
 	}
 }
 
+// With no itos config, the command reaches git, whose exit code is itos's
+// (bug 120): an unknown option is git's to refuse, 129.
+func TestGitCommitWithoutAConfig(t *testing.T) {
+	t.Setenv("ITOS_CONFIG", "")
+	t.Chdir(t.TempDir())
+	gitIn(t, "init", "-q")
+	var stderr strings.Builder
+	code, err := gitCommit([]string{"--zz-bogus"}, Out{Stdout: io.Discard, Stderr: &stderr})
+	if code != 129 || err != nil || !strings.Contains(stderr.String(), "unknown option") {
+		t.Errorf("exit %d, %v\n%s", code, err, stderr.String())
+	}
+}
+
 // Under --json, a commit made gives ok and the commit's SHA, git's own words
 // going to stderr; one the hook refuses gives ok false and no commit.
 func TestGitCommitJSONNamesTheCommit(t *testing.T) {
