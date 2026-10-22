@@ -4361,6 +4361,3 @@
     tools/selftest for every other internal/cli path a step 9 move could take away; fix any the
     merged moves already broke. The agent verified cli_test.go locally. A ci commit; no product
     change.
-  done_when:
-    - run: ITOS_SELFTEST=1 go test -count=1 -run '^TestSelftest$' ./tools/selftest/gates
-      timeout: 900

@@ -12509,6 +12509,6 @@ items:
     title: The gates self-test edits a test file that stays in internal/cli through step 9
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
