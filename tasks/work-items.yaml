@@ -12475,3 +12475,19 @@ items:
     status: done
     depends_on: []
     kind: task
+
+  - id: p1-exit-code-by-kind-shared
+    title: One function maps an error's kind to its exit code, shared by internal/cli and the slices
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Step 9 (T-253, 2026-10-22): the pin slice exits by its error's kind through a private copy of
+      the kind switch in internal/cli's ExitCode (Missing 3, Temporary 75, Usage 2, else 70); every
+      slice that exits by kind would copy it again, and copies drift. Move the mapping to
+      internal/kind (or out) as one exported function that cli's ExitCode and the slices call; v9's
+      exit codes (ADR-0053, 80-82, 100, 130) then change in one place. After step 9's lanes.
+    refs: [internal/kind, internal/cli/cli.go, internal/slices/pin]
+    tags: [cli]
