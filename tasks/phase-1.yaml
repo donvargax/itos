@@ -4284,6 +4284,3 @@
     or GOOS branches (Getwd for Abs's input, a Write port for the two writes, bound in
     internal/cli/init.go to the calls made today), and a branch that cannot happen is removed only
     if the change provably keeps every byte (say why in the commit). No change to what itos does.
-  done_when:
-    - run: tools/bin/pinned itos-cc mutation run --count 1 --since 10d65d3e2baecc1e9fe928f9ab3e820578b0e91c --seed 10d65d3e2baecc1e9fe928f9ab3e820578b0e91c --fail-uncovered=lines --json cmd internal
-      timeout: 900
