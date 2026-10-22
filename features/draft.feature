@@ -363,6 +363,8 @@ Feature: itos draft, the coordinator's pending changes kept until no work is goi
 
   # Slice 140 (#46, q-69): recognized minting commands share pure preflight
   # before direct reservation and before draft creation. The fixture commits
+  # #105 (8.5.0) reports the same for work add with an undeclared tag;
+  # p1-work-add-refusal-keeps-id (2026-10-17) is the same report again.
   # a valid policy, ledger and registry with p1-candidate as an idea; the
   # saved state includes the draft store, remote ID counter, files, index and
   # HEAD. Refusal means nonzero exit and the named diagnostic, not any error.
