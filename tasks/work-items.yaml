@@ -12734,3 +12734,17 @@ items:
     status: done
     depends_on: []
     kind: task
+
+  - id: p1-init-doctor-hook-files
+    title: init's doctor accepts slice-165's hook files on a git that runs no config hook
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      slice-165 (ADR-0058): on a git older than 2.54 hook install writes hook files and Ready
+      accepts them, but init's report (initcmd hookProblems) still asks ConfigHooksRun alone and
+      reports the commit-msg hook missing, naming an upgrade of git, even where hook install, which
+      init runs, has just written them. It should judge each event as hooks.Ready does on such a
+      git; needs a scenario.
