@@ -60,10 +60,10 @@ The UI and assembly (help, the flag spec, extensions) stay in `internal/cli`.
 9. **The rest of the slices**, least coupled first, more lanes in parallel
    once 5, 6 and 7 are done; status, then work in three or four pieces, last.
 
-Each move carries its `.metrics/mutate` snapshots and itos-cc exceptions
-with its files. `docs/ARCHITECTURE.md` and the package doc comments follow
-each task. The inventory behind this plan is the coordinator's, not
-committed; its facts are above.
+Each move carries its itos-cc exceptions with its files.
+`docs/ARCHITECTURE.md` and the package doc comments follow each task. The
+inventory behind this plan is the coordinator's, not committed; its facts
+are above.
 
 ## v9.0
 

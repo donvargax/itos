@@ -88,14 +88,13 @@ What every command meets:
 - CI's plan and its driver: `internal/plan`, `internal/ci`; a run's code
   proof: `internal/proof`.
 - The registry: `internal/work` judges, `internal/store/tracker` reads,
-  locks and writes.
+  locks, writes and reserves IDs (`internal/idcounter`, [ADR-0045]).
 - Questions and decision records: `internal/ask`, `internal/adr`; follow-ups
   and drafts: `internal/slices/followup`, `internal/draft`.
 - The guides `itos go` and `itos guide` print: `internal/guide`.
 - The Claude Code guard: `internal/slices/guard`.
 - YAML read as itos reads it, and edited in place: `internal/value`.
-- New IDs and their remote counter, the version: `internal/nextid`,
-  `internal/idcounter` ([ADR-0045]), `internal/version`.
+- New IDs' numbers, the version: `internal/nextid`, `internal/version`.
 
 ## Rules that cross packages
 
