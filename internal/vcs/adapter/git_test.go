@@ -109,6 +109,60 @@ func TestFindRefusesABrokenGitFile(t *testing.T) {
 	}
 }
 
+// Find walks up as git does: past a folder holding a HEAD file alone,
+// which is no git folder, to a .git file naming its git folder relative to
+// it, whose empty commondir names none; and from a link, the folder it
+// leads to.
+func TestFindWalksUpAsGitDoes(t *testing.T) {
+	dir, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	gitdir := filepath.Join(dir, "elsewhere", "git")
+	for _, d := range []string{filepath.Join(gitdir, "objects"), filepath.Join(gitdir, "refs"), filepath.Join(dir, "sub")} {
+		if err := os.MkdirAll(d, 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for path, text := range map[string]string{
+		filepath.Join(dir, ".git"):           "gitdir: elsewhere/git\n",
+		filepath.Join(gitdir, "HEAD"):        "ref: refs/heads/main\n",
+		filepath.Join(gitdir, "commondir"):   "\n",
+		filepath.Join(dir, "sub", "HEAD"):    "not a git folder\n",
+		filepath.Join(dir, "sub", "objects"): "a file\n",
+	} {
+		if err := os.WriteFile(path, []byte(text), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	want := port.Location{Top: dir, GitDir: gitdir, Common: gitdir}
+	if l, ok := (Git{}).Find(t.Context(), filepath.Join(dir, "sub")); !ok || l != want {
+		t.Errorf("Find(sub) = %+v, %v; want %+v", l, ok, want)
+	}
+	link := filepath.Join(t.TempDir(), "link")
+	if err := os.Symlink(filepath.Join(dir, "sub"), link); err != nil {
+		t.Skipf("no symbolic link: %v", err)
+	}
+	if l, ok := (Git{}).Find(t.Context(), link); !ok || l != want {
+		t.Errorf("Find(link) = %+v, %v; want %+v", l, ok, want)
+	}
+}
+
+// Find refuses a .git file it cannot read.
+func TestFindRefusesAnUnreadableGitFile(t *testing.T) {
+	dir := t.TempDir()
+	file := filepath.Join(dir, ".git")
+	if err := os.WriteFile(file, []byte("gitdir: x\n"), 0o000); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.ReadFile(file); err == nil {
+		t.Skip("the file is readable whatever its mode here")
+	}
+	if l, ok := (Git{}).Find(t.Context(), dir); ok {
+		t.Errorf("Find = %+v", l)
+	}
+}
+
 // Locate asks git once per folder: a repository made after the first ask
 // is not seen until the run asks from another folder.
 func TestLocateAsksOncePerFolder(t *testing.T) {

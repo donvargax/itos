@@ -3,30 +3,15 @@ package config
 import (
 	"context"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"strings"
 	"testing"
 
-	"github.com/donvargax/itos/v8/internal/git"
 	"github.com/donvargax/itos/v8/internal/store/tree/adapter"
+	"github.com/donvargax/itos/v8/internal/store/tree/port/porttest"
 	"github.com/donvargax/itos/v8/internal/value"
-	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
+	vcs "github.com/donvargax/itos/v8/internal/vcs/port"
+	vcstest "github.com/donvargax/itos/v8/internal/vcs/port/porttest"
 )
-
-// gitIn runs git in dir, away from the repository a hook runs the tests in.
-func gitIn(t *testing.T, dir string, args ...string) {
-	t.Helper()
-	for _, name := range []string{"GIT_DIR", "GIT_INDEX_FILE", "GIT_WORK_TREE", "GIT_COMMON_DIR"} {
-		t.Setenv(name, "")
-		os.Unsetenv(name)
-	}
-	cmd := exec.Command(git.Bin(), append([]string{"-c", "user.name=t", "-c", "user.email=t@t", "-c", "commit.gpgsign=false"}, args...)...)
-	cmd.Dir = dir
-	if out, err := cmd.CombinedOutput(); err != nil {
-		t.Fatalf("git %s: %s", strings.Join(args, " "), out)
-	}
-}
 
 func writeFile(t *testing.T, path, text string) {
 	t.Helper()
@@ -36,6 +21,12 @@ func writeFile(t *testing.T, path, text string) {
 	if err := os.WriteFile(path, []byte(text), 0o644); err != nil {
 		t.Fatal(err)
 	}
+}
+
+// at is the VCS fake locating each folder as located says, in no
+// repository when it lacks the folder.
+func at(located map[string]vcs.Location) vcstest.VCS {
+	return vcstest.VCS{Located: located}
 }
 
 const stealthText = "version: 1\nledger: { files: \"tasks/phase-{group}.yaml\" }\n" +
@@ -49,19 +40,19 @@ const stealthText = "version: 1\nledger: { files: \"tasks/phase-{group}.yaml\" }
 // and an itos.yaml in the root wins.
 func TestStealthConfig(t *testing.T) {
 	dir := t.TempDir()
-	gitIn(t, dir, "init", "-q")
 	t.Chdir(dir)
 	t.Setenv("ITOS_CONFIG", "")
+	repo := at(map[string]vcs.Location{"": {Top: dir, GitDir: ".git", Common: ".git"}})
 	stealth := filepath.Join(".git", "itos", "itos.yaml")
-	if got := Path(vcs.Git{}, adapter.Worktree); got != "itos.yaml" {
-		t.Fatalf("with no config, Path(vcs.Git{}, adapter.Worktree) = %q, want itos.yaml", got)
+	if got := Path(repo, adapter.Worktree); got != "itos.yaml" {
+		t.Fatalf("with no config, Path = %q, want itos.yaml", got)
 	}
 	writeFile(t, stealth, stealthText)
-	if got := Path(vcs.Git{}, adapter.Worktree); got != stealth {
-		t.Fatalf("Path(vcs.Git{}, adapter.Worktree) = %q, want %q", got, stealth)
+	if got := Path(repo, adapter.Worktree); got != stealth {
+		t.Fatalf("Path = %q, want %q", got, stealth)
 	}
 	beside := filepath.Join(".git", "itos")
-	c, err := Load(vcs.Git{}, adapter.Trees{}, adapter.Worktree, Path(vcs.Git{}, adapter.Worktree))
+	c, err := Load(repo, adapter.Trees{}, adapter.Worktree, Path(repo, adapter.Worktree))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -75,39 +66,44 @@ func TestStealthConfig(t *testing.T) {
 	}
 	abs, _ := filepath.Abs(stealth)
 	t.Setenv("ITOS_CONFIG", abs)
-	if c, err := Load(vcs.Git{}, adapter.Trees{}, adapter.Worktree, Path(vcs.Git{}, adapter.Worktree)); err != nil || !c.Stealth || c.Ledger.Files != filepath.Join(filepath.Dir(abs), "tasks/phase-{group}.yaml") {
+	if c, err := Load(repo, adapter.Trees{}, adapter.Worktree, Path(repo, adapter.Worktree)); err != nil || !c.Stealth || c.Ledger.Files != filepath.Join(filepath.Dir(abs), "tasks/phase-{group}.yaml") {
 		t.Errorf("ITOS_CONFIG naming the stealth config: %+v, %v", c, err)
 	}
 	writeFile(t, "other.yaml", stealthText)
 	t.Setenv("ITOS_CONFIG", "other.yaml")
-	if c, err := Load(vcs.Git{}, adapter.Trees{}, adapter.Worktree, Path(vcs.Git{}, adapter.Worktree)); err != nil || c.Stealth || c.Ledger.Files != "tasks/phase-{group}.yaml" ||
+	if c, err := Load(repo, adapter.Trees{}, adapter.Worktree, Path(repo, adapter.Worktree)); err != nil || c.Stealth || c.Ledger.Files != "tasks/phase-{group}.yaml" ||
 		c.Work.People.File != "people.yaml" || c.Hooks.Bin != "tools/bin/itos" {
 		t.Errorf("ITOS_CONFIG naming another config: %+v, %v", c, err)
 	}
 	t.Setenv("ITOS_CONFIG", "")
 	writeFile(t, "itos.yaml", stealthText)
-	if got := Path(vcs.Git{}, adapter.Worktree); got != "itos.yaml" || IsStealth(vcs.Git{}, got) {
-		t.Errorf("with an itos.yaml in the root, Path(vcs.Git{}, adapter.Worktree) = %q", got)
+	if got := Path(repo, adapter.Worktree); got != "itos.yaml" || IsStealth(repo, got) {
+		t.Errorf("with an itos.yaml in the root, Path = %q", got)
 	}
 }
 
-// A linked worktree reads the config in the common git folder, and Locate
-// finds it for another folder than the current one.
+// A linked worktree reads the config in the common git folder, which the
+// VCS names absolute there, and Locate finds it for another folder than the
+// current one.
 func TestStealthConfigInALinkedWorktree(t *testing.T) {
 	parent := t.TempDir()
-	repo := filepath.Join(parent, "repo")
-	gitIn(t, parent, "init", "-q", "repo")
-	gitIn(t, repo, "commit", "-q", "--allow-empty", "-m", "start")
-	gitIn(t, repo, "worktree", "add", "-q", "../wt")
-	writeFile(t, filepath.Join(repo, ".git", "itos", "itos.yaml"), stealthText)
+	common := filepath.Join(parent, "repo", ".git")
+	writeFile(t, filepath.Join(common, "itos", "itos.yaml"), stealthText)
 	t.Setenv("ITOS_CONFIG", "")
 	t.Chdir(parent)
-	got := Locate(vcs.Git{}, "wt")
-	if !filepath.IsAbs(got) || !IsStealthIn(vcs.Git{}, "wt", got) {
+	repo := at(map[string]vcs.Location{
+		"wt":   {Top: filepath.Join(parent, "wt"), GitDir: filepath.Join(common, "worktrees", "wt"), Common: common},
+		"repo": {Top: filepath.Join(parent, "repo"), GitDir: ".git", Common: ".git"},
+	})
+	got := Locate(repo, "wt")
+	if !filepath.IsAbs(got) || !IsStealthIn(repo, "wt", got) {
 		t.Errorf("Locate(wt) = %q, want the stealth config, absolute", got)
 	}
-	if got := Locate(vcs.Git{}, "repo"); got != filepath.Join(".git", "itos", "itos.yaml") || !IsStealthIn(vcs.Git{}, "repo", got) {
+	if got := Locate(repo, "repo"); got != filepath.Join(".git", "itos", "itos.yaml") || !IsStealthIn(repo, "repo", got) {
 		t.Errorf("Locate(repo) = %q", got)
+	}
+	if IsStealthIn(repo, "elsewhere", got) {
+		t.Errorf("IsStealthIn outside a repository is true")
 	}
 }
 
@@ -116,24 +112,28 @@ func TestStealthConfigInALinkedWorktree(t *testing.T) {
 // only the working tree holds it.
 func TestARootConfigInEitherTreeWinsOverTheStealthOne(t *testing.T) {
 	dir := t.TempDir()
-	gitIn(t, dir, "init", "-q")
 	t.Chdir(dir)
 	t.Setenv("ITOS_CONFIG", "")
 	writeFile(t, filepath.Join(".git", "itos", "itos.yaml"), stealthText)
-	index, err := adapter.Trees{}.At(context.Background(), "index")
-	if err != nil {
-		t.Fatal(err)
+	repo := at(map[string]vcs.Location{"": {Top: dir, GitDir: ".git", Common: ".git"}})
+	index := func(files map[string]string) string {
+		src, err := porttest.Trees{Common: ".git", Files: map[string]map[string]string{"index": files}}.At(context.Background(), "index")
+		if err != nil {
+			t.Fatal(err)
+		}
+		return Path(repo, src)
 	}
-	locate := func() string { return Path(vcs.Git{}, index) }
 	writeFile(t, "itos.yaml", stealthText)
-	if got := locate(); got != "itos.yaml" {
+	if got := index(nil); got != "itos.yaml" {
 		t.Errorf("an itos.yaml only in the working tree: Locate = %q", got)
 	}
-	gitIn(t, dir, "add", "itos.yaml")
 	if err := os.Remove("itos.yaml"); err != nil {
 		t.Fatal(err)
 	}
-	if got := locate(); got != "itos.yaml" {
+	if got := index(map[string]string{"itos.yaml": stealthText}); got != "itos.yaml" {
 		t.Errorf("an itos.yaml only in the index: Locate = %q", got)
+	}
+	if got := index(nil); got != filepath.Join(".git", "itos", "itos.yaml") {
+		t.Errorf("an itos.yaml in neither tree: Locate = %q", got)
 	}
 }

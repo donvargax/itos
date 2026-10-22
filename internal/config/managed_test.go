@@ -5,37 +5,42 @@ import (
 	"path/filepath"
 	"testing"
 
-	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
+	vcs "github.com/donvargax/itos/v8/internal/vcs/port"
 )
 
 // finds is whether itos run in dir reads a config, as Top and Locate find
-// it, asking git: the answer Managed must give by file checks alone.
-func finds(dir string) bool {
-	if Top(vcs.Git{}, dir) != "" {
+// it, asking the VCS: the answer Managed must give by file checks alone.
+func finds(v vcs.VCS, dir string) bool {
+	if Top(v, dir) != "" {
 		return true
 	}
-	return exists(in(dir, Locate(vcs.Git{}, dir)))
+	return exists(in(dir, Locate(v, dir)))
 }
 
 // Managed agrees with Top and Locate from the top and from subfolders of a
 // repository with an itos.yaml at its top, one with an itos.yaml only in a
 // subfolder, a stealth config, a linked worktree sharing it, a repository
-// with no config, a folder outside any repository and a link into a
-// repository; ITOS_CONFIG naming a file decides alone.
+// with no config and a folder outside any repository;
+// ITOS_CONFIG naming a file decides alone.
 func TestManagedAgreesWithTop(t *testing.T) {
 	t.Setenv("ITOS_CONFIG", "")
+	located := map[string]vcs.Location{}
 	repo := func(files ...string) string {
 		dir, err := filepath.EvalSymlinks(t.TempDir())
 		if err != nil {
 			t.Fatal(err)
 		}
-		gitIn(t, dir, "init", "-q")
 		for _, f := range files {
 			writeFile(t, filepath.Join(dir, f), "version: 1\n")
 		}
 		if err := os.MkdirAll(filepath.Join(dir, "sub", "deeper"), 0o755); err != nil {
 			t.Fatal(err)
 		}
+		common := filepath.Join(dir, ".git")
+		for _, d := range []string{dir, filepath.Join(dir, "sub"), filepath.Join(dir, "sub", "deeper")} {
+			located[d] = vcs.Location{Top: dir, GitDir: common, Common: common}
+		}
+		located[common] = vcs.Location{GitDir: common, Common: common}
 		return dir
 	}
 	type probe struct {
@@ -57,12 +62,10 @@ func TestManagedAgreesWithTop(t *testing.T) {
 	probes = append(probes, probe{"stealth, at the top", stealth, true},
 		probe{"stealth, from a subfolder", filepath.Join(stealth, "sub"), true})
 
-	gitIn(t, stealth, "commit", "-q", "--allow-empty", "-m", "start")
-	worktree := filepath.Join(filepath.Dir(stealth), filepath.Base(stealth)+"-worktree")
-	gitIn(t, stealth, "worktree", "add", "-q", "-b", "other", worktree)
-	t.Cleanup(func() { os.RemoveAll(worktree) })
-	if err := os.MkdirAll(filepath.Join(worktree, "sub"), 0o755); err != nil {
-		t.Fatal(err)
+	worktree := repo()
+	common := filepath.Join(stealth, ".git")
+	for _, d := range []string{worktree, filepath.Join(worktree, "sub")} {
+		located[d] = vcs.Location{Top: worktree, GitDir: filepath.Join(common, "worktrees", "wt"), Common: common}
 	}
 	probes = append(probes, probe{"stealth, from a linked worktree", worktree, true},
 		probe{"stealth, from a linked worktree's subfolder", filepath.Join(worktree, "sub"), true})
@@ -77,26 +80,22 @@ func TestManagedAgreesWithTop(t *testing.T) {
 	}
 	probes = append(probes, probe{"outside a repository", outside, false})
 
-	link := filepath.Join(outside, "link")
-	if err := os.Symlink(filepath.Join(top, "sub"), link); err == nil {
-		probes = append(probes, probe{"a link into a repository with a top config", link, true})
-	}
-
+	v := at(located)
 	for _, p := range probes {
-		if got := Managed(vcs.Git{}, p.dir); got != p.want {
+		if got := Managed(v, p.dir); got != p.want {
 			t.Errorf("%s: Managed = %v, want %v", p.name, got, p.want)
 		}
-		if got := finds(p.dir); got != p.want {
+		if got := finds(v, p.dir); got != p.want {
 			t.Errorf("%s: Top and Locate find a config: %v, want %v", p.name, got, p.want)
 		}
 	}
 
 	t.Setenv("ITOS_CONFIG", filepath.Join(top, "itos.yaml"))
-	if !Managed(vcs.Git{}, none) {
+	if !Managed(v, none) {
 		t.Error("ITOS_CONFIG naming a file: not managed")
 	}
 	t.Setenv("ITOS_CONFIG", filepath.Join(none, "missing.yaml"))
-	if Managed(vcs.Git{}, top) {
+	if Managed(v, top) {
 		t.Error("ITOS_CONFIG naming no file: managed")
 	}
 }
@@ -105,12 +104,12 @@ func TestManagedAgreesWithTop(t *testing.T) {
 func TestManagedInsideGitFolder(t *testing.T) {
 	t.Setenv("ITOS_CONFIG", "")
 	dir := t.TempDir()
-	gitIn(t, dir, "init", "-q")
 	writeFile(t, filepath.Join(dir, "itos.yaml"), "version: 1\n")
-	if _, ok := (vcs.Git{}).Find(t.Context(), filepath.Join(dir, ".git", "refs")); ok {
-		t.Error("a work tree found inside the git folder")
+	common := filepath.Join(dir, ".git")
+	if err := os.MkdirAll(common, 0o755); err != nil {
+		t.Fatal(err)
 	}
-	if Managed(vcs.Git{}, filepath.Join(dir, ".git", "refs")) {
+	if Managed(at(map[string]vcs.Location{common: {GitDir: ".", Common: "."}}), common) {
 		t.Error("managed inside the git folder")
 	}
 }

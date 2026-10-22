@@ -7,15 +7,20 @@ import (
 	"github.com/donvargax/itos/v8/internal/vcs/port"
 )
 
-// layout is the fake laid out as VCSContract asks, standing in /top/repo.
+// layout is the fake laid out as VCSContract asks, standing in /top/repo,
+// naming the git folder as git does: relative at the top, absolute from a
+// subfolder.
 func layout(l Layout) (VCS, string) {
-	root := filepath.FromSlash("/top/repo")
+	root, err := filepath.Abs(filepath.FromSlash("/top/repo"))
+	if err != nil {
+		panic(err)
+	}
 	top := port.Location{Top: root, GitDir: ".git", Common: ".git"}
 	v := VCS{
 		Root: root,
 		Located: map[string]port.Location{
 			"":       top,
-			sub:      {Top: root, GitDir: "../.git", Common: "../.git"},
+			sub:      {Top: root, GitDir: filepath.Join(root, ".git"), Common: "../.git"},
 			worktree: {Top: filepath.Join(root, worktree), GitDir: "../repo/.git/worktrees/wt", Common: "../repo/.git"},
 			gitDir:   {GitDir: ".", Common: "."},
 		},

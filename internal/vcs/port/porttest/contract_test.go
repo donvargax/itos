@@ -87,6 +87,8 @@ func (b broken) Resolve(ctx context.Context, rev string) (string, error) {
 		return rev, nil
 	case b.fault == "resolve no remote" && strings.HasPrefix(rev, "refs/remotes/"):
 		return "", errBroken
+	case b.fault == "resolve remote as head" && strings.HasPrefix(rev, "refs/remotes/"):
+		return b.VCS.Resolve(ctx, "HEAD")
 	}
 	return b.VCS.Resolve(ctx, rev)
 }
@@ -232,6 +234,7 @@ func TestVCSContractFailsEachBrokenVCS(t *testing.T) {
 		{"resolve head", map[string][]string{"resolve": {"Resolve(HEAD) is"}}},
 		{"resolve nothing", map[string][]string{"resolve": {"Resolve of no commit"}}},
 		{"resolve no remote", map[string][]string{"resolve": {"Resolve(refs/remotes/origin/b): "}}},
+		{"resolve remote as head", map[string][]string{"resolve": {"Resolve: the remote branch is"}}},
 		{"ancestor not itself", map[string][]string{"ancestry": {"IsAncestor(m, m)"}}},
 		{"ancestry by first parents", map[string][]string{"ancestry": {"IsAncestor(s, m)"}}},
 		{"ancestry of nothing", map[string][]string{"ancestry": {"IsAncestor(nope, m)", "IsAncestor(a, nope)"}}},
