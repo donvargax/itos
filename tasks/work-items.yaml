@@ -12196,3 +12196,23 @@ items:
     status: todo
     depends_on: [T-241]
     kind: task
+
+  - id: p1-guard-quoted-text
+    title: The guard judges git commands, not the word git inside quoted text, heredocs or script bodies
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Every implementing lane of the refactor's steps 6 to 7 (2026-10-22, about ten agents in
+      worktrees) met the same refusals from itos guard claude-code: a heredoc or python -c body that
+      merely contains the word git (in a Go doc comment being written), a grep with \| in its
+      pattern, sh script.sh followed by a redirection, echo $? after a tools/bin/pinned call,
+      apostrophes, and the push proof typed directly. The agents worked around them with Write-tool
+      files and one-command calls, at the cost of many extra tool calls per task; the briefs now
+      carry a paragraph of workarounds. Guard what runs (a git commit, push or add that a command
+      line executes), not words in data passed to another program; where a command line cannot be
+      parsed, say which construct and what to do instead. Related: p1-guard-follows-cd (#69).
+    refs: [internal/slices/guard, internal/guard, integrations/claude-code/hooks/guard.sh]
+    tags: [guard]
