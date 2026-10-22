@@ -55,7 +55,7 @@ phases:
   3: donvargax
 
 queue:
-  - p1-nightly-base-floor
+  - T-280
   - slice-165
   - slice-166
   - slice-154
@@ -12684,23 +12684,13 @@ items:
       first on the PATH. Nightly, not per push: slow and wide (ADR-0051). Goes with
       p1-drop-hook-files-compat when the path is removed.
 
-  - id: p1-nightly-base-floor
+  - id: T-280
     title: The nightly's changed-sites step judges from T-191's head, not the last green nightly of 2026-10-08
     phase: 1
     owner: null
     status: todo
     depends_on: [T-191]
-    kind: idea
-    why: >
-      The user, 2026-10-22: nightly-base's base is the head of the last green nightly (9397855d,
-      2026-10-08), so the changed-sites step draws 60 sites a night from everything the slices
-      refactor moved, a pile no batch empties, and the nightly stays red for weeks. Once T-191
-      lands, the base moves once to T-191's head: nightly-base takes a floor commit (a flag the
-      nightly step passes, or a key the config holds) and judges from the later of the floor and the
-      last green nightly's head, saying which on stderr. The random step stays strict over all the
-      code and keeps sampling the moved code (the user, 2026-10-17); the moves were byte for byte
-      and each push judged a site with strict changed-line coverage. As T-188 moved commits.since
-      after the 2026-10-17 red.
+    kind: task
 
   - id: p1-gates-selftest-line-precondition
     title: The gates self-test says which unit test reads the line it edits

@@ -4267,3 +4267,21 @@
   done_when:
     - run: test ! -e tools/bin/itos-cc-tests
     - run: grep -q 'tests list scenario --tsv' itos-cc.yaml
+
+- id: T-280
+  type: ci
+  title: The nightly's changed-sites step judges from T-191's head, not the last green nightly of 2026-10-08
+  why: >
+    The user, 2026-10-22: nightly-base's base is the head of the last green nightly (9397855d,
+    2026-10-08), so the changed-sites step draws 60 sites a night from everything the slices
+    refactor moved, a pile no batch empties, and the nightly stays red for weeks. T-191 killed the
+    last batch (CI 39837013615 on a9de53f6), so the base moves once to its head,
+    a9de53f62e7b6755a91f47d2780bdc2a827b94e4: nightly-base takes a -floor <commit> flag, which the
+    nightly's changed-sites step in itos.yaml passes, and prints the later of the floor and the last
+    green nightly's head (the floor when the green head is its ancestor or there is none), saying on
+    stderr which it chose and why; a floor not in HEAD's history is a usage error, exit 2. The
+    random step stays strict over all the code (the user, 2026-10-17). As T-188 moved commits.since
+    after the red of 2026-10-17. The ci-mutation-budget self-test follows the step's new command.
+  done_when:
+    - run: go test ./tools/bin/nightly-base -count=1
+    - run: grep -q a9de53f62e7b6755a91f47d2780bdc2a827b94e4 itos.yaml
