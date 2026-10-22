@@ -158,7 +158,7 @@ func watchGitHub(cfg *config.Loaded, key string, s WatchSetup) (GitHub, error) {
 		return GitHub{}, fmt.Errorf("%s's github provider cannot tell the GitHub repository from the remote's URL %q: set %s to owner/name",
 			key, s.RemoteURL, r.RepositoryEnv)
 	}
-	return GitHub{Repository: repository, Token: token, API: s.Env(APIEnv)}, nil
+	return GitHub{Repository: repository, Token: token, API: s.Env(APIEnv), VCS: cfg.VCS}, nil
 }
 
 // orList is names joined as a sentence lists alternatives: A, B or C.

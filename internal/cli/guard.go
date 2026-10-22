@@ -6,6 +6,7 @@ import (
 
 	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/slices/guard"
+	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
 )
 
 // GuardSince is the first itos with guard claude-code (v6.0.0, decision 36;
@@ -32,5 +33,5 @@ type guardPorts struct{}
 
 // Managed is config.Managed.
 func (guardPorts) Managed(_ context.Context, dir string) bool {
-	return config.Managed(dir)
+	return config.Managed(vcs.Git{}, dir)
 }

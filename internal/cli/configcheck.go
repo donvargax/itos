@@ -18,6 +18,7 @@ import (
 	"github.com/donvargax/itos/v8/internal/store/tree/port"
 	"github.com/donvargax/itos/v8/internal/tests"
 	"github.com/donvargax/itos/v8/internal/value"
+	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
 	"github.com/donvargax/itos/v8/internal/work"
 )
 
@@ -88,8 +89,8 @@ func judgedSmokeFindings(cfg *config.Loaded, judged func(name, file string) bool
 // does not have, asksProblems) never sets it. The config and its data are
 // read from src.
 func configFindings(src port.Source, ledgerFile string, ws *tests.Warnings) (int, []Found, []Found, []string, error) {
-	path := config.Path(src)
-	cfg, err := config.Load(trees.Trees{}, src, path)
+	path := config.Path(vcs.Git{}, src)
+	cfg, err := config.Load(vcs.Git{}, trees.Trees{}, src, path)
 	var invalid *config.Error
 	if errors.As(err, &invalid) {
 		return 2, prefixed(invalid, "config"), nil, nil, nil
@@ -322,7 +323,7 @@ func printDefaults(o Out) (int, error) {
 	if cfg, err := loadConfigFile(path); err == nil {
 		file = cfg.File()
 	}
-	table := config.DefaultsFor(file, config.IsStealth(path))
+	table := config.DefaultsFor(file, config.IsStealth(vcs.Git{}, path))
 	if o.JSON {
 		return 0, out.Emit(o.Stdout, out.Field{Key: "defaults", Value: table})
 	}

@@ -10,6 +10,7 @@ import (
 
 	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/kind"
+	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
 )
 
 func TestGitHubRepositoryReadsAGitHubRemote(t *testing.T) {
@@ -30,7 +31,7 @@ func TestGitHubRepositoryReadsAGitHubRemote(t *testing.T) {
 
 // githubWatchConfig is a loaded config whose ci.watch provider is github.
 func githubWatchConfig() *config.Loaded {
-	cfg := &config.Loaded{}
+	cfg := &config.Loaded{VCS: vcs.Git{}}
 	cfg.CI.Watch.Provider = "github"
 	cfg.CI.Watch.GitHub.Workflow = "ci.yml"
 	cfg.CI.Range.GitHub.RepositoryEnv = "GITHUB_REPOSITORY"

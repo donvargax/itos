@@ -43,6 +43,7 @@ import (
 	"github.com/donvargax/itos/v8/internal/git"
 	"github.com/donvargax/itos/v8/internal/kind"
 	"github.com/donvargax/itos/v8/internal/out"
+	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
 	"github.com/donvargax/itos/v8/internal/work"
 )
 
@@ -324,7 +325,7 @@ func (r pushRun) remoteLines(what string, failure kind.Kind) []string {
 // settings for it overruled; done when the rebase stopped or did not start,
 // or left a conflict, with the outcome reported: nothing is pushed then.
 func (r pushRun) rebase(onto string) (int, bool, error) {
-	if config.IsStealth(configPath()) {
+	if config.IsStealth(vcs.Git{}, configPath()) {
 		if err := rewriteNotes(); err != nil {
 			fmt.Fprintf(r.o.Stderr, "itos: cannot set notes.rewriteRef: %s\n", err)
 			return ExitMissing, true, nil

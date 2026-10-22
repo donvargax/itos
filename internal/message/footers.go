@@ -269,7 +269,7 @@ func needSource(cfg *config.Loaded, key string, f config.Footer) error {
 		if cfg.Source.Has(context.Background(), cfg.Work.Registry) {
 			return nil
 		}
-		return &config.Error{File: config.Path(cfg.Source), Problems: []out.Problem{{
+		return &config.Error{File: config.Path(cfg.VCS, cfg.Source), Problems: []out.Problem{{
 			Rule:    "footer-source-missing",
 			Message: fmt.Sprintf("the %s: footer names items of the work registry, and its file %s does not exist", key, cfg.Work.Registry),
 			Fix:     "create " + cfg.Work.Registry + " with the work items, or point work.registry at the file that holds them",
@@ -285,7 +285,7 @@ func needSource(cfg *config.Loaded, key string, f config.Footer) error {
 	if cfg.Source.Has(context.Background(), layout.Dir) {
 		return nil
 	}
-	return &config.Error{File: config.Path(cfg.Source), Problems: []out.Problem{{
+	return &config.Error{File: config.Path(cfg.VCS, cfg.Source), Problems: []out.Problem{{
 		Rule:    "footer-source-missing",
 		Message: fmt.Sprintf("the %s: footer names tasks of the ledger, and its folder %s does not exist", key, layout.Dir),
 		Fix:     fmt.Sprintf("create %s with the ledger's files (ledger.files is %s), or point ledger.files at the folder that holds them", layout.Dir, cfg.Ledger.Files),
@@ -325,7 +325,7 @@ func knownFor(cfg *config.Loaded, key string, f config.Footer, r Reading) (known
 // holds, else why not. An error when its source cannot be read.
 func CheckFooter(cfg *config.Loaded, key, typ, message string, r Reading) (string, error) {
 	f, _ := cfg.Commits.Footers.Get(key)
-	required := applies(f.RequiredFor, typ) && !(r.Made && config.Before(f, r.At))
+	required := applies(f.RequiredFor, typ) && !(r.Made && cfg.Before(f, r.At))
 	if f.Text() {
 		return checkText(cfg, key, f, typ, message, required), nil
 	}

@@ -13,6 +13,7 @@ import (
 	"github.com/donvargax/itos/v8/internal/message"
 	trees "github.com/donvargax/itos/v8/internal/store/tree/adapter"
 	"github.com/donvargax/itos/v8/internal/tests"
+	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
 )
 
 // The commit being made as the moves rule reads it beside its trees (slice
@@ -27,7 +28,7 @@ func TestStagedChange(t *testing.T) {
 	}
 	writeFile(t, "src/app.go", "package app\n")
 	gitIn(t, "add", "src/app.go")
-	cfg, err := config.FromText(trees.Trees{}, trees.Worktree, "itos.yaml", `version: 1
+	cfg, err := config.FromText(vcs.Git{}, trees.Trees{}, trees.Worktree, "itos.yaml", `version: 1
 commits:
   types: [test]
   footers:
@@ -81,7 +82,7 @@ func TestStagedRuleSkipsTheExceptTypes(t *testing.T) {
 	notesRepo(t)
 	writeFile(t, "a.md", "a\n")
 	gitIn(t, "add", "a.md")
-	cfg, err := config.FromText(trees.Trees{}, trees.Worktree, "itos.yaml", `version: 1
+	cfg, err := config.FromText(vcs.Git{}, trees.Trees{}, trees.Worktree, "itos.yaml", `version: 1
 commits:
   types: [feat, docs]
   scopes: { feat: {}, docs: {} }

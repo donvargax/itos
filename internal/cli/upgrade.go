@@ -47,6 +47,7 @@ import (
 	"github.com/donvargax/itos/v8/internal/out"
 	"github.com/donvargax/itos/v8/internal/release"
 	"github.com/donvargax/itos/v8/internal/value"
+	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
 	"github.com/donvargax/itos/v8/internal/version"
 )
 
@@ -273,7 +274,7 @@ func upgradeCommand(args []string, o Out) (int, error) {
 			return 0, fmt.Errorf("cannot edit %s: %w; every file is left as it was", installScriptPath, err)
 		}
 	}
-	rules := refreshedRules(config.IsStealth(c.file))
+	rules := refreshedRules(config.IsStealth(vcs.Git{}, c.file))
 	if text != c.text {
 		if err := writeKeepingMode(c.file, text); err != nil {
 			return 0, err

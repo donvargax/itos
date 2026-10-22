@@ -1,10 +1,11 @@
 package config
 
 import (
+	"context"
 	"strings"
 
-	"github.com/donvargax/itos/v8/internal/git"
 	"github.com/donvargax/itos/v8/internal/out"
+	vcs "github.com/donvargax/itos/v8/internal/vcs/port"
 )
 
 // SinceIssues are the problems with the commits commits.since and each
@@ -14,12 +15,16 @@ import (
 // repository has it, so there the problem says so and how to fetch the
 // history.
 func (l *Loaded) SinceIssues() []out.Problem {
+	ctx := context.Background()
 	var found []out.Problem
 	for _, s := range l.sinces() {
-		if s.sha == "" || git.HasCommit(s.sha) {
+		if s.sha == "" {
 			continue
 		}
-		if git.Shallow() {
+		if _, err := l.VCS.Resolve(ctx, s.sha); err == nil {
+			continue
+		}
+		if l.VCS.Shallow(ctx) {
 			found = append(found, out.Problem{
 				Rule:    "config-since-commit",
 				Message: s.key + " names " + s.sha + ", which this clone does not have: the clone is shallow, and the commit may lie beyond its history. Fetch the whole history with git fetch --unshallow, or with fetch-depth: 0 for actions/checkout",
@@ -48,30 +53,25 @@ func (l *Loaded) Since() string {
 // Before is whether a commit is one a footer's since leaves out of its
 // required_for: that commit or one of its ancestors. Never for a footer
 // without a since.
-func Before(f Footer, sha string) bool {
+func (l *Loaded) Before(f Footer, sha string) bool {
 	if f.Since == nil || *f.Since == "" || sha == "" {
 		return false
 	}
-	return sha == *f.Since || git.Succeeds("merge-base", "--is-ancestor", sha, *f.Since)
+	return sha == *f.Since || l.VCS.IsAncestor(context.Background(), sha, *f.Since)
 }
 
 // NewBranch is whether a range's start is empty or all zeros: a new branch,
 // every commit up to its end.
 func NewBranch(from string) bool { return strings.Trim(from, "0") == "" }
 
-// RangeArgs are a range's commits as git rev-list takes them: from..to,
-// everything up to to when from is empty or all zeros (a new branch), or the
-// commits of to on no remote branch from git.Unpushed, less commits.since and
-// its ancestors (first, since --not would turn it round).
-func (l *Loaded) RangeArgs(from, to string) []string {
-	args := git.Revs(from, to)
+// Range is a range's commits: from..to, everything up to to when from is
+// empty or all zeros (a new branch), or the commits of to on no remote
+// branch from vcs.Unpushed, less commits.since and its ancestors.
+func (l *Loaded) Range(from, to string) vcs.Range {
 	if NewBranch(from) {
-		args = []string{to}
+		from = ""
 	}
-	if sha := l.Since(); sha != "" {
-		args = append([]string{"^" + sha}, args...)
-	}
-	return args
+	return vcs.Range{From: from, To: to, Since: l.Since()}
 }
 
 // RangeStart is where a range starts for a range check, which takes one
@@ -82,7 +82,7 @@ func (l *Loaded) RangeStart(from string) string {
 	switch {
 	case sha == "":
 		return from
-	case NewBranch(from), git.Succeeds("merge-base", "--is-ancestor", from, sha):
+	case NewBranch(from), l.VCS.IsAncestor(context.Background(), from, sha):
 		return sha
 	}
 	return from

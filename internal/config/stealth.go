@@ -23,12 +23,10 @@ import (
 	"context"
 	"os"
 	"path/filepath"
-	"strings"
-	"sync"
 
-	"github.com/donvargax/itos/v8/internal/git"
 	"github.com/donvargax/itos/v8/internal/store/tree/port"
 	"github.com/donvargax/itos/v8/internal/value"
+	vcs "github.com/donvargax/itos/v8/internal/vcs/port"
 )
 
 // The config's name, in the root and in the stealth folder.
@@ -40,26 +38,26 @@ const StealthFolder = "itos"
 // Path is the config's path: ITOS_CONFIG, which --config sets, else
 // itos.yaml in the current folder, src or the working tree holding it, else
 // the stealth config when there is one, else itos.yaml, which then reports
-// itself missing.
-func Path(src port.Source) string {
+// itself missing. v locates the stealth config.
+func Path(v vcs.VCS, src port.Source) string {
 	if os.Getenv("ITOS_CONFIG") == "" && src.Has(context.Background(), fileName) {
 		return fileName
 	}
-	return Locate("")
+	return Locate(v, "")
 }
 
 // Locate is the config itos reads for the folder dir ("" for the current
 // one), as Path picks it, relative to dir unless it is absolute. The
 // launcher calls it before --root applies, with the folder --root names or
 // the top Top finds.
-func Locate(dir string) string {
+func Locate(v vcs.VCS, dir string) string {
 	if p := os.Getenv("ITOS_CONFIG"); p != "" {
 		return p
 	}
 	if _, err := os.Stat(filepath.Join(dir, fileName)); err == nil {
 		return fileName
 	}
-	if s := stealthFile(dir); s != "" {
+	if s := stealthFile(v, dir); s != "" {
 		if _, err := os.Stat(in(dir, s)); err == nil {
 			return s
 		}
@@ -69,15 +67,15 @@ func Locate(dir string) string {
 
 // IsStealth is whether the config at file, relative to the current folder,
 // is the stealth one: <git common dir>/itos/itos.yaml.
-func IsStealth(file string) bool { return IsStealthIn("", file) }
+func IsStealth(v vcs.VCS, file string) bool { return IsStealthIn(v, "", file) }
 
 // IsStealthIn is IsStealth for a file relative to the folder dir.
-func IsStealthIn(dir, file string) bool {
+func IsStealthIn(v vcs.VCS, dir, file string) bool {
 	// Most configs are an itos.yaml in a root: no git to ask about them.
 	if filepath.Base(file) != fileName || filepath.Base(filepath.Dir(file)) != StealthFolder {
 		return false
 	}
-	s := stealthFile(dir)
+	s := stealthFile(v, dir)
 	if s == "" {
 		return false
 	}
@@ -97,37 +95,15 @@ func in(dir, p string) string {
 	return filepath.Join(dir, p)
 }
 
-var (
-	stealthMu    sync.Mutex
-	stealthFiles = map[string]string{}
-)
-
-// stealthFile is where the stealth config is for the folder dir, as git
+// stealthFile is where the stealth config is for the folder dir, as v
 // names the common dir from there (relative to dir, or absolute in a linked
-// worktree), whether or not it exists; "" outside a repository. Asked once
-// per folder and run.
-func stealthFile(dir string) string {
-	key := dir
-	if cwd, err := os.Getwd(); err == nil {
-		key = cwd + "\x00" + dir
+// worktree), whether or not it exists; "" outside a repository.
+func stealthFile(v vcs.VCS, dir string) string {
+	l, err := v.Locate(context.Background(), dir)
+	if err != nil || l.Common == "" {
+		return ""
 	}
-	stealthMu.Lock()
-	defer stealthMu.Unlock()
-	if s, ok := stealthFiles[key]; ok {
-		return s
-	}
-	args := []string{"rev-parse", "--git-common-dir"}
-	if dir != "" {
-		args = append([]string{"-C", dir}, args...)
-	}
-	s := ""
-	if out, err := git.Output(args...); err == nil {
-		if common := strings.TrimSpace(out); common != "" {
-			s = filepath.Join(common, StealthFolder, fileName)
-		}
-	}
-	stealthFiles[key] = s
-	return s
+	return filepath.Join(l.Common, StealthFolder, fileName)
 }
 
 // beside resolves the stealth config's own data, the files it names for

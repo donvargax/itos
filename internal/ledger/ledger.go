@@ -69,7 +69,7 @@ func Files(cfg *config.Loaded) ([]File, error) {
 		if cfg.Source.Tree(context.Background()) == "worktree" && cfg.Source.Has(context.Background(), layout.Dir) {
 			return nil, err
 		}
-		return nil, &config.Error{File: config.Path(cfg.Source), Problems: []out.Problem{{
+		return nil, &config.Error{File: config.Path(cfg.VCS, cfg.Source), Problems: []out.Problem{{
 			Rule:    "ledger-folder-missing",
 			Message: fmt.Sprintf("the ledger's folder %s does not exist", layout.Dir),
 			Fix:     fmt.Sprintf("create %s with the ledger's files (ledger.files is %s), or point ledger.files at the folder that holds them", layout.Dir, cfg.Ledger.Files),

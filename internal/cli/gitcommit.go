@@ -47,6 +47,7 @@ import (
 	"github.com/donvargax/itos/v8/internal/git"
 	"github.com/donvargax/itos/v8/internal/message"
 	"github.com/donvargax/itos/v8/internal/out"
+	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
 )
 
 // commitFlags are what itos commit reads of its arguments: the IDs --task,
@@ -495,7 +496,7 @@ func gitCommit(args []string, o Out) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	stealth := config.IsStealth(configPath())
+	stealth := config.IsStealth(vcs.Git{}, configPath())
 	if cfg != nil {
 		if found := lacking(cfg, g, links, content, stealth); len(found) > 0 {
 			return refuseCommit(cfg, found, o)

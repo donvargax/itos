@@ -14,6 +14,7 @@ import (
 	"github.com/donvargax/itos/v8/internal/git"
 	"github.com/donvargax/itos/v8/internal/release"
 	trees "github.com/donvargax/itos/v8/internal/store/tree/adapter"
+	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
 )
 
 // The flags that answer init's three offers, so no test asks or installs.
@@ -347,7 +348,7 @@ func TestPolicyInitPinsTheNewestRelease(t *testing.T) {
 // kept; the sections init adds follow it in its line endings.
 func TestPolicyConfigKeepsTheTextsLineEndings(t *testing.T) {
 	text := "version: 1\r\nhooks: { bin: itos }"
-	src, err := config.FromText(trees.Trees{}, trees.Worktree, "p.yaml", text, false)
+	src, err := config.FromText(vcs.Git{}, trees.Trees{}, trees.Worktree, "p.yaml", text, false)
 	if err != nil {
 		t.Fatal(err)
 	}

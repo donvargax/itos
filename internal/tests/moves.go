@@ -48,16 +48,17 @@ package tests
 // the hook or in verify, is judged by its own changes alone (Merge).
 
 import (
+	"context"
 	"regexp"
 	"slices"
 	"sort"
 	"strings"
 
 	"github.com/donvargax/itos/v8/internal/config"
-	"github.com/donvargax/itos/v8/internal/git"
 	"github.com/donvargax/itos/v8/internal/glob"
 	"github.com/donvargax/itos/v8/internal/out"
 	"github.com/donvargax/itos/v8/internal/value"
+	vcs "github.com/donvargax/itos/v8/internal/vcs/port"
 )
 
 var (
@@ -501,7 +502,7 @@ func (m *Moves) Commit(sha, typ string, change Change) ([]out.Problem, error) {
 	if !judged {
 		return []out.Problem{}, nil
 	}
-	return m.Between(typ, git.Parent(sha), sha, change)
+	return m.Between(typ, m.cfg.VCS.Parent(context.Background(), sha), sha, change)
 }
 
 // Index is `itos tests moves <kind>`'s judgement: HEAD against the index, by
@@ -516,7 +517,7 @@ func (m *Moves) Index(name string) ([]out.Problem, error) {
 		return nil, err
 	}
 	if k.Adapter.Command != "" || k.Adapter.Name != "gherkin" {
-		return nil, &config.Error{File: config.Path(m.cfg.Source), Problems: []out.Problem{{
+		return nil, &config.Error{File: config.Path(m.cfg.VCS, m.cfg.Source), Problems: []out.Problem{{
 			Rule:    "moves-not-gherkin",
 			Message: "tests." + name + ".adapter is not gherkin, and the moves rule reads feature files",
 			Fix:     "name a kind whose adapter is gherkin",
@@ -565,11 +566,11 @@ func RangeCommands(cfg *config.Loaded, from, to string) []string {
 }
 
 // RangeFrom is the start a range's commands are given as {from}: from, the
-// commit the unpushed commits grow from for git.Unpushed, and commits.since
+// commit the unpushed commits grow from for vcs.Unpushed, and commits.since
 // when that is empty, all zeros or older (config.RangeStart).
 func RangeFrom(cfg *config.Loaded, from, to string) string {
-	if from == git.Unpushed {
-		from = git.UnpushedBase(to)
+	if from == vcs.Unpushed {
+		from = cfg.VCS.UnpushedBase(context.Background(), to)
 	}
 	return cfg.RangeStart(from)
 }

@@ -10,6 +10,7 @@ import (
 	"github.com/donvargax/itos/v8/internal/git"
 	versionslice "github.com/donvargax/itos/v8/internal/slices/version"
 	trees "github.com/donvargax/itos/v8/internal/store/tree/adapter"
+	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
 	"github.com/donvargax/itos/v8/internal/version"
 )
 
@@ -198,7 +199,7 @@ func commit(args []string, o Out) (int, error) {
 }
 
 func verify(args []string, o Out) (int, error) {
-	if len(args) == 0 && config.IsStealth(configPath()) {
+	if len(args) == 0 && config.IsStealth(vcs.Git{}, configPath()) {
 		return verifyRange(git.Unpushed, "HEAD", o)
 	}
 	if len(args) < 2 {
@@ -283,7 +284,7 @@ func ciCommand(args []string, o Out) (int, error) {
 	switch sub {
 	case "plan":
 		whole := slices.Contains(rest, "--whole")
-		if !nightly && !whole && len(range_) == 0 && config.IsStealth(configPath()) {
+		if !nightly && !whole && len(range_) == 0 && config.IsStealth(vcs.Git{}, configPath()) {
 			from, to = git.Unpushed, "HEAD"
 		}
 		if !nightly && !whole && to == "" {
@@ -387,12 +388,12 @@ func (versionPorts) Satisfies(_ context.Context, v, r string) bool {
 // configPath is the config's path, as the working tree has it: every
 // command but the commit-msg hook, which reads the index, reads its data
 // from the working tree (ADR-0053).
-func configPath() string { return config.Path(trees.Worktree) }
+func configPath() string { return config.Path(vcs.Git{}, trees.Worktree) }
 
 // loadConfigFile is the config at file, it and its data read from the
 // working tree.
 func loadConfigFile(file string) (*config.Loaded, error) {
-	return config.Load(trees.Trees{}, trees.Worktree, file)
+	return config.Load(vcs.Git{}, trees.Trees{}, trees.Worktree, file)
 }
 
 // loadConfig is the config at its path, read from the working tree.

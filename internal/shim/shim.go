@@ -13,6 +13,7 @@ import (
 	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/git"
 	"github.com/donvargax/itos/v8/internal/launch"
+	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
 	"github.com/donvargax/itos/v8/internal/version"
 )
 
@@ -55,11 +56,11 @@ func Main(args []string, stderr io.Writer) (itos []string, code int, done bool) 
 	if line, ok := parse(args); ok && !under && !namedRepository() {
 		switch {
 		case slices.Contains(Staging, line.name):
-			if arg, what := sweeping(line.dir, line.rest); arg != "" && config.Managed(line.dir) {
+			if arg, what := sweeping(line.dir, line.rest); arg != "" && config.Managed(vcs.Git{}, line.dir) {
 				fmt.Fprintln(stderr, refuseAdd(line.name, arg, what))
 				return nil, 2, true
 			}
-		case itosCommand(line.name) && config.Managed(line.dir):
+		case itosCommand(line.name) && config.Managed(vcs.Git{}, line.dir):
 			back, err := line.enter()
 			if err != nil {
 				fmt.Fprintf(stderr, "itos: git -C %s: %s\n", line.dir, err)

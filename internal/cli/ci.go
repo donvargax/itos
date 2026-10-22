@@ -62,11 +62,11 @@ func ciRun(from, to string, nightly, tests bool, o Out) (int, error) {
 // that commit. Under a stealth config `ci plan` with no range plans the
 // commits of HEAD on no remote branch (from git.Unpushed, slice 34).
 func ciPlan(from, to string, nightly bool, dataAt string, o Out) (int, error) {
-	_, p, err := planOf(from, to, nightly, dataAt)
+	cfg, p, err := planOf(from, to, nightly, dataAt)
 	if err != nil {
 		return 0, err
 	}
-	r := plan.RangeOf(from, to, nightly)
+	r := plan.RangeOf(cfg.VCS, from, to, nightly)
 	if o.JSON {
 		return 0, out.Emit(o.Stdout, p.Fields(r)...)
 	}
@@ -103,7 +103,7 @@ func ciRange(head, base string, o Out) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	from := providers.RangeStart(head, base, providers.RangeProvider(cfg, os.Getenv), cfg.Since())
+	from := providers.RangeStart(cfg.VCS, head, base, providers.RangeProvider(cfg, os.Getenv), cfg.Since())
 	if o.JSON {
 		return 0, out.Emit(o.Stdout, out.Field{Key: "from", Value: from})
 	}

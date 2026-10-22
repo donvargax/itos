@@ -11,69 +11,44 @@ package config
 // (internal/cli), and the launcher reads the pin there (internal/launch).
 
 import (
+	"context"
 	"os"
 	"path/filepath"
-	"strings"
-	"sync"
 
-	"github.com/donvargax/itos/v8/internal/git"
-)
-
-var (
-	topMu sync.Mutex
-	tops  = map[string]string{}
+	vcs "github.com/donvargax/itos/v8/internal/vcs/port"
 )
 
 // Top is the repository's top level when a run in the folder dir ("" for
 // the current one) reads its config from there: no ITOS_CONFIG, no itos.yaml
 // in dir, dir below the top of a repository that has an itos.yaml at its top
-// or a stealth config. "" when the run stays where it is. Asked once per
-// folder and run, so the launcher and the command line ask git once.
-func Top(dir string) string {
+// or a stealth config. "" when the run stays where it is. v locates the
+// repository, once per folder and run, so the launcher and the command line
+// ask git once.
+func Top(v vcs.VCS, dir string) string {
 	if os.Getenv("ITOS_CONFIG") != "" {
 		return ""
 	}
 	if _, err := os.Stat(in(dir, fileName)); err == nil {
 		return ""
 	}
-	key := dir
-	if cwd, err := os.Getwd(); err == nil {
-		key = cwd + "\x00" + dir
-	}
-	topMu.Lock()
-	defer topMu.Unlock()
-	if top, ok := tops[key]; ok {
-		return top
-	}
-	top := findTop(dir)
-	tops[key] = top
-	return top
+	return findTop(v, dir)
 }
 
-// findTop asks git for the top level and the common dir in one run; inside
-// the git folder, where there is no top level, the run stays where it is.
-func findTop(dir string) string {
-	args := []string{"rev-parse", "--show-toplevel", "--git-common-dir"}
-	if dir != "" {
-		args = append([]string{"-C", dir}, args...)
-	}
-	out, err := git.Output(args...)
-	if err != nil {
+// findTop is the top v locates with the common dir; inside the git folder,
+// where there is no top level, the run stays where it is.
+func findTop(v vcs.VCS, dir string) string {
+	l, err := v.Locate(context.Background(), dir)
+	if err != nil || l.Top == "" {
 		return ""
 	}
-	lines := strings.Split(strings.TrimSpace(out), "\n")
-	if len(lines) != 2 || lines[0] == "" {
+	if same(l.Top, in(dir, ".")) {
 		return ""
 	}
-	top, common := lines[0], lines[1]
-	if same(top, in(dir, ".")) {
-		return ""
+	if _, err := os.Stat(filepath.Join(l.Top, fileName)); err == nil {
+		return l.Top
 	}
-	if _, err := os.Stat(filepath.Join(top, fileName)); err == nil {
-		return top
-	}
-	if _, err := os.Stat(in(dir, filepath.Join(common, StealthFolder, fileName))); err == nil {
-		return top
+	if _, err := os.Stat(in(dir, filepath.Join(l.Common, StealthFolder, fileName))); err == nil {
+		return l.Top
 	}
 	return ""
 }

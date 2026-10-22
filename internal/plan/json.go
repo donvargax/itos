@@ -1,13 +1,13 @@
 package plan
 
 import (
+	"context"
 	"fmt"
 	"io"
-	"strings"
 
 	"github.com/donvargax/itos/v8/internal/check"
-	"github.com/donvargax/itos/v8/internal/git"
 	"github.com/donvargax/itos/v8/internal/out"
+	vcs "github.com/donvargax/itos/v8/internal/vcs/port"
 )
 
 // The plan as JSON, which `ci plan --json` prints (ci-plan-json.ts): the
@@ -26,24 +26,24 @@ type Range struct {
 	Nightly  bool   `json:"nightly"`
 }
 
-// fullSHA is a commit's full SHA, or what was given when git cannot resolve
-// it: git.Unpushed, the start of the unpushed commits, as itself.
-func fullSHA(ref string) string {
-	if ref == "" || ref == git.Unpushed {
+// fullSHA is a commit's full SHA, or what was given when v cannot resolve
+// it: vcs.Unpushed, the start of the unpushed commits, as itself.
+func fullSHA(v vcs.VCS, ref string) string {
+	if ref == "" || ref == vcs.Unpushed {
 		return ref
 	}
-	sha, err := git.Output("rev-parse", "--verify", "--quiet", ref+"^{commit}")
-	if sha = strings.TrimSpace(sha); err != nil || sha == "" {
+	sha, err := v.Resolve(context.Background(), ref)
+	if err != nil {
 		return ref
 	}
 	return sha
 }
 
-// RangeOf is a range as the JSON gives it: its ends as full SHAs where git
+// RangeOf is a range as the JSON gives it: its ends as full SHAs where v
 // resolves them, whether it can be read (never for the nightly), and
 // whether it is the nightly.
-func RangeOf(from, to string, nightly bool) Range {
-	return Range{fullSHA(from), fullSHA(to), !nightly && Readable(from, to), nightly}
+func RangeOf(v vcs.VCS, from, to string, nightly bool) Range {
+	return Range{fullSHA(v, from), fullSHA(v, to), !nightly && Readable(v, from, to), nightly}
 }
 
 type checkJSON struct {

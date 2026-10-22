@@ -14,6 +14,7 @@ package cli
 // footers are its itos note's (message/notes.go).
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"strings"
@@ -70,7 +71,7 @@ func (v *verifier) commit(sha string) (verified, error) {
 		return verified{}, err
 	}
 	header, _, _ := strings.Cut(text, "\n")
-	parents, err := git.Parents(sha)
+	parents, err := v.cfg.VCS.Parents(context.Background(), sha)
 	if err != nil {
 		return verified{}, err
 	}
@@ -265,7 +266,7 @@ func (v *verifier) over(from, to string) (verifyRun, error) {
 	if run.since != "" {
 		fmt.Fprintf(v.log, "Not checked: %s (commits.since) and its ancestors\n", short(run.since))
 	}
-	commits, err := git.Lines(append([]string{"rev-list", "--reverse"}, v.cfg.RangeArgs(from, to)...)...)
+	commits, err := v.cfg.VCS.Commits(context.Background(), v.cfg.Range(from, to))
 	if err != nil {
 		return run, err
 	}

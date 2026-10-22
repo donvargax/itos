@@ -107,7 +107,7 @@ What every command meets:
   footer's `source`, never its key), feature files (the Gherkin adapter), the
   config (`config.Load`), a commit's type (`message.Type`), a run of named
   tests (`tests.CommandFor`).
-- **Every git is the real git**, `git.Bin()`. Paths are read NUL-separated,
+- **Every git is the real git**, `git.Bin()`, via `internal/vcs`. Paths are read NUL-separated,
   changes with `--no-renames` and no type filtered out, so the hook, verify
   and the plan agree on what a commit touches; a merge is judged by its own
   changes.

@@ -45,6 +45,7 @@ import (
 	trees "github.com/donvargax/itos/v8/internal/store/tree/adapter"
 	"github.com/donvargax/itos/v8/internal/tests"
 	"github.com/donvargax/itos/v8/internal/value"
+	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
 	"github.com/donvargax/itos/v8/internal/version"
 )
 
@@ -103,11 +104,11 @@ func initCommand(args []string, o Out) (int, error) {
 		// A stealth config is for a clone that cannot change the project:
 		// where the project has its own, --stealth would only copy what it
 		// commits into files that go stale unreported (bug 43).
-		if stealth && !config.IsStealth(file) {
+		if stealth && !config.IsStealth(vcs.Git{}, file) {
 			return 0, usage("--stealth writes a config in the git folder for a clone that cannot change the project, "+
 				"but this one has its own %s; run init without --stealth", file)
 		}
-		stealth = stealth || config.IsStealth(file)
+		stealth = stealth || config.IsStealth(vcs.Git{}, file)
 		if stealth && plugin.scope == "project" {
 			return 0, pluginRefused()
 		}
@@ -217,7 +218,7 @@ func initWrite(stealth, initialized bool, offer pluginOffer, shimOffer shimOffer
 	// footer is required of no type, and the config written says so.
 	smoke, smokeIDs := "", 0
 	if s.scenarios {
-		cfg, err := config.FromText(trees.Trees{}, trees.Worktree, file, s.config(), stealth)
+		cfg, err := config.FromText(vcs.Git{}, trees.Trees{}, trees.Worktree, file, s.config(), stealth)
 		if exists(file) {
 			cfg, err = loadConfigFile(file)
 		}

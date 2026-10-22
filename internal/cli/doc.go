@@ -76,7 +76,7 @@
 // commit and itos push's git in it, so pathspecs and an -F file mean what
 // they meant. Under --root nothing is translated. Under a stealth config
 // verify and ci plan with no range take the unpushed commits (git.Unpushed):
-// commands.go asks config.IsStealth(configPath()) before the usage error,
+// commands.go asks config.IsStealth of configPath() before the usage error,
 // so a project's is unchanged and needs no config load.
 //
 // # Commands the launcher leaves to this binary
@@ -443,7 +443,7 @@
 // # verify
 //
 // verify (verify.go) takes the range's commits from git rev-list --reverse
-// over cfg.RangeArgs(from, to) (commits.since and its ancestors left out),
+// over cfg.Range(from, to) (commits.since and its ancestors left out),
 // each one's message through message.Check at that commit (the delegate's
 // report on stdout, stderr under --json), then, only when the message holds,
 // its paths (git.CommitPaths, or a merge's own, git.OwnPaths) through scope

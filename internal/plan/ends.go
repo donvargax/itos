@@ -29,7 +29,7 @@ func EndsOf(cfg *config.Loaded, from, to string) Ends {
 	if config.NewBranch(start) {
 		start = ""
 	}
-	return Ends{fullSHA(start), fullSHA(to)}
+	return Ends{fullSHA(cfg.VCS, start), fullSHA(cfg.VCS, to)}
 }
 
 // fill fills the ends into the plan's steps, and into the step a covered

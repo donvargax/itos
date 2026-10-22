@@ -12,6 +12,7 @@ import (
 	"github.com/donvargax/itos/v8/internal/kind"
 	"github.com/donvargax/itos/v8/internal/out"
 	"github.com/donvargax/itos/v8/internal/tests"
+	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
 )
 
 // Globals are the global flags, read out of the arguments up to a "--".
@@ -200,7 +201,7 @@ func applyGlobals(g Globals) (origin string, err error) {
 		if err := os.Chdir(g.Root); err != nil {
 			return "", kind.Wrap(kind.Usage, fmt.Errorf("--root %s: %w", g.Root, err))
 		}
-	} else if top := config.Top(""); top != "" {
+	} else if top := config.Top(vcs.Git{}, ""); top != "" {
 		if origin, err = moveTo(top); err != nil {
 			return "", err
 		}

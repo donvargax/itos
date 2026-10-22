@@ -1,10 +1,13 @@
 package plan
 
 import (
+	"context"
+
 	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/git"
 	"github.com/donvargax/itos/v8/internal/glob"
 	"github.com/donvargax/itos/v8/internal/message"
+	vcs "github.com/donvargax/itos/v8/internal/vcs/port"
 )
 
 // What a pushed range is (ci-scope.ts): the files it touched, whether it can
@@ -36,11 +39,10 @@ func Changed(from, to string) []string {
 	return paths
 }
 
-// Readable is whether git can read a range at all (`git rev-list --quiet
-// from..to`, or to --not --remotes for the unpushed commits); not with no
-// start or end.
-func Readable(from, to string) bool {
-	return from != "" && to != "" && git.Succeeds(append([]string{"rev-list", "--quiet"}, git.Revs(from, to)...)...)
+// Readable is whether v can read a range at all (from..to, or the unpushed
+// commits of to); not with no start or end.
+func Readable(v vcs.VCS, from, to string) bool {
+	return from != "" && to != "" && v.Readable(context.Background(), vcs.Range{From: from, To: to})
 }
 
 // DocsOnly is whether every path is prose (ci.prose.paths), and there is at

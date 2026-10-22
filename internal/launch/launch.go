@@ -19,6 +19,7 @@ import (
 	"github.com/donvargax/itos/v8/internal/kind"
 	"github.com/donvargax/itos/v8/internal/release"
 	"github.com/donvargax/itos/v8/internal/value"
+	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
 	"github.com/donvargax/itos/v8/internal/version"
 )
 
@@ -285,13 +286,13 @@ func readConfig(args []string) foundConfig {
 	g := cli.Parse(args)
 	root := g.Root
 	if g.Config == "" && root == "" {
-		root = config.Top("")
+		root = config.Top(vcs.Git{}, "")
 	}
 	file := g.Config
 	if file == "" {
-		file = config.Locate(root)
+		file = config.Locate(vcs.Git{}, root)
 	}
-	stealth := config.IsStealthIn(root, file)
+	stealth := config.IsStealthIn(vcs.Git{}, root, file)
 	if !filepath.IsAbs(file) && root != "" {
 		file = filepath.Join(root, file)
 	}

@@ -58,6 +58,7 @@ import (
 	trees "github.com/donvargax/itos/v8/internal/store/tree/adapter"
 	"github.com/donvargax/itos/v8/internal/tests"
 	"github.com/donvargax/itos/v8/internal/value"
+	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
 )
 
 // The adoption task init --policy writes in a project, its type and its
@@ -176,7 +177,7 @@ func policyPlanned(policy string, stealth bool, origin string) (policyPlan, *pol
 		return plan, nil, &config.Error{File: policy, Problems: []out.Problem{{Rule: "config-unreadable",
 			Message: "cannot be read: " + err.Error(), Fix: "name the itos config whose policy the project takes"}}}
 	}
-	src, err := config.FromText(trees.Trees{}, trees.Worktree, policy, string(text), false)
+	src, err := config.FromText(vcs.Git{}, trees.Trees{}, trees.Worktree, policy, string(text), false)
 	if err != nil {
 		return plan, nil, err
 	}
@@ -325,7 +326,7 @@ func policyConfig(policy, text string, src *config.Loaded, plan policyPlan) (*co
 	for _, section := range tail {
 		made += nl + strings.ReplaceAll(section, "\n", nl)
 	}
-	cfg, err := config.FromText(trees.Trees{}, trees.Worktree, plan.file, made, plan.stealth)
+	cfg, err := config.FromText(vcs.Git{}, trees.Trees{}, trees.Worktree, plan.file, made, plan.stealth)
 	return cfg, made, err
 }
 

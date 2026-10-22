@@ -42,6 +42,8 @@ import (
 	"github.com/donvargax/itos/v8/internal/store/tree/port"
 	"github.com/donvargax/itos/v8/internal/tests"
 	"github.com/donvargax/itos/v8/internal/value"
+	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
+	vcsport "github.com/donvargax/itos/v8/internal/vcs/port"
 	"github.com/donvargax/itos/v8/internal/work"
 )
 
@@ -68,7 +70,7 @@ func judgedBase() string {
 	if !amending() {
 		return ""
 	}
-	return git.Parent("HEAD")
+	return vcs.Git{}.Parent(context.Background(), "HEAD")
 }
 
 // hookCommitMsg is `hook commit-msg <file>` (hooks.ts's hookCommitMsg).
@@ -132,7 +134,7 @@ func stagedMerge() (*judged, error) {
 		parents = append([]string{strings.TrimSpace(head)}, heads...)
 	} else if amending() {
 		var err error
-		if parents, err = git.Parents("HEAD"); err != nil {
+		if parents, err = (vcs.Git{}).Parents(context.Background(), "HEAD"); err != nil {
 			return nil, err
 		}
 	}
@@ -196,11 +198,11 @@ func stagesData(src port.Source, staged []string) bool {
 	for _, f := range staged {
 		files[path.Clean(f)] = true
 	}
-	file := config.Path(src)
+	file := config.Path(vcs.Git{}, src)
 	if files[path.Clean(file)] {
 		return true
 	}
-	cfg, err := config.Load(trees.Trees{}, src, file)
+	cfg, err := config.Load(vcs.Git{}, trees.Trees{}, src, file)
 	if err != nil {
 		return false
 	}
@@ -264,7 +266,7 @@ func stagedDataIssues(base string, ws *tests.Warnings) ([]out.Problem, string, e
 		return nil, "", nil
 	}
 	header := "Commit rejected:"
-	if cfg, err := config.Load(trees.Trees{}, index, config.Path(index)); err == nil {
+	if cfg, err := config.Load(vcs.Git{}, trees.Trees{}, index, config.Path(vcs.Git{}, index)); err == nil {
 		header = cfg.Commits.RejectMessage
 	}
 	return found, header, nil
@@ -279,7 +281,7 @@ func stagedDataIssues(base string, ws *tests.Warnings) ([]out.Problem, string, e
 // the index lacks is config check's to report, and a config that does not
 // load the hook's other rules'.
 func stagedSmokeIssues(index port.Source, staged []string, base string, ws *tests.Warnings) []out.Problem {
-	cfg, err := config.Load(trees.Trees{}, index, config.Path(index))
+	cfg, err := config.Load(vcs.Git{}, trees.Trees{}, index, config.Path(vcs.Git{}, index))
 	if err != nil {
 		return nil
 	}
@@ -483,7 +485,7 @@ func stagedTasks(ids []string) ([]namedTask, error) {
 	if err != nil {
 		return nil, err
 	}
-	cfg, err := config.Load(trees.Trees{}, index, config.Path(index))
+	cfg, err := config.Load(vcs.Git{}, trees.Trees{}, index, config.Path(vcs.Git{}, index))
 	if err != nil {
 		return nil, nil
 	}
@@ -795,8 +797,8 @@ func fixAdvice(first string) string {
 	if first == "" {
 		return "The push is refused: fix what the range checks above report, then push again.\n"
 	}
-	base := git.Parent(first)
-	if base == git.EmptyTree {
+	base := vcs.Git{}.Parent(context.Background(), first)
+	if base == vcsport.EmptyTree {
 		base = "--root"
 	} else {
 		base = short(base)

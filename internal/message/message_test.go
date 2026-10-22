@@ -11,6 +11,7 @@ import (
 	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/store/tree/adapter"
 	"github.com/donvargax/itos/v8/internal/store/tree/port/porttest"
+	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
 )
 
 // A footer's IDs over several lines, split at whitespace and commas, the
@@ -163,7 +164,7 @@ func load(t *testing.T, text string) *config.Loaded {
 	if err := os.WriteFile(file, []byte(text), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	cfg, err := config.Load(adapter.Trees{}, adapter.Worktree, file)
+	cfg, err := config.Load(vcs.Git{}, adapter.Trees{}, adapter.Worktree, file)
 	if err != nil {
 		t.Fatal(err)
 	}

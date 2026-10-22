@@ -10,6 +10,7 @@ import (
 	"github.com/donvargax/itos/v8/internal/out"
 	"github.com/donvargax/itos/v8/internal/store/tree/port"
 	"github.com/donvargax/itos/v8/internal/value"
+	vcs "github.com/donvargax/itos/v8/internal/vcs/port"
 )
 
 // Error is a config that cannot be used: exit 2, each problem printed as
@@ -47,6 +48,9 @@ type Loaded struct {
 	// commit-msg hook (ADR-0053).
 	Trees  port.Trees
 	Source port.Source
+	// VCS is the repository itos runs in: it locates the stealth config and
+	// reads commits.since's commits and ranges.
+	VCS vcs.VCS
 	// file is the file as written, its $sets expanded; tree is it laid over
 	// the defaults, as the typed config is decoded from.
 	file    *value.Map
@@ -123,17 +127,18 @@ func configText(trees port.Trees, src port.Source, file string) (string, error) 
 }
 
 // Load reads, validates and lays over the defaults the config at file, read
-// from src, the tree its data is then read from; trees opens the others.
-func Load(trees port.Trees, src port.Source, file string) (*Loaded, error) {
+// from src, the tree its data is then read from; trees opens the others and
+// v is the repository.
+func Load(v vcs.VCS, trees port.Trees, src port.Source, file string) (*Loaded, error) {
 	text, err := configText(trees, src, file)
 	if err != nil {
 		return nil, unreadable(file, err)
 	}
-	loaded, err := fromText(file, text, IsStealth)
+	loaded, err := fromText(file, text, func(file string) bool { return IsStealth(v, file) })
 	if err != nil {
 		return nil, err
 	}
-	loaded.Trees, loaded.Source = trees, src
+	loaded.Trees, loaded.Source, loaded.VCS = trees, src, v
 	return loaded, nil
 }
 
@@ -149,12 +154,12 @@ func (l *Loaded) DataFrom(src port.Source) *Loaded {
 // the stealth one or not as stealth says: itos init --policy (slice 108)
 // validates a policy, and the config it makes of it, before it writes any.
 // Its data is read from src.
-func FromText(trees port.Trees, src port.Source, file, text string, stealth bool) (*Loaded, error) {
+func FromText(v vcs.VCS, trees port.Trees, src port.Source, file, text string, stealth bool) (*Loaded, error) {
 	loaded, err := fromText(file, text, func(string) bool { return stealth })
 	if err != nil {
 		return nil, err
 	}
-	loaded.Trees, loaded.Source = trees, src
+	loaded.Trees, loaded.Source, loaded.VCS = trees, src, v
 	return loaded, nil
 }
 

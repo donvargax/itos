@@ -14,9 +14,12 @@
 // else itos.yaml in the folder itos runs in, else the stealth config. --root
 // changes that folder first, and so does a run from a subfolder (top.go):
 // with no --config, no ITOS_CONFIG, no --root and no itos.yaml in the
-// folder, Top asks git rev-parse --show-toplevel --git-common-dir once per
-// folder and run (so the launcher and the command line ask once between
-// them) and gives the top level when it is not the folder itself and holds
+// folder, Top locates the repository through the VCS port
+// (internal/vcs/port, which asks git once per folder and run, so the
+// launcher and the command line ask once between them; every locating
+// function takes the VCS as a value, and Load keeps it on Loaded, which
+// reads commits.since's commits and ranges through it) and gives the top
+// level when it is not the folder itself and holds
 // an itos.yaml or the stealth config; inside the git folder and outside a
 // repository it gives nothing. The command line then moves there before any
 // command, as --root <top> would, and reads the paths the person typed from
@@ -44,11 +47,10 @@
 //
 // Managed (managed.go) is the same question asked by file checks alone, for
 // the git shim and the guard, which must not start git: ITOS_CONFIG naming a
-// file, else itos.yaml in the folder, else WorkTree's top (the first folder
-// up from the physical one with a .git, a .git file's gitdir: and that
-// gitdir's commondir giving the common dir, and none inside a git folder,
-// told by HEAD, objects and refs) holding itos.yaml, or its common dir the
-// stealth config. Its unit tests hold it to Top and Locate on each layout.
+// file, else itos.yaml in the folder, else the top of the work tree the
+// VCS's Find reads from the files (none inside a git folder) holding
+// itos.yaml, or its common dir the stealth config. Its unit tests hold it
+// to Top and Locate on each layout.
 //
 // # Loading
 //
@@ -119,8 +121,8 @@
 // # Where verification starts
 //
 // commits.since (since.go): verify, and with it the built-in moves rule,
-// lists a range's commits less that commit and its ancestors (RangeArgs,
-// ^<commits.since> put first, since --not turns round what follows), and a
+// lists a range's commits less that commit and its ancestors (Range, the
+// port's vcs.Range with Since set), and a
 // range command's {from} is that commit when the range's own start is empty
 // or older (RangeStart); ci range starts there when its provider gives no
 // start (providers.RangeStart, slice 109). config check and verify fail with exit 2 when the

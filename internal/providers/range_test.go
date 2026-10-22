@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/donvargax/itos/v8/internal/git"
+	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
 )
 
 func success() *string { s := "success"; return &s }
@@ -130,7 +131,7 @@ func TestNearestGreenWalksTheFirstParents(t *testing.T) {
 	defer func(api string) { GitHubAPI = api }(GitHubAPI)
 	GitHubAPI = "http://127.0.0.1:1/not-asked"
 
-	g := GitHub{Repository: "o/r", Token: "t", Workflow: "ci.yml", Branch: "a b&c", API: server.URL + "/"}
+	g := GitHub{Repository: "o/r", Token: "t", Workflow: "ci.yml", Branch: "a b&c", API: server.URL + "/", VCS: vcs.Git{}}
 	if got := g.NearestGreen(shas["c3"]); got != shas["c1"] {
 		t.Fatalf("NearestGreen = %q, want c1 %q; asked %v", got, shas["c1"], s.askedFor())
 	}
@@ -186,14 +187,14 @@ func TestRangeStartFallsBackToSince(t *testing.T) {
 	}
 	for _, c := range cases {
 		asked = 0
-		if got := RangeStart(head, c.base, gives(c.green), c.since); got != c.want {
+		if got := RangeStart(vcs.Git{}, head, c.base, gives(c.green), c.since); got != c.want {
 			t.Errorf("%s: RangeStart = %q, want %q", c.name, got, c.want)
 		}
 		if want := map[bool]int{true: 0, false: 1}[c.base != ""]; asked != want {
 			t.Errorf("%s: the provider was asked %d times, want %d", c.name, asked, want)
 		}
 	}
-	if got := RangeStart("", "", func(string) string { return shas["c1"] }, shas["c0"]); got != "" {
+	if got := RangeStart(vcs.Git{}, "", "", func(string) string { return shas["c1"] }, shas["c0"]); got != "" {
 		t.Errorf("no head: RangeStart = %q, want empty", got)
 	}
 }
@@ -208,7 +209,7 @@ func TestNearestGreenAsksABoundedNumberOfFirstParents(t *testing.T) {
 	defer func(n int) { FirstParentsAsked = n }(FirstParentsAsked)
 	FirstParentsAsked = 2
 
-	g := GitHub{Repository: "o/r", Token: "t", Workflow: "ci.yml", Branch: "main", API: server.URL}
+	g := GitHub{Repository: "o/r", Token: "t", Workflow: "ci.yml", Branch: "main", API: server.URL, VCS: vcs.Git{}}
 	if got := g.NearestGreen(shas["c3"]); got != "" || len(s.asked) != 2 {
 		t.Fatalf("NearestGreen = %q after %v, want none after two", got, s.askedFor())
 	}
@@ -226,7 +227,7 @@ func TestNearestGreenReadsEveryFailureAsNoGreenRun(t *testing.T) {
 	s := &walkServer{}
 	server := httptest.NewServer(s)
 	defer server.Close()
-	g := GitHub{Repository: "o/r", Token: "t", Workflow: "ci.yml", Branch: "main", API: server.URL}
+	g := GitHub{Repository: "o/r", Token: "t", Workflow: "ci.yml", Branch: "main", API: server.URL, VCS: vcs.Git{}}
 	for _, c := range []struct {
 		answer string
 		status int
@@ -248,7 +249,7 @@ func TestNearestGreenReadsEveryFailureAsNoGreenRun(t *testing.T) {
 		t.Errorf("a head the repository does not have: NearestGreen = %q", got)
 	}
 	s.asked = nil
-	if got := (GitHub{Workflow: "ci.yml", Branch: "main", API: server.URL}).NearestGreen(shas["c3"]); got != "" || s.asked != nil {
+	if got := (GitHub{Workflow: "ci.yml", Branch: "main", API: server.URL, VCS: vcs.Git{}}).NearestGreen(shas["c3"]); got != "" || s.asked != nil {
 		t.Errorf("without a repository nobody is asked: %q, %v", got, s.askedFor())
 	}
 }
@@ -261,7 +262,7 @@ func TestLastGreenFromWalksFromTheHeadAndSaysWhatWentWrong(t *testing.T) {
 	s := &walkServer{runs: map[string]string{shas["c3"]: "success", shas["c2"]: "success"}}
 	server := httptest.NewServer(s)
 	defer server.Close()
-	g := GitHub{Repository: "o/r", Token: "t", Workflow: "ci.yml", Branch: "main", API: server.URL}
+	g := GitHub{Repository: "o/r", Token: "t", Workflow: "ci.yml", Branch: "main", API: server.URL, VCS: vcs.Git{}}
 	if sha, err := g.LastGreenFrom(shas["c3"]); sha != shas["c3"] || err != nil {
 		t.Errorf("a green head: LastGreenFrom = %q, %v, want c3", sha, err)
 	}

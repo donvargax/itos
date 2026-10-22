@@ -66,7 +66,7 @@ func For(cfg *config.Loaded, from, to string, d Data) (*Plan, error) {
 	if err != nil {
 		return nil, err
 	}
-	known := Readable(from, to)
+	known := Readable(cfg.VCS, from, to)
 	kind, err := TestsKind(cfg)
 	if err != nil {
 		return nil, err

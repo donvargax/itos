@@ -4,15 +4,17 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
 )
 
 // finds is whether itos run in dir reads a config, as Top and Locate find
 // it, asking git: the answer Managed must give by file checks alone.
 func finds(dir string) bool {
-	if Top(dir) != "" {
+	if Top(vcs.Git{}, dir) != "" {
 		return true
 	}
-	return exists(in(dir, Locate(dir)))
+	return exists(in(dir, Locate(vcs.Git{}, dir)))
 }
 
 // Managed agrees with Top and Locate from the top and from subfolders of a
@@ -81,7 +83,7 @@ func TestManagedAgreesWithTop(t *testing.T) {
 	}
 
 	for _, p := range probes {
-		if got := Managed(p.dir); got != p.want {
+		if got := Managed(vcs.Git{}, p.dir); got != p.want {
 			t.Errorf("%s: Managed = %v, want %v", p.name, got, p.want)
 		}
 		if got := finds(p.dir); got != p.want {
@@ -90,11 +92,11 @@ func TestManagedAgreesWithTop(t *testing.T) {
 	}
 
 	t.Setenv("ITOS_CONFIG", filepath.Join(top, "itos.yaml"))
-	if !Managed(none) {
+	if !Managed(vcs.Git{}, none) {
 		t.Error("ITOS_CONFIG naming a file: not managed")
 	}
 	t.Setenv("ITOS_CONFIG", filepath.Join(none, "missing.yaml"))
-	if Managed(top) {
+	if Managed(vcs.Git{}, top) {
 		t.Error("ITOS_CONFIG naming no file: managed")
 	}
 }
@@ -105,10 +107,10 @@ func TestManagedInsideGitFolder(t *testing.T) {
 	dir := t.TempDir()
 	gitIn(t, dir, "init", "-q")
 	writeFile(t, filepath.Join(dir, "itos.yaml"), "version: 1\n")
-	if _, _, ok := WorkTree(filepath.Join(dir, ".git", "refs")); ok {
+	if _, ok := (vcs.Git{}).Find(t.Context(), filepath.Join(dir, ".git", "refs")); ok {
 		t.Error("a work tree found inside the git folder")
 	}
-	if Managed(filepath.Join(dir, ".git", "refs")) {
+	if Managed(vcs.Git{}, filepath.Join(dir, ".git", "refs")) {
 		t.Error("managed inside the git folder")
 	}
 }

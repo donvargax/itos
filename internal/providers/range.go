@@ -1,6 +1,7 @@
 package providers
 
 import (
+	"context"
 	"fmt"
 	"net/url"
 	"sort"
@@ -8,7 +9,7 @@ import (
 	"time"
 
 	"github.com/donvargax/itos/v8/internal/config"
-	"github.com/donvargax/itos/v8/internal/git"
+	vcs "github.com/donvargax/itos/v8/internal/vcs/port"
 )
 
 // Range is a ci.range provider: the start commit it proposes for a push's
@@ -38,6 +39,7 @@ func RangeProvider(cfg *config.Loaded, env Env) Range {
 		Token:      firstSet(env, r.GitHub.TokenEnv),
 		Workflow:   r.GitHub.Workflow,
 		API:        env(APIEnv),
+		VCS:        cfg.VCS,
 	}.NearestGreen
 }
 
@@ -63,7 +65,7 @@ func firstSet(env Env, names []string) string {
 // provider that fails or provider none would otherwise leave every run with
 // no start, and the steps that need one red. With neither, the start is
 // empty, and empty runs everything.
-func RangeStart(head, base string, provider Range, since string) string {
+func RangeStart(v vcs.VCS, head, base string, provider Range, since string) string {
 	if base != "" {
 		return base
 	}
@@ -71,7 +73,7 @@ func RangeStart(head, base string, provider Range, since string) string {
 		return ""
 	}
 	for _, start := range []string{provider(head), since} {
-		if start != "" && git.Succeeds("merge-base", "--is-ancestor", start, head) {
+		if start != "" && v.IsAncestor(context.Background(), start, head) {
 			return start
 		}
 	}
@@ -100,9 +102,11 @@ var Timeout = time.Minute
 // GitHub is the github provider's question: the workflow's runs of a
 // repository ("owner/name"), on Branch where a look names one (the nightly's),
 // asked with a token when there is one, of the API at API, else at GitHubAPI.
+// VCS lists the first parents a walk asks about.
 type GitHub struct {
 	Repository, Token, Workflow, Branch string
 	API                                 string
+	VCS                                 vcs.VCS
 }
 
 // api is the address the provider asks, with no slash at its end.
@@ -149,8 +153,7 @@ func (g GitHub) LastGreenFrom(head string) (string, error) {
 // asked about, nearest first; the first with a green run, "" when none has
 // one, and an error when they cannot be listed or one cannot be asked about.
 func (g GitHub) greenFirstParent(from string, skip int) (string, error) {
-	parents, err := git.Lines("rev-list", "--first-parent", fmt.Sprintf("--skip=%d", skip),
-		fmt.Sprintf("--max-count=%d", FirstParentsAsked), from, "--")
+	parents, err := g.VCS.FirstParents(context.Background(), from, skip, FirstParentsAsked)
 	if err != nil {
 		return "", fmt.Errorf("the first parents of %s cannot be listed: %w", from, err)
 	}
