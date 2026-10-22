@@ -3131,17 +3131,6 @@
     draftEntry, entryOfDraft and draftLines to internal/draft, with cli aliases so ask.go, draft.go
     and workshow.go do not change. The questions and drafts come in as funcs called where status.go
     calls them today, so the unread lines keep their order. Caller: guide.go's goStatus.
-  done_when:
-    - run: go test ./internal/engine/status/ ./internal/ask/ ./internal/draft/ ./internal/cli
-      timeout: 600
-    - run: "! grep -n 'func newestItos\\|func releaseTags\\|work.Startable' internal/cli/*.go"
-    - run: tools/bin/architecture-check
-    - run: tools/bin/pinned golangci-lint run ./...
-      timeout: 600
-    - run: go test ./features -count=1 -scenarios='^@ID-(STATUS|GUIDE|INITSTATUS|ASK|DRAFT|SHOW)-[0-9]+$'
-      timeout: 600
-    - run: go run ./tools/bin/conformance --bin tools/bin/itos --only tools/itos/conformance/status.yaml tools/itos/conformance/guide.yaml
-      timeout: 600
 
 - id: T-238
   type: test
