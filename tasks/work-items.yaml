@@ -11899,3 +11899,17 @@ items:
       decision (the person's), leaves the grant where the next reader of the item's commits looks.
       Waits on the parallel pilot, where the need shows.
     tags: [work]
+
+  - id: p1-work-done-wip-examples
+    title: work done refuses or names a closing slice's Examples blocks still tagged @wip
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      From #111. A slice closed while a tagged Examples block under its live outline kept @wip (rows
+      waiting on a harness change), and the close said nothing: the closing check seems to read
+      scenario-level tags only. Refuse, or name the example-level @wip blocks the close leaves.
+    refs: [internal/tests/gherkin.go, features/work.feature]
+    tags: [work]
