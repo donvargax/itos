@@ -10,8 +10,6 @@ import (
 	"strings"
 	"testing"
 
-	vcsgit "github.com/donvargax/itos/v8/internal/vcs/adapter"
-
 	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/git"
 	"github.com/donvargax/itos/v8/internal/release"
@@ -350,7 +348,7 @@ func TestPolicyInitPinsTheNewestRelease(t *testing.T) {
 // kept; the sections init adds follow it in its line endings.
 func TestPolicyConfigKeepsTheTextsLineEndings(t *testing.T) {
 	text := "version: 1\r\nhooks: { bin: itos }"
-	src, err := config.FromText(vcs.Git{}, trees.Trees{VCS: vcsgit.Git{}}, trees.Worktree, "p.yaml", text, false)
+	src, err := config.FromText(vcs.Git{}, trees.Trees{VCS: vcs.Git{}}, trees.Worktree, "p.yaml", text, false)
 	if err != nil {
 		t.Fatal(err)
 	}

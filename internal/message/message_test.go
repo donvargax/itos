@@ -8,8 +8,6 @@ import (
 	"strings"
 	"testing"
 
-	vcsgit "github.com/donvargax/itos/v8/internal/vcs/adapter"
-
 	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/store/tree/adapter"
 	"github.com/donvargax/itos/v8/internal/store/tree/port/porttest"
@@ -30,7 +28,7 @@ func TestGatheredReadsTheVCS(t *testing.T) {
 		{Name: "c-b", Parents: []string{"c-a"}, Message: "fix: b\n\nUpgrading: none\n; Upgrading: a comment\n"},
 		{Name: "c-m", Parents: []string{"c-b", "c-a"}, Message: "Merge\n\nUpgrading: merged\n"},
 	}}
-	cfg, err := config.Load(v, adapter.Trees{VCS: vcsgit.Git{}}, adapter.Worktree, file)
+	cfg, err := config.Load(v, adapter.Trees{VCS: vcs.Git{}}, adapter.Worktree, file)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -193,7 +191,7 @@ func load(t *testing.T, text string) *config.Loaded {
 	if err := os.WriteFile(file, []byte(text), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	cfg, err := config.Load(vcs.Git{}, adapter.Trees{VCS: vcsgit.Git{}}, adapter.Worktree, file)
+	cfg, err := config.Load(vcs.Git{}, adapter.Trees{VCS: vcs.Git{}}, adapter.Worktree, file)
 	if err != nil {
 		t.Fatal(err)
 	}

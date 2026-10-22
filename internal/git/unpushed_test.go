@@ -13,6 +13,18 @@ import (
 // here runs the real git of the OS the tests run on.
 var here = Runner{Platform: runtime.GOOS}
 
+// A path git printed is from the folder it ran in, unless it is absolute.
+func TestRunnerIn(t *testing.T) {
+	abs := filepath.Join(t.TempDir(), "x")
+	r := Runner{Dir: "dir"}
+	if got := r.in(abs + "\n"); got != abs {
+		t.Errorf("in(%s) = %q", abs, got)
+	}
+	if got := r.in(".git/MERGE_HEAD\n"); got != filepath.Join("dir", ".git", "MERGE_HEAD") {
+		t.Errorf("in(.git/MERGE_HEAD) = %q", got)
+	}
+}
+
 // gitIn is git's output in dir, away from the repository a hook runs the
 // tests in.
 func gitIn(t *testing.T, dir string, args ...string) string {

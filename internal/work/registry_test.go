@@ -4,8 +4,6 @@ import (
 	"os"
 	"testing"
 
-	vcsgit "github.com/donvargax/itos/v8/internal/vcs/adapter"
-
 	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/providers"
 	"github.com/donvargax/itos/v8/internal/store/tree/adapter"
@@ -26,7 +24,7 @@ func TestRegistryWithoutPeople(t *testing.T) {
 	}
 	write("itos.yaml", "version: 1\nwork: { registry: work-items.yaml, people: { source: yaml, file: people.yaml } }\n")
 	write("work-items.yaml", "phases: { 1: z }\nitems:\n  - { id: x, title: X, phase: 1, owner: q, status: todo }\n")
-	cfg, err := config.Load(vcs.Git{}, adapter.Trees{VCS: vcsgit.Git{}}, adapter.Worktree, "itos.yaml")
+	cfg, err := config.Load(vcs.Git{}, adapter.Trees{VCS: vcs.Git{}}, adapter.Worktree, "itos.yaml")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -98,7 +96,7 @@ func TestRegistryWithoutItems(t *testing.T) {
 	if err := os.WriteFile("itos.yaml", []byte("version: 1\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	cfg, err := config.Load(vcs.Git{}, adapter.Trees{VCS: vcsgit.Git{}}, adapter.Worktree, "itos.yaml")
+	cfg, err := config.Load(vcs.Git{}, adapter.Trees{VCS: vcs.Git{}}, adapter.Worktree, "itos.yaml")
 	if err != nil {
 		t.Fatal(err)
 	}
