@@ -1,13 +1,16 @@
 package cli
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/donvargax/itos/v8/internal/config"
+	"github.com/donvargax/itos/v8/internal/engine/ids"
 	"github.com/donvargax/itos/v8/internal/out"
 	"github.com/donvargax/itos/v8/internal/shell"
 	"github.com/donvargax/itos/v8/internal/tests"
@@ -257,4 +260,76 @@ func smokeRun(name string, args []string, o Out) (int, error) {
 		return ExitPolicy, nil
 	}
 	return result.Code, nil
+}
+
+// testsNextID is `tests next-id <kind> <stem> [--count <n>]`: the kind's
+// next free tag of the stem (tests.NextTag), counting the registry's ids
+// too. Of an area it claims the tag, or n tags in a row, through the id
+// counter (claimTags), each printed; of any other stem it only reads, so
+// --count there is a usage error, as is a count that is no number from 1 up
+// and a kind the config does not have.
+func testsNextID(args []string, o Out) (int, error) {
+	words := positional(args, "--count")
+	if len(words) != 2 {
+		return 0, usage("tests next-id needs <kind> <stem>")
+	}
+	name, stem := words[0], words[1]
+	text, counted := flagValue(args, "--count")
+	count, err := strconv.Atoi(text)
+	if !counted {
+		count, err = 1, nil
+	}
+	if err != nil || count < 1 {
+		return 0, usage("tests next-id --count takes how many ids to claim, a number from 1 up, not %q", text)
+	}
+	cfg, err := loadConfig()
+	if err != nil {
+		return 0, err
+	}
+	k, ok := cfg.Tests.Get(name)
+	if !ok {
+		return 0, usage("tests next-id: the config has no tests kind %s (it has %s)", name, kindNames(cfg))
+	}
+	area := tests.Area(k, stem)
+	if counted && !area {
+		return 0, usage("tests next-id --count claims an area's ids, and %s is no area of tests.%s's id: its next id is only read", stem, name)
+	}
+	others, err := registryIDs(cfg)
+	if err != nil {
+		return 0, err
+	}
+	next, err := tests.NextTag(cfg, name, stem, others)
+	if err != nil {
+		return 0, err
+	}
+	ids := []string{next}
+	if area {
+		if ids, err = claimTags(cfg, stem, next, count, o.OS); err != nil {
+			return 0, err
+		}
+	}
+	if o.JSON {
+		return 0, out.Emit(o.Stdout,
+			out.Field{Key: "kind", Value: name},
+			out.Field{Key: "stem", Value: stem},
+			out.Field{Key: "id", Value: ids[0]},
+			out.Field{Key: "ids", Value: ids},
+			out.Field{Key: "claimed", Value: area})
+	}
+	fmt.Fprintln(o.Stdout, strings.Join(ids, "\n"))
+	return 0, nil
+}
+
+// claimTags claims count numbers of the area stem through the tracker of
+// the config (tracker.go): ids.Claim.
+func claimTags(cfg *config.Loaded, stem, next string, count int, goos string) ([]string, error) {
+	return ids.Claim(context.Background(), tracker(cfg, goos), stem, next, count)
+}
+
+// kindNames are the config's tests kinds, as a usage error lists them.
+func kindNames(cfg *config.Loaded) string {
+	if len(cfg.Tests.Keys) == 0 {
+		return "none"
+	}
+	return strings.Join(cfg.Tests.Keys, ", ")
 }
