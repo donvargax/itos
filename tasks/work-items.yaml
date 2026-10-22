@@ -12467,8 +12467,8 @@ items:
   - id: bug-120
     title: itos commit run where there is no itos config hands the command to git instead of panicking
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: bug
     why: >
