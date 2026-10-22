@@ -12257,8 +12257,8 @@ items:
   - id: T-244
     title: "Slices, prerequisite 2: argument parsing and commit refs as engines, and nextid split between task and tests"
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: [T-242]
     kind: task
 
