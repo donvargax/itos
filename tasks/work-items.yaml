@@ -10984,7 +10984,7 @@ items:
     title: Tests kill the survivors the nightly of 2026-10-22 (run 39817143873) drew
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
 

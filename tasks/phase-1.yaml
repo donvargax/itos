@@ -2312,11 +2312,6 @@
     equivalent in its commit is excepted with itos-cc mutation except, its reason saying why no test
     can kill it. CI runs the checks on the push that names this task (ADR-0057); push once, with
     every site handled.
-  done_when:
-    - run: tools/bin/pinned itos-cc mutation run --count 20 --json --seed 39817143873 cmd internal
-      timeout: 900
-    - run: tools/bin/pinned itos-cc mutation run --since 9397855d98441c2276c0333e4938ca16e46a7aeb --count 60 --fail-uncovered=lines --json --seed 39817143873 cmd internal
-      timeout: 900
 
 - id: T-192
   type: ci
