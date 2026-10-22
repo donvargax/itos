@@ -9,10 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/donvargax/itos/v8/internal/config"
-	"github.com/donvargax/itos/v8/internal/message"
 	"github.com/donvargax/itos/v8/internal/providers"
-	"github.com/donvargax/itos/v8/internal/tests"
 )
 
 // The ledger and registry of closeRepo, before work done.
@@ -92,32 +89,6 @@ func TestWorkDoneRefusedKeepsTheChecks(t *testing.T) {
 	}
 	if status := gitIn(t, "status", "--porcelain"); status != "" {
 		t.Errorf("git status reports:\n%s", status)
-	}
-}
-
-// A commit belongs to an item when itos's registry commit names it in its
-// header, or a footer links to it: by its id in a footer of IDs, or by one of
-// its scenarios, tagged or not (linksTo); an id in a footer of tests is a
-// scenario's, never the item's.
-func TestBelongingLinksTheItemsCommits(t *testing.T) {
-	cfg := &config.Loaded{}
-	cfg.Tests = config.Ordered[config.Kind]{Keys: []string{"scenario"}, Values: map[string]config.Kind{"scenario": {TagPrefix: "@"}}}
-	scenarios := []tests.Test{{ID: "@ID-A-01"}, {ID: "ID-A-02"}}
-	history := []message.Logged{
-		{SHA: "1", Header: "docs: take slice-9"},
-		{SHA: "2", Header: "docs: take slice-1"},
-		{SHA: "3", Header: "chore: one", Links: []message.Link{{ID: "slice-9"}}},
-		{SHA: "4", Header: "chore: two", Links: []message.Link{{ID: "slice-1"}}},
-		{SHA: "5", Header: "feat: three", Links: []message.Link{{ID: "ID-A-01", Tests: "scenario"}}},
-		{SHA: "6", Header: "feat: four", Links: []message.Link{{ID: "ID-A-02", Tests: "scenario"}}},
-		{SHA: "7", Header: "feat: five", Links: []message.Link{{ID: "slice-9", Tests: "scenario"}, {ID: "ID-A-09", Tests: "scenario"}}},
-	}
-	var got []string
-	for _, c := range belonging(cfg, "slice-9", scenarios, history) {
-		got = append(got, c.SHA)
-	}
-	if strings.Join(got, " ") != "1 3 5 6" {
-		t.Fatalf("the commits of slice-9 are %v", got)
 	}
 }
 

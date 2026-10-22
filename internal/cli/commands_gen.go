@@ -25,6 +25,7 @@ import (
 	upgradeslice "github.com/donvargax/itos/v8/internal/slices/upgrade"
 	verifyslice "github.com/donvargax/itos/v8/internal/slices/verify"
 	versionslice "github.com/donvargax/itos/v8/internal/slices/version"
+	workslice "github.com/donvargax/itos/v8/internal/slices/work"
 )
 
 // declared is every command's declaration, in Rank order: itos --help's.
@@ -33,7 +34,7 @@ var declared = []declare.Command{
 	guideslice.Command,
 	statusslice.Command,
 	taskslice.Command,
-	workDeclared,
+	workslice.Command,
 	decisionslice.Command,
 	followupslice.Command,
 	draftslice.Command,

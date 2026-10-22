@@ -153,16 +153,11 @@
 //
 // # The registry's commands
 //
-// work, work check and work list (work.go) read the registry through
-// work.Load and work.Issues, never a second reading. work check judges the
-// config's work.registry or a file named after check; a named file that is
-// not there is found before the config is read. work runs that check
-// quietly, its problems on stderr even under --json, then asks work.Whoami,
-// or under a stealth config with no --as nobody (work.ProposeEvery: --json
-// adds every_item: true after a null person). work list is the open items
-// (work.Open), or with --all every item, judged by nothing, so the plugin's
-// titles, which ask --all, keep working through a registry problem; its
-// --json items are the same value.Maps the proposal writes.
+// work is the work slice (internal/slices/work), which reads every
+// subcommand's line and answers the proposal, list, check and show; work.go
+// binds its Ports to loadConfig, the working tree, work.identity's provider
+// and tracker, and calls the subcommands that write the registry, still
+// here, with the arguments after their name.
 //
 // writeRegistry (workwrite.go) is the part every registry command shares:
 // it starts from a sound registry (soundRegistry, the engine's Sound:
@@ -198,7 +193,7 @@
 //     when the id is a task of the ledger; and with ci.watch, the judged
 //     commit's run, by watcher and watchRun. The judged commit is the newest
 //     of the item's own (ownCommit, slice 127): those whose footers link to
-//     it (linksTo, which work show's belonging shares), its registry commits
+//     it (linksTo, as work show's belonging reads them), its registry commits
 //     aside, so a commit no remote has that is not the item's is passed over
 //     and closes chain; any run that covers it and passed judges it
 //     (passedRun: its own, else covering with a conclusion), since a later
@@ -240,17 +235,6 @@
 //     work's *Each writers, refused whole by refuseEach (exit 1, naming every
 //     id refused, --json's refused) or committed once, --json's items in the
 //     order given. work edit --title with several ids exits 2.
-//
-// work show (workshow.go) reads, never writes: the item and the items whose
-// depends_on name it (work.Show), its scenarios at HEAD by tests.Tagged, the
-// questions naming it, and the commits of HEAD's history, non-merge, oldest
-// first, that belong to it, which is itos's knowledge, not git's: a commit
-// belongs when a ledger link (message.History) is the item's id, a tests
-// link is one of its scenarios (with or without the kind's tag_prefix), or
-// its header is one of the registry writers' naming the item
-// (work.RegistryHeader, registryVerbs). The registry is loaded and not
-// judged. --patch hands the commits to git show, its notes the itos ones
-// under a stealth config; --json gives each commit's message and diff.
 //
 // # followup, draft, decision, go and status
 //

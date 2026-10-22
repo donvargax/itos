@@ -1,8 +1,8 @@
-package cli
+package work
 
 import "github.com/donvargax/itos/v8/internal/declare"
 
-var workDeclared = declare.Command{
+var Command = declare.Command{
 	Name: "work",
 	Rank: 50,
 	Lines: `  work [--as <handle>]             what the person can start, and what waits

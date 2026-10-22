@@ -90,7 +90,7 @@ func TestRunFunctionsRefuseWhatTheyCannotRun(t *testing.T) {
 	// reach work only when called itself.
 	for args, want := range map[string]string{
 		"--as":       "work --as needs a handle",
-		"--as=me -x": "work does not take -x: " + workTakes,
+		"--as=me -x": "work does not take -x: it takes list, show, take, promote, done, add, edit, queue, drop, defer, resume, give-back or check, else --as <handle>",
 	} {
 		if _, err := runWork(strings.Fields(args), Out{}); err == nil || err.Error() != want {
 			t.Errorf("work %s: %v", args, err)

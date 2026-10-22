@@ -4,7 +4,7 @@ package work
 // item with the items that wait on it, and which of itos's own registry
 // commits name an item in their headers. The commits a footer links to an
 // item are the footers' (internal/message); the command line puts the two
-// together (internal/cli/workshow.go).
+// together (internal/slices/work).
 
 import (
 	"fmt"
