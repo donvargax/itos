@@ -101,7 +101,7 @@ func remoteContract[C T[C]](t C, open func(t C, l Layout) (port.VCS, string)) {
 			refs, _ := v.RemoteRefs(ctx, "origin", []string{"refs/heads/main"}, port.Talk{})
 			return refs["refs/heads/main"]
 		}
-		if err := v.Push(ctx, "origin", []string{m + ":refs/heads/main"}, port.Pushing{}, port.Talk{}); err != nil || mainOf() != m {
+		if err := v.Push(ctx, "origin", []string{m + ":refs/heads/main"}, port.Pushing{Quiet: true}, port.Talk{}); err != nil || mainOf() != m {
 			t.Errorf("Push(m to main), forward from b: %v, main at %s; want m %s", err, mainOf(), m)
 		}
 		err := v.Push(ctx, "origin", []string{a + ":refs/heads/main"}, port.Pushing{}, port.Talk{})
