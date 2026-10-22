@@ -48,22 +48,6 @@ mutation:
       replacement: "true"
       reason: "Equivalent: timed is read only by checkArg for a --timeout, which refuses while no check is given (len(*checks) == 0) before reading it, and every --check sets it false, so its first value is never seen."
       line_text: timed := false
-    - file: internal/cli/idmint.go
-      function: github.com/donvargax/itos/v8/internal/cli#mintItemID
-      hash: 0717bed008338f9e
-      line_in_function: 17
-      column: 41
-      original: "1"
-      replacement: "0"
-      reason: "Equivalent: mintItemID reads only the number of the ID nextid.Next returns (trailingNumber), and the width changes only how that number is padded, never its value, so the minted ID is the same."
-    - file: internal/cli/idmint.go
-      function: github.com/donvargax/itos/v8/internal/cli#mintItemID
-      hash: 0717bed008338f9e
-      line_in_function: 32
-      column: 11
-      original: "1"
-      replacement: "0"
-      reason: "Equivalent: %0*d writes every number at least one digit wide, so a width of 0 and a width of 1 write the same ID, and every wider ID of the series raises width past both alike."
     - file: internal/value/rename.go
       function: github.com/donvargax/itos/v8/internal/value.Doc#Rename
       hash: ca1ca6e10f511303
@@ -154,3 +138,21 @@ mutation:
       replacement: <=
       reason: 'Equivalent: a line of exactly two words is work add, work promote or task add with no arguments (any other two words are no minting line), which workAddLine, workPromoteLine and taskAddArgs each refuse, so mintedKind returns "" whether it stops here or there.'
       line_text: if g.Help || len(g.Rest) < 2 || !slices.Contains(mintingLines, [2]string{g.Rest[0], g.Rest[1]}) {
+    - file: internal/engine/ids/ids.go
+      function: github.com/donvargax/itos/v8/internal/engine/ids#Mint
+      hash: 4a005cc6f4c92ba9
+      line_in_function: 17
+      column: 41
+      original: "1"
+      replacement: "0"
+      reason: "Equivalent: Mint reads only the number of the ID nextid.Next returns (trailingNumber), and the width changes only how that number is padded, never its value, so the minted ID is the same."
+      line_text: next = nextid.Next(category+"-", ids, 1, nil)
+    - file: internal/engine/ids/ids.go
+      function: github.com/donvargax/itos/v8/internal/engine/ids#Mint
+      hash: 4a005cc6f4c92ba9
+      line_in_function: 32
+      column: 11
+      original: "1"
+      replacement: "0"
+      reason: "Equivalent: %0*d writes every number at least one digit wide, so a width of 0 and a width of 1 write the same ID, and every wider ID of the series raises width past both alike."
+      line_text: width := 1
