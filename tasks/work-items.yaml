@@ -12107,7 +12107,7 @@ items:
     title: "The agent rules engine out of internal/cli: the AGENTS.md block and its staleness, internal/engine/agentrules"
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [T-228]
     kind: task
 

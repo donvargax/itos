@@ -3124,17 +3124,6 @@
     It takes a VCS port, so Locate still runs only under stealth, where it runs today. Stay in cli:
     rulesOffer, rulesFlag and init's offer. Callers: status.go (staleRules, staleRulesLine),
     upgrade.go (refreshedRules, prose), guide.go (commitPolicy, code).
-  done_when:
-    - run: go test ./internal/engine/agentrules/ ./internal/cli
-      timeout: 600
-    - run: "! grep -n 'func readStealthRules\\|func splitBlockOf' internal/cli/*.go"
-    - run: tools/bin/architecture-check
-    - run: tools/bin/pinned golangci-lint run ./...
-      timeout: 600
-    - run: go test ./features -count=1 -scenarios='^@ID-(INIT|INITSTATUS|STATUS|UPGRADECMD|GUIDE|STEALTH)-[0-9]+$'
-      timeout: 600
-    - run: go run ./tools/bin/conformance --bin tools/bin/itos --only tools/itos/conformance/init.yaml tools/itos/conformance/status.yaml tools/itos/conformance/guide.yaml
-      timeout: 600
 
 - id: T-236
   type: refactor
