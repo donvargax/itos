@@ -12687,8 +12687,8 @@ items:
   - id: T-280
     title: The nightly's changed-sites step judges from T-191's head, not the last green nightly of 2026-10-08
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: [T-191]
     kind: task
 
