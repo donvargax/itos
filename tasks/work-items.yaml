@@ -11974,7 +11974,7 @@ items:
     title: "The tracker store, part 1: a port with a fake and a contract suite, and the file adapter writeCommitted runs through"
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
 

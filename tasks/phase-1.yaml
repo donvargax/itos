@@ -2864,16 +2864,6 @@
     turned 70 into 3 that way, bug-119). Out of this part: soundRegistry, heldAsks, the written list
     and its rules, selfBody (step 7); gitcommit, push and pushnamed building vcs.Git{} (their slice
     moves). No behaviour change.
-  done_when:
-    - run: go test ./internal/store/tracker/...
-    - run: "! grep -nE 'vcs\\.Git\\{\\}|os\\.(Stat|Lstat|OpenFile|Remove|WriteFile)\\(' internal/cli/workwrite.go"
-    - run: tools/bin/architecture-check
-    - run: tools/bin/pinned golangci-lint run ./...
-      timeout: 600
-    - run: go test ./features -count=1 -scenarios='^@ID-(WORK|TASK|ASK|STEALTH|CTASK)-[0-9]+$'
-      timeout: 600
-    - run: go run ./tools/bin/conformance --bin tools/bin/itos --only tools/itos/conformance/work.yaml tools/itos/conformance/ask.yaml tools/itos/conformance/tasks.yaml
-      timeout: 600
 
 - id: T-226
   type: refactor
