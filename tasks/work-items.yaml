@@ -12652,3 +12652,17 @@ items:
     status: doing
     depends_on: []
     kind: task
+
+  - id: p1-drop-hook-files-compat
+    title: Remove the hook-file compatibility path once most people's git runs config hooks
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [slice-165]
+    kind: idea
+    why: >
+      ADR-0058 (q-96, the user, 2026-10-22): slice-165's hook files for a git older than 2.54 are
+      kept a few months, until most people's git runs the hooks its config declares, then removed:
+      hook install and Ready go back to the git config alone (ADR-0037), features/old-git.feature's
+      scenarios are removed in a breaking feat, and the oldest supported git rises to 2.54. Revisit
+      when the common distributions ship 2.54 or later.
