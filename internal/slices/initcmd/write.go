@@ -55,7 +55,7 @@ func (h Handler) write(ctx context.Context, stealth, initialized bool, offer Off
 			if err := os.MkdirAll(filepath.Dir(p), 0o777); err != nil {
 				return err
 			}
-			if err := os.WriteFile(p, []byte(text), 0o666); err != nil {
+			if err := h.ports.WriteFile(ctx, p, []byte(text), 0o666); err != nil {
 				return err
 			}
 			action = "wrote"

@@ -93,6 +93,12 @@ func (f *fake) Offers(_ context.Context, o Offer, log io.Writer) Offered {
 	return f.offered
 }
 
+func (f *fake) Abs(_ context.Context, path string) (string, error) { return filepath.Abs(path) }
+
+func (f *fake) WriteFile(_ context.Context, name string, data []byte, perm os.FileMode) error {
+	return os.WriteFile(name, data, perm)
+}
+
 // disk is the working tree, the files on disk where the test stands; the
 // only tree it has.
 type disk struct{}
@@ -180,7 +186,7 @@ func call(t *testing.T, f *fake, args ...string) (int, string, string, error) {
 	if asJSON {
 		args = args[1:]
 	}
-	c, err := Parse(args, "", asJSON, &tests.Warnings{})
+	c, err := Parse(context.Background(), args, "", asJSON, &tests.Warnings{}, f)
 	if err != nil {
 		return 0, "", "", err
 	}
@@ -216,7 +222,7 @@ func TestParseRefuses(t *testing.T) {
 		{[]string{"--agent-rules", "--no-agent-rules"}, "init takes --agent-rules or --no-agent-rules, not both"},
 		{[]string{"--stealth", "--plugin", "project"}, "under --stealth, --plugin project would write .claude/settings.json"},
 	} {
-		if _, err := Parse(c.args, "", false, nil); !isUsage(err, c.want) {
+		if _, err := Parse(context.Background(), c.args, "", false, nil, &fake{}); !isUsage(err, c.want) {
 			t.Errorf("init %v: %v", c.args, err)
 		}
 	}
@@ -242,12 +248,12 @@ func TestParseReadsItsFlags(t *testing.T) {
 			Query{Plugin: PluginFlag{Given: true}, Shim: ShimFlag{Dir: abs}, Origin: "sub"}},
 		{[]string{"--stealth", "--plugin=local"}, Query{Stealth: true, Plugin: PluginFlag{true, "local"}, Origin: "sub"}},
 	} {
-		got, err := Parse(c.args, "sub", true, nil)
+		got, err := Parse(context.Background(), c.args, "sub", true, nil, &fake{})
 		if err != nil || got.Query != c.want || !got.JSON {
 			t.Errorf("init %v: %+v, %v", c.args, got, err)
 		}
 	}
-	if got, _ := Parse([]string{"--git-shim-dir", abs}, "sub", false, nil); got.Shim.Dir != abs {
+	if got, _ := Parse(context.Background(), []string{"--git-shim-dir", abs}, "sub", false, nil, &fake{}); got.Shim.Dir != abs {
 		t.Errorf("an absolute folder: %q", got.Shim.Dir)
 	}
 	for p, want := range map[string]string{"": "", "-": "-", "a": filepath.Join("sub", "a"), abs: abs} {

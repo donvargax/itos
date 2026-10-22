@@ -5,6 +5,7 @@ import (
 	"context"
 	"io"
 	"os"
+	"path/filepath"
 
 	initslice "github.com/donvargax/itos/v8/internal/slices/initcmd"
 	trees "github.com/donvargax/itos/v8/internal/store/tree/adapter"
@@ -18,11 +19,12 @@ import (
 // ports bound to the real code; --git-shim-dir and --policy are read from
 // where itos was started.
 func runInit(args []string, o Out) (int, error) {
-	c, err := initslice.Parse(args, o.Origin, o.JSON, o.Tests)
+	ctx, p := context.Background(), initPorts{o: o}
+	c, err := initslice.Parse(ctx, args, o.Origin, o.JSON, o.Tests, p)
 	if err != nil {
 		return 0, err
 	}
-	return c.Run(context.Background(), o.Stdout, o.Stderr, initslice.NewHandler(initPorts{o: o}))
+	return c.Run(ctx, o.Stdout, o.Stderr, initslice.NewHandler(p))
 }
 
 // initPorts are the init slice's ports over the real code: git, the trees
@@ -50,6 +52,14 @@ func (p initPorts) InstallHooks(_ context.Context, stdout io.Writer, json bool) 
 	o := p.o
 	o.JSON, o.Stdout = json, stdout
 	return hookInstall(false, false, o)
+}
+
+// Abs is filepath.Abs.
+func (initPorts) Abs(_ context.Context, path string) (string, error) { return filepath.Abs(path) }
+
+// WriteFile is os.WriteFile.
+func (initPorts) WriteFile(_ context.Context, name string, data []byte, perm os.FileMode) error {
+	return os.WriteFile(name, data, perm)
 }
 
 // Offers makes the plugin's offer, the git shim's and that of the rules for

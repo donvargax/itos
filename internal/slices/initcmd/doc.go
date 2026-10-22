@@ -8,8 +8,8 @@
 //
 // Command (command.go) declares its name, help and flag spec, by which
 // internal/cli hands Parse the arguments after init, with the folder itos
-// was started in, which --git-shim-dir (made absolute) and --policy are
-// read from as the person typed them. Parse refuses, before any folder is
+// was started in, which --git-shim-dir (made absolute by Ports' Abs) and
+// --policy are read from as the person typed them. Parse refuses, before any folder is
 // looked at, what init does not take, --git-shim-dir with --no-git-shim and
 // --stealth with --plugin project.
 //

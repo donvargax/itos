@@ -27,7 +27,7 @@ const pinned = "pin: { version: 9.1.0, checksums: \"" + "aaaaaaaaaaaaaaaaaaaaaaa
 func TestPolicyInitMakesTheProject(t *testing.T) {
 	f := scratch(t, "commit", map[string]string{"sub/p.yaml": "# The policy.\nversion: 1\ncommits:\n  types: [chore]\n"})
 	f.offered.ProjectPlugin, f.offered.RulesWritten = true, []string{"AGENTS.md"}
-	c, err := Parse([]string{"--policy", "p.yaml"}, "sub", false, nil)
+	c, err := Parse(context.Background(), []string{"--policy", "p.yaml"}, "sub", false, nil, f)
 	if err != nil {
 		t.Fatal(err)
 	}

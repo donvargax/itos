@@ -37,9 +37,11 @@ type Query struct {
 // name no group, which internal/cli's flag spec holds; Release, the release
 // to pin, the version wanted or with "" the newest, and its checksums.txt
 // (pinengine.Pinned); InstallHooks, hook install run as itos hook install
-// runs, writing to stdout, its object under json, and its exit code; and
+// runs, writing to stdout, its object under json, and its exit code;
 // Offers, the offers of the plugin, the git shim and the rules for agents,
-// each saying what it does on log.
+// each saying what it does on log; and Abs and WriteFile, filepath.Abs and
+// os.WriteFile, ports so a test makes them fail, as no failure of theirs
+// comes alike from every OS.
 type Ports interface {
 	vcsport.VCS
 	hooks.Git
@@ -49,6 +51,8 @@ type Ports interface {
 	Release(ctx context.Context, want string) (string, []byte, error)
 	InstallHooks(ctx context.Context, stdout io.Writer, json bool) (int, error)
 	Offers(ctx context.Context, o Offer, log io.Writer) Offered
+	Abs(ctx context.Context, path string) (string, error)
+	WriteFile(ctx context.Context, name string, data []byte, perm os.FileMode) error
 }
 
 // Offer is what the offers are told: the command line's answers, whether

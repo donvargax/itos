@@ -1,6 +1,7 @@
 package initcmd
 
 import (
+	"context"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -54,15 +55,15 @@ type RulesFlag struct {
 // read from) and the run's test warnings: `init [--stealth] [--policy
 // <file>] [--plugin [<scope>]] [--git-shim [--git-shim-dir <folder>] |
 // --no-git-shim] [--agent-rules | --no-agent-rules]`. Every error is a
-// usage error (out.Usage), but a --git-shim-dir that cannot be made
+// usage error (out.Usage), but a --git-shim-dir that p's Abs cannot make
 // absolute.
-func Parse(args []string, origin string, json bool, warnings *tests.Warnings) (CLI, error) {
+func Parse(ctx context.Context, args []string, origin string, json bool, warnings *tests.Warnings, p Ports) (CLI, error) {
 	c := CLI{Query: Query{Origin: origin}, JSON: json, Tests: warnings}
 	q := &c.Query
 	for i := 0; i < len(args); i++ {
 		n, err := parsePluginFlag(args, i, &q.Plugin)
 		if err == nil && n == 0 {
-			n, err = parseShimFlag(args, i, &q.Shim, origin)
+			n, err = parseShimFlag(ctx, args, i, &q.Shim, origin, p)
 		}
 		if err == nil && n == 0 {
 			n, err = parseRulesFlag(args, i, &q.Rules)
@@ -127,7 +128,7 @@ func pluginRefused() error {
 // parseShimFlag reads --git-shim, --no-git-shim or --git-shim-dir <folder>
 // (--git-shim-dir=<folder>) out of init's arguments at i, and gives how many
 // arguments it read, 0 when args[i] is none of them.
-func parseShimFlag(args []string, i int, f *ShimFlag, origin string) (int, error) {
+func parseShimFlag(ctx context.Context, args []string, i int, f *ShimFlag, origin string, p Ports) (int, error) {
 	a := args[i]
 	switch a {
 	case "--git-shim", "--no-git-shim":
@@ -152,7 +153,7 @@ func parseShimFlag(args []string, i int, f *ShimFlag, origin string) (int, error
 	if folder == "" {
 		return 0, out.Usage("--git-shim-dir needs <folder>")
 	}
-	dir, err := filepath.Abs(typed(origin, folder))
+	dir, err := p.Abs(ctx, typed(origin, folder))
 	if err != nil {
 		return 0, err
 	}
