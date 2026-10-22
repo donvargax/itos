@@ -4,7 +4,8 @@ package cli
 // work take here, work promote in workpromote.go. The registry is written by commands, never by
 // hand, and each commits its own change (the user's calls, 2026-10-03), so a
 // coordinator neither edits YAML nor words a registry commit. The edit is
-// work's (internal/work/write.go); what every such command shares is here:
+// work's (internal/work/write.go); what every such command shares is here,
+// over the record engine (internal/engine/record):
 // a sound registry before anything is written, and writeRegistry, which
 // writes the text and commits the registry alone, through the hooks as any
 // commit, whatever else the person has staged (git commit --only), with the
@@ -16,23 +17,21 @@ package cli
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"os"
 	"slices"
 	"strings"
 
 	"github.com/donvargax/itos/v8/internal/config"
-	"github.com/donvargax/itos/v8/internal/message"
+	"github.com/donvargax/itos/v8/internal/engine/record"
 	"github.com/donvargax/itos/v8/internal/out"
 	"github.com/donvargax/itos/v8/internal/providers"
-	trackerport "github.com/donvargax/itos/v8/internal/store/tracker/port"
 	"github.com/donvargax/itos/v8/internal/work"
 )
 
-// bodyWidth is the width a registry commit's body is wrapped at: the header
-// lint's body-max-line-length (selfBody).
-const bodyWidth = 100
+// bodyWidth is the width a registry commit's body is wrapped at, the record
+// engine's.
+const bodyWidth = record.BodyWidth
 
 // workArgs reads a registry command's arguments: one id, and the valued
 // flags it takes, each given at most once, "--flag value" or "--flag=value".
@@ -138,46 +137,15 @@ func soundRegistry(o Out) (cfg *config.Loaded, registry work.Registry, text stri
 	if release, err = holdTracker(t, o); err != nil {
 		return nil, work.Registry{}, "", release, 0, err
 	}
-	found, err := work.Problems(cfg)
-	if err != nil {
+	var found []out.Problem
+	if registry, text, found, err = record.Sound(context.Background(), t, cfg); err != nil {
 		return nil, work.Registry{}, "", release, 0, err
 	}
 	if len(found) > 0 {
 		code, err := refuseWork(found, ExitPolicy, o)
 		return nil, work.Registry{}, "", release, code, err
 	}
-	file := cfg.Work.Registry
-	if text, err = trackedText(t, file); err != nil {
-		return nil, work.Registry{}, "", release, 0, err
-	}
-	registry, err = work.Load(cfg, file)
-	if err != nil {
-		return nil, work.Registry{}, "", release, 0, err
-	}
 	return cfg, registry, text, release, 0, nil
-}
-
-// uncommitted is the problem of a file a command writes and commits that
-// git does not hold as HEAD has it (the tracker's *Dirty), which the
-// command's commit would sweep in beside its own change, a deletion among
-// them (bug 13). The problem names the file, the registry, a ledger file,
-// itos decision's questions, or the rule the command gives (a decision
-// record's).
-func uncommitted(cfg *config.Loaded, file, rule string) *out.Problem {
-	switch {
-	case rule != "":
-	case file == cfg.Work.Registry:
-		rule = "work-registry-uncommitted"
-	case file == cfg.Work.Asks:
-		rule = "asks-file-uncommitted"
-	default:
-		rule = "ledger-file-uncommitted"
-	}
-	return &out.Problem{
-		Rule:    rule,
-		Message: file + " has changes no commit holds, which itos's commit of it would sweep in",
-		Fix:     "commit or drop the changes to " + file + " first",
-	}
 }
 
 // writeRegistry writes the change to the registry and, in a project,
@@ -196,103 +164,51 @@ type written struct {
 	rule            string
 }
 
-// writeCommitted writes the files and, in a project, commits them alone:
-// git commit --only, with the header and body, through the hooks, what else
-// is staged left staged (the tracker's Transact). Its result is the new
-// commit's SHA, "" under a stealth config, which commits nothing. A file
-// with changes no commit holds (uncommitted), a deletion among them, is
-// refused before anything is written (exit 1). Whatever fails after the
-// first write, a write, git add, a git that cannot start or a commit a hook
-// refuses, puts every file back as it was, file and index, a new one
-// removed; a refusal exits 1, the rest are errors. work's commands write
-// the registry alone (writeRegistry), but for work done closing a task with
-// checks, which writes the registry and the task's ledger file (slice 101),
-// task add a ledger file and the registry (slice 55), work promote the
-// registry, a task's ledger file and the questions (bug 105, slice 138),
-// decision the questions alone (slice 62), decision record the questions, a decision
+// writeCommitted is the record engine's Write (record.Write) through the
+// config's tracker: the files written and, in a project, committed alone,
+// through the hooks, git's words and the hooks' on stderr. Its result is
+// the new commit's SHA, "" under a stealth config, which commits nothing. A
+// file with changes no commit holds, or a commit refused, exits 1, every
+// file as it was; the rest are errors. work's commands write the registry
+// alone (writeRegistry), but for work done closing a task with checks,
+// which writes the registry and the task's ledger file (slice 101), task
+// add a ledger file and the registry (slice 55), work promote the registry,
+// a task's ledger file and the questions (bug 105, slice 138), decision the
+// questions alone (slice 62), decision record the questions, a decision
 // record, the one it supersedes and their index (slice 69).
 func writeCommitted(cfg *config.Loaded, files []written, header, body string, o Out) (string, int, error) {
-	t := trackerport.Transaction{
-		Changes:    make([]trackerport.Change, len(files)),
-		Paragraphs: []string{header, selfBody(cfg, header, body)},
-		Quiet:      o.Quiet,
+	sha, found, err := record.Write(context.Background(), tracker(cfg, o.OS), cfg, records(files), record.Commit{
+		Header: header,
+		Body:   body,
+		Quiet:  o.Quiet,
 		// git's words and the hooks' go to stderr: stdout is the command's
 		// own result.
 		Stdin: os.Stdin,
 		Words: o.Stderr,
 		Env:   append(withoutFooters(os.Environ()), AmendEnv+"=0"),
+	})
+	if err != nil || len(found) == 0 {
+		return sha, 0, err
 	}
-	paths := make([]string, len(files))
-	for i, f := range files {
-		t.Changes[i] = trackerport.Change{Name: f.path, Old: f.old, Text: f.text, Created: f.created}
-		paths[i] = f.path
-	}
-	sha, err := tracker(cfg, o.OS).Transact(context.Background(), t)
-	var refused *trackerport.Refused
-	switch {
-	case errors.As(err, &refused) && refused.Restore != nil:
-		return "", 0, fmt.Errorf("%s failed (git exited %d): %w", refused.Step, refused.Code, refused.Restore)
-	case errors.As(err, &refused):
-		as := "is as it was"
-		if len(files) > 1 {
-			as = "are as they were"
-		}
-		code, err := refuseWork([]out.Problem{{
-			Rule:    "work-commit-failed",
-			Message: fmt.Sprintf("%s failed (git exited %d), so %s %s", refused.Step, refused.Code, and(paths), as),
-			Fix:     "fix what git or the hook above says, then run the command again",
-		}}, ExitPolicy, o)
-		return "", code, err
-	}
-	if p, err := dirty(cfg, files, err); err != nil {
-		return "", 0, err
-	} else if p != nil {
-		code, err := refuseWork([]out.Problem{*p}, ExitPolicy, o)
-		return "", code, err
-	}
-	return sha, 0, nil
+	code, err := refuseWork(found, ExitPolicy, o)
+	return "", code, err
 }
 
-// commitReady is what writeCommitted refuses before it writes anything, in
-// a project (the tracker's Ready): itos's commit-msg hook not declared, an
-// error, since the commit runs through the hooks as any commit and git
-// would run none of itos's (slice 91); and the first file with changes no
-// commit holds (uncommitted), a problem. A command that reserves an id asks
-// it before it does (work promote, slice 138). Under a stealth config,
-// which commits nothing, nothing is.
+// commitReady is what writeCommitted refuses before it writes anything, the
+// record engine's Ready (record.Ready) through the config's tracker: itos's
+// commit-msg hook not declared, an error, and the first file with changes
+// no commit holds, a problem.
 func commitReady(cfg *config.Loaded, files []written, o Out) (*out.Problem, error) {
-	paths := make([]string, len(files))
+	return record.Ready(context.Background(), tracker(cfg, o.OS), cfg, records(files))
+}
+
+// records are the files as the record engine takes them.
+func records(files []written) []record.File {
+	converted := make([]record.File, len(files))
 	for i, f := range files {
-		paths[i] = f.path
+		converted[i] = record.File{Path: f.path, Old: f.old, Text: f.text, Created: f.created, Rule: f.rule}
 	}
-	return dirty(cfg, files, tracker(cfg, o.OS).Ready(context.Background(), paths))
-}
-
-// dirty is the tracker's error as writeCommitted gives it: a *Dirty file
-// the problem its rule names (uncommitted), anything else the error.
-func dirty(cfg *config.Loaded, files []written, err error) (*out.Problem, error) {
-	var d *trackerport.Dirty
-	if !errors.As(err, &d) {
-		return nil, err
-	}
-	rule := ""
-	if at := slices.IndexFunc(files, func(f written) bool { return f.path == d.Name }); at >= 0 {
-		rule = files[at].rule
-	}
-	return uncommitted(cfg, d.Name, rule), nil
-}
-
-// selfBody is the body of a commit itos makes of its own files, its words
-// on one line, then wrapped at bodyWidth by the wrap itos commit uses
-// (message.Wrap, bug 15): no line starts with a token the header lint reads
-// as a footer, a breaking-change note, a configured footer's key and its
-// colon, or git's comment char, a break there moving back a word. A plain
-// wrap started lines with whatever word came next, so a question or a why
-// holding "word:" drew the lint's footer-leading-blank warning on itos's own
-// commit (bug 18).
-func selfBody(cfg *config.Loaded, header, body string) string {
-	parts := []string{header, strings.Join(strings.Fields(body), " ")}
-	return message.Wrap(parts, bodyWidth, cfg.CommentChar(), cfg.Commits.Footers.Keys)[1]
+	return converted
 }
 
 // and is the names joined as a list is said: "a", "a and b", "a, b and c".

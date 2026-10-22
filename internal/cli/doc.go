@@ -487,10 +487,11 @@
 //
 // itos task add (taskadd.go) writes two files in one commit: the task
 // (ledger.Add) and its item, a task, todo and nobody's (work.Add).
-// writeCommitted is given both and hands them to the tracker store's
-// Transact (tracker.go binds its file adapter, internal/store/tracker/adapter),
-// each refused before anything is written when
-// git does not hold it as HEAD has it (a *Dirty, which uncommitted words naming the file): a file
+// writeCommitted is given both and hands them, through the record engine
+// (internal/engine/record, its Write), to the tracker store's Transact
+// (tracker.go binds its file adapter, internal/store/tracker/adapter), each
+// refused before anything is written when git does not hold it as HEAD has
+// it (a *Dirty, which the engine words naming the file): a file
 // there must be tracked with no change, and one not there, which the command
 // makes, unknown to git, so a file deleted and the deletion not committed is
 // refused rather than written afresh over it. A new file is git added so
@@ -499,10 +500,10 @@
 // one restore: every file written gets its old text back where it differs
 // (put says whether it touched the file), and its index entry reset to
 // HEAD's, a new one unstaged and removed; what cannot be put back is an error
-// naming the file. A step git refuses is the tracker's *Refused, which
-// writeCommitted words as work-commit-failed (exit 1), or as an error when a
-// file could not be put back. workwrite_test.go and the adapter's tests make
-// each of those fail in a scratch repository.
+// naming the file. A step git refuses is the tracker's *Refused, which the
+// engine words as work-commit-failed (exit 1), or as an error when a file
+// could not be put back. The engine's tests give each answer over the
+// tracker's fake; the adapter's make each failure in a scratch repository.
 //
 // tests list, tests smoke check and run, tests moves (tests.go) and tests
 // next-id and task next-id (nextid.go) are calls into internal/tests,
@@ -527,15 +528,15 @@
 // --json items are the same value.Maps the proposal writes.
 //
 // writeRegistry (workwrite.go) is the part every registry command shares:
-// it starts from a sound registry (soundRegistry: work.Problems, reported as
-// work check would, exit 1), and, in a project, refuses a registry git does
+// it starts from a sound registry (soundRegistry, the engine's Sound:
+// work.Problems, reported as work check would, exit 1), and, in a project, refuses a registry git does
 // not hold as HEAD has it (untracked, or changed, staged or not), whose
 // changes the commit would sweep in; then writes the text and runs git
 // commit --only -m <header> -m <body> -- <registry> from the top, with the
 // hooks, git's words on stderr, so the commit holds the registry alone and
 // what else is staged stays staged. A commit that fails puts the file back
 // and the index entry with git reset, exact since the registry was clean.
-// The commit is a docs one with no footer, its body wrapped by selfBody
+// The commit is a docs one with no footer, its body wrapped by the engine
 // (message.Wrap), so no line reads as a footer or a comment: a Task: footer
 // on a take would make CI run the task's checks before its work exists.
 // Under a stealth config the registry is in the git folder, tracked by

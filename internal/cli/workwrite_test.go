@@ -6,7 +6,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"regexp"
 	"runtime"
 	"strings"
 	"testing"
@@ -14,13 +13,12 @@ import (
 	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/git"
 	"github.com/donvargax/itos/v8/internal/kind"
-	"github.com/donvargax/itos/v8/internal/value"
 )
 
-// The rollback of writeCommitted (bug 13): a scratch repository, its files
-// committed, as the current folder, away from the user's git config, with a
-// fixed author, and itos's hooks stand-ins (standInHooks). registry.yaml is
-// the registry, ledger.yaml a ledger file.
+// writeCommitted over git, through the tracker's adapter (bug 13): a
+// scratch repository, its files committed, as the current folder, away from
+// the user's git config, with a fixed author, and itos's hooks stand-ins
+// (standInHooks). registry.yaml is the registry, ledger.yaml a ledger file.
 func rollbackRepo(t *testing.T) *config.Loaded {
 	t.Helper()
 	dir := gitConfigRepo(t, "version: 1\n")
@@ -121,22 +119,6 @@ func TestRollbackHookRefuses(t *testing.T) {
 	}
 }
 
-// A commit a hook refuses, which leaves a file that cannot be put back (a
-// folder where registry.yaml was), is an error that says both, with no
-// refusal of its own: the file is not as it was.
-func TestRollbackFailsAfterTheHookRefuses(t *testing.T) {
-	cfg := rollbackRepo(t)
-	gitHook(t, "commit-msg", "#!/bin/sh\nrm registry.yaml && mkdir registry.yaml && echo x > registry.yaml/x\nexit 1\n")
-	sha, code, stderr, err := writeAndCommit(t, cfg, rollbackFiles(), "Add T-2.")
-	want := "the commit of registry.yaml and new.yaml failed (git exited 1): registry.yaml cannot be put back: "
-	if sha != "" || code != 0 || err == nil || !strings.HasPrefix(err.Error(), want) {
-		t.Fatalf("got %q, exit %d, %v\n%s", sha, code, err, stderr)
-	}
-	if strings.Contains(stderr, "as they were") {
-		t.Errorf("stderr says the files are as they were:\n%s", stderr)
-	}
-}
-
 // Where the git config declares no commit-msg hook of itos's, nothing is
 // written and nothing committed: the refusal is a missing environment (slice
 // 91).
@@ -151,72 +133,6 @@ func TestRefuseWithoutHooks(t *testing.T) {
 	asItWas(t)
 	if gitIn(t, "rev-parse", "HEAD") != head {
 		t.Error("a commit was made")
-	}
-}
-
-// A write that fails after the first one puts the first back.
-func TestRollbackSecondWriteFails(t *testing.T) {
-	cfg := rollbackRepo(t)
-	files := rollbackFiles()
-	files[1].path = filepath.Join("missing", "new.yaml")
-	_, _, _, err := writeAndCommit(t, cfg, files, "Add T-2.")
-	if err == nil || !strings.Contains(err.Error(), filepath.Join("missing", "new.yaml")+" cannot be written") {
-		t.Fatalf("the error is %v", err)
-	}
-	asItWas(t)
-}
-
-// A file that cannot even be opened, in a folder that is not there, was not
-// touched, so only the files before it are put back: the error is the
-// write's alone, exit code 0.
-func TestRollbackUntouchedFileIsLeftAlone(t *testing.T) {
-	cfg := rollbackRepo(t)
-	files := rollbackFiles()
-	files[1] = written{path: filepath.Join("missing", "old.yaml"), old: "- id: T-1\n", text: "- id: T-2\n"}
-	_, code, _, err := writeAndCommit(t, cfg, files, "Add T-2.")
-	if code != 0 || err == nil || !strings.Contains(err.Error(), filepath.Join("missing", "old.yaml")+" cannot be written") ||
-		strings.Contains(err.Error(), "put back") {
-		t.Fatalf("exit %d, the error is %v", code, err)
-	}
-	asItWas(t)
-}
-
-// One file a hook refuses is said to be as it was.
-func TestRollbackOneFileSaysItIsAsItWas(t *testing.T) {
-	cfg := rollbackRepo(t)
-	refusingHook(t)
-	_, code, stderr, err := writeAndCommit(t, cfg, rollbackFiles()[:1], "Edit the registry.")
-	if code != ExitPolicy || err != nil || !strings.Contains(stderr, "so registry.yaml is as it was") {
-		t.Fatalf("exit %d, %v\n%s", code, err, stderr)
-	}
-	asItWas(t)
-}
-
-// A git that cannot start the commit, here because the message is longer
-// than any system lets a program be given, puts back what git add staged.
-func TestRollbackGitCannotStart(t *testing.T) {
-	cfg := rollbackRepo(t)
-	_, code, stderr, err := writeAndCommit(t, cfg, rollbackFiles(), strings.Repeat("word ", 1<<20))
-	if code != 0 || err == nil || !strings.Contains(err.Error(), "cannot run git") {
-		t.Fatalf("exit %d, the error is %v\n%s", code, err, stderr)
-	}
-	asItWas(t)
-}
-
-// git add refusing the new file puts everything back and shows what git
-// said.
-func TestRollbackGitAddFails(t *testing.T) {
-	cfg := rollbackRepo(t)
-	if err := os.WriteFile(filepath.Join(".git", "info", "exclude"), []byte("new.yaml\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	_, code, stderr, err := writeAndCommit(t, cfg, rollbackFiles(), "Add T-2.")
-	if code != ExitPolicy || err != nil {
-		t.Fatalf("exit %d, %v\n%s", code, err, stderr)
-	}
-	asItWas(t)
-	if !strings.Contains(stderr, "ignored") || !strings.Contains(stderr, "git add of new.yaml failed (git exited 1)") {
-		t.Errorf("stderr:\n%s", stderr)
 	}
 }
 
@@ -251,76 +167,6 @@ func TestRefuseUncommittedDeletion(t *testing.T) {
 				t.Errorf("git status was\n%s\nand is\n%s", status, now)
 			}
 		})
-	}
-}
-
-// A pre-commit hook that rewrites the files it commits, as a formatter does,
-// leaves them in the commit and the working tree in its version; git's
-// index of them is set to the commit's, so git status reports nothing of
-// them (bug 17), and a change staged before stays staged.
-func TestCommitLeavesTheIndexAsCommitted(t *testing.T) {
-	cfg := rollbackRepo(t)
-	gitHook(t, "pre-commit", `#!/bin/sh
-git diff --cached --name-only -- '*.yaml' | while IFS= read -r file; do
-	echo '# formatted' >>"$file"
-	git add -- "$file" || exit 1
-done
-`)
-	if err := os.WriteFile("ledger.yaml", []byte("- id: T-1\n- id: T-3\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	gitIn(t, "add", "--", "ledger.yaml")
-	sha, code, stderr, err := writeAndCommit(t, cfg, rollbackFiles(), "Add T-2.")
-	if sha == "" || code != 0 || err != nil {
-		t.Fatalf("got %q, exit %d, %v\n%s", sha, code, err, stderr)
-	}
-	if text := gitIn(t, "show", "HEAD:new.yaml"); text != "- id: T-2\n# formatted\n" {
-		t.Errorf("the commit holds new.yaml as %q", text)
-	}
-	if status := gitIn(t, "status", "--porcelain", "--untracked-files=all"); status != "M  ledger.yaml\n" {
-		t.Errorf("git status reports:\n%s", status)
-	}
-}
-
-// The body of a commit itos makes of its own files never starts a line with
-// what the header lint reads as a footer, nor with git's comment char, where
-// a plain wrap at the same width would (bug 18): ask's "word:", as in docs:
-// answer q-10, work done's run address after its "passed:", and a "#". The
-// words are kept, in order, and no line is longer than the width.
-func TestCommitBodyWrapsClearOfFooters(t *testing.T) {
-	cfg := rollbackRepo(t)
-	footer := regexp.MustCompile(`^[\w-]+(?::\s|\s+#)`)
-	old := "items: []\n"
-	for i, text := range []string{
-		"recommendation: majors cost nothing under fix-forward.",
-		"passed: https://github.com/donvargax/itos/actions/runs/37228229727.",
-		"#12 is the issue it closes.",
-	} {
-		// The words before the text fill the first line to the width, so a
-		// plain wrap starts the second with the text.
-		lead := "Set slice-71 (\"itos ask record writes MADR 4 records\") to done, with itos work done. HEAD's CI run"
-		lead += strings.Repeat(" x", (bodyWidth-len(lead))/2)
-		if len(lead) < bodyWidth {
-			lead += "s"
-		}
-		body := lead + " " + text
-		if plain := value.Wrap(body, bodyWidth); !strings.Contains(plain, "\n"+text) {
-			t.Fatalf("a plain wrap does not start a line with %q:\n%s", text, plain)
-		}
-		files := []written{{path: "registry.yaml", old: old, text: strings.Repeat("# edit\n", i+1) + old}}
-		if sha, code, stderr, err := writeAndCommit(t, cfg, files, body); sha == "" || code != 0 || err != nil {
-			t.Fatalf("got %q, exit %d, %v\n%s", sha, code, err, stderr)
-		}
-		old = files[0].text
-		got := strings.TrimSpace(gitIn(t, "log", "-1", "--format=%b"))
-		for _, line := range strings.Split(got, "\n") {
-			if footer.MatchString(line) || strings.HasPrefix(line, "#") || len(line) > bodyWidth {
-				t.Errorf("the body has the line %q:\n%s", line, got)
-			}
-		}
-		if strings.Join(strings.Fields(got), " ") != body {
-			t.Errorf("the body's words are not the given ones, in order:\n%s", got)
-		}
 	}
 }
 
