@@ -10993,6 +10993,10 @@ items:
       doc-budget cap rises to fit. Waits so the docs stay true; how the same text stops being kept
       in several repositories is p2-shared-docs.
 
+      After the refactor (the user, 2026-10-21): the freeze lifts into fixing every GitHub issue
+      that can be fixed within v8 (the triage of #85 to #109 included), before any v9 planning; q-89
+      (prose in JSON) and the other v9 questions wait for that planning.
+
   - id: p1-conformance-only-by-name
     title: tools/bin/conformance --only takes a corpus file by its name as well as its path
     phase: 1
