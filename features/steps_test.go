@@ -134,8 +134,9 @@ type moves struct {
 }
 
 // A kind of tests beside the scenario kind, behind a command adapter: its
-// name, and the wip_tag written on it.
-type commandKind struct{ name, wipTag string }
+// name, the wip_tag written on it, and its adapter's command, true (which
+// lists nothing) when empty.
+type commandKind struct{ name, wipTag, command string }
 
 // A footer of free text (source: text): its key, the types it is required
 // for, and the commit after which it is required (its since), when one.
@@ -433,6 +434,7 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	initializeProofSteps(sc, w)
 	initializeIDSteps(sc, w)
 	initializePromoteSteps(sc, w)
+	initializeTestsListSteps(sc, w)
 
 	sc.Step(`^itos verifies every commit up to HEAD$`, func() error { return w.itos("verify", "", "HEAD") })
 	sc.Step(`^itos checks the config$`, func() error { return w.itos("config", "check") })
@@ -976,7 +978,11 @@ func (w *world) writeConfig() error {
 		if w.testsKind() == "" {
 			b.WriteString("tests:\n")
 		}
-		fmt.Fprintf(&b, "  %s:\n    adapter: { command: \"true\" }\n    wip_tag: %q\n", k.name, k.wipTag)
+		command := k.command
+		if command == "" {
+			command = "true"
+		}
+		fmt.Fprintf(&b, "  %s:\n    adapter: { command: %q }\n    wip_tag: %q\n", k.name, command, k.wipTag)
 	}
 	b.WriteString(w.ciSection())
 	if !w.config.noWork {
@@ -1931,7 +1937,7 @@ func (w *world) builtinRangeCheck(name, builtin, types string) error {
 // A second kind of tests, whose adapter is a command, with a wip_tag written
 // on it; nothing runs the command.
 func (w *world) commandKindWipTag(name, tag string) error {
-	w.config.commandKind = &commandKind{name, tag}
+	w.config.commandKind = &commandKind{name: name, wipTag: tag}
 	return w.writeConfig()
 }
 
