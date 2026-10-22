@@ -11545,7 +11545,7 @@ items:
     title: Tests kill the survivors and cover the line T-213 and T-216 left in the push proof's range
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
 

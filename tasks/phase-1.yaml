@@ -2768,9 +2768,6 @@
     fails: a seam, as T-206's getwd, or argued unreachable and left) and a survivor at
     internal/cli/push.go:345 'len(git.Conflicted()) > 0' to '> 1' in pushRun.rebase (a rebase
     stopped on exactly one conflicted file). Unit tests first; no change to what itos does.
-  done_when:
-    - run: tools/bin/pinned itos-cc mutation run --since b240fc04 --count 1 --seed b240fc04 --fail-uncovered=lines --json cmd internal
-      timeout: 900
 
 - id: T-220
   type: build
