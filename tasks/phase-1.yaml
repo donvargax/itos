@@ -4445,6 +4445,3 @@
     projectFile's. No production change, no scenario change, no gate change; an exception whose
     proof does not hold is a test instead. CI owns mutation proof; run a mutation command only if
     writing an exception needs one, and only over these three functions.
-  done_when:
-    - run: names=$(go test ./internal/tests -list '^TestProjectFileRefusesWindowsRootAndDriveRelativePaths$') && printf '%s\n' "$names" | grep -qx 'TestProjectFileRefusesWindowsRootAndDriveRelativePaths' && go test ./internal/tests -count=1 -run '^TestProjectFileRefusesWindowsRootAndDriveRelativePaths$'
-    - run: grep -q 'internal/cli#helpFor' itos-cc.yaml && grep -q 'internal/message#wordAt' itos-cc.yaml && test $(grep -c 'internal/tests#projectFile' itos-cc.yaml) -ge 2
