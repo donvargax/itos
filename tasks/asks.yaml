@@ -394,3 +394,6 @@ questions:
     question: "On a git older than 2.54, which runs no hook its config declares, how does itos install its hooks, and does the git config stay the default?"
     answer: "The user, 2026-10-22: the git config stays the default and the only place itos writes on a git that runs its config's hooks (ADR-0037 holds there). On an older git, down to 2.51, hook install writes hook files into the folder git runs hooks from (git rev-parse --git-path hooks), an untracked hook already there kept and run first; a hook file git tracks is never written, the refusal naming the file and the line to add; a project's own hook file that calls itos's hook satisfies the commands that commit or push. Scenarios fake the old git with a wrapper; a real git 2.51 job in CI is a later task. This is a compatibility path, kept a few months until most people's git runs config hooks, then removed."
     decision: 58
+  - id: q-97
+    item: "p1-agent-test-runs-once"
+    question: "p1-agent-test-runs-once: where does the local tier run, how long may it take, how does a done_when shell check get its in-process run, is it breaking, and how does it start? (draft: .git/itos/design-agent-test-runs-once.md)"
