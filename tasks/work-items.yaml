@@ -9397,6 +9397,10 @@ items:
       2026-10-23: q-97 recorded as ADR-0059 after the spike (branch spike-in-process); the order is
       docs/plans/in-process-tier.md. Step 1 is T-285 (the in-process driver, serial) and T-286 (the
       push proof counts scenario coverage); later steps are specified as each lands.
+
+      2026-10-23, later: T-286 dropped (premise wrong: scenario coverage already reaches the push
+      proof through T-121 and T-120); ADR-0059 and the plan corrected. Next is step 2 (no process
+      state in the CLI).
     refs: [internal/guide/brief.md, internal/guide/work.md, internal/guide/push.md, AGENTS.md, tools/bin/go-unit-tests, itos.yaml]
     tags: [tests, hooks, docs]
 
