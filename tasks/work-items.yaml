@@ -12806,6 +12806,17 @@ items:
       reviewer each round, measuring cached share of input tokens, cost per review, real findings
       and wall time (p1-work-spend). If it stays, reviews are keyed by item and last-reviewed
       commit, diffs taken from git. Shares the review agent with p1-cheap-coordinator-trial.
+
+      2026-10-23, after adopting it: the reviewer runs as a CLI (review_cli.py in the PoC repo, run
+      in the background with a completion notification), not an MCP server: an MCP call blocks the
+      caller's turn for minutes and MCP cannot notify, and every agent session pays its tool
+      descriptions in context. The test-only parent opencode.json registration was removed. Fixes
+      made while validating: content blocks were dropped by the message-id dedupe (the UNPARSEABLE
+      cause), setting_sources [] (the person's rtk hook rewrote go test past the allow rules),
+      permission_mode dontAsk (acceptEdits let sed -i and git checkout through), per-call
+      --plan-file and --diff-file. The cached opening holds across fresh sessions (step 1 create 0).
+      First real results: T-286's spec review found its premise wrong (task dropped); T-285's diff
+      review approved with notes; the evidence-records design went through two rounds.
     tags: [docs]
 
   - id: p1-evidence-records
