@@ -37,6 +37,9 @@ Feature: ADR acceptance and validation are separate facts
   # (as in internal/ask's quoted strings) so evidence is data, including
   # YAML-looking lines and footers;
   # tests compare decoded evidence, not one particular quote/block style.
+  # Write the validation date as a quoted YYYY-MM-DD string. The reader also
+  # accepts an unquoted YAML date scalar whose lexical value is exactly a valid
+  # YYYY-MM-DD date; a timestamp with a time component is not a date here.
   # Both dates use the SAME existing record-clock observation in its existing
   # local zone. Do not migrate the original record date to UTC or add a test
   # clock flag. Scenario helpers bound the command with before/after local
@@ -68,6 +71,10 @@ Feature: ADR acceptance and validation are separate facts
   #
   # decision validation <positive-record-number> is read-only, in the effective
   # work.decisions directory, including custom/project/private stealth paths.
+  # The record path is the forward-slash form of work.decisions joined with
+  # the selected filename, as configured/resolved; do not otherwise convert
+  # an absolute path to relative or a relative path to absolute. Diagnostics
+  # use that same forward-slash path on every OS.
   # It takes only that number and existing global flags, never --status,
   # --validation or --evidence. No question link or clean Git index is needed.
   # Success text is four LF-terminated lines, with a slash-separated path:
@@ -76,15 +83,20 @@ Feature: ADR acceptance and validation are separate facts
   # Evidence: null
   # Validation date: null
   # Evidence uses a JSON string literal when present, preserving whitespace
-  # through escapes; date uses YYYY-MM-DD or literal null. Success JSON is
+  # through escapes and out.Emit's no-HTML-escaping convention: <, > and &
+  # remain literal, not \u003c, \u003e or \u0026. Date uses YYYY-MM-DD or
+  # literal null. Success JSON is
   # {"schema":1,"ok":true,"number":7,"record":"notes/decisions/0007-legacy.md",
   #  "validation":{"status":"unknown","evidence":null,"date":null}}.
   # There is no commit key. Read any lifecycle, including superseded records.
   # A missing number is refusal 1 (ask-no-decision); multiple matching files
   # are refusal 1 (decisions-number-twice, naming both). A bad number/extra
   # argument/unsupported flag is usage 2. Malformed TARGET frontmatter or
-  # validation is data error 2 naming its path and offending field, following
-  # existing config/data diagnostics. Unrelated records are not validated.
+  # validation is data error 2 through the existing ask.Parse-style path:
+  # empty stdout even under --json, and stderr beginning
+  # "itos: <path>: <field>" with its cause. This is NOT configFailure JSON.
+  # Use frontmatter for invalid YAML, otherwise the exact validation field
+  # named by the malformed-fixture table. Unrelated records are not validated.
   # Other failures keep the existing classified error path: 3 means missing
   # environment, 75 temporary, 70 unclassified. Do not turn every I/O error
   # into 3 or silently downgrade a failed explicit read to unknown.
@@ -209,6 +221,7 @@ Feature: ADR acceptance and validation are separate facts
       | supported  | "  Local fixture A retained its labels in one trial.  "                                                      |
       | challenged | "  Local fixture B lost its labels in one trial.  "                                                          |
       | supported  | "  Fixture A only:\\nstatus: rejected\\nTask: T-001\\nhttps://example.invalid/evidence\\n\\tkept literal\\n" |
+      | supported  | "  A < B & B > C; preserve these characters.  "                                                      |
 
   @wip @slice-161 @ID-ASK-35
   Scenario: Legacy reads stay unknown despite done work and a successful CI run, without migrating files
@@ -269,6 +282,20 @@ Feature: ADR acceptance and validation are separate facts
     Then itos exits with code 0
     And its questions retain the existing list schema with no validation keys anywhere
     And every snapshotted file, HEAD, ref and staged entry is unchanged after all these reads
+    Given the committed file "notes/decisions/0009-handwritten.md" holding the lines:
+      """
+      ---
+      status: accepted
+      date: 2020-01-02
+      validation: {status: untried, date: 2026-01-02}
+      ---
+
+      # Handwritten
+      """
+    When itos runs "decision validation 9 --json"
+    Then itos exits with code 0
+    And stdout is exactly the validation-read JSON for number 9, record "notes/decisions/0009-handwritten.md" and untried validation with null evidence and date "2026-01-02"
+    And the file "notes/decisions/0009-handwritten.md" has the same contents as its committed version
 
   @wip @slice-161 @ID-ASK-36
   Scenario: Invalid opt-ins and strict reads fail without widening default-workflow refusals
@@ -313,22 +340,26 @@ Feature: ADR acceptance and validation are separate facts
     And the missing record refusal uses "ask-no-decision" while usage diagnostics name the bad flag, value or combination
     # The helper makes/commits each fixture in a separate scratch copy before
     # invoking the real binary, and compares state only across that invocation.
+    # Full target bytes are "---\n" + the decoded frontmatter below +
+    # "---\n\n# Legacy\n". Each decoded frontmatter already ends in LF.
+    # The index contains exactly "- [ADR-0007: Legacy](0007-legacy.md)";
+    # record regeneration preserves that line and these target bytes.
     When "decision validation 7 --json" reads each independent committed target fixture below:
-      | target frontmatter as JSON string                                                   | exit |
-      | "status: [accepted\\n"                                                             | 2    |
-      | "status: accepted\\nvalidation: null\\n"                                             | 2    |
-      | "status: accepted\\nvalidation: supported\\n"                                        | 2    |
-      | "status: accepted\\nvalidation: {status: proven}\\n"                                 | 2    |
-      | "status: accepted\\nvalidation: {status: supported}\\n"                              | 2    |
-      | "status: accepted\\nvalidation: {status: challenged, evidence: '  '}\\n"              | 2    |
-      | "status: accepted\\nvalidation: {status: unknown, evidence: 42}\\n"                   | 2    |
-      | "status: accepted\\nvalidation: {status: untried, date: '2026-02-30'}\\n"              | 2    |
-      | "status: accepted\\nvalidation: {status: unknown, extra: yes}\\n"                     | 2    |
-      | "status: accepted\\nvalidation: {status: unknown, status: untried}\\n"                | 2    |
-    Then every read exits 2 naming "notes/decisions/0007-legacy.md" and its malformed field or YAML, without writes
+      | target frontmatter as JSON string                                                   | exit | field               |
+      | "status: [accepted\\n"                                                             | 2    | frontmatter         |
+      | "status: accepted\\nvalidation: null\\n"                                             | 2    | validation          |
+      | "status: accepted\\nvalidation: supported\\n"                                        | 2    | validation          |
+      | "status: accepted\\nvalidation: {status: proven}\\n"                                 | 2    | validation.status   |
+      | "status: accepted\\nvalidation: {status: supported}\\n"                              | 2    | validation.evidence |
+      | "status: accepted\\nvalidation: {status: challenged, evidence: '  '}\\n"              | 2    | validation.evidence |
+      | "status: accepted\\nvalidation: {status: unknown, evidence: 42}\\n"                   | 2    | validation.evidence |
+      | "status: accepted\\nvalidation: {status: untried, date: '2026-02-30'}\\n"              | 2    | validation.date     |
+      | "status: accepted\\nvalidation: {status: unknown, extra: yes}\\n"                     | 2    | validation.extra    |
+      | "status: accepted\\nvalidation: {status: unknown, status: untried}\\n"                | 2    | validation.status   |
+    Then every read exits 2 with empty stdout and stderr beginning with "itos: notes/decisions/0007-legacy.md: " followed by that row's exact field, without writes
     And "decision show q-2 --json" against each such fixture still exits 0 with top-level validation null
     And "decision record q-1 --title 'Try labels'" against a fresh copy of each such fixture exits 0, preserving that target's bytes and its unsuffixed index link
-    And "decision record q-1 --title 'Try labels' --validation untried" against another fresh copy exits 0, labelling only the new record and preserving the malformed target's bytes
+    And "decision record q-1 --title 'Try labels' --validation untried" against another fresh copy exits 0, writing validation only to the new record and preserving the malformed target's bytes and legacy index link
     When two independent committed files "notes/decisions/0007-legacy.md" and "notes/decisions/0007-other.md" share target number 7
     And itos runs "decision validation 7 --json"
     Then itos exits with code 1 with "decisions-number-twice" naming both files and without writes

@@ -491,6 +491,12 @@ Feature: itos go and itos guide, the guides a session starts from
   # execution directory's path, not the original caller's relative path.
   # Stealth alone rebases these private data paths beside the recognized config
   # in the Git common dir, including explicit selection and linked worktrees.
+  # In that rebase, slash-normalize ONLY the newly added guide.overrides values
+  # before storing them in Loaded, so config get reports those same paths with
+  # forward slashes on Windows. Do not change ledger.files, work.registry,
+  # guide.orchestrating or any other existing key's stored/output path format.
+  # Keep explicitly supplied absolute paths absolute; source.path still uses
+  # its separately specified slash-normalized rendering.
   # A future slice-160 config-location boundary is separate, currently @wip:
   # neither assume its restrictions exist nor implement external-config policy
   # here. These alternative project config fixtures stay inside the worktree.
@@ -657,6 +663,12 @@ Feature: itos go and itos guide, the guides a session starts from
   # outside Git. It deliberately bypasses pin/latest/ITOS_VERSION selection,
   # release requests/launches and cache writes, unlike ordinary guide calls.
   # No go --builtin. --builtin with --json is usage exit 2 naming both flags.
+  # Invoked-binary handling applies to EVERY guide invocation carrying the
+  # declared --builtin option, including invalid names/arity/flags, --json
+  # conflicts and -h help. Do not hand these to a pin merely because export
+  # validation fails. Recognize the option structurally, not an argument value
+  # or substring. The invoked CLI emits its normal usage error or help, still
+  # without config/version discovery, release traffic or cache writes.
   # Shell redirection alone writes the requested file; itos never exports by
   # first writing a file and reading it back. These shell-facing framing
   # guarantees do not freeze the shipped prose against future releases.
@@ -713,10 +725,10 @@ Feature: itos go and itos guide, the guides a session starts from
   @wip @slice-168 @ID-GUIDE-37
   Scenario Outline: Raw export ignores override and config failures and never appends real commit policy
     Given a repository whose ledger has the task "T-001"
-    And the config's commits.types gains "deps"
     And a "guides" folder
     And a "sub" folder
     And the config sets "guide" to the YAML "{ overrides: { commit: <override> } }"
+    And the config's commits.types gains "deps"
     And the untracked file "broken.yaml" holding "version: ["
     And the untracked file "sub/broken.yaml" holding "version: ["
     When itos runs "guide commit --builtin"
@@ -828,3 +840,34 @@ Feature: itos go and itos guide, the guides a session starts from
       | guide work extra --builtin         | extra       |
       | guide work --builtin --not-a-flag   | --not-a-flag |
       | go --builtin                       | --builtin   |
+
+  # usage means empty stdout and stderr naming the expected fact; help means
+  # stdout includes that fact and stderr is empty. Both are handled by the
+  # invoked binary, not the pinned release. The successful first export is
+  # new positive red-first evidence; remaining assertions guard dispatch.
+  @wip @slice-168 @ID-GUIDE-41
+  Scenario Outline: Pinned repositories keep builtin usage errors and help in the invoked binary
+    Given a repository whose ledger has the task "T-001"
+    When itos runs "guide work --builtin"
+    Then itos exits with code 0
+    And stdout begins with "# Working with itos"
+    Given a release server offering the versions "0.0.1" and "0.0.2"
+    And the config pins the version "0.0.1" of the release server
+    And the raw export cache state is saved for comparison
+    When itos runs "<command>"
+    Then itos exits with code <exit>
+    And the invoked builtin command reports "<result>" naming "<fact>"
+    And no version of the release server ran since the last run
+    And the release server was asked for nothing since the last run
+    And the raw export cache state is unchanged
+    And no file changed since the last run
+
+    Examples:
+      | command                          | exit | result | fact         |
+      | guide work --builtin --json       | 2    | usage  | --json       |
+      | guide review --builtin            | 2    | usage  | review       |
+      | guide work extra --builtin        | 2    | usage  | extra        |
+      | guide --builtin                   | 2    | usage  | name         |
+      | guide work --builtin --not-a-flag  | 2    | usage  | --not-a-flag |
+      | guide work --builtin -h           | 0    | help   | --builtin    |
+      | guide --builtin -h                | 0    | help   | --builtin    |
