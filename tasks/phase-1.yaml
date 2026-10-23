@@ -4415,3 +4415,21 @@
     - run: names=$(go test ./internal/engine/ciwatch -list '^TestSuccessfulLookResetsTheTemporaryFailureBudgetToZero$') && printf '%s\n' "$names" | grep -qx 'TestSuccessfulLookResetsTheTemporaryFailureBudgetToZero' && go test ./internal/engine/ciwatch -count=1 -run '^TestSuccessfulLookResetsTheTemporaryFailureBudgetToZero$'
     - run: names=$(go test ./internal/slices/draft -list '^TestTopPathsRefusesTheWorkTreeParent$') && printf '%s\n' "$names" | grep -qx 'TestTopPathsRefusesTheWorkTreeParent' && go test ./internal/slices/draft -count=1 -run '^TestTopPathsRefusesTheWorkTreeParent$'
     - run: names=$(go test ./internal/slices/initcmd -list '^TestParseRulesFlagConflictConsumesNoArguments$') && printf '%s\n' "$names" | grep -qx 'TestParseRulesFlagConflictConsumesNoArguments' && go test ./internal/slices/initcmd -count=1 -run '^TestParseRulesFlagConflictConsumesNoArguments$'
+
+- id: T-289
+  type: test
+  title: Pass the host OS into concurrent local-counter test stores
+  why: >
+    CI 40028120789 repeated the known Windows Access-is-denied lock failure. Diagnosis shows the
+    concurrent fixture omits Store.OS, while production passes runtime.GOOS and lock.Hold already
+    retries the Windows deletion-denial case. Correct only counter_test.go fixture inputs: both
+    stores use one test-only constructor supplying runtime.GOOS; assert each actual concurrent store
+    has that OS before launching goroutines; retain both workers, distinct 1/2 results and stored
+    counter 2. Add TestLinkedWorktreeStoresUseHostOS exercising that same constructor, so
+    deterministic input regression and executable discovery fail if the fix is absent. No production
+    defaults, retry-budget/classification changes, Windows skips, remote counters, or gate changes.
+    Use only temporary local fixture paths and never mint a real ID. The deeper native
+    delete-pending test and ignored release-error concerns are separate, not demonstrated product
+    failures here.
+  done_when:
+    - run: names=$(go test ./internal/idcounter -list "^TestLinkedWorktreeStoresUseHostOS$") && printf "%s\n" "$names" | grep -qx "TestLinkedWorktreeStoresUseHostOS" && go test ./internal/idcounter -count=1 -run "^(TestLinkedWorktreeStoresUseHostOS|TestMintLocalSerializesLinkedWorktrees)$"
