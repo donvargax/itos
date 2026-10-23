@@ -32,7 +32,10 @@ Each is one task or slice; none changes what a consumer sees until step 6.
    needs the process boundary (launcher, shim, signals, pin), as itos-cc tags
    it; a run that selects nothing or skips a scenario is never a pass. The
    in-process driver lands serial, behind its switch, with the binary driver
-   unchanged as the control. Lines it reaches count toward coverage at once.
+   unchanged as the control (T-285, done). The push proof already counts
+   the lines scenarios reach through the binary driver (T-121's `-cover`
+   build, read by itos-cc since T-120), so in-process coverage waits for
+   step 5; `cmd/itos`, the launcher and the shim stay judged by binary runs.
 2. **No process state in the CLI.** `cli.Main`'s path takes the folder,
    environment and stdin from the run value: no `os.Chdir`, `os.Setenv`,
    `getwd` variable or `os.Stdin` read. A test runs two scenarios at once
