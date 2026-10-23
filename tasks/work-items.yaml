@@ -12858,3 +12858,11 @@ items:
     status: todo
     depends_on: []
     kind: task
+
+  - id: T-286
+    title: The push proof counts the lines in-process scenarios reach, one coverage folder per scenario
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task

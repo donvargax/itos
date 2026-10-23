@@ -4373,3 +4373,27 @@
       timeout: 900
     - run: "! ITOS_FEATURE_DRIVER=in-process go test ./features -count=1 -scenarios='^@ID-GUARD-11$'"
       timeout: 900
+
+- id: T-286
+  type: build
+  title: The push proof counts the lines in-process scenarios reach, one coverage folder per scenario
+  why: >
+    Step 1's second half in docs/plans/in-process-tier.md (ADR-0059). Today the push proof's
+    changed-line coverage (itos-cc --fail-uncovered=lines) reads unit tests alone, because the
+    scenarios run the binary in a child process; that is why new slice lines keep turning CI red
+    after a push (slice-154, slice-166). itos-cc's own model (its docs/go.md, mutation.tests whole
+    and the scenarios_apart runs): with ITOS_CC_TEST_COVERDIR set and the test binary built with
+    -cover -coverpkg=./..., the features runner runs each selected scenario in a test binary of its
+    own with -test.gocoverdir=<dir>/<scenario ID without @>, so itos-cc reads one coverage per
+    scenario. Do the same here for the in-process driver (T-285): the runner honours
+    ITOS_CC_TEST_COVERDIR under ITOS_FEATURE_DRIVER=in-process, and itos-cc.yaml's mutation.tests
+    run and whole select the in-process driver, the scenarios it skips still killing nothing.
+    Measure the push proof's time before and after in the commit body; if a whole in-process run
+    with coverage is too slow for the push tier, stop and report with the numbers. Gate files only
+    (itos-cc.yaml, tools/bin if needed) plus the features runner; no product Go.
+  done_when:
+    - run: d=$(mktemp -d) && ITOS_CC_TEST_COVERDIR="$d" ITOS_FEATURE_DRIVER=in-process go test -cover -coverpkg=./... ./features -count=1 -scenarios='^@ID-CONFIG-13$' && ls "$d"/ID-CONFIG-13/covmeta.* >/dev/null
+      timeout: 900
+    - run: grep -q ITOS_FEATURE_DRIVER=in-process itos-cc.yaml
+    - run: go test ./features -count=1 -scenarios='^@ID-CONFIG-13$'
+      timeout: 900
