@@ -56,10 +56,32 @@ func TestClearGitEnvironmentRemovesRepositoryAndConfigOverrides(t *testing.T) {
 	}
 }
 
-func TestMintLocalSerializesLinkedWorktrees(t *testing.T) {
+func linkedWorktreeStores(t *testing.T) []Store {
+	t.Helper()
 	common := t.TempDir()
 	rootA, rootB := t.TempDir(), t.TempDir()
-	stores := []Store{{Root: rootA, CommonDir: common}, {Root: rootB, CommonDir: common}}
+	return []Store{
+		{Root: rootA, CommonDir: common, OS: runtime.GOOS},
+		{Root: rootB, CommonDir: common, OS: runtime.GOOS},
+	}
+}
+
+func TestLinkedWorktreeStoresUseHostOS(t *testing.T) {
+	for i, store := range linkedWorktreeStores(t) {
+		if store.OS != runtime.GOOS {
+			t.Fatalf("store %d OS = %q, want %q", i, store.OS, runtime.GOOS)
+		}
+	}
+}
+
+func TestMintLocalSerializesLinkedWorktrees(t *testing.T) {
+	stores := linkedWorktreeStores(t)
+	common := stores[0].CommonDir
+	for i, store := range stores {
+		if store.OS != runtime.GOOS {
+			t.Fatalf("store %d OS = %q, want %q", i, store.OS, runtime.GOOS)
+		}
+	}
 	var wg sync.WaitGroup
 	got := make(chan int, len(stores))
 	errs := make(chan error, len(stores))
