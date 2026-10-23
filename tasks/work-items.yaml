@@ -12846,7 +12846,7 @@ items:
   - id: T-284
     title: The brief rules the coordinator carried in notes.md move into docs/ORCHESTRATING.md
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
