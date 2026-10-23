@@ -55,7 +55,6 @@ phases:
   3: donvargax
 
 queue:
-  - T-286
   - p1-agent-test-runs-once
   - p1-mutation-results-committed
   - p1-text-from-file
@@ -12871,7 +12870,7 @@ items:
     title: The push proof counts the lines in-process scenarios reach, one coverage folder per scenario
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: [T-285]
     kind: task
 
