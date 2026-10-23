@@ -205,9 +205,12 @@ func TestWriteFilesErrors(t *testing.T) {
 	} {
 		g.old = true
 		var stdout strings.Builder
-		if _, err := Declare(context.Background(), g, "itos", false, false, Out{Stdout: &stdout, Stderr: &stdout, JSON: true},
-			func(string) {}); err == nil || stdout.Len() != 0 {
-			t.Errorf("%s: %v\n%s", name, err, stdout.String())
+		code, err := Declare(context.Background(), g, "itos", false, false, Out{Stdout: &stdout, Stderr: &stdout, JSON: true},
+			func(string) {})
+		if err == nil || stdout.Len() != 0 {
+			t.Errorf("%s: exit %d, %v\n%s", name, code, err, stdout.String())
+		} else if code != 0 {
+			t.Errorf("%s: error path returned exit %d, want zero", name, code)
 		}
 	}
 	if _, err := Declare(context.Background(), &fakeGit{old: true}, "itos", true, false,

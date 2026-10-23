@@ -223,12 +223,19 @@ func TestListRefusesWhatItCannotList(t *testing.T) {
 	if !errors.As(err, &u) || err.Error() != "tests list: nope is not a commit of this repository" {
 		t.Errorf("list --at nope = %v, want the ref refused", err)
 	}
-	if _, _, _, err := call(t, p, "list", "scenario"); !errors.Is(err, p.err) {
+	if code, _, _, err := call(t, p, "list", "scenario"); code != 0 || !errors.Is(err, p.err) {
 		t.Errorf("list over a config that does not load = %v, want its error", err)
 	}
 	p.err = nil
 	if _, stdout, _, err := call(t, p, "list", "unit"); err == nil || !strings.Contains(err.Error(), "tests.unit is missing") || stdout != "" {
 		t.Errorf("list unit = %q, %v, want the kind missing", stdout, err)
+	}
+
+	commandConfig := "version: 1\nwork: { registry: work-items.yaml }\ntests:\n" +
+		"  scenario:\n    adapter: { command: \"false\", supports_at: true }\n    id: 'ID-[A-Z]+-\\d+'\n"
+	p = overWorktree(t, commandConfig, worktree())
+	if code, _, _, err := call(t, p, "list", "scenario", "--tsv"); code != 0 || err == nil {
+		t.Errorf("list --tsv over a failing adapter = exit %d, %v, want its error", code, err)
 	}
 }
 

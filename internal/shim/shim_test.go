@@ -131,3 +131,14 @@ func TestMainRefusesSweepingStages(t *testing.T) {
 		}
 	}
 }
+
+// When the real git cannot start, Main reports the launch failure rather
+// than returning the zero exit code from run.
+func TestMainReportsRealGitThatCannotStart(t *testing.T) {
+	t.Setenv(git.EnvGit, t.TempDir())
+	var stderr strings.Builder
+	itos, code, done := Main([]string{"status"}, &stderr, vcs.Git{Platform: runtime.GOOS}, launch.CLI{})
+	if itos != nil || code != 3 || !done || !strings.HasPrefix(stderr.String(), "itos: cannot run git (") {
+		t.Errorf("Main with an unstartable git = %q, %d, %v, %q", itos, code, done, stderr.String())
+	}
+}

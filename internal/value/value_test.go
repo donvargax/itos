@@ -127,6 +127,12 @@ func TestYAML(t *testing.T) {
 	}
 }
 
+func TestYAMLLeavesAPlainDocumentMarkerPrefixAsAString(t *testing.T) {
+	if got := YAML("---suffix"); got != "---suffix\n" {
+		t.Errorf("YAML string = %q, want the plain scalar", got)
+	}
+}
+
 func TestSpace(t *testing.T) {
 	if got := Trim("\xef\xbb\xbf a \u00a0"); got != "a" {
 		t.Errorf("Trim: %q", got)

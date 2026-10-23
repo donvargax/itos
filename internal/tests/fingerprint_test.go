@@ -175,3 +175,11 @@ func TestFingerprintsOfNoGherkin(t *testing.T) {
 		t.Errorf("an ID pattern that does not compile gave %v", got)
 	}
 }
+
+func TestFingerprintsIgnoreAnEmptyIDCapture(t *testing.T) {
+	text := "Feature: F\n\n  @x\n  Scenario: no ID\n    When it runs\n"
+	got := Fingerprints(text, Options{ID: "(|x)", TagPrefix: "@"})
+	if len(got) != 0 {
+		t.Errorf("fingerprints of an empty ID capture = %v, want none", got)
+	}
+}
