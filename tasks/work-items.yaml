@@ -12962,3 +12962,27 @@ items:
       absolute path while the coordinator committed there (tasks/work-items.yaml showed as modified
       once). Drop this idea if it never recurs once agents' sessions are moved into their worktrees.
     tags: [work]
+
+  - id: p1-item-lifecycle
+    title: An item moves through explicit states, each move needing its proof, and itos next says the next allowed move
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [p1-typed-items]
+    kind: idea
+    why: >
+      The user, 2026-10-23: make the itos workflow a state machine. Today an item is idea, todo,
+      doing, done, dropped or deferred; the sub-states this session added are not recorded:
+      specified (@wip scenarios or task checks exist), spec reviewed (the reviewer approved at a
+      commit), taken, red (red-first record, ADR-0060 item C), green (CI record for the pushed head,
+      item B), diff reviewed, done (every proof present). Each transition names the evidence record
+      it needs, so work done only checks the last state is reached; itos status shows each item's
+      state and what it waits for (what p1-session-handoff wants); itos next <id> gives the next
+      allowed move and what it needs, which makes a cheap coordinator realistic
+      (p1-cheap-coordinator-trial); an out-of-order move (closing a slice with no red proof, handing
+      out an unreviewed spec) is refused. The workflow is data per item type and per project, so a
+      typo fix does not walk seven states and a small bug skips the red agent and review states
+      (p1-red-agent). Changing what an item's status means breaks registries and scenarios: v9
+      design input with p1-typed-items (q-89). The v8 work in flight (evidence records, the
+      reviewer, the red agent) builds the proofs its transitions need.
+    tags: [work]
