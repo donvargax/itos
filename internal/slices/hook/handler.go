@@ -40,6 +40,16 @@ type Ports interface {
 	Read(ctx context.Context, path string) (string, error)
 	TaskFlags(ctx context.Context) []string
 	Shell(ctx context.Context, cfg *config.Loaded, command string, o shell.Options) shell.Result
+	CaptureIndex(ctx context.Context) (treeport.Source, error)
+	TaskSnapshot(ctx context.Context, tree string) (Snapshot, error)
+}
+
+// Snapshot is a private checkout and capture directory, with a Git-local
+// environment removed and a release function for every exit from task checking.
+type Snapshot struct {
+	Dir, TempDir string
+	Env          []string
+	Remove       func() error
 }
 
 // Handler is hook's application, over its ports.

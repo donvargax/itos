@@ -24,6 +24,10 @@ type Captured struct {
 	TimedOut bool
 }
 
+// Execution relocates a check and its captured output without changing policy.
+// Empty paths retain the caller's working and temporary directories.
+type Execution struct{ Dir, TempDir string }
+
 // NoCap is a cap that leaves a check's own timeout as it is.
 var NoCap = math.Inf(1)
 
@@ -34,10 +38,14 @@ var NoCap = math.Inf(1)
 // past its timeout; a check past its timeout fails whatever its code. env is
 // the environment it runs in (itos's own when nil). It runs every check it
 // is given: an after: push check is its caller's to leave pending.
-func RunCaptured(cfg *config.Loaded, c ledger.Check, cap float64, env []string) (Captured, error) {
+func RunCaptured(cfg *config.Loaded, c ledger.Check, cap float64, env []string, execution ...Execution) (Captured, error) {
+	var at Execution
+	if len(execution) > 0 {
+		at = execution[0]
+	}
 	own := Timeout(cfg, c)
 	seconds := math.Min(own, cap)
-	dir, err := os.MkdirTemp("", "itos-check-")
+	dir, err := os.MkdirTemp(at.TempDir, "itos-check-")
 	if err != nil {
 		return Captured{}, err
 	}
@@ -47,7 +55,7 @@ func RunCaptured(cfg *config.Loaded, c ledger.Check, cap float64, env []string) 
 		return Captured{}, err
 	}
 	run := shell.Run(cfg, c.Command(), shell.Options{
-		Stdout: file, Stderr: file, Timeout: duration(seconds), Env: env,
+		Stdout: file, Stderr: file, Timeout: duration(seconds), Env: env, Dir: at.Dir,
 	})
 	if err := file.Close(); err != nil {
 		return Captured{}, err

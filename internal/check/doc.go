@@ -23,4 +23,6 @@
 // a timeout is a failure whatever the code, and the check runs in the hook's
 // environment less GIT_INDEX_FILE. An after: push check is Pending until a
 // remote branch holds HEAD (Pushed).
+// Execution can place the command in a private checkout and its captures in
+// a sibling temporary directory, leaving the caller's CWD and policy unchanged.
 package check

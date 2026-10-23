@@ -22,7 +22,7 @@ set -u
 n=$(find "$SNAPSHOT_LOG" -name 'run-*' -type d | wc -l | tr -d ' ')
 out="$SNAPSHOT_LOG/run-$n"
 mkdir "$out" || exit 90
-pwd -P > "$out/cwd"
+(pwd -W 2>/dev/null || pwd -P) > "$out/cwd"
 printf '%s' "${GOCACHE-}" > "$out/cache"
 git config --local --get core.filemode > "$out/filemode"
 git config --local --get core.symlinks > "$out/symlinks"

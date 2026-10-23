@@ -444,10 +444,14 @@ func namedTaskIDs(cfg *config.Loaded, text string) []string {
 // stagedTasks). A staged tree whose ledger cannot be read names none: the
 // header lint has judged the footer by then.
 func (h Handler) stagedTasks(ctx context.Context, ids []string) ([]namedTask, error) {
-	index, err := h.ports.Trees(ctx).At(ctx, "index")
+	index, err := h.ports.CaptureIndex(ctx)
 	if err != nil {
 		return nil, err
 	}
+	return h.tasksAt(ctx, ids, index)
+}
+
+func (h Handler) tasksAt(ctx context.Context, ids []string, index port.Source) ([]namedTask, error) {
 	cfg, err := config.Load(h.ports, h.ports.Trees(ctx), index, config.Path(h.ports, index))
 	if err != nil {
 		return nil, nil
@@ -522,14 +526,38 @@ func (h Handler) tasksRule(ctx context.Context, cfg *config.Loaded, text string,
 	if settings.CheckTimeout != nil {
 		cap = *settings.CheckTimeout
 	}
-	env := checkEnv()
-	named, err := h.stagedTasks(ctx, ids)
+	index, err := h.ports.CaptureIndex(ctx)
 	if err != nil {
 		return Answer{}, err
 	}
+	named, err := h.tasksAt(ctx, ids, index)
+	if err != nil {
+		return Answer{}, err
+	}
+	runnable := false
+	for _, n := range named {
+		if n.task.Err != nil {
+			return Answer{}, n.task.Err
+		}
+		for _, c := range check.ChecksBeforeLate(cfg, n.task) {
+			if !c.Check.Pushed() {
+				runnable = true
+			}
+		}
+	}
+	if !runnable {
+		return Answer{}, nil
+	}
+	snapshot, err := h.ports.TaskSnapshot(ctx, index.Tree(ctx))
+	if err != nil {
+		return Answer{}, err
+	}
+	defer snapshot.Remove()
+	env := message.WithoutFooters(snapshot.Env)
+	execution := check.Execution{Dir: snapshot.Dir, TempDir: snapshot.TempDir}
 	var rejected []string
 	for _, n := range named {
-		why, err := judge.FirstFailure(cfg, n.task, cap, env, o.Stderr)
+		why, err := judge.FirstFailure(cfg, n.task, cap, env, o.Stderr, execution)
 		if err != nil {
 			return Answer{}, err
 		}

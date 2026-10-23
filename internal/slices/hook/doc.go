@@ -47,10 +47,13 @@
 //     the footers judged are handedFooters: ITOS_FOOTERS, else an amend's
 //     HEAD note.
 //  4. The named tasks' checks up to each task's first late one, the ledger
-//     and the registry read from the index by the staged config, the
+//     and the registry read from one captured index tree by the staged config, the
 //     checks' costs and timeouts by the working tree's, each run by
-//     judge.FirstFailure; checkEnv keeps GIT_INDEX_FILE, ITOS_FOOTERS and
-//     ITOS_AMEND from them. A failure rejects the commit when
+//     judge.FirstFailure in a disposable checkout of that same tree. The
+//     checkout has private Git metadata and captured output beside it; all
+//     Git-local environment names and ITOS_FOOTERS/ITOS_AMEND are scrubbed.
+//     Only runnable checks create a snapshot, removed on either verdict.
+//     A failure rejects the commit when
 //     work.ItemStatuses says the task is done, and is only printed
 //     otherwise. hooks.commit_msg.task_checks: false turns them off.
 //

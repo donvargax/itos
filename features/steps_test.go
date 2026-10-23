@@ -1748,7 +1748,11 @@ func (w *world) recordingScript(path string) error {
 	if err := w.write(path, script); err != nil {
 		return err
 	}
-	return os.Chmod(filepath.Join(w.dir, path), 0o755)
+	if err := os.Chmod(filepath.Join(w.dir, path), 0o755); err != nil {
+		return err
+	}
+	// A hook check can execute only scripts included in the proposal.
+	return w.git("add", "--", path)
 }
 
 // A script at the path in the scratch repository that writes the arguments

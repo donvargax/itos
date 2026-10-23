@@ -71,6 +71,14 @@ func (p *ports) Show(ctx context.Context, rev string) (vcsport.Entry, error) {
 
 func (p *ports) Trees(context.Context) treeport.Trees { return p.trees }
 
+func (p *ports) CaptureIndex(ctx context.Context) (treeport.Source, error) {
+	return p.trees.At(ctx, "index")
+}
+
+func (p *ports) TaskSnapshot(context.Context, string) (Snapshot, error) {
+	return Snapshot{Env: checkEnv(), Remove: func() error { return nil }}, nil
+}
+
 func (p *ports) LoadConfig(context.Context) (*config.Loaded, error) { return p.cfg, p.loadErr }
 
 func (p *ports) Read(ctx context.Context, path string) (string, error) {

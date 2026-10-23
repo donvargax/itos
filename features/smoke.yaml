@@ -192,3 +192,7 @@
   scenarios:
     - id: "@ID-WORK-01"
       why: the registry read where itos looks by default, which every command reading it goes through
+- file: hook-task-snapshot.feature
+  scenarios:
+    - id: "@ID-HOOKSNAP-01"
+      why: A done task cannot pass on an untracked input absent from the proposal.

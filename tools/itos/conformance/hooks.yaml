@@ -472,12 +472,13 @@ cases:
       - commit: "docs: start"
         files: *data
       - stage:
-          tasks/phase-1.yaml: "- { id: T-001, type: build, title: One, done_when: [{ run: \"touch ran-1\", cost: static }, { run: \"exit 4\", cost: static }, { run: \"touch ran-3; exit 5\", cost: static }] }\n"
+          tasks/phase-1.yaml: "- { id: T-001, type: build, title: One, done_when: [{ run: \"printf first-ran > ran-1\", cost: static }, { run: \"cat ran-1; exit 4\", cost: static }, { run: \"touch ran-3; exit 5\", cost: static }] }\n"
           tasks/work-items.yaml: "phases: { 1: null }\nitems:\n  - { id: T-001, title: One, phase: 1, owner: null, status: done, depends_on: [] }\n"
     files: { msg: "docs: note the check\n\nTask: T-001\n" }
     exit: 1
-    stderr_has: "exit 4"
-    files_after: { ran-1: "", ran-3: null }
+    stderr_has: ["exit 4", "first-ran"]
+    stderr_lacks: "exited 5"
+    files_after: { ran-1: null, ran-3: null }
   - name: the checks stop at a task's first late one, by its cost or the patterns'
     argv: [hook, commit-msg, msg]
     git:

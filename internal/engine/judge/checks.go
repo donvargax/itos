@@ -31,7 +31,7 @@ func checkFailure(c ledger.Check, run check.Captured) string {
 // push check pending since the commit is not pushed, and gives the first
 // failure, if any, with its output printed under the task's title and the
 // check, as `itos task` prints them.
-func FirstFailure(cfg *config.Loaded, task ledger.Task, cap float64, env []string, stderr io.Writer) (string, error) {
+func FirstFailure(cfg *config.Loaded, task ledger.Task, cap float64, env []string, stderr io.Writer, execution ...check.Execution) (string, error) {
 	if task.Err != nil {
 		return "", task.Err
 	}
@@ -40,7 +40,7 @@ func FirstFailure(cfg *config.Loaded, task ledger.Task, cap float64, env []strin
 		if c.Pushed() {
 			continue
 		}
-		run, err := check.RunCaptured(cfg, c, cap, env)
+		run, err := check.RunCaptured(cfg, c, cap, env, execution...)
 		if err != nil {
 			return "", err
 		}

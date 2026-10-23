@@ -27,6 +27,7 @@ type Options struct {
 	Stdout, Stderr io.Writer
 	Timeout        time.Duration
 	Env            []string
+	Dir            string
 }
 
 // Result is how a command ended. Code is its exit code, -1 when it did not
@@ -93,6 +94,7 @@ func Run(cfg *config.Loaded, command string, o Options) Result {
 	argv := Argv(cfg, command)
 	cmd := exec.CommandContext(ctx, argv[0], argv[1:]...)
 	cmd.Stdin, cmd.Stdout, cmd.Stderr, cmd.Env = o.Stdin, o.Stdout, o.Stderr, o.Env
+	cmd.Dir = o.Dir
 	cmd.Cancel = func() error {
 		if err := cmd.Process.Signal(syscall.SIGTERM); err != nil {
 			return cmd.Process.Kill()

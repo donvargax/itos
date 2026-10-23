@@ -32,6 +32,10 @@
 // the hooks they run inherit git's environment and read their own. A
 // commit outside every branch (CommitFile, the ID counter's) is built in an
 // index of its own in a temporary folder.
+// IndexTree captures the active index once. TaskSnapshot checks it out below
+// the source common dir's itos/snapshots, with independent metadata and writable
+// objects, a file alternate for source objects and copied checkout-mode policy.
+// Git-local environment names are removed before running snapshot commands.
 //
 // Beside the port, Git holds what is git's alone: the git config (Config,
 // SetConfig, AddConfig), whether git runs the hooks its config declares

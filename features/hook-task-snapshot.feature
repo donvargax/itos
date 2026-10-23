@@ -39,7 +39,7 @@ Feature: Commit-msg task checks execute against the captured staged tree
 
   # Today the check finds the untracked file in the working tree and exits
   # 0; the Then expecting the done-task rejection fails.
-  @wip @ID-HOOKSNAP-01 @bug-112
+  @ID-HOOKSNAP-01 @bug-112
   Scenario: An untracked file cannot make a done task's staged check pass
     Given the task "T-001" has the static check "snapshot-probe require gen/out.txt"
     And the work registry at "tasks/work-items.yaml" with the item "T-001" with the status "done" is staged
@@ -62,7 +62,7 @@ Feature: Commit-msg task checks execute against the captured staged tree
 
   # Today both rows read the working-tree input instead of "staged", so
   # the retained done-task check rejects; the Then expecting 0 fails.
-  @wip @ID-HOOKSNAP-02 @bug-112
+  @ID-HOOKSNAP-02 @bug-112
   Scenario Outline: The staged version passes despite different or missing working-tree content
     Given the task "T-001" has the static check "snapshot-probe expect-text input.txt staged"
     And the work registry at "tasks/work-items.yaml" with the item "T-001" with the status "done" is staged
@@ -96,7 +96,7 @@ Feature: Commit-msg task checks execute against the captured staged tree
   # that the index lacks; on any mismatch it prints the path and exits 1.
   # Today the check runs in the working tree, whose disk differs from the
   # index here, so the exit-code Then fails before the fix.
-  @wip @ID-HOOKSNAP-03 @bug-112
+  @ID-HOOKSNAP-03 @bug-112
   Scenario Outline: Staged additions, deletions and modes determine the checkout
     Given the snapshot fixture runs on <platform>
     And the task "T-001" has the static check "snapshot-probe inspect-entries"
@@ -132,7 +132,7 @@ Feature: Commit-msg task checks execute against the captured staged tree
   # Today both checks can pass, but their recorded CWD is the source
   # checkout. The Then requiring a shared disposable checkout fails; the
   # source-file assertion also detects the generated file left there.
-  @wip @ID-HOOKSNAP-07 @bug-112
+  @ID-HOOKSNAP-07 @bug-112
   Scenario: Check-generated inputs are shared within the snapshot, not with the source checkout
     Given the task "T-001" has these static checks in written order:
       | command                                   |
@@ -161,7 +161,7 @@ Feature: Commit-msg task checks execute against the captured staged tree
   # expecting the setup/unsupported-state exit 3 fails.
   # Match only the itos-owned reason below and the identified location,
   # normalizing path separators; never match OS error text or its wording.
-  @wip @ID-HOOKSNAP-09 @bug-112
+  @ID-HOOKSNAP-09 @bug-112
   Scenario Outline: Snapshot setup refuses an unusable location or unsupported gitlink before checks run
     Given the task "T-001" has the static check "snapshot-probe record-run"
     And the work registry at "tasks/work-items.yaml" with the item "T-001" with the status "done" is staged
@@ -192,7 +192,7 @@ Feature: Commit-msg task checks execute against the captured staged tree
   # "No remaining acceptance checks" is the row with done_when: [] and a
   # done registry item, not checks that exist but happen to pass or be late.
   # The empty footer cell inserts no footer; docs needs no Task footer here.
-  @wip @guard @ID-HOOKSNAP-12 @bug-112
+  @guard @ID-HOOKSNAP-12 @bug-112
   Scenario Outline: No runnable check means no snapshot cost or new setup failure
     Given hooks.commit_msg.task_checks is <task_checks>
     And the staged file "tasks/phase-1.yaml" holding the lines:
@@ -232,7 +232,7 @@ Feature: Commit-msg task checks execute against the captured staged tree
   # leave-artifacts writes gen/artifact.txt containing "private-artifact\n",
   # prints exactly "snapshot-artifact-output\n" to stdout and nothing to
   # stderr, records its observations, then exits with check_exit.
-  @wip @ID-HOOKSNAP-13 @bug-112
+  @ID-HOOKSNAP-13 @bug-112
   Scenario Outline: Successful and failing checks remove their disposable resources
     Given the task "T-001" has the static check "snapshot-probe leave-artifacts <check_exit>"
     And the work registry at "tasks/work-items.yaml" with the item "T-001" with the status "done" is staged

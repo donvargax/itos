@@ -32,6 +32,19 @@ type hookPorts struct {
 	hookFiles
 }
 
+func (p hookPorts) CaptureIndex(ctx context.Context) (treeport.Source, error) {
+	tree, err := p.Git.IndexTree(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return p.Trees(ctx).At(ctx, tree)
+}
+
+func (p hookPorts) TaskSnapshot(ctx context.Context, tree string) (hookslice.Snapshot, error) {
+	s, err := p.Git.TaskSnapshot(ctx, tree)
+	return hookslice.Snapshot{Dir: s.Dir, TempDir: s.TempDir, Env: s.Env, Remove: s.Remove}, err
+}
+
 // Trees are the trees git holds.
 func (hookPorts) Trees(context.Context) treeport.Trees { return trees.Trees{VCS: vcs.Git{}} }
 
