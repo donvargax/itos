@@ -5,7 +5,28 @@ import (
 	"testing"
 
 	"github.com/donvargax/itos/v8/internal/store/tree/port/porttest"
+	"github.com/donvargax/itos/v8/internal/value"
 )
+
+func TestSmokeScenarioRequiresAStringID(t *testing.T) {
+	for _, c := range []struct {
+		name string
+		m    *value.Map
+		want SmokeScenario
+		why  string
+	}{
+		{"missing id", value.NewMap("why", "A reason"), SmokeScenario{}, "entry 1 has a scenario without an id"},
+		{"numeric id", value.NewMap("id", float64(1), "why", "A reason"), SmokeScenario{}, "entry 1 has a scenario without an id"},
+		{"string id", value.NewMap("id", "ID-A-1", "why", "A reason"), SmokeScenario{ID: "ID-A-1", Why: "A reason"}, ""},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			got, why := scenarioProblem(c.m, "entry 1")
+			if got != c.want || why != c.why {
+				t.Fatalf("scenarioProblem: %+v, %q; want %+v, %q", got, why, c.want, c.why)
+			}
+		})
+	}
+}
 
 // A smoke set read at a commit: the commit's file, an error when the commit
 // cannot be read, and one naming the file when the commit lacks it.

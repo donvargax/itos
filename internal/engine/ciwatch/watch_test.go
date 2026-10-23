@@ -51,6 +51,26 @@ func TestAWatchWaitsForTheRunToAppear(t *testing.T) {
 	}
 }
 
+func TestSuccessfulLookResetsTheTemporaryFailureBudgetToZero(t *testing.T) {
+	noSleep(t)
+	looks := 0
+	look := func(string) (providers.Run, bool, error) {
+		looks++
+		if looks == 1 {
+			return providers.Run{URL: "u", Status: "in_progress"}, true, nil
+		}
+		if looks <= giveUp {
+			return providers.Run{}, false, kind.Wrap(kind.Temporary, errors.New("502"))
+		}
+		return providers.Run{URL: "u", Status: "completed", Conclusion: "success"}, true, nil
+	}
+	var stdout, stderr strings.Builder
+	w := watchRun(watchConfig(0, 60), providers.Watcher{Look: look}, "abc", "", Out{Stdout: &stdout, Stderr: &stderr})
+	if w.Code != 0 || w.Outcome != "success" || looks != giveUp+1 {
+		t.Fatalf("code %d, outcome %s, looks %d\n%s%s", w.Code, w.Outcome, looks, stdout.String(), stderr.String())
+	}
+}
+
 func TestATransientFailureIsLookedPast(t *testing.T) {
 	noSleep(t)
 	looks := 0

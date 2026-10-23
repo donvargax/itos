@@ -10,8 +10,19 @@ import (
 	"testing"
 
 	domain "github.com/donvargax/itos/v8/internal/draft"
+	"github.com/donvargax/itos/v8/internal/out"
 	vcsport "github.com/donvargax/itos/v8/internal/vcs/port"
 )
+
+func TestTopPathsRefusesTheWorkTreeParent(t *testing.T) {
+	f, dir, _ := repo(t)
+	parent := filepath.Dir(dir)
+	paths, err := NewHandler(f).topPaths(context.Background(), "draft add", []string{parent}, "")
+	var usage out.UsageError
+	if paths != nil || !errors.As(err, &usage) || err.Error() != "draft add: "+parent+" is outside the work tree" {
+		t.Fatalf("topPaths for %q: %v, %v", parent, paths, err)
+	}
+}
 
 var (
 	say     = domain.Draft{ID: "say", Message: "docs: say", Paths: []string{"notes.md"}}

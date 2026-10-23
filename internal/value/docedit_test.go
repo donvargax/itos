@@ -13,6 +13,24 @@ func TestWrap(t *testing.T) {
 	}
 }
 
+func TestFlowSpanRefusesANonCollectionStart(t *testing.T) {
+	d := &Doc{e: editor{text: "x[]"}}
+	for _, c := range []struct {
+		name   string
+		column int
+	}{
+		{"at x", 1},
+		{"at EOF", 4},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			start, end, err := d.flowSpan(&yaml.Node{Line: 1, Column: c.column})
+			if start != 0 || end != 0 || err == nil || err.Error() != "line 1 does not open a flow collection" {
+				t.Fatalf("flowSpan: (%d, %d), %v", start, end, err)
+			}
+		})
+	}
+}
+
 // edited is the text after the edits, each made on a Doc of text.
 func edited(t *testing.T, text string, edits ...func(d *Doc) error) (string, *Doc) {
 	t.Helper()
