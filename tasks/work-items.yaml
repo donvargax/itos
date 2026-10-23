@@ -12871,6 +12871,12 @@ items:
       get -01 to -03 red at the intended checks or the guards right after two resumes. The fixes
       themselves were small. Step writing and fixtures look like the part needing the stronger
       model, which supports a separate red agent on a stronger tier.
+
+      Second data point, 2026-10-23: luna-6 high under a Codex-style persistence and planning system
+      prompt with todowrite (the implement agent) also stopped on bug-112's step definitions and
+      fixtures, after about 5 minutes, cancelling its remaining todos; sol-6.1-medium finished
+      bug-113, a comparable setup-heavy bug, alone. So the stall is less the harness prompt than the
+      model on step and fixture work, which supports a stronger red agent writing the steps.
     tags: [tests, docs]
 
   - id: p1-evidence-local
