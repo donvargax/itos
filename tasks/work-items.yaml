@@ -13116,6 +13116,6 @@ items:
     title: Restore main after bug-112 failed changed-line coverage
     phase: 1
     owner: donvargax
-    status: doing
+    status: dropped
     depends_on: []
     kind: task
