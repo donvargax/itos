@@ -13180,3 +13180,11 @@ items:
       separate launcher/CLI delivery so the risky version-selection exception is reviewed
       independently. No go --builtin; --builtin with --json is a usage error.
     refs: [internal/guide, internal/launch, internal/cli, internal/slices/guide, features/guide.feature]
+
+  - id: T-288
+    title: Cover five unit-test gaps found by Nightly 40018388348
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task

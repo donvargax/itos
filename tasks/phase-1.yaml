@@ -4392,3 +4392,26 @@
     main restoration, not acceptance of the incomplete fix.
   done_when:
     - run: go test ./features -count=1 -scenarios='^@ID-COST-01$'
+
+- id: T-288
+  type: test
+  title: Cover five unit-test gaps found by Nightly 40018388348
+  why: >
+    Nightly 40018388348 at 336ffbb7 found five distinguishable uncovered contracts: Doc.flowSpan
+    must refuse a non-collection/EOF node rather than accept or panic; scenarioProblem must require
+    a string id in smoke mappings; ciwatch.Watch must reset a successful unfinished look
+    temporary-failure counter to zero, using noSleep/watchRun/watchConfig; draft.topPaths must
+    refuse the exact worktree parent using repo(t)s symlink-resolved dir and filepath.Dir(dir) so
+    rel is exactly dot-dot on macOS too; parseRulesFlag must consume zero arguments and leave state
+    unchanged when agent-rules flags conflict in either order, tested in parse_test.go. Add portable
+    package-local regression assertions for those exact distinctions, without production changes,
+    scenario changes, exceptions or gate changes. Each check must discover its exact new test name
+    successfully before executing it, so absent tests fail acceptance. Keep the two separately
+    proven equivalent mutants and the platform-specific TSV mutation out of this tests-only task. CI
+    owns mutation proof; do not run local mutation commands.
+  done_when:
+    - run: names=$(go test ./internal/value -list '^TestFlowSpanRefusesANonCollectionStart$') && printf '%s\n' "$names" | grep -qx 'TestFlowSpanRefusesANonCollectionStart' && go test ./internal/value -count=1 -run '^TestFlowSpanRefusesANonCollectionStart$'
+    - run: names=$(go test ./internal/tests -list '^TestSmokeScenarioRequiresAStringID$') && printf '%s\n' "$names" | grep -qx 'TestSmokeScenarioRequiresAStringID' && go test ./internal/tests -count=1 -run '^TestSmokeScenarioRequiresAStringID$'
+    - run: names=$(go test ./internal/engine/ciwatch -list '^TestSuccessfulLookResetsTheTemporaryFailureBudgetToZero$') && printf '%s\n' "$names" | grep -qx 'TestSuccessfulLookResetsTheTemporaryFailureBudgetToZero' && go test ./internal/engine/ciwatch -count=1 -run '^TestSuccessfulLookResetsTheTemporaryFailureBudgetToZero$'
+    - run: names=$(go test ./internal/slices/draft -list '^TestTopPathsRefusesTheWorkTreeParent$') && printf '%s\n' "$names" | grep -qx 'TestTopPathsRefusesTheWorkTreeParent' && go test ./internal/slices/draft -count=1 -run '^TestTopPathsRefusesTheWorkTreeParent$'
+    - run: names=$(go test ./internal/slices/initcmd -list '^TestParseRulesFlagConflictConsumesNoArguments$') && printf '%s\n' "$names" | grep -qx 'TestParseRulesFlagConflictConsumesNoArguments' && go test ./internal/slices/initcmd -count=1 -run '^TestParseRulesFlagConflictConsumesNoArguments$'
