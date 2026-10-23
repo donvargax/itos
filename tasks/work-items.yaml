@@ -12757,6 +12757,12 @@ items:
       substantive review corrections before green CI and closure. The stronger review was valuable,
       but mechanical corrections and missing reviewer configuration should not consume additional
       full review cycles.
+
+      2026-10-23, the user closed the Sol trial: Sol as coordinator worked but struggled far more
+      than Claude Code (Opus), which needed much less steering; coordinating here still takes a lot
+      of effort. Claude Code coordinates and implements in this repository from now on. The user may
+      retry a cheaper coordinator in other repositories once the coordinator role is simpler
+      (perhaps through the state-machine work).
     tags: [docs]
 
   - id: T-284
