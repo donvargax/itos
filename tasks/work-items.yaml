@@ -10064,8 +10064,8 @@ items:
   - id: bug-113
     title: Recognize an active launcher shim from a pinned init runtime
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: bug
     why: >
