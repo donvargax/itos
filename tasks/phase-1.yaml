@@ -4459,19 +4459,34 @@
     internal/shim and internal/launch: every os.Chdir (cli's applyGlobals and moveTo, the draft
     slice's change, mint and handler, initcmd) and every os.Getwd (the getwd variable, the store
     adapters, draft/path.go, vcs/adapter Locate's cache key, guides, the tests slice, extension.go,
-    draftPorts.Getwd). --root and the move to the repository's top (slice 40) change the run value's
-    folder and Origin instead of the process's. Every file itos reads or writes and every subprocess
-    it starts (git.Runner, shell.Options, vcsport.Talk, the gh calls, init's and draft's self-exec)
-    gets the run's folder explicitly: a relative path never resolves against the process folder, and
-    an empty Dir meaning the process folder is no longer relied on. No behaviour change: same
+    draftPorts.Getwd), and every filepath.Abs, which reads os.Getwd itself (extension.go:161,
+    followup/handler.go:157, initcmd/policy.go:414, guard/guard.go:82, cli/init.go:61,
+    tracker/adapter/files.go:208): a relative path is joined to the run's folder instead. --root and
+    the move to the repository's top (slice 40) change the run value's folder and Origin instead of
+    the process's. A relative --root is joined to the run's folder, then checked up front with a
+    stat: missing or not a folder is the same usage error and exit code as today, its message still
+    starting --root <path>: (the OS's wording after it may differ, as no scenario asserts it;
+    guide.feature's bad --root keeps its usage error). A command that moves partway through (draft
+    promote's move to l.Top at handler.go:408, change.go:126, mint.go's return at :121, initcmd's
+    toTop at handler.go:239) derives a new run value with the new folder and builds the ports it
+    uses from then on from that value, and runLine (cli.go:105) takes the folder its nested mainWith
+    run starts in, so a nested line's own --root (draft_ports_test.go:361,371) is joined to it.
+    Every file itos reads or writes and every subprocess it starts (git.Runner, shell.Options,
+    vcsport.Talk, the gh calls, the extension run, init's and draft's self-exec) gets the run's
+    folder explicitly: a relative path never resolves against the process folder, and an empty Dir
+    meaning the process folder is no longer relied on. Where itos prints a folder (initcmd
+    handler.go:248), it prints the run's, spelled as before on macOS (resolve symlinks the way the
+    old os.Getwd after a move did). No behaviour change: same
     output, exit codes and files, under both feature drivers. features/inprocess_test.go stops
     calling os.Chdir and passes the scenario folder in the run value; its environment and stdin
     swaps stay until their tasks. TestMainLeavesTheProcessFolder in internal/cli runs Main with a
     run folder (a temporary repository whose config is at its top, entered from a subfolder, and
     again with --root) other than the process folder, asserts the process folder is unchanged
-    afterwards and that the command read that repository's config. Commit in reviewable steps, each
+    afterwards and that the command read that repository's config, told apart from itos's own
+    (under go test the process folder is inside this checkout, whose config the move to the top
+    would otherwise find) by a value only the temporary config holds. Commit in reviewable steps, each
     a refactor that builds and passes on its own.
   done_when:
-    - run: "! grep -rnE 'os\\.(Chdir|Getwd)\\b' --include='*.go' internal | grep -v '_test\\.go:' | grep -vE '^internal/(shim|launch)/'"
+    - run: "! grep -rnE 'os\\.(Chdir|Getwd)\\b|filepath\\.Abs\\b' --include='*.go' internal | grep -v '_test\\.go:' | grep -vE '^internal/(shim|launch)/'"
     - run: names=$(go test ./internal/cli -list '^TestMainLeavesTheProcessFolder$') && printf '%s\n' "$names" | grep -qx 'TestMainLeavesTheProcessFolder' && go test ./internal/cli -count=1 -run '^TestMainLeavesTheProcessFolder$'
     - run: "! grep -q 'os.Chdir' features/inprocess_test.go && ITOS_FEATURE_DRIVER=in-process go test ./features -count=1 -scenarios='^@ID-(CONFIG|GUARD)-'"
