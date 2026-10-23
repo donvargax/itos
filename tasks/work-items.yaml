@@ -12885,6 +12885,18 @@ items:
       effort, which finished bug-113 alone; the luna implement-agent experiment (Codex-style
       persistence prompt plus todowrite) was dropped. If sol starts stalling the same way, first try
       giving it that prompt and the plan tool before changing models.
+
+      2026-10-23 user reaffirmation: feature files and correct step definitions are necessary
+      acceptance contracts, especially with weaker agents that may claim completion prematurely.
+      Preserve red-first at the intended behavior assertion, concrete fixture/root/config/launcher
+      tracing, and independent review of whether steps assert what the user requested. This sessions
+      concrete setup hazards were a config rewrite dropping an earlier custom type, an old-block
+      helper fabricating the wrong release block, guards already true before the change,
+      pre-sanitized fake environments hiding production behavior, and a Windows fixture omitting an
+      explicit OS input. A separate strong step/fixture agent is a targeted option for setup-heavy
+      work, not a mandatory extra stage for every small test repair. Unit assertions must exercise
+      the actual production or actual concurrent-fixture path, not merely a helper that no real path
+      uses.
     tags: [tests, docs]
 
   - id: p1-evidence-local
