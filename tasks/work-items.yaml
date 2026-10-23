@@ -6769,6 +6769,19 @@ items:
       2026-10-23, from T-283's agent: a focused mutation run on internal/tests/tsv.go also showed a
       survivor at tsv.go:99:87 (tests.projectFile), outside that nightly's draw; kill it in the next
       batch.
+
+      2026-10-23 follow-up to Nightly 40018388348: T-288 adds regression assertions for five of that
+      draws sites. Remaining are candidate equivalents in internal/cli/help.go:99 helpFor
+      (empty-path lookup equals mainHelp) and internal/message/cases.go:363 wordAt (end cannot be
+      zero), plus internal/tests/tsv.go:99 projectFile, whose final OR mutation is equivalent on
+      Unix but changes Windows drive/root-relative rejection. Review exact equivalence proofs before
+      any narrow exception; do not except the TSV site globally. A semantics-preserving TSV
+      predicate refactor with Windows regression coverage is an option, not yet authorised or
+      implemented; its existing earlier projectFile exception would need revalidation if the
+      function hash changes. No local mutation proof or large exhaustive replay has been run. The
+      counted nightly reports no cache, whereas the pinned mutation-except CLI requires a fresh
+      survivor snapshot; resolve that evidence path transparently, never fabricate freshness.
+      Failure log is in the clone at .git/itos/nightly-40018388348.log.
     refs: [internal/cli/gitshim.go, internal/cli/push.go, internal/work/propose.go]
 
   - id: slice-110
