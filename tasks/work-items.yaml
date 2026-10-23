@@ -9655,8 +9655,8 @@ items:
   - id: bug-111
     title: Name queue removals as dequeue commits
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: bug
     why: >
