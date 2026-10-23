@@ -13029,3 +13029,19 @@ items:
       view, default discovery and explicit ITOS_CONFIG specified separately; private data is never
       copied into tracked paths.
     tags: [hooks]
+
+  - id: p1-snapshot-proposal-changes
+    title: Decide what a commit-msg check run means when the staged proposal changes while it runs
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [bug-112]
+    kind: idea
+    why: >
+      Split from bug-112 by its review (2026-10-23), taking its old HOOKSNAP-08. Establish first
+      which changes are reachable during a real git commit (its GIT_INDEX_FILE and index lock) and
+      what Git already refuses on its own; define a check-started marker and an observer release
+      handshake, not sleeps; then decide whether itos needs a refusal at all, what state it compares
+      and which public invocation shows it. A direct-hook fixture alone proves nothing about git
+      commit's locking.
+    tags: [hooks]
