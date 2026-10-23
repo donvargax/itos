@@ -4344,3 +4344,32 @@
     - run: go run ./tools/bin/doc-budget
     - run: grep -q 'dead branch' docs/ORCHESTRATING.md
     - run: grep -q 'Prune .\.git/itos/notes.md' docs/ORCHESTRATING.md
+
+- id: T-285
+  type: test
+  title: The feature scenarios run in process behind ITOS_FEATURE_DRIVER, serially, the binary driver unchanged
+  why: >
+    Step 1 of docs/plans/in-process-tier.md (ADR-0059). Bring the spike (branch spike-in-process,
+    commit 5c6e8afb: features/inprocess_test.go, the dispatch in features/steps_test.go, the
+    concurrency switch in features/features_test.go) into main as test code:
+    ITOS_FEATURE_DRIVER=in-process runs the top-level itos of each step through internal/cli.Main in
+    process, with the scenario folder, its clean environment and its stdin, capturing stdout, stderr
+    and the exit code; every other program a step starts stays a subprocess; godog concurrency is 1
+    under it, since cli.Main still changes the process folder and environment (step 2 removes that).
+    Unset, the binary driver runs exactly as today, so CI and the nightly are unchanged. Scenarios
+    that need the process boundary (the launcher, the shim, a pin, signals) are skipped by the
+    in-process driver through a list in the features package mapping each scenario ID to its reason,
+    as itos-cc's features.Deferred does; the feature files do not change (a test commit may not
+    change live scenarios). The first entry is ID-GUARD-11 (a pinned older release needs the
+    launcher); add any other the two checked files show, each with its reason. A skipped scenario is
+    named in the run output, and an in-process run in which every selected scenario was skipped
+    fails, saying so: a run that ran nothing is never a pass. features/README.md says how to pick
+    the driver. No product Go changes. Coverage from these runs is the next task (itos-cc.yaml), not
+    this one.
+  done_when:
+    - run: ITOS_FEATURE_DRIVER=in-process go test ./features -count=1 -scenarios='^@ID-CONFIG-'
+      timeout: 900
+    - run: ITOS_FEATURE_DRIVER=in-process go test ./features -count=1 -scenarios='^@ID-GUARD-'
+      timeout: 900
+    - run: "! ITOS_FEATURE_DRIVER=in-process go test ./features -count=1 -scenarios='^@ID-GUARD-11$'"
+      timeout: 900
