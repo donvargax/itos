@@ -12874,6 +12874,13 @@ items:
       forbidding them. Later, a check could flag (not refuse) a feat or fix commit that changes step
       definitions or the scenarios it was handed. Measure tokens and red CI runs against
       single-agent slices (p1-work-spend).
+
+      Data point, 2026-10-23: gpt-6-luna#high implementers stalled on scenario setup in both bugs
+      this session. bug-111 stopped on undefined steps until told to write them; bug-113 needed the
+      coordinator to diagnose a Background fixture missing the ledger folder, then still could not
+      get -01 to -03 red at the intended checks or the guards right after two resumes. The fixes
+      themselves were small. Step writing and fixtures look like the part needing the stronger
+      model, which supports a separate red agent on a stronger tier.
     tags: [tests, docs]
 
   - id: p1-evidence-local
