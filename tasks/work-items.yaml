@@ -13380,3 +13380,6 @@ items:
       CI reds and their causes, the reviewer's diff findings, and whether the spec or the model
       caused each. Agents already running (T-291) stay on Opus. Outcome decides whether a standing
       .claude/agents definition is worth it.
+
+      Effort: high for implementation (the user, 2026-10-23), medium to be tried once high has a
+      baseline.
