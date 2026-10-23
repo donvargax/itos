@@ -10055,18 +10055,9 @@ items:
     title: Recognize an active launcher shim from a pinned init runtime
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: bug
-    why: >
-      Concrete existing-shim detection fix for #53, specified from p1-init-shim-under-pin. With no
-      --git-shim-dir, recognize an itos at the first executable Git PATH entry using the existing
-      cross-binary identity boundary; do not require inode identity with the pinned cached runtime.
-      Preserve that active entry for plain init and --git-shim without relinking it, running it for
-      identification or claiming it targets the cached runtime. Keep existing JSON shape and
-      truthful PATH standing, --no-git-shim and explicit-directory handling. Preserve bug-104 pinned
-      init dispatch for the rest of initialization. The missing/new installation target and cache
-      advice are separate p1-pinned-shim-install-target work, not changes to guard/default policy.
     refs: [internal/slices/initcmd/shim.go, internal/cli/init.go, internal/shim/install.go, internal/git/bin.go, features/init-shim-identity.feature]
 
   - id: bug-114
