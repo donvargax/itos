@@ -56,6 +56,8 @@ phases:
 
 queue:
   - T-283
+  - T-285
+  - T-286
   - p1-agent-test-runs-once
   - p1-mutation-results-committed
   - p1-text-from-file
