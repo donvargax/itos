@@ -9401,6 +9401,13 @@ items:
       2026-10-23, later: T-286 dropped (premise wrong: scenario coverage already reaches the push
       proof through T-121 and T-120); ADR-0059 and the plan corrected. Next is step 2 (no process
       state in the CLI).
+
+      2026-10-23, the reviewer's diff review of T-285 (approved): for step 4, pinItosUnderTest and
+      itosUnderTestAs (features/stamp_test.go:106,130) point w.bin at a stamped build, so in process
+      those scenarios would run the test binary's own version: defer them (ids, init-shim-identity,
+      status, upgrade areas); follow_test.go:123, ids_test.go:87 and shim_test.go:89 call
+      exec.Command(w.bin) directly and keep the binary; features_test.go:85 selected == 0 is
+      redundant and words an empty filter as all 0 selected skipped.
     refs: [internal/guide/brief.md, internal/guide/work.md, internal/guide/push.md, AGENTS.md, tools/bin/go-unit-tests, itos.yaml]
     tags: [tests, hooks, docs]
 
