@@ -419,3 +419,4 @@ questions:
   - id: q-102
     item: "slice-169"
     question: "slice-169 (evidence records A3): a hand-run itos task or ci run on a dirty tree is uncached in the plan, so an agent mid-edit never leaves a record the commit hook can hit. Recommended: run on the index as the commit-msg hook does (key by the index tree, a miss run in its bug-112 snapshot, unstaged and untracked files never reaching run or key, the unstaged count reported, --working-tree for today). Rejected: a working-tree key from git add -A, which sweeps in unrelated untracked files and nested checkouts."
+    answer: "The person, 2026-10-23: the recommendation, hand runs on the index; and keep the repository clean, ignoring what should not reach GitHub (T-292)."
