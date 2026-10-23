@@ -10005,29 +10005,9 @@ items:
     title: Run commit-msg task checks from an isolated staged snapshot
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: bug
-    why: >
-      Issue #60; q-77 selected actual staged-snapshot execution rather than warning-only behavior.
-      Materialize the exact index tree in a disposable directory for relative check inputs, with its
-      own Git metadata and index. Preserve the real pre-commit HEAD (or unborn branch), branch
-      identity and readable history so Git-aware checks see HEAD as the base and --cached as the
-      proposed changes; do not fabricate a pending commit or register a worktree. Remove inherited
-      repository-local Git environment overrides from children so they discover the scratch repo and
-      can create independent nested scratch repos normally. Snapshot metadata/task data must
-      correspond to the same captured index. Keep existing selection, current cost/timeout policy,
-      after-push and late exclusions, must-fail semantics and done-versus-open verdict rules.
-      Capture private effective data for stealth without changing project config resolution. Copy no
-      unstaged, untracked or ignored project files or caches; retain normal external toolchain/cache
-      environment. No stash, source-checkout swap, source ref/index mutation or hidden fallback to
-      working-tree checks. Preserve staged modes, symlinks, deletions and partial staging. First
-      delivery refuses unsupported gitlinks or an unmaterializable index with exit 3 before checks,
-      without fetching or hydrating dependencies. Relative execution and Git context are isolated,
-      not arbitrary configured absolute external inputs. Refuse if the source index tree or HEAD
-      changes before task checking completes. Clean up on success, rejection and timeout;
-      setup/cleanup failures report environment errors rather than claim a staged verdict. The
-      feature specification will define these boundaries before implementation.
     refs: [internal/slices/hook/commitmsg.go, internal/engine/judge/checks.go, internal/check, internal/shell, features/hook-task-snapshot.feature]
 
   - id: p1-pinned-shim-install-target
