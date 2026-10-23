@@ -12995,7 +12995,7 @@ items:
     tags: [tests, ci, work]
 
   - id: p1-evidence-pre-push
-    title: Pre-push checks run on a snapshot of each pushed commit and key their records by its tree
+    title: Pre-push runs the checks of the tasks a push names, on a snapshot of each pushed commit, keyed by its tree
     phase: 1
     owner: null
     status: todo
@@ -13007,6 +13007,11 @@ items:
       them in a disposable snapshot of each pushed commit's tree (bug-112's mechanism) makes the
       result true of what is pushed and lets it be keyed by that tree. Until then pre-push runs are
       uncached.
+
+      2026-10-23: the person moved step 6 of docs/plans/in-process-tier.md here: a config key makes
+      the pre-push hook run the done_when checks of the tasks a push names, on the snapshots, each
+      failure naming task, command, exit and output; opted-in checks answer from their records. CI
+      still runs them. Comes after p1-evidence-local.
     tags: [hooks]
 
   - id: p1-registry-dirty-right-after-commit
