@@ -13356,3 +13356,11 @@ items:
       their records by that tree. Its scenario: stage a change, edit a tracked file further without
       staging, see the check run on the staged snapshot without the unstaged edit, then commit again
       with the same index and hit the record. Feat, minor.
+
+  - id: T-292
+    title: "Ignore what a clone keeps for itself: .claude/, a hook's git environment, commit-message files"
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task

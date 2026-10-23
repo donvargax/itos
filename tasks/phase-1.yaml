@@ -4490,3 +4490,15 @@
     - run: "! grep -rnE 'os\\.(Chdir|Getwd)\\b|filepath\\.Abs\\b' --include='*.go' internal | grep -v '_test\\.go:' | grep -vE '^internal/(shim|launch)/'"
     - run: names=$(go test ./internal/cli -list '^TestMainLeavesTheProcessFolder$') && printf '%s\n' "$names" | grep -qx 'TestMainLeavesTheProcessFolder' && go test ./internal/cli -count=1 -run '^TestMainLeavesTheProcessFolder$'
     - run: "! grep -q 'os.Chdir' features/inprocess_test.go && ITOS_FEATURE_DRIVER=in-process go test ./features -count=1 -scenarios='^@ID-(CONFIG|GUARD)-'"
+
+- id: T-292
+  type: chore
+  title: "Ignore what a clone keeps for itself: .claude/, a hook's git environment, commit-message files"
+  why: >
+    git status in this clone always listed .claude/ (settings.json was meant to be shared but was
+    never committed; it only enables one person's plugin, and no flow may need the plugin), a hook's
+    2026-10-10 dump of git's environment and an agent's leftover commit-message file at the top. The
+    user asked on 2026-10-23 to keep the repository clean and ignore what should not reach GitHub.
+    Ignore the whole .claude/ folder, /.hook-git-env and /*-commit*.txt.
+  done_when:
+    - run: git check-ignore -q .claude/settings.json && git check-ignore -q .hook-git-env && git check-ignore -q T-1-commit1.txt
