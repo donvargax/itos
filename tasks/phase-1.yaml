@@ -4381,3 +4381,14 @@
     - run: grep -q ITOS_FEATURE_DRIVER=in-process itos-cc.yaml
     - run: go test ./features -count=1 -scenarios='^@ID-CONFIG-13$'
       timeout: 900
+
+- id: T-287
+  type: revert
+  title: Restore main after bug-112 failed changed-line coverage
+  why: >
+    Restore the product state before 2b790b01 after exact-head CI 40021166532 failed changed-line
+    coverage in the staged snapshot implementation. Keep the fixture commits, return snapshot
+    scenarios to wip, and leave bug-112 available for a retry with targeted branch tests. This is
+    main restoration, not acceptance of the incomplete fix.
+  done_when:
+    - run: go test ./features -count=1 -scenarios='^@ID-COST-01$'

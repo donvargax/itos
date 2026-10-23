@@ -13111,3 +13111,11 @@ items:
     depends_on: []
     kind: bug
     refs: [AGENTS.md, docs/ORCHESTRATING.md, internal/engine/agentrules, internal/slices/initcmd, features/init.feature]
+
+  - id: T-287
+    title: Restore main after bug-112 failed changed-line coverage
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task
