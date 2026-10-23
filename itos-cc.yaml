@@ -269,3 +269,30 @@ mutation:
       replacement: "&&"
       reason: "Equivalent: this branch is reached only for an absolute file path. An empty project makes filepath.Rel fail because its base is not absolute, so both operands are true and || to && still refuses. If a nonempty project produces a Rel error, the path remains absolute and the later root/volume checks refuse it. No input changes the returned row or refusal."
       line_text: if project == "" || err != nil {
+    - file: internal/tests/tsv.go
+      function: github.com/donvargax/itos/v8/internal/tests#projectFile
+      hash: b7aae01f28c3e046
+      line_in_function: 16
+      column: 87
+      original: "||"
+      replacement: "&&"
+      reason: "Equivalent on Linux, where mutation runs: there filepath.VolumeName is always empty, so volume != \"\" never holds and || to && refuses exactly what it did. On Windows it is real: a root-relative \\foo (slash form /foo, no volume) and a drive-relative C:foo (volume C:, no leading slash) are refused today and accepted under &&, which TestProjectFileRefusesWindowsRootAndDriveRelativePaths in internal/tests asserts on CI's Windows job."
+      line_text: if p == "." || p == ".." || strings.HasPrefix(p, "../") || strings.HasPrefix(p, "/") || volume != "" {
+    - file: internal/cli/help.go
+      function: github.com/donvargax/itos/v8/internal/cli#helpFor
+      hash: f72b10126253138f
+      line_in_function: 2
+      column: 24
+      original: ">"
+      replacement: ">="
+      reason: "Equivalent: n >= 0 adds one lookup at n = 0, of helpTexts[\"\"], which helpTexts sets to mainHelp, the fallback helpFor returns after the loop; then n is -1 and the loop ends. No declared command overwrites the \"\" key: its keys are strings.TrimSpace(d.Name + \" \" + sub), and every Name is a non-empty word (tools/bin/assemble refuses a Name that is no non-empty string literal), so each key starts with that Name."
+      line_text: for n := len(path); n > 0; n-- {
+    - file: internal/message/cases.go
+      function: github.com/donvargax/itos/v8/internal/message#wordAt
+      hash: 64fc8355264d0aa3
+      line_in_function: 105
+      column: 11
+      original: ">="
+      replacement: ">"
+      reason: "Equivalent: end is either -1 or d + 3 with d >= at, and at >= 0 (words, its only caller, starts at 0 and only moves at forward), so end is -1 or at least 3 and end >= 0 and end > 0 agree on every value it takes."
+      line_text: if end >= 0 && (boundary(end) || is(end, ordinal.after)) {
