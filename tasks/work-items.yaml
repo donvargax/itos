@@ -10004,8 +10004,8 @@ items:
   - id: bug-112
     title: Run commit-msg task checks from an isolated staged snapshot
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: bug
     why: >
