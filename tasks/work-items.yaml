@@ -13261,79 +13261,27 @@ items:
     title: Expose reviewer budgets and budget-exhaustion outcomes through the normal CLI
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: []
     kind: idea
-    why: >
-      The 2026-10-23 reviewer trial exhausted the default 40-turn limit on a large bug-112 diff and
-      the combined guide specification, producing exceptions rather than verdicts. review_cli.py
-      exposes no budget flag, while review_server.options reads PROFILE.max_turns. The coordinator
-      imported the same CLI entrypoint and set max_turns to 80 only in process memory; model,
-      prompts, read-only permissions and cleanliness checks stayed unchanged. Add a supported
-      per-call budget option and structured exhaustion result so callers use the ordinary command
-      and can distinguish incomplete review from approval, without persistent profile edits or
-      repeated full reruns. This targets the configured reviewer integration, not weaker review
-      criteria.
-
-      2026-10-23: built in the reviewer proof of concept (claude-agent-sdk, local commits): 83ade4b
-      sends every prior finding to the next round; 19938ec adds review_cli.py --max-turns N, an
-      INCOMPLETE first line and exit 3 for a review with no verdict (a verdict written before
-      error_max_turns counts as none); e1f09d7 makes blockers material (NOTES for non-blocking
-      points), runs tests only to settle a suspicion, and focuses later rounds. Offline unit tests:
-      test_review_unit.py.
     refs: [docs/ORCHESTRATING.md]
 
   - id: p1-reviewer-prior-findings
     title: Preserve every unresolved finding between review rounds
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: []
     kind: idea
-    why: >
-      Observed in the configured reviewer integration on 2026-10-23: review_cli.py reads a prior
-      file as one finding per nonblank line, but review_server.rounds_block uses prior[-MAX_ROUNDS:]
-      with MAX_ROUNDS equal to 5. A ten-finding response therefore sends only findings six through
-      ten, not five rounds of history. Preserve all unresolved findings, or make any intentional
-      budget truncation explicit; do not silently discard the first ones. A regression should
-      exercise prompt construction with more than five distinct finding markers and verify all
-      required markers are retained, not grep source. This omission can compromise follow-up
-      completeness; it is not claimed to explain every late finding this session.
-
-      2026-10-23: built in the reviewer proof of concept (claude-agent-sdk, local commits): 83ade4b
-      sends every prior finding to the next round; 19938ec adds review_cli.py --max-turns N, an
-      INCOMPLETE first line and exit 3 for a review with no verdict (a verdict written before
-      error_max_turns counts as none); e1f09d7 makes blockers material (NOTES for non-blocking
-      points), runs tests only to settle a suspicion, and focuses later rounds. Offline unit tests:
-      test_review_unit.py.
     refs: [docs/ORCHESTRATING.md]
 
   - id: p1-review-materiality
     title: Make review blockers material and follow-up passes focused
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: []
     kind: idea
-    why: >
-      The user on 2026-10-23 wants checks to guide agents toward requested behavior, not prevent
-      useful work. Preserve independent semantic review, but require each blocker to identify a
-      meaningful behavioral difference, compatibility or safety failure, or acceptance check that
-      can pass for the wrong reason. Equivalent helper names/file choices and harmless human wording
-      are not blockers merely because two implementations are possible. Give a scoped first pass
-      enough budget to complete; later passes recheck unresolved findings and changed portions, with
-      a fresh final adversarial pass where warranted. Permit newly discovered real defects at any
-      round, but explain their relevance rather than enforce an arbitrary round cap.
-      Coordinator-applied mechanical corrections should not trigger another whole-artifact review.
-      Keep machine contracts precise while leaving noncontract prose and internal implementation
-      freedom where appropriate.
-
-      2026-10-23: built in the reviewer proof of concept (claude-agent-sdk, local commits): 83ade4b
-      sends every prior finding to the next round; 19938ec adds review_cli.py --max-turns N, an
-      INCOMPLETE first line and exit 3 for a review with no verdict (a verdict written before
-      error_max_turns counts as none); e1f09d7 makes blockers material (NOTES for non-blocking
-      points), runs tests only to settle a suspicion, and focuses later rounds. Offline unit tests:
-      test_review_unit.py.
     refs: [internal/guide/brief.md, internal/guide/land.md, docs/ORCHESTRATING.md]
 
   - id: p1-assurance-signal-review
