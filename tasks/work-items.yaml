@@ -9392,6 +9392,10 @@ items:
       functions and changed-line coverage, over the unit tests and in-process scenarios (itos-cc's
       TestScenarios model), run by the pre-push hook. Until then CI owns the push proof and the task
       checks.
+
+      2026-10-23: q-97 recorded as ADR-0059 after the spike (branch spike-in-process); the order is
+      docs/plans/in-process-tier.md. Step 1 is T-285 (the in-process driver, serial) and T-286 (the
+      push proof counts scenario coverage); later steps are specified as each lands.
     refs: [internal/guide/brief.md, internal/guide/work.md, internal/guide/push.md, AGENTS.md, tools/bin/go-unit-tests, itos.yaml]
     tags: [tests, hooks, docs]
 
