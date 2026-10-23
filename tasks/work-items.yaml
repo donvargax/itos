@@ -13119,3 +13119,18 @@ items:
     status: dropped
     depends_on: []
     kind: task
+
+  - id: p1-repair-revert-moves-conflict
+    title: Reconcile red-main revert guidance with the live-scenario moves gate
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      On 2026-10-23 bug-112 CI failed changed-line coverage. guide repair required an immediate
+      revert and live scenarios returned to wip, but the moves gate rejected that exact revert as an
+      illegal live-to-wip change. q-99 authorised forward repair without gate weakening for this
+      incident. Define a durable restoration policy that the enforced moves rule can actually carry
+      out; do not silently bypass the gate or assume a revert restores a runnable CI range.
+    refs: [internal/guide/repair.md, features/README.md]
