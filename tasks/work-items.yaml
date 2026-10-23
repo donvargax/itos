@@ -12851,6 +12851,10 @@ items:
       these records. Once reruns are free, ADR-0056 and ADR-0057's rule that agents never run checks
       by hand can relax to: run anything, an unchanged one answers at once. Design and ADR first,
       reviewed by the reviewer MCP.
+
+      2026-10-23: decided as ADR-0060 (q-98), designed in docs/plans/evidence-records.md; split into
+      p1-evidence-local, p1-evidence-ci, p1-evidence-red-first and p1-evidence-pre-push. This item
+      stays as the umbrella until they land.
     refs: [internal/check, internal/slices/task, internal/slices/ci, internal/slices/hook]
     tags: [tests, hooks, ci]
 
