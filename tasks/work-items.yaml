@@ -13321,7 +13321,7 @@ items:
   - id: T-290
     title: Settle the last three survivors of Nightly 40018388348
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
