@@ -55,7 +55,6 @@ phases:
   3: donvargax
 
 queue:
-  - bug-113
   - bug-112
   - p1-evidence-local
   - p1-agent-test-runs-once
