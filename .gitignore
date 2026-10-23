@@ -10,9 +10,12 @@ dist
 !.vscode/extensions.json
 .idea
 .DS_Store
-# Claude Code: the agents' worktrees stay local; the settings are shared.
-.claude/*
-!.claude/settings.json
+# Claude Code: the agents' worktrees and each person's settings stay local.
+.claude/
+
+# What a hook or an agent leaves at the top: git's environment, a commit's message.
+/.hook-git-env
+/*-commit*.txt
 
 # The Go binary tools/bin/itos builds and runs.
 .tools/
