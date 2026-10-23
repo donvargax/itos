@@ -13134,3 +13134,18 @@ items:
       incident. Define a durable restoration policy that the enforced moves rule can actually carry
       out; do not silently bypass the gate or assume a revert restores a runnable CI range.
     refs: [internal/guide/repair.md, features/README.md]
+
+  - id: slice-167
+    title: Load explicit per-guide Markdown overrides
+    phase: 1
+    owner: donvargax
+    status: todo
+    depends_on: []
+    kind: slice
+    why: >
+      The user approved per-guide file replacement on 2026-10-23: guide.overrides selects a Markdown
+      file by guide name; unconfigured guides use shipped defaults; a configured unreadable or
+      missing file fails rather than silently falling back; output identifies its source; generated
+      commit policy stays separate. This lets a project tailor coordinator instructions while
+      preserving gates. Raw shipped-guide export and launcher bypass are split into slice-168.
+    refs: [internal/guide, internal/engine/guides, internal/slices/guide, internal/slices/gocmd, internal/config, features/guide.feature]
