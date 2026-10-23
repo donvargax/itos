@@ -13187,3 +13187,22 @@ items:
       not authorised here. Retired wip ASK-34 and ASK-37..40 describe material to re-specify, not
       live promises.
     refs: [features/decision-validation.feature, internal/adr, internal/slices/decision]
+
+  - id: p1-reviewer-budget-controls
+    title: Expose reviewer budgets and budget-exhaustion outcomes through the normal CLI
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The 2026-10-23 reviewer trial exhausted the default 40-turn limit on a large bug-112 diff and
+      the combined guide specification, producing exceptions rather than verdicts. review_cli.py
+      exposes no budget flag, while review_server.options reads PROFILE.max_turns. The coordinator
+      imported the same CLI entrypoint and set max_turns to 80 only in process memory; model,
+      prompts, read-only permissions and cleanliness checks stayed unchanged. Add a supported
+      per-call budget option and structured exhaustion result so callers use the ordinary command
+      and can distinguish incomplete review from approval, without persistent profile edits or
+      repeated full reruns. This targets the configured reviewer integration, not weaker review
+      criteria.
+    refs: [docs/ORCHESTRATING.md]
