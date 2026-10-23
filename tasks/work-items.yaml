@@ -9392,6 +9392,16 @@ items:
       status, upgrade areas); follow_test.go:123, ids_test.go:87 and shim_test.go:89 call
       exec.Command(w.bin) directly and keep the binary; features_test.go:85 selected == 0 is
       redundant and words an empty filter as all 0 selected skipped.
+
+      2026-10-23 assessment: the execution-ownership rule must include external reviewers as well as
+      implementers and coordinator. A targeted reproduction or check for an evidence gap is useful;
+      rerunning an identical full suite merely because another role has its own checklist adds cost
+      without independent coverage. Reuse exact-commit evidence only under defined validity rules,
+      retain independent hosted/platform CI, and name what each extra run establishes. Keep
+      process/structural acceptance in done_when rather than manufacture runtime unit tests for it.
+      Tests must exist and execute: T-288/T-289 use checked go-test discovery plus exact-name
+      execution, not a source grep claiming functionality. Do not replace real feature/step
+      assertions or weaken a gate as a shortcut to fewer runs.
     refs: [internal/guide/brief.md, internal/guide/work.md, internal/guide/push.md, AGENTS.md, tools/bin/go-unit-tests, itos.yaml]
     tags: [tests, hooks, docs]
 
