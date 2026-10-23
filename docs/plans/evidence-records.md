@@ -35,10 +35,20 @@ ADR-0060 decides it; this is the design and the order, reviewed in five rounds b
   only for actual executions (`internal/ci/ci.go:238-246`). Go's unit-test
   package cache already makes unchanged inputs fast (`tools/bin/go-unit-tests:8-14`);
   preserve normal `-count=1` behavior for scenarios.
-- `itos task` and `ci run` invoked by hand in a working tree with any
-  uncommitted tracked change still run normally but are uncached. With a clean
-  tracked tree, key by `HEAD`'s tree plus declared untracked inputs. This avoids
-  claiming the commit tree represents modified working files.
+- `itos task` and `ci run` invoked by hand run on the index, as the
+  commit-msg hook does (the person, 2026-10-23): an opted-in check is keyed by
+  the index tree plus declared untracked inputs, a hit answers without a
+  snapshot, and a miss runs in a disposable snapshot of that tree, bug-112's
+  mechanism. Unstaged and untracked files, related or not, never reach the run
+  or the key, so the tree is exactly what the next commit holds and the hook
+  hits the record an agent's own run left. With nothing staged the index tree
+  is `HEAD`'s. When the working tree differs from the index, the text says the
+  run was on the staged tree and how many changed paths were not staged, and
+  `--json` carries the count. `--working-tree` runs as today, in the working
+  folder, uncached. A working-tree key (`git add -A` into a temporary index)
+  was rejected: it sweeps in unrelated untracked files, never matches what is
+  committed, and turns nested checkouts such as `.claude/worktrees/` into
+  gitlinks, which the snapshot refuses.
 - Local records live in `.git/itos/evidence/` under the git common dir, are
   never committed and never prove CI or completion. Reuse `internal/lock.Hold`,
   not a new lease: its 10-second `lock.Wait`, exclusive acquisition, cross-OS
@@ -83,11 +93,14 @@ checks run or their verdict semantics.
    reads a complete record; stale lock never fails the check; all rename errors
    validate a possible destination; corrupt/markerless final is quarantined;
    incomplete temp is ignored.
-3. **Command lookup integration (feat, minor).** Cache clean-tree `itos task`
-   and `ci run` executions only; dirty tracked working trees execute uncached.
-   Scenarios: miss runs and repeat hits; cached failure preserves result;
-   shared check runs once; a dirty tracked file bypasses lookup; `after: push`
-   stays pending.
+3. **Command lookup integration (feat, minor).** Hand-run `itos task` and
+   `ci run` key opted-in checks by the index tree and run a miss in its
+   snapshot; `--working-tree` runs as today, uncached. Scenarios: miss runs
+   and repeat hits; cached failure preserves result; shared check runs once;
+   an unstaged edit or an unrelated untracked file neither reaches the run nor
+   changes the key, and the output counts the unstaged paths; `--working-tree`
+   sees the unstaged edit and records nothing; `after: push` stays pending.
+   A4's commit-msg lookup then hits the record of a hand run on the same index.
 4. **Commit-msg snapshot lookup (feat, minor; depends on bug-112).** After
    bug-112 materializes the exact staged tree in a disposable directory with
    private Git metadata, key commit-msg records by that index tree and run
