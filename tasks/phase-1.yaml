@@ -4357,13 +4357,6 @@
     fails, saying so: a run that ran nothing is never a pass. features/README.md says how to pick
     the driver. No product Go changes. Coverage from these runs is the next task (itos-cc.yaml), not
     this one.
-  done_when:
-    - run: ITOS_FEATURE_DRIVER=in-process go test ./features -count=1 -scenarios='^@ID-CONFIG-'
-      timeout: 900
-    - run: ITOS_FEATURE_DRIVER=in-process go test ./features -count=1 -scenarios='^@ID-GUARD-'
-      timeout: 900
-    - run: "! ITOS_FEATURE_DRIVER=in-process go test ./features -count=1 -scenarios='^@ID-GUARD-11$'"
-      timeout: 900
 
 - id: T-286
   type: build

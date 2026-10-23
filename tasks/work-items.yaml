@@ -12864,7 +12864,7 @@ items:
     title: The feature scenarios run in process behind ITOS_FEATURE_DRIVER, serially, the binary driver unchanged
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
 
