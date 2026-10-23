@@ -13078,3 +13078,20 @@ items:
       per scenario or outline row, tag already-passing cases as guards, and where red proof is
       needed use staged-versus-disk inputs that make the expected verdict differ today.
     tags: [hooks]
+
+  - id: p1-initcmd-shim-tidy
+    title: initcmd's shim offer reuses its outcome and standing helpers in the kept-first-Git branch, and its doc says what kept covers
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      From the reviewer's approved diff review of bug-113 (2026-10-23, non-blocking):
+      internal/slices/initcmd/shim.go builds the kept outcome for a recognized first Git with a
+      third copy of the BeforeGit formula and its own standing line; moving the outcome and standing
+      closures above the s.flag.Dir block and using them removes the copy. The git_shim doc comment
+      (shim.go:39-40) still says kept means a link to this itos was there; it now also covers a
+      first PATH Git that is any itos, a hard link or a copy included. A refactor and a doc comment,
+      no behaviour change.
+    tags: [init]
