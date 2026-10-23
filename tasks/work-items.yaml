@@ -13155,7 +13155,7 @@ items:
     title: Cover five unit-test gaps found by Nightly 40018388348
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
 
