@@ -10029,7 +10029,7 @@ items:
       changes before task checking completes. Clean up on success, rejection and timeout;
       setup/cleanup failures report environment errors rather than claim a staged verdict. The
       feature specification will define these boundaries before implementation.
-    refs: [features/hook-task-snapshot.feature, internal/cli/hook.go, internal/check/captured.go, internal/shell/shell.go, internal/git/bin.go]
+    refs: [internal/slices/hook/commitmsg.go, internal/engine/judge/checks.go, internal/check, internal/shell, features/hook-task-snapshot.feature]
 
   - id: p1-pinned-shim-install-target
     title: Use a stable launcher target for new shim installation from pinned init
