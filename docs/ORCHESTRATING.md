@@ -25,6 +25,9 @@ the open questions. Read these too:
   **A red nightly is the first item**, a `fix` handed to an agent before any
   new work. It is also the next fix release.
 - **The inbox:** `go run ./tools/bin/inbox` (below).
+- **Prune `.git/itos/notes.md` first:** keep this clone's facts and only the
+  handoff itos does not hold yet; record the rest in itos as it happens
+  (`p1-session-handoff` ends this step).
 
 Here itos is `tools/bin/itos`, this tree's build, for every command and gate.
 
@@ -95,30 +98,31 @@ handoff line below replaces the template's "wait for CI … close the item":
   since the notes quote it. Never "none; …" followed by text: it reads as none.
 - **The neighbours:** "Before pushing, run `go test ./features -count=1
   -scenarios='^@(ID-AREA-|…)'`", naming the item's areas and those it touches.
-- **Proof and handoff (q-41, q-52, q-54, q-57):** CI judges fresh mutants:
-  one site of a push's changed Go functions, seeded by the range's start
-  (T-159), with the coverage of its changed lines, and 20 a night, seeded by
-  the run, without strict coverage. A pass is sampled assurance; a survivor,
-  or an uncovered changed line, is real and needs a test. No local mutation
-  or task-check run before a push: CI owns both (ADR-0057).
-  Push with `tools/bin/itos push --no-wait`, then report the exact pushed SHA,
-  commits, checks and remaining work from a clean checkout. Do not watch CI or
-  close the item: the coordinator watches and closes only on green.
+- **Proof and handoff (q-57, ADR-0057):** CI judges one fresh mutant of a
+  push's changed functions and the coverage of its changed lines; a survivor
+  or an uncovered line needs a test. No by-hand push proof, `itos task`,
+  golangci-lint or staticcheck: pre-push runs the linters, CI the rest; run a
+  diagnostic only when it is the work. Push with `tools/bin/itos push
+  --no-wait` in the background, then report the exact pushed SHA, commits,
+  checks and remaining work. Do not watch CI or close the item.
+- **What the push proof flags:** an error check after a call that already
+  returns that error is a dead branch, an uncovered line (T-281, T-282). A
+  test forcing a filesystem error uses one every OS reports alike (a NUL byte
+  in a path, a folder for a file, a failing fake), never an OS's wording or
+  path separators (T-225, T-227: Windows and macOS differ).
 - **The files:** brief the item's `refs` and its tagged feature files from
   `itos work show <id>`. Read each package's `doc.go` first. These are starting
   points, not a search boundary. Name other files only when the item's own
   commits touched them; `p1-work-spec-files` would derive this.
-- **A search tool is optional:** with semble, anchor a query on a symbol, read
-  beyond the first hit, then grow it with `find_related` rather than grepping
-  again. Refs and feature files remain the brief's responsibility.
 
 ## Independent work and red repairs
 
 q-41 permits independent work while CI is pending; red repairs take priority
 before further landings. Repair agents hand back commits for the coordinator
 to land, without pushing their branches. Keep worktrees and scratch files
-inside this directory. Each isolated agent has a worktree under
-`.claude/worktrees/`, and pulls there with `--no-autostash` before each push.
+inside this directory. Each agent has a worktree named after its item,
+`.claude/worktrees/<id>`, tracking `origin/main`, and pulls there with
+`--no-autostash` before each push.
 
 ## Lessons from this repository
 
@@ -154,11 +158,9 @@ was in this file when the file was reorganized that day.
   checkouts, a test asserting Unix file modes, and a test hashing a blob with
   `git hash-object`, whose CRLF warning joined the hash (bug 31: use
   `-c core.autocrlf=false` and `--no-filters`). Expect what touches files,
-  modes or line endings to need a Windows thought. macOS too: a unit test
-  forcing a filesystem error must use one every OS reports alike (T-225: a
-  file read as a folder is not-found on Windows; T-227: a removed working
-  folder still answers Getwd on macOS); brief it. Exit: permanent. Recorded
-  by 2026-10-04; last seen 2026-10-22.
+  modes or line endings to need a Windows thought, and macOS one too (a
+  removed working folder still answers Getwd there). Exit: permanent.
+  Recorded by 2026-10-04; last seen 2026-10-22.
 - **The features hide `claude`, `itos` and every `itos-*` from the PATH**
   (T-087): a scenario runs the itos under test only where a step asks
   (`itosOnPath`). A task's check that should prove a fix can pass before it
