@@ -13107,14 +13107,7 @@ items:
     title: Remove automatic guide routing from generated agent instructions
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: bug
-    why: >
-      The user reaffirmed q-46 on 2026-10-23: the person starts coordinators explicitly with itos
-      go; no automatic-start fallback. The current generated AGENTS.md entry caused a coordinator to
-      rerun itos go despite its complete output already being in the conversation. Remove the entry
-      from generated project and stealth blocks, preserve the staging boundary and handwritten text,
-      and remove this repository notes instruction to start the session again. Do not change itos go
-      itself or the explicit implementing brief.
     refs: [AGENTS.md, docs/ORCHESTRATING.md, internal/engine/agentrules, internal/slices/initcmd, features/init.feature]
