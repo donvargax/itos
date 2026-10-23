@@ -6771,6 +6771,10 @@ items:
       a run minutes; each wants a test that ends fast under the mutant. watch.go:197's spinning
       mutant exhausted two hosted runners' memory (itos-cc#54) until T-187's test-side guard;
       p1-watch-step-function is the structural fix.
+
+      2026-10-23, from T-283's agent: a focused mutation run on internal/tests/tsv.go also showed a
+      survivor at tsv.go:99:87 (tests.projectFile), outside that nightly's draw; kill it in the next
+      batch.
     refs: [internal/cli/gitshim.go, internal/cli/push.go, internal/work/propose.go]
 
   - id: slice-110
