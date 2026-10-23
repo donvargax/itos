@@ -12853,3 +12853,30 @@ items:
       reviewed by the reviewer MCP.
     refs: [internal/check, internal/slices/task, internal/slices/ci, internal/slices/hook]
     tags: [tests, hooks, ci]
+
+  - id: p1-red-agent
+    title: A red agent writes a slice's step definitions and proves them red; the implementer only turns them green
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The user, 2026-10-23. Today one implementing agent writes a slice's missing step definitions,
+      commits them red (scenarios still @wip, each failing at its checking step) and then writes the
+      fix, so nothing stops it from writing steps its own fix happens to satisfy; bug-111's
+      gpt-6-luna agent also stopped on undefined steps, the job being implied rather than stated.
+      Pipeline to trial on slices with several scenarios: the spec (scenario text and decisions, a
+      strong spec agent, see p1-cheap-coordinator-trial) is reviewed by the reviewer; a red agent
+      (mid-tier model) writes the step definitions, reusing fixtures, in a test commit and records
+      where each scenario fails; the reviewer diff-reviews that commit (do the steps check what the
+      text says, does each fail for the right reason, could one pass with no fix); the implementer
+      starts from proven-red tests and only turns them green; a diff review before closing. Small
+      bugs keep one agent. Accepted caveats (the user): the implementer sometimes needs
+      implementation details the red agent did not have, and a spec or a step can miss something
+      that makes it impossible to pass; so the implementer may change steps or @wip scenarios,
+      saying why in the commit body, and the diff review judges those changes rather than a rule
+      forbidding them. Later, a check could flag (not refuse) a feat or fix commit that changes step
+      definitions or the scenarios it was handed. Measure tokens and red CI runs against
+      single-agent slices (p1-work-spend).
+    tags: [tests, docs]
