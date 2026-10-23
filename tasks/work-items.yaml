@@ -12957,4 +12957,8 @@ items:
       pre-commit hook re-stages the file after dprint formats it, leaving the index stat racy so a
       quick status reads it as changed, or itos compares file content with a stale index entry.
       Reproduce with two registry writers back to back in a script.
+
+      Likely cause found the same day: bug-111's agent was editing files in the main checkout by
+      absolute path while the coordinator committed there (tasks/work-items.yaml showed as modified
+      once). Drop this idea if it never recurs once agents' sessions are moved into their worktrees.
     tags: [work]
