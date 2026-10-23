@@ -156,6 +156,7 @@ package features
 
 import (
 	"bufio"
+	"context"
 	"flag"
 	"os"
 	"path/filepath"
@@ -174,6 +175,11 @@ var (
 )
 
 func TestFeatures(t *testing.T) {
+	inProcess := os.Getenv("ITOS_FEATURE_DRIVER") == "in-process"
+	if inProcess && *concurrency != 1 {
+		t.Logf("in-process driver requires serial scenarios; overriding -concurrency=%d with 1", *concurrency)
+		*concurrency = 1
+	}
 	filter, err := tagFilter(*scenarios, ".")
 	if err != nil {
 		t.Fatal(err)
@@ -186,9 +192,26 @@ func TestFeatures(t *testing.T) {
 	t.Cleanup(removeCover)
 	t.Cleanup(removeStamped)
 	startTimings()
+	initializer := initializeScenario
+	var selected, ran int
+	if inProcess {
+		initializer = func(sc *godog.ScenarioContext) {
+			initializeScenario(sc)
+			sc.Before(func(ctx context.Context, scenario *godog.Scenario) (context.Context, error) {
+				selected++
+				id := inProcessScenarioID(scenario)
+				if reason, deferred := inProcessDeferred[id]; deferred {
+					t.Logf("in-process driver skipped @%s: %s", id, reason)
+					return ctx, godog.ErrSkip
+				}
+				ran++
+				return ctx, nil
+			})
+		}
+	}
 	suite := godog.TestSuite{
 		Name:                "itos",
-		ScenarioInitializer: initializeScenario,
+		ScenarioInitializer: initializer,
 		Options: &godog.Options{
 			Format:      "pretty",
 			Paths:       []string{"."},
@@ -201,6 +224,9 @@ func TestFeatures(t *testing.T) {
 	failed := suite.Run() != 0
 	if err := writeTimings(); err != nil {
 		t.Error(err)
+	}
+	if inProcess && (selected == 0 || ran == 0) {
+		t.Fatalf("in-process driver ran no scenarios: all %d selected scenarios were skipped", selected)
 	}
 	if failed {
 		t.Fatal("a scenario failed")

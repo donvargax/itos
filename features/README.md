@@ -52,6 +52,7 @@ go test ./features -count=1 -scenarios='^@ID-SINCE-' # the live scenarios with a
 ITOS_BIN=/path/to/itos go test ./features -count=1   # another build, a release's binary say
 go test ./features -count=1 -timings=t.txt           # writes where the run spent its time
 go test ./features -count=1 -concurrency=1           # one scenario at a time
+ITOS_FEATURE_DRIVER=in-process go test ./features -count=1 # top-level itos in process, serially
 GOCOVERDIR=$d go test ./features -count=1            # itos built with -cover, its coverage in $d
 ITOS_CC_TEST_COVERDIR=$d go test ./features -count=1 # the same, each scenario's in $d/<its ID>
 tools/bin/itos tests smoke run scenario              # exactly the smoke set
@@ -60,6 +61,15 @@ tools/bin/itos tests smoke run scenario              # exactly the smoke set
 The scenarios run as many at a time as the machine has CPUs (T-115), so a
 step keeps its state in its scenario's world and never changes the process's
 environment or working directory; what scenarios share is guarded.
+
+`ITOS_FEATURE_DRIVER=in-process` runs only the top-level itos command through
+`internal/cli.Main`, capturing its streams and exit code. Other programs
+started by steps remain subprocesses. Since the CLI still changes process
+state, this driver runs one scenario at a time and restores that state between
+runs. Scenarios needing the process boundary are deferred in
+`features/inprocess_test.go` with a reason; a run that selects only deferred
+scenarios fails rather than passing without running anything. Leave the
+variable unset to keep using the binary driver.
 
 With `GOCOVERDIR` or `ITOS_CC_TEST_COVERDIR` set (an existing folder), the
 itos under test is built from the tree with `go build -cover`, stamped as

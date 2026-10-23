@@ -2478,6 +2478,9 @@ func (w *world) run(dir, program string, args ...string) error {
 // A program run in the folder dir with stdin on its standard input (none
 // when nil), as run.
 func (w *world) runWith(dir string, stdin io.Reader, program string, args ...string) error {
+	if os.Getenv("ITOS_FEATURE_DRIVER") == "in-process" && filepath.Clean(program) == filepath.Clean(w.bin) {
+		return w.runInProcess(dir, stdin, args...)
+	}
 	cmd := exec.Command(program, args...)
 	cmd.Dir = dir
 	cmd.Env = w.env()
