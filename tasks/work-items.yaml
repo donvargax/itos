@@ -12875,3 +12875,27 @@ items:
     status: todo
     depends_on: [T-285]
     kind: task
+
+  - id: p1-reviewer-mcp-trial
+    title: Trial the user's reviewer MCP server for cache-friendly plan and spec reviews, diffs appended
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The user, 2026-10-23: a reviewer MCP server (their PoC) holds a review session server-side:
+      the plan or spec is its fixed prefix and each revision is appended as a diff, so the
+      read-cache rules are deterministic and no agent can break them by re-pasting or reordering. In
+      the user's tests cache reads hit constantly. Open: the gap between real review rounds is an
+      implementing agent's run (20 to 60 minutes), longer than most provider cache lifetimes, so
+      real hit rates may be lower; many diffs in a row make the reviewer rebuild the document in its
+      head, so it needs a rule to restart from the current document past some share of the base; a
+      reviewer that has seen its own earlier verdicts loses fresh eyes, so the final adversarial
+      pass may still want a fresh one. Adopt the PoC here once the user locates it, validate it
+      works (the coordinator), then compare on real spec reviews (T-285, T-286 and later): the MCP
+      reviewer, a resumed reviewer subagent fed only git diff <last-reviewed>..HEAD, and a fresh
+      reviewer each round, measuring cached share of input tokens, cost per review, real findings
+      and wall time (p1-work-spend). If it stays, reviews are keyed by item and last-reviewed
+      commit, diffs taken from git. Shares the review agent with p1-cheap-coordinator-trial.
+    tags: [docs]
