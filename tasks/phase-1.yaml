@@ -4326,3 +4326,21 @@
       timeout: 900
     - run: tools/bin/pinned itos-cc mutation run --since a9de53f62e7b6755a91f47d2780bdc2a827b94e4 --count 60 --fail-uncovered=lines --json --seed 39948599784 cmd internal
       timeout: 900
+
+- id: T-284
+  type: docs
+  title: The brief rules the coordinator carried in notes.md move into docs/ORCHESTRATING.md
+  why: >
+    The user, 2026-10-23: .git/itos/notes.md is only a handoff for a session cut off mid-turn,
+    pruned at each coordinator start, and everything durable lives in itos or the repository. The
+    brief rules every agent needed (no by-hand push proof, itos task or linters; dead error branches
+    read as uncovered lines; filesystem errors every OS reports alike; worktrees named after their
+    item) lived only in the coordinator's scratch briefs and notes.md. They join What a brief adds
+    here, the coordinator start gains the prune step until p1-session-handoff ends it, and the file
+    stays within its 11000-byte doc budget by shortening the proof bullet, dropping the optional
+    search-tool bullet and folding the Windows lesson's macOS case into the brief rule. Raising the
+    cap was not an option.
+  done_when:
+    - run: go run ./tools/bin/doc-budget
+    - run: grep -q 'dead branch' docs/ORCHESTRATING.md
+    - run: grep -q 'Prune .\.git/itos/notes.md' docs/ORCHESTRATING.md

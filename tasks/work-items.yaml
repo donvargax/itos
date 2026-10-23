@@ -12842,3 +12842,11 @@ items:
       Needs the brief filled by itos (p1-guide-brief-filled), status showing what is in flight
       (p1-session-handoff), and spec, review and implement agent definitions in .opencode/agents.
     tags: [docs]
+
+  - id: T-284
+    title: The brief rules the coordinator carried in notes.md move into docs/ORCHESTRATING.md
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task
