@@ -12897,3 +12897,20 @@ items:
       test commit. Feats, minor releases; nothing consumer-visible changes for a check that does not
       opt in.
     tags: [tests, hooks]
+
+  - id: p1-evidence-ci
+    title: CI publishes evidence records and an opted-in work done accepts only them (evidence records, B)
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [p1-evidence-local]
+    kind: idea
+    why: >
+      Work item B of docs/plans/evidence-records.md (ADR-0060): internal/ci collects records for
+      opted-in checks that actually ran (B1, feat); work done with work.evidence.require_ci
+      validates the passing run's artifact against head, tree, policy and required checks, after the
+      unchanged failingTask refusal, provider none keeping today's behaviour, an expired artifact
+      (90-day retention) asking for fresh CI (B2, feat; live pinning scenarios in the feat commit);
+      the workflow uploads the bundle, verified by a gate self-test (B3, ci); this repository turns
+      on ci.evidence and then require_ci, each after its feature (B4, B5, ci).
+    tags: [ci, work]
