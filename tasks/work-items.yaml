@@ -6782,6 +6782,11 @@ items:
       counted nightly reports no cache, whereas the pinned mutation-except CLI requires a fresh
       survivor snapshot; resolve that evidence path transparently, never fabricate freshness.
       Failure log is in the clone at .git/itos/nightly-40018388348.log.
+
+      2026-10-23: T-290 (96fa678d, 418ebdde) settled Nightly 40018388348's last three: a Windows
+      test for tsv.go:99 plus an exception (Linux-equivalent), and proven-equivalent exceptions for
+      help.go:99 and cases.go:363. Every survivor of nightlies 39948599784 and 40018388348 is now
+      killed or excepted; the next nightly draws fresh ones.
     refs: [internal/cli/gitshim.go, internal/cli/push.go, internal/work/propose.go]
 
   - id: slice-110
