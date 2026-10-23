@@ -12769,3 +12769,21 @@ items:
       covers a dropped job.
     refs: [internal/engine/ciwatch]
     tags: [ci, push]
+
+  - id: p1-ci-run-check-result-lines
+    title: itos ci run prints a result line for each task check, a silent pass included
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Issue #115 (2026-10-22, from itos-cc): ci run over a range naming a task with three done_when
+      checks printed each check as its task and command, then the check output; two grep -q checks
+      print nothing, so the log showed nothing after them, and both an agent and the coordinator
+      inferred their pass from the final CI passed. Expected: one result line per check (ok with its
+      time, or failed with its exit code or timeout), so a check that ran and passed reads
+      differently from one skipped or never reached. Near p1-task-check-failure-reason (#82, itos
+      task gives no reason), which is about failures in itos task, not ci run passes.
+    refs: [internal/slices/ci]
+    tags: [ci]
