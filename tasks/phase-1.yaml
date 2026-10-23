@@ -4500,5 +4500,3 @@
     2026-10-10 dump of git's environment and an agent's leftover commit-message file at the top. The
     user asked on 2026-10-23 to keep the repository clean and ignore what should not reach GitHub.
     Ignore the whole .claude/ folder, /.hook-git-env and /*-commit*.txt.
-  done_when:
-    - run: git check-ignore -q .claude/settings.json && git check-ignore -q .hook-git-env && git check-ignore -q T-1-commit1.txt

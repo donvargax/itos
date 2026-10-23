@@ -13361,6 +13361,6 @@ items:
     title: "Ignore what a clone keeps for itself: .claude/, a hook's git environment, commit-message files"
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
