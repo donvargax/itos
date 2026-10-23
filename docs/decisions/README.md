@@ -60,5 +60,6 @@ file and leaves this list, which itos decision record writes.
 - [ADR-0057: CI owns the push proof and the task checks until the hooks run them in process](0057-ci-owns-the-push-proof-and-the-task-checks-until-the-hooks-run-them-in-process.md)
 - [ADR-0058: On a git older than 2.54, hook files are a temporary compatibility path; the git config stays the default](0058-on-a-git-older-than-2-54-hook-files-are-a-temporary-compatibility-path-the-git-config-stays-the-default.md)
 - [ADR-0059: A local test tier runs in process from the pre-push hook, opt-in in v8](0059-a-local-test-tier-runs-in-process-from-the-pre-push-hook-opt-in-in-v8.md)
+- [ADR-0060: Opted-in checks keep a result keyed by what they ran on; local records speed reruns, CI records prove](0060-opted-in-checks-keep-a-result-keyed-by-what-they-ran-on-local-records-speed-reruns-ci-records-prove.md)
 
 <!-- itos:decisions:end -->
