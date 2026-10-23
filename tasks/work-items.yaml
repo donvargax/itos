@@ -13063,3 +13063,18 @@ items:
       dependencies, inherited external inputs, no OS sandbox, with a scenario using the itos prints
       the help of step.
     tags: [hooks]
+
+  - id: p1-snapshot-selection-regression
+    title: Scenarios show task-check selection, cost order, limits and verdicts unchanged under the staged snapshot
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [bug-112]
+    kind: idea
+    why: >
+      Split from bug-112 by its review (2026-10-23), taking its old aggregate HOOKSNAP-06. bug-112's
+      code must already keep these rules; this item is their explicit regression spec in the
+      snapshot context: choose which existing scenarios suffice, split the rest into one invocation
+      per scenario or outline row, tag already-passing cases as guards, and where red proof is
+      needed use staged-versus-disk inputs that make the expected verdict differ today.
+    tags: [hooks]
