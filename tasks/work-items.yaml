@@ -12793,6 +12793,20 @@ items:
       --plan-file and --diff-file. The cached opening holds across fresh sessions (step 1 create 0).
       First real results: T-286's spec review found its premise wrong (task dropped); T-285's diff
       review approved with notes; the evidence-records design went through two rounds.
+
+      2026-10-23 assessment requested by the user: retain semantic review, measure useful findings
+      separately from round count. High-value examples were slice-164 scenarios that passed before
+      work; malformed/duplicate summary handling that could alter real outcomes; guide fixtures
+      whose config rewrite discarded deps; bug-112 fakes that scrubbed footer variables before the
+      production path, obsolete tests-only helpers and PATH precedence masking; and T-288s
+      symlink-resolved parent fixture. Low-value blockers included choosing between equally suitable
+      test files/helper shapes, exact noncontract human phrasing, or reopening an entire artifact
+      for one already-decided header correction. T-289 correctly treated constructor naming as
+      nonblocking. Separate overrides from raw launcher export early; the combined specification
+      caused oversized reviews. Budget-control and complete-prior-finding problems are tracked
+      independently in p1-reviewer-budget-controls and p1-reviewer-prior-findings; review
+      materiality/protocol in p1-review-materiality. These are observations and improvement
+      proposals, not permission to omit acceptance contracts or real newly found defects.
     tags: [docs]
 
   - id: p1-evidence-records
