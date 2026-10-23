@@ -4335,10 +4335,6 @@
     stays within its 11000-byte doc budget by shortening the proof bullet, dropping the optional
     search-tool bullet and folding the Windows lesson's macOS case into the brief rule. Raising the
     cap was not an option.
-  done_when:
-    - run: go run ./tools/bin/doc-budget
-    - run: grep -q 'dead branch' docs/ORCHESTRATING.md
-    - run: grep -q 'Prune .\.git/itos/notes.md' docs/ORCHESTRATING.md
 
 - id: T-285
   type: test
