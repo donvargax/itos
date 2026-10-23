@@ -12764,6 +12764,9 @@ items:
       retry a cheaper coordinator in other repositories once the coordinator role is simpler
       (perhaps through the state-machine work).
     tags: [docs]
+    deferred: >
+      The user ended the Sol coordinator trial and keeps the reviewer on its CLI for now; both may
+      be retried once the coordinator role is simpler.
 
   - id: T-284
     title: The brief rules the coordinator carried in notes.md move into docs/ORCHESTRATING.md
@@ -12840,6 +12843,9 @@ items:
       2026-10-23, the user keeps the reviewer on its CLI for now: the MCP server had trouble with
       asynchronous responses and long-running reviews.
     tags: [docs]
+    deferred: >
+      The user ended the Sol coordinator trial and keeps the reviewer on its CLI for now; both may
+      be retried once the coordinator role is simpler.
 
   - id: p1-evidence-records
     title: Every check itos runs keeps a result keyed by what it depends on, so a rerun with nothing changed answers at once
