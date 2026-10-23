@@ -55,6 +55,9 @@ phases:
   3: donvargax
 
 queue:
+  - bug-111
+  - bug-113
+  - bug-112
   - p1-agent-test-runs-once
   - p1-mutation-results-committed
   - p1-text-from-file
