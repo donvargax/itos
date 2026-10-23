@@ -12562,8 +12562,8 @@ items:
   - id: T-289
     title: Pass the host OS into concurrent local-counter test stores
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
     tags: [windows]
