@@ -12815,3 +12815,30 @@ items:
       the same rule, so the design should cover both modes.
     refs: [internal/slices/commit]
     tags: [commit]
+
+  - id: p1-cheap-coordinator-trial
+    title: "Trial a cheaper model as coordinator: a dispatcher over strong spec and review agents"
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [p1-guide-brief-filled, p1-session-handoff]
+    kind: idea
+    why: >
+      The user, 2026-10-23: test whether a cheap model can coordinate, the coordinator becoming
+      mainly a delegator. Models: openai/gpt-6-luna#high first; openai/gpt-6.1-sol at low or medium
+      effort the alternative. Its context stays under 272K tokens and read-cache friendly: a stable
+      prefix (system prompt, AGENTS.md, then itos go with the guide and the repository notes before
+      the volatile status, notes.md small), append-only turns (no compaction, which rewrites the
+      history and loses the cache; start a fresh session near about 200K instead, which rereads the
+      same prefix), no code or long logs read by the coordinator (an explore agent returns a short
+      summary; reports capped in length; itos commands with --json filtered or limited output), and
+      nothing held only in the session (everything recorded in itos as it happens, so a fresh
+      session loses nothing). Judgement moves to subagents: a strong spec agent writes the @wip
+      scenarios or the task why and checks, a strong read-only review agent checks each spec before
+      hand-off and each agent report before landing, the person decides through itos decision. Trial
+      on a bounded, low-risk stretch (three or four v8 GitHub issue fixes), a strong reviewer
+      auditing each landing; compare tokens (p1-work-spend) and mistakes (a trusted report, a missed
+      escalation, a weakened gate, a bad triage) against a stretch the current coordinator runs.
+      Needs the brief filled by itos (p1-guide-brief-filled), status showing what is in flight
+      (p1-session-handoff), and spec, review and implement agent definitions in .opencode/agents.
+    tags: [docs]
