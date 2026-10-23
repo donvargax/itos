@@ -12932,3 +12932,18 @@ items:
       own test commit first); a per-commit CI job calls the command (C4, ci); this repository turns
       the key on after both (C5, ci).
     tags: [tests, ci, work]
+
+  - id: p1-evidence-pre-push
+    title: Pre-push checks run on a snapshot of each pushed commit and key their records by its tree
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [p1-evidence-local]
+    kind: idea
+    why: >
+      The follow-up in A5 of docs/plans/evidence-records.md (ADR-0060): today the pre-push hook's
+      lint and unit tests run in the working tree, which may differ from the pushed commits; running
+      them in a disposable snapshot of each pushed commit's tree (bug-112's mechanism) makes the
+      result true of what is pushed and lets it be keyed by that tree. Until then pre-push runs are
+      uncached.
+    tags: [hooks]
