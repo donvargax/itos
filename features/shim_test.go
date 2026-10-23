@@ -55,6 +55,9 @@ func (w *world) plain() string { return filepath.Join(w.support, "plain") }
 // extensions', each when it has one.
 func (w *world) pathFirst() []string {
 	var first []string
+	if w.initShim != nil {
+		first = append(first, w.initShim.path...)
+	}
 	for _, dir := range []string{w.shimFolder(), w.extensionsDir()} {
 		if _, err := os.Stat(dir); err == nil {
 			first = append(first, dir)

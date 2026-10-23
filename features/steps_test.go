@@ -58,6 +58,8 @@ type world struct {
 
 	exit           int
 	stdout, stderr string
+	lastCommand    string
+	initShim       *initShimFixture
 
 	releases  *releaseServer // the release server, when the scenario starts one
 	github    *fakeGitHub    // the fake GitHub ci.range and ci.watch ask, when the scenario starts one
@@ -433,6 +435,7 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	initializeShimSteps(sc, w)
 	initializeGuardSteps(sc, w)
 	initializeInitSteps(sc, w)
+	initializeInitShimIdentitySteps(sc, w)
 	initializeWorkSteps(sc, w)
 	initializeShowSteps(sc, w)
 	initializeQueueRemovalSteps(sc, w)
@@ -2472,6 +2475,7 @@ func (w *world) itos(args ...string) error { return w.itosIn(w.dir, args...) }
 
 // itos run in the folder dir.
 func (w *world) itosIn(dir string, args ...string) error {
+	w.lastCommand = strings.Join(args, " ")
 	w.markRun()
 	return w.run(dir, w.bin, args...)
 }
