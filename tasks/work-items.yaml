@@ -12745,6 +12745,12 @@ items:
       escalation, a weakened gate, a bad triage) against a stretch the current coordinator runs.
       Needs the brief filled by itos (p1-guide-brief-filled), status showing what is in flight
       (p1-session-handoff), and spec, review and implement agent definitions in .opencode/agents.
+
+      2026-10-23: the user starts a first version of this trial next session: gpt-6.1-sol high
+      coordinates and Claude Opus 5.5 only reviews (the reviewer CLI, every spec before hand-off and
+      every diff before closing). Compare against today's Opus-coordinated session: items landed,
+      coordinator interventions, review rounds, reds, and mistakes (a trusted report, a missed
+      escalation, a weakened gate, a bad triage).
     tags: [docs]
 
   - id: T-284
