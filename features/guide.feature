@@ -365,8 +365,8 @@ Feature: itos go and itos guide, the guides a session starts from
   Scenario: Replacement commit prose cannot remove generated policy or bypass the hook
     Given a repository whose ledger has the task "T-001"
     And the header lint is commitlint's conventional config
-    And the config's commits.types gains "deps"
     And the config sets "guide" to the YAML "{ overrides: { commit: guides/commit.md } }"
+    And the config's commits.types gains "deps"
     And the committed file "guides/commit.md" holding "Our commit procedure."
     And a change to "README.md" is staged
     When itos runs "guide commit"
