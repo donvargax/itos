@@ -1,0 +1,51 @@
+package cli
+
+import (
+	"os"
+	"path/filepath"
+	"testing"
+)
+
+func TestHookCaptureIndexOutsideRepository(t *testing.T) {
+	scratchFolder(t)
+	source, err := (hookPorts{}).CaptureIndex(t.Context())
+	if source != nil || ExitCode(err) != ExitMissing {
+		t.Fatalf("capture outside repository = %v, %v", source, err)
+	}
+}
+
+func TestHookCaptureAndCheckoutUseCapturedTree(t *testing.T) {
+	scratchFolder(t)
+	gitIn(t, "init", "-q")
+	writeFiles(t, map[string]string{"input": "staged"})
+	gitIn(t, "add", "--", "input")
+	p := hookPorts{}
+	source, err := p.CaptureIndex(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	writeFiles(t, map[string]string{"input": "later"})
+	gitIn(t, "add", "--", "input")
+	text, err := source.Read(t.Context(), "input")
+	if err != nil || text != "staged" {
+		t.Fatalf("captured input = %q, %v", text, err)
+	}
+	snapshot, err := p.TaskSnapshot(t.Context(), source.Tree(t.Context()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer snapshot.Remove()
+	data, err := os.ReadFile(filepath.Join(snapshot.Dir, "input"))
+	if err != nil || string(data) != "staged" {
+		t.Fatalf("checkout input = %q, %v", data, err)
+	}
+	if snapshot.TempDir != filepath.Dir(snapshot.Dir) || snapshot.Env == nil {
+		t.Errorf("checkout binding = %+v", snapshot)
+	}
+	if err := snapshot.Remove(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(snapshot.TempDir); !os.IsNotExist(err) {
+		t.Errorf("checkout resources remain: %v", err)
+	}
+}
