@@ -7,8 +7,13 @@ ADR-0060 decides it; this is the design and the order, reviewed in five rounds b
 - All work items use one record shape: canonical key, complete manifest,
   verdict, raw exit code, bounded output tail, start/end time, runner identity
   and provenance. The key binds the whole tree the check actually runs on,
-  command/mode/timeout, policy/config and toolchain identities, OS/architecture,
-  and hashes of declared untracked inputs. CI uses the commit tree. Once
+  command and timeout, policy/config and toolchain identities, OS/architecture,
+  and hashes of declared untracked inputs; not the mode, since the record
+  holds the raw exit and each `run:` or `fails:` check derives its verdict
+  from it, as `check.Key` already shares one run between them (slice-169's
+  review). Policy is the config's settings after defaults, never its path or
+  other runtime fields, so every worktree shares the records; `ci.env` joins
+  the bound environment when `ci run` applies it. CI uses the commit tree. Once
   bug-112 lands, commit-msg checks run from a disposable snapshot of the exact
   index tree, so their key is that index tree; until then, commit-msg runs are
   uncached. Untracked files affect the key only when declared. Current `check.Key` only
