@@ -59,5 +59,6 @@ file and leaves this list, which itos decision record writes.
 - [ADR-0056: Task checks run in process over fakes in the hooks, and with real adapters in CI](0056-task-checks-run-in-process-over-fakes-in-the-hooks-and-with-real-adapters-in-ci.md)
 - [ADR-0057: CI owns the push proof and the task checks until the hooks run them in process](0057-ci-owns-the-push-proof-and-the-task-checks-until-the-hooks-run-them-in-process.md)
 - [ADR-0058: On a git older than 2.54, hook files are a temporary compatibility path; the git config stays the default](0058-on-a-git-older-than-2-54-hook-files-are-a-temporary-compatibility-path-the-git-config-stays-the-default.md)
+- [ADR-0059: A local test tier runs in process from the pre-push hook, opt-in in v8](0059-a-local-test-tier-runs-in-process-from-the-pre-push-hook-opt-in-in-v8.md)
 
 <!-- itos:decisions:end -->
