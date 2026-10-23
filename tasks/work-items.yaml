@@ -13188,3 +13188,19 @@ items:
     status: todo
     depends_on: []
     kind: task
+
+  - id: p1-adr-validation-updates
+    title: Update existing ADR validation metadata without rewriting unrelated prose
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [slice-161]
+    kind: idea
+    why: >
+      The user chose a nonbreaking first delivery for slice-161 on 2026-10-23. New record opt-in
+      validation and inspection land first; in-place updates, literal multiline evidence
+      replacement, no-op handling, CRLF/comment preservation and transactional rollback belong in
+      this separate delivery. Universal default/legacy index reformatting remains deferred to v9,
+      not authorised here. Retired wip ASK-34 and ASK-37..40 describe material to re-specify, not
+      live promises.
+    refs: [features/decision-validation.feature, internal/adr, internal/slices/decision]
