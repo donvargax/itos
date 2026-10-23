@@ -5,10 +5,9 @@
 other: what to read beyond the status, how this repository's gates and
 releases work, and the lessons it taught. The generic rules are the guide's
 essentials and its procedures (`itos guide brief`, `land`, `repair`, `decide`);
-don't repeat them here. Start a session with `! tools/bin/itos go`: this
-repository pins no release and runs its own build (`hooks.bin`), so the
-`itos` on a PATH runs whatever version was installed there, and may lack
-commands this tree has.
+don't repeat them here. This repository pins no release and runs its own
+build (`hooks.bin`): use `tools/bin/itos`, never an `itos` on the PATH,
+which may lack commands this tree has.
 
 ## Start of a session, beyond the status
 

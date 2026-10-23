@@ -22,11 +22,9 @@ the code fits together; what one package does, and why, is its doc comment
 
 **Which session are you?** If you were handed a slice, a fix or a task to
 implement, you are an implementing session: this file is yours, you do the
-work yourself, and you start no subagents. If you are the session the user
-talks to, the one that starts with `itos go` and decides what happens next,
-you are the coordinator: **`itos go` (the generic guide, then
-`docs/ORCHESTRATING.md`, then `itos status`) is yours, not this file.** You
-hand work out and land it; you don't build it. **Anything that needs a
+work yourself, and you start no subagents. If you are the session that talks
+with the user and decides what happens next, you are the coordinator: you hand
+work out and land it; you don't build it. **Anything that needs a
 scenario is a slice, and a slice goes to a subagent.**
 
 ## Commits here

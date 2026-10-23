@@ -980,3 +980,96 @@ Feature: itos init, a repository made ready for itos
     And the file "AGENTS.override.md" says "Stage only your own files, by explicit path" between the markers
     And the file "AGENTS.override.md" does not say "Task:" between the markers
     And git status shows nothing to commit
+
+  # Bug 121, q-46 reaffirmed by the user on 2026-10-23: the person starts a
+  # coordinator explicitly and an implementing brief names its own guide.
+  # An always-loaded entry command made a coordinator rerun itos go even
+  # with its complete output already in the conversation. Remove guide
+  # routing entirely, with no conditional fallback or replacement command.
+  # Keep the staging boundary, imports, markers and handwritten text. The
+  # same rule applies to project and stealth blocks and their refreshes.
+  # Existing blocks are stale under the usual comparison; explicit init
+  # --agent-rules refreshes them. Do not change itos go or brief execution.
+  # This is a fix implementing q-46, with no BREAKING-CHANGE footer; list
+  # intentionally changed old cases in Changes:. Upgrading: none, because
+  # itos upgrade already refreshes existing marked blocks, including stealth
+  # copies. A consumer using init directly can use init --agent-rules.
+  #
+  # The exact new block, including its final newline, is:
+  # <!-- itos:begin -->
+  #
+  # ## itos
+  #
+  # Stage only your own files, by explicit path: untracked files you did not make are someone else's work in progress.
+  #
+  # <!-- itos:end -->
+  #
+  # Rewrite (do not retire) INIT-32, 34, 36, 57, 59 and 60, and
+  # UPGRADEHAND-03 to assert the staging boundary without the entry line;
+  # rename INIT-57 and INIT-60 to match. Keep INIT-26's heading assertion.
+  # Update staleBlockRewritten in initstatus_test.go to check the new block;
+  # INITSTATUS-01's expected rewritten content changes too. Name all these
+  # scenario IDs in Changes:, including INITSTATUS-01 even though its
+  # feature text need not change. Update the init.yaml corpus cases named:
+  # - with --agent-rules init writes its rules for agents at the end
+  # - under --stealth, --agent-rules writes the rules in the git folder
+  # Those are unique name prefixes for Changes:. Keep every other promise.
+  #
+  # Update init help (initcmd/command.go), README.md's agent-rules paragraph,
+  # and comments in initcmd/rules.go and agentrules/{agentrules.go,doc.go}
+  # that describe the removed entry or two instructions. Keep README's
+  # person-facing instructions for explicitly starting a coordinator.
+  # Remove this repository's generated AGENTS.md entry in the same fix
+  # commit as Block, so the checkout's own block never becomes stale in an
+  # intermediate committed tree. No unrelated guide migration belongs here.
+  @wip @ID-INIT-70 @bug-121
+  Scenario: Project agent rules keep the staging boundary without a default guide command
+    Given a repository that does not use itos, its one commit "docs: start"
+    When itos runs "init --agent-rules"
+    Then itos exits with code 0
+    And the file "AGENTS.md" says "Stage only your own files, by explicit path" between the markers
+    And the file "AGENTS.md" does not say "itos go" between the markers
+    And the file "AGENTS.md" does not say "itos guide" between the markers
+    And the file "CLAUDE.md" has the line "@AGENTS.md"
+
+  @wip @ID-INIT-71 @bug-121
+  Scenario: Stealth agent rules keep the staging boundary without a default guide command
+    Given a repository that does not use itos, its one commit "docs: start"
+    When itos runs "init --stealth --agent-rules"
+    Then itos exits with code 0
+    And the file ".git/itos/AGENTS.md" says "Stage only your own files, by explicit path" between the markers
+    And the file ".git/itos/AGENTS.md" does not say "itos go" between the markers
+    And the file ".git/itos/AGENTS.md" does not say "itos guide" between the markers
+    And the file "AGENTS.override.md" says "Stage only your own files, by explicit path" between the markers
+    And the file "AGENTS.override.md" does not say "itos go" between the markers
+    And the file "AGENTS.override.md" does not say "itos guide" between the markers
+    And git status shows nothing to commit
+
+  @wip @ID-INIT-72 @bug-121
+  Scenario: Explicitly refreshing an older block removes its start command and keeps the project text
+    Given a repository that does not use itos, its one commit "docs: start"
+    And itos has already run "init --agent-rules"
+    And the committed file "AGENTS.md" holding the lines:
+      """
+      Be kind to the build.
+
+      <!-- itos:begin -->
+
+      ## itos
+
+      Start with `itos go` unless your brief names another guide.
+
+      Stage only your own files, by explicit path: untracked files you did not make are someone else's work in progress.
+
+      <!-- itos:end -->
+      """
+    When itos runs "init"
+    Then itos exits with code 0
+    And its output says "itos init --agent-rules"
+    And the file "AGENTS.md" says "Start with `itos go`" between the markers
+    When itos runs "init --agent-rules"
+    Then itos exits with code 0
+    And the file "AGENTS.md" does not say "itos go" between the markers
+    And the file "AGENTS.md" does not say "itos guide" between the markers
+    And the file "AGENTS.md" says "Stage only your own files, by explicit path" between the markers
+    And the file "AGENTS.md" has the line "Be kind to the build."
