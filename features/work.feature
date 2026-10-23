@@ -1291,6 +1291,13 @@ Feature: The work registry
   # the report's --drop was renamed in v6. Keep historical queue headers
   # readable. General discovery of multi-item commits belongs separately
   # to p1-work-show-several-ids, not this header correction.
+  # Decided after review (2026-10-23): work done's own queue-removal commit,
+  # the second commit it makes until slice 142 folds it into the close, says
+  # "docs: dequeue <id>" too; internal/slices/work/done_test.go pins it (it
+  # pins "docs: queue slice-2" today). work queue's help and its verb list
+  # name "docs: dequeue <id>" and "docs: dequeue <n> items" for --remove.
+  # Insertions and moves keep "docs: queue": write_test.go and @ID-WORK-30
+  # already pin that, so no guard scenario repeats it.
   @ID-WORK-111 @bug-111 @wip
   Scenario: explicit queue removal records a dequeue header that work show recognizes
     Given a committed queue fixture with the items "slice-1,slice-2" queued in that order
@@ -1336,22 +1343,7 @@ Feature: The work registry
     Examples:
       | items                                | header                           |
       | slice-1 and slice-2                   | docs: dequeue slice-1, slice-2   |
-      | twelve IDs exceeding the header limit | docs: dequeue 12 items          |
-
-  # Guards: insertion and moves already use queue; the fix changes only
-  # removals. Distinct initial orders force a real edit in each example.
-  @ID-WORK-114 @bug-111 @guard @wip
-  Scenario Outline: queue insertion and movement retain the queue verb
-    Given a committed queue fixture where "<arguments>" changes the order
-    When itos runs "work queue slice-1 <arguments>"
-    Then itos exits with code 0
-    And the last commit's header is "docs: queue slice-1"
-
-    Examples:
-      | arguments        |
-      | --top            |
-      | --before slice-2 |
-      | --after slice-2  |
+      | slice-1 to slice-12                   | docs: dequeue 12 items          |
 
   @ID-WORK-115 @bug-111 @guard @wip
   Scenario: an old queue-removal header remains discoverable and repeated removal is a no-op
