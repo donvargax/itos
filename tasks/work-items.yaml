@@ -13013,3 +13013,19 @@ items:
       unstaged config), with scenarios for relative and absolute pointers. Never fabricate a commit
       for the proposal.
     tags: [hooks]
+
+  - id: p1-snapshot-stealth
+    title: Snapshot task checks under a stealth config read the captured private data, not the source's
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [bug-112]
+    kind: idea
+    why: >
+      Split from bug-112 by its review (2026-10-23), taking its old HOOKSNAP-11. Proposed: the
+      snapshot's own .git/itos/itos.yaml and companion private data, ITOS_CONFIG pointing there even
+      when it named the source stealth file. Still to decide: the complete capture set, path
+      rewriting for arbitrary ledger, registry and smoke locations, a consistent effective private
+      view, default discovery and explicit ITOS_CONFIG specified separately; private data is never
+      copied into tracked paths.
+    tags: [hooks]
