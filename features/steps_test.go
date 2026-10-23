@@ -60,6 +60,7 @@ type world struct {
 	stdout, stderr string
 	lastCommand    string
 	initShim       *initShimFixture
+	snapFixture    *snapshotFixture
 
 	releases  *releaseServer // the release server, when the scenario starts one
 	github    *fakeGitHub    // the fake GitHub ci.range and ci.watch ask, when the scenario starts one
