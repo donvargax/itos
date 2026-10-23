@@ -40,6 +40,12 @@ Each is one task or slice; none changes what a consumer sees until step 6.
    environment and stdin from the run value: no `os.Chdir`, `os.Setenv`,
    `getwd` variable or `os.Stdin` read. A test runs two scenarios at once
    and shows neither sees the other's. Then the driver runs in parallel.
+   The run value reaches the code as explicit fields: `cli.Main` builds it
+   and hands it to each command's ports and adapters when it constructs
+   them, never through a `context.Context` value (q-101); `os.*` stays in
+   `cmd/itos`, the launcher and the shim. Four tasks, in order: the working
+   folder, the environment, stdin, then the two-at-once test and the
+   parallel driver.
 3. **Fakes per run.** The test binary binds the VCS, tree, tracker and
    private-store fakes (their `porttest` packages, held by the contract
    suites) per scenario, with a test that every port has a binding. Pilot
