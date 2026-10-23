@@ -13366,3 +13366,17 @@ items:
     status: done
     depends_on: []
     kind: task
+
+  - id: p1-idea-done-elsewhere
+    title: An idea built outside the repository closes as done, naming where
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      2026-10-23: three reviewer ideas were built in another repository (the reviewer proof of
+      concept), but work done refuses an idea (promote it first) and work drop means no longer
+      wanted, which needs the person's agreement and misreports the outcome. Coordinators need a way
+      to close an idea whose work landed elsewhere, recording the repository and commits, without
+      promoting it to a slice or task that has no scenarios or checks here.
