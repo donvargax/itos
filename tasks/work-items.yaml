@@ -13107,7 +13107,7 @@ items:
     title: Remove automatic guide routing from generated agent instructions
     phase: 1
     owner: donvargax
-    status: todo
+    status: doing
     depends_on: []
     kind: bug
     why: >
