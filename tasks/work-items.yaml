@@ -13328,3 +13328,11 @@ items:
       wanted, which needs the person's agreement and misreports the outcome. Coordinators need a way
       to close an idea whose work landed elsewhere, recording the repository and commits, without
       promoting it to a slice or task that has no scenarios or checks here.
+
+  - id: T-291
+    title: cli.Main takes its working folder from the run value and never changes the process folder
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task
