@@ -13206,3 +13206,21 @@ items:
       repeated full reruns. This targets the configured reviewer integration, not weaker review
       criteria.
     refs: [docs/ORCHESTRATING.md]
+
+  - id: p1-reviewer-prior-findings
+    title: Preserve every unresolved finding between review rounds
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Observed in the configured reviewer integration on 2026-10-23: review_cli.py reads a prior
+      file as one finding per nonblank line, but review_server.rounds_block uses prior[-MAX_ROUNDS:]
+      with MAX_ROUNDS equal to 5. A ten-finding response therefore sends only findings six through
+      ten, not five rounds of history. Preserve all unresolved findings, or make any intentional
+      budget truncation explicit; do not silently discard the first ones. A regression should
+      exercise prompt construction with more than five distinct finding markers and verify all
+      required markers are retained, not grep source. This omission can compromise follow-up
+      completeness; it is not claimed to explain every late finding this session.
+    refs: [docs/ORCHESTRATING.md]
