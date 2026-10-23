@@ -13149,3 +13149,18 @@ items:
       commit policy stays separate. This lets a project tailor coordinator instructions while
       preserving gates. Raw shipped-guide export and launcher bypass are split into slice-168.
     refs: [internal/guide, internal/engine/guides, internal/slices/guide, internal/slices/gocmd, internal/config, features/guide.feature]
+
+  - id: p1-projectfile-exception-reason
+    title: Correct the explanation of the equivalent projectFile mutation
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Nightly triage on 2026-10-23 confirmed the exact-site projectFile OR-to-AND exception remains
+      equivalent, but its explanation incorrectly says a failed filepath.Rel leaves an absolute
+      path. The error result is empty; the mutant assigns that result and the later dot-path refusal
+      returns the same error. Correct only the explanation, without broadening or removing the
+      exception or rewriting the historical commit.
+    refs: [itos-cc.yaml, internal/tests/tsv.go]
