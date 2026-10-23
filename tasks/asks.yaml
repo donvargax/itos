@@ -416,3 +416,6 @@ questions:
     item: "p1-agent-test-runs-once"
     question: "In-process tier step 2: how do a run's folder, environment and stdin reach the code once cli.Main stops changing process state? Recommended: explicit fields, one run value built by cli.Main and passed into each command's ports and adapters at construction. Alternative: a value carried in context.Context."
     answer: "Explicit fields (the user, 2026-10-23): cli.Main builds one run value (folder, environment, stdin) and hands it to each command's ports and adapters when it constructs them; no context values, and os.* stays only in cmd/itos, the launcher and the shim."
+  - id: q-102
+    item: "slice-169"
+    question: "slice-169 (evidence records A3): a hand-run itos task or ci run on a dirty tree is uncached in the plan, so an agent mid-edit never leaves a record the commit hook can hit. Recommended: run on the index as the commit-msg hook does (key by the index tree, a miss run in its bug-112 snapshot, unstaged and untracked files never reaching run or key, the unstaged count reported, --working-tree for today). Rejected: a working-tree key from git add -A, which sweeps in unrelated untracked files and nested checkouts."
