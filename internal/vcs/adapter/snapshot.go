@@ -13,23 +13,38 @@ import (
 // IndexTree captures the active index, including git's alternate commit index,
 // as one immutable tree for task selection and checkout alike.
 func (g Git) IndexTree(ctx context.Context) (string, error) {
+	return g.indexTreeThrough(ctx, func() (indexFile, error) {
+		return os.CreateTemp("", "itos-index-*")
+	}, os.Remove)
+}
+
+// indexFile permits deterministic disk write/close failures, as tempFile does
+// for the ID counter. A real temporary file cannot fail those on demand.
+type indexFile interface {
+	Name() string
+	Write([]byte) (int, error)
+	Close() error
+}
+
+func (g Git) indexTreeThrough(ctx context.Context, create func() (indexFile, error), remove func(string) error) (tree string, err error) {
+	defer func() { err = kind.Wrap(kind.Missing, err) }()
 	path, err := g.git().Output("rev-parse", "--path-format=absolute", "--git-path", "index")
 	if err != nil {
-		return "", kind.Wrap(kind.Missing, err)
+		return "", err
 	}
 	data, err := os.ReadFile(strings.TrimSpace(path))
 	if os.IsNotExist(err) {
 		data = nil
 	} else if err != nil {
-		return "", kind.Wrap(kind.Missing, err)
+		return "", err
 	}
 	// write-tree can refresh cache-tree extensions. Give it a private copy so
 	// even that metadata update cannot rewrite the commit's active index.
-	file, err := os.CreateTemp("", "itos-index-*")
+	file, err := create()
 	if err != nil {
-		return "", kind.Wrap(kind.Missing, err)
+		return "", err
 	}
-	defer os.Remove(file.Name())
+	defer remove(file.Name())
 	if len(data) > 0 {
 		_, err = file.Write(data)
 	}
@@ -41,14 +56,14 @@ func (g Git) IndexTree(ctx context.Context) (string, error) {
 		return "", closeErr
 	}
 	if len(data) == 0 {
-		if err := os.Remove(file.Name()); err != nil {
+		if err := remove(file.Name()); err != nil {
 			return "", err
 		}
 	}
 	cmd := g.git().Command(ctx, "write-tree")
 	cmd.Env = append(os.Environ(), "GIT_INDEX_FILE="+file.Name())
 	out, err := cmd.Output()
-	return strings.TrimSpace(string(out)), kind.Wrap(kind.Missing, err)
+	return strings.TrimSpace(string(out)), err
 }
 
 // TaskCheckout owns a checkout, its sibling output captures and its environment.
@@ -62,6 +77,10 @@ type TaskCheckout struct {
 // writable Git state. Source objects are read through a file alternate, so
 // nested repositories do not inherit source object storage via the environment.
 func (g Git) TaskSnapshot(ctx context.Context, tree string) (result TaskCheckout, err error) {
+	return g.taskSnapshotThrough(ctx, tree, os.MkdirTemp)
+}
+
+func (g Git) taskSnapshotThrough(ctx context.Context, tree string, mkdirTemp func(string, string) (string, error)) (result TaskCheckout, err error) {
 	source := g.git()
 	common, err := source.Output("rev-parse", "--path-format=absolute", "--git-common-dir")
 	if err != nil {
@@ -76,7 +95,7 @@ func (g Git) TaskSnapshot(ctx context.Context, tree string) (result TaskCheckout
 	if err = os.MkdirAll(base, 0o700); err != nil {
 		return result, err
 	}
-	parent, err := os.MkdirTemp(base, "run-")
+	parent, err := mkdirTemp(base, "run-")
 	if err != nil {
 		return result, err
 	}

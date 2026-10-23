@@ -448,17 +448,17 @@ func (h Handler) stagedTasks(ctx context.Context, ids []string) ([]namedTask, er
 	if err != nil {
 		return nil, err
 	}
-	return h.tasksAt(ctx, ids, index)
+	return h.tasksAt(ctx, ids, index), nil
 }
 
-func (h Handler) tasksAt(ctx context.Context, ids []string, index port.Source) ([]namedTask, error) {
+func (h Handler) tasksAt(ctx context.Context, ids []string, index port.Source) []namedTask {
 	cfg, err := config.Load(h.ports, h.ports.Trees(ctx), index, config.Path(h.ports, index))
 	if err != nil {
-		return nil, nil
+		return nil
 	}
 	tasks, err := ledger.Tasks(cfg)
 	if err != nil {
-		return nil, nil
+		return nil
 	}
 	var named []namedTask
 	registry := cfg.Work.Registry
@@ -472,7 +472,7 @@ func (h Handler) tasksAt(ctx context.Context, ids []string, index port.Source) (
 			}
 		}
 	}
-	return named, nil
+	return named
 }
 
 // checkEnv is the environment a task's check runs in under the hook: the
@@ -530,10 +530,7 @@ func (h Handler) tasksRule(ctx context.Context, cfg *config.Loaded, text string,
 	if err != nil {
 		return Answer{}, err
 	}
-	named, err := h.tasksAt(ctx, ids, index)
-	if err != nil {
-		return Answer{}, err
-	}
+	named := h.tasksAt(ctx, ids, index)
 	runnable := false
 	for _, n := range named {
 		if n.task.Err != nil {

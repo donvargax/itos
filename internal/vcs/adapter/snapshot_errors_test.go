@@ -1,0 +1,236 @@
+package adapter
+
+import (
+	"errors"
+	"fmt"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
+	"testing"
+
+	"github.com/donvargax/itos/v8/internal/kind"
+)
+
+const snapshotGitFault = "ITOS_VCS_TEST_SNAPSHOT_GIT_FAULT"
+const snapshotRealGit = "ITOS_VCS_TEST_SNAPSHOT_REAL_GIT"
+
+// runSnapshotGit is the test binary acting as git. It forwards to real git,
+// failing only the requested setup command, or making alternates unwritable by
+// putting a directory at its file path after a successful init.
+func runSnapshotGit(fault string) int {
+	args := os.Args[1:]
+	command := args
+	if len(command) > 2 && command[0] == "-C" {
+		command = command[2:]
+	}
+	fail := strings.Join(command, " ") == fault
+	if fault == "config --local" {
+		fail = len(command) > 1 && command[0] == "config" && command[1] == "--local"
+	}
+	if fault == "init" || fault == "read-tree" || fault == "checkout-index" {
+		fail = len(command) > 0 && command[0] == fault
+	}
+	if fail {
+		fmt.Fprintln(os.Stderr, "snapshot setup command refused")
+		return 93
+	}
+	cmd := exec.Command(os.Getenv(snapshotRealGit), args...)
+	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
+	if err := cmd.Run(); err != nil {
+		var exit *exec.ExitError
+		if errors.As(err, &exit) {
+			return exit.ExitCode()
+		}
+		fmt.Fprintln(os.Stderr, err)
+		return 94
+	}
+	if fault == "alternates-directory" && len(command) > 0 && command[0] == "init" {
+		dir := command[len(command)-1]
+		if err := os.MkdirAll(filepath.Join(dir, ".git", "objects", "info", "alternates"), 0o755); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return 95
+		}
+	}
+	return 0
+}
+
+func snapshotRepo(t *testing.T) (Git, string, string) {
+	t.Helper()
+	dir := alone(t)
+	gitIn(t, dir, "", "init", "-q")
+	write(t, dir, "input", "staged")
+	gitIn(t, dir, "", "add", "input")
+	g := Git{Dir: dir}
+	tree, err := g.IndexTree(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	return g, tree, filepath.Join(dir, ".git", "itos", "snapshots")
+}
+
+func TestTaskSnapshotCommandFailures(t *testing.T) {
+	for _, fault := range []string{
+		"rev-parse --path-format=absolute --git-common-dir",
+		"ls-tree -r -z", // the tree argument is appended below
+		"rev-parse --local-env-vars",
+		"rev-parse --path-format=absolute --git-path objects",
+		"rev-parse --show-object-format",
+		"init", "config --local", "alternates-directory", "read-tree", "checkout-index",
+	} {
+		t.Run(fault, func(t *testing.T) {
+			g, tree, base := snapshotRepo(t)
+			real, err := g.Real()
+			if err != nil {
+				t.Fatal(err)
+			}
+			useFakeGit(t, "unused")
+			if fault == "ls-tree -r -z" {
+				fault += " " + tree
+			}
+			t.Setenv(snapshotGitFault, fault)
+			t.Setenv(snapshotRealGit, real)
+			snapshot, err := g.TaskSnapshot(t.Context(), tree)
+			if err == nil || kind.Of(err) != kind.Missing {
+				t.Fatalf("setup = %+v, %v", snapshot, err)
+			}
+			if snapshot.Dir != "" || snapshot.Remove != nil {
+				t.Errorf("failed setup returned a usable checkout: %+v", snapshot)
+			}
+			if fault != "rev-parse --path-format=absolute --git-common-dir" && !strings.Contains(err.Error(), "cannot create task-check snapshot") {
+				t.Errorf("missing setup context: %v", err)
+			}
+			entries, readErr := os.ReadDir(base)
+			if readErr != nil && !os.IsNotExist(readErr) {
+				t.Fatal(readErr)
+			}
+			if len(entries) != 0 {
+				t.Errorf("partial resources remain: %v", entries)
+			}
+			text, readErr := os.ReadFile(filepath.Join(g.Dir, "input"))
+			if readErr != nil {
+				t.Fatal(readErr)
+			}
+			if string(text) != "staged\n" {
+				t.Errorf("source changed: %q", text)
+			}
+		})
+	}
+}
+
+func TestTaskSnapshotTemporaryDirectoryFailure(t *testing.T) {
+	g, tree, base := snapshotRepo(t)
+	refused := errors.New("temporary checkout creation refused")
+	_, err := g.taskSnapshotThrough(t.Context(), tree, func(dir, pattern string) (string, error) {
+		if dir != base || pattern != "run-" {
+			t.Errorf("temporary checkout at %q / %q", dir, pattern)
+		}
+		return "", refused
+	})
+	if !errors.Is(err, refused) || kind.Of(err) != kind.Missing {
+		t.Fatalf("creation error = %v", err)
+	}
+	entries, err := os.ReadDir(base)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(entries) != 0 {
+		t.Errorf("partial checkout remains: %v", entries)
+	}
+}
+
+type failingIndexFile struct {
+	*os.File
+	writeErr, closeErr error
+}
+
+func (f failingIndexFile) Write(data []byte) (int, error) {
+	if f.writeErr != nil {
+		return 0, f.writeErr
+	}
+	return f.File.Write(data)
+}
+func (f failingIndexFile) Close() error { return errors.Join(f.File.Close(), f.closeErr) }
+
+func TestIndexTreeCopyFailures(t *testing.T) {
+	for _, fault := range []string{"create", "write", "close", "remove-empty"} {
+		t.Run(fault, func(t *testing.T) {
+			dir := alone(t)
+			gitIn(t, dir, "", "init", "-q")
+			if fault != "remove-empty" {
+				write(t, dir, "input", "staged")
+				gitIn(t, dir, "", "add", "input")
+			}
+			refused := errors.New("index copy " + fault + " refused")
+			var name string
+			copies := t.TempDir()
+			create := func() (indexFile, error) {
+				if fault == "create" {
+					return nil, refused
+				}
+				file, err := os.CreateTemp(copies, "index-*")
+				if err != nil {
+					return nil, err
+				}
+				name = file.Name()
+				f := failingIndexFile{File: file}
+				if fault == "write" {
+					f.writeErr = refused
+				}
+				if fault == "close" {
+					f.closeErr = refused
+				}
+				return f, nil
+			}
+			removes := 0
+			remove := func(p string) error {
+				removes++
+				if fault == "remove-empty" && removes == 1 {
+					return refused
+				}
+				return os.Remove(p)
+			}
+			tree, err := (Git{Dir: dir}).indexTreeThrough(t.Context(), create, remove)
+			if tree != "" || !errors.Is(err, refused) {
+				t.Fatalf("capture = %q, %v", tree, err)
+			}
+			if kind.Of(err) != kind.Missing {
+				t.Errorf("index setup failure kind = %v, want missing environment", kind.Of(err))
+			}
+			if name != "" {
+				if _, err := os.Stat(name); !os.IsNotExist(err) {
+					t.Errorf("index copy remains: %v", err)
+				}
+			}
+			if fault == "remove-empty" && removes != 2 {
+				t.Errorf("removal attempts = %d, want failed unlink then cleanup", removes)
+			}
+		})
+	}
+}
+
+func TestIndexTreeMissingAndUnreadableIndex(t *testing.T) {
+	for _, state := range []string{"outside", "missing", "directory", "corrupt"} {
+		t.Run(state, func(t *testing.T) {
+			dir := alone(t)
+			g := Git{Dir: dir}
+			if state != "outside" {
+				gitIn(t, dir, "", "init", "-q")
+			}
+			if state == "directory" {
+				t.Setenv("GIT_INDEX_FILE", t.TempDir())
+			}
+			if state == "corrupt" {
+				write(t, filepath.Join(dir, ".git"), "index", "not an index")
+			}
+			tree, err := g.IndexTree(t.Context())
+			if state == "missing" {
+				if err != nil || tree != "4b825dc642cb6eb9a060e54bf8d69288fbee4904" {
+					t.Fatalf("empty index = %q, %v", tree, err)
+				}
+			} else if err == nil || kind.Of(err) != kind.Missing || tree != "" {
+				t.Fatalf("unreadable index = %q, %v", tree, err)
+			}
+		})
+	}
+}

@@ -15,6 +15,9 @@ const fakeGitSays = "ITOS_VCS_TEST_FAKE_GIT_SAYS"
 // TestMain also runs as a git that answers fakeGitSays's line, a program
 // Windows starts as directly as any other.
 func TestMain(m *testing.M) {
+	if fault := os.Getenv(snapshotGitFault); fault != "" {
+		os.Exit(runSnapshotGit(fault))
+	}
 	if line := os.Getenv(fakeGitSays); line != "" {
 		fmt.Println(line)
 		os.Exit(0)
