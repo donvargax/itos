@@ -10077,7 +10077,7 @@ items:
       truthful PATH standing, --no-git-shim and explicit-directory handling. Preserve bug-104 pinned
       init dispatch for the rest of initialization. The missing/new installation target and cache
       advice are separate p1-pinned-shim-install-target work, not changes to guard/default policy.
-    refs: [features/init-shim-identity.feature, internal/cli/initshim.go, internal/cli/gitshim.go, internal/git/bin.go, internal/launch/launch.go]
+    refs: [internal/slices/initcmd/shim.go, internal/cli/init.go, internal/shim/install.go, internal/git/bin.go, features/init-shim-identity.feature]
 
   - id: bug-114
     title: Qualify the existing-config result in init rerun output
