@@ -12952,3 +12952,19 @@ items:
       result true of what is pushed and lets it be keyed by that tree. Until then pre-push runs are
       uncached.
     tags: [hooks]
+
+  - id: p1-registry-dirty-right-after-commit
+    title: A registry writer run right after another itos commit can read the registry as changed and refuse
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Seen three times on 2026-10-23 by the coordinator: a work queue or work edit run seconds after
+      another itos commit refused with tasks/work-items.yaml has changes no commit holds, and the
+      same command run again a moment later passed, git status clean both times. Suspects: the
+      pre-commit hook re-stages the file after dprint formats it, leaving the index stat racy so a
+      quick status reads it as changed, or itos compares file content with a stale index entry.
+      Reproduce with two registry writers back to back in a script.
+    tags: [work]
