@@ -12877,6 +12877,11 @@ items:
       fixtures, after about 5 minutes, cancelling its remaining todos; sol-6.1-medium finished
       bug-113, a comparable setup-heavy bug, alone. So the stall is less the harness prompt than the
       model on step and fixture work, which supports a stronger red agent writing the steps.
+
+      Model choice after the 2026-10-23 trials (the user): implementers run gpt-6.1-sol at medium
+      effort, which finished bug-113 alone; the luna implement-agent experiment (Codex-style
+      persistence prompt plus todowrite) was dropped. If sol starts stalling the same way, first try
+      giving it that prompt and the plan tool before changing models.
     tags: [tests, docs]
 
   - id: p1-evidence-local
