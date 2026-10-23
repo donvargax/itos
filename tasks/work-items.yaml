@@ -11491,7 +11491,7 @@ items:
     tags: [status]
 
   - id: p1-session-handoff
-    title: itos handoff writes a session's handoff into the clone's notes, in a fixed shape the next itos go prints
+    title: itos status shows what is in flight, so no session writes a handoff
     phase: 1
     owner: null
     status: todo
@@ -11508,6 +11508,16 @@ items:
 
       Designed as a type of p1-typed-items' one record (the user, 2026-10-21), not as a command
       group of its own; built after it, or as its pilot.
+
+      Reshaped by the user, 2026-10-23: notes.md was only for a session cut off mid-turn (limits,
+      power), because agents held the main checkout and the coordinator could not commit; worktree
+      agents removed that, so the coordinator records each change in itos as it happens and no
+      handoff is written at all. itos status derives what is in flight: items doing, each one's
+      worktree (worktrees named after their item, .claude/worktrees/<id>), its last pushed SHA and
+      that run's state, unpushed commits, drafts waiting; holds go on the item as a note.
+      .git/itos/notes.md goes back to facts true only of this clone, and the rule to prune it at
+      each coordinator start goes with it. No itos handoff command; the typed-record dependency
+      above no longer applies.
     tags: [status]
 
   - id: p1-doc-references
