@@ -40,7 +40,9 @@ ADR-0060 decides it; this is the design and the order, reviewed in five rounds b
   the index tree plus declared untracked inputs, a hit answers without a
   snapshot, and a miss runs in a disposable snapshot of that tree, bug-112's
   mechanism. Unstaged and untracked files, related or not, never reach the run
-  or the key, so the tree is exactly what the next commit holds and the hook
+  or the key, except the untracked inputs a check declares, which are hashed
+  into the key and copied into the snapshot from the working folder; so the
+  tree is exactly what the next commit holds and the hook
   hits the record an agent's own run left. With nothing staged the index tree
   is `HEAD`'s. When the working tree differs from the index, the text says the
   run was on the staged tree and how many changed paths were not staged, and
