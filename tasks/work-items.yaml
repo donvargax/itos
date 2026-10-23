@@ -13317,3 +13317,11 @@ items:
       may eventually replace covered weaker checks instead of stacking forever, but no gate removal
       or proof experiment is authorised by recording this assessment.
     refs: [tasks/README.md, features/README.md, itos.yaml, docs/ORCHESTRATING.md]
+
+  - id: T-290
+    title: Settle the last three survivors of Nightly 40018388348
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task

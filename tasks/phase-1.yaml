@@ -4425,3 +4425,26 @@
     Use only temporary local fixture paths and never mint a real ID. The deeper native
     delete-pending test and ignored release-error concerns are separate, not demonstrated product
     failures here.
+
+- id: T-290
+  type: test
+  title: Settle the last three survivors of Nightly 40018388348
+  why: >
+    Nightly 40018388348 left three survivors after T-288. internal/tests/tsv.go:99:87 projectFile
+    (the || before volume != "" to &&) is equivalent on Linux, where the nightly mutates, but real
+    on Windows: a root-relative \\foo (slash form /foo, no volume) and a drive-relative C:foo
+    (volume C:, no leading slash) are refused today and accepted under the mutant. Add
+    TestProjectFileRefusesWindowsRootAndDriveRelativePaths in internal/tests, a table asserting on
+    Windows that both are refused as outside the project, and on other systems what they return
+    there; CI's Windows job runs it. Then except the site in itos-cc.yaml with a reason naming that
+    test and why Linux cannot distinguish it. internal/cli/help.go:99:24 helpFor (n > 0 to n >= 0)
+    is equivalent: at n = 0 the lookup is helpTexts[""], which helpTexts sets to mainHelp, the same
+    fallback; confirm no declared command can overwrite the "" key. internal/message/cases.go:363:11
+    wordAt (end >= 0 to end > 0) is equivalent: end is -1 or d + 3 with d >= at >= 0; confirm every
+    caller passes at >= 0. Except each with its proof, written as 15f36674 (T-283) wrote
+    projectFile's. No production change, no scenario change, no gate change; an exception whose
+    proof does not hold is a test instead. CI owns mutation proof; run a mutation command only if
+    writing an exception needs one, and only over these three functions.
+  done_when:
+    - run: names=$(go test ./internal/tests -list '^TestProjectFileRefusesWindowsRootAndDriveRelativePaths$') && printf '%s\n' "$names" | grep -qx 'TestProjectFileRefusesWindowsRootAndDriveRelativePaths' && go test ./internal/tests -count=1 -run '^TestProjectFileRefusesWindowsRootAndDriveRelativePaths$'
+    - run: grep -q 'internal/cli#helpFor' itos-cc.yaml && grep -q 'internal/message#wordAt' itos-cc.yaml && test $(grep -c 'internal/tests#projectFile' itos-cc.yaml) -ge 2
