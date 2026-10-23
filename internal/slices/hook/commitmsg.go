@@ -439,18 +439,8 @@ func namedTaskIDs(cfg *config.Loaded, text string) []string {
 	return ids
 }
 
-// stagedTasks are the named tasks the staged ledger has, with their items'
-// statuses, read from the index by the staged config (commit-tasks.ts's
-// stagedTasks). A staged tree whose ledger cannot be read names none: the
-// header lint has judged the footer by then.
-func (h Handler) stagedTasks(ctx context.Context, ids []string) ([]namedTask, error) {
-	index, err := h.ports.CaptureIndex(ctx)
-	if err != nil {
-		return nil, err
-	}
-	return h.tasksAt(ctx, ids, index), nil
-}
-
+// tasksAt reads named tasks and statuses from the captured tree. Unreadable
+// task data names none: the header lint has judged the footer by then.
 func (h Handler) tasksAt(ctx context.Context, ids []string, index port.Source) []namedTask {
 	cfg, err := config.Load(h.ports, h.ports.Trees(ctx), index, config.Path(h.ports, index))
 	if err != nil {
@@ -473,22 +463,6 @@ func (h Handler) tasksAt(ctx context.Context, ids []string, index port.Source) [
 		}
 	}
 	return named
-}
-
-// checkEnv is the environment a task's check runs in under the hook: the
-// hook's, less the index git made the commit from, so that a check's own git
-// commands (in a scratch repository too) never read or write the commit's
-// index, as under `itos task`, and less the footers and the amend itos commit
-// handed the hook (message.WithoutFooters), which are this commit's and no
-// commit a check makes.
-func checkEnv() []string {
-	var env []string
-	for _, kv := range os.Environ() {
-		if !strings.HasPrefix(kv, "GIT_INDEX_FILE=") {
-			env = append(env, kv)
-		}
-	}
-	return message.WithoutFooters(env)
 }
 
 // verdict is what one failing task does to the commit: when its item is

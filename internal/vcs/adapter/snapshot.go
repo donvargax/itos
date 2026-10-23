@@ -15,7 +15,7 @@ import (
 func (g Git) IndexTree(ctx context.Context) (string, error) {
 	return g.indexTreeThrough(ctx, func() (indexFile, error) {
 		return os.CreateTemp("", "itos-index-*")
-	}, os.Remove)
+	})
 }
 
 // indexFile permits deterministic disk write/close failures, as tempFile does
@@ -26,17 +26,21 @@ type indexFile interface {
 	Close() error
 }
 
-func (g Git) indexTreeThrough(ctx context.Context, create func() (indexFile, error), remove func(string) error) (tree string, err error) {
+func (g Git) indexTreeThrough(ctx context.Context, create func() (indexFile, error)) (tree string, err error) {
 	defer func() { err = kind.Wrap(kind.Missing, err) }()
 	path, err := g.git().Output("rev-parse", "--path-format=absolute", "--git-path", "index")
 	if err != nil {
 		return "", err
 	}
 	data, err := os.ReadFile(strings.TrimSpace(path))
-	if os.IsNotExist(err) {
-		data = nil
-	} else if err != nil {
+	if err != nil && !os.IsNotExist(err) {
 		return "", err
+	}
+	if len(data) == 0 {
+		// An absent/empty index captures an empty proposal. mktree reads only
+		// its empty stdin, never an index that could appear after this capture.
+		out, err := g.git().Command(ctx, "mktree").Output()
+		return strings.TrimSpace(string(out)), err
 	}
 	// write-tree can refresh cache-tree extensions. Give it a private copy so
 	// even that metadata update cannot rewrite the commit's active index.
@@ -44,21 +48,14 @@ func (g Git) indexTreeThrough(ctx context.Context, create func() (indexFile, err
 	if err != nil {
 		return "", err
 	}
-	defer remove(file.Name())
-	if len(data) > 0 {
-		_, err = file.Write(data)
-	}
+	defer os.Remove(file.Name())
+	_, err = file.Write(data)
 	closeErr := file.Close()
 	if err != nil {
 		return "", err
 	}
 	if closeErr != nil {
 		return "", closeErr
-	}
-	if len(data) == 0 {
-		if err := remove(file.Name()); err != nil {
-			return "", err
-		}
 	}
 	cmd := g.git().Command(ctx, "write-tree")
 	cmd.Env = append(os.Environ(), "GIT_INDEX_FILE="+file.Name())

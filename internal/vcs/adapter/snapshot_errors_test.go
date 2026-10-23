@@ -80,16 +80,18 @@ func TestTaskSnapshotCommandFailures(t *testing.T) {
 	} {
 		t.Run(fault, func(t *testing.T) {
 			g, tree, base := snapshotRepo(t)
-			real, err := g.Real()
-			if err != nil {
-				t.Fatal(err)
-			}
+			// Forward to the executable setup actually used, including ITOS_GIT.
+			// Real() searches PATH afresh and ignores that inherited executable.
+			real := g.git().Command(t.Context(), "--version").Path
 			useFakeGit(t, "unused")
 			if fault == "ls-tree -r -z" {
 				fault += " " + tree
 			}
 			t.Setenv(snapshotGitFault, fault)
 			t.Setenv(snapshotRealGit, real)
+			if fault == "checkout-index" {
+				t.Setenv("PATH", t.TempDir())
+			}
 			snapshot, err := g.TaskSnapshot(t.Context(), tree)
 			if err == nil || kind.Of(err) != kind.Missing {
 				t.Fatalf("setup = %+v, %v", snapshot, err)
@@ -153,14 +155,12 @@ func (f failingIndexFile) Write(data []byte) (int, error) {
 func (f failingIndexFile) Close() error { return errors.Join(f.File.Close(), f.closeErr) }
 
 func TestIndexTreeCopyFailures(t *testing.T) {
-	for _, fault := range []string{"create", "write", "close", "remove-empty"} {
+	for _, fault := range []string{"create", "write", "close"} {
 		t.Run(fault, func(t *testing.T) {
 			dir := alone(t)
 			gitIn(t, dir, "", "init", "-q")
-			if fault != "remove-empty" {
-				write(t, dir, "input", "staged")
-				gitIn(t, dir, "", "add", "input")
-			}
+			write(t, dir, "input", "staged")
+			gitIn(t, dir, "", "add", "input")
 			refused := errors.New("index copy " + fault + " refused")
 			var name string
 			copies := t.TempDir()
@@ -182,15 +182,7 @@ func TestIndexTreeCopyFailures(t *testing.T) {
 				}
 				return f, nil
 			}
-			removes := 0
-			remove := func(p string) error {
-				removes++
-				if fault == "remove-empty" && removes == 1 {
-					return refused
-				}
-				return os.Remove(p)
-			}
-			tree, err := (Git{Dir: dir}).indexTreeThrough(t.Context(), create, remove)
+			tree, err := (Git{Dir: dir}).indexTreeThrough(t.Context(), create)
 			if tree != "" || !errors.Is(err, refused) {
 				t.Fatalf("capture = %q, %v", tree, err)
 			}
@@ -202,15 +194,12 @@ func TestIndexTreeCopyFailures(t *testing.T) {
 					t.Errorf("index copy remains: %v", err)
 				}
 			}
-			if fault == "remove-empty" && removes != 2 {
-				t.Errorf("removal attempts = %d, want failed unlink then cleanup", removes)
-			}
 		})
 	}
 }
 
 func TestIndexTreeMissingAndUnreadableIndex(t *testing.T) {
-	for _, state := range []string{"outside", "missing", "directory", "corrupt"} {
+	for _, state := range []string{"outside", "missing", "directory", "corrupt", "mktree-fails"} {
 		t.Run(state, func(t *testing.T) {
 			dir := alone(t)
 			g := Git{Dir: dir}
@@ -223,6 +212,12 @@ func TestIndexTreeMissingAndUnreadableIndex(t *testing.T) {
 			if state == "corrupt" {
 				write(t, filepath.Join(dir, ".git"), "index", "not an index")
 			}
+			if state == "mktree-fails" {
+				real := g.git().Command(t.Context(), "--version").Path
+				useFakeGit(t, "unused")
+				t.Setenv(snapshotGitFault, "mktree")
+				t.Setenv(snapshotRealGit, real)
+			}
 			tree, err := g.IndexTree(t.Context())
 			if state == "missing" {
 				if err != nil || tree != "4b825dc642cb6eb9a060e54bf8d69288fbee4904" {
@@ -232,5 +227,28 @@ func TestIndexTreeMissingAndUnreadableIndex(t *testing.T) {
 				t.Fatalf("unreadable index = %q, %v", tree, err)
 			}
 		})
+	}
+}
+
+func TestIndexTreeMissingNeedsNoTemporaryFile(t *testing.T) {
+	dir := alone(t)
+	gitIn(t, dir, "", "init", "-q")
+	blocked := filepath.Join(t.TempDir(), "not-a-directory")
+	if err := os.WriteFile(blocked, []byte("untouched"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"TMPDIR", "TMP", "TEMP"} {
+		t.Setenv(name, blocked)
+	}
+	tree, err := (Git{Dir: dir}).IndexTree(t.Context())
+	if err != nil || tree != "4b825dc642cb6eb9a060e54bf8d69288fbee4904" {
+		t.Fatalf("missing index = %q, %v", tree, err)
+	}
+	if _, err := os.Stat(filepath.Join(dir, ".git", "index")); !os.IsNotExist(err) {
+		t.Errorf("capture created a source index: %v", err)
+	}
+	data, err := os.ReadFile(blocked)
+	if err != nil || string(data) != "untouched" {
+		t.Errorf("temporary location changed: %q, %v", data, err)
 	}
 }
