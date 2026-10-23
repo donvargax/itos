@@ -101,6 +101,9 @@ func (p initPorts) ShimPlace(_ context.Context, dir string) (self, link string, 
 // LinksItos is linksItos.
 func (initPorts) LinksItos(_ context.Context, link string) (self, other bool) { return linksItos(link) }
 
+// IsItos identifies an itos executable without running it.
+func (p initPorts) IsItos(_ context.Context, path string) bool { return p.Git.IsItos(path) }
+
 // MakeLink is makeLink.
 func (p initPorts) MakeLink(_ context.Context, self, link string, replace bool) error {
 	return makeLink(self, link, replace, p.o.OS)

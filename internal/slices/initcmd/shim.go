@@ -74,10 +74,14 @@ func (s shimOffer) run(ctx context.Context) (shimOutcome, int) {
 		return shimOutcome{Action: "failed", Problem: err.Error()}, exitPolicy
 	}
 	if s.flag.Dir == "" {
-		if first := s.firstGit(ctx); first != "" {
-			if mine, _ := s.ports.LinksItos(ctx, first); mine {
-				link = first
-			}
+		if first := s.firstGit(ctx); first != "" && s.ports.IsItos(ctx, first) {
+			link = first
+			at, realGit, realAt := s.ports.PathStanding(ctx, filepath.Dir(link))
+			outcome := shimOutcome{Action: "kept", Link: link, OnPath: at >= 0,
+				BeforeGit: at >= 0 && (realAt < 0 || at < realAt)}
+			say("The git shim is there already: %s is itos.", link)
+			say("%s", s.ports.StandingLine(ctx, filepath.Dir(link), at, realGit, realAt))
+			return outcome, 0
 		}
 	}
 	outcome := func(action string) shimOutcome {

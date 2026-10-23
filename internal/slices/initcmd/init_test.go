@@ -66,6 +66,7 @@ type fake struct {
 	self     string
 	placeErr error
 	links    map[string][2]bool
+	itos     map[string]bool
 	made     []string
 	linkErr  error
 	at       int
@@ -174,6 +175,8 @@ func (f *fake) LinksItos(_ context.Context, link string) (bool, bool) {
 	l := f.links[link]
 	return l[0], l[1]
 }
+
+func (f *fake) IsItos(_ context.Context, path string) bool { return f.itos[path] }
 
 func (f *fake) MakeLink(_ context.Context, _, link string, _ bool) error {
 	f.made = append(f.made, link)

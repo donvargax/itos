@@ -86,24 +86,25 @@ func TestShimOfferWhereTheLinkCannotBeLookedAt(t *testing.T) {
 	}
 }
 
-// With no folder named, the first git on the PATH is the link when it links
-// this itos, made absolute, or as the PATH has it when it cannot be; one
+// With no folder named, the first git on the PATH is kept when it is itos,
+// made absolute, or as the PATH has it when it cannot be; one
 // that does not, or none, leaves the link in the folder holding itos; and
 // a folder named is where the offer says it would link.
 func TestShimOfferFindsTheFirstGit(t *testing.T) {
 	f := scratch(t, "commit", nil)
 	first, _ := filepath.Abs(filepath.Join("path", "git"))
 	f.paths = map[string]string{"git": filepath.Join("path", "git")}
-	f.links = map[string][2]bool{first: {true, false}}
-	if got, _, _ := shimRun(f, ShimFlag{}, ""); got.Link != first || got.Action != "offered" {
+	f.itos = map[string]bool{first: true}
+	if got, code, said := shimRun(f, ShimFlag{}, ""); got.Link != first || got.Action != "kept" || code != 0 ||
+		!strings.Contains(said, "The git shim is there already: "+first+" is itos.\n") || len(f.made) != 0 {
 		t.Errorf("this itos first: %+v", got)
 	}
 	f.absErr = errors.New("no working folder")
-	f.links = map[string][2]bool{filepath.Join("path", "git"): {true, false}}
+	f.itos = map[string]bool{filepath.Join("path", "git"): true}
 	if got, _, _ := shimRun(f, ShimFlag{}, ""); got.Link != filepath.Join("path", "git") {
 		t.Errorf("not made absolute: %+v", got)
 	}
-	f.links = nil
+	f.itos = nil
 	if got, _, _ := shimRun(f, ShimFlag{}, ""); got.Link != filepath.Join("bin", "git") {
 		t.Errorf("another git first: %+v", got)
 	}
@@ -125,6 +126,29 @@ func TestShimOfferStanding(t *testing.T) {
 		got, _, _ := shimRun(f, ShimFlag{Given: true, Install: true}, "")
 		if got.OnPath != c.onPath || got.BeforeGit != c.beforeGit {
 			t.Errorf("at %d, git at %d: %+v", c.at, c.realAt, got)
+		}
+	}
+}
+
+// The recognized PATH entry is kept before looking at links, even where
+// LinksItos would call it another runtime or an ordinary file.
+func TestShimOfferRecognizedGitStanding(t *testing.T) {
+	for _, c := range []struct {
+		at, realAt        int
+		onPath, beforeGit bool
+	}{{0, 1, true, true}, {2, 1, true, false}, {0, -1, true, true}, {-1, 0, false, false}} {
+		for _, flag := range []ShimFlag{{}, {Given: true, Install: true}} {
+			f := scratch(t, "commit", nil)
+			first, _ := filepath.Abs(filepath.Join("path", "git"))
+			f.paths = map[string]string{"git": first}
+			f.itos = map[string]bool{first: true}
+			f.links = map[string][2]bool{first: {false, true}}
+			f.at, f.realAt = c.at, c.realAt
+			got, code, said := shimRun(f, flag, "")
+			if code != 0 || got.Action != "kept" || got.Link != first || got.OnPath != c.onPath || got.BeforeGit != c.beforeGit || len(f.made) != 0 ||
+				!strings.HasPrefix(said, "The git shim is there already: "+first+" is itos.\n") {
+				t.Errorf("at %d, git at %d: %+v, exit %d: %s", c.at, c.realAt, got, code, said)
+			}
 		}
 	}
 }

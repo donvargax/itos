@@ -70,6 +70,7 @@ type Ports interface {
 	LookPath(ctx context.Context, file string) (string, error)
 	Command(ctx context.Context, name string, args ...string) (string, error)
 	ShimPlace(ctx context.Context, dir string) (self, link string, err error)
+	IsItos(ctx context.Context, path string) bool
 	LinksItos(ctx context.Context, link string) (self, other bool)
 	MakeLink(ctx context.Context, self, link string, replace bool) error
 	PathStanding(ctx context.Context, dir string) (at int, realGit string, realAt int)

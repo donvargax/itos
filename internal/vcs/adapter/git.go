@@ -41,6 +41,9 @@ func (Git) Inherited() string { return git.Inherited() }
 // IsSelf is whether the file at p, its links followed, is this binary.
 func (Git) IsSelf(p string) bool { return git.IsSelf(p) }
 
+// IsItos identifies an itos executable across runtime versions without running it.
+func (Git) IsItos(p string) bool { return git.IsItos(p) }
+
 var (
 	locateMu sync.Mutex
 	located  = map[string]found{}

@@ -92,6 +92,10 @@
   scenarios:
     - id: "@ID-INITSTATUS-01"
       why: a rerun that rewrites the rules says it kept the config, not that it wrote nothing, the file's point
+- file: init-shim-identity.feature
+  scenarios:
+    - id: "@ID-SHIMINIT-01"
+      why: a pinned init keeps the active global launcher shim and reports its actual PATH entry in text and JSON
 - file: ids.feature
   scenarios:
     - id: "@ID-IDS-01"

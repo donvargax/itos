@@ -94,7 +94,9 @@
 //   - The git shim (shim.go, shimOffer.run): --no-git-shim ends it;
 //     Ports' ShimPlace gives the link git-shim install would make (its
 //     --git-shim-dir, made absolute where it was typed), unless, with no
-//     folder named, the first git on the PATH already links this itos; a
+//     folder named, the first git on the PATH is an itos (Ports' IsItos,
+//     the git adapter's cross-binary identity check); that entry is kept
+//     without claiming a target, before the checks of the proposed link. A
 //     link to this itos is kept, a git that is no link to itos refused for
 //     --git-shim (exit 1) and otherwise only said, a link to another itos
 //     replaced; then MakeLink and StandingLine.

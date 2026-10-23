@@ -29,7 +29,7 @@ Feature: A pinned init recognizes the launcher shim already effective on PATH
     And the cache folder is not on PATH
     And a real Git executable follows the stable folder on PATH
 
-  @wip @ID-SHIMINIT-01 @bug-113
+  @ID-SHIMINIT-01 @bug-113
   Scenario Outline: A cached runtime reports the active global launcher shim as already kept
     Given the first Git on PATH links to the global launcher rather than the running runtime
     When itos runs "<command>"
@@ -46,7 +46,7 @@ Feature: A pinned init recognizes the launcher shim already effective on PATH
       | init --plugin no --no-agent-rules      |
       | init --plugin no --no-agent-rules --json |
 
-  @wip @ID-SHIMINIT-02 @bug-113
+  @ID-SHIMINIT-02 @bug-113
   Scenario: Explicit installation keeps an already effective launcher rather than replacing it with the pin
     Given the first Git on PATH links to the global launcher rather than the running runtime
     When itos runs "init --plugin no --no-agent-rules --git-shim --json"
@@ -61,7 +61,7 @@ Feature: A pinned init recognizes the launcher shim already effective on PATH
   # link: accepted, the hard-link row being recognized the same way. Running
   # the candidate cannot be observed for a Go binary, so no step claims it;
   # @ID-SHIMINIT-04's wrapper can leave a marker and keeps that check.
-  @wip @ID-SHIMINIT-03 @bug-113
+  @ID-SHIMINIT-03 @bug-113
   Scenario Outline: Existing cross-binary identity forms are recognized without executing a probe
     Given the first Git on PATH is <identity> of the distinct global itos
     When itos runs "init --plugin no --no-agent-rules --json"
@@ -80,7 +80,7 @@ Feature: A pinned init recognizes the launcher shim already effective on PATH
 
   # @ID-SHIMINIT-04 and -05 pass before the fix: guards that the fix keeps
   # today's behaviour; only -01 to -03 must fail first.
-  @wip @ID-SHIMINIT-04 @bug-113 @guard
+  @ID-SHIMINIT-04 @bug-113 @guard
   Scenario: A later shim and an unrecognized Git wrapper are not reported as the active itos shim
     Given real Git comes before the launcher shim on PATH
     And the cache has no Git link
@@ -91,7 +91,7 @@ Feature: A pinned init recognizes the launcher shim already effective on PATH
     Then that wrapper is not treated as itos merely from its Git filename
     And init neither executes it for identification nor replaces it
 
-  @wip @ID-SHIMINIT-05 @bug-113 @guard
+  @ID-SHIMINIT-05 @bug-113 @guard
   Scenario: Explicit decline and directory choice keep their existing precedence
     Given the first Git on PATH is an effective global itos shim
     When itos runs "init --plugin no --no-agent-rules --no-git-shim --json"
