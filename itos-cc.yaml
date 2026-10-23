@@ -260,3 +260,12 @@ mutation:
       replacement: "&&"
       reason: "Equivalent: value.Parse returns no value with every error, so err != nil never holds beside ok; and where err is nil and ok is not, list is the nil a failed type assertion gives, which the loop after it runs over without adding an ID, the last thing the iteration does. Skipping it and running it give the same IDs."
       line_text: if err != nil || !ok {
+    - file: internal/tests/tsv.go
+      function: github.com/donvargax/itos/v8/internal/tests#projectFile
+      hash: b7aae01f28c3e046
+      line_in_function: 8
+      column: 20
+      original: "||"
+      replacement: "&&"
+      reason: "Equivalent: this branch is reached only for an absolute file path. An empty project makes filepath.Rel fail because its base is not absolute, so both operands are true and || to && still refuses. If a nonempty project produces a Rel error, the path remains absolute and the later root/volume checks refuse it. No input changes the returned row or refusal."
+      line_text: if project == "" || err != nil {

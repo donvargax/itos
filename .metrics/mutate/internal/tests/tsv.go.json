@@ -1,0 +1,566 @@
+{
+  "version": 1,
+  "file": "internal/tests/tsv.go",
+  "language": "go",
+  "tests": {
+    "internal/cli/agentrules_test.go": "1f230d6b6eaa31d20fcbe29299def63173d2a11dc2d23617d7d90a99dc84fb0d",
+    "internal/cli/ask_test.go": "44bc410472f2bb388a5d0f0b6693c5830a1ac23ebe38088f8c01626b50a71443",
+    "internal/cli/ci_ports_test.go": "1cfabaaf71781133c7e7e248bc762ba8d230ee1f9d9072f7a213380836c1fa13",
+    "internal/cli/cirange_test.go": "c5d3366a59f169870386c865952ef0c05213ec6b64a14220a35215aba7576996",
+    "internal/cli/cli_test.go": "765acc5699f14a62f53a0576f92032b34717e93955e596406846037dc3735aac",
+    "internal/cli/commit_ports_test.go": "db4a3d2ba383fc4f69cf3d49b44f77cc4e22bd508b1199c4c6708cc0141b8384",
+    "internal/cli/config_ports_test.go": "135ef64eb52392e541c9268d0d8f4eb78dba9ebb1cb5d5ca8c808a91d7e683ac",
+    "internal/cli/configcheck_test.go": "41da85c4ecb145351eddd4a244a87f797e9c561e674d9cc145f57516a1a84242",
+    "internal/cli/decision_ports_test.go": "950b2cc0864f7ab03ae001c26acd3da2bf9bf28ab100d18198483b79e241c501",
+    "internal/cli/draft_ports_test.go": "b6068d5ae7325a9a69e31d1f57cc1e90e9c258bd9ec950d9577486502af13a5d",
+    "internal/cli/exit_test.go": "215bd23e6f550050dd0784e8a06be3aa81d0c05d102be13c6834c21656556904",
+    "internal/cli/fakegit_test.go": "e80be945b2d2eb85eb253c50ebb55cfc8761ed684e9f8bf45b177e8a8a643465",
+    "internal/cli/follow_test.go": "f8694b54ab41bc85bb42fa0cefd0da2beef73e2e551c7dd322206722b74fbe19",
+    "internal/cli/gitconfig_test.go": "eda1746c578b89d95b40cfe393bf4618c2c66ab1be728e7a5bf6cb2dabe7698d",
+    "internal/cli/gitshim_ports_test.go": "16ee1bf0ac35be326169ce4fa75fe2d1b2612aadd87b18cda388c8e0b930df9f",
+    "internal/cli/gitshim_test.go": "9e298d4de1021c2336b3bf867a0e8d2ae85224a0232b17202026698a77789b59",
+    "internal/cli/go_ports_test.go": "1bedcdd5a83cef5dc001d3a03434017a533178c0071f2ce2fc5c401f5108c03e",
+    "internal/cli/guide_ports_test.go": "456f5362f70de527025b3e4baab08bcc7dc016aa5db80049e4685549c475dd6f",
+    "internal/cli/guide_test.go": "8fa590f997711ae6e46496ea2e213378e137da0102c2d734eb4d72cfd1c892af",
+    "internal/cli/hook_ports_test.go": "223dfb7b63ca6b4b2ef395e0aff1ea6cc9cd759ee7a33585c4a32a6210467827",
+    "internal/cli/hookdata_test.go": "45286aea7f0156cf969a9567ae4b3f477f53405ae1d5f86bcd66374524e21116",
+    "internal/cli/idmint_test.go": "85a7e3240529b3bd8e0fb9630543b5fa811b0d2161eb2bb2eef4d6b3091fa8c5",
+    "internal/cli/init_ports_test.go": "aa6acc558f0a46588512b4df06bdb5aec84a9ad0a52601cf0a1f9644172f91d4",
+    "internal/cli/initpin_test.go": "15e8b9e2a0854273a9516c54d8cbf43791890a358314b2b56b60a0396635391f",
+    "internal/cli/initpolicy_test.go": "c16c52b9cf77b2740ed736b5aa6e00d20251e0de9f0b19aadc91798839176420",
+    "internal/cli/initwrite_test.go": "ceff61d6cceec76c05bc307a5407fd9707fe889e726c8e0b15b20bf3bccc49bc",
+    "internal/cli/moveto_test.go": "1411066668cde1cb2ced14a14782c8cc2cf3744c51cd11c6f4987536f2846e80",
+    "internal/cli/pin_ports_test.go": "7af44680fe81ed993a3ca4f7e3a7ccf38e26c2a1e346794e1d3936eea96e5593",
+    "internal/cli/push_ports_test.go": "09dd3ca8f2b64759cfc746f76068f990ec5e8d7994a4764cff072b8fee3f156c",
+    "internal/cli/push_test.go": "45d8dc4993fa3e2cb81f57ba4f86a32ee0dc5c979c9f4dcbd7f8189a8a288f50",
+    "internal/cli/pushnamed_test.go": "ff0d021f64c1d2deb27a803442d69ff55c00dba0c80bc47347762baf19108bc9",
+    "internal/cli/scratch_test.go": "2d95d1c50514de42facdc1d1e09a2ed6320e4d17ae3d32d4c3f42686a404cd60",
+    "internal/cli/slices_test.go": "5589b68f0e0611cadb251774f705e2d3c8090f76bb2b6881203943a10a9bddc4",
+    "internal/cli/spec_test.go": "b89af7081b6cf53a1e5975a39f40b39548b23746d853fa113d83dcf8f3778b94",
+    "internal/cli/status_ports_test.go": "ef1bffbfd5255aa470dbcd4d41c8dee8b760be584be66a6e9c30e4733e8232cb",
+    "internal/cli/status_test.go": "dfb01ff94590fc97beda2a022ac096d9f2f4a3b91d7f8917d8323a631dd663a3",
+    "internal/cli/statuscommand_test.go": "279a746457c8fa7ac8f03b6a42690f4414c677c8614ac1309ee60113177d3182",
+    "internal/cli/statusitos_test.go": "81f5ecfc50ba01d21511a04fa6080fca30624bbb1a3f6aad21801dde83ec3462",
+    "internal/cli/task_ports_test.go": "b061d6837f43a412be99064d3e3e719d7fc5c31aaa7ba2be5a2724bd63273205",
+    "internal/cli/tests_ports_test.go": "6cb41b747c4263acc9db197f0af1071f7db1bceaae8ef126ec7aba549cdda7d9",
+    "internal/cli/tests_test.go": "2dfc25c3314ed5fe69264b773f2fa8d2e2a2a15c4ada17773497bc38e6c0b1c6",
+    "internal/cli/tracker_test.go": "dd114e30d9bbadc59a1d32416e7bec43e3d69f6e2fc582c4b39beaec6241ef6b",
+    "internal/cli/upgrade_ports_test.go": "081b0865b5ed24b4baef2188f758276cd5c160fec391c1aa0366b2863fc83433",
+    "internal/cli/upgrade_test.go": "6c16a682d1e1303299af302aedf24801772a4a815d8b16a190c5973ecf2850d3",
+    "internal/cli/vcsedge_test.go": "db26132a11869c403917447ed2a05caa18bebe9d03b1610554721a7e08d9a202",
+    "internal/cli/verify_ports_test.go": "a986effa450c1bc2845105d1bc24608708358b611815ea98ed2c16d3b6df15e6",
+    "internal/cli/work_ports_test.go": "2e0fa38cfbeb6b1a76c3d064fadd6752e9a27d1655daede9054e4317497c11b2",
+    "internal/cli/workdone_test.go": "00830b84efcf9e5040bafe1e26d4d3e2929a50bb4f511318a7ad915ee26ef388",
+    "internal/cli/workmint_test.go": "2dfc73dd241d1e67e4698bc092257f70feb4a73a5ade68dd5da4f10321b78f44",
+    "internal/cli/workwrite_test.go": "2491b258a1b640362eb486cd0d651cb8d47543137d5790bfd06fa5398f376473",
+    "internal/engine/configcheck/configcheck_test.go": "1d4b00b5dab9f45c6a03c376646e3b2003a747c16fd1cef8752f5e54c34dcf78",
+    "internal/engine/judge/checks_test.go": "0435c939a73e389e9c9536455c63ea40b89a691124106409b94aa8f492dc0178",
+    "internal/engine/judge/judge_test.go": "27b1b89e8fc08437de7cc2a3565504ed6cc7e845b04e71377743b41154d42af8",
+    "internal/message/header_test.go": "2c9febc5ff602e36f2fc6418dda6026b28e180e4c7bf81108e4e507d9d5d69a2",
+    "internal/message/message_test.go": "77c016d6a326ec0cdd4fce84c5b753c5e2587de8d37dc39c3c504f086f23adca",
+    "internal/message/notes_test.go": "74260b99da77e9f815803dd73e4f6aeb406f72395d97541eaf3815444e7ec1f2",
+    "internal/message/wrap_test.go": "db5bb6009d214244cad69cad02936bef0ae08aa189d3e569a456b1e316387f09",
+    "internal/plan/plan_test.go": "eeb18f9c0cef82ce37902d46870b4c6b8a5275aee7962f73702891529967d2d1",
+    "internal/slices/commit/commit_test.go": "83d5c9dbb9b807fe8aa13cd9ca0560a1bd2f23bebdf41778d5f2ae62039207f5",
+    "internal/slices/commit/git_test.go": "f98835c08f4fde71affeb11b9753f0631d9b8678d5fcac9a822d9be29083cd5b",
+    "internal/slices/config/config_test.go": "8e85aabfdeec9ffb063ec5b40286f420be5a0686705365d963336a25c208c2c6",
+    "internal/slices/hook/hook_test.go": "36a6b2c6a36f6d2f5b2c6659ca06cb8d92c93f9b4ce2125306c72167f0b2e266",
+    "internal/slices/hook/prepush_test.go": "3c3a93e3b986a26ee1917022941db2f189dd22babcc726a507ac3f5fce9d9eea",
+    "internal/slices/initcmd/init_test.go": "7779bf4e51161e8a7a7bd6d7517265a7debf2ad89a2e5f9660ceae12e32f7957",
+    "internal/slices/initcmd/plugin_test.go": "8e4306c4c0d7279bb120f85df1571fb3a42be06edf1d8ff13b75b4d8ed5b779f",
+    "internal/slices/initcmd/policy_test.go": "32a4dc739d930de0083545c3abd027f8f22c40ad11344b8de3efceda666573b2",
+    "internal/slices/initcmd/report_test.go": "0f72c9753d5d87d4e1436a40c4f1606efb7a2d1b5153d1f12b550fed1e3f577e",
+    "internal/slices/initcmd/rules_test.go": "e39ecf687bf7cf5d3ed24e20a310c70c77717fac53bd09f54e935062c706850f",
+    "internal/slices/initcmd/rulesstealth_test.go": "7d550fbf6a24d2a37a0e4735b810513fbfab63d11517dee6ec492203d1a8eb53",
+    "internal/slices/initcmd/shim_test.go": "7ac00830d9e0f50930a59081fc04a57cfd83234bef79a491f5bd003b88a6ae7a",
+    "internal/slices/initcmd/starter_test.go": "2ae2c888a9594b525f6b3debb4483a60d292cc58b88e29b3ba3f1962b5d3c478",
+    "internal/slices/initcmd/write_test.go": "17474709d6072a60efd9686c8201bcee5f8a6df0511cd19edbd74377ce029c9f",
+    "internal/slices/tests/parse_test.go": "d60c96d55a8d8e007c0dde27dd7dc1da85331a7023f0fc44a5e5756700fcf099",
+    "internal/slices/tests/tests_test.go": "0c2f564d0213f751cf5e50e1253140255bb71153a260a9b7f873e357c8d6d69e",
+    "internal/slices/verify/verify_test.go": "a8005b6bf7a380e9f47ee7c09a2d312da039e57b8915dcbb11ce6b9bd0c3e28d",
+    "internal/slices/work/done_test.go": "1a6956ebff055dae91d0cddd8ad5b58ebbca7ac31f67e381c46372e9fc48f1b1",
+    "internal/slices/work/parse_test.go": "e81721ad8477e12726e176b1c65aa9212d94cff3d12e6ebab55080a998e8e373",
+    "internal/slices/work/promote_test.go": "bedf37438cec189e3f7bb3ee7332bc4366eb4de6baee6ca883419cd0da267a0d",
+    "internal/slices/work/work_test.go": "9aaa1c318cc2173d02dbc8994164fe8d8994c69cd389fe244051c10d1793a9e5",
+    "internal/slices/work/write_test.go": "5dbdecc153e003de11774208b343ff3ea7240c4ed0093b7e8dac0e295fcc176c",
+    "internal/tests/fingerprint_test.go": "148f12e0dcab129062a6755444a10e3869dd651fa56e3074995b80b2b6ff585b",
+    "internal/tests/gherkin_test.go": "c5a2187cf88912269cea2632d5f31795939874cfff1709a56e33ec2dd5c8245c",
+    "internal/tests/moves_command_test.go": "6ba619c6067b81c8b932cefa40d5cfdb7956e50ab09b35cc2a9a412f2a62caf8",
+    "internal/tests/moves_test.go": "77e5f3b793c9f0cbe4f1892630c91ccf7b1eddee98491a4938db33da4affcaae",
+    "internal/tests/nextid_test.go": "d8eb86dc2072ec931377fa692c0469974feba4fe504896dc6427404f29b7225b",
+    "internal/tests/recognize_test.go": "ad8d3dc27c4a8a4f1ccba770cafdfbd160976595d3de0a93fbd78363c9527379",
+    "internal/tests/run_test.go": "1182c12c7ab03e85a13be3d18eb011e9d74c77e79d40fbbc6339a41d8d0d04dd",
+    "internal/tests/smoke_test.go": "f35d85eafc5d4f5a4f8a03e7379ad3e7c0fc948cff87dd6c5b198e18cf492ad6",
+    "internal/tests/staged_test.go": "bcf7dcfd347ca0265350f286596e7038e73659244582ece8bc1020576a0f1a68",
+    "internal/tests/tests_test.go": "86935076c85e7b4aeb437653a42dc69a807b3e0a0351641299fa09cb719ef390",
+    "internal/tests/tsv_test.go": "520eb2f955818da18d408433a8f867ea33d82a6036dbd60abd62ba7fbf10851e"
+  },
+  "units": [
+    {
+      "namespace": "github.com/donvargax/itos/v8/internal/tests.Row",
+      "name": "Line",
+      "hash": "acb3fe37e5e364c0",
+      "start_line": 18,
+      "end_line": 23,
+      "killed": 9,
+      "survived": 0,
+      "uncovered": 0,
+      "sites": 9,
+      "mutants": [
+        {
+          "line": 19,
+          "column": 19,
+          "offset": 47,
+          "original": "==",
+          "replacement": "!=",
+          "outcome": "killed"
+        },
+        {
+          "line": 20,
+          "column": 15,
+          "offset": 69,
+          "original": "+",
+          "replacement": "-",
+          "outcome": "killed"
+        },
+        {
+          "line": 20,
+          "column": 22,
+          "offset": 76,
+          "original": "+",
+          "replacement": "-",
+          "outcome": "killed"
+        },
+        {
+          "line": 20,
+          "column": 31,
+          "offset": 85,
+          "original": "+",
+          "replacement": "-",
+          "outcome": "killed"
+        },
+        {
+          "line": 22,
+          "column": 14,
+          "offset": 108,
+          "original": "+",
+          "replacement": "-",
+          "outcome": "killed"
+        },
+        {
+          "line": 22,
+          "column": 21,
+          "offset": 115,
+          "original": "+",
+          "replacement": "-",
+          "outcome": "killed"
+        },
+        {
+          "line": 22,
+          "column": 30,
+          "offset": 124,
+          "original": "+",
+          "replacement": "-",
+          "outcome": "killed"
+        },
+        {
+          "line": 22,
+          "column": 37,
+          "offset": 131,
+          "original": "+",
+          "replacement": "-",
+          "outcome": "killed"
+        },
+        {
+          "line": 22,
+          "column": 53,
+          "offset": 147,
+          "original": "+",
+          "replacement": "-",
+          "outcome": "killed"
+        }
+      ]
+    },
+    {
+      "namespace": "github.com/donvargax/itos/v8/internal/tests",
+      "name": "TSV",
+      "hash": "0923adf80a156c0d",
+      "start_line": 32,
+      "end_line": 65,
+      "killed": 20,
+      "survived": 0,
+      "uncovered": 0,
+      "sites": 20,
+      "mutants": [
+        {
+          "line": 37,
+          "column": 6,
+          "offset": 164,
+          "original": "!",
+          "replacement": "",
+          "outcome": "killed"
+        },
+        {
+          "line": 43,
+          "column": 32,
+          "offset": 362,
+          "original": "1",
+          "replacement": "0",
+          "outcome": "killed"
+        },
+        {
+          "line": 43,
+          "column": 41,
+          "offset": 371,
+          "original": "!=",
+          "replacement": "==",
+          "outcome": "killed"
+        },
+        {
+          "line": 44,
+          "column": 31,
+          "offset": 409,
+          "original": "+",
+          "replacement": "-",
+          "outcome": "killed"
+        },
+        {
+          "line": 44,
+          "column": 38,
+          "offset": 416,
+          "original": "0",
+          "replacement": "1",
+          "outcome": "killed"
+        },
+        {
+          "line": 44,
+          "column": 40,
+          "offset": 418,
+          "original": "+",
+          "replacement": "-",
+          "outcome": "killed"
+        },
+        {
+          "line": 44,
+          "column": 44,
+          "offset": 422,
+          "original": "+",
+          "replacement": "-",
+          "outcome": "killed"
+        },
+        {
+          "line": 47,
+          "column": 36,
+          "offset": 472,
+          "original": "&&",
+          "replacement": "||",
+          "outcome": "killed"
+        },
+        {
+          "line": 47,
+          "column": 44,
+          "offset": 480,
+          "original": "!=",
+          "replacement": "==",
+          "outcome": "killed"
+        },
+        {
+          "line": 50,
+          "column": 20,
+          "offset": 591,
+          "original": "+",
+          "replacement": "-",
+          "outcome": "killed"
+        },
+        {
+          "line": 50,
+          "column": 22,
+          "offset": 593,
+          "original": "1",
+          "replacement": "0",
+          "outcome": "killed"
+        },
+        {
+          "line": 52,
+          "column": 10,
+          "offset": 608,
+          "original": "!=",
+          "replacement": "==",
+          "outcome": "killed"
+        },
+        {
+          "line": 52,
+          "column": 16,
+          "offset": 614,
+          "original": "&&",
+          "replacement": "||",
+          "outcome": "killed"
+        },
+        {
+          "line": 52,
+          "column": 39,
+          "offset": 637,
+          "original": "==",
+          "replacement": "!=",
+          "outcome": "killed"
+        },
+        {
+          "line": 55,
+          "column": 16,
+          "offset": 692,
+          "original": ">",
+          "replacement": ">=",
+          "outcome": "killed"
+        },
+        {
+          "line": 55,
+          "column": 18,
+          "offset": 694,
+          "original": "0",
+          "replacement": "1",
+          "outcome": "killed"
+        },
+        {
+          "line": 56,
+          "column": 75,
+          "offset": 772,
+          "original": "+",
+          "replacement": "-",
+          "outcome": "killed"
+        },
+        {
+          "line": 56,
+          "column": 76,
+          "offset": 773,
+          "original": "1",
+          "replacement": "0",
+          "outcome": "killed"
+        },
+        {
+          "line": 61,
+          "column": 18,
+          "offset": 930,
+          "original": ">",
+          "replacement": ">=",
+          "outcome": "killed"
+        },
+        {
+          "line": 61,
+          "column": 20,
+          "offset": 932,
+          "original": "0",
+          "replacement": "1",
+          "outcome": "killed"
+        }
+      ]
+    },
+    {
+      "namespace": "github.com/donvargax/itos/v8/internal/tests",
+      "name": "unprintable",
+      "hash": "ede851d3a24d5185",
+      "start_line": 69,
+      "end_line": 79,
+      "killed": 2,
+      "survived": 0,
+      "uncovered": 0,
+      "sites": 2,
+      "mutants": [
+        {
+          "line": 70,
+          "column": 11,
+          "offset": 50,
+          "original": "==",
+          "replacement": "!=",
+          "outcome": "killed"
+        },
+        {
+          "line": 75,
+          "column": 20,
+          "offset": 276,
+          "original": "+",
+          "replacement": "-",
+          "outcome": "killed"
+        }
+      ]
+    },
+    {
+      "namespace": "github.com/donvargax/itos/v8/internal/tests",
+      "name": "projectFile",
+      "hash": "b7aae01f28c3e046",
+      "start_line": 84,
+      "end_line": 103,
+      "killed": 11,
+      "survived": 2,
+      "uncovered": 0,
+      "sites": 13,
+      "mutants": [
+        {
+          "line": 86,
+          "column": 10,
+          "offset": 104,
+          "original": "!=",
+          "replacement": "==",
+          "outcome": "killed"
+        },
+        {
+          "line": 86,
+          "column": 16,
+          "offset": 110,
+          "original": "&&",
+          "replacement": "||",
+          "outcome": "killed"
+        },
+        {
+          "line": 86,
+          "column": 19,
+          "offset": 113,
+          "original": "!",
+          "replacement": "",
+          "outcome": "killed"
+        },
+        {
+          "line": 91,
+          "column": 14,
+          "offset": 262,
+          "original": "==",
+          "replacement": "!=",
+          "outcome": "killed"
+        },
+        {
+          "line": 91,
+          "column": 20,
+          "offset": 268,
+          "original": "||",
+          "replacement": "&&",
+          "outcome": "survived",
+          "scope": "listed",
+          "tests": [
+            "ID-TESTLIST-05"
+          ]
+        },
+        {
+          "line": 91,
+          "column": 27,
+          "offset": 275,
+          "original": "!=",
+          "replacement": "==",
+          "outcome": "killed"
+        },
+        {
+          "line": 99,
+          "column": 7,
+          "offset": 437,
+          "original": "==",
+          "replacement": "!=",
+          "outcome": "killed"
+        },
+        {
+          "line": 99,
+          "column": 14,
+          "offset": 444,
+          "original": "||",
+          "replacement": "&&",
+          "outcome": "killed"
+        },
+        {
+          "line": 99,
+          "column": 19,
+          "offset": 449,
+          "original": "==",
+          "replacement": "!=",
+          "outcome": "killed"
+        },
+        {
+          "line": 99,
+          "column": 27,
+          "offset": 457,
+          "original": "||",
+          "replacement": "&&",
+          "outcome": "killed"
+        },
+        {
+          "line": 99,
+          "column": 58,
+          "offset": 488,
+          "original": "||",
+          "replacement": "&&",
+          "outcome": "killed"
+        },
+        {
+          "line": 99,
+          "column": 87,
+          "offset": 517,
+          "original": "||",
+          "replacement": "&&",
+          "outcome": "survived",
+          "scope": "listed",
+          "tests": [
+            "ID-TESTLIST-01",
+            "ID-TESTLIST-02",
+            "ID-TESTLIST-03",
+            "ID-TESTLIST-04",
+            "ID-TESTLIST-05"
+          ]
+        },
+        {
+          "line": 99,
+          "column": 97,
+          "offset": 527,
+          "original": "!=",
+          "replacement": "==",
+          "outcome": "killed"
+        }
+      ]
+    }
+  ],
+  "listed": {
+    "ID-TESTLIST-01": "features/tests-list.feature",
+    "ID-TESTLIST-02": "features/tests-list.feature",
+    "ID-TESTLIST-03": "features/tests-list.feature",
+    "ID-TESTLIST-04": "features/tests-list.feature",
+    "ID-TESTLIST-05": "features/tests-list.feature"
+  },
+  "listed_files": {
+    "features/tests-list.feature": "531f23b14a3a0fc75a3b0240ef0aef7aba541a9a940b04a950fef7b7f428a061"
+  },
+  "support": {
+    "features/commit_test.go": "001ca0d7728ce5a3664cb32bb35a309229a024c39ced018a2f3e99c8beb8068f",
+    "features/cover_test.go": "7e6ec87c3f4d335dd2a3d4482c2e1183856bb4d98dd94576a61e370edda9033a",
+    "features/draft_test.go": "f99a5031c8794b57bb9e75cae3001c94c60eb694a8674539b65a92d0790b4c37",
+    "features/extensions_test.go": "f31cc2ca701d2489ace539171e59f909bfeb762605e4052503d64823e7ceff2d",
+    "features/features_test.go": "cd51319fede7eaf23439dc1654dca414849ca3d0b9c07f673ebb58df7b6b5a89",
+    "features/follow_test.go": "c83bebeebf982430d3e0f924af120987ce32740435fbdeee1d92b333abb61e50",
+    "features/guard_test.go": "6272b41272d6d4ede6c20bd2ce197a81839a47b5693bd5d9cb7a0c69f66d4f2d",
+    "features/guide_test.go": "2224dd0a2737436807e17173968d0b340e2ff2fa55959b6da141b698ee8c7cf4",
+    "features/ids_test.go": "72531ca5125a7e2d5c304c9a46fbb0ea63a1f4b996d29c2ddec42cb718ecba83",
+    "features/init_test.go": "950cdee68470a4129e8c93dc7d0ac8714f7132892f6a1cf11a9cae274212aa2d",
+    "features/initpolicy_test.go": "5f493117a28b99bec32236f3e22819438ee3ac89b2ec50333c4d29a5ebe59df1",
+    "features/initstatus_test.go": "71642a9fb6e41230e0e993fbc868e263e544c97cce5aaba29091128b028a8cfc",
+    "features/moves_command_test.go": "6e92db478e503eb6062fdc0d5c74b86cbad959cca20ff05755466347bffd856f",
+    "features/oldgit_test.go": "834376f8ccf51e4f25b0d160cf7ad398dc615ff59e3bdaa7f9771ea1c27598b8",
+    "features/program_test.go": "5fc7a7dde25fdb0bb6370a8d3db435841dde2e26bc478bb377720ca44b945c7d",
+    "features/promote_test.go": "a8011794b5ece5fa43482e26ff0f7ad382554bbd93ab56876a57b9554291a30b",
+    "features/proof_test.go": "afdb0eeb72a6c4f056405a8fb804217392d2a07b2a0a667b8f62fe602b7acb39",
+    "features/push_test.go": "e0bd1f437bf84edcb7500ee00cc61f062506e963efdef5001373545dba215a9d",
+    "features/range_test.go": "9ba297d8ad011b10f8b81115956cb818391b2fc9db05aa63792273e247e719da",
+    "features/release_test.go": "3d0eb59a70204eb0ca1acfae911268a854461fba9ec03301fc2ef6f780890aaa",
+    "features/shim_test.go": "1bc3bb6b102cf9632c335e4b99924d201b2363885a8e95aa74cac651ce8009a5",
+    "features/show_test.go": "493c80d4cc131cc59dd4e44a050ba19a7991b4b6a8227ee2999bedeb587f03ff",
+    "features/stamp_test.go": "937ad185d0216acea1dce6fbc0d4fa1b2041b50cb3889f68c413dbe7d9777842",
+    "features/stealth_test.go": "5d8be5f0f80c7263e43d9734782df729cf5b9aab64177ee1bb1ccece1d26ddc7",
+    "features/steps_test.go": "4669039f24d97f81e2a96f9e0d3f637d1fb3570f1a762a1fc338795228a6110d",
+    "features/tests_list_test.go": "43067fe5ae997370104d7de4699f01658f6ebfcc3f7934c11f3befa8eeac3ac9",
+    "features/tests_tsv_test.go": "cbdd428518688fc6fc0dcb2ef731984a5f55bfa668a6140f2ad784f0ab16604a",
+    "features/timings_test.go": "3a686a3c8f3f8efe2031abe912f631878ffcb3f27d1269ebf5d4ecf50b92722e",
+    "features/upgrade_test.go": "c0068d601d6493467d0bad27cd17e247a9933d31c14ea06934fcaa91a8a5873f",
+    "features/watch_test.go": "2940b3a12bd7f412ee2eb76f08980fbc1f19d5e44c4a7fb84c1b9d9094b5ff12",
+    "features/work_test.go": "67e48d8edcc13bb670e612cc3abedb204652c1426db6841025c6b1ca5a7c6b40"
+  },
+  "listed_fingerprints": {
+    "ID-TESTLIST-01": "3f588d2cd935a462e67966b7d7f4b91bf5137b6a33cecf9c1a3e595c5d32f878",
+    "ID-TESTLIST-02": "6dc055212458dfb9fcb65272216103ac3ff00364999617bbcea5108854205bf7",
+    "ID-TESTLIST-03": "8b308f29ead94d340f48940c8cea4a99add1b4c71ca4565c56ff8f682cafcd8c",
+    "ID-TESTLIST-04": "3ad51d7f5ef190209c2f965918c3b1aae809762930cd65430b95e544384cccb7",
+    "ID-TESTLIST-05": "2d9d2f19906b78b9d6ad1a05bfde89b8dd3c4426fa6d521c8933465a3cca219e"
+  }
+}
