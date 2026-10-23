@@ -12836,6 +12836,9 @@ items:
       independently in p1-reviewer-budget-controls and p1-reviewer-prior-findings; review
       materiality/protocol in p1-review-materiality. These are observations and improvement
       proposals, not permission to omit acceptance contracts or real newly found defects.
+
+      2026-10-23, the user keeps the reviewer on its CLI for now: the MCP server had trouble with
+      asynchronous responses and long-running reviews.
     tags: [docs]
 
   - id: p1-evidence-records
