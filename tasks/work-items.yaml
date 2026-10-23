@@ -13348,7 +13348,7 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: []
+    depends_on: [slice-169]
     kind: idea
     why: >
       Split from p1-evidence-local on 2026-10-23: A4 of docs/plans/evidence-records.md (ADR-0060).
