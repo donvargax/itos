@@ -13360,7 +13360,7 @@ items:
   - id: T-292
     title: "Ignore what a clone keeps for itself: .claude/, a hook's git environment, commit-message files"
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
