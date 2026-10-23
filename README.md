@@ -318,11 +318,11 @@ yours, `--plugin local` for you alone in this one, the default under
 `--stealth`, which keeps `.claude/settings.local.json` out of `git status`;
 on a terminal it asks, anywhere else it says how. Run again, it reports a
 plugin not installed without counting it as missing. It offers the rules for
-agents the same way: `--agent-rules` writes two lines into `AGENTS.md`, the
+agents the same way: `--agent-rules` writes the staging boundary into `AGENTS.md`, the
 same in every repository, between `<!-- itos:begin -->` and
-`<!-- itos:end -->` at its end, the rest of the file kept: start with
-`itos go` unless your brief names another guide, and stage only your own
-files, by explicit path. It adds an `@AGENTS.md` line to `CLAUDE.md` so Claude
+`<!-- itos:end -->` at its end, the rest of the file kept: stage only your own
+files, by explicit path, under the `## itos` heading. The block does not route
+sessions to a guide. It adds an `@AGENTS.md` line to `CLAUDE.md` so Claude
 Code reads it; `--no-agent-rules` declines. The commit rules the config sets
 are not in the block, since every session reads `AGENTS.md`: `itos guide
 commit` prints them for the session about to commit. The block is one line a

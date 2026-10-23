@@ -63,7 +63,9 @@ Feature: itos upgrade is handed to the release it moves to, when that release is
     When itos runs "upgrade"
     Then itos exits with code 0
     And the config's pin is the version "9.3.0" of the release server, with its checksums
-    And the file "AGENTS.md" says "Start with `itos go`" between the markers
+    And the file "AGENTS.md" says "Stage only your own files, by explicit path" between the markers
+    And the file "AGENTS.md" does not say "itos go" between the markers
+    And the file "AGENTS.md" does not say "itos guide" between the markers
     And the file "AGENTS.md" does not say "Task:" between the markers
     And the file "AGENTS.md" has the line "Be kind to the build."
     And nothing was committed

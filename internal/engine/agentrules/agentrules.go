@@ -23,11 +23,10 @@ const (
 	End   = "<!-- itos:end -->"
 )
 
-// Block is the block, its markers included, LF: the entry line and the
-// staging boundary, the same in every repository.
+// Block is the block, its markers included, LF: the staging boundary
+// under a heading, the same in every repository.
 const Block = Begin + "\n\n" +
 	"## itos\n\n" +
-	"Start with `itos go` unless your brief names another guide.\n\n" +
 	"Stage only your own files, by explicit path: untracked files you did not make are someone else's work in progress.\n\n" +
 	End + "\n"
 

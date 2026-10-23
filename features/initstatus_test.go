@@ -83,7 +83,13 @@ func (w *world) staleBlockRewritten() error {
 	if err := w.saysBetweenMarkers("AGENTS.md", "Task:", false); err != nil {
 		return err
 	}
-	if err := w.saysBetweenMarkers("AGENTS.md", "Start with `itos go`", true); err != nil {
+	if err := w.saysBetweenMarkers("AGENTS.md", "Stage only your own files, by explicit path", true); err != nil {
+		return err
+	}
+	if err := w.saysBetweenMarkers("AGENTS.md", "itos go", false); err != nil {
+		return err
+	}
+	if err := w.saysBetweenMarkers("AGENTS.md", "itos guide", false); err != nil {
 		return err
 	}
 	if err := w.fileHasLine("AGENTS.md", "Be kind to the build.", ""); err != nil {

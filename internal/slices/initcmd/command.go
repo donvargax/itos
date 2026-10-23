@@ -92,10 +92,10 @@ replaced, exit 1, the rest of init's work done. Run again where a config is,
 it never asks: a shim not linked is reported, never counted as missing, and
 --git-shim links it.
 
-It offers the rules for agents the same way: two lines, the same in every
+It offers the rules for agents the same way: the staging boundary, the same in every
 repository, written into AGENTS.md between the lines <!-- itos:begin --> and
-<!-- itos:end -->: start with itos go unless your brief names another guide,
-and stage only your own files, by explicit path. The commit policy the config
+<!-- itos:end --> under a heading: stage only your own files, by explicit path.
+The block does not route sessions to a guide. The commit policy the config
 sets is itos guide commit's. A line importing the block, @AGENTS.md, goes at
 the end of CLAUDE.md, written when it is missing. The block has one line a
 paragraph, so a Markdown formatter leaves it as written. An AGENTS.md without

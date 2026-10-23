@@ -4,11 +4,10 @@ package initcmd
 // docs/decisions/0033-itos-s-own-guides-say-how-to-work-with-itos-not-the-plugin.md):
 // a marked block of AGENTS.md, between <!-- itos:begin --> and
 // <!-- itos:end -->, and a line importing it, @AGENTS.md, in CLAUDE.md, so
-// Claude Code reads it too. Since slice 120 (v8, q-45 and q-46) the block
-// holds two lines under a heading, the same in every repository: the entry
-// line, start with itos go unless your brief names another guide, and the
-// one boundary no gate holds yet, staging only your own files. AGENTS.md is
-// read by every session for every task, so the commit policy the config
+// Claude Code reads it too. The block holds the same boundary under a heading
+// in every repository: staging only your own files, which no gate holds yet.
+// The person starts coordinators explicitly; implementing briefs name their guide.
+// AGENTS.md is read by every session for every task, so the commit policy the config
 // sets, which the block held before, is printed by itos guide commit
 // (internal/engine/guides) for the session about to commit; how to work with
 // itos is itos's own guides (itos go, itos guide work).

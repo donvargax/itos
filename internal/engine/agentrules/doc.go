@@ -1,8 +1,8 @@
 // Package agentrules is itos's rules for agents, an engine (ADR-0053, step 7
 // of docs/plans/slices-and-ports.md): what init, status, upgrade and guide
 // share of them. The block (Block, slice 59, slice 120) is a constant
-// between <!-- itos:begin --> and <!-- itos:end -->, the entry line and the
-// staging boundary under a heading, in Markdown a formatter leaves alone:
+// between <!-- itos:begin --> and <!-- itos:end -->, holding the staging
+// boundary under a heading, in Markdown a formatter leaves alone:
 // one line a paragraph, a blank line between blocks. A file's text is read
 // LF, whether it used CRLF said beside it, and written back with the line
 // endings it had (ReadText, WriteText).
