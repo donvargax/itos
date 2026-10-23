@@ -12744,6 +12744,19 @@ items:
       every diff before closing). Compare against today's Opus-coordinated session: items landed,
       coordinator interventions, review rounds, reds, and mistakes (a trusted report, a missed
       escalation, a weakened gate, a bad triage).
+
+      2026-10-23 session assessment: coordinator overhead and sequencing contributed to slow
+      delivery. Multiple simultaneous specification/review threads and an expanding conversation
+      delayed starting the requested guide-override implementation; worktrees and spawns alone do
+      not count as delivered behavior. Judge the dispatcher by time to accepted user behavior,
+      genuine defects prevented, interventions and context size, not number of checks or reviews.
+      Keep a bounded active working set and record decisions/artifacts in itos instead of using
+      conversation memory as the durable controller. Honor the user pause after T-289; no
+      guide-override implementation was started. Medium Sol completed T-288 and T-289 without
+      coordinator coding help; bug-112 required CI branch-coverage and Windows-fixture repair plus
+      substantive review corrections before green CI and closure. The stronger review was valuable,
+      but mechanical corrections and missing reviewer configuration should not consume additional
+      full review cycles.
     tags: [docs]
 
   - id: T-284
