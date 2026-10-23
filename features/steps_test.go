@@ -451,6 +451,7 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	initializePromoteSteps(sc, w)
 	initializeTestsListSteps(sc, w)
 	initializeTestsTSVSteps(sc, w)
+	initializeSnapshotSteps(sc, w)
 
 	sc.Step(`^itos verifies every commit up to HEAD$`, func() error { return w.itos("verify", "", "HEAD") })
 	sc.Step(`^itos checks the config$`, func() error { return w.itos("config", "check") })
@@ -659,6 +660,7 @@ func (w *world) env() []string {
 	if first := w.pathFirst(); len(first) > 0 {
 		env = append(env, "PATH="+strings.Join(append(first, w.basePath()), string(os.PathListSeparator)))
 	}
+	env = append(env, w.vars...)
 	return env
 }
 
