@@ -340,8 +340,8 @@ one for the whole repository, ideas included, says what comes first, and itos
 work proposes in its order. --top puts the item first, --before and --after
 just before or after an item the queue holds, --remove takes it out; an item the
 queue holds already is moved. The queue is written whole as a block list
-before items:, then the registry is committed alone, "docs: queue <id>", as
-work take does (itos help work take). work done takes a closed item out.
+before items:, then the registry is committed alone, "docs: queue <id>" for
+insertions or "docs: dequeue <id>" for --remove. work done takes a closed item out.
 Refused, nothing written (exit 1): a registry that is not sound or has changes
 no commit holds, an id no item has, an item done or dropped, an item placed
 before or after itself or an item the queue does not hold, a commit a hook
@@ -353,8 +353,9 @@ Several ids go there together, in the order given: --top puts them first,
 --before and --after at that place, beside an item they do not name, and
 --remove takes each out. Every id is judged before anything is written: when
 any one would be refused, nothing is written and each id refused is named
-(exit 1). Then one commit, "docs: queue <id>, <id>…", or "docs: queue <n>
-items" when the ids do not fit the header, its body naming every item. An id
+(exit 1). Then one commit, "docs: queue <id>, <id>…" or "docs: dequeue <id>, <id>…",
+or the matching "docs: queue <n> items" / "docs: dequeue <n> items" when
+the ids do not fit the header, its body naming every item. An id
 named twice exits 2.
 
 --json: {"schema":1,"ok":true,"item":{…},"queue":[…],"commit":"<sha>"|null}, or

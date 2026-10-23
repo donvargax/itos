@@ -107,7 +107,7 @@ var sliceID = regexp.MustCompile(`^slice-\d+$`)
 // taking the item out of the queue, slice 66), work drop (slice 78), and
 // work defer and work resume (slice 98); work give-back's, "docs: give back
 // <id>" (slice 122), is two words, read apart.
-var registryVerbs = []string{"take", "close", "add", "edit", "queue", "drop", "defer", "resume"}
+var registryVerbs = []string{"take", "close", "add", "edit", "queue", "dequeue", "drop", "defer", "resume"}
 
 // RegistryHeader is the item a header of itos's registry commits names
 // (for work promote's, "docs: promote <idea> to <id>", the item it made);

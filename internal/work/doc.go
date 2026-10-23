@@ -105,7 +105,7 @@
 //     body lists every one; one id changed is that item's own commit.
 //
 // RegistryHeader reads back the headers the writers commit with (docs: take
-// <id>, docs: queue <id> and the rest), so itos work show finds an item's
+// <id>, docs: queue <id>, docs: dequeue <id> and the rest), so itos work show finds an item's
 // registry commits; its unit test reads the writers' headers. Clashes gives,
 // for itos push's rebase conflict, each item both sides changed over the
 // registry at the base, theirs and mine. Show is an item with the ids of the

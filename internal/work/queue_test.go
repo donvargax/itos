@@ -50,7 +50,11 @@ func TestQueuePlaces(t *testing.T) {
 		if got := queueAfter(t, change); !slices.Equal(got, c.want) || !slices.Equal(change.Queue, c.want) {
 			t.Errorf("%s %+v: the queue is %q (%q), want %q", c.id, c.at, got, change.Queue, c.want)
 		}
-		if change.Header != "docs: queue "+c.id {
+		verb := "queue"
+		if c.at.Remove {
+			verb = "dequeue"
+		}
+		if change.Header != "docs: "+verb+" "+c.id {
 			t.Errorf("%s: header %q", c.id, change.Header)
 		}
 	}
@@ -104,7 +108,7 @@ func TestQueueStartsAQueueBeforeItems(t *testing.T) {
 func TestUnqueue(t *testing.T) {
 	r := registryOf(t, queueText)
 	change, ok, err := Unqueue(r, queueText, "b")
-	if err != nil || !ok || !slices.Equal(queueAfter(t, change), []string{"c"}) || change.Header != "docs: queue b" {
+	if err != nil || !ok || !slices.Equal(queueAfter(t, change), []string{"c"}) || change.Header != "docs: dequeue b" {
 		t.Errorf("b: %v %v %+v", err, ok, change)
 	}
 	if _, ok, err := Unqueue(r, queueText, "a"); err != nil || ok {

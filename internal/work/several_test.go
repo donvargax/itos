@@ -142,8 +142,12 @@ func TestQueueEach(t *testing.T) {
 			t.Fatalf("%q %+v: %v %q %+v", c.ids, c.at, err, refused, found)
 		}
 		got := queueAfter(t, Change{Text: s.Text})
+		verb := "queue"
+		if c.at.Remove {
+			verb = "dequeue"
+		}
 		if !slices.Equal(got, c.want) || !slices.Equal(s.Queue, c.want) || s.Body != c.body ||
-			s.Header != "docs: queue "+strings.Join(c.ids, ", ") || !slices.Equal(s.Changed, c.ids) ||
+			s.Header != "docs: "+verb+" "+strings.Join(c.ids, ", ") || !slices.Equal(s.Changed, c.ids) ||
 			!slices.Equal(itemsOf(s), c.ids) {
 			t.Errorf("%q %+v: the queue is %q (%q), %q %q", c.ids, c.at, got, s.Queue, s.Header, s.Body)
 		}

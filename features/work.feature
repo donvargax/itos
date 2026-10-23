@@ -1298,7 +1298,7 @@ Feature: The work registry
   # name "docs: dequeue <id>" and "docs: dequeue <n> items" for --remove.
   # Insertions and moves keep "docs: queue": write_test.go and @ID-WORK-30
   # already pin that, so no guard scenario repeats it.
-  @ID-WORK-111 @bug-111 @wip
+  @ID-WORK-111 @bug-111
   Scenario: explicit queue removal records a dequeue header that work show recognizes
     Given a committed queue fixture with the items "slice-1,slice-2" queued in that order
     When itos runs "work queue slice-1 --remove --json"
@@ -1316,7 +1316,7 @@ Feature: The work registry
   # second commit fails. Explicit removal must still repair that state.
   # Do not promise a second queue commit from work done: slice 142 removes
   # that failure boundary by including dequeue in the close itself.
-  @ID-WORK-112 @bug-111 @wip
+  @ID-WORK-112 @bug-111
   Scenario: explicit dequeue repairs a previously completed item still left in the queue
     Given a committed queue fixture with the completed task "T-001" still queued
     When itos runs "work queue T-001 --remove --json"
@@ -1330,7 +1330,7 @@ Feature: The work registry
   # Use the same 100-unit header limit and counted fallback as the other
   # multi-item writers. The fixture supplies valid distinct item IDs and
   # retains their full list in the commit body when the header is counted.
-  @ID-WORK-113 @bug-111 @wip
+  @ID-WORK-113 @bug-111
   Scenario Outline: multi-item removal uses the dequeue verb with the normal header length convention
     Given a committed queue fixture for "<items>"
     When all those items are removed by one work-queue command
@@ -1345,7 +1345,7 @@ Feature: The work registry
       | slice-1 and slice-2                   | docs: dequeue slice-1, slice-2   |
       | slice-1 to slice-12                   | docs: dequeue 12 items          |
 
-  @ID-WORK-115 @bug-111 @guard @wip
+  @ID-WORK-115 @bug-111 @guard
   Scenario: an old queue-removal header remains discoverable and repeated removal is a no-op
     Given a committed queue fixture with "slice-1" already removed by a historical "docs: queue slice-1" commit
     And that historical removal commit SHA is saved as "old-removal"

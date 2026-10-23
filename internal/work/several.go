@@ -244,7 +244,11 @@ func QueueEach(r Registry, text string, ids []string, at Place) (Several, []stri
 		after = slices.Insert(rest, slices.Index(rest, other)+offset, ids...)
 		body = fmt.Sprintf("Put %s %s %s in the queue, in that order, with itos work queue.", listed(words), where, other)
 	}
-	change, _, err := queueChange(r, text, nil, after, severalHeader("queue", ids), body)
+	verb := "queue"
+	if at.Remove {
+		verb = "dequeue"
+	}
+	change, _, err := queueChange(r, text, nil, after, severalHeader(verb, ids), body)
 	if err != nil {
 		return Several{}, nil, nil, err
 	}

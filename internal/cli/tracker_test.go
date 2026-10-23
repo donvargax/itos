@@ -92,7 +92,7 @@ func TestWorkDoneUnqueuesThroughTheTracker(t *testing.T) {
 	if code != 0 || err != nil || !strings.Contains(stdout.String(), "; out of the queue: committed ") {
 		t.Fatalf("exit %d, %v\n%s%s", code, err, stdout.String(), stderr.String())
 	}
-	if log := gitIn(t, "log", "-2", "--format=%s"); log != "docs: queue T-1\ndocs: close T-1\n" {
+	if log := gitIn(t, "log", "-2", "--format=%s"); log != "docs: dequeue T-1\ndocs: close T-1\n" {
 		t.Errorf("the log reads:\n%s", log)
 	}
 	if code, stdout, stderr := run("work", "show", "T-1"); code != 0 || !strings.Contains(stdout, "T-1") {

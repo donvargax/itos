@@ -88,8 +88,8 @@ func TestDoneSaysWhatItDid(t *testing.T) {
 	p := over(t, closable(false))
 	txs := txsOf(&p)
 	code, stdout, stderr, err := run(t, p, "done", "slice-2")
-	if code != 0 || err != nil || stdout != "slice-2 is done: committed "+sha+" docs: close slice-2; out of the queue: committed "+sha+" docs: queue slice-2\n" ||
-		stderr != notes+"[2] docs: close slice-2\n[3] docs: queue slice-2\n" {
+	if code != 0 || err != nil || stdout != "slice-2 is done: committed "+sha+" docs: close slice-2; out of the queue: committed "+sha+" docs: dequeue slice-2\n" ||
+		stderr != notes+"[2] docs: close slice-2\n[3] docs: dequeue slice-2\n" {
 		t.Errorf("work done slice-2 = %d, %v, %q, %q", code, err, stdout, stderr)
 	}
 	if after := registryIn(t, p); !strings.Contains(after, "queue: []") || !strings.Contains(after, "id: slice-2, title: Doing, phase: 1, owner: a, status: done") {

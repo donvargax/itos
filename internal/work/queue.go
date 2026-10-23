@@ -24,8 +24,14 @@ type Place struct {
 	Before, After string
 }
 
-// queueHeader is the header of every commit that changes the queue.
-func queueHeader(id string) string { return "docs: queue " + id }
+// queueHeader is the header of a queue insertion or removal commit.
+func queueHeader(id string, remove bool) string {
+	verb := "queue"
+	if remove {
+		verb = "dequeue"
+	}
+	return "docs: " + verb + " " + id
+}
 
 // Queued are the ids of a sound registry's queue, in its order; none when it
 // has no queue.
@@ -88,7 +94,7 @@ func Queue(r Registry, text, id string, at Place) (Change, *out.Problem, error) 
 		after = slices.Insert(rest, j+offset, id)
 		body = fmt.Sprintf("Put %s (%s) %s %s in the queue, with itos work queue.", id, title, where, other)
 	}
-	return queueChange(r, text, item, after, queueHeader(id), body)
+	return queueChange(r, text, item, after, queueHeader(id, at.Remove), body)
 }
 
 // Unqueue is the registry with the item out of the queue (slice 66), as work
@@ -102,7 +108,7 @@ func Unqueue(r Registry, text, id string) (change Change, ok bool, err error) {
 	item := r.Items[i]
 	rest := slices.DeleteFunc(Queued(r), func(q string) bool { return q == id })
 	body := fmt.Sprintf("Take %s (%s) out of the queue: it is done, closed by itos work done.", id, value.JSON(value.String(item.At("title"))))
-	change, _, err = queueChange(r, text, item, rest, queueHeader(id), body)
+	change, _, err = queueChange(r, text, item, rest, queueHeader(id, true), body)
 	return change, err == nil, err
 }
 
