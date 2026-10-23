@@ -100,7 +100,13 @@ checks run or their verdict semantics.
    run in a disposable snapshot of each pushed commit's tree, using the
    bug-112 materialization mechanism, and key by that commit tree. Until that
    follow-up lands, pre-push checks run uncached. Do not key a working-tree
-   pre-push execution as though it ran on the pushed commit.
+   pre-push execution as though it ran on the pushed commit. It also carries
+   step 6 of docs/plans/in-process-tier.md, moved ahead (the person,
+   2026-10-23): a config key makes the pre-push hook run the done_when
+   checks of the tasks a push names, on those snapshots, each failure naming
+   task, command, exit and output; opted-in checks answer from their
+   records, so an agent that already ran one pays nothing. CI still runs
+   them.
 
 ## Work item B — CI records and `work done`
 

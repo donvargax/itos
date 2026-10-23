@@ -65,7 +65,13 @@ Each is one task or slice; none changes what a consumer sees until step 6.
    names, each failure naming task, command, exit and output, and push and
    ci watch carry that detail. A check with no local command blocks the
    local run, never passes. Feats, minor releases; this repository turns the
-   key on, and ADR-0057's CI-only ownership ends here.
+   key on, and ADR-0057's CI-only ownership ends here. Moved ahead of steps
+   2 to 5 (the person, 2026-10-23): it rides on evidence records instead of
+   the in-process tier, as p1-evidence-pre-push (A5 of
+   docs/plans/evidence-records.md), after p1-evidence-local. A rerun with
+   nothing changed answers from its record, so the hook needs no fast tier
+   to run a push's task checks; CI keeps running them as the independent
+   proof. Steps 2 to 5 go on beside it, for speed.
 7. **v9.** Pre-push becomes the default place for task checks instead of the
    commit-msg hook, which changes `commit-tasks.feature`; it joins the v9
    bundle (q-89).
