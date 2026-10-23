@@ -13045,3 +13045,21 @@ items:
       and which public invocation shows it. A direct-hook fixture alone proves nothing about git
       commit's locking.
     tags: [hooks]
+
+  - id: p1-snapshot-cleanup-timeouts
+    title: Snapshot cleanup failures and timeouts are reported, and hook help states the snapshot's input boundary
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [bug-112]
+    kind: idea
+    why: >
+      Split from bug-112 by its review (2026-10-23), taking its old HOOKSNAP-10's timeout and
+      cleanup-failure parts (bug-112's HOOKSNAP-13 covers cleanup after success and a failing
+      check). Still to decide: verdict precedence, the leftover-location message, descendant
+      processes after a timeout per OS, and fixtures: no portable cleanup-failure fixture exists
+      (chmod cannot force it as Linux root; Windows locking differs), so pick OS-specific fixtures
+      or a justified seam. Also the hook commit-msg help text: staged project inputs, uncopied local
+      dependencies, inherited external inputs, no OS sandbox, with a scenario using the itos prints
+      the help of step.
+    tags: [hooks]
