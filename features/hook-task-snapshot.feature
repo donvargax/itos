@@ -1,186 +1,258 @@
 @phase-1
 Feature: Commit-msg task checks execute against the captured staged tree
-  # #60, q-77: actual snapshot execution, not a warning-only workaround.
-  # A task-checking invocation captures the exact active index, including a
-  # Git-supplied alternate index, and materializes its tracked content in
-  # one disposable directory shared by that invocation's selected checks.
-  # Resolve task definitions/statuses against that same captured index.
-  # Keep current enablement, cost/timeout policy, static-prefix selection,
-  # after-push exclusion, written order, must-fail and lifecycle verdicts.
-  # Set the children's working directory, not the parent process's CWD.
-  # Relative source inputs are the index's; no unstaged, untracked, ignored
-  # project input or local dependency cache is copied or linked into it.
-  # Normal external toolchain/cache settings remain inherited. This is not
-  # an OS sandbox for commands that explicitly access external inputs.
-  # Preserve staged modes, symlinks and deletions using platform checkout
-  # semantics. A gitlink is unsupported in the first delivery: refuse 3,
-  # naming it, rather than hydrate/fetch or silently use a local submodule.
-  # Give the directory independent Git metadata, index and writable object
-  # storage; history objects may be read from the original store. HEAD and
-  # branch identity stay the real pre-commit base (unborn/detached too),
-  # and the private index holds the proposal. Never fabricate a commit.
-  # Remove inherited repository-local Git overrides from check children;
-  # ordinary Git discovery must work inside the snapshot and a nested repo.
-  # Keep the existing ITOS_FOOTERS/ITOS_AMEND scrubbing. Project config
-  # pointers into the original tree are remapped to the snapshot; private
-  # effective config/data for stealth is captured separately, not published.
-  # No registered Git worktree, stash, source-checkout swap, source ref or
-  # source index update. Check-created files and Git mutations stay private
-  # when addressed relative to the provided execution/Git context.
-  # If the original index tree or HEAD changes during checking, reject 1
-  # and ask for a retry, preserving the new user state. Setup/unsupported
-  # state or cleanup failure exits 3 with its reason, never a fallback to
-  # working-tree checks. Clean up on success, rejection and timeout.
-  # Do not materialize when no runnable task check was selected. Document
-  # this input boundary in hook help; do not add another execution mode.
-  # Legacy done tasks retaining checks are valid reproduction fixtures:
-  # construct their data before installing the real commit hook.
+  # #60, q-77: capture the active index (including GIT_INDEX_FILE) once;
+  # select task definitions/statuses and materialize files from that capture.
+  # One invocation shares one disposable checkout at
+  # <git common dir>/itos/snapshots/<unique>/tree, never in the working tree
+  # or a registered worktree. Keep captures beside tree in the same unique
+  # directory; remove both on success and a failing check. Do not change the
+  # parent's CWD, source files, refs or index, or use a stash or checkout swap.
+  # Give tree its own .git, index and writable objects. Read source history
+  # through .git/objects/info/alternates, never the environment variable
+  # GIT_ALTERNATE_OBJECT_DIRECTORIES. Strip exactly the names printed by
+  # git rev-parse --local-env-vars from children; retain ITOS_FOOTERS and
+  # ITOS_AMEND scrubbing. Full Git-context observations are a separate item.
+  # Shell, cost policy and hooks.commit_msg.check_timeout stay the loaded
+  # working-tree config's: changing execution inputs must not change policy.
+  # Per-check mode/cost/timeout remain the captured task's. Config-pointer
+  # remapping and stealth capture are separate work.
+  # Copy only staged project entries, not local dependencies, ignored or
+  # untracked inputs; inherit external toolchain/cache settings. This is not
+  # an OS sandbox. Refuse gitlinks and setup failures with exit 3, never a
+  # working-tree fallback. No runnable check means no snapshot attempt.
+  # For a portable creation failure, make itos/snapshots a regular file:
+  # a child cannot be created on Linux (even root), macOS or Windows.
+  # Copy source core.symlinks and core.filemode values into snapshot-local
+  # Git config before checkout. Unix fixtures enable both; Windows fixtures
+  # disable both explicitly: link targets become regular files, and no
+  # executable-bit assertion applies. Windows rows do not skip missing links.
+  # Existing selection/verdict rules stay; work done is out of scope.
+  # Commit retained-check task data as the fixture's base. The When
+  # calls the real hook CLI directly, so exit codes and unchanged HEAD are
+  # observable without git commit's own refusals or successful HEAD update.
 
   Background:
     Given a repository whose ledger has the task "T-001"
-    And a valid pending commit message names "T-001" through its configured ledger footer
+    And hooks.commit_msg.task_checks is true
+    And snapshot probe commands are on PATH with an observation log outside the repository
+    And check-output temporary files use an existing fixture-owned temporary directory
 
+  # Today the check finds the untracked file in the working tree and exits
+  # 0; the Then expecting the done-task rejection fails.
   @wip @ID-HOOKSNAP-01 @bug-112
   Scenario: An untracked file cannot make a done task's staged check pass
-    Given the index says "T-001" is done and retains a static check requiring "gen/out.txt"
-    And "gen/out.txt" exists only as an untracked working-tree file
-    When the real commit-msg hook judges the pending commit
-    Then itos exits with code 1 because the staged check cannot find that file
-    And the rejection names "T-001" and its failing command
-    And the source file, source index and HEAD are unchanged
-    And no worktree or stash was created
+    Given the task "T-001" has the static check "snapshot-probe require gen/out.txt"
+    And the work registry at "tasks/work-items.yaml" with the item "T-001" with the status "done" is staged
+    And the fixture commits its retained-check task data as the base
+    And the untracked file "gen/out.txt" holding "generated"
+    And a change to "README.md" is staged
+    And the fixture saves the source state
+    When the commit-msg hook checks the message:
+      """
+      chore: check the proposal
 
+      Task: T-001
+      """
+    Then itos exits with code 1
+    And its output says "failing T-001"
+    And its output says "snapshot-probe require gen/out.txt"
+    And the probe recorded that "gen/out.txt" was absent from its execution directory
+    And the source files, staged entries, HEAD and refs match the saved state
+    And no stash or registered worktree was created
+
+  # Today both rows read the working-tree input instead of "staged", so
+  # the retained done-task check rejects; the Then expecting 0 fails.
   @wip @ID-HOOKSNAP-02 @bug-112
-  Scenario: The staged version passes despite different or missing working-tree content
-    Given the index says "T-001" is done with a static check requiring the text "staged" in "input.txt"
-    And the index contains that text but the working tree contains different text
-    When the real commit-msg hook judges the pending commit
+  Scenario Outline: The staged version passes despite different or missing working-tree content
+    Given the task "T-001" has the static check "snapshot-probe expect-text input.txt staged"
+    And the work registry at "tasks/work-items.yaml" with the item "T-001" with the status "done" is staged
+    And the fixture commits its retained-check task data as the base
+    And "input.txt" is staged with the text "staged"
+    And the working-tree copy of "input.txt" is <disk_state>
+    And the fixture saves the source state
+    When the commit-msg hook checks the message:
+      """
+      chore: check the proposal
+
+      Task: T-001
+      """
     Then itos exits with code 0
-    And the check read "staged" from its private execution directory
-    And both versions and their partial staging are unchanged
-    When the working-tree file is instead missing and the same index is checked
-    Then the staged check still passes without restoring that source file
+    And the probe recorded the text "staged" read from "input.txt"
+    And the source files, staged entries, HEAD and refs match the saved state
 
+    Examples:
+      | disk_state                 |
+      | replaced with "unstaged"   |
+      | missing                    |
+
+  # Every row stages different bytes from disk as well as the mode change.
+  # Today the probe reads the disk version and rejects, including Windows
+  # where an executable-bit-only assertion could not reproduce the bug.
+  # The Then expecting 0 fails. Only rows for another OS are skipped.
+  # snapshot-probe inspect-entries (a test helper the steps provide) compares
+  # the folder it runs in with the index of the git repository found there:
+  # every index entry's content and mode (by git ls-files -s and git cat-file)
+  # must match the file on disk, and no regular file outside .git may exist
+  # that the index lacks; on any mismatch it prints the path and exits 1.
+  # Today the check runs in the working tree, whose disk differs from the
+  # index here, so the exit-code Then fails before the fix.
   @wip @ID-HOOKSNAP-03 @bug-112
-  Scenario: Checkout content follows staged additions, deletions and modes rather than disk state
-    Given the index adds a tracked executable, retains a symlink and deletes a tracked input
-    And ignored and untracked copies of the deleted input remain in the original checkout
-    And "T-001" has static checks inspecting those staged entries and the input's absence
-    When the real commit-msg hook judges the pending commit
-    Then itos uses the staged file content and index modes with platform checkout semantics
-    And the deleted input and original ignored dependency/cache directories are absent from the snapshot
-    And no original file or mode changed
-    And no ignored input was copied or linked to make a check pass
+  Scenario Outline: Staged additions, deletions and modes determine the checkout
+    Given the snapshot fixture runs on <platform>
+    And the task "T-001" has the static check "snapshot-probe inspect-entries"
+    And the work registry at "tasks/work-items.yaml" with the item "T-001" with the status "done" is staged
+    And the fixture commits its retained-check task data as the base
+    And the index adds "added.txt" containing "staged-addition", deletes "deleted.txt" and adds "mode-entry" with mode <mode>
+    And the staged mode entry has <staged_content>
+    And disk instead has different ordinary-file contents for "added.txt" and "mode-entry" and a regenerated "deleted.txt"
+    And ignored "node_modules" and ".cache" directories exist only in the source checkout
+    And the fixture sets source-repository-local core.filemode to <filemode> and core.symlinks to <symlinks>
+    And the fixture saves the source state
+    When the commit-msg hook checks the message:
+      """
+      chore: check the proposal
 
-  @wip @ID-HOOKSNAP-04 @bug-112
-  Scenario: Git-aware checks see a private index against the real pre-commit HEAD
-    Given "T-001" checks HEAD, branch identity, history and the staged diff
-    And its check creates a private Git ref and stages a generated file in its execution directory
-    When the real commit-msg hook judges the pending commit
-    Then the observations identify the original HEAD and branch and the captured proposed diff
-    And the private Git operations succeed without touching original refs, index or object writes
-    And no synthetic proposed commit was created
-    And the hook's subsequent original-repository observations still use the original context
+      Task: T-001
+      """
+    Then itos exits with code 0
+    And the probe recorded "staged-addition" in "added.txt" and no "deleted.txt", "node_modules" or ".cache"
+    And the probe recorded "mode-entry" as <checkout_result>
+    And the probe recorded snapshot-local core.filemode as <filemode> and core.symlinks as <symlinks>
+    And the source files, modes, staged entries, HEAD and refs match the saved state
 
-  @wip @ID-HOOKSNAP-05 @bug-112
-  Scenario: Git-supplied environment overrides cannot redirect check Git commands to the source index
-    Given Git supplies an alternate index for the proposed commit
-    And repository-local Git environment overrides refer to the original repository
-    And a check records the snapshot's staged content then initializes and uses a nested scratch repository
-    When the real commit-msg hook judges the pending commit
-    Then it captured the proposed tree from that alternate index
-    And the check's Git first discovers the private snapshot and then its independent nested repository
-    And neither original index was changed by the checks
-    And the check received neither ITOS_FOOTERS nor ITOS_AMEND
+    Examples:
+      | platform | mode   | staged_content               | filemode | symlinks | checkout_result                                      |
+      | Linux    | 100755 | the text "staged-executable"  | true     | true     | an executable regular file with "staged-executable"   |
+      | macOS    | 100755 | the text "staged-executable"  | true     | true     | an executable regular file with "staged-executable"   |
+      | Windows  | 100755 | the text "staged-executable"  | false    | false    | a regular file with "staged-executable"               |
+      | Linux    | 120000 | the link target "added.txt"   | true     | true     | a symlink whose target is "added.txt"                 |
+      | macOS    | 120000 | the link target "added.txt"   | true     | true     | a symlink whose target is "added.txt"                 |
+      | Windows  | 120000 | the link target "added.txt"   | false    | false    | a regular file containing the link text "added.txt"   |
 
-  @wip @ID-HOOKSNAP-06 @bug-112
-  Scenario: Snapshotting preserves check selection, limits and lifecycle verdict rules
-    Given selected tasks have ordered static, after-push and late checks with recording commands
-    And the cases include a must-fail check, a failing done task and a failing open task
-    When the real commit-msg hook judges each fixture's pending commit
-    Then checks use one staged execution context per invocation
-    And their existing written order and first-failure behavior are preserved
-    And after-push checks and checks at or after the first late check do not run
-    And must-fail semantics and the configured hook timeout cap are preserved
-    And a failing done task rejects while a failing open task retains its existing advisory verdict
-    And no current hook enablement or cost policy was changed by snapshotting
-
+  # Today both checks can pass, but their recorded CWD is the source
+  # checkout. The Then requiring a shared disposable checkout fails; the
+  # source-file assertion also detects the generated file left there.
   @wip @ID-HOOKSNAP-07 @bug-112
-  Scenario: Check-generated inputs stay available within the invocation and disappear afterward
-    Given "T-001" has one static check generating a file and a later static check requiring it
-    And its commands use the ordinary external toolchain cache environment
-    When the real commit-msg hook judges the pending commit
-    Then both checks run in the same snapshot and the second sees the generated file
-    And the external cache settings remain available
-    And no generated file appeared in the original checkout
-    And the snapshot, its private Git metadata and captured output files have been removed
+  Scenario: Check-generated inputs are shared within the snapshot, not with the source checkout
+    Given the task "T-001" has these static checks in written order:
+      | command                                   |
+      | snapshot-probe generate gen/out.txt        |
+      | snapshot-probe require gen/out.txt         |
+    And the work registry at "tasks/work-items.yaml" with the item "T-001" with the status "done" is staged
+    And the fixture commits its retained-check task data as the base
+    And the fixture sets GOCACHE to an existing absolute directory outside the repository
+    And a change to "README.md" is staged
+    And the fixture saves the source state
+    When the commit-msg hook checks the message:
+      """
+      chore: check the proposal
 
-  @wip @ID-HOOKSNAP-08 @bug-112
-  Scenario Outline: A changed proposal invalidates the staged check attempt without overwriting new work
-    Given a static check is executing in the captured snapshot
-    And an independent fixture observer changes the source <state> during that check
-    When task checking finishes
-    Then itos exits with code 1 and says the proposal changed and the commit must be retried
-    And it preserves the observer's new source state and all working-tree edits
-    And it does not claim its captured result validates the changed proposal
-    And the private snapshot is removed
+      Task: T-001
+      """
+    Then itos exits with code 0
+    And both probes recorded the same disposable checkout under the source git common directory's "itos/snapshots", not the source checkout
+    And the second probe recorded the first probe's generated "gen/out.txt"
+    And both probes recorded GOCACHE unchanged from the fixture's value
+    And the source files, staged entries, HEAD and refs match the saved state
+    And the recorded snapshot directory and check-output temporary files no longer exist
 
-    Examples:
-      | state      |
-      | index tree |
-      | HEAD       |
-
+  # Both rows leave a valid staged proposal and a check that passes on disk.
+  # Today no snapshot is attempted and the hook returns 0, so the Then
+  # expecting the setup/unsupported-state exit 3 fails.
+  # Match only the itos-owned reason below and the identified location,
+  # normalizing path separators; never match OS error text or its wording.
   @wip @ID-HOOKSNAP-09 @bug-112
-  Scenario Outline: An unmaterializable staged tree fails before task checks without a working-tree fallback
-    Given a runnable task check was selected but <problem>
-    When the commit-msg hook attempts its snapshot
-    Then itos exits with code 3 and identifies the setup problem
-    And no task check ran against either tree
-    And the source HEAD, staged content and working-tree files are unchanged
-    And any partially created private snapshot is removed
+  Scenario Outline: Snapshot setup refuses an unusable location or unsupported gitlink before checks run
+    Given the task "T-001" has the static check "snapshot-probe record-run"
+    And the work registry at "tasks/work-items.yaml" with the item "T-001" with the status "done" is staged
+    And the fixture commits its retained-check task data as the base
+    And a change to "README.md" is staged
+    And <problem>
+    And the fixture saves the source state
+    When the commit-msg hook checks the message:
+      """
+      chore: check the proposal
+
+      Task: T-001
+      """
+    Then itos exits with code 3
+    And its diagnostic contains "<reason>" and identifies <location>
+    And no snapshot probe command ran
+    And the source files, staged entries, HEAD and refs match the saved state
+    And no partially created snapshot or check-output temporary file remains
 
     Examples:
-      | problem                                             |
-      | the index has unresolved entries                      |
-      | the private execution directory cannot be created     |
-      | a required staged object cannot be materialized       |
-      | the index contains a submodule gitlink                |
+      | problem                                                                  | reason                            | location                                 |
+      | the fixture writes a regular file at the git common dir's "itos/snapshots" | cannot create task-check snapshot | the git common dir's "itos/snapshots"     |
+      | the index contains a gitlink at "vendor/submodule" pointing to HEAD       | unsupported gitlink               | the staged path "vendor/submodule"       |
 
-  @wip @ID-HOOKSNAP-10 @bug-112
-  Scenario: Rejection and timeout clean up the same isolated execution resources
-    Given "T-001" is done with a retained check that fails and writes private artifacts
-    When the real commit-msg hook judges the pending commit
-    Then itos retains the ordinary done-task rejection and captured failing output
-    And the snapshot and output-capture files are removed
-    When a separate fixture's check instead exceeds its configured cap
-    Then the existing timeout failure is reported and its snapshot is removed
-    And no source files, refs, staging, stash or registered worktree changed in either attempt
-    When cleanup itself fails in a separate controlled fixture
-    Then itos reports exit 3 with the cleanup problem and remaining private location
-    And it does not claim cleanup succeeded or delete any source path
-
-  @wip @ID-HOOKSNAP-11 @bug-112
-  Scenario: Stealth uses captured private task data with staged project files
-    Given a stealth config has private task and registry data naming a retained done-task check
-    And that check reads a project file whose staged and unstaged contents differ
-    When the stealth commit-msg hook judges the pending commit
-    Then the check uses captured private metadata and the staged project content
-    And nested itos discovery resolves the corresponding private snapshot configuration
-    And the original private config, ledger, registry and notes remain unchanged
-    And project staging and working-tree content are unchanged
-    And no private data was committed or copied into a tracked project file
-
-  @wip @ID-HOOKSNAP-12 @bug-112
+  # Guard: every row already passes today because no snapshot exists yet.
+  # There is no honest pre-fix failing assertion for this negative contract;
+  # do not invent a failure or claim this outline as red-first evidence.
+  # "No remaining acceptance checks" is the row with done_when: [] and a
+  # done registry item, not checks that exist but happen to pass or be late.
+  # The empty footer cell inserts no footer; docs needs no Task footer here.
+  @wip @guard @ID-HOOKSNAP-12 @bug-112
   Scenario Outline: No runnable check means no snapshot cost or new setup failure
-    Given <condition>
-    And the fixture would refuse creation of a snapshot directory
-    When the otherwise valid commit-msg hook runs
-    Then it retains its ordinary successful result without attempting a snapshot
-    And no check, dependency hydration, worktree operation or source-checkout swap occurred
+    Given hooks.commit_msg.task_checks is <task_checks>
+    And the staged file "tasks/phase-1.yaml" holding the lines:
+      """
+      - id: T-001
+        type: chore
+        title: Tidy
+        done_when: <checks>
+      """
+    And the work registry at "tasks/work-items.yaml" with the item "T-001" with the status "done" is staged
+    And the fixture commits its retained-check task data as the base
+    And a change to "README.md" is staged
+    And the fixture writes a regular file at the git common dir's "itos/snapshots"
+    And the fixture saves the source state
+    When the commit-msg hook checks the message:
+      """
+      <commit_type>: check the proposal
+
+      <footer>
+      """
+    Then itos exits with code 0
+    And no snapshot probe command ran
+    And the snapshot-location blocking file and source state are unchanged
+    And its output does not say "cannot create task-check snapshot"
 
     Examples:
-      | condition                                      |
-      | commit-msg task_checks is disabled               |
-      | the message names no ledger task                 |
-      | the named task has no remaining acceptance checks |
-      | every selected check is pending or late          |
+      | task_checks | checks                                                                  | commit_type | footer      |
+      | false       | [{ run: 'snapshot-probe record-run', cost: static }]                      | chore       | Task: T-001 |
+      | true        | [{ run: 'snapshot-probe record-run', cost: static }]                      | docs        |             |
+      | true        | []                                                                      | chore       | Task: T-001 |
+      | true        | [{ run: 'snapshot-probe record-run', cost: static, after: push }]         | chore       | Task: T-001 |
+      | true        | [{ run: 'snapshot-probe record-run', cost: late }]                        | chore       | Task: T-001 |
+
+  # Today the expected ordinary verdicts pass, but the probe records the
+  # source checkout and leaves its artifact there. The Then requiring a
+  # disposable checkout fails in both rows, before cleanup is asserted.
+  # leave-artifacts writes gen/artifact.txt containing "private-artifact\n",
+  # prints exactly "snapshot-artifact-output\n" to stdout and nothing to
+  # stderr, records its observations, then exits with check_exit.
+  @wip @ID-HOOKSNAP-13 @bug-112
+  Scenario Outline: Successful and failing checks remove their disposable resources
+    Given the task "T-001" has the static check "snapshot-probe leave-artifacts <check_exit>"
+    And the work registry at "tasks/work-items.yaml" with the item "T-001" with the status "done" is staged
+    And the fixture commits its retained-check task data as the base
+    And a change to "README.md" is staged
+    And the fixture saves the source state
+    When the commit-msg hook checks the message:
+      """
+      chore: check the proposal
+
+      Task: T-001
+      """
+    Then itos exits with code <hook_exit>
+    And the probe recorded a disposable checkout under the source git common directory's "itos/snapshots", not the source checkout
+    And the recorded snapshot directory, its private Git metadata, generated artifact and check-output temporary files no longer exist
+    And its output <expected_output>
+    And the source files, staged entries, HEAD and refs match the saved state
+    And no stash or registered worktree was created
+
+    Examples:
+      | check_exit | hook_exit | expected_output                                                                               |
+      | 0          | 0         | omits "snapshot-artifact-output" and any "failing T-001" report                                 |
+      | 7          | 1         | includes "snapshot-artifact-output", "failing T-001" and "snapshot-probe leave-artifacts 7"      |
