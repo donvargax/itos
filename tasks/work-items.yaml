@@ -13364,3 +13364,19 @@ items:
     status: done
     depends_on: []
     kind: task
+
+  - id: p1-sonnet-implementer-trial
+    title: Trial Sonnet implementing agents under an Opus coordinator
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The user, 2026-10-23: Opus 5.5 coordinates (specs, the reviewer, landing) and launches
+      implementing agents on Sonnet 5.5 per launch (the Agent tool's model parameter; no standing
+      agent definition yet), effort as the user names it. Starts with slice-169's implementer once
+      its spec passes review. For each item record, as the Sol trial did: interventions and nudges,
+      CI reds and their causes, the reviewer's diff findings, and whether the spec or the model
+      caused each. Agents already running (T-291) stay on Opus. Outcome decides whether a standing
+      .claude/agents definition is worth it.
