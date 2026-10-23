@@ -76,7 +76,7 @@ func (p *ports) CaptureIndex(ctx context.Context) (treeport.Source, error) {
 }
 
 func (p *ports) TaskSnapshot(context.Context, string) (Snapshot, error) {
-	return Snapshot{Env: checkEnv(), Remove: func() error { return nil }}, nil
+	return Snapshot{Env: os.Environ(), Remove: func() error { return nil }}, nil
 }
 
 func (p *ports) LoadConfig(context.Context) (*config.Loaded, error) { return p.cfg, p.loadErr }
@@ -503,35 +503,20 @@ func TestTasksRuleErrors(t *testing.T) {
 		t.Errorf("a task whose checks cannot run: %v", err)
 	}
 	p.trees.Files["index"]["tasks/phase-1.yaml"] = "a: 1\n"
-	if named, err := h.stagedTasks(t.Context(), []string{"T-1"}); named != nil || err != nil {
-		t.Errorf("a staged ledger that is no list: %v, %v", named, err)
+	index, err := p.CaptureIndex(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if named := h.tasksAt(t.Context(), []string{"T-1"}, index); named != nil {
+		t.Errorf("a staged ledger that is no list: %v", named)
 	}
 	p.trees.Files["index"]["itos.yaml"] = "version: [\n"
-	if named, err := h.stagedTasks(t.Context(), []string{"T-1"}); named != nil || err != nil {
-		t.Errorf("a broken staged config: %v, %v", named, err)
+	if named := h.tasksAt(t.Context(), []string{"T-1"}, index); named != nil {
+		t.Errorf("a broken staged config: %v", named)
 	}
 	p.trees.Common = ""
-	if _, err := h.stagedTasks(t.Context(), []string{"T-1"}); err == nil {
-		t.Error("an index that cannot be read: no error")
-	}
 	if _, err := h.tasksRule(t.Context(), p.cfg, "docs: x\n\nTask: T-1\n", Out{Stderr: &strings.Builder{}}); err == nil {
 		t.Error("the tasks rule over an index that cannot be read: no error")
-	}
-}
-
-// The checks run without the index git made the commit from, nor the
-// footers and the amend itos commit handed the hook.
-func TestCheckEnv(t *testing.T) {
-	t.Setenv("GIT_INDEX_FILE", "x")
-	t.Setenv(message.FootersEnv, "x")
-	t.Setenv(message.AmendEnv, "1")
-	t.Setenv("ITOS_KEPT", "x")
-	env := checkEnv()
-	if !slices.Contains(env, "ITOS_KEPT=x") || slices.ContainsFunc(env, func(kv string) bool {
-		return strings.HasPrefix(kv, "GIT_INDEX_FILE=") || strings.HasPrefix(kv, message.FootersEnv+"=") ||
-			strings.HasPrefix(kv, message.AmendEnv+"=")
-	}) {
-		t.Errorf("checkEnv = %q", env)
 	}
 }
 

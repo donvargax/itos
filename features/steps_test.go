@@ -661,7 +661,6 @@ func (w *world) env() []string {
 	if first := w.pathFirst(); len(first) > 0 {
 		env = append(env, "PATH="+strings.Join(append(first, w.basePath()), string(os.PathListSeparator)))
 	}
-	env = append(env, w.vars...)
 	return env
 }
 

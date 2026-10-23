@@ -68,7 +68,10 @@ func initializeSnapshotSteps(sc *godog.ScenarioContext, w *world) {
 			return err
 		}
 		w.snapFixture = &snapshotFixture{common: strings.TrimSpace(common)}
-		bin := filepath.Join(w.support, "snapshot-bin")
+		bin, err := w.binOnPath()
+		if err != nil {
+			return err
+		}
 		log := filepath.Join(w.support, "snapshot-observations")
 		for _, p := range []string{bin, log} {
 			if err := os.MkdirAll(p, 0o755); err != nil {
@@ -78,7 +81,7 @@ func initializeSnapshotSteps(sc *godog.ScenarioContext, w *world) {
 		if err := w.writeProgram(filepath.Join(bin, "snapshot-probe"), snapshotProbe); err != nil {
 			return err
 		}
-		w.vars = append(w.vars, "SNAPSHOT_LOG="+filepath.ToSlash(log), "PATH="+bin+string(os.PathListSeparator)+w.basePath())
+		w.vars = append(w.vars, "SNAPSHOT_LOG="+filepath.ToSlash(log))
 		return nil
 	})
 	sc.Step(`^check-output temporary files use an existing fixture-owned temporary directory$`, func() error {
@@ -108,7 +111,6 @@ func initializeSnapshotSteps(sc *godog.ScenarioContext, w *world) {
 		}
 		return w.commit("docs: retain task data")
 	})
-	sc.Step(`^an? (?:untracked|ignored) file "([^"]*)" holding "([^"]*)"$`, w.write)
 	sc.Step(`^"([^"]*)" is staged with the text "([^"]*)"$`, func(p, text string) error {
 		if err := w.write(p, text); err != nil {
 			return err

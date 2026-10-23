@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/donvargax/itos/v8/internal/message"
 )
 
 type snapshotPorts struct {
@@ -58,5 +60,27 @@ func TestTasksRuleReleasesSnapshotWhenOutputCaptureFails(t *testing.T) {
 	answer, err := NewHandler(s).tasksRule(t.Context(), p.cfg, "docs: x\n\nTask: T-1\n", Out{Stderr: &output})
 	if err == nil || answer.Code != 0 || removed != 1 || s.snapshots != 1 || output.Len() != 0 {
 		t.Fatalf("capture error = %+v, %v, %d releases, %d snapshots, output %q", answer, err, removed, s.snapshots, output.String())
+	}
+}
+
+// The snapshot fake supplies the caller's raw environment. Only the real
+// tasksRule may remove commit-specific footer state before executing the check.
+func TestTasksRuleScrubsHandedFootersFromExecutedCheck(t *testing.T) {
+	p := staging(t, nil, "docs: x\n\nTask: T-2\n")
+	t.Setenv(message.FootersEnv, "Task: T-9")
+	t.Setenv(message.AmendEnv, "1")
+	t.Setenv("ITOS_KEPT", "ordinary-value")
+	observed := filepath.Join(t.TempDir(), "environment-checked")
+	t.Setenv("ITOS_ENV_OBSERVATION", filepath.ToSlash(observed))
+	command := `test "${ITOS_FOOTERS+x}" != x && test "${ITOS_AMEND+x}" != x && test "$ITOS_KEPT" = ordinary-value && printf checked > "$ITOS_ENV_OBSERVATION"`
+	p.trees.Files["index"]["tasks/phase-1.yaml"] = "- { id: T-2, type: docs, title: Done, done_when: [{ run: '" + command + "', cost: static }] }\n"
+	var output strings.Builder
+	answer, err := NewHandler(p).tasksRule(t.Context(), p.cfg, "docs: x\n\nTask: T-2\n", Out{Stderr: &output})
+	if err != nil || answer.Code != 0 || output.Len() != 0 {
+		t.Fatalf("executed environment check = %+v, %v, output %q", answer, err, output.String())
+	}
+	data, err := os.ReadFile(observed)
+	if err != nil || string(data) != "checked" {
+		t.Fatalf("check did not record its environment assertion: %q, %v", data, err)
 	}
 }
