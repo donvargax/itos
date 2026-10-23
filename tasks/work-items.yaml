@@ -55,7 +55,6 @@ phases:
   3: donvargax
 
 queue:
-  - T-283
   - T-285
   - T-286
   - p1-agent-test-runs-once
