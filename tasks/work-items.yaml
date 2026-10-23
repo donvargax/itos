@@ -12914,3 +12914,21 @@ items:
       the workflow uploads the bundle, verified by a gate self-test (B3, ci); this repository turns
       on ci.evidence and then require_ci, each after its feature (B4, B5, ci).
     tags: [ci, work]
+
+  - id: p1-evidence-red-first
+    title: CI proves a slice's scenarios red against the parent build, and an opted-in work done requires it (evidence records, C)
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [p1-evidence-ci]
+    kind: idea
+    why: >
+      Work item C of docs/plans/evidence-records.md (ADR-0060), absorbing p1-wip-red-first's goal
+      for CI: itos tests red-first <test-commit> runs the commit's item-linked @wip scenarios
+      against its parent's build and records them, only Then failures counting (And and But take the
+      nearest Given, When or Then), @wip @guard scenarios having to pass, setup, undefined or build
+      failures and unexpected passes invalidating the proof (C1 spec, C2 feat); work done with
+      work.evidence.require_red_first requires the trusted red record plus later green CI (C3, its
+      own test commit first); a per-commit CI job calls the command (C4, ci); this repository turns
+      the key on after both (C5, ci).
+    tags: [tests, ci, work]
