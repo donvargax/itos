@@ -2,6 +2,7 @@ package tests
 
 import (
 	"path/filepath"
+	"runtime"
 	"slices"
 	"strings"
 	"testing"
@@ -75,5 +76,28 @@ func TestTSVRefusesWhatNoRowCanHold(t *testing.T) {
 	if len(refused) != 2 || !strings.HasSuffix(refused[0], ": its id is empty; its file is empty") ||
 		!strings.HasSuffix(refused[1], ": its file is outside the project") {
 		t.Errorf("TSV with two bad tests and no project = %q, want each refused with every reason", refused)
+	}
+}
+
+// On Windows a root-relative \foo has no volume and a drive-relative C:foo
+// is not absolute, so neither is made relative to the project: the leading
+// slash refuses the one and the volume the other. Elsewhere both are names
+// in the project's top.
+func TestProjectFileRefusesWindowsRootAndDriveRelativePaths(t *testing.T) {
+	project := t.TempDir()
+	for _, c := range []struct {
+		file               string
+		windows, elsewhere [2]string
+	}{
+		{`\foo`, [2]string{"", "its file is outside the project"}, [2]string{`\foo`, ""}},
+		{`C:foo`, [2]string{"", "its file is outside the project"}, [2]string{`C:foo`, ""}},
+	} {
+		want := c.elsewhere
+		if runtime.GOOS == "windows" {
+			want = c.windows
+		}
+		if file, why := projectFile("", c.file, project); file != want[0] || why != want[1] {
+			t.Errorf("projectFile(%q) on %s = %q, %q, want %q, %q", c.file, runtime.GOOS, file, why, want[0], want[1])
+		}
 	}
 }
