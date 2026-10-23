@@ -13245,3 +13245,26 @@ items:
       Keep machine contracts precise while leaving noncontract prose and internal implementation
       freedom where appropriate.
     refs: [internal/guide/brief.md, internal/guide/land.md, docs/ORCHESTRATING.md]
+
+  - id: p1-assurance-signal-review
+    title: Assess assurance value without weakening behavioral acceptance
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The user on 2026-10-23 reaffirmed that correct feature files, real test steps and meaningful
+      done_when checks are necessary: weaker agents can report completion without delivering the
+      requested behavior, and structural/process acceptance must not become artificial product unit
+      tests. Assess which current checks prevent consequential defects and which generate
+      equivalent-mutant, unused-return or duplicated-verification work. Classify findings by public
+      behavior, intentional internal contract, test-fixture defect or equivalence; require a
+      contract justification rather than invent tests solely for a metric. Keep before-change
+      failure evidence, real assertions and exact-head independent CI. Process/doc/data checks
+      belong in appropriate acceptance checks, not misleading runtime tests; a source grep alone
+      does not establish functional behavior, while executable tool-output assertions can be valid.
+      Measure time to accepted behavior and defect signal, not check volume. Proof-backed evidence
+      may eventually replace covered weaker checks instead of stacking forever, but no gate removal
+      or proof experiment is authorised by recording this assessment.
+    refs: [tasks/README.md, features/README.md, itos.yaml, docs/ORCHESTRATING.md]
