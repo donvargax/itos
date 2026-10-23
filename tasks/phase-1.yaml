@@ -4425,5 +4425,3 @@
     Use only temporary local fixture paths and never mint a real ID. The deeper native
     delete-pending test and ignored release-error concerns are separate, not demonstrated product
     failures here.
-  done_when:
-    - run: names=$(go test ./internal/idcounter -list "^TestLinkedWorktreeStoresUseHostOS$") && printf "%s\n" "$names" | grep -qx "TestLinkedWorktreeStoresUseHostOS" && go test ./internal/idcounter -count=1 -run "^(TestLinkedWorktreeStoresUseHostOS|TestMintLocalSerializesLinkedWorktrees)$"
