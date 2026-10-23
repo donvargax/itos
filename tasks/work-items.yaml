@@ -12750,3 +12750,22 @@ items:
     status: doing
     depends_on: []
     kind: task
+
+  - id: p1-watch-names-unfinished-jobs
+    title: The CI watch names a job the API shows unfinished when it reads the run as ended
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Issue #114 (2026-10-22, from itos-cc): itos push watched ci.yml run 39839121153, printed CI
+      passed and listed four jobs, leaving out test (cmd-b), which the API still showed in_progress
+      with no conclusion while the run itself read completed/success. The verdict was right that
+      time (its steps had all passed), but a summary that drops a job reads as one where the job
+      never existed. Expected: wait until every job has a conclusion, or name the job whose state
+      could not be read (no conclusion yet), and say that the run's conclusion decided. Near
+      slice-144 (watch transitions) and p1-watch-run-failed-with-no-failed-job, neither of which
+      covers a dropped job.
+    refs: [internal/engine/ciwatch]
+    tags: [ci, push]
