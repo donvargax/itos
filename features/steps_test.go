@@ -36,6 +36,7 @@ type world struct {
 	coverDir      string // the GOCOVERDIR of every command, with ITOS_CC_TEST_COVERDIR set (cover_test.go)
 	config        scratchConfig
 	commits       []string          // the scratch repository's commits, oldest first
+	workCommits   map[string]string // queue-removal commits saved by name
 	scenarioFiles map[string]string // each scenario ID written, to its feature file
 	ledger        []ledgerTask      // the tasks of the ledger's one file (ledgerPath), in order
 	dataDir       string            // where itos's config and data are written: the root, or the git folder (stealth)
@@ -430,6 +431,7 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	initializeInitSteps(sc, w)
 	initializeWorkSteps(sc, w)
 	initializeShowSteps(sc, w)
+	initializeQueueRemovalSteps(sc, w)
 	initializeFollowSteps(sc, w)
 	initializeGuideSteps(sc, w)
 	initializeUpgradeSteps(sc, w)
