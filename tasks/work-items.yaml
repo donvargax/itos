@@ -13274,6 +13274,13 @@ items:
       and can distinguish incomplete review from approval, without persistent profile edits or
       repeated full reruns. This targets the configured reviewer integration, not weaker review
       criteria.
+
+      2026-10-23: built in the reviewer proof of concept (claude-agent-sdk, local commits): 83ade4b
+      sends every prior finding to the next round; 19938ec adds review_cli.py --max-turns N, an
+      INCOMPLETE first line and exit 3 for a review with no verdict (a verdict written before
+      error_max_turns counts as none); e1f09d7 makes blockers material (NOTES for non-blocking
+      points), runs tests only to settle a suspicion, and focuses later rounds. Offline unit tests:
+      test_review_unit.py.
     refs: [docs/ORCHESTRATING.md]
 
   - id: p1-reviewer-prior-findings
@@ -13292,6 +13299,13 @@ items:
       exercise prompt construction with more than five distinct finding markers and verify all
       required markers are retained, not grep source. This omission can compromise follow-up
       completeness; it is not claimed to explain every late finding this session.
+
+      2026-10-23: built in the reviewer proof of concept (claude-agent-sdk, local commits): 83ade4b
+      sends every prior finding to the next round; 19938ec adds review_cli.py --max-turns N, an
+      INCOMPLETE first line and exit 3 for a review with no verdict (a verdict written before
+      error_max_turns counts as none); e1f09d7 makes blockers material (NOTES for non-blocking
+      points), runs tests only to settle a suspicion, and focuses later rounds. Offline unit tests:
+      test_review_unit.py.
     refs: [docs/ORCHESTRATING.md]
 
   - id: p1-review-materiality
@@ -13313,6 +13327,13 @@ items:
       Coordinator-applied mechanical corrections should not trigger another whole-artifact review.
       Keep machine contracts precise while leaving noncontract prose and internal implementation
       freedom where appropriate.
+
+      2026-10-23: built in the reviewer proof of concept (claude-agent-sdk, local commits): 83ade4b
+      sends every prior finding to the next round; 19938ec adds review_cli.py --max-turns N, an
+      INCOMPLETE first line and exit 3 for a review with no verdict (a verdict written before
+      error_max_turns counts as none); e1f09d7 makes blockers material (NOTES for non-blocking
+      points), runs tests only to settle a suspicion, and focuses later rounds. Offline unit tests:
+      test_review_unit.py.
     refs: [internal/guide/brief.md, internal/guide/land.md, docs/ORCHESTRATING.md]
 
   - id: p1-assurance-signal-review
