@@ -13115,7 +13115,7 @@ items:
   - id: T-287
     title: Restore main after bug-112 failed changed-line coverage
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
