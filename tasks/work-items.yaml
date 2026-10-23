@@ -55,7 +55,7 @@ phases:
   3: donvargax
 
 queue:
-  - p1-evidence-local
+  - slice-169
   - p1-agent-test-runs-once
   - p1-mutation-results-committed
   - p1-text-from-file
@@ -12942,14 +12942,15 @@ items:
       uses.
     tags: [tests, docs]
 
-  - id: p1-evidence-local
-    title: Opted-in checks rerun instantly when nothing they ran on changed (evidence records, A)
+  - id: slice-169
+    title: Opted-in checks rerun instantly from a local record when nothing they ran on changed (evidence records, A1 to A3)
     phase: 1
     owner: null
     status: todo
     depends_on: [bug-112]
-    kind: idea
+    kind: slice
     why: >
+      Was p1-evidence-local.
       Work item A of docs/plans/evidence-records.md (ADR-0060): the evidence key on a done_when
       check or ci.steps entry (A1), the local store under .git/itos/evidence with internal/lock and
       uncached fallback (A2), lookup in itos task and ci run on a clean tracked tree (A3), and
@@ -12964,7 +12965,7 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: [p1-evidence-local]
+    depends_on: [slice-169]
     kind: idea
     why: >
       Work item B of docs/plans/evidence-records.md (ADR-0060): internal/ci collects records for
@@ -12999,7 +13000,7 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: [p1-evidence-local]
+    depends_on: [slice-169]
     kind: idea
     why: >
       The follow-up in A5 of docs/plans/evidence-records.md (ADR-0060): today the pre-push hook's
