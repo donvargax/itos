@@ -4300,3 +4300,29 @@
     listing (the same config.Invalid tests.<kind> is missing error, which
     TestListRefusesWhatItCannotList covers), and the TSV root is taken from that kind. No behaviour
     change; slice-154's agent proposed it.
+
+- id: T-283
+  type: test
+  title: Tests kill the survivors the nightly of 2026-10-23 (run 39948599784) drew
+  why: >
+    Fourth batch of p1-nightly-survivors (the user, 2026-10-17: kill the recorded survivors, keep
+    the random step strict), as T-186, T-187 and T-191 did. The scheduled nightly of 2026-10-23
+    (39948599784, head c24f9ad6, the first with T-277's report fixes and T-280's floor) is the
+    batch, and the checks are its two mutation steps at its seed, which draw the same sites only
+    while no product Go changes outside this task's tests: the coordinator holds other product Go
+    until it lands. Every other nightly step was green. Random step: shim/shim.go:82:9 Main != to
+    ==; value/yaml.go:71:24 yamlScalar false to true. Changed-site step (since a9de53f6, the floor
+    T-280 set): slices/tests/handler.go:122:16 Handler.list || to && (slice-154);
+    engine/hooks/files.go:184:10 and 207:12 writeFiles 0 to 1 (slice-165); slices/tests/run.go:28:10
+    CLI.Run 0 to 1 (slice-154); tests/tsv.go:91:20 projectFile || to && (slice-154);
+    tests/fingerprint.go:37:60 Fingerprints 1 to 0 (slice-166). No uncovered line was reported.
+    Tests only (_test.go, or a scenario where only a scenario reaches the code, unit tests first);
+    no change to what itos does: a test that finds a bug stops the work and is reported. A mutant
+    argued equivalent in its commit is excepted with itos-cc mutation except, its reason saying why
+    no test can kill it. CI runs the checks on the push that names this task (ADR-0057); push once,
+    with every site handled.
+  done_when:
+    - run: tools/bin/pinned itos-cc mutation run --count 20 --json --seed 39948599784 cmd internal
+      timeout: 900
+    - run: tools/bin/pinned itos-cc mutation run --since a9de53f62e7b6755a91f47d2780bdc2a827b94e4 --count 60 --fail-uncovered=lines --json --seed 39948599784 cmd internal
+      timeout: 900
