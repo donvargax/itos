@@ -13164,3 +13164,19 @@ items:
       returns the same error. Correct only the explanation, without broadening or removing the
       exception or rewriting the historical commit.
     refs: [itos-cc.yaml, internal/tests/tsv.go]
+
+  - id: slice-168
+    title: Export raw shipped guides without config or version selection
+    phase: 1
+    owner: donvargax
+    status: todo
+    depends_on: []
+    kind: slice
+    why: >
+      Split from slice-167 after review on 2026-10-23. Add guide <name> --builtin as raw
+      LF-normalized shipped Markdown from the invoked binary, with no runtime config reads,
+      pin/latest/ITOS_VERSION handoff, release requests, cache writes, notes, generated policy,
+      status or provenance wrapper. Keep per-guide file replacement in slice-167; raw export is a
+      separate launcher/CLI delivery so the risky version-selection exception is reviewed
+      independently. No go --builtin; --builtin with --json is a usage error.
+    refs: [internal/guide, internal/launch, internal/cli, internal/slices/guide, features/guide.feature]
