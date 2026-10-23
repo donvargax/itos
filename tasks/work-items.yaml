@@ -12880,3 +12880,20 @@ items:
       definitions or the scenarios it was handed. Measure tokens and red CI runs against
       single-agent slices (p1-work-spend).
     tags: [tests, docs]
+
+  - id: p1-evidence-local
+    title: Opted-in checks rerun instantly when nothing they ran on changed (evidence records, A)
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [bug-112]
+    kind: idea
+    why: >
+      Work item A of docs/plans/evidence-records.md (ADR-0060): the evidence key on a done_when
+      check or ci.steps entry (A1), the local store under .git/itos/evidence with internal/lock and
+      uncached fallback (A2), lookup in itos task and ci run on a clean tracked tree (A3), and
+      commit-msg lookup keyed by the index tree once bug-112 runs checks from a staged snapshot (A4,
+      hence the dependency; A1 to A3 need not wait for it). Each feat goes red first through its own
+      test commit. Feats, minor releases; nothing consumer-visible changes for a check that does not
+      opt in.
+    tags: [tests, hooks]
