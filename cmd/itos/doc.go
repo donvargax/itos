@@ -3,7 +3,7 @@
 // one command line (itos --help).
 //
 // The OS is read here alone (runtime.GOOS) and handed down as a value (the
-// git adapter's Platform, launch.Platform, cli.Main's goos, Out's OS): no
+// git adapter's Platform, launch.Platform, cli.Run's OS, Out's OS): no
 // package under internal branches on runtime.GOOS, so a unit test runs each
 // OS's path on any, and a build-tagged file holds only a call one OS lacks.
 //

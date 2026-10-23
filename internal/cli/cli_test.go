@@ -31,7 +31,8 @@ func TestParseGlobals(t *testing.T) {
 
 func run(args ...string) (int, string, string) {
 	var stdout, stderr strings.Builder
-	code := Main(args, &stdout, &stderr, runtime.GOOS)
+	dir, _ := os.Getwd()
+	code := Main(Run{Args: args, Stdout: &stdout, Stderr: &stderr, OS: runtime.GOOS, Dir: dir})
 	return code, stdout.String(), stderr.String()
 }
 

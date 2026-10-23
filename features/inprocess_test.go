@@ -79,7 +79,7 @@ func (w *world) runInProcess(dir string, stdin io.Reader, args ...string) (resul
 		}()
 	}
 	var stdout, stderr bytes.Buffer
-	w.exit = cli.Main(args, &stdout, &stderr, runtime.GOOS)
+	w.exit = cli.Main(cli.Run{Args: args, Stdout: &stdout, Stderr: &stderr, OS: runtime.GOOS, Dir: dir})
 	_ = r.Close()
 	if stdin != nil {
 		<-done

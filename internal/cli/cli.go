@@ -90,6 +90,10 @@ type Out struct {
 	Stdout, Stderr io.Writer
 	Tests          *tests.Warnings
 	Origin         string
+	// Dir is the folder the command runs in, absolute: the run's, or where
+	// --root or the move to the repository's top took it (applyGlobals).
+	// Every path a command reads relative is read from it.
+	Dir string
 	// OS is the OS itos runs on, as GOOS names it, which Main's caller
 	// detects: what differs by OS takes it from here.
 	OS string
@@ -100,9 +104,21 @@ type Out struct {
 	// passing an id is still refused.
 	reserved string
 	// runLine is mainWith, which Main hands each command for draft promote
-	// to run a minting draft's line through: mainWith reaches every
-	// command, so no command may name it.
-	runLine func(args []string, stdout, stderr io.Writer, reserved string) int
+	// to run a minting draft's line through, started in the folder dir:
+	// mainWith reaches every command, so no command may name it.
+	runLine func(dir string, args []string, stdout, stderr io.Writer, reserved string) int
+}
+
+// Run is one run of itos: Args, the arguments after its name; the streams
+// it writes to; OS, the OS it runs on, as GOOS names it (Out's OS); and
+// Dir, the folder it starts in, absolute, which its caller reads once. The
+// run never reads or changes the process's working folder: what --root and
+// the move to the repository's top change is the run's folder (Out's Dir).
+type Run struct {
+	Args           []string
+	Stdout, Stderr io.Writer
+	OS             string
+	Dir            string
 }
 
 // usageError is a command called wrongly, internal/cli's or a slice's alike.
@@ -179,58 +195,85 @@ func configFailure(c *config.Error, o Out) int {
 }
 
 // applyGlobals sets what the global flags set before any command runs, so
-// --config and --root hold for everything a command loads. With neither, and
-// no ITOS_CONFIG, a run from a subfolder of a repository whose config is at
-// its top moves there first, as --root <top> would (slice 40), and gives
-// where the person stood (Out.Origin).
-func applyGlobals(g Globals) (origin string, err error) {
+// --config and --root hold for everything a command loads, and gives the
+// folder the command runs in, from dir, the one the run started in: --root,
+// joined to dir when relative, a usage error unless it is a folder; with
+// neither, and no ITOS_CONFIG, from a subfolder of a repository whose config
+// is at its top, the top, as --root <top> would (slice 40), and where the
+// person stood (Out.Origin); else dir. On the OS goos, a folder entered is
+// spelled as the OS gives it there (entered).
+func applyGlobals(g Globals, dir, goos string) (at, origin string, err error) {
 	if g.Config != "" {
 		if err := os.Setenv("ITOS_CONFIG", g.Config); err != nil {
-			return "", err
+			return "", "", err
 		}
 	}
+	at = dir
 	if g.Root != "" {
-		if err := os.Chdir(g.Root); err != nil {
-			return "", kind.Wrap(kind.Usage, fmt.Errorf("--root %s: %w", g.Root, err))
+		root := within(dir, g.Root)
+		info, err := os.Stat(root)
+		if err == nil && !info.IsDir() {
+			err = fmt.Errorf("%s is not a folder", root)
 		}
-	} else if top := config.Top(vcs.Git{}, ""); top != "" {
-		if origin, err = moveTo(top); err != nil {
-			return "", err
+		if err != nil {
+			return "", "", kind.Wrap(kind.Usage, fmt.Errorf("--root %s: %w", g.Root, err))
 		}
+		at = entered(goos, dir, root)
+	} else if top := config.Top(vcs.Git{Dir: dir}, dir); top != "" {
+		at, origin = moveTo(goos, dir, top)
 	}
 	if g.NoColor {
-		return origin, os.Setenv("NO_COLOR", "1")
+		return at, origin, os.Setenv("NO_COLOR", "1")
 	}
-	return origin, nil
+	return at, origin, nil
 }
 
-// getwd is os.Getwd, which a test swaps to reach moveTo's failures.
-var getwd = os.Getwd
+// within is the path p names from the folder dir.
+func within(dir, p string) string {
+	if filepath.IsAbs(p) {
+		return filepath.Clean(p)
+	}
+	return filepath.Join(dir, p)
+}
 
-// moveTo makes the repository's top the folder itos runs in, and gives
-// where the person stood, relative to it.
-func moveTo(top string) (string, error) {
-	here, err := getwd()
-	if err != nil {
-		return "", err
+// entered is the folder to, entered from the folder from, spelled as the OS
+// goos would give it as the folder a process stands in once it moved there:
+// from itself when to is the same folder, as a process that stays where it
+// was started keeps its spelling; else, but on windows, which keeps the
+// path as it was entered, with its links resolved, as unix gives a folder
+// moved to (a macOS temporary folder is /private/var's, not /var's).
+func entered(goos, from, to string) string {
+	if x, err := os.Stat(from); err == nil {
+		if y, err := os.Stat(to); err == nil && os.SameFile(x, y) {
+			return from
+		}
 	}
-	if err := os.Chdir(top); err != nil {
-		return "", fmt.Errorf("%s: %w", top, err)
+	if goos == "windows" {
+		return to
 	}
-	if top, err = getwd(); err != nil {
-		return "", err
+	if real, err := filepath.EvalSymlinks(to); err == nil {
+		return real
 	}
+	return to
+}
+
+// moveTo is the repository's top as the folder itos runs in, entered from
+// dir, the folder the person stood in (entered), and where they stood,
+// relative to it: "" at the top.
+func moveTo(goos, dir, top string) (at, origin string) {
+	at = entered(goos, dir, top)
+	here, there := dir, at
 	if real, err := filepath.EvalSymlinks(here); err == nil {
 		here = real
 	}
-	if real, err := filepath.EvalSymlinks(top); err == nil {
-		top = real
+	if real, err := filepath.EvalSymlinks(there); err == nil {
+		there = real
 	}
-	rel, err := filepath.Rel(top, here)
+	rel, err := filepath.Rel(there, here)
 	if err != nil || rel == "." {
-		return "", nil
+		return at, ""
 	}
-	return rel, nil
+	return at, rel
 }
 
 // typed is a path the person typed, as itos reads it at the top it moved to
@@ -244,25 +287,27 @@ func typed(origin, p string) string {
 	return filepath.Join(origin, p)
 }
 
-// Main runs itos with the arguments after its name on the OS goos, as GOOS
-// names it (Out's OS), and gives the exit code.
-func Main(args []string, stdout, stderr io.Writer, goos string) int {
-	return mainWith(args, stdout, stderr, goos, "")
+// Main runs itos as r says and gives the exit code.
+func Main(r Run) int {
+	return mainWith(r, "")
 }
 
 // mainWith is Main with the item id a draft reserved for the command (Out's
 // reserved), "" for none.
-func mainWith(args []string, stdout, stderr io.Writer, goos, reserved string) int {
-	g := Parse(args)
-	o := Out{JSON: g.JSON, Quiet: g.Quiet, Stdout: stdout, Stderr: stderr, Tests: tests.NewWarnings(stderr), OS: goos,
-		reserved: reserved, runLine: func(args []string, stdout, stderr io.Writer, reserved string) int {
-			return mainWith(args, stdout, stderr, goos, reserved)
+func mainWith(r Run, reserved string) int {
+	g := Parse(r.Args)
+	o := Out{JSON: g.JSON, Quiet: g.Quiet, Stdout: r.Stdout, Stderr: r.Stderr, Tests: tests.NewWarnings(r.Stderr), OS: r.OS,
+		reserved: reserved, runLine: func(dir string, args []string, stdout, stderr io.Writer, reserved string) int {
+			return mainWith(Run{Args: args, Stdout: stdout, Stderr: stderr, OS: r.OS, Dir: dir}, reserved)
 		}}
-	origin, err := applyGlobals(g)
+	dir, origin, err := applyGlobals(g, r.Dir, r.OS)
+	if err == nil && dir != "" {
+		err = os.Chdir(dir)
+	}
 	if err != nil {
 		return failure(err, o)
 	}
-	o.Origin = origin
+	o.Dir, o.Origin = dir, origin
 	name, rest := "", []string(nil)
 	if len(g.Rest) > 0 {
 		name, rest = g.Rest[0], g.Rest[1:]
@@ -291,7 +336,7 @@ func mainWith(args []string, stdout, stderr io.Writer, goos, reserved string) in
 	if !ok {
 		return failure(usage("unknown command: %s", name), o)
 	}
-	read, err := readLine(args)
+	read, err := readLine(r.Args)
 	if err != nil {
 		return failure(err, o)
 	}

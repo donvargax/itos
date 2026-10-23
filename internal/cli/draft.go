@@ -82,7 +82,8 @@ func (draftPorts) Exec(_ context.Context, self string, args []string, w io.Write
 
 // RunLine is the run Main handed the command (Out's runLine).
 func (p draftPorts) RunLine(_ context.Context, args []string, w io.Writer, reserved string) int {
-	return p.o.runLine(args, w, w, reserved)
+	here, _ := os.Getwd()
+	return p.o.runLine(here, args, w, w, reserved)
 }
 
 // Getwd is os.Getwd.
@@ -105,9 +106,12 @@ func (draftPorts) Globals(_ context.Context, command []string) draftslice.Line {
 }
 
 // ApplyGlobals is applyGlobals of the line's global flags.
-func (draftPorts) ApplyGlobals(_ context.Context, command []string) error {
-	_, err := applyGlobals(ParseGlobals(command))
-	return err
+func (p draftPorts) ApplyGlobals(_ context.Context, command []string) error {
+	dir, _, err := applyGlobals(ParseGlobals(command), p.o.Dir, p.o.OS)
+	if err != nil {
+		return err
+	}
+	return os.Chdir(dir)
 }
 
 // ReadLine is readLine's Rest.
