@@ -12863,8 +12863,8 @@ items:
   - id: T-285
     title: The feature scenarios run in process behind ITOS_FEATURE_DRIVER, serially, the binary driver unchanged
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
 
