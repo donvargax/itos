@@ -13224,3 +13224,24 @@ items:
       required markers are retained, not grep source. This omission can compromise follow-up
       completeness; it is not claimed to explain every late finding this session.
     refs: [docs/ORCHESTRATING.md]
+
+  - id: p1-review-materiality
+    title: Make review blockers material and follow-up passes focused
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The user on 2026-10-23 wants checks to guide agents toward requested behavior, not prevent
+      useful work. Preserve independent semantic review, but require each blocker to identify a
+      meaningful behavioral difference, compatibility or safety failure, or acceptance check that
+      can pass for the wrong reason. Equivalent helper names/file choices and harmless human wording
+      are not blockers merely because two implementations are possible. Give a scoped first pass
+      enough budget to complete; later passes recheck unresolved findings and changed portions, with
+      a fresh final adversarial pass where warranted. Permit newly discovered real defects at any
+      round, but explain their relevance rather than enforce an arbitrary round cap.
+      Coordinator-applied mechanical corrections should not trigger another whole-artifact review.
+      Keep machine contracts precise while leaving noncontract prose and internal implementation
+      freedom where appropriate.
+    refs: [internal/guide/brief.md, internal/guide/land.md, docs/ORCHESTRATING.md]
