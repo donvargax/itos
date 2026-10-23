@@ -12787,3 +12787,21 @@ items:
       task gives no reason), which is about failures in itos task, not ci run passes.
     refs: [internal/slices/ci]
     tags: [ci]
+
+  - id: p1-amend-keeps-head-links
+    title: itos commit --amend with a new message keeps the link footers HEAD has when it gives none
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Issue #116 (2026-10-22, from itos-cc): rewording an unpushed commit that carried Task: took
+      itos commit --task T-46 --amend -F msg.txt, the task named again and the whole message in a
+      file, though HEAD already held the footer. Expected: itos commit --amend -m with a new message
+      carries HEAD link footers (Task:, Item:, Scenarios: and the like) over when the new message
+      and flags give none, or a dedicated --reword. In a project, --amend --scenarios already keeps
+      a Task: footer the message has (slice 36); p3-stealth-amend-keeps-links is the stealth half of
+      the same rule, so the design should cover both modes.
+    refs: [internal/slices/commit]
+    tags: [commit]
