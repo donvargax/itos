@@ -8130,6 +8130,13 @@ items:
       are paths and Transaction carries git's commit fields. The user (2026-10-22): fine for now;
       Fossil tickets and a taskmapper-shaped issue provider are the two needs that will reshape it,
       likely at the record level (list, take, done, drop) above or beside the file adapter, in v9.
+
+      2026-10-24: slice-176 (was p1-pr-items) was narrowed to work done waiting for the merged pull
+      request; the user's 2026-10-06 half, a pull request naming its item and its merge closing it,
+      pairs with this pilot (an issue as the item, Closes #n in the pull request). The pilot would
+      also remove pr mode's registry commits to main (p1-pr-registry-to-main), make a take no commit
+      (p1-pr-take-switches) and stop the coordinator's registry commits moving main under open pull
+      requests (fewer GitHub rebases, slice-175).
     refs: [internal/work, internal/providers]
     tags: [work, providers, v8]
 
