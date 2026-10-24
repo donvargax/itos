@@ -9261,7 +9261,7 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: []
+    depends_on: [p1-typed-items]
     kind: slice
     why: >
       Was p1-draft-message-preflight.
@@ -9281,7 +9281,7 @@ items:
       selective promotion and field-scoped rebasing. Any expansion to external lint execution
       requires a separate decision.
     refs: [internal/cli/draft.go, internal/message/written.go, features/draft.feature]
-    tags: [draft, v8]
+    tags: [draft, v9]
 
   - id: p1-agent-git-ci-contract
     title: Separate Git validation, helper commands and ownership of CI follow-up
