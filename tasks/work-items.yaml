@@ -1908,13 +1908,9 @@ items:
     title: Signed releases, checked by the launcher before it trusts checksums.txt
     phase: 3
     owner: donvargax
-    status: todo
+    status: dropped
     depends_on: [slice-27, T-069]
     kind: idea
-    why: >
-      The user's call (2026-10-02): the launcher trusts checksums over HTTPS for now, and a pin's
-      hash of checksums.txt; signing belongs to the release cut by CI, which the user is solving
-      elsewhere and will port back, so a signature the launcher checks lands with it.
     refs: [PLAN.md]
     tags: [release]
 
