@@ -17,8 +17,9 @@ import (
 	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
 )
 
-// disk is the tracker's Load from the disk, as internal/cli binds it.
-var disk = trackeradapter.Files{}.Load
+// disk is the tracker's Load from the disk, as internal/cli binds it, from
+// the folder the test stands in.
+var disk = trackeradapter.Files{VCS: vcs.Git{}}.Load
 
 // A ledger in a scratch folder, its files written, and its config loaded.
 func scratchLedger(t *testing.T, files map[string]string) *config.Loaded {

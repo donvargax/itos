@@ -27,14 +27,8 @@ func In(dir, p string) string {
 	return filepath.Join(dir, p)
 }
 
-// Within is the path p read from the folder itos runs in, v's Folder; as
-// it is with no VCS.
-func Within(ctx context.Context, v VCS, p string) string {
-	if v == nil {
-		return p
-	}
-	return In(v.Folder(ctx), p)
-}
+// Within is the path p read from the folder itos runs in, v's Folder.
+func Within(ctx context.Context, v VCS, p string) string { return In(v.Folder(ctx), p) }
 
 // Unpushed is the start of the range that holds the commits of its end no
 // remote branch has (the stealth mode's range, slice 34).
