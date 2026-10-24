@@ -5586,7 +5586,7 @@ items:
     kind: task
 
   - id: p1-selftests-unrun
-    title: Every gate self-test runs on some schedule, not only when a push names its task
+    title: The hookenv self-test runs in a CI or nightly step
     phase: 1
     owner: null
     status: todo
@@ -5599,6 +5599,11 @@ items:
       task, so once the task is done only a push that names that task runs it, and the nightly's
       done-task checks are the static ones alone: previous-release.ts went red unseen this way after
       T-106. Either the nightly runs every self-test, or a check refuses a self-test no step names.
+
+      2026-10-23 grooming, verified: of the eleven self-tests named above, config-gate, deps-check,
+      go-port, plugin-version, release-cut, release-notes, schema-contract and upgrading-json no
+      longer exist and ci-scope, features-scope and go-dogfood run in a step; tools/selftest/hookenv
+      is the one self-test no itos.yaml step or workflow names.
     refs: [tools/selftest, itos.yaml]
     tags: [gates]
 
