@@ -8141,7 +8141,7 @@ items:
       The user, 2026-10-24: the GitHub registry is left to v9, not a v8 pilot; pr mode's follow-ups
       are built for v8 without it.
     refs: [internal/work, internal/providers]
-    tags: [work, v9]
+    tags: [work, providers, v9]
 
   - id: p2-pilot-mise
     title: Pilot mise in place of tools/bin/pinned, with the 7-day age rule kept
