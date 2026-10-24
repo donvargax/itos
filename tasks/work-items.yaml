@@ -6885,33 +6885,9 @@ items:
     title: Name scheduled code proof and explain when ranged proof is omitted
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: slice
-    why: >
-      Was p1-plan-names-code-proof.
-      Issue #36 (itos-template and go-template-itos, 7.0.0-rc.3 and rc.4): ci plan prints the code
-      proof as one more unlabelled static step, only --json marks it proof, and init --agent-rules
-      leaves it out of What the gates run. Agents reading AGENTS.md are never told the proof gates
-      their push; a task check written from the text plan looked for the word proof and could not
-      pass. Label the step in the text plan, say why when it is left out (no range start, no
-      proof.code.paths touched), and list it in the rules block at its place. Same block as
-      p1-agent-rules-ci-summary.
-
-      2026-10-10: the rules-block half is moot under q-45, which takes the CI list out of AGENTS.md
-      (p1-agent-rules-as-data); what stays is ci plan's text output labelling the code proof step
-      and saying why it is left out (no range start, no proof.code.paths touched).
-
-      First delivery covers #36 text-plan labeling and the explicit-warning alternative in #35:
-      identify a scheduled code-proof step in the text plan; when proof.code is configured but the
-      automatic ranged proof is absent, state the actual reason in ci plan and in the full ci run
-      log. Preserve proof selection, commands, outcomes, exit codes and JSON object fields.
-      Distinguish no resolved range start, unreadable range and a readable range with no matching
-      proof paths; do not claim an unreadable range touched no code. Reports describe scheduling,
-      not a passed verdict. Existing order[].proof remains the JSON marker; JSON run diagnostics
-      belong on stderr. No generated CI list returns to AGENTS.md (q-45), no fake base or automatic
-      whole-tree mutation run, no output added to --tests-only execution or configured nightly
-      execution. Those modes already have their own contracts.
     refs: [features/ci-proof-report.feature, internal/plan/data.go, internal/plan/scope.go, internal/plan/json.go, internal/plan/plan.go, internal/slices/ci/handler.go, internal/ci/ci.go]
     tags: [proof, v8]
 
