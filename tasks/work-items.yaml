@@ -13306,6 +13306,14 @@ items:
       check.Execution; bind one in internal/cli workPorts.FirstFailure (tree, key and refusal rules
       as the hook). Not part of A4; the plan does not list it.
 
+      2026-10-23 grooming, merged in p1-task-checks-once-at-done (#83): work done runs every
+      done_when check, each under its timeout, refusing the close with the failure and its output
+      (#82), and the static/late split stops applying to done_when. #83's other ask, the commit-msg
+      hook no longer running task checks, is answered by evidence records instead: the hook may run
+      them, and a repeat answers from the record, so a hand run, the hook and work done each pay
+      once.
+    tags: [evidence, v8]
+
   - id: T-294
     title: Add the 2026-10-23 grooming area tags and the v8 and v9 release tags to work.tags
     phase: 1
