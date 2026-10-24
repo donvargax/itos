@@ -3514,7 +3514,7 @@ items:
     kind: task
 
   - id: p1-starter-hooks-bin
-    title: itos init's starter config no longer writes hooks.bin
+    title: itos init's starter drops hooks.bin and the style commit type
     phase: 1
     owner: null
     status: todo
@@ -3526,6 +3526,12 @@ items:
       teaching every new repository a key it should not need. Dropping the two lines changes init's
       output and its corpus cases (init.yaml), so it is a behaviour change of its own, not slice
       79's.
+
+      2026-10-24 grooming (the user's call): merged in p3-starter-drops-style. The user's call of
+      2026-10-05: with formatters run on every commit, style is never the right type; this
+      repository dropped it in T-098, but the starter still lists it in types and required_for
+      (internal/slices/initcmd/starter.go:87,92), beside hooks: bin: itos (starter.go:156-157). Both
+      change init's output and its init.yaml corpus cases, so one fix with one Changes: footer.
     tags: [init, v8]
 
   - id: p1-git-config-pre-push-always
