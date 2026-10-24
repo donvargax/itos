@@ -4796,17 +4796,9 @@ items:
     title: Commands read their flags from the spec parse, not from readers of their own
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: []
     kind: idea
-    why: >
-      Found by slice-88: readLine judges every command line by its spec and hands the command its
-      arguments with each flag written --flag value, but the commands still read them through the
-      readers they had (flagValue, positional, subArgs, workArgs, repeated, taskAddArgs, init's
-      parsePluginFlag and parseShimFlag), which re-check what the spec has settled and keep their
-      own --flag=value and unknown-flag branches, now dead on the itos command line. Giving each
-      command the parse (values by name, the positional words) would leave one reader.
-      readCommitFlags stays, since git commit reaches it through the shim unparsed.
     refs: [internal/cli/spec.go]
     tags: [architecture]
 
@@ -8805,39 +8797,9 @@ items:
     title: init under a pin looks for the git shim beside the cached release, not the git on the PATH
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: [bug-113]
     kind: idea
-    why: >
-      #53 (2026-10-12): a pinned itos init runs from ~/.cache/itos/<version> and reports the shim
-      missing while git on the PATH is still the shim linking to the global itos, then advises
-      linking it into the cache folder, which is on no PATH and changes per pin. Look for the shim
-      as the unpinned run does: the first git on the PATH, and whether it links to an itos.
-
-      Source audit (2026-10-15): initshim.shimOffer.run already checks firstGit, but only keeps it
-      when linksItos reports the exact running executable. A valid global launcher is classified as
-      another itos under a cached runtime, so it falls back to the cache path. internal/git.IsItos
-      already recognizes other-version symlinks, chains and Go-built hard links/copies without
-      executing them. Existing-shim detection/reporting can use that identity boundary and preserve
-      the effective PATH entry; it must not change init dispatch back to the launcher because
-      bug-104 intentionally uses the pin for agent rules and hooks. Broader missing-shim
-      installation/advice remains a separate boundary to settle: the cached runtime has no
-      original-launcher-path handoff today. Do not silently point a new shim into a per-release
-      cache, claim an inactive later PATH shim is active, or replace arbitrary git programs.
-
-      First delivery fixes the reported active-existing-shim case: with no explicit --git-shim-dir,
-      recognize the first Git executable on PATH as an itos using the existing cross-binary identity
-      boundary, not equality with the cached runtime. Keep that effective shim in both report-only
-      init and explicit --git-shim; never relink it to the cache or claim its target is the running
-      runtime. Preserve current git_shim JSON fields and truthful path-standing data, --no-git-shim,
-      explicit-directory selection/refusal and pinned ownership of the rest of init. Do not search
-      past an earlier real Git and call a later shim active, nor execute a candidate to establish
-      identity. New/missing-shim installation and default cache advice are now
-      p1-pinned-shim-install-target, not hidden additions to this small detection fix.
-
-      The concrete active-existing-shim fix is bug-113. Keep this report item linked for explicit
-      absorption when that fix lands; do not implement it twice. The broader missing/new
-      installation case remains p1-pinned-shim-install-target.
     tags: [init]
     refs: [features/init-shim-identity.feature, internal/cli/initshim.go, internal/cli/gitshim.go, internal/git/bin.go, internal/launch/launch.go]
 
