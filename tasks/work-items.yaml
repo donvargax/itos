@@ -11734,6 +11734,13 @@ items:
       carry a paragraph of workarounds. Guard what runs (a git commit, push or add that a command
       line executes), not words in data passed to another program; where a command line cannot be
       parsed, say which construct and what to do instead. Related: p1-guard-follows-cd (#69).
+
+      2026-10-24 grooming (the user's call): merged in p1-guard-env-assignments (T-191's agent,
+      2026-10-22): the guard's isAssignment (internal/slices/guard/domain/guard.go) takes an env
+      assignment to be NAME=value with NAME a shell identifier, but env treats any word holding = as
+      one, so env A-B=1 git commit is not seen as a git commit and passes; T-191's TestGitCalls pins
+      today's narrow reading, so changing it is a fix with a scenario. Both are which shell words
+      the guard reads as a git call.
     refs: [internal/slices/guard, internal/guard, integrations/claude-code/hooks/guard.sh]
     tags: [guard, v8]
 
