@@ -7809,14 +7809,14 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: []
+    depends_on: [p1-typed-items]
     kind: idea
     why: >
       2026-10-11: q-58 was answered in two steps (a dry run first, then the harvest the dry run
       argued for), and decision answer refused the second (q-58 is already answered), so the final
       answer went into tasks/asks.yaml by hand before decision record. An answer not yet recorded as
       a decision should take a --replace or an appended answer, committed as answer does.
-    tags: [ask, v8]
+    tags: [ask, v9]
 
   - id: p1-decision-record-hook-lock
     title: decision record's commit passes a pre-commit hook that re-stages what it formats
