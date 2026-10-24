@@ -3383,15 +3383,9 @@ items:
     title: tools/selftest/release-cut.ts proves the upgrading.json its snapshot's release would publish
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: [T-091]
     kind: idea
-    why: >
-      Found working T-091: release-cut.ts runs tools/bin/release-notes on its snapshot as the
-      release workflow does and judges the notes with release-notes.ts --notes, but not the second
-      run, release-notes -json, which the workflow now makes and uploads as upgrading.json.
-      upgrading-json.ts judges only the asset it generates itself; a --json <file> mode, as
-      release-notes.ts has --notes, would let release-cut.ts judge the snapshot's.
     tags: [gates]
 
   - id: bug-22
@@ -7564,18 +7558,9 @@ items:
     title: A module path move can be committed so each commit builds and vets
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: []
     kind: idea
-    why: >
-      Found by T-151 (2026-10-11), as T-119 found for v7: moving go.mod's module path changes the
-      imports of {cmd,internal}/**/*.go (refactor) and of tools/bin's Go programs (ci or build
-      only), and no type but revert may touch both. The pre-commit hook runs go vet ./... over the
-      whole module, so the refactor commit is refused while tools/bin still imports the old path; it
-      went through only with the ci edits left unstaged in the tree, and the commit alone does not
-      vet. Every major's first commit pays it. A rule that lets one commit move a module path whole
-      (a type or an exception judged by the diff being import lines only), or a hook that vets the
-      staged tree, would make it one clean commit.
     refs: [itos.yaml, .vite-hooks/pre-commit]
     tags: [gates, v8]
 
