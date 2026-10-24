@@ -11285,14 +11285,14 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: []
+    depends_on: [p3-guard-replacement]
     kind: idea
     why: >
       #102 (8.5.0): a docs commit made mid-task without --task landed outside the task's commits,
       and nothing said so. When the committer owns exactly one doing item and the type accepts its
       footer without requiring it, print one line naming the item and the flag; add nothing.
       p3-guard-replacement's guided commits replace it.
-    tags: [commit, v8]
+    tags: [commit, v9]
 
   - id: p1-smoke-beside-feature
     title: A feature file can declare its own smoke scenario, so the smoke set needs no shared file
