@@ -13608,3 +13608,19 @@ items:
       about 3,600 calls an hour against GitHub's 5,000. A flag that reads only local state (head,
       doing, next, questions, unpushed), or a coordinator that polls work and decision often and
       status rarely, would keep it under the limit.
+
+  - id: p1-no-people-work-lists-doing
+    title: With no people, itos work and status list the item a take put in progress
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Found by bug-133's spec (2026-10-24): with no one in the people (no file, an unreadable one,
+      or one listing no one) work take treats every item as the session's, as stealth does, but itos
+      work and status work for nobody ('Working for nobody.') and never list the item the take put
+      in progress, where under stealth work lists it under In progress. That mismatch in bug-46's
+      design is likely the real cause of #88's confusion. Also: a people file listing no one gets no
+      config check warning, though takes then record no owner.
+    refs: [internal/slices/work/write.go]
