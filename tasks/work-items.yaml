@@ -4278,7 +4278,7 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: []
+    depends_on: [p3-guard-replacement]
     kind: idea
     why: >
       linksItos (internal/cli/gitshim.go) knows an itos as this binary or a symbolic link to a file
@@ -4292,7 +4292,7 @@ items:
       code review of 07b0e6d (gitshim.go linksItos and os.Link): after an upgrade replaces itos.exe,
       install and uninstall both refuse their own stale shim.
     refs: [internal/cli/gitshim.go]
-    tags: [windows, v8]
+    tags: [windows, v9]
 
   - id: p1-untyped-ignored-headers
     title: Judge a one-parent commit whose lint-ignored header names no type
