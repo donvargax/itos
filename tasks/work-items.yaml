@@ -59,7 +59,6 @@ queue:
   - p1-mutation-results-committed
   - p1-text-from-file
   - p3-commit-long-text-footer
-  - T-177
   - bug-38
   - bug-42
   - bug-128
