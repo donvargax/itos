@@ -8137,8 +8137,11 @@ items:
       also remove pr mode's registry commits to main (p1-pr-registry-to-main), make a take no commit
       (p1-pr-take-switches) and stop the coordinator's registry commits moving main under open pull
       requests (fewer GitHub rebases, slice-175).
+
+      The user, 2026-10-24: the GitHub registry is left to v9, not a v8 pilot; pr mode's follow-ups
+      are built for v8 without it.
     refs: [internal/work, internal/providers]
-    tags: [work, providers, v8]
+    tags: [work, v9]
 
   - id: p2-pilot-mise
     title: Pilot mise in place of tools/bin/pinned, with the 7-day age rule kept
