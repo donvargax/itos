@@ -61,7 +61,6 @@ queue:
   - bug-129
   - bug-130
   - bug-131
-  - p1-guard-quoted-text
   - p1-defer-reason-footer
   - p1-take-without-people-says-so
   - p1-js-error-texts
@@ -11690,38 +11689,9 @@ items:
     title: The guard judges git commands, not the word git inside quoted text, heredocs or script bodies
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: []
     kind: idea
-    why: >
-      Every implementing lane of the refactor's steps 6 to 7 (2026-10-22, about ten agents in
-      worktrees) met the same refusals from itos guard claude-code: a heredoc or python -c body that
-      merely contains the word git (in a Go doc comment being written), a grep with \| in its
-      pattern, sh script.sh followed by a redirection, echo $? after a tools/bin/pinned call,
-      apostrophes, and the push proof typed directly. The agents worked around them with Write-tool
-      files and one-command calls, at the cost of many extra tool calls per task; the briefs now
-      carry a paragraph of workarounds. Guard what runs (a git commit, push or add that a command
-      line executes), not words in data passed to another program; where a command line cannot be
-      parsed, say which construct and what to do instead. Related: p1-guard-follows-cd (#69).
-
-      2026-10-24 grooming (the user's call): merged in p1-guard-env-assignments (T-191's agent,
-      2026-10-22): the guard's isAssignment (internal/slices/guard/domain/guard.go) takes an env
-      assignment to be NAME=value with NAME a shell identifier, but env treats any word holding = as
-      one, so env A-B=1 git commit is not seen as a git commit and passes; T-191's TestGitCalls pins
-      today's narrow reading, so changing it is a fix with a scenario. Both are which shell words
-      the guard reads as a git call.
-
-      The user, 2026-10-24: fix it in v8. Reading the code first: the guard is no string match.
-      internal/slices/guard/domain parses the line with mvdan.cc/sh and denies only a git commit or
-      push it finds as a command (and, by its doc.go, a line it cannot judge: sh -c, eval, a word
-      built from a variable, a cd first, one bash cannot parse). Some reported refusals (\| in a
-      grep, apostrophes, a redirection) fit Claude Code's own permission checks or the PATH shim
-      better. The spec starts by reproducing each refusal through itos guard claude-code, and fixes
-      only those the guard makes.
-
-      The user, 2026-10-24: if the PATH shim makes some of these refusals, loosening it a little in
-      v8 is fine too, on the same terms: reproduce each one first, and change only what is too
-      strict.
     refs: [internal/slices/guard, internal/guard, integrations/claude-code/hooks/guard.sh]
     tags: [guard, v8]
 
