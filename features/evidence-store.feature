@@ -20,8 +20,9 @@ Feature: The local evidence store survives contention and damage
     internal/lock's, waited for 10 seconds; a writer that waited looks the
     record up again before it runs. Lookup takes no lock. A record is
     written in a folder named .tmp-<key>-<unique>, which no reader ever
-    reads, and renamed into place, never overwritten. A rename that fails
-    judges what is at the destination: a complete record that matches its
+    reads, and renamed into place, never overwritten. Before the rename, and
+    again if it fails, the writer judges what is at the destination, the same
+    on every OS (Windows renames over a file where Unix refuses): a complete record that matches its
     key is kept as it is, and the writer, whose check has run, reports its
     own verdict with hit false, recorded false, reason already-recorded and
     recorded_at the kept record's time; anything else is quarantined. A final record
