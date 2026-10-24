@@ -13515,3 +13515,11 @@ items:
       .tmp-<key>-<unique> folder a killed writer left, but nothing ever removes either, so a store
       only grows. Decide what removes them (age, count, a command) and keep it off the lookup path,
       which takes no lock.
+
+  - id: T-293
+    title: The private store's write-failure test lowers the file size limit only in a child process
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task

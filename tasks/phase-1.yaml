@@ -4496,3 +4496,23 @@
     2026-10-10 dump of git's environment and an agent's leftover commit-message file at the top. The
     user asked on 2026-10-23 to keep the repository clean and ignore what should not reach GitHub.
     Ignore the whole .claude/ folder, /.hook-git-env and /*-commit*.txt.
+
+- id: T-293
+  type: test
+  title: The private store's write-failure test lowers the file size limit only in a child process
+  why: >
+    CI run 40051616560 (macOS, on docs-only commit 0896dcf8) failed internal/store/private/adapter
+    after every test passed: go test could not write its testlog.txt, 'file too large'.
+    TestStoreKeepsTheFileAWriteFailsToReplace (internal/store/private/adapter/fsize_test.go, added
+    by c7180437 on 2026-10-22) lowers RLIMIT_FSIZE to 4 bytes for the whole test process while it
+    writes, so any concurrent write in that process (the testing package's own log, a parallel test,
+    the coverage profile) can fail with EFBIG: a flake that can turn any push red on Linux or macOS.
+    Keep the test's point, a real disk write cut short leaves the replaced file as it was, but run
+    the limited write in a child process: the test re-executes its own binary (os.Args[0], -test.run
+    naming a helper test, an environment variable selecting the child role), the child lowers the
+    limit, attempts the store write and reports through its exit code and output; the parent never
+    changes its own limit and asserts the file still reads old. No skip, no production change, no
+    gate change; the build constraint (linux || darwin) stays.
+  done_when:
+    - run: "! grep -n 'Setrlimit' internal/store/private/adapter/fsize_test.go | grep -v -i child >/dev/null || grep -q 'os.Args\\[0\\]' internal/store/private/adapter/fsize_test.go"
+    - run: names=$(go test ./internal/store/private/adapter -list '^TestStoreKeepsTheFileAWriteFailsToReplace$') && printf '%s\n' "$names" | grep -qx 'TestStoreKeepsTheFileAWriteFailsToReplace' && go test ./internal/store/private/adapter -count=3 -run '^TestStoreKeepsTheFileAWriteFailsToReplace$'
