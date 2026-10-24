@@ -91,7 +91,10 @@ Feature: push.mode pr, an item's work on its own branch merged by rebase, claims
   head, whose run may be green for commits CI never judged. So the push asks
   gh pr view <item> --repo <repository> --json headRefOid at once, and again
   each ci.watch.interval, and takes the first head that has main's head, as
-  the push fetched it, as an ancestor. Neither stale answer has it:
+  the push fetched it, as an ancestor. The polling runs inside the wait
+  (internal/slices/push), after the config is loaded, the Watcher built
+  and the "Pushed ..." line printed, so a Watcher that cannot be built
+  fails as it does today, before any gh pr view. Neither stale answer has it:
   update-branch is asked for only when the head pushed lacks main's head,
   and the head pushed holds the previous one. A head the clone lacks is
   first fetched quietly from the remote's item branch, as the watch fetches
