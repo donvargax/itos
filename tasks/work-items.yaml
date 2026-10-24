@@ -13633,3 +13633,21 @@ items:
       an agent may write besides its worktree. itos guide brief's template (or this repository's
       ORCHESTRATING lines) could say: write only inside the worktree or a scratch repository under
       the scratchpad, enter it with cd <dir> || exit 1, and use absolute paths.
+
+  - id: p1-yaml-errors-name-file
+    title: "Every YAML reader names its file for a malformed document: a scalar item, a scalar registry, a duplicate key, a syntax error"
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Found by bug-134's spec (2026-10-24), beyond its six shapes: a scalar item (items: [5]) is
+      read as an empty mapping and gives four problems about undefined (undefined: no title, owner
+      "undefined"); a registry that is a scalar or a list (hello) is judged sound, exit 0; a
+      duplicate key prints the yaml package's 'Map keys must be unique at line 2, column 1'
+      (value.go:331) and a syntax error 'yaml: line 1: did not find expected node content', neither
+      naming the file, for every reader (ledger, config, follow-ups); work list on an alias registry
+      prints the alias error without the file; work check's text output prints no fix: lines where
+      status and work take do.
+    refs: [internal/value/value.go, internal/work/registry.go]
