@@ -13348,3 +13348,39 @@ items:
       neighbours (internal/check/doc.go:340, internal/cli/doc.go:356).
     refs: [internal/slices/work/command.go, internal/check/doc.go, internal/cli/doc.go]
     tags: [evidence, v8]
+
+  - id: bug-123
+    title: A task check run in a snapshot sees the repository's HEAD, history, refs and remotes, and a check can opt out to the working tree
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: bug
+    why: >
+      Issue #119 (8.12.0, a consumer): since 8.7.5 (bug-112, 2b790b0) the commit-msg hook runs a
+      commit's named static task checks in a checkout under .git/itos/snapshots/ made by git init,
+      objects through alternates, read-tree and checkout-index of the staged tree
+      (internal/vcs/adapter/snapshot.go TaskSnapshot). It has no HEAD, no history, no remotes and
+      none of the untracked project tool folders, so a check that reads its repository refuses a
+      commit it accepted under 8.4.0 and 8.7.4: git read-tree HEAD (not a valid object name HEAD),
+      itos ci scope HEAD~1 HEAD (HEAD~1 is not a commit), git ls-remote origin (no such remote), a
+      locally installed tool such as <package-manager> exec commitlint (command not found). It
+      shipped with Upgrading: none and no key restores the old behaviour. slice-173 (8.12.0) runs
+      opted-in checks at work done and in a hand-run itos task through the same TaskSnapshot, so
+      they break alike. The user's call (2026-10-24): fix it in v8 at the queue's head, in two
+      parts. (1) The snapshot gets the repository's git context: HEAD (unborn and detached
+      included), its history through the shared objects, the refs and the remotes' config, read-only
+      towards the source, never a fabricated commit for the proposal; for an opted-in evidence
+      check, what HEAD it read must reach the key, or such a check is refused evidence; the spec
+      settles which. (2) A done_when check can opt out of the snapshot (for instance snapshot:
+      false), running in the working tree as before 8.7.5, for what (1) cannot give, the untracked
+      project tools; an explicit opt-out, never the default. No repository-wide switch. Merged in
+      p1-snapshot-git-context (bug-112's review, 2026-10-23): HEAD and ref population, unborn and
+      detached HEAD, linked worktrees, concrete observations written to an external observer log
+      (HEAD SHA or unborn, branch or detached, a history query, the staged tree), a nested
+      repository, private writes to refs, index and objects never reaching the source, and the
+      in-tree ITOS_CONFIG remap (resolved before the child's working folder changes; a source-tree
+      path maps into the snapshot, no fallback to an unstaged config), with scenarios for relative
+      and absolute pointers.
+    refs: [internal/vcs/adapter/snapshot.go, internal/engine/evidence, features/hook-task-snapshot.feature]
+    tags: [hooks, evidence, v8]
