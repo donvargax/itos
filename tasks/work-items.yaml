@@ -2889,7 +2889,7 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: [slice-57]
+    depends_on: [slice-57, p1-typed-items]
     kind: idea
     why: >
       Found by slice 57's post-landing review (2026-10-04). Sure: --json --patch under a stealth
@@ -2901,7 +2901,7 @@ items:
       after its promotion says unknown item without naming what it became. Low: a literal why: |
       prints each line as a paragraph. Cleanup: history.go and workshow.go rebuild the notes
       arguments showNotes has, BareID would do for TagPrefix+ID, Link.Key is unused.
-    tags: [work, v8]
+    tags: [work, v9]
 
   - id: slice-63
     title: itos work show lists the commits that wrote an item's spec
