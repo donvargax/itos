@@ -4910,6 +4910,10 @@ items:
     why: >
       Slice 92 rewrote ASK-20 (slice 89, question add) to run decision add, so it asserts the same
       as ASK-22. Neither is released yet: dropping one before v6.0.0 costs nothing.
+
+      2026-10-23 grooming: still true (@ID-ASK-20 at features/ask.feature:224 checks what @ID-ASK-22
+      at :250 does), but both are released since v6, so the drop names @ID-ASK-20 in a Changes:
+      footer (go run ./tools/bin/previous-release).
     tags: [tests]
 
   - id: p1-ci-e2e-workflow
