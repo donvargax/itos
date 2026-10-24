@@ -4176,13 +4176,9 @@ items:
     title: itos init's starter drops style from its commit types
     phase: 3
     owner: null
-    status: todo
+    status: dropped
     depends_on: []
     kind: idea
-    why: >
-      The user's call (2026-10-05): with formatters run on every commit, style is never the right
-      type. This repository dropped it in T-098; the starter still lists it
-      (internal/cli/starter.go), though there it needs a Task.
     tags: [init, v8]
 
   - id: p3-gate-changes-visible
