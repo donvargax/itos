@@ -13467,3 +13467,17 @@ items:
       The 2026-10-24 grooming moved it back to v8: the guided-commits plan keeps the shim
       (docs/plans/guided-commits.md:21), so v9 keeps the fix.
     refs: [internal/shim/install.go]
+
+  - id: bug-129
+    title: work done says nothing of a closing slice's Examples blocks still tagged @wip
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: bug
+    why: >
+      Was p1-work-done-wip-examples. From #111: a slice closed while a tagged Examples block under
+      its live outline kept @wip (rows waiting on a harness change), and the close said nothing: the
+      closing check seems to read scenario-level tags only. Refuse, or name the example-level @wip
+      blocks the close leaves.
+    refs: [internal/tests/gherkin.go, features/work.feature]
