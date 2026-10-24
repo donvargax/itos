@@ -6782,6 +6782,11 @@ items:
       one docs: decide q-N commit, the question text kept, so itos decision and decision records
       read the same. Halves those commits and their pushes; slice-109's fallback to commits.since
       already covers the first-parent window they once overflowed. The user agreed 2026-10-10.
+
+      2026-10-24 grooming (the user's call): merged in p1-draft-decision-id's second half, the same
+      flag: decision add --answer for a question asked and answered at once (found 2026-10-11
+      recording an answer while an agent held the checkout). p1-draft-decision-id keeps its first
+      half, draft add printing the q id it will take.
     refs: [internal/cli, internal/ask]
     tags: [ask, v8]
 
