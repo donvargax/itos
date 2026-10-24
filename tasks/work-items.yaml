@@ -4676,14 +4676,9 @@ items:
     title: A permanent rule can be suspended, printed nowhere but kept, and restored if its mistake comes back
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: [p1-agent-rules-as-data]
     kind: idea
-    why: >
-      The user's call (2026-10-06): a rule with an exit item retires when the item lands, but a
-      permanent one only stops being needed when models stop making the mistake, and nothing shows
-      that. A suspended rule is printed nowhere; a sighting of its mistake restores it; one that
-      stays suspended through a model release is deleted. The vanilla baseline, one rule at a time.
     tags: [agents, v9]
 
   - id: p1-guide-as-rule-data
@@ -7432,23 +7427,9 @@ items:
     title: "Notes are placed like rules: startup essentials, or attached to a role, procedure or item"
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: [p1-agent-rules-as-data]
     kind: idea
-    why: >
-      Split from p1-agent-rules-as-data with the user (2026-10-10), q-47 and q-48: itos go stops
-      appending the repository's and the clone's notes whole. An author marks an operational note as
-      a startup essential or attaches it to a role, a procedure or an item; itos go prints only the
-      current essentials, and a before-action procedure prints the notes that apply to it.
-      Historical handoffs stay readable outside startup; current work lives in the registry,
-      decisions and drafts. Repository notes stay shared, clone notes private; classification and
-      archival are explicit, never heuristic summaries or silent truncation. itos status stays a
-      snapshot with no notes (q-48). Breaking (what itos go prints): part of the v8
-      release-candidate bundle.
-
-      2026-10-10, the v8 plan (docs/plans/v8-lean-agent-context.md): not in v8. It waits on
-      p1-agent-rules-as-data, and holding v8's release-candidate window open for that is weeks; the
-      next major.
     refs: [docs/ORCHESTRATING.md, internal/guide]
     tags: [agents, v9]
 
@@ -7531,13 +7512,9 @@ items:
     title: itos guide work <item> prints the item after the guide, as itos work show does
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: [slice-119]
     kind: idea
-    why: >
-      Cut from p1-guide-before-action (2026-10-10): every implementing agent runs itos guide work
-      and then itos work show <item>, two round trips to start. With an item, guide work prints
-      both. Rules scoped to the item come later with p1-agent-rules-as-data.
     tags: [agents, v8]
 
   - id: p1-doc-budget-procedures
