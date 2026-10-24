@@ -4569,3 +4569,28 @@
     before its end is said, but a cancelled run with no newer run to follow ends 75 without it
     (watch.go:168-169, 179-182). The comment changes to what the code does; the behaviour stays: a
     cancelled run has nothing failed to name.
+
+- id: T-297
+  type: test
+  title: "Two CI flakes: the features' itos on the PATH starts without Text file busy, and the evidence cap test does not race 50 ms on Windows"
+  why: >
+    CI run 40060520504 (29804acf, 2026-10-24) went red on two flakes, both green on a rerun of the
+    failed jobs. (1) ubuntu: init.feature:313's 'the files init wrote are committed' failed with
+    'sh: 1: itos: Text file busy', exit 126, through itosOnPath (features/stealth_test.go:128),
+    which os.WriteFile's the itos script and runs it at once: while scenarios run in parallel, a
+    child another goroutine forks inherits the still-open write descriptor, so exec sees ETXTBSY
+    (golang/go#22315); the code proof's listed-test preparation failed the same run on it. Write the
+    script to a temporary name in the same folder and rename it into place, so no descriptor open
+    for writing names the path exec runs; check the other steps that write an executable and run it.
+    (2) windows: internal/engine/evidence/hook_test.go:116, 'a run under the cap' with echo done,
+    timed out (TimedOut true, output done) under the 0.05 s cap the test also uses to stop sleep 5:
+    starting sh on a Windows runner can take longer than 50 ms. Use a short cap for the run it stops
+    and one far above a shell's start (seconds, still under the sleep) for the run that must finish,
+    so the test asserts the cap's rule, not a runner's speed (from slice-171, beae0469). The checks
+    run the two tests; they pass before the fix too, since both failures are timing races, so the
+    report says how each change removes its race.
+  done_when:
+    - run: go test ./internal/engine/evidence -count=3 -run '^TestAMissRunsUnderTheCapAndIsKeyedByTheOwnTimeout$'
+      timeout: 300
+    - run: go test ./features -count=1 -run 'TestFeatures/Explicit_policy_initialization_refuses_an_existing_project_configuration_without_changing_it'
+      timeout: 300
