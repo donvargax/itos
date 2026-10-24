@@ -13332,3 +13332,21 @@ items:
       speed. From slice-171 (beae0469).
     refs: [internal/engine/evidence/hook_test.go]
     tags: [tests, evidence, v8]
+
+  - id: p1-work-done-help-staged-input
+    title: work done's help says when a staged new evidence input reaches its run
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      slice-173's diff review (2026-10-24, approved, notes only): work done keys an opted-in check
+      by HEAD's tree, and a file staged but not committed that the check declares as an input is
+      untracked from HEAD's view, so evidence-local's untracked-input rule copies it in from the
+      working folder. That qualifies work done --help's 'a staged change or an unstaged edit reaches
+      neither the run nor the key' (internal/slices/work/command.go:845). Say so in the help, or
+      leave such an input out under HEAD's view; and rewrap the two doc lines that run past their
+      neighbours (internal/check/doc.go:340, internal/cli/doc.go:356).
+    refs: [internal/slices/work/command.go, internal/check/doc.go, internal/cli/doc.go]
+    tags: [evidence, v8]
