@@ -13651,6 +13651,12 @@ items:
       p3-pr-rebase-merge (folded into p1-pr-mode, now slice-174) wanted: the gh api PATCH, printed
       when gh is missing or refused, plus allow_auto_merge it lacked.
 
+      2026-10-24: applied by hand to donvargax/itos ahead of the pr trial: allow_auto_merge,
+      allow_rebase_merge only (squash and merge commits off), delete_branch_on_merge and
+      allow_update_branch on (gh pr update-branch needs it until a ruleset requires an up-to-date
+      branch). The ruleset requiring the checks waits for the switch to pr, with an admin bypass for
+      the registry commits pr pushes straight to main.
+
   - id: p1-pr-main-run-after-merge
     title: In pr mode, main's run after the merge is watched
     phase: 1
