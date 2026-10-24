@@ -5858,14 +5858,9 @@ items:
     title: proof.code.check runs under a timeout, a hung provider refusing with exit 75
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: []
     kind: idea
-    why: >
-      Found building slice-100 (2026-10-08): work done runs proof.code.check with no timeout, so a
-      provider that hangs holds work done until someone kills it. itos-cc's mutation check runs
-      nothing slow, so a bound such as hooks.commit_msg.check_timeout's would cost nothing; past it
-      the check would be a temporary failure, never a pass.
     tags: [proof]
 
   - id: T-125
@@ -6710,26 +6705,9 @@ items:
     title: Stop committing itos-cc's mutation cache
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: []
     kind: idea
-    why: >
-      Since T-131 (q-52) both gates run itos-cc mutation run --count, which neither reads nor writes
-      .metrics/mutate/: the push proof took 76 s on slice-108's push (most of it coverage and
-      baselines, not the one trial) and 5 s on a push with no Go change, so a cache would save at
-      most the trial's 5 to 15 s. Keeping it fresh cost about an hour of local runs per few files,
-      and any edit to a function, its tests or (itos-cc#30) its feature file stales it; stale
-      results can still widen the push's draw. The user agreed 2026-10-10: remove .metrics/mutate/
-      and git-ignore it. itos-cc.yaml stays: its exceptions apply in fresh runs. Note: mutation
-      except needs a fresh local snapshot of the file, so excepting a new equivalent mutant means
-      one local mutation run of that file, kept uncommitted. Revisit if pushes get slow, starting
-      from itos-cc#30's per-test fingerprint.
-
-      The slices refactor (T-225, T-226, 2026-10-22) leaves the cache staler with each move:
-      snapshots of moved and split functions (internal/cli workwrite, taskadd, workpromote,
-      workdone, ask; ledger) are out of date and the new store packages have none, since recording
-      one is a local mutation run q-41 rules out. docs/plans/slices-and-ports.md's line that each
-      move carries its snapshots is dropped in T-227.
     tags: [proof, v8]
 
   - id: slice-112
