@@ -12945,8 +12945,8 @@ items:
   - id: slice-169
     title: Opted-in checks rerun instantly from a local record keyed by the index tree (evidence records, A1 and A3)
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: [bug-112]
     kind: slice
     why: >
