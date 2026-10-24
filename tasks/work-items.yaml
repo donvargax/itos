@@ -3632,7 +3632,7 @@ items:
     kind: task
 
   - id: p3-stealth-override-copy-drift
-    title: Under a stealth config, a stale copy of AGENTS.md in AGENTS.override.md is noticed without running itos init
+    title: itos status names a stale AGENTS.md copy in AGENTS.override.md
     phase: 3
     owner: null
     status: todo
@@ -3644,7 +3644,11 @@ items:
       init, the only command that reports it. Something run often (itos go, itos status, or a
       post-merge hook under the stealth config) could report the drift, or refresh the copy, which
       is itos's own text between its markers.
-    refs: [internal/cli/initrulesstealth.go, features/init.feature]
+
+      2026-10-24 grooming: status's stale-block line checks only the rules block
+      (agentrules/stealth.go:122-126), not the copy block (CopyBegin, CopyEnd); that line is the
+      place.
+    refs: [internal/slices/initcmd/rulesstealth.go, internal/agentrules/stealth.go, features/init.feature]
     tags: [stealth, v8]
 
   - id: slice-81
