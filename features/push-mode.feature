@@ -507,8 +507,8 @@ Feature: push.mode pr, an item's work on its own branch merged by rebase, claims
 
   # Every gh call names the repository itos pushes to; a remote that names
   # no GitHub repository (here a folder), with no repository in the
-  # environment, has none to name, and the push stops before anything is
-  # fetched or pushed. Fails before the build at the exit code: today the
+  # environment, has none to name, and the push stops once rebased, before
+  # anything is pushed. Fails before the build at the exit code: today the
   # branch is pushed, exit 0.
   @ID-PUSHMODE-20 @slice-174
   Scenario: Under pr, a push with no GitHub repository to name is refused, exit 3

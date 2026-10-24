@@ -348,14 +348,13 @@ func TestPushRefusesABranchThatNamesNoItem(t *testing.T) {
 }
 
 // Main is asked of the remote and must be a branch it has: a HEAD that
-// names none, one that names a branch it lacks, or a listing that fails is
-// refused, exit 3, before anything is fetched; a remote that cannot be asked
-// exits by the kind of git's message.
+// names none, or one that names a branch it lacks, is refused, exit 3,
+// before anything is fetched; a remote that cannot be asked, for its HEAD or
+// for the branch it names, exits by the kind of git's message.
 func TestPushNeedsMainOfTheRemote(t *testing.T) {
 	for name, set := range map[string]func(*fake){
-		"no branch":      func(f *fake) { f.remoteHead = "" },
-		"a missing one":  func(f *fake) { f.remoteHead = "trunk" },
-		"a listing fail": func(f *fake) { f.refsErr = errors.New("cannot list") },
+		"no branch":     func(f *fake) { f.remoteHead = "" },
+		"a missing one": func(f *fake) { f.remoteHead = "trunk" },
 	} {
 		t.Run(name, func(t *testing.T) {
 			f := prRepo(t)
@@ -391,6 +390,13 @@ func TestPushNeedsMainOfTheRemote(t *testing.T) {
 			f.headErr = c.err
 			if _, stdout, _, _ := call(t, f, "--json"); reported(t, stdout).Outcome != "fetch-failed" {
 				t.Errorf("--json: %s", stdout)
+			}
+			// The listing that checks the remote has the branch fails alike.
+			f = prRepo(t)
+			f.refsErr = c.err
+			code, _, stderr, _ = call(t, f)
+			if code != c.code || !strings.HasPrefix(stderr, "fatal: ") || !strings.Contains(stderr, "listing origin's main failed") || len(f.pushed) != 0 {
+				t.Errorf("a listing that fails: exit %d\n%s", code, stderr)
 			}
 		})
 	}
@@ -619,6 +625,14 @@ func TestPushRefUnderPr(t *testing.T) {
 	f.headErr = &vcsport.Failed{Code: 128, Failure: vcsport.NoRepository}
 	if code, _, _, _ := call(t, f, "--ref", "main"); code != missing || len(f.pushed) != 0 {
 		t.Errorf("a remote that cannot be asked: exit %d", code)
+	}
+	// A remote with no main has none for --ref to name: the push goes on as
+	// pushNamed has it.
+	f = prRepo(t)
+	f.remoteHead = "trunk"
+	f.Named["refs/heads/ci/windows"] = mine
+	if code, _, _, _ := call(t, f, "--ref", "ci/windows"); code != 0 || len(f.pushed) != 1 {
+		t.Errorf("a remote with no main: exit %d, pushed %v", code, f.pushed)
 	}
 	// A tag asks nothing of the remote's HEAD.
 	f = prRepo(t)

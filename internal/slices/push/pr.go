@@ -49,27 +49,42 @@ func (r pushRun) defaultBranch(ctx context.Context) (main string, a Answer, done
 	talk := gitrun.Talking(r.origin, nil, io.Discard, nil)
 	main, err := r.ports.RemoteHead(ctx, r.remote, talk)
 	if err != nil {
-		io.WriteString(r.o.Stderr, words(err))
-		failure := remoteKind(err)
-		return "", r.report(remoteExit(failure), "fetch-failed", r.remoteLines("reading "+r.remote+"'s HEAD failed", failure)...), true
+		return "", r.askFailed(err, "reading "+r.remote+"'s HEAD failed"), true
 	}
-	has, err := r.ports.RemoteRefs(ctx, r.remote, []string{"refs/heads/" + main}, talk)
-	if main == "" || err != nil || len(has) == 0 {
-		return "", r.report(missing, "no-default-branch",
-			fmt.Sprintf("itos push: %s's HEAD names no branch %s has, so there is no main to put the work behind; nothing was fetched or pushed.", r.remote, r.remote),
-			"Set the remote's default branch, then itos push again."), true
+	if main != "" {
+		has, err := r.ports.RemoteRefs(ctx, r.remote, []string{"refs/heads/" + main}, talk)
+		if err != nil {
+			return "", r.askFailed(err, "listing "+r.remote+"'s "+main+" failed"), true
+		}
+		if len(has) > 0 {
+			return main, Answer{}, false
+		}
 	}
-	return main, Answer{}, false
+	return "", r.report(missing, "no-default-branch",
+		fmt.Sprintf("itos push: %s's HEAD names no branch %s has, so there is no main to put the work behind; nothing was fetched or pushed.", r.remote, r.remote),
+		"Set the remote's default branch, then itos push again."), true
+}
+
+// askFailed is the fetch-failed outcome of a question put to the remote that
+// failed: the words it gave, then the exit by their kind.
+func (r pushRun) askFailed(err error, what string) Answer {
+	io.WriteString(r.o.Stderr, words(err))
+	failure := remoteKind(err)
+	return r.report(remoteExit(failure), "fetch-failed", r.remoteLines(what, failure)...)
 }
 
 // judgeRefs judges --ref under pr: one naming main is a push from main,
 // refused when it adds a commit that touches more than the registry,
-// against the remote's main. done with that refusal, or the fetch's failure;
-// not done for a --ref that names no main, or a branch the clone lacks, which
+// against the remote's main. done with that refusal, or the failure of a
+// question put to the remote; not done for a --ref that names no main (a
+// remote with no main has none to name), or a branch the clone lacks, which
 // pushNamed reports.
 func (r *pushRun) judgeRefs(ctx context.Context, refs []string) (Answer, bool) {
 	r.remote = r.namedRemote(ctx)
 	main, a, done := r.defaultBranch(ctx)
+	if done && a.Outcome == "no-default-branch" {
+		return Answer{}, false
+	}
 	if done || !slices.Contains(refs, main) {
 		return a, done
 	}
