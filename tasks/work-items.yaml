@@ -10519,6 +10519,16 @@ items:
       Seen again 2026-10-23: a review fix to slice-172's doc.go (a refactor) could not name
       slice-172; the coordinator added T-296 for one comment. An implementing agent earlier borrowed
       an old done task (T-228) for the same reason.
+
+      2026-10-24 grooming (the user's call): merged in p1-gate-edit-without-task, found 2026-10-11:
+      removing three lines from itos.yaml's config set (p1-drop-vite-hooks-path, an idea) was
+      refused, 'ci commits need --task <id>', and --item was not accepted in its place; doing it by
+      the rules takes a promote, a ledger entry and a task check for a change whose proof is the
+      gate that runs it (it was folded into T-143). One design settles both: which link footer a
+      build or ci commit may carry. Options: --item <task> writes Task:; a build or ci commit may
+      carry Item: <idea> (commits.footers in_place_of), its done judged by the commit landing green;
+      or the policy names which types may name an idea. The question to settle with the person:
+      weigh that against keeping every gate change behind a task with a check.
     tags: [commit, v8]
 
   - id: p1-fix-deps-releases
