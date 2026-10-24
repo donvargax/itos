@@ -13571,3 +13571,11 @@ items:
       again at work done. Slice 171 made FirstFailure take an evidence engine through
       check.Execution; bind one in internal/cli workPorts.FirstFailure (tree, key and refusal rules
       as the hook). Not part of A4; the plan does not list it.
+
+  - id: T-294
+    title: Add the 2026-10-23 grooming area tags and the v8 and v9 release tags to work.tags
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task
