@@ -43,6 +43,7 @@ type fakeGit struct {
 }
 
 func (*fakeGit) IndexTree(context.Context) (string, error)       { return "tree", nil }
+func (*fakeGit) Head(context.Context) (string, error)            { return "head", nil }
 func (*fakeGit) IndexPaths(context.Context) ([]string, error)    { return nil, nil }
 func (*fakeGit) UnstagedPaths(context.Context) ([]string, error) { return nil, nil }
 func (g *fakeGit) Snapshot(context.Context, string) (evidence.Checkout, error) {
@@ -233,5 +234,77 @@ func TestAnswersIsTrueForARecordedOptedInCheckOnly(t *testing.T) {
 	}
 	if Answers(nil, cfg, opted) || Answers(e, cfg, ledger.Check{Run: text("true")}) || Answers(e, cfg, ledger.Check{Run: text("true"), Evidence: &config.Evidence{}, After: "push"}) {
 		t.Error("answered a check that is not looked up, or with no engine")
+	}
+}
+
+// A check that declares evidence and runs in the working folder is not the
+// check that runs in the snapshot, whatever else they share, so one run is
+// never taken for the other; without evidence the two stay one run.
+func TestKeySeparatesTheSnapshotOptOut(t *testing.T) {
+	cfg := load(t, "version: 1\n")
+	declared := ledger.Check{Run: text("x"), Evidence: &config.Evidence{Inputs: []string{"a"}}}
+	optedOut := declared
+	optedOut.NoSnapshot = true
+	if Key(cfg, declared) == Key(cfg, optedOut) {
+		t.Errorf("an opted-out run and an opted-in run share a key: %q", Key(cfg, declared))
+	}
+	plain := ledger.Check{Run: text("x")}
+	plainOut := plain
+	plainOut.NoSnapshot = true
+	if Key(cfg, plain) != Key(cfg, plainOut) {
+		t.Errorf("without evidence both run in the working folder and are one run: %q %q", Key(cfg, plain), Key(cfg, plainOut))
+	}
+}
+
+// A check with snapshot: false runs in the working folder, in the environment
+// the execution gives it (the caller's when it gives none), its output
+// captured in the folder's own temporary files, and is never looked up,
+// recorded or answered: the engine makes no checkout and the store is not
+// touched, though the check declares evidence.
+func TestRunCapturedRunsASnapshotFalseCheckInTheWorkingFolder(t *testing.T) {
+	cfg := load(t, "version: 1\n")
+	git, root := &fakeGit{}, t.TempDir()
+	snapshot := t.TempDir()
+	if err := os.WriteFile(filepath.Join(snapshot, "only-in-the-snapshot"), nil, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	at := Execution{
+		Evidence: hookEngine(cfg, git, root), Dir: snapshot, TempDir: filepath.Join(snapshot, "absent"),
+		WorkEnv: append(os.Environ(), "WHERE=work"),
+	}
+	// The tests run in the package's folder, which holds this file.
+	c := ledger.Check{
+		Run:      text(`test ! -e only-in-the-snapshot && test -e evidence_test.go && printf '%s' "$WHERE"`),
+		Evidence: &config.Evidence{}, NoSnapshot: true,
+	}
+	given := append(os.Environ(), "WHERE=given")
+	run, err := RunCaptured(cfg, c, NoCap, given, at)
+	if err != nil || run.Result != Pass || run.Output != "work" {
+		t.Fatalf("the run: %+v, %v", run, err)
+	}
+	if git.checkouts != 0 || Answers(at.Evidence, cfg, c) {
+		t.Errorf("%d checkouts, or the check was answered from a record", git.checkouts)
+	}
+	if entries, _ := os.ReadDir(root); len(entries) != 0 {
+		t.Errorf("the store was touched: %v", entries)
+	}
+	at.WorkEnv = nil
+	run, err = RunCaptured(cfg, c, NoCap, given, at)
+	if err != nil || run.Result != Pass || run.Output != "given" {
+		t.Errorf("with no environment of its own the caller's applies: %+v, %v", run, err)
+	}
+}
+
+// A Runner with an engine runs a check with snapshot: false as it runs one
+// that did not opt in: in the working folder, no evidence, nothing looked up.
+func TestRunnerRunsASnapshotFalseCheckWithoutEvidence(t *testing.T) {
+	cfg := load(t, "version: 1\n")
+	git := &fakeGit{}
+	var log bytes.Buffer
+	r := NewRunner(cfg, &log, &log)
+	r.Evidence = &evidence.Engine{Cfg: cfg, Git: git, Store: store{t.TempDir()}, Binding: evidence.ThisBinary(), Mode: "task"}
+	got, info := r.RunInfo(ledger.Check{Run: text("true"), Evidence: &config.Evidence{}, NoSnapshot: true})
+	if got != Pass || info != nil || r.Evidence.Used() || git.checkouts != 0 {
+		t.Errorf("the run: %v %+v, engine used %v, %d checkouts", got, info, r.Evidence.Used(), git.checkouts)
 	}
 }

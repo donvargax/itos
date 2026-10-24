@@ -42,6 +42,16 @@
 // IndexTree captures the active index once. TaskSnapshot checks it out below
 // the source common dir's itos/snapshots, with independent metadata and writable
 // objects, a file alternate for source objects and copied checkout-mode policy.
+// It also copies the source's git context, read once (sourceContext): HEAD as
+// the folder itos runs in has it (a branch, unborn or not, or a detached
+// commit; a linked worktree's own), every ref git for-each-ref lists there
+// as one packed-refs file (a symbolic ref, origin/HEAD say, kept symbolic), the
+// config of the remotes (remote.<name>.*) and the remote and merge of the branch
+// HEAD is on, and nothing else of the local config. The index is the tree, and
+// no commit is made for it. Nothing is shared with the source: what a check
+// writes to HEAD, refs, config or objects stays in the checkout. A context
+// that cannot be read is a snapshot that cannot be made. Head is HEAD's commit,
+// or "unborn", which a declaration that reads HEAD is keyed by.
 // Git-local environment names are removed before running snapshot commands.
 //
 // Beside the port, Git holds what is git's alone: the git config (Config,

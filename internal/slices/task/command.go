@@ -38,8 +38,13 @@ timeout, declaration, config settings, itos version and platform answers at
 once ("cached evidence", the recorded exit status and output), and a miss
 runs in a disposable checkout of the index tree, holding the declared inputs
 and no unstaged edit or other untracked file, and records its result under
-.git/itos/evidence. A check that does not opt in runs in the working folder
-as it always did. A run that leaves changes out says how many tracked paths
+.git/itos/evidence. The checkout has the repository's git context, its own to
+write: HEAD (a branch, detached or unborn), history, refs, the remotes and the
+branch's upstream, with the index as its index and no commit made for it. A
+record is keyed by the tree, not by HEAD: a check that reads HEAD or its history
+declares evidence: { head: true } and misses at another commit on the same tree.
+A check that does not opt in runs in the working folder as it always did, and
+so does one that says snapshot: false. A run that leaves changes out says how many tracked paths
 were not staged. --working-tree runs every check in the working folder,
 looking nothing up and recording nothing.
 

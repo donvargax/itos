@@ -43,6 +43,10 @@ type Ports interface {
 	Shell(ctx context.Context, cfg *config.Loaded, command string, o shell.Options) shell.Result
 	CaptureIndex(ctx context.Context) (treeport.Source, error)
 	TaskSnapshot(ctx context.Context, tree string) (Snapshot, error)
+	// CheckEnv is the environment a check that runs in the working folder
+	// (snapshot: false) runs in: the hook's own, less what belongs to this
+	// commit alone.
+	CheckEnv(ctx context.Context) []string
 	// Evidence is the engine that looks up the checks that opt in to evidence
 	// records by tree, the tree the hook captured, and runs a miss in a
 	// checkout of its own. Its Hook is set.

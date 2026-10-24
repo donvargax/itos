@@ -48,6 +48,9 @@ func (p hookPorts) TaskSnapshot(ctx context.Context, tree string) (hookslice.Sna
 	return hookslice.Snapshot{Dir: s.Dir, TempDir: s.TempDir, Env: s.Env, Remove: s.Remove}, err
 }
 
+// CheckEnv is checkEnv.
+func (hookPorts) CheckEnv(context.Context) []string { return checkEnv() }
+
 // Evidence is newHookEvidence of the tree the hook captured.
 func (p hookPorts) Evidence(_ context.Context, cfg *config.Loaded, tree string) *evidence.Engine {
 	return newHookEvidence(cfg, tree, p.os)

@@ -59,7 +59,7 @@ func (p workPorts) ItemID(_ context.Context, cfg *config.Loaded, kind string, re
 func (p workPorts) TaskChecks(_ context.Context, cfg *config.Loaded, task ledger.Task, stderr io.Writer) (workslice.Checked, error) {
 	var execution check.Execution
 	for _, c := range check.StaticChecks(cfg, task) {
-		if c.Check.Evidence != nil && !c.Check.Pushed() {
+		if c.Check.Evidenced() && !c.Check.Pushed() {
 			execution.Evidence = newDoneEvidence(cfg, p.o.OS)
 			break
 		}

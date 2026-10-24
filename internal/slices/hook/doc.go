@@ -61,7 +61,13 @@
 //     checkouts makes a snapshot only when some check must run, before any
 //     does, so a snapshot that cannot be made refuses the commit (exit 3, never
 //     a working-folder run) and an all-hit commit makes none; with no plain
-//     check the snapshot is the engine's for its first miss.
+//     check the snapshot is the engine's for its first miss. The snapshot has
+//     the repository's git context (the VCS adapter's TaskSnapshot): HEAD,
+//     history, refs, remotes and the branch's upstream, private to it. A check
+//     with snapshot: false (bug-123) is neither plain nor opted in: it runs in
+//     the working folder, in the environment the CheckEnv port gives it (the
+//     hook's, less the commit's own index, footers and amend), and a commit
+//     whose runnable checks all opt out makes no snapshot.
 //     A failure rejects the commit when
 //     work.ItemStatuses says the task is done, and is only printed
 //     otherwise. hooks.commit_msg.task_checks: false turns them off.

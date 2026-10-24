@@ -3,6 +3,7 @@ package evidence
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -50,12 +51,19 @@ type fakeGit struct {
 	unstaged    []string
 	unstagedErr error
 	snapshotErr error
+	head        string
+	headErr     error
+	headAsked   int
 	checkouts   int
 	removed     int
 	checkout    string
 }
 
 func (g *fakeGit) IndexTree(context.Context) (string, error) { return g.tree, g.treeErr }
+func (g *fakeGit) Head(context.Context) (string, error) {
+	g.headAsked++
+	return g.head, g.headErr
+}
 func (g *fakeGit) IndexPaths(context.Context) ([]string, error) {
 	return g.indexed, g.indexedErr
 }
@@ -778,5 +786,78 @@ func TestARecordThatCannotBeWrittenLeavesNothing(t *testing.T) {
 	o = r.Run(t.Context(), r.request("true;", config.Evidence{}))
 	if o.Info.Recorded || o.Info.Reason != ReasonStoreUnusable {
 		t.Errorf("%+v", o)
+	}
+}
+
+// A declaration that reads HEAD is keyed by HEAD's commit beside the tree,
+// and its record's manifest names it; one that does not is keyed by the tree
+// alone and never asks for HEAD, so a record made at one commit answers at
+// the next.
+func TestHeadKeysADeclarationThatReadsIt(t *testing.T) {
+	r := newRig(t)
+	r.git.head = "commit-a"
+	reads := config.Evidence{Head: true}
+	first := r.Run(t.Context(), r.request("true", reads))
+	if !first.Info.Recorded || r.git.headAsked != 1 {
+		t.Fatalf("the run: %+v, HEAD asked %d times", first.Info, r.git.headAsked)
+	}
+	manifest := func(key string) map[string]any { return manifestOf(t, r, key) }
+	if got := manifest(first.Info.Key)["head"]; got != "commit-a" {
+		t.Errorf("the manifest names the head %v", got)
+	}
+	r.git.head = "commit-b"
+	second := r.Run(t.Context(), r.request("true", reads))
+	if second.Info.Hit || second.Info.Key == first.Info.Key || manifest(second.Info.Key)["head"] != "commit-b" {
+		t.Errorf("a new HEAD on the same tree: %+v", second.Info)
+	}
+	r.git.head = "commit-a"
+	if again := r.Run(t.Context(), r.request("true", reads)); !again.Info.Hit || again.Info.Key != first.Info.Key {
+		t.Errorf("the first HEAD again: %+v", again.Info)
+	}
+	if !r.Hit(t.Context(), r.request("true", reads)) {
+		t.Error("Hit does not read the head")
+	}
+	r.git.head = "unborn"
+	if unborn := r.Run(t.Context(), r.request("true", reads)); unborn.Info.Hit || manifest(unborn.Info.Key)["head"] != "unborn" {
+		t.Errorf("an unborn HEAD: %+v", unborn.Info)
+	}
+
+	plain := newRig(t)
+	plain.git.head = "commit-a"
+	declared := plain.Run(t.Context(), plain.request("true", config.Evidence{}))
+	plain.git.head = "commit-b"
+	if later := plain.Run(t.Context(), plain.request("true", config.Evidence{})); !later.Info.Hit || later.Info.Key != declared.Info.Key {
+		t.Errorf("a declaration without head at another HEAD: %+v", later.Info)
+	}
+	if _, has := manifestOf(t, plain, declared.Info.Key)["head"]; has || plain.git.headAsked != 0 {
+		t.Errorf("a declaration without head has a head in its manifest, or asked for HEAD %d times", plain.git.headAsked)
+	}
+}
+
+func manifestOf(t *testing.T, r *rig, key string) map[string]any {
+	t.Helper()
+	text, err := os.ReadFile(filepath.Join(r.store.root, Folder, key, "manifest.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var m map[string]any
+	if err := json.Unmarshal(text, &m); err != nil {
+		t.Fatal(err)
+	}
+	return m
+}
+
+// A HEAD that cannot be read is a key that cannot be: the check runs
+// uncached, in the working folder, and Hit says no.
+func TestAHeadThatCannotBeReadMakesTheKeyUnreadable(t *testing.T) {
+	r := newRig(t)
+	r.git.headErr = errors.New("HEAD names no commit")
+	reads := config.Evidence{Head: true}
+	o := r.Run(t.Context(), r.request("true", reads))
+	if !o.OK || o.Info.Recorded || o.Info.Reason != ReasonUnkeyable || len(r.records(t)) != 0 {
+		t.Errorf("%+v", o)
+	}
+	if r.Hit(t.Context(), r.request("true", reads)) {
+		t.Error("Hit answered a check whose key cannot be read")
 	}
 }

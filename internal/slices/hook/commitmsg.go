@@ -544,7 +544,9 @@ func (h Handler) tasksRule(ctx context.Context, cfg *config.Loaded, text string,
 // checkouts sets up where the runnable checks run, on the captured tree: the
 // shared checkout of the checks that do not opt in to evidence, and, for the
 // ones that do, the engine that answers them from a record (nothing run, no
-// checkout) or runs a miss in a checkout of its own. A checkout is made only
+// checkout) or runs a miss in a checkout of its own. A check with snapshot:
+// false uses neither: it runs in the working folder, in the environment
+// execution.WorkEnv holds. A checkout is made only
 // when some check must run, before any does, so a snapshot that cannot be
 // made refuses the commit (bug-112) and one that every check is spared never
 // does. With no plain check the checkout made is handed to the engine for its
@@ -552,7 +554,7 @@ func (h Handler) tasksRule(ctx context.Context, cfg *config.Loaded, text string,
 func (h Handler) checkouts(ctx context.Context, cfg *config.Loaded, tree string, runnable []ledger.Check) (check.Execution, []string, func(), error) {
 	var engine *evidence.Engine
 	for _, c := range runnable {
-		if c.Evidence != nil {
+		if c.Evidenced() {
 			engine = h.ports.Evidence(ctx, cfg, tree)
 			break
 		}
@@ -560,13 +562,14 @@ func (h Handler) checkouts(ctx context.Context, cfg *config.Loaded, tree string,
 	plain, missed := false, false
 	for _, c := range runnable {
 		switch {
-		case c.Evidence == nil || engine == nil:
+		case c.NoSnapshot:
+		case !c.Evidenced() || engine == nil:
 			plain = true
 		case !check.Answers(engine, cfg, c):
 			missed = true
 		}
 	}
-	execution := check.Execution{Evidence: engine}
+	execution := check.Execution{Evidence: engine, WorkEnv: h.ports.CheckEnv(ctx)}
 	if !plain && !missed {
 		return execution, nil, func() {}, nil
 	}

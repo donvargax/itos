@@ -19,8 +19,13 @@
 // A check may declare evidence (config.Evidence), which opts it in to
 // evidence records: Check.Evidence is its declaration, nil for a check that
 // does not, and the schema holds its shape and texts (a mapping of inputs,
-// env and tools, each a list of texts, an input that is no glob and no path
-// outside the repository).
+// env and tools, each a list of texts, head true or false, an input that is no
+// glob and no path outside the repository). A check may say snapshot: false
+// (Check.NoSnapshot), which runs it in the working folder wherever it runs:
+// config check refuses another value (ledger-check-value) and snapshot: false
+// beside evidence (ledger-check-evidence), and a ledger read without it takes
+// only the boolean false as the opt-out. Evidenced is whether the evidence
+// engine looks the check up.
 //
 // The schema is strict: duplicate or malformed IDs, unknown types, unknown
 // keys, both or neither of run and fails, and a cost: static written below a

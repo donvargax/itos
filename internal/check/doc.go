@@ -4,7 +4,9 @@
 //
 // A Runner is one invocation's runs, keyed by Key: the command, its
 // whitespace collapsed (config.Normal), its timeout and its evidence
-// declaration, or none. Its Run prints the
+// declaration, or none, with snapshot: false when a check declares evidence and
+// runs in the working folder, so that it is never taken for the one that runs
+// in the snapshot. Its Run prints the
 // verbose command line and runs each distinct check once, every later task
 // that lists it reading the kept exit status by its own run: or fails:. The
 // runs live for the invocation alone, and CI's driver keeps none, so a push
@@ -16,7 +18,10 @@
 // later check that reads the exit status of a run the invocation already made
 // reports that run's evidence, not recorded again. A check that does not opt
 // in, or a Runner with no engine (itos task --working-tree), runs in the
-// working folder, nothing looked up or written.
+// working folder, nothing looked up or written. So does a check with snapshot:
+// false (ledger.Check.NoSnapshot) wherever it runs, in itos task, work done,
+// ci run and the commit-msg hook, evidence or not; Execution.WorkEnv is the
+// environment the hook gives it.
 //
 // CostOf, CostedChecks, ChecksBeforeLate, StaticChecks and LateChecks are the
 // cost classes and the written order: a check is static by its own cost:

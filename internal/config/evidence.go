@@ -22,15 +22,20 @@ import (
 //     check runs in.
 //   - Env are the names of environment variables, hashed by value.
 //   - Tools are programs resolved on the check's PATH and hashed by content.
+//   - Head is whether the check reads HEAD or its history: HEAD's commit, or
+//     that HEAD is unborn, is then in the key beside the tree. A check that
+//     leaves it out is keyed by the tree alone, so that a record made at the
+//     commit's parent answers once the commit is made.
 type Evidence struct {
 	Inputs []string `json:"inputs"`
 	Env    []string `json:"env"`
 	Tools  []string `json:"tools"`
+	Head   bool     `json:"head,omitempty"`
 }
 
 // EvidenceKeys are the keys a declaration has, in the order the schema
 // writes them.
-var EvidenceKeys = []string{"inputs", "env", "tools"}
+var EvidenceKeys = []string{"inputs", "env", "tools", "head"}
 
 // Normal is the declaration with each list sorted, without a name twice and
 // never nil, so that the order a check writes them in does not make it
@@ -39,7 +44,7 @@ func (e Evidence) Normal() Evidence {
 	each := func(list []string) []string {
 		return append([]string{}, slices.Compact(slices.Sorted(slices.Values(list)))...)
 	}
-	return Evidence{Inputs: each(e.Inputs), Env: each(e.Env), Tools: each(e.Tools)}
+	return Evidence{Inputs: each(e.Inputs), Env: each(e.Env), Tools: each(e.Tools), Head: e.Head}
 }
 
 // Text is the normal declaration as JSON, which check.Key binds.
@@ -80,7 +85,7 @@ func EvidenceOf(raw any) *Evidence {
 		}
 		return got
 	}
-	return &Evidence{Inputs: texts("inputs"), Env: texts("env"), Tools: texts("tools")}
+	return &Evidence{Inputs: texts("inputs"), Env: texts("env"), Tools: texts("tools"), Head: m.At("head") == true}
 }
 
 // EvidenceShape is what is wrong with a declaration as a ledger check writes
@@ -90,13 +95,20 @@ func EvidenceShape(raw any, where, rule string) []out.Problem {
 	m, ok := raw.(*value.Map)
 	if !ok {
 		return []out.Problem{{Rule: rule, Message: where + "'s evidence is not a mapping",
-			Fix: "write evidence: {} to opt in with nothing declared, or evidence: { inputs: […], env: […], tools: […] }"}}
+			Fix: "write evidence: {} to opt in with nothing declared, or evidence: { inputs: […], env: […], tools: […], head: true }"}}
 	}
 	var found []out.Problem
 	for _, k := range m.Keys() {
 		if !slices.Contains(EvidenceKeys, k) {
 			found = append(found, out.Problem{Rule: rule, Message: where + "'s evidence has an unknown key " + k,
 				Fix: "remove " + k + "; evidence's keys are " + strings.Join(EvidenceKeys, ", ")})
+			continue
+		}
+		if k == "head" {
+			if value.TypeOf(m.At(k)) != "boolean" {
+				found = append(found, out.Problem{Rule: rule, Message: fmt.Sprintf("%s's evidence has head: %s; head is true or false", where, value.JSON(m.At(k))),
+					Fix: "write head: true or head: false"})
+			}
 			continue
 		}
 		list, isList := m.At(k).([]any)

@@ -178,7 +178,9 @@ under the git common dir's itos/snapshots and is recorded, and one whose
 checkout cannot be made runs uncached in the working folder, its exit its own.
 A staged change or an unstaged edit reaches neither the run nor the key. A
 check without evidence runs in the working folder, in the commit-msg hook's
-environment. These checks are local feedback: a record answers done and proves
+environment, and so does one that says snapshot: false (its evidence ignored,
+nothing looked up or recorded). The checkout has the repository's git context:
+HEAD, history, refs, remotes and the branch's upstream. These checks are local feedback: a record answers done and proves
 nothing to CI.
 The code proof of the config's proof.code is not run here: CI's run, which
 done requires green, judges it over the whole range (itos ci run --help).

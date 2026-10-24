@@ -30,6 +30,22 @@ func TestEvidenceNormalAndText(t *testing.T) {
 	}
 }
 
+// A declaration that reads HEAD is another declaration, and one that does not
+// has the text it always had, so that no record made before head existed is
+// lost.
+func TestEvidenceHeadIsPartOfTheText(t *testing.T) {
+	reads := Evidence{Head: true}
+	if got := reads.Text(); got != `{"inputs":[],"env":[],"tools":[],"head":true}` {
+		t.Errorf("text %s", got)
+	}
+	if reads.Text() == (Evidence{}).Text() || !reads.Normal().Head {
+		t.Errorf("head does not tell declarations apart: %s %s", reads.Text(), (Evidence{}).Text())
+	}
+	if got := (Evidence{Head: false}).Text(); got != `{"inputs":[],"env":[],"tools":[]}` {
+		t.Errorf("a declaration without head has text %s", got)
+	}
+}
+
 func TestIsGlob(t *testing.T) {
 	for p, want := range map[string]bool{"gen/*.txt": true, "a?": true, "a[b]": true, "gen/a.txt": false, "gen": false} {
 		if IsGlob(p) != want {
@@ -66,6 +82,11 @@ func TestEvidenceOf(t *testing.T) {
 	if EvidenceOf(value.Undefined) != nil {
 		t.Error("no declaration is one")
 	}
+	for text, want := range map[string]bool{"{ head: true }": true, "{ head: false }": false, "{}": false, `{ head: "true" }`: false, "{ head: 1 }": false} {
+		if got := EvidenceOf(parsed(t, text)); got == nil || got.Head != want {
+			t.Errorf("%s: %+v, want head %v", text, got, want)
+		}
+	}
 }
 
 func TestEvidenceShape(t *testing.T) {
@@ -77,6 +98,11 @@ func TestEvidenceShape(t *testing.T) {
 		"{ inptus: [a] }":                      "an unknown key inptus",
 		"{ inputs: a }":                        "inputs is not a list of texts",
 		"{ env: [a, 1] }":                      "env is not a list of texts",
+		"{ head: true }":                       "",
+		"{ head: false, inputs: [a] }":         "",
+		`{ head: "yes" }`:                      `has head: "yes"; head is true or false`,
+		"{ head: null }":                       "head is true or false",
+		"{ head: [a] }":                        "head is true or false",
 	} {
 		found := EvidenceShape(parsed(t, text), "check 0", "rule-x")
 		switch {
@@ -120,7 +146,7 @@ func TestEvidenceProblems(t *testing.T) {
 // refuses it in the nightly's, and the cross-check on a step that runs tests
 // or whose declaration is wrong.
 func TestStepEvidence(t *testing.T) {
-	ok := "version: 1\nci:\n  steps:\n    - { run: x, evidence: { inputs: [a], env: [E], tools: [t] } }\n    - { run: y, evidence: {} }\n"
+	ok := "version: 1\nci:\n  steps:\n    - { run: x, evidence: { inputs: [a], env: [E], tools: [t] } }\n    - { run: y, evidence: {} }\n    - { run: z, evidence: { head: true } }\n"
 	c, err := load(t, ok)
 	if err != nil {
 		t.Fatal(err)
@@ -128,12 +154,16 @@ func TestStepEvidence(t *testing.T) {
 	if e := c.CI.Steps[0].Evidence; e == nil || !slices.Equal(e.Inputs, []string{"a"}) || !slices.Equal(e.Tools, []string{"t"}) {
 		t.Errorf("step 0: %+v", e)
 	}
-	if e := c.CI.Steps[1].Evidence; e == nil || len(e.Inputs) != 0 {
+	if e := c.CI.Steps[1].Evidence; e == nil || len(e.Inputs) != 0 || e.Head {
 		t.Errorf("step 1: %+v", e)
+	}
+	if e := c.CI.Steps[2].Evidence; e == nil || !e.Head {
+		t.Errorf("step 2: %+v", e)
 	}
 	for text, want := range map[string]string{
 		"version: 1\nci:\n  steps:\n    - { run: x, evidence: { inptus: [a] } }\n":                 "unknown key ci.steps[0].evidence.inptus",
 		"version: 1\nci:\n  steps:\n    - { run: x, evidence: [a] }\n":                             "ci.steps[0].evidence",
+		"version: 1\nci:\n  steps:\n    - { run: x, evidence: { head: yes } }\n":                   "ci.steps[0].evidence.head",
 		"version: 1\nci:\n  steps: []\n  nightly:\n    steps:\n      - { run: x, evidence: {} }\n": "unknown key ci.nightly.steps[0].evidence",
 	} {
 		_, err := load(t, text)

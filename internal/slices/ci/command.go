@@ -73,7 +73,9 @@ A task check, or a run: step, that opts in with an evidence mapping (evidence:
 task runs it: a record of the same tree, command, timeout, declaration, config
 settings, ci.env, itos version and platform answers at once ("cached
 evidence"), and a miss runs in a disposable checkout of the index tree and
-records its result under .git/itos/evidence. A run that leaves changes out
+records its result under .git/itos/evidence, in a checkout that has the
+repository's git context. A task check that says snapshot: false runs in the
+working folder, nothing looked up or recorded. A run that leaves changes out
 says how many tracked paths were not staged.
 
 --json: the run's log on stderr; {"schema":1,"ok","failed_at"?,"failures"?,"evidence"?,"unstaged"?} on stdout,

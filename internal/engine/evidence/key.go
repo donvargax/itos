@@ -63,14 +63,15 @@ type Tool struct {
 }
 
 // Manifest is everything a key binds, and so everything that makes one
-// record another: the tree the check ran on, the command and its timeout,
-// the declaration, the policy (a hash of the config's settings), the
+// record another: the tree the check ran on, HEAD's commit (or "unborn") for a
+// declaration that reads HEAD, the command and its timeout, the declaration, the policy (a hash of the config's settings), the
 // binary, the environment and the declared inputs and tools. The mode, run:
 // or fails:, is not among them: a record holds the raw exit and each check
 // reads its own verdict from it.
 type Manifest struct {
 	Schema   int             `json:"schema"`
 	Tree     string          `json:"tree"`
+	Head     string          `json:"head,omitempty"`
 	Command  string          `json:"command"`
 	Timeout  string          `json:"timeout"`
 	Evidence config.Evidence `json:"evidence"`
@@ -124,6 +125,13 @@ func (e *Engine) bind(ctx context.Context, req Request, tree string) (bound, err
 		Inputs:   []Input{},
 		Tools:    []Tool{},
 	}}
+	if decl.Head {
+		head, err := e.Git.Head(ctx)
+		if err != nil {
+			return bound{}, err
+		}
+		b.Head = head
+	}
 	for _, name := range decl.Env {
 		v, set := os.LookupEnv(name)
 		b.Env = append(b.Env, Pair{Name: name, Set: set, Value: v})

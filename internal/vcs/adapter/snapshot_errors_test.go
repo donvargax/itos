@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -21,14 +22,25 @@ const snapshotRealGit = "ITOS_VCS_TEST_SNAPSHOT_REAL_GIT"
 func runSnapshotGit(fault string) int {
 	args := os.Args[1:]
 	command := args
-	if len(command) > 2 && command[0] == "-C" {
+	// The snapshot's own commands run in its folder (-C dir); the commands
+	// that read the source run in the folder itos runs in.
+	inSnapshot := len(command) > 2 && command[0] == "-C"
+	if inSnapshot {
 		command = command[2:]
 	}
 	fail := strings.Join(command, " ") == fault
-	if fault == "config --local" {
-		fail = len(command) > 1 && command[0] == "config" && command[1] == "--local"
-	}
-	if fault == "init" || fault == "read-tree" || fault == "checkout-index" {
+	switch fault {
+	case "config --local":
+		fail = inSnapshot && len(command) > 2 && command[0] == "config" && command[1] == "--local" && command[2] != "--add"
+	case "config --local --add":
+		fail = inSnapshot && len(command) > 2 && command[0] == "config" && command[1] == "--local" && command[2] == "--add"
+	case "config --null":
+		fail = len(command) > 1 && command[0] == "config" && slices.Contains(command, "--null")
+	case "symbolic-ref HEAD":
+		fail = inSnapshot && len(command) > 1 && command[0] == "symbolic-ref" && command[1] == "HEAD"
+	case "symbolic-ref ref":
+		fail = inSnapshot && len(command) > 1 && command[0] == "symbolic-ref" && command[1] != "HEAD"
+	case "init", "read-tree", "checkout-index", "for-each-ref", "update-ref":
 		fail = len(command) > 0 && command[0] == fault
 	}
 	if fail {
@@ -45,11 +57,17 @@ func runSnapshotGit(fault string) int {
 		fmt.Fprintln(os.Stderr, err)
 		return 94
 	}
-	if fault == "alternates-directory" && len(command) > 0 && command[0] == "init" {
+	if len(command) > 0 && command[0] == "init" {
 		dir := command[len(command)-1]
-		if err := os.MkdirAll(filepath.Join(dir, ".git", "objects", "info", "alternates"), 0o755); err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			return 95
+		blocked := map[string]string{
+			"alternates-directory":  filepath.Join(dir, ".git", "objects", "info", "alternates"),
+			"packed-refs-directory": filepath.Join(dir, ".git", "packed-refs"),
+		}[fault]
+		if blocked != "" {
+			if err := os.MkdirAll(blocked, 0o755); err != nil {
+				fmt.Fprintln(os.Stderr, err)
+				return 95
+			}
 		}
 	}
 	return 0

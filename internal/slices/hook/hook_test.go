@@ -59,6 +59,7 @@ type ports struct {
 	run       func(command string, o shell.Options) shell.Result
 	shows     int
 	engine    *evidence.Engine
+	workEnv   []string
 }
 
 // Show is the repository's, refused once shows, when set, runs out.
@@ -80,6 +81,10 @@ func (p *ports) CaptureIndex(ctx context.Context) (treeport.Source, error) {
 func (p *ports) TaskSnapshot(context.Context, string) (Snapshot, error) {
 	return Snapshot{Env: os.Environ(), Remove: func() error { return nil }}, nil
 }
+
+// CheckEnv is the environment the test gave a check that runs in the working
+// folder, none by default.
+func (p *ports) CheckEnv(context.Context) []string { return p.workEnv }
 
 // Evidence is the engine the test gave, none by default.
 func (p *ports) Evidence(context.Context, *config.Loaded, string) *evidence.Engine { return p.engine }

@@ -37,7 +37,13 @@ rules (commits.footers), always,
 both reported, then the checks of each task a ledger footer names (Task:
 here), as staged, in written order up to its first late one (CI's cost rule;
 an after: push check waits), each capped at hooks.commit_msg.check_timeout
-seconds (60). A failure rejects the commit when
+seconds (60). The checks run in a disposable checkout of the staged tree, which
+has the repository's git context to read and write privately: HEAD (a branch,
+detached or unborn; a linked worktree's own), history, refs, the remotes and the
+branch's upstream, with the staged tree as its index; a check that says
+snapshot: false runs in the working folder instead, where its unstaged edits and
+ignored tools are, and a commit whose checks all say so makes no checkout. A
+failure rejects the commit when
 the task's work item is done, and is printed with the task's status otherwise.
 hooks.commit_msg.task_checks: false runs none. An amend, which itos commit
 says in ITOS_AMEND (else an author HEAD's to the second), is judged as the

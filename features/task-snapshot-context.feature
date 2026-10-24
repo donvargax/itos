@@ -142,7 +142,7 @@ Feature: A task check's snapshot holds the repository's git context, and a check
   # commit gives HEAD a parent. Today each check fails in the snapshot (no
   # HEAD, no HEAD~1, no remote origin), the done task rejects, and the Then
   # expecting exit 0 fails with exit 1.
-  @ID-SNAPCTX-01 @bug-123 @wip
+  @ID-SNAPCTX-01 @bug-123
   Scenario Outline: A done task's static check that reads the repository passes in the snapshot as in the working folder
     Given the itos under test is first on the PATH as itos
     And the staged file "tasks/phase-1.yaml" holding the lines:
@@ -180,7 +180,7 @@ Feature: A task check's snapshot holds the repository's git context, and a check
   # tells it from git init's own unborn HEAD. Today the probe records an
   # unborn HEAD on git init's default branch: the HEAD Then fails in every
   # row (no commit in the first two, the wrong branch in the third).
-  @ID-SNAPCTX-02 @bug-123 @wip
+  @ID-SNAPCTX-02 @bug-123
   Scenario Outline: The snapshot has the source's HEAD, refs, remotes and upstream, and the staged tree as its index, whether HEAD is on a branch, detached or unborn
     Given the staged file "tasks/phase-1.yaml" holding the lines:
       """
@@ -217,7 +217,7 @@ Feature: A task check's snapshot holds the repository's git context, and a check
   # Then expecting exit 0 fails with exit 1. After the fix, a snapshot that
   # shared refs, the index, the config or the object store with the source
   # fails the state Thens.
-  @ID-SNAPCTX-03 @bug-123 @wip
+  @ID-SNAPCTX-03 @bug-123
   Scenario: A check's writes to HEAD, refs, the index, the config and objects stay in the snapshot
     Given the staged file "tasks/phase-1.yaml" holding the lines:
       """
@@ -249,7 +249,7 @@ Feature: A task check's snapshot holds the repository's git context, and a check
   # would refuse with exit 3 if it made one. Today the ledger's unknown key
   # is ignored, the hook tries a snapshot at the blocked location, and the
   # Then expecting exit 0 fails with exit 3.
-  @ID-SNAPCTX-04 @bug-123 @wip
+  @ID-SNAPCTX-04 @bug-123
   Scenario: A check with snapshot: false runs in the working folder, where its ignored tools and unstaged edits are, and needs no snapshot
     Given the staged file "tasks/phase-1.yaml" holding the lines:
       """
@@ -283,7 +283,7 @@ Feature: A task check's snapshot holds the repository's git context, and a check
   # snapshot is a new key of a check, true or false. Today config check
   # refuses it as an unknown key, so the first Then expecting exit 0 fails
   # with exit 1.
-  @ID-SNAPCTX-05 @bug-123 @wip
+  @ID-SNAPCTX-05 @bug-123
   Scenario Outline: config check accepts snapshot: true or false on a task's check, and refuses another value or snapshot: false beside evidence
     Given the staged file "tasks/phase-1.yaml" holding the lines:
       """
@@ -321,7 +321,7 @@ Feature: A task check's snapshot holds the repository's git context, and a check
   # HEAD and the branch, so the probe is compared with the state saved
   # before the When. Today the probe records an unborn HEAD, so the HEAD
   # Then fails in both rows.
-  @ID-SNAPCTX-06 @bug-123 @wip
+  @ID-SNAPCTX-06 @bug-123
   Scenario Outline: A hand-run itos task and work done run an opted-in check in a snapshot with the source's git context
     Given the committed file "tasks/phase-1.yaml" holding the lines:
       """
@@ -355,7 +355,7 @@ Feature: A task check's snapshot holds the repository's git context, and a check
   # stand-ins, so the commit runs no check). Today a run ignores the unknown
   # key head, opting in as evidence: {} would, and the second run hits the
   # first run's record: the Then expecting "hit" false fails.
-  @ID-SNAPCTX-07 @bug-123 @wip
+  @ID-SNAPCTX-07 @bug-123
   Scenario: A check declaring head: true misses at a new HEAD on the same tree
     Given the committed file "tasks/phase-1.yaml" holding the lines:
       """
@@ -379,7 +379,7 @@ Feature: A task check's snapshot holds the repository's git context, and a check
   # Guard: SNAPCTX-07's setup without head, which keeps the key tree-only,
   # as ID-EVID-35's hook-then-commit reuse needs. Today the second run hits
   # too, so this passes; it fails a fix that keys HEAD for every check.
-  @ID-SNAPCTX-09 @bug-123 @guard @wip
+  @ID-SNAPCTX-09 @bug-123 @guard
   Scenario: A check that does not declare head still hits its record at a new HEAD on the same tree
     Given the committed file "tasks/phase-1.yaml" holding the lines:
       """
@@ -403,7 +403,7 @@ Feature: A task check's snapshot holds the repository's git context, and a check
   # entry alike. Today config check refuses it as an unknown key of
   # evidence, so the first Then expecting exit 0 fails with exit 1. The
   # refusal's rule is the same today; its wording is not.
-  @ID-SNAPCTX-10 @bug-123 @wip
+  @ID-SNAPCTX-10 @bug-123
   Scenario: config check accepts evidence's head as true or false, and refuses another value
     Given the staged file "tasks/phase-1.yaml" holding the lines:
       """
@@ -438,7 +438,7 @@ Feature: A task check's snapshot holds the repository's git context, and a check
   # names T-001 with nothing staged. A snapshot that took the common dir's
   # HEAD would record the main checkout's branch. Today the probe records an
   # unborn HEAD: the HEAD Then fails.
-  @ID-SNAPCTX-08 @bug-123 @wip
+  @ID-SNAPCTX-08 @bug-123
   Scenario: In a linked worktree the snapshot's HEAD is that worktree's, not the main checkout's
     Given the staged file "tasks/phase-1.yaml" holding the lines:
       """
@@ -468,7 +468,7 @@ Feature: A task check's snapshot holds the repository's git context, and a check
   # snapshot exists everything runs there" passes. Today the key is ignored
   # and both run in the snapshot: the opted-out check fails, the done task
   # rejects, and the Then expecting exit 0 fails with exit 1.
-  @ID-SNAPCTX-11 @bug-123 @wip
+  @ID-SNAPCTX-11 @bug-123
   Scenario Outline: In one hook run a check with snapshot: false runs in the working folder and the check beside it in the snapshot
     Given the staged file "tasks/phase-1.yaml" holding the lines:
       """
@@ -502,7 +502,7 @@ Feature: A task check's snapshot holds the repository's git context, and a check
   # where it reads the unstaged edit, and nothing is recorded. Today the
   # key is ignored and the opted-in check runs in its snapshot, reads
   # "staged" and fails: the Then expecting exit 0 fails with exit 1.
-  @ID-SNAPCTX-12 @bug-123 @wip
+  @ID-SNAPCTX-12 @bug-123
   Scenario: At run time snapshot: false beside evidence runs in the working folder, nothing looked up or recorded
     Given the staged file "tasks/phase-1.yaml" holding the lines:
       """
@@ -534,7 +534,7 @@ Feature: A task check's snapshot holds the repository's git context, and a check
   # runs in the snapshot, reads the staged "staged" and passes. Today the
   # key is ignored and the check runs in the snapshot, so this passes; it
   # fails a fix that reads any value but true as an opt-out.
-  @ID-SNAPCTX-13 @bug-123 @guard @wip
+  @ID-SNAPCTX-13 @bug-123 @guard
   Scenario: At run time a snapshot value that is not a boolean runs the check in the snapshot
     Given the staged file "tasks/phase-1.yaml" holding the lines:
       """
@@ -568,7 +568,7 @@ Feature: A task check's snapshot holds the repository's git context, and a check
   # fails too. Today the key is ignored and each command runs the opted-in
   # check in a snapshot of its own, where the probe reads the staged or
   # committed text and exits 1: the Then expecting exit 0 fails.
-  @ID-SNAPCTX-14 @bug-123 @wip
+  @ID-SNAPCTX-14 @bug-123
   Scenario Outline: itos task and work done run an opted-in check with snapshot: false in the working folder, nothing looked up or recorded
     Given the committed file "tasks/phase-1.yaml" holding the lines:
       """

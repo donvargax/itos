@@ -44,11 +44,14 @@ const (
 )
 
 // Git is what the engine asks of the repository, which internal/cli binds
-// to the VCS's adapter: the index captured as one tree, the paths the index
-// holds, the tracked paths whose working copy differs from it, and a
-// disposable checkout of a tree (bug-112's snapshot).
+// to the VCS's adapter: the index captured as one tree, HEAD's commit, the
+// paths the index holds, the tracked paths whose working copy differs from it,
+// and a disposable checkout of a tree (bug-112's snapshot, with the git
+// context bug-123 gave it).
 type Git interface {
 	IndexTree(ctx context.Context) (string, error)
+	// Head is HEAD's commit, or "unborn" when its branch has no commit yet.
+	Head(ctx context.Context) (string, error)
 	IndexPaths(ctx context.Context) ([]string, error)
 	UnstagedPaths(ctx context.Context) ([]string, error)
 	Snapshot(ctx context.Context, tree string) (Checkout, error)

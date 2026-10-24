@@ -32,8 +32,13 @@ type Captured struct {
 // Evidence, when set, answers a check that opts in from a record and runs a
 // miss in a checkout of its own, rather than in Dir (RunCaptured); Log is
 // where a hit says so and Task the task the check is for, both only for that.
+//
+// A check with snapshot: false runs in the working folder whatever Dir says,
+// its output captured beside nothing of the snapshot's, in WorkEnv when that
+// is set and else in the environment the caller gives RunCaptured.
 type Execution struct {
 	Dir, TempDir string
+	WorkEnv      []string
 	Evidence     *evidence.Engine
 	Log          io.Writer
 	Task         string
@@ -51,7 +56,7 @@ func evidenceRequest(cfg *config.Loaded, c ledger.Check, seconds float64, at Exe
 // opts in, is not an after: push check, and a record of what it would run on
 // is there.
 func Answers(e *evidence.Engine, cfg *config.Loaded, c ledger.Check) bool {
-	if e == nil || c.Evidence == nil || c.Pushed() {
+	if e == nil || !c.Evidenced() || c.Pushed() {
 		return false
 	}
 	return e.Hit(context.Background(), evidenceRequest(cfg, c, Timeout(cfg, c), Execution{}))
@@ -74,7 +79,13 @@ func RunCaptured(cfg *config.Loaded, c ledger.Check, cap float64, env []string, 
 	}
 	own := Timeout(cfg, c)
 	seconds := math.Min(own, cap)
-	if at.Evidence != nil && c.Evidence != nil && !c.Pushed() {
+	if c.NoSnapshot {
+		at.Dir, at.TempDir = "", ""
+		if at.WorkEnv != nil {
+			env = at.WorkEnv
+		}
+	}
+	if at.Evidence != nil && c.Evidenced() && !c.Pushed() {
 		o := at.Evidence.Run(context.Background(), evidenceRequest(cfg, c, seconds, at))
 		if o.Err != nil {
 			return Captured{}, o.Err

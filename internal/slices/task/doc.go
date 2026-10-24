@@ -14,8 +14,9 @@
 // itos task runs the tasks' checks through one check.Runner per
 // invocation, so a check two tasks list runs once, verbose for one task, the
 // checks' output on stderr under --json, each check that opted in with an
-// evidence declaration looked up by the index tree through the Evidence port
-// (--working-tree runs every check in the working folder and asks for none;
+// evidence declaration looked up by the index tree through the Evidence port,
+// a check that also says snapshot: false asking for none and running in the
+// working folder (--working-tree runs every check in the working folder and asks for none;
 // --json then gives the check its evidence and the run its count of unstaged
 // paths); a task with no checks is done when
 // its item is done (work done took its checks out, slice 101), review

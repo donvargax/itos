@@ -132,6 +132,8 @@ var evidence = about("Opts the command in to evidence records, keyed by the tree
 		"content and copied into the checkout. A glob is refused.", strs),
 	"env", about("Names of environment variables the command reads, hashed by value.", strs),
 	"tools", about("Programs the command runs, resolved on the PATH and hashed by content.", strs),
+	"head", about("Whether the command reads HEAD or its history: HEAD's commit, or that HEAD is unborn, is then in the key "+
+		"beside the tree. false when left out, so a record made at a commit's parent answers once the commit is made.", boo),
 ))
 
 var typesOrAll = either(str, strs)

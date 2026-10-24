@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/donvargax/itos/v8/internal/config"
+	"github.com/donvargax/itos/v8/internal/out"
 	"github.com/donvargax/itos/v8/internal/value"
 )
 
@@ -87,7 +88,7 @@ func TestCheckProblems(t *testing.T) {
 	}
 	for text, fix := range map[string]string{
 		"[run, x]":             "write check 0 as run: <command> or fails: <command>",
-		"{ run: x, why: y }":   "remove why; a check's keys are run, fails, after, timeout, prose, cost, evidence",
+		"{ run: x, why: y }":   "remove why; a check's keys are run, fails, after, timeout, prose, cost, evidence, snapshot",
 		"{ run: x, fails: y }": "give check 0 either run: or fails:, not both",
 		"{ run: 3 }":           "quote check 0's command as one string",
 	} {
@@ -112,6 +113,8 @@ func TestCheckProblemsHoldEvidence(t *testing.T) {
 		"{ run: x, evidence: { inputs: a } }":               "check 0's evidence inputs is not a list of texts",
 		"{ run: x, evidence: { inputs: [\"gen/*.txt\"] } }": "check 0's evidence input gen/*.txt is a glob",
 		"{ run: x, evidence: { env: [\"A=b\"] } }":          "check 0's evidence env \"A=b\" is not the name of a variable",
+		"{ run: x, evidence: { head: true } }":              "",
+		"{ run: x, evidence: { head: \"yes\" } }":           "check 0's evidence has head: \"yes\"; head is true or false",
 	} {
 		check, err := value.Parse(text)
 		if err != nil {
@@ -143,6 +146,69 @@ func TestCheckOfReadsEvidence(t *testing.T) {
 		got, ok := checkOf(raw)
 		if !ok || !reflect.DeepEqual(got.Evidence, want) {
 			t.Errorf("%s: %+v, want %+v", text, got.Evidence, want)
+		}
+	}
+}
+
+// snapshot is true or false, and false is refused beside evidence: a check
+// that runs in the working folder cannot be keyed by the tree.
+func TestCheckProblemsHoldSnapshot(t *testing.T) {
+	for text, want := range map[string][2]string{
+		"{ run: x }":                                             {},
+		"{ run: x, snapshot: false }":                            {},
+		"{ run: x, snapshot: true }":                             {},
+		"{ run: x, snapshot: true, evidence: {} }":               {},
+		"{ run: x, snapshot: \"no\" }":                           {"ledger-check-value", "check 0 says snapshot: \"no\"; snapshot is true or false"},
+		"{ run: x, snapshot: 0 }":                                {"ledger-check-value", "check 0 says snapshot: 0; snapshot is true or false"},
+		"{ run: x, snapshot: false, evidence: {} }":              {"ledger-check-evidence", "check 0 says snapshot: false and declares evidence"},
+		"{ run: x, snapshot: false, evidence: yes }":             {"ledger-check-evidence", "check 0's evidence is not a mapping"},
+		"{ run: x, snapshot: \"no\", evidence: { head: true } }": {"ledger-check-value", "check 0 says snapshot: \"no\"; snapshot is true or false"},
+	} {
+		check, err := value.Parse(text)
+		if err != nil {
+			t.Fatal(err)
+		}
+		found := checkProblems(check, "check 0")
+		switch {
+		case want[0] == "" && len(found) > 0:
+			t.Errorf("%s: %+v", text, found)
+		case want[0] != "" && !slices.ContainsFunc(found, func(p out.Problem) bool { return p.Rule == want[0] && p.Message == want[1] && p.Fix != "" }):
+			t.Errorf("%s: got %+v, want the %s problem %q", text, found, want[0], want[1])
+		}
+	}
+}
+
+// Only the boolean false opts out of the snapshot, whatever the ledger says
+// (it is read without config check): another value, or none, runs the check
+// in it. Evidenced is whether the engine looks the check up.
+func TestCheckOfReadsSnapshotFalseAlone(t *testing.T) {
+	for text, want := range map[string]bool{
+		"{ run: x }":                   false,
+		"{ run: x, snapshot: true }":   false,
+		"{ run: x, snapshot: false }":  true,
+		"{ run: x, snapshot: \"no\" }": false,
+		"{ run: x, snapshot: 0 }":      false,
+		"{ run: x, snapshot: null }":   false,
+	} {
+		raw, err := value.Parse(text)
+		if err != nil {
+			t.Fatal(err)
+		}
+		got, ok := checkOf(raw)
+		if !ok || got.NoSnapshot != want {
+			t.Errorf("%s: NoSnapshot %v, want %v", text, got.NoSnapshot, want)
+		}
+	}
+	declared := &config.Evidence{}
+	for _, c := range []struct {
+		check Check
+		want  bool
+	}{
+		{Check{}, false}, {Check{Evidence: declared}, true},
+		{Check{Evidence: declared, NoSnapshot: true}, false}, {Check{NoSnapshot: true}, false},
+	} {
+		if c.check.Evidenced() != c.want {
+			t.Errorf("%+v: Evidenced %v", c.check, !c.want)
 		}
 	}
 }

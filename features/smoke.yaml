@@ -216,3 +216,7 @@
   scenarios:
     - id: "@ID-HOOKSNAP-01"
       why: A done task cannot pass on an untracked input absent from the proposal.
+- file: task-snapshot-context.feature
+  scenarios:
+    - id: "@ID-SNAPCTX-01"
+      why: A done task's check that reads HEAD, its history or its remote passes in the snapshot as it does in the working folder.

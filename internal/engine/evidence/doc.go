@@ -9,13 +9,18 @@
 // mapping (config.Evidence): inputs, paths from the repository's top (a folder
 // covers every file under it) that git does not track or that the check wants
 // named; env, names of variables hashed by value; tools, programs resolved on
-// the PATH and hashed by content. {} opts in with nothing declared. A check
-// with none is never looked up or recorded; it runs as it always did.
+// the PATH and hashed by content; head, whether the check reads HEAD or its
+// history. {} opts in with nothing declared. A check with none is never looked
+// up or recorded; it runs as it always did, and so does one that also says
+// snapshot: false (a ledger check, which config check refuses beside evidence):
+// it cannot run in a checkout, so no tree keys it.
 //
 // # The key
 //
 // Manifest is everything a key binds, and Key its SHA-256: the index tree the
-// check runs on, its command (whitespace collapsed) and timeout, the
+// check runs on, HEAD's commit (or "unborn") when it declares head: true and
+// for no other check, so that a record made at the commit's parent still answers
+// once the commit is made, its command (whitespace collapsed) and timeout, the
 // declaration, a hash of the config's settings after defaults (never its path
 // or any runtime field, so every worktree shares the records), itos's version,
 // the OS and architecture (Binding), the declared environment and, when ci run
@@ -24,7 +29,11 @@
 // the tree covers it; an untracked or ignored one is hashed by its content
 // (a link by its target, an executable bit with its file), a missing one as
 // absent, which is not an empty file, and a path that is none of file, link or
-// folder cannot be keyed. The mode, run: or fails:, is not bound: a record
+// folder cannot be keyed. The branch, the other refs and the remotes are never
+// keyed, though the checkout holds them: they move independently of the commit,
+// and binding them would end reuse between worktrees and after every fetch, so a
+// check that depends on them, or on a remote's live state, is not deterministic
+// and does not opt in. The mode, run: or fails:, is not bound: a record
 // holds the raw exit status and each check reads its verdict from it, as
 // check.Key already shares one run between them.
 //
@@ -37,8 +46,9 @@
 // checkout. A miss takes the record's lock (the private store's Hold of
 // evidence/<key>, internal/lock's), looks again, since a writer that waited may
 // find the record its holder made, makes a checkout of the index tree of its own
-// (bug-112's task snapshot; never shared between checks) with the declared
-// untracked inputs copied in, runs the check there with the checkout's
+// (bug-112's task snapshot, which holds the repository's git context since
+// bug-123: HEAD, history, refs and remotes, private to the checkout; never
+// shared between checks) with the declared untracked inputs copied in, runs the check there with the checkout's
 // environment, and writes the record.
 //
 // The commit-msg hook (internal/slices/hook) uses the engine too, with Hook

@@ -20,6 +20,7 @@ type checkoutsOf struct {
 }
 
 func (*checkoutsOf) IndexTree(context.Context) (string, error)       { return "captured", nil }
+func (*checkoutsOf) Head(context.Context) (string, error)            { return "head", nil }
 func (*checkoutsOf) IndexPaths(context.Context) ([]string, error)    { return nil, nil }
 func (*checkoutsOf) UnstagedPaths(context.Context) ([]string, error) { return nil, nil }
 func (g *checkoutsOf) Snapshot(context.Context, string) (evidence.Checkout, error) {
@@ -169,5 +170,44 @@ func TestTasksRuleRunsAnOptedInCheckPlainlyWithoutAnEngine(t *testing.T) {
 	w.engine = nil
 	if answer, _, err := w.attempt(t); err != nil || answer.Code != 0 || w.runs(t) != 1 || w.snapshots != 1 {
 		t.Fatalf("%+v, %v, %d runs, %d snapshots", answer, err, w.runs(t), w.snapshots)
+	}
+}
+
+// A check with snapshot: false runs in the working folder, in the environment
+// the hook gives such a check, whether it declares evidence or not: no
+// checkout is made for it, so a snapshot that could not be made refuses
+// nothing, and the engine is never asked.
+func TestTasksRuleRunsASnapshotFalseCheckInTheWorkingFolder(t *testing.T) {
+	for _, evidence := range []string{"", ", evidence: {}"} {
+		w := newEvidenceWorld(t, "done", `[{ run: "test -e only-in-the-working-folder && test \"$WORK\" = 1 && echo ran >> MARKS", cost: static, snapshot: false`+evidence+` }]`)
+		if err := os.WriteFile(filepath.Join(w.cfg.Folder(), "only-in-the-working-folder"), nil, 0o600); err != nil {
+			t.Fatal(err)
+		}
+		w.workEnv = append(os.Environ(), "WORK=1")
+		w.snapshotErr = errors.New("a snapshot must not be attempted")
+		answer, _, err := w.attempt(t)
+		if err != nil || answer.Code != 0 || w.runs(t) != 1 || w.snapshots != 0 || w.git.checkouts != 0 || w.engine.Used() {
+			t.Errorf("%q: %+v, %v, %d runs, %d snapshots, %d own checkouts, engine used %v", evidence, answer, err, w.runs(t), w.snapshots, w.git.checkouts, w.engine.Used())
+		}
+	}
+}
+
+// Beside a check without it, in either order, each runs in its own place: the
+// one with snapshot: false in the working folder and its environment, the
+// other in the shared checkout, and the checkout is made once.
+func TestTasksRuleRunsEachCheckInItsOwnPlace(t *testing.T) {
+	outside := `{ run: "test -e only-in-the-working-folder && test \"$WORK\" = 1 && echo out >> MARKS", cost: static, snapshot: false }`
+	inside := `{ run: "test ! -e only-in-the-working-folder && test -z \"$WORK\" && echo in >> MARKS", cost: static }`
+	for _, checks := range []string{outside + ", " + inside, inside + ", " + outside} {
+		w := newEvidenceWorld(t, "done", "["+checks+"]")
+		if err := os.WriteFile(filepath.Join(w.cfg.Folder(), "only-in-the-working-folder"), nil, 0o600); err != nil {
+			t.Fatal(err)
+		}
+		w.workEnv = append(os.Environ(), "WORK=1")
+		w.snapshot.Dir = t.TempDir()
+		answer, stderr, err := w.attempt(t)
+		if err != nil || answer.Code != 0 || w.runs(t) != 2 || w.snapshots != 1 {
+			t.Errorf("%s: %+v, %v, %d runs, %d snapshots, stderr %q", checks, answer, err, w.runs(t), w.snapshots, stderr)
+		}
 	}
 }

@@ -159,7 +159,7 @@ func anchored(pattern string) bool {
 
 var (
 	taskKeys  = []string{"id", "type", "title", "why", "done_when"}
-	checkKeys = []string{"run", "fails", "after", "timeout", "prose", "cost", "evidence"}
+	checkKeys = []string{"run", "fails", "after", "timeout", "prose", "cost", "evidence", "snapshot"}
 )
 
 func problem(rule, message, fix string) out.Problem {
@@ -186,6 +186,7 @@ var checkValues = []checkValue{
 	}, "its timeout is a finite number of seconds above 0", "write the timeout as the seconds the check may run, above 0"},
 	{"prose", func(v any) bool { return value.TypeOf(v) == "boolean" }, "prose is true or false", "write prose: true or false"},
 	{"cost", func(v any) bool { return v == "static" || v == "late" }, "cost is static or late", "write cost: static or cost: late"},
+	{"snapshot", func(v any) bool { return value.TypeOf(v) == "boolean" }, "snapshot is true or false", "write snapshot: true or snapshot: false"},
 }
 
 // checkProblems are one check's problems.
@@ -215,6 +216,10 @@ func checkProblems(check any, where string) []out.Problem {
 	}
 	if v := c.At("evidence"); v != value.Undefined {
 		found = append(found, evidenceProblems(v, where)...)
+		if c.At("snapshot") == false {
+			found = append(found, problem("ledger-check-evidence", where+" says snapshot: false and declares evidence",
+				"remove evidence, which keys a run by the tree it ran on and a run in the working folder has none, or remove snapshot: false from "+where))
+		}
 	}
 	for _, cv := range checkValues {
 		if v := c.At(cv.key); v != value.Undefined && !cv.valid(v) {

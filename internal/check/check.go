@@ -52,11 +52,17 @@ func duration(seconds float64) time.Duration {
 // and the same evidence declaration, or none: a check that opts in and one
 // that does not are two runs, each recorded, or not, by its own declaration.
 // Whether it must pass or fail is not part of it: each task reads the one
-// exit status by its own run: or fails:.
+// exit status by its own run: or fails:. A check that declares evidence and
+// runs in the working folder (snapshot: false) is not the one that runs in
+// the snapshot, whatever else they share; without evidence both run in the
+// working folder and stay one run.
 func Key(cfg *config.Loaded, c ledger.Check) string {
 	key := config.Normal(c.Command()) + "\x00" + value.Number(Timeout(cfg, c))
 	if c.Evidence != nil {
 		key += "\x00evidence:" + c.Evidence.Text()
+		if c.NoSnapshot {
+			key += "\x00snapshot:false"
+		}
 	}
 	return key
 }
@@ -138,7 +144,7 @@ func (r *Runner) RunInfo(c ledger.Check) (Result, *evidence.Info) {
 			kept.Recorded = false
 			info = &kept
 		}
-	case c.Evidence != nil && r.Evidence != nil && !c.Pushed():
+	case c.Evidenced() && r.Evidence != nil && !c.Pushed():
 		o := r.Evidence.Run(context.Background(), evidence.Request{
 			Command: c.Command(), Seconds: Timeout(r.Cfg, c), Decl: *c.Evidence, Verbose: r.Verbose, Log: log,
 		})

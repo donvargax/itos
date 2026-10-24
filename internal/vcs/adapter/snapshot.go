@@ -73,6 +73,9 @@ type TaskCheckout struct {
 // TaskSnapshot materializes tree without registering a worktree or sharing
 // writable Git state. Source objects are read through a file alternate, so
 // nested repositories do not inherit source object storage via the environment.
+// The checkout has the source's git context (sourceContext): its HEAD, refs,
+// remotes and upstream, read once and copied, never shared, and the tree as its
+// index, with no commit made for it.
 func (g Git) TaskSnapshot(ctx context.Context, tree string) (result TaskCheckout, err error) {
 	return g.taskSnapshotThrough(ctx, tree, os.MkdirTemp)
 }
@@ -134,6 +137,10 @@ func (g Git) taskSnapshotThrough(ctx context.Context, tree string, mkdirTemp fun
 	if err != nil {
 		return result, err
 	}
+	state, err := g.sourceContext()
+	if err != nil {
+		return result, err
+	}
 	dir := filepath.Join(parent, "tree")
 	run := func(args ...string) error {
 		cmd := source.Command(ctx, args...)
@@ -157,6 +164,9 @@ func (g Git) taskSnapshotThrough(ctx context.Context, tree string, mkdirTemp fun
 	}
 	alternates := filepath.Join(dir, ".git", "objects", "info", "alternates")
 	if err = os.WriteFile(alternates, []byte(filepath.ToSlash(strings.TrimSpace(objects))+"\n"), 0o600); err != nil {
+		return result, err
+	}
+	if err = state.copyTo(dir, run); err != nil {
 		return result, err
 	}
 	if err = run("-C", dir, "read-tree", tree); err != nil {

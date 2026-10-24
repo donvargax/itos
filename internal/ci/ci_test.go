@@ -225,6 +225,7 @@ func TestTheNightlyGoesOnPastAFailingStep(t *testing.T) {
 type fakeGit struct{ unstaged []string }
 
 func (fakeGit) IndexTree(context.Context) (string, error)         { return "tree", nil }
+func (fakeGit) Head(context.Context) (string, error)              { return "head", nil }
 func (fakeGit) IndexPaths(context.Context) ([]string, error)      { return nil, nil }
 func (g fakeGit) UnstagedPaths(context.Context) ([]string, error) { return g.unstaged, nil }
 func (fakeGit) Snapshot(context.Context, string) (evidence.Checkout, error) {

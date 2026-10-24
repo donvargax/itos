@@ -15,7 +15,9 @@ import (
 // Check): its command under run or fails, after: push, its own timeout in
 // seconds (nil for the ledger's), prose and its own cost class ("" for the
 // patterns'). Evidence is its declaration when it opts in to evidence
-// records (config.Evidence), nil when it does not.
+// records (config.Evidence), nil when it does not. NoSnapshot is snapshot:
+// false, the boolean alone: the check runs in the working folder wherever it
+// runs, where any other value, or none, runs it in the snapshot.
 type Check struct {
 	Run, Fails *string
 	After      string
@@ -23,7 +25,13 @@ type Check struct {
 	Prose      bool
 	Cost       string
 	Evidence   *config.Evidence
+	NoSnapshot bool
 }
+
+// Evidenced is whether the check is looked up and recorded as evidence: it
+// declares evidence and does not run in the working folder, which a record
+// keyed by a tree cannot describe.
+func (c Check) Evidenced() bool { return c.Evidence != nil && !c.NoSnapshot }
 
 // Command is the check's command: run's, else fails', else "" for a check
 // without one (its task's Err says so).
@@ -157,6 +165,7 @@ func checkOf(raw any) (Check, bool) {
 	}
 	check.Prose = value.Prop(raw, "prose") == true
 	check.Evidence = config.EvidenceOf(value.Prop(raw, "evidence"))
+	check.NoSnapshot = value.Prop(raw, "snapshot") == false
 	return check, check.Run != nil || check.Fails != nil
 }
 
