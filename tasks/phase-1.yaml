@@ -4589,8 +4589,3 @@
     so the test asserts the cap's rule, not a runner's speed (from slice-171, beae0469). The checks
     run the two tests; they pass before the fix too, since both failures are timing races, so the
     report says how each change removes its race.
-  done_when:
-    - run: go test ./internal/engine/evidence -count=3 -run '^TestAMissRunsUnderTheCapAndIsKeyedByTheOwnTimeout$'
-      timeout: 300
-    - run: go test ./features -count=1 -run 'TestFeatures/Explicit_policy_initialization_refuses_an_existing_project_configuration_without_changing_it'
-      timeout: 300

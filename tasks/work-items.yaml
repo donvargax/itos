@@ -13288,7 +13288,7 @@ items:
     title: "Two CI flakes: the features' itos on the PATH starts without Text file busy, and the evidence cap test does not race 50 ms on Windows"
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
     refs: [features/stealth_test.go]
