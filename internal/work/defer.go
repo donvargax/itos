@@ -11,8 +11,8 @@ import (
 
 // Defer is the registry with the item put off (slice 98): its deferred key
 // the reason, a folded text as the registry's other texts are (value.Doc's
-// Note), and the reason first in the body of the commit that records it, as
-// Drop puts it. The item keeps its status, owner, tags and place in the
+// Note), and the reason after the command's own sentence in the body of the
+// commit that records it, as Drop puts it. The item keeps its status, owner, tags and place in the
 // queue, as a deferred key written by hand does; work and status list it
 // apart, and work take and work done refuse it. Refused, with nothing
 // changed: an id no item has, an item already deferred (naming its reason:

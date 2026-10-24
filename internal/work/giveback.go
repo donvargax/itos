@@ -11,8 +11,9 @@ import (
 
 // GiveBack is the registry with the item in progress given back (slice 122):
 // its status todo again and nothing else of it changed, its owner kept (an
-// owner is who the item is for, in progress or not), and the reason first in
-// the body of the commit that records it, as Drop and Defer put theirs. It
+// owner is who the item is for, in progress or not), and the reason after the
+// command's own sentence in the body of the commit that records it, as Drop
+// and Defer put theirs. It
 // undoes a take, so the item can be taken again or deferred. person and every
 // are Take's: an item whose owner, or its group's, is someone else is refused
 // unless the session owns every item. Refused, with nothing changed: an id no

@@ -7,7 +7,7 @@ import (
 )
 
 // Slice 78: work drop sets the status dropped, drops the why, takes the
-// item out of the queue, and puts the reason first in the commit's body.
+// item out of the queue, and puts the reason after the command's own sentence in the commit's body.
 func TestDrop(t *testing.T) {
 	cfg := addConfig(t)
 	text := "phases: { 1: null }\nqueue:\n  - i\n  - s\nitems:\n" +

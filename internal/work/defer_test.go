@@ -7,8 +7,9 @@ import (
 
 // Slice 98: work defer writes the reason as the item's deferred key, a
 // folded text in a block mapping, keeping the item's status, owner and place
-// in the queue, and puts the reason first in the commit's body; work resume
-// removes the key and nothing else, the registry back as it was.
+// in the queue, and puts the reason after the command's own sentence in the
+// commit's body; work resume removes the key and nothing else, the registry
+// back as it was.
 func TestDeferAndResume(t *testing.T) {
 	cfg := addConfig(t)
 	text := "phases: { 1: null }\nqueue:\n  - i\nitems:\n" +

@@ -6,7 +6,8 @@ import (
 )
 
 // Slice 122: work give-back sets an item in progress back to todo, its owner
-// and everything else kept, the reason first in the commit's body; work show
+// and everything else kept, the reason after the command's own sentence in
+// the commit's body; work show
 // reads its header back.
 func TestGiveBack(t *testing.T) {
 	cfg := addConfig(t)

@@ -13,8 +13,9 @@ import (
 // Drop is the registry with the item taken out of the open work (slice 78):
 // its status dropped, its why dropped as Done drops a closed item's, and the
 // item out of the queue when the queue holds it, the reason the body of the
-// commit that records it, before what the change is: the commit is the
-// record of why, the registry an index. The item stays in the registry, so
+// commit that records it, after the command's own sentence (a reason leading
+// it was read as a footer, bug 132): the commit is the record of why, the
+// registry an index. The item stays in the registry, so
 // its id is never given again. Refused, with nothing changed: an id no item
 // has, an item done, an item that an item still to do (neither done nor
 // dropped) depends on, naming those, so the person edits them first, and

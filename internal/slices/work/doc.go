@@ -110,8 +110,8 @@
 //     follows in a commit of its own, under a stealth config while the lock
 //     is still held.
 //   - work edit, queue, drop, defer, resume and give-back call their writers
-//     in internal/work; drop, defer and give-back put the --why reason first
-//     in their commit's body. Defer and resume are two commands rather than
+//     in internal/work; drop, defer and give-back put the --why reason after
+//     the command's own sentence in their commit's body. Defer and resume are two commands rather than
 //     a flag on one (docs/CLI.md rule 18). Each takes one id or more (an id
 //     named twice exits 2): one runs as before, several go through work's
 //     *Each writers (slice 118), refused whole (exit 1, naming every id

@@ -91,8 +91,9 @@
 //     one done or dropped, and one of any status but todo. Resume drops the
 //     key and nothing else.
 //   - GiveBack (giveback.go, slice 122) undoes a take: an item doing set
-//     back to todo, its owner kept, the reason first in its body; it refuses
-//     an item not doing and one someone else owns, judged as Take judges it.
+//     back to todo, its owner kept, the reason after the command's own sentence
+//     in its body; it refuses an item not doing and one someone else owns,
+//     judged as Take judges it.
 //   - EditEach, DropEach, DeferEach, ResumeEach and GiveBackEach (several.go,
 //     slice 118; giveback.go)
 //     make one writer's change to several ids, each on the registry the ids
