@@ -11022,7 +11022,7 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: [p1-typed-items]
+    depends_on: [p1-item-lifecycle]
     kind: idea
     why: >
       The user, 2026-10-21: every coordinator session appends its handoff to .git/itos/notes.md by
@@ -11045,6 +11045,10 @@ items:
       .git/itos/notes.md goes back to facts true only of this clone, and the rule to prune it at
       each coordinator start goes with it. No itos handoff command; the typed-record dependency
       above no longer applies.
+
+      2026-10-24 grooming: itos status already lists doing items, open questions and drafts waiting.
+      Missing: each doing item's worktree, last pushed SHA and run, and unpushed commits.
+      p1-item-lifecycle claims the per-item status line, so this waits for it (the user).
     tags: [status, v9]
 
   - id: p1-doc-references
