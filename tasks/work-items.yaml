@@ -13393,8 +13393,8 @@ items:
   - id: bug-127
     title: A note time honours TZ on Windows, as @ID-FOLLOW-10 says it does
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: bug
     why: >
