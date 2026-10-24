@@ -9330,7 +9330,7 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: [bug-111]
+    depends_on: [bug-111, p1-typed-items]
     kind: slice
     why: >
       Was p1-work-completion-transaction.
@@ -9346,7 +9346,7 @@ items:
       shared close commit. The evidence-binding part of #73 waits on the #71/q-70 design and is
       separate. This transaction is a prerequisite for batch completion (#70).
     refs: [internal/cli/workdone.go, internal/cli/workwrite.go, internal/work/write.go, features/work.feature]
-    tags: [work, v8]
+    tags: [work, v9]
 
   - id: slice-143
     title: Close several validated items in one commit
