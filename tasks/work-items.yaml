@@ -6025,7 +6025,7 @@ items:
     phase: 3
     owner: null
     status: todo
-    depends_on: []
+    depends_on: [p1-init-no-plugin]
     kind: idea
     why: >
       The Claude Code plugin maps to opencode v2 almost piece for piece (read 2026-10-08): the
@@ -6036,7 +6036,10 @@ items:
       adding the plugins entry beside --plugin and --no-plugin (p1-init-no-plugin), with the T-074
       version check learning the package.json. The titles drawing is held back as
       p3-opencode-titles, which waits on anomalyco/opencode#53019
-    tags: [plugin]
+
+      The user, 2026-10-24 grooming: no opencode guard; the git shim already sends any agent's git
+      commit to itos commit. What is left is the init wiring, which waits on p1-init-no-plugin (v9).
+    tags: [plugin, v9]
 
   - id: p3-opencode-titles
     title: The itos plugin draws each ID with its title in opencode, as it does in Claude Code
