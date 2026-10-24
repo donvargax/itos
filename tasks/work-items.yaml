@@ -13300,3 +13300,18 @@ items:
     status: done
     depends_on: []
     kind: task
+
+  - id: p1-after-push-checks-after-ci
+    title: "work done runs a task's after: push checks once the CI watch has passed"
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [slice-173]
+    kind: idea
+    why: >
+      From slice-173's spec (2026-10-23): an after: push check waits on what the landed push makes
+      (a release, a tag), so at work done it stays pending and is never looked up today. Once
+      landedCI has passed, work done could run it (through the evidence engine, keyed by HEAD's
+      tree), so the close proves it rather than leaving it pending. Decide whether a pending after:
+      push check should block the close.
+    tags: [evidence, v8]
