@@ -55,7 +55,6 @@ phases:
   3: donvargax
 
 queue:
-  - slice-176
   - slice-177
   - p1-github-registry-spike
   - p1-agent-test-runs-once
