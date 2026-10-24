@@ -243,6 +243,11 @@ Feature: itos push, the pull-rebase-push routine as one command
   # branch's own name when there is none" (tools/itos/conformance/push.yaml)
   # and its no-upstream case's name say the same; and doc.go's paragraph on
   # the fetch gains the ls-remote, its no-upstream refusal staying as it is.
+  # Unless slice 174 has already changed them, push-mode.feature's too: its
+  # header's promise that under trunk itos push is what it was "whatever the
+  # branch", and @ID-PUSHMODE-15's title, comment and remote-branch line,
+  # which say a branch named for an item with no upstream is pushed to its
+  # own name as before; under trunk it now goes to the default branch.
   # Fails before the fix at the history step: today the commit goes to
   # origin/worktree-agent-1 and main lacks it.
   @ID-PUSH-16 @bug-136 @wip
