@@ -109,15 +109,17 @@ handoff line below replaces the template's "wait for CI … close the item":
   test forcing a filesystem error uses one every OS reports alike (a NUL byte
   in a path, a folder for a file, a failing fake), never an OS's wording or
   path separators (T-225, T-227: Windows and macOS differ).
+- **A portability account in the report:** how each changed path behaves on
+  Windows, macOS and once pushed, and how its test sets that state; a
+  warning alone did not do it (slices 169, 170).
 - **The files:** brief the item's `refs` and its tagged feature files from
-  `itos work show <id>`. Read each package's `doc.go` first. These are starting
-  points, not a search boundary. Name other files only when the item's own
-  commits touched them; `p1-work-spec-files` would derive this.
+  `itos work show <id>`. Read each package's `doc.go` first. They are starting
+  points, not a boundary (`p1-work-spec-files` would derive them).
 
 ## Independent work and red repairs
 
-q-41 permits independent work while CI is pending; red repairs take priority
-before further landings. Repair agents hand back commits for the coordinator
+q-41: independent work may go on while CI is pending; a red repair comes
+first. Repair agents hand back commits for the coordinator
 to land, without pushing their branches. Keep worktrees and scratch files
 inside this directory. Each agent has a worktree named after its item,
 `.claude/worktrees/<id>`, tracking `origin/main`, and pulls there with
@@ -159,7 +161,7 @@ was in this file when the file was reorganized that day.
   `-c core.autocrlf=false` and `--no-filters`). Expect what touches files,
   modes or line endings to need a Windows thought, and macOS one too (a
   removed working folder still answers Getwd there). Exit: permanent.
-  Recorded by 2026-10-04; last seen 2026-10-22.
+  Recorded by 2026-10-04; last seen 2026-10-23 (slice 170).
 - **The features hide `claude`, `itos` and every `itos-*` from the PATH**
   (T-087): a scenario runs the itos under test only where a step asks
   (`itosOnPath`). A task's check that should prove a fix can pass before it
@@ -167,10 +169,10 @@ was in this file when the file was reorganized that day.
   linked as itos is passed over for the real git since T-104. Exit: permanent.
   Recorded by 2026-10-04.
 - **Agents write their own wait loops** when `itos push` outlives the
-  harness's foreground limit: one built on `pgrep` matched its own command
-  line and never ended (bug 35), another slept (slice 83). The brief says:
-  push `--no-wait` in the background; use completion notifications. Exit:
-  `p1-push-fits-foreground`. Recorded 2026-10-06; last seen 2026-10-06.
+  harness's foreground limit (a `pgrep` loop, bug 35; a sleep, slice 83;
+  `tail --pid`, slice 170). The brief says: push `--no-wait` in the
+  background; use completion notifications. Exit: `p1-push-fits-foreground`.
+  Recorded 2026-10-06; last seen 2026-10-23.
 - **Watch CI on every push, a docs one too, and read `git log origin/main..main`
   before a session's first push**: commits an earlier session left unpushed
   go out with yours. Over 100 first parents past the last green run, `ci range`
