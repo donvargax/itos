@@ -13485,3 +13485,19 @@ items:
       ID-GUARD-11; each extension scenario that execs needs its reason there (or the @binary-only
       tag step 1 of docs/plans/in-process-tier.md names) before a full in-process run can be read,
       and the parallel driver's run of every area.
+
+  - id: p1-stale-bin-itos-under-a-hook
+    title: tools/bin/itos rebuilt from inside a scenario's git hook fails go's VCS stamping
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      When a Go file of the module is newer than tools/bin/itos, the next call rebuilds it; in
+      T-291's in-process feature runs that first call came from a scenario repository's commit-msg
+      hook, whose git environment points at the scenario's repository, and go build failed with
+      'error obtaining VCS status: exit status 128' (use -buildvcs=false), so fifteen itos commit
+      scenarios failed for a reason that is not theirs. tools/bin/itos could build with git's
+      repository variables cleared (GIT_DIR, GIT_INDEX_FILE, GIT_WORK_TREE and the like) or with
+      -buildvcs set from its own checkout, so a rebuild never depends on the git that called it.
