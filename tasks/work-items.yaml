@@ -11752,6 +11752,10 @@ items:
       grep, apostrophes, a redirection) fit Claude Code's own permission checks or the PATH shim
       better. The spec starts by reproducing each refusal through itos guard claude-code, and fixes
       only those the guard makes.
+
+      The user, 2026-10-24: if the PATH shim makes some of these refusals, loosening it a little in
+      v8 is fine too, on the same terms: reproduce each one first, and change only what is too
+      strict.
     refs: [internal/slices/guard, internal/guard, integrations/claude-code/hooks/guard.sh]
     tags: [guard, v8]
 
