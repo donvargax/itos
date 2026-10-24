@@ -13373,3 +13373,17 @@ items:
       a depth-1 clone row.
     refs: [internal/vcs/adapter/snapshot.go]
     tags: [hooks, evidence, v8]
+
+  - id: p1-snapshot-relative-remote
+    title: A task snapshot resolves a remote whose url is a relative path, and copies the source's url.<base>.insteadOf
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      bug-123 copies remote.<name>.* verbatim and no other local config. A remote added with a
+      relative path (git remote add origin ../x) resolves against the snapshot's folder, so git
+      ls-remote origin fails there though it passes in the working folder; url.<base>.insteadOf of
+      the local config is not copied either. Resolve a relative local url against the source's top
+      when the snapshot is made, and copy the rewrite rules, with a scenario for each.
