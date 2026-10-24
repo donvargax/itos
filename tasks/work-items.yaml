@@ -13410,17 +13410,9 @@ items:
     title: "The local evidence store survives contention and damage: lock waits, stale locks, failed renames, corrupt or markerless records (evidence records, A2)"
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-169]
     kind: slice
-    why: >
-      Was p1-evidence-store-robustness.
-      Split from slice-169 on its spec review (2026-10-23), as the plan gives A2 its own test
-      commit: slice-169 takes the lock on a miss but does not specify contention or damage. Its
-      scenarios are slice-169 drafts EVID-07..12 (lock wait, stale lock running uncached with reason
-      lock-timeout, an unusable store running uncached with reason store-unusable, rename failures
-      judging the destination, quarantine of corrupt or markerless records, unfinished temporary
-      folders ignored). EVID-08 rows each spend lock.Wait 10 s.
 
   - id: p1-evidence-architecture-map
     title: List internal/evidence in docs/ARCHITECTURE.md's map
