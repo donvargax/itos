@@ -13339,3 +13339,11 @@ items:
       fake needs jobs with id and steps, a logs path that redirects to a download address, and a
       case per kind; tools/bin/** is a ci or build commit's, as p1-brief-names-fake-endpoints notes.
     tags: [v8]
+
+  - id: T-296
+    title: ciwatch's doc.go says a cancelled run gets no failure detail
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task

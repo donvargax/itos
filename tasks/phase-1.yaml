@@ -4562,3 +4562,14 @@
     fails the scoped complete-cache mutation proof, so the item remains open until a green covering
     run permits closure; preserve this success evidence rather than repeating speculative Linux-only
     Windows fixes.
+
+- id: T-296
+  type: refactor
+  title: ciwatch's doc.go says a cancelled run gets no failure detail
+  why: >
+    slice-172's diff review: internal/engine/ciwatch/doc.go says a completed run is given Detail
+    before its end is said, but a cancelled run with no newer run to follow ends 75 without it
+    (watch.go:168-169, 179-182). The comment changes to what the code does; the behaviour stays: a
+    cancelled run has nothing failed to name.
+  done_when:
+    - run: grep -q 'cancelled run is followed or ends 75' internal/engine/ciwatch/doc.go
