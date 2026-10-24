@@ -132,3 +132,24 @@ Feature: itos followup, private threads with people
     When itos runs "follow"
     Then itos exits with code 2
     And its output says "itos followup"
+
+  # Bug 127: Go takes the local zone from the OS on Windows and ignores TZ,
+  # so @ID-FOLLOW-10 held only where the OS's zone is UTC, as on GitHub's
+  # Windows runner, and failed on every Windows machine west of it. cmd/itos,
+  # where os.* stays (docs/plans/in-process-tier.md), sets time.Local on
+  # Windows from a non-empty TZ that time.LoadLocation reads, before any
+  # command runs; one it cannot read keeps the OS's zone, silently. UTC
+  # needs no zone database; a named zone needs one where Go looks
+  # (ZONEINFO), and embedding time/tzdata is a separate call, not made here.
+  # The decision is a function of the OS, TZ and a loader, unit-tested with
+  # "windows" on every OS, which is where red first shows locally; this
+  # scenario is red before the fix only on CI's Windows job (UTC there, so
+  # Tokyo's 14:02 printed as 05:02) and holds on Linux and macOS either way.
+  # Its step points ZONEINFO at the Go toolchain's lib/time/zoneinfo.zip
+  # (go env GOROOT), the one database every runner has.
+  @ID-FOLLOW-15 @bug-127 @wip
+  Scenario: A note's time honours a named TZ on every OS
+    Given the threads file holds the thread "sync-ana" with a note stamped "2026-10-04T05:02:00Z"
+    When itos runs "followup show sync-ana" with TZ "Asia/Tokyo" and the Go toolchain's zone database
+    Then itos exits with code 0
+    And its output says "14:02"
