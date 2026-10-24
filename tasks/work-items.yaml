@@ -12710,6 +12710,10 @@ items:
       (90-day retention) asking for fresh CI (B2, feat; live pinning scenarios in the feat commit);
       the workflow uploads the bundle, verified by a gate self-test (B3, ci); this repository turns
       on ci.evidence and then require_ci, each after its feature (B4, B5, ci).
+
+      2026-10-23 grooming, merged in p1-reusable-completion-evidence (#71): the sound reusable
+      receipt #71 asked for is B's CI record, bound to the head, the tree, the policy and the
+      checks, which an opted-in work done accepts; nothing is blessed from its paths alone.
     tags: [evidence, v8]
 
   - id: p1-evidence-red-first
