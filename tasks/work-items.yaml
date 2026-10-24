@@ -7721,7 +7721,7 @@ items:
     tags: [proof]
 
   - id: p1-draft-decision-id
-    title: draft add of decision add prints the q id it will take, and decision add takes its answer
+    title: draft add of decision add prints the q id it will take
     phase: 1
     owner: null
     status: todo
@@ -7734,6 +7734,9 @@ items:
       coordinator either guesses q-<n> or waits for the promote and answers by hand, two commands
       for one decision already made. Print the id at draft add as the others do, and let decision
       add take --answer for a question asked and answered at once.
+
+      2026-10-24 grooming (the user's call): its second half, decision add taking --answer, moved to
+      p1-decision-add-answer, the same flag.
     refs: [internal/cli/draft.go, features/draft.feature]
     tags: [draft, v8]
 
