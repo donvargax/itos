@@ -280,6 +280,25 @@ Feature: The work registry
     And the registry's item "slice-9" is titled "A better title"
     And the registry's item "slice-9" depends on "slice-8"
 
+  # Bug 132: a word longer than a body line (a path in a title or a why, a
+  # long id, a deep ledger path) was left whole on a line of its own, which
+  # the lint refuses over 100 characters unless the line holds a URL, so the
+  # commit was refused after the command wrote its files. Such a word is
+  # broken across lines, each within the limit, after the last "/" that fits
+  # or else at the limit, and no character of it is lost; the registry keeps
+  # the title as given. work edit --note's text never reaches the body (it
+  # says "a note on its why"), so a title stands in for it here.
+  @ID-WORK-159 @bug-132 @wip
+  Scenario: work edit of a title holding a word longer than a body line commits a body within the limit
+    Given the work registry has the idea "p1-thing" owned by nobody
+    And the header lint is itos's built-in one
+    And the commit-msg hook is installed
+    When itos runs the command line "work edit p1-thing --title 'Split internal/slices/work/registry/commit/body/a-path-deep-enough-that-it-runs-past-the-line/of-the-header-lint/selfbody.go in two'"
+    Then itos exits with code 0
+    And the registry's item "p1-thing" is titled "Split internal/slices/work/registry/commit/body/a-path-deep-enough-that-it-runs-past-the-line/of-the-header-lint/selfbody.go in two"
+    And the last commit's body has no line longer than 100 characters
+    And the last commit's body, its line breaks taken out, says "internal/slices/work/registry/commit/body/a-path-deep-enough-that-it-runs-past-the-line/of-the-header-lint/selfbody.go"
+
   @ID-WORK-24 @slice-54
   Scenario: work edit refuses an item the registry does not have
     Given the work registry has the item "slice-9" owned by nobody with the status "todo"
@@ -559,6 +578,40 @@ Feature: The work registry
     Then itos exits with code 1
     And its output says "slice-3"
     And the registry's item "p1-thing" has the status "todo" and the owner "nobody"
+
+  # Bug 132 (issue #92, the fourth report since 2026-10-05): work drop wrote
+  # its --why first in the commit's body, the body's words on one line, so a
+  # why starting with a word and a colon made that line the message's
+  # trailers. The wrap leaves trailers as written: git read the why as a
+  # footer, and the lint refused it as a footer line over 100 characters
+  # after the registry was written, with only the lint's line to go by. The
+  # command's own sentence now leads the body and the why follows it, wrapped
+  # as itos commit wraps a body, so no line starts with the why's "Word:".
+  # work defer and work give-back wrote their reasons first too; the shared
+  # body writer's unit tests hold them.
+  @ID-WORK-157 @bug-132 @wip
+  Scenario: work drop commits a why that starts with a word and a colon as prose, never as a footer
+    Given the work registry has the idea "p1-thing" owned by nobody
+    And the header lint is itos's built-in one
+    And the commit-msg hook is installed
+    When itos runs the command line "work drop p1-thing --why 'Superseded: slice-9 does what this idea asked for, and its scenarios pin it.'"
+    Then itos exits with code 0
+    And the last commit's header is "docs: drop p1-thing"
+    And the last commit's body says "Superseded: slice-9 does what this idea asked for, and its scenarios pin it."
+    And no line of HEAD's message starts with "Superseded:"
+
+  # A guard for bug 132: an ordinary why, under the same lint and hook,
+  # still lands in the body whole wherever the fix places it. It passes
+  # before the fix and must after.
+  @ID-WORK-158 @bug-132 @guard @wip
+  Scenario: work drop still commits an ordinary why in its body, every line within the limit
+    Given the work registry has the idea "p1-thing" owned by nobody
+    And the header lint is itos's built-in one
+    And the commit-msg hook is installed
+    When itos runs the command line "work drop p1-thing --why 'Folded into slice-9, whose scenarios cover it.'"
+    Then itos exits with code 0
+    And the last commit's body says "Folded into slice-9, whose scenarios cover it."
+    And the last commit's body has no line longer than 100 characters
 
   @ID-WORK-43 @slice-78
   Scenario: work take refuses a dropped item

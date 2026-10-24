@@ -189,3 +189,20 @@ Feature: The task runner runs each check once, and lists task status without run
     When itos runs the command line "task add --group 1 --type chore --title 'Tidy the readme' --why 'It drifted.' --check 'true'"
     Then itos exits with code 0
     And the registry's item "T-003" has the status "todo" and no why
+
+  # Bug 132: task add's body names the task's title and its ledger file, and
+  # a word of either longer than a body line got the commit refused after
+  # the ledger and the registry were written. It is broken across lines as
+  # in every commit itos makes of its own files (ID-WORK-159 in
+  # work.feature); decision record's title is the same case, by the same
+  # writer, and is left to its unit tests.
+  @ID-TASK-17 @bug-132 @wip
+  Scenario: task add of a title holding a word longer than a body line commits a body within the limit
+    Given the work registry has the item "T-001" owned by nobody with the status "done"
+    And the header lint is itos's built-in one
+    And the commit-msg hook is installed
+    When itos runs the command line "task add --group 1 --type chore --title 'Split internal/slices/work/registry/commit/body/a-path-deep-enough-that-it-runs-past-the-line/of-the-header-lint/selfbody.go in two' --why 'It drifted.' --check 'true'"
+    Then itos exits with code 0
+    And the registry's item "T-003" is a task titled "Split internal/slices/work/registry/commit/body/a-path-deep-enough-that-it-runs-past-the-line/of-the-header-lint/selfbody.go in two" with the status "todo"
+    And the last commit's body has no line longer than 100 characters
+    And the last commit's body, its line breaks taken out, says "internal/slices/work/registry/commit/body/a-path-deep-enough-that-it-runs-past-the-line/of-the-header-lint/selfbody.go"
