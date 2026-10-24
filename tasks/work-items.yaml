@@ -13480,3 +13480,18 @@ items:
       run under -scenarios='^@slice-9$'), but tests.Tagged reads only scenario and header tag lines,
       so work done and work show miss them. Read block tags, or refuse an item tag on a block.
     refs: [internal/tests/gherkin.go]
+
+  - id: p1-outline-all-wip-live
+    title: An outline whose every Examples block is @wip is not live
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Found by bug-129's spec (2026-10-24): ParseFeature and gherkinList count an outline as live
+      when every Examples block is @wip, though none of its rows runs; tests list scenario lists one
+      (verified). The commit-msg check that named IDs are live, a feat's naming and the smoke check
+      share that liveness, so a feat can name an outline whose rows never run. bug-129 fixes work
+      done alone; this is the same rule for the rest.
+    refs: [internal/tests/gherkin.go]
