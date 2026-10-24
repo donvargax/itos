@@ -13393,17 +13393,9 @@ items:
     title: decision record --supersedes overwrites the link of a record already superseded
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: bug
-    why: >
-      Was p1-supersede-standing-only. Found by the code review of 07b0e6d (2026-10-05): superseding
-      an already superseded record overwrites its link (cli/ask.go:546) instead of refusing, so the
-      chain of records loses the earlier successor.
-
-      The code is internal/slices/decision/handler.go (record, around lines 380 to 397) since the
-      slices refactor; the command is itos decision record. The supersede code came from 1bcc4264
-      and 894600fc.
     refs: [internal/slices/decision/handler.go, features/ask.feature]
 
   - id: T-298
