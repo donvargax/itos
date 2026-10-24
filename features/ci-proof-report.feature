@@ -201,6 +201,8 @@ Feature: CI reports whether its configured ranged code proof is scheduled
   # tree, git diff fails while git rev-list --quiet, plan.Readable, still
   # walks the range and the refs still name commits, so ci plan and ci run
   # keep exit 0. Fails before the work at the plan's last line.
+  # The step deletes the tree as a loose object and fails as a setup error
+  # when it finds none (packed objects), so it never quietly does nothing.
   @wip @ID-CI-49 @slice-155
   Scenario: A range whose changes cannot be read is not reported as changing no proof path
     Given the tree of the commit tagged "summary-base" is missing from the repository's objects
@@ -239,6 +241,10 @@ Feature: CI reports whether its configured ranged code proof is scheduled
   @wip @ID-CI-51 @slice-155 @guard
   Scenario: Modes that select no ranged proof gain neither the label nor an explanation
     When I invoke itos with "ci run summary-base summary-head --tests"
+    Then itos exits with code 0
+    And neither stream contains "Code proof" or "code proof"
+    And "proof-runs" has exactly 0 lines
+    When I invoke itos with "ci run summary-head summary-docs --tests"
     Then itos exits with code 0
     And neither stream contains "Code proof" or "code proof"
     And "proof-runs" has exactly 0 lines
