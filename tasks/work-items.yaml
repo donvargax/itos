@@ -57,7 +57,7 @@ phases:
 queue:
   - slice-175
   - slice-176
-  - p1-pr-task-close
+  - slice-177
   - p1-github-registry-spike
   - p1-agent-test-runs-once
   - p1-mutation-results-committed
@@ -13852,14 +13852,15 @@ items:
     depends_on: []
     kind: task
 
-  - id: p1-pr-task-close
+  - id: slice-177
     title: Under pr, closing a task with checks reaches main, though work done edits its ledger file
     phase: 1
     owner: null
     status: todo
     depends_on: [slice-176]
-    kind: idea
+    kind: slice
     why: >
+      Was p1-pr-task-close.
       Found by slice-176's spec drafter (2026-10-24): work done on a task also edits its ledger file
       (it takes the task's checks out, ADR-0043), so the close commit touches more than the work
       registry and itos push under push.mode pr refuses it on main as work-on-main (slice-174's
