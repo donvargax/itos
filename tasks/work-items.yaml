@@ -5134,11 +5134,11 @@ items:
     tags: [work, v9]
 
   - id: slice-176
-    title: A pull request names its item, its merge closes it, and work done reads merged-and-green from GitHub
+    title: Under pr, work done closes an item only once its pull request has merged and main's run of it is green
     phase: 1
     owner: null
     status: todo
-    depends_on: [slice-174, p1-typed-items]
+    depends_on: [slice-174]
     kind: slice
     why: >
       Was p1-pr-items.
