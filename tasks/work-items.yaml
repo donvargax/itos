@@ -5223,6 +5223,11 @@ items:
       whether it is a v6.x refactor or waits for the next major release. If it goes ahead,
       p1-init-plugin-rule-22 folds into it. itos-template uses kong from its start, its evidence for
       this.
+
+      2026-10-23 grooming: p1-cli-readers-from-spec dropped into this; readers kong replaces that
+      still exist: internal/cli/task.go taskAddArgs and internal/slices/initcmd/parse.go's flag
+      parsers (parseRulesFlag and kin), beside readCommitFlags, which git commit reaches unparsed
+      through the shim.
     tags: [cli, v9]
 
   - id: p1-bot-dependency-prs
