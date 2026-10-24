@@ -139,6 +139,47 @@ Feature: The work registry
     And the work registry beside the config gives the item "slice-9" the status "doing"
     And git status shows nothing to commit
 
+  # Bug 130, found by slice 138's unit tests: the check every registry writer
+  # makes before it writes, one check they all share (the tracker's Ready),
+  # took an error from git status for a file with changes, so a git that
+  # fails refused with "<file> has changes no commit holds", naming the wrong
+  # cause. git's failure is an error, naming git's command and what git said,
+  # and it exits 70, as a git that fails while work add reserves an ID does
+  # (@ID-IDS-08, bug 119): the repository is located and the config loaded by
+  # then, so no kind fits, whatever kind git.Read gives it. Exit 1 stays for
+  # policy, a file the person changed or a commit git or a hook refused
+  # (work-commit-failed). The git that fails is the one itos runs (ITOS_GIT),
+  # set after the registry is committed, and fails git status alone, so the
+  # hooks check before it still finds itos's hooks declared and the check is
+  # the first to meet the failure. The fixture's words are judged, not
+  # itos's: what git said reaches the person (ADR-0052).
+  @ID-WORK-151 @bug-130 @wip
+  Scenario: A git status that fails is reported as git's failure, exit 70, not as changes no commit holds
+    Given the work registry has the item "slice-9" owned by nobody with the status "todo"
+    And the git itos runs fails git status, saying "the fake git refuses status"
+    When itos runs "work take slice-9 --as someone"
+    Then itos exits with code 70
+    And its output says "git status"
+    And its output says "the fake git refuses status"
+    And its output does not say "has changes no commit holds"
+    And the registry is unchanged
+
+  # Bug 130's guard: a registry changed and the change not committed is still
+  # refused as before, exit 1 with the rule work-registry-uncommitted. An
+  # edit, not a deletion as in @ID-TASK-09: the file is there and git tracks
+  # it, so git status's line alone decides, the path the fix touches. The
+  # change is a YAML comment, so the registry stays sound and no earlier
+  # refusal answers instead. Expected to pass before the fix.
+  @ID-WORK-152 @bug-130 @guard @wip
+  Scenario: A registry edit no commit holds is still refused as changes no commit holds
+    Given the work registry has the item "slice-9" owned by nobody with the status "todo"
+    And the registry has a change no commit holds
+    When itos runs "work take slice-9 --as someone --json"
+    Then itos exits with code 1
+    And its JSON's problem "work-registry-uncommitted"'s "message" says "tasks/work-items.yaml"
+    And the registry's item "slice-9" has the status "todo" and the owner "nobody"
+    And the last commit's header is not "docs: take slice-9"
+
   # Slice 53: done is the landing's check, run by the agent after its push.
   # A slice's scenarios are those tagged @slice-<n> for the item slice-<n>.
   @ID-WORK-15 @slice-53
