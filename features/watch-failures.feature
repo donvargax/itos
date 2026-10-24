@@ -1,0 +1,346 @@
+@phase-1
+Feature: A failed CI run names the step each failed job failed at and what failed in it
+  A red run cost the coordinator three to five commands: the run's jobs from
+  GitHub's API, each failed job's log through api.github.com, and a grep of
+  it for itos ci run's failure lines, go test's FAIL lines, godog's failed
+  steps and the code proof's mutation lines (2026-10-11; the user,
+  2026-10-23: cut the ceremony of a red run). Once the watched run completes,
+  itos push and itos ci watch name, for each job that did not succeed, the
+  step it failed at and what its log says failed, each failure with its
+  first lines, so the failure is handed to the agent that pushed with
+  nothing else read; and a run names the tags its head commit carries on the
+  remote, the release it cut.
+
+  The contract is --json and the exit codes (ADR-0035, ADR-0052); neither
+  code changes: 0 a run that succeeded, 1 one that did not, its logs read or
+  not. Each job of run.jobs that did not succeed (skipped and neutral aside,
+  as the end line's failed jobs) gains "step", the name of its first step
+  that concluded neither success nor skipped, left out when the jobs API
+  lists none; "log", "read" or "unreadable"; "failures", in the log's order,
+  each {"kind","name"?,"package"?,"lines","more_lines"?}; and
+  "more_failures" when some were left out. run gains "tags", the remote's
+  tags at the run's head commit, left out when there is none. A job that
+  succeeded gains nothing, and a run that succeeded asks for no log. The
+  text, after the end line on stderr (under -q and --json too, as the end
+  line), says the same in words that may change: scenarios read it by loose
+  substrings.
+
+  A failure's kind is go-test, scenario, ci-run or tail. go-test is go
+  test's "--- FAIL: <name>" of a test that has lines of its own or no failed
+  subtest (a parent is named by its failed subtests), its lines the ones
+  under it, and its package the "FAIL", tab, package line that follows it.
+  scenario is godog's summary of failed steps ("--- Failed steps:", then
+  "Scenario: <name> # <file>:<line>" and its failing step with the error
+  under it, as its pretty and progress formatters print it), its name the
+  scenario's without its location, its lines the step and the error; go
+  test's "--- FAIL: TestFeatures/<name>" of that scenario, its spaces as
+  underscores, is the same failure, never a second. ci-run is itos ci run's
+  "CI failed at" or "also failed at" line, its name the text after the lead
+  less the colon and space that open it, its lines the ones after it up to
+  a blank line, GitHub's next "##[" line or the next failure line: the code
+  proof's problems, each its rule and message (mutation.survived,
+  mutation.uncovered-statement and the rest) and its fix. tail, which has
+  no name, is given when no failure found has lines of its own: the last 20
+  lines up to and including GitHub's first "##[error]" line, else the log's
+  last 20, so a failed job's log never says nothing.
+
+  A log is split at each LF and a line's trailing CR dropped, so a Windows
+  runner's CRLF reads as LF; each line loses the timestamp GitHub stamps it
+  with and every terminal escape sequence (CSI, colours among them, and
+  OSC), as tools/bin/nightly-report reads the nightly's logs (T-185). A
+  failure's lines lose the indentation they share, the rest kept. The
+  limits: 10 lines a failure, 20 failures a job, 20 lines a tail; what is
+  left out is counted (more_lines, more_failures) and said in the text,
+  never cut silently. A log is asked for once per failed job, after the run
+  completed, and never retried: one that cannot be read leaves its job's
+  step and says so, and never changes the watch's exit.
+
+  The tags are read from the remote the commit was pushed to, where GitHub
+  creates a release's tag when the release job publishes it, so no job need
+  be named a release job and no config key is added; an annotated tag counts
+  by the commit it points to.
+
+  Here GitHub is the fake one of watch.feature. It lists each job with its
+  id and its steps, as GitHub's jobs API does, and answers a job's log
+  (/repos/<repository>/actions/jobs/<id>/logs) with a redirect to the log's
+  text on itself, as GitHub redirects to a short-lived download address,
+  each line stamped with a timestamp as GitHub stamps it. A job that fails
+  at a step is listed with "Set up job" succeeded, that step failed and
+  "Complete job" succeeded. The tags are the scenario's remote's.
+
+  The why's command provider went in v5.0.0 (slice 85), so no provider has
+  optional keys to grow; what it stood for, a provider giving less, is
+  GitHub's own job listed with no steps, which keeps today's lines and
+  gains no step. itos status's red Nightly line is left out: since the
+  2026-10-11 note, nightly.yml's report job reads each red nightly job's
+  log into the Nightly red issue (tools/bin/nightly-report, T-185), and
+  status runs on every itos go, where downloading every red nightly job's
+  log would cost each session. Every key is new and optional, so no
+  scenario of watch.feature, push.feature or status.feature changes;
+  status's nightly jobs gain nothing, since status reads no log.
+
+  Background:
+    Given a repository whose ledger has the task "T-001"
+    And a clone of it, where itos runs
+    And ci.watch asks a fake GitHub, which reports the run "https://ci.example/runs/1"
+
+  # The step is the jobs API's, the first that concluded neither success nor
+  # skipped (a job GitHub timed out ends its step cancelled). The log matches
+  # nothing known, so it brings a tail (@ID-WATCH-39), not read here.
+  @ID-WATCH-35 @slice-172 @wip
+  Scenario: A push whose run fails names the step its failed job failed at
+    Given the watched run's job "ci" fails at its step "Run the unit tests", its log:
+      """
+      something went wrong
+      ##[error]Process completed with exit code 1.
+      """
+    And the clone has the commit "chore: tidy the readme" touching "README.md"
+    When itos runs "push --json"
+    Then itos exits with code 1
+    And its JSON's job "ci" has "step" "Run the unit tests"
+    And its stderr says "Run the unit tests"
+
+  # go test without -v, as CI runs it: the failed test, its message under it
+  # and its package's FAIL line, then itos ci run's line for the step. The
+  # test's lines lose go test's indentation. The ci-run failure has no lines
+  # of its own, but the test has, so no tail.
+  @ID-WATCH-36 @slice-172 @wip
+  Scenario: A failed Go test is named with its package and its first error lines
+    Given the watched run's job "ci" fails at its step "Run the unit tests", its log:
+      """
+      --- FAIL: TestRunnerLooksUpTheChecksThatOptIn (0.00s)
+          evidence_test.go:101: the runner looked up 0 checks, want 2
+      FAIL
+      FAIL	github.com/donvargax/itos/v8/internal/check	0.012s
+      ok  	github.com/donvargax/itos/v8/internal/ci	0.020s
+      CI failed at: go test ./cmd/... ./internal/... (it exited 1)
+      ##[error]Process completed with exit code 1.
+      """
+    And the clone has the commit "chore: tidy the readme" touching "README.md"
+    When itos runs "push --json"
+    Then itos exits with code 1
+    And its JSON's job "ci" has "log" "read"
+    And its JSON's job "ci" lists these failures:
+      | kind    | name                                           |
+      | go-test | TestRunnerLooksUpTheChecksThatOptIn            |
+      | ci-run  | go test ./cmd/... ./internal/... (it exited 1) |
+    And its JSON's job "ci"'s failure "TestRunnerLooksUpTheChecksThatOptIn" has "package" "github.com/donvargax/itos/v8/internal/check"
+    And its JSON's job "ci"'s failure "TestRunnerLooksUpTheChecksThatOptIn" has the lines:
+      """
+      evidence_test.go:101: the runner looked up 0 checks, want 2
+      """
+    And its stderr says "TestRunnerLooksUpTheChecksThatOptIn"
+    And its stderr says "evidence_test.go:101: the runner looked up 0 checks, want 2"
+
+  # godog's summary names the scenario and its failing step; go test's
+  # subtest line for the same scenario is folded into it, and the parent
+  # TestFeatures, with no lines of its own, is named by it. The log is
+  # coloured, as godog's pretty formatter colours it, and the lines come out
+  # with no escape sequence.
+  @ID-WATCH-37 @slice-172 @wip
+  Scenario: A failed godog scenario is named with its failing step and the step's error
+    Given the watched run's job "ci" fails at its step "Run the named tests", its log:
+      """
+      --- Failed steps:
+
+        Scenario: A push waits for its run # features/watch.feature:27
+          Then its output says "ci: success" # features/watch.feature:31
+            Error: the output does not say "ci: success"
+
+      --- FAIL: TestFeatures (2.41s)
+          --- FAIL: TestFeatures/A_push_waits_for_its_run (0.31s)
+      FAIL
+      FAIL	github.com/donvargax/itos/v8/features	2.452s
+      ##[error]Process completed with exit code 1.
+      """
+    And the fake GitHub serves the log of the job "ci" with terminal colours
+    When itos runs "ci watch --json"
+    Then itos exits with code 1
+    And its JSON's job "ci" lists these failures:
+      | kind     | name                     |
+      | scenario | A push waits for its run |
+    And its JSON's job "ci"'s failure "A push waits for its run" has the lines:
+      """
+      Then its output says "ci: success" # features/watch.feature:31
+        Error: the output does not say "ci: success"
+      """
+    And its stderr says "A push waits for its run"
+
+  # itos ci run prints the code proof's problems on stderr after its "CI
+  # failed at the code proof:" line, each rule and message, then its fix:
+  # the ci-run failure's lines, up to the blank line after them.
+  @ID-WATCH-38 @slice-172 @wip
+  Scenario: A code proof that fails is named with its mutation lines
+    Given the watched run's job "ci" fails at its step "Run itos ci run", its log:
+      """
+      $ tools/bin/pinned itos-cc mutation run --since 1a2b3c4 --json cmd internal
+
+      CI failed at the code proof: tools/bin/pinned itos-cc mutation run --since 1a2b3c4 --json cmd internal
+      mutation.uncovered-statement: internal/vcs/port/vcs.go:34 in port#Within has an uncovered executable Go coverage block
+        fix: cover the block with a test, or except it as equivalent
+
+      ##[error]Process completed with exit code 1.
+      """
+    When itos runs "ci watch --json"
+    Then itos exits with code 1
+    And its JSON's job "ci" lists these failures:
+      | kind   | name                                                                                      |
+      | ci-run | the code proof: tools/bin/pinned itos-cc mutation run --since 1a2b3c4 --json cmd internal |
+    And its JSON's job "ci"'s failure "the code proof: tools/bin/pinned itos-cc mutation run --since 1a2b3c4 --json cmd internal" has the lines:
+      """
+      mutation.uncovered-statement: internal/vcs/port/vcs.go:34 in port#Within has an uncovered executable Go coverage block
+        fix: cover the block with a test, or except it as equivalent
+      """
+    And its stderr says "mutation.uncovered-statement: internal/vcs/port/vcs.go:34"
+
+  # A log that matches nothing known still says something: the last 20 lines
+  # up to GitHub's line for the step's exit, never the cleanup after it, and
+  # the 11 before them counted.
+  @ID-WATCH-39 @slice-172 @wip
+  Scenario: A failed job whose log matches nothing known is given its log's bounded tail
+    Given the watched run's job "ci" fails at its step "Build", its log the lines "line 1" to "line 30", then GitHub's line for exit code 2 and its cleanup
+    When itos runs "ci watch --json"
+    Then itos exits with code 1
+    And its JSON's job "ci" lists these failures:
+      | kind | name |
+      | tail |      |
+    And its JSON's job "ci"'s tail has 20 lines, from "line 12" to "##[error]Process completed with exit code 2."
+    And its JSON's job "ci"'s tail has "more_lines" 11
+    And its stderr says "line 30"
+    And its stderr does not say "Cleaning up orphan processes"
+
+  # Proposal: itos ci run's line for a step names its command and exit code
+  # and nothing else, so a ci-run failure with no lines of its own brings the
+  # tail too, which holds the step's own output (go vet's here).
+  @ID-WATCH-40 @slice-172 @wip
+  Scenario: A step itos ci run names with no lines of its own brings the log's tail too
+    Given the watched run's job "ci" fails at its step "Run itos ci run", its log:
+      """
+      $ go vet ./...
+      # github.com/donvargax/itos/v8/internal/z
+      internal/z/z.go:12:2: fmt.Printf format %d has arg s of wrong type string
+
+      CI failed at: go vet ./... (it exited 1)
+      ##[error]Process completed with exit code 1.
+      """
+    When itos runs "ci watch --json"
+    Then itos exits with code 1
+    And its JSON's job "ci" lists these failures:
+      | kind   | name                       |
+      | ci-run | go vet ./... (it exited 1) |
+      | tail   |                            |
+    And its JSON's job "ci"'s tail has 6 lines, from "$ go vet ./..." to "##[error]Process completed with exit code 1."
+    And its stderr says "internal/z/z.go:12:2"
+
+  # 410 is GitHub's answer for a log past its retention; a redirect that
+  # leads nowhere or an answer cut short is the same. The nightly's report
+  # once showed a reader refusing a log for its terminal escape sequences:
+  # itos strips them (@ID-WATCH-37), so that is no reason here. The run's
+  # verdict stands: exit 1, never 3 or 75 for a log.
+  @ID-WATCH-41 @slice-172 @wip
+  Scenario: A failed job whose log cannot be read keeps its step, says so, and the watch still exits 1
+    Given the watched run's job "ci" fails at its step "Run the unit tests", its log:
+      """
+      --- FAIL: TestUnread (0.00s)
+      """
+    And the fake GitHub answers 410 for the log of the job "ci"
+    When itos runs "ci watch --json"
+    Then itos exits with code 1
+    And its JSON's "ci" is "failure"
+    And its JSON's job "ci" has "step" "Run the unit tests"
+    And its JSON's job "ci" has "log" "unreadable"
+    And its JSON's job "ci" has no "failures"
+    And its stderr says "could not be read"
+
+  # GitHub creates the tag when the release job publishes the release, while
+  # the run is still going, so it is on the remote by the time the run
+  # completes. Only the tags at the run's head count: the older release at
+  # its parent is not named.
+  @ID-WATCH-42 @slice-172 @wip
+  Scenario: A push whose run cut a release names the tag it published
+    Given the remote's head is tagged "v1.2.0"
+    And the clone has the commit "feat: add the archive" touching "a.txt"
+    And the watched run's jobs "ci" and "release" succeed, and once itos has pushed, the remote's head is tagged "v1.3.0"
+    When itos runs "push --json"
+    Then itos exits with code 0
+    And its JSON's "run.tags" is ["v1.3.0"]
+    And its stderr says "v1.3.0"
+
+  # Each failed job is named with its own step and failures, in the jobs'
+  # order. The Windows job's log has CRLF line ends, as a Windows runner's
+  # test output does, and its lines carry no CR.
+  @ID-WATCH-43 @slice-172 @wip
+  Scenario: Several failed jobs in one run are each named with their step and failures
+    Given the watched run's job "ci" fails at its step "Run the unit tests", its log:
+      """
+      --- FAIL: TestPlanOrdersTheSteps (0.00s)
+          plan_test.go:40: the steps are out of order
+      FAIL	github.com/donvargax/itos/v8/internal/plan	0.010s
+      """
+    And the watched run's job "platform (windows-latest)" fails at its step "Run the platform tests", its log:
+      """
+      --- FAIL: TestShellQuotesThePath (0.00s)
+          shell_test.go:77: the path is not quoted
+      FAIL	github.com/donvargax/itos/v8/internal/shell	0.015s
+      """
+    And the fake GitHub serves the log of the job "platform (windows-latest)" with CRLF line ends
+    When itos runs "ci watch --json"
+    Then itos exits with code 1
+    And its JSON's job "ci" has "step" "Run the unit tests"
+    And its JSON's job "platform (windows-latest)" has "step" "Run the platform tests"
+    And its JSON's job "ci" lists these failures:
+      | kind    | name                   |
+      | go-test | TestPlanOrdersTheSteps |
+    And its JSON's job "platform (windows-latest)" lists these failures:
+      | kind    | name                   |
+      | go-test | TestShellQuotesThePath |
+    And its JSON's job "platform (windows-latest)"'s failure "TestShellQuotesThePath" has the lines:
+      """
+      shell_test.go:77: the path is not quoted
+      """
+    And its stderr says "TestPlanOrdersTheSteps"
+    And its stderr says "TestShellQuotesThePath"
+
+  # A guard, which holds before the work and must after it: a green run asks
+  # for no log, and its jobs and run gain no key.
+  @ID-WATCH-44 @slice-172 @wip @guard
+  Scenario: A run that succeeds asks for no log and names nothing new
+    Given the watched run's jobs "ci" and "platform" succeed
+    When itos runs "ci watch --json"
+    Then itos exits with code 0
+    And the fake GitHub was never asked for a job's log
+    And its JSON's job "ci" has no "step"
+    And its JSON's job "ci" has no "failures"
+    And its JSON's run has no "tags"
+
+  # Proposal: 10 lines a failure and 20 failures a job, enough for a handoff
+  # and small enough for an agent's context; what is left out is counted in
+  # the JSON and said in the text.
+  @ID-WATCH-45 @slice-172 @wip
+  Scenario: A job with more failures and lines than the limits names what it left out
+    Given the watched run's job "ci" fails at its step "Run the unit tests", its log 25 failed Go tests of 14 error lines each
+    When itos runs "ci watch --json"
+    Then itos exits with code 1
+    And its JSON's job "ci" has 20 failures, each a "go-test" with 10 lines and "more_lines" 4
+    And its JSON's job "ci" has "more_failures" 5
+    And its stderr says "more failures"
+    And its stderr says "more lines"
+
+  # A job the jobs API lists with no steps (one that failed before its first
+  # step, say) has no step to name: it keeps today's lines and gains no
+  # "step", while its log is still read.
+  @ID-WATCH-46 @slice-172 @wip
+  Scenario: A failed job listed with no steps names no step and is still given its log
+    Given the watched run's job "ci" fails with no steps listed, its log:
+      """
+      the runner lost its connection
+      ##[error]The operation was canceled.
+      """
+    When itos runs "ci watch --json"
+    Then itos exits with code 1
+    And its output says "ci: failure"
+    And its JSON's job "ci" has no "step"
+    And its JSON's job "ci" has "log" "read"
+    And its JSON's job "ci" lists these failures:
+      | kind | name |
+      | tail |      |
