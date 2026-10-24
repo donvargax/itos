@@ -1,6 +1,8 @@
 // Package adapter is the tree reader's adapter (internal/store/tree/port)
-// over the disk and the VCS (Trees.VCS). Worktree reads the working tree's
-// files; Trees.At opens it, or a tree the VCS holds, "index" (the staged
+// over the disk and the VCS (Trees.VCS). WorktreeIn reads the working
+// tree's files, a relative path from the folder itos runs in, which it is
+// given (Worktree from the process's);
+// Trees.At opens it from the VCS's Folder, or a tree the VCS holds, "index" (the staged
 // tree, which the commit-msg hook judges, since it is what the commit will
 // hold) or a commit, read by path from the repository's top (the VCS's File
 // and Files).
@@ -8,7 +10,7 @@
 // A path in the git common dir (the stealth mode's config and data, in <git
 // common dir>/itos) is in no tree git holds, so it is read from the file
 // whatever the tree: At locates the top and the common dir through the
-// VCS, the common dir made absolute against the resolved working folder,
+// VCS, the common dir made absolute against the VCS's Folder resolved,
 // and aside compares the path, made absolute alike, with that. So the
 // commit-msg hook's task checks, which read the staged ledger, find the
 // stealth one.

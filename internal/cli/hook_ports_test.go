@@ -8,16 +8,17 @@ import (
 	"testing"
 
 	"github.com/donvargax/itos/v8/internal/shell"
+	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
 )
 
 // hookPorts bind the hook slice to the real code: the trees git holds,
 // the working tree's config and files, config check's task flags and the
 // config's shell.
 func TestHookPortsBindTheRealCode(t *testing.T) {
-	gitConfigRepo(t, "version: 1\nwork: { registry: work-items.yaml }\n")
+	dir := gitConfigRepo(t, "version: 1\nwork: { registry: work-items.yaml }\n")
 	writeFile(t, "a.md", "a\n")
 	gitIn(t, "add", "a.md")
-	var p hookPorts
+	p := hookPorts{Git: vcs.Git{Dir: dir}}
 	if index, err := p.Trees(t.Context()).At(t.Context(), "index"); err != nil || !index.Has(t.Context(), "a.md") {
 		t.Errorf("Trees = %v, want the index git holds", err)
 	}

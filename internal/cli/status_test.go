@@ -71,7 +71,7 @@ func TestStatusRefuses(t *testing.T) {
 func TestStatusWithNoDraftsFile(t *testing.T) {
 	statusRepo(t, map[string]string{"work-items.yaml": items("one"), "people.yaml": "- a\n",
 		filepath.Join(".git", config.StealthFolder, draft.Folder, draft.FileName): "drafts: [\n"})
-	cfg, err := loadConfig()
+	cfg, err := loadConfig("")
 	if err != nil {
 		t.Fatal(err)
 	}

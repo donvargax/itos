@@ -16,7 +16,7 @@ func runPush(args []string, o Out) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	return c.Run(context.Background(), o.Stdout, o.Stderr, push.NewHandler(pushPorts{}))
+	return c.Run(context.Background(), o.Stdout, o.Stderr, push.NewHandler(pushPorts{Git: vcs.Git{Dir: o.Dir}}))
 }
 
 // pushPorts are the push slice's ports over the real code: git, the hooks
@@ -28,13 +28,13 @@ type pushPorts struct {
 }
 
 // ConfigFound is whether configPath() is there.
-func (pushPorts) ConfigFound(context.Context) bool { return exists(configPath()) }
+func (p pushPorts) ConfigFound(context.Context) bool { return exists(within(p.Dir, configPath(p.Dir))) }
 
 // Stealth is config.IsStealth of configPath().
-func (pushPorts) Stealth(context.Context) bool { return config.IsStealth(vcs.Git{}, configPath()) }
+func (p pushPorts) Stealth(context.Context) bool { return config.IsStealth(p.Git, configPath(p.Dir)) }
 
 // LoadConfig is loadConfig.
-func (pushPorts) LoadConfig(context.Context) (*config.Loaded, error) { return loadConfig() }
+func (p pushPorts) LoadConfig(context.Context) (*config.Loaded, error) { return loadConfig(p.Dir) }
 
 // Watcher is watcher.
 func (pushPorts) Watcher(_ context.Context, cfg *config.Loaded, remote string) (providers.Watcher, bool, error) {

@@ -18,14 +18,14 @@ func runCommit(args []string, o Out) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	return c.Run(context.Background(), o.Stdout, o.Stderr, commit.NewHandler(commitPorts{}))
+	return c.Run(context.Background(), o.Stdout, o.Stderr, commit.NewHandler(commitPorts{Git: vcs.Git{Dir: o.Dir}}))
 }
 
 // gitCommit is a commit itself, every argument git commit's but itos's own
 // flags, whatever the first is: the git shim's git commit.
 func gitCommit(args []string, o Out) (int, error) {
 	c := commit.Git(args, o.JSON, o.Quiet, o.Origin, o.Tests)
-	return c.Run(context.Background(), o.Stdout, o.Stderr, commit.NewHandler(commitPorts{}))
+	return c.Run(context.Background(), o.Stdout, o.Stderr, commit.NewHandler(commitPorts{Git: vcs.Git{Dir: o.Dir}}))
 }
 
 // commitPorts are the commit slice's ports over the real code: git, the
@@ -37,32 +37,32 @@ type commitPorts struct {
 }
 
 // Stealth is config.IsStealth of configPath().
-func (commitPorts) Stealth(context.Context) bool { return config.IsStealth(vcs.Git{}, configPath()) }
+func (p commitPorts) Stealth(context.Context) bool { return config.IsStealth(p.Git, configPath(p.Dir)) }
 
 // LoadConfig is loadConfig.
-func (commitPorts) LoadConfig(context.Context) (*config.Loaded, error) { return loadConfig() }
+func (p commitPorts) LoadConfig(context.Context) (*config.Loaded, error) { return loadConfig(p.Dir) }
 
 // CommitConfig is commitConfig.
-func (commitPorts) CommitConfig(context.Context) (*config.Loaded, error, error) {
-	return commitConfig()
+func (p commitPorts) CommitConfig(context.Context) (*config.Loaded, error, error) {
+	return commitConfig(p.Dir)
 }
 
 // Read is the working tree's file.
-func (commitPorts) Read(ctx context.Context, path string) (string, error) {
-	return trees.Worktree.Read(ctx, path)
+func (p commitPorts) Read(ctx context.Context, path string) (string, error) {
+	return trees.WorktreeIn(p.Dir).Read(ctx, path)
 }
 
 // commitConfig is the config itos commit reads its flags by: none, with the
 // error loading it gave, when there is no config file, so that itos commit
 // still runs git where itos is not set up; an error when there is one that
-// does not load.
-func commitConfig() (cfg *config.Loaded, missing, err error) {
-	file := configPath()
-	cfg, err = loadConfigFile(file)
+// does not load; for a command run in the folder dir.
+func commitConfig(dir string) (cfg *config.Loaded, missing, err error) {
+	file := configPath(dir)
+	cfg, err = loadConfigFile(dir, file)
 	if err == nil {
 		return cfg, nil, nil
 	}
-	if _, statErr := os.Stat(file); statErr == nil {
+	if _, statErr := os.Stat(within(dir, file)); statErr == nil {
 		return nil, nil, err
 	}
 	return nil, err, nil

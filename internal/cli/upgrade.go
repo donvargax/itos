@@ -25,7 +25,7 @@ func UpgradeTarget(args []string) (h launch.Handoff, ok bool, err error) {
 	if g.Extension != "" || g.Help || len(g.Rest) == 0 || g.Rest[0] != "upgrade" || slices.Contains(args, "--") {
 		return h, false, nil
 	}
-	read, err := readLine(args)
+	read, err := readLine("", args)
 	if err != nil {
 		return h, false, nil
 	}
@@ -47,15 +47,15 @@ func runUpgrade(args []string, o Out) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	return c.Run(context.Background(), o.Stdout, o.Stderr, upgradeslice.NewHandler(upgradePorts{}))
+	return c.Run(context.Background(), o.Stdout, o.Stderr, upgradeslice.NewHandler(upgradePorts{vcs.Git{Dir: o.Dir}}))
 }
 
 // upgradePorts are the upgrade slice's ports over the real code: pin's,
-// the release server and the real git.
-type upgradePorts struct{}
+// the release server and the real git, in the folder itos runs in.
+type upgradePorts struct{ git vcs.Git }
 
 // Config is readConfigPin.
-func (upgradePorts) Config(context.Context) (pin.Config, error) { return readConfigPin() }
+func (p upgradePorts) Config(context.Context) (pin.Config, error) { return readConfigPin(p.git.Dir) }
 
 // Release is pinned.
 func (upgradePorts) Release(_ context.Context, want string) (string, []byte, error) {
@@ -68,16 +68,16 @@ func (upgradePorts) Fetch(_ context.Context, url string) ([]byte, error) {
 }
 
 // Stealth is config.IsStealth over the real git.
-func (upgradePorts) Stealth(_ context.Context, file string) bool {
-	return config.IsStealth(vcs.Git{}, file)
+func (p upgradePorts) Stealth(_ context.Context, file string) bool {
+	return config.IsStealth(p.git, file)
 }
 
 // Rules is agentrules.Refreshed over the real git.
-func (upgradePorts) Rules(ctx context.Context, stealth bool) []agentrules.Edit {
-	return agentrules.Refreshed(ctx, vcs.Git{}, stealth)
+func (p upgradePorts) Rules(ctx context.Context, stealth bool) []agentrules.Edit {
+	return agentrules.Refreshed(ctx, p.git, stealth)
 }
 
 // Write is writeKeepingMode.
-func (upgradePorts) Write(_ context.Context, file, text string) error {
-	return writeKeepingMode(file, text)
+func (p upgradePorts) Write(_ context.Context, file, text string) error {
+	return writeKeepingMode(p.git.Dir, file, text)
 }

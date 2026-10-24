@@ -178,12 +178,12 @@ func TestStandInHooksFixture(t *testing.T) {
 // only once they are.
 func TestDeclareHooks(t *testing.T) {
 	gitConfigRepo(t, "version: 1\nhooks: { bin: itos }\n")
-	if err := hooksReady("commit-msg"); kind.Of(err) != kind.Missing ||
+	if err := hooksReady("", "commit-msg"); kind.Of(err) != kind.Missing ||
 		!strings.HasPrefix(err.Error(), "itos's commit-msg hook is not declared") ||
 		!strings.Contains(err.Error(), "itos hook install") {
 		t.Errorf("ready before hook install: %v", err)
 	}
-	if err := hooksReady("commit-msg", "pre-push"); kind.Of(err) != kind.Missing ||
+	if err := hooksReady("", "commit-msg", "pre-push"); kind.Of(err) != kind.Missing ||
 		!strings.HasPrefix(err.Error(), "itos's commit-msg and pre-push hooks are not declared") {
 		t.Errorf("both ready before hook install: %v", err)
 	}
@@ -191,7 +191,7 @@ func TestDeclareHooks(t *testing.T) {
 	if code != 0 || stdout != "wrote hook.itos-commit-msg\nwrote hook.itos-pre-push\n" {
 		t.Fatalf("first run: exit %d\n%s%s", code, stdout, stderr)
 	}
-	if err := hooksReady("commit-msg", "pre-push"); err != nil {
+	if err := hooksReady("", "commit-msg", "pre-push"); err != nil {
 		t.Errorf("not ready after hook install: %v", err)
 	}
 	code, stdout, _ = run("hook", "install")
@@ -228,7 +228,7 @@ func TestDeclareHooksOldGit(t *testing.T) {
 	t.Setenv("PATH", bin+string(os.PathListSeparator)+os.Getenv("PATH"))
 	// A run under itos (a hook's) names the real git, which would win.
 	t.Setenv(git.EnvGit, "")
-	if err := hooksReady("commit-msg"); kind.Of(err) != kind.Missing ||
+	if err := hooksReady("", "commit-msg"); kind.Of(err) != kind.Missing ||
 		!strings.Contains(err.Error(), "git 2.30.0 runs no hook its config declares, and no hook file in .git/hooks") {
 		t.Errorf("ready with an old git: %v", err)
 	}
@@ -241,7 +241,7 @@ func TestDeclareHooksOldGit(t *testing.T) {
 		!strings.Contains(stdout, "replaced .git/hooks/pre-push") {
 		t.Errorf("exit %d\n%s%s", code, stdout, stderr)
 	}
-	if err := hooksReady(hookEvents...); err != nil {
+	if err := hooksReady("", hookEvents...); err != nil {
 		t.Errorf("ready with itos's hook files: %v", err)
 	}
 	if text, err := os.ReadFile(kept + ".before-itos"); err != nil || string(text) != "#!/bin/sh\nexit 0\n" {

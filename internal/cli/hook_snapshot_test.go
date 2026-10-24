@@ -4,22 +4,24 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
 )
 
 func TestHookCaptureIndexOutsideRepository(t *testing.T) {
-	scratchFolder(t)
-	source, err := (hookPorts{}).CaptureIndex(t.Context())
+	dir := scratchFolder(t)
+	source, err := (hookPorts{Git: vcs.Git{Dir: dir}}).CaptureIndex(t.Context())
 	if source != nil || ExitCode(err) != ExitMissing {
 		t.Fatalf("capture outside repository = %v, %v", source, err)
 	}
 }
 
 func TestHookCaptureAndCheckoutUseCapturedTree(t *testing.T) {
-	scratchFolder(t)
+	dir := scratchFolder(t)
 	gitIn(t, "init", "-q")
 	writeFiles(t, map[string]string{"input": "staged"})
 	gitIn(t, "add", "--", "input")
-	p := hookPorts{}
+	p := hookPorts{Git: vcs.Git{Dir: dir}}
 	source, err := p.CaptureIndex(t.Context())
 	if err != nil {
 		t.Fatal(err)

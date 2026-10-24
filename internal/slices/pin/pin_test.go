@@ -40,7 +40,7 @@ func (p ports) Config(context.Context) (pinengine.Config, error) {
 	if err := os.WriteFile(p.file, []byte(p.text), 0o644); err != nil {
 		return pinengine.Config{}, err
 	}
-	return pinengine.ReadConfig(p.file)
+	return pinengine.ReadConfig("", p.file)
 }
 
 func (p ports) Release(_ context.Context, want string) (string, []byte, error) {

@@ -1,7 +1,6 @@
 package adapter
 
 import (
-	"context"
 	"errors"
 	"io/fs"
 	"os"
@@ -10,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/donvargax/itos/v8/internal/kind"
-	vcs "github.com/donvargax/itos/v8/internal/vcs/port"
+	"github.com/donvargax/itos/v8/internal/store/tracker/port"
 )
 
 // localCounter is the ID counter's file in the project's git folder.
@@ -32,39 +31,35 @@ func TestReserveGivesAFailedLocateNoKind(t *testing.T) {
 	}
 }
 
-// located is the VCS with Locate giving the common dir it holds.
-type located struct {
-	vcs.VCS
-	common string
-}
-
-func (l located) Locate(context.Context, string) (vcs.Location, error) {
-	return vcs.Location{Common: l.common}, nil
-}
-
-// A folder gone from under itos stops the reservation: the common dir
-// cannot be made absolute, or the folder cannot be read. Only where the OS
-// fails os.Getwd once the folder a process stands in is removed, as Linux
-// does: Windows refuses the removal, and macOS still answers the folder's
-// path, so neither error can be met there.
-func TestReserveWhereTheFolderIsGone(t *testing.T) {
-	for _, common := range []string{".git", t.TempDir()} {
-		files, _ := project(t, false)
-		files.VCS = located{files.VCS, common}
-		gone := filepath.Join(t.TempDir(), "gone")
-		if err := os.Mkdir(gone, 0o755); err != nil {
-			t.Fatal(err)
-		}
-		t.Chdir(gone)
-		if err := os.Remove(gone); err != nil {
-			t.Skipf("this OS cannot remove the folder a process stands in: %v", err)
-		}
-		if here, err := os.Getwd(); err == nil {
-			t.Skipf("this OS still answers the folder a process stands in once it is removed: %s", here)
-		}
-		if first, err := files.Reserve(t.Context(), "slice", 0, 1); first != 0 || err == nil {
-			t.Errorf("%s: Reserve in a folder gone: %d, %v", common, first, err)
-		}
+// The local counter is in the common dir of the folder itos runs in, the
+// VCS's, wherever the process stands, and the documents are read and
+// written there.
+func TestFilesWorkInTheVCSsFolder(t *testing.T) {
+	files, _ := project(t, true)
+	dir := files.VCS.Folder(t.Context())
+	t.Chdir(t.TempDir())
+	if first, err := files.Reserve(t.Context(), "slice", 0, 1); first != 1 || err != nil {
+		t.Fatalf("Reserve: %d, %v; want 1", first, err)
+	}
+	if _, err := os.Stat(filepath.Join(dir, localCounter)); err != nil {
+		t.Errorf("the counter is not in the folder's common dir: %v", err)
+	}
+	if _, err := files.Transact(t.Context(), port.Transaction{Changes: []port.Change{{Name: "tasks/a.yaml", Text: "a\n", Created: true}}}); err != nil {
+		t.Fatal(err)
+	}
+	docs, err := files.Load(t.Context(), []string{"tasks/a.yaml"})
+	if err != nil || len(docs) != 1 || docs[0].Text != "a\n" || docs[0].Name != "tasks/a.yaml" {
+		t.Errorf("Load = %+v, %v", docs, err)
+	}
+	if names, err := files.List(t.Context(), "tasks"); err != nil || len(names) != 1 || names[0] != "a.yaml" {
+		t.Errorf("List = %q, %v", names, err)
+	}
+	if err := os.Mkdir(filepath.Join(dir, "folder"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := files.Load(t.Context(), []string{"folder"}); err == nil || !strings.Contains(err.Error(), " folder: ") ||
+		strings.Contains(err.Error(), dir) {
+		t.Errorf("Load of a folder: %v, want an error naming it as given", err)
 	}
 }
 

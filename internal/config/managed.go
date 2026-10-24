@@ -19,13 +19,14 @@ import (
 	vcs "github.com/donvargax/itos/v8/internal/vcs/port"
 )
 
-// Managed is whether itos run in the folder dir ("" for the current one)
-// reads a config there, told by file checks alone.
+// Managed is whether itos run in the folder dir ("" for the one itos runs
+// in, v's Folder) reads a config there, told by file checks alone.
 func Managed(v vcs.VCS, dir string) bool {
+	base := folder(v, dir)
 	if p := os.Getenv("ITOS_CONFIG"); p != "" {
-		return exists(in(dir, p))
+		return exists(in(base, p))
 	}
-	if exists(in(dir, fileName)) {
+	if exists(in(base, fileName)) {
 		return true
 	}
 	l, ok := v.Find(context.Background(), dir)

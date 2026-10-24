@@ -12,6 +12,7 @@ import (
 	"github.com/donvargax/itos/v8/internal/ledger"
 	"github.com/donvargax/itos/v8/internal/nextid"
 	"github.com/donvargax/itos/v8/internal/store/tracker/port"
+	vcsport "github.com/donvargax/itos/v8/internal/vcs/port"
 	"github.com/donvargax/itos/v8/internal/work"
 )
 
@@ -128,7 +129,7 @@ func taggedIDs(cfg *config.Loaded, kind string, ids []string) ([]string, error) 
 		root = *scenario.Root
 	}
 	found := append([]string(nil), ids...)
-	err := filepath.WalkDir(root, func(path string, entry os.DirEntry, err error) error {
+	err := filepath.WalkDir(vcsport.In(cfg.Folder(), root), func(path string, entry os.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}

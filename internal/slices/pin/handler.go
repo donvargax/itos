@@ -81,7 +81,7 @@ func (h Handler) Handle(ctx context.Context, q Query) (Answer, error) {
 	if err != nil {
 		return Answer{}, err
 	}
-	if err := pinengine.WriteKeepingMode(a.File, edited); err != nil {
+	if err := pinengine.WriteKeepingMode(c.Dir, a.File, edited); err != nil {
 		return Answer{}, err
 	}
 	a.Action = pinned

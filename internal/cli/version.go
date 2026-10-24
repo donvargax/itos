@@ -10,12 +10,13 @@ import (
 // runVersion is the version slice (internal/slices/version) over its
 // ports bound to the real code.
 func runVersion(args []string, o Out) (int, error) {
-	h := versionslice.NewHandler(versionPorts{})
+	h := versionslice.NewHandler(versionPorts{o.Dir})
 	return versionslice.Parse(args, o.JSON).Run(context.Background(), o.Stdout, o.Stderr, h)
 }
 
-// versionPorts are the version slice's ports over the real code.
-type versionPorts struct{}
+// versionPorts are the version slice's ports over the real code, in the
+// folder itos runs in.
+type versionPorts struct{ dir string }
 
 // BuildVersion is version.Version.
 func (versionPorts) BuildVersion(context.Context) string {
@@ -23,8 +24,8 @@ func (versionPorts) BuildVersion(context.Context) string {
 }
 
 // Requires is the requires of the config config.Path names.
-func (versionPorts) Requires(context.Context) (*string, error) {
-	cfg, err := loadConfig()
+func (p versionPorts) Requires(context.Context) (*string, error) {
+	cfg, err := loadConfig(p.dir)
 	if err != nil {
 		return nil, err
 	}

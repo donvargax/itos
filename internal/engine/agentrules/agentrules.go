@@ -60,7 +60,7 @@ func Stale(ctx context.Context, v port.VCS, stealth bool) []string {
 		}
 		return s.StaleBlocks()
 	}
-	text, _, err := ReadText(AgentsFile)
+	text, _, err := ReadText(port.Within(ctx, v, AgentsFile))
 	if err != nil {
 		return nil
 	}
@@ -71,7 +71,8 @@ func Stale(ctx context.Context, v port.VCS, stealth bool) []string {
 }
 
 // Edit is a file whose rules block upgrade rewrites: its path as said, its
-// path on disk, its new text (LF) and whether it used CRLF.
+// path on disk, read from the folder itos runs in, its new text (LF) and
+// whether it used CRLF.
 type Edit struct {
 	Path, Disk, Text string
 	CRLF             bool
@@ -95,7 +96,8 @@ func Refreshed(ctx context.Context, v port.VCS, stealth bool) []Edit {
 		}
 		return s.refreshed()
 	}
-	text, crlf, err := ReadText(AgentsFile)
+	disk := port.Within(ctx, v, AgentsFile)
+	text, crlf, err := ReadText(disk)
 	if err != nil {
 		return nil
 	}
@@ -103,7 +105,7 @@ func Refreshed(ctx context.Context, v port.VCS, stealth bool) []Edit {
 	if err != nil || !StaleBlock(found) {
 		return nil
 	}
-	return []Edit{{AgentsFile, AgentsFile, before + Block + after, crlf}}
+	return []Edit{{AgentsFile, disk, before + Block + after, crlf}}
 }
 
 // ReadText is a file's text with its line endings made LF, whether it used

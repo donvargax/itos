@@ -21,6 +21,9 @@ import (
 // ports bound to the real code; --git-shim-dir and --policy are read from
 // where itos was started.
 func runInit(args []string, o Out) (int, error) {
+	// The init slice still moves the process, so its ports read from
+	// wherever it stands.
+	o.Dir = ""
 	ctx, p := context.Background(), initPorts{o: o}
 	c, err := initslice.Parse(ctx, args, o.Origin, o.JSON, o.Tests, p)
 	if err != nil {

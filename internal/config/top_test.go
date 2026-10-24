@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	vcs "github.com/donvargax/itos/v8/internal/vcs/port"
+	vcstest "github.com/donvargax/itos/v8/internal/vcs/port/porttest"
 )
 
 // From a subfolder with no itos.yaml of its own, the run reads its config at
@@ -64,5 +65,42 @@ func TestTop(t *testing.T) {
 	t.Setenv("ITOS_CONFIG", "elsewhere.yaml")
 	if got := Top(v, filepath.Join(repo, "a")); got != "" {
 		t.Errorf("with ITOS_CONFIG, Top = %q, want \"\"", got)
+	}
+}
+
+// The config is found from the folder itos runs in, the VCS's, wherever the
+// process stands: its itos.yaml, its stealth config, the top a subfolder of
+// it moves to, and whether it is managed.
+func TestConfigIsFoundFromTheVCSsFolder(t *testing.T) {
+	t.Setenv("ITOS_CONFIG", "")
+	dir, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, folder := range []string{"sub", filepath.Join(".git", StealthFolder)} {
+		if err := os.MkdirAll(filepath.Join(dir, folder), 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	stealth := filepath.Join(".git", StealthFolder, fileName)
+	if err := os.WriteFile(filepath.Join(dir, stealth), []byte("version: 1\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	t.Chdir(t.TempDir())
+	v := &vcstest.VCS{Root: dir, Located: map[string]vcs.Location{
+		"":    {Top: dir, GitDir: ".git", Common: ".git"},
+		"sub": {Top: dir, GitDir: "../.git", Common: "../.git"},
+	}}
+	if got := Locate(v, ""); got != stealth || !IsStealth(v, got) || !Managed(v, "") {
+		t.Errorf("the stealth config: Locate %q, stealth %v, managed %v", got, IsStealth(v, got), Managed(v, ""))
+	}
+	if got := Top(v, "sub"); got != dir {
+		t.Errorf("Top from sub = %q, want %q", got, dir)
+	}
+	if err := os.WriteFile(filepath.Join(dir, fileName), []byte("version: 1\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if got := Locate(v, ""); got != fileName || Top(v, "") != "" {
+		t.Errorf("the project's config: Locate %q, Top %q", got, Top(v, ""))
 	}
 }

@@ -150,18 +150,11 @@ func extensionsHelp(goos string) string {
 	return b.String()
 }
 
-// extensionEnv is the environment an extension runs in: itos's own, with what
-// the global flags set, and the ITOS_* variables it is given in place of any
-// it had.
-func extensionEnv(g Globals) ([]string, error) {
-	root, err := os.Getwd()
-	if err != nil {
-		return nil, err
-	}
-	file, err := filepath.Abs(configPath())
-	if err != nil {
-		return nil, err
-	}
+// extensionEnv is the environment an extension runs in, from the folder
+// dir: itos's own, with what the global flags set, and the ITOS_* variables
+// it is given in place of any it had.
+func extensionEnv(g Globals, dir string) ([]string, error) {
+	root, file := dir, within(dir, configPath(dir))
 	bin, err := os.Executable()
 	if err != nil {
 		return nil, fmt.Errorf("cannot tell the itos binary running, for %s: %w", envBin, err)
@@ -184,7 +177,7 @@ func extensionEnv(g Globals) ([]string, error) {
 // environment extensionEnv gives, and gives its exit code; one that cannot
 // start is a missing environment.
 func runExtension(g Globals, path string, args []string, o Out) int {
-	env, err := extensionEnv(g)
+	env, err := extensionEnv(g, o.Dir)
 	if err == nil {
 		var code int
 		code, err = runProgram(path, args, env, o)

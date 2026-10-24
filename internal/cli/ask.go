@@ -24,7 +24,7 @@ func runDecision(args []string, o Out) (int, error) {
 type decisionPorts struct{ o Out }
 
 // Config is loadConfig.
-func (decisionPorts) Config(context.Context) (*config.Loaded, error) { return loadConfig() }
+func (p decisionPorts) Config(context.Context) (*config.Loaded, error) { return loadConfig(p.o.Dir) }
 
 // Tracker is tracker.
 func (p decisionPorts) Tracker(_ context.Context, cfg *config.Loaded) trackerport.Tracker {

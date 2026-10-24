@@ -55,7 +55,7 @@ tests:
 // problem; and a staged feature file with no smoke scenario the smoke
 // rule's problem, under the staged reject message (slice 117).
 func TestStagedDataIssues(t *testing.T) {
-	scratchFolder(t)
+	dir := scratchFolder(t)
 	// A commit made under a hook takes the author date git exports to it,
 	// which would read as an amend of HEAD.
 	t.Setenv("GIT_AUTHOR_DATE", "")
@@ -64,7 +64,7 @@ func TestStagedDataIssues(t *testing.T) {
 	hook := func() (int, string, error) {
 		t.Helper()
 		var stderr strings.Builder
-		code, err := runHook([]string{"commit-msg", "msg"}, Out{Stdout: &stderr, Stderr: &stderr})
+		code, err := runHook([]string{"commit-msg", "msg"}, Out{Stdout: &stderr, Stderr: &stderr, Dir: dir})
 		return code, stderr.String(), err
 	}
 	if _, _, err := hook(); err == nil {

@@ -31,7 +31,7 @@ func TestReadLine(t *testing.T) {
 		"work bogus --x":                                  "work bogus --x",
 		"ci bogus --x":                                    "ci bogus --x",
 	} {
-		g, err := readLine(fields(line))
+		g, err := readLine("", fields(line))
 		if err != nil {
 			t.Errorf("itos %s: %v", line, err)
 			continue
@@ -59,7 +59,7 @@ func TestReadLineRefuses(t *testing.T) {
 		"ci --x":                     "ci does not take --x; it takes a subcommand: plan, range, run, scope or watch",
 		"verify -x HEAD":             "verify does not take -x; it takes no flag",
 	} {
-		_, err := readLine(fields(line))
+		_, err := readLine("", fields(line))
 		if err == nil || ExitCode(err) != ExitUsage || err.Error() != want {
 			t.Errorf("itos %s: %v, not %s", line, err, want)
 		}
@@ -76,7 +76,7 @@ func TestMoreFlags(t *testing.T) {
 		declare.GroupLabel: {declare.Value("--milestone")},
 		declare.Footers:    {declare.Values("--upgrading")},
 	} {
-		got, err := moreFlags(more)
+		got, err := moreFlags("", more)
 		if err != nil || !slices.Equal(got, want) {
 			t.Errorf("More %d: %v, %v; not %v", more, got, err, want)
 		}

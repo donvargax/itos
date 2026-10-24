@@ -15,9 +15,10 @@ import (
 	vcsfake "github.com/donvargax/itos/v8/internal/vcs/port/porttest"
 )
 
-// repo is a repository the VCS fake locates from the current folder: its
-// top is a new folder, its links resolved, and the current folder; its git
-// common dir is .git there, holding itos's folder.
+// repo is a repository the VCS fake locates from the folder itos runs in
+// (its Root): its top is a new folder, its links resolved, and that folder;
+// its git common dir is .git there, holding itos's folder. The test stands
+// elsewhere.
 func repo(t *testing.T) (string, *vcsfake.VCS) {
 	t.Helper()
 	top, err := filepath.EvalSymlinks(t.TempDir())
@@ -27,8 +28,8 @@ func repo(t *testing.T) (string, *vcsfake.VCS) {
 	if err := os.MkdirAll(filepath.Join(top, ".git", "itos"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	t.Chdir(top)
-	return top, &vcsfake.VCS{Located: map[string]vcsport.Location{"": {Top: top, GitDir: ".git", Common: ".git"}}}
+	t.Chdir(t.TempDir())
+	return top, &vcsfake.VCS{Root: top, Located: map[string]vcsport.Location{"": {Top: top, GitDir: ".git", Common: ".git"}}}
 }
 
 // write writes text to the file at path, its folders made.
@@ -85,7 +86,7 @@ func TestComposeTheCoordinatorsWithBothNotes(t *testing.T) {
 	if err := os.MkdirAll(filepath.Join(top, "a", "b"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	t.Chdir(filepath.Join(top, "a", "b"))
+	v.Root = filepath.Join(top, "a", "b")
 	v.Located[""] = vcsport.Location{Top: top, GitDir: "../../.git", Common: "../../.git"}
 	var stderr strings.Builder
 	g := Compose(t.Context(), v, Config{}, guide.Coordinate, true, &stderr)
@@ -178,7 +179,7 @@ func TestReadNotes(t *testing.T) {
 		t.Fatal(err)
 	}
 	for path, want := range map[string]string{"": "", filepath.Join(dir, "missing.md"): "", filepath.Join(dir, "blank.md"): ""} {
-		if text, got := readNotes(path, &stderr); text != want || got != "" {
+		if text, got := readNotes("", path, &stderr); text != want || got != "" {
 			t.Errorf("readNotes(%q) = %q, %q", path, text, got)
 		}
 	}
@@ -186,11 +187,11 @@ func TestReadNotes(t *testing.T) {
 		t.Errorf("stderr %q", stderr.String())
 	}
 	open := filepath.Join(dir, "open.md")
-	if text, got := readNotes(open, &stderr); text != "No newline.\n" || got != open {
+	if text, got := readNotes("", open, &stderr); text != "No newline.\n" || got != open {
 		t.Errorf("readNotes(open) = %q, %q", text, got)
 	}
 	folder := filepath.Join(dir, "folder.md")
-	if text, got := readNotes(folder, &stderr); text != "" || got != "" ||
+	if text, got := readNotes("", folder, &stderr); text != "" || got != "" ||
 		!strings.HasPrefix(stderr.String(), "itos: "+folder+" cannot be read, so the guide prints without it: ") {
 		t.Errorf("readNotes(folder) = %q, %q, stderr %q", text, got, stderr.String())
 	}
@@ -232,7 +233,7 @@ func TestUpToTop(t *testing.T) {
 	if got, ok := upToTop(t.Context(), v); got != "" || !ok {
 		t.Errorf("at the top = %q, %v", got, ok)
 	}
-	t.Chdir(filepath.Join(top, "a", "b"))
+	v.Root = filepath.Join(top, "a", "b")
 	if got, ok := upToTop(t.Context(), v); got != "../../" || !ok {
 		t.Errorf("from a/b = %q, %v", got, ok)
 	}

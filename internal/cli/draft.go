@@ -26,6 +26,9 @@ func runDraft(args []string, o Out) (int, error) {
 	if err != nil {
 		return 0, err
 	}
+	// The draft slice still moves the process, so its ports read from
+	// wherever it stands.
+	o.Dir = ""
 	return c.Run(context.Background(), o.Stdout, o.Stderr, draftslice.NewHandler(draftPorts{o: o}))
 }
 
@@ -60,7 +63,7 @@ func (p draftPorts) Scratch(_ context.Context, index string) draftslice.Index {
 }
 
 // HooksReady is hooksReady.
-func (draftPorts) HooksReady(_ context.Context, event string) error { return hooksReady(event) }
+func (draftPorts) HooksReady(_ context.Context, event string) error { return hooksReady("", event) }
 
 // Self is executable.
 func (draftPorts) Self(context.Context) (string, error) { return executable() }
@@ -108,7 +111,7 @@ func (draftPorts) Globals(_ context.Context, command []string) draftslice.Line {
 // ApplyGlobals is applyGlobals of the line's global flags.
 func (p draftPorts) ApplyGlobals(_ context.Context, command []string) error {
 	dir, _, err := applyGlobals(ParseGlobals(command), p.o.Dir, p.o.OS)
-	if err != nil {
+	if err != nil || dir == "" {
 		return err
 	}
 	return os.Chdir(dir)
@@ -116,7 +119,7 @@ func (p draftPorts) ApplyGlobals(_ context.Context, command []string) error {
 
 // ReadLine is readLine's Rest.
 func (draftPorts) ReadLine(_ context.Context, command []string) ([]string, error) {
-	read, err := readLine(command)
+	read, err := readLine("", command)
 	return read.Rest, err
 }
 
@@ -139,7 +142,7 @@ func (draftPorts) TaskAdd(_ context.Context, cfg *config.Loaded, args []string) 
 }
 
 // Config is loadConfig.
-func (draftPorts) Config(context.Context) (*config.Loaded, error) { return loadConfig() }
+func (draftPorts) Config(context.Context) (*config.Loaded, error) { return loadConfig("") }
 
 // Sound is soundRegistry.
 func (p draftPorts) Sound(context.Context) (draftslice.Sound, error) {

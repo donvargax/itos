@@ -322,7 +322,7 @@ func (m *Moves) featureTexts(name, tree string) (map[string]string, Options, err
 	if err != nil {
 		return nil, Options{}, err
 	}
-	texts, err := featureTexts(m.cfg.Trees, tree, o.Root)
+	texts, err := featureTexts(m.cfg, tree, o.Root)
 	return texts, o, err
 }
 

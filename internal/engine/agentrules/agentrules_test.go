@@ -214,7 +214,7 @@ func TestRefreshed(t *testing.T) {
 		}
 	}
 	putFile(t, AgentsFile, "Mine.\r\n\r\n"+strings.ReplaceAll(olderBlock, "\n", "\r\n")+"\r\nAfter.\r\n")
-	want := []Edit{{AgentsFile, AgentsFile, "Mine.\n\n" + Block + "\nAfter.\n", true}}
+	want := []Edit{{AgentsFile, filepath.Join(v.Root, AgentsFile), "Mine.\n\n" + Block + "\nAfter.\n", true}}
 	if got := Refreshed(ctx, v, false); !slices.Equal(got, want) {
 		t.Errorf("an older block, CRLF: %v, not %v", got, want)
 	}
@@ -252,20 +252,20 @@ func TestRefreshed(t *testing.T) {
 	}
 	putFile(t, rules, olderBlock)
 	putFile(t, OverrideFile, Block)
-	want = []Edit{{rules, disk, Block, false}}
+	want = []Edit{{rules, filepath.Join(v.Root, disk), Block, false}}
 	if got := Refreshed(ctx, v, true); !slices.Equal(got, want) {
 		t.Errorf("stealth, an older block in the git folder: %v, not %v", got, want)
 	}
 	copied := CopyBegin + "\n\nThe project's.\n\n" + CopyEnd + "\n"
 	putFile(t, rules, Block)
 	putFile(t, OverrideFile, copied+"\n"+strings.TrimSuffix(olderBlock, "\n"))
-	want = []Edit{{OverrideFile, OverrideFile, copied + "\n" + Block, false}}
+	want = []Edit{{OverrideFile, filepath.Join(v.Root, OverrideFile), copied + "\n" + Block, false}}
 	if got := Refreshed(ctx, v, true); !slices.Equal(got, want) {
 		t.Errorf("stealth, an older block after the copy: %v, not %v", got, want)
 	}
 	putFile(t, rules, olderBlock)
 	putFile(t, OverrideFile, "Mine.\n\n"+olderBlock+"After.\n")
-	want = []Edit{{rules, disk, Block, false}, {OverrideFile, OverrideFile, "Mine.\n\n" + Block + "After.\n", false}}
+	want = []Edit{{rules, filepath.Join(v.Root, disk), Block, false}, {OverrideFile, filepath.Join(v.Root, OverrideFile), "Mine.\n\n" + Block + "After.\n", false}}
 	if got := Refreshed(ctx, v, true); !slices.Equal(got, want) {
 		t.Errorf("stealth, older blocks in both: %v, not %v", got, want)
 	}

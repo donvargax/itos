@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -219,7 +220,7 @@ func applyGlobals(g Globals, dir, goos string) (at, origin string, err error) {
 			return "", "", kind.Wrap(kind.Usage, fmt.Errorf("--root %s: %w", g.Root, err))
 		}
 		at = entered(goos, dir, root)
-	} else if top := config.Top(vcs.Git{Dir: dir}, dir); top != "" {
+	} else if top := config.Top(vcs.Git{Dir: dir}, ""); top != "" {
 		at, origin = moveTo(goos, dir, top)
 	}
 	if g.NoColor {
@@ -228,12 +229,22 @@ func applyGlobals(g Globals, dir, goos string) (at, origin string, err error) {
 	return at, origin, nil
 }
 
-// within is the path p names from the folder dir.
+// within is the path p names from the folder dir, "" for the process's.
 func within(dir, p string) string {
 	if filepath.IsAbs(p) {
 		return filepath.Clean(p)
 	}
 	return filepath.Join(dir, p)
+}
+
+// named is err naming the file p as it was given, not as it was read from
+// the folder a command runs in.
+func named(err error, p string) error {
+	var failed *fs.PathError
+	if errors.As(err, &failed) {
+		failed.Path = p
+	}
+	return err
 }
 
 // entered is the folder to, entered from the folder from, spelled as the OS
@@ -336,7 +347,7 @@ func mainWith(r Run, reserved string) int {
 	if !ok {
 		return failure(usage("unknown command: %s", name), o)
 	}
-	read, err := readLine(r.Args)
+	read, err := readLine(dir, r.Args)
 	if err != nil {
 		return failure(err, o)
 	}

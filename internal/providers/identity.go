@@ -36,7 +36,8 @@ func IdentityProvider(cfg *config.Loaded) Identity {
 			return Answer{Problem: "work.identity is none, so this session is nobody; " + id.Hint}
 		}
 	}
-	return GitHubIdentity(id.Hint, GhLogin)
+	dir := cfg.Folder()
+	return GitHubIdentity(id.Hint, func() (string, error) { return GhLogin(dir) })
 }
 
 // GhTimeout is how long the github provider waits for gh api user before
@@ -55,12 +56,13 @@ var ErrGhNoAnswer = errors.New("gh did not answer")
 // the terminal, so it cannot wait on a person, and its stderr is not shown:
 // the provider's answer says what went wrong. Past the bound gh is killed
 // with whatever it started (killTree), and its output is not waited for.
-func GhLogin() (string, error) {
+// gh runs in the folder dir, the one itos runs in.
+func GhLogin(dir string) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), GhTimeout)
 	defer cancel()
 	var stdout bytes.Buffer
 	cmd := exec.CommandContext(ctx, "gh", "api", "user", "--jq", ".login")
-	cmd.Stdout = &stdout
+	cmd.Stdout, cmd.Dir = &stdout, dir
 	killTree(cmd)
 	cmd.WaitDelay = time.Second
 	err := cmd.Run()

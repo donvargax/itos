@@ -7,8 +7,9 @@ package config
 // runs as if started at the top, as --root <top> would, so every path the
 // config names means what it means there. A folder's own itos.yaml still
 // wins, a run at the top asks git nothing more, and outside a repository
-// nothing changes. The command line moves there before any command runs
-// (internal/cli), and the launcher reads the pin there (internal/launch).
+// nothing changes. The command line runs there, the folder it hands each
+// command, the process's own never changed (internal/cli), and the launcher
+// reads the pin there (internal/launch).
 
 import (
 	"context"
@@ -19,7 +20,7 @@ import (
 )
 
 // Top is the repository's top level when a run in the folder dir ("" for
-// the current one) reads its config from there: no ITOS_CONFIG, no itos.yaml
+// the one itos runs in, v's Folder) reads its config from there: no ITOS_CONFIG, no itos.yaml
 // in dir, dir below the top of a repository that has an itos.yaml at its top
 // or a stealth config. "" when the run stays where it is. v locates the
 // repository, once per folder and run, so the launcher and the command line
@@ -28,7 +29,7 @@ func Top(v vcs.VCS, dir string) string {
 	if os.Getenv("ITOS_CONFIG") != "" {
 		return ""
 	}
-	if _, err := os.Stat(in(dir, fileName)); err == nil {
+	if _, err := os.Stat(in(folder(v, dir), fileName)); err == nil {
 		return ""
 	}
 	return findTop(v, dir)
@@ -41,13 +42,14 @@ func findTop(v vcs.VCS, dir string) string {
 	if err != nil || l.Top == "" {
 		return ""
 	}
-	if same(l.Top, in(dir, ".")) {
+	base := folder(v, dir)
+	if same(l.Top, in(base, ".")) {
 		return ""
 	}
 	if _, err := os.Stat(filepath.Join(l.Top, fileName)); err == nil {
 		return l.Top
 	}
-	if _, err := os.Stat(in(dir, filepath.Join(l.Common, StealthFolder, fileName))); err == nil {
+	if _, err := os.Stat(in(base, filepath.Join(l.Common, StealthFolder, fileName))); err == nil {
 		return l.Top
 	}
 	return ""

@@ -7,8 +7,10 @@
 //
 // Run starts a command with its streams (an *os.File handed over as it is,
 // so a check's output keeps its place beside what itos prints; nil is the
-// null device), its timeout and its environment, and says how it ended in a
-// Result: the code, whether it timed out, why it could not start. Past its
+// null device), its timeout, its environment and its folder, by default
+// the folder itos runs in, which the config gives (its Folder), and says how it
+// ended in a Result: the code, whether it timed out, why it could not
+// start. Past its
 // timeout a command gets SIGTERM, then Grace (10 seconds) before it is
 // killed. A command that traps the signal and exits 0 has code 0, so a
 // caller that fails a timeout whatever its code reads TimedOut. Status is

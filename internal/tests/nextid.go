@@ -38,7 +38,7 @@ func NextTag(cfg *config.Loaded, name, stem string, others []string) (string, er
 		if err != nil {
 			return "", err
 		}
-		byPath, err := featureTexts(cfg.Trees, "worktree", o.Root)
+		byPath, err := featureTexts(cfg, "worktree", o.Root)
 		if err != nil {
 			return "", err
 		}

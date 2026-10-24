@@ -54,7 +54,7 @@ func over(t *testing.T, files map[string]string) ports {
 		}
 	}
 	return ports{
-		VCS:   &vcsfake.VCS{Located: map[string]vcsport.Location{"": {Top: top, GitDir: ".git", Common: ".git"}}},
+		VCS:   &vcsfake.VCS{Root: top, Located: map[string]vcsport.Location{"": {Top: top, GitDir: ".git", Common: ".git"}}},
 		trees: treefake.Trees{Files: map[string]map[string]string{"worktree": files}},
 	}
 }

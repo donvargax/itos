@@ -23,8 +23,11 @@ func runGitShim(args []string, o Out) (int, error) {
 // itos runs on, and itos commit and itos push with o.
 type gitShimPorts struct{ o Out }
 
-// Place is shimPlace.
+// Place is shimPlace of the folder dir, read from the folder itos runs in.
 func (p gitShimPorts) Place(_ context.Context, dir string) (self, link string, err error) {
+	if dir != "" {
+		dir = within(p.o.Dir, dir)
+	}
 	return shimPlace(dir, p.o.OS)
 }
 

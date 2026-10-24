@@ -17,22 +17,23 @@ func runPin(args []string, o Out) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	return c.Run(context.Background(), o.Stdout, o.Stderr, pinslice.NewHandler(pinPorts{}))
+	return c.Run(context.Background(), o.Stdout, o.Stderr, pinslice.NewHandler(pinPorts{o.Dir}))
 }
 
-// pinPorts are the pin slice's ports over the real code.
-type pinPorts struct{}
+// pinPorts are the pin slice's ports over the real code, in the folder
+// itos runs in.
+type pinPorts struct{ dir string }
 
 // Config is readConfigPin.
-func (pinPorts) Config(context.Context) (pin.Config, error) { return readConfigPin() }
+func (p pinPorts) Config(context.Context) (pin.Config, error) { return readConfigPin(p.dir) }
 
 // Release is pinned.
 func (pinPorts) Release(_ context.Context, want string) (string, []byte, error) { return pinned(want) }
 
-// readConfigPin reads the config itos finds, the stealth one included, and
-// its pin.
-func readConfigPin() (pin.Config, error) {
-	return pin.ReadConfig(configPath())
+// readConfigPin reads the config itos finds in the folder dir, the stealth
+// one included, and its pin.
+func readConfigPin(dir string) (pin.Config, error) {
+	return pin.ReadConfig(dir, configPath(dir))
 }
 
 // pinned is the release to pin and its checksums.txt (pin.Pinned).
@@ -40,7 +41,8 @@ func pinned(want string) (string, []byte, error) {
 	return pin.Pinned(want)
 }
 
-// writeKeepingMode writes the file's new text, keeping its permissions.
-func writeKeepingMode(file, text string) error {
-	return pin.WriteKeepingMode(file, text)
+// writeKeepingMode writes the file's new text, read from the folder dir,
+// keeping its permissions.
+func writeKeepingMode(dir, file, text string) error {
+	return pin.WriteKeepingMode(dir, file, text)
 }

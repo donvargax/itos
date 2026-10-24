@@ -115,7 +115,7 @@ func TestWorkPortsWriteThroughTheRealCode(t *testing.T) {
 	if header := strings.TrimSpace(gitIn(t, "log", "-1", "--format=%s")); header != "docs: take slice-9" {
 		t.Errorf("the take committed %q", header)
 	}
-	cfg, err := loadConfig()
+	cfg, err := loadConfig("")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -145,7 +145,7 @@ func TestWorkPortsRunATasksChecksAsTheHookDoes(t *testing.T) {
 	putFile(t, filepath.Join("tasks", "phase-1.yaml"), "- id: T-1\n  type: docs\n  title: One\n  why: Because.\n  done_when:\n"+
 		"    - { run: 'test -z \"$GIT_INDEX_FILE\"', cost: static }\n    - { run: \"false\", cost: static }\n")
 	t.Setenv("GIT_INDEX_FILE", "elsewhere")
-	cfg, err := loadConfig()
+	cfg, err := loadConfig("")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -176,7 +176,7 @@ func TestWorkPortsWatchThroughTheConfigsProvider(t *testing.T) {
 	t.Setenv("GITHUB_API_URL", server.URL)
 	t.Setenv("GITHUB_REPOSITORY", "owner/scratch")
 	t.Setenv("GITHUB_TOKEN", "token")
-	cfg, err := loadConfig()
+	cfg, err := loadConfig("")
 	if err != nil {
 		t.Fatal(err)
 	}

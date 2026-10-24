@@ -51,10 +51,10 @@ func laidOut(t *testing.T, repository bool) port.Trees {
 		t.Fatal(err)
 	}
 	t.Setenv("GIT_CEILING_DIRECTORIES", filepath.Dir(dir))
+	t.Chdir(t.TempDir())
 	if !repository {
 		write(t, filepath.Join(dir, "tasks/phase-1.yaml"), "worktree\n")
-		t.Chdir(dir)
-		return Trees{VCS: vcs.Git{}}
+		return Trees{VCS: vcs.Git{Dir: dir}}
 	}
 	gitIn(t, dir, "init", "-q")
 	write(t, filepath.Join(dir, "tasks/done/phase-0.yaml"), "zero\n")
@@ -66,8 +66,7 @@ func laidOut(t *testing.T, repository bool) port.Trees {
 	gitIn(t, dir, "add", "tasks")
 	write(t, filepath.Join(dir, "tasks/phase-1.yaml"), "worktree\n")
 	write(t, filepath.Join(dir, ".git/itos/tasks/phase-1.yaml"), "aside\n")
-	t.Chdir(dir)
-	return Trees{VCS: vcs.Git{}}
+	return Trees{VCS: vcs.Git{Dir: dir}}
 }
 
 // The adapter reads the disk and git as the fake reads its trees.
@@ -98,16 +97,16 @@ func TestTextsOfNamesGitQuotes(t *testing.T) {
 		gitIn(t, dir, "update-index", "--add", "--cacheinfo", "100644,"+blob+","+n)
 		want[n] = "text\n"
 	}
-	t.Chdir(dir)
 	all := func(string) bool { return true }
-	if got := (Trees{VCS: vcs.Git{}}).Texts(t.Context(), "index", "features", all); !reflect.DeepEqual(got, want) {
+	trees := Trees{VCS: vcs.Git{Dir: dir}}
+	if got := trees.Texts(t.Context(), "index", "features", all); !reflect.DeepEqual(got, want) {
 		t.Errorf("index texts %q, want %q", got, want)
 	}
 	gitIn(t, dir, "commit", "-qm", "names")
-	if got := (Trees{VCS: vcs.Git{}}).Texts(t.Context(), "HEAD", "features", all); !reflect.DeepEqual(got, want) {
+	if got := trees.Texts(t.Context(), "HEAD", "features", all); !reflect.DeepEqual(got, want) {
 		t.Errorf("HEAD texts %q, want %q", got, want)
 	}
-	head, _ := Trees{VCS: vcs.Git{}}.At(t.Context(), "HEAD")
+	head, _ := trees.At(t.Context(), "HEAD")
 	listed, err := head.List(t.Context(), "features")
 	if err != nil || len(listed) != len(names) || !slices.Contains(listed, "café.feature") {
 		t.Errorf("HEAD list %q, %v", listed, err)
@@ -115,13 +114,14 @@ func TestTextsOfNamesGitQuotes(t *testing.T) {
 }
 
 // A file in the git folder, which no tree git holds can have, is read where
-// it is whatever the source: the stealth mode's config and data.
+// it is whatever the source: the stealth mode's config and data, from the
+// folder itos runs in, wherever the process stands.
 func TestGitFolderIsReadWhereItIs(t *testing.T) {
 	dir := t.TempDir()
 	gitIn(t, dir, "init", "-q")
 	write(t, filepath.Join(dir, ".git/itos/tasks/phase-1.yaml"), "aside\n")
-	t.Chdir(dir)
-	index, err := Trees{VCS: vcs.Git{}}.At(t.Context(), "index")
+	t.Chdir(t.TempDir())
+	index, err := Trees{VCS: vcs.Git{Dir: dir}}.At(t.Context(), "index")
 	if err != nil {
 		t.Fatal(err)
 	}

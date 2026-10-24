@@ -4,9 +4,7 @@ import (
 	"context"
 	"errors"
 	"os"
-	"path/filepath"
 	"reflect"
-	"runtime"
 	"syscall"
 	"testing"
 
@@ -67,24 +65,5 @@ func TestTreesOverTheVCSFake(t *testing.T) {
 	}
 	if listed, err := index.List(t.Context(), "sub"); err != nil || !reflect.DeepEqual(listed, []string{"a.md"}) {
 		t.Errorf("a top no path is relative to lists %q, %v", listed, err)
-	}
-}
-
-// A working folder that is gone is At's error.
-func TestTreesAtAGoneWorkingFolder(t *testing.T) {
-	if runtime.GOOS != "linux" {
-		t.Skip("a removed working folder is getcwd's error on linux; other systems differ or refuse to remove it")
-	}
-	dir := filepath.Join(t.TempDir(), "gone")
-	if err := os.Mkdir(dir, 0o755); err != nil {
-		t.Fatal(err)
-	}
-	t.Chdir(dir)
-	if err := os.Remove(dir); err != nil {
-		t.Fatal(err)
-	}
-	v := &vcsfake.VCS{Root: dir, Located: map[string]vcsport.Location{"": {Top: dir, GitDir: ".git", Common: ".git"}}}
-	if _, err := (Trees{VCS: v}).At(t.Context(), "index"); err == nil {
-		t.Error("a gone working folder opens the index")
 	}
 }

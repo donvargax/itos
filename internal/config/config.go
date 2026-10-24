@@ -70,6 +70,15 @@ func (l *Loaded) CommentChar() string {
 	return l.comment()
 }
 
+// Folder is the folder itos runs in, which the config's relative paths
+// are read from: its VCS's Folder, "" for the process's or with no VCS.
+func (l *Loaded) Folder() string {
+	if l.VCS == nil {
+		return ""
+	}
+	return l.VCS.Folder(context.Background())
+}
+
 // withVCS is the config reading its data through trees and src and its
 // repository through v.
 func (l *Loaded) withVCS(v vcs.VCS, trees port.Trees, src port.Source) *Loaded {

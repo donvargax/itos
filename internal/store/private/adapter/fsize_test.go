@@ -16,8 +16,7 @@ import (
 // error on every system that has the limit. Go ignores the SIGXFSZ the
 // kernel sends with it.
 func TestStoreKeepsTheFileAWriteFailsToReplace(t *testing.T) {
-	clone(t, true)
-	store := Store{VCS: vcs.Git{}}
+	store := Store{VCS: vcs.Git{Dir: clone(t, true)}}
 	if err := store.Write(t.Context(), "threads.yaml", []byte("old\n")); err != nil {
 		t.Fatal(err)
 	}

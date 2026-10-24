@@ -18,9 +18,10 @@ var hookEvents = hooks.Events
 // hookEntry is the name itos's entry for a hook event has in the git config.
 func hookEntry(event string) string { return hooks.Entry(event) }
 
-// hooksReady is hooks.Ready over the git adapter and the OS.
-func hooksReady(events ...string) error {
-	return hooks.Ready(context.Background(), hooksPorts{}, events...)
+// hooksReady is hooks.Ready over the git adapter in the folder dir and the
+// OS.
+func hooksReady(dir string, events ...string) error {
+	return hooks.Ready(context.Background(), hooksPorts{Git: vcs.Git{Dir: dir}}, events...)
 }
 
 // hooksPorts are hooks.Ports over the git adapter, which says where the

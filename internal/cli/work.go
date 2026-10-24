@@ -31,10 +31,10 @@ func runWork(args []string, o Out) (int, error) {
 type workPorts struct{ o Out }
 
 // Config is loadConfig.
-func (workPorts) Config(context.Context) (*config.Loaded, error) { return loadConfig() }
+func (p workPorts) Config(context.Context) (*config.Loaded, error) { return loadConfig(p.o.Dir) }
 
 // Worktree is the working tree's files.
-func (workPorts) Worktree(context.Context) treeport.Source { return trees.Worktree }
+func (p workPorts) Worktree(context.Context) treeport.Source { return trees.WorktreeIn(p.o.Dir) }
 
 // Identity is work.identity's provider.
 func (workPorts) Identity(_ context.Context, cfg *config.Loaded) providers.Identity {

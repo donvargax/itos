@@ -172,12 +172,13 @@ func orList(names []string) string {
 	return strings.Join(names[:len(names)-1], ", ") + " or " + names[len(names)-1]
 }
 
-// GhToken is the token `gh auth token` prints, trimmed, and the error of a
-// gh that is missing or signed out.
-func GhToken() (string, error) {
+// GhToken is the token `gh auth token` prints, run in the folder dir, the
+// one itos runs in, trimmed, and the error of a gh that is missing or
+// signed out.
+func GhToken(dir string) (string, error) {
 	var stdout bytes.Buffer
 	cmd := exec.Command("gh", "auth", "token")
-	cmd.Stdout = &stdout
+	cmd.Stdout, cmd.Dir = &stdout, dir
 	err := cmd.Run()
 	return value.Trim(stdout.String()), err
 }

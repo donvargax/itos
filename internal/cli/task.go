@@ -27,7 +27,7 @@ func runTask(args []string, o Out) (int, error) {
 type taskPorts struct{ o Out }
 
 // Config is loadConfig.
-func (taskPorts) Config(context.Context) (*config.Loaded, error) { return loadConfig() }
+func (p taskPorts) Config(context.Context) (*config.Loaded, error) { return loadConfig(p.o.Dir) }
 
 // Evidence is newEvidence of a hand-run itos task.
 func (p taskPorts) Evidence(_ context.Context, cfg *config.Loaded) *evidence.Engine {

@@ -74,7 +74,7 @@ func (p ports) record(format string, a ...any) {
 
 func (p ports) Config(context.Context) (pinengine.Config, error) {
 	p.record("config")
-	return pinengine.ReadConfig(p.file)
+	return pinengine.ReadConfig("", p.file)
 }
 
 func (p ports) Release(_ context.Context, want string) (string, []byte, error) {
@@ -116,7 +116,7 @@ func (p ports) Write(_ context.Context, file, text string) error {
 	if file == p.unwritable {
 		return errors.New("cannot write " + file)
 	}
-	return pinengine.WriteKeepingMode(file, text)
+	return pinengine.WriteKeepingMode("", file, text)
 }
 
 // served is a release server offering 9.1.0, 9.2.0 and 9.3.0's

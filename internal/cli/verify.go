@@ -15,7 +15,7 @@ func runVerify(args []string, o Out) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	return c.Run(context.Background(), o.Stdout, o.Stderr, verify.NewHandler(verifyPorts{}))
+	return c.Run(context.Background(), o.Stdout, o.Stderr, verify.NewHandler(verifyPorts{vcs.Git{Dir: o.Dir}}))
 }
 
 // verifyPorts are the verify slice's ports over the real code: git, the
@@ -23,10 +23,10 @@ func runVerify(args []string, o Out) (int, error) {
 type verifyPorts struct{ vcs.Git }
 
 // Stealth is config.IsStealth of configPath().
-func (verifyPorts) Stealth(context.Context) bool { return config.IsStealth(vcs.Git{}, configPath()) }
+func (p verifyPorts) Stealth(context.Context) bool { return config.IsStealth(p.Git, configPath(p.Dir)) }
 
 // Config is loadConfig.
-func (verifyPorts) Config(context.Context) (*config.Loaded, error) { return loadConfig() }
+func (p verifyPorts) Config(context.Context) (*config.Loaded, error) { return loadConfig(p.Dir) }
 
 // span is a range as --json names it.
 type span struct {

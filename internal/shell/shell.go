@@ -20,8 +20,9 @@ const Grace = 10 * time.Second
 
 // Options are how a command runs: its streams, each nil for /dev/null (an
 // *os.File is handed to the command as it is, so its output keeps its place
-// beside what itos prints), its timeout (none when 0) and its environment
-// (itos's own when nil).
+// beside what itos prints), its timeout (none when 0), its environment
+// (itos's own when nil) and its folder (the folder itos runs in when "",
+// the config's Folder).
 type Options struct {
 	Stdin          io.Reader
 	Stdout, Stderr io.Writer
@@ -95,6 +96,9 @@ func Run(cfg *config.Loaded, command string, o Options) Result {
 	cmd := exec.CommandContext(ctx, argv[0], argv[1:]...)
 	cmd.Stdin, cmd.Stdout, cmd.Stderr, cmd.Env = o.Stdin, o.Stdout, o.Stderr, o.Env
 	cmd.Dir = o.Dir
+	if o.Dir == "" {
+		cmd.Dir = cfg.Folder()
+	}
 	cmd.Cancel = func() error {
 		if err := cmd.Process.Signal(syscall.SIGTERM); err != nil {
 			return cmd.Process.Kill()

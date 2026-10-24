@@ -20,16 +20,19 @@ func (g evidenceGit) Snapshot(ctx context.Context, tree string) (evidence.Checko
 }
 
 // newEvidence is the engine for one invocation of a command that runs
-// checks by hand: itos task (mode task), whose note on unstaged changes
-// names --working-tree, or ci run (mode ci), which binds ci.env to the key
-// as it applies it to the commands. goos is the OS the lock waits by, as Out.OS
-// names it.
+// checks by hand, in the folder the config was read in: itos task (mode
+// task), whose note on unstaged changes names --working-tree, or ci run
+// (mode ci), which binds ci.env to the key as it applies it to the
+// commands. goos is the OS the lock waits by, as Out.OS names it.
 func newEvidence(cfg *config.Loaded, mode, goos string) *evidence.Engine {
+	dir := cfg.Folder()
+	git := vcs.Git{Dir: dir}
 	e := &evidence.Engine{
 		Cfg:     cfg,
-		Git:     evidenceGit{vcs.Git{}},
-		Store:   private.Store{OS: goos, VCS: vcs.Git{}},
+		Git:     evidenceGit{git},
+		Store:   private.Store{OS: goos, VCS: git},
 		Binding: evidence.ThisBinary(),
+		Work:    dir,
 		Mode:    mode,
 	}
 	if mode == "ci" {

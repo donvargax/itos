@@ -73,7 +73,7 @@ func project(t *testing.T, stealth bool) (Files, *error) {
 	}
 	var unready error
 	return Files{
-		VCS:        vcsadapter.Git{},
+		VCS:        vcsadapter.Git{Dir: dir},
 		OS:         runtime.GOOS,
 		Stealth:    stealth,
 		Lock:       "registry.yaml",

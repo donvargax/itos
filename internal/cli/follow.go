@@ -21,7 +21,7 @@ func runFollowup(args []string, o Out) (int, error) {
 	if err != nil {
 		return 0, usage("%s", err)
 	}
-	code, err := c.Run(context.Background(), o.Stdout, o.Stderr, followup.NewHandler(followupPorts{adapter.Store{OS: o.OS, VCS: vcs.Git{}}}))
+	code, err := c.Run(context.Background(), o.Stdout, o.Stderr, followup.NewHandler(followupPorts{adapter.Store{OS: o.OS, VCS: vcs.Git{Dir: o.Dir}}}))
 	var invalid *domain.Invalid
 	if errors.As(err, &invalid) {
 		err = kind.Wrap(kind.Usage, err)

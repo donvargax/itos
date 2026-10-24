@@ -24,9 +24,9 @@ func TestPath(t *testing.T) {
 	if os.Symlink(real, link) != nil {
 		link = real
 	}
-	t.Chdir(link)
+	t.Chdir(t.TempDir())
 	at := func(common string) *vcsfake.VCS {
-		return &vcsfake.VCS{Located: map[string]vcsport.Location{"": {Top: ".", GitDir: ".git", Common: common}}}
+		return &vcsfake.VCS{Root: link, Located: map[string]vcsport.Location{"": {Top: ".", GitDir: ".git", Common: common}}}
 	}
 	abs := filepath.Join(t.TempDir(), "common")
 	for name, c := range map[string]struct {

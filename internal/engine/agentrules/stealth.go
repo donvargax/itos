@@ -21,7 +21,7 @@ const (
 )
 
 // Target is a file the stealth rules are written to: its path as said
-// (slashes) and on disk, its text (LF), whether it is there and used CRLF,
+// (slashes) and on disk, relative to the folder itos runs in, its text (LF), whether it is there and used CRLF,
 // whether it holds a block of itos's, whether it is at the worktree's top
 // (kept out of git by info/exclude), and the text itos would give it.
 type Target struct {
@@ -48,6 +48,8 @@ type Stealth struct {
 	lines           []string
 	copyAt, rulesAt [2]int
 	Ours            bool
+	// dir is the folder itos runs in, which a Disk path is read from.
+	dir string
 }
 
 // ReadStealth reads the files of the stealth rules, from the worktree's
@@ -59,12 +61,12 @@ func ReadStealth(ctx context.Context, v port.VCS) (*Stealth, error) {
 		return nil, err
 	}
 	disk := filepath.Join(l.Common, config.StealthFolder, AgentsFile)
-	s := &Stealth{ImportPath: filepath.ToSlash(disk)}
+	s := &Stealth{ImportPath: filepath.ToSlash(disk), dir: v.Folder(ctx)}
 	read := func(t *Target, path, disk string, top bool) error {
 		t.Path, t.Disk, t.Top = path, disk, top
 		var err error
-		t.Text, t.CRLF, err = ReadText(disk)
-		t.Exists = exists(disk)
+		t.Text, t.CRLF, err = ReadText(port.In(s.dir, disk))
+		t.Exists = exists(port.In(s.dir, disk))
 		return err
 	}
 	if err := read(&s.rules, s.ImportPath, disk, false); err != nil {
@@ -76,11 +78,11 @@ func ReadStealth(ctx context.Context, v port.VCS) (*Stealth, error) {
 	if err := read(&s.override, OverrideFile, OverrideFile, true); err != nil {
 		return nil, err
 	}
-	s.agents, _, err = ReadText(AgentsFile)
+	s.agents, _, err = ReadText(port.In(s.dir, AgentsFile))
 	if err != nil {
 		return nil, err
 	}
-	s.hasAgents = exists(AgentsFile)
+	s.hasAgents = exists(port.In(s.dir, AgentsFile))
 	return s, s.parse()
 }
 
@@ -142,7 +144,7 @@ func (s *Stealth) refreshed() []Edit {
 	var edits []Edit
 	if before, found, after, err := splitBlockOf(s.rules.Text, s.rules.Path, Begin, End); err == nil &&
 		StaleBlock(found) {
-		edits = append(edits, Edit{s.rules.Path, s.rules.Disk, before + Block + after, s.rules.CRLF})
+		edits = append(edits, Edit{s.rules.Path, port.In(s.dir, s.rules.Disk), before + Block + after, s.rules.CRLF})
 	}
 	if s.rulesAt == noSpan {
 		return edits
@@ -153,7 +155,7 @@ func (s *Stealth) refreshed() []Edit {
 	}
 	if block != Block {
 		text := strings.Join(s.lines[:s.rulesAt[0]], "") + Block + strings.Join(s.lines[s.rulesAt[1]+1:], "")
-		edits = append(edits, Edit{s.override.Path, s.override.Disk, text, s.override.CRLF})
+		edits = append(edits, Edit{s.override.Path, port.In(s.dir, s.override.Disk), text, s.override.CRLF})
 	}
 	return edits
 }

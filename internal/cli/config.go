@@ -17,7 +17,7 @@ func runConfig(args []string, o Out) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	return c.Run(context.Background(), o.Stdout, o.Stderr, configslice.NewHandler(configPorts{}))
+	return c.Run(context.Background(), o.Stdout, o.Stderr, configslice.NewHandler(configPorts{vcs.Git{Dir: o.Dir}}))
 }
 
 // configPorts are the config slice's ports over the real code: git, the
@@ -26,10 +26,10 @@ func runConfig(args []string, o Out) (int, error) {
 type configPorts struct{ vcs.Git }
 
 // Trees is the tree adapter over git.
-func (configPorts) Trees(context.Context) port.Trees { return trees.Trees{VCS: vcs.Git{}} }
+func (p configPorts) Trees(context.Context) port.Trees { return trees.Trees{VCS: p.Git} }
 
 // Worktree is the working tree's files.
-func (configPorts) Worktree(context.Context) port.Source { return trees.Worktree }
+func (p configPorts) Worktree(context.Context) port.Source { return trees.WorktreeIn(p.Dir) }
 
 // TaskFlags is ungroupedTaskFlags.
 func (configPorts) TaskFlags(context.Context) []string { return ungroupedTaskFlags() }

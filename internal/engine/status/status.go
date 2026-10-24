@@ -454,7 +454,7 @@ func itosRuns(cfg *config.Loaded) string {
 	if cfg.Pin != nil && config.PinVersion.MatchString(cfg.Pin.Version) {
 		return cfg.Pin.Version
 	}
-	script, found, err := pin.ReadInstallScript()
+	script, found, err := pin.ReadInstallScript(cfg.Folder())
 	if err != nil || !found {
 		return ""
 	}

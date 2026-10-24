@@ -33,8 +33,8 @@ func joined(list []flagSpec, more ...flagSpec) []flagSpec {
 
 // groupLabel is the flag of the config's group label, when it is not one
 // of groupNames: --milestone for ledger.group.label milestone.
-func groupLabel() ([]flagSpec, error) {
-	cfg, err := loadConfig()
+func groupLabel(dir string) ([]flagSpec, error) {
+	cfg, err := loadConfig(dir)
 	if err != nil {
 		return nil, err
 	}
@@ -50,8 +50,8 @@ func groupLabel() ([]flagSpec, error) {
 // footerFlags are commit's flags of the config's free-text footers
 // (message.TextFlags), none when there is no config to read: commit runs
 // without one, and gitCommit says what is wrong with one that fails.
-func footerFlags() ([]flagSpec, error) {
-	cfg, _, err := commitConfig()
+func footerFlags(dir string) ([]flagSpec, error) {
+	cfg, _, err := commitConfig(dir)
 	if err != nil || cfg == nil {
 		return nil, nil
 	}
@@ -64,12 +64,12 @@ func footerFlags() ([]flagSpec, error) {
 
 // moreFlags are the flags the config adds to a spec, by what its More
 // names: groupLabel's, footerFlags' or none.
-func moreFlags(more declare.More) ([]flagSpec, error) {
+func moreFlags(dir string, more declare.More) ([]flagSpec, error) {
 	switch more {
 	case declare.GroupLabel:
-		return groupLabel()
+		return groupLabel(dir)
 	case declare.Footers:
-		return footerFlags()
+		return footerFlags(dir)
 	}
 	return nil, nil
 }
@@ -113,8 +113,10 @@ func commandPath(rest []string) ([]string, spec) {
 // --flag=value is read as --flag value, and a value is always its flag's,
 // never a global flag. It gives the global flags with Rest the command's
 // name and its arguments, each flag written "--flag value", so the command
-// reads them by name; after a "--", every argument stays as given.
-func readLine(args []string) (Globals, error) {
+// reads them by name; after a "--", every argument stays as given. The
+// flags a config adds (moreFlags) are read from the config of the folder
+// dir, the one the command runs in.
+func readLine(dir string, args []string) (Globals, error) {
 	var g Globals
 	read := ParseGlobals(args)
 	path, s := commandPath(read.Rest)
@@ -186,7 +188,7 @@ func readLine(args []string) (Globals, error) {
 		if !ok && s.More != declare.NoMore {
 			if !loaded {
 				var err error
-				if more, err = moreFlags(s.More); err != nil {
+				if more, err = moreFlags(dir, s.More); err != nil {
 					return g, err
 				}
 				loaded = true

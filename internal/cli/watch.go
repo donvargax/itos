@@ -19,6 +19,11 @@ import (
 func watcher(cfg *config.Loaded, remote string, o Out) (providers.Watcher, bool, error) {
 	return ciwatch.Watcher(context.Background(), cfg, cfg.VCS, remote, providers.WatchSetup{
 		Env:     os.Getenv,
-		GhToken: providers.GhToken,
+		GhToken: ghToken(cfg.Folder()),
 	})
+}
+
+// ghToken is providers.GhToken, gh run in the folder dir.
+func ghToken(dir string) func() (string, error) {
+	return func() (string, error) { return providers.GhToken(dir) }
 }

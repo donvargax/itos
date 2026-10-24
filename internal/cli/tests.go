@@ -20,7 +20,7 @@ func runTests(args []string, o Out) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	p := testsPorts{OS: o.OS, Stdout: o.Stdout, Stderr: o.Stderr}
+	p := testsPorts{Git: vcs.Git{Dir: o.Dir}, OS: o.OS, Stdout: o.Stdout, Stderr: o.Stderr}
 	return c.Run(context.Background(), o.Stdout, o.Stderr, testsslice.NewHandler(p, o.Tests))
 }
 
@@ -34,7 +34,7 @@ type testsPorts struct {
 }
 
 // Config is loadConfig.
-func (testsPorts) Config(context.Context) (*config.Loaded, error) { return loadConfig() }
+func (p testsPorts) Config(context.Context) (*config.Loaded, error) { return loadConfig(p.Dir) }
 
 // Tracker is tracker.
 func (p testsPorts) Tracker(_ context.Context, cfg *config.Loaded) trackerport.Tracker {

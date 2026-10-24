@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path"
 	"path/filepath"
@@ -14,26 +15,35 @@ import (
 	vcs "github.com/donvargax/itos/v8/internal/vcs/port"
 )
 
-// Trees is the tree reader over the disk and the VCS.
+// Trees is the tree reader over the disk and the VCS, which says the folder
+// itos runs in (its Folder): the working tree's paths are read from it.
 type Trees struct{ VCS vcs.VCS }
 
 var _ port.Trees = Trees{}
 
-// Worktree is the working tree's files.
-var Worktree port.Source = worktree{}
+// WorktreeIn is the working tree's files, a relative path read from the
+// folder dir ("" for the process's), and named in an error as given.
+func WorktreeIn(dir string) port.Source { return worktree{dir} }
 
-type worktree struct{}
+// Worktree is the working tree's files from the process's folder, for a
+// program that reads them where it stands.
+var Worktree = WorktreeIn("")
+
+type worktree struct{ dir string }
 
 func (worktree) Tree(context.Context) string { return "worktree" }
 
+// path is p read from the folder.
+func (w worktree) path(p string) string { return vcs.In(w.dir, p) }
+
 // Has is whether the working tree has the path (existsSync).
-func (worktree) Has(_ context.Context, path string) bool {
-	_, err := os.Stat(path)
+func (w worktree) Has(_ context.Context, path string) bool {
+	_, err := os.Stat(w.path(path))
 	return err == nil
 }
 
-func (worktree) Read(_ context.Context, path string) (string, error) {
-	text, err := os.ReadFile(path)
+func (w worktree) Read(_ context.Context, path string) (string, error) {
+	text, err := os.ReadFile(w.path(path))
 	if err != nil {
 		return "", nodeError(err, "open", path)
 	}
@@ -41,8 +51,8 @@ func (worktree) Read(_ context.Context, path string) (string, error) {
 }
 
 // List is the names of the entries directly in a folder, sorted.
-func (worktree) List(_ context.Context, dir string) ([]string, error) {
-	entries, err := os.ReadDir(dir)
+func (w worktree) List(_ context.Context, dir string) ([]string, error) {
+	entries, err := os.ReadDir(w.path(dir))
 	if err != nil {
 		return nil, nodeError(err, "scandir", dir)
 	}
@@ -57,18 +67,21 @@ func (worktree) List(_ context.Context, dir string) ([]string, error) {
 // the VCS holds, "index" for the staged tree or a commit. An error outside a
 // repository.
 func (t Trees) At(ctx context.Context, tree string) (port.Source, error) {
+	dir := t.VCS.Folder(ctx)
 	if tree == "worktree" {
-		return Worktree, nil
+		return WorktreeIn(dir), nil
 	}
 	l, err := t.VCS.Locate(ctx, "")
 	if err != nil || l.Top == "" {
 		return nil, fmt.Errorf("%s cannot be read outside a git repository", tree)
 	}
-	cwd, err := os.Getwd()
-	if err != nil {
-		return nil, err
-	}
 	// git gives the top folder with its links resolved, as Node's cwd is.
+	cwd := dir
+	if cwd == "" {
+		// Where the run's folder is the process's (draft and init, until
+		// they move without moving the process).
+		cwd, _ = os.Getwd()
+	}
 	if real, err := filepath.EvalSymlinks(cwd); err == nil {
 		cwd = real
 	}
@@ -76,14 +89,17 @@ func (t Trees) At(ctx context.Context, tree string) (port.Source, error) {
 	if !filepath.IsAbs(common) {
 		common = filepath.Join(cwd, common)
 	}
-	return gitTree{v: t.VCS, tree: tree, top: l.Top, common: filepath.Clean(common), cwd: cwd}, nil
+	return gitTree{v: t.VCS, tree: tree, top: l.Top, common: filepath.Clean(common), cwd: cwd, files: worktree{dir}}, nil
 }
 
 // gitTree is a tree the VCS v holds: the index or a commit. common is the
-// git common dir, absolute.
+// git common dir, absolute, cwd the folder itos runs in, its links
+// resolved, and files the working tree's, which a path in the git common
+// dir is read from.
 type gitTree struct {
 	v                      vcs.VCS
 	tree, top, common, cwd string
+	files                  worktree
 }
 
 // aside is whether a path is in the git folder, which no tree git holds can
@@ -128,7 +144,7 @@ func at(tree string) string {
 
 func (t gitTree) Has(ctx context.Context, p string) bool {
 	if t.aside(p) {
-		return Worktree.Has(ctx, p)
+		return t.files.Has(ctx, p)
 	}
 	_, ok, err := t.v.File(ctx, at(t.tree), t.inRepo(p))
 	return ok && err == nil
@@ -136,7 +152,7 @@ func (t gitTree) Has(ctx context.Context, p string) bool {
 
 func (t gitTree) Read(ctx context.Context, p string) (string, error) {
 	if t.aside(p) {
-		return Worktree.Read(ctx, p)
+		return t.files.Read(ctx, p)
 	}
 	text, ok, err := t.v.File(ctx, at(t.tree), t.inRepo(p))
 	if err != nil || !ok {
@@ -147,7 +163,7 @@ func (t gitTree) Read(ctx context.Context, p string) (string, error) {
 
 func (t gitTree) List(ctx context.Context, dir string) ([]string, error) {
 	if t.aside(dir) {
-		return Worktree.List(ctx, dir)
+		return t.files.List(ctx, dir)
 	}
 	in := t.inRepo(dir)
 	listed, err := t.v.Files(ctx, at(t.tree), in)
@@ -189,8 +205,12 @@ func (t Trees) Texts(ctx context.Context, tree, dir string, keep func(string) bo
 }
 
 // nodeError is a failed file operation as Node reports it: the code, what it
-// means, the call and the path.
+// means, the call and the path, as it was given.
 func nodeError(err error, call, path string) error {
+	var failed *fs.PathError
+	if errors.As(err, &failed) {
+		failed.Path = path
+	}
 	var errno syscall.Errno
 	if !errors.As(err, &errno) {
 		return err

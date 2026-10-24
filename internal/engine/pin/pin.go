@@ -1,6 +1,7 @@
 package pin
 
 import (
+	"errors"
 	"fmt"
 	"io/fs"
 	"os"
@@ -13,6 +14,7 @@ import (
 	"github.com/donvargax/itos/v8/internal/out"
 	"github.com/donvargax/itos/v8/internal/release"
 	"github.com/donvargax/itos/v8/internal/value"
+	vcsport "github.com/donvargax/itos/v8/internal/vcs/port"
 )
 
 // Timeout bounds the one question pin asks, for a checksums.txt.
@@ -48,13 +50,15 @@ func VersionArg(name string, args []string) (string, error) {
 }
 
 // Config is the config itos finds, its text, and the pin it holds: its
-// version and checksums as written, "" for none.
-type Config struct{ File, Text, Version, Checksums string }
+// version and checksums as written, "" for none; Dir is the folder itos runs
+// in, which File, and the install script, are read from.
+type Config struct{ Dir, File, Text, Version, Checksums string }
 
-// ReadConfig reads the config, file, and its pin.
-func ReadConfig(file string) (Config, error) {
-	text, err := os.ReadFile(file)
+// ReadConfig reads the config, file, from the folder dir, and its pin.
+func ReadConfig(dir, file string) (Config, error) {
+	text, err := os.ReadFile(vcsport.In(dir, file))
 	if err != nil {
+		err = named(err, file)
 		return Config{}, &config.Error{File: file, Problems: []out.Problem{{
 			Rule:    "config-unreadable",
 			Message: "cannot be read: " + err.Error(),
@@ -68,7 +72,7 @@ func ReadConfig(file string) (Config, error) {
 	pin := value.Prop(tree, "pin")
 	was, _ := value.Prop(pin, "version").(string)
 	wasSums, _ := value.Prop(pin, "checksums").(string)
-	return Config{File: file, Text: string(text), Version: was, Checksums: wasSums}, nil
+	return Config{Dir: dir, File: file, Text: string(text), Version: was, Checksums: wasSums}, nil
 }
 
 // Replaced is whether the config pins the version v with other checksums
@@ -118,25 +122,36 @@ func Pinned(want string) (string, []byte, error) {
 	return want, sums, nil
 }
 
-// WriteKeepingMode writes the file's new text, keeping its permissions.
-func WriteKeepingMode(file, text string) error {
+// WriteKeepingMode writes the file's new text, read from the folder dir,
+// keeping its permissions.
+func WriteKeepingMode(dir, file, text string) error {
 	mode := fs.FileMode(0o644)
-	if info, err := os.Stat(file); err == nil {
+	if info, err := os.Stat(vcsport.In(dir, file)); err == nil {
 		mode = info.Mode().Perm()
 	}
-	return os.WriteFile(file, []byte(text), mode)
+	return named(os.WriteFile(vcsport.In(dir, file), []byte(text), mode), file)
 }
 
-// ReadInstallScript is the install script's text and whether there is one.
-func ReadInstallScript() (string, bool, error) {
-	text, err := os.ReadFile(InstallScript)
+// ReadInstallScript is the install script's text, read from the folder dir,
+// and whether there is one.
+func ReadInstallScript(dir string) (string, bool, error) {
+	text, err := os.ReadFile(vcsport.In(dir, InstallScript))
 	if os.IsNotExist(err) {
 		return "", false, nil
 	}
 	if err != nil {
-		return "", false, fmt.Errorf("cannot read %s: %w", InstallScript, err)
+		return "", false, fmt.Errorf("cannot read %s: %w", InstallScript, named(err, InstallScript))
 	}
 	return string(text), true, nil
+}
+
+// named is err naming the file p as it was given, not as it was read.
+func named(err error, p string) error {
+	var failed *fs.PathError
+	if errors.As(err, &failed) {
+		failed.Path = p
+	}
+	return err
 }
 
 // ScriptVersion is the version the install script installs, from its one

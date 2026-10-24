@@ -36,9 +36,9 @@ const fileName = "itos.yaml"
 const StealthFolder = "itos"
 
 // Path is the config's path: ITOS_CONFIG, which --config sets, else
-// itos.yaml in the current folder, src or the working tree holding it, else
-// the stealth config when there is one, else itos.yaml, which then reports
-// itself missing. v locates the stealth config.
+// itos.yaml in the folder itos runs in (v's Folder), src or the working tree
+// holding it, else the stealth config when there is one, else itos.yaml,
+// which then reports itself missing. v locates the stealth config.
 func Path(v vcs.VCS, src port.Source) string {
 	if os.Getenv("ITOS_CONFIG") == "" && src.Has(context.Background(), fileName) {
 		return fileName
@@ -46,27 +46,28 @@ func Path(v vcs.VCS, src port.Source) string {
 	return Locate(v, "")
 }
 
-// Locate is the config itos reads for the folder dir ("" for the current
-// one), as Path picks it, relative to dir unless it is absolute. The
-// launcher calls it before --root applies, with the folder --root names or
-// the top Top finds.
+// Locate is the config itos reads for the folder dir ("" for the one itos
+// runs in, v's Folder, which a relative dir is read from), as Path picks
+// it, relative to dir unless it is absolute. The launcher calls it before
+// --root applies, with the folder --root names or the top Top finds.
 func Locate(v vcs.VCS, dir string) string {
 	if p := os.Getenv("ITOS_CONFIG"); p != "" {
 		return p
 	}
-	if _, err := os.Stat(filepath.Join(dir, fileName)); err == nil {
+	base := folder(v, dir)
+	if _, err := os.Stat(in(base, fileName)); err == nil {
 		return fileName
 	}
 	if s := stealthFile(v, dir); s != "" {
-		if _, err := os.Stat(in(dir, s)); err == nil {
+		if _, err := os.Stat(in(base, s)); err == nil {
 			return s
 		}
 	}
 	return fileName
 }
 
-// IsStealth is whether the config at file, relative to the current folder,
-// is the stealth one: <git common dir>/itos/itos.yaml.
+// IsStealth is whether the config at file, relative to the folder itos
+// runs in, is the stealth one: <git common dir>/itos/itos.yaml.
 func IsStealth(v vcs.VCS, file string) bool { return IsStealthIn(v, "", file) }
 
 // IsStealthIn is IsStealth for a file relative to the folder dir.
@@ -79,20 +80,27 @@ func IsStealthIn(v vcs.VCS, dir, file string) bool {
 	if s == "" {
 		return false
 	}
-	a, err := os.Stat(in(dir, file))
+	base := folder(v, dir)
+	a, err := os.Stat(in(base, file))
 	if err != nil {
 		return false
 	}
-	b, err := os.Stat(in(dir, s))
+	b, err := os.Stat(in(base, s))
 	return err == nil && os.SameFile(a, b)
 }
 
-// in is a path relative to dir as the current folder reads it.
+// in is a path relative to dir, "" for the process's folder.
 func in(dir, p string) string {
 	if dir == "" || filepath.IsAbs(p) {
 		return p
 	}
 	return filepath.Join(dir, p)
+}
+
+// folder is the folder dir as v reads it: relative to the folder itos runs
+// in (v's Folder) unless it is absolute.
+func folder(v vcs.VCS, dir string) string {
+	return in(v.Folder(context.Background()), dir)
 }
 
 // stealthFile is where the stealth config is for the folder dir, as v

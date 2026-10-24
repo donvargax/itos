@@ -19,7 +19,7 @@ func runCi(args []string, o Out) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	return c.Run(context.Background(), o.Stdout, o.Stderr, cislice.NewHandler(ciPorts{goos: o.OS}))
+	return c.Run(context.Background(), o.Stdout, o.Stderr, cislice.NewHandler(ciPorts{Git: vcs.Git{Dir: o.Dir}, goos: o.OS}))
 }
 
 // ciPorts are the ci slice's ports over the real code: git, the stealth
@@ -32,10 +32,10 @@ type ciPorts struct {
 }
 
 // Stealth is config.IsStealth of configPath().
-func (ciPorts) Stealth(context.Context) bool { return config.IsStealth(vcs.Git{}, configPath()) }
+func (p ciPorts) Stealth(context.Context) bool { return config.IsStealth(p.Git, configPath(p.Dir)) }
 
 // Config is loadConfig.
-func (ciPorts) Config(context.Context) (*config.Loaded, error) { return loadConfig() }
+func (p ciPorts) Config(context.Context) (*config.Loaded, error) { return loadConfig(p.Dir) }
 
 // Env is os.Getenv.
 func (ciPorts) Env(_ context.Context, name string) string { return os.Getenv(name) }

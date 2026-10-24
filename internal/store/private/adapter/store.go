@@ -14,9 +14,9 @@ import (
 )
 
 // Store is the private store on disk: config.StealthFolder of the absolute
-// git common dir of the folder itos runs in, located on every call. OS is
-// the OS itos runs on, as GOOS names it, which Hold's lock waits by, and VCS
-// the repository, which locates the common dir.
+// git common dir of the folder itos runs in (the VCS's Folder), located on
+// every call. OS is the OS itos runs on, as GOOS names it, which Hold's lock
+// waits by, and VCS the repository, which locates the common dir.
 type Store struct {
 	OS  string
 	VCS vcs.VCS
@@ -25,8 +25,8 @@ type Store struct {
 var _ port.Store = Store{}
 
 // Path is name in itos's folder of the common dir as VCS locates it, made
-// absolute from the working folder with its links resolved, as git names
-// it; a folder in no repository is no repository.
+// absolute from the folder itos runs in with its links resolved, as git
+// names it; a folder in no repository is no repository.
 func (s Store) Path(ctx context.Context, name string) (string, error) {
 	l, err := s.VCS.Locate(ctx, "")
 	if err != nil || l.Common == "" {
@@ -34,7 +34,12 @@ func (s Store) Path(ctx context.Context, name string) (string, error) {
 	}
 	common := l.Common
 	if !filepath.IsAbs(common) {
-		cwd, _ := os.Getwd()
+		cwd := s.VCS.Folder(ctx)
+		if cwd == "" {
+			// Where the run's folder is the process's (draft and init,
+			// until they move without moving the process).
+			cwd, _ = os.Getwd()
+		}
 		if real, err := filepath.EvalSymlinks(cwd); err == nil {
 			cwd = real
 		}

@@ -103,7 +103,7 @@ func CommitPolicy(c Config, stderr io.Writer) string {
 // both "" when it keeps none. A file that is there but cannot be read is a
 // warning, and the guide prints without it.
 func Notes(ctx context.Context, v vcsport.VCS, c Config, stderr io.Writer) (text, path string) {
-	return readNotes(notesPath(ctx, v, c, stderr), stderr)
+	return readNotes(v.Folder(ctx), notesPath(ctx, v, c, stderr), stderr)
 }
 
 // LocalNotes is this clone's own notes and the path they were read from,
@@ -117,23 +117,27 @@ func LocalNotes(ctx context.Context, v vcsport.VCS, printed string, stderr io.Wr
 	}
 	path = filepath.Join(l.Common, config.StealthFolder, localNotesName)
 	if printed != "" {
-		a, errA := os.Stat(printed)
-		b, errB := os.Stat(path)
+		a, errA := os.Stat(vcsport.Within(ctx, v, printed))
+		b, errB := os.Stat(vcsport.Within(ctx, v, path))
 		if errA == nil && errB == nil && os.SameFile(a, b) {
 			return "", ""
 		}
 	}
-	return readNotes(path, stderr)
+	return readNotes(v.Folder(ctx), path, stderr)
 }
 
-// readNotes is the notes the file at path holds and the path, both "" when
-// path is "", the file is not there or holds only blanks. A file that is
-// there but cannot be read is a warning, and the guide prints without it.
-func readNotes(path string, stderr io.Writer) (string, string) {
+// readNotes is the notes the file at path holds, read from the folder dir
+// when relative, and the path, both "" when path is "", the file is not
+// there or holds only blanks. A file that is there but cannot be read is a
+// warning, and the guide prints without it.
+func readNotes(dir, path string, stderr io.Writer) (string, string) {
 	if path == "" {
 		return "", ""
 	}
-	data, err := os.ReadFile(path)
+	data, err := os.ReadFile(vcsport.In(dir, path))
+	if failed := (*fs.PathError)(nil); errors.As(err, &failed) {
+		failed.Path = path
+	}
 	if err != nil {
 		if !errors.Is(err, fs.ErrNotExist) {
 			fmt.Fprintf(stderr, "itos: %s cannot be read, so the guide prints without it: %v\n", path, err)
@@ -171,7 +175,7 @@ func notesPath(ctx context.Context, v vcsport.VCS, c Config, stderr io.Writer) s
 	return p
 }
 
-// upToTop is the way from the folder itos runs in up to the work tree's top
+// upToTop is the way from the folder itos runs in (v's Folder) up to the work tree's top
 // as git rev-parse --show-cdup gives it, a ../ for each folder between, the
 // folder's links resolved as the top's are, none in the git folder; not ok
 // outside a repository.
@@ -180,19 +184,13 @@ func upToTop(ctx context.Context, v vcsport.VCS) (string, bool) {
 	if err != nil || l.Top == "" {
 		return "", err == nil
 	}
-	rel, err := filepath.Rel(l.Top, physical())
+	cwd := v.Folder(ctx)
+	if real, err := filepath.EvalSymlinks(cwd); err == nil {
+		cwd = real
+	}
+	rel, err := filepath.Rel(l.Top, cwd)
 	if err != nil || rel == "." {
 		return "", err == nil
 	}
 	return strings.Repeat("../", len(strings.Split(filepath.ToSlash(rel), "/"))), true
-}
-
-// physical is the folder itos runs in, its links resolved as git resolves
-// them.
-func physical() string {
-	cwd, _ := os.Getwd()
-	if real, err := filepath.EvalSymlinks(cwd); err == nil {
-		cwd = real
-	}
-	return cwd
 }

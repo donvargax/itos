@@ -9,8 +9,8 @@ import (
 	"strings"
 
 	"github.com/donvargax/itos/v8/internal/config"
-	"github.com/donvargax/itos/v8/internal/store/tree/port"
 	"github.com/donvargax/itos/v8/internal/value"
+	vcsport "github.com/donvargax/itos/v8/internal/vcs/port"
 )
 
 // Options are a Gherkin kind's: the folder of its feature files (a test's
@@ -96,10 +96,11 @@ func ParseFeature(text string, o Options) (Feature, error) {
 // isTrimmed is what trimEnd removes.
 func isTrimmed(r rune) bool { return value.Trim(string(r)) == "" }
 
-// featureFiles are the feature files under a folder, depth first, each
-// folder's entries by name; none when it cannot be read.
-func featureFiles(dir string) []string {
-	entries, err := os.ReadDir(dir)
+// featureFiles are the feature files under a folder, read from the folder
+// base, depth first, each folder's entries by name; none when it cannot be
+// read.
+func featureFiles(base, dir string) []string {
+	entries, err := os.ReadDir(vcsport.In(base, dir))
 	if err != nil {
 		return nil
 	}
@@ -108,7 +109,7 @@ func featureFiles(dir string) []string {
 		path := filepath.Join(dir, e.Name())
 		switch {
 		case e.IsDir():
-			files = append(files, featureFiles(path)...)
+			files = append(files, featureFiles(base, path)...)
 		case strings.HasSuffix(e.Name(), ".feature"):
 			files = append(files, path)
 		}
@@ -117,15 +118,16 @@ func featureFiles(dir string) []string {
 }
 
 // featureTexts are the feature files under a folder as path to text, paths
-// as git gives them: from the working tree's file system, the index or a
-// commit. A tree that cannot be read has none.
-func featureTexts(trees port.Trees, tree, root string) (map[string]string, error) {
+// as git gives them: from the working tree's file system, from the folder
+// itos runs in (the config's Folder), the index or a commit. A tree that
+// cannot be read has none.
+func featureTexts(cfg *config.Loaded, tree, root string) (map[string]string, error) {
 	if tree != "worktree" {
-		return trees.Texts(context.Background(), tree, root, func(p string) bool { return strings.HasSuffix(p, ".feature") }), nil
+		return cfg.Trees.Texts(context.Background(), tree, root, func(p string) bool { return strings.HasSuffix(p, ".feature") }), nil
 	}
 	texts := map[string]string{}
-	for _, path := range featureFiles(root) {
-		text, err := os.ReadFile(path)
+	for _, path := range featureFiles(cfg.Folder(), root) {
+		text, err := os.ReadFile(vcsport.In(cfg.Folder(), path))
 		if err != nil {
 			return nil, err
 		}
@@ -135,8 +137,8 @@ func featureTexts(trees port.Trees, tree, root string) (map[string]string, error
 }
 
 // gherkinList is the adapter protocol's list of a tree's scenarios.
-func gherkinList(trees port.Trees, o Options, at string) (List, error) {
-	byPath, err := featureTexts(trees, at, o.Root)
+func gherkinList(cfg *config.Loaded, o Options, at string) (List, error) {
+	byPath, err := featureTexts(cfg, at, o.Root)
 	if err != nil {
 		return List{}, err
 	}
@@ -184,7 +186,7 @@ func Tagged(cfg *config.Loaded, tag, at string) ([]Test, error) {
 		if err != nil {
 			return nil, err
 		}
-		byPath, err := featureTexts(cfg.Trees, at, o.Root)
+		byPath, err := featureTexts(cfg, at, o.Root)
 		if err != nil {
 			return nil, err
 		}

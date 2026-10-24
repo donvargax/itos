@@ -14,9 +14,9 @@ import (
 	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
 )
 
-// clone stands the test in a new folder, a git repository whose work tree
-// ignores ignored.md when repository, else in no repository, with no git
-// setting from outside and a short lock wait.
+// clone is a new folder, a git repository whose work tree ignores
+// ignored.md when repository, else in no repository, with no git setting
+// from outside and a short lock wait; the test stands in another folder.
 func clone(t *testing.T, repository bool) string {
 	t.Helper()
 	for _, name := range []string{"GIT_DIR", "GIT_INDEX_FILE", "GIT_WORK_TREE", "GIT_COMMON_DIR"} {
@@ -41,7 +41,7 @@ func clone(t *testing.T, repository bool) string {
 			t.Fatal(err)
 		}
 	}
-	t.Chdir(dir)
+	t.Chdir(t.TempDir())
 	return dir
 }
 
@@ -50,7 +50,7 @@ func TestStoreKeepsTheContract(t *testing.T) {
 	porttest.StoreContract(t, func(t *testing.T, repository bool) porttest.Fixture {
 		dir := clone(t, repository)
 		return porttest.Fixture{
-			Store:   Store{OS: runtime.GOOS, VCS: vcs.Git{}},
+			Store:   Store{OS: runtime.GOOS, VCS: vcs.Git{Dir: dir}},
 			Kept:    filepath.Join(dir, "kept.md"),
 			Ignored: filepath.Join(dir, "ignored.md"),
 			Outside: filepath.Join(t.TempDir(), "outside.md"),
@@ -63,11 +63,11 @@ func TestStoreKeepsTheContract(t *testing.T) {
 // with nothing left beside them.
 func TestStoreIsTheCommonDirsItosFolder(t *testing.T) {
 	dir := clone(t, true)
-	path, err := Store{VCS: vcs.Git{}}.Path(t.Context(), "threads.yaml")
+	path, err := Store{VCS: vcs.Git{Dir: dir}}.Path(t.Context(), "threads.yaml")
 	if want := filepath.Join(dir, ".git", "itos", "threads.yaml"); err != nil || path != want {
 		t.Fatalf("Path: %q, %v; want %q", path, err, want)
 	}
-	if err := (Store{VCS: vcs.Git{}}).Write(t.Context(), "threads.yaml", []byte("threads: []\n")); err != nil {
+	if err := (Store{VCS: vcs.Git{Dir: dir}}).Write(t.Context(), "threads.yaml", []byte("threads: []\n")); err != nil {
 		t.Fatal(err)
 	}
 	entries, err := os.ReadDir(filepath.Dir(path))
@@ -93,10 +93,10 @@ func TestStoreSaysTheDisksErrors(t *testing.T) {
 	if err := os.MkdirAll(filepath.Join(folder, "threads.yaml"), 0o700); err != nil {
 		t.Fatal(err)
 	}
-	if _, ok, err := (Store{VCS: vcs.Git{}}).Read(t.Context(), "threads.yaml"); ok || err == nil {
+	if _, ok, err := (Store{VCS: vcs.Git{Dir: dir}}).Read(t.Context(), "threads.yaml"); ok || err == nil {
 		t.Errorf("a folder read as a file: %v, %v", ok, err)
 	}
-	if err := (Store{VCS: vcs.Git{}}).Write(t.Context(), "threads.yaml", []byte("x")); err == nil {
+	if err := (Store{VCS: vcs.Git{Dir: dir}}).Write(t.Context(), "threads.yaml", []byte("x")); err == nil {
 		t.Error("a file written over a folder")
 	}
 	if err := os.RemoveAll(folder); err != nil {
@@ -105,10 +105,10 @@ func TestStoreSaysTheDisksErrors(t *testing.T) {
 	if err := os.WriteFile(folder, nil, 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if err := (Store{VCS: vcs.Git{}}).Write(t.Context(), "threads.yaml", []byte("x")); err == nil {
+	if err := (Store{VCS: vcs.Git{Dir: dir}}).Write(t.Context(), "threads.yaml", []byte("x")); err == nil {
 		t.Error("a file written where the folder is a file")
 	}
-	if _, err := (Store{VCS: vcs.Git{}}).Hold(t.Context(), "threads.yaml"); err == nil {
+	if _, err := (Store{VCS: vcs.Git{Dir: dir}}).Hold(t.Context(), "threads.yaml"); err == nil {
 		t.Error("a lock taken where the folder is a file")
 	}
 	if err := os.Remove(folder); err != nil {
@@ -120,7 +120,7 @@ func TestStoreSaysTheDisksErrors(t *testing.T) {
 	if runtime.GOOS == "windows" || os.Geteuid() == 0 {
 		return
 	}
-	if err := (Store{VCS: vcs.Git{}}).Write(t.Context(), "threads.yaml", []byte("x")); err == nil {
+	if err := (Store{VCS: vcs.Git{Dir: dir}}).Write(t.Context(), "threads.yaml", []byte("x")); err == nil {
 		t.Error("a file written in a folder no one may write in")
 	}
 }

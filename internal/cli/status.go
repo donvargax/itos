@@ -18,7 +18,7 @@ func runStatus(args []string, o Out) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	return c.Run(context.Background(), o.Stdout, o.Stderr, statusslice.NewHandler(statusPorts{o: o}))
+	return c.Run(context.Background(), o.Stdout, o.Stderr, statusslice.NewHandler(statusPorts{Git: vcs.Git{Dir: o.Dir}, o: o}))
 }
 
 // statusPorts are the status slice's ports over the real code: git,
@@ -30,7 +30,7 @@ type statusPorts struct {
 }
 
 // Config is loadConfig.
-func (statusPorts) Config(context.Context) (*config.Loaded, error) { return loadConfig() }
+func (p statusPorts) Config(context.Context) (*config.Loaded, error) { return loadConfig(p.o.Dir) }
 
 // Identity is work.identity's provider.
 func (statusPorts) Identity(_ context.Context, cfg *config.Loaded) providers.Identity {
@@ -38,8 +38,8 @@ func (statusPorts) Identity(_ context.Context, cfg *config.Loaded) providers.Ide
 }
 
 // Setup is the environment and gh's token.
-func (statusPorts) Setup(context.Context) providers.WatchSetup {
-	return providers.WatchSetup{Env: os.Getenv, GhToken: providers.GhToken}
+func (p statusPorts) Setup(context.Context) providers.WatchSetup {
+	return providers.WatchSetup{Env: os.Getenv, GhToken: ghToken(p.o.Dir)}
 }
 
 // Tracker is tracker.

@@ -36,6 +36,8 @@ func releases(t *testing.T, files map[string]string) {
 	t.Setenv(release.Env, server.URL)
 }
 
+// The config is read from the folder itos runs in, and keeps the name it
+// was given.
 func TestReadConfig(t *testing.T) {
 	dir := t.TempDir()
 	file := filepath.Join(dir, "itos.yaml")
@@ -43,38 +45,42 @@ func TestReadConfig(t *testing.T) {
 	if err := os.WriteFile(file, []byte(text), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	c, err := ReadConfig(file)
+	c, err := ReadConfig(dir, "itos.yaml")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if want := (Config{File: file, Text: text, Version: "9.1.0", Checksums: sum}); c != want {
+	if want := (Config{Dir: dir, File: "itos.yaml", Text: text, Version: "9.1.0", Checksums: sum}); c != want {
 		t.Errorf("ReadConfig = %+v, want %+v", c, want)
 	}
 	if err := os.WriteFile(file, []byte("version: 1\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if c, err := ReadConfig(file); err != nil || c.Version != "" || c.Checksums != "" {
-		t.Errorf("a config pinning none: %+v, %v", c, err)
+	if c, err := ReadConfig("", file); err != nil || c.Version != "" || c.Checksums != "" || c.File != file {
+		t.Errorf("a config pinning none, named absolute: %+v, %v", c, err)
 	}
 }
 
 // A folder in place of the config cannot be read on any OS; text that is no
-// YAML is invalid. Both are config errors naming the file.
+// YAML is invalid. Both are config errors naming the file as it was given.
 func TestReadConfigRefuses(t *testing.T) {
 	dir := t.TempDir()
+	if err := os.Mkdir(filepath.Join(dir, "sub"), 0o755); err != nil {
+		t.Fatal(err)
+	}
 	var cerr *config.Error
-	_, err := ReadConfig(dir)
-	if !errors.As(err, &cerr) || cerr.File != dir || len(cerr.Problems) != 1 ||
-		cerr.Problems[0].Rule != "config-unreadable" || cerr.Problems[0].Fix != "create "+dir+", or correct its YAML" ||
-		!strings.HasPrefix(cerr.Problems[0].Message, "cannot be read: ") {
+	_, err := ReadConfig(dir, "sub")
+	if !errors.As(err, &cerr) || cerr.File != "sub" || len(cerr.Problems) != 1 ||
+		cerr.Problems[0].Rule != "config-unreadable" || cerr.Problems[0].Fix != "create sub, or correct its YAML" ||
+		!strings.HasPrefix(cerr.Problems[0].Message, "cannot be read: ") ||
+		!strings.Contains(cerr.Problems[0].Message, " sub: ") || strings.Contains(cerr.Problems[0].Message, dir) {
 		t.Errorf("a folder: %#v", err)
 	}
 	file := filepath.Join(dir, "itos.yaml")
 	if err := os.WriteFile(file, []byte("pin: [\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	_, err = ReadConfig(file)
-	if !errors.As(err, &cerr) || cerr.File != file || !strings.Contains(err.Error(), "cannot be read: ") {
+	_, err = ReadConfig(dir, "itos.yaml")
+	if !errors.As(err, &cerr) || cerr.File != "itos.yaml" || !strings.Contains(err.Error(), "cannot be read: ") {
 		t.Errorf("no YAML: %#v", err)
 	}
 }
@@ -184,14 +190,15 @@ func TestPinnedVersion(t *testing.T) {
 }
 
 // A new file gets the mode os.WriteFile gives 0o644 here, after the umask;
-// a file there keeps the one it has, whatever the OS makes of a chmod.
+// a file there keeps the one it has, whatever the OS makes of a chmod. A
+// relative file is written in the folder given.
 func TestWriteKeepingMode(t *testing.T) {
 	dir := t.TempDir()
 	ref, file := filepath.Join(dir, "ref"), filepath.Join(dir, "file")
 	if err := os.WriteFile(ref, nil, 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if err := WriteKeepingMode(file, "one"); err != nil {
+	if err := WriteKeepingMode(dir, "file", "one"); err != nil {
 		t.Fatal(err)
 	}
 	if got, want := mode(t, file), mode(t, ref); got != want {
@@ -201,7 +208,7 @@ func TestWriteKeepingMode(t *testing.T) {
 		t.Fatal(err)
 	}
 	kept := mode(t, file)
-	if err := WriteKeepingMode(file, "two"); err != nil {
+	if err := WriteKeepingMode("", file, "two"); err != nil {
 		t.Fatal(err)
 	}
 	if got := mode(t, file); got != kept {
@@ -210,8 +217,12 @@ func TestWriteKeepingMode(t *testing.T) {
 	if text, err := os.ReadFile(file); err != nil || string(text) != "two" {
 		t.Errorf("text %q, %v", text, err)
 	}
-	if err := WriteKeepingMode(dir, "three"); err == nil {
-		t.Error("wrote over a folder")
+	if err := os.Mkdir(filepath.Join(dir, "folder"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := WriteKeepingMode(dir, "folder", "three"); err == nil || !strings.Contains(err.Error(), " folder: ") ||
+		strings.Contains(err.Error(), dir) {
+		t.Errorf("over a folder: %v, want an error naming it as given", err)
 	}
 }
 
@@ -224,25 +235,27 @@ func mode(t *testing.T, file string) os.FileMode {
 	return info.Mode().Perm()
 }
 
+// The install script is read from the folder itos runs in.
 func TestReadInstallScript(t *testing.T) {
-	t.Chdir(t.TempDir())
-	if text, found, err := ReadInstallScript(); err != nil || found || text != "" {
+	dir := t.TempDir()
+	script := filepath.Join(dir, InstallScript)
+	if text, found, err := ReadInstallScript(dir); err != nil || found || text != "" {
 		t.Errorf("none: %q, %v, %v", text, found, err)
 	}
-	if err := os.MkdirAll(InstallScript, 0o755); err != nil {
+	if err := os.MkdirAll(script, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if _, found, err := ReadInstallScript(); found || err == nil ||
-		!strings.HasPrefix(err.Error(), "cannot read tools/bin/install-itos: ") {
+	if _, found, err := ReadInstallScript(dir); found || err == nil ||
+		!strings.HasPrefix(err.Error(), "cannot read tools/bin/install-itos: ") || strings.Contains(err.Error(), dir) {
 		t.Errorf("a folder: %v, %v", found, err)
 	}
-	if err := os.Remove(InstallScript); err != nil {
+	if err := os.Remove(script); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(InstallScript, []byte("version=9.1.0\n"), 0o755); err != nil {
+	if err := os.WriteFile(script, []byte("version=9.1.0\n"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if text, found, err := ReadInstallScript(); err != nil || !found || text != "version=9.1.0\n" {
+	if text, found, err := ReadInstallScript(dir); err != nil || !found || text != "version=9.1.0\n" {
 		t.Errorf("a script: %q, %v, %v", text, found, err)
 	}
 }

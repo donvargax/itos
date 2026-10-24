@@ -15,7 +15,7 @@ func TestGoPortsBindTheRealCode(t *testing.T) {
 	writeFile(t, "work-items.yaml", "phases: { 1: null }\nitems: []\n")
 	var stderr strings.Builder
 	p := goPorts{o: Out{Stderr: &stderr, OS: runtime.GOOS}}
-	cfg, err := loadConfig()
+	cfg, err := loadConfig("")
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/donvargax/itos/v8/internal/idcounter"
@@ -17,7 +16,8 @@ import (
 )
 
 // Files is the tracker on disk, each document the file its name is a path
-// of. VCS is the repository its commits and its ID counter go to; OS the OS
+// of, relative to the folder itos runs in (the VCS's Folder). VCS is the
+// repository its commits and its ID counter go to; OS the OS
 // itos runs on, as GOOS names it, which Hold's lock and the local ID
 // counter's wait by; Stealth a config that commits nothing, its counter
 // local; Lock the file whose lock Hold takes under it; HooksReady the
@@ -33,16 +33,16 @@ type Files struct {
 var _ port.Tracker = Files{}
 
 // Load reads each file; one not there is a Doc not There.
-func (f Files) Load(_ context.Context, names []string) ([]port.Doc, error) {
+func (f Files) Load(ctx context.Context, names []string) ([]port.Doc, error) {
 	docs := make([]port.Doc, len(names))
 	for i, name := range names {
-		text, err := os.ReadFile(name)
+		text, err := os.ReadFile(f.path(ctx, name))
 		if errors.Is(err, fs.ErrNotExist) {
 			docs[i] = port.Doc{Name: name}
 			continue
 		}
 		if err != nil {
-			return nil, err
+			return nil, as(err, name)
 		}
 		docs[i] = port.Doc{Name: name, Text: string(text), There: true}
 	}
@@ -50,13 +50,13 @@ func (f Files) Load(_ context.Context, names []string) ([]port.Doc, error) {
 }
 
 // List is os.ReadDir's names; none when the folder is not there.
-func (f Files) List(_ context.Context, dir string) ([]string, error) {
-	entries, err := os.ReadDir(dir)
+func (f Files) List(ctx context.Context, dir string) ([]string, error) {
+	entries, err := os.ReadDir(f.path(ctx, dir))
 	if errors.Is(err, fs.ErrNotExist) {
 		return nil, nil
 	}
 	if err != nil {
-		return nil, err
+		return nil, as(err, dir)
 	}
 	names := make([]string, len(entries))
 	for i, e := range entries {
@@ -67,11 +67,11 @@ func (f Files) List(_ context.Context, dir string) ([]string, error) {
 
 // Hold is lock.Hold of Lock under Stealth, waiting up to lock.Wait for
 // another itos to give it back; else at once.
-func (f Files) Hold(context.Context) (port.Held, error) {
+func (f Files) Hold(ctx context.Context) (port.Held, error) {
 	if !f.Stealth {
 		return free{}, nil
 	}
-	held, err := lock.Hold(f.Lock, f.OS)
+	held, err := lock.Hold(f.path(ctx, f.Lock), f.OS)
 	if err != nil {
 		return nil, err
 	}
@@ -113,7 +113,7 @@ func (f Files) Ready(ctx context.Context, names []string) error {
 // is a change no commit holds (bug 13), which a commit of the file written
 // afresh would undo.
 func (f Files) uncommitted(ctx context.Context, name string) bool {
-	_, err := os.Lstat(name)
+	_, err := os.Lstat(f.path(ctx, name))
 	there := !errors.Is(err, fs.ErrNotExist)
 	tracked := f.VCS.Tracked(ctx, name)
 	status, err := f.VCS.PathStatus(ctx, name)
@@ -135,14 +135,14 @@ func (f Files) Transact(ctx context.Context, t port.Transaction) (string, error)
 	modes := make([]fs.FileMode, len(files))
 	for i, c := range files {
 		modes[i] = fs.FileMode(0o644)
-		if info, err := os.Stat(c.Name); err == nil {
+		if info, err := os.Stat(f.path(ctx, c.Name)); err == nil {
 			modes[i] = info.Mode().Perm()
 		}
-		if touched, err := put(c.Name, c.Text, modes[i]); err != nil {
+		if touched, err := put(f.path(ctx, c.Name), c.Text, modes[i]); err != nil {
 			if !touched {
 				i--
 			}
-			return "", f.restored(ctx, files[:i+1], modes, fmt.Errorf("%s cannot be written: %w", c.Name, err))
+			return "", f.restored(ctx, files[:i+1], modes, fmt.Errorf("%s cannot be written: %w", c.Name, as(err, c.Name)))
 		}
 	}
 	if f.Stealth {
@@ -205,14 +205,13 @@ func (f Files) counter(ctx context.Context) (idcounter.Store, error) {
 	if err != nil {
 		return idcounter.Store{}, kind.Wrap(kind.Unknown, err)
 	}
-	common, err := filepath.Abs(l.Common)
-	if err != nil {
-		return idcounter.Store{}, err
+	root := f.VCS.Folder(ctx)
+	if root == "" {
+		// Where the run's folder is the process's (draft and init, until
+		// they move without moving the process).
+		root, _ = os.Getwd()
 	}
-	root, err := os.Getwd()
-	if err != nil {
-		return idcounter.Store{}, err
-	}
+	common := vcs.In(root, l.Common)
 	remote := ""
 	if !f.Stealth {
 		remote, _, _ = f.VCS.Upstream(ctx, f.VCS.Branch(ctx))
@@ -221,6 +220,19 @@ func (f Files) counter(ctx context.Context) (idcounter.Store, error) {
 		}
 	}
 	return idcounter.Store{Root: root, CommonDir: common, Remote: remote, OS: f.OS, VCS: f.VCS, LocalOnly: f.Stealth}, nil
+}
+
+// path is the file name names, read from the folder itos runs in.
+func (f Files) path(ctx context.Context, name string) string { return vcs.Within(ctx, f.VCS, name) }
+
+// as is err naming the file as it was named, not as it was read from the
+// folder itos runs in.
+func as(err error, name string) error {
+	var failed *fs.PathError
+	if errors.As(err, &failed) {
+		failed.Path = name
+	}
+	return err
 }
 
 // put writes the text to the file in the mode, as os.WriteFile does, and
@@ -249,12 +261,12 @@ func (f Files) restore(ctx context.Context, files []port.Change, modes []fs.File
 			if !f.Stealth {
 				err = f.VCS.Untrack(ctx, []string{c.Name})
 			}
-			if rm := os.Remove(c.Name); rm != nil && !errors.Is(rm, fs.ErrNotExist) {
-				err = errors.Join(err, rm)
+			if rm := os.Remove(f.path(ctx, c.Name)); rm != nil && !errors.Is(rm, fs.ErrNotExist) {
+				err = errors.Join(err, as(rm, c.Name))
 			}
 		} else {
-			if now, read := os.ReadFile(c.Name); read != nil || string(now) != c.Old {
-				err = os.WriteFile(c.Name, []byte(c.Old), modes[i])
+			if now, read := os.ReadFile(f.path(ctx, c.Name)); read != nil || string(now) != c.Old {
+				err = as(os.WriteFile(f.path(ctx, c.Name), []byte(c.Old), modes[i]), c.Name)
 			}
 			if !f.Stealth {
 				err = errors.Join(err, f.VCS.Unstage(ctx, []string{c.Name}))

@@ -469,3 +469,14 @@ tests:
 		t.Errorf("problems %q, want %q", got, want)
 	}
 }
+
+// A config's folder is its VCS's, the one itos runs in; with no VCS, the
+// process's.
+func TestLoadedFolder(t *testing.T) {
+	if got := (&Loaded{VCS: &vcstest.VCS{Root: "/run"}}).Folder(); got != "/run" {
+		t.Errorf("Folder = %q, want the VCS's", got)
+	}
+	if got := (&Loaded{}).Folder(); got != "" {
+		t.Errorf("Folder with no VCS = %q", got)
+	}
+}

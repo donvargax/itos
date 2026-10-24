@@ -83,7 +83,7 @@ func (h Handler) Handle(ctx context.Context, q Query) (Answer, error) {
 	if err != nil {
 		return Answer{}, err
 	}
-	script, hasScript, err := pinengine.ReadInstallScript()
+	script, hasScript, err := pinengine.ReadInstallScript(c.Dir)
 	if err != nil {
 		return Answer{}, err
 	}

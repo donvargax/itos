@@ -13,7 +13,7 @@ import (
 // changes out and applies no ci.env; ci run's applies ci.env, always a map.
 func TestNewEvidenceForTaskAndCI(t *testing.T) {
 	gitConfigRepo(t, "version: 1\nci: { steps: [], env: { A: \"1\" } }\n")
-	cfg, err := loadConfig()
+	cfg, err := loadConfig("")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -41,7 +41,7 @@ func TestEvidenceRunsOnTheIndexAndRecordsInTheCommonDir(t *testing.T) {
 	writeFiles(t, map[string]string{"input": "staged\n", "itos.yaml": "version: 1\n"})
 	gitIn(t, "add", "--", "input", "itos.yaml")
 	writeFiles(t, map[string]string{"input": "edited\n", "untracked": "x\n"})
-	cfg, err := loadConfig()
+	cfg, err := loadConfig("")
 	if err != nil {
 		t.Fatal(err)
 	}

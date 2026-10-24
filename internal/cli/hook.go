@@ -21,7 +21,7 @@ func runHook(args []string, o Out) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	return c.Run(context.Background(), o.Stdout, o.Stderr, hookslice.NewHandler(hookPorts{}))
+	return c.Run(context.Background(), o.Stdout, o.Stderr, hookslice.NewHandler(hookPorts{Git: vcs.Git{Dir: o.Dir}}))
 }
 
 // hookPorts are the hook slice's ports over the real code: git, the hooks
@@ -46,14 +46,14 @@ func (p hookPorts) TaskSnapshot(ctx context.Context, tree string) (hookslice.Sna
 }
 
 // Trees are the trees git holds.
-func (hookPorts) Trees(context.Context) treeport.Trees { return trees.Trees{VCS: vcs.Git{}} }
+func (p hookPorts) Trees(context.Context) treeport.Trees { return trees.Trees{VCS: p.Git} }
 
 // LoadConfig is loadConfig.
-func (hookPorts) LoadConfig(context.Context) (*config.Loaded, error) { return loadConfig() }
+func (p hookPorts) LoadConfig(context.Context) (*config.Loaded, error) { return loadConfig(p.Dir) }
 
 // Read is the working tree's file.
-func (hookPorts) Read(ctx context.Context, path string) (string, error) {
-	return trees.Worktree.Read(ctx, path)
+func (p hookPorts) Read(ctx context.Context, path string) (string, error) {
+	return trees.WorktreeIn(p.Dir).Read(ctx, path)
 }
 
 // TaskFlags is ungroupedTaskFlags.
