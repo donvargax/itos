@@ -10498,6 +10498,11 @@ items:
       carry Item: <idea> (commits.footers in_place_of), its done judged by the commit landing green;
       or the policy names which types may name an idea. The question to settle with the person:
       weigh that against keeping every gate change behind a task with a check.
+
+      Seen again 2026-10-24: bug-132's diff review asked for comment-only changes to non-test Go
+      files; chore and docs may not touch them, refactor needs --task, test covers only _test.go, so
+      the only commit open to the item was a fix with Scenarios:, which publishes a release for
+      comments.
     tags: [commit, v9]
 
   - id: p1-fix-deps-releases
