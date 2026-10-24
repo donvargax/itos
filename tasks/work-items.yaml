@@ -12391,7 +12391,7 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: []
+    depends_on: [p3-guard-replacement]
     kind: idea
     why: >
       Issue #116 (2026-10-22, from itos-cc): rewording an unpushed commit that carried Task: took
@@ -12402,7 +12402,7 @@ items:
       a Task: footer the message has (slice 36); p3-stealth-amend-keeps-links is the stealth half of
       the same rule, so the design should cover both modes.
     refs: [internal/slices/commit]
-    tags: [commit, v8]
+    tags: [commit, v9]
 
   - id: p1-cheap-coordinator-trial
     title: "Trial a cheaper model as coordinator: a dispatcher over strong spec and review agents"
