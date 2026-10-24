@@ -4562,5 +4562,3 @@
     fails the scoped complete-cache mutation proof, so the item remains open until a green covering
     run permits closure; preserve this success evidence rather than repeating speculative Linux-only
     Windows fixes.
-  done_when:
-    - run: gh run view 37895603788 --repo donvargax/itos --json conclusion --jq .conclusion | grep -qx success
