@@ -11103,6 +11103,8 @@ items:
       in as a submodule or vendored by a tool. Weigh what an agent reads at the start of a session,
       what a person browses on GitHub, and how a project overrides one rule.
     tags: [docs]
+    deferred: >
+      No direction picked yet; itos-cc's CLI.md corrects itos's for now. 2026-10-24 grooming.
 
   - id: T-219
     title: Tests kill the survivors and cover the line T-213 and T-216 left in the push proof's range
