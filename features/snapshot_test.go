@@ -236,6 +236,9 @@ func initializeSnapshotSteps(sc *godog.ScenarioContext, w *world) {
 		if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
 			return err
 		}
+		// The folder a run left empty there gives way to the file; a folder
+		// with something in it stays, and the write refuses.
+		_ = os.Remove(p)
 		return os.WriteFile(p, []byte("blocking file"), 0o644)
 	})
 	sc.Step(`^the index contains a gitlink at "([^"]*)" pointing to HEAD$`, func(p string) error {

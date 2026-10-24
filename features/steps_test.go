@@ -55,6 +55,7 @@ type world struct {
 	atOnceWords      []string          // the notes or ideas those runs added, in order
 	threadsBefore    string            // the threads file's text, as a step wrote it
 	promotion        *promotionFixture // the task-promotion fixture, when a step wrote one (promote_test.go)
+	evidenceKey      string            // the evidence key a --json run named, which a step kept (evidence_test.go)
 
 	exit           int
 	stdout, stderr string
@@ -87,6 +88,7 @@ type scratchConfig struct {
 	commandKind       *commandKind    // a second kind of tests, behind a command adapter
 	recordingShell    bool            // shell is the recording shell
 	ciSteps           []string        // ci.steps
+	ciStepsYAML       []string        // ci.steps as YAML lines, in place of ciSteps (evidence_test.go)
 	nightlySteps      []string        // ci.nightly.steps
 	ciWatchOnly       string          // the workflow of a github ci.watch, the ci section's one key, when set
 	ciTests           string          // a kind of named tests, with run and recognize templates, run by the last of ci.steps
@@ -453,6 +455,7 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	initializeTestsListSteps(sc, w)
 	initializeTestsTSVSteps(sc, w)
 	initializeSnapshotSteps(sc, w)
+	initializeEvidenceSteps(sc, w)
 
 	sc.Step(`^itos verifies every commit up to HEAD$`, func() error { return w.itos("verify", "", "HEAD") })
 	sc.Step(`^itos checks the config$`, func() error { return w.itos("config", "check") })
@@ -1108,10 +1111,13 @@ func (w *world) ciSection() string {
 	}
 	var b strings.Builder
 	b.WriteString("ci:\n  steps:")
-	if len(w.config.ciSteps) == 0 && w.config.ciTests == "" {
+	if len(w.config.ciSteps) == 0 && len(w.config.ciStepsYAML) == 0 && w.config.ciTests == "" {
 		b.WriteString(" []")
 	}
 	b.WriteString("\n")
+	for _, line := range w.config.ciStepsYAML {
+		b.WriteString("    " + line + "\n")
+	}
 	for _, step := range w.config.ciSteps {
 		fmt.Fprintf(&b, "    - %q\n", step)
 	}
