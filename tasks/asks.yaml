@@ -423,3 +423,4 @@ questions:
   - id: q-103
     item: "slice-173"
     question: "slice-173: does work done run late done_when checks locally? Recommended: no, keep the split. Static checks run at work done through the evidence engine (a hit costs nothing, a failure reported with its output, #82); late checks stay CI's, and work done names them as left to CI rather than skipping them silently; once p1-evidence-ci (B) lands, work done checks their CI record. Alternatives: run every check locally (the drafter's proposal), or late checks only on a hit."
+    answer: "The person, 2026-10-23: the recommendation (keep the split, late checks CI's, named as left to CI, checked by their CI record once p1-evidence-ci lands); revisit if it causes trouble."
