@@ -13189,8 +13189,8 @@ items:
   - id: slice-173
     title: work done runs every done_when check through the evidence engine, answering opted-in ones from their records
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: slice
     why: >
