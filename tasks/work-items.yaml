@@ -11345,7 +11345,7 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: []
+    depends_on: [p1-typed-items]
     kind: idea
     why: >
       #95 and #99 (8.5.0, live and on-device work): a live task's file checks pass before the person
@@ -11357,7 +11357,7 @@ items:
       q-91 decided (ADR, the user 2026-10-21): the guarantee is a close commit signed with the
       person's own sign-off key (distinct from keys signing ordinary commits; hardware touch or
       passphrase), verified in CI; evidence alone is not enough.
-    tags: [work, v8]
+    tags: [work, v9]
 
   - id: p1-check-message-help-tree
     title: commit check-message's help says which tree it reads footer ids at when no --at is given
