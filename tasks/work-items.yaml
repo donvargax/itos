@@ -5021,7 +5021,7 @@ items:
     kind: task
 
   - id: p1-draft-show
-    title: itos draft show prints a drafted change before it is promoted
+    title: "itos draft shows what a draft holds: a short list line, an edit draft's copies, and draft show"
     phase: 1
     owner: null
     status: todo
@@ -5031,6 +5031,15 @@ items:
       itos draft lists a change by its header and paths only (slice-96), so a coordinator who
       drafted a spec in the morning cannot read what it holds, its patch and its whole message,
       before promoting it between agents, short of opening the patch file in the git folder.
+
+      2026-10-24 grooming (the user's call): merged in p1-draft-list-short and
+      p1-draft-copies-listed, one design for what itos draft shows. p1-draft-list-short (2026-10-10,
+      four work adds): draft add echoes the whole command line and itos draft lists it again whole,
+      every --why and --note included, about 6 KB for four drafts; the line wants the draft id and
+      the command's head with long values elided, --json keeping the whole command.
+      p1-draft-copies-listed (after slice-99): itos draft edit prints its copies' folder once, and
+      itos draft and its --json list an edit draft as any change, so a later session must know the
+      edits/<id>/ layout; list each edit draft's copies folder, and the paths in --json.
     tags: [draft, v8]
 
   - id: p1-wrap-long-body
