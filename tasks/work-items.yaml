@@ -13806,3 +13806,14 @@ items:
     why: >
       From slice-174's spec (2026-10-24, its follow-ups): a stealth repository's footers live in
       notes GitHub never sees; config check may refuse the pair.
+
+  - id: p1-pr-unreadable-config
+    title: An unreadable config refuses a push rather than landing pr work on main
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [slice-174]
+    kind: idea
+    why: >
+      From slice-174's spec (2026-10-24, its follow-ups): it pushes as trunk today (slice-174 kept
+      that), so under pr the work lands on main; refusing would be the guardrail.
