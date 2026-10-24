@@ -11744,6 +11744,14 @@ items:
       one, so env A-B=1 git commit is not seen as a git commit and passes; T-191's TestGitCalls pins
       today's narrow reading, so changing it is a fix with a scenario. Both are which shell words
       the guard reads as a git call.
+
+      The user, 2026-10-24: fix it in v8. Reading the code first: the guard is no string match.
+      internal/slices/guard/domain parses the line with mvdan.cc/sh and denies only a git commit or
+      push it finds as a command (and, by its doc.go, a line it cannot judge: sh -c, eval, a word
+      built from a variable, a cd first, one bash cannot parse). Some reported refusals (\| in a
+      grep, apostrophes, a redirection) fit Claude Code's own permission checks or the PATH shim
+      better. The spec starts by reproducing each refusal through itos guard claude-code, and fixes
+      only those the guard makes.
     refs: [internal/slices/guard, internal/guard, integrations/claude-code/hooks/guard.sh]
     tags: [guard, v8]
 
