@@ -8324,7 +8324,7 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: []
+    depends_on: [p1-typed-items]
     kind: idea
     why: >
       The user's call (2026-10-11): work done takes a closed task's done_when out of the ledger
@@ -8336,7 +8336,7 @@ items:
       ledger under an inert key was weighed and turned down: it grows the ledger and reads as live,
       the confusion the user hit in another repository.
     refs: [internal/work, tasks/README.md]
-    tags: [work, v8]
+    tags: [work, v9]
 
   - id: p1-archive-closed
     title: Closed items, tasks and answered questions move to an archive itos reads and agents need not
