@@ -13862,3 +13862,19 @@ items:
       (itos work search <text>, or work list --all --grep) would have found it at once; the
       coordinator's step that turns a nightly or an issue into work runs it first.
     tags: [work]
+
+  - id: p1-proof-from-commits-since
+    title: A range whose only start is commits.since schedules its code proof from there
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Raised by slice-155's spec drafter (2026-10-24): ci run --whole, or a new-branch push
+      (all-zeros start), with commits.since set has a range start for range checks (tests.RangeFrom)
+      but plan.Changed compares the range as typed, so the ranged code proof is never scheduled;
+      slice-155 only explains it ("Code proof not scheduled: the range has no start."). Scheduling
+      the proof from commits.since would change which proof a run selects; decide whether that is
+      wanted before building it.
+    tags: [proof, ci]
