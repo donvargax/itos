@@ -11463,7 +11463,7 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: []
+    depends_on: [p1-typed-items]
     kind: idea
     why: >
       From #110. In parallel runs agents stop mid-item to ask the coordinator for a scope grant (a
@@ -11471,7 +11471,7 @@ items:
       records it. Something like an ask and an answer kept with the item, distinct from itos
       decision (the person's), leaves the grant where the next reader of the item's commits looks.
       Waits on the parallel pilot, where the need shows.
-    tags: [agents, v8]
+    tags: [agents, v9]
 
   - id: p1-work-done-wip-examples
     title: work done refuses or names a closing slice's Examples blocks still tagged @wip
