@@ -334,7 +334,7 @@ Feature: itos status, where the work stands
   # The people file the scratch repository starts with, and its clone holds,
   # lists only someone, who owns slice-9 in progress: a status that fell
   # back to who the people make the session would print it, exit 0.
-  @ID-STATUS-27 @bug-124 @guard @wip
+  @ID-STATUS-27 @bug-124 @guard
   Scenario Outline: status refuses an empty --as rather than asking who the session is
     Given the work registry has the item "slice-9" owned by "someone" with the status "doing"
     When itos runs "status <empty handle>"

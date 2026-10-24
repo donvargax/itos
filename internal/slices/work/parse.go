@@ -79,6 +79,9 @@ func Parse(args []string, origin string, json, quiet bool) (CLI, error) {
 	case "list":
 		q, err = parseList(rest)
 	case "check":
+		if len(rest) > 1 {
+			return CLI{}, out.Usage("work check takes at most one file, not %s", rest[1])
+		}
 		file, named := argsengine.First(rest)
 		q = Query{File: typed(origin, file), Named: named}
 	case "show":
@@ -116,13 +119,15 @@ func parseProposal(args []string) (string, error) {
 	for i := 0; i < len(args); i++ {
 		switch arg := args[i]; {
 		case arg == "--as":
-			if i+1 >= len(args) {
+			if i+1 >= len(args) || args[i+1] == "" {
 				return "", out.Usage("work --as needs a handle")
 			}
 			i++
 			as = args[i]
 		case strings.HasPrefix(arg, "--as="):
-			as = strings.TrimPrefix(arg, "--as=")
+			if as = strings.TrimPrefix(arg, "--as="); as == "" {
+				return "", out.Usage("work --as needs a handle")
+			}
 		case strings.HasPrefix(arg, "-"):
 			return "", out.Usage("work does not take %s: %s", arg, takes)
 		default:

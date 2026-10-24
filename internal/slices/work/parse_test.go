@@ -17,7 +17,10 @@ import (
 func TestParseRefuses(t *testing.T) {
 	for line, want := range map[string]string{
 		"--as":                                "work --as needs a handle",
+		"--as=":                               "work --as needs a handle",
+		"--as ":                               "work --as needs a handle",
 		"--as=me -x":                          "work does not take -x: " + takes,
+		"check x.yaml more":                   "work check takes at most one file, not more",
 		"nosuch":                              "work has no subcommand nosuch: " + takes,
 		"--as a extra":                        "work has no subcommand extra: " + takes,
 		"list nosuch":                         "work list takes only --all and --tag <tag>: nosuch",
@@ -121,7 +124,6 @@ func TestParseReads(t *testing.T) {
 		{"list", Query{Sub: "list"}},
 		{"list --all --tag=cli", Query{Sub: "list", All: true, Tag: "cli"}},
 		{"check", Query{Sub: "check"}},
-		{"check x.yaml more", Query{Sub: "check", File: "x.yaml", Named: true}},
 		{"show a", Query{Sub: "show", ID: "a"}},
 		{"show --patch a", Query{Sub: "show", ID: "a", Patch: true}},
 		{"take a", Query{Sub: "take", ID: "a"}},

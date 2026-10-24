@@ -257,7 +257,7 @@ Feature: The work registry
   # work.identity, so the provider is github; with two people it asks gh,
   # signed in as ana, so a fallback says "Working for ana." and proposes
   # ana's slice-8.
-  @ID-WORK-145 @bug-124 @wip
+  @ID-WORK-145 @bug-124
   Scenario Outline: work refuses an empty --as rather than asking who the session is
     Given the people file lists "ana" and "bo"
     And a gh on the PATH signed in as "ana"
@@ -279,7 +279,7 @@ Feature: The work registry
   # owns slice-9 in progress: a take that fell back to who the people make
   # the session would change nothing and exit 0, a give-back would set it
   # todo.
-  @ID-WORK-146 @bug-124 @guard @wip
+  @ID-WORK-146 @bug-124 @guard
   Scenario Outline: work take and work give-back refuse an empty --as, writing nothing
     Given the work registry has the item "slice-9" owned by "someone" with the status "doing"
     When itos runs the command line "<command>"
@@ -300,7 +300,7 @@ Feature: The work registry
   # was never promised and would change --json's shape. plans/other.yaml is
   # not there, so judged it would exit 1 and ignored it exits 0. The words
   # naming it are new.
-  @ID-WORK-147 @bug-124 @wip
+  @ID-WORK-147 @bug-124
   Scenario: work check refuses a second file rather than ignoring it
     Given the work registry at "plans/work.yaml" has the item "T-001" with the status "doing"
     When itos runs "work check plans/work.yaml plans/other.yaml"
@@ -310,7 +310,7 @@ Feature: The work registry
   # Bug 124: the one file work check is named is still the one judged. No
   # scenario named a file before; work.registry is not set, so only the
   # name reaches plans/work.yaml.
-  @ID-WORK-148 @bug-124 @guard @wip
+  @ID-WORK-148 @bug-124 @guard
   Scenario: work check judges the one file it is named
     Given the work registry at "plans/work.yaml" has the item "T-001" with the status "doing"
     When itos runs "work check plans/work.yaml"
