@@ -13429,3 +13429,19 @@ items:
       or extend the rule and the fixtures' domains with internal/evidence in a build commit, which
       would let a slice's tests build an engine over fakes (the task slice's tests cannot, so its
       JSON for an opted-in check is judged by the scenarios alone).
+  - id: p1-evidence-run-io-and-reasons
+    title: Opted-in checks keep a verbose check's stdin and stderr, and the evidence reasons are one documented list
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [slice-169]
+    kind: idea
+    why: >
+      slice-169's diff review (2026-10-23) noted: an opted-in check runs with no stdin and its
+      stderr merged into the log, where a verbose check got os.Stdin and wrote stderr to stderr
+      before; the implementation added reasons inconclusive (a timeout or a command that did not
+      exit by itself, run and not recorded) and unkeyable (the index or key could not be made, run
+      in the working folder) beyond the spec's JSON contract; and it runs lock-timeout and
+      store-unusable failures inside the checkout, which slice-170's 'runs uncached, as today' must
+      settle. Record the reasons in docs/plans/evidence-records.md and the feature contract, decide
+      the verbose I/O, and list config-step-evidence and ledger-check-evidence in docs/rule-ids.md.
