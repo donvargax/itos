@@ -6718,7 +6718,7 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: [slice-143]
+    depends_on: [slice-143, p1-typed-items]
     kind: slice
     why: >
       Was p1-work-done-past-data-commits.
@@ -6770,7 +6770,7 @@ items:
       p1-reusable-completion-evidence. Stealth persistence needs an explicit first-delivery boundary
       because that mode creates no close commit.
     refs: [features/work-evidence.feature, internal/cli/workdone.go, internal/cli/workwrite.go]
-    tags: [work, v8]
+    tags: [work, v9]
 
   - id: p1-decision-add-answer
     title: itos decision add --answer records a question already answered in one commit
