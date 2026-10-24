@@ -11558,11 +11558,11 @@ items:
     kind: task
 
   - id: p1-agent-self-review
-    title: The implementing guide asks for a fresh-eyes review of the diff against the item's spec before hand-back
+    title: The loop's review step runs the reviewer's prompts as a read-only subagent or through the reviewer CLI, its verdict a review record
     phase: 1
     owner: null
     status: todo
-    depends_on: []
+    depends_on: [p1-evidence-review-record]
     kind: idea
     why: >
       From #110 (a survey of unclebob/swarm-forge). Before work done or the push, the agent reviews
@@ -11570,6 +11570,16 @@ items:
       name, a file outside the item's set, a guard reported as red evidence. These are what
       coordinators most often catch when landing. A guide step, not a gate. Not proposed:
       swarm-forge's role pipeline.
+
+      The user, 2026-10-23: review is a step of the deterministic loop (p1-item-lifecycle's
+      spec-reviewed and diff-reviewed states), not tied to the CLI. The step can replicate the
+      reviewer CLI exactly as a subagent: the profile's persona, plan and diff prompts
+      (claude-agent-sdk profiles/itos), the rounds block with every prior finding, the VERDICT block
+      and its parser, read-only tools (an agent type without Edit or Write, as the CLI's dontAsk
+      profile), a turn budget and a pinned model; it runs on the subscription rather than API
+      credits, and the CLI's clean-tree guard becomes the loop's own check after the step. Trial
+      both on the same diffs once the driver exists and compare verdicts. Replaces this idea's
+      earlier self-review framing: the reviewer is independent of the implementer.
     refs: [internal/guides]
     tags: [agents, v8]
 
