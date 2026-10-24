@@ -3,14 +3,15 @@
 // and give what git prints, its errors worded as internal/git words them.
 // It is the one package that runs git: Git's Platform finds the real git on
 // the PATH where ITOS_GIT names none (Real, Export, the git shim's and the
-// launcher's), and its Dir runs git in another folder than itos's.
+// launcher's), and its Dir is the folder itos runs in (the port's Folder),
+// which git runs in and every relative folder and path is read from.
 //
 // Locate asks git rev-parse for the top, the git folder and the common dir
 // in one run, and again without the top inside the git folder, where git
 // refuses --show-toplevel, its error then git.Read's; it is asked once per
-// working folder and folder and run, as config's locating asked it (the
+// folder, read from Dir, and run, as config's locating asked it (the
 // launcher and the command line both locate), until Init makes a
-// repository. Find reads files alone, since the git shim asks it on every
+// repository; a relative folder with no Dir is asked every time. Find reads files alone, since the git shim asks it on every
 // git command: it walks up to the .git as git does, reading a linked
 // worktree's .git file (gitdir: <path>) and its git folder's commondir.
 //

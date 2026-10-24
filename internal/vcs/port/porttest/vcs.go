@@ -83,6 +83,9 @@ var _ port.VCS = &VCS{}
 
 var errNoRepository = errors.New("not a git repository")
 
+// Folder is Root.
+func (v VCS) Folder(context.Context) string { return v.Root }
+
 // Locate is Located[dir].
 func (v VCS) Locate(_ context.Context, dir string) (port.Location, error) {
 	l, ok := v.Located[dir]

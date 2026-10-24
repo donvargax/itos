@@ -50,6 +50,13 @@ type broken struct {
 
 var errBroken = errors.New("broken")
 
+func (b broken) Folder(ctx context.Context) string {
+	if b.fault == "folder elsewhere" {
+		return "elsewhere"
+	}
+	return b.VCS.Folder(ctx)
+}
+
 func (b broken) Locate(ctx context.Context, dir string) (port.Location, error) {
 	l, err := b.VCS.Locate(ctx, dir)
 	switch {
@@ -390,6 +397,7 @@ func TestVCSContractFailsEachBrokenVCS(t *testing.T) {
 		{"commit file of nothing fails", map[string][]string{"commit file": {"CommitFile with no parent: broken"}}},
 		{"init fails", map[string][]string{"init": {"Init: broken"}}},
 		{"locate an empty folder", map[string][]string{"init": {"Locate in no repository is"}}},
+		{"folder elsewhere", map[string][]string{"locate": {"Folder is \"elsewhere\""}}},
 	} {
 		r := &recorder{failures: map[string][]string{}}
 		VCSContract(r, func(_ *recorder, l Layout) (port.VCS, string) {

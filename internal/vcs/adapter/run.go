@@ -23,7 +23,7 @@ func (g Git) run(ctx context.Context, talk port.Talk, out io.Writer, remote bool
 	cmd := g.git().Command(ctx, args...)
 	cmd.Env, cmd.Stdin = talk.Env, talk.Stdin
 	if talk.Dir != "" {
-		cmd.Dir = talk.Dir
+		cmd.Dir = port.In(g.Dir, talk.Dir)
 	}
 	if talk.NoPrompt {
 		env := talk.Env

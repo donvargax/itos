@@ -3,6 +3,7 @@ package port
 import (
 	"context"
 	"io"
+	"path/filepath"
 	"strconv"
 	"strings"
 )
@@ -15,6 +16,24 @@ import (
 // each cleaned, in the system's form (backslashes on Windows).
 type Location struct {
 	Top, GitDir, Common string
+}
+
+// In is the path p read from the folder dir: joined to it, unless p is
+// absolute or dir is "", the process's own folder.
+func In(dir, p string) string {
+	if dir == "" || filepath.IsAbs(p) {
+		return p
+	}
+	return filepath.Join(dir, p)
+}
+
+// Within is the path p read from the folder itos runs in, v's Folder; as
+// it is with no VCS.
+func Within(ctx context.Context, v VCS, p string) string {
+	if v == nil {
+		return p
+	}
+	return In(v.Folder(ctx), p)
 }
 
 // Unpushed is the start of the range that holds the commits of its end no
@@ -79,8 +98,8 @@ func (f *Failed) Error() string {
 	return f.Command + ": exit status " + strconv.Itoa(f.Code) + ": " + strings.TrimSpace(f.Words)
 }
 
-// Talk is how a command that may talk to the person runs: in Dir, "" for
-// the folder itos runs in; its input Stdin, none when nil; its output and
+// Talk is how a command that may talk to the person runs: in Dir, relative
+// to the folder itos runs in unless absolute, "" for that one; its input Stdin, none when nil; its output and
 // its own words to Stdout and Stderr, dropped when nil (Failed keeps the
 // words either way); in the environment Env, itos's own when nil. NoPrompt
 // never asks for credentials; Owns leaves an interrupt to the command and
@@ -119,6 +138,10 @@ type Commit struct {
 // threads cancellation (ADR-0053). porttest.VCSContract holds what every
 // one, the fake's and the adapter's, must do.
 type VCS interface {
+	// Folder is the folder itos runs in, absolute, which every folder and
+	// path the VCS is given or gives relative is relative to; "" for the
+	// process's own, which only a test that stands in it gives.
+	Folder(ctx context.Context) string
 	// Locate is the repository holding the folder dir; an error outside
 	// one. Asked once per folder and run.
 	Locate(ctx context.Context, dir string) (Location, error)

@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -63,14 +62,22 @@ func in(dir string, args ...string) []string {
 	return append([]string{"-C", dir}, args...)
 }
 
+// Folder is Dir.
+func (g Git) Folder(context.Context) string { return g.Dir }
+
 // Locate asks git for the top, the git folder and the common dir in one
 // run; inside the git folder, where there is no top, it asks again for the
-// other two. Asked once per working folder, git and dir.
+// other two. Asked once per folder and git, the folder dir from Dir; asked
+// every time for a relative folder from the process's.
 func (g Git) Locate(_ context.Context, dir string) (port.Location, error) {
-	key := dir
-	if cwd, err := os.Getwd(); err == nil {
-		key = strings.Join([]string{cwd, g.Dir, git.Bin(g.Platform), dir}, "\x00")
+	at := dir
+	if !filepath.IsAbs(at) {
+		if g.Dir == "" {
+			return g.locate(dir)
+		}
+		at = filepath.Join(g.Dir, dir)
 	}
+	key := filepath.Clean(at) + "\x00" + git.Bin(g.Platform)
 	locateMu.Lock()
 	defer locateMu.Unlock()
 	if f, ok := located[key]; ok {

@@ -44,9 +44,13 @@ var Commands = []string{"commit", "push"}
 // (tooOld). Otherwise it runs the real git with the arguments and gives its exit
 // code, done; on unix it does not return, git replacing this process. No git
 // on the PATH but itos is a missing environment, exit 3. v is the git
-// adapter, which finds the real git; cl is the launcher's CLI, which tooOld
-// asks launch.Handed with.
+// adapter, which finds the real git and, with no Dir, judges the folder the
+// process stands in; cl is the launcher's CLI, which tooOld asks
+// launch.Handed with.
 func Main(args []string, stderr io.Writer, v vcs.Git, cl launch.CLI) (itos []string, code int, done bool) {
+	if v.Dir == "" {
+		v.Dir, _ = os.Getwd()
+	}
 	real := v.Inherited()
 	under := real != ""
 	if !under {

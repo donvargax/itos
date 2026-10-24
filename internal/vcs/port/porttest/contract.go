@@ -79,6 +79,9 @@ func VCSContract[C T[C]](t C, open func(t C, l Layout) (port.VCS, string)) {
 	}
 	t.Run("locate", func(t C) {
 		v, root := open(t, main)
+		if got := v.Folder(t.Context()); got != root {
+			t.Errorf("Folder is %q, not the folder the VCS runs in, %q", got, root)
+		}
 		in := func(dir, p string) string {
 			if filepath.IsAbs(p) {
 				return filepath.Clean(p)

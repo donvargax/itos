@@ -324,15 +324,19 @@ type foundConfig struct {
 // version it pins.
 func readConfig(cl CLI, args []string) foundConfig {
 	g := cl.Parse(args)
+	// git runs in the folder the process stands in, named, so the command
+	// line's locate of the same folder asks git nothing more.
+	here, _ := os.Getwd()
+	git := vcs.Git{Dir: here}
 	root := g.Root
 	if g.Config == "" && root == "" {
-		root = config.Top(vcs.Git{}, "")
+		root = config.Top(git, "")
 	}
 	file := g.Config
 	if file == "" {
-		file = config.Locate(vcs.Git{}, root)
+		file = config.Locate(git, root)
 	}
-	stealth := config.IsStealthIn(vcs.Git{}, root, file)
+	stealth := config.IsStealthIn(git, root, file)
 	if !filepath.IsAbs(file) && root != "" {
 		file = filepath.Join(root, file)
 	}

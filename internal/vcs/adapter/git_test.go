@@ -210,19 +210,19 @@ func TestRenameIsBothPaths(t *testing.T) {
 	}
 }
 
-// laidOut stands the test at the top of a new repository laid out as
+// laidOut is the git adapter run at the top of a new repository laid out as
 // porttest.VCSContract asks, with no git setting from outside and no
-// repository above it.
+// repository above it, the test standing in another folder.
 func laidOut(t *testing.T, l porttest.Layout) (port.VCS, string) {
 	t.Helper()
 	base := alone(t)
+	t.Chdir(base)
 	repo := filepath.Join(base, "repo")
 	if l.None {
 		if err := os.MkdirAll(repo, 0o755); err != nil {
 			t.Fatal(err)
 		}
-		t.Chdir(repo)
-		return Git{}, repo
+		return Git{Dir: repo}, repo
 	}
 	history(t, repo)
 	if l.Origin {
@@ -237,8 +237,7 @@ func laidOut(t *testing.T, l porttest.Layout) (port.VCS, string) {
 	if l.Shallow {
 		clone := filepath.Join(base, "clone")
 		gitIn(t, base, "", "clone", "-q", "--depth", "1", "file://"+filepath.ToSlash(repo), clone)
-		t.Chdir(clone)
-		return Git{}, clone
+		return Git{Dir: clone}, clone
 	}
 	for _, tag := range l.Remotes {
 		gitIn(t, repo, "", "update-ref", "refs/remotes/origin/"+tag, tag)
@@ -250,8 +249,7 @@ func laidOut(t *testing.T, l porttest.Layout) (port.VCS, string) {
 	}
 	gitIn(t, repo, "", "worktree", "add", "-q", "--detach", filepath.Join(base, "wt"))
 	leave(t, repo, l)
-	t.Chdir(repo)
-	return Git{}, repo
+	return Git{Dir: repo}, repo
 }
 
 // git answers as the fake does.
@@ -321,11 +319,8 @@ func TestFindWalksUpAsGitDoes(t *testing.T) {
 }
 
 // Find finds nothing when the folder it starts from has no absolute path:
-// the working folder cannot be read.
+// a relative folder and no Dir to read it from.
 func TestFindFindsNothingWithNoAbsoluteFolder(t *testing.T) {
-	was := abs
-	abs = func(string) (string, error) { return "", os.ErrNotExist }
-	t.Cleanup(func() { abs = was })
 	if l, ok := (Git{}).Find(t.Context(), "."); ok {
 		t.Errorf("Find = %+v", l)
 	}
@@ -346,23 +341,36 @@ func TestFindRefusesAnUnreadableGitFile(t *testing.T) {
 	}
 }
 
-// Locate asks git once per folder: a repository made after the first ask
-// is not seen until the run asks from another folder.
+// Locate asks git once per folder from Dir: a repository made after the
+// first ask is not seen until the run asks from another folder. A relative
+// folder with no Dir is asked every time, as the process may stand anywhere.
 func TestLocateAsksOncePerFolder(t *testing.T) {
 	dir, err := filepath.EvalSymlinks(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Setenv("GIT_CEILING_DIRECTORIES", filepath.Dir(dir))
+	if err := os.Mkdir(filepath.Join(dir, "sub"), 0o755); err != nil {
+		t.Fatal(err)
+	}
 	t.Chdir(dir)
-	if _, err := (Git{}).Locate(t.Context(), ""); err == nil {
+	g := Git{Dir: dir}
+	if _, err := g.Locate(t.Context(), ""); err == nil {
 		t.Fatal("Locate found a repository in an empty folder")
 	}
-	gitIn(t, dir, "", "init", "-q")
 	if _, err := (Git{}).Locate(t.Context(), ""); err == nil {
-		t.Error("Locate asked git again")
+		t.Fatal("Locate with no Dir found a repository in an empty folder")
 	}
-	if l, err := (Git{}).Locate(t.Context(), "."); err != nil || l.Top != dir {
-		t.Errorf("Locate(.) = %+v, %v; want the top %s", l, err, dir)
+	gitIn(t, dir, "", "init", "-q")
+	for _, at := range []string{"", ".", dir} {
+		if _, err := g.Locate(t.Context(), at); err == nil {
+			t.Errorf("Locate(%q) asked git again", at)
+		}
+	}
+	if l, err := g.Locate(t.Context(), "sub"); err != nil || l.Top != dir {
+		t.Errorf("Locate(sub) = %+v, %v; want the top %s", l, err, dir)
+	}
+	if l, err := (Git{}).Locate(t.Context(), ""); err != nil || l.Top != dir {
+		t.Errorf("Locate with no Dir = %+v, %v; want the top %s", l, err, dir)
 	}
 }
