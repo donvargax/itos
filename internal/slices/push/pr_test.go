@@ -946,6 +946,24 @@ func TestPushFromMainUnderPrTakesTheLedgerBesideTheRegistry(t *testing.T) {
 	}
 }
 
+// A take directly above main that the remote's item branch has already is not
+// sent to main again.
+func TestPushItemBranchDoesNotSendATakeItAlreadyHas(t *testing.T) {
+	f := prRepo(t)
+	taken := map[string]string{"README.md": "start\n", "up.md": "up.md\n", registryFile: "taken\n"}
+	worked := maps.Clone(taken)
+	worked["work.md"] = "work\n"
+	f.History = append(f.History,
+		vcsfake.Commit{Name: "tk010", Parents: []string{up}, Message: "docs: take\n", Tree: taken},
+		vcsfake.Commit{Name: "wk010", Parents: []string{"tk010"}, Message: "feat: work\n", Tree: worked})
+	f.on(item, "wk010")
+	f.Remote["origin"].Refs["refs/heads/slice-9"] = "tk010"
+	code, _, stderr, _ := call(t, f)
+	if code != 0 || len(f.pushed) != 1 || len(f.pushed[0]) != 1 || f.pushed[0][0] != "wk010:refs/heads/slice-9" {
+		t.Fatalf("exit %d, pushed %v\n%s", code, f.pushed, stderr)
+	}
+}
+
 // Paths that cannot be read are not the registry's, nor are none at all.
 func TestRegistryPathsNeedTheRegistryAndPathsThatRead(t *testing.T) {
 	cfg := loaded(t, "version: 1\nledger: { files: 'tasks/phase-{group}.yaml' }\n")
