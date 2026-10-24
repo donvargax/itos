@@ -13816,8 +13816,8 @@ items:
   - id: T-300
     title: The VCS contract's unreachable remote is reached with no proxy
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
 
