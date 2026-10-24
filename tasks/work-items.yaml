@@ -4324,14 +4324,17 @@ items:
     phase: 3
     owner: null
     status: todo
-    depends_on: []
+    depends_on: [p2-itos-data-store]
     kind: idea
     why: >
       From another coordinator's notes (2026-10-05): stealth data lives in the git common dir, local
       to a checkout, so a coordinator cannot hand a task's context to another checkout. The
       read-only half exists (task list --json, work list --all --json); an export bundle and an
       import are missing.
-    tags: [stealth]
+
+      2026-10-24 grooming: where a record lives (committed, or in the clone's private store) is
+      p2-itos-data-store's to settle.
+    tags: [stealth, v9]
 
   - id: p1-network-timeouts-named
     title: Every network call itos makes is bounded and says what it waited on
