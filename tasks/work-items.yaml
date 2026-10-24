@@ -13445,6 +13445,9 @@ items:
       settle. Record the reasons in docs/plans/evidence-records.md and the feature contract, decide
       the verbose I/O, and list config-step-evidence and ledger-check-evidence in docs/rule-ids.md.
 
+      Also from the repair's review (2026-10-23): internal/check/evidence_test.go's fakeGit.lookups
+      is never incremented, so its != 0 assertion cannot fail; count IndexTree calls or drop it.
+
   - id: p1-find-honours-ceiling
     title: The VCS adapter's Find stops at GIT_CEILING_DIRECTORIES, as git's own discovery does
     phase: 1
