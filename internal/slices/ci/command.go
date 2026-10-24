@@ -59,7 +59,9 @@ code proof as a step among the static ones, before the tests: proof.code.check
 with {base} the range's start, which reads the results recorded before the
 push and runs none of its own. A surviving mutant, an uncovered or a missing
 result fails the run, naming each problem its --json lists by its rule and
-message, and a check that cannot run fails it too. Itos ci plan lists it.
+message, and a check that cannot run fails it too, as does one exiting 0 with
+an invalid itos_proof envelope (ci-code-proof-summary) or an explicit judged 0
+(ci-code-proof-empty). Itos ci plan lists it.
 --tests runs the plan's run of named tests alone, merged as the run merges it
 (the smoke set, the tests the range's commits name, the task checks
 recognized as runs of the kind), and nothing else: no other step, task check
@@ -78,11 +80,14 @@ repository's git context. A task check that says snapshot: false runs in the
 working folder, nothing looked up or recorded. A run that leaves changes out
 says how many tracked paths were not staged.
 
---json: the run's log on stderr; {"schema":1,"ok","failed_at"?,"failures"?,"evidence"?,"unstaged"?} on stdout,
+--json: the run's log on stderr; {"schema":1,"ok","failed_at"?,"failures"?,"evidence"?,"proof"?,"unstaged"?} on stdout,
         failures every failure in run order, failed_at the first; evidence, when a check
         or step opted in, lists each one looked up, in run order, as {"command","source",
         "hit","recorded","key","tree","recorded_at"?,"reason"?,"provenance"?}, and unstaged
-        counts the tracked paths whose working copy differs from the index`,
+        counts the tracked paths whose working copy differs from the index; proof,
+        once the code proof ran, is {"command","from","to","outcome","summary"}, the
+        outcome passed, refused or cannot-run, the summary null unless the provider
+        reported a valid itos_proof envelope`,
 
 		"scope": `Usage: itos ci scope <from> <to>
 
