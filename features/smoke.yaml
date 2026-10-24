@@ -64,6 +64,10 @@
   scenarios:
     - id: "@ID-EVID-01"
       why: an opted-in check's repeat answers from its record and the JSON says so, the file's point in two runs
+- file: evidence-store.feature
+  scenarios:
+    - id: "@ID-EVID-11"
+      why: a broken record is quarantined under its reason and the check reruns and records, the file's point in three runs
 - file: extensions.feature
   scenarios:
     - id: "@ID-EXT-04"

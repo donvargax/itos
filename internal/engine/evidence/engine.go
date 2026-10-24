@@ -21,7 +21,8 @@ const Source = "local"
 const OutputTail = 32 << 10
 
 // The reasons a check that ran left no record. A rerun that does not hit
-// always has one when it recorded nothing.
+// always has one when it recorded nothing, except a writer whose record lost
+// its place to a whole one that another writer made.
 const (
 	// ReasonSnapshotUnusable: the checkout of the index tree could not be
 	// made (a gitlink in the index, the snapshots folder unusable, a declared
@@ -298,8 +299,12 @@ func (e *Engine) execute(ctx context.Context, req Request, info Info, b bound, r
 	if reason != "" || o.Info.Reason != "" {
 		return o
 	}
-	if err := e.write(ctx, info.Key, b, res); err != nil {
+	placed, err := e.write(ctx, info.Key, b, res)
+	if err != nil {
 		o.Info.Reason = ReasonStoreUnusable
+		return o
+	}
+	if !placed {
 		return o
 	}
 	o.Info.Recorded, o.Info.RecordedAt, o.Info.Provenance = true, res.Ended, res.Provenance

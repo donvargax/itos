@@ -42,9 +42,8 @@ Feature: The local evidence store survives contention and damage
   # and must wait. The release step fails if that itos has already exited,
   # so a run that did not wait cannot pass; it waits a second first. Once
   # it holds the lock, itos looks again, finds the complete record and runs
-  # nothing. Before the work the first run's JSON names no key, so the Then
-  # that keeps it fails.
-  @ID-EVID-07 @slice-170 @wip
+  # nothing. slice-169 already does this, so the scenario pins it.
+  @ID-EVID-07 @slice-170
   Scenario: A writer waiting on the lock reads the record the holder completed, and runs nothing
     Given the staged file "tasks/phase-1.yaml" holding the lines:
       """
@@ -72,9 +71,9 @@ Feature: The local evidence store survives contention and damage
   # 10-second wait, then the check runs uncached. "Fail closed" means never
   # trusting the record, not failing the check: each row's verdict and exit
   # are the check's own. The lock stays, for the person to remove, as
-  # internal/lock's message says. Before the work the first run's JSON
-  # names no key, so the Then that keeps it fails.
-  @ID-EVID-08 @slice-170 @wip
+  # internal/lock's message says. slice-169 already does this, so the
+  # scenario pins it.
+  @ID-EVID-08 @slice-170
   Scenario Outline: A stale lock never changes the verdict: the check runs uncached
     Given the staged file "tasks/phase-1.yaml" holding the lines:
       """
@@ -108,9 +107,9 @@ Feature: The local evidence store survives contention and damage
   # A2. A store that cannot be made (a regular file where its folder must
   # go, which no OS lets a folder be made under) is never an error of the
   # check's: no exit 3, as the hook's snapshot failure would be. Each run runs
-  # uncached, and the file is left as it was. Before the work the JSON has
-  # no evidence, so its reason fails.
-  @ID-EVID-09 @slice-170 @wip
+  # uncached, and the file is left as it was. slice-169 already does this,
+  # so the scenario pins it.
+  @ID-EVID-09 @slice-170
   Scenario Outline: A store that cannot be written never changes the verdict: the check runs uncached
     Given the staged file "tasks/phase-1.yaml" holding the lines:
       """
@@ -145,8 +144,9 @@ Feature: The local evidence store survives contention and damage
   # matching record is kept as it is and used; anything else is quarantined
   # under its reason and replaced by this run's record. Either way no
   # temporary folder is left, and the third run hits. Before the work the
-  # first run's JSON names no key, so the Then that keeps it fails.
-  @ID-EVID-10 @slice-170 @wip
+  # first row, which only pins slice-169, passes; the others fail at the
+  # record's being complete.
+  @ID-EVID-10 @slice-170
   Scenario Outline: A rename that fails judges what reached the destination before using it
     Given the staged file "tasks/phase-1.yaml" holding the lines:
       """
@@ -184,9 +184,8 @@ Feature: The local evidence store survives contention and damage
   # aside under its reason, the check reruns, and a fresh record takes its
   # place, which the next run hits. The damage is portable: a removed file,
   # a NUL byte, a regular file where the record's folder must be. Before
-  # the work the first run's JSON names no key, so the Then that keeps it
-  # fails.
-  @ID-EVID-11 @slice-170 @wip
+  # the work no entry is quarantined, so the Then that checks one fails.
+  @ID-EVID-11 @slice-170
   Scenario Outline: A corrupt or markerless record is quarantined, and the check reruns and records
     Given the staged file "tasks/phase-1.yaml" holding the lines:
       """
@@ -220,9 +219,9 @@ Feature: The local evidence store survives contention and damage
   # A2. A temporary folder is a write not yet renamed into place, so a
   # reader never takes it for a record, even one holding a whole record:
   # the check reruns and records under its key. Whether itos ever cleans
-  # old temporary folders is not decided here. Before the work the first
-  # run's JSON names no key, so the Then that keeps it fails.
-  @ID-EVID-12 @slice-170 @wip
+  # old temporary folders is not decided here. slice-169 already does
+  # this, so the scenario pins it.
+  @ID-EVID-12 @slice-170
   Scenario: An unfinished temporary folder is never read as a record
     Given the staged file "tasks/phase-1.yaml" holding the lines:
       """

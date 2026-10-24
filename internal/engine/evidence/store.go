@@ -76,28 +76,39 @@ func readJSON(name string, v any) bool {
 	return err == nil && json.Unmarshal(text, v) == nil
 }
 
-// mkdirTemp is os.MkdirTemp, which a test swaps for a folder that refuses a
-// file.
-var mkdirTemp = os.MkdirTemp
+// mkdirTemp is os.MkdirTemp and rename os.Rename, which a test swaps for a
+// folder that refuses a file and a rename that fails.
+var (
+	mkdirTemp = os.MkdirTemp
+	rename    = os.Rename
+)
+
+// The reasons a record found broken is renamed aside under.
+const (
+	quarantineMarkerless = "markerless"
+	quarantineCorrupt    = "corrupt"
+)
 
 // write makes the record of a key: in a temporary folder of the store, its
 // files synced and the marker last, then renamed to the key's folder, which
-// is never overwritten. A rename onto a folder that holds anything fails,
-// and the record is then not made.
-func (e *Engine) write(ctx context.Context, key string, b bound, res Result) (err error) {
+// is never overwritten. A rename that fails judges what is at the key: a
+// whole record is kept as it is and this one is dropped (placed false), and
+// anything else is quarantined, after which the rename is tried once more.
+// What cannot be judged or moved aside is an error, and no record is made.
+func (e *Engine) write(ctx context.Context, key string, b bound, res Result) (placed bool, err error) {
 	root, err := e.dir(ctx)
 	if err != nil {
-		return err
+		return false, err
 	}
 	if err = os.MkdirAll(root, 0o700); err != nil {
-		return err
+		return false, err
 	}
 	tmp, err := mkdirTemp(root, ".tmp-"+key+"-")
 	if err != nil {
-		return err
+		return false, err
 	}
 	defer func() {
-		if err != nil {
+		if !placed {
 			_ = os.RemoveAll(tmp)
 		}
 	}()
@@ -106,10 +117,41 @@ func (e *Engine) write(ctx context.Context, key string, b bound, res Result) (er
 	result, _ := json.MarshalIndent(res, "", "  ")
 	for _, f := range []struct{ name, text string }{{manifest, string(stored) + "\n"}, {resultFile, string(result) + "\n"}, {complete, "complete\n"}} {
 		if err = writeSynced(filepath.Join(tmp, f.name), []byte(f.text)); err != nil {
-			return err
+			return false, err
 		}
 	}
-	return os.Rename(tmp, filepath.Join(root, key))
+	final := filepath.Join(root, key)
+	if rename(tmp, final) == nil {
+		return true, nil
+	}
+	if _, ok := e.lookup(ctx, key); ok {
+		return false, nil
+	}
+	if err = e.quarantine(root, key); err != nil {
+		return false, err
+	}
+	if err = rename(tmp, final); err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+// quarantine renames what is at the key's place aside, to
+// <key>.<reason>-<UTC timestamp>: markerless for a folder without its
+// completion marker, corrupt for anything else that is not a whole record.
+func (e *Engine) quarantine(root, key string) error {
+	at := filepath.Join(root, key)
+	info, err := os.Lstat(at)
+	if err != nil {
+		return err
+	}
+	reason := quarantineCorrupt
+	if info.IsDir() {
+		if _, err := os.Stat(filepath.Join(at, complete)); err != nil {
+			reason = quarantineMarkerless
+		}
+	}
+	return rename(at, filepath.Join(root, key+"."+reason+"-"+e.now().Format("20060102T150405.000000")+"Z"))
 }
 
 // writeSynced writes a file readable by its owner alone and syncs it.

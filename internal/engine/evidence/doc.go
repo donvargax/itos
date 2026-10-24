@@ -58,10 +58,15 @@
 // synced and the marker last, then renamed into place, never overwriting one.
 // A record is trusted only whole: its marker there, its manifest of this schema
 // hashing to the key its folder is named by, its result readable. Anything else
-// is a miss, and the rename that follows a run finds the folder taken and
-// records nothing. What the store does under contention and damage beyond
-// that, quarantining a record found broken, is the next slice's
-// (features/evidence-store.feature).
+// is a miss, which lookup answers without a lock; the writer that follows takes
+// the record's lock and, when its rename finds the place taken, judges what is
+// there. A whole record, which another writer made first, is kept as it is: the
+// check has run and answers with its own result, recording nothing. Anything
+// else is renamed aside to <key>.<reason>-<UTC timestamp>, the reason markerless
+// for a folder without its marker and corrupt for the rest, and the rename is
+// tried once more. A rename or a quarantine that cannot be done is a store that
+// cannot be written: the check ran, and nothing is recorded. A temporary folder
+// is never read, whatever it holds, and nothing here removes an old one.
 //
 // The package is an engine (internal/engine): several commands share it, itos
 // task and ci run through internal/check's Runner and ci's driver, and no slice

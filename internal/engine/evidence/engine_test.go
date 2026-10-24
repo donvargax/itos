@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"strings"
 	"syscall"
 	"testing"
@@ -152,7 +153,7 @@ func (r *rig) records(t *testing.T) []string {
 	}
 	var got []string
 	for _, e := range entries {
-		if e.IsDir() && !strings.HasPrefix(e.Name(), ".") {
+		if e.IsDir() && !strings.Contains(e.Name(), ".") {
 			got = append(got, e.Name())
 		}
 	}
@@ -349,48 +350,169 @@ func TestATimeoutIsNotRecorded(t *testing.T) {
 	}
 }
 
-// A record is trusted only whole: damage of any kind is a miss, and the
-// next run, which cannot rename onto what is there, leaves it and records
-// nothing.
-func TestADamagedRecordIsAMiss(t *testing.T) {
-	for name, damage := range map[string]func(dir string) error{
-		"no marker":      func(dir string) error { return os.Remove(filepath.Join(dir, complete)) },
-		"no result":      func(dir string) error { return os.Remove(filepath.Join(dir, resultFile)) },
-		"a NUL manifest": func(dir string) error { return os.WriteFile(filepath.Join(dir, manifest), []byte("\x00"), 0o600) },
-		"another key": func(dir string) error {
+// A record found broken is a miss: it is renamed aside under its reason, the
+// check runs and records, and the next run hits.
+func TestADamagedRecordIsQuarantinedAndRerecorded(t *testing.T) {
+	for name, c := range map[string]struct {
+		damage func(dir string) error
+		reason string
+	}{
+		"no marker": {func(dir string) error { return os.Remove(filepath.Join(dir, complete)) }, "markerless"},
+		"no result": {func(dir string) error { return os.Remove(filepath.Join(dir, resultFile)) }, "corrupt"},
+		"a NUL manifest": {func(dir string) error {
+			return os.WriteFile(filepath.Join(dir, manifest), []byte("\x00"), 0o600)
+		}, "corrupt"},
+		"another key": {func(dir string) error {
 			return os.WriteFile(filepath.Join(dir, manifest), []byte(`{"key":"x","schema":1}`), 0o600)
-		},
-		"a manifest that is not its key's": func(dir string) error {
+		}, "corrupt"},
+		"a manifest that is not its key's": {func(dir string) error {
 			text, err := os.ReadFile(filepath.Join(dir, manifest))
 			if err != nil {
 				return err
 			}
 			return os.WriteFile(filepath.Join(dir, manifest), bytes.Replace(text, []byte("tree-one"), []byte("tree-two"), 1), 0o600)
-		},
-		"another schema": func(dir string) error {
+		}, "corrupt"},
+		"another schema": {func(dir string) error {
 			text, err := os.ReadFile(filepath.Join(dir, manifest))
 			if err != nil {
 				return err
 			}
 			return os.WriteFile(filepath.Join(dir, manifest), bytes.Replace(text, []byte(`"schema": 1`), []byte(`"schema": 2`), 1), 0o600)
-		},
+		}, "corrupt"},
+		"a regular file": {func(dir string) error {
+			if err := os.RemoveAll(dir); err != nil {
+				return err
+			}
+			return os.WriteFile(dir, []byte("x"), 0o600)
+		}, "corrupt"},
+		"a folder with nothing in it": {func(dir string) error {
+			return errors.Join(os.RemoveAll(dir), os.Mkdir(dir, 0o700), os.WriteFile(filepath.Join(dir, "other"), nil, 0o600))
+		}, "markerless"},
 	} {
 		t.Run(name, func(t *testing.T) {
 			r := newRig(t)
 			first := r.Run(t.Context(), r.request("true", config.Evidence{}))
-			if err := damage(filepath.Join(r.store.root, Folder, first.Info.Key)); err != nil {
+			root := filepath.Join(r.store.root, Folder)
+			if err := c.damage(filepath.Join(root, first.Info.Key)); err != nil {
 				t.Fatal(err)
 			}
 			again := r.Run(t.Context(), r.request("true", config.Evidence{}))
-			if again.Info.Hit || again.Info.Recorded || again.Info.Reason != ReasonStoreUnusable || !again.OK {
+			if again.Info.Hit || !again.Info.Recorded || again.Info.Reason != "" || !again.OK {
 				t.Errorf("%+v", again)
 			}
-			for _, e := range r.records(t) {
-				if e != first.Info.Key {
-					t.Errorf("another record %s", e)
-				}
+			aside := first.Info.Key + "." + c.reason + "-20261024T010203.000000Z"
+			if _, err := os.Lstat(filepath.Join(root, aside)); err != nil {
+				t.Errorf("the damaged record is not quarantined as %s: %v", aside, err)
+			}
+			if got := r.records(t); len(got) != 1 || got[0] != first.Info.Key {
+				t.Errorf("records %v", got)
+			}
+			if third := r.Run(t.Context(), r.request("true", config.Evidence{})); !third.Info.Hit {
+				t.Errorf("the record made after the quarantine is not found: %+v", third)
+			}
+			if left, _ := filepath.Glob(filepath.Join(root, ".tmp-*")); len(left) != 0 {
+				t.Errorf("left %v", left)
 			}
 		})
+	}
+}
+
+// failingRename is a rename that fails on the calls listed (counting from
+// one), doing before on the first, and renames on the others.
+func failingRename(t *testing.T, calls []int, before func()) {
+	t.Helper()
+	was := rename
+	t.Cleanup(func() { rename = was })
+	call := 0
+	rename = func(from, to string) error {
+		call++
+		if call == 1 && before != nil {
+			before()
+		}
+		if slices.Contains(calls, call) {
+			return errors.New("the rename fails")
+		}
+		return was(from, to)
+	}
+}
+
+// A rename that fails judges what is at the key: a whole record that another
+// writer made is kept as it is and this one dropped, the check answering
+// with its own result and recording nothing.
+func TestARenameThatFailsKeepsAWholeRecordAtTheKey(t *testing.T) {
+	other := newRig(t)
+	first := other.Run(t.Context(), other.request("exit 2", config.Evidence{}))
+	r := newRig(t)
+	root := filepath.Join(r.store.root, Folder)
+	failingRename(t, []int{1}, func() {
+		if err := os.CopyFS(root, os.DirFS(filepath.Join(other.store.root, Folder))); err != nil {
+			t.Fatal(err)
+		}
+	})
+	o := r.Run(t.Context(), r.request("exit 2", config.Evidence{}))
+	if o.OK || o.Code != 2 || o.Info.Hit || o.Info.Recorded || o.Info.Reason != "" || o.Info.Key != first.Info.Key {
+		t.Errorf("%+v", o)
+	}
+	entries, err := os.ReadDir(root)
+	if err != nil || len(entries) != 1 || entries[0].Name() != first.Info.Key {
+		t.Errorf("the store holds %v, %v", entries, err)
+	}
+	if again := r.Run(t.Context(), r.request("exit 2", config.Evidence{})); !again.Info.Hit || again.Code != 2 {
+		t.Errorf("%+v", again)
+	}
+}
+
+// A rename that fails with a broken record at the key quarantines it and
+// renames once more; a rename that fails again, or with nothing at the key to
+// judge, leaves no record and no temporary folder, the check unchanged.
+func TestARenameThatFailsWithoutAWholeRecordAtTheKey(t *testing.T) {
+	for name, c := range map[string]struct {
+		fails    []int
+		before   func(root, key string)
+		recorded bool
+		reason   string
+		aside    string
+	}{
+		"a broken record, then a rename that works": {[]int{1}, func(root, key string) {
+			must(t, os.MkdirAll(filepath.Join(root, key), 0o700))
+		}, true, "", "markerless"},
+		"a broken record, then a rename that fails": {[]int{1, 3}, func(root, key string) {
+			must(t, os.WriteFile(filepath.Join(root, key), nil, 0o600))
+		}, false, ReasonStoreUnusable, "corrupt"},
+		"a broken record that cannot be moved aside": {[]int{1, 2}, func(root, key string) {
+			must(t, os.WriteFile(filepath.Join(root, key), nil, 0o600))
+		}, false, ReasonStoreUnusable, ""},
+		"nothing to judge": {[]int{1}, func(string, string) {}, false, ReasonStoreUnusable, ""},
+	} {
+		t.Run(name, func(t *testing.T) {
+			key := newRig(t).Run(t.Context(), newRig(t).request("exit 0", config.Evidence{})).Info.Key
+			r := newRig(t)
+			root := filepath.Join(r.store.root, Folder)
+			failingRename(t, c.fails, func() { c.before(root, key) })
+			o := r.Run(t.Context(), r.request("exit 0", config.Evidence{}))
+			if !o.OK || o.Info.Hit || o.Info.Recorded != c.recorded || o.Info.Reason != c.reason {
+				t.Errorf("%+v", o)
+			}
+			aside := filepath.Join(root, key+"."+c.aside+"-20261024T010203.000000Z")
+			_, err := os.Lstat(aside)
+			if (err == nil) != (c.aside != "") {
+				t.Errorf("quarantined as %q: %v", c.aside, err)
+			}
+			if left, _ := filepath.Glob(filepath.Join(root, ".tmp-*")); len(left) != 0 {
+				t.Errorf("left %v", left)
+			}
+			_, err = os.Stat(filepath.Join(root, key, complete))
+			if (err == nil) != c.recorded {
+				t.Errorf("the record at the key: %v", err)
+			}
+		})
+	}
+}
+
+func must(t *testing.T, err error) {
+	t.Helper()
+	if err != nil {
+		t.Fatal(err)
 	}
 }
 
