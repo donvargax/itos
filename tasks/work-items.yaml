@@ -57,6 +57,7 @@ phases:
 queue:
   - bug-132
   - bug-133
+  - bug-134
   - p1-js-error-texts
   - p3-marketplace-description
   - p1-message-doc-header-agreement
