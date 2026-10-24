@@ -9503,7 +9503,7 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: [slice-139]
+    depends_on: [slice-139, p1-typed-items]
     kind: slice
     why: >
       Was p1-draft-task-fields.
@@ -9521,7 +9521,7 @@ items:
       editing acceptance. This is a request for finer granularity, not evidence of reproduced silent
       data loss.
     refs: [internal/cli/draft.go, internal/draft, internal/ledger, features/draft.feature]
-    tags: [draft, v8]
+    tags: [draft, v9]
 
   - id: slice-148
     title: Promote selected drafts with dependency and independence checks
