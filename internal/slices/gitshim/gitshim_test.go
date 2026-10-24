@@ -156,8 +156,8 @@ func TestTyped(t *testing.T) {
 	}
 }
 
-// install links the running itos in the folder, unless a git that is not a
-// link to itos is there, and says where the folder stands on the PATH.
+// install links the running itos in the folder, unless a git that is not
+// itos is there, and says where the folder stands on the PATH.
 func TestRunInstall(t *testing.T) {
 	for _, r := range []struct {
 		name       string
@@ -177,14 +177,14 @@ func TestRunInstall(t *testing.T) {
 			"DIR/git already links to SELF.\nDIR comes after the real git (/usr/bin/git) on the PATH: put it first for git to run the shim.\n", "",
 			[]string{"place ", "links git", "standing home"}, true},
 		{"replaced", true, ports{other: true, at: -1, git: "/usr/bin/git", realAt: 0}, false, 0,
-			"Replaced DIR/git, a link to another itos, with a link to SELF.\nDIR is not on the PATH: put it before /usr/bin, the real git's folder, for git to run the shim.\n", "",
+			"Replaced DIR/git, another itos, with a link to SELF.\nDIR is not on the PATH: put it before /usr/bin, the real git's folder, for git to run the shim.\n", "",
 			[]string{"place ", "links git", "make itos git true", "standing home"}, true},
 		{"not on the PATH, no git", false, ports{at: -1, realAt: -1}, false, 0,
 			"Linked DIR/git to SELF.\nDIR is not on the PATH, and the PATH has no other git for the shim to run.\n", "", nil, false},
 		{"on the PATH, no git", false, ports{at: 0, realAt: -1}, false, 0,
 			"Linked DIR/git to SELF.\nDIR is on the PATH, but the PATH has no other git for the shim to run: install git.\n", "", nil, false},
 		{"refused", true, ports{}, false, 1, "",
-			"itos: DIR/git is a git that is not a link to itos; git-shim install never replaces one; left alone\n",
+			"itos: DIR/git is a git that is not itos; git-shim install never replaces one; left alone\n",
 			[]string{"place ", "links git"}, false},
 		{"linked --json", false, ports{at: 0, git: "/usr/bin/git", realAt: 1}, true, 0,
 			`{"schema":1,"link":"DIR/git","target":"SELF","action":"linked","on_path":true,"before_git":true,"git":"/usr/bin/git"}`, "", nil, false},
@@ -232,8 +232,8 @@ func TestRunInstall(t *testing.T) {
 	}
 }
 
-// uninstall removes a link to itos, says there is none, or leaves alone a
-// git that is not one.
+// uninstall removes an itos, says there is none, or leaves alone a git that
+// is not itos.
 func TestRunUninstall(t *testing.T) {
 	for _, r := range []struct {
 		name   string
@@ -249,7 +249,7 @@ func TestRunUninstall(t *testing.T) {
 		{"removed another itos", true, ports{other: true}, false, 0, "Removed DIR/git.\n", "", true},
 		{"absent", false, ports{}, false, 0, "No git shim at DIR/git: nothing to remove.\n", "", true},
 		{"refused", true, ports{}, false, 1, "",
-			"itos: DIR/git is a git that is not a link to itos; git-shim uninstall never removes one; left alone\n", false},
+			"itos: DIR/git is a git that is not itos; git-shim uninstall never removes one; left alone\n", false},
 		{"removed --json", true, ports{mine: true}, true, 0, `{"schema":1,"link":"DIR/git","action":"removed"}`, "", true},
 		{"absent --json", false, ports{}, true, 0, `{"schema":1,"link":"DIR/git","action":"absent"}`, "", true},
 		{"refused --json", true, ports{}, true, 1, `{"schema":1,"link":"DIR/git","action":"refused"}`, "", false},

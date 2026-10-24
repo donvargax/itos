@@ -53,7 +53,7 @@ type Query struct {
 // stderr together, its error an *exec.ExitError when it exits other than 0;
 // and git-shim install's ShimPlace (the itos running and the link to it in
 // dir, "" for its own folder), LinksItos (whether a path links to this
-// itos, or to another binary named itos), MakeLink, PathStanding (where a
+// itos, or is another itos), MakeLink, PathStanding (where a
 // folder and the real git stand on the PATH, -1 when not there) and
 // StandingLine (what that means for the shim).
 type Ports interface {

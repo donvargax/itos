@@ -382,7 +382,7 @@ link:
 itos git-shim uninstall               # or: itos git-shim uninstall --dir <the folder>
 ```
 
-Neither command touches a `git` that is not a link to itos.
+Neither command touches a `git` that is not itos.
 
 **The Claude Code plugin**: this repository is also a Claude Code plugin
 marketplace, and its one plugin, `itos`, is published from it, with a version

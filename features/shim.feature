@@ -175,7 +175,7 @@ Feature: The git shim, git commit and git push as itos's in an itos repository
   # "shim/git" is git.exe on Windows: every step naming the link reads it
   # through programPath, as runsItos does (the file steps do not, so a
   # removed link is "no git is left in", not "the file … does not exist").
-  @ID-SHIM-16 @bug-128 @wip
+  @ID-SHIM-16 @bug-128
   Scenario: install replaces a git that is a hard link to another itos
     Given "shim/git" is a hard link to another itos
     When itos runs "git-shim install --dir shim --json"
@@ -184,7 +184,7 @@ Feature: The git shim, git commit and git push as itos's in an itos repository
     And "shim/git" runs itos
     And the other itos is unchanged
 
-  @ID-SHIM-17 @bug-128 @wip
+  @ID-SHIM-17 @bug-128
   Scenario: uninstall removes a git that is a hard link to another itos
     Given "shim/git" is a hard link to another itos
     When itos runs "git-shim uninstall --dir shim --json"
@@ -194,7 +194,7 @@ Feature: The git shim, git commit and git push as itos's in an itos repository
     And the other itos is unchanged
 
   # A guard: it passes before the fix and must after it.
-  @ID-SHIM-18 @bug-128 @guard @wip
+  @ID-SHIM-18 @bug-128 @guard
   Scenario Outline: A git that is a hard link to a program that is not itos is still refused
     Given "shim/git" is a hard link to a program that is not itos
     When itos runs "git-shim <command> --dir shim --json"

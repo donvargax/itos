@@ -54,8 +54,9 @@
 // (os.Executable, which the caller gives) and the link's path in a folder, by
 // default the one holding that itos, made absolute, named git, or git.exe on
 // the OS windows (Name). LinksItos is what a git there is: this itos, its
-// links followed (the git adapter's IsSelf), or a symbolic link to another
-// binary named itos, as an older install's. MakeLink makes the symbolic link,
+// links followed (the git adapter's IsSelf), or another itos: a symbolic link
+// to a binary named itos, as an older install's, or what the git adapter's
+// IsItos tells is one, a hard link to it or a copy. MakeLink makes the symbolic link,
 // replacing the one there when told to, and on windows, where symbolic links
 // need a privilege, a hard link where that fails. PathStanding places the
 // link's folder and the real git's (the git adapter's Real) among the PATH's

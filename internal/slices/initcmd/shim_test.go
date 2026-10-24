@@ -19,8 +19,8 @@ func shimRun(f *fake, flag ShimFlag, answers string) (shimOutcome, int, string) 
 }
 
 // The offer, each way it ends: declined by the flag or the terminal; a
-// place it cannot name; a link to this itos kept; a git that is no link to
-// itos refused for --git-shim and otherwise said; a link to another itos
+// place it cannot name; a link to this itos kept; a git that is not
+// itos refused for --git-shim and otherwise said; another itos
 // replaced; a link it cannot make or look at; said where nobody is asked;
 // and linked for --git-shim or a yes, where its folder stands said.
 func TestShimOfferOutcomes(t *testing.T) {
@@ -45,14 +45,14 @@ func TestShimOfferOutcomes(t *testing.T) {
 		{"this itos there", given, "", there, map[string][2]bool{link: {true, false}}, nil, nil, "kept", 0,
 			"The git shim is there already: " + link + " links to itos.\n" + standing},
 		{"a git there, --git-shim", given, "", there, nil, nil, nil, "refused", exitPolicy,
-			"The git shim is not linked: " + link + " is a git that is not a link to itos, which init never replaces; " +
+			"The git shim is not linked: " + link + " is a git that is not itos, which init never replaces; " +
 				"--git-shim-dir <folder> links it in another folder.\n"},
 		{"a git there, unasked", ShimFlag{}, "", there, nil, nil, nil, "offered", 0,
-			"The git shim is not linked: " + link + " is a git that is not a link to itos, so itos init --git-shim " +
+			"The git shim is not linked: " + link + " is a git that is not itos, so itos init --git-shim " +
 				"--git-shim-dir <folder> links itos as git in another folder, so that in a repository itos manages git commit " +
 				"and git push are itos's.\n"},
 		{"another itos there", given, "", there, map[string][2]bool{link: {false, true}}, nil, nil, "replaced", 0,
-			"Linked the git shim: replaced " + link + ", a link to another itos, with a link to itos.\n" + standing},
+			"Linked the git shim: replaced " + link + ", another itos, with a link to itos.\n" + standing},
 		{"unasked", ShimFlag{}, "", nil, nil, nil, nil, "offered", 0, shimUnasked},
 		{"a no at the terminal", ShimFlag{}, "n\n", nil, nil, nil, nil, "declined", 0, "? [Y/n]: "},
 		{"a yes at the terminal", ShimFlag{}, "\n", nil, nil, nil, nil, "linked", 0,

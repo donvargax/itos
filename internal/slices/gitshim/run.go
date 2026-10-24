@@ -47,7 +47,7 @@ func (c CLI) Run(ctx context.Context, stdout, stderr io.Writer, h Handler) (int,
 	case linked:
 		fmt.Fprintf(stdout, "Linked %s to %s.\n", a.Link, a.Target)
 	case replaced:
-		fmt.Fprintf(stdout, "Replaced %s, a link to another itos, with a link to %s.\n", a.Link, a.Target)
+		fmt.Fprintf(stdout, "Replaced %s, another itos, with a link to %s.\n", a.Link, a.Target)
 	default:
 		fmt.Fprintf(stdout, "%s already links to %s.\n", a.Link, a.Target)
 	}
@@ -73,9 +73,9 @@ func (c CLI) refused(stdout, stderr io.Writer, link string) (int, error) {
 	if c.JSON {
 		return policy, out.Emit(stdout, out.Field{Key: "link", Value: link}, out.Field{Key: "action", Value: refused})
 	}
-	why := "is a git that is not a link to itos; git-shim install never replaces one"
+	why := "is a git that is not itos; git-shim install never replaces one"
 	if c.Sub == uninstall {
-		why = "is a git that is not a link to itos; git-shim uninstall never removes one"
+		why = "is a git that is not itos; git-shim uninstall never removes one"
 	}
 	fmt.Fprintf(stderr, "itos: %s %s; left alone\n", link, why)
 	return policy, nil

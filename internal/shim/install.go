@@ -34,17 +34,20 @@ func Place(executable func() (string, error), dir, goos string) (self, link stri
 }
 
 // LinksItos is what the git at link is: this itos (a link to it, followed),
-// or a symbolic link to another binary named itos, as an older install's.
+// or another itos: a symbolic link to a binary named itos, even one since
+// moved or deleted, as an older install's, or any program the git adapter's
+// IsItos tells is itos, a hard link to one or a copy of it among them.
 func LinksItos(link string) (self, other bool) {
 	if (vcs.Git{}).IsSelf(link) {
 		return true, false
 	}
-	target, err := os.Readlink(link)
-	if err != nil {
-		return false, false
+	if target, err := os.Readlink(link); err == nil {
+		name := strings.TrimSuffix(strings.ToLower(filepath.Base(target)), ".exe")
+		if name == "itos" {
+			return false, true
+		}
 	}
-	name := strings.TrimSuffix(strings.ToLower(filepath.Base(target)), ".exe")
-	return false, name == "itos"
+	return false, (vcs.Git{}).IsItos(link)
 }
 
 // MakeLink makes link a symbolic link to self, replacing the one there when

@@ -99,8 +99,8 @@
 //     folder named, the first git on the PATH is an itos (Ports' IsItos,
 //     the git adapter's cross-binary identity check); that entry is kept
 //     without claiming a target, before the checks of the proposed link. A
-//     link to this itos is kept, a git that is no link to itos refused for
-//     --git-shim (exit 1) and otherwise only said, a link to another itos
+//     link to this itos is kept, a git that is not itos refused for
+//     --git-shim (exit 1) and otherwise only said, another itos
 //     replaced; then MakeLink and StandingLine.
 //   - The rules for agents (rules.go, rulesOffer.run): the block, its
 //     markers and their staleness are internal/engine/agentrules'.

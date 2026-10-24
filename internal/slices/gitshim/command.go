@@ -34,9 +34,9 @@ by their paths runs the real git, as everywhere else.
 
 install links the itos running as git in <folder> (default: the folder holding
 it) and says whether that folder comes before the real git on the PATH. It
-never replaces a git that is not a link to itos (exit 1), and replaces a link
-to another itos. uninstall removes the link, and leaves any other git alone
-(exit 1). Both run the binary called, whatever a pin says. run is what the
+never replaces a git that is not itos (exit 1), and replaces another itos, a
+link to one or a copy. uninstall removes the link, and leaves any other git
+alone (exit 1). Both run the binary called, whatever a pin says. run is what the
 link runs in a repository itos manages: git commit or git push, as itos's.
 
 --json: {"schema":1,"link","action","target"?,"on_path"?,"before_git"?,"git"?},

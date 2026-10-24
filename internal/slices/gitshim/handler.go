@@ -40,8 +40,8 @@ type Query struct {
 
 // Ports are what git-shim reaches the world through, which internal/cli
 // binds for the OS itos runs on: Place, the running itos and the link's path
-// in dir; LinksItos, whether the git at link is this itos or a link to
-// another; MakeLink, the link made, replacing one there when told to;
+// in dir; LinksItos, whether the git at link is this itos or another itos;
+// MakeLink, the link made, replacing one there when told to;
 // Standing, the place of the folder dir among the PATH's folders and the
 // real git and its folder's place, -1 when not there; Commit and Push, itos
 // commit and itos push run with git's arguments, and their exit code.
@@ -95,7 +95,7 @@ func (h Handler) Handle(ctx context.Context, q Query) (Answer, error) {
 }
 
 // install links the running itos as git in dir, unless a git that is not
-// a link to itos is there, and says where dir stands on the PATH.
+// itos is there, and says where dir stands on the PATH.
 func (h Handler) install(ctx context.Context, dir string) (Answer, error) {
 	self, link, err := h.ports.Place(ctx, dir)
 	if err != nil {
@@ -126,8 +126,8 @@ func (h Handler) install(ctx context.Context, dir string) (Answer, error) {
 	return a, nil
 }
 
-// uninstall removes the link to itos named git in dir, and leaves alone
-// a git that is not one.
+// uninstall removes the itos named git in dir, and leaves alone a git that
+// is not itos.
 func (h Handler) uninstall(ctx context.Context, dir string) (Answer, error) {
 	_, link, err := h.ports.Place(ctx, dir)
 	if err != nil {

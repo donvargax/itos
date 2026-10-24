@@ -3,6 +3,7 @@ package shim
 import (
 	"errors"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -134,7 +135,8 @@ func TestMakeLinkReplaces(t *testing.T) {
 
 // The git at a path is this itos when it is the binary running, another
 // itos when it is a symbolic link to a file named itos (itos.exe, in any
-// case), and neither when it is any other file.
+// case), even one that is no longer there, and neither when it is any other
+// file.
 func TestLinksItos(t *testing.T) {
 	running, err := os.Executable()
 	if err != nil {
@@ -159,6 +161,57 @@ func TestLinksItos(t *testing.T) {
 		}
 		if self, other := LinksItos(link); self || other != want {
 			t.Errorf("LinksItos(a link to %s) = %v, %v", target, self, other)
+		}
+	}
+	dangling := filepath.Join(dir, "git-dangling")
+	if err := os.Symlink(filepath.Join(dir, "moved", "itos"), dangling); err != nil {
+		t.Fatal(err)
+	}
+	if self, other := LinksItos(dangling); self || !other {
+		t.Errorf("LinksItos(a link to an itos since moved) = %v, %v", self, other)
+	}
+}
+
+// A hard link to an itos build or a copy of it is another itos, as the git
+// adapter's IsItos reads its build information; a hard link to or a copy of
+// a Go program that is not itos, the test binary here, is not.
+func TestLinksItosBuilt(t *testing.T) {
+	gobin, err := exec.LookPath("go")
+	if err != nil {
+		t.Skip("no go to build an itos with")
+	}
+	dir := t.TempDir()
+	build := filepath.Join(dir, "itos-build")
+	if out, err := exec.Command(gobin, "build", "-o", build, "github.com/donvargax/itos/v8/cmd/itos").CombinedOutput(); err != nil {
+		t.Fatalf("go build: %v\n%s", err, out)
+	}
+	running, err := os.Executable()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, c := range []struct {
+		name, from string
+		want       bool
+	}{
+		{"an itos build", build, true},
+		{"a Go program that is not itos", running, false},
+	} {
+		text, err := os.ReadFile(c.from)
+		if err != nil {
+			t.Fatal(err)
+		}
+		copied := filepath.Join(dir, "copy-of "+c.name)
+		if err := os.WriteFile(copied, text, 0o755); err != nil {
+			t.Fatal(err)
+		}
+		hard := filepath.Join(dir, "hard link to "+c.name)
+		if err := os.Link(copied, hard); err != nil {
+			t.Fatalf("cannot make a hard link here: %v", err)
+		}
+		for _, link := range []string{copied, hard} {
+			if self, other := LinksItos(link); self || other != c.want {
+				t.Errorf("LinksItos(%s) = %v, %v; want other %v", filepath.Base(link), self, other, c.want)
+			}
 		}
 	}
 }

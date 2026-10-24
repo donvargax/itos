@@ -18,10 +18,10 @@ package initcmd
 //
 // A shim already in effect is kept: the link where it would go already
 // linking this itos, or, with no --git-shim-dir, the first git on the PATH
-// being itos, wherever its folder is. A git there that is no link to itos is
+// being itos, wherever its folder is. A git there that is not itos is
 // never replaced, as git-shim install never replaces one: that is a refusal,
-// exit 1, the rest of init's work done; a link to another binary named itos,
-// an older install's, is replaced.
+// exit 1, the rest of init's work done; another itos (shim.LinksItos: a link
+// to one, even an older install's, or a copy) is replaced.
 
 import (
 	"bufio"
@@ -36,9 +36,9 @@ import (
 )
 
 // shimOutcome is what came of the offer, init's --json "git_shim": action
-// one of linked, replaced (a link to another itos), kept (a link to this
+// one of linked, replaced (another itos), kept (a link to this
 // itos was there), offered (nothing linked, and nobody asked), declined,
-// refused (a git that is no link to itos is there; exit 1) or failed (exit
+// refused (a git that is not itos is there; exit 1) or failed (exit
 // 1); link the path of the link, made or that would be, null when declined;
 // on_path and before_git where its folder stands on the PATH, as git-shim
 // install --json says them; problem why it was refused or failed.
@@ -102,7 +102,7 @@ func (s shimOffer) run(ctx context.Context) (shimOutcome, int) {
 			standing()
 			return outcome("kept"), 0
 		case !other && s.flag.Given:
-			problem := link + " is a git that is not a link to itos, which init never replaces"
+			problem := link + " is a git that is not itos, which init never replaces"
 			say("The git shim is not linked: %s; --git-shim-dir <folder> links it in another folder.", problem)
 			o := outcome("refused")
 			o.Problem = problem
@@ -142,7 +142,7 @@ func (s shimOffer) run(ctx context.Context) (shimOutcome, int) {
 	action := "linked"
 	if replace {
 		action = "replaced"
-		say("Linked the git shim: replaced %s, a link to another itos, with a link to %s.", link, self)
+		say("Linked the git shim: replaced %s, another itos, with a link to %s.", link, self)
 	} else {
 		say("Linked the git shim: %s to %s.", link, self)
 	}
@@ -172,7 +172,7 @@ func (s shimOffer) howTo(ctx context.Context, link string) string {
 		" (--git-shim-dir <folder> for another), so that in a repository itos manages git commit and git push are itos's."
 	if _, err := os.Lstat(link); err == nil {
 		if mine, other := s.ports.LinksItos(ctx, link); !mine && !other {
-			text = "The git shim is not linked: " + link + " is a git that is not a link to itos, so " +
+			text = "The git shim is not linked: " + link + " is a git that is not itos, so " +
 				"itos init --git-shim --git-shim-dir <folder> links itos as git in another folder, " +
 				"so that in a repository itos manages git commit and git push are itos's."
 		}

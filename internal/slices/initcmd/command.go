@@ -87,7 +87,7 @@ linked as git, in the folder holding itos or the one --git-shim-dir names.
 --git-shim links it, --no-git-shim declines; on a terminal with neither it
 asks, yes its default answer; anywhere else it links nothing and says how to.
 A link to this itos already there, or with no --git-shim-dir the first git on
-the PATH being itos, is kept; a git there that is no link to itos is never
+the PATH being itos, is kept; a git there that is not itos is never
 replaced, exit 1, the rest of init's work done. Run again where a config is,
 it never asks: a shim not linked is reported, never counted as missing, and
 --git-shim links it.
@@ -128,8 +128,8 @@ Run again, a copy that no longer matches AGENTS.md is reported as well, and
         plugin {"action","scope","excluded","problem"?}, action one of installed, already,
         offered, declined, no_claude, unknown (claude plugin list failed) or failed;
         git_shim {"action","link","on_path","before_git","problem"?}, action one of linked,
-        replaced (a link to another itos), kept, offered, declined, refused (a git that is no
-        link to itos is there) or failed;
+        replaced (another itos), kept, offered, declined, refused (a git that is not itos
+        is there) or failed;
         agent_rules {"action","files":[{"path","action"}],"problem"?}, action one of written,
         current (the block is the one this itos writes), stale (it is not, and was not
         rewritten), offered, declined or failed; under a stealth config, stale too when

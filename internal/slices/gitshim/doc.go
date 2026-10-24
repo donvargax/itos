@@ -9,9 +9,9 @@
 // folder, by default the one holding it, a symbolic link or on windows a
 // hard link where that fails, and says where the folder stands on the PATH
 // against the real git, since the shim only acts before it; uninstall takes
-// the link away. A git there that is this binary is kept, a symbolic link
-// to another binary named itos replaced, anything else refused (exit 1):
-// neither replaces nor removes a git that is not a link to itos. The link's
+// the link away. A git there that is this binary is kept, another itos (a
+// link to one or a copy of it, shim.LinksItos) replaced, anything else
+// refused (exit 1): neither replaces nor removes a git that is not itos. The link's
 // place, what a git there links, the link's making and the folder's place
 // among the PATH's and the real git's (the git adapter's Real, compared by
 // os.SameFile) are internal/shim's, reached through Ports, which the slice
