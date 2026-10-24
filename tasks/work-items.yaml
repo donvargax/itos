@@ -10640,6 +10640,10 @@ items:
       refuse naming git branch --set-upstream-to=origin/<main>, or push to the configured main
       branch. The guard also refuses git push --delete, so the stray branch needs gh api to remove:
       the push could say which branch it created.
+
+      Met again 2026-10-24 by the first implementer launched with the Agent tool's isolation:
+      worktree: its worktree's branch worktree-agent-<id> had no upstream, so itos push would have
+      pushed origin/worktree-agent-<id>; the agent set the upstream to origin/main by hand.
     tags: [push, v8]
 
   - id: T-197
