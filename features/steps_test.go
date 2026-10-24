@@ -41,22 +41,23 @@ type world struct {
 	queueCommitCount int
 	queueSavedHead   string
 	queueSavedFiles  map[string]string
-	scenarioFiles    map[string]string // each scenario ID written, to its feature file
-	ledger           []ledgerTask      // the tasks of the ledger's one file (ledgerPath), in order
-	dataDir          string            // where itos's config and data are written: the root, or the git folder (stealth)
-	linked           string            // the linked worktree of the scratch repository, when the scenario adds one
-	watchURL         string            // the address of the watched run
-	registryLines    []string          // the registry's items, one line each, as the work steps wrote them
-	registryQueue    []string          // the registry's queue, as a work step wrote it, nil for none
-	registryText     string            // the registry's text as the work steps last wrote it
-	noGh             bool              // the PATH has no gh
-	messageFile      string            // the message file's text, as a step wrote it
-	atOnce           []atOnceRun       // the runs of one command started together, as allAtOnce ran them
-	atOnceWords      []string          // the notes or ideas those runs added, in order
-	threadsBefore    string            // the threads file's text, as a step wrote it
-	promotion        *promotionFixture // the task-promotion fixture, when a step wrote one (promote_test.go)
-	evidenceKey      string            // the evidence key a --json run named, which a step kept (evidence_test.go)
-	evidenceStore    *evidenceFixture  // what the fixture holds of the evidence store (evidence_store_test.go)
+	scenarioFiles    map[string]string    // each scenario ID written, to its feature file
+	ledger           []ledgerTask         // the tasks of the ledger's one file (ledgerPath), in order
+	dataDir          string               // where itos's config and data are written: the root, or the git folder (stealth)
+	linked           string               // the linked worktree of the scratch repository, when the scenario adds one
+	watchURL         string               // the address of the watched run
+	registryLines    []string             // the registry's items, one line each, as the work steps wrote them
+	registryQueue    []string             // the registry's queue, as a work step wrote it, nil for none
+	registryText     string               // the registry's text as the work steps last wrote it
+	noGh             bool                 // the PATH has no gh
+	messageFile      string               // the message file's text, as a step wrote it
+	atOnce           []atOnceRun          // the runs of one command started together, as allAtOnce ran them
+	atOnceWords      []string             // the notes or ideas those runs added, in order
+	threadsBefore    string               // the threads file's text, as a step wrote it
+	promotion        *promotionFixture    // the task-promotion fixture, when a step wrote one (promote_test.go)
+	evidenceKey      string               // the evidence key a --json run named, which a step kept (evidence_test.go)
+	evidenceStore    *evidenceFixture     // what the fixture holds of the evidence store (evidence_store_test.go)
+	proofSummary     *proofSummaryFixture // how itos is invoked in the proof summary feature (ci_proof_summary_test.go)
 
 	exit           int
 	stdout, stderr string
@@ -456,6 +457,7 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	initializeMovesCommandSteps(sc, w)
 	initializeDraftSteps(sc, w)
 	initializeProofSteps(sc, w)
+	initializeProofSummarySteps(sc, w)
 	initializeIDSteps(sc, w)
 	initializePromoteSteps(sc, w)
 	initializeTestsListSteps(sc, w)

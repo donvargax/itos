@@ -138,6 +138,12 @@
 //   - guard_test.go: the steps write Claude Code's PreToolUse input as its
 //     documentation shows it and run itos guard claude-code with it on stdin
 //     (runWith); a deny is read as Claude Code reads it, stdout's JSON.
+//   - ci_proof_summary_test.go: the scratch root's own files, written as a
+//     scenario says: a provider script that appends its arguments to
+//     proof-runs and prints proof.stdout, a recording script, the config
+//     replaced whole, and tags on the fixture's commits. itos is run with
+//     --config itos.yaml; ci run's JSON is read as JSON, its logs by whole
+//     lines, and what ran by the files the scripts append to.
 //   - cover_test.go: with GOCOVERDIR or ITOS_CC_TEST_COVERDIR set, the itos
 //     under test is a -cover build of the tree, made once a run (T-121), and
 //     with ITOS_CC_TEST_COVERDIR every command a scenario starts writes its
