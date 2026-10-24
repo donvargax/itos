@@ -9353,7 +9353,7 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: [slice-142]
+    depends_on: [slice-142, p1-typed-items]
     kind: slice
     why: >
       Was p1-work-done-many.
@@ -9378,7 +9378,7 @@ items:
       before checks or writes. This supersedes the deduplication sentence above; preserve input
       order only for distinct IDs.
     refs: [internal/cli/workdone.go, internal/work/several.go, features/work.feature]
-    tags: [work, v8]
+    tags: [work, v9]
 
   - id: T-177
     title: Explain automatic wrapping of scenario-ID footers
