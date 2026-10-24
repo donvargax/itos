@@ -2180,7 +2180,7 @@ items:
       Checked locally against the plugin-authoring skill's declarations when it landed. A claude
       -p --plugin-dir run writes them, but needs a login; if Claude Code gains a way to write them
       without a session, T-066's checks could run tsc over the plugin with them.
-    refs: [integrations/claude-code/tsconfig.json, vite.config.ts]
+    refs: [integrations/claude-code/tsconfig.json]
     tags: [plugin]
 
   - id: T-067
