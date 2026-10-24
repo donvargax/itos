@@ -4876,6 +4876,22 @@ items:
       until sent; sent notes stay append-only) and p1-followup-supersede (note --supersedes <n>; doc
       exports the standing ones unless --all). Their whys stand in their dropped entries. One type
       of p1-typed-items' record, built after it or as its pilot.
+
+      Correction to the note above: a drop removes an item's why, so the merged whys are not in
+      their dropped entries; here they are in full. p1-followup-topics (the user, 2026-10-21):
+      threads follow a topic (a vendor, an integration, a recurring meeting) as often as a person.
+      --with becomes optional and repeatable; followup lists by topic and filters by person. May
+      merge with p1-research-log if a topic thread with no person is the same thing as a log.
+      p1-followup-drafts (the user, 2026-10-21): notes written to send to someone (an email, a
+      message) are drafted, revised and then sent, but every followup note is final and dated when
+      written. followup note --draft keeps it editable (followup draft edit, send marks it sent with
+      the time), show and doc mark drafts, and the list shows a thread with a draft waiting. Sent
+      notes stay append-only. p1-followup-supersede (the user, 2026-10-21): a correction or an
+      updated plan is a new note, and readers must know the newest wins. followup note --supersedes
+      <n> links the new note to the one it replaces; show and doc print the superseded note struck
+      or folded under its replacement, and doc exports only the standing ones unless --all. Notes
+      stay append-only. All three: designed as a type of p1-typed-items' one record, not a command
+      group of its own; built after it, or as its pilot.
     tags: [followup, v9]
 
   - id: p1-ask-20-duplicate
