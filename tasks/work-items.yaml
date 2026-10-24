@@ -13097,6 +13097,13 @@ items:
       proof found one uncovered line in that fix (covered in ~1 min). No environment miss under the
       required portability account; the remaining miss class is coverage of changed lines, which
       p1-prepush-changed-line-coverage would catch locally.
+
+      slice-172 (2026-10-23): ~24 min, 13 scenarios green locally, complete portability account. A
+      scratch cd that failed silently ran its git write-tree, update-ref and tag commands in the
+      coordinator's primary checkout: main pointed at a parentless commit for 23 s; the agent saw
+      it, restored main to its exact previous value with update-ref against the bad value, deleted
+      the tags and disclosed it; nothing reached origin. Brief lesson: scratch git repositories go
+      through git -C <path>, never a cd.
     tags: [agents, v8]
 
   - id: slice-170
