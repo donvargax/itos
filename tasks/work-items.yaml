@@ -3387,6 +3387,9 @@ items:
     depends_on: [T-091]
     kind: idea
     tags: [gates]
+    why: >
+      Correction to its drop commit (179611a): the TypeScript tools were dropped by q-56
+      (2026-10-10), not q-26.
 
   - id: bug-22
     title: itos ask record's commit body fits the line limit whatever the title's length
