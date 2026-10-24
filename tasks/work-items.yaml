@@ -7400,16 +7400,9 @@ items:
     title: itos draft lists a command draft by its command and id, not its whole command line
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: []
     kind: idea
-    why: >
-      Found 2026-10-10 drafting four work adds: itos draft add echoes the whole command line, and
-      itos draft lists it again whole, every --why and --note included, so four drafts printed about
-      6 KB, each why twice. A coordinator drafts while an agent holds the checkout, every time, in
-      every itos-driven repository. The line wants the draft id and the command's head (itos work
-      add p1-x, itos work edit p1-y --depends-on …) with long values elided; --json keeps the whole
-      command.
     refs: [internal/cli]
     tags: [draft, v8]
 
