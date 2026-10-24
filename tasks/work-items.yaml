@@ -70,7 +70,6 @@ queue:
   - p1-mutation-results-committed
   - p1-text-from-file
   - p3-commit-long-text-footer
-  - p1-core-changelog
   - bug-38
   - bug-42
   - p1-problem-fields
@@ -7283,20 +7282,9 @@ items:
     title: itos changelog writes the changelog from the commits, whole or by task, item or scenario
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: []
     kind: idea
-    why: >
-      The user's call (2026-10-10): tools/changelog.ts reads itos's own footers (Task, Scenarios,
-      Item), so every itos-driven repository has the same need, and itos work show already lists an
-      item's commits. itos core gains it, the whole history or one task's, item's or scenario's
-      commits, in place of this repository's script; T-145's parity record (the old output at a
-      pinned commit) is its acceptance.
-
-      It replaces T-145 and takes its parity step: before deleting tools/changelog.ts, its first
-      commit records the script's output at a pinned commit (the whole history, --task T-001,
-      --scenario ID-STATUS-01) under tools/parity/changelog/, and its acceptance is itos changelog
-      giving the same, compared by tools/bin/parity. T-149, which deletes package.json, waits on it.
     deferred: >
       Parked (the user, 2026-10-12): no need for now. Of its two parts, one item's commits are itos
       work show <id> (headers; bodies by git show), and the whole-history changelog has no reader
