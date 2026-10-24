@@ -10,9 +10,12 @@ Feature: The local evidence store survives contention and damage
 
   Contract, which these scenarios judge:
   - A lock not taken, or a store that cannot be written, never changes a
-    verdict or an exit code: the check runs uncached, as today, its JSON's
-    evidence saying recorded false and the reason, lock-timeout or
-    store-unusable. "Fail closed" means never trusting the record.
+    verdict or an exit code: the check runs uncached, still in its
+    disposable checkout of the index tree (only a checkout that cannot be
+    made falls back to the working folder, slice-169's snapshot-unusable),
+    its JSON's evidence saying recorded false and the reason, lock-timeout
+    or store-unusable. "Fail closed" means never trusting the record.
+    slice-169 already runs these cases so; this slice pins them.
   - Files, in the git common dir's itos/evidence. The lock is <key>.lock,
     internal/lock's, waited for 10 seconds; a writer that waited looks the
     record up again before it runs. Lookup takes no lock. A record is
