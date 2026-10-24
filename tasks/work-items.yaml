@@ -13617,3 +13617,17 @@ items:
       long for a line; since bug-132 selfBody breaks a word longer than the line
       (message.BreakLong), so the fallback is likely unneeded. ID-ASK-19 holds either way.
     refs: [internal/slices/decision/handler.go]
+
+  - id: p1-opens-footer-cherry-picked
+    title: No wrapped body line starts git's '(cherry picked from commit' prefix
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Found by bug-132's spec (2026-10-24): opensFooter bars footer tokens, notes, configured keys
+      and the comment char, but not git's '(cherry picked from commit ' prefix, which git counts as
+      a generated trailer under its 25% rule, so a wrapped body line starting with it can make the
+      body trailers. It reaches itos commit's Wrap and selfBody alike.
+    refs: [internal/message/wrap.go]
