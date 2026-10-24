@@ -1057,78 +1057,9 @@ items:
     title: A command that shows a slice's @wip scenarios fail against the current binary
     phase: 1
     owner: donvargax
-    status: todo
+    status: dropped
     depends_on: []
     kind: idea
-    why: >
-      Every implementing agent proved its scenarios failed without its change by stashing it and
-      running them. A command that runs a slice's @wip scenarios against the current binary and
-      reports each one's failure (the step and its output) would make that routine, and show a
-      coordinator before an agent starts whether a spec fails where it should. It would not have
-      caught this session's two bad specs (@ID-CONFIG-10, @ID-CI-01), which failed for a wrong
-      reason, but the failing step it prints would have shown the reason.
-      The user's call (2026-10-03): the check runs inside the structured edit commands
-      (p1-work-edit): adding or editing a slice or a task runs its @wip scenarios, or its checks,
-      and refuses one that already passes, printing each failing step, so no spec reaches an agent
-      unproven. The coordinator had done it by hand for one task that day and by reasoning alone
-      for every scenario.
-
-      The user's call (2026-10-04): deferred to the agents' instructions until a design proves a
-      spec red: the brief asks an agent to write the steps and run the scenarios before writing the
-      code that makes them pass. Not enforced: whether an agent followed red, green, refactor cannot
-      be verified yet. A proof must tell a scenario that fails at a step from one with an undefined
-      step, and allow a guard scenario meant to pass before the work.
-
-      2026-10-11: the user names it the missing red of red, green, refactor: green and refactor are
-      gated (the named scenarios, CI, the mutation proof, previous-release), red rests on the
-      agent's report. Guard-aware: that day SHIM-12 and 15, WORK-99 and 101 and UPGRADEHAND-02 and
-      05 passed before the work on purpose, as guards of what already held; a guard is declared (a
-      tag such as @guard, or a list in the spec commit) and runs green, every other @wip scenario
-      must fail, printing its failing step. Queue it soon after v8.
-
-      2026-10-11: slices 129 and 130 reached their agents with Givens that asserted instead of
-      setting up, a value quoted where YAML was meant, and a scenario that passed before the change;
-      run at spec time, the command would have shown each failing at a Given, or not failing at all,
-      before any agent started.
-
-      #58 (2026-10-12): a consumer asks for the red step's runner, itos tests run <kind> --item <id>
-      or <ID>..., through run.select and ids_pattern, @wip included on request; today each session
-      rebuilds the selection from the runner's flags. A plain runner for named or tagged scenarios
-      could land before the red-first proof.
-
-      2026-10-14: the user is reconsidering the mandatory red-first step as wasteful while reviewing
-      repeated agent test runs. Reassess the blanket requirement in guide brief and guide work to
-      commit steps separately, temporarily remove @wip, execute the expected failures and report
-      each failing step. Consider making red reproduction targeted to a bug or a spec whose
-      effectiveness is uncertain, instead of mandatory for every task/slice. Do not proceed with the
-      older proposal to enforce red-first automatically without settling this changed direction.
-      Keep meaningful regression assertions and detect invalid or vacuous specifications; the
-      concern is the universal extra execution and commit ceremony. This is a concern recorded for a
-      policy decision, not a claim that existing rules or gates have already changed. Related
-      direction: neighboring scenarios in done_when and no duplicate subagent runs
-      (p1-neighbor-checks-in-done-when, p1-agent-test-runs-once).
-
-      q-82 chose a plain live-test runner first; slice-162, ID-TESTRUN-01..09, now specifies
-      explicit IDs and built-in Gherkin item tags from the working tree. Command adapters lack
-      item-tag metadata, and reliable WIP execution is not claimed. This parent retains the
-      reconsidered red-first policy, WIP runner contract and guard-aware proof; no current mandatory
-      ceremony was changed.
-
-      2026-10-17: other repositories report agents building everything, then deleting the
-      implementation to show red, as this registry saw on 2026-10-03 (agents stashing their change
-      to run the scenarios); the user finds asking agents for TDD runs against how they work, and
-      wants red proven by automation without loosening the practice. Shape to weigh: (1) at spec
-      time, every @wip scenario not declared a guard fails against the current binary at a Then
-      step, not at an undefined or Given step (this idea); (2) in CI, the scenarios a feat or fix
-      turns live fail against the binary built from its parent and pass on it, whatever order the
-      agent worked in, so the red-first test commit stops being a rule agents must follow. Mutation
-      testing already proves the unit tests can fail.
-
-      The user (2026-10-17) wants both parts: the spec-time check that @wip scenarios fail at a Then
-      step, and the CI check that the scenarios a feat or fix turns live fail on its parent's binary
-      and pass on its own, modelled on previous-release's compatibility check (the old binary judged
-      against the new scenarios, here to prove they fail before the implementation). Once both land,
-      the red-first test commit leaves the agents' rules.
     tags: [evidence]
 
   - id: p1-commit-message-file
@@ -2796,26 +2727,9 @@ items:
     title: A read-only reviewer reviews each landed item while the next one is built
     phase: 3
     owner: null
-    status: todo
+    status: dropped
     depends_on: [slice-57]
     kind: idea
-    why: >
-      The user's call (2026-10-03): the gates check behaviour, nobody checks design, simplicity or
-      readability, and the coordinator reads reports, not diffs. After an item lands, a read-only
-      agent reviews its commits (itos work show <id> --patch) against its spec while the next
-      implementer works; it reads git, never the working tree, so the two never touch the same
-      paths. Findings come to the coordinator, who files them with itos work add or drops them.
-      Tried first on slice 54; if it finds things worth fixing it becomes a standing step and later
-      a reviewer agent shipped in the plugin.
-
-      First trials, 2026-10-03: the review of slice 54 found a live bug the scenarios missed (itos
-      work edit on a multi-line refs list, p1-work-edit-lists) and two correctness gaps; the review
-      of slice 55 found the only undo code in itos untested, with holes (p1-commit-rollback-tested).
-      Worth making a standing step.
-
-      Backlog review of 2026-10-10, batch 2: folds in p3-specialist-agents: specialist agents (a
-      spec writer, a reviewer) are built only with a clear design and evidence they pay off, and
-      this standing review is the evidence to gather first.
     tags: [agents]
 
   - id: slice-64
@@ -4637,21 +4551,9 @@ items:
     title: The corpus's --json cases pin their output with json:, which a later release judges
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: [T-100]
     kind: idea
-    why: >
-      Since T-100 previous-release judges an old case's json, exit code and files_after alone, never
-      stdout_has. Six cases of this tree's corpus run --json and pin their keys with stdout_has
-      instead (guide.yaml's five guide and go --json cases, status.yaml's go --json), so no later
-      release holds itos to those keys; a test commit pinning them with json: puts them under the
-      contract decision 35 names. work.yaml's "with no registry where itos looks" runs work list
-      --json and pins a plain stderr line, no JSON on stdout, which a script reading --json cannot
-      use either.
-
-      Backlog review of 2026-10-10, batch 2: folds in p3-corpus-asserts-json: a case about behaviour
-      that asserts only through text gives previous-release nothing but its exit code since T-100;
-      move such cases to json:, exit codes and files_after as they are touched.
     refs: [tools/itos/conformance/guide.yaml, tools/itos/conformance/status.yaml]
     tags: [tests]
 
@@ -5934,35 +5836,18 @@ items:
     title: work done's code proof judges only the item's own commits, not every commit since its base
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: []
     kind: idea
-    why: >
-      Found specifying slice-100 (2026-10-08): the proof runs itos-cc mutation check --since {base},
-      which judges git diff {base}...HEAD, so a commit of another item that lands between the item's
-      first commit and work done is judged as the item's too, and the item cannot close for code it
-      never touched. Harmless while work is sequential (only registry commits land between); it
-      matters once items run in parallel (p1-pr-mode). Narrow the check to the item's commits, by
-      passing the files they changed as paths or by a provider option.
-
-      Dissolved by slice-106 (issue #28, the user's call 2026-10-08): the proof moves into CI,
-      judged over the range since the last green run, and work done no longer runs it, so no item's
-      own range is ever judged. Drop this once slice-106 lands.
     tags: [proof]
 
   - id: p1-proof-json-outcome
     title: work done --json says whether the code proof ran, and on which base
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: []
     kind: idea
-    why: >
-      Found building slice-100 (2026-10-08): work done's --json gives ci and run but nothing of the
-      code proof, so a script or a coordinator reading it cannot tell a close the proof judged from
-      one it never ran on (no proof.code, or commits that touch no code); only the close commit's
-      body and stderr say so. A key such as proof: passed|not-run with its base, added, would say
-      it.
     tags: [proof]
 
   - id: p1-proof-check-timeout
@@ -6268,36 +6153,9 @@ items:
     title: Reuse valid targeted coverage without losing mutation test selection
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: []
     kind: idea
-    why: >
-      The user asked on 2026-10-08 to keep coverage and mutation testing limited to changed code,
-      after duplicate slice-102 mutation jobs repeated coverage discovery. Reuse coverage only when
-      its source, test, support and tool/config inputs still match; otherwise collect only the
-      relevant packages and scenarios. Existing unchanged tests may reach changed functions and must
-      stay eligible. Pinned itos-cc v0.5.0 limits mutation with --since and explicit paths, but
-      --use-existing-coverage and custom coverage flags disable automatic mutation.tests listed-test
-      selection. Investigate the smallest provider capability that reuses or refreshes a
-      per-scenario test map without a full feature discovery run or silently dropping integration
-      tests. This is separate from slice-102 and T-129. No --all-tests, full mutation sweep, stale
-      reports or duplicate jobs; stop and explain an unavoidable full coverage refresh before
-      running it.
-
-      2026-10-14 discussion: the user asked whether independent coverage already runs in
-      pre-commit/pre-push and whether the sampled mutation gate is worth its cost. Current hooks run
-      affected ordinary unit tests; changed-line coverage is bundled into the separate local proof
-      and CI mutation command. CI run 38299320397 spent about 86 seconds on that command: about 10
-      seconds instrumented units, 22 seconds full feature coverage, 9 seconds clean baseline, 5
-      seconds the actual mutant, and about 40 seconds other preparation, including an unlabelled
-      33-second gap that has not been attributed. A single killed mutant gives limited sampled
-      assurance. Proposed, not yet approved for implementation: a standalone changed-executable-line
-      coverage gate on pushes and mutation trials nightly. Go coverprofile and instrumented
-      CLI/GOCOVERDIR can collect and merge unit plus feature coverage without mutation, but a
-      diff-aware enforcement command is still needed; deleting the mutation command now would also
-      delete its changed-line coverage requirement. Measure the preparation cost before promising
-      savings. Coordinate with p1-agent-test-runs-once; preserve relevant integration coverage and
-      the independent CI verdict.
     refs: [itos-cc.yaml, tools/bin/itos-cc-tests, docs/ORCHESTRATING.md]
     tags: [proof]
 
@@ -6652,21 +6510,9 @@ items:
     title: The YAML itos writes passes this repository's formatter
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: []
     kind: idea
-    why: >
-      CI run 38010025480 went red at vp check on two files itos wrote and committed alone:
-      tasks/asks.yaml, q-28's question double-quoted though it holds double quotes (the formatter
-      single-quotes it), and tasks/work-items.yaml, slice-108's refs as one line past the width
-      (work edit --refs). The pre-commit hook ran but lint-staged found no staged files, so neither
-      was formatted in its commit; 612acdbf fixed them by hand. Decided 2026-10-04
-      (p1-written-files-format-command): what itos writes is formatter-stable under default settings
-      and a formatting hook styles it in the same commit; neither held here.
-
-      Backlog review of 2026-10-10, batch 2: folds in p1-written-files-format-command: the escape
-      hatch, built only when a consumer needs it, is an optional config command itos runs on the
-      files it wrote, {files} filled in, before committing them.
     refs: [internal/cli/workwrite.go]
     tags: [work]
 
@@ -7207,24 +7053,9 @@ items:
     title: ITOS_CONFIG resolves the ledger, the registry and the smoke sets beside the config it names
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: []
     kind: idea
-    why: >
-      Issue #31 (go-template-itos, 7.0.0-rc.1): ITOS_CONFIG reads the config file from wherever it
-      points but resolves the data paths against the working tree, so a config outside it seems to
-      work and then fails on the first data path (FAIL …/data/itos.yaml: the ledger's folder tasks
-      does not exist), with --root and ITOS_ROOT alike. The half-working middle is the worst choice:
-      resolve data beside the config, as the stealth config in <git common dir>/itos/ already does,
-      or refuse a config outside the working tree and say so. The issue's other half, one config
-      planning branches with different contents, is to be discussed with the person before it
-      becomes an item (p1-plan-per-branch); go-template-itos's per-branch-ledgers idea would be its
-      first consumer.
-
-      q-79 is specified as slice-160, ID-CONFIG-61..68: external runtime project configs are refused
-      before partial resolution or pinned execution; private stealth configs, in-tree alternatives
-      and external policy-import documents remain supported. Shared external metadata and per-branch
-      plan selection remain separate, undecided work, not claimed solved by the refusal.
     tags: [config]
 
   - id: T-141
@@ -7798,14 +7629,9 @@ items:
     title: A corpus case can say what the output must not hold
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: [T-144]
     kind: idea
-    why: >
-      Found by slice-119 (2026-10-10): the corpus runner has stdout_has but no stdout_lacks, so
-      guide commit leaving the config's rules out of a repository without a config is pinned only by
-      GUIDE-17 and a unit test, not by the corpus a consumer's suite reruns. After T-144, so it is
-      built once, in Go.
     refs: [tools/itos/conformance]
     tags: [tests]
 
@@ -7870,20 +7696,9 @@ items:
     title: This repository's AGENTS.md keeps only what is its own, beside the two-line block
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: [slice-120]
     kind: idea
-    why: >
-      The user's call (2026-10-11): after slice-120, a docs task cuts AGENTS.md's handwritten text
-      (about 20 KB) to what holds only here: what itos guide work, commit and push now say goes, the
-      repository-specific implementer rules (vp staged and the pre-commit hook, the push proof, the
-      commit split, the --no-wait handoff of q-41) stay until p1-agent-rules-as-data can hold them,
-      and vp's generated block goes with the move off Node. In the v8 plan.
-
-      slice-120 (2026-10-11) left AGENTS.md at 20294 bytes with its handwritten text now partly
-      wrong: it still says the block at the end of the file lists the gates, generated from the
-      config. Lower doc-budget's 28000-byte cap on AGENTS.md in the same work, to what the trimmed
-      file needs.
     refs: [AGENTS.md]
     tags: [docs]
 
@@ -7947,17 +7762,9 @@ items:
     title: The local push proof costs seconds, not the twelve minutes slice-124's took
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: []
     kind: idea
-    why: >
-      Found by slice-124 (2026-10-11): the one local push proof q-55 allows took about 12 minutes,
-      mostly its coverage run of the listed features plus a 187 s internal/cli baseline, past the
-      harness's foreground limit; every slice that changes Go pays it, on a machine other sessions
-      share. q-55 allowed the local run to save a red CI round trip. Weigh: itos-cc reusing coverage
-      the pre-push unit tests already measured, narrowing the coverage run to the scenarios that
-      reach the changed lines, or leaving the proof to CI alone now that line scope makes surprises
-      rare.
     refs: [itos.yaml, AGENTS.md]
     tags: [proof]
 
@@ -9134,25 +8941,9 @@ items:
     title: The commit-msg hook runs a named task's checks against what the commit holds, not the working tree
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: [bug-112]
     kind: idea
-    why: >
-      #60 (2026-10-12), on 8.1.0: the hook reads the named tasks and their status from the index but
-      runs their checks in the working tree, so an untracked or unstaged file passes a done task's
-      check that the commit itself fails (test -f gen/out.txt passed with gen/ untracked, and the
-      commit had no gen/). CI catches it later, as it runs the checks on a clean checkout of the
-      pushed commit, so this is late feedback, not a hole into main. Options: run the checks in a
-      scratch copy of the index (git checkout-index --prefix), or at least say when the working tree
-      differs from the index that the verdict may not hold. Seen in practice when a session's first
-      commit of a task passed only because uncommitted files were on disk.
-
-      q-77 selected staged-snapshot execution. Concrete implementation and scenarios are bug-112;
-      this original report item remains linked for explicit absorption after that fix lands, rather
-      than being dropped. No warning-only workaround, Git worktree or stash-based source-checkout
-      swap is authorized. Task-check selection/cost/timeout/verdict policy remains current; the fix
-      isolates relative filesystem inputs and Git context for execution, including a stable captured
-      index and private metadata.
     tags: [hooks]
     refs: [features/hook-task-snapshot.feature, internal/cli/hook.go, internal/check/captured.go, internal/shell/shell.go]
 
@@ -10773,15 +10564,9 @@ items:
     title: A refused work add still consumes the minted ID
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: []
     kind: idea
-    why: >
-      2026-10-17: work add --kind bug without --phase was refused ('which phase bug-115 is in is not
-      said'), and the retry with --phase minted bug-116; no bug-115 exists anywhere. The help says a
-      refusal writes nothing, but the shared counter moved. Mint after every check passes, or give
-      the ID back on refusal. Also: a bug could take its phase from its refs' slice or default to
-      the active phase, so the first try need not fail.
     tags: [work]
 
   - id: T-189
@@ -12968,52 +12753,9 @@ items:
     title: Trial the user's reviewer MCP server for cache-friendly plan and spec reviews, diffs appended
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: []
     kind: idea
-    why: >
-      The user, 2026-10-23: a reviewer MCP server (their PoC) holds a review session server-side:
-      the plan or spec is its fixed prefix and each revision is appended as a diff, so the
-      read-cache rules are deterministic and no agent can break them by re-pasting or reordering. In
-      the user's tests cache reads hit constantly. Open: the gap between real review rounds is an
-      implementing agent's run (20 to 60 minutes), longer than most provider cache lifetimes, so
-      real hit rates may be lower; many diffs in a row make the reviewer rebuild the document in its
-      head, so it needs a rule to restart from the current document past some share of the base; a
-      reviewer that has seen its own earlier verdicts loses fresh eyes, so the final adversarial
-      pass may still want a fresh one. Adopt the PoC here once the user locates it, validate it
-      works (the coordinator), then compare on real spec reviews (T-285, T-286 and later): the MCP
-      reviewer, a resumed reviewer subagent fed only git diff <last-reviewed>..HEAD, and a fresh
-      reviewer each round, measuring cached share of input tokens, cost per review, real findings
-      and wall time (p1-work-spend). If it stays, reviews are keyed by item and last-reviewed
-      commit, diffs taken from git. Shares the review agent with p1-cheap-coordinator-trial.
-
-      2026-10-23, after adopting it: the reviewer runs as a CLI (review_cli.py in the PoC repo, run
-      in the background with a completion notification), not an MCP server: an MCP call blocks the
-      caller's turn for minutes and MCP cannot notify, and every agent session pays its tool
-      descriptions in context. The test-only parent opencode.json registration was removed. Fixes
-      made while validating: content blocks were dropped by the message-id dedupe (the UNPARSEABLE
-      cause), setting_sources [] (the person's rtk hook rewrote go test past the allow rules),
-      permission_mode dontAsk (acceptEdits let sed -i and git checkout through), per-call
-      --plan-file and --diff-file. The cached opening holds across fresh sessions (step 1 create 0).
-      First real results: T-286's spec review found its premise wrong (task dropped); T-285's diff
-      review approved with notes; the evidence-records design went through two rounds.
-
-      2026-10-23 assessment requested by the user: retain semantic review, measure useful findings
-      separately from round count. High-value examples were slice-164 scenarios that passed before
-      work; malformed/duplicate summary handling that could alter real outcomes; guide fixtures
-      whose config rewrite discarded deps; bug-112 fakes that scrubbed footer variables before the
-      production path, obsolete tests-only helpers and PATH precedence masking; and T-288s
-      symlink-resolved parent fixture. Low-value blockers included choosing between equally suitable
-      test files/helper shapes, exact noncontract human phrasing, or reopening an entire artifact
-      for one already-decided header correction. T-289 correctly treated constructor naming as
-      nonblocking. Separate overrides from raw launcher export early; the combined specification
-      caused oversized reviews. Budget-control and complete-prior-finding problems are tracked
-      independently in p1-reviewer-budget-controls and p1-reviewer-prior-findings; review
-      materiality/protocol in p1-review-materiality. These are observations and improvement
-      proposals, not permission to omit acceptance contracts or real newly found defects.
-
-      2026-10-23, the user keeps the reviewer on its CLI for now: the MCP server had trouble with
-      asynchronous responses and long-running reviews.
     tags: [agents]
     deferred: >
       The user ended the Sol coordinator trial and keeps the reviewer on its CLI for now; both may
@@ -13593,32 +13335,18 @@ items:
     title: List internal/evidence in docs/ARCHITECTURE.md's map
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: []
     kind: idea
-    why: >
-      Slice-169 added internal/evidence (the key, the store and the engine behind evidence records),
-      and the map's Where to look names running checks as internal/check alone. docs/ARCHITECTURE.md
-      is 11998 bytes under a cap of 12000 (tools/bin/doc-budget/caps.json), so the line could not
-      grow: trim the doc by the 30 bytes the line needs, or raise the cap in a ci commit that says
-      why.
     tags: [evidence, v8]
 
   - id: p1-evidence-slice-import
     title: Let a slice import internal/evidence, or keep it behind check's aliases
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: []
     kind: idea
-    why: >
-      A slice may import only the domain packages depguard's slice-packages rule and
-      tools/testdata/architecture's domains list name, and neither names internal/evidence.
-      Slice-169 gave the task slice its types through aliases in internal/check (check.Evidence,
-      check.EvidenceInfo) instead of loosening the rule without a fixture. Decide: keep the aliases,
-      or extend the rule and the fixtures' domains with internal/evidence in a build commit, which
-      would let a slice's tests build an engine over fakes (the task slice's tests cannot, so its
-      JSON for an opted-in check is judged by the scenarios alone).
     tags: [evidence, v8]
   - id: p1-evidence-run-io-and-reasons
     title: Opted-in checks keep a verbose check's stdin and stderr, and the evidence reasons are one documented list
