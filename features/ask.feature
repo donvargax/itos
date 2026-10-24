@@ -261,3 +261,58 @@ Feature: itos decision, the decisions waiting on the person a repository's work 
     Then itos exits with code 2
     And its output says "itos decision"
     And its output says "itos followup"
+
+  # Bug 125 (found 2026-10-05, p1-supersede-standing-only): decision record
+  # --supersedes <n> set record n's status to "superseded by" the new record
+  # even when n was already superseded, so the earlier successor's link was
+  # overwritten and the chain lost it. Only a standing record, one whose
+  # status does not start with "superseded" in any case (as the index reads
+  # it), may be superseded; a deprecated or rejected one is not this bug's.
+  # Superseding one already superseded is refused before anything is
+  # written, exit 1 as decision record's other refusals: the message names
+  # the record that supersedes it, as its status does, and the fix says to
+  # supersede that one instead, --supersedes <m> where the status names
+  # ADR-<m>. That is the direct successor, not the chain's end: when it is
+  # superseded too, its own refusal names the next, so no chain is walked.
+  # A cycle needs no check of its own: the new record is always the next
+  # number, which nothing supersedes and which supersedes nothing yet.
+  @ID-ASK-41 @bug-125 @wip
+  Scenario: decision record refuses to supersede a record already superseded, writing nothing
+    Given itos has run the command line "decision add 'Labels or Projects?'"
+    And itos has run the command line "decision answer q-1 'Labels.'"
+    And itos has run the command line "decision record q-1 --title 'Triage issues with labels'"
+    And itos has run the command line "decision add 'Labels still?'"
+    And itos has run the command line "decision answer q-2 'Projects now.'"
+    And itos has run the command line "decision record q-2 --title 'Triage issues with Projects' --supersedes 1"
+    And itos has run the command line "decision add 'Projects still?'"
+    And itos has run the command line "decision answer q-3 'A board now.'"
+    When itos runs the command line "decision record q-3 --title 'Triage issues on a board' --supersedes 1"
+    Then itos exits with code 1
+    And its output says "superseded by ADR-0002"
+    And its output says "--supersedes 2"
+    And the file "docs/decisions/0001-triage-issues-with-labels.md" has the line "status: superseded by ADR-0002"
+    And the file "docs/decisions/0003-triage-issues-on-a-board.md" does not exist
+    And the last commit's header is "docs: answer q-3"
+    And git reports no change to the working tree or the index
+
+  # The refusal must not catch a standing record that itself supersedes
+  # another: the second link of a chain still supersedes, and the first
+  # link is kept.
+  @ID-ASK-42 @bug-125 @guard @wip
+  Scenario: decision record still supersedes a standing record, the second link of a chain included
+    Given itos has run the command line "decision add 'Labels or Projects?'"
+    And itos has run the command line "decision answer q-1 'Labels.'"
+    And itos has run the command line "decision record q-1 --title 'Triage issues with labels'"
+    And itos has run the command line "decision add 'Labels still?'"
+    And itos has run the command line "decision answer q-2 'Projects now.'"
+    And itos has run the command line "decision record q-2 --title 'Triage issues with Projects' --supersedes 1"
+    And itos has run the command line "decision add 'Projects still?'"
+    And itos has run the command line "decision answer q-3 'A board now.'"
+    When itos runs the command line "decision record q-3 --title 'Triage issues on a board' --supersedes 2"
+    Then itos exits with code 0
+    And the file "docs/decisions/0001-triage-issues-with-labels.md" has the line "status: superseded by ADR-0002"
+    And the file "docs/decisions/0002-triage-issues-with-projects.md" has the line "status: superseded by ADR-0003"
+    And the file "docs/decisions/0003-triage-issues-on-a-board.md" has the line "Supersedes ADR-0002."
+    And the file "docs/decisions/README.md" says "Triage issues on a board"
+    And the file "docs/decisions/README.md" does not say "Triage issues with Projects"
+    And the file "docs/decisions/README.md" does not say "Triage issues with labels"
