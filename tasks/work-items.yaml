@@ -13607,3 +13607,17 @@ items:
       drop's --why starting with a word and a colon is read as a footer and refused, and the
       refusal's fix points at the hook, not at the --why. The fourth independent report of this item
       (2026-10-05, 10-07, 10-10, #92).
+
+  - id: bug-133
+    title: work take says when it records no owner, and its help names the no-people case
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: bug
+    why: >
+      Was p1-take-without-people-says-so. #88 (8.5.0): with no people file and no work.identity,
+      work take succeeds with owner null (bug-46's design: every item is the session's), yet its
+      help promises exit 3 for nobody, and work show then lists an item in progress as owner nobody.
+      The help names the no-people case beside stealth, the take's output says it recorded no owner,
+      and config check could warn that takes will record none.
