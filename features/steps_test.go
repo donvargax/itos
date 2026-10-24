@@ -82,58 +82,59 @@ type world struct {
 
 // What a scenario sets in the scratch repository's itos.yaml.
 type scratchConfig struct {
-	headerLintCommand string          // the header lint delegated to this command
-	headerLintBuiltin bool            // the header lint itos's own (use: builtin)
-	since             string          // commits.since
-	rangeCheck        bool            // a range check that records where its range starts
-	moves             *moves          // the kind's range check is the built-in moves rule
-	adapter           *commandAdapter // the kind's adapter is a command (moves_command_test.go)
-	commandKind       *commandKind    // a second kind of tests, behind a command adapter
-	recordingShell    bool            // shell is the recording shell
-	ciSteps           []string        // ci.steps
-	ciStepsYAML       []string        // ci.steps as YAML lines, in place of ciSteps (evidence_test.go)
-	nightlySteps      []string        // ci.nightly.steps
-	ciWatchOnly       string          // the workflow of a github ci.watch, the ci section's one key, when set
-	ciTests           string          // a kind of named tests, with run and recognize templates, run by the last of ci.steps
-	runSelect         string          // the scenario kind's run.select, when ciTests gives it none
-	smokeRuns         []string        // commands the kind of ciTests recognizes as its smoke run
-	stopAtFirst       *bool           // ci.stop_at_first_failure
-	keepStepOrder     *bool           // ci.keep_step_order
-	costStatic        []string        // ci.cost.static
-	keepWrittenOrder  *bool           // ci.cost.keep_written_order
-	covers            []cover         // ci.covers
-	nightlyOnly       []string        // ci.nightly_only
-	registry          string          // work.registry
-	taskChecks        *bool           // hooks.commit_msg.task_checks
-	checkTimeout      int             // hooks.commit_msg.check_timeout, when above 0
-	statuses          []string        // work.statuses
-	workTags          []string        // work.tags, when set
-	groupsKey         string          // work.groups_key
-	noPeople          bool            // the config names no people file (no work.people)
-	noWork            bool            // the config has no work section, only work's defaults
-	smoke             bool            // tests.scenario has a smoke set, features/smoke.yaml
-	scenarios         bool            // the config has the kind tests.scenario, reading features/
-	scenarioRoot      string          // tests.scenario.root, features when empty
-	smokeEveryFile    *bool           // tests.scenario.smoke.every_file
-	noTagPrefix       bool            // the kind written without tag_prefix
-	hooksBin          string          // hooks.bin
-	prePushRecord     bool            // hooks.pre_push's commands record that they ran
-	prePushCommit     string          // hooks.pre_push's command, one that commits in the clone
-	watch             *watchConfig    // ci.watch
-	rangeGitHub       string          // ci.range.github's workflow, with ci.range's provider github, when set
-	ledgerFooter      string          // the key of the footer whose source is the ledger; Task when empty
-	textFooter        *textFooter     // a footer of free text
-	itemFooter        bool            // an Item footer of registry items, in place of the ledger footer for test, docs and chore
-	featMustTouch     string          // commits.scopes.feat.must_touch, one glob, when set
-	choreNeverExcept  *[2]string      // commits.scopes.chore's never and except, one glob each, when set
-	ledgerFiles       string          // ledger.files; tasks/phase-{group}.yaml when empty
-	noLedgerID        bool            // the config writes no ledger.id
-	prosePaths        string          // ci.prose.paths, one glob
-	proseSteps        string          // ci.prose.steps, one command
-	pin               *[2]string      // pin.version and pin.checksums
-	schemaLine        string          // the config's first line, a yaml-language-server schema line, when set
-	comments          []string        // comment lines written after the pin's line
-	proof             *proofConfig    // proof.code (proof_test.go)
+	headerLintCommand string            // the header lint delegated to this command
+	headerLintBuiltin bool              // the header lint itos's own (use: builtin)
+	since             string            // commits.since
+	rangeCheck        bool              // a range check that records where its range starts
+	moves             *moves            // the kind's range check is the built-in moves rule
+	adapter           *commandAdapter   // the kind's adapter is a command (moves_command_test.go)
+	commandKind       *commandKind      // a second kind of tests, behind a command adapter
+	kindIDs           map[string]string // tests.<kind>.id by kind, when a scenario sets one
+	recordingShell    bool              // shell is the recording shell
+	ciSteps           []string          // ci.steps
+	ciStepsYAML       []string          // ci.steps as YAML lines, in place of ciSteps (evidence_test.go)
+	nightlySteps      []string          // ci.nightly.steps
+	ciWatchOnly       string            // the workflow of a github ci.watch, the ci section's one key, when set
+	ciTests           string            // a kind of named tests, with run and recognize templates, run by the last of ci.steps
+	runSelect         string            // the scenario kind's run.select, when ciTests gives it none
+	smokeRuns         []string          // commands the kind of ciTests recognizes as its smoke run
+	stopAtFirst       *bool             // ci.stop_at_first_failure
+	keepStepOrder     *bool             // ci.keep_step_order
+	costStatic        []string          // ci.cost.static
+	keepWrittenOrder  *bool             // ci.cost.keep_written_order
+	covers            []cover           // ci.covers
+	nightlyOnly       []string          // ci.nightly_only
+	registry          string            // work.registry
+	taskChecks        *bool             // hooks.commit_msg.task_checks
+	checkTimeout      int               // hooks.commit_msg.check_timeout, when above 0
+	statuses          []string          // work.statuses
+	workTags          []string          // work.tags, when set
+	groupsKey         string            // work.groups_key
+	noPeople          bool              // the config names no people file (no work.people)
+	noWork            bool              // the config has no work section, only work's defaults
+	smoke             bool              // tests.scenario has a smoke set, features/smoke.yaml
+	scenarios         bool              // the config has the kind tests.scenario, reading features/
+	scenarioRoot      string            // tests.scenario.root, features when empty
+	smokeEveryFile    *bool             // tests.scenario.smoke.every_file
+	noTagPrefix       bool              // the kind written without tag_prefix
+	hooksBin          string            // hooks.bin
+	prePushRecord     bool              // hooks.pre_push's commands record that they ran
+	prePushCommit     string            // hooks.pre_push's command, one that commits in the clone
+	watch             *watchConfig      // ci.watch
+	rangeGitHub       string            // ci.range.github's workflow, with ci.range's provider github, when set
+	ledgerFooter      string            // the key of the footer whose source is the ledger; Task when empty
+	textFooter        *textFooter       // a footer of free text
+	itemFooter        bool              // an Item footer of registry items, in place of the ledger footer for test, docs and chore
+	featMustTouch     string            // commits.scopes.feat.must_touch, one glob, when set
+	choreNeverExcept  *[2]string        // commits.scopes.chore's never and except, one glob each, when set
+	ledgerFiles       string            // ledger.files; tasks/phase-{group}.yaml when empty
+	noLedgerID        bool              // the config writes no ledger.id
+	prosePaths        string            // ci.prose.paths, one glob
+	proseSteps        string            // ci.prose.steps, one command
+	pin               *[2]string        // pin.version and pin.checksums
+	schemaLine        string            // the config's first line, a yaml-language-server schema line, when set
+	comments          []string          // comment lines written after the pin's line
+	proof             *proofConfig      // proof.code (proof_test.go)
 	settings          []setting
 	extraYAML         []string // top-level YAML a step adds after every other key (pushmode_test.go)
 }
@@ -432,6 +433,7 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	sc.Step(`^the config's scenario kind has the range check "([^"]*)", builtin "([^"]*)", except_types "([^"]*)"$`,
 		w.builtinRangeCheck)
 	sc.Step(`^the config has the test kind "([^"]*)" with a command adapter and the wip_tag "([^"]*)"$`, w.commandKindWipTag)
+	sc.Step(`^the tests kind "([^"]*)" has the id pattern "([^"]*)"$`, w.kindHasIDPattern)
 
 	initializeReleaseSteps(sc, w)
 	initializeExtensionSteps(sc, w)
@@ -963,8 +965,8 @@ func (w *world) writeConfig() error {
 		fmt.Fprintf(&b, `tests:
   %s:
     root: %q
-    id: "ID-[A-Z]+-\\d+"
-`, kind, root)
+    id: %s
+`, kind, root, w.kindID(kind, `"ID-[A-Z]+-\\d+"`))
 		if !w.config.noTagPrefix {
 			b.WriteString("    tag_prefix: \"@\"\n")
 		}
@@ -1033,6 +1035,9 @@ func (w *world) writeConfig() error {
 			at = fmt.Sprintf(", supports_at: %t", *k.supportsAt)
 		}
 		fmt.Fprintf(&b, "  %s:\n    adapter: { command: %q%s }\n    wip_tag: %q\n", k.name, command, at, k.wipTag)
+		if id, ok := w.config.kindIDs[k.name]; ok {
+			fmt.Fprintf(&b, "    id: %q\n", id)
+		}
 	}
 	b.WriteString(w.ciSection())
 	if !w.config.noWork {
@@ -1993,6 +1998,24 @@ func (w *world) builtinRangeCheck(name, builtin, types string) error {
 func (w *world) commandKindWipTag(name, tag string) error {
 	w.config.commandKind = &commandKind{name: name, wipTag: tag}
 	return w.writeConfig()
+}
+
+// A kind's id pattern, kept apart from the settings so that every rewrite of
+// the config writes it, and a second step replaces the first.
+func (w *world) kindHasIDPattern(kind, pattern string) error {
+	if w.config.kindIDs == nil {
+		w.config.kindIDs = map[string]string{}
+	}
+	w.config.kindIDs[kind] = pattern
+	return w.writeConfig()
+}
+
+// The YAML of the kind's id: the pattern a scenario set, else the fallback.
+func (w *world) kindID(kind, fallback string) string {
+	if id, ok := w.config.kindIDs[kind]; ok {
+		return fmt.Sprintf("%q", id)
+	}
+	return fallback
 }
 
 func (w *world) movesAllowRename(id, name string) error {
