@@ -10596,7 +10596,7 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: []
+    depends_on: [p1-typed-items]
     kind: idea
     why: >
       The refactor inventory's agent (2026-10-21) needed each startable item's tags and refs to see
@@ -10607,7 +10607,7 @@ items:
       2026-10-23 grooming, merged in p1-show-item-tags (work show and work list leave tags out, seen
       only through --json or --tag) and p1-show-queue-place (work show does not say an item's place
       in the queue): chosen fields cover both, in work list and work show.
-    tags: [work, v8]
+    tags: [work, v9]
 
   - id: T-194
     title: "The gates of itos-cc's layout: pinned golangci-lint with depguard, architecture-check and its fixtures"
