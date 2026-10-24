@@ -2305,7 +2305,7 @@ items:
     phase: 3
     owner: null
     status: todo
-    depends_on: [T-072]
+    depends_on: [T-072, p3-guard-replacement]
     kind: idea
     why: >
       T-072 left it, seen in the guard's unit tests and in no scenario: the Claude Code guard reads
@@ -2315,7 +2315,7 @@ items:
       git push into an itos repository named that way is not denied. Reading such a folder as the
       sh would hand it to git (a drive from /<letter>/, a rooted path on the current drive) is a
       fix with its scenario, which only the windows platform job can run.
-    tags: [guard, v8]
+    tags: [guard, v9]
 
   - id: p3-role-protocol
     title: One adapter protocol for every role a command fills, the test kinds' own
