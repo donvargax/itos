@@ -12,7 +12,7 @@ import (
 
 	"github.com/donvargax/itos/v8/internal/check"
 	"github.com/donvargax/itos/v8/internal/config"
-	"github.com/donvargax/itos/v8/internal/evidence"
+	"github.com/donvargax/itos/v8/internal/engine/evidence"
 	"github.com/donvargax/itos/v8/internal/ledger"
 	"github.com/donvargax/itos/v8/internal/plan"
 	privport "github.com/donvargax/itos/v8/internal/store/private/port"
@@ -254,8 +254,8 @@ func TestAStepThatOptsInIsLookedUp(t *testing.T) {
 	command := "echo ran >> " + count + "; exit 5"
 	opted := plan.Step{Command: command, Evidence: &config.Evidence{}}
 	plain := plan.Step{Command: "exit 0"}
-	engine := func(store string) *check.Evidence {
-		return &check.Evidence{Cfg: load(t), Git: fakeGit{unstaged: []string{"a"}}, Store: fakeStore{store}, Binding: evidence.ThisBinary(), Mode: "ci", CIEnv: map[string]string{}}
+	engine := func(store string) *evidence.Engine {
+		return &evidence.Engine{Cfg: load(t), Git: fakeGit{unstaged: []string{"a"}}, Store: fakeStore{store}, Binding: evidence.ThisBinary(), Mode: "ci", CIEnv: map[string]string{}}
 	}
 	store := t.TempDir()
 	p := &plan.Plan{Order: []plan.Item{{Step: &plain}, {Step: &opted}}}

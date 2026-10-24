@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/donvargax/itos/v8/internal/config"
-	"github.com/donvargax/itos/v8/internal/evidence"
+	"github.com/donvargax/itos/v8/internal/engine/evidence"
 	"github.com/donvargax/itos/v8/internal/ledger"
 	"github.com/donvargax/itos/v8/internal/shell"
 	"github.com/donvargax/itos/v8/internal/value"

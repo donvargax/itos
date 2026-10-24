@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/donvargax/itos/v8/internal/evidence"
+	"github.com/donvargax/itos/v8/internal/engine/evidence"
 )
 
 // The engine of a hand-run itos task names --working-tree when it leaves
@@ -17,17 +17,17 @@ func TestNewEvidenceForTaskAndCI(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	task := newEvidence(cfg, "task")
+	task := newEvidence(cfg, "task", "linux")
 	if task.CIEnv != nil || task.Mode != "task" || !strings.Contains(task.Hint, "--working-tree") || task.Cfg != cfg || task.Binding != evidence.ThisBinary() {
 		t.Errorf("task: %+v", task)
 	}
-	ci := newEvidence(cfg, "ci")
+	ci := newEvidence(cfg, "ci", "linux")
 	if ci.CIEnv["A"] != "1" || ci.Mode != "ci" || ci.Hint != "" {
 		t.Errorf("ci: %+v", ci)
 	}
 	bare := *cfg
 	bare.CI.Env = nil
-	if got := newEvidence(&bare, "ci"); got.CIEnv == nil || len(got.CIEnv) != 0 {
+	if got := newEvidence(&bare, "ci", "linux"); got.CIEnv == nil || len(got.CIEnv) != 0 {
 		t.Errorf("ci with no ci.env: %#v", got.CIEnv)
 	}
 }
@@ -45,7 +45,7 @@ func TestEvidenceRunsOnTheIndexAndRecordsInTheCommonDir(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	e := newEvidence(cfg, "task")
+	e := newEvidence(cfg, "task", "linux")
 	var log strings.Builder
 	req := evidence.Request{Command: "cat input; test ! -e untracked", Log: &log}
 	first := e.Run(t.Context(), req)
@@ -59,7 +59,7 @@ func TestEvidenceRunsOnTheIndexAndRecordsInTheCommonDir(t *testing.T) {
 	if err != nil || len(records) != 1 {
 		t.Errorf("records %v, %v", records, err)
 	}
-	again := newEvidence(cfg, "task").Run(t.Context(), req)
+	again := newEvidence(cfg, "task", "linux").Run(t.Context(), req)
 	if !again.Info.Hit || again.Info.Key != first.Info.Key {
 		t.Errorf("again: %+v", again)
 	}

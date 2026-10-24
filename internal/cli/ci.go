@@ -19,14 +19,17 @@ func runCi(args []string, o Out) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	return c.Run(context.Background(), o.Stdout, o.Stderr, cislice.NewHandler(ciPorts{}))
+	return c.Run(context.Background(), o.Stdout, o.Stderr, cislice.NewHandler(ciPorts{goos: o.OS}))
 }
 
 // ciPorts are the ci slice's ports over the real code: git, the stealth
 // check of the config's path, the config's load, the process's
 // environment, internal/ci's run and ci.watch's provider as push's end
 // asks it.
-type ciPorts struct{ vcs.Git }
+type ciPorts struct {
+	vcs.Git
+	goos string
+}
 
 // Stealth is config.IsStealth of configPath().
 func (ciPorts) Stealth(context.Context) bool { return config.IsStealth(vcs.Git{}, configPath()) }
@@ -38,8 +41,8 @@ func (ciPorts) Config(context.Context) (*config.Loaded, error) { return loadConf
 func (ciPorts) Env(_ context.Context, name string) string { return os.Getenv(name) }
 
 // RunPlan is ci.Run, its checks and steps that opt in to evidence records looked up through newEvidence.
-func (ciPorts) RunPlan(_ context.Context, cfg *config.Loaded, p *plan.Plan, o ci.Options) (int, error) {
-	o.Evidence = newEvidence(cfg, "ci")
+func (c ciPorts) RunPlan(_ context.Context, cfg *config.Loaded, p *plan.Plan, o ci.Options) (int, error) {
+	o.Evidence = newEvidence(cfg, "ci", c.goos)
 	return ci.Run(cfg, p, o)
 }
 

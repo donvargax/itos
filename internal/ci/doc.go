@@ -32,7 +32,7 @@
 //
 // A step that is a mapping with run: and an evidence declaration, and a task
 // check with one, are looked up by the index tree through Options.Evidence
-// (internal/evidence) and run, on a miss, in a checkout of it; --json then
+// (internal/engine/evidence) and run, on a miss, in a checkout of it; --json then
 // lists the evidence of each command looked up, in run order, and the
 // tracked paths the index leaves out (unstaged). Without an engine, or
 // without a declaration, they run as before.

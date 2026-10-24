@@ -10,7 +10,7 @@
 // runs live for the invocation alone, and CI's driver keeps none, so a push
 // runs each named task's checks as its own.
 //
-// A Runner given an Evidence engine (internal/evidence) looks a check that
+// A Runner given an evidence engine (internal/engine/evidence) looks a check that
 // opts in up by the index tree and runs a miss in a checkout of it, recording
 // the result; RunInfo gives the check's evidence beside its Result, and a
 // later check that reads the exit status of a run the invocation already made

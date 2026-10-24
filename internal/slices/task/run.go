@@ -6,6 +6,7 @@ import (
 	"io"
 
 	"github.com/donvargax/itos/v8/internal/check"
+	"github.com/donvargax/itos/v8/internal/engine/evidence"
 	"github.com/donvargax/itos/v8/internal/out"
 	"github.com/donvargax/itos/v8/internal/value"
 )
@@ -20,10 +21,10 @@ const (
 // checkJSON and taskJSON are a task's object under --json, the keys in
 // cli.ts's order.
 type checkJSON struct {
-	Command  string              `json:"command"`
-	Fails    bool                `json:"fails,omitempty"`
-	Result   check.Result        `json:"result"`
-	Evidence *check.EvidenceInfo `json:"evidence,omitempty"`
+	Command  string         `json:"command"`
+	Fails    bool           `json:"fails,omitempty"`
+	Result   check.Result   `json:"result"`
+	Evidence *evidence.Info `json:"evidence,omitempty"`
 }
 
 type taskJSON struct {

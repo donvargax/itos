@@ -2,11 +2,9 @@ package cli
 
 import (
 	"context"
-	"runtime"
 
-	"github.com/donvargax/itos/v8/internal/check"
 	"github.com/donvargax/itos/v8/internal/config"
-	"github.com/donvargax/itos/v8/internal/evidence"
+	"github.com/donvargax/itos/v8/internal/engine/evidence"
 	private "github.com/donvargax/itos/v8/internal/store/private/adapter"
 	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
 )
@@ -24,12 +22,13 @@ func (g evidenceGit) Snapshot(ctx context.Context, tree string) (evidence.Checko
 // newEvidence is the engine for one invocation of a command that runs
 // checks by hand: itos task (mode task), whose note on unstaged changes
 // names --working-tree, or ci run (mode ci), which binds ci.env to the key
-// as it applies it to the commands.
-func newEvidence(cfg *config.Loaded, mode string) *check.Evidence {
-	e := &check.Evidence{
+// as it applies it to the commands. goos is the OS the lock waits by, as Out.OS
+// names it.
+func newEvidence(cfg *config.Loaded, mode, goos string) *evidence.Engine {
+	e := &evidence.Engine{
 		Cfg:     cfg,
 		Git:     evidenceGit{vcs.Git{}},
-		Store:   private.Store{OS: runtime.GOOS, VCS: vcs.Git{}},
+		Store:   private.Store{OS: goos, VCS: vcs.Git{}},
 		Binding: evidence.ThisBinary(),
 		Mode:    mode,
 	}

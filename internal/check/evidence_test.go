@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/donvargax/itos/v8/internal/config"
-	"github.com/donvargax/itos/v8/internal/evidence"
+	"github.com/donvargax/itos/v8/internal/engine/evidence"
 	"github.com/donvargax/itos/v8/internal/ledger"
 	privport "github.com/donvargax/itos/v8/internal/store/private/port"
 	"github.com/donvargax/itos/v8/internal/vcs/port/porttest"
@@ -69,7 +69,7 @@ func TestRunnerLooksUpTheChecksThatOptIn(t *testing.T) {
 	git := &fakeGit{}
 	var stdout bytes.Buffer
 	r := NewRunner(cfg, &stdout, &stdout)
-	r.Evidence = &Evidence{Cfg: cfg, Git: git, Store: store{t.TempDir()}, Binding: evidence.ThisBinary(), Mode: "task"}
+	r.Evidence = &evidence.Engine{Cfg: cfg, Git: git, Store: store{t.TempDir()}, Binding: evidence.ThisBinary(), Mode: "task"}
 	opted := ledger.Check{Run: text(command), Evidence: &config.Evidence{}}
 	got, info := r.RunInfo(opted)
 	if got != Fail || info == nil || info.Hit || !info.Recorded || info.Source != "local" {
@@ -120,7 +120,7 @@ func TestAnAfterPushCheckIsNeverLookedUpOrRecorded(t *testing.T) {
 			git, root := &fakeGit{}, t.TempDir()
 			var log bytes.Buffer
 			r := NewRunner(cfg, &log, &log)
-			r.Evidence = &Evidence{Cfg: cfg, Git: git, Store: store{root}, Binding: evidence.ThisBinary(), Mode: "task"}
+			r.Evidence = &evidence.Engine{Cfg: cfg, Git: git, Store: store{root}, Binding: evidence.ThisBinary(), Mode: "task"}
 			after := ledger.Check{Run: text("true"), After: "push", Evidence: &config.Evidence{}}
 			got, info := r.RunInfo(after)
 			if got != c.want || info != nil {

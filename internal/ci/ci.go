@@ -9,7 +9,7 @@ import (
 
 	"github.com/donvargax/itos/v8/internal/check"
 	"github.com/donvargax/itos/v8/internal/config"
-	"github.com/donvargax/itos/v8/internal/evidence"
+	"github.com/donvargax/itos/v8/internal/engine/evidence"
 	"github.com/donvargax/itos/v8/internal/ledger"
 	"github.com/donvargax/itos/v8/internal/out"
 	"github.com/donvargax/itos/v8/internal/plan"
@@ -35,14 +35,14 @@ type Failure struct {
 // Stdout holds the verdict. Nightly is the nightly's run, which goes on past
 // a failing step whatever ci.stop_at_first_failure says (slice 133).
 // Evidence looks up the task checks and the steps that opt in to evidence
-// records by the index tree (internal/evidence), applying ci.env to the key
+// records by the index tree (internal/engine/evidence), applying ci.env to the key
 // as the run applies it to the commands; nil runs every one as it always
 // did.
 type Options struct {
 	JSON           bool
 	Nightly        bool
 	Stdout, Stderr io.Writer
-	Evidence       *check.Evidence
+	Evidence       *evidence.Engine
 }
 
 // driver is one run: the config, its streams, its check runner and the
@@ -52,7 +52,7 @@ type driver struct {
 	log      io.Writer
 	stderr   io.Writer
 	runner   *check.Runner
-	evidence *check.Evidence
+	evidence *evidence.Engine
 }
 
 // Run carries out a plan and gives the run's exit code: 0, or 1 for a

@@ -3,8 +3,8 @@ package cli
 import (
 	"context"
 
-	"github.com/donvargax/itos/v8/internal/check"
 	"github.com/donvargax/itos/v8/internal/config"
+	"github.com/donvargax/itos/v8/internal/engine/evidence"
 	"github.com/donvargax/itos/v8/internal/engine/record"
 	"github.com/donvargax/itos/v8/internal/ledger"
 	taskslice "github.com/donvargax/itos/v8/internal/slices/task"
@@ -30,8 +30,8 @@ type taskPorts struct{ o Out }
 func (taskPorts) Config(context.Context) (*config.Loaded, error) { return loadConfig() }
 
 // Evidence is newEvidence of a hand-run itos task.
-func (taskPorts) Evidence(_ context.Context, cfg *config.Loaded) *check.Evidence {
-	return newEvidence(cfg, "task")
+func (p taskPorts) Evidence(_ context.Context, cfg *config.Loaded) *evidence.Engine {
+	return newEvidence(cfg, "task", p.o.OS)
 }
 
 // Sound is soundRegistry.

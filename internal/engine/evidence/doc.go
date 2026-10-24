@@ -63,7 +63,12 @@
 // that, quarantining a record found broken, is the next slice's
 // (features/evidence-store.feature).
 //
-// The Engine reaches the repository through Git and the store's place and lock
-// through the private store's port, which internal/cli binds (newEvidence), so
-// that this package imports no adapter.
+// The package is an engine (internal/engine): several commands share it, itos
+// task and ci run through internal/check's Runner and ci's driver, and no slice
+// owns it. The engines rule of .golangci.yml therefore refuses it a command,
+// a slice, a store's or the VCS's adapter, the launcher and the shim, and a
+// port's fake in its code; a slice and internal/ci import it directly. It
+// reaches the repository through Git and the store's place and lock through
+// the private store's port, which internal/cli binds (newEvidence). It does use
+// the operating system for the working folder's inputs and the store's files.
 package evidence

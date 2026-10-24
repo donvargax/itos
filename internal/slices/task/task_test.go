@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/donvargax/itos/v8/internal/check"
 	"github.com/donvargax/itos/v8/internal/config"
+	"github.com/donvargax/itos/v8/internal/engine/evidence"
 	"github.com/donvargax/itos/v8/internal/engine/record"
 	"github.com/donvargax/itos/v8/internal/kind"
 	"github.com/donvargax/itos/v8/internal/ledger"
@@ -94,7 +94,7 @@ type ports struct {
 	released   int
 	// evidence is the engine the Evidence port gives, and asked how often it
 	// was asked for.
-	evidence *check.Evidence
+	evidence *evidence.Engine
 	asked    int
 }
 
@@ -108,7 +108,7 @@ func newPorts(t *testing.T, text string, tree map[string]string) *ports {
 
 func (p *ports) Config(context.Context) (*config.Loaded, error) { return p.cfg, p.cfgErr }
 
-func (p *ports) Evidence(context.Context, *config.Loaded) *check.Evidence {
+func (p *ports) Evidence(context.Context, *config.Loaded) *evidence.Engine {
 	p.asked++
 	return p.evidence
 }
@@ -490,7 +490,7 @@ func TestUnknownIDs(t *testing.T) {
 // unstaged paths in its JSON.
 func TestRunTakesTheEvidenceEngineUnlessWorkingTree(t *testing.T) {
 	p := newPorts(t, configText, files)
-	p.evidence = &check.Evidence{}
+	p.evidence = &evidence.Engine{}
 	for _, c := range []struct {
 		args  []string
 		asked int
