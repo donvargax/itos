@@ -13533,7 +13533,7 @@ items:
     title: The private store's write-failure test lowers the file size limit only in a child process
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
 
