@@ -13408,8 +13408,8 @@ items:
   - id: bug-125
     title: decision record --supersedes overwrites the link of a record already superseded
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: bug
     why: >
