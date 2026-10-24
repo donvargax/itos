@@ -13784,3 +13784,14 @@ items:
     kind: idea
     why: >
       From slice-174's spec (2026-10-24, its follow-ups): so the claim and the branch are one step.
+
+  - id: p1-pr-cleanup
+    title: After a pull request merges, the local main is reset and the item's branch deleted
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [slice-174]
+    kind: idea
+    why: >
+      From slice-174's spec (2026-10-24, its follow-ups): else the next session starts on stale
+      refs.
