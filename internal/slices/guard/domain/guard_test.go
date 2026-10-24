@@ -50,6 +50,10 @@ func TestGitCalls(t *testing.T) {
 		{"env -uHOME --unset=PATH --unset PWD git commit", []GitCall{{".", "commit"}}},
 		{"env -u", nil},
 		{"env --unset", nil},
+		// A precommand after env takes bash's rule: nohup runs A=1 as the command.
+		{"env nohup A=1 git commit", nil},
+		{"env A=1 nohup B=2 git commit", nil},
+		{"env A=1 nohup git commit", []GitCall{{".", "commit"}}},
 		{"env -i -- A-B=1 git push", []GitCall{{".", "push"}}},
 		{"env -S 'git commit'", nil},
 		{"env -C sub git commit", nil},

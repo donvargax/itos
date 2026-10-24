@@ -249,9 +249,6 @@ func skipEnv(words []string, i int) (int, bool) {
 			options = false
 		case options && (w == "-u" || w == "--unset"):
 			i++
-			if i >= len(words) {
-				return 0, false
-			}
 		case options && strings.HasPrefix(w, "-"):
 			if !envFlags[w] && !strings.HasPrefix(w, "-u") && !strings.HasPrefix(w, "--unset=") {
 				return 0, false
