@@ -15,7 +15,11 @@
 // that never sets its exit code and is no finding of the commit-msg hook's
 // check of staged data. Issues and Problems are the registry's problems,
 // which config check and itos work check report (ProblemsAt, for a file
-// named on the command line, whose missing-file fix differs: Missing). An
+// named on the command line, whose missing-file fix differs: Missing). A
+// registry of the wrong shape (empty, items not a list, an empty item,
+// several documents, groups not a mapping) is one such problem, from Load's
+// shapeError, which every other reader prints as its message; a depends_on
+// that is not a list is its item's. An
 // item's tags are held to those work.tags declares, none when it declares
 // none. ItemStatuses reads the statuses alone, without the people, so itos
 // task list, the CI plan's waiting tasks and the commit-msg hook's "done"

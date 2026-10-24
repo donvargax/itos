@@ -1113,7 +1113,7 @@ Feature: The work registry
   # registry that is a scalar, read as sound, are outside this bug. --json
   # pins the rule and the words; the text form prints the same problems.
   # Fails at the exit-code step: today each exits 2.
-  @ID-WORK-162 @bug-134 @wip
+  @ID-WORK-162 @bug-134
   Scenario Outline: work check refuses a registry of the wrong shape as a problem naming the file, the key and the fix, never in JavaScript's words
     Given the committed file "tasks/work-items.yaml" holding the lines:
       """
@@ -1142,7 +1142,7 @@ Feature: The work registry
   # words. A depends_on that is not a list is not here: work list reads
   # none, and lists such an item. Fails at the first output step: today the
   # lines name no file.
-  @ID-WORK-163 @bug-134 @wip
+  @ID-WORK-163 @bug-134
   Scenario Outline: work list refuses a registry of the wrong shape naming the file and the key, never in JavaScript's words
     Given the committed file "tasks/work-items.yaml" holding the lines:
       """

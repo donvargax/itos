@@ -71,7 +71,7 @@ func each(cfg *config.Loaded, r Registry, text string, ids []string, write write
 		}
 		s.Changed = append(s.Changed, id)
 		s.Text = change.Text
-		next, err := parse(cfg, s.Text)
+		next, err := parse(cfg, cfg.Work.Registry, s.Text)
 		if err != nil {
 			return Several{}, nil, nil, err
 		}

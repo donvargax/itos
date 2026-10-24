@@ -216,7 +216,7 @@ Feature: The task runner runs each check once, and lists task status without run
   # value.Parse sees it (@ID-FOLLOW-09). Naming the file is
   # p1-yaml-errors-name-file's, not this bug's. Fails at the last step:
   # today the line says parseAllDocuments.
-  @ID-TASK-18 @bug-134 @wip
+  @ID-TASK-18 @bug-134
   Scenario: task list refuses a ledger file holding a second document in itos's words, not the yaml package's
     Given the committed file "tasks/phase-1.yaml" holding the lines:
       """

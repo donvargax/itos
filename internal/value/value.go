@@ -213,11 +213,9 @@ func Prop(v any, key string) any {
 	return Undefined
 }
 
-// ErrMultipleDocuments is the `yaml` package's refusal of a stream of
-// several documents.
-//
-//lint:ignore ST1005 the yaml package's own message, quoted verbatim as the TypeScript itos printed it; rewording it changes what itos prints
-var ErrMultipleDocuments = errors.New("Source contains multiple documents; please use YAML.parseAllDocuments()")
+// ErrMultipleDocuments is Parse's refusal of a stream of several documents:
+// itos reads one document a file.
+var ErrMultipleDocuments = errors.New("the YAML has more than one document")
 
 // Parse reads YAML text as the `yaml` package's parse does: null for an empty
 // document, an error for a syntax error, several documents or a key written

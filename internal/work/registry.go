@@ -60,6 +60,17 @@ type Registry struct {
 // under a stealth config (bug 46).
 func (r Registry) Nobody() bool { return !r.People || len(r.Logins) == 0 }
 
+// shapeError is a registry of the wrong shape (bug 134): a problem of the
+// registry, which work check reports (ProblemsAt) and every other reader
+// prints as its message, the file and the key named.
+type shapeError struct{ found out.Problem }
+
+func (e *shapeError) Error() string { return e.found.Message }
+
+func shaped(rule, message, fix string) error {
+	return &shapeError{problem(rule, message, fix)}
+}
+
 // Load reads the registry at path and the people, from the config's source. A
 // registry that is not YAML or not the registry's shape is a data file itos
 // refuses, kind.Usage (exit 2).
@@ -68,20 +79,25 @@ func Load(cfg *config.Loaded, path string) (Registry, error) {
 	if err != nil {
 		return Registry{}, err
 	}
-	r, err := parse(cfg, text)
+	r, err := parse(cfg, path, text)
 	return r, kind.Wrap(kind.Usage, err)
 }
 
-func parse(cfg *config.Loaded, text string) (Registry, error) {
+func parse(cfg *config.Loaded, file, text string) (Registry, error) {
 	raw, err := value.Parse(text)
+	if errors.Is(err, value.ErrMultipleDocuments) {
+		return Registry{}, shaped("work-registry-several-documents", file+": "+err.Error(),
+			"keep one document in "+file+": remove the --- line that starts the second, and what follows it")
+	}
 	if err != nil {
 		return Registry{}, err
 	}
+	key := cfg.Work.GroupsKey
 	if raw == nil {
-		//lint:ignore ST1005 JavaScript's own TypeError, quoted verbatim as the TypeScript itos printed it; rewording it changes what itos prints
-		return Registry{}, fmt.Errorf("Cannot read properties of null (reading '%s')", cfg.Work.GroupsKey)
+		return Registry{}, shaped("work-registry-empty", file+": the registry is empty",
+			"restore "+file+", or write its "+key+": and items:")
 	}
-	phases, err := groups(value.Prop(raw, cfg.Work.GroupsKey))
+	phases, err := groups(file, key, value.Prop(raw, key))
 	if err != nil {
 		return Registry{}, err
 	}
@@ -90,14 +106,15 @@ func parse(cfg *config.Loaded, text string) (Registry, error) {
 	if listed != nil && listed != value.Undefined {
 		list, ok := listed.([]any)
 		if !ok {
-			return Registry{}, errors.New("(raw.items ?? []).map is not a function")
+			return Registry{}, shaped("work-items-not-list", file+": items: is not a list of work items",
+				"write items: in "+file+" as a list, or remove it")
 		}
-		for _, item := range list {
-			copied, ok := value.Copy(item).(*value.Map)
+		for i, item := range list {
 			if item == nil {
-				//lint:ignore ST1005 JavaScript's own TypeError, quoted verbatim as the TypeScript itos printed it; rewording it changes what itos prints
-				return Registry{}, errors.New("Cannot read properties of null (reading 'depends_on')")
+				return Registry{}, shaped("work-item-empty", fmt.Sprintf("%s: entry %d of items: is empty", file, i+1),
+					fmt.Sprintf("give entry %d of items: in %s an id and a title, or remove it", i+1, file))
 			}
+			copied, ok := value.Copy(item).(*value.Map)
 			if !ok {
 				copied = value.NewMap()
 			}
@@ -157,7 +174,7 @@ func defaultLists(item *value.Map) {
 
 // groups are the registry's groups and their owners, a mapping; a list reads
 // as one keyed by index.
-func groups(v any) (*value.Map, error) {
+func groups(file, key string, v any) (*value.Map, error) {
 	if v == nil || v == value.Undefined {
 		return value.NewMap(), nil
 	}
@@ -171,7 +188,8 @@ func groups(v any) (*value.Map, error) {
 		}
 		return m, nil
 	}
-	return nil, fmt.Errorf("the registry's groups are not a mapping: %s", value.String(v))
+	return nil, shaped("work-groups-not-mapping", fmt.Sprintf("%s: %s: is not a mapping (it is %s)", file, key, value.String(v)),
+		"write "+key+": in "+file+" as a mapping of each group to its owner, or remove it")
 }
 
 // key is a value as a JavaScript Map tells keys apart.
@@ -207,7 +225,7 @@ func (c checker) owned(owner any) bool {
 	return ok && c.handles[s]
 }
 
-func (c checker) itemIssues(item *value.Map) ([]out.Problem, error) {
+func (c checker) itemIssues(item *value.Map) []out.Problem {
 	id := value.String(item.At("id"))
 	status := item.At("status")
 	kind := item.At("kind")
@@ -245,7 +263,8 @@ func (c checker) itemIssues(item *value.Map) ([]out.Problem, error) {
 	found = append(found, c.tagIssues(id, item.At("tags"))...)
 	deps, ok := item.At("depends_on").([]any)
 	if !ok {
-		return nil, errors.New("item.depends_on.flatMap is not a function")
+		return append(found, problem("work-depends-on-not-list", id+": depends_on is not a list of item ids",
+			"write "+id+"'s depends_on as a list (itos work edit "+id+" --depends-on …), or remove it"))
 	}
 	for _, dep := range deps {
 		other, known := c.byID[key(dep)]
@@ -264,7 +283,7 @@ func (c checker) itemIssues(item *value.Map) ([]out.Problem, error) {
 			fmt.Sprintf("%s: depends on \"%s\", which is dropped and will never be done", id, value.String(dep)),
 			fmt.Sprintf("remove \"%s\" from %s's depends_on (itos work edit %s --depends-on …), or drop %s too", value.String(dep), id, id, id))
 	}
-	return found, nil
+	return found
 }
 
 // tagIssues are the problems of an item's tags (slice 97): a list of the
@@ -391,11 +410,7 @@ func Issues(cfg *config.Loaded, r Registry, file string) ([]out.Problem, error) 
 		}
 	}
 	for _, item := range r.Items {
-		own, err := c.itemIssues(item)
-		if err != nil {
-			return nil, kind.Wrap(kind.Usage, err)
-		}
-		found = append(found, own...)
+		found = append(found, c.itemIssues(item)...)
 	}
 	for _, phase := range r.Phases.Keys() {
 		owner := r.Phases.At(phase)
@@ -449,8 +464,9 @@ func Problems(cfg *config.Loaded) ([]out.Problem, error) {
 // ProblemsAt are the problems of the registry at file, the config's
 // work.registry or, named, a file given on the command line, whose fix when
 // it is not there says so. An alias the YAML reader refuses, inside its own
-// anchor or expanding past its bound, is a problem of the registry, as the
-// bug-39 decision has it, where any other YAML it cannot read is an error.
+// anchor or expanding past its bound, and a registry of the wrong shape
+// (shapeError, bug 134), are problems of the registry, as the bug-39
+// decision has it, where any other YAML it cannot read is an error.
 func ProblemsAt(cfg *config.Loaded, file string, named bool) ([]out.Problem, error) {
 	if !cfg.Source.Has(context.Background(), file) {
 		return []out.Problem{Missing(file, named)}, nil
@@ -460,6 +476,10 @@ func ProblemsAt(cfg *config.Loaded, file string, named bool) ([]out.Problem, err
 	if errors.As(err, &alias) {
 		return []out.Problem{problem("work-registry-alias", file+": "+alias.Error(),
 			"write out in its place what the alias *"+alias.Alias+" stands for")}, nil
+	}
+	var shape *shapeError
+	if errors.As(err, &shape) {
+		return []out.Problem{shape.found}, nil
 	}
 	if err != nil {
 		return nil, err
