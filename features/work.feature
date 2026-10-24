@@ -162,7 +162,7 @@ Feature: The work registry
   # registry tracked, so git status's failure alone decides the outcome. The
   # fixture's words are judged, not itos's: what git said reaches the person
   # (ADR-0052).
-  @ID-WORK-151 @bug-130 @wip
+  @ID-WORK-151 @bug-130
   Scenario: A git status that fails is reported as git's failure, exit 70, not as changes no commit holds
     Given the work registry has the item "slice-9" owned by nobody with the status "todo"
     And the git itos runs fails git status, saying "the fake git refuses status"
@@ -179,7 +179,7 @@ Feature: The work registry
   # it, so git status's line alone decides, the path the fix touches. The
   # change is a YAML comment, so the registry stays sound and no earlier
   # refusal answers instead. Expected to pass before the fix.
-  @ID-WORK-152 @bug-130 @guard @wip
+  @ID-WORK-152 @bug-130 @guard
   Scenario: A registry edit no commit holds is still refused as changes no commit holds
     Given the work registry has the item "slice-9" owned by nobody with the status "todo"
     And the registry has a change no commit holds

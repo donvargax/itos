@@ -89,7 +89,8 @@ type released struct{ held *lock.Held }
 func (r released) Release(context.Context) error { return r.held.Release() }
 
 // Ready is HooksReady's error, else the first file with changes no commit
-// holds (uncommitted); nil under Stealth.
+// holds (uncommitted), else a git that cannot say whether there are any, an
+// error of kind.Unknown (exit 70) holding git's words; nil under Stealth.
 func (f Files) Ready(ctx context.Context, names []string) error {
 	if f.Stealth {
 		return nil
@@ -98,7 +99,11 @@ func (f Files) Ready(ctx context.Context, names []string) error {
 		return err
 	}
 	for _, name := range names {
-		if f.uncommitted(ctx, name) {
+		dirty, err := f.uncommitted(ctx, name)
+		if err != nil {
+			return kind.Wrap(kind.Unknown, fmt.Errorf("cannot read git's status of %s: %w", name, err))
+		}
+		if dirty {
 			return &port.Dirty{Name: name}
 		}
 	}
@@ -111,13 +116,18 @@ func (f Files) Ready(ctx context.Context, names []string) error {
 // it; a file not there, which the transaction makes, when git knows nothing
 // of it either: one deleted and the deletion not committed, staged or not,
 // is a change no commit holds (bug 13), which a commit of the file written
-// afresh would undo.
-func (f Files) uncommitted(ctx context.Context, name string) bool {
+// afresh would undo. A git that fails is the error, never a change: the
+// repository was located and its config loaded by then, so it is a git
+// failing, which no kind fits (bug-130).
+func (f Files) uncommitted(ctx context.Context, name string) (bool, error) {
 	_, err := os.Lstat(f.path(ctx, name))
 	there := !errors.Is(err, fs.ErrNotExist)
 	tracked := f.VCS.Tracked(ctx, name)
 	status, err := f.VCS.PathStatus(ctx, name)
-	return err != nil || len(status) != 0 || tracked != there
+	if err != nil {
+		return false, err
+	}
+	return len(status) != 0 || tracked != there, nil
 }
 
 // Transact writes the changes and, unless Stealth, commits them alone, in

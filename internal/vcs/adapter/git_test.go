@@ -1,6 +1,7 @@
 package adapter
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -151,8 +152,10 @@ func alone(t *testing.T) string {
 func TestShowAndPathStatusRefuse(t *testing.T) {
 	dir := alone(t)
 	t.Chdir(dir)
-	if got, err := (Git{}).PathStatus(t.Context(), "a"); err == nil {
-		t.Errorf("PathStatus outside a repository is %q", got)
+	got, err := (Git{}).PathStatus(t.Context(), "a")
+	var failed *port.Failed
+	if !errors.As(err, &failed) || !strings.HasPrefix(failed.Command, "git status") || strings.TrimSpace(failed.Words) == "" {
+		t.Errorf("PathStatus outside a repository is %q, %v; want a port.Failed of git status holding git's words", got, err)
 	}
 	gitIn(t, dir, "", "init", "-q")
 	if got, err := (Git{}).Show(t.Context(), "--all"); err == nil {

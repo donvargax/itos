@@ -24,9 +24,10 @@
 // (depguard's idcounter-internals refuses it to any other package's code):
 // on the remote itos pushes to, else, and always under a stealth config,
 // in the git common dir. The one kind the adapter gives an error is
-// Reserve's when it cannot locate the repository: kind.Unknown, exit 70.
-// The repository was located before, so that is a git failing, not the
-// missing repository (exit 3) the locate's own kind says (bug-119). The
+// kind.Unknown, exit 70, for a git failing: Reserve's when it cannot locate
+// the repository, which is not the missing repository (exit 3) the locate's
+// own kind says (bug-119), and Ready's when git status fails, which is not
+// a file with changes (bug-130), the error holding git's words. The
 // counter's errors keep idcounter's kinds, a remote it cannot reach exit 3.
 //
 // HooksReady is called by Ready alone, and Reserve locates when it

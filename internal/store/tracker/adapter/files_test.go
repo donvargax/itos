@@ -156,6 +156,13 @@ func (b broken) Locate(ctx context.Context, dir string) (vcs.Location, error) {
 	return b.VCS.Locate(ctx, dir)
 }
 
+func (b broken) PathStatus(ctx context.Context, path string) ([]string, error) {
+	if b.step == "status" {
+		return nil, errBroken
+	}
+	return b.VCS.PathStatus(ctx, path)
+}
+
 func (b broken) Resolve(ctx context.Context, rev string) (string, error) {
 	if b.step == "resolve" {
 		return "", errBroken

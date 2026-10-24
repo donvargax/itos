@@ -55,9 +55,10 @@ func (g Git) StagedOwnPaths(_ context.Context, parents []string) ([]string, erro
 func (g Git) Changes(context.Context) []string { return g.git().Changed() }
 
 // PathStatus is git status --porcelain, every untracked file listed; its
-// error is git's, worded as git.Read words it.
-func (g Git) PathStatus(_ context.Context, path string) ([]string, error) {
-	out, err := g.git().Read("status", "--porcelain", "--untracked-files=all", "--", path)
+// error is a port.Failed holding git's words when git fails, git's own when
+// it does not run.
+func (g Git) PathStatus(ctx context.Context, path string) ([]string, error) {
+	out, err := g.output(ctx, port.Talk{}, false, "status", "--porcelain", "--untracked-files=all", "--", path)
 	if err != nil {
 		return nil, err
 	}

@@ -31,6 +31,18 @@ func TestReserveGivesAFailedLocateNoKind(t *testing.T) {
 	}
 }
 
+// A git whose status fails is not a file with changes: Ready gives its error,
+// of kind Unknown (exit 70), naming the file, never a Dirty (bug-130).
+func TestReadyGivesAFailedStatusNoKind(t *testing.T) {
+	files := seeded(t, false)
+	files.VCS = broken{files.VCS, "status"}
+	err := files.Ready(t.Context(), []string{"registry.yaml"})
+	var dirty *port.Dirty
+	if errors.As(err, &dirty) || !errors.Is(err, errBroken) || kind.Of(err) != kind.Unknown || !strings.Contains(err.Error(), "registry.yaml") {
+		t.Errorf("Ready: %v (kind %v); want errBroken naming registry.yaml, of kind Unknown, no Dirty", err, kind.Of(err))
+	}
+}
+
 // The local counter is in the common dir of the folder itos runs in, the
 // VCS's, wherever the process stands, and the documents are read and
 // written there.
