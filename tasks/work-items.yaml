@@ -13774,3 +13774,13 @@ items:
     why: >
       From slice-174's spec (2026-10-24, its follow-ups): an idea added mid-work rides the pull
       request today, and registry edits conflict often across branches.
+
+  - id: p1-pr-take-switches
+    title: work take under pr pushes the take and switches to the item's branch
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [slice-174]
+    kind: idea
+    why: >
+      From slice-174's spec (2026-10-24, its follow-ups): so the claim and the branch are one step.
