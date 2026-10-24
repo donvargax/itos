@@ -1084,6 +1084,85 @@ Feature: The work registry
     Then itos exits with code 1
     And its output says "alias"
 
+  # Bug 134: the Go port kept the errors the TypeScript itos raised from
+  # JavaScript itself and from its yaml package, so a registry of the wrong
+  # shape stopped work check with exit 2 and a line naming no file, no key
+  # and no fix, about code that no longer exists: "Cannot read properties
+  # of null (reading 'phases')" for a registry that is empty or null,
+  # "(raw.items ?? []).map is not a function" for items that are not a list,
+  # "Cannot read properties of null (reading 'depends_on')" for an item that
+  # is null, "item.depends_on.flatMap is not a function" for a depends_on
+  # that is not a list, and "Source contains multiple documents; please use
+  # YAML.parseAllDocuments()" for a second YAML document. The groups key
+  # that is not a mapping is the same case in Go's words ("the registry's
+  # groups are not a mapping: one"), no file and no fix either. Each is now
+  # a problem of the registry, as bug 39 made an alias one: exit 1, its own
+  # rule, a message naming the file (or, for an item's key, the item, as
+  # work-tags-not-list does) and the key, and a fix saying what is expected.
+  # The rules are new, each beside its sibling: work-registry-empty (an
+  # empty file and a null one alike, still refused rather than read as a
+  # registry with nothing in it), work-items-not-list, work-item-empty (the
+  # entry named by its place in items:, 1 for the first, as it has no id),
+  # work-depends-on-not-list (beside work-tags-not-list),
+  # work-registry-several-documents and work-groups-not-mapping (its key
+  # work.groups_key's, phases: here). The scratch config sets no
+  # work.groups_key, so the key is phases. The multiple-documents words are
+  # value.Parse's, which every reader shares: they become itos's own words,
+  # with no YAML.parseAllDocuments, for every file, and the registry's
+  # problem wraps them. A scalar item (- 5), read as an empty mapping, and a
+  # registry that is a scalar, read as sound, are outside this bug. --json
+  # pins the rule and the words; the text form prints the same problems.
+  # Fails at the exit-code step: today each exits 2.
+  @ID-WORK-162 @bug-134 @wip
+  Scenario Outline: work check refuses a registry of the wrong shape as a problem naming the file, the key and the fix, never in JavaScript's words
+    Given the committed file "tasks/work-items.yaml" holding the lines:
+      """
+      <first line>
+      <second line>
+      """
+    When itos runs "work check --json"
+    Then itos exits with code 1
+    And its JSON's problem "<rule>"'s "message" says "<where>"
+    And its JSON's problem "<rule>"'s "message" says "<key>"
+    And its JSON's problem "<rule>"'s "fix" says "<fix>"
+    And its output does not say "<old words>"
+
+    Examples:
+      | shape                         | first line          | second line                                                                                   | rule                            | where                 | key        | fix          | old words                |
+      | an emptied registry           | # emptied           |                                                                                               | work-registry-empty             | tasks/work-items.yaml | empty      | phases:      | Cannot read properties   |
+      | items that are not a list     | phases: { 1: null } | items: slice-1                                                                                | work-items-not-list             | tasks/work-items.yaml | items:     | as a list    | is not a function        |
+      | an item that is null          | phases: { 1: null } | items: [null]                                                                                 | work-item-empty                 | tasks/work-items.yaml | items:     | entry 1      | Cannot read properties   |
+      | a depends_on that is no list  | phases: { 1: null } | items: [{ id: slice-1, title: One, phase: 1, owner: null, status: todo, depends_on: slice-2 }] | work-depends-on-not-list        | slice-1               | depends_on | as a list    | is not a function        |
+      | a second YAML document        | phases: { 1: null } | --- { phases: { 1: null } }                                                                   | work-registry-several-documents | tasks/work-items.yaml | document   | ---          | parseAllDocuments        |
+      | phases that are not a mapping | phases: one         | items: []                                                                                     | work-groups-not-mapping         | tasks/work-items.yaml | phases:    | as a mapping | groups are not a mapping |
+
+  # Bug 134: work list judges nothing, so a registry it cannot read stays an
+  # error, exit 2, as an alias is for it today; its line is the problem's
+  # message @ID-WORK-162 pins, the file and the key, never JavaScript's
+  # words. A depends_on that is not a list is not here: work list reads
+  # none, and lists such an item. Fails at the first output step: today the
+  # lines name no file.
+  @ID-WORK-163 @bug-134 @wip
+  Scenario Outline: work list refuses a registry of the wrong shape naming the file and the key, never in JavaScript's words
+    Given the committed file "tasks/work-items.yaml" holding the lines:
+      """
+      <first line>
+      <second line>
+      """
+    When itos runs "work list"
+    Then itos exits with code 2
+    And its output says "tasks/work-items.yaml"
+    And its output says "<key>"
+    And its output does not say "<old words>"
+
+    Examples:
+      | shape                         | first line          | second line                 | key      | old words                |
+      | an emptied registry           | # emptied           |                             | empty    | Cannot read properties   |
+      | items that are not a list     | phases: { 1: null } | items: slice-1              | items:   | is not a function        |
+      | an item that is null          | phases: { 1: null } | items: [null]               | items:   | Cannot read properties   |
+      | a second YAML document        | phases: { 1: null } | --- { phases: { 1: null } } | document | parseAllDocuments        |
+      | phases that are not a mapping | phases: one         | items: []                   | phases:  | groups are not a mapping |
+
   # Bug 49 (found 2026-10-07, closing bug-36): a push carrying a fix and a
   # registry-only commit after it gets one CI run, for its head. Since slice
   # 93 work done passes over the registry-only head and judges the fix, which
