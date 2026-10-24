@@ -6946,7 +6946,7 @@ items:
       first probe. Wanted: a reader meeting a record can tell whether it has been tried, and a
       session about to build from one learns it before writing anything (a record proposed until
       something proves it, a warning, or an answered-but-unproven state).
-    tags: [ask, v8]
+    tags: [ask, v9]
 
   - id: p1-flag-defaults-policy
     title: Each command's plain invocation is the recommended one, starting with itos init --agent-rules
