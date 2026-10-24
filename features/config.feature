@@ -165,6 +165,22 @@ Feature: Every key the config accepts is one itos reads
     Then itos exits with code 0
     And its output says "people"
 
+  # Bug 133: with no people file a work take with no --as records no owner
+  # (bug 46). config check's warning of the missing file, which itos init
+  # notes too, says so where it says the owners go unchecked: "no people
+  # file at people.yaml (work.people), so the registry's owners go
+  # unchecked and work take with no --as records no owner". The warning of
+  # an unreadable people file, the other case with no one in the people
+  # that warns, ends in the same words. A people file listing no one warns
+  # of nothing today; that is not this bug's. The corpus pins the
+  # warning's rule and area, not its words. Fails at the output step.
+  @ID-CONFIG-70 @bug-133 @wip
+  Scenario: config check's warning of a missing people file says a take records no owner
+    Given the people file is missing
+    When itos checks the config
+    Then itos exits with code 0
+    And its output says "work take with no --as records no owner"
+
   # Slice 40: itos read itos.yaml only from the working folder, so a run from
   # a subfolder found no config. With no --config, no ITOS_CONFIG and no
   # --root, a run from inside a repository finds the itos.yaml at its top

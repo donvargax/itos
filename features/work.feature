@@ -658,6 +658,98 @@ Feature: The work registry
     And its output says "solo"
     And its output does not say "gh"
 
+  # Bug 133 (#88, 8.5.0). Bug 46 made every item the session's when no one
+  # is in the people: with no people file, or one listing no one, and no
+  # --as, work take asks no identity provider, succeeds, and leaves the
+  # item's owner as it is, null for an item nobody owned. Its line read
+  # "slice-1 is in progress: committed …", where a take for someone says
+  # "is in progress for someone", so nothing said the take recorded no
+  # owner. The line says it in the same place: "<id> is in progress with
+  # no owner recorded: <what was committed>", and for a take that changes
+  # nothing "<id> is already in progress with no owner recorded; nothing to
+  # change". The rule is the owner the item has after the take, so a
+  # stealth take of an unowned item says it too; give-back's line, which
+  # shares the " for <owner>" words, does not change. The Background's
+  # scratch config names the people file people.yaml and no work.identity,
+  # so the provider would be github; the people file is removed, and the gh
+  # first on the PATH is signed out, so a take that asked it would exit 3
+  # (@ID-WORK-49 holds that none is asked). Fails at the output step: today
+  # the lines are "slice-1 is in progress: committed …" and "slice-1 is
+  # already in progress; nothing to change".
+  @ID-WORK-153 @bug-133 @wip
+  Scenario Outline: With no people file, work take says it records no owner
+    Given the people file is missing
+    And no identity can be looked up
+    And the work registry has the item "slice-1" owned by nobody with the status "<status>"
+    When itos runs "work take slice-1"
+    Then itos exits with code 0
+    And its output says "<line>"
+
+    Examples:
+      | status | line                                                     |
+      | todo   | slice-1 is in progress with no owner recorded: committed |
+      | doing  | slice-1 is already in progress with no owner recorded;   |
+
+  # Bug 133: the take keeps bug 46's design, succeeding with the owner left
+  # null, and its --json does not change: the item's owner null already
+  # says no owner was recorded, and a key for it would change schema 1's
+  # shape for one case. Givens as @ID-WORK-153's. Passes before the fix.
+  @ID-WORK-154 @bug-133 @wip @guard
+  Scenario: With no people file, work take still succeeds and commits, its JSON's owner null
+    Given the people file is missing
+    And no identity can be looked up
+    And the work registry has the item "slice-1" owned by nobody with the status "todo"
+    When itos runs "work take slice-1 --json"
+    Then itos exits with code 0
+    And its JSON's "ok" is true
+    And its JSON's "item.status" is "doing"
+    And its JSON's "item.owner" is null
+    And the registry's item "slice-1" has the status "doing" and the owner "nobody"
+    And the last commit's header is "docs: take slice-1"
+
+  # Bug 133: take's help promised exit 3 whenever the person is nobody, yet
+  # with no one in the people a take with no --as succeeds. It names the
+  # case beside the stealth one, which bug 46 made the same, in the words
+  # of the take's doc comment; its last sentences read: "Under a stealth
+  # config the registry is written and nothing committed. Under a stealth
+  # config, or with no one in the people (no people file, or one listing no
+  # one), with no --as nobody is asked and nothing exits 3: every item is
+  # the session's, its owner is left as it is, and the line says "no owner
+  # recorded" when it has none." No corpus case pins help's words
+  # (help.yaml pins exit 0 and the subcommands named), so this scenario
+  # does; its step folds the line breaks the help is wrapped at. Help is
+  # printed before any config is read, so it needs no Given. Fails at the
+  # first output step.
+  @ID-WORK-155 @bug-133 @wip
+  Scenario: work take's help names the take with no one in the people, and the owner it does not record
+    When itos runs "help work take"
+    Then itos exits with code 0
+    And its output says "or with no one in the people (no people file, or one listing no one), with no --as nobody is asked", whatever its line breaks
+    And its output says "no owner recorded", whatever its line breaks
+
+  # Bug 133: work show printed "owner: nobody" for an item with no owner,
+  # so an item a take with no one in the people put in progress read as in
+  # progress for nobody. It prints the owner as it prints every field with
+  # no value (kind: -) and as work list's owner column does: "-", whatever
+  # the status, so a todo item's line reads "owner: -" too. status names no
+  # owner of an item in progress (its "(unowned)" marks only the next items
+  # nobody owns). --json does not change: owner null. The registry is what
+  # such a take leaves (@ID-WORK-154); work show asks no one who the
+  # session is. Fails at the first output step: today "owner: nobody,".
+  @ID-WORK-156 @bug-133 @wip
+  Scenario Outline: work show prints no owner as "-", not as nobody
+    Given the people file is missing
+    And the work registry has the item "slice-1" owned by nobody with the status "<status>"
+    When itos runs "work show slice-1"
+    Then itos exits with code 0
+    And its output says "status: <status>, owner: -,"
+    And its output does not say "owner: nobody"
+
+    Examples:
+      | status |
+      | doing  |
+      | todo   |
+
   # Bug 34 (found by the code review of 07b0e6d). work done read the
   # registry, waited minutes for the task's checks and CI, then wrote back
   # what it had read, so a registry commit made meanwhile (a take, a queue
