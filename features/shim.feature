@@ -147,13 +147,27 @@ Feature: The git shim, git commit and git push as itos's in an itos repository
   # so a git that is a hard link to another itos (what install makes on
   # Windows when symbolic links are refused, and what an upgraded itos.exe
   # leaves behind as a different file) was refused by install, uninstall and
-  # init --git-shim-dir alike. LinksItos's other becomes git.IsItos (bug 45's
-  # check: a symbolic link named itos, or a Go binary built as itos, read and
-  # never run), so a hard link or a copy of another itos is another itos;
-  # anything else is still refused. The other itos is a stamped build
-  # (stampedItos) copied into the scenario's folder first, so the hard link
-  # never reaches the shared stamped cache and stays on one filesystem; the
-  # program that is not itos is a script, which has no build information.
+  # init --git-shim-dir alike (init reaches it through the same LinksItos, so
+  # it has no scenario of its own). LinksItos's other becomes today's readlink
+  # name check (kept: a symbolic link to an itos since moved or deleted is
+  # still an older install's, which os.Stat in git.IsItos cannot read) or
+  # git.IsItos (bug 45's check: a Go binary built as itos, read and never
+  # run), so a hard link or a copy of another itos is another itos; anything
+  # else is still refused. TestLinksItos gains the dangling link and the hard
+  # link. The words follow: a git "that is not a link to itos" becomes one
+  # "that is not itos" in git-shim's help (command.go: "It never replaces a
+  # git that is not itos (exit 1), and replaces another itos, a link to one
+  # or a copy"), its refusals (run.go), init's (initcmd/shim.go) and the doc
+  # comments (gitshim/doc.go, handler.go, shim/doc.go, install.go); "Replaced
+  # %s, a link to another itos" becomes "Replaced %s, another itos". A
+  # scenario or corpus case of the last release asserting the old words is
+  # named in Changes:.
+  # The other itos is stampedItos("8.1.0") copied into the scenario's folder
+  # first, so the hard link never reaches the shared stamped cache and stays
+  # on one filesystem; "unchanged" compares its content, since removing the
+  # link changes its link count. The program that is not itos is the one the
+  # program steps write (w.program: a script, or on Windows a script-exe, a
+  # Go binary whose main package is not cmd/itos), refused either way.
   # "shim/git" is git.exe on Windows: every step naming the link reads it
   # through programPath, as runsItos does (the file steps do not, so a
   # removed link is "no git is left in", not "the file … does not exist").
@@ -175,7 +189,8 @@ Feature: The git shim, git commit and git push as itos's in an itos repository
     And no git is left in "shim"
     And the other itos is unchanged
 
-  @ID-SHIM-18 @bug-128 @wip
+  # A guard: it passes before the fix and must after it.
+  @ID-SHIM-18 @bug-128 @guard @wip
   Scenario Outline: A git that is a hard link to a program that is not itos is still refused
     Given "shim/git" is a hard link to a program that is not itos
     When itos runs "git-shim <command> --dir shim --json"

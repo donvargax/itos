@@ -4,7 +4,8 @@ Feature: A pinned init recognizes the launcher shim already effective on PATH
   # With no --git-shim-dir, consider only the first executable Git on PATH
   # and recognize it with git.IsItos (internal/git/bin.go), reached through
   # a new IsItos method on initcmd's Ports, bound in internal/cli/init.go;
-  # shim.LinksItos (internal/shim/install.go) stays unchanged. A recognized
+  # shim.LinksItos (internal/shim/install.go) stayed unchanged here; bug-128
+  # later made it read a hard link or copy of another itos too. A recognized
   # first Git returns "kept" at once, before the existing-link check in
   # internal/slices/initcmd/shim.go, and its text line says "The git shim is
   # there already: <path> is itos." naming no target, so it never names the
