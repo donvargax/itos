@@ -12935,7 +12935,7 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: []
+    depends_on: [p1-typed-items]
     kind: idea
     why: >
       2026-10-23: three reviewer ideas were built in another repository (the reviewer proof of
@@ -12948,7 +12948,7 @@ items:
       | elsewhere>, which closes the idea as built and satisfies its dependents as done would, so no
       depends_on is edited first (work drop refused four times in that grooming for this). Follows
       slice-149 (ideas absorbed by finished work).
-    tags: [work, v8]
+    tags: [work, v9]
 
   - id: T-291
     title: cli.Main takes its working folder from the run value and never changes the process folder
