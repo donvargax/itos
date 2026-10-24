@@ -13154,6 +13154,12 @@ items:
       platforms (run 40052540847), review approved with no findings ($0.23). Its portability account
       found on its own that a re-executed child inheriting GOCOVERDIR would write coverage data
       where it must not, and strips it; the first item under the required account.
+
+      slice-171 outcome (2026-10-23): CI green first time on all platforms; the reviewer found a
+      pipe a leftover process could hold (fixed in ~4 min with a 10 s to <5 s test); then the push
+      proof found one uncovered line in that fix (covered in ~1 min). No environment miss under the
+      required portability account; the remaining miss class is coverage of changed lines, which
+      p1-prepush-changed-line-coverage would catch locally.
     tags: [agents, v8]
 
   - id: slice-170
