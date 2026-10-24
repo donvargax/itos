@@ -10656,6 +10656,11 @@ items:
       Met again 2026-10-24 by the first implementer launched with the Agent tool's isolation:
       worktree: its worktree's branch worktree-agent-<id> had no upstream, so itos push would have
       pushed origin/worktree-agent-<id>; the agent set the upstream to origin/main by hand.
+
+      2026-10-24, under Claude Code's Bash sandbox: writes to .git/config are refused (a /dev/null
+      mask on .git/config.lock), so git worktree add cannot record a new branch's upstream and git
+      branch --set-upstream-to fails; an itos push that needs no upstream config (pushing to the
+      configured branch, or the one PR mode names) works under it.
     tags: [push, v8]
 
   - id: T-197
