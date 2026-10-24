@@ -13607,18 +13607,9 @@ items:
     title: itos names the file, key and fix for a malformed registry instead of printing JavaScript's error texts
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: bug
-    why: >
-      Was p1-js-error-texts. The Go port kept, verbatim, the errors the TypeScript itos raised from
-      JavaScript itself: 'Cannot read properties of null (reading ...)', '(raw.items ?? []).map is
-      not a function', 'item.depends_on.flatMap is not a function' (internal/work/registry.go) and
-      the yaml package's 'Source contains multiple documents; please use YAML.parseAllDocuments()'
-      (internal/value/value.go). They name no file, key or fix, and refer to code that no longer
-      exists. T-148 excused three of them from staticcheck's ST1005 with a lint:ignore rather than
-      reword them, as rewording changes what itos prints: a fix with a scenario saying what each
-      malformed registry is refused with.
     refs: [internal/work/registry.go, internal/value/value.go]
 
   - id: p1-brief-scratch-probes
