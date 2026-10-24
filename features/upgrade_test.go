@@ -224,7 +224,7 @@ func (w *world) hasInstallScript(version string) error {
 	if err := os.MkdirAll(filepath.Dir(full), 0o755); err != nil {
 		return err
 	}
-	return os.WriteFile(full, []byte(script), 0o755)
+	return writeExecutable(full, []byte(script))
 }
 
 func (w *world) installScriptIs(version string) error {

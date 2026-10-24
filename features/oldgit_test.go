@@ -81,7 +81,7 @@ func (w *world) hooksFolderHoldsRecordingHook() error {
 	if err := os.MkdirAll(filepath.Dir(full), 0o755); err != nil {
 		return err
 	}
-	return os.WriteFile(full, []byte("#!/bin/sh\necho ran >> "+quote(w.projectHookRecord())+"\n"), 0o755)
+	return writeExecutable(full, []byte("#!/bin/sh\necho ran >> "+quote(w.projectHookRecord())+"\n"))
 }
 
 // The project's own hooks folder, committed, with a commit-msg hook that
@@ -95,7 +95,7 @@ func (w *world) projectHooksCallingItos(dir string) error {
 	if err := os.MkdirAll(filepath.Dir(full), 0o755); err != nil {
 		return err
 	}
-	if err := os.WriteFile(full, []byte("#!/bin/sh\nitos hook commit-msg \"$@\"\n"), 0o755); err != nil {
+	if err := writeExecutable(full, []byte("#!/bin/sh\nitos hook commit-msg \"$@\"\n")); err != nil {
 		return err
 	}
 	if err := w.commit("chore: add the project's hooks"); err != nil {

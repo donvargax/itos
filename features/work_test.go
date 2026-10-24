@@ -752,7 +752,7 @@ func (w *world) gitHook(name, script string) error {
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return err
 	}
-	return os.WriteFile(filepath.Join(dir, name), []byte(script), 0o755)
+	return writeExecutable(filepath.Join(dir, name), []byte(script))
 }
 
 // No file of the ledger, every one ledger.files names in its folder, has the

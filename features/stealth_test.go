@@ -92,7 +92,7 @@ func (w *world) projectHooks(dir string) error {
 	if err := os.MkdirAll(filepath.Dir(full), 0o755); err != nil {
 		return err
 	}
-	if err := os.WriteFile(full, []byte(hook), 0o755); err != nil {
+	if err := writeExecutable(full, []byte(hook)); err != nil {
 		return err
 	}
 	if err := w.commit("chore: add the project's hooks"); err != nil {
@@ -131,7 +131,7 @@ func (w *world) itosOnPath() error {
 		return err
 	}
 	script := "#!/bin/sh\nexec " + quote(w.bin) + " \"$@\"\n"
-	if err := os.WriteFile(filepath.Join(bin, "itos"), []byte(script), 0o755); err != nil {
+	if err := writeExecutable(filepath.Join(bin, "itos"), []byte(script)); err != nil {
 		return err
 	}
 	if err := w.run(w.dir, "sh", "-c", "itos version"); err != nil {

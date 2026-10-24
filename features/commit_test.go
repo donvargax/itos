@@ -273,7 +273,7 @@ func (w *world) hookInstalled(name, args string) error {
 		return err
 	}
 	shim := "#!/bin/sh\nexec " + quote(w.bin) + " hook " + name + " " + args + "\n"
-	return os.WriteFile(filepath.Join(dir, name), []byte(shim), 0o755)
+	return writeExecutable(filepath.Join(dir, name), []byte(shim))
 }
 
 // The events itos declares a hook for in the git config, each as the entry

@@ -20,6 +20,7 @@ import (
 	"slices"
 	"strings"
 	"sync"
+	"syscall"
 	"testing"
 
 	"github.com/donvargax/itos/v8/internal/git"
@@ -100,7 +101,53 @@ func (w *world) writeProgram(path, script string) error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(programPath(path), text, 0o755)
+	return writeExecutable(programPath(path), text)
+}
+
+// writeExecutable writes data to path, executable, so that running it at
+// once never fails with "text file busy" (golang/go#22315). Scenarios run in
+// parallel, and a fork in another goroutine in the window while this file is
+// open for writing keeps a copy of the descriptor until its exec, which makes
+// an exec of this file fail with ETXTBSY. So the file is created, written and
+// closed under syscall.ForkLock's read lock, which every fork of this process
+// takes for writing: no child can hold the descriptor. It is written to a
+// file of its own in the same folder and renamed into place, so a file
+// already there, which may be running, is replaced whole and never opened for
+// writing.
+func writeExecutable(path string, data []byte) (err error) {
+	tmp, err := createExecutable(path, data)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err != nil {
+			os.Remove(tmp)
+		}
+	}()
+	return os.Rename(tmp, path)
+}
+
+// createExecutable is writeExecutable's file in the folder of path, closed,
+// and the name it has there.
+func createExecutable(path string, data []byte) (string, error) {
+	syscall.ForkLock.RLock()
+	defer syscall.ForkLock.RUnlock()
+	f, err := os.CreateTemp(filepath.Dir(path), ".writing-*")
+	if err != nil {
+		return "", err
+	}
+	_, err = f.Write(data)
+	if closeErr := f.Close(); err == nil {
+		err = closeErr
+	}
+	if err == nil {
+		err = os.Chmod(f.Name(), 0o755)
+	}
+	if err != nil {
+		os.Remove(f.Name())
+		return "", err
+	}
+	return f.Name(), nil
 }
 
 // runEchoArgs runs a program built from the echoArgs script with args, and
@@ -207,4 +254,46 @@ func echoProgram(t *testing.T) string {
 		t.Fatalf("writing the program: %v", err)
 	}
 	return program
+}
+
+// writeExecutable replaces a file already there whole, leaves the file
+// runnable, and leaves nothing beside it, whether it wrote or not.
+func TestWriteExecutableReplacesTheFileAndLeavesNothingBeside(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "tool")
+	for _, text := range []string{"#!/bin/sh\necho first\n", "#!/bin/sh\necho second\n"} {
+		if err := writeExecutable(path, []byte(text)); err != nil {
+			t.Fatal(err)
+		}
+		if got, err := os.ReadFile(path); err != nil || string(got) != text {
+			t.Fatalf("read %q, %v; want %q", got, err, text)
+		}
+	}
+	if runtime.GOOS != "windows" {
+		out, err := exec.Command(path).Output()
+		if err != nil || string(out) != "second\n" {
+			t.Fatalf("ran: %q, %v", out, err)
+		}
+		if info, err := os.Stat(path); err != nil || info.Mode().Perm() != 0o755 {
+			t.Fatalf("mode %v, %v", info, err)
+		}
+	}
+
+	folder := filepath.Join(dir, "folder")
+	if err := os.Mkdir(folder, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := writeExecutable(folder, []byte("x")); err == nil {
+		t.Error("a folder where the file should be was replaced")
+	}
+	if err := writeExecutable(filepath.Join(dir, "no\x00file"), []byte("x")); err == nil {
+		t.Error("a path with a NUL byte was written")
+	}
+	left, err := os.ReadDir(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(left) != 2 {
+		t.Errorf("the folder holds %v, want the tool and the folder", left)
+	}
 }

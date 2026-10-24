@@ -89,7 +89,7 @@ func (w *world) proofProvider(paths string, code int, answer map[string]any) err
 	script := filepath.Join(w.support, "provider.sh")
 	body := fmt.Sprintf("printf '%%s\\n' \"$*\" >> %s\nprintf '%%s\\n' %s\nexit %d\n",
 		quote(filepath.ToSlash(w.providerLog())), quote(string(text)), code)
-	if err := os.WriteFile(script, []byte(body), 0o755); err != nil {
+	if err := writeExecutable(script, []byte(body)); err != nil {
 		return err
 	}
 	w.config.proof = &proofConfig{

@@ -348,7 +348,7 @@ func initShimCopy(from, to string) error {
 	if err := os.MkdirAll(filepath.Dir(to), 0o755); err != nil {
 		return err
 	}
-	return os.WriteFile(to, data, 0o755)
+	return writeExecutable(to, data)
 }
 func initShimSymlink(target, link string) error {
 	err := os.Symlink(target, link)

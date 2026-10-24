@@ -138,7 +138,7 @@ func (w *world) linkOtherShim() error {
 	if err := os.MkdirAll(filepath.Dir(other), 0o755); err != nil {
 		return err
 	}
-	if err := os.WriteFile(other, text, 0o755); err != nil {
+	if err := writeExecutable(other, text); err != nil {
 		return err
 	}
 	if err := os.MkdirAll(w.shimFolder(), 0o755); err != nil {

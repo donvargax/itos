@@ -829,6 +829,15 @@ func (w *world) write(path, text string) error {
 	return os.WriteFile(full, []byte(text), 0o644)
 }
 
+// The same, executable (writeExecutable).
+func (w *world) writeScript(path, text string) error {
+	full := filepath.Join(w.dir, path)
+	if err := os.MkdirAll(filepath.Dir(full), 0o755); err != nil {
+		return err
+	}
+	return writeExecutable(full, []byte(text))
+}
+
 // Every file staged, then one commit with the message.
 func (w *world) commit(message string) error {
 	if err := w.git("add", "-A"); err != nil {
@@ -1753,10 +1762,7 @@ func (w *world) taskHasTwoChecks(task, first, second string) error {
 // ran exactly when the file is there.
 func (w *world) recordingScript(path string) error {
 	script := "#!/bin/sh\nprintf 'ran\\n' > " + quote(filepath.Join(w.dir, recordingCheckFile)) + "\n"
-	if err := w.write(path, script); err != nil {
-		return err
-	}
-	if err := os.Chmod(filepath.Join(w.dir, path), 0o755); err != nil {
+	if err := w.writeScript(path, script); err != nil {
 		return err
 	}
 	// A hook check can execute only scripts included in the proposal.
@@ -1768,10 +1774,7 @@ func (w *world) recordingScript(path string) error {
 // (scriptWasGiven reads them back).
 func (w *world) argumentsScript(path string) error {
 	script := "#!/bin/sh\nprintf '%s\\n' \"$@\" > " + quote(w.argumentsFile(path)) + "\n"
-	if err := w.write(path, script); err != nil {
-		return err
-	}
-	return os.Chmod(filepath.Join(w.dir, path), 0o755)
+	return w.writeScript(path, script)
 }
 
 func (w *world) argumentsFile(script string) string {
