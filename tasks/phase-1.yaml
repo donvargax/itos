@@ -4624,3 +4624,30 @@
     the pre-push hook refuses every push from such an environment (met 2026-10-24 landing
     slice-174). laidOut in internal/vcs/adapter/git_test.go sets NO_PROXY for itos.invalid before
     adding the down remote. No product change.
+
+- id: T-301
+  type: test
+  title: Settle the six survivors of Nightly 40091179284
+  why: >
+    Nightly 40091179284 at a9bbd836 (2026-10-24) is red on survivors only, no scenario failing. Kill
+    each with a package-local test, or except it in itos-cc.yaml only with an equivalence proof
+    written as T-290's were. internal/engine/evidence/tail.go:15:16 tail.Write (> to >=, drawn by
+    both steps): at exactly 2*max the mutant trims to the last max bytes and sets cut, which Text
+    reports alike; it differs only at max 0 with an empty write, and the only constructor
+    (engine.go, max OutputTail) is positive, so it looks equivalent: confirm or test.
+    internal/plan/plan.go:106:43 stepOf (ok && Whole != nil to ||): a step naming a tests kind that
+    has no run.whole dereferences a nil Whole under the mutant; if the config admits that state,
+    test it. internal/cli/config.go:18:10 runConfig (return 0, err to 1): likely equivalent if every
+    caller ignores the code beside a non-nil error; prove it from the dispatcher.
+    internal/engine/ciwatch/watch.go:201:15 Watch (lastErr != nil to ==): the timeout path's 'the
+    last look failed' line is untested both ways; assert it is printed after a failed last look and
+    absent otherwise, with the fakes T-288 used (noSleep, watchRun, watchConfig).
+    internal/vcs/adapter/snapshot_context.go:21:47 Git.Head (err == nil && sha != empty to ||):
+    distinguishable only if rev-parse succeeds with empty output or fails with output; prove
+    equivalence against git's --verify --quiet contract or test it with a failing fake. No
+    production change, no scenario change, no gate change; an exception whose proof does not hold is
+    a test instead. CI owns mutation proof; run a mutation command only if an exception needs one,
+    and only over these functions.
+  done_when:
+    - run: go test ./internal/engine/evidence ./internal/plan ./internal/cli ./internal/engine/ciwatch ./internal/vcs/adapter -count=1
+      timeout: 900
