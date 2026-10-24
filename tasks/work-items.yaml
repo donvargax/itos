@@ -4353,7 +4353,7 @@ items:
     tags: [stealth, v9]
 
   - id: p1-network-timeouts-named
-    title: Every network call itos makes is bounded and says what it waited on
+    title: A release download says what it fetches and fails fast on a dead connection
     phase: 1
     owner: null
     status: todo
@@ -4366,6 +4366,10 @@ items:
       stderr when a download starts, give the connection a short timeout so a dead one fails in
       seconds, and name the host and the file in a timeout's error. Audit every other network call
       likewise.
+
+      2026-10-24 grooming: release.Get sets only http.Client{Timeout}, 5 minutes (release.go:54,
+      launch.go:81), no connect timeout and no fetching line; Go's error already names the URL. The
+      gh, ls-remote and ci-watch calls already use WithTimeout, so the audit of every call is out.
     tags: [launcher, v8]
 
   - id: p3-itos-repos
