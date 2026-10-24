@@ -84,6 +84,9 @@ scenarios; no feature implementation precedes its red-first spec. Scenarios
 pinning behavior that already passes go live (not `@wip`) in the `feat`
 commit itself, where new live scenarios are allowed; a `test` commit may add
 only `@wip` scenarios under this repository's moves rule (`itos.yaml:151`).
+A1 and A3 are one slice (slice-169) with one `test` commit for both: A1's key
+is observable only through A3's lookup, so no A1-only scenario can go red
+before its feat.
 
 ## Work item A — local record store and lookup engine
 
