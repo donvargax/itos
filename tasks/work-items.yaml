@@ -13651,3 +13651,15 @@ items:
       prints the alias error without the file; work check's text output prints no fix: lines where
       status and work take do.
     refs: [internal/value/value.go, internal/work/registry.go]
+
+  - id: p1-issues-never-errors
+    title: work.Issues returns an error that is always nil
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Since bug-134 a depends_on that is not a list is a problem, so Issues and sound have no error
+      source left, yet their callers in internal/work still handle one. Drop the error from their
+      signatures.
