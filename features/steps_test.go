@@ -344,6 +344,7 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	sc.Step(`^the people file is missing$`, w.peopleFileMissing)
 	sc.Step(`^no identity can be looked up$`, w.noIdentity)
 	sc.Step(`^a gh on the PATH that never answers$`, w.ghNeverAnswers)
+	sc.Step(`^a gh on the PATH signed in as "([^"]*)"$`, w.ghSignedInAs)
 	sc.Step(`^the people file lists only "([^"]*)"$`, func(login string) error { return w.peopleAre(login) })
 	sc.Step(`^the people file lists "([^"]*)" and "([^"]*)"$`, func(a, b string) error { return w.peopleAre(a, b) })
 	sc.Step(`^itos proposes "([^"]*)" to start$`, w.proposesToStart)
@@ -2409,6 +2410,16 @@ func (w *world) ghNeverAnswers() error {
 	people := filepath.ToSlash(filepath.Join(w.dir, w.data("people.yaml")))
 	script := fmt.Sprintf("#!/bin/sh\nsleep %d\nsed -n '1s/^- *//p' %s\n", lateAnswer, quote(people))
 	return w.writeProgram(filepath.Join(bin, "gh"), script)
+}
+
+// The gh first on the PATH is signed in as login, answering it to anything
+// asked (gh.exe on windows, as noIdentity's).
+func (w *world) ghSignedInAs(login string) error {
+	bin, err := w.binOnPath()
+	if err != nil {
+		return err
+	}
+	return w.writeProgram(filepath.Join(bin, "gh"), "#!/bin/sh\necho "+quote(login)+"\n")
 }
 
 // The people file the config names lists these logins, and no others.
