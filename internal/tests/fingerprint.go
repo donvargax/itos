@@ -3,6 +3,7 @@ package tests
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"regexp"
 	"slices"
 	"strings"
 
@@ -30,17 +31,31 @@ func Fingerprints(text string, o Options) map[string]string {
 	if err != nil || doc.Feature == nil {
 		return prints
 	}
-	feature := doc.Feature
-	var background []*messages.Step
-	visit := func(tags []*messages.Tag, steps []*messages.Step, s *messages.Scenario) {
-		for _, t := range s.Tags {
-			if m := idTag.FindStringSubmatch(t.Name); m != nil && m[1] != "" {
-				sum := sha256.Sum256([]byte(Canonical(slices.Concat(tags, s.Tags), steps, s)))
-				prints[m[1]] = hex.EncodeToString(sum[:])
-				return
-			}
+	walkScenarios(doc.Feature, func(tags []*messages.Tag, steps []*messages.Step, s *messages.Scenario) {
+		if id := scenarioID(idTag, s); id != "" {
+			sum := sha256.Sum256([]byte(Canonical(slices.Concat(tags, s.Tags), steps, s)))
+			prints[id] = hex.EncodeToString(sum[:])
+		}
+	})
+	return prints
+}
+
+// scenarioID is the bare ID of a scenario: the first of its tags to hold <tag_prefix><id>, ""
+// when none does.
+func scenarioID(idTag *regexp.Regexp, s *messages.Scenario) string {
+	for _, t := range s.Tags {
+		if m := idTag.FindStringSubmatch(t.Name); m != nil && m[1] != "" {
+			return m[1]
 		}
 	}
+	return ""
+}
+
+// walkScenarios calls visit for each scenario of the feature, outlines included, in the order
+// written, with the tags it inherits from the feature and its Rule and the steps of the
+// Backgrounds before it.
+func walkScenarios(feature *messages.Feature, visit func(tags []*messages.Tag, steps []*messages.Step, s *messages.Scenario)) {
+	var background []*messages.Step
 	for _, child := range feature.Children {
 		switch {
 		case child.Background != nil:
@@ -59,7 +74,6 @@ func Fingerprints(text string, o Options) map[string]string {
 			}
 		}
 	}
-	return prints
 }
 
 // Canonical is the text a scenario's fingerprint is the hash of (the package's doc gives its

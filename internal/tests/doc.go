@@ -23,6 +23,9 @@
 // Gherkin kinds' scenarios whose tag line, or their file's, holds a tag
 // (@slice-<n> for the item slice-<n>), for itos work done and itos work
 // show; a command adapter's list carries no tags and is left out.
+// TaggedExamples adds the Examples blocks tagged @wip under the live ones,
+// read through Gherkin's parser, for itos work done (bug 129); tests list
+// and the other checks still count an outline live by its own tag line alone.
 //
 // # Fingerprints
 //

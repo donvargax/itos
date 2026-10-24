@@ -6,15 +6,18 @@ import (
 	"errors"
 	"io/fs"
 	"maps"
+	"reflect"
 	"slices"
 	"strings"
 	"testing"
 
 	"github.com/donvargax/itos/v8/internal/engine/evidence"
 	"github.com/donvargax/itos/v8/internal/kind"
+	"github.com/donvargax/itos/v8/internal/out"
 	"github.com/donvargax/itos/v8/internal/providers"
 	trackerport "github.com/donvargax/itos/v8/internal/store/tracker/port"
 	trackerfake "github.com/donvargax/itos/v8/internal/store/tracker/port/porttest"
+	"github.com/donvargax/itos/v8/internal/tests"
 	vcsfake "github.com/donvargax/itos/v8/internal/vcs/port/porttest"
 )
 
@@ -777,5 +780,25 @@ func TestDoneGivesTheEvidenceOfTheChecksLookedUp(t *testing.T) {
 	code, stdout, _, _ = run(t, p, "--json", "done", "T-1")
 	if o := object(t, stdout); code != refused || o["ci"] != "failure" || evidenceOf(o) != want {
 		t.Errorf("a CI run that did not pass: %d, %v", code, o)
+	}
+}
+
+// wipScenarios names an Examples block still @wip by its name, quoted, or with
+// none by its line, <file>:<line>, after the scenarios still @wip, all with
+// the same rule and fix.
+func TestWipScenariosNamesBlocks(t *testing.T) {
+	outline := tests.Test{ID: "@ID-A-01", File: "sub/a.feature", Live: true}
+	got := wipScenarios([]tests.Test{{ID: "@ID-A-02", File: "b.feature"}, outline}, []tests.WipExample{
+		{Test: outline, Name: "waiting on the harness", Line: 12},
+		{Test: outline, Line: 20},
+	}, "slice-9")
+	fix := "implement it and commit it live, then run itos work done slice-9 again"
+	want := []out.Problem{
+		{Rule: "work-done-wip", Message: "slice-9's scenario @ID-A-02 (b.feature) is still @wip at HEAD", Fix: fix},
+		{Rule: "work-done-wip", Message: `slice-9's scenario @ID-A-01 (sub/a.feature) has its Examples block "waiting on the harness" still @wip at HEAD`, Fix: fix},
+		{Rule: "work-done-wip", Message: "slice-9's scenario @ID-A-01 (sub/a.feature) has its Examples block sub/a.feature:20 still @wip at HEAD", Fix: fix},
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("%+v, not %+v", got, want)
 	}
 }

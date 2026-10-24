@@ -66,7 +66,8 @@
 //   - work done (done.go) is the landing's check, then a registry write:
 //     work.Done judges the registry alone, then the command checks, in cost
 //     order, stopping at the first that refuses (exit 1): the item's
-//     scenarios at HEAD (tests.Tagged), none still @wip; no commit of the
+//     scenarios at HEAD (tests.TaggedExamples), none still @wip and no Examples
+//     block under a live one still @wip (bug 129); no commit of the
 //     judged commit that no remote has (said and skipped with no remote at
 //     all); a task's static checks, by TaskChecks (judge.StaticFailure), when
 //     the id is a task of the ledger: every static check in written order, a

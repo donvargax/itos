@@ -1038,7 +1038,7 @@ Feature: The work registry
   # has the name and the tag line the step gives and one row of its own.
   # No remote and no ci.watch: today the close is made, exit 0, so the
   # exit code fails first. Naming the block is new text.
-  @ID-WORK-149 @bug-129 @wip
+  @ID-WORK-149 @bug-129
   Scenario: work done refuses a slice one of whose outlines still has an Examples block tagged @wip, naming it
     Given the work registry has the item "slice-9" owned by "someone" with the status "doing"
     And a feature file with the outline "@ID-A-01" tagged "@slice-9", one Examples block live and the block "waiting on the harness" tagged "@wip"
@@ -1052,7 +1052,7 @@ Feature: The work registry
   # today, and the close names no block. Its second block carries a tag
   # other than @wip, so a fix that took any tagged Examples block for one
   # still @wip fails here. The same fixture as @ID-WORK-149.
-  @ID-WORK-150 @bug-129 @guard @wip
+  @ID-WORK-150 @bug-129 @guard
   Scenario: work done closes a slice whose outline has a tagged Examples block that is not @wip
     Given the work registry has the item "slice-9" owned by "someone" with the status "doing"
     And a feature file with the outline "@ID-A-01" tagged "@slice-9", one Examples block live and the block "slow rows" tagged "@slow"

@@ -9,6 +9,7 @@ import (
 	"path"
 	"path/filepath"
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/donvargax/itos/v8/internal/check"
@@ -55,11 +56,11 @@ func (h Handler) done(ctx context.Context, id string, o Out) (Answer, error) {
 		a.Release()
 		a.Release = func() {}
 	}
-	tagged, err := tests.Tagged(cfg, "@"+id, "HEAD")
+	tagged, examples, err := tests.TaggedExamples(cfg, "@"+id, "HEAD")
 	if err != nil {
 		return a, err
 	}
-	found := wipScenarios(tagged, id)
+	found := wipScenarios(tagged, examples, id)
 	landing := ownCommit(cfg, id, tagged)
 	if landing.sha == "" {
 		landing = judgedCommit(ctx, cfg.VCS, cfg.Work.Registry)
@@ -211,9 +212,11 @@ func closing(a Answer, s *writing, id string) (*domain.Change, Answer, error) {
 }
 
 // wipScenarios are the problems of the item's scenarios at HEAD, those
-// tagged @<id>, that are still @wip: a slice is done when every scenario it
-// specified is live.
-func wipScenarios(tagged []tests.Test, id string) []out.Problem {
+// tagged @<id>, that are still @wip, and then of the Examples blocks still
+// @wip under those that are live, each named by its name or, with none, by
+// its line, <file>:<line>: a slice is done when every scenario it specified
+// is live, and a block's rows never run while it is @wip (bug 129).
+func wipScenarios(tagged []tests.Test, examples []tests.WipExample, id string) []out.Problem {
 	var found []out.Problem
 	for _, t := range tagged {
 		if t.Live {
@@ -222,10 +225,26 @@ func wipScenarios(tagged []tests.Test, id string) []out.Problem {
 		found = append(found, out.Problem{
 			Rule:    "work-done-wip",
 			Message: fmt.Sprintf("%s's scenario %s (%s) is still @wip at HEAD", id, t.ID, t.File),
-			Fix:     "implement it and commit it live, then run itos work done " + id + " again",
+			Fix:     wipFix(id),
+		})
+	}
+	for _, e := range examples {
+		block := fmt.Sprintf("%s:%d", e.Test.File, e.Line)
+		if e.Name != "" {
+			block = strconv.Quote(e.Name)
+		}
+		found = append(found, out.Problem{
+			Rule:    "work-done-wip",
+			Message: fmt.Sprintf("%s's scenario %s (%s) has its Examples block %s still @wip at HEAD", id, e.Test.ID, e.Test.File, block),
+			Fix:     wipFix(id),
 		})
 	}
 	return found
+}
+
+// wipFix is the fix line of a work-done-wip problem.
+func wipFix(id string) string {
+	return "implement it and commit it live, then run itos work done " + id + " again"
 }
 
 // doneCommit is the commit whose landing work done judges: its SHA, "" when
