@@ -13315,3 +13315,22 @@ items:
       tree), so the close proves it rather than leaving it pending. Decide whether a pending after:
       push check should block the close.
     tags: [evidence, v8]
+
+  - id: p1-features-itos-on-path-busy
+    title: The features' itos on the PATH never fails to start with Text file busy
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      CI run 40060520504 (29804acf, 2026-10-24), ubuntu: init.feature:313's 'the files init wrote
+      are committed' failed with 'sh: 1: itos: Text file busy', exit 126, through itosOnPath
+      (features/stealth_test.go:128), which os.WriteFile's the itos script and runs it at once.
+      While scenarios run in parallel, a child forked by another goroutine inherits the still-open
+      write descriptor, so exec sees ETXTBSY (golang/go#22315). The code proof's listed-test
+      preparation failed the same run on it too. Write the script to a temporary name in the same
+      folder and rename it into place, so no descriptor open for writing ever names the path exec
+      runs; check other steps that write an executable and run it.
+    refs: [features/stealth_test.go]
+    tags: [tests, v8]
