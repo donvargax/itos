@@ -2933,7 +2933,7 @@ items:
     refs: [features/follow.feature]
 
   - id: p1-follow-reopen
-    title: itos follow reopen, a closed thread back among the open ones
+    title: itos followup reopen reopens a closed thread
     phase: 1
     owner: donvargax
     status: todo
