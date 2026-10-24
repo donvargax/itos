@@ -13422,8 +13422,8 @@ items:
   - id: bug-129
     title: work done says nothing of a closing slice's Examples blocks still tagged @wip
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: bug
     why: >
