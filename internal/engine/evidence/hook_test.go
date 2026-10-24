@@ -231,6 +231,19 @@ func TestACapturesTailIsTheEndOfItsOutput(t *testing.T) {
 	if got, cut := short.text(); got != "short" || cut {
 		t.Errorf("a short output: %q, cut %v", got, cut)
 	}
+	closed := newCapture(Request{})
+	if _, err := closed.w.Write([]byte("lost")); err != nil {
+		t.Fatal(err)
+	}
+	if err := closed.file.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if got, cut := closed.text(); got != "" || cut {
+		t.Errorf("an output file that cannot be read: %q, cut %v", got, cut)
+	}
+	if _, err := os.Stat(closed.file.Name()); err == nil {
+		t.Error("the unreadable output file is left")
+	}
 	var log strings.Builder
 	verbose := newCapture(Request{Verbose: true, Log: &log})
 	if _, err := verbose.w.Write([]byte("seen")); err != nil {
