@@ -13502,3 +13502,16 @@ items:
       scenarios failed for a reason that is not theirs. tools/bin/itos could build with git's
       repository variables cleared (GIT_DIR, GIT_INDEX_FILE, GIT_WORK_TREE and the like) or with
       -buildvcs set from its own checkout, so a rebuild never depends on the git that called it.
+
+  - id: p1-evidence-store-housekeeping
+    title: Remove old unfinished temporary folders and quarantined entries from the evidence store
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Slice-170 quarantines a broken record to <key>.<reason>-<timestamp> and ignores a
+      .tmp-<key>-<unique> folder a killed writer left, but nothing ever removes either, so a store
+      only grows. Decide what removes them (age, count, a command) and keep it off the lookup path,
+      which takes no lock.
