@@ -91,11 +91,13 @@ const (
 
 // write makes the record of a key: in a temporary folder of the store, its
 // files synced and the marker last, then renamed to the key's folder, which
-// is never overwritten. A rename that fails judges what is at the key: a
-// whole record is kept as it is and this one is dropped (placed false, kept
-// the record that is there), and
-// anything else is quarantined, after which the rename is tried once more.
-// What cannot be judged or moved aside is an error, and no record is made.
+// is never overwritten. What is at the key is judged before the rename, since
+// an OS may let a rename replace a file, and again when the rename fails,
+// since another writer may have got there between: a whole record is kept as
+// it is and this one is dropped (placed false, kept the record that is
+// there), and anything else is quarantined, after which the rename is tried
+// once more. What cannot be judged or moved aside is an error, and no record
+// is made.
 func (e *Engine) write(ctx context.Context, key string, b bound, res Result) (placed bool, kept record, err error) {
 	root, err := e.dir(ctx)
 	if err != nil {
@@ -122,19 +124,30 @@ func (e *Engine) write(ctx context.Context, key string, b bound, res Result) (pl
 		}
 	}
 	final := filepath.Join(root, key)
+	if _, taken := os.Lstat(final); taken == nil {
+		if kept, whole, err := e.settle(ctx, root, key); whole || err != nil {
+			return false, kept, err
+		}
+	}
 	if rename(tmp, final) == nil {
 		return true, record{}, nil
 	}
-	if rec, ok := e.lookup(ctx, key); ok {
-		return false, rec, nil
-	}
-	if err = e.quarantine(root, key); err != nil {
-		return false, record{}, err
+	if kept, whole, err := e.settle(ctx, root, key); whole || err != nil {
+		return false, kept, err
 	}
 	if err = rename(tmp, final); err != nil {
 		return false, record{}, err
 	}
 	return true, record{}, nil
+}
+
+// settle judges what is at the key's place: a whole record is returned as it
+// is, and anything else is quarantined, which is an error when it cannot be.
+func (e *Engine) settle(ctx context.Context, root, key string) (kept record, whole bool, err error) {
+	if rec, ok := e.lookup(ctx, key); ok {
+		return rec, true, nil
+	}
+	return record{}, false, e.quarantine(root, key)
 }
 
 // quarantine renames what is at the key's place aside, to

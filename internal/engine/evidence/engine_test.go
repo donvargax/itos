@@ -389,31 +389,53 @@ func TestADamagedRecordIsQuarantinedAndRerecorded(t *testing.T) {
 			return errors.Join(os.RemoveAll(dir), os.Mkdir(dir, 0o700), os.WriteFile(filepath.Join(dir, "other"), nil, 0o600))
 		}, "markerless"},
 	} {
-		t.Run(name, func(t *testing.T) {
-			r := newRig(t)
-			first := r.Run(t.Context(), r.request("true", config.Evidence{}))
-			root := filepath.Join(r.store.root, Folder)
-			if err := c.damage(filepath.Join(root, first.Info.Key)); err != nil {
-				t.Fatal(err)
+		for _, renames := range []string{"as Unix renames", "as Windows renames over a file"} {
+			t.Run(name+" "+renames, func(t *testing.T) {
+				if strings.Contains(renames, "Windows") {
+					replacesFiles(t)
+				}
+				r := newRig(t)
+				first := r.Run(t.Context(), r.request("true", config.Evidence{}))
+				root := filepath.Join(r.store.root, Folder)
+				if err := c.damage(filepath.Join(root, first.Info.Key)); err != nil {
+					t.Fatal(err)
+				}
+				again := r.Run(t.Context(), r.request("true", config.Evidence{}))
+				if again.Info.Hit || !again.Info.Recorded || again.Info.Reason != "" || !again.OK {
+					t.Errorf("%+v", again)
+				}
+				aside := first.Info.Key + "." + c.reason + "-20261024T010203.000000Z"
+				if _, err := os.Lstat(filepath.Join(root, aside)); err != nil {
+					t.Errorf("the damaged record is not quarantined as %s: %v", aside, err)
+				}
+				if got := r.records(t); len(got) != 1 || got[0] != first.Info.Key {
+					t.Errorf("records %v", got)
+				}
+				if third := r.Run(t.Context(), r.request("true", config.Evidence{})); !third.Info.Hit {
+					t.Errorf("the record made after the quarantine is not found: %+v", third)
+				}
+				if left, _ := filepath.Glob(filepath.Join(root, ".tmp-*")); len(left) != 0 {
+					t.Errorf("left %v", left)
+				}
+			})
+		}
+	}
+}
+
+// replacesFiles makes rename as Windows renames (MoveFileEx replacing the
+// destination): a regular file at the destination is replaced, where Unix
+// refuses to rename a folder onto it.
+func replacesFiles(t *testing.T) {
+	t.Helper()
+	was := rename
+	t.Cleanup(func() { rename = was })
+	rename = func(from, to string) error {
+		if info, err := os.Lstat(to); err == nil && info.Mode().IsRegular() {
+			if err := os.Remove(to); err != nil {
+				return err
 			}
-			again := r.Run(t.Context(), r.request("true", config.Evidence{}))
-			if again.Info.Hit || !again.Info.Recorded || again.Info.Reason != "" || !again.OK {
-				t.Errorf("%+v", again)
-			}
-			aside := first.Info.Key + "." + c.reason + "-20261024T010203.000000Z"
-			if _, err := os.Lstat(filepath.Join(root, aside)); err != nil {
-				t.Errorf("the damaged record is not quarantined as %s: %v", aside, err)
-			}
-			if got := r.records(t); len(got) != 1 || got[0] != first.Info.Key {
-				t.Errorf("records %v", got)
-			}
-			if third := r.Run(t.Context(), r.request("true", config.Evidence{})); !third.Info.Hit {
-				t.Errorf("the record made after the quarantine is not found: %+v", third)
-			}
-			if left, _ := filepath.Glob(filepath.Join(root, ".tmp-*")); len(left) != 0 {
-				t.Errorf("left %v", left)
-			}
-		})
+		}
+		return was(from, to)
 	}
 }
 
@@ -464,6 +486,30 @@ func TestARenameThatFailsKeepsAWholeRecordAtTheKey(t *testing.T) {
 	}
 	if again := r.Run(t.Context(), r.request("exit 2", config.Evidence{})); !again.Info.Hit || again.Code != 2 {
 		t.Errorf("%+v", again)
+	}
+}
+
+// A whole record found at the key before the rename is kept without trying
+// the rename, whatever an OS would let it replace.
+func TestAWholeRecordAtTheKeyBeforeTheRenameIsKept(t *testing.T) {
+	other := newRig(t)
+	first := other.Run(t.Context(), other.request("exit 2", config.Evidence{}))
+	r := newRig(t)
+	root := filepath.Join(r.store.root, Folder)
+	renames := 0
+	was, wasTemp := rename, mkdirTemp
+	t.Cleanup(func() { rename, mkdirTemp = was, wasTemp })
+	rename = func(string, string) error { renames++; return nil }
+	mkdirTemp = func(dir, pattern string) (string, error) {
+		must(t, os.CopyFS(root, os.DirFS(filepath.Join(other.store.root, Folder))))
+		return os.MkdirTemp(dir, pattern)
+	}
+	o := r.Run(t.Context(), r.request("exit 2", config.Evidence{}))
+	if renames != 0 || o.Info.Reason != ReasonAlreadyRecorded || o.Info.Recorded || o.Info.Key != first.Info.Key {
+		t.Errorf("%d renames: %+v", renames, o)
+	}
+	if left, _ := filepath.Glob(filepath.Join(root, ".tmp-*")); len(left) != 0 {
+		t.Errorf("left %v", left)
 	}
 }
 
