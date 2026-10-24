@@ -248,6 +248,75 @@ Feature: The work registry
     And its output says "bogus"
     And its output says "take, promote, done"
 
+  # Bug 124: bug 11's fix read --as=<handle>, and an empty handle, --as= or
+  # --as '' (what --as "$UNSET" passes), was taken as no --as at all, so the
+  # session fell back to the identity provider and was proposed whoever gh
+  # is signed in as, exit 0: bug 11's failure mode, another person's work
+  # printed as the session's. An empty handle is refused as --as with none
+  # is (exit 2), before the provider is asked. The scratch config names no
+  # work.identity, so the provider is github; with two people it asks gh,
+  # signed in as ana, so a fallback says "Working for ana." and proposes
+  # ana's slice-8.
+  @ID-WORK-145 @bug-124 @wip
+  Scenario Outline: work refuses an empty --as rather than asking who the session is
+    Given the people file lists "ana" and "bo"
+    And a gh on the PATH signed in as "ana"
+    And the work registry has the item "slice-8" owned by "ana" with the status "todo"
+    When itos runs "work <empty handle>"
+    Then itos exits with code 2
+    And its output says "--as"
+    And its output does not say "slice-8"
+
+    Examples:
+      | empty handle |
+      | --as=        |
+      | --as ''      |
+
+  # Bug 124: work take and work give-back read --as as every registry
+  # command reads its flags, each with a value, so an empty one is refused
+  # (exit 2) today; they must keep refusing it once the proposal does. The
+  # people file the scratch repository starts with lists only someone, who
+  # owns slice-9 in progress: a take that fell back to who the people make
+  # the session would change nothing and exit 0, a give-back would set it
+  # todo.
+  @ID-WORK-146 @bug-124 @guard @wip
+  Scenario Outline: work take and work give-back refuse an empty --as, writing nothing
+    Given the work registry has the item "slice-9" owned by "someone" with the status "doing"
+    When itos runs the command line "<command>"
+    Then itos exits with code 2
+    And its output says "--as"
+    And the registry is unchanged
+
+    Examples:
+      | command                                         |
+      | work take slice-9 --as=                         |
+      | work give-back slice-9 --why 'Blocked.' --as '' |
+
+  # Bug 124: work check [<file>] judges one registry, the config's or the
+  # file named, and its --json is that one file's, but it judged its first
+  # argument and dropped the rest: work check a.yaml b.yaml said a.yaml was
+  # sound and exited 0, b.yaml never read. A second file is a usage error
+  # (exit 2) naming it, as work show refuses a second id; judging several
+  # was never promised and would change --json's shape. plans/other.yaml is
+  # not there, so judged it would exit 1 and ignored it exits 0. The words
+  # naming it are new.
+  @ID-WORK-147 @bug-124 @wip
+  Scenario: work check refuses a second file rather than ignoring it
+    Given the work registry at "plans/work.yaml" has the item "T-001" with the status "doing"
+    When itos runs "work check plans/work.yaml plans/other.yaml"
+    Then itos exits with code 2
+    And its output says "plans/other.yaml"
+
+  # Bug 124: the one file work check is named is still the one judged. No
+  # scenario named a file before; work.registry is not set, so only the
+  # name reaches plans/work.yaml.
+  @ID-WORK-148 @bug-124 @guard @wip
+  Scenario: work check judges the one file it is named
+    Given the work registry at "plans/work.yaml" has the item "T-001" with the status "doing"
+    When itos runs "work check plans/work.yaml"
+    Then itos exits with code 0
+    And its output says "plans/work.yaml: sound"
+
   # Bug 14, found by slice 54's post-landing review: work edit could not
   # replace a flow list the formatter had wrapped over several lines (T-073's
   # refs on this repository's registry), could not empty a block list, and

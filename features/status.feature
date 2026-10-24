@@ -326,3 +326,23 @@ Feature: itos status, where the work stands
     And its output says "https://ci.example/runs/1"
     And its output does not say "(public)"
     And its output does not say "(private)"
+
+  # Bug 124: status reads --as as every flag with a value is read, so an
+  # empty one, --as= or --as '' (what --as "$UNSET" passes), is refused
+  # (exit 2) today, while work's proposal took it for no --as and fell back
+  # to the identity provider. It must keep refusing it once work is fixed.
+  # The people file the scratch repository starts with, and its clone holds,
+  # lists only someone, who owns slice-9 in progress: a status that fell
+  # back to who the people make the session would print it, exit 0.
+  @ID-STATUS-27 @bug-124 @guard @wip
+  Scenario Outline: status refuses an empty --as rather than asking who the session is
+    Given the work registry has the item "slice-9" owned by "someone" with the status "doing"
+    When itos runs "status <empty handle>"
+    Then itos exits with code 2
+    And its output says "--as"
+    And its output does not say "slice-9"
+
+    Examples:
+      | empty handle |
+      | --as=        |
+      | --as ''      |
