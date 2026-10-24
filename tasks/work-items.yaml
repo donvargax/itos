@@ -2630,7 +2630,7 @@ items:
     phase: 1
     owner: donvargax
     status: todo
-    depends_on: [slice-53]
+    depends_on: [slice-53, p1-typed-items]
     kind: idea
     why: >
       Found by slice 53's agent: a slice with no scenario tagged @slice-<n> passes done's scenario
@@ -2639,7 +2639,7 @@ items:
       none. done could say so (a note, or a refusal unless --no-scenarios), without breaking
       @ID-WORK-18's promise as released.
     refs: [internal/cli/workdone.go, features/work.feature]
-    tags: [work, v8]
+    tags: [work, v9]
 
   - id: T-080
     title: The conformance runner runs on a PATH of its own, as the help tests now do
