@@ -8930,7 +8930,7 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: [slice-143]
+    depends_on: [slice-143, p1-typed-items]
     kind: slice
     why: >
       Was p1-work-done-absorbed-idea.
@@ -8940,7 +8940,7 @@ items:
       drops every absorbed idea so too ('Became T-165', 'Became bug-110'). work done <idea> --by
       <item>, accepted once that item is done, records the idea done by it, and work show lists it
       under that item.
-    tags: [work, v8]
+    tags: [work, v9]
     refs: [internal/cli/workdone.go, internal/work/write.go, internal/work/registry.go, internal/work/show.go, features/work.feature]
 
   - id: slice-150
