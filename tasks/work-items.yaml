@@ -3060,19 +3060,9 @@ items:
     title: config check's message for an unknown footer source names registry
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: []
     kind: idea
-    why: >
-      Found by slice 63's agent: config-footer-source still says a source "is ledger, text or {
-      tests: <kind> }", though registry is one now. The message is left as released because a
-      corpus case of v2.20.0 pins it word for word (config.yaml, "names that refer to nothing") and
-      a config error's words are judged by the previous-release check, so changing it is a breaking
-      change; only the fix names registry. Fold it into the next breaking change of config check's
-      messages, or reword it in a fix naming that case in Changes.
-
-      Decision 35 (2026-10-06): once T-100 lands a config error's words are no longer judged, so a
-      fix rewords this message with no Changes footer.
     tags: [config, v8]
 
   - id: T-083
