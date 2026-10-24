@@ -141,3 +141,49 @@ Feature: The git shim, git commit and git push as itos's in an itos repository
     When git runs "add notes.md"
     Then git exits with code 0
     And the file "notes.md" is staged
+
+  # Bug 128: git-shim --help says install replaces a link to another itos,
+  # yet shim.LinksItos (internal/shim/install.go) read only symbolic links,
+  # so a git that is a hard link to another itos (what install makes on
+  # Windows when symbolic links are refused, and what an upgraded itos.exe
+  # leaves behind as a different file) was refused by install, uninstall and
+  # init --git-shim-dir alike. LinksItos's other becomes git.IsItos (bug 45's
+  # check: a symbolic link named itos, or a Go binary built as itos, read and
+  # never run), so a hard link or a copy of another itos is another itos;
+  # anything else is still refused. The other itos is a stamped build
+  # (stampedItos) copied into the scenario's folder first, so the hard link
+  # never reaches the shared stamped cache and stays on one filesystem; the
+  # program that is not itos is a script, which has no build information.
+  # "shim/git" is git.exe on Windows: every step naming the link reads it
+  # through programPath, as runsItos does (the file steps do not, so a
+  # removed link is "no git is left in", not "the file … does not exist").
+  @ID-SHIM-16 @bug-128 @wip
+  Scenario: install replaces a git that is a hard link to another itos
+    Given "shim/git" is a hard link to another itos
+    When itos runs "git-shim install --dir shim --json"
+    Then itos exits with code 0
+    And the output's JSON field "action" is "replaced"
+    And "shim/git" runs itos
+    And the other itos is unchanged
+
+  @ID-SHIM-17 @bug-128 @wip
+  Scenario: uninstall removes a git that is a hard link to another itos
+    Given "shim/git" is a hard link to another itos
+    When itos runs "git-shim uninstall --dir shim --json"
+    Then itos exits with code 0
+    And the output's JSON field "action" is "removed"
+    And no git is left in "shim"
+    And the other itos is unchanged
+
+  @ID-SHIM-18 @bug-128 @wip
+  Scenario Outline: A git that is a hard link to a program that is not itos is still refused
+    Given "shim/git" is a hard link to a program that is not itos
+    When itos runs "git-shim <command> --dir shim --json"
+    Then itos exits with code 1
+    And the output's JSON field "action" is "refused"
+    And "shim/git" is still that program
+
+    Examples:
+      | command   |
+      | install   |
+      | uninstall |
