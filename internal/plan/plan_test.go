@@ -555,3 +555,23 @@ ci:
 		}
 	}
 }
+
+// A step that runs a kind of named tests takes the kind's whole run as its
+// command, and has none when the kind declares none: config validation
+// refuses such a step, so stepOf is given the config directly.
+func TestAStepOfTestsTakesTheKindsWholeRun(t *testing.T) {
+	cfg := &config.Loaded{}
+	whole := "e2e"
+	var withWhole, without config.Kind
+	withWhole.Run.Whole = &whole
+	cfg.Tests = config.Ordered[config.Kind]{
+		Keys:   []string{"scenario", "unit"},
+		Values: map[string]config.Kind{"scenario": withWhole, "unit": without},
+	}
+	for kind, want := range map[string]string{"scenario": "e2e", "unit": "", "missing": ""} {
+		step := stepOf(cfg, config.Step{Tests: &kind})
+		if step.Command != want || step.Tests != kind {
+			t.Errorf("tests: %s: command %q, tests %q, want command %q", kind, step.Command, step.Tests, want)
+		}
+	}
+}

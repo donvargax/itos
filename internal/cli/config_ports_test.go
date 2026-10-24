@@ -28,7 +28,7 @@ func TestConfigPortsBindTheRealCode(t *testing.T) {
 	if code, err := runConfig([]string{"get", "hooks.bin"}, Out{Stdout: &stdout}); code != 0 || err != nil || stdout.String() != "go run ./cmd/itos\n" {
 		t.Errorf("runConfig get hooks.bin = %d, %v, stdout %q", code, err, stdout.String())
 	}
-	if _, err := runConfig([]string{"nope"}, Out{}); err == nil || err.Error() != "unknown command: config nope" {
-		t.Errorf("runConfig nope = %v, want the usage error", err)
+	if code, err := runConfig([]string{"nope"}, Out{}); code != 0 || err == nil || err.Error() != "unknown command: config nope" {
+		t.Errorf("runConfig nope = %d, %v, want 0 and the usage error", code, err)
 	}
 }

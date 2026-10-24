@@ -180,7 +180,26 @@ func TestARunThatNeverAppearsTimesOut(t *testing.T) {
 	look := func(string) (providers.Run, bool, error) { return providers.Run{}, false, nil }
 	var stdout, stderr strings.Builder
 	w := watchRun(watchConfig(0, 0.05), providers.Watcher{Look: look}, "abc", "", Out{Stdout: &stdout, Stderr: &stderr})
-	if w.Code != exitTemporary || w.Outcome != "timeout" || !strings.Contains(stderr.String(), "has not appeared") {
+	if w.Code != exitTemporary || w.Outcome != "timeout" || !strings.Contains(stderr.String(), "has not appeared") ||
+		strings.Contains(stderr.String(), "the last look failed") {
+		t.Fatalf("code %d, outcome %s\n%s", w.Code, w.Outcome, stderr.String())
+	}
+}
+
+// A timeout names the last look when it failed for a temporary reason and the
+// watch looked past it, and says nothing of a look when none failed.
+func TestATimeoutNamesTheLastLookThatFailed(t *testing.T) {
+	noSleep(t)
+	looks := 0
+	look := func(string) (providers.Run, bool, error) {
+		if looks++; looks == 1 {
+			return providers.Run{}, false, kind.Wrap(kind.Temporary, errors.New("502"))
+		}
+		return providers.Run{}, false, nil
+	}
+	var stdout, stderr strings.Builder
+	w := watchRun(watchConfig(0, 0.05), providers.Watcher{Look: look}, "abc", "", Out{Stdout: &stdout, Stderr: &stderr})
+	if w.Code != exitTemporary || w.Outcome != "timeout" || !strings.Contains(stderr.String(), "itos: the last look failed: 502\n") {
 		t.Fatalf("code %d, outcome %s\n%s", w.Code, w.Outcome, stderr.String())
 	}
 }

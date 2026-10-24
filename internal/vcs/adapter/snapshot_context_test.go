@@ -3,6 +3,7 @@ package adapter
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -340,6 +341,15 @@ func TestHead(t *testing.T) {
 	}
 	if head, err := g.Head(t.Context()); err == nil {
 		t.Errorf("a HEAD at no object is %q", head)
+	}
+}
+
+// A git that exits 0 and prints no commit has not named one: Head goes on to
+// ask whether HEAD is a branch, as it does of a git that exits 1.
+func TestHeadIsNoCommitWhenGitPrintsNone(t *testing.T) {
+	useFakeGit(t, " ")
+	if head, err := (Git{Platform: runtime.GOOS}).Head(t.Context()); err != nil || head != "unborn" {
+		t.Errorf("HEAD = %q, %v, want unborn", head, err)
 	}
 }
 
