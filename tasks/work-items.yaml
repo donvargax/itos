@@ -5161,6 +5161,10 @@ items:
     why: >
       The user, 2026-10-06: pr mode can pair with GitHub for itos items, as the inbox already turns
       issues into items. Kept apart from p1-pr-mode so the switch stays small.
+
+      From slice-174's spec (2026-10-24), more urgent: from main, an item with no commit of its own
+      is judged by HEAD and can close before its pull request merges; run from the item's branch,
+      work done waits for a run that never comes.
     tags: [push, v9]
 
   - id: T-109
