@@ -13334,3 +13334,20 @@ items:
       runs; check other steps that write an executable and run it.
     refs: [features/stealth_test.go]
     tags: [tests, v8]
+
+  - id: p1-evidence-cap-test-windows-timing
+    title: TestAMissRunsUnderTheCapAndIsKeyedByTheOwnTimeout does not race a 50 ms cap on Windows
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      CI run 40060520504 (29804acf, 2026-10-24), windows: hook_test.go:116, 'a run under the cap'
+      with echo done timed out (TimedOut true, output done) under the 0.05 s cap the test also uses
+      to stop 'sleep 5': starting sh on a Windows runner can take longer than 50 ms. Use two caps, a
+      short one for the run it stops and one far above a shell's start (several seconds, still under
+      the sleep) for the run that must finish, so the test asserts the cap's rule, not a runner's
+      speed. From slice-171 (beae0469).
+    refs: [internal/engine/evidence/hook_test.go]
+    tags: [tests, evidence, v8]
