@@ -13444,20 +13444,9 @@ items:
     title: A git that fails reads as changes no commit holds
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: bug
-    why: >
-      Was p1-uncommitted-git-failure. Found by slice 138's unit tests: uncommitted
-      (internal/cli/workwrite.go) treats an error from git status as a file with changes, so a git
-      that cannot run makes every registry writer refuse with '<file> has changes no commit holds',
-      naming the wrong cause. It should report git's failure as the error it is.
-
-      From its spec (2026-10-24): the check is Files.uncommitted in
-      internal/store/tracker/adapter/files.go (err != nil || len(status) != 0 || tracked != there),
-      shared by every registry writer through Files.Ready. A git that runs and fails on status, or
-      fails every command, gives the same wrong refusal; Tracked (ls-files --error-unmatch through
-      Succeeds) also reads git's failure as untracked.
     refs: [internal/store/tracker/adapter/files.go, features/work.feature]
 
   - id: bug-131
