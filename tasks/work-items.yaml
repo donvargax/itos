@@ -13404,3 +13404,11 @@ items:
       an already superseded record overwrites its link (cli/ask.go:546) instead of refusing, so the
       chain of records loses the earlier successor.
     refs: [internal/cli/ask.go]
+
+  - id: T-298
+    title: Settle the five survivors of Nightly 40091179284
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task

@@ -4589,3 +4589,19 @@
     so the test asserts the cap's rule, not a runner's speed (from slice-171, beae0469). The checks
     run the two tests; they pass before the fix too, since both failures are timing races, so the
     report says how each change removes its race.
+
+- id: T-298
+  type: test
+  title: Settle the five survivors of Nightly 40091179284
+  why: >
+    Nightly 40091179284 (issue #29) left five survivors: internal/engine/evidence/tail.go:15:16
+    tail#Write (> to >=), internal/plan/plan.go:106:43 stepOf (&& to ||),
+    internal/cli/config.go:18:10 runConfig (0 to 1), internal/engine/ciwatch/watch.go:201:15 Watch
+    (!= to ==) and internal/vcs/adapter/snapshot_context.go:21:47 Git#Head (&& to ||, bug-123's
+    code). Kill each with a test, or except it in itos-cc.yaml with a proof that holds, as 418ebdde
+    (T-290) wrote its three; an exception whose proof does not hold is a test instead. No production
+    change unless a survivor shows a real bug, which is reported, not fixed here. The next nightly
+    is the acceptance.
+  done_when:
+    - run: go test -count=1 ./internal/engine/evidence ./internal/plan ./internal/cli ./internal/engine/ciwatch ./internal/vcs/adapter
+      timeout: 600
