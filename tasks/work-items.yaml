@@ -13350,8 +13350,8 @@ items:
   - id: slice-171
     title: The commit-msg hook answers opted-in checks from records keyed by the staged snapshot (evidence records, A4)
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: [slice-169]
     kind: slice
     why: >
