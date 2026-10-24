@@ -5237,11 +5237,11 @@ items:
     tags: [cli, v8]
 
   - id: p1-bot-dependency-prs
-    title: Renovate dependency pull requests pass itos rules and merge themselves when CI is green
+    title: "This repository takes Renovate's dependency updates as itos-cc does: pull requests that pass itos rules and rebase-merge when green"
     phase: 1
     owner: null
     status: todo
-    depends_on: [p1-pr-mode]
+    depends_on: []
     kind: idea
     why: >
       the user wants dependency updates (Renovate, the user's choice, 2026-10-06; Dependabot in the
@@ -5267,6 +5267,19 @@ items:
       with itos.yaml (cooldown, commit types, rebase strategy). A Dependabot repository still needs
       the brief's default-branch workflow_run merge (no PR code checked out, least permissions, gh
       pr merge --match-head-commit, the latest run of every required workflow green).
+
+      The user, 2026-10-24: a Renovate config fixes it, no itos change and no PR mode needed;
+      itos-cc already does it (.github/renovate.json5, commits 31c87ae6, b4401105, 032b838e under
+      T-131 and T-142). Its setup: the owner's preset github>donvargax/renovate-config;
+      semanticCommits with semanticCommitType build (ci for github-actions and renovate-config), so
+      the types itos allows; commitTrailers ["Task: <task>"] naming a closed task, which still
+      validates (set top-level, as a packageRule appended it once per pass); automergeType pr and
+      automergeStrategy rebase, since GitHub's squash appends a Co-authored-by paragraph that pushes
+      the footer out of the trailer block; pinDigests for actions; groupName per dependency;
+      ignoreDeps for itos itself. Here ci.yml already runs on pull_request. Left to check when it is
+      done: deps-check's 7-day cooldown against the preset's minimumReleaseAge, and whether the
+      preset's own release (donvargax/renovate-config#6) lets the two strategy settings leave the
+      file.
     tags: [ci, v8]
 
   - id: T-111
