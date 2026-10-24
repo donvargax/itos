@@ -13477,3 +13477,20 @@ items:
       succeeds; LoadLocation("UTC") needs no zone database, which covers the scenario at no binary
       size, while a named zone would still need time/tzdata or ZONEINFO. Embedding tzdata is a
       separate call.
+
+  - id: bug-128
+    title: git-shim install and uninstall recognise a hard-linked itos as git
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: bug
+    why: >
+      Was p1-shim-install-hard-linked-itos. git-shim --help says install replaces a link to another
+      itos, yet LinksItos (internal/shim/install.go:38-48) reads only symbolic links, so a git that
+      is a hard link to another itos (what install makes on Windows when symbolic links are refused,
+      and what an upgraded itos.exe leaves behind as a different file) is refused by install,
+      uninstall and init. Bug 45 gave git.IsItos the build-information check that tells such a git.
+      The 2026-10-24 grooming moved it back to v8: the guided-commits plan keeps the shim
+      (docs/plans/guided-commits.md:21), so v9 keeps the fix.
+    refs: [internal/shim/install.go]
