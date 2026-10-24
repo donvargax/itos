@@ -13393,17 +13393,9 @@ items:
     title: A note time honours TZ on Windows, as @ID-FOLLOW-10 says it does
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: bug
-    why: >
-      Was p1-follow-note-time-zone-on-windows. Go takes the local zone from the OS on Windows and
-      ignores TZ, so followup show printed 2026-10-03 22:02 where @ID-FOLLOW-10 expects 05:02 under
-      TZ=UTC; the GitHub Windows runner is UTC and passes, every Windows machine west of it fails.
-      The 2026-10-24 grooming: a cheap fix may exist, honouring TZ on Windows when time.LoadLocation
-      succeeds; LoadLocation("UTC") needs no zone database, which covers the scenario at no binary
-      size, while a named zone would still need time/tzdata or ZONEINFO. Embedding tzdata is a
-      separate call.
 
   - id: bug-128
     title: git-shim install and uninstall recognise a hard-linked itos as git
