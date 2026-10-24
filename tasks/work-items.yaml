@@ -10968,18 +10968,9 @@ items:
     title: A followup note can supersede an earlier one, instead of the newest winning by convention
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: []
     kind: idea
-    why: >
-      The user, 2026-10-21: a correction or an updated plan is a new note, and readers must know the
-      newest wins. followup note --supersedes <n> links the new note to the one it replaces; show
-      and doc print the superseded note struck or folded under its replacement, and doc exports only
-      the standing ones unless --all. Notes stay append-only. Relates to p1-followup-state, which
-      keeps a live state over the notes.
-
-      Designed as a type of p1-typed-items' one record (the user, 2026-10-21), not as a command
-      group of its own; built after it, or as its pilot.
     tags: [followup, v9]
 
   - id: p1-risk-register
