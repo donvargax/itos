@@ -13383,6 +13383,14 @@ items:
       and noted an input path escaping the checkout. Resumed the same agent to fix forward; cause:
       the model (spec had the after: push rule).
 
+      slice-169 outcome: the same agent repaired forward in ~6 min with no help (after: push rule
+      with a push-state fake, the path guard, the package moved under internal/engine as a pure
+      rename); CI green (run 40047183647), released as v8.8.0; repair review approved (round 2,
+      $0.41). Bookkeeping slip: it filed the refactor under T-228, an old done task, rather than
+      asking for one. Verdict for this item: strong build and honest reporting; two misses the gates
+      caught (an environment-dependent rule and an architecture workaround). Review cycle cost:
+      $2.27 + $0.41.
+
   - id: slice-170
     title: "The local evidence store survives contention and damage: lock waits, stale locks, failed renames, corrupt or markerless records (evidence records, A2)"
     phase: 1
