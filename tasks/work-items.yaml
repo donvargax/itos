@@ -8162,7 +8162,7 @@ items:
       Fossil tickets and a taskmapper-shaped issue provider are the two needs that will reshape it,
       likely at the record level (list, take, done, drop) above or beside the file adapter, in v9.
     refs: [internal/work, internal/providers]
-    tags: [work, providers, v9]
+    tags: [work, providers, v8]
 
   - id: p2-pilot-mise
     title: Pilot mise in place of tools/bin/pinned, with the 7-day age rule kept
