@@ -6164,7 +6164,7 @@ items:
     tags: [proof]
 
   - id: p1-targeted-quality-evidence
-    title: CI requires fresh coverage, CRAP, Scrap and mutation evidence for changed code
+    title: Every push runs DRY, CRAP and Scrap over the changed code with proof they ran, their findings guidance only
     phase: 1
     owner: null
     status: todo
@@ -6252,6 +6252,15 @@ items:
       2026-10-23: the user asked whether DRY, CRAP and Scrap run; they do not, anywhere (the last
       local .metrics reports are from 2026-10-03). Mutation was built (the push proof, ADR-0057);
       this item's CRAP and Scrap half was not.
+
+      2026-10-23, the user: DRY, CRAP and Scrap run as part of the workflow, and the workflow
+      requires proof that they ran (fresh, for the changed code, not a stale report), but what they
+      find is guidance, never a refusal: no threshold, no block, the findings shown to the
+      implementing agent and the reviewer (and in the push and ci watch result) to act on by
+      judgement. They run nowhere today: the last local reports are from 2026-10-03. Mutation's half
+      was built (the push proof). Waits on itos-cc#28 for CRAP and Scrap of changed functions; until
+      then changed files. The proof that they ran fits an evidence record (ADR-0060 shape) the
+      lifecycle can check.
     refs:
       [
         itos.yaml,
