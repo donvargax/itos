@@ -9376,7 +9376,7 @@ items:
     title: Explain automatic wrapping of scenario-ID footers
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
     tags: [docs, v8]

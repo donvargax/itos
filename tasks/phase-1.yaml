@@ -1950,9 +1950,6 @@
     checks confirm the shipped guide still renders; semantic accuracy is a review criterion. The
     task is specification only until taken; its checks belong to normal automated acceptance, not an
     extra coordinator verification run.
-  done_when:
-    - run: tools/bin/itos guide commit
-    - run: go run ./tools/bin/conformance --bin tools/bin/itos --only tools/itos/conformance/guide.yaml
 
 - id: T-178
   type: docs
