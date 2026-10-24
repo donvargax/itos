@@ -9114,6 +9114,15 @@ items:
       Tests must exist and execute: T-288/T-289 use checked go-test discovery plus exact-name
       execution, not a source grep claiming functionality. Do not replace real feature/step
       assertions or weaken a gate as a shortcut to fewer runs.
+
+      2026-10-23 grooming, merged in p1-neighbor-checks-in-done-when (the user, 2026-10-14): the
+      neighbouring scenarios an item must not break are declared in its acceptance data (done_when)
+      so the gates select and run them, and the brief names the declaration and the gate that runs
+      it rather than telling an agent to run them by hand. With evidence records (slices 169 to 173)
+      and pre-push task checks (p1-evidence-pre-push) a declared check runs where the gate runs it,
+      answering a repeat from its record. Also absorbed p1-adopt-faster-feature-testing: the user
+      confirmed it was itos-cc's in-process model, which ADR-0059 adopts and
+      docs/plans/in-process-tier.md builds.
     refs: [internal/guide/brief.md, internal/guide/work.md, internal/guide/push.md, AGENTS.md, tools/bin/go-unit-tests, itos.yaml]
     tags: [tests, v8]
 
