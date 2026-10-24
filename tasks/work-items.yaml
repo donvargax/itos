@@ -3183,14 +3183,9 @@ items:
     title: itos work show says where the item is in the queue
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: [slice-66]
     kind: idea
-    why: >
-      Slice 66 puts the order of the work in the registry's queue, but work show, an item's reading
-      list, does not say whether the item is queued or where, and work list --json does not carry
-      the queue, so a reader of one item, or the plugin's titles, cannot see its place without
-      reading the YAML.
     refs: [internal/work/show.go]
     tags: [work, v8]
 
@@ -5294,17 +5289,9 @@ items:
     title: work show and work list print an item's tags
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: []
     kind: idea
-    why: >
-      Slice 97 shows tags beside the id in itos work and itos status only: work show prints refs but
-      not tags, and work list's columns leave them out, so an item's tags are seen there only
-      through --json or --tag.
-
-      T-150 (2026-10-10) also found no command prints the declared tags: its check read them with
-      config get work.tags and stripped the JSON. work list could name them, e.g. when --tag is
-      given one work.tags does not declare.
     tags: [work, v8]
 
   - id: p1-no-policy-text-tests
@@ -7119,27 +7106,9 @@ items:
     title: Dropping an idea already built frees the items that wait on it, as work done does
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: []
     kind: idea
-    why: >
-      On 2026-10-10 the backlog review dropped p1-conformance-http as already built, and work drop
-      refused it (work-drop-depended-on) because two ideas listed it in depends_on; each had to be
-      edited first. A drop whose reason is that the thing exists satisfies its dependents as done
-      would. Either work drop takes an option saying the item is built, which clears it from
-      dependents' depends_on in the same commit, or an idea found built is closed as done rather
-      than dropped. Grooming a large backlog meets this often.
-
-      Backlog review of 2026-10-10, batch 3: folds in p1-work-drop-check-scenarios: its scenarios
-      should also cover what slice 78 left to unit tests: dropped is a known status whatever
-      work.statuses lists, work check refuses an open item that depends on a dropped one, and work
-      drop removes an existing why.
-
-      2026-10-10, from slice-118: work drop a b, where b depends on a, is refused for a, while work
-      drop b a works, since each id is judged on the registry the ids before it left. Several ids
-      dropped together should be judged as one change: an item whose only live dependants are
-      dropped in the same command is free to drop, whatever the order the ids are named in. A
-      grooming merge drops chains like this often.
     tags: [work, v8]
 
   - id: p1-schema-contract-needs-declarations
@@ -8471,16 +8440,9 @@ items:
     title: work edit renames one ref across every item that names it, in one commit
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: []
     kind: idea
-    why: >
-      T-146 deleted four TypeScript programs under tools/bin; three ideas named two of them in their
-      refs, each beside other refs. work edit --refs replaces an item's whole list, and several ids
-      take the same list, so moving the three took three work edit calls, three commits, each list
-      retyped. A rename of one ref (old to new, on every item naming old, or on the ids given) would
-      be one call and one commit, and a file move would not leave refs naming a path that is gone,
-      which nothing checks today.
     refs: [internal/cli/workedit.go]
     tags: [work, v8]
 
@@ -9695,22 +9657,9 @@ items:
     title: Distinguish passing task checks from work-item completion in task output
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: []
     kind: idea
-    why: >
-      Additional #65 consumer comment (2026-10-15, runtime 8.4.0): a worker seeking a read-only
-      listing mistakenly ran task T-91, executing acceptance checks and seeing done T-91 while work
-      show still correctly reported doing. This is acknowledged consumer misuse, not unexpected
-      execution or a closure defect. slice-136 supplies the requested read-only check view.
-      Independently consider task report wording that clearly identifies check results and does not
-      imply registry closure; preserve task execution, exit codes and lifecycle gates. Source is the
-      issue comment and its captured-output claim; no new reproduction or independent check
-      execution was performed here.
-
-      #90 (8.5.0) reports the same: itos task printed done for a doing task whose checks passed. Its
-      side remark (checks that grep a runbook pass before the evidence exists) is
-      p1-task-signoff-check's.
     refs: [internal/cli/task.go, features/task.feature]
     tags: [work, v8]
 
@@ -12710,20 +12659,9 @@ items:
     title: A registry writer run right after another itos commit can read the registry as changed and refuse
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: []
     kind: idea
-    why: >
-      Seen three times on 2026-10-23 by the coordinator: a work queue or work edit run seconds after
-      another itos commit refused with tasks/work-items.yaml has changes no commit holds, and the
-      same command run again a moment later passed, git status clean both times. Suspects: the
-      pre-commit hook re-stages the file after dprint formats it, leaving the index stat racy so a
-      quick status reads it as changed, or itos compares file content with a stale index entry.
-      Reproduce with two registry writers back to back in a script.
-
-      Likely cause found the same day: bug-111's agent was editing files in the main checkout by
-      absolute path while the coordinator committed there (tasks/work-items.yaml showed as modified
-      once). Drop this idea if it never recurs once agents' sessions are moved into their worktrees.
     tags: [work]
 
   - id: p1-item-lifecycle
