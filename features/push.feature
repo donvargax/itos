@@ -214,23 +214,37 @@ Feature: itos push, the pull-rebase-push routine as one command
   # and the branch's own name, a stray remote branch in a repository that
   # pushes only to main, so the agent's take never reached main; under
   # Claude Code's Bash sandbox .git/config cannot be written, so the
-  # upstream cannot be set by hand either. Under trunk (push.mode trunk, or
-  # no push.mode, or no config), a branch with no upstream
-  # (branch.<name>.remote or .merge unset) goes to origin's default branch:
-  # the branch origin's HEAD names, asked of the remote as slice 174 finds
-  # main (git ls-remote --symref origin HEAD), after the no-remote check and
-  # before the fetch. It is fetched and rebased onto as an upstream is, and
-  # every line naming the upstream names it: Pushed <sha> to origin/main.
-  # The text also says that the branch has no upstream and that itos push
-  # --ref <branch> pushes it to its own name; --json's remote and branch are
-  # origin and that branch, no new key. itos push writes no upstream: each
-  # push asks the remote again, so it works where git config cannot be
-  # written. Unchanged: a branch with an upstream; push.mode pr, where an
-  # item's branch goes to its own name whatever its upstream says (slice
-  # 174); --tag and --ref, which ask for no default branch; and a remote
-  # with no branch at all, whose first push makes the branch's own name, as
-  # the corpus's no-upstream case does. Fails before the fix at the history
-  # step: today the commit goes to origin/worktree-agent-1 and main lacks it.
+  # upstream cannot be set by hand either. Under trunk (push.mode trunk, no
+  # push.mode, no config, or a config that cannot be read, as slice 174
+  # counts it), a branch with no upstream (branch.<name>.remote or .merge
+  # unset) goes to origin's default branch: the branch origin's HEAD names,
+  # asked of the remote as slice 174 finds main (git ls-remote --symref
+  # origin HEAD), after the no-remote check and before the fetch. It is
+  # fetched and rebased onto as an upstream is, and every line naming the
+  # upstream names it: Pushed <sha> to origin/main. One more line of the
+  # push's report says that the branch has no upstream and that itos push
+  # --ref <branch> pushes it to its own name; it goes where the push's
+  # other report lines go (run.go): on stdout beside the Pushed line, on
+  # stderr with a refusal (a rebase that stops), dropped by -q on a success,
+  # and left out by --json, whose remote and branch are origin and the
+  # default branch, no new key. itos push writes no upstream: each push
+  # asks the remote again, so it works where git config cannot be written.
+  # Unchanged: a branch with an upstream; push.mode pr, where an item's
+  # branch goes to its own name whatever its upstream says (slice 174);
+  # --tag and --ref, which ask for no default branch; and a remote with no
+  # branch at all, whose first push makes the branch's own name, as the
+  # corpus's no-upstream case does.
+  #
+  # The words the fix changes: the help's upstream rule (command.go, "else
+  # origin and the branch's own name") becomes origin's default branch, the
+  # empty remote's own name beside it; exit 3's list gains a remote whose
+  # HEAD names no branch it has, and --json's outcomes no-default-branch,
+  # unless slice 174 has added them; the corpus header's "origin and the
+  # branch's own name when there is none" (tools/itos/conformance/push.yaml)
+  # and its no-upstream case's name say the same; and doc.go's paragraph on
+  # the fetch gains the ls-remote, its no-upstream refusal staying as it is.
+  # Fails before the fix at the history step: today the commit goes to
+  # origin/worktree-agent-1 and main lacks it.
   @ID-PUSH-16 @bug-136 @wip
   Scenario: A branch with no upstream is rebased onto the remote's default branch and pushed to it, making no branch of its name
     Given the remote has gained the commit "chore: tidy the docs" touching "docs.md"
@@ -241,6 +255,7 @@ Feature: itos push, the pull-rebase-push routine as one command
     And the remote's branch ends with "chore: tidy the docs" then "feat: add the widget", with no merge commit
     And the remote has no branch "worktree-agent-1"
     And its output names the remote branch's head as the commit pushed
+    And its output says "itos push --ref worktree-agent-1"
 
   # The meeting itself: git worktree add -b with no start point makes the
   # branch at HEAD with no upstream, as Claude Code's isolation does. The
