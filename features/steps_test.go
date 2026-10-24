@@ -133,6 +133,7 @@ type scratchConfig struct {
 	comments          []string        // comment lines written after the pin's line
 	proof             *proofConfig    // proof.code (proof_test.go)
 	settings          []setting
+	extraYAML         []string // top-level YAML a step adds after every other key (pushmode_test.go)
 }
 
 // The built-in moves rule as the kind's range check: its name (moves when
@@ -436,6 +437,7 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	initializeCommitSteps(sc, w)
 	initializeOldGitSteps(sc, w)
 	initializePushSteps(sc, w)
+	initializePushModeSteps(sc, w)
 	initializeWatchSteps(sc, w)
 	initializeWatchFailureSteps(sc, w)
 	initializeShimSteps(sc, w)
@@ -1066,6 +1068,9 @@ func (w *world) writeConfig() error {
 			continue
 		}
 		b.WriteString(nested(path, s.written(), 0))
+	}
+	for _, text := range w.config.extraYAML {
+		b.WriteString(text)
 	}
 	return w.write(w.data("itos.yaml"), b.String())
 }

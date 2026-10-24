@@ -538,6 +538,11 @@ func (w *world) stillUncommitted(path string) error {
 
 // The subjects of the remote's main, newest first, and its merge commits.
 func (w *world) remoteHistory() (subjects, merges []string, err error) {
+	return w.remoteBranchHistory("main")
+}
+
+// The same for the remote's branch of the name.
+func (w *world) remoteBranchHistory(branch string) (subjects, merges []string, err error) {
 	read := func(args ...string) ([]string, error) {
 		cmd := exec.Command(git.Bin(runtime.GOOS), args...)
 		cmd.Dir = w.remote()
@@ -551,25 +556,15 @@ func (w *world) remoteHistory() (subjects, merges []string, err error) {
 		}
 		return nil, nil
 	}
-	if subjects, err = read("log", "--format=%s", "main"); err != nil {
+	if subjects, err = read("log", "--format=%s", "refs/heads/"+branch); err != nil {
 		return nil, nil, err
 	}
-	merges, err = read("rev-list", "--merges", "main")
+	merges, err = read("rev-list", "--merges", "refs/heads/"+branch)
 	return subjects, merges, err
 }
 
 func (w *world) remoteEndsWith(older, newer string) error {
-	subjects, merges, err := w.remoteHistory()
-	if err != nil {
-		return err
-	}
-	if len(merges) > 0 {
-		return fmt.Errorf("the remote's main has merge commits %v:\n%s", merges, strings.Join(subjects, "\n"))
-	}
-	if len(subjects) < 2 || subjects[0] != newer || subjects[1] != older {
-		return fmt.Errorf("the remote's main does not end with %q then %q:\n%s", older, newer, strings.Join(subjects, "\n"))
-	}
-	return nil
+	return w.remoteBranchEndsWith("main", older, newer)
 }
 
 // The remote's main's newest commit has the header subject.
