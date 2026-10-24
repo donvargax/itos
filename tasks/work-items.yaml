@@ -13198,12 +13198,16 @@ items:
       itos work done runs the done task checks through judge.FirstFailure as the commit-msg hook
       did, with no evidence engine, so an opted-in check a hand run or the hook just recorded runs
       again at work done. Slice 171 made FirstFailure take an evidence engine through
-      check.Execution; bind one in internal/cli workPorts.FirstFailure (tree, key and refusal rules
-      as the hook). Not part of A4; the plan does not list it.
+      check.Execution; bind one in internal/cli workPorts.FirstFailure. Its tree is HEAD's, not the
+      index's (work done judges landed work), a miss run in a checkout of HEAD's tree, and a checkout
+      that cannot be made runs uncached in the working folder with reason snapshot-unusable, as a
+      hand run does, never the hook's exit 3. Not part of A4; the plan does not list it.
 
       2026-10-23 grooming, merged in p1-task-checks-once-at-done (#83): work done runs every
       done_when check, each under its timeout, refusing the close with the failure and its output
-      (#82), and the static/late split stops applying to done_when. #83's other ask, the commit-msg
+      (#82). q-103 (the person) keeps the static/late split: static checks run at work done through
+      the engine, late checks stay CI's and are named as left to CI, checked by their CI record once
+      p1-evidence-ci lands. #83's other ask, the commit-msg
       hook no longer running task checks, is answered by evidence records instead: the hook may run
       them, and a repeat answers from the record, so a hand run, the hook and work done each pay
       once.
