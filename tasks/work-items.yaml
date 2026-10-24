@@ -6063,6 +6063,9 @@ items:
       itself is host-agnostic and moves as is; what is missing is the seam, so this waits on #53019
       and lands with the plugin (p3-opencode-plugin)
     tags: [plugin]
+    deferred: >
+      Waits on anomalyco/opencode#53019, still open, and on p3-opencode-plugin (v9). 2026-10-24
+      grooming.
 
   - id: p1-work-spec-files
     title: An item's spec names the files it will touch, derived where it can be
