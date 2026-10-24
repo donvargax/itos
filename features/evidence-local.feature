@@ -35,8 +35,10 @@ Feature: An opted-in check reruns from a local record when nothing it ran on cha
   uncached in the working folder, as --working-tree would, its verdict and
   exit code unchanged: never exit 3. The commit-msg hook keeps its own
   exit 3 for the same failure (bug-112), since a commit's checks must judge
-  the staged tree or nothing. --working-tree runs as today, in the working
-  folder, nothing looked up or recorded. Which checks run, and how each is
+  the staged tree or nothing. itos task --working-tree runs as today, in
+  the working folder, nothing looked up or recorded. ci run takes no
+  --working-tree: it refuses the flag as an unknown flag, as today.
+  Which checks run, and how each is
   read (the ledger, the config, cost, timeout, run: or fails:), stay the
   working tree's, as today: only where an opted-in check runs and its key
   are new.
@@ -93,7 +95,9 @@ Feature: An opted-in check reruns from a local record when nothing it ran on cha
   # run the log does not gain, never one inferred from speed or wording.
   # The steps that judge the folder a run was in compare real paths, with
   # symlinks and short names resolved (macOS's /private/var, Windows's
-  # RUNNER~1). "The kept key" is the evidence key a --json run named.
+  # RUNNER~1). evidence-probe mark <path> logs its run the same way, writes
+  # <path> holding "mark" in the folder it runs in, and exits 0. "The kept
+  # key" is the evidence key a --json run named.
   Background:
     Given a repository whose ledger has the task "T-001"
     And the evidence probe is on PATH, logging its runs outside the repository
@@ -484,8 +488,7 @@ Feature: An opted-in check reruns from a local record when nothing it ran on cha
   # A3. --working-tree is today's run, kept for a check that must see the
   # working folder: it reads the unstaged edit there, looks nothing up and
   # records nothing, so each run runs. Its JSON is today's. Before the work
-  # the flag is unknown, exit 2. ci run takes --working-tree too, with the
-  # same meaning; no scenario here runs it.
+  # the flag is unknown, exit 2.
   @ID-EVID-20 @slice-169 @wip
   Scenario: --working-tree runs in the working folder, sees the unstaged edit and records nothing
     Given the staged file "tasks/phase-1.yaml" holding the lines:
@@ -754,3 +757,35 @@ Feature: An opted-in check reruns from a local record when nothing it ran on cha
     And its JSON's "tasks" has one entry whose "status" is "done"
     And the evidence probe ran 1 time
     And its JSON's evidence for the task "T-002" has "hit" true
+
+  # A3. Each missed check gets a checkout of its own, never one the
+  # invocation shares as the hook's checks share theirs (@ID-HOOKSNAP-07),
+  # so what one check writes never reaches another's run or record. T-001's
+  # check writes marker.txt where it runs; T-002's, a different check,
+  # looks for it. Before the work both run in the working folder, where the
+  # marker stays, and a shared checkout would keep it too, so the Then
+  # finding none fails.
+  @ID-EVID-29 @slice-169 @wip
+  Scenario: Each missed check runs in a checkout of its own, so one check's files never reach another's run
+    Given the staged file "tasks/phase-1.yaml" holding the lines:
+      """
+      - id: T-001
+        type: chore
+        title: Tidy
+        done_when:
+          - run: evidence-probe mark marker.txt
+            evidence: {}
+      - id: T-002
+        type: chore
+        title: Trim
+        done_when:
+          - run: evidence-probe 0 marker.txt
+            evidence: {}
+      """
+    And the committed file "input.txt" holding "one"
+    When itos runs "task T-001 T-002 --json"
+    Then itos exits with code 0
+    And the evidence probe ran 2 times
+    And the evidence probe's last run found no "marker.txt"
+    And the evidence probe's last run was in a disposable checkout under the git common dir's "itos/snapshots"
+    And the evidence store holds 2 complete records
