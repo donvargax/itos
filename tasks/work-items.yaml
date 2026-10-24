@@ -10476,7 +10476,7 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: []
+    depends_on: [p3-guard-replacement]
     kind: idea
     why: >
       T-190's agent (2026-10-21) followed the brief template's 'itos commit --item <item>' for a
@@ -10498,7 +10498,7 @@ items:
       carry Item: <idea> (commits.footers in_place_of), its done judged by the commit landing green;
       or the policy names which types may name an idea. The question to settle with the person:
       weigh that against keeping every gate change behind a task with a check.
-    tags: [commit, v8]
+    tags: [commit, v9]
 
   - id: p1-fix-deps-releases
     title: A fix(deps) commit that bumps what the binary links releases a patch without code or scenarios
