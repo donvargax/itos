@@ -41,7 +41,8 @@ func (r *pushRun) prMode(ctx context.Context) bool {
 	return true
 }
 
-// defaultBranch is main under pr: the branch the remote's HEAD names, which
+// defaultBranch is main under pr, and the branch a push with no upstream goes
+// to under trunk (trunkDefault): the branch the remote's HEAD names, which
 // the remote has. done, with the outcome reported, when the remote cannot be
 // asked (fetch-failed, by the kind of git's message) or answers without such
 // a branch (no-default-branch).
@@ -60,9 +61,21 @@ func (r pushRun) defaultBranch(ctx context.Context) (main string, a Answer, done
 			return main, Answer{}, false
 		}
 	}
-	return "", r.report(missing, "no-default-branch",
+	return "", r.noDefault(), true
+}
+
+// noDefault is the no-default-branch refusal (exit 3): under pr there is no
+// main to put the work behind; under trunk, a branch with no upstream has no
+// default branch to go to (r.cfg is set only under pr).
+func (r pushRun) noDefault() Answer {
+	if r.cfg == nil {
+		return r.report(missing, "no-default-branch",
+			fmt.Sprintf("itos push: %s has no upstream, and %s's HEAD names no branch %s has, so there is no default branch to push it to; nothing was fetched or pushed.", r.branch, r.remote, r.remote),
+			"Set the remote's default branch, then itos push again; or push the branch to its own name with itos push --ref "+r.branch+".")
+	}
+	return r.report(missing, "no-default-branch",
 		fmt.Sprintf("itos push: %s's HEAD names no branch %s has, so there is no main to put the work behind; nothing was fetched or pushed.", r.remote, r.remote),
-		"Set the remote's default branch, then itos push again."), true
+		"Set the remote's default branch, then itos push again.")
 }
 
 // askFailed is the fetch-failed outcome of a question put to the remote that

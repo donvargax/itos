@@ -13,8 +13,10 @@ Feature: push.mode pr, an item's work on its own branch merged by rebase, claims
   naming the key and both modes; config get push.mode prints trunk when the
   config leaves it out; the schema lists it (config.feature). Under trunk,
   with no config, or with a config that cannot be read, itos push is what it
-  was: it asks the remote's HEAD nothing, calls no gh and opens no pull
-  request (an unreadable config under pr is a later item).
+  was: it calls no gh and opens no pull request, and asks the remote's HEAD
+  only for a branch with no upstream, which goes to the remote's default
+  branch (bug-136, push.feature); an unreadable config under pr is a later
+  item.
 
   Under pr, itos push reads the config before it fetches. The remote is the
   branch's upstream's, else origin, as before. Main is the branch the
@@ -417,8 +419,9 @@ Feature: push.mode pr, an item's work on its own branch merged by rebase, claims
 
   # trunk is the default: with no push.mode, itos push is what it was and
   # GitHub is never asked for a pull request, whatever the branch is called.
-  # Where a branch with no upstream is pushed under trunk is bug-136's, not
-  # this scenario's. Passes today and must keep passing.
+  # A branch with no upstream goes to the remote's default branch under trunk
+  # (bug-136); this scenario's check is that gh is never called. Passes today
+  # and must keep passing.
   @ID-PUSHMODE-15 @slice-174 @guard
   Scenario: Without push.mode, a push from a branch named for an item calls no gh and opens no pull request
     Given a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"

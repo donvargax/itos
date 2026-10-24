@@ -2,8 +2,9 @@
 # command. Every argument but --no-wait, --tag and --ref is refused, a
 # forcing one saying why;
 # tracked files with uncommitted changes refuse it before anything is
-# fetched, untracked ones never; it rebases onto the upstream (origin and the
-# branch's own name when there is none) whatever pull.rebase says, leaves a
+# fetched, untracked ones never; it rebases onto the upstream (origin's default
+# branch when there is none, the branch's own name when origin has no branch)
+# whatever pull.rebase says, leaves a
 # rebase that stops for the person and pushes nothing; it pushes HEAD to the
 # upstream's branch alone, so a push refspec in the config sends nothing
 # else, not even a tag push.followTags would send, and a push the pre-push
@@ -80,7 +81,7 @@ cases:
       outcome: no-remote
       remote: origin
       branch: main
-  - name: with no upstream it pushes to origin's branch of the same name, untracked files no reason to refuse
+  - name: with no upstream and an origin with no branch it pushes to origin's branch of the same name, untracked files no reason to refuse
     argv: [push, --json]
     git:
       - commit: "chore: start"
@@ -99,6 +100,46 @@ cases:
       remote: origin
       branch: main
       commit: '{{sha.head}}'
+  - name: with no upstream it pushes to origin's default branch, the one its HEAD names, making no branch of its name
+    argv: [push, --json]
+    git:
+      - commit: "chore: start"
+        files: { README.md: "scratch\n" }
+      - run: git init -q --bare .git/origin.git && git -C .git/origin.git symbolic-ref HEAD refs/heads/trunk && git remote add origin .git/origin.git && git push -q origin main:trunk
+      - branch: tidy
+      - commit: "chore: more"
+        files: { notes.md: "more\n" }
+        label: head
+    exit: 0
+    files_after:
+      .git/origin.git/refs/heads/trunk: "{{sha.head}}\n"
+      .git/origin.git/refs/heads/tidy: null
+    git_config_after:
+      branch.tidy.remote: null
+      branch.tidy.merge: null
+    json:
+      schema: 1
+      ok: true
+      outcome: pushed
+      remote: origin
+      branch: trunk
+      commit: '{{sha.head}}'
+  - name: with no upstream and an origin whose HEAD names no branch it has it is refused, exit 3
+    argv: [push, --json]
+    git:
+      - commit: "chore: start"
+        files: { README.md: "scratch\n" }
+        label: head
+      - run: git init -q --bare .git/origin.git && git -C .git/origin.git symbolic-ref HEAD refs/heads/trunk && git remote add origin .git/origin.git && git push -q origin main
+    exit: 3
+    files_after:
+      .git/origin.git/refs/heads/main: "{{sha.head}}\n"
+    json:
+      schema: 1
+      ok: false
+      outcome: no-default-branch
+      remote: origin
+      branch: main
   - name: push --tag pushes the tag alone, to origin's tag of its name, the branch left where it was
     argv: [push, --tag, v1, --json]
     git:
@@ -126,7 +167,7 @@ cases:
     git:
       - commit: "chore: start"
         files: { README.md: "scratch\n" }
-      - run: git init -q --bare .git/origin.git && git remote add origin .git/origin.git && git push -q origin main
+      - run: git init -q --bare .git/origin.git && git -C .git/origin.git symbolic-ref HEAD refs/heads/main && git remote add origin .git/origin.git && git push -q origin main
     exit: 0
     json: { schema: 1, ok: true, outcome: nothing-to-push, remote: origin, branch: main }
   - name: the remote's commits are fetched and the branch rebased onto them before the push, whatever pull.rebase says

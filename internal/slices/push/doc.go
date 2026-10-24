@@ -21,7 +21,17 @@
 // pull.rebase cannot turn the pull into a merge and rebase.autostash cannot
 // pocket a change. ready refuses (exit 1) a rebase in progress, a conflict
 // left and tracked changes, untracked files being no reason to; then a
-// detached HEAD; with no upstream a missing origin exits 3. fetch runs git
+// detached HEAD; with no upstream a missing origin exits 3. Under trunk a
+// branch with no upstream then goes to origin's default branch (bug 136,
+// trunkDefault): the one the remote's HEAD names, asked as pr asks for main
+// (git ls-remote --symref, defaultBranch), before anything is fetched, and
+// fetched, rebased onto and pushed to as an upstream is, whether or not the
+// remote has a branch of the local name; a remote with branches and no such
+// default is refused, exit 3 (no-default-branch), while one with no branch at
+// all keeps the branch's own name, which the push makes. Nothing is written to
+// git's config: each push asks the remote again, and noUpstreamNote adds the
+// report's line saying the branch has no upstream and that --ref pushes it to
+// its own name (dropped by -q, left out by --json). fetch runs git
 // fetch --quiet --no-tags <remote> <ref> and takes FETCH_HEAD^{commit};
 // when it fails, git ls-remote --exit-code exiting 2 says the remote has no
 // such branch yet (a new branch: no rebase, the push creates it), and

@@ -144,6 +144,11 @@ func (h Handler) Handle(ctx context.Context, q Query, o Out) (Answer, error) {
 			return r.pushItem(ctx, branch, main), nil
 		}
 		onMain = true
+	} else if !set {
+		if a, done := r.trunkDefault(ctx, branch); done {
+			return a, nil
+		}
+		ref = "refs/heads/" + r.branch
 	}
 	onto, exists, failure, failed := r.fetch(ctx, remote, ref)
 	if failed {

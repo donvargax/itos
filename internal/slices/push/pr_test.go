@@ -560,8 +560,10 @@ func TestPushFromMainUnderPr(t *testing.T) {
 }
 
 // Trunk, the mode a config without push.mode has, and a config that cannot
-// be read push as they always did: from main or from a branch naming no
-// item, to the upstream's branch, calling no gh.
+// be read push as they always did: from main, which asks the remote's HEAD
+// nothing, to its upstream's branch, or from a branch naming no item, which
+// has no upstream and goes to the remote's default branch (bug 136), calling
+// no gh.
 func TestPushIsTrunkUnlessTheConfigSaysPr(t *testing.T) {
 	for name, set := range map[string]func(*fake){
 		"trunk":       func(f *fake) { f.cfg = loadedWith(t, "version: 1\npush: { mode: trunk }\n", nil) },
@@ -575,9 +577,12 @@ func TestPushIsTrunkUnlessTheConfigSaysPr(t *testing.T) {
 				f := prRepo(t)
 				set(f)
 				f.on(branch, mine)
-				f.headErr = errors.New("main is not asked")
+				if branch == "main" {
+					f.headErr = errors.New("main is not asked")
+				}
 				code, stdout, stderr, _ := call(t, f)
-				if code != 0 || len(f.pushed) != 1 || len(f.ghCalls) != 0 || !strings.HasPrefix(stdout, "Pushed ") && !strings.Contains(stderr, "no CI run watched") {
+				if code != 0 || len(f.pushed) != 1 || !strings.HasSuffix(f.pushed[0][0], ":refs/heads/main") || len(f.ghCalls) != 0 ||
+					!strings.HasPrefix(stdout, "Pushed ") && !strings.Contains(stderr, "no CI run watched") {
 					t.Errorf("exit %d, pushed %v\n%s%s", code, f.pushed, stdout, stderr)
 				}
 			})

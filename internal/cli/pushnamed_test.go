@@ -180,8 +180,9 @@ func TestPushNamedGitThatCannotStart(t *testing.T) {
 
 // The routine's own edges: a branch with no commit is nothing to push; with
 // no upstream and no origin there is nowhere to push, exit 3; with no
-// upstream but an origin, HEAD goes to origin's branch of its name; and once
-// it is there, there is nothing to push.
+// upstream but an origin with no branch, HEAD goes to origin's branch of its
+// name; and once it is there, and origin's HEAD names it, there is nothing to
+// push.
 func TestPushRoutineEdges(t *testing.T) {
 	gitConfigRepo(t, "version: 1\n")
 	standInHooks(t)
@@ -205,12 +206,12 @@ func TestPushRoutineEdges(t *testing.T) {
 		stderr != "itos push: main has no upstream and there is no remote origin to push to\n" {
 		t.Errorf("no remote: exit %d\n%s", code, stderr)
 	}
-	sh(`git init -q --bare .git/origin.git && git remote add origin .git/origin.git`)
+	sh(`git init -q --bare .git/origin.git && git -C .git/origin.git symbolic-ref HEAD refs/heads/main && git remote add origin .git/origin.git`)
 	if code, stdout, stderr := run("push", "--no-wait"); code != 0 || !strings.HasPrefix(stdout, "Pushed ") ||
 		originRef(t, "refs/heads/main") != gitLine(t, "rev-parse", "HEAD") {
 		t.Errorf("no upstream, an origin: exit %d\n%s%s", code, stdout, stderr)
 	}
-	if code, stdout, stderr := run("push"); code != 0 || stdout != "Nothing to push: main is at origin/main.\n" {
+	if code, stdout, stderr := run("push"); code != 0 || stdout != "Nothing to push: main is at origin/main.\nmain has no upstream, so itos push used origin/main; itos push --ref main pushes it to its own name.\n" {
 		t.Errorf("at origin: exit %d\n%s%s", code, stdout, stderr)
 	}
 }

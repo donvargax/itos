@@ -20,10 +20,12 @@ var Command = declare.Command{
        itos push [--tag <tag>]… [--ref <branch>]…
 
 The routine that ends a piece of work, after its commits: fetches the branch's
-upstream (branch.<name>.remote and branch.<name>.merge, else origin and the
-branch's own name), rebases the branch onto it with --no-autostash, so git's
-pull.rebase and rebase.autostash settings change nothing, checks that no
-rebase is in progress and no conflict is left, then pushes HEAD to the
+upstream (branch.<name>.remote and branch.<name>.merge, else origin's default
+branch, the one its HEAD names, or the branch's own name on an origin with no
+branch at all), rebases the branch onto it with
+--no-autostash, so git's pull.rebase and rebase.autostash settings change
+nothing, checks that no rebase is in progress and no conflict is left, then
+pushes HEAD to the
 upstream's branch in a separate step, the pre-push hook running as for any
 push. It refuses to start when tracked files have uncommitted changes (commit
 or stash them first; untracked files are no reason), when a rebase is in
@@ -42,7 +44,18 @@ which moves the hooks, and any other argument but --no-wait, --tag and
 --ref, and a push the remote or the hook refuses is reported, not retried. No
 tag goes with HEAD, whatever push.followTags says: tags go with --tag alone.
 Nothing to push is success. -q is git's --quiet and leaves out the success
-lines. Where itos is set up (a config is there), it refuses before anything
+lines.
+
+A branch with no upstream (a new branch of a linked worktree, say) goes to
+origin's default branch, the one origin's HEAD names (git ls-remote --symref,
+asked before anything is fetched), fetched and rebased onto as an upstream is;
+the report says that the branch has no upstream and that itos push --ref
+<branch> pushes it to its own name. An origin with branches whose HEAD names
+none it has is refused, exit 3, nothing fetched or pushed; one with no branch
+at all has no default to name, so the push makes the branch's own name. A
+remote branch of the local name changes nothing, and itos push never writes an
+upstream: each push asks the remote again, so it works where git's config
+cannot be written. Where itos is set up (a config is there), it refuses before anything
 is fetched, exit 3, when git would run none of its checks: the git config
 declares no pre-push hook of itos's (run itos hook install once in the
 clone), or, on a git that runs no hook its config declares (older than
@@ -108,8 +121,10 @@ the CI run waited for failed, or, under push.mode pr, work pushed to main or
 a branch that names no item; 2 an argument, or a core.hooksPath set by
 git -c; 3 no git repository, itos's pre-push hook that would not run, no
 upstream and no remote origin, a remote that is no repository or that git
-cannot find, a CI run not to be looked at, or, under push.mode pr, a remote
-with no main, no GitHub repository to name, or a pull request not opened; 75 a remote that cannot be
+cannot find, a CI run not to be looked at, a remote whose HEAD
+names no branch it has (for a branch with no upstream, or under push.mode pr),
+or, under push.mode pr, no GitHub repository to name or a pull request not
+opened; 75 a remote that cannot be
 reached (a connection refused or timed out, a host that does not resolve), a
 CI run not finished, a CI run cancelled with no newer run to follow, or
 GitHub's API failing; 70 a fetch, a read of the remote's tags or a push that
@@ -123,8 +138,8 @@ read from git's message; git's own exit code is never itos's.
         branch under push.mode pr, outcome one of pushed,
         nothing-to-push, uncommitted, rebase-in-progress, detached, no-remote,
         no-such-ref, tag-exists, fetch-failed (reading the remote's tags or
-        HEAD too), rebase-stopped, rebase-failed, push-failed, and under
-        push.mode pr work-on-main, not-item-branch, no-default-branch,
+        HEAD too), no-default-branch, rebase-stopped, rebase-failed,
+        push-failed, and under push.mode pr work-on-main, not-item-branch,
         no-github-repository, pull-request-failed;
         ci, run and superseded as itos ci watch's, when it waited`,
 	},

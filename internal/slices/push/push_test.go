@@ -211,6 +211,7 @@ func repo(t *testing.T) *fake {
 		Named:    map[string]string{"HEAD": mine, "refs/heads/main": mine},
 		OnBranch: "main",
 		Remote:   map[string]*vcsfake.Remote{"origin": {URL: "https://example.com/r.git", Refs: map[string]string{"refs/heads/main": up}}},
+		Tracking: map[string][2]string{"main": {"origin", "refs/heads/main"}},
 	}
 	return &fake{VCS: v, found: true, cfg: loaded(t, "version: 1\n"), git: map[string][]string{
 		"hook.itos-pre-push.command": {"itos hook pre-push"},
@@ -469,7 +470,7 @@ func TestPushRoutineEdges(t *testing.T) {
 		t.Errorf("no commit: exit %d\n%s%s", code, stdout, stderr)
 	}
 	f = repo(t)
-	f.Remote = nil
+	f.Remote, f.Tracking = nil, nil
 	if code, stdout, stderr, _ := call(t, f); code != missing || stdout != "" ||
 		stderr != "itos push: main has no upstream and there is no remote origin to push to\n" {
 		t.Errorf("no remote: exit %d\n%s%s", code, stdout, stderr)
@@ -929,5 +930,134 @@ func TestTouchesOnlyRegistry(t *testing.T) {
 	}
 	if short("abcdefghij") != "abcdefg" || short("abc") != "abc" {
 		t.Errorf("short")
+	}
+}
+
+// onNewBranch is repo with the clone on a new branch, tidy, at mine, which
+// has no upstream, and a remote whose HEAD names main.
+func onNewBranch(t *testing.T) *fake {
+	t.Helper()
+	f := repo(t)
+	f.Tracking, f.remoteHead = nil, "main"
+	f.on("tidy", mine)
+	return f
+}
+
+// The line a push from a branch with no upstream adds to its report (bug 136).
+const noUpstreamLine = "tidy has no upstream, so itos push used origin/main; itos push --ref tidy pushes it to its own name.\n"
+
+// A trunk push of a branch with no upstream is rebased onto the remote's
+// default branch, the one its HEAD names, and pushed to it, never making a
+// branch of the local name, and says so beside the Pushed line: not under
+// -q, not under --json, whose branch is the default branch; a branch of the
+// local name the remote has changes nothing. A remote with no branch, though
+// tags and notes it may have, has no default branch to name, and the push
+// makes the branch of the local name, saying nothing of an upstream. A remote
+// whose HEAD names no branch it has is refused before anything is fetched,
+// a remote that cannot be asked is not pushed to, and git's config is never
+// written.
+func TestPushWithNoUpstream(t *testing.T) {
+	f := onNewBranch(t)
+	code, stdout, stderr, _ := call(t, f)
+	head := f.head(t)
+	if code != 0 || stderr != "" || stdout != "Pushed "+head[:len(head)-1]+" to origin/main.\n"+noUpstreamLine {
+		t.Fatalf("exit %d\n%s%s", code, stdout, stderr)
+	}
+	if parents, _ := f.Parents(t.Context(), head); f.origin() != head || !reflect.DeepEqual(parents, []string{up}) ||
+		!reflect.DeepEqual(f.pushed, [][]string{{head + ":refs/heads/main"}}) || len(f.Remote["origin"].Refs) != 1 || len(f.git) != 2 {
+		t.Errorf("origin's main is %s, HEAD %s on %v, pushed %v, refs %v, git config %v", f.origin(), head, parents, f.pushed, f.Remote["origin"].Refs, f.git)
+	}
+	f = onNewBranch(t)
+	if code, stdout, stderr, _ := call(t, f, "-q"); code != 0 || stdout != "" || stderr != "" || len(f.pushed) != 1 {
+		t.Errorf("-q: exit %d\n%s%s", code, stdout, stderr)
+	}
+	f = onNewBranch(t)
+	code, stdout, stderr, _ = call(t, f, "--json", "--no-wait")
+	if r := reported(t, stdout); code != 0 || r.Outcome != "pushed" || r.Remote != "origin" || r.Branch != "main" || r.Commit != f.head(t) ||
+		strings.Contains(stdout, "upstream") || stderr != "" {
+		t.Errorf("--json: exit %d\n%s%s", code, stdout, stderr)
+	}
+
+	f = onNewBranch(t)
+	f.remoteHead = "develop"
+	f.Remote["origin"].Refs["refs/heads/develop"] = up
+	code, stdout, _, _ = call(t, f, "--json")
+	if r := reported(t, stdout); code != 0 || r.Branch != "develop" || f.Remote["origin"].Refs["refs/heads/develop"] != f.head(t) || f.origin() != up {
+		t.Errorf("the HEAD names develop: exit %d\n%s", code, stdout)
+	}
+	f = onNewBranch(t)
+	f.Remote["origin"].Refs["refs/heads/tidy"] = base
+	if code, _, _, _ := call(t, f); code != 0 || f.origin() != f.head(t) || f.Remote["origin"].Refs["refs/heads/tidy"] != base {
+		t.Errorf("a branch of its name on the remote: exit %d, origin's main %s", code, f.origin())
+	}
+
+	f = onNewBranch(t)
+	f.Remote["origin"].Refs = map[string]string{"refs/tags/v1": up, "refs/notes/itos": up}
+	f.remoteHead = ""
+	code, stdout, stderr, _ = call(t, f)
+	head = f.head(t)
+	if code != 0 || stderr != "" || stdout != "Pushed "+head[:len(head)-1]+" to origin/tidy.\n" || f.Remote["origin"].Refs["refs/heads/tidy"] != head {
+		t.Errorf("a remote with no branch: exit %d\n%s%s", code, stdout, stderr)
+	}
+
+	for name, c := range map[string]struct {
+		set     func(*fake)
+		code    int
+		outcome string
+	}{
+		"a HEAD naming no branch the remote has": {func(f *fake) { f.remoteHead = "trunk" }, missing, "no-default-branch"},
+		"no HEAD but branches":                   {func(f *fake) { f.remoteHead = "" }, missing, "no-default-branch"},
+		"a HEAD that cannot be read": {func(f *fake) { f.headErr = &vcsport.Failed{Failure: vcsport.Unreachable} }, temporary,
+			"fetch-failed"},
+		"branches that cannot be listed": {func(f *fake) { f.remoteHead, f.refsErr = "", &vcsport.Failed{} }, software, "fetch-failed"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			f := onNewBranch(t)
+			c.set(f)
+			code, stdout, stderr, _ := call(t, f, "--json")
+			if r := reported(t, stdout); code != c.code || r.Outcome != c.outcome || r.Branch != "tidy" || f.pushed != nil || f.origin() != up {
+				t.Errorf("exit %d\n%s%s", code, stdout, stderr)
+			}
+			if c.outcome == "no-default-branch" {
+				f = onNewBranch(t)
+				c.set(f)
+				code, stdout, stderr, _ = call(t, f)
+				if code != missing || stdout != "" || !strings.Contains(stderr, "tidy has no upstream, and origin's HEAD names no branch origin has") ||
+					!strings.Contains(stderr, "itos push --ref tidy") {
+					t.Errorf("exit %d\n%s%s", code, stdout, stderr)
+				}
+			}
+		})
+	}
+}
+
+// The line saying the branch has no upstream goes where the push's other
+// lines go: beside a stopped rebase on stderr, and, when a CI run is waited
+// for, on stdout after the Pushed line and before the run's, not under -q.
+func TestPushWithNoUpstreamSaysSoWhereverItReports(t *testing.T) {
+	f := onNewBranch(t)
+	f.History[1].Tree["mine.md"] = "theirs\n"
+	code, stdout, stderr, _ := call(t, f)
+	if code != policy || stdout != "" || !strings.HasSuffix(stderr, noUpstreamLine) || !strings.Contains(stderr, "the rebase onto origin/main stopped") {
+		t.Errorf("a rebase that stops: exit %d\n%s%s", code, stdout, stderr)
+	}
+	watching := func() *fake {
+		f := onNewBranch(t)
+		f.cfg = loaded(t, "version: 1\nci: { watch: { provider: github } }\n")
+		f.watchOK = true
+		f.watcher = providers.Watcher{Look: func(string) (providers.Run, bool, error) {
+			return providers.Run{URL: "https://ci/1", Status: "completed", Conclusion: "success"}, true, nil
+		}}
+		return f
+	}
+	f = watching()
+	code, stdout, stderr, _ = call(t, f)
+	head := f.head(t)
+	if code != 0 || stderr != "" || stdout != "Pushed "+head[:len(head)-1]+" to origin/main.\n"+noUpstreamLine+"CI run: https://ci/1\nCI passed: https://ci/1\n" {
+		t.Errorf("a run waited for: exit %d\n%q%q", code, stdout, stderr)
+	}
+	code, stdout, _, _ = call(t, watching(), "-q")
+	if code != 0 || strings.Contains(stdout, "upstream") {
+		t.Errorf("-q: exit %d\n%q", code, stdout)
 	}
 }

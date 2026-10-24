@@ -7,6 +7,7 @@ import (
 	"io"
 	"path"
 	"path/filepath"
+	"strings"
 
 	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/engine/ciwatch"
@@ -31,17 +32,57 @@ type pushRun struct {
 	cfg            *config.Loaded   // the config, when push.mode is pr (prMode)
 	ontoName       string           // what the branch is rebased onto, when it is not the upstream (pr.go)
 	pr             *PullRequest     // the pull request of the item's branch, once found or opened (pr.go)
+	noUpstream     string           // the local branch, when it has no upstream and goes to the remote's default branch (trunkDefault)
 }
 
 // report ends the run: Run prints the outcome under --json, else the lines
 // on stdout for a success, on stderr for anything else.
 func (r pushRun) report(code int, outcome string, lines ...string) Answer {
-	return Answer{Code: code, Outcome: outcome, Lines: lines, Remote: r.remote, Branch: r.branch, Tags: r.tags,
+	return Answer{Code: code, Outcome: outcome, Lines: append(lines, r.noUpstreamNote()...), Remote: r.remote, Branch: r.branch, Tags: r.tags,
 		Refs: r.refs, Commit: r.sha, Watched: r.watched, PullRequest: r.pr}
 }
 
 // upstream is the upstream's name as people write it: origin/main.
 func (r pushRun) upstream() string { return r.remote + "/" + r.branch }
+
+// noUpstreamNote is the report's line for a branch with no upstream that went
+// to the remote's default branch: that it has none, and how to push it to
+// its own name; nothing otherwise.
+func (r pushRun) noUpstreamNote() []string {
+	if r.noUpstream == "" {
+		return nil
+	}
+	return []string{fmt.Sprintf("%s has no upstream, so itos push used %s; itos push --ref %s pushes it to its own name.",
+		r.noUpstream, r.upstream(), r.noUpstream)}
+}
+
+// trunkDefault points a trunk push of a branch with no upstream at the
+// remote's default branch (bug 136), found as pr finds main (defaultBranch):
+// the branch is then fetched and rebased onto, and pushed to, as an upstream
+// is, and the report says so (noUpstreamNote). A remote with no branch at all
+// has none to name and keeps the branch's own name, which the push makes; one
+// with branches and no default is refused, and so is one that cannot be asked.
+// No upstream is written: each push asks the remote again.
+func (r *pushRun) trunkDefault(ctx context.Context, branch string) (Answer, bool) {
+	main, a, done := r.defaultBranch(ctx)
+	if !done {
+		r.branch, r.noUpstream = main, branch
+		return Answer{}, false
+	}
+	if a.Outcome != "no-default-branch" {
+		return a, true
+	}
+	refs, err := r.ports.RemoteRefs(ctx, r.remote, nil, gitrun.Talking(r.origin, nil, io.Discard, nil))
+	if err != nil {
+		return r.askFailed(err, "listing "+r.remote+"'s branches failed"), true
+	}
+	for ref := range refs {
+		if strings.HasPrefix(ref, "refs/heads/") {
+			return a, true
+		}
+	}
+	return Answer{}, false
+}
 
 // base is what the branch is rebased onto, as people write it: the upstream,
 // else what a pr-mode push chose (ontoName).
@@ -321,6 +362,9 @@ func (r *pushRun) wait(ctx context.Context, remote, onto, pushed string) Answer 
 	}
 	if !r.o.JSON && !r.o.Quiet {
 		fmt.Fprintln(r.o.Stdout, pushed)
+		for _, l := range r.noUpstreamNote() {
+			fmt.Fprintln(r.o.Stdout, l)
+		}
 	}
 	if err != nil {
 		fmt.Fprintf(r.o.Stderr, "itos: %s; the commits are pushed, and itos ci watch %s waits for their run\n", err, sha)
