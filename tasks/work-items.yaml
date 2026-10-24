@@ -55,7 +55,6 @@ phases:
   3: donvargax
 
 queue:
-  - T-293
   - slice-171
   - p1-ci-watch-failed-step
   - p1-pr-mode
