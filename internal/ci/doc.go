@@ -6,13 +6,16 @@
 //   - Before the first item comes the preamble: the tasks a footer names that
 //     no task file has (which end the run, whatever the settings, named
 //     against the ledger's folder), the tasks named but not started, and,
-//     for a prose-only range, what it leaves out.
+//     for a prose-only range, what it leaves out, and the plan's line that
+//     says why a configured code proof is not scheduled (ProofOmitted,
+//     slice 155).
 //   - A step runs through shell.Run on itos's own streams, so the command's
 //     output keeps its place beside itos's lines; a failing step makes the
 //     run exit 1, naming the step's own exit code: passed through, a step's
 //     75 or 3 would read as itos's meaning of it.
-//   - The range's code proof, the plan's proof step, runs through
-//     internal/proof, not shell.Run: the config's proof.code.check answers by
+//   - The range's code proof, the plan's proof step, is announced by the log
+//     line "Code proof" right before its "$" line (scheduled, not passed),
+//     and runs through internal/proof, not shell.Run: the config's proof.code.check answers by
 //     its --json, so a survivor, an uncovered or a missing result fails the
 //     run naming each problem's rule and message, and a check that cannot run
 //     fails it too, never a pass (slice 106, issue #28). The run's exit code

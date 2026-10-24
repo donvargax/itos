@@ -115,11 +115,17 @@ func (p *Plan) Fields(r Range) []out.Field {
 }
 
 // Print prints the plan as text, one item a line: a step's cost and
-// command, a check's cost, task, command and action.
+// command, the code proof's marked "(code proof)", a check's cost, task,
+// command and action; then, when the config's code proof is left out, the
+// line that says why.
 func (p *Plan) Print(w io.Writer) {
 	for _, item := range p.Order {
 		if item.Step != nil {
-			fmt.Fprintf(w, "%s  %s\n", item.Step.Cost, item.Step.Command)
+			label := ""
+			if item.Step.Proof {
+				label = "   (code proof)"
+			}
+			fmt.Fprintf(w, "%s  %s%s\n", item.Step.Cost, item.Step.Command, label)
 			continue
 		}
 		c := item.Check
@@ -128,5 +134,8 @@ func (p *Plan) Print(w io.Writer) {
 			action += ": runs after the push"
 		}
 		fmt.Fprintf(w, "%s  %s: %s   (%s)\n", c.Cost, c.Task.ID, c.Check.Command(), action)
+	}
+	if p.ProofOmitted != "" {
+		fmt.Fprintln(w, p.ProofOmitted)
 	}
 }

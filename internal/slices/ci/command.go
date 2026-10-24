@@ -34,6 +34,12 @@ of the tasks those commits name.
 --data-at reads the ledger, the registry and the smoke set at that commit.
 Under a stealth config, given no range, it plans the commits of HEAD on no
 remote branch (every one with no remote), the range's from "--remotes".
+The code proof's row ends "(code proof)". With the config's proof.code and
+no proof step in a push's plan, the last line says why: "Code proof not
+scheduled: the range has no start." (an empty or all-zeros start, even when
+commits.since gives range checks one), "...the range's changes could not be
+read." or "...the range changes no path in proof.code.paths." Neither is
+printed for --nightly, and neither is a verdict on the proof.
 
 --json: the plan contract, keys only ever added
         {"schema":1,"range","prose","steps","order","tasks","left_out","unknown","not_started"}`,
@@ -61,7 +67,10 @@ push and runs none of its own. A surviving mutant, an uncovered or a missing
 result fails the run, naming each problem its --json lists by its rule and
 message, and a check that cannot run fails it too, as does one exiting 0 with
 an invalid itos_proof envelope (ci-code-proof-summary) or an explicit judged 0
-(ci-code-proof-empty). Itos ci plan lists it.
+(ci-code-proof-empty). Itos ci plan lists it. The log says "Code proof" right
+before the proof's "$" line (scheduled, not passed), and, with proof.code
+and no proof step, one line before the first step says why, as ci plan does;
+under --json both go to stderr.
 --tests runs the plan's run of named tests alone, merged as the run merges it
 (the smoke set, the tests the range's commits name, the task checks
 recognized as runs of the kind), and nothing else: no other step, task check

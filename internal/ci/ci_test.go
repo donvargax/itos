@@ -195,6 +195,35 @@ func TestTheCodeProofReportsItsSummary(t *testing.T) {
 	}
 }
 
+// The run says the proof is scheduled and, when a configured one is left out,
+// why (slice 155): "Code proof" right before the proof's "$" line and the
+// plan's line in the preamble, before the first step, both in the log (stdout,
+// or stderr under --json, which keeps stdout for its report).
+func TestTheRunLabelsTheProofAndSaysWhyItIsLeftOut(t *testing.T) {
+	proof, first := plan.Step{Command: "exit 0", Proof: true}, plan.Step{Command: "exit 0"}
+	const why = "Code proof not scheduled: the range changes no path in proof.code.paths."
+	_, stdout, stderr := run(t, &plan.Plan{Order: []plan.Item{{Step: &proof}}}, Options{})
+	if !strings.Contains(stdout, "\nCode proof\n$ exit 0\n") || stderr != "" {
+		t.Errorf("the label: stdout %q, stderr %q", stdout, stderr)
+	}
+	_, stdout, stderr = run(t, &plan.Plan{Order: []plan.Item{{Step: &proof}}}, Options{JSON: true})
+	if !strings.Contains(stderr, "\nCode proof\n$ exit 0\n") || strings.Contains(stdout, "Code proof") {
+		t.Errorf("the label under --json: stdout %q, stderr %q", stdout, stderr)
+	}
+	_, stdout, stderr = run(t, &plan.Plan{Order: []plan.Item{{Step: &first}}, ProofOmitted: why}, Options{})
+	if !strings.HasPrefix(stdout, why+"\n\n$ exit 0\n") || stderr != "" {
+		t.Errorf("the explanation: stdout %q, stderr %q", stdout, stderr)
+	}
+	_, stdout, stderr = run(t, &plan.Plan{Order: []plan.Item{{Step: &first}}, ProofOmitted: why}, Options{JSON: true})
+	if !strings.HasPrefix(stderr, why+"\n\n$ exit 0\n") || strings.Contains(stdout, "Code proof") {
+		t.Errorf("the explanation under --json: stdout %q, stderr %q", stdout, stderr)
+	}
+	_, stdout, stderr = run(t, &plan.Plan{Order: []plan.Item{{Step: &first}}}, Options{})
+	if strings.Contains(stdout+stderr, "Code proof") {
+		t.Errorf("a run with no explanation: stdout %q, stderr %q", stdout, stderr)
+	}
+}
+
 // failingWriter refuses every write, as a closed stdout does.
 type failingWriter struct{}
 

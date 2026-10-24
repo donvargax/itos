@@ -125,7 +125,7 @@ Feature: CI reports whether its configured ranged code proof is scheduled
   # Fails before the work at the plan's row: today it is the bare step row.
   # The JSON plan's steps are a guard folded in: order[].proof stays the
   # marker and plan --json gains no label.
-  @wip @ID-CI-46 @slice-155
+  @ID-CI-46 @slice-155
   Scenario: A scheduled proof is labelled in the plan and where the run reaches it
     When I invoke itos with "ci plan summary-base summary-head"
     Then itos exits with code 0
@@ -145,7 +145,7 @@ Feature: CI reports whether its configured ranged code proof is scheduled
 
   # Fails before the work at the plan's last line. The plan --json steps
   # are a guard folded in: the explanation is text only.
-  @wip @ID-CI-47 @slice-155
+  @ID-CI-47 @slice-155
   Scenario: A readable range that changes no proof path says why the proof is not scheduled
     When I invoke itos with "ci plan summary-head summary-docs"
     Then itos exits with code 0
@@ -164,7 +164,7 @@ Feature: CI reports whether its configured ranged code proof is scheduled
 
   # Fails before the work at the plan's last line. No commits.since here:
   # @ID-CI-61 is the start commits.since supplies.
-  @wip @ID-CI-48 @slice-155
+  @ID-CI-48 @slice-155
   Scenario: A whole run says the proof has no range start
     When I invoke itos with "ci plan --whole"
     Then itos exits with code 0
@@ -181,7 +181,7 @@ Feature: CI reports whether its configured ranged code proof is scheduled
   # compared and the proof is left out: the missing-start line, not the
   # unreadable one, though git diff of an all-zeros start fails. Fails
   # before the work at the plan's last line.
-  @wip @ID-CI-61 @slice-155
+  @ID-CI-61 @slice-155
   Scenario: A range whose only start is commits.since says the proof has no range start
     Given the scratch itos.yaml's commits.since is the full SHA of the tag "summary-base"
     When I invoke itos with "ci plan 0000000000000000000000000000000000000000 summary-head"
@@ -203,7 +203,7 @@ Feature: CI reports whether its configured ranged code proof is scheduled
   # keep exit 0. Fails before the work at the plan's last line.
   # The step deletes the tree as a loose object and fails as a setup error
   # when it finds none (packed objects), so it never quietly does nothing.
-  @wip @ID-CI-49 @slice-155
+  @ID-CI-49 @slice-155
   Scenario: A range whose changes cannot be read is not reported as changing no proof path
     Given the tree of the commit tagged "summary-base" is missing from the repository's objects
     When I invoke itos with "ci plan summary-base summary-head"
@@ -217,7 +217,7 @@ Feature: CI reports whether its configured ranged code proof is scheduled
     And "proof-runs" has exactly 0 lines
 
   # Fails before the work at the label on stderr.
-  @wip @ID-CI-50 @slice-155
+  @ID-CI-50 @slice-155
   Scenario: Under --json the label and the explanation go to stderr and stdout stays one report
     Given the scratch file "proof.exit" contains "1"
     And the scratch file "proof.stdout" contains exactly:
@@ -238,7 +238,7 @@ Feature: CI reports whether its configured ranged code proof is scheduled
   # A guard: it passes before the fix and must after it. The label and the
   # line go through the plan's printer and the run's preamble, which these
   # modes share; none of them selects a ranged proof.
-  @wip @ID-CI-51 @slice-155 @guard
+  @ID-CI-51 @slice-155 @guard
   Scenario: Modes that select no ranged proof gain neither the label nor an explanation
     When I invoke itos with "ci run summary-base summary-head --tests"
     Then itos exits with code 0

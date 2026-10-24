@@ -301,7 +301,7 @@ func TestMakeProof(t *testing.T) {
 		t.Fatal(err)
 	}
 	want := `static  lint
-static  cc mutation check --since a1 --fail-uncovered --json
+static  cc mutation check --since a1 --fail-uncovered --json   (code proof)
 late  unit
 late  e2e --grep '@(?:ID-S-01)'
 `
@@ -318,7 +318,7 @@ late  e2e --grep '@(?:ID-S-01)'
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got := lines(p); got != "static  cc\nlate  lint\n" {
+	if got := lines(p); got != "static  cc   (code proof)\nlate  lint\n" {
 		t.Errorf("plan:\n%s", got)
 	}
 }
@@ -355,8 +355,10 @@ func TestNamedTests(t *testing.T) {
 }
 
 // codeProof is the step a range's code proof is when the config has a
-// proof.code and the range touches its paths, and none of that otherwise:
-// no proof.code, no touched path, or no start to judge from.
+// proof.code and the range touches its paths, and none of that otherwise,
+// with the line that says why: for the first reason that holds, in this
+// order, no start (the range as typed, whatever commits.since gives it, or
+// no resolved start), a read that failed, no touched path (slice 155).
 func TestCodeProof(t *testing.T) {
 	withProof := load(t, `version: 1
 proof:
@@ -366,27 +368,39 @@ proof:
 `)
 	none := load(t, "version: 1\n")
 	ends := Ends{From: "a1", To: "b2"}
-	got, err := codeProof(withProof, []string{"internal/cli/x.go"}, ends)
+	const sha = "1111111111111111111111111111111111111111"
+	touching := []string{"internal/cli/x.go"}
+	got, why, err := codeProof(withProof, sha, touching, nil, ends)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got == nil || got.Command != "cc mutation check --since a1 --fail-uncovered --json" || !got.Proof {
-		t.Errorf("a touched range gives %+v", got)
+	if got == nil || got.Command != "cc mutation check --since a1 --fail-uncovered --json" || !got.Proof || why != "" {
+		t.Errorf("a touched range gives %+v, %q", got, why)
 	}
+	failed := errors.New("the read failed")
 	for _, c := range []struct {
 		name    string
 		cfg     *config.Loaded
+		from    string
 		changed []string
+		readErr error
 		ends    Ends
+		want    string
 	}{
-		{"no proof.code", none, []string{"internal/cli/x.go"}, ends},
-		{"no touched path", withProof, []string{"README.md"}, ends},
-		{"an unread range touched nothing", withProof, nil, ends},
-		{"no start to judge from", withProof, []string{"internal/cli/x.go"}, Ends{To: "b2"}},
+		{"no proof.code", none, sha, touching, nil, ends, ""},
+		{"no proof.code and no start", none, "", nil, nil, Ends{}, ""},
+		{"no touched path", withProof, sha, []string{"README.md"}, nil, ends, proofNoPath},
+		{"no changed path", withProof, sha, nil, nil, ends, proofNoPath},
+		{"an unread range", withProof, sha, nil, failed, ends, proofUnreadable},
+		{"an unread range with a path", withProof, sha, touching, failed, ends, proofUnreadable},
+		{"no start typed", withProof, "", nil, nil, Ends{From: "a1", To: "b2"}, proofNoStart},
+		{"an all-zeros start, which commits.since fills", withProof, "0000000000000000000000000000000000000000", nil, failed, ends, proofNoStart},
+		{"no start resolved", withProof, sha, touching, nil, Ends{To: "b2"}, proofNoStart},
+		{"no start resolved and an unread range", withProof, sha, nil, failed, Ends{To: "b2"}, proofNoStart},
 	} {
-		got, err := codeProof(c.cfg, c.changed, c.ends)
-		if err != nil || got != nil {
-			t.Errorf("%s: got %+v, %v; want none", c.name, got, err)
+		got, why, err := codeProof(c.cfg, c.from, c.changed, c.readErr, c.ends)
+		if err != nil || got != nil || why != c.want {
+			t.Errorf("%s: got %+v, %q, %v; want none and %q", c.name, got, why, err, c.want)
 		}
 	}
 	// A glob itos cannot read is config check's finding, before a plan reads
@@ -453,6 +467,86 @@ func TestForStopsAtAProofGlobItCannotRead(t *testing.T) {
 	cfg.Proof.Code.Paths = []string{"?src"}
 	if p, err := For(cfg, from, to, Data{}); err == nil || p != nil {
 		t.Errorf("a proof glob it cannot read gave %+v, %v", p, err)
+	}
+}
+
+// A push's plan says whether the config's code proof is scheduled: its row
+// marked, or the one line that says why not, last (slice 155). The ranges
+// are real: one that touches the proof's paths, one that touches none, one
+// the repository cannot diff, and the starts that are none, with
+// commits.since given.
+func TestForSaysWhyTheProofIsNotScheduled(t *testing.T) {
+	from, to := gitRange(t)
+	const base = scratch + `proof:
+  code:
+    paths: ["internal/**"]
+    check: "cc since {base}"
+`
+	cfg := load(t, base)
+	elsewhere := load(t, strings.Replace(base, "internal/**", "docs/**", 1))
+	since := load(t, strings.Replace(base, "ci:\n", "commits:\n  since: "+from+"\nci:\n", 1))
+	const missing = "1234567890123456789012345678901234567890"
+	const zeros = "0000000000000000000000000000000000000000"
+	for _, c := range []struct {
+		name     string
+		cfg      *config.Loaded
+		from     string
+		row, why string
+	}{
+		{"a touched path", cfg, from, "static  cc since " + from + "   (code proof)\n", ""},
+		{"no touched path", elsewhere, from, "", proofNoPath},
+		{"a range it cannot diff", cfg, missing, "", proofUnreadable},
+		{"no start", cfg, "", "", proofNoStart},
+		{"an all-zeros start", cfg, zeros, "", proofNoStart},
+		{"a start only commits.since gives", since, "", "", proofNoStart},
+		{"an all-zeros start, which commits.since fills", since, zeros, "", proofNoStart},
+	} {
+		p, err := For(c.cfg, c.from, to, Data{})
+		if err != nil {
+			t.Fatalf("%s: %v", c.name, err)
+		}
+		got := lines(p)
+		if c.row != "" && !strings.Contains(got, c.row) || c.row == "" && strings.Contains(got, "cc since") {
+			t.Errorf("%s: the plan's rows:\n%s", c.name, got)
+		}
+		if c.why == "" {
+			if p.ProofOmitted != "" {
+				t.Errorf("%s: the proof is left out: %q", c.name, p.ProofOmitted)
+			}
+			continue
+		}
+		if p.ProofOmitted != c.why || !strings.HasSuffix(got, "\n"+c.why+"\n") || strings.Count(got, "Code proof") != 1 {
+			t.Errorf("%s: want %q last, got %q:\n%s", c.name, c.why, p.ProofOmitted, got)
+		}
+	}
+	// No proof.code, or the nightly: neither row nor line.
+	if p, err := For(load(t, scratch), from, to, Data{}); err != nil || p.ProofOmitted != "" {
+		t.Errorf("a config with no proof.code: %v", err)
+	}
+	if p := ForNightly(cfg); p.ProofOmitted != "" || strings.Contains(lines(p), "Code proof") {
+		t.Errorf("the nightly: %q", lines(p))
+	}
+}
+
+// ChangedErr is Changed with the error of a read that failed, none for a
+// range with no start or end.
+func TestChangedErrGivesTheFailureOfTheRead(t *testing.T) {
+	from, to := gitRange(t)
+	v := vcs.Git{}
+	const missing = "1234567890123456789012345678901234567890"
+	if paths, err := ChangedErr(v, from, to); err != nil || len(paths) != 1 || paths[0] != "internal/x.go" {
+		t.Errorf("a readable range: %q, %v", paths, err)
+	}
+	if paths, err := ChangedErr(v, missing, to); err == nil || paths != nil {
+		t.Errorf("a start the repository lacks: %q, %v", paths, err)
+	}
+	if got := Changed(v, missing, to); got != nil {
+		t.Errorf("Changed gives %q for a range that cannot be read", got)
+	}
+	for _, r := range [][2]string{{"", to}, {from, ""}} {
+		if paths, err := ChangedErr(v, r[0], r[1]); err != nil || paths != nil {
+			t.Errorf("%q..%q: %q, %v", r[0], r[1], paths, err)
+		}
 	}
 }
 

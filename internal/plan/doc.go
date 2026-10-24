@@ -39,7 +39,14 @@
 //     the last green run is judged, whichever item's it is. It is static (it
 //     reads results, runs no tests) and sits just before the run of named
 //     tests. The driver runs it through internal/proof, not as a step with an
-//     exit code of its own.
+//     exit code of its own. ci plan marks its row "(code proof)". With
+//     proof.code configured and no such step, the plan's ProofOmitted is the
+//     one line that says why (slice 155), the first reason that holds on the
+//     range as typed: it has no start (empty or all zeros, or no resolved
+//     start; commits.since does not give it one, as its paths are never
+//     compared), its changes could not be read (ChangedErr, whose error
+//     Changed drops), or it changes no path in proof.code.paths. ci plan
+//     prints the line last; none for the nightly or NamedTests.
 //
 // The Plan is a value the driver (internal/ci) walks: Order is every Item in
 // the order the run takes it, a Step (its command, its cost, and Tests, the

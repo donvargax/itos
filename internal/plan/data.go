@@ -61,7 +61,7 @@ func waiting(cfg *config.Loaded, d Data, id string) bool {
 // with {base} that start.
 func For(cfg *config.Loaded, from, to string, d Data) (*Plan, error) {
 	ids := TasksIn(cfg, from, to)
-	changed := Changed(cfg.VCS, from, to)
+	changed, readErr := ChangedErr(cfg.VCS, from, to)
 	prose, err := DocsOnly(cfg, changed)
 	if err != nil {
 		return nil, err
@@ -73,7 +73,8 @@ func For(cfg *config.Loaded, from, to string, d Data) (*Plan, error) {
 	}
 	in := Input{Prose: prose, Known: known, Scenarios: TestsNamedIn(cfg, from, to, kind), Smoke: d.Smoke}
 	ends := EndsOf(cfg, from, to)
-	if in.Proof, err = codeProof(cfg, changed, ends); err != nil {
+	var omitted string
+	if in.Proof, omitted, err = codeProof(cfg, from, changed, readErr, ends); err != nil {
 		return nil, err
 	}
 	has := map[string]bool{}
@@ -95,24 +96,45 @@ func For(cfg *config.Loaded, from, to string, d Data) (*Plan, error) {
 			p.NotStarted = append(p.NotStarted, id)
 		}
 	}
+	p.ProofOmitted = omitted
 	p.fill(ends)
 	return p, nil
 }
+
+// The lines that say why a configured code proof is not a step of a push's
+// plan (slice 155, issues #35 and #36), one for each reason.
+const (
+	proofNoStart    = "Code proof not scheduled: the range has no start."
+	proofUnreadable = "Code proof not scheduled: the range's changes could not be read."
+	proofNoPath     = "Code proof not scheduled: the range changes no path in proof.code.paths."
+)
 
 // codeProof is the range's code proof as a step of its plan: with the
 // config's proof.code and the range touching proof.code.paths, its check
 // with {base} the range's start (ends.From), so every commit since the last
 // green run is judged, whoever's item it is (slice 106, issue #28, which
-// settles #26). None with no proof.code, a range that touches none of its
-// paths (a range that cannot be read touched nothing, so the shortcut is
-// never taken on a guess), or a range with no start to judge from.
-func codeProof(cfg *config.Loaded, changed []string, ends Ends) (*Step, error) {
-	if cfg.Proof == nil || cfg.Proof.Code == nil || ends.From == "" {
-		return nil, nil
+// settles #26). None with no proof.code. None too, with the line that says
+// why, when it is left out, for the first reason that holds: the range as
+// typed (from) has no start, even when commits.since gives range checks one,
+// since its paths are never compared and no read failed; its changes could
+// not be read (readErr), so no touched path is guessed; or it touches none
+// of the paths.
+func codeProof(cfg *config.Loaded, from string, changed []string, readErr error, ends Ends) (*Step, string, error) {
+	if cfg.Proof == nil || cfg.Proof.Code == nil {
+		return nil, "", nil
+	}
+	switch {
+	case config.NewBranch(from) || ends.From == "":
+		return nil, proofNoStart, nil
+	case readErr != nil:
+		return nil, proofUnreadable, nil
 	}
 	touched, err := proof.Touches(cfg.Proof.Code.Paths, changed)
-	if err != nil || !touched {
-		return nil, err
+	if err != nil {
+		return nil, "", err
 	}
-	return &Step{Command: proof.Command(cfg.Proof.Code.Check, ends.From), Proof: true}, nil
+	if !touched {
+		return nil, proofNoPath, nil
+	}
+	return &Step{Command: proof.Command(cfg.Proof.Code.Check, ends.From), Proof: true}, "", nil
 }

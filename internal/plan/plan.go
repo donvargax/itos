@@ -88,6 +88,9 @@ type Plan struct {
 	// Ends are the ends of the range the run is for, filled into its steps
 	// and given to them and its checks as ITOS_FROM and ITOS_TO.
 	Ends Ends
+	// ProofOmitted is the line that says why a configured code proof is not a
+	// step of this push's plan; "" when it is one, or none is configured.
+	ProofOmitted string
 }
 
 // stepOf is a CI step as the run takes it (ci-scope.ts's stepOf): a command

@@ -175,6 +175,9 @@ func (d *driver) preamble(p *plan.Plan) (*Failure, error) {
 			fmt.Fprintf(d.log, "  - %s: %s   (reads no prose; left out)\n", c.Task.ID, c.Check.Command())
 		}
 	}
+	if p.ProofOmitted != "" {
+		fmt.Fprintln(d.log, p.ProofOmitted)
+	}
 	return nil, nil
 }
 
@@ -237,7 +240,7 @@ func (d *driver) step(s *plan.Step, lead string) *Failure {
 // (ci-code-proof-empty). The executed proof, however it ended, is --json's
 // proof.
 func (d *driver) proof(s *plan.Step, lead string) *Failure {
-	fmt.Fprintf(d.log, "\n$ %s\n", s.Command)
+	fmt.Fprintf(d.log, "\nCode proof\n$ %s\n", s.Command)
 	v := proof.Run(d.cfg, s.Command, d.stderr)
 	d.proofRun = &ProofRun{Command: s.Command, From: d.ends.From, To: d.ends.To, Outcome: v.Outcome.String(), Summary: v.Summary}
 	problems := proofProblems(v.Problems)

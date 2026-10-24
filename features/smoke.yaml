@@ -28,6 +28,10 @@
   scenarios:
     - id: "@ID-CI-01"
       why: ci run logs a merged check under the kind it ran in, the file's point
+- file: ci-proof-report.feature
+  scenarios:
+    - id: "@ID-CI-46"
+      why: a scheduled code proof labelled in the plan and in the run's log, the file's point in one run
 - file: ci-proof-summary.feature
   scenarios:
     - id: "@ID-CI-52"

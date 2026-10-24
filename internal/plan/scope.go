@@ -23,8 +23,16 @@ import (
 // it cannot be read or has no start or end. A rename is both its paths (bug
 // 32), so a range that moves code into prose paths is not prose-only.
 func Changed(v vcs.VCS, from, to string) []string {
+	paths, _ := ChangedErr(v, from, to)
+	return paths
+}
+
+// ChangedErr is Changed with the error of the read that failed, which
+// Changed drops; none for a range with no start or end, which has nothing
+// to read.
+func ChangedErr(v vcs.VCS, from, to string) ([]string, error) {
 	if from == "" || to == "" {
-		return nil
+		return nil, nil
 	}
 	ctx := context.Background()
 	var paths []string
@@ -35,9 +43,9 @@ func Changed(v vcs.VCS, from, to string) []string {
 		paths, err = v.Diff(ctx, from, to)
 	}
 	if err != nil {
-		return nil
+		return nil, err
 	}
-	return paths
+	return paths, nil
 }
 
 // Readable is whether v can read a range at all (from..to, or the unpushed
