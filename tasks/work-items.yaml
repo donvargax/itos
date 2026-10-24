@@ -13763,3 +13763,14 @@ items:
     why: >
       From slice-174's spec (2026-10-24, its follow-ups): conflicts with main make update-branch and
       the rebase-merge fail; the agent needs a path that never force-pushes.
+
+  - id: p1-pr-registry-to-main
+    title: Registry commands on an item's branch commit to main
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [slice-174]
+    kind: idea
+    why: >
+      From slice-174's spec (2026-10-24, its follow-ups): an idea added mid-work rides the pull
+      request today, and registry edits conflict often across branches.
