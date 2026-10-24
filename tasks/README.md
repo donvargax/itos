@@ -208,6 +208,16 @@ working folder as before, looking nothing up. If the checkout cannot be made
 (a gitlink in the index, say) the check runs in the working folder, its
 `evidence.reason` `snapshot-unusable`, and its verdict is its own.
 
+The commit-msg hook looks the same check up by the tree it commits (the
+temporary index of `git commit -- <path>` when git names one) under the key
+`itos task` binds, so a hand run on the index a commit holds answers the hook
+and the hook's run answers the next `itos task`. A hit runs nothing, makes no
+checkout and prints one line saying `cached evidence`; a miss prints nothing
+new, runs in a checkout of its own under `hooks.commit_msg.check_timeout`, and
+is recorded unless that cap stopped it. A checkout that cannot be made still
+refuses the commit (exit 3) when a check must run, never running it in the
+working folder.
+
 CI's plan is `ci` in `itos.yaml`. It runs the checks of every task referenced
 by a `Task:` footer in the pushed commits; the commit-msg hook runs only their
 static ones, up to the first late one, and the pre-push hook none, to keep
