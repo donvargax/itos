@@ -72,7 +72,8 @@ Feature: An opted-in check reruns from a local record when nothing it ran on cha
   - JSON. In itos task --json each check that opted in gains evidence:
     source ("local"), hit, recorded, key, tree, recorded_at when a record
     exists, reason when it ran but recorded nothing (here snapshot-unusable;
-    slice-170 adds lock-timeout and store-unusable), and provenance, whose
+    slice-170 adds lock-timeout, store-unusable and already-recorded; slice-169
+    also gives unkeyable and inconclusive), and provenance, whose
     fields are not judged. recorded is true only on the occurrence that ran
     and wrote the record. A check one invocation runs once for several
     tasks reports, on each later occurrence, the evidence of the run it
