@@ -56,7 +56,9 @@ Feature: Optional provider summaries make a successful code proof inspectable
   # null; their stdout is not parsed for this envelope and no summary line
   # is printed. Every failed CI run exits 1, not the provider's exit code.
   #
-  # ci run --json adds proof only after executing the proof command. It has
+  # ci run --json adds proof only after executing the proof command (one
+  # whose shell never starts or is stopped by a signal, internal/proof's
+  # cannot-run, has it too, outcome cannot-run, summary null). It has
   # exactly command, from, to, outcome (passed/refused/cannot-run), summary.
   # The command is the executed command, the ends resolved full commit SHAs.
   # No per-task attribution is inferred from these range-wide counts.
@@ -174,6 +176,7 @@ Feature: Optional provider summaries make a successful code proof inspectable
     And that failure has exactly the problem rules "ci-code-proof-empty" in order
     And that rule's fix names "proof.code.check", "scope" and "base"
     And stderr contains the complete line "Code proof summary: judged=0; unit=function; killed=0" exactly once
+    And stderr contains the complete line "CI failed at the code proof: " followed by the resolved proof command, after that summary line and before the line naming rule "ci-code-proof-empty"
     And neither stream contains "CI passed"
     And "proof-runs" has exactly 1 line
     And "ci-runs" contains only "before"
@@ -250,8 +253,9 @@ Feature: Optional provider summaries make a successful code proof inspectable
     And stdout is one JSON report with schema 1 and ok false
     And failed_at equals the single failures entry with code 1 and the resolved proof command as step
     And that failure has exactly the problem rules "ci-code-proof-summary" in order
-    And its "ci-code-proof-summary" problem message names "<field>"
-    And stderr names rule "ci-code-proof-summary" and field "<field>"
+    And its "ci-code-proof-summary" problem message names the field "<field>" as a whole token, not followed by "."
+    And stderr contains the complete line "CI failed at the code proof: " followed by the resolved proof command, before the line naming rule "ci-code-proof-summary"
+    And stderr names rule "ci-code-proof-summary" and the field "<field>" as a whole token, not followed by "."
     And neither stream contains "Code proof summary:" or "Code proof summary unavailable:" or "CI passed"
     And "proof-runs" has exactly 1 line
     And "ci-runs" contains only "before"
