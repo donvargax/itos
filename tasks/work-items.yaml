@@ -4299,6 +4299,11 @@ items:
       imports the old path; the agent committed the refactor with tools/bin edited but unstaged.
       Vetting the staged tree (a worktree of the index), or letting one commit carry a module move,
       would make the split honest.
+
+      2026-10-23 grooming, merged in p1-module-move-commit (T-151, T-119): a go.mod module path move
+      changes the imports of cmd and internal (refactor) and of tools/bin (ci or build), and no type
+      but revert may touch both; vetting the staged tree lets such a move split by type with each
+      commit building and vetting.
     tags: [gates, v8]
 
   - id: T-105
