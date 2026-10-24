@@ -10695,7 +10695,7 @@ items:
     kind: task
 
   - id: p1-slices-and-ports
-    title: Each command is a vertical slice over shared engines, its outside world reached through ports with fakes and contract suites, as itos-cc's layout
+    title: Rewrite docs/CLI.md and docs/ARCHITECTURE.md from itos-cc's, now the slices refactor has landed
     phase: 1
     owner: null
     status: todo
@@ -10730,6 +10730,10 @@ items:
 
       Minimum git 2.51 (the user, 2026-10-21): no move or port may use a git feature newer than
       2.51. After the refactor, p1-hooks-before-git-2-54 is the first item, before the other issues.
+
+      2026-10-23 grooming: the refactor itself landed (T-239 to T-274); what this item still holds
+      is the docs rewrite of its 2026-10-21 note and the doc-budget cap that rises with it. q-89
+      moved to p1-cli-kong.
     tags: [architecture]
 
   - id: p1-conformance-only-by-name
