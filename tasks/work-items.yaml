@@ -9730,19 +9730,9 @@ items:
     title: Preserve separately committed completion evidence without reusing stale acceptance proof
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: []
     kind: idea
-    why: >
-      Residual #71 scope after q-70 chose evidence with closure first. A separately committed
-      pre-close evidence report may still make current work done ask CI for the newer associated
-      commit. Decide a sound reusable-receipt or evidence-only representation if this use case
-      remains needed; bind it to the implementation and acceptance inputs actually validated. Do not
-      bless arbitrary registry, task-why, check, scenario or policy edits as already proved solely
-      from their paths. No receipt schema, broad skip rule, CI bypass or deferral has been chosen.
-      The verified consumer 671014753bbce42ff915ab24c066b02f8112b2ac changed only task T-80 why with
-      final result narrative after green 094e634b072f618cdd8aa4e252151fa758553bca; a full original
-      refusal transcript was unavailable.
     refs: [internal/cli/workdone.go]
     tags: [evidence, v8]
 
@@ -10489,39 +10479,9 @@ items:
     title: A task's checks run once, at work done, all of them, and are kept fast
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: []
     kind: idea
-    why: >
-      Issue #83 (2026-10-17, from itos-cc): with no ci.cost.static patterns every check is late, so
-      neither the commit-msg hook nor work done (which stops at the first late check, as the hook
-      does) ran T-96 to T-100's checks; agents ran them by hand, one for half an hour (#82), and the
-      closes went through on CI alone. Where checks are static they run on every commit naming the
-      task and again at work done: five commits, six runs or more. Asked: work done runs every
-      done_when check, each under its timeout, and refuses the close naming the failure and its
-      output (#82); the static/late split stops applying to done_when (it stays for ci.steps); the
-      commit-msg hook stops running task checks, which also settles #60; guide work says work done
-      runs them, and guide brief/decide say a done_when check is targeted and fast (whole suites
-      belong in ci.steps); config check could warn on a long timeout or a check repeating a ci.steps
-      command; #65 (slice-136) lists the checks without running them. Needs the user's decision
-      first: it reverses ADR-0013 (the commit-msg hook runs, last, the checks of the tasks a commit
-      names), and fits ADR-0043 (checks gate work done, then leave) and the user's 'a check that
-      passed never runs again'.
-
-      The user (2026-10-17): implementing agents run no verification of their own; work done runs
-      done_when, so any verification an item needs goes there (or into a gate), and agents are
-      trusted to follow the rule, since nothing can enforce it. Red first stays: seeing a spec fail
-      is building, not verifying.
-
-      The user, later the same day, narrowing the above: fast checks may run locally before a push
-      and again in CI, a second round worth paying to keep CI from going red; the commit-msg hook's
-      static task checks stay (ADR-0013 holds for them); the waste to remove is the same test run
-      again on unchanged code. Agreed: work done only accepts CI's pass for the head, and reruns
-      nothing.
-
-      Met again with T-224 (2026-10-22): its check is a 900 s mutation run, and itos task T-224 runs
-      it in the foreground past the harness shell timeout; the agent stopped it. A long check could
-      run in the background or say up front how long it may take.
     refs: [internal/cli/workdone.go, internal/cli/hook.go, docs/decisions]
     tags: [evidence, v8]
 
@@ -12600,32 +12560,9 @@ items:
     title: Every check itos runs keeps a result keyed by what it depends on, so a rerun with nothing changed answers at once
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: []
     kind: idea
-    why: >
-      The user, 2026-10-23: rather than stop agents from verifying (which goes against how they
-      work), make verification free to repeat, as Go's test cache does (tools/bin/go-unit-tests
-      already relies on it: an unchanged package answers cached). A record per check run: key = the
-      exact command, the tree it ran on (commit tree, or the index's for a staged change), the OS
-      and the tool versions (itos build, Go, the itos-cc pin); value = pass or fail, exit code,
-      time, an output tail, the runner (pre-push hook, CI run) and when. Every command that runs a
-      check (itos task, ci run, the hooks, work done) looks the key up first and prints the recorded
-      result, saying so; a changed input misses and runs. Red-first gets the same record: key = the
-      red test commit's tree and the scenario ids, value = each failed at a Then step, not in setup;
-      CI can produce it by checking out the test commit with @wip lifted, and work done can require
-      it. Trust: local records (.git/itos/evidence, never committed) only make local reruns instant;
-      CI's records (git notes on the commit, refs/notes/itos-evidence) are the proof work done and
-      releases accept, CI rerunning costing machine time, not tokens. Pulls together
-      p1-wip-red-first, p1-reusable-completion-evidence, p1-verify-verdict-once,
-      p1-task-checks-once-at-done, p1-targeted-coverage-reuse; the ADR-0059 pre-push tier writes
-      these records. Once reruns are free, ADR-0056 and ADR-0057's rule that agents never run checks
-      by hand can relax to: run anything, an unchanged one answers at once. Design and ADR first,
-      reviewed by the reviewer MCP.
-
-      2026-10-23: decided as ADR-0060 (q-98), designed in docs/plans/evidence-records.md; split into
-      p1-evidence-local, p1-evidence-ci, p1-evidence-red-first and p1-evidence-pre-push. This item
-      stays as the umbrella until they land.
     refs: [internal/check, internal/slices/task, internal/slices/ci, internal/slices/hook]
     tags: [evidence, v8]
 
