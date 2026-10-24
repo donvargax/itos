@@ -7720,6 +7720,10 @@ items:
       #94: the same for notes: refreshing about thirty whys took 29 docs: edit commits, each running
       the hooks (this session's freeze took one work defer of 27 ids, which works). One shape for
       both: work edit reading a file of per-id changes (note, tags) and landing them as one commit.
+
+      2026-10-23: applying the grooming tags would have taken 68 work edit commits (one tag list per
+      group of ids); the coordinator wrote the registry in one commit instead (T-294). A per-id file
+      of changes would have made it one command.
     refs: [internal/cli]
     tags: [work, v8]
 
