@@ -1,44 +1,55 @@
 @phase-1
-Feature: work done runs every check of the task it closes, answering an opted-in one from its record
-  itos work done runs every done_when check of a task it closes, in written
-  order, whatever its cost: the static and late split orders ci.steps and the
-  commit-msg hook, never work done. It stops at the first failure and refuses
-  the close, nothing written. Each check runs under its own timeout, its
+Feature: work done runs a task's static checks through the evidence engine and names its late ones as left to CI
+  itos work done runs the static checks of a task it closes, every one of
+  them in written order, a static check written below a late one included,
+  and stops at the first failure, refusing the close, nothing written. A
+  check's class is the cost rule's, so with ci.cost.keep_written_order a
+  check below a late one is late. Each runs under its own timeout, its
   timeout: or ledger.check.timeout; hooks.commit_msg.check_timeout caps the
-  hook alone. The order of work done's refusals is unchanged: the item's
-  scenarios still @wip, then commits no remote has, then the task's checks,
+  hook alone. Late checks are CI's, which runs every check of the tasks a
+  push names: work done never runs them, and names them as left to CI.
+  Future work: once p1-evidence-ci lands, work done checks their CI record.
+  The order of work done's refusals is unchanged: the item's scenarios that
+  are still @wip, then commits no remote has, then the task's static checks,
   then the CI watch, so a failing check refuses before CI is asked.
 
   The tree. work done judges landed work, so an opted-in check is keyed by
   HEAD's tree, never the index's, and a miss runs in a checkout of HEAD's
   tree of its own under the git common dir's itos/snapshots. A staged change
-  or an unstaged edit never reaches that run or its key. With nothing staged,
-  HEAD's tree is the tree a hand-run itos task keys, and it is the tree the
-  commit-msg hook keyed for the commit that made HEAD, so a hand run, the
-  hook and work done each pay once. Everything else of the key, the store and
-  the record is evidence-local.feature's. Proposed: a checkout that cannot
-  be made runs the check uncached in the working folder, as a hand run does,
-  never exit 3; and work done prints no note of uncommitted changes.
+  or an unstaged edit never reaches that run or its key, and work done says
+  nothing of them. With nothing staged, HEAD's tree is the tree a hand-run
+  itos task keys, and it is the tree the commit-msg hook keyed for the
+  commit that made HEAD, so a hand run, the hook and work done each pay
+  once. A checkout of HEAD's tree that cannot be made (a gitlink in it, the
+  snapshots folder unusable) runs the check uncached in the working folder,
+  as a hand run does, its exit its own, never the hook's exit 3. Everything
+  else of the key, the store and the record is evidence-local.feature's.
+  These checks are local feedback, as a hand run's are (ADR-0060): a record
+  answers work done and proves nothing to CI.
 
   A check without evidence runs as today: in the working folder, in the
   commit-msg hook's environment, nothing looked up or written. An after: push
-  check stays pending at work done, as today: it is neither run nor looked
-  up. Proposed, and open: running it once the CI watch has passed, since
-  such a check waits on what the landed push makes.
+  check stays pending at work done, as today: neither run nor looked up.
 
   Contract, which these scenarios judge:
-  - Exit codes. A failing check, run or answered from its record, refuses
-    with exit 1 and the rule work-done-task-check, the item left as it was.
+  - Exit codes. A failing static check, run or answered from its record,
+    refuses with exit 1 and the rule work-done-task-check, the item left as
+    it was.
   - Files: the records of evidence-local.feature, in the git common dir's
     itos/evidence. A miss at work done writes one.
-  - Text, judged by a substring at most. A failure prints the task, its
-    title, the command and the output tail, as itos task prints a failure,
-    and the problem's message names the command and its exit or its timeout.
-    A hit says "cached evidence".
-  - JSON. Proposed: the work-done-task-check problem gains task, command,
+  - Text, judged by a substring at most, on stderr under --json as work
+    done's watch lines are. A failure prints the task, its title, the
+    command and the output tail, as itos task prints a failure, and the
+    problem's message names the command and its exit or its timeout. A hit
+    says "cached evidence". Each late check is named on a line saying it is
+    "left to CI".
+  - JSON, proposed. The work-done-task-check problem gains task, command,
     exit (null when the check did not exit by itself), timed_out, and
-    output, the tail a record keeps. A close's JSON is unchanged: it carries
-    no evidence.
+    output, the tail a record keeps. Once an opted-in check was looked up,
+    a close's or a refusal's JSON gains evidence, ci run's list: each entry
+    the command and its evidence, in run order. A close gains left_to_ci,
+    [{task, command}] for each late check, when the task has one. A run with
+    neither has today's JSON.
 
   # evidence-probe is evidence-local.feature's: a hit is a run its log does
   # not gain. itos runs in a clone, and each scenario pushes its own setup
@@ -126,9 +137,9 @@ Feature: work done runs every check of the task it closes, answering an opted-in
     And its output says "exited 1"
     And the registry's item "T-001" has the status "doing" and the owner "someone"
 
-  # One report for every failing check, opted in or not, failed or timed out.
+  # One report for every failing static check, opted in or not, failed or timed out.
   @ID-EVID-49 @slice-173 @wip
-  Scenario Outline: A failing check's --json problem names the task, the command, the exit and the output tail
+  Scenario Outline: A failing static check's --json problem names the task, the command, the exit and the output tail
     Given the committed file "tasks/phase-1.yaml" holding the lines:
       """
       - id: T-001
@@ -136,6 +147,7 @@ Feature: work done runs every check of the task it closes, answering an opted-in
         title: Tidy
         done_when:
           - run: <command>
+            cost: static
             <extra>
       """
     And the committed file "input.txt" holding "one"
@@ -243,6 +255,7 @@ Feature: work done runs every check of the task it closes, answering an opted-in
         title: Tidy
         done_when:
           - run: evidence-probe 1 input.txt
+            cost: static
             after: push
             evidence: {}
       - id: T-002
@@ -264,9 +277,9 @@ Feature: work done runs every check of the task it closes, answering an opted-in
     And its output does not say "cached evidence"
     And the registry's item "T-001" has the status "done" and the owner "someone"
 
-  # Late checks run, and a static check written below one runs too.
+  # Late checks are CI's: named, never run here, while a static check below one still runs.
   @ID-EVID-54 @slice-173 @wip
-  Scenario: work done runs a task's late checks, and one that fails refuses the close
+  Scenario: work done names a task's late checks as left to CI without running them, and runs a static check written below one
     Given the committed file "tasks/phase-1.yaml" holding the lines:
       """
       - id: T-001
@@ -275,18 +288,53 @@ Feature: work done runs every check of the task it closes, answering an opted-in
         done_when:
           - run: evidence-probe 0 input.txt
             cost: late
-          - run: evidence-probe 1 README.md
+          - run: evidence-probe 0 README.md
             cost: static
       """
     And the committed file "input.txt" holding "one"
     And the work registry has the item "T-001" owned by "someone" with the status "doing"
     And ci.watch asks a fake GitHub, which reports the run "https://ci.example/runs/1"
     And the watched run's jobs "ci" and "platform" succeed
-    When itos runs "work done T-001"
-    Then itos exits with code 1
-    And the evidence probe ran 2 times
-    And its output says "evidence-probe 1 README.md"
-    And the registry's item "T-001" has the status "doing" and the owner "someone"
+    When itos runs "work done T-001 --json"
+    Then itos exits with code 0
+    And the evidence probe ran "0 input.txt" 0 times
+    And the evidence probe ran "0 README.md" 1 time
+    And its JSON's "left_to_ci" is [{"task": "T-001", "command": "evidence-probe 0 input.txt"}]
+    And its output says "left to CI"
+    And the registry's item "T-001" has the status "done" and the owner "someone"
+
+  # A gitlink in HEAD's tree leaves no checkout to make, so the check runs where a hand run would.
+  @ID-EVID-56 @slice-173 @wip
+  Scenario Outline: A checkout of HEAD's tree that cannot be made runs the check uncached in the working folder, its exit its own
+    Given the committed file "tasks/phase-1.yaml" holding the lines:
+      """
+      - id: T-001
+        type: chore
+        title: Tidy
+        done_when:
+          - run: evidence-probe <code> input.txt
+            cost: static
+            evidence: {}
+      """
+    And the committed file "input.txt" holding "one"
+    And the work registry has the item "T-001" owned by "someone" with the status "doing"
+    And a gitlink at "vendor/submodule" pointing to HEAD is committed
+    And ci.watch asks a fake GitHub, which reports the run "https://ci.example/runs/1"
+    And the watched run's jobs "ci" and "platform" succeed
+    And the file "input.txt" is changed to hold "two"
+    When itos runs "work done T-001 --json"
+    Then itos exits with code <exit>
+    And the evidence probe ran 1 time
+    And the evidence probe's last run read "two" from "input.txt"
+    And the evidence probe's last run was in the working folder
+    And its JSON's evidence for the command "evidence-probe <code> input.txt" has "reason" "snapshot-unusable"
+    And the evidence store holds no record
+    And the registry's item "T-001" has the status "<status>" and the owner "someone"
+
+    Examples:
+      | code | exit | status |
+      | 0    | 0    | done   |
+      | 1    | 1    | doing  |
 
   # A cached failure still refuses before the CI watch, which is never asked.
   @ID-EVID-55 @slice-173 @wip @guard
