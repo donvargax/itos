@@ -68,7 +68,11 @@ func run(args []string) (int, error) {
 	if len(args) != 3 || (args[0] != "scope" && args[0] != "plan" && args[0] != "run" && args[0] != "tests") {
 		return 2, fmt.Errorf("usage: ci-repo scope|plan|run|tests FROM TO")
 	}
-	cfg, err := config.Load(vcs.Git{}, adapter.Trees{VCS: vcs.Git{}}, adapter.Worktree, config.Path(vcs.Git{}, adapter.Worktree))
+	// git runs in the folder the program stands in, named: itos's adapters
+	// read every relative path from the folder their git runs in.
+	here, _ := os.Getwd()
+	git := vcs.Git{Dir: here}
+	cfg, err := config.Load(git, adapter.Trees{VCS: git}, adapter.Worktree, config.Path(git, adapter.Worktree))
 	if err != nil {
 		return 2, err
 	}
