@@ -9528,7 +9528,7 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: [slice-140, slice-141, slice-147]
+    depends_on: [slice-140, slice-141, slice-147, p1-typed-items]
     kind: slice
     why: >
       Was p1-draft-promote-selection.
@@ -9557,7 +9557,7 @@ items:
       while dependents remain. Final hooks and normal partial-progress behavior remain authoritative
       after execution starts.
     refs: [internal/cli/draft.go, internal/draft, features/draft.feature]
-    tags: [draft, v8]
+    tags: [draft, v9]
 
   - id: p1-ci-step-whole-inert
     title: Resolve the accepted but unused ci.steps whole flag
