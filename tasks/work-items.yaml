@@ -56,7 +56,6 @@ phases:
 
 queue:
   - bug-134
-  - T-299
   - slice-156
   - p1-pr-mode
   - p1-agent-test-runs-once
