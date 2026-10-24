@@ -114,9 +114,7 @@
 // difference is wording: es-toolkit's deburr decomposes every precomposed
 // letter, and cases.go only those of Latin-1 and Latin Extended-A, so
 // subject-case may name another case for a subject with one outside them,
-// the verdict the same. tools/selftest/header-agreement.ts holds it to a
-// recorded fixture of commitlint's verdicts, commitlint no longer being
-// installed.
+// the verdict the same.
 //
 // # A commit's type, git's own headers and merges
 //
