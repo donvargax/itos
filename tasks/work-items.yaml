@@ -12946,18 +12946,9 @@ items:
     title: Opted-in checks rerun instantly from a local record keyed by the index tree (evidence records, A1 and A3)
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [bug-112]
     kind: slice
-    why: >
-      Was p1-evidence-local.
-      A1 and A3 of docs/plans/evidence-records.md (ADR-0060, q-102): the evidence key on a
-      done_when check or ci.steps entry (A1), and lookup in hand-run itos task and ci run keyed by
-      the index tree, a miss run in its bug-112 snapshot (A3); the store takes the lock on a miss
-      and writes by rename. Contention and damage are slice-170 (A2), commit-msg lookup is
-      p1-evidence-commit-msg (A4). A1 and A3 go red first through one test commit, since A1's key
-      shows only through A3's lookup, then their feats. Feats, minor releases; nothing consumer-visible changes for a check that does not
-      opt in. Spec: features/evidence-local.feature.
     tags: [tests, hooks]
 
   - id: p1-evidence-ci
