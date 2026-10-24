@@ -15,8 +15,8 @@ import (
 	"github.com/donvargax/itos/v8/internal/cli"
 )
 
-// cli.Main changes process-global state. Keep this runner serial until those
-// values are passed into Main instead.
+// cli.Main changes the process's environment and reads its stdin. Keep this
+// runner serial until those are passed into Main too, as the folder is.
 var inProcessMu sync.Mutex
 
 // Scenarios that need behavior provided by cmd/itos rather than cli.Main.
@@ -38,28 +38,15 @@ func (w *world) runInProcess(dir string, stdin io.Reader, args ...string) (resul
 	inProcessMu.Lock()
 	defer inProcessMu.Unlock()
 
-	oldDir, err := os.Getwd()
-	if err != nil {
-		return err
-	}
 	oldEnv, oldStdin := os.Environ(), os.Stdin
 	restore := func() error {
-		var errs []error
-		if err := os.Chdir(oldDir); err != nil {
-			errs = append(errs, err)
-		}
-		if err := replaceEnv(oldEnv); err != nil {
-			errs = append(errs, err)
-		}
+		err := replaceEnv(oldEnv)
 		os.Stdin = oldStdin
-		return errors.Join(errs...)
+		return err
 	}
 	defer func() { resultErr = errors.Join(resultErr, restore()) }()
 
 	if err := replaceEnv(w.env()); err != nil {
-		return err
-	}
-	if err := os.Chdir(dir); err != nil {
 		return err
 	}
 	r, pipeW, err := os.Pipe()

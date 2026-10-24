@@ -85,3 +85,15 @@ func TestEntered(t *testing.T) {
 		t.Errorf("entered a missing folder = %q, want %q", got, gone)
 	}
 }
+
+// moveTo gives no origin for the folder the person stands in, nor for a
+// top no path leads to from where they stood.
+func TestMoveToGivesNoOrigin(t *testing.T) {
+	dir := t.TempDir()
+	if at, origin := moveTo(runtime.GOOS, dir, dir); at != dir || origin != "" {
+		t.Errorf("moveTo the folder itself = %q, %q", at, origin)
+	}
+	if _, origin := moveTo(runtime.GOOS, "relative", dir); origin != "" {
+		t.Errorf("moveTo from a relative folder = %q, want no origin", origin)
+	}
+}

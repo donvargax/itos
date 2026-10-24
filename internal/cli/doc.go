@@ -65,16 +65,37 @@
 // skips relative PATH folders. runExtension gives the program the rest of
 // the arguments unread, or --help alone when a --help came before the name,
 // in extensionEnv: ITOS_CONFIG (config.Path made absolute), ITOS_ROOT (the
-// working folder), ITOS_BIN (os.Executable), ITOS_VERSION (so $ITOS_BIN
+// folder itos runs in), ITOS_BIN (os.Executable), ITOS_VERSION (so $ITOS_BIN
 // called back runs itself and never launches another version) and, with
 // --json, ITOS_JSON=1. runProgram is syscall.Exec on unix, after writing the
 // process's coverage counters to GOCOVERDIR when it is set, since an exec
-// runs no exit hook to write them (T-124); a program that
-// cannot start exits 3. The main help lists extensions(): every itos-<name>
+// runs no exit hook to write them (T-124), the process entering the folder
+// itos runs in first, the one change to its folder, which the exec hands
+// the program and a program that cannot start puts back; that program
+// exits 3. The main help lists extensions(): every itos-<name>
 // in the PATH's folders that extensionPath would run, sorted.
 //
-// applyGlobals moves to --root, or to the repository's top from a subfolder
-// (config.Top), before any command, and gives where the person stood,
+// # The folder a command runs in
+//
+// Main takes a Run (T-291): the arguments, the streams, the OS and the
+// folder the run starts in, which cmd/itos reads once, the process's working
+// folder. Nothing under internal/cli reads or changes that folder, but an
+// extension's exec, which hands the program the folder itos runs in.
+// applyGlobals gives the folder the command runs in: --root, joined to the
+// run's folder when relative and refused with a stat, missing or no folder,
+// as a usage error; or the repository's top from a subfolder (config.Top);
+// else the run's folder; a folder entered spelled as a process standing
+// there would give it (entered: the run's own spelling for the same
+// folder, else its links resolved, but on windows). Main carries it to each
+// command in Out.Dir, which each port and adapter is handed when it is
+// made: the git adapter's Dir (vcs.Git, whose Folder the VCS port gives,
+// so the tree reader, the tracker, the private store, the config's lookups
+// and the shell read from it), the working tree's (trees.WorktreeIn) and
+// every program started (cmd.Dir). A command that moves partway, draft's
+// add, edit and promote and init to the repository's top, derives the
+// ports of the new folder (their At) and goes on through them, and the
+// nested run of a minting draft's line starts in the folder its ports have
+// (Out's runLine). applyGlobals also gives where the person stood,
 // relative to the top, which Main carries to each command in Out.Origin:
 // typed reads a path they typed from there
 // (check-paths' paths, check-message's, work check's and hook commit-msg's
@@ -179,8 +200,9 @@
 // draft is the draft slice (internal/slices/draft); draft.go binds its
 // Ports to the git adapter (the VCS port and the patches it leaves to the
 // adapter), the private store's lock, hooksReady, this itos's binary
-// (executable), the run Main hands each command (Out's runLine) and, for a
-// drafted line that mints an item's id, ParseGlobals, applyGlobals,
+// (executable), the run Main hands each command (Out's runLine), the ports
+// of another folder (At) and, for a drafted line that mints an item's id,
+// ParseGlobals, applyGlobals,
 // readLine, workAddLine, workPromoteLine, taskAddArgs, loadConfig,
 // soundRegistry and mintItemID; newItemID hands the command it runs the id
 // reserved (Out's reserved) instead of minting another, since no command
@@ -189,9 +211,9 @@
 // # guard claude-code
 //
 // guard claude-code is a group of its own, apart from git's hooks: the
-// guard slice (internal/slices/guard), which guard.go hands Out.Origin,
-// where itos was started before applyGlobals moved to the top, and binds
-// to config.Managed. launch.GuardSince is the first itos with the command.
+// guard slice (internal/slices/guard), which guard.go hands the folder
+// itos was started in, absolute (Out.Origin from Out.Dir), and binds to
+// config.Managed. launch.GuardSince is the first itos with the command.
 //
 // # The slices
 //

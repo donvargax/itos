@@ -223,7 +223,7 @@ func TestHelpListsExtensions(t *testing.T) {
 
 // From a subfolder, itos runs at the repository's top, where its config is,
 // and reads a path the person typed from the folder they stood in, as git
-// does; --root keeps reading it from the root.
+// does, the process staying there; --root keeps reading it from the root.
 func TestSubfolderPaths(t *testing.T) {
 	dir := gitConfigRepo(t, "version: 1\ncommits: { types: [docs], scopes: { docs: { only: [\"**/*.md\"] } } }\n")
 	if err := os.MkdirAll(filepath.Join(dir, "sub"), 0o755); err != nil {
@@ -234,10 +234,9 @@ func TestSubfolderPaths(t *testing.T) {
 	if code != ExitPolicy || !strings.Contains(stdout, `"sub/a.md"`) || !strings.Contains(stdout, `"b.go"`) {
 		t.Errorf("from sub: exit %d, stdout %s, stderr %s", code, stdout, stderr)
 	}
-	if here, _ := os.Getwd(); !sameDir(here, dir) {
-		t.Errorf("from sub, itos ran in %s, not the top %s", here, dir)
+	if here, _ := os.Getwd(); !sameDir(here, filepath.Join(dir, "sub")) {
+		t.Errorf("from sub, itos moved the process to %s", here)
 	}
-	t.Chdir(filepath.Join(dir, "sub"))
 	code, stdout, _ = run("--root", dir, "commit", "check-paths", "--type", "docs", "a.md", "--json")
 	if code != 0 || !strings.Contains(stdout, `"a.md"`) || strings.Contains(stdout, "sub/") {
 		t.Errorf("under --root: exit %d, stdout %s", code, stdout)
@@ -259,6 +258,37 @@ func TestCIRangesFirstRefIsACommit(t *testing.T) {
 		if code != ExitUsage || stdout != "" ||
 			stderr != "itos: ci plan: nonesuch is not a commit of this repository (itos --help)\n" {
 			t.Errorf("itos %s: exit %d, stdout %q, stderr %q", strings.Join(args, " "), code, stdout, stderr)
+		}
+	}
+}
+
+// Main runs in the run's folder and never moves the process: from a
+// subfolder of a repository whose config is at its top, and under a --root
+// read from the run's folder, the command reads that repository's config,
+// not the one of the checkout the process stands in, and the process stands
+// where it stood.
+func TestMainLeavesTheProcessFolder(t *testing.T) {
+	here, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	dir := gitConfigRepo(t, "version: 1\nhooks: { bin: only-in-the-temporary-config }\n")
+	sub := filepath.Join(dir, "sub")
+	if err := os.Mkdir(sub, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	t.Chdir(here)
+	for name, args := range map[string][]string{
+		"from a subfolder": {"config", "get", "hooks.bin"},
+		"under --root":     {"--root", "..", "config", "get", "hooks.bin"},
+	} {
+		var stdout, stderr strings.Builder
+		code := Main(Run{Args: args, Stdout: &stdout, Stderr: &stderr, OS: runtime.GOOS, Dir: sub})
+		if code != 0 || stdout.String() != "only-in-the-temporary-config\n" {
+			t.Errorf("%s: exit %d, stdout %q, stderr %q; want the temporary config's hooks.bin", name, code, stdout.String(), stderr.String())
+		}
+		if now, err := os.Getwd(); err != nil || now != here {
+			t.Errorf("%s: the process stands in %q, %v, not %q", name, now, err, here)
 		}
 	}
 }

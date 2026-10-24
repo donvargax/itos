@@ -312,9 +312,6 @@ func mainWith(r Run, reserved string) int {
 			return mainWith(Run{Args: args, Stdout: stdout, Stderr: stderr, OS: r.OS, Dir: dir}, reserved)
 		}}
 	dir, origin, err := applyGlobals(g, r.Dir, r.OS)
-	if err == nil && dir != "" {
-		err = os.Chdir(dir)
-	}
 	if err != nil {
 		return failure(err, o)
 	}
