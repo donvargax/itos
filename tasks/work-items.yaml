@@ -10575,6 +10575,10 @@ items:
       task the registry lists. Either commit --item accepts a ledger task and writes the Task
       footer, or the brief template in itos guide brief says --task for a task. The first removes
       the trap for every agent; the second only for the briefed ones.
+
+      Seen again 2026-10-23: a review fix to slice-172's doc.go (a refactor) could not name
+      slice-172; the coordinator added T-296 for one comment. An implementing agent earlier borrowed
+      an old done task (T-228) for the same reason.
     tags: [commit, v8]
 
   - id: p1-fix-deps-releases
