@@ -5,6 +5,7 @@ import (
 
 	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/engine/evidence"
+	"github.com/donvargax/itos/v8/internal/message"
 	private "github.com/donvargax/itos/v8/internal/store/private/adapter"
 	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
 )
@@ -43,5 +44,35 @@ func newEvidence(cfg *config.Loaded, mode, goos string) *evidence.Engine {
 	} else {
 		e.Hint = " itos task --working-tree runs the working folder."
 	}
+	return e
+}
+
+// hookGit is the evidence engine's view of the repository for the commit-msg
+// hook: the tree the hook captured is the index tree, whatever the index has
+// become since, and a checkout's environment is less the footers and the
+// amend itos commit handed the hook, which are this commit's and no commit a
+// check makes.
+type hookGit struct {
+	evidence.Git
+	tree string
+}
+
+// IndexTree is the tree the hook captured.
+func (g hookGit) IndexTree(context.Context) (string, error) { return g.tree, nil }
+
+// Snapshot is the repository's, less the commit's footers in its environment.
+func (g hookGit) Snapshot(ctx context.Context, tree string) (evidence.Checkout, error) {
+	co, err := g.Git.Snapshot(ctx, tree)
+	co.Env = message.WithoutFooters(co.Env)
+	return co, err
+}
+
+// newHookEvidence is the engine for the commit-msg hook's checks, on the
+// tree it captured: keyed as itos task keys the same check, its misses run
+// in a checkout of their own and a check it cannot run on the tree is
+// refused, never run in the working folder.
+func newHookEvidence(cfg *config.Loaded, tree, goos string) *evidence.Engine {
+	e := newEvidence(cfg, "hook", goos)
+	e.Git, e.Hint, e.Hook = hookGit{Git: e.Git, tree: tree}, "", true
 	return e
 }

@@ -23,5 +23,5 @@ func exists(p string) bool {
 // hookInstall is `hook install`, the hook slice's, which init runs.
 func hookInstall(print, force bool, o Out) (int, error) {
 	c := hookslice.CLI{Query: hookslice.Query{Sub: "install", Print: print, Force: force}, JSON: o.JSON, Tests: o.Tests}
-	return c.Run(context.Background(), o.Stdout, o.Stderr, hookslice.NewHandler(hookPorts{Git: vcs.Git{Dir: o.Dir}}))
+	return c.Run(context.Background(), o.Stdout, o.Stderr, hookslice.NewHandler(hookPorts{Git: vcs.Git{Dir: o.Dir}, os: o.OS}))
 }

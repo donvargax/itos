@@ -53,6 +53,15 @@
 //     checkout has private Git metadata and captured output beside it; all
 //     Git-local environment names and ITOS_FOOTERS/ITOS_AMEND are scrubbed.
 //     Only runnable checks create a snapshot, removed on either verdict.
+//     A check that opts in to evidence records (slice 171, ADR-0060) is
+//     looked up first, by the captured tree and the key itos task binds
+//     (internal/engine/evidence, Hook set): a hit runs nothing and prints one
+//     stderr line saying "cached evidence", and a miss runs in a checkout of
+//     its own, under the cap, and is recorded unless the cap stopped it.
+//     checkouts makes a snapshot only when some check must run, before any
+//     does, so a snapshot that cannot be made refuses the commit (exit 3, never
+//     a working-folder run) and an all-hit commit makes none; with no plain
+//     check the snapshot is the engine's for its first miss.
 //     A failure rejects the commit when
 //     work.ItemStatuses says the task is done, and is only printed
 //     otherwise. hooks.commit_msg.task_checks: false turns them off.

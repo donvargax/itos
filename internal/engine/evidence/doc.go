@@ -41,7 +41,19 @@
 // untracked inputs copied in, runs the check there with the checkout's
 // environment, and writes the record.
 //
-// Nothing that goes wrong changes a verdict or an exit code. A check that
+// The commit-msg hook (internal/slices/hook) uses the engine too, with Hook
+// set, on the tree it captured (the Git it is given answers IndexTree with it,
+// so a commit of paths keys the temporary index git hands the hook). Hit asks,
+// without running or printing, whether a record would answer, so the hook
+// makes a checkout only when some check must run; Spare hands it that
+// checkout for the first miss when no check shares it. A request carries the
+// seconds the hook's cap allows beside the check's own, which alone the key
+// binds, so a run the cap stops is not recorded and a record made by hand
+// answers it. The hook's engine prints only the line of a hit, naming the
+// task, and a check it cannot key or run in a checkout of the tree is refused
+// (Outcome.Err), never run in the working folder.
+//
+// Elsewhere nothing that goes wrong changes a verdict or an exit code. A check that
 // cannot be keyed, whose checkout cannot be made (a gitlink in the index, the
 // snapshots folder unusable, an input that cannot be copied) or that the
 // index cannot be read for runs in the working folder, uncached, with the

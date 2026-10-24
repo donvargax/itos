@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/donvargax/itos/v8/internal/config"
+	"github.com/donvargax/itos/v8/internal/engine/evidence"
 	"github.com/donvargax/itos/v8/internal/message"
 	"github.com/donvargax/itos/v8/internal/out"
 	"github.com/donvargax/itos/v8/internal/shell"
@@ -57,6 +58,7 @@ type ports struct {
 	hookFiles map[string]string
 	run       func(command string, o shell.Options) shell.Result
 	shows     int
+	engine    *evidence.Engine
 }
 
 // Show is the repository's, refused once shows, when set, runs out.
@@ -78,6 +80,9 @@ func (p *ports) CaptureIndex(ctx context.Context) (treeport.Source, error) {
 func (p *ports) TaskSnapshot(context.Context, string) (Snapshot, error) {
 	return Snapshot{Env: os.Environ(), Remove: func() error { return nil }}, nil
 }
+
+// Evidence is the engine the test gave, none by default.
+func (p *ports) Evidence(context.Context, *config.Loaded, string) *evidence.Engine { return p.engine }
 
 func (p *ports) LoadConfig(context.Context) (*config.Loaded, error) { return p.cfg, p.loadErr }
 

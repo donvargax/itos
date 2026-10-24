@@ -6,6 +6,7 @@ import (
 	"io"
 
 	"github.com/donvargax/itos/v8/internal/config"
+	"github.com/donvargax/itos/v8/internal/engine/evidence"
 	"github.com/donvargax/itos/v8/internal/engine/hooks"
 	"github.com/donvargax/itos/v8/internal/out"
 	"github.com/donvargax/itos/v8/internal/scope"
@@ -42,6 +43,10 @@ type Ports interface {
 	Shell(ctx context.Context, cfg *config.Loaded, command string, o shell.Options) shell.Result
 	CaptureIndex(ctx context.Context) (treeport.Source, error)
 	TaskSnapshot(ctx context.Context, tree string) (Snapshot, error)
+	// Evidence is the engine that looks up the checks that opt in to evidence
+	// records by tree, the tree the hook captured, and runs a miss in a
+	// checkout of its own. Its Hook is set.
+	Evidence(ctx context.Context, cfg *config.Loaded, tree string) *evidence.Engine
 }
 
 // Snapshot is a private checkout and capture directory, with a Git-local

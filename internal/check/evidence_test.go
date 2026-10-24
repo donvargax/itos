@@ -3,6 +3,7 @@ package check
 import (
 	"bytes"
 	"context"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -35,12 +36,18 @@ func TestKeyHoldsTheEvidenceDeclaration(t *testing.T) {
 	}
 }
 
-type fakeGit struct{ checkouts, lookups int }
+type fakeGit struct {
+	checkouts, lookups int
+	snapshotErr        error
+}
 
 func (*fakeGit) IndexTree(context.Context) (string, error)       { return "tree", nil }
 func (*fakeGit) IndexPaths(context.Context) ([]string, error)    { return nil, nil }
 func (*fakeGit) UnstagedPaths(context.Context) ([]string, error) { return nil, nil }
 func (g *fakeGit) Snapshot(context.Context, string) (evidence.Checkout, error) {
+	if g.snapshotErr != nil {
+		return evidence.Checkout{}, g.snapshotErr
+	}
 	g.checkouts++
 	return evidence.Checkout{Dir: "", Remove: func() error { return nil }}, nil
 }
@@ -133,5 +140,93 @@ func TestAnAfterPushCheckIsNeverLookedUpOrRecorded(t *testing.T) {
 				t.Errorf("the store was touched: %v", err)
 			}
 		})
+	}
+}
+
+func hookEngine(cfg *config.Loaded, git *fakeGit, root string) *evidence.Engine {
+	return &evidence.Engine{Cfg: cfg, Git: git, Store: store{root}, Binding: evidence.ThisBinary(), Mode: "hook", Hook: true}
+}
+
+// RunCaptured through an engine answers a check that opts in from a record
+// the second time, with the output of the run and its code, and judges it as
+// a captured run does: past its cap it fails and says so, though its own
+// timeout is the longer, and the run the cap stops leaves no record; a must
+// fail check passes by failing; the engine's refusal is the error.
+func TestRunCapturedThroughEvidence(t *testing.T) {
+	cfg := load(t, "version: 1\n")
+	git, root := &fakeGit{}, t.TempDir()
+	at := Execution{Evidence: hookEngine(cfg, git, root), Log: &bytes.Buffer{}, Task: "T-1"}
+	failing := ledger.Check{Run: text("echo out; exit 3"), Evidence: &config.Evidence{}, Timeout: seconds(30)}
+	for _, want := range []string{"miss", "hit"} {
+		run, err := RunCaptured(cfg, failing, 10, nil, at)
+		if err != nil || run.Result != Fail || run.Code != 3 || run.Output != "out\n" || run.Seconds != 10 || !run.Capped || run.TimedOut {
+			t.Fatalf("%s: %+v, %v", want, run, err)
+		}
+	}
+	if git.checkouts != 1 || !strings.Contains(at.Log.(*bytes.Buffer).String(), "T-1 echo out; exit 3: cached evidence") {
+		t.Errorf("%d checkouts, log %q", git.checkouts, at.Log.(*bytes.Buffer).String())
+	}
+	mustFail := ledger.Check{Fails: text("echo out; exit 3"), Evidence: &config.Evidence{}, Timeout: seconds(30)}
+	if run, err := RunCaptured(cfg, mustFail, 10, nil, at); err != nil || run.Result != Pass || git.checkouts != 1 {
+		t.Errorf("a must-fail check answered by the same record: %+v, %v, %d checkouts", run, err, git.checkouts)
+	}
+	slow := ledger.Check{Run: text("sleep 5"), Evidence: &config.Evidence{}, Timeout: seconds(30)}
+	run, err := RunCaptured(cfg, slow, 0.05, nil, at)
+	if err != nil || run.Result != Fail || !run.TimedOut || !run.Capped || run.Seconds != 0.05 {
+		t.Fatalf("a run the cap stops: %+v, %v", run, err)
+	}
+	if entries, _ := os.ReadDir(filepath.Join(root, evidence.Folder)); len(entries) != 1 {
+		t.Errorf("the store holds %d entries, the failing check's record alone expected", len(entries))
+	}
+	git.snapshotErr = errors.New("a gitlink")
+	if _, err := RunCaptured(cfg, ledger.Check{Run: text("true"), Evidence: &config.Evidence{}}, 10, nil, at); !errors.Is(err, git.snapshotErr) {
+		t.Errorf("a checkout that cannot be made: %v", err)
+	}
+}
+
+// A check that does not opt in, or an after: push check, runs where the
+// execution puts it, never through the engine.
+func TestRunCapturedRunsOnlyOptedInChecksThroughEvidence(t *testing.T) {
+	cfg := load(t, "version: 1\n")
+	git := &fakeGit{}
+	dir := t.TempDir()
+	at := Execution{Evidence: hookEngine(cfg, git, t.TempDir()), Dir: dir}
+	for _, c := range []ledger.Check{
+		{Run: text("echo here > ran")},
+		{Run: text("echo here > ran"), Evidence: &config.Evidence{}, After: "push"},
+	} {
+		if run, err := RunCaptured(cfg, c, 10, nil, at); err != nil || run.Result != Pass {
+			t.Fatalf("%+v: %+v, %v", c, run, err)
+		}
+		if _, err := os.Stat(filepath.Join(dir, "ran")); err != nil {
+			t.Errorf("%+v did not run in the execution's folder: %v", c, err)
+		}
+		if err := os.Remove(filepath.Join(dir, "ran")); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if git.checkouts != 0 {
+		t.Errorf("%d checkouts", git.checkouts)
+	}
+}
+
+// Answers is true only for an opted-in check that is not an after: push
+// check and has a record.
+func TestAnswersIsTrueForARecordedOptedInCheckOnly(t *testing.T) {
+	cfg := load(t, "version: 1\n")
+	e := hookEngine(cfg, &fakeGit{}, t.TempDir())
+	opted := ledger.Check{Run: text("true"), Evidence: &config.Evidence{}}
+	if Answers(e, cfg, opted) {
+		t.Error("answered before any run")
+	}
+	at := Execution{Evidence: e, Log: &bytes.Buffer{}}
+	if _, err := RunCaptured(cfg, opted, NoCap, nil, at); err != nil {
+		t.Fatal(err)
+	}
+	if !Answers(e, cfg, opted) {
+		t.Error("not answered after a run")
+	}
+	if Answers(nil, cfg, opted) || Answers(e, cfg, ledger.Check{Run: text("true")}) || Answers(e, cfg, ledger.Check{Run: text("true"), Evidence: &config.Evidence{}, After: "push"}) {
+		t.Error("answered a check that is not looked up, or with no engine")
 	}
 }

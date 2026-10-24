@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/donvargax/itos/v8/internal/config"
+	"github.com/donvargax/itos/v8/internal/engine/evidence"
 	"github.com/donvargax/itos/v8/internal/message"
 	"github.com/donvargax/itos/v8/internal/shell"
 	hookslice "github.com/donvargax/itos/v8/internal/slices/hook"
@@ -21,7 +22,7 @@ func runHook(args []string, o Out) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	return c.Run(context.Background(), o.Stdout, o.Stderr, hookslice.NewHandler(hookPorts{Git: vcs.Git{Dir: o.Dir}}))
+	return c.Run(context.Background(), o.Stdout, o.Stderr, hookslice.NewHandler(hookPorts{Git: vcs.Git{Dir: o.Dir}, os: o.OS}))
 }
 
 // hookPorts are the hook slice's ports over the real code: git, the hooks
@@ -30,6 +31,8 @@ func runHook(args []string, o Out) (int, error) {
 type hookPorts struct {
 	vcs.Git
 	hookFiles
+	// os is the OS the evidence store's lock waits by, as Out.OS names it.
+	os string
 }
 
 func (p hookPorts) CaptureIndex(ctx context.Context) (treeport.Source, error) {
@@ -43,6 +46,11 @@ func (p hookPorts) CaptureIndex(ctx context.Context) (treeport.Source, error) {
 func (p hookPorts) TaskSnapshot(ctx context.Context, tree string) (hookslice.Snapshot, error) {
 	s, err := p.Git.TaskSnapshot(ctx, tree)
 	return hookslice.Snapshot{Dir: s.Dir, TempDir: s.TempDir, Env: s.Env, Remove: s.Remove}, err
+}
+
+// Evidence is newHookEvidence of the tree the hook captured.
+func (p hookPorts) Evidence(_ context.Context, cfg *config.Loaded, tree string) *evidence.Engine {
+	return newHookEvidence(cfg, tree, p.os)
 }
 
 // Trees are the trees git holds.

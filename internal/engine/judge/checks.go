@@ -35,6 +35,11 @@ func FirstFailure(cfg *config.Loaded, task ledger.Task, cap float64, env []strin
 	if task.Err != nil {
 		return "", task.Err
 	}
+	if len(execution) > 0 {
+		at := execution[0]
+		at.Log, at.Task = stderr, task.ID
+		execution = []check.Execution{at}
+	}
 	for _, costed := range check.ChecksBeforeLate(cfg, task) {
 		c := costed.Check
 		if c.Pushed() {

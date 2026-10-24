@@ -14,6 +14,7 @@ import (
 	"github.com/donvargax/itos/v8/internal/check"
 	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/engine/configcheck"
+	"github.com/donvargax/itos/v8/internal/engine/evidence"
 	"github.com/donvargax/itos/v8/internal/engine/judge"
 	"github.com/donvargax/itos/v8/internal/ledger"
 	"github.com/donvargax/itos/v8/internal/message"
@@ -505,27 +506,25 @@ func (h Handler) tasksRule(ctx context.Context, cfg *config.Loaded, text string,
 		return Answer{}, err
 	}
 	named := h.tasksAt(ctx, ids, index)
-	runnable := false
+	var runnable []ledger.Check
 	for _, n := range named {
 		if n.task.Err != nil {
 			return Answer{}, n.task.Err
 		}
 		for _, c := range check.ChecksBeforeLate(cfg, n.task) {
 			if !c.Check.Pushed() {
-				runnable = true
+				runnable = append(runnable, c.Check)
 			}
 		}
 	}
-	if !runnable {
+	if len(runnable) == 0 {
 		return Answer{}, nil
 	}
-	snapshot, err := h.ports.TaskSnapshot(ctx, index.Tree(ctx))
+	execution, env, release, err := h.checkouts(ctx, cfg, index.Tree(ctx), runnable)
 	if err != nil {
 		return Answer{}, err
 	}
-	defer snapshot.Remove()
-	env := message.WithoutFooters(snapshot.Env)
-	execution := check.Execution{Dir: snapshot.Dir, TempDir: snapshot.TempDir}
+	defer release()
 	var rejected []string
 	for _, n := range named {
 		why, err := judge.FirstFailure(cfg, n.task, cap, env, o.Stderr, execution)
@@ -540,4 +539,46 @@ func (h Handler) tasksRule(ctx context.Context, cfg *config.Loaded, text string,
 		return Answer{}, nil
 	}
 	return Answer{Code: policy, Header: cfg.Commits.RejectMessage, Lines: rejected}, nil
+}
+
+// checkouts sets up where the runnable checks run, on the captured tree: the
+// shared checkout of the checks that do not opt in to evidence, and, for the
+// ones that do, the engine that answers them from a record (nothing run, no
+// checkout) or runs a miss in a checkout of its own. A checkout is made only
+// when some check must run, before any does, so a snapshot that cannot be
+// made refuses the commit (bug-112) and one that every check is spared never
+// does. With no plain check the checkout made is handed to the engine for its
+// first miss rather than another being made. release removes what was made.
+func (h Handler) checkouts(ctx context.Context, cfg *config.Loaded, tree string, runnable []ledger.Check) (check.Execution, []string, func(), error) {
+	var engine *evidence.Engine
+	for _, c := range runnable {
+		if c.Evidence != nil {
+			engine = h.ports.Evidence(ctx, cfg, tree)
+			break
+		}
+	}
+	plain, missed := false, false
+	for _, c := range runnable {
+		switch {
+		case c.Evidence == nil || engine == nil:
+			plain = true
+		case !check.Answers(engine, cfg, c):
+			missed = true
+		}
+	}
+	execution := check.Execution{Evidence: engine}
+	if !plain && !missed {
+		return execution, nil, func() {}, nil
+	}
+	snapshot, err := h.ports.TaskSnapshot(ctx, tree)
+	if err != nil {
+		return execution, nil, nil, err
+	}
+	env := message.WithoutFooters(snapshot.Env)
+	if plain {
+		execution.Dir, execution.TempDir = snapshot.Dir, snapshot.TempDir
+	} else {
+		engine.Spare(evidence.Checkout{Dir: snapshot.Dir, Env: env, Remove: snapshot.Remove})
+	}
+	return execution, env, func() { _ = snapshot.Remove() }, nil
 }

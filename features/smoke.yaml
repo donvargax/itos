@@ -60,6 +60,10 @@
   scenarios:
     - id: "@ID-DRAFT-03"
       why: a change and a command line drafted, then promoted in order, each committed, the file's point in one run
+- file: evidence-hook.feature
+  scenarios:
+    - id: "@ID-EVID-32"
+      why: a commit attempt runs the check on the staged snapshot and the next attempt on that index hits, the file's point in two runs
 - file: evidence-local.feature
   scenarios:
     - id: "@ID-EVID-01"

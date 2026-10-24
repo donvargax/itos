@@ -1,10 +1,13 @@
 package check
 
 import (
+	"context"
+	"io"
 	"math"
 	"os"
 
 	"github.com/donvargax/itos/v8/internal/config"
+	"github.com/donvargax/itos/v8/internal/engine/evidence"
 	"github.com/donvargax/itos/v8/internal/ledger"
 	"github.com/donvargax/itos/v8/internal/shell"
 )
@@ -26,7 +29,33 @@ type Captured struct {
 
 // Execution relocates a check and its captured output without changing policy.
 // Empty paths retain the caller's working and temporary directories.
-type Execution struct{ Dir, TempDir string }
+// Evidence, when set, answers a check that opts in from a record and runs a
+// miss in a checkout of its own, rather than in Dir (RunCaptured); Log is
+// where a hit says so and Task the task the check is for, both only for that.
+type Execution struct {
+	Dir, TempDir string
+	Evidence     *evidence.Engine
+	Log          io.Writer
+	Task         string
+}
+
+// evidenceRequest is the check as the evidence engine looks it up: keyed by
+// its own timeout, run for at most seconds.
+func evidenceRequest(cfg *config.Loaded, c ledger.Check, seconds float64, at Execution) evidence.Request {
+	return evidence.Request{
+		Command: c.Command(), Seconds: Timeout(cfg, c), RunSeconds: &seconds, Decl: *c.Evidence, Task: at.Task, Log: at.Log,
+	}
+}
+
+// Answers is whether the engine would answer the check from a record: it
+// opts in, is not an after: push check, and a record of what it would run on
+// is there.
+func Answers(e *evidence.Engine, cfg *config.Loaded, c ledger.Check) bool {
+	if e == nil || c.Evidence == nil || c.Pushed() {
+		return false
+	}
+	return e.Hit(context.Background(), evidenceRequest(cfg, c, Timeout(cfg, c), Execution{}))
+}
 
 // NoCap is a cap that leaves a check's own timeout as it is.
 var NoCap = math.Inf(1)
@@ -45,6 +74,19 @@ func RunCaptured(cfg *config.Loaded, c ledger.Check, cap float64, env []string, 
 	}
 	own := Timeout(cfg, c)
 	seconds := math.Min(own, cap)
+	if at.Evidence != nil && c.Evidence != nil && !c.Pushed() {
+		o := at.Evidence.Run(context.Background(), evidenceRequest(cfg, c, seconds, at))
+		if o.Err != nil {
+			return Captured{}, o.Err
+		}
+		result := Fail
+		if !o.TimedOut && o.OK != c.MustFail() {
+			result = Pass
+		}
+		return Captured{
+			Result: result, Output: o.Output, Code: o.Code, Seconds: seconds, Capped: cap < own, TimedOut: o.TimedOut,
+		}, nil
+	}
 	dir, err := os.MkdirTemp(at.TempDir, "itos-check-")
 	if err != nil {
 		return Captured{}, err

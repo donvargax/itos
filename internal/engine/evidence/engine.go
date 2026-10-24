@@ -64,21 +64,34 @@ type Checkout struct {
 
 // Request is one check to run, looked up or recorded: its command, its
 // timeout in seconds, its declaration, and where it reports. Verbose lets
-// its output through as it runs, to Log.
+// its output through as it runs, to Log. RunSeconds, when set, is how long a
+// miss may run, less than Seconds when something caps it (the commit-msg
+// hook's hooks.commit_msg.check_timeout): the key binds Seconds alone, so a
+// run the cap stops is not recorded and a record made under no cap answers
+// it. Task, when set, names the task the check is for in the line a hit
+// prints.
 type Request struct {
-	Command string
-	Seconds float64
-	Decl    config.Evidence
-	Verbose bool
-	Log     io.Writer
+	Command    string
+	Seconds    float64
+	RunSeconds *float64
+	Decl       config.Evidence
+	Task       string
+	Verbose    bool
+	Log        io.Writer
 }
 
 // Outcome is how the check ended: its exit code (-1 when it did not exit by
-// itself), whether that is a pass, and the evidence of the run.
+// itself), whether that is a pass, whether its timeout stopped it, the tail
+// of what it printed and the evidence of the run. Err is set only for an
+// Engine with Hook set, when the check could not be run on the staged tree:
+// it ran nothing.
 type Outcome struct {
-	Code int
-	OK   bool
-	Info Info
+	Code     int
+	OK       bool
+	TimedOut bool
+	Output   string
+	Info     Info
+	Err      error
 }
 
 // Info is what --json says of an opted-in check's evidence. Recorded is true
@@ -124,7 +137,14 @@ type Engine struct {
 	Mode, Hint string
 	// Now is the clock.
 	Now func() time.Time
+	// Hook is set for the commit-msg hook's checks, which judge the staged
+	// tree or nothing: a check whose key cannot be read or whose checkout
+	// cannot be made is refused (Outcome.Err), never run in the working
+	// folder; and the engine says nothing of a miss or of the changes left
+	// out, only that a hit answered.
+	Hook bool
 
+	spare     *Checkout
 	used      bool
 	treeKnown bool
 	tree      string
@@ -145,6 +165,36 @@ func (e *Engine) Unstaged() (int, bool) { return e.unstaged, e.counted }
 
 // Entries are the evidence of each command looked up, in run order.
 func (e *Engine) Entries() []Entry { return e.entries }
+
+// Spare hands the engine a checkout of the tree it looks up, which the first
+// miss runs in instead of making its own. The caller removes it, as it would
+// had no check used it.
+func (e *Engine) Spare(co Checkout) { e.spare = &co }
+
+// Hit is whether the check would be answered from a record now: nothing is
+// printed, run, locked or counted.
+func (e *Engine) Hit(ctx context.Context, req Request) bool {
+	tree, err := e.indexTree(ctx)
+	if err != nil {
+		return false
+	}
+	b, err := e.bind(ctx, req, tree)
+	if err != nil {
+		return false
+	}
+	_, ok := e.lookup(ctx, b.Key())
+	return ok
+}
+
+// checkout is the checkout a miss runs in: the spare, once, else a new one.
+func (e *Engine) checkout(ctx context.Context, tree string) (Checkout, error) {
+	if e.spare != nil {
+		co := *e.spare
+		e.spare = nil
+		return co, nil
+	}
+	return e.Git.Snapshot(ctx, tree)
+}
 
 func (e *Engine) now() time.Time {
 	if e.Now != nil {
@@ -180,7 +230,7 @@ func (e *Engine) indexed(ctx context.Context) (map[string]bool, error) {
 // note counts the changes the run leaves out, the first time a check is
 // looked up, and says so when there are any.
 func (e *Engine) note(ctx context.Context, log io.Writer) {
-	if e.counted {
+	if e.counted || e.Hook {
 		return
 	}
 	paths, err := e.Git.UnstagedPaths(ctx)
@@ -199,14 +249,27 @@ func (e *Engine) note(ctx context.Context, log io.Writer) {
 }
 
 // say prints one status line of a check, after its command when the run is
-// not verbose, which has printed it.
+// not verbose, which has printed it, and after the task it is for when the
+// request names one.
 func (e *Engine) say(req Request, format string, args ...any) {
 	line := fmt.Sprintf(format, args...)
 	if req.Verbose {
 		fmt.Fprintf(req.Log, "  %s\n", line)
 		return
 	}
+	if req.Task != "" {
+		fmt.Fprintf(req.Log, "  %s %s: %s\n", req.Task, req.Command, line)
+		return
+	}
 	fmt.Fprintf(req.Log, "  %s: %s\n", req.Command, line)
+}
+
+// progress is say for what a run does before its result, which the hook
+// keeps to itself.
+func (e *Engine) progress(req Request, format string, args ...any) {
+	if !e.Hook {
+		e.say(req, format, args...)
+	}
 }
 
 // Run looks the check up by the index tree and key. A hit answers with the
@@ -222,13 +285,13 @@ func (e *Engine) Run(ctx context.Context, req Request) Outcome {
 	info := Info{Source: Source}
 	tree, err := e.indexTree(ctx)
 	if err != nil {
-		return e.finish(req, e.uncached(ctx, req, info, ReasonSnapshotUnusable))
+		return e.finish(req, e.uncached(ctx, req, info, ReasonSnapshotUnusable, err))
 	}
 	info.Tree = tree
 	e.note(ctx, req.Log)
 	b, err := e.bind(ctx, req, tree)
 	if err != nil {
-		return e.finish(req, e.uncached(ctx, req, info, ReasonUnkeyable))
+		return e.finish(req, e.uncached(ctx, req, info, ReasonUnkeyable, err))
 	}
 	info.Key = b.Key()
 	if rec, ok := e.lookup(ctx, info.Key); ok {
@@ -265,13 +328,17 @@ func (e *Engine) replay(req Request, info Info, rec record) Outcome {
 			fmt.Fprintln(req.Log)
 		}
 	}
-	return Outcome{Code: rec.result.Exit, OK: rec.result.Exit == 0, Info: info}
+	return Outcome{Code: rec.result.Exit, OK: rec.result.Exit == 0, Output: rec.result.Output, Info: info}
 }
 
-// uncached runs a check that cannot be keyed, in the working folder.
-func (e *Engine) uncached(ctx context.Context, req Request, info Info, reason string) Outcome {
-	e.say(req, "running (not recorded: %s)", reason)
+// uncached runs a check that cannot be keyed, in the working folder; the
+// hook's refuses it, since its checks judge the staged tree or nothing.
+func (e *Engine) uncached(ctx context.Context, req Request, info Info, reason string, cause error) Outcome {
 	info.Reason = reason
+	if e.Hook {
+		return Outcome{Info: info, Err: kind.Else(kind.Missing, fmt.Errorf("cannot run %s on the staged tree (%s): %w", req.Command, reason, cause))}
+	}
+	e.say(req, "running (not recorded: %s)", reason)
 	o, _ := e.run(ctx, req, info, "", nil)
 	return o
 }
@@ -281,11 +348,11 @@ func (e *Engine) uncached(ctx context.Context, req Request, info Info, reason st
 // folder, and no record.
 func (e *Engine) execute(ctx context.Context, req Request, info Info, b bound, reason string) Outcome {
 	if reason != "" {
-		e.say(req, "running (not recorded: %s)", reason)
+		e.progress(req, "running (not recorded: %s)", reason)
 	} else {
-		e.say(req, "running")
+		e.progress(req, "running")
 	}
-	co, err := e.Git.Snapshot(ctx, info.Tree)
+	co, err := e.checkout(ctx, info.Tree)
 	if err == nil {
 		if err = copyInputs(co.Dir, e.Work, b.copies); err != nil {
 			_ = co.Remove()
@@ -293,6 +360,9 @@ func (e *Engine) execute(ctx context.Context, req Request, info Info, b bound, r
 	}
 	if err != nil {
 		info.Reason = ReasonSnapshotUnusable
+		if e.Hook {
+			return Outcome{Info: info, Err: kind.Else(kind.Missing, err)}
+		}
 		o, _ := e.run(ctx, req, info, "", nil)
 		return o
 	}
@@ -325,9 +395,13 @@ func (e *Engine) run(ctx context.Context, req Request, info Info, dir string, en
 	if req.Verbose {
 		out = io.MultiWriter(tail, req.Log)
 	}
+	seconds := req.Seconds
+	if req.RunSeconds != nil {
+		seconds = *req.RunSeconds
+	}
 	started := e.now()
 	r := shell.Run(e.Cfg, req.Command, shell.Options{
-		Stdout: out, Stderr: out, Env: env, Dir: dir, Timeout: time.Duration(req.Seconds * float64(time.Second)),
+		Stdout: out, Stderr: out, Env: env, Dir: dir, Timeout: time.Duration(seconds * float64(time.Second)),
 	})
 	text, cut := tail.Text()
 	res := Result{
@@ -340,7 +414,7 @@ func (e *Engine) run(ctx context.Context, req Request, info Info, dir string, en
 	if info.Reason == "" && (r.TimedOut || r.Err != nil || r.Code < 0) {
 		info.Reason = ReasonInconclusive
 	}
-	return Outcome{Code: r.Code, OK: r.OK(), Info: info}, res
+	return Outcome{Code: r.Code, OK: r.OK(), TimedOut: r.TimedOut, Output: text, Info: info}, res
 }
 
 // copyInputs copies the declared inputs git does not track from the working

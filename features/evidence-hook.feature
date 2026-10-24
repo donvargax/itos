@@ -84,7 +84,7 @@ Feature: The commit-msg hook answers an opted-in check from the record of the tr
   # evidence" with the recorded verdict, exit and time, as itos task's does;
   # a passing check prints nothing else, as today. Before the work the hook
   # runs the probe again.
-  @ID-EVID-31 @slice-171 @wip
+  @ID-EVID-31 @slice-171
   Scenario: A commit of the index a hand-run itos task checked answers from its record and runs nothing
     Given the staged file "tasks/phase-1.yaml" holding the lines:
       """
@@ -117,7 +117,7 @@ Feature: The commit-msg hook answers an opted-in check from the record of the tr
   # itos task on that index then hits the hook's record: the record, read
   # through itos task --json, is how the hook's work is seen by a program.
   # Before the work the store holds no record after the first attempt.
-  @ID-EVID-32 @slice-171 @wip
+  @ID-EVID-32 @slice-171
   Scenario: A commit attempt runs the check on the staged snapshot, unstaged edit left out, and the next attempt on that index hits
     Given the staged file "tasks/phase-1.yaml" holding the lines:
       """
@@ -164,7 +164,7 @@ Feature: The commit-msg hook answers an opted-in check from the record of the tr
   # another key: the hook misses, runs on the tree it commits, and records
   # it beside the hand run's record. Before the work the store holds only
   # the hand run's record.
-  @ID-EVID-33 @slice-171 @wip
+  @ID-EVID-33 @slice-171
   Scenario: A commit of another index than the hand run's misses, runs in its snapshot and records, and the next attempt hits
     Given the staged file "tasks/phase-1.yaml" holding the lines:
       """
@@ -205,7 +205,7 @@ Feature: The commit-msg hook answers an opted-in check from the record of the tr
   # installed, which runs the itos under test, and the commit is made
   # without the check running again. Before the work the hook runs the
   # probe a second time.
-  @ID-EVID-34 @slice-171 @wip
+  @ID-EVID-34 @slice-171
   Scenario: A real commit through the installed hook hits the hand run's record and is made
     Given the commit-msg hook is installed
     And the staged file "tasks/phase-1.yaml" holding the lines:
@@ -235,7 +235,7 @@ Feature: The commit-msg hook answers an opted-in check from the record of the tr
   # unstaged "two" the commit takes in. Once the commit is made the index
   # tree is HEAD's, which is the hook's key, so itos task hits the hook's
   # record. Before the work the hook records nothing and that run misses.
-  @ID-EVID-35 @slice-171 @wip
+  @ID-EVID-35 @slice-171
   Scenario: A commit of a path keys the tree the commit holds, not the index, and itos task after it hits the hook's record
     Given the commit-msg hook is installed
     And the staged file "tasks/phase-1.yaml" holding the lines:
@@ -266,7 +266,7 @@ Feature: The commit-msg hook answers an opted-in check from the record of the tr
   # attempt, in the hook's shared checkout, as bug-112 runs it; the
   # opted-in check runs once. That half passes today; the opted-in check's
   # single run is what fails before the work.
-  @ID-EVID-36 @slice-171 @wip
+  @ID-EVID-36 @slice-171
   Scenario: In the hook a check that does not opt in runs at every attempt, beside one that runs once
     Given the staged file "tasks/phase-1.yaml" holding the lines:
       """
@@ -303,7 +303,7 @@ Feature: The commit-msg hook answers an opted-in check from the record of the tr
   # check the hook is today's, even after a hand run of the same check on
   # the same index: it runs the check at every attempt, looks nothing up,
   # says nothing of evidence and stores nothing.
-  @ID-EVID-37 @slice-171 @wip @guard
+  @ID-EVID-37 @slice-171 @guard
   Scenario: With no opted-in check the hook runs the check at every attempt and stores nothing
     Given the staged file "tasks/phase-1.yaml" holding the lines:
       """
@@ -340,7 +340,7 @@ Feature: The commit-msg hook answers an opted-in check from the record of the tr
   # task in progress is reported and lets it through, each printing the
   # failure report a run prints, the recorded output tail among it. Before
   # the work the hook runs the probe again.
-  @ID-EVID-38 @slice-171 @wip
+  @ID-EVID-38 @slice-171
   Scenario Outline: A failing record judges the commit as a failing run does, with the recorded output
     Given the staged file "tasks/phase-1.yaml" holding the lines:
       """
@@ -380,7 +380,7 @@ Feature: The commit-msg hook answers an opted-in check from the record of the tr
   # does not opt in, the hook refuses with bug-112's exit 3 before any check
   # runs, as today. Before the work the hook makes its snapshot whatever the
   # checks are, and the first attempt exits 3.
-  @ID-EVID-39 @slice-171 @wip
+  @ID-EVID-39 @slice-171
   Scenario: A hit needs no snapshot, and a check that must run still meets bug-112's refusal
     Given the staged file "tasks/phase-1.yaml" holding the lines:
       """
@@ -430,7 +430,7 @@ Feature: The commit-msg hook answers an opted-in check from the record of the tr
   # commit's checks judge the staged tree or nothing. Under a gitlink there
   # is never a hit to spare the snapshot: a hand run there records nothing
   # (@ID-EVID-23) and the hook refuses, so no record of such a tree is made.
-  @ID-EVID-40 @slice-171 @wip @guard
+  @ID-EVID-40 @slice-171 @guard
   Scenario Outline: A missed opted-in check whose checkout cannot be made refuses the commit with exit 3, as today
     Given the staged file "tasks/phase-1.yaml" holding the lines:
       """
@@ -467,7 +467,7 @@ Feature: The commit-msg hook answers an opted-in check from the record of the tr
   # up: T-002's failing record of the same command is there to be found,
   # and replaying it would reject the commit of a done task. With no
   # runnable check the hook makes no snapshot, as today (@ID-HOOKSNAP-12).
-  @ID-EVID-41 @slice-171 @wip @guard
+  @ID-EVID-41 @slice-171 @guard
   Scenario: An opted-in after: push check is never looked up by the hook, beside a failing record of its command
     Given the staged file "tasks/phase-1.yaml" holding the lines:
       """
@@ -513,7 +513,7 @@ Feature: The commit-msg hook answers an opted-in check from the record of the tr
   # row the first check writes marker.txt where it runs and the second, a
   # different check, looks for it. Before the work every row shares one
   # checkout, where the marker stays, so the Then finding none fails.
-  @ID-EVID-42 @slice-171 @wip
+  @ID-EVID-42 @slice-171
   Scenario Outline: Each missed opted-in check runs in a checkout of its own, never the one the hook's other checks share
     Given the staged file "tasks/phase-1.yaml" holding the lines:
       """
@@ -553,7 +553,7 @@ Feature: The commit-msg hook answers an opted-in check from the record of the tr
   # bug-112 copies only staged entries, which still holds for an undeclared
   # untracked file. A change to the declared input misses. Before the work
   # the hook's checkout lacks gen/seed.txt, so the first read Then fails.
-  @ID-EVID-43 @slice-171 @wip
+  @ID-EVID-43 @slice-171
   Scenario: A declared untracked input reaches the hook's run and its key, and an undeclared one does not
     Given the staged file "tasks/phase-1.yaml" holding the lines:
       """
@@ -606,7 +606,7 @@ Feature: The commit-msg hook answers an opted-in check from the record of the tr
   # end under the ledger's 600 seconds and records it, and the hook then
   # hits that record although the run outlasted the cap. Before the work the
   # last attempt runs the check again and the cap stops it, exit 1.
-  @ID-EVID-44 @slice-171 @wip
+  @ID-EVID-44 @slice-171
   Scenario: The key binds the check's own timeout, so a hand run's record answers a check the hook's cap would stop
     Given the staged file "tasks/phase-1.yaml" holding the lines:
       """
@@ -649,7 +649,7 @@ Feature: The commit-msg hook answers an opted-in check from the record of the tr
   # the record T-001's run made a moment before, and the command runs once.
   # Before the work the hook runs each task's checks on its own, with no
   # run shared between them, so the probe runs twice.
-  @ID-EVID-45 @slice-171 @wip
+  @ID-EVID-45 @slice-171
   Scenario: A missed check two named tasks share runs once in the hook, the later task hitting the earlier's record
     Given the staged file "tasks/phase-1.yaml" holding the lines:
       """

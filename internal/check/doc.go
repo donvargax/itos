@@ -34,4 +34,8 @@
 // remote branch holds HEAD (Pushed).
 // Execution can place the command in a private checkout and its captures in
 // a sibling temporary directory, leaving the caller's CWD and policy unchanged.
+// It can also carry an evidence engine: RunCaptured then answers a check that
+// opts in from a record, or runs a miss in a checkout of the engine's own,
+// holding the run to the cap while the key binds the check's own timeout, and
+// Answers says, without running, whether a record would answer.
 package check
