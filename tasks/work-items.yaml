@@ -65,6 +65,8 @@ queue:
   - p1-defer-reason-footer
   - p1-take-without-people-says-so
   - p1-js-error-texts
+  - p3-marketplace-description
+  - p1-message-doc-header-agreement
   - slice-156
   - p1-pr-mode
   - p1-agent-test-runs-once
