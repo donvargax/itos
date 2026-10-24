@@ -13486,3 +13486,23 @@ items:
       that cannot run makes every registry writer refuse with '<file> has changes no commit holds',
       naming the wrong cause. It should report git's failure as the error it is.
     refs: [internal/cli/workwrite.go]
+
+  - id: bug-131
+    title: The guard and the shim refuse only what a command line runs, never the word git inside data
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: bug
+    why: >
+      Was p1-guard-quoted-text. Every implementing lane of the refactor's steps 6 to 7 (2026-10-22,
+      about ten agents) met refusals said to come from itos guard claude-code: a heredoc or python
+      -c body containing the word git, a grep with \| in its pattern, sh script.sh followed by a
+      redirection, echo $? after a tools/bin/pinned call, apostrophes, and the push proof typed
+      directly. The guard parses with mvdan.cc/sh and denies a git commit or push it finds as a
+      command, and by its doc.go a line it cannot judge (sh -c, eval, a word built from a variable,
+      a cd first, one bash cannot parse), so some may be Claude Code's own permission checks or the
+      PATH shim. The user, 2026-10-24: fix in v8, the shim too if it is the one too strict;
+      reproduce each refusal first and change only what is too strict. p1-guard-follows-cd and the
+      Windows paths stay v9.
+    refs: [internal/slices/guard, internal/shim, integrations/claude-code/hooks/guard.sh]
