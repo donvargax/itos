@@ -13,7 +13,10 @@
 // of an item in a commit no remote has that touches only the registry
 // (slice 93); the real git run in the clone, past any shim, its hooks
 // running (slice 128); and annotated tags and another branch of the clone,
-// and the tags and branches the remote has afterwards (slice 131).
+// and the tags and branches the remote has afterwards (slice 131); and bug
+// 136's: a linked worktree of the clone on a new branch, where itos runs, a
+// branch of the clone with no upstream, and the remote's HEAD naming a new
+// branch.
 package features
 
 import (
@@ -93,6 +96,9 @@ func initializePushSteps(sc *godog.ScenarioContext, w *world) {
 	})
 	sc.Step(`^the real git exits with code (\d+)$`, w.gitExitsWith)
 	sc.Step(`^the remote has no branch "([^"]*)"$`, w.remoteHasNoBranch)
+	sc.Step(`^the clone has a linked worktree on the new branch "([^"]*)", where itos runs$`, w.cloneLinkedWorktree)
+	sc.Step(`^the clone's branch "([^"]*)" has no upstream$`, w.cloneBranchHasNoUpstream)
+	sc.Step(`^the remote's HEAD names its new branch "([^"]*)", made at its main's head$`, w.remoteHeadNamesNewBranch)
 	sc.Step(`^none of hooks\.pre_push's commands ran$`, func() error {
 		if _, err := os.Stat(w.prePushRecord()); err == nil {
 			text, _ := os.ReadFile(w.prePushRecord())
@@ -190,6 +196,47 @@ func (w *world) remoteHasNoBranch(branch string) error {
 		return fmt.Errorf("the remote has the branch %q\n%s", branch, w.report())
 	}
 	return nil
+}
+
+// The clone moves into the support folder, as linkedWorktree moves the scratch
+// repository, and gets a linked worktree there on a new branch made at its
+// HEAD with git worktree add -b, as Claude Code's isolation makes one: the
+// branch has no upstream. itos and every later step run in the worktree
+// (bug 136).
+func (w *world) cloneLinkedWorktree(branch string) error {
+	moved := filepath.Join(w.support, "clone")
+	if err := os.Rename(w.dir, moved); err != nil {
+		return err
+	}
+	w.dir = moved
+	worktree := filepath.Join(w.support, "worktree")
+	if err := w.git("worktree", "add", "-q", "-b", branch, worktree); err != nil {
+		return err
+	}
+	w.dir = worktree
+	return nil
+}
+
+// The clone's branch has neither branch.<name>.remote nor branch.<name>.merge.
+func (w *world) cloneBranchHasNoUpstream(branch string) error {
+	for _, key := range []string{"remote", "merge"} {
+		cmd := exec.Command(git.Bin(runtime.GOOS), "config", "--get", "branch."+branch+"."+key)
+		cmd.Dir = w.dir
+		cmd.Env = w.env()
+		if out, err := cmd.Output(); err == nil {
+			return fmt.Errorf("the clone's branch %q has branch.%s.%s %q\n%s", branch, branch, key, strings.TrimSpace(string(out)), w.report())
+		}
+	}
+	return nil
+}
+
+// The remote gets a branch at its main's head, and its HEAD names that
+// branch rather than main.
+func (w *world) remoteHeadNamesNewBranch(branch string) error {
+	if err := w.gitIn(w.remote(), "branch", branch, "main"); err != nil {
+		return err
+	}
+	return w.gitIn(w.remote(), "symbolic-ref", "HEAD", "refs/heads/"+branch)
 }
 
 // The remote: a bare repository in the support folder, as a host keeps one.
