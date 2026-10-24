@@ -2997,6 +2997,16 @@ items:
       The user, 2026-10-24 grooming: a cross-repository coordinator of sorts is needed sooner rather
       than later, so it is designed for v9, beside the JSON contract (q-89, p1-cli-kong), the item
       lifecycle and the data store it reads. p1-checkout-lease, named above, is dropped.
+
+      The user, 2026-10-24: itos repos has not worked at all. Start simpler: run itos in a folder
+      that holds every repository, as if it were a monorepo, and coordinate the work there, as a
+      test of a starting point. Wanted: a canvas to view every repository's work, and orchestration
+      that is simple once the workflow is deterministic, running by itself and showing when
+      something needs the person. Inspiration: github.com/AsteroidHunter/facilitator, the earlier
+      review of how T3 Code orchestrated Claude Code, and tmux-style session hosts (herdr); GitHub
+      issues as the inbox through which agents talk. Needed mostly for opencode today. Likely a
+      separate tool that uses itos, not an itos feature, still open. The user has a very basic
+      prototype to share.
     tags: [status, v9]
 
   - id: bug-15
