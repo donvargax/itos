@@ -1174,19 +1174,10 @@ items:
     title: Backport the template's code-design rules, and the gates that decide them
     phase: 1
     owner: donvargax
-    status: todo
+    status: dropped
     depends_on: []
     kind: idea
     deferred: until the project template has its code-design rules, written there first by the user
-    why: >
-      The user wants rules around code design: vertical slices (DDD), no mocks, unit tests for the
-      core only and integration tests for the rest, property-based testing. They go into the
-      template first, which every project starts from, and come back here. What a command can
-      decide becomes a gate, not prose: import boundaries and the mock ban as lint rules run by
-      vp check, where unit test files may live as a path rule, integration tests as a named kind
-      (which moves p1-several-test-kinds up); slices and property-based tests stay prose. Here they
-      fit a TypeScript CLI with no domain layer, whose scenarios and conformance corpus are
-      already black-box integration tests.
     tags: [architecture]
 
   - id: p1-fixtures-folder-unused
@@ -6324,17 +6315,9 @@ items:
     title: Run the git itos needs through go-git, so no git has to be installed
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: []
     kind: idea
-    why: >
-      Raised while a windows failure in the id counter turned out to be the harness sh wrapper
-      eating a caret, not git itself. go-git could carry the counter ref work in process, but it is
-      not the git itos is: the shim forwards arbitrary commands to the real one, hooks run the
-      project own git, and the features build their repositories with it, so git stays a dependency
-      of the harness and of CI while a second implementation of refs, fast-forward pushes and auth
-      sits under the code that most needs to match git. Worth revisiting only if git absence ever
-      blocks a platform itos must run on.
     tags: [architecture]
 
   - id: p1-line-endings-for-the-mutation-cache
