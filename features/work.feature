@@ -659,8 +659,8 @@ Feature: The work registry
     And its output does not say "gh"
 
   # Bug 133 (#88, 8.5.0). Bug 46 made every item the session's when no one
-  # is in the people: with no people file, or one listing no one, and no
-  # --as, work take asks no identity provider, succeeds, and leaves the
+  # is in the people: with no people file, an unreadable one, or one
+  # listing no one, and no --as, work take asks no identity provider, succeeds, and leaves the
   # item's owner as it is, null for an item nobody owned. Its line read
   # "slice-1 is in progress: committed …", where a take for someone says
   # "is in progress for someone", so nothing said the take recorded no
@@ -707,25 +707,37 @@ Feature: The work registry
     And the registry's item "slice-1" has the status "doing" and the owner "nobody"
     And the last commit's header is "docs: take slice-1"
 
-  # Bug 133: take's help promised exit 3 whenever the person is nobody, yet
-  # with no one in the people a take with no --as succeeds. It names the
-  # case beside the stealth one, which bug 46 made the same, in the words
-  # of the take's doc comment; its last sentences read: "Under a stealth
-  # config the registry is written and nothing committed. Under a stealth
-  # config, or with no one in the people (no people file, or one listing no
-  # one), with no --as nobody is asked and nothing exits 3: every item is
-  # the session's, its owner is left as it is, and the line says "no owner
-  # recorded" when it has none." No corpus case pins help's words
-  # (help.yaml pins exit 0 and the subcommands named), so this scenario
-  # does; its step folds the line breaks the help is wrapped at. Help is
-  # printed before any config is read, so it needs no Given. Fails at the
-  # first output step.
+  # Bug 133: take's and give-back's help promised exit 3 whenever the
+  # person is nobody, with only a stealth config spared, yet both find the
+  # person the same way (whoActs), and with no one in the people (a people
+  # file missing, unreadable or listing no one, as Registry.Nobody reads
+  # it) a take or a give-back with no --as succeeds. Each help names the
+  # case in the same sentence, beside the stealth one, which bug 46 made the
+  # same. Take's help ends: "Under a stealth config the registry is written
+  # and nothing committed. Under a stealth config, or with no one in the
+  # people (no people file, an unreadable one, or one listing no one), with
+  # no --as nobody is asked and nothing exits 3: every item is the
+  # session's, its owner is left as it is, and the line says "no owner
+  # recorded" when it has none." Give-back's: "Under a stealth config the
+  # registry is written and nothing committed. Under a stealth config, or
+  # with no one in the people (no people file, an unreadable one, or one
+  # listing no one), with no --as nobody is asked and nothing exits 3: every
+  # item is the session's." Give-back's line does not change, its owner
+  # kept. No corpus case pins help's words (help.yaml pins exit 0 and the
+  # subcommands named), so this scenario does; its step folds the line
+  # breaks the help is wrapped at. Help is printed before any config is
+  # read, so it needs no Given. Fails at the first output step.
   @ID-WORK-155 @bug-133 @wip
-  Scenario: work take's help names the take with no one in the people, and the owner it does not record
-    When itos runs "help work take"
+  Scenario Outline: work take's and give-back's help name the write with no one in the people
+    When itos runs "help work <command>"
     Then itos exits with code 0
-    And its output says "or with no one in the people (no people file, or one listing no one), with no --as nobody is asked", whatever its line breaks
-    And its output says "no owner recorded", whatever its line breaks
+    And its output says "or with no one in the people (no people file, an unreadable one, or one listing no one), with no --as nobody is asked and nothing exits 3", whatever its line breaks
+    And its output says "<words>", whatever its line breaks
+
+    Examples:
+      | command   | words                                         |
+      | take      | no owner recorded                             |
+      | give-back | nothing exits 3: every item is the session's. |
 
   # Bug 133: work show printed "owner: nobody" for an item with no owner,
   # so an item a take with no one in the people put in progress read as in
