@@ -13347,3 +13347,25 @@ items:
       applies in CI (ADR-0044: no percentage threshold), no mutants. Scenario-only coverage stays
       CI's until the in-process tier. A gate change (build or ci), no release.
     tags: [proof, v8]
+
+  - id: p1-loop-driver-pilot
+    title: "Pilot the item loop as a Claude Code dynamic workflow: deterministic stages, a subagent per role with its own model"
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [slice-172]
+    kind: idea
+    why: >
+      The user, 2026-10-23, from the grooming: the v8 pilot of p1-item-lifecycle's loop, built as a
+      Claude Code dynamic workflow script outside itos. Stages in order: spec draft, spec review
+      (the reviewer's prompts as a read-only subagent or the CLI, p1-agent-self-review), take, red
+      first, implement, push --no-wait, ci watch, diff review, repair rounds, work done. Each stage
+      is a subagent with the model its role wants (Opus for specs and review, Sonnet or Haiku
+      implementing). State comes from itos (work show, ci watch --json, the evidence records), never
+      stored apart, so itos itself needs no Claude Code (itos runs without the plugin). Escalates to
+      the person only a decision the spec does not settle or a red that repeats after a repair.
+      Needs p1-ci-watch-failed-step (the failure handed back) and p1-guide-brief-filled (the brief
+      from the item); its first users are p1-haiku-implementer-trial and
+      p1-sonnet-implementer-trial, and running it is what tells whether a cheap coordinator is
+      realistic (p1-cheap-coordinator-trial).
+    tags: [agents, v8]
