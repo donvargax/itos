@@ -45,7 +45,10 @@ Feature: The commit-msg hook answers an opted-in check from the record of the tr
   must run, a checkout that cannot be made (the snapshots folder unusable,
   a gitlink in the index) refuses the commit with bug-112's exit 3 before
   any check runs, never falling back to the working folder as a hand run
-  does (@ID-EVID-23).
+  does (@ID-EVID-23). Each opted-in check is looked up again at its turn, so
+  a missed check that an earlier named task of the same hook run ran and
+  recorded is a hit for a later task that shares it: a check two named
+  tasks share runs once, as slice-169's shared check does (@ID-EVID-15).
 
   Contract, which these scenarios judge:
   - Exit codes. A hit replays the recorded exit, read by the check's own
@@ -640,3 +643,39 @@ Feature: The commit-msg hook answers an opted-in check from the record of the tr
       """
     Then itos exits with code 0
     And the evidence probe ran 1 time
+
+  # A4, decided by the coordinator on review: within one hook run a missed
+  # opted-in check is looked up again at each task's turn, so T-002 hits
+  # the record T-001's run made a moment before, and the command runs once.
+  # Before the work the hook runs each task's checks on its own, with no
+  # run shared between them, so the probe runs twice.
+  @ID-EVID-45 @slice-171 @wip
+  Scenario: A missed check two named tasks share runs once in the hook, the later task hitting the earlier's record
+    Given the staged file "tasks/phase-1.yaml" holding the lines:
+      """
+      - id: T-001
+        type: chore
+        title: Tidy
+        done_when:
+          - run: evidence-probe 0 input.txt
+            cost: static
+            evidence: {}
+      - id: T-002
+        type: chore
+        title: Trim
+        done_when:
+          - run: evidence-probe 0 input.txt
+            cost: static
+            evidence: {}
+      """
+    And the committed file "input.txt" holding "one"
+    And a change to "README.md" is staged
+    When the commit-msg hook checks the message:
+      """
+      chore: tidy the readme
+
+      Task: T-001, T-002
+      """
+    Then itos exits with code 0
+    And the evidence probe ran 1 time
+    And the evidence store holds 1 complete record
