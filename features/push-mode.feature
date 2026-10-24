@@ -134,10 +134,10 @@ Feature: push.mode pr, an item's work on its own branch merged by rebase, claims
   when it waited; outcome gains work-on-main, not-item-branch,
   no-default-branch, no-github-repository and pull-request-failed.
 
-  Not in this slice: work done is unchanged (rebase-merge keeps each commit's
-  footers, so a main holding the merged commits closes the item as before;
-  refusing to close while the pull request is open is p1-pr-items); itos
-  init offering the repository's settings; main's run after the merge; a
+  Not in this slice: work done under pr, which closes an item only once its
+  pull request has merged (rebase-merge keeps each commit's footers, so a
+  main holding the merged commits is how it finds them; slice-176,
+  work-done-pr.feature); itos init offering the repository's settings; main's run after the merge; a
   pull request main leaves behind after the last push, or GitHub cannot
   rebase; a registry commit made on the branch above the work, which rides
   the pull request.

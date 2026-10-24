@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -14,6 +15,7 @@ import (
 	"github.com/donvargax/itos/v8/internal/ledger"
 	"github.com/donvargax/itos/v8/internal/store/tracker/adapter"
 	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
+	vcsport "github.com/donvargax/itos/v8/internal/vcs/port"
 )
 
 // workPorts bind the work slice to the real code: the config the working
@@ -258,5 +260,50 @@ func TestWorkPortsWatchThroughTheConfigsProvider(t *testing.T) {
 	}
 	if run, found, err := wr.Look("abc"); err != nil || !found || run.URL != "u" || run.Conclusion != "success" {
 		t.Errorf("Look = %+v, %v, %v", run, found, err)
+	}
+}
+
+// Under push.mode pr work done's remote is asked its HEAD, from the folder
+// itos runs in; its gh is the one on the PATH, and its GitHub repository the
+// variable the config names for the watch's, else the remote's URL.
+func TestWorkPortsReachTheRemoteAndGh(t *testing.T) {
+	gitConfigRepo(t, "version: 1\n")
+	remote := t.TempDir()
+	gitLine(t, "init", "-q", "--bare", "-b", "main", remote)
+	gitLine(t, "remote", "add", "origin", remote)
+	gitLine(t, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "--allow-empty", "-q", "-m", "x")
+	gitLine(t, "push", "-q", "origin", "HEAD:refs/heads/main")
+	p := workPorts{Out{OS: runtime.GOOS}}
+	if got, err := p.RemoteHead(t.Context(), "origin", vcsport.Talk{NoPrompt: true}); got != "main" || err != nil {
+		t.Errorf("RemoteHead = %q, %v, want main", got, err)
+	}
+	var failed *vcsport.Failed
+	if _, err := p.RemoteHead(t.Context(), "nowhere", vcsport.Talk{NoPrompt: true}); !errors.As(err, &failed) {
+		t.Errorf("RemoteHead of no remote = %v, want a failed git", err)
+	}
+
+	cfg, err := p.Config(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	gitLine(t, "remote", "set-url", "origin", "git@github.com:o/r.git")
+	t.Setenv("GITHUB_REPOSITORY", "")
+	if got := p.GitHubRepository(t.Context(), cfg, "origin"); got != "o/r" {
+		t.Errorf("GitHubRepository = %q, want the remote's", got)
+	}
+	t.Setenv("GITHUB_REPOSITORY", "x/y")
+	if got := p.GitHubRepository(t.Context(), cfg, "origin"); got != "x/y" {
+		t.Errorf("GitHubRepository = %q, want the environment's", got)
+	}
+	if runtime.GOOS == "windows" {
+		t.Skip("the gh is a shell script")
+	}
+	bin := t.TempDir()
+	if err := os.WriteFile(filepath.Join(bin, "gh"), []byte("#!/bin/sh\nprintf '%s' \"$*\"\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("PATH", bin+string(os.PathListSeparator)+os.Getenv("PATH"))
+	if out, err := p.Gh(t.Context(), "pr", "list"); out != "pr list" || err != nil {
+		t.Errorf("Gh = %q, %v", out, err)
 	}
 }

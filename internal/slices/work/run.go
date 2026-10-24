@@ -23,6 +23,8 @@ const (
 	refused  = 1
 	notAmong = 3
 	missing  = 3
+	// temporary is a remote work done could not reach under push.mode pr.
+	temporary = 75
 )
 
 // showWidth is the width an item's why is wrapped at.

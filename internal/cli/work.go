@@ -3,6 +3,7 @@ package cli
 import (
 	"context"
 	"io"
+	"os"
 
 	"github.com/donvargax/itos/v8/internal/check"
 	"github.com/donvargax/itos/v8/internal/config"
@@ -13,6 +14,8 @@ import (
 	trackerport "github.com/donvargax/itos/v8/internal/store/tracker/port"
 	trees "github.com/donvargax/itos/v8/internal/store/tree/adapter"
 	treeport "github.com/donvargax/itos/v8/internal/store/tree/port"
+	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
+	vcsport "github.com/donvargax/itos/v8/internal/vcs/port"
 	"github.com/donvargax/itos/v8/internal/work"
 )
 
@@ -75,6 +78,24 @@ func (p workPorts) TaskChecks(_ context.Context, cfg *config.Loaded, task ledger
 // Watcher is watcher.
 func (workPorts) Watcher(_ context.Context, cfg *config.Loaded, remote string) (providers.Watcher, bool, error) {
 	return watcher(cfg, remote, Out{})
+}
+
+// RemoteHead is the branch the remote's HEAD names, asked of the remote
+// itself.
+func (p workPorts) RemoteHead(ctx context.Context, remote string, talk vcsport.Talk) (string, error) {
+	return vcs.Git{Dir: p.o.Dir}.RemoteHead(ctx, remote, talk)
+}
+
+// Gh is providers.Gh in the folder itos runs in.
+func (p workPorts) Gh(ctx context.Context, args ...string) (string, error) {
+	return providers.Gh(ctx, p.o.Dir, args...)
+}
+
+// GitHubRepository is providers.Repository, the environment's and the
+// remote's URL.
+func (workPorts) GitHubRepository(ctx context.Context, cfg *config.Loaded, remote string) string {
+	url, _ := cfg.VCS.RemoteURL(ctx, remote)
+	return providers.Repository(cfg, os.Getenv, url)
 }
 
 // workAddLine is workslice.AddLine, which draft reads a work add line with.

@@ -95,7 +95,17 @@
 //     has it (bug 41's rule for a cancelled run's successor; bug 49). A run
 //     still going is waited for; one that cannot be looked at exits 3, one
 //     that does not end 75 (without ci.watch CI is not checked, said on
-//     stderr, and --json's ci is unwatched). Under a stealth config the
+//     stderr, and --json's ci is unwatched). Under push.mode pr (donepr.go,
+//     slice 176) work reaches main only through the item's pull request, and
+//     the close is a registry commit, which goes to main: prMain asks the
+//     remote its HEAD as itos push does (Ports.RemoteHead) and refuses a HEAD
+//     that is not main, before any other check; after the scenarios, gh is
+//     asked for the item's pull requests (Ports.Gh, every state) whatever
+//     main holds; an open one refuses, else the newest own commit counts
+//     only when <remote>/<main>, as last fetched, has it, and is judged as
+//     above (its run is main's, never the pull request's), else the kind of
+//     the pull request (merged, closed without merging, none) is the
+//     refusal. The judged commit is never HEAD's under pr. Under a stealth config the
 //     registry's lock is given back while the checks run. Since they can
 //     take minutes, the registry is then read again and work.Done judged and
 //     made afresh on it, so a registry commit made during the wait is kept,

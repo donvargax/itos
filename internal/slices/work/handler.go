@@ -35,7 +35,11 @@ import (
 // TaskChecks, a task's static checks run in written order through the
 // evidence engine on HEAD's tree (Checked), the first failure's output on
 // stderr, and Watcher, ci.watch's provider for cfg, for a commit pushed to
-// remote. The repository is the config's VCS.
+// remote. Under push.mode pr, work done also asks RemoteHead, the branch the
+// remote's HEAD names, Gh, gh run with the arguments (its stdout,
+// providers.ErrNoGh when it is not installed), and GitHubRepository, the
+// repository every gh call names, "" for none. The repository is the
+// config's VCS.
 type Ports interface {
 	Config(ctx context.Context) (*config.Loaded, error)
 	Worktree(ctx context.Context) treeport.Source
@@ -44,6 +48,9 @@ type Ports interface {
 	ItemID(ctx context.Context, cfg *config.Loaded, kind string, registryIDs []string) (string, error)
 	TaskChecks(ctx context.Context, cfg *config.Loaded, task ledger.Task, stderr io.Writer) (Checked, error)
 	Watcher(ctx context.Context, cfg *config.Loaded, remote string) (providers.Watcher, bool, error)
+	RemoteHead(ctx context.Context, remote string, talk vcsport.Talk) (string, error)
+	Gh(ctx context.Context, args ...string) (string, error)
+	GitHubRepository(ctx context.Context, cfg *config.Loaded, remote string) string
 }
 
 // Checked is what running a task's static checks found: Failure, the first

@@ -56,13 +56,29 @@ func (h Handler) done(ctx context.Context, id string, o Out) (Answer, error) {
 		a.Release()
 		a.Release = func() {}
 	}
+	var remote, main string
+	if cfg.Push.Mode == "pr" {
+		var stop *refusedPR
+		if remote, main, stop = prMain(ctx, h.ports, cfg, id, o); stop != nil {
+			a.Refused, a.Code = stop.found, stop.code
+			return a, nil
+		}
+	}
 	tagged, examples, err := tests.TaggedExamples(cfg, "@"+id, "HEAD")
 	if err != nil {
 		return a, err
 	}
 	found := wipScenarios(tagged, examples, id)
 	landing := ownCommit(cfg, id, tagged)
-	if landing.sha == "" {
+	switch {
+	case cfg.Push.Mode == "pr":
+		if len(found) == 0 {
+			if stop := prLanded(ctx, h.ports, cfg, id, remote, main, landing); stop != nil {
+				a.Refused, a.Code = stop.found, stop.code
+				return a, nil
+			}
+		}
+	case landing.sha == "":
 		landing = judgedCommit(ctx, cfg.VCS, cfg.Work.Registry)
 	}
 	if len(found) == 0 {

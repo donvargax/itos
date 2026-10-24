@@ -224,6 +224,10 @@
   scenarios:
     - id: "@ID-WATCH-01"
       why: a push that waits for its run, printing each job and exiting with the run's result, the file's point
+- file: work-done-pr.feature
+  scenarios:
+    - id: "@ID-PRDONE-01"
+      why: work done from main refusing an item whose pull request is open, asking gh whatever main holds, the file's point
 - file: work.feature
   scenarios:
     - id: "@ID-WORK-01"

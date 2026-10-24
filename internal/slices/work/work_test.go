@@ -53,6 +53,21 @@ type ports struct {
 	during          func()
 	watcher         providers.Watcher
 	watcherErr      error
+	// pr is what push.mode pr asks of the world: the branch the remote's HEAD
+	// names or its error, the GitHub repository, and gh's stdout or its error,
+	// each call of gh kept in ghCalls and each of the remote's in headCalls.
+	pr
+}
+
+// pr are the answers the ports give under push.mode pr.
+type pr struct {
+	head       string
+	headErr    error
+	repository string
+	ghOut      string
+	ghErr      error
+	ghCalls    *[][]string
+	headCalls  *[]string
 }
 
 func (p ports) Config(context.Context) (*config.Loaded, error) { return p.cfg, p.err }
@@ -88,6 +103,22 @@ func (p ports) TaskChecks(_ context.Context, _ *config.Loaded, task ledger.Task,
 func (p ports) Watcher(context.Context, *config.Loaded, string) (providers.Watcher, bool, error) {
 	return p.watcher, p.watcherErr == nil, p.watcherErr
 }
+
+func (p ports) RemoteHead(_ context.Context, remote string, _ vcsport.Talk) (string, error) {
+	if p.headCalls != nil {
+		*p.headCalls = append(*p.headCalls, remote)
+	}
+	return p.head, p.headErr
+}
+
+func (p ports) Gh(_ context.Context, args ...string) (string, error) {
+	if p.ghCalls != nil {
+		*p.ghCalls = append(*p.ghCalls, args)
+	}
+	return p.ghOut, p.ghErr
+}
+
+func (p ports) GitHubRepository(context.Context, *config.Loaded, string) string { return p.repository }
 
 // broken is the VCS fake with its log, a commit's patch or git show's text
 // failing when set.

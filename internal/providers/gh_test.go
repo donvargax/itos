@@ -2,6 +2,7 @@ package providers
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -67,6 +68,25 @@ func TestRepository(t *testing.T) {
 	} {
 		if got := Repository(cfg, env(c.env), c.url); got != c.want {
 			t.Errorf("Repository(%q, %q) = %q, want %q", c.env, c.url, got, c.want)
+		}
+	}
+}
+
+// A failed gh call is told as a person reads it: gh not there, what gh said
+// trimmed, else the error itself, as a gh that said nothing leaves it.
+func TestGhReason(t *testing.T) {
+	for _, c := range []struct {
+		err  error
+		want string
+	}{
+		{ErrNoGh, "gh is not on the PATH"},
+		{fmt.Errorf("wrapped: %w", ErrNoGh), "gh is not on the PATH"},
+		{&GhFailed{Words: "HTTP 401: Bad credentials\n", Err: errors.New("exit status 1")}, "HTTP 401: Bad credentials"},
+		{&GhFailed{Words: " \n", Err: errors.New("exit status 1")}, "exit status 1"},
+		{errors.New("something else"), "something else"},
+	} {
+		if got := GhReason(c.err); got != c.want {
+			t.Errorf("GhReason(%v) = %q, want %q", c.err, got, c.want)
 		}
 	}
 }

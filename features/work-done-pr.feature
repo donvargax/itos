@@ -128,7 +128,7 @@ Feature: Under push.mode pr, work done closes an item only once its pull request
   # its pull request open, is no longer judged by HEAD. The one gh call is
   # pinned here. Fails before the work at the exit code: today HEAD is
   # judged, CI is not watched, and slice-9 closes, exit 0.
-  @ID-PRDONE-01 @slice-176 @wip
+  @ID-PRDONE-01 @slice-176
   Scenario: Under pr, work done from main refuses an item whose pull request is open, naming it
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -150,7 +150,7 @@ Feature: Under push.mode pr, work done closes an item only once its pull request
   # open pull request: gh is asked whatever main holds. Fails before the
   # work at the exit code: today the item's commit on main is judged and
   # slice-9 closes, exit 0.
-  @ID-PRDONE-02 @slice-176 @wip
+  @ID-PRDONE-02 @slice-176
   Scenario: Under pr, work done refuses an item with an open pull request though main has a commit of it
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -170,7 +170,7 @@ Feature: Under push.mode pr, work done closes an item only once its pull request
   # merge, so its commits, scenarios and checks are not HEAD's to judge.
   # Fails before the work at the exit code: today HEAD is judged and slice-9
   # closes, exit 0.
-  @ID-PRDONE-03 @slice-176 @wip
+  @ID-PRDONE-03 @slice-176
   Scenario: Under pr, work done refuses an item whose pull request merged into a main the clone has not pulled, naming git pull
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -189,7 +189,7 @@ Feature: Under push.mode pr, work done closes an item only once its pull request
   # A pull request closed unmerged never put the work on main. --json names
   # the rule. Fails before the work at the exit code: today HEAD is judged
   # and slice-9 closes, exit 0.
-  @ID-PRDONE-04 @slice-176 @wip
+  @ID-PRDONE-04 @slice-176
   Scenario: Under pr, work done --json refuses an item whose pull request was closed without merging
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -209,7 +209,7 @@ Feature: Under push.mode pr, work done closes an item only once its pull request
   # before the work at the exit code: today the commit is in HEAD's history
   # and on a remote branch, so it counts as pushed, and slice-9 closes,
   # exit 0.
-  @ID-PRDONE-05 @slice-176 @wip
+  @ID-PRDONE-05 @slice-176
   Scenario: Under pr, work done refuses an item whose closed pull request's commits are on main here alone
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -228,7 +228,7 @@ Feature: Under push.mode pr, work done closes an item only once its pull request
   # Neither a commit on main nor a pull request: nothing has landed, and the
   # fix is the push that opens the pull request. Fails before the work at
   # the exit code: today HEAD is judged and slice-9 closes, exit 0.
-  @ID-PRDONE-06 @slice-176 @wip
+  @ID-PRDONE-06 @slice-176
   Scenario: Under pr, work done --json refuses an item with no commit on main and no pull request, naming itos push
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -245,7 +245,7 @@ Feature: Under push.mode pr, work done closes an item only once its pull request
   # commit is on origin/main, and its run on main is waited for while it is
   # going, as under trunk, then judges the close. Fails before the work at
   # the pr list step: today the close is made and gh is never asked.
-  @ID-PRDONE-07 @slice-176 @wip
+  @ID-PRDONE-07 @slice-176
   Scenario: Under pr with ci.watch, work done closes an item whose pull request merged, waiting for main's run of its commit
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -267,7 +267,7 @@ Feature: Under push.mode pr, work done closes an item only once its pull request
   # not main: refused before gh is asked, naming the switch. Fails before
   # the work at the exit code: today the branch's commit, pushed, is judged
   # and slice-9 closes on the branch, exit 0.
-  @ID-PRDONE-08 @slice-176 @wip
+  @ID-PRDONE-08 @slice-176
   Scenario: Under pr, work done on the item's branch is refused, naming git switch main
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -287,7 +287,7 @@ Feature: Under push.mode pr, work done closes an item only once its pull request
   # Without gh the pull request cannot be looked for, so nothing is closed;
   # exit 3, as itos push's pull-request-failed. Fails before the work at the
   # exit code: today HEAD is judged and slice-9 closes, exit 0.
-  @ID-PRDONE-09 @slice-176 @wip
+  @ID-PRDONE-09 @slice-176
   Scenario: Under pr, with no gh on the PATH work done exits 3, naming gh pr list
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -304,7 +304,7 @@ Feature: Under push.mode pr, work done closes an item only once its pull request
   # A gh that fails (signed out here) gives its words, under --json in the
   # problem's message. Fails before the work at the exit code: today HEAD
   # is judged and slice-9 closes, exit 0.
-  @ID-PRDONE-10 @slice-176 @wip
+  @ID-PRDONE-10 @slice-176
   Scenario: Under pr, work done --json exits 3 with gh's words when gh pr list fails
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -322,7 +322,7 @@ Feature: Under push.mode pr, work done closes an item only once its pull request
   # its own on main is judged by HEAD, and GitHub is never asked about pull
   # requests, whatever it holds. A guard: it passes before the fix and must
   # after it.
-  @ID-PRDONE-11 @slice-176 @guard @wip
+  @ID-PRDONE-11 @slice-176 @guard
   Scenario: Without push.mode, work done calls no gh, closing an item whose branch has an open pull request as before
     Given a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
     And the remote's branch "slice-9" has the item "slice-9"'s commit touching "widget.md", which the clone's main lacks

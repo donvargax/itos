@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"os/exec"
+	"strings"
 	"time"
 
 	"github.com/donvargax/itos/v8/internal/config"
@@ -50,6 +51,19 @@ func Gh(ctx context.Context, dir string, args ...string) (string, error) {
 		return stdout.String(), &GhFailed{Words: stderr.String(), Err: err}
 	}
 	return stdout.String(), nil
+}
+
+// GhReason is why a Gh call failed, in the words a person reads: that gh is
+// not on the PATH, what gh said on stderr, else the error itself.
+func GhReason(err error) string {
+	if errors.Is(err, ErrNoGh) {
+		return ErrNoGh.Error()
+	}
+	var failed *GhFailed
+	if errors.As(err, &failed) && strings.TrimSpace(failed.Words) != "" {
+		return strings.TrimSpace(failed.Words)
+	}
+	return err.Error()
 }
 
 // Repository is the GitHub repository ("owner/name") the watch asks about,
