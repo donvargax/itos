@@ -6978,29 +6978,9 @@ items:
     title: The 7.0.0 Upgrading notes say what minting, closed tasks' checks and next-id change
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: [T-184]
     kind: idea
-    why: >
-      Issue #40 (a consumer moving 6.4.2 to 7.0.0-rc.4): minting (task add, work promote, a numbered
-      work add) pushes refs/itos/ids itself with --no-verify and exits 3 offline, and the notes
-      never say so; nothing covers a check that should outlive its task, whether task next-id still
-      applies, or why a task closed by hand keeps its checks and one closed by work done loses them.
-      What changed repeats its headings per release (still so in v7.0.0's notes). Point 2, the
-      nightly's tasks: done step, is slice-107.
-
-      2026-10-15: T-184 specifies an advisory migration guide without rewriting published releases.
-      Verified source at v7.0.0 still accepts and runs tasks:done; removal is slice-107/59a483fe in
-      the v8 line. The documentation must distinguish those versions and must not suggest
-      already-done work done cleans hand-retained checks. Historical empty/repeated release headings
-      remain a separate generator investigation, not solved by prose or slice-152's current upgrade
-      grouping.
-
-      The latest published v8.4.0 body was re-read through gh api during this audit: What changed
-      has populated Features, Tests, CI and Documentation sections with commit links. The old #40
-      empty-heading observation is not reproduced there. Keep it as historical migration context; do
-      not invent a current release-generator fix or rewrite old release bodies from that observation
-      alone.
     tags: [upgrade]
 
   - id: slice-161
@@ -7447,31 +7427,9 @@ items:
     title: The conformance corpus is an itos-cc listed suite, so mutation checks count and judge what it reaches
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: [T-144, T-181, T-182]
     kind: idea
-    why: >
-      donvargax/itos#44, from itos-cc#34 (closed 2026-10-11): the corpus reaches 567 of the 1,881 Go
-      blocks unit tests and features leave uncovered (441 mutation sites in 148 functions). Counted
-      as coverage alone those sites would survive, judged by tests that never reach them, so the
-      corpus must judge mutants: list prints one ID per fixture file (corpus:<file>) beside the
-      scenario IDs, run dispatches each ID to go test ./features or the corpus runner, support adds
-      tools/itos/conformance/**; the runner writes each fixture's coverage under
-      ITOS_CC_TEST_COVERDIR/<id> and runs the itos built from the tree under test, with -cover.
-      After T-144, so it is written once, in Go. Completes q-57's any-test half; the changed-lines
-      half is itos-cc#33. If one shared support list (a fixture edit staling every listed kill)
-      proves too coarse, itos-cc's follow-up gives each listed suite its own support.
-
-      2026-10-12, slice-134: the push proof called two config-check branches uncovered that only
-      conformance cases reach, so the agent wrote unit tests duplicating them; every push that adds
-      a config refusal pays this until the corpus counts.
-
-      2026-10-15 issue audit: #44 is now specified as CI tasks T-181 (fresh working-tree binary and
-      per-fixture coverage) then T-182 (single listed-suite dispatcher and config wiring). Current
-      Go runner replaces the historical Node proposal. Use portable corpus-<stem> IDs, not
-      colon-bearing directory names. Historical measured counts are evidence from 2026-10-11, not
-      current measurements. Keep this report idea for eventual explicit absorption after both tasks
-      land; no product implementation or mutation campaign is part of specification.
     refs: [itos-cc.yaml, tools/itos/conformance, tools/bin/itos-cc-tests]
     tags: [proof]
 
@@ -7848,22 +7806,9 @@ items:
     title: ci run's help says the code proof runs proof.code.check, which may judge fresh mutants
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: []
     kind: idea
-    why: >
-      Issue #45 (itos-template, 2026-10-11): itos ci run --help, and internal/plan/plan.go's
-      comment, say the code proof reads the results recorded before the push and runs none of its
-      own. Since q-41, q-52 and q-55 a project's proof.code.check is a counted run judging fresh
-      mutants (here and in itos-template, minutes with --all-tests), so a reader expects a cheap
-      static step. Say the check is whatever proof.code.check runs. Help text only: no scenario, a
-      help corpus case.
-
-      Concrete documentation delivery is now T-179: embedded help and matching planner comment,
-      using the existing help conformance corpus and no runtime change. Keep this idea linked until
-      that task lands; it may then be explicitly recorded as absorbed rather than dropped. The
-      refactor type covers source-held documentation and comments, not relabeling any change to
-      proof execution.
     refs: [internal/cli/help.go, internal/plan/plan.go, tools/itos/conformance/help.yaml, tasks/phase-1.yaml]
     tags: [proof]
 
@@ -9395,62 +9340,9 @@ items:
     title: Guides prescribe only commit links the project's footer policy supports
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: [slice-138, T-183]
     kind: idea
-    why: >
-      Issue #66. Proposed contract for specification review: guide brief and guide work must not
-      prescribe --item when no configured registry footer supports it for the described commit type.
-      Use the loaded commit footer sources, required_for and in_place_of policy; a footer name alone
-      is insufficient. When a registry link is usable, show --item <item>. Otherwise, when the
-      described commit requires a ledger footer, show --task <ledger-task-id> and explicitly require
-      a real linked acceptance task: never substitute a slice ID as a ledger ID or invent a mapping
-      from depends_on. If there is no suitable linked task, explain the missing setup instead of
-      emitting a runnable-looking invalid command. When no work footer is required, omit the linking
-      flag. Outside a configured repository, describe these branches generically. Do not edit
-      consumers' config or add a footer during guide rendering. Acceptance covers registry
-      substitution allowed, registry source present but not allowed for test, ledger-only policy, no
-      required footer, custom footer names, no config, and read-only rendering. This item does not
-      change red-first or check execution policy. Exact handling of required custom nonstandard link
-      sources must be checked against existing supported footer flag behavior before promotion.
-
-      Clarification: a registry footer can be present yet fail to satisfy a required ledger footer
-      for the illustrated commit type; this does not make --item itself forbidden. The guide must
-      show every required link, using registry substitution only where in_place_of permits it. If
-      both ledger and registry links are required and neither substitutes, include both with
-      distinct placeholders. Do not silently select a random ledger task from depends_on. The change
-      can use conditional instructions where the guide has no actual item context; it need not solve
-      filled briefs (p1-guide-brief-filled). Required custom footers remain named by the existing
-      commit-policy renderer rather than inventing new CLI flags.
-
-      Scope refinement: prefer a wording-only first delivery in guide brief/work, using conditional
-      linking instructions and the existing guide commit policy read. A filled, config-dependent
-      brief generator is not required to fix #66 and remains p1-guide-brief-filled. Remove the
-      unconditional runnable-looking --item example; say when --item satisfies the type's linkage,
-      when a real ledger --task is required as well/instead, and when no linking footer is required.
-      Preserve every configured footer requirement and never silently add a footer to consumers'
-      config. Since this can be a docs change, specify it as a documentation task with review and
-      the relevant existing guide/corpus checks, rather than inventing a new scenario-backed
-      renderer just to adjust the wording.
-
-      Acceptance for the wording-only delivery: review the emitted work and brief guides against (1)
-      a registry link substituting for Task on test commits, (2) a registry link present without
-      that substitution, (3) required ledger and registry links together, (4) a ledger-only policy,
-      (5) no required work link, (6) custom footer names, and (7) use outside a configured
-      repository. Every example must remain conditional on the policy printed by guide commit; a
-      ledger placeholder must identify a real acceptance task and never a slice ID. Existing
-      arbitrary custom footer requirements remain visible through guide commit and require no new
-      CLI flag. Exercise the shipped guide commands and their existing guide conformance cases;
-      assess semantic wording by review rather than a regex check or a new renderer. No policy,
-      red-first ordering, push waiting, config migration or filled-brief behavior changes belong
-      here. Create its documentation task after slice-138 supplies complete task promotion, then use
-      that task for the wording change. This clarification supersedes the earlier proposal to render
-      config-dependent examples.
-
-      2026-10-15: T-183 now holds the complete wording-only delivery and acceptance checks. It
-      remains blocked on slice-138 as planned; creating the task through the already-working task
-      add does not depend on the promotion repair. The broad config-dependent brief renderer is
-      still outside this delivery. Keep this report for explicit absorption after T-183 lands.
     refs: [internal/guide/brief.md, internal/guide/work.md, internal/guide/guide.go, internal/message/written.go]
     tags: [agents]
 
