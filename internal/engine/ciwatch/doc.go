@@ -35,8 +35,10 @@
 // the same rule, given the branch, the newest run on it whose head has the
 // commit as an ancestor judges it, and the watch says which run it follows.
 //
-// A run that completed is given Detail before its end is said (slice 172,
-// features/watch-failures.feature): the remote's tags at its head commit
+// A run that completed with any conclusion but cancelled is given Detail
+// before its end is said (slice 172, features/watch-failures.feature); a
+// cancelled run is followed or ends 75 as above, and has nothing failed to
+// name. Detail is the remote's tags at its head commit
 // (git ls-remote, an annotated tag by its ^{} commit), and, for each job that
 // did not succeed, the step it failed at and what its log names, the log asked
 // of providers.Watcher.Log once and never retried, none for a run that
