@@ -9736,7 +9736,7 @@ items:
       execution, preserving private stealth configs and policy files read only as import input.
       Shared external metadata and per-branch planning are separate designs.
     refs: [internal/config/config.go, internal/config/stealth.go, internal/config/top.go]
-    tags: [config, v8]
+    tags: [config, v9]
 
   - id: slice-162
     title: Run explicitly selected live tests from the working tree
