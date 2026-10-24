@@ -55,6 +55,7 @@ phases:
   3: donvargax
 
 queue:
+  - bug-123
   - p1-features-itos-on-path-busy
   - p1-evidence-cap-test-windows-timing
   - p1-work-as-empty
