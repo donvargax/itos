@@ -55,6 +55,8 @@ phases:
   3: donvargax
 
 queue:
+  - bug-124
+  - bug-125
   - p1-work-as-empty
   - p1-supersede-standing-only
   - p1-work-done-wip-examples
