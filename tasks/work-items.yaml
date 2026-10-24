@@ -5201,7 +5201,11 @@ items:
       still exist: internal/cli/task.go taskAddArgs and internal/slices/initcmd/parse.go's flag
       parsers (parseRulesFlag and kin), beside readCommitFlags, which git commit reaches unparsed
       through the shim.
-    tags: [cli, v9]
+
+      2026-10-24 (the user's call): pilots and spikes run in v8, so this item, the spike that weighs
+      kong, is v8; adopting kong is breaking (parse errors and exit codes are corpus cases), so the
+      adoption itself, if the spike says go, is a v9 item of its own.
+    tags: [cli, v8]
 
   - id: p1-bot-dependency-prs
     title: Renovate dependency pull requests pass itos rules and merge themselves when CI is green
