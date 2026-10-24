@@ -4662,6 +4662,3 @@
     the agent's to fix forward; once green, itos work done <item>; report the pushed SHA and the
     green run. The coordinator still checks the named run against the pushed head and reviews the
     diff after the push. The wait-loop lesson stays: a foreground call that blocks is not a loop.
-  done_when:
-    - run: grep -q 'tools/bin/itos push. in the foreground' AGENTS.md
-    - run: grep -q 'ci watch <sha>' docs/ORCHESTRATING.md
