@@ -156,9 +156,11 @@ func (b broken) Locate(ctx context.Context, dir string) (vcs.Location, error) {
 	return b.VCS.Locate(ctx, dir)
 }
 
+// PathStatus fails of kind.Missing, as internal/git's Read fails, so a kind
+// of Unknown on Ready's error is Ready's own wrap.
 func (b broken) PathStatus(ctx context.Context, path string) ([]string, error) {
 	if b.step == "status" {
-		return nil, errBroken
+		return nil, kind.Wrap(kind.Missing, errBroken)
 	}
 	return b.VCS.PathStatus(ctx, path)
 }

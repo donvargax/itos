@@ -38,7 +38,8 @@ func TestReadyGivesAFailedStatusNoKind(t *testing.T) {
 	files.VCS = broken{files.VCS, "status"}
 	err := files.Ready(t.Context(), []string{"registry.yaml"})
 	var dirty *port.Dirty
-	if errors.As(err, &dirty) || !errors.Is(err, errBroken) || kind.Of(err) != kind.Unknown || !strings.Contains(err.Error(), "registry.yaml") {
+	var classified *kind.Error
+	if errors.As(err, &dirty) || !errors.Is(err, errBroken) || !errors.As(err, &classified) || kind.Of(err) != kind.Unknown || !strings.Contains(err.Error(), "registry.yaml") {
 		t.Errorf("Ready: %v (kind %v); want errBroken naming registry.yaml, of kind Unknown, no Dirty", err, kind.Of(err))
 	}
 }
