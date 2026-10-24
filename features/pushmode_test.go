@@ -8,7 +8,9 @@
 // remote's main; the GitHub repository the environment names
 // (GITHUB_REPOSITORY), as the fake GitHub gives it, or none; the remote's HEAD
 // naming a branch it does not have; what a branch of the remote ends with; and
-// the head of a remote's branch the fake GitHub was asked for the run of.
+// the head of a remote's branch the fake GitHub was asked for the run of; and
+// the commits itos makes beside the registry (slice 177): a task's close that
+// takes out its checks, and an idea added with a file.
 package features
 
 import (
@@ -17,6 +19,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"slices"
 	"strings"
@@ -53,6 +56,8 @@ func initializePushModeSteps(sc *godog.ScenarioContext, w *world) {
 	sc.Step(`^every call of the recording gh has "([^"]*)"$`, w.ghEveryCallHas)
 	sc.Step(`^the recording gh was never called$`, func() error { return w.ghNeverCalled("") })
 	sc.Step(`^the recording gh was never called as "([^"]*)"$`, w.ghNeverCalled)
+	sc.Step(`^the clone has the commit "([^"]*)" closing the task "([^"]*)" and taking out its checks$`, w.cloneClosesTask)
+	sc.Step(`^the clone has the commit "([^"]*)" adding the idea "([^"]*)" to the registry and touching "([^"]*)"$`, w.cloneAddsIdeaTouching)
 	sc.Step(`^the clone is on the new branch "([^"]*)"$`, func(branch string) error {
 		return w.git("checkout", "-q", "-b", branch)
 	})
@@ -328,4 +333,54 @@ func (w *world) ghNeverCalled(command string) error {
 		}
 	}
 	return nil
+}
+
+// The commit work done makes for a task with checks (slice 177), without
+// running it: the registry's item given the status done and the owner
+// someone, the ledger's entry without its done_when, both files and nothing
+// else, committed past the hooks.
+func (w *world) cloneClosesTask(subject, id string) error {
+	state := regexp.MustCompile(`owner: [^,]*, status: [^,]*`)
+	closed := false
+	for i, line := range w.registryLines {
+		if strings.HasPrefix(line, "  - { id: "+id+",") {
+			w.registryLines[i] = state.ReplaceAllString(line, "owner: someone, status: done")
+			closed = true
+		}
+	}
+	if !closed {
+		return fmt.Errorf("the registry has no item %q to close", id)
+	}
+	if err := w.writeRegistryLines(); err != nil {
+		return err
+	}
+	at := slices.IndexFunc(w.ledger, func(t ledgerTask) bool { return t.id == id })
+	if at < 0 {
+		return fmt.Errorf("the ledger has no task %q", id)
+	}
+	w.ledger[at].checks = nil
+	if err := w.write(w.data(w.ledgerPath()), w.ledgerText()); err != nil {
+		return err
+	}
+	return w.commitPaths(subject, w.data(startingRegistry), w.data(w.ledgerPath()))
+}
+
+// A new idea in the registry and a line in the file, in one commit past the
+// hooks (slice 177).
+func (w *world) cloneAddsIdeaTouching(subject, id, path string) error {
+	if err := w.addIdeaIn(w.dir, id); err != nil {
+		return err
+	}
+	if err := writeLine(w.dir, path, subject); err != nil {
+		return err
+	}
+	return w.commitPaths(subject, w.data(startingRegistry), path)
+}
+
+// The paths, and nothing else, committed past the hooks.
+func (w *world) commitPaths(subject string, paths ...string) error {
+	if err := w.git(append([]string{"add", "--"}, paths...)...); err != nil {
+		return err
+	}
+	return w.git(append([]string{"commit", "-q", "--no-verify", "-m", subject, "--"}, paths...)...)
 }
