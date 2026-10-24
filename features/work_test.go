@@ -126,6 +126,8 @@ func initializeWorkSteps(sc *godog.ScenarioContext, w *world) {
 
 	sc.Step(`^the ledger file "([^"]*)" is deleted and the deletion not committed$`, w.ledgerFileDeleted)
 	sc.Step(`^a commit-msg hook that refuses every commit$`, w.refusingCommitMsgHook)
+	sc.Step(`^the git itos runs fails git status, saying "([^"]*)"$`, w.gitFailingStatus)
+	sc.Step(`^the registry has a change no commit holds$`, w.registryEditedUncommitted)
 	sc.Step(`^a pre-commit hook that appends a line to each staged Markdown file and stages it again$`, w.formattingPreCommitHook)
 	sc.Step(`^the ledger has no task "([^"]*)"$`, w.ledgerLacks)
 	sc.Step(`^git reports no change to the working tree or the index$`, w.gitStatusClean)
@@ -737,6 +739,32 @@ func (w *world) registryWhyEnds(id, end string) error {
 // committed.
 func (w *world) ledgerFileDeleted(file string) error {
 	return os.Remove(filepath.Join(w.dir, w.data(file)))
+}
+
+// The git itos runs (ITOS_GIT) is a program in the support folder that fails
+// git status with the words, to stderr, and hands every other command to the
+// git on the PATH (bug 130): the hooks check, the locate and ls-files still
+// answer, so the failing status is the first thing to meet. A program, not a
+// script, on windows (writeProgram).
+func (w *world) gitFailingStatus(words string) error {
+	path := filepath.Join(w.support, "status-failing-git")
+	script := "#!/bin/sh\nif [ \"$1\" = status ]; then\n  echo " + quote(words) + " >&2\n  exit 128\nfi\nexec git \"$@\"\n"
+	if err := w.writeProgram(path, script); err != nil {
+		return err
+	}
+	w.vars = append(w.vars, "ITOS_GIT="+programPath(path))
+	return nil
+}
+
+// The registry in the working tree gains a YAML comment line, not staged: a
+// change no commit holds that leaves the registry sound (bug 130).
+func (w *world) registryEditedUncommitted() error {
+	f, err := os.OpenFile(filepath.Join(w.dir, w.data(startingRegistry)), os.O_APPEND|os.O_WRONLY, 0o644)
+	if err != nil {
+		return err
+	}
+	_, err = f.WriteString("# a change no commit holds\n")
+	return errors.Join(err, f.Close())
 }
 
 // A commit-msg hook in git's own hooks folder that says it refuses and exits
