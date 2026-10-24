@@ -390,20 +390,16 @@ func (e *Engine) execute(ctx context.Context, req Request, info Info, b bound, r
 // is not the check's to reuse, a timeout or a command that did not exit by
 // itself, says so as the reason it recorded nothing.
 func (e *Engine) run(ctx context.Context, req Request, info Info, dir string, env []string) (Outcome, Result) {
-	tail := &tail{max: OutputTail}
-	var out io.Writer = tail
-	if req.Verbose {
-		out = io.MultiWriter(tail, req.Log)
-	}
+	capture := newCapture(req)
 	seconds := req.Seconds
 	if req.RunSeconds != nil {
 		seconds = *req.RunSeconds
 	}
 	started := e.now()
 	r := shell.Run(e.Cfg, req.Command, shell.Options{
-		Stdout: out, Stderr: out, Env: env, Dir: dir, Timeout: time.Duration(seconds * float64(time.Second)),
+		Stdout: capture.w, Stderr: capture.w, Env: env, Dir: dir, Timeout: time.Duration(seconds * float64(time.Second)),
 	})
-	text, cut := tail.Text()
+	text, cut := capture.text()
 	res := Result{
 		Exit: r.Code, Output: text, Truncated: cut,
 		Started: started.Format(time.RFC3339), Ended: e.now().Format(time.RFC3339),
@@ -415,6 +411,47 @@ func (e *Engine) run(ctx context.Context, req Request, info Info, dir string, en
 		info.Reason = ReasonInconclusive
 	}
 	return Outcome{Code: r.Code, OK: r.OK(), TimedOut: r.TimedOut, Output: text, Info: info}, res
+}
+
+// capture is where a run's output goes. A quiet run's goes to a temporary
+// file, as the hook's checks always did (check.RunCaptured), so that a process
+// the check leaves running cannot hold the run past its timeout: a pipe stays
+// open until the last process holding it exits. A verbose run's goes through
+// memory and to the log, and so does a quiet run's when no file can be made.
+type capture struct {
+	w    io.Writer
+	file *os.File
+	mem  *tail
+}
+
+func newCapture(req Request) *capture {
+	c := &capture{mem: &tail{max: OutputTail}}
+	c.w = c.mem
+	if req.Verbose {
+		c.w = io.MultiWriter(c.mem, req.Log)
+	} else if f, err := os.CreateTemp("", "itos-evidence-"); err == nil {
+		c.file, c.w = f, f
+	}
+	return c
+}
+
+// text is the tail of the output, and whether bytes before it were dropped.
+// It is the end of the run: the file is closed and removed.
+func (c *capture) text() (string, bool) {
+	if c.file == nil {
+		return c.mem.Text()
+	}
+	defer func() {
+		_ = c.file.Close()
+		_ = os.Remove(c.file.Name())
+	}()
+	info, err := c.file.Stat()
+	if err != nil {
+		return "", false
+	}
+	start := max(0, info.Size()-OutputTail)
+	text, _ := io.ReadAll(io.NewSectionReader(c.file, start, info.Size()-start))
+	return string(text), start > 0
 }
 
 // copyInputs copies the declared inputs git does not track from the working

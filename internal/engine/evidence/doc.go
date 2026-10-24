@@ -49,7 +49,9 @@
 // checkout for the first miss when no check shares it. A request carries the
 // seconds the hook's cap allows beside the check's own, which alone the key
 // binds, so a run the cap stops is not recorded and a record made by hand
-// answers it. The hook's engine prints only the line of a hit, naming the
+// answers it. A quiet run's output goes to a temporary file, not a pipe, as
+// check.RunCaptured's does, so a process a check leaves running cannot hold
+// the run, or the commit, past its timeout. The hook's engine prints only the line of a hit, naming the
 // task, and a check it cannot key or run in a checkout of the tree is refused
 // (Outcome.Err), never run in the working folder.
 //

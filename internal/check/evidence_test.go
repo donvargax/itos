@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/engine/evidence"
@@ -170,8 +171,12 @@ func TestRunCapturedThroughEvidence(t *testing.T) {
 	if run, err := RunCaptured(cfg, mustFail, 10, nil, at); err != nil || run.Result != Pass || git.checkouts != 1 {
 		t.Errorf("a must-fail check answered by the same record: %+v, %v, %d checkouts", run, err, git.checkouts)
 	}
-	slow := ledger.Check{Run: text("sleep 5"), Evidence: &config.Evidence{}, Timeout: seconds(30)}
+	slow := ledger.Check{Run: text("cd /; sleep 5; true"), Evidence: &config.Evidence{}, Timeout: seconds(30)}
+	started := time.Now()
 	run, err := RunCaptured(cfg, slow, 0.05, nil, at)
+	if took := time.Since(started); took > 4*time.Second {
+		t.Errorf("the run took %v", took)
+	}
 	if err != nil || run.Result != Fail || !run.TimedOut || !run.Capped || run.Seconds != 0.05 {
 		t.Fatalf("a run the cap stops: %+v, %v", run, err)
 	}

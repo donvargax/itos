@@ -339,9 +339,13 @@ func TestUnstagedChangesAreCountedAndSaidOnce(t *testing.T) {
 // timeout.
 func TestATimeoutIsNotRecorded(t *testing.T) {
 	r := newRig(t)
-	req := r.request("sleep 5", config.Evidence{})
+	req := r.request("cd /; sleep 5; true", config.Evidence{})
 	req.Seconds = 0.05
+	started := time.Now()
 	o := r.Run(t.Context(), req)
+	if took := time.Since(started); took > 4*time.Second {
+		t.Errorf("the run took %v, past its timeout and the sleeper's left", took)
+	}
 	if o.OK || o.Info.Recorded || o.Info.Reason != ReasonInconclusive {
 		t.Errorf("%+v", o)
 	}

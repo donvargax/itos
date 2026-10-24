@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/kind"
@@ -94,12 +95,16 @@ func TestTheHooksEngineRefusesWhatItCannotRunOnTheTree(t *testing.T) {
 // stop.
 func TestAMissRunsUnderTheCapAndIsKeyedByTheOwnTimeout(t *testing.T) {
 	r := hookRig(t)
-	own := r.request("sleep 5", config.Evidence{})
+	own := r.request("cd /; sleep 5; true", config.Evidence{})
 	own.Seconds = 600
 	cap := 0.05
 	capped := own
 	capped.RunSeconds = &cap
+	started := time.Now()
 	o := r.Run(t.Context(), capped)
+	if took := time.Since(started); took > 4*time.Second {
+		t.Errorf("the run took %v", took)
+	}
 	if o.Err != nil || o.OK || !o.TimedOut || o.Info.Recorded || o.Info.Reason != ReasonInconclusive || len(r.records(t)) != 0 {
 		t.Fatalf("a run the cap stops: %+v, records %v", o, r.records(t))
 	}
@@ -168,5 +173,81 @@ func TestTheSpareCheckoutServesTheFirstMissOnly(t *testing.T) {
 	r.Run(t.Context(), r.request("true", config.Evidence{}))
 	if removed != 1 || r.git.checkouts != 1 {
 		t.Errorf("spare removed %d, checkouts %d", removed, r.git.checkouts)
+	}
+}
+
+// A process a check leaves running keeps the output it inherited open. The
+// run's output is a file, so that holds nobody: the run returns when the shell
+// does, with the cap or without, and not when the process exits or, as through
+// a pipe, after the shell's grace. The sleeper outlasts the grace (10 s), and
+// the margin is generous; it starts in a folder of its own so that no
+// checkout is its working folder.
+func TestAProcessACheckLeavesRunningDoesNotHoldTheRun(t *testing.T) {
+	for name, command := range map[string]string{
+		"a check that exits":               "cd /; sleep 14 & echo out",
+		"a check the cap stops, mid-sleep": "cd /; echo out; sleep 14; true",
+	} {
+		t.Run(name, func(t *testing.T) {
+			r := hookRig(t)
+			cap := 0.3
+			req := r.request(command, config.Evidence{})
+			req.RunSeconds = &cap
+			started := time.Now()
+			o := r.Run(t.Context(), req)
+			if took := time.Since(started); took > 5*time.Second {
+				t.Errorf("the run took %v", took)
+			}
+			if o.Err != nil || strings.TrimSpace(o.Output) != "out" || o.TimedOut != strings.Contains(name, "cap") {
+				t.Errorf("%+v", o)
+			}
+		})
+	}
+}
+
+// A quiet run's output is a file, whose end is kept, and which is gone with
+// the run; a verbose run's, or one with no file to be had, goes through
+// memory.
+func TestACapturesTailIsTheEndOfItsOutput(t *testing.T) {
+	text := strings.Repeat("0123456789", OutputTail/10+10) + "end"
+	quiet := newCapture(Request{})
+	if quiet.file == nil {
+		t.Fatal("no file for a quiet run")
+	}
+	name := quiet.file.Name()
+	if _, err := quiet.w.Write([]byte(text)); err != nil {
+		t.Fatal(err)
+	}
+	got, cut := quiet.text()
+	if len(got) != OutputTail || !cut || !strings.HasSuffix(got, "end") || got != text[len(text)-OutputTail:] {
+		t.Errorf("a long output: %d bytes, cut %v", len(got), cut)
+	}
+	if _, err := os.Stat(name); err == nil {
+		t.Error("the output file is left")
+	}
+	short := newCapture(Request{})
+	if _, err := short.w.Write([]byte("short")); err != nil {
+		t.Fatal(err)
+	}
+	if got, cut := short.text(); got != "short" || cut {
+		t.Errorf("a short output: %q, cut %v", got, cut)
+	}
+	var log strings.Builder
+	verbose := newCapture(Request{Verbose: true, Log: &log})
+	if _, err := verbose.w.Write([]byte("seen")); err != nil {
+		t.Fatal(err)
+	}
+	if got, cut := verbose.text(); verbose.file != nil || got != "seen" || cut || log.String() != "seen" {
+		t.Errorf("a verbose output: %q, cut %v, log %q", got, cut, log.String())
+	}
+	gone := filepath.Join(t.TempDir(), "gone")
+	for _, name := range []string{"TMPDIR", "TMP", "TEMP"} {
+		t.Setenv(name, gone)
+	}
+	memory := newCapture(Request{})
+	if _, err := memory.w.Write([]byte("kept")); err != nil {
+		t.Fatal(err)
+	}
+	if got, cut := memory.text(); memory.file != nil || got != "kept" || cut {
+		t.Errorf("no file to be had: %q, cut %v", got, cut)
 	}
 }
