@@ -71,9 +71,17 @@ the area's counter and the highest the files hold, and the counter is raised
 to it, so a number printed is never printed again, used or not, and one a
 removed scenario held is not given again. --count <n> claims n numbers in a
 row and prints each, one a line. Any other stem (slice, bug) only reads: the
-commands that create those items mint their ids. A <kind> the config does not
-have, a --count that is no number from 1 up and a --count for a stem that only
-reads are usage errors (exit 2); a counter that cannot be reached is exit 3.
+commands that create those items mint their ids, and what it prints for one
+is a preview, not a scenario ID. A bare stem that would be an area with ID-
+in front, itos tests next-id scenario SEC where the pattern takes ID-SEC, is
+refused with the command that claims, itos tests next-id scenario ID-SEC
+(--count kept), where it would print @SEC-1, an ID the pattern refuses. That
+holds when the pattern's text begins with ID- and no tag or item id of the
+kind or the registry is <stem>-<n> (a series such as @batch-7 stays a
+preview), and slice and bug stay previews too. A <kind> the config does not
+have, a --count that is no number from 1 up, a --count for a stem that only
+reads and a stem refused for its correction are usage errors (exit 2); a
+counter that cannot be reached is exit 3.
 
 --json: {"schema":1,"kind","stem","id","ids","claimed"}`,
 

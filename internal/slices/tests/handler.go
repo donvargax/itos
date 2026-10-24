@@ -2,6 +2,7 @@ package tests
 
 import (
 	"context"
+	"strconv"
 	"strings"
 
 	"github.com/donvargax/itos/v8/internal/config"
@@ -215,7 +216,10 @@ func (h Handler) smokeRun(ctx context.Context, q Query) (Answer, error) {
 // free tag of the stem (namedtests.NextTag), counting the registry's ids
 // too. Of an area it claims the tag, or Count tags in a row, through the
 // ids engine and the tracker; of any other stem it only reads, so --count
-// there is a usage error, as is a kind the config does not have.
+// there is a usage error, as is a kind the config does not have. A bare stem
+// that is a mistaken area (namedtests.Mistaken, slice 157: SEC for ID-SEC)
+// is a usage error naming the command that claims, before the counter is
+// touched.
 func (h Handler) nextID(ctx context.Context, q Query) (Answer, error) {
 	cfg, err := h.ports.Config(ctx)
 	if err != nil {
@@ -226,17 +230,28 @@ func (h Handler) nextID(ctx context.Context, q Query) (Answer, error) {
 		return Answer{}, out.Usage("tests next-id: the config has no tests kind %s (it has %s)", q.Kind, kindNames(cfg))
 	}
 	area := namedtests.Area(k, q.Stem)
-	if q.Counted && !area {
-		return Answer{}, out.Usage("tests next-id --count claims an area's ids, and %s is no area of tests.%s's id: its next id is only read", q.Stem, q.Kind)
+	if q.Counted && !area && !namedtests.Candidate(k, q.Stem) {
+		return Answer{}, countRefused(q)
 	}
 	others, err := ids.Registry(ctx, cfg)
 	if err != nil {
 		return Answer{}, err
 	}
-	next, err := namedtests.NextTag(cfg, q.Kind, q.Stem, others)
+	held, err := namedtests.HeldIDs(cfg, q.Kind, k, others)
 	if err != nil {
 		return Answer{}, err
 	}
+	if fixed, mistaken := namedtests.Mistaken(k, q.Stem, held); mistaken {
+		command := "itos tests next-id " + q.Kind + " " + fixed
+		if q.Counted {
+			command += " --count " + strconv.Itoa(q.Count)
+		}
+		return Answer{}, out.Usage("tests next-id: %s is no area of tests.%s's id %s, and %s is: to claim its ids, run %s", q.Stem, q.Kind, *k.ID, fixed, command)
+	}
+	if q.Counted && !area {
+		return Answer{}, countRefused(q)
+	}
+	next := namedtests.NextTagFrom(k, q.Stem, held)
 	tags := []string{next}
 	if area {
 		if tags, err = ids.Claim(ctx, h.ports.Tracker(ctx, cfg), q.Stem, next, q.Count); err != nil {
@@ -244,6 +259,11 @@ func (h Handler) nextID(ctx context.Context, q Query) (Answer, error) {
 		}
 	}
 	return Answer{IDs: tags, Claimed: area}, nil
+}
+
+// countRefused is the usage error of a --count for a stem that only reads.
+func countRefused(q Query) error {
+	return out.Usage("tests next-id --count claims an area's ids, and %s is no area of tests.%s's id: its next id is only read", q.Stem, q.Kind)
 }
 
 // kindNames are the config's tests kinds, as a usage error lists them.

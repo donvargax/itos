@@ -142,7 +142,10 @@
 // and Index(kind) for itos tests moves. Between and Merge go through one
 // judge, which picks the comparison by the kind's adapter.
 //
-// NextTag (nextid.go) is itos tests next-id's tag (internal/nextid), and
-// Area whether a stem is an area of a kind's ID- pattern, whose tags tests
-// next-id claims through the id counter.
+// NextTag (nextid.go) is itos tests next-id's tag (internal/nextid) over the
+// ids HeldIDs gathers, and Area whether a stem is an area of a kind's ID-
+// pattern, whose tags tests next-id claims through the id counter. Mistaken
+// (slice 157) is the area a bare stem was meant to be: ID-<stem> when the
+// pattern's text begins with ID-, the stem is no area but ID-<stem> is, it
+// is neither slice nor bug, and no held id is <stem>-<n>.
 package tests

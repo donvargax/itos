@@ -29,3 +29,23 @@ func TestNext(t *testing.T) {
 		}
 	}
 }
+
+// A series is held by an ID that is its prefix and a number, and by no
+// other: not the bare prefix, not another prefix, not a word after it.
+func TestHoldsIsAnIDOfTheSeries(t *testing.T) {
+	for _, c := range []struct {
+		ids  []string
+		want bool
+	}{
+		{[]string{"OPS-2"}, true},
+		{[]string{"ID-A-01", "OPS-007"}, true},
+		{[]string{"OPS-"}, false},
+		{[]string{"OPS-x", "OPS-1a", "OPS"}, false},
+		{[]string{"XOPS-2", "ops-2", "ID-OPS-2"}, false},
+		{nil, false},
+	} {
+		if got := Holds("OPS-", c.ids); got != c.want {
+			t.Errorf("Holds(OPS-, %q) = %v, want %v", c.ids, got, c.want)
+		}
+	}
+}

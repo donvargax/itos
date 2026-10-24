@@ -136,6 +136,10 @@
   scenarios:
     - id: "@ID-MOVESCMD-02"
       why: the commit-msg hook refuses a test commit that turns a live test wip, the rule on a command kind
+- file: next-id-stems.feature
+  scenarios:
+    - id: "@ID-NEXTID-09"
+      why: the refusal of a mistaken bare area reserves nothing, and its corrected command claims as a full stem always has, the feature's point
 - file: next-id.feature
   scenarios:
     - id: "@ID-NEXTID-01"

@@ -18,7 +18,9 @@
 // counting the registry's ids (the ids engine's Registry); of an area
 // (namedtests.Area) it then claims what it prints through the ids engine's
 // Claim and the tracker's Reserve, which item ids are minted through too,
-// the area's stem its series. Handle reaches the world through Ports,
+// the area's stem its series; a bare stem that would be an area with ID- in
+// front (namedtests.Mistaken: SEC for ID-SEC) is a usage error naming the
+// command that claims, the counter untouched. Handle reaches the world through Ports,
 // which the slice owns and internal/cli binds: the VCS, the config as the
 // working tree has it, the tracker store and the config's shell with
 // itos's streams.

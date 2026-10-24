@@ -2,6 +2,7 @@ package tests
 
 import (
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/donvargax/itos/v8/internal/config"
@@ -57,5 +58,67 @@ func TestNextTagCountsACommandKindsListedIDs(t *testing.T) {
 	}
 	if got, err := NextTag(cfg, "broken", "U", nil); err == nil {
 		t.Errorf("NextTag of a kind whose listing fails = %q, want an error", got)
+	}
+}
+
+// A kind the config lacks and a feature file that cannot be read stop the
+// ids from being gathered, and NextTag with them.
+func TestNextTagStopsAtWhatItCannotRead(t *testing.T) {
+	if _, err := NextTag(&config.Loaded{}, "scenario", "ID-A", nil); err == nil {
+		t.Error("NextTag of a kind the config lacks: no error")
+	}
+	dangling := t.TempDir()
+	if err := os.Symlink(filepath.Join(dangling, "nothing"), filepath.Join(dangling, "b.feature")); err != nil {
+		t.Skip("no symbolic links here:", err)
+	}
+	k := config.Kind{Root: &dangling, TagPrefix: "@"}
+	k.Adapter.Name = "gherkin"
+	cfg := &config.Loaded{}
+	cfg.Tests.Keys = []string{"scenario"}
+	cfg.Tests.Values = map[string]config.Kind{"scenario": k}
+	if got, err := NextTag(cfg, "scenario", "ID-A", nil); err == nil {
+		t.Errorf("NextTag over a feature file that cannot be read = %q, want an error", got)
+	}
+}
+
+// A bare stem is a mistaken area when the pattern's text begins with ID- (a
+// ^ dropped), the stem is no area and ID-<stem> is, it is neither slice nor
+// bug, and no held id is <stem>-<digits>; each condition alone keeps it a
+// preview.
+func TestMistakenIsABareStemWhoseFullStemIsAnArea(t *testing.T) {
+	cfg := load(t, `version: 1
+tests:
+  scenario: { root: features, id: "ID-[A-Z]+-\\d+" }
+  anchored: { root: features, id: "^ID-[A-Z]+-\\d+$" }
+  lower: { root: features, id: "ID-[A-Za-z]+-\\d+" }
+  alternate: { root: features, id: "T-\\d+-[a-z]+|ID-[A-Z]+-\\d+" }
+  none: { root: features }
+`)
+	for _, c := range []struct {
+		kind, stem string
+		held       []string
+		want       string
+	}{
+		{"scenario", "SEC", nil, "ID-SEC"},
+		{"scenario", "SEC", []string{"ID-SEC-01", "SECX-1", "SEC-x", "SEC-"}, "ID-SEC"},
+		{"anchored", "SEC", nil, "ID-SEC"},
+		{"lower", "sec", []string{"batch-7"}, "ID-sec"},
+		{"scenario", "SEC", []string{"SEC-1"}, ""},
+		{"scenario", "ID-SEC", nil, ""},
+		{"scenario", "sec", nil, ""},
+		{"lower", "slice", nil, ""},
+		{"lower", "bug", nil, ""},
+		{"lower", "batch", []string{"batch-7"}, ""},
+		{"alternate", "SEC", nil, ""},
+		{"none", "SEC", nil, ""},
+	} {
+		k, err := KindOf(cfg, c.kind)
+		if err != nil {
+			t.Fatal(err)
+		}
+		got, ok := Mistaken(k, c.stem, c.held)
+		if got != c.want || ok != (c.want != "") {
+			t.Errorf("Mistaken(%s, %q, %q) = %q, %v, want %q", c.kind, c.stem, c.held, got, ok, c.want)
+		}
 	}
 }

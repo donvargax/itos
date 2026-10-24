@@ -15,7 +15,7 @@ import (
 func Next(prefix string, ids []string, width int, fits func(string) bool) string {
 	highest := 0
 	for _, id := range ids {
-		if len(id) <= len(prefix) || id[:len(prefix)] != prefix || !digits(id[len(prefix):]) {
+		if !inSeries(prefix, id) {
 			continue
 		}
 		written := id[len(prefix):]
@@ -35,6 +35,20 @@ func Next(prefix string, ids []string, width int, fits func(string) bool) string
 		}
 	}
 	return at(width)
+}
+
+// Holds is whether any of ids is in the series: the prefix and a number.
+func Holds(prefix string, ids []string) bool {
+	for _, id := range ids {
+		if inSeries(prefix, id) {
+			return true
+		}
+	}
+	return false
+}
+
+func inSeries(prefix, id string) bool {
+	return len(id) > len(prefix) && id[:len(prefix)] == prefix && digits(id[len(prefix):])
 }
 
 // digits is whether s is one or more ASCII digits and nothing else.

@@ -497,3 +497,47 @@ func TestNextIDRefusesWhatItCannotRead(t *testing.T) {
 		t.Errorf("the counter after refused claims gives %d, %v, want 1", first, err)
 	}
 }
+
+// A bare stem that would be an area with ID- in front is refused with the
+// command that claims it, --count kept, and claims nothing; a stem that a tag
+// or a registry item already uses as a series, slice and bug stay previews,
+// and the refusal of --count for them is the old one.
+func TestNextIDRefusesAMistakenBareAreaWithItsCorrection(t *testing.T) {
+	files := worktree()
+	files["features/b.feature"] = feature("@OPS-2")
+	files["work-items.yaml"] = "items:\n  - { id: batch-9, title: B, phase: 1, owner: null, status: todo, depends_on: [] }\n"
+	p := overWorktree(t, strings.Replace(configText("true"), `ID-[A-Z]+-\\d+`, `ID-[A-Za-z]+-\\d+`, 1), files)
+	var u out.UsageError
+	for _, c := range []struct {
+		args []string
+		want string
+	}{
+		{[]string{"next-id", "scenario", "SEC"}, `tests next-id: SEC is no area of tests.scenario's id ID-[A-Za-z]+-\d+, and ID-SEC is: to claim its ids, run itos tests next-id scenario ID-SEC`},
+		{[]string{"next-id", "scenario", "SEC", "--count", "3"}, `tests next-id: SEC is no area of tests.scenario's id ID-[A-Za-z]+-\d+, and ID-SEC is: to claim its ids, run itos tests next-id scenario ID-SEC --count 3`},
+	} {
+		if _, stdout, _, err := call(t, p, c.args...); !errors.As(err, &u) || err.Error() != c.want || stdout != "" {
+			t.Errorf("%q = %q, %v, want the usage error %q", c.args, stdout, err, c.want)
+		}
+	}
+	for _, c := range []struct {
+		args   []string
+		stdout string
+	}{
+		{[]string{"next-id", "scenario", "OPS"}, "@OPS-3\n"},
+		{[]string{"next-id", "scenario", "batch"}, "@batch-10\n"},
+		{[]string{"next-id", "scenario", "slice"}, "@slice-4\n"},
+		{[]string{"next-id", "scenario", "bug"}, "@bug-1\n"},
+	} {
+		code, stdout, stderr, err := call(t, p, c.args...)
+		want(t, c.args, 0, c.stdout, "", code, stdout, stderr, err)
+	}
+	for _, stem := range []string{"OPS", "batch", "slice", "bug"} {
+		if _, _, _, err := call(t, p, "next-id", "scenario", stem, "--count", "2"); !errors.As(err, &u) ||
+			!strings.HasSuffix(err.Error(), stem+" is no area of tests.scenario's id: its next id is only read") {
+			t.Errorf("next-id %s --count 2 = %v, want --count refused", stem, err)
+		}
+	}
+	if first, err := p.tracker.Reserve(t.Context(), "ID-SEC", 0, 1); err != nil || first != 1 {
+		t.Errorf("the counter of ID-SEC gives %d, %v after refusals, want 1", first, err)
+	}
+}

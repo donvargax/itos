@@ -65,7 +65,7 @@ Feature: An unambiguous bare scenario area gets a correction before any ID is re
 
   # Red before the work: the first row exits 0 printing @SEC-1; the second
   # exits 2 with today's --count refusal, which names no correction.
-  @wip @ID-NEXTID-08 @slice-157
+  @ID-NEXTID-08 @slice-157
   Scenario Outline: A mistaken bare area is refused with the actual usable stem
     When itos runs "<command>"
     Then itos exits with code 2
@@ -82,7 +82,7 @@ Feature: An unambiguous bare scenario area gets a correction before any ID is re
   # Red before the work at the first exit code: SEC exits 0 printing @SEC-1.
   # The corrected command's first ID, @ID-SEC-02, shows the refusal reserved
   # nothing for ID-SEC, and the counter at 3 that the claim alone moved it.
-  @wip @ID-NEXTID-09 @slice-157
+  @ID-NEXTID-09 @slice-157
   Scenario: The corrected command claims as a full stem always has, the refusal having taken no number
     When itos runs "tests next-id scenario SEC"
     Then itos exits with code 2
@@ -103,7 +103,7 @@ Feature: An unambiguous bare scenario area gets a correction before any ID is re
   # series, @batch-7) previews. The steps up to sec pass today and must
   # after; sec, which no series uses, is red before the work: it exits 0
   # printing @sec-1.
-  @wip @ID-NEXTID-10 @slice-157
+  @ID-NEXTID-10 @slice-157
   Scenario: Auxiliary series stay previews while an unused lowercase stem is corrected
     Given the tests kind "scenario" has the id pattern "ID-[A-Za-z]+-\d+"
     And a feature file with the scenario "@ID-SEC-02" tagged "@batch-7 @bug-4"
@@ -134,7 +134,7 @@ Feature: An unambiguous bare scenario area gets a correction before any ID is re
   # listing is ID-SEC-01, a non-live F-002 and OPS-2. Red before the work:
   # SEC exits 0 printing SEC-1 (the kind has no tag prefix). OPS, a raw
   # series of the listing, stays a preview, as today.
-  @wip @ID-NEXTID-11 @slice-157
+  @ID-NEXTID-11 @slice-157
   Scenario: A command-adapter kind gets the same correction, its listing read once
     Given a command adapter lists live IDs "ID-SEC-01" and "OPS-2" in that order, with an intervening non-live test
     And the tests kind "fixture" has the id pattern "ID-[A-Z]+-\d+"
@@ -153,7 +153,7 @@ Feature: An unambiguous bare scenario area gets a correction before any ID is re
   # Neither contacts the counter today, since SEC is no area. The
   # unreachable remote proves the refusal never contacts it: a run that did
   # would exit 3.
-  @wip @ID-NEXTID-12 @slice-157
+  @ID-NEXTID-12 @slice-157
   Scenario: The refusal keeps the JSON usage-error contract and never contacts the counter
     Given the remote cannot be reached
     When itos runs "tests next-id scenario SEC --count 2 --json"
@@ -172,7 +172,7 @@ Feature: An unambiguous bare scenario area gets a correction before any ID is re
   # @SEC-1). The second pattern's text begins with T-, so its ID-SEC is no
   # area and SEC keeps today's preview: that part passes today and must
   # after. Today's help names neither SEC nor the corrected command.
-  @wip @ID-NEXTID-13 @slice-157
+  @ID-NEXTID-13 @slice-157
   Scenario: Only a pattern whose text begins with ID- gets a correction, and help says so
     Given the tests kind "scenario" has the id pattern "ID-[A-Z]+-\d+|T-\d+-[a-z]+"
     When itos runs "tests next-id scenario SEC"

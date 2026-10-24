@@ -24,35 +24,66 @@ func NextTag(cfg *config.Loaded, name, stem string, others []string) (string, er
 	if err != nil {
 		return "", err
 	}
+	held, err := HeldIDs(cfg, name, k, others)
+	if err != nil {
+		return "", err
+	}
+	return NextTagFrom(k, stem, held), nil
+}
+
+// HeldIDs are the ids NextTag counts, read once at the working tree: others,
+// then the kind's own, its files' tags or its listing's IDs.
+func HeldIDs(cfg *config.Loaded, name string, k config.Kind, others []string) ([]string, error) {
 	ids := others
 	if k.Adapter.Command != "" || k.Adapter.Name != "gherkin" {
 		list, err := ListTests(cfg, name, "worktree", nil)
 		if err != nil {
-			return "", err
+			return nil, err
 		}
 		for _, t := range list.Tests {
 			ids = append(ids, t.ID)
 		}
-	} else {
-		o, err := gherkinOptions(cfg, name, k)
-		if err != nil {
-			return "", err
-		}
-		byPath, err := featureTexts(cfg, "worktree", o.Root)
-		if err != nil {
-			return "", err
-		}
-		for _, text := range byPath {
-			ids = append(ids, tags(text, o.TagPrefix)...)
-		}
+		return ids, nil
 	}
+	o, err := gherkinOptions(cfg, name, k)
+	if err != nil {
+		return nil, err
+	}
+	byPath, err := featureTexts(cfg, "worktree", o.Root)
+	if err != nil {
+		return nil, err
+	}
+	for _, text := range byPath {
+		ids = append(ids, tags(text, o.TagPrefix)...)
+	}
+	return ids, nil
+}
+
+// NextTagFrom is NextTag over the ids HeldIDs gave.
+func NextTagFrom(k config.Kind, stem string, held []string) string {
 	width := 1
-	if k.ID != nil && strings.HasPrefix(strings.TrimPrefix(*k.ID, "^"), "ID-") {
-		if id, err := regexp.Compile("^(?:" + *k.ID + ")$"); err == nil && id.MatchString(stem+"-01") {
-			width = 2
-		}
+	if Area(k, stem) {
+		width = 2
 	}
-	return k.TagPrefix + nextid.Next(stem+"-", ids, width, nil), nil
+	return k.TagPrefix + nextid.Next(stem+"-", held, width, nil)
+}
+
+// Mistaken is the area a bare stem was meant to be (slice 157, q-75): the
+// kind's ID pattern begins with ID- as Area asks, the stem is no area but
+// ID-<stem> is, the stem is not slice or bug, the series of the registry's
+// items, and no id of held, the ids HeldIDs gave, is <stem>-<digits>: a raw
+// series already in use stays a read-only preview. Candidate is the part of
+// the rule that needs no ids.
+func Mistaken(k config.Kind, stem string, held []string) (string, bool) {
+	if !Candidate(k, stem) || nextid.Holds(stem+"-", held) {
+		return "", false
+	}
+	return "ID-" + stem, true
+}
+
+// Candidate is whether the stem could be a mistaken bare area of the kind.
+func Candidate(k config.Kind, stem string) bool {
+	return stem != "slice" && stem != "bug" && !Area(k, stem) && Area(k, "ID-"+stem)
 }
 
 // Area is whether stem is an area of the kind's ID pattern, ID-<AREA>: the
