@@ -40,6 +40,15 @@ func initializePushModeSteps(sc *godog.ScenarioContext, w *world) {
 		return os.WriteFile(w.ghStale(), fmt.Appendf(nil, "%d\n", n), 0o644)
 	})
 	sc.Step(`^the fake GitHub was asked for the run of the head of the remote's branch "([^"]*)"$`, w.fakeGitHubGivenRemoteBranchHead)
+	sc.Step(`^the recording gh has the pull request "([^"]*)" merged for the branch "([^"]*)"$`, func(address, branch string) error {
+		return w.ghHasPullRequestIn(address, branch, "MERGED")
+	})
+	sc.Step(`^the recording gh has the pull request "([^"]*)" closed without merging for the branch "([^"]*)"$`, func(address, branch string) error {
+		return w.ghHasPullRequestIn(address, branch, "CLOSED")
+	})
+	sc.Step(`^the recording gh fails every call, saying "([^"]*)"$`, func(words string) error {
+		return os.WriteFile(w.ghFailure(), []byte(words+"\n"), 0o644)
+	})
 	sc.Step(`^the recording gh's "([^"]*)" call has "([^"]*)"$`, w.ghCallHas)
 	sc.Step(`^every call of the recording gh has "([^"]*)"$`, w.ghEveryCallHas)
 	sc.Step(`^the recording gh was never called$`, func() error { return w.ghNeverCalled("") })
@@ -88,9 +97,13 @@ func (w *world) remoteBranchEndsWith(branch, older, newer string) error {
 }
 
 // The recording gh's files: a line for each call, as its arguments were
-// given, and a line for each open pull request, its branch and its address.
+// given, and a line for each pull request, its branch, its address and its
+// state.
 func (w *world) ghCalls() string { return filepath.Join(w.support, "gh-calls") }
 func (w *world) ghPulls() string { return filepath.Join(w.support, "gh-pull-requests") }
+
+// What the recording gh says on stderr when it fails every call, if it does.
+func (w *world) ghFailure() string { return filepath.Join(w.support, "gh-failure") }
 
 // The files that steer pr view and pr update-branch: the first exists when the
 // branch is to be left as it is; the second holds the number of calls pr view
@@ -107,14 +120,16 @@ func (w *world) ghPrevious(branch string) string {
 func (w *world) ghRebaseDir() string { return filepath.Join(w.support, "gh-rebase") }
 
 // recordingGh is a gh first on the PATH that stands in for GitHub: it records
-// each call, answers pr list with the open pull requests of its --head branch
-// as gh does ([] for none), and answers pr create with the address given,
-// holding that pull request open from then on; pr view answers the head of the
-// remote's branch it names as {"headRefOid": <sha>}, and pr update-branch
-// rebases that branch onto the remote's main, as GitHub does, in a clone of its
-// own that it pushes back (a step can have it leave the branch as it is); any
-// other call succeeds silently. The environment names owner/scratch as the GitHub repository, as
-// the fake GitHub does. A pull request's number is the end of its address.
+// each call, answers pr list with the pull requests of its --head branch that
+// its --state names (open, gh's default, merged, closed or all) as gh does ([]
+// for none), and answers pr create with the address given, holding that pull
+// request open from then on; pr view answers the head of the remote's branch it
+// names as {"headRefOid": <sha>}, and pr update-branch rebases that branch onto
+// the remote's main, as GitHub does, in a clone of its own that it pushes back
+// (a step can have it leave the branch as it is); any other call succeeds
+// silently. It fails every call when a step says so. The environment names
+// owner/scratch as the GitHub repository, as the fake GitHub does. A pull
+// request's number is the end of its address.
 func (w *world) recordingGh(address string) error {
 	bin, err := w.binOnPath()
 	if err != nil {
@@ -123,28 +138,34 @@ func (w *world) recordingGh(address string) error {
 	calls, pulls := quote(filepath.ToSlash(w.ghCalls())), quote(filepath.ToSlash(w.ghPulls()))
 	script := fmt.Sprintf(`#!/bin/sh
 printf '%%s\n' "$*" >> %[1]s
+if [ -f %[11]s ]; then cat %[11]s >&2; exit 1; fi
 verb="$1 $2"
 head=
+state=open
 prev=
 for a in "$@"; do
   if [ "$prev" = --head ]; then head=$a; fi
+  if [ "$prev" = --state ]; then state=$a; fi
   prev=$a
 done
 case "$verb" in
 "pr list")
   found=
   if [ -f %[2]s ]; then
-    while read -r branch url; do
+    while read -r branch url kind; do
       if [ "$branch" = "$head" ]; then
+        case "$state/$kind" in all/*|open/OPEN|merged/MERGED|closed/CLOSED) ;; *) continue ;; esac
+        merged=null
+        if [ "$kind" = MERGED ]; then merged='"2026-10-24T10:00:00Z"'; fi
         if [ -n "$found" ]; then found="$found,"; fi
-        found="$found{\"number\":${url##*/},\"url\":\"$url\"}"
+        found="$found{\"number\":${url##*/},\"url\":\"$url\",\"state\":\"$kind\",\"mergedAt\":$merged}"
       fi
     done < %[2]s
   fi
   printf '[%%s]\n' "$found"
   ;;
 "pr create")
-  printf '%%s %%s\n' "$head" %[3]s >> %[2]s
+  printf '%%s %%s OPEN\n' "$head" %[3]s >> %[2]s
   printf '%%s\n' %[3]s
   ;;
 "pr view")
@@ -170,7 +191,7 @@ case "$verb" in
 esac
 `, calls, pulls, quote(address), quote(filepath.ToSlash(git.Bin(runtime.GOOS))), quote(filepath.ToSlash(w.remote())),
 		quote(filepath.ToSlash(w.ghKeeps())), quote(filepath.ToSlash(w.ghStale())), quote(filepath.ToSlash(w.ghStaleLeft())),
-		quote(filepath.ToSlash(w.ghPrevious(""))), quote(filepath.ToSlash(w.ghRebaseDir())))
+		quote(filepath.ToSlash(w.ghPrevious(""))), quote(filepath.ToSlash(w.ghRebaseDir())), quote(filepath.ToSlash(w.ghFailure())))
 	if err := w.writeProgram(filepath.Join(bin, "gh"), script); err != nil {
 		return err
 	}
@@ -180,9 +201,15 @@ esac
 	return nil
 }
 
-// The recording gh holds the pull request open for the branch, and keeps the
-// head the remote's branch has now as the pull request's previous head.
+// The recording gh holds the pull request open for the branch.
 func (w *world) ghHasPullRequest(address, branch string) error {
+	return w.ghHasPullRequestIn(address, branch, "OPEN")
+}
+
+// The recording gh holds the pull request for the branch, OPEN, MERGED or
+// CLOSED (closed without merging), and keeps the head the remote's branch has
+// now as the pull request's previous head.
+func (w *world) ghHasPullRequestIn(address, branch, state string) error {
 	if _, err := os.Stat(programPath(filepath.Join(w.support, "bin", "gh"))); err != nil {
 		return errors.New("no recording gh: put one on the PATH first")
 	}
@@ -197,7 +224,7 @@ func (w *world) ghHasPullRequest(address, branch string) error {
 	if err != nil {
 		return err
 	}
-	_, err = fmt.Fprintf(f, "%s %s\n", branch, address)
+	_, err = fmt.Fprintf(f, "%s %s %s\n", branch, address, state)
 	return errors.Join(err, f.Close())
 }
 
