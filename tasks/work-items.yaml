@@ -5100,6 +5100,10 @@ items:
       2026-10-23, the user: fine with branches for parallel agents, since red main blocks them
       (every later push's CI inherits the red commit, #113, and work done refuses an item whose
       newest commit is red); queued after p1-ci-watch-failed-step, ahead of p1-evidence-pre-push.
+
+      The user, 2026-10-23: PR mode and sequential mode are both maintained ways of working, a
+      repository choosing by its needs; PR mode is not the end state. Specify the setting with both
+      values (p1-sequential-gate is sequential's guarantee).
     tags: [push, v8]
 
   - id: p1-parallel-pilot
