@@ -274,10 +274,7 @@ func eachTagged(cfg *config.Loaded, tag, at string, visit func(o Options, text s
 			for _, line := range strings.Split(f.Header, "\n") {
 				whole = whole || tagLine(line)
 			}
-			rel, err := filepath.Rel(o.Root, path)
-			if err != nil {
-				return err
-			}
+			rel, _ := filepath.Rel(o.Root, path)
 			var found []Test
 			for _, id := range f.IDs {
 				b := f.Blocks[id]

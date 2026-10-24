@@ -131,3 +131,37 @@ func TestTaggedExamples(t *testing.T) {
 		t.Errorf("Tagged gives %+v, TaggedExamples %+v: %v", plain, tagged, err)
 	}
 }
+
+// Tagged refuses a Gherkin kind with no root, one whose ID pattern does not
+// compile, and a feature file it cannot read (a link to nothing), and leaves
+// out a kind behind a command adapter.
+func TestTaggedErrors(t *testing.T) {
+	kind := func(root, id *string) *config.Loaded {
+		cfg := &config.Loaded{}
+		k := config.Kind{Root: root, ID: id, TagPrefix: "@", WipTag: "@wip"}
+		k.Adapter.Name = "gherkin"
+		command := config.Kind{}
+		command.Adapter.Command = "list"
+		cfg.Tests.Keys = []string{"other", "scenario"}
+		cfg.Tests.Values = map[string]config.Kind{"scenario": k, "other": command}
+		return cfg
+	}
+	dir := t.TempDir()
+	good, bad := `ID-[A-Z]+-\d+`, `(`
+	if err := os.WriteFile(filepath.Join(dir, "a.feature"), []byte("Feature: A\n\n  @ID-A-01 @slice-9\n  Scenario: one\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Tagged(kind(nil, &good), "@slice-9", "worktree"); err == nil {
+		t.Error("no root: no error")
+	}
+	if _, err := Tagged(kind(&dir, &bad), "@slice-9", "worktree"); err == nil {
+		t.Error("an ID pattern that does not compile: no error")
+	}
+	dangling := t.TempDir()
+	if err := os.Symlink(filepath.Join(dangling, "nothing"), filepath.Join(dangling, "b.feature")); err != nil {
+		t.Skip("no symbolic links here:", err)
+	}
+	if _, err := Tagged(kind(&dangling, &good), "@slice-9", "worktree"); err == nil {
+		t.Error("a feature file that cannot be read: no error")
+	}
+}
