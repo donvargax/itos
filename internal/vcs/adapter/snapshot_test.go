@@ -133,3 +133,40 @@ func TestTaskSnapshotSetupErrors(t *testing.T) {
 		})
 	}
 }
+
+func TestUnstagedAndIndexPaths(t *testing.T) {
+	dir := alone(t)
+	gitIn(t, dir, "", "init", "-q")
+	write(t, dir, "kept", "one")
+	write(t, dir, "edited", "one")
+	write(t, dir, "deleted", "one")
+	gitIn(t, dir, "", "add", "--", "kept", "edited", "deleted")
+	write(t, dir, "edited", "two")
+	write(t, dir, "untracked", "one")
+	if err := os.Remove(filepath.Join(dir, "deleted")); err != nil {
+		t.Fatal(err)
+	}
+	g := Git{Dir: dir}
+	unstaged, err := g.UnstagedPaths(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	slices.Sort(unstaged)
+	if !slices.Equal(unstaged, []string{"deleted", "edited"}) {
+		t.Errorf("unstaged = %q, want the edited and the deleted path, not the untracked one", unstaged)
+	}
+	indexed, err := g.IndexPaths(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	slices.Sort(indexed)
+	if !slices.Equal(indexed, []string{"deleted", "edited", "kept"}) {
+		t.Errorf("index paths = %q", indexed)
+	}
+	if _, err := (Git{Dir: t.TempDir()}).UnstagedPaths(t.Context()); err == nil {
+		t.Error("unstaged paths outside a repository")
+	}
+	if _, err := (Git{Dir: t.TempDir()}).IndexPaths(t.Context()); err == nil {
+		t.Error("index paths outside a repository")
+	}
+}

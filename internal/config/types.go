@@ -265,16 +265,18 @@ type CI struct {
 
 // Step is one CI step: a command written as text, or a mapping that runs a
 // command or a kind's tests; Tasks is read only for config check to refuse
-// the step v8 removed (config-step-tasks). JSON is
+// the step v8 removed (config-step-tasks). Evidence opts a step that runs a
+// command in to evidence records (ci.steps only). JSON is
 // the step as JSON.stringify writes it, for the messages that quote it.
 type Step struct {
-	Text  *string `json:"-"`
-	Run   *string `json:"run"`
-	Tests *string `json:"tests"`
-	Whole bool    `json:"whole"`
-	Cost  *string `json:"cost"`
-	Tasks *string `json:"tasks"`
-	JSON  string  `json:"-"`
+	Text     *string   `json:"-"`
+	Run      *string   `json:"run"`
+	Tests    *string   `json:"tests"`
+	Whole    bool      `json:"whole"`
+	Cost     *string   `json:"cost"`
+	Tasks    *string   `json:"tasks"`
+	Evidence *Evidence `json:"evidence"`
+	JSON     string    `json:"-"`
 }
 
 func (s *Step) UnmarshalJSON(data []byte) error {

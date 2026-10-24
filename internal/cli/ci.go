@@ -37,8 +37,9 @@ func (ciPorts) Config(context.Context) (*config.Loaded, error) { return loadConf
 // Env is os.Getenv.
 func (ciPorts) Env(_ context.Context, name string) string { return os.Getenv(name) }
 
-// RunPlan is ci.Run.
+// RunPlan is ci.Run, its checks and steps that opt in to evidence records looked up through newEvidence.
 func (ciPorts) RunPlan(_ context.Context, cfg *config.Loaded, p *plan.Plan, o ci.Options) (int, error) {
+	o.Evidence = newEvidence(cfg, "ci")
 	return ci.Run(cfg, p, o)
 }
 

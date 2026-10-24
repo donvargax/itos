@@ -20,9 +20,10 @@ const (
 // checkJSON and taskJSON are a task's object under --json, the keys in
 // cli.ts's order.
 type checkJSON struct {
-	Command string       `json:"command"`
-	Fails   bool         `json:"fails,omitempty"`
-	Result  check.Result `json:"result"`
+	Command  string              `json:"command"`
+	Fails    bool                `json:"fails,omitempty"`
+	Result   check.Result        `json:"result"`
+	Evidence *check.EvidenceInfo `json:"evidence,omitempty"`
 }
 
 type taskJSON struct {
@@ -101,7 +102,13 @@ func (c CLI) table(stdout, stderr io.Writer, a Answer) (int, error) {
 		code = refused
 	}
 	if c.JSON {
-		return code, out.Emit(stdout, out.Field{Key: "tasks", Value: tasksJSON(a.Rows)})
+		fields := []out.Field{{Key: "tasks", Value: tasksJSON(a.Rows)}}
+		if a.Evidence != nil {
+			if unstaged, counted := a.Evidence.Unstaged(); counted {
+				fields = append(fields, out.Field{Key: "unstaged", Value: unstaged})
+			}
+		}
+		return code, out.Emit(stdout, fields...)
 	}
 	fmt.Fprintln(stdout)
 	for _, r := range a.Rows {
@@ -117,7 +124,7 @@ func tasksJSON(rows []taskRow) []taskJSON {
 	for i, r := range rows {
 		checks := make([]checkJSON, len(r.task.DoneWhen))
 		for n, c := range r.task.DoneWhen {
-			checks[n] = checkJSON{Command: c.Command(), Fails: c.Fails != nil, Result: r.results[n]}
+			checks[n] = checkJSON{Command: c.Command(), Fails: c.Fails != nil, Result: r.results[n], Evidence: r.evidence[n]}
 		}
 		list[i] = taskJSON{r.task.ID, r.task.Type, r.task.Title, r.task.Group, r.status, checks}
 	}

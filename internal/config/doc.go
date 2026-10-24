@@ -110,6 +110,15 @@
 // in schema.go), which tools/bin/config-schema converts to itos.schema.json,
 // a release asset, with DefaultsFor(nil) laid on it as defaults.
 //
+// # Evidence
+//
+// A done_when check and a run: step of ci.steps may carry an evidence mapping
+// (Evidence): inputs, env and tools, which opts the command in to evidence
+// records (internal/evidence). The schema reads it in ci.steps alone, config
+// check refuses a glob among the inputs, a path that leaves the repository, a
+// step that runs tests and declares it, and Loaded.Settings is the tree the
+// records' keys bind as the policy.
+//
 // # Patterns over commands
 //
 // Every pattern that reads a command (ci.cost.static, ci.covers,

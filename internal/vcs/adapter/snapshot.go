@@ -167,3 +167,17 @@ func (g Git) taskSnapshotThrough(ctx context.Context, tree string, mkdirTemp fun
 	}
 	return TaskCheckout{Dir: dir, TempDir: parent, Env: env, Remove: func() error { return os.RemoveAll(parent) }}, nil
 }
+
+// UnstagedPaths are the tracked paths whose working copy differs from the
+// index (git diff --name-only): a file edited, deleted or left conflicted.
+// Untracked files are not among them.
+func (g Git) UnstagedPaths(context.Context) ([]string, error) {
+	return g.git().Paths("diff", "--name-only", "--no-renames", "--")
+}
+
+// IndexPaths are the paths the index holds (git ls-files --cached), the
+// files a snapshot of its tree has and the tree's own: a declared input that
+// is one of them is the tree's, not the working folder's.
+func (g Git) IndexPaths(context.Context) ([]string, error) {
+	return g.git().Paths("ls-files", "--cached", "--")
+}

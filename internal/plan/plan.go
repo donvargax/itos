@@ -39,6 +39,9 @@ type Step struct {
 	Command string
 	Tests   string
 	Proof   bool
+	// Evidence is the declaration that opts a run: step in to evidence
+	// records; nil for a step that did not.
+	Evidence *config.Evidence
 	// own is the step's own cost:, "" when it gives none.
 	own string
 }
@@ -105,6 +108,7 @@ func stepOf(cfg *config.Loaded, s config.Step) Step {
 		}
 	case s.Run != nil:
 		step.Command = *s.Run
+		step.Evidence = s.Evidence
 	}
 	return step.costed(cfg)
 }

@@ -528,3 +528,30 @@ func TestDataAtReadsTheCommit(t *testing.T) {
 		t.Error("a commit outside a repository is read")
 	}
 }
+
+// A step that runs a command and declares evidence keeps its declaration in
+// the plan; a step written as text, or one that runs tests, has none.
+func TestStepsKeepTheirEvidence(t *testing.T) {
+	cfg := load(t, `version: 1
+tests:
+  scenario: { root: features, run: { whole: e2e } }
+ci:
+  steps:
+    - { run: a, evidence: { inputs: [x] } }
+    - { run: b }
+    - c
+    - { tests: scenario }
+`)
+	steps, err := ciSteps(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if steps[0].Evidence == nil || len(steps[0].Evidence.Inputs) != 1 || steps[0].Evidence.Inputs[0] != "x" {
+		t.Errorf("step a: %+v", steps[0].Evidence)
+	}
+	for i, name := range []string{"b", "c", "tests"} {
+		if steps[i+1].Evidence != nil {
+			t.Errorf("step %s has evidence: %+v", name, steps[i+1].Evidence)
+		}
+	}
+}

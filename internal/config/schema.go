@@ -102,16 +102,37 @@ func (s *spec) keys() []string {
 
 var cost = about("static (seconds, run first) or late.", enum("static", "late"))
 
-var step = about(
-	"A command, or a mapping that runs a command (run) or a kind's tests (tests).",
-	either(str, obj(nil,
+// stepOf is a CI step's spec; only a step of ci.steps may declare evidence.
+func stepOf(withEvidence bool) *spec {
+	pairs := []any{
 		"run", about("The command the step runs.", str),
 		"tests", about("The kind of named tests the step runs, by its run.whole.", str),
 		"whole", about("Whether the step runs every test of its kind, rather than the ones a range names.", boo),
 		"cost", cost,
 		"tasks", about("Removed in v8, and refused: a task's checks leave the ledger at work done.", str),
-	)),
-)
+	}
+	if withEvidence {
+		pairs = append(pairs, "evidence", evidence)
+	}
+	return about(
+		"A command, or a mapping that runs a command (run) or a kind's tests (tests).",
+		either(str, obj(nil, pairs...)),
+	)
+}
+
+var step = stepOf(false)
+
+// evidence is the declaration that opts a command in to evidence records,
+// the same one a ledger check writes (Evidence).
+var evidence = about("Opts the command in to evidence records, keyed by the tree it runs on: an opted-in step is run in a "+
+	"checkout of the index tree and its result is reused while nothing it is keyed by changes. {} opts in with nothing declared. "+
+	"Only a deterministic command opts in.", obj(nil,
+	"inputs", about("Paths from the repository's top, a folder covering every file under it, that the command reads and git "+
+		"does not track, or tracks and wants named: a tracked one is the index's, an untracked or ignored one is hashed by "+
+		"content and copied into the checkout. A glob is refused.", strs),
+	"env", about("Names of environment variables the command reads, hashed by value.", strs),
+	"tools", about("Programs the command runs, resolved on the PATH and hashed by content.", strs),
+))
 
 var typesOrAll = either(str, strs)
 
@@ -243,7 +264,7 @@ var schema = about("itos's policy: the ledger, the commit rules, the named tests
 	))),
 	"ci", about("CI's plan: its steps, the prose shortcut, the cost patterns, what covers a check, the nightly, the range provider and the watch.", obj(nil,
 		"env", about("Variables every step runs with.", mapOf(str)),
-		"steps", about("Every step of CI, in order, given the range's ends as ITOS_FROM and ITOS_TO, and as {from} and {to} in its command; ci plan and ci run need it, while the range and the watch are read without it.", list(step)),
+		"steps", about("Every step of CI, in order, given the range's ends as ITOS_FROM and ITOS_TO, and as {from} and {to} in its command; ci plan and ci run need it, while the range and the watch are read without it.", list(stepOf(true))),
 		"prose", about("A range touching only paths is prose, and runs only steps.", obj([]string{"paths", "steps"}, "paths", strs, "steps", strs)),
 		"cost", about("Which checks with no cost of their own are static.", obj(nil,
 			"static", about("Regular expressions over a command: static when one matches, else late.", strs),

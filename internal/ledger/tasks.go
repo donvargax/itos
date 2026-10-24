@@ -14,13 +14,15 @@ import (
 // Check is one check of a task's done_when, as the tools read it (repo.ts's
 // Check): its command under run or fails, after: push, its own timeout in
 // seconds (nil for the ledger's), prose and its own cost class ("" for the
-// patterns').
+// patterns'). Evidence is its declaration when it opts in to evidence
+// records (config.Evidence), nil when it does not.
 type Check struct {
 	Run, Fails *string
 	After      string
 	Timeout    *float64
 	Prose      bool
 	Cost       string
+	Evidence   *config.Evidence
 }
 
 // Command is the check's command: run's, else fails', else "" for a check
@@ -154,6 +156,7 @@ func checkOf(raw any) (Check, bool) {
 		check.Timeout = &timeout
 	}
 	check.Prose = value.Prop(raw, "prose") == true
+	check.Evidence = config.EvidenceOf(value.Prop(raw, "evidence"))
 	return check, check.Run != nil || check.Fails != nil
 }
 

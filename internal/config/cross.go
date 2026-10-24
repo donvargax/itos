@@ -295,7 +295,17 @@ func oneStepProblems(c *Config, s Step, nightly bool) []out.Problem {
 		}}
 	}
 	if s.Tests == nil {
-		return nil
+		if s.Evidence == nil {
+			return nil
+		}
+		return s.Evidence.Problems(where+" "+*s.Run, "config-step-evidence")
+	}
+	if s.Evidence != nil {
+		return []out.Problem{{
+			Rule:    "config-step-evidence",
+			Message: where + " runs tests: " + *s.Tests + " and declares evidence, which a step that runs a command alone may",
+			Fix:     "remove evidence from the step, or make it a run: step",
+		}}
 	}
 	if k, ok := c.Tests.Get(*s.Tests); ok && k.Run.Whole != nil && *k.Run.Whole != "" {
 		return nil

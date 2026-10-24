@@ -3,11 +3,20 @@
 // and the commit-msg hook.
 //
 // A Runner is one invocation's runs, keyed by Key: the command, its
-// whitespace collapsed (config.Normal), and its timeout. Its Run prints the
+// whitespace collapsed (config.Normal), its timeout and its evidence
+// declaration, or none. Its Run prints the
 // verbose command line and runs each distinct check once, every later task
 // that lists it reading the kept exit status by its own run: or fails:. The
 // runs live for the invocation alone, and CI's driver keeps none, so a push
 // runs each named task's checks as its own.
+//
+// A Runner given an Evidence engine (internal/evidence) looks a check that
+// opts in up by the index tree and runs a miss in a checkout of it, recording
+// the result; RunInfo gives the check's evidence beside its Result, and a
+// later check that reads the exit status of a run the invocation already made
+// reports that run's evidence, not recorded again. A check that does not opt
+// in, or a Runner with no engine (itos task --working-tree), runs in the
+// working folder, nothing looked up or written.
 //
 // CostOf, CostedChecks and ChecksBeforeLate are the cost classes and the
 // written order: a check is static by its own cost: static, else by a

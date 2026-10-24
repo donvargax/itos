@@ -1,6 +1,7 @@
 package ci
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -8,6 +9,7 @@ import (
 
 	"github.com/donvargax/itos/v8/internal/check"
 	"github.com/donvargax/itos/v8/internal/config"
+	"github.com/donvargax/itos/v8/internal/evidence"
 	"github.com/donvargax/itos/v8/internal/ledger"
 	"github.com/donvargax/itos/v8/internal/out"
 	"github.com/donvargax/itos/v8/internal/plan"
@@ -32,18 +34,25 @@ type Failure struct {
 // Options are how a run reports: under JSON its log goes to Stderr and
 // Stdout holds the verdict. Nightly is the nightly's run, which goes on past
 // a failing step whatever ci.stop_at_first_failure says (slice 133).
+// Evidence looks up the task checks and the steps that opt in to evidence
+// records by the index tree (internal/evidence), applying ci.env to the key
+// as the run applies it to the commands; nil runs every one as it always
+// did.
 type Options struct {
 	JSON           bool
 	Nightly        bool
 	Stdout, Stderr io.Writer
+	Evidence       *check.Evidence
 }
 
-// driver is one run: the config, its streams and its check runner.
+// driver is one run: the config, its streams, its check runner and the
+// evidence engine the steps that opt in go through.
 type driver struct {
-	cfg    *config.Loaded
-	log    io.Writer
-	stderr io.Writer
-	runner *check.Runner
+	cfg      *config.Loaded
+	log      io.Writer
+	stderr   io.Writer
+	runner   *check.Runner
+	evidence *check.Evidence
 }
 
 // Run carries out a plan and gives the run's exit code: 0, or 1 for a
@@ -59,13 +68,14 @@ func Run(cfg *config.Loaded, p *plan.Plan, o Options) (int, error) {
 			return 0, err
 		}
 	}
-	d := driver{cfg: cfg, log: o.Stdout, stderr: o.Stderr}
+	d := driver{cfg: cfg, log: o.Stdout, stderr: o.Stderr, evidence: o.Evidence}
 	if o.JSON {
 		d.log = o.Stderr
 	}
 	d.runner = check.NewRunner(cfg, o.Stdout, o.Stderr)
 	d.runner.Verbose, d.runner.ToStderr = true, o.JSON
 	d.runner.Runs = nil
+	d.runner.Evidence = o.Evidence
 	failed, err := d.preamble(p)
 	if err != nil {
 		return 0, err
@@ -90,7 +100,7 @@ func Run(cfg *config.Loaded, p *plan.Plan, o Options) (int, error) {
 		case item.Step.Proof:
 			failure = d.proof(item.Step, lead)
 		default:
-			failure = d.step(item.Step.Command, lead)
+			failure = d.step(item.Step, lead)
 		}
 		if failure == nil {
 			continue
@@ -107,6 +117,12 @@ func Run(cfg *config.Loaded, p *plan.Plan, o Options) (int, error) {
 		fields := []out.Field{{Key: "ok", Value: failed == nil}}
 		if failed != nil {
 			fields = append(fields, out.Field{Key: "failed_at", Value: failed}, out.Field{Key: "failures", Value: failures})
+		}
+		if d.evidence != nil && d.evidence.Used() {
+			fields = append(fields, out.Field{Key: "evidence", Value: d.evidence.Entries()})
+			if unstaged, counted := d.evidence.Unstaged(); counted {
+				fields = append(fields, out.Field{Key: "unstaged", Value: unstaged})
+			}
 		}
 		if err := out.Emit(o.Stdout, fields...); err != nil {
 			return 0, err
@@ -165,18 +181,27 @@ func (d driver) proseLine() string {
 // failure carries the step's exit code, named on stderr after lead ("CI
 // failed at" for the run's first, "also failed at" for a later one), 1 when
 // it has none (stopped by a signal, or never started).
-func (d driver) step(command, lead string) *Failure {
+func (d driver) step(s *plan.Step, lead string) *Failure {
+	command := s.Command
 	fmt.Fprintf(d.log, "\n$ %s\n", command)
-	r := shell.Run(d.cfg, command, shell.Options{Stdin: os.Stdin, Stdout: d.log, Stderr: d.stderr})
-	if r.OK() {
+	var ok bool
+	var code int
+	if s.Evidence != nil && d.evidence != nil {
+		o := d.evidence.Run(context.Background(), evidence.Request{Command: command, Decl: *s.Evidence, Verbose: true, Log: d.log})
+		ok, code = o.OK, o.Code
+	} else {
+		r := shell.Run(d.cfg, command, shell.Options{Stdin: os.Stdin, Stdout: d.log, Stderr: d.stderr})
+		ok, code = r.OK(), r.Code
+	}
+	if ok {
 		return nil
 	}
-	if r.Code <= 0 {
+	if code <= 0 {
 		fmt.Fprintf(d.stderr, "\n%s: %s (it gave no exit code)\n", lead, command)
 		return &Failure{Step: &command, Code: 1}
 	}
-	fmt.Fprintf(d.stderr, "\n%s: %s (it exited %d)\n", lead, command, r.Code)
-	return &Failure{Step: &command, Code: r.Code}
+	fmt.Fprintf(d.stderr, "\n%s: %s (it exited %d)\n", lead, command, code)
+	return &Failure{Step: &command, Code: code}
 }
 
 // proof runs the range's code proof as a step of the run (slice 106, issue

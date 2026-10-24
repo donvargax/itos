@@ -32,6 +32,10 @@
 // the hooks they run inherit git's environment and read their own. A
 // commit outside every branch (CommitFile, the ID counter's) is built in an
 // index of its own in a temporary folder.
+// UnstagedPaths are the tracked paths whose working copy differs from the
+// index, and IndexPaths the paths the index holds, which the evidence
+// records read to count what a run on the index leaves out and to tell a
+// declared input the tree covers from one it does not.
 // IndexTree captures the active index once. TaskSnapshot checks it out below
 // the source common dir's itos/snapshots, with independent metadata and writable
 // objects, a file alternate for source objects and copied checkout-mode policy.

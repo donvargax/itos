@@ -68,9 +68,19 @@ on its own platform what the ci job judges, the ci job running the rest. Its
 exit code is that run's; with no run of named tests (no tests: step, or
 nothing selected) it runs nothing, says so, and exits 0. With --nightly it is
 the nightly's tests: step alone, and with no range, every test.
+A task check, or a run: step, that opts in with an evidence mapping (evidence:
+{}, or the inputs, env and tools it declares) runs on the index tree, as itos
+task runs it: a record of the same tree, command, timeout, declaration, config
+settings, ci.env, itos version and platform answers at once ("cached
+evidence"), and a miss runs in a disposable checkout of the index tree and
+records its result under .git/itos/evidence. A run that leaves changes out
+says how many tracked paths were not staged.
 
---json: the run's log on stderr; {"schema":1,"ok","failed_at"?,"failures"?} on stdout,
-        failures every failure in run order, failed_at the first`,
+--json: the run's log on stderr; {"schema":1,"ok","failed_at"?,"failures"?,"evidence"?,"unstaged"?} on stdout,
+        failures every failure in run order, failed_at the first; evidence, when a check
+        or step opted in, lists each one looked up, in run order, as {"command","source",
+        "hit","recorded","key","tree","recorded_at"?,"reason"?,"provenance"?}, and unstaged
+        counts the tracked paths whose working copy differs from the index`,
 
 		"scope": `Usage: itos ci scope <from> <to>
 

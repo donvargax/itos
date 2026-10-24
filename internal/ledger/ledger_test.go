@@ -1,9 +1,11 @@
 package ledger
 
 import (
+	"reflect"
 	"slices"
 	"testing"
 
+	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/value"
 )
 
@@ -85,7 +87,7 @@ func TestCheckProblems(t *testing.T) {
 	}
 	for text, fix := range map[string]string{
 		"[run, x]":             "write check 0 as run: <command> or fails: <command>",
-		"{ run: x, why: y }":   "remove why; a check's keys are run, fails, after, timeout, prose, cost",
+		"{ run: x, why: y }":   "remove why; a check's keys are run, fails, after, timeout, prose, cost, evidence",
 		"{ run: x, fails: y }": "give check 0 either run: or fails:, not both",
 		"{ run: 3 }":           "quote check 0's command as one string",
 	} {
@@ -95,6 +97,52 @@ func TestCheckProblems(t *testing.T) {
 		}
 		if found := checkProblems(check, "check 0"); len(found) != 1 || found[0].Fix != fix {
 			t.Errorf("%s: got %+v, want the fix %q", text, found, fix)
+		}
+	}
+}
+
+// A check's evidence is a mapping of the three lists, and its texts hold to
+// the declaration's rules; the problems name the check.
+func TestCheckProblemsHoldEvidence(t *testing.T) {
+	for text, want := range map[string]string{
+		"{ run: x, evidence: {} }": "",
+		"{ run: x, evidence: { inputs: [gen, a.txt], env: [E], tools: [sh] } }": "",
+		"{ run: x, evidence: yes }":                         "check 0's evidence is not a mapping",
+		"{ run: x, evidence: { inptus: [a] } }":             "check 0's evidence has an unknown key inptus",
+		"{ run: x, evidence: { inputs: a } }":               "check 0's evidence inputs is not a list of texts",
+		"{ run: x, evidence: { inputs: [\"gen/*.txt\"] } }": "check 0's evidence input gen/*.txt is a glob",
+		"{ run: x, evidence: { env: [\"A=b\"] } }":          "check 0's evidence env \"A=b\" is not the name of a variable",
+	} {
+		check, err := value.Parse(text)
+		if err != nil {
+			t.Fatal(err)
+		}
+		found := checkProblems(check, "check 0")
+		switch {
+		case want == "" && len(found) > 0:
+			t.Errorf("%s: %+v", text, found)
+		case want != "" && (len(found) != 1 || found[0].Message != want || found[0].Rule != "ledger-check-evidence"):
+			t.Errorf("%s: got %+v, want %q", text, found, want)
+		}
+	}
+}
+
+// A check opts in by writing evidence, however little it declares.
+func TestCheckOfReadsEvidence(t *testing.T) {
+	for text, want := range map[string]*config.Evidence{
+		"{ run: x }":                            nil,
+		"{ run: x, evidence: null }":            nil,
+		"{ run: x, evidence: yes }":             nil,
+		"{ run: x, evidence: {} }":              {},
+		"{ run: x, evidence: { env: [A, B] } }": {Env: []string{"A", "B"}},
+	} {
+		raw, err := value.Parse(text)
+		if err != nil {
+			t.Fatal(err)
+		}
+		got, ok := checkOf(raw)
+		if !ok || !reflect.DeepEqual(got.Evidence, want) {
+			t.Errorf("%s: %+v, want %+v", text, got.Evidence, want)
 		}
 	}
 }

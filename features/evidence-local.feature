@@ -110,7 +110,7 @@ Feature: An opted-in check reruns from a local record when nothing it ran on cha
   # A1. The JSON's evidence fields and the record are the contract; the
   # probe's log is what shows the hit. Before the work the JSON has no
   # evidence, so the first evidence Then fails.
-  @ID-EVID-01 @slice-169 @wip
+  @ID-EVID-01 @slice-169
   Scenario: An opted-in check's repeat answers from its record, its JSON saying so
     Given the staged file "tasks/phase-1.yaml" holding the lines:
       """
@@ -145,7 +145,7 @@ Feature: An opted-in check reruns from a local record when nothing it ran on cha
   # unrecorded, at the third. Before the work the first run's JSON names no
   # key, so the Then that keeps it fails. The OS, architecture and itos's
   # version are the key's unit test's, not a row here.
-  @ID-EVID-02 @slice-169 @wip
+  @ID-EVID-02 @slice-169
   Scenario Outline: A change to anything the key binds misses, and the new run is recorded
     Given the staged file "tasks/phase-1.yaml" holding the lines:
       """
@@ -186,7 +186,7 @@ Feature: An opted-in check reruns from a local record when nothing it ran on cha
   # working folder, and its JSON has no evidence. That half passes today
   # (the guard of "a check without evidence behaves as today"); the opted-in
   # check's single run is what fails before the work.
-  @ID-EVID-03 @slice-169 @wip
+  @ID-EVID-03 @slice-169
   Scenario: A check that does not opt in runs every time, as today, beside one that does
     Given the staged file "tasks/phase-1.yaml" holding the lines:
       """
@@ -210,7 +210,7 @@ Feature: An opted-in check reruns from a local record when nothing it ran on cha
   # Guard: passes before the work and must keep passing. A project that opts
   # nothing in sees today's JSON (no unstaged count, no evidence) and gets no
   # store, even with an unstaged edit that would be counted.
-  @ID-EVID-04 @slice-169 @guard @wip
+  @ID-EVID-04 @slice-169 @guard
   Scenario: With no opted-in check, itos task --json is today's and nothing is stored
     Given the staged file "tasks/phase-1.yaml" holding the lines:
       """
@@ -233,7 +233,7 @@ Feature: An opted-in check reruns from a local record when nothing it ran on cha
   # exit 3 is done, exit 0 failing. The mode is not in the key; that a run:
   # record answers a fails: check is @ID-EVID-28's. Before the work the
   # second run runs the probe again.
-  @ID-EVID-05 @slice-169 @wip
+  @ID-EVID-05 @slice-169
   Scenario Outline: A fails: check replays its own verdict from its record
     Given the staged file "tasks/phase-1.yaml" holding the lines:
       """
@@ -263,7 +263,7 @@ Feature: An opted-in check reruns from a local record when nothing it ran on cha
   # entry of ci.steps, and refuses, naming it, a key evidence does not have
   # and an input that is a glob. Today the ledger and the config refuse
   # evidence itself, so the first Then fails.
-  @ID-EVID-06 @slice-169 @wip
+  @ID-EVID-06 @slice-169
   Scenario Outline: config check accepts evidence on a task's check and a CI step, and refuses a key it lacks or a glob
     Given the staged file "tasks/phase-1.yaml" holding the lines:
       """
@@ -306,7 +306,7 @@ Feature: An opted-in check reruns from a local record when nothing it ran on cha
   # run the probe uncached in the working folder (@ID-EVID-23), which the
   # log would show. Before the work the first run is in the working
   # folder, so the checkout Then fails.
-  @ID-EVID-13 @slice-169 @wip
+  @ID-EVID-13 @slice-169
   Scenario: A miss runs in a checkout of the staged tree, and the repeat answers without one
     Given the staged file "tasks/phase-1.yaml" holding the lines:
       """
@@ -333,7 +333,7 @@ Feature: An opted-in check reruns from a local record when nothing it ran on cha
   # A3. Failed results are reusable: the hit is failing, exit 1, and prints
   # the recorded output tail as the run printed the output. Before the work
   # the second run runs the probe again.
-  @ID-EVID-14 @slice-169 @wip
+  @ID-EVID-14 @slice-169
   Scenario: A cached failure keeps its result, its exit code and its output
     Given the staged file "tasks/phase-1.yaml" holding the lines:
       """
@@ -358,7 +358,7 @@ Feature: An opted-in check reruns from a local record when nothing it ran on cha
   # A3. Two tasks listing one opted-in check share one run, as today
   # (@ID-TASK-01), and one record, which the next invocation hits for both.
   # Before the work the second invocation runs the probe again.
-  @ID-EVID-15 @slice-169 @wip
+  @ID-EVID-15 @slice-169
   Scenario: A check two tasks share runs once and is recorded once
     Given the staged file "tasks/phase-1.yaml" holding the lines:
       """
@@ -390,7 +390,7 @@ Feature: An opted-in check reruns from a local record when nothing it ran on cha
   # left. ITOS_FROM and ITOS_TO, which ci run gives every check, are no
   # declared env and are not in the key; ci.env is (@ID-EVID-27). Before the
   # work ci run runs the probe again.
-  @ID-EVID-16 @slice-169 @wip
+  @ID-EVID-16 @slice-169
   Scenario: ci run answers a named task's check from the record a hand-run itos task left
     Given the staged file "tasks/phase-1.yaml" holding the lines:
       """
@@ -412,7 +412,7 @@ Feature: An opted-in check reruns from a local record when nothing it ran on cha
   # A3. A run: entry of ci.steps opts in as a task's check does; a step
   # written as a plain string cannot, and runs every time. Before the work
   # the opted-in step runs twice.
-  @ID-EVID-17 @slice-169 @wip
+  @ID-EVID-17 @slice-169
   Scenario: An opted-in CI step reruns from its record, and a plain step runs every time
     Given the CI steps are the YAML:
       """
@@ -434,7 +434,7 @@ Feature: An opted-in check reruns from a local record when nothing it ran on cha
   # but does not declare; an ignored input it declares is copied in. Only
   # tracked paths count as not staged: the JSON says 1 and the text says
   # so. Before the work the probe reads the unstaged "two".
-  @ID-EVID-18 @slice-169 @wip
+  @ID-EVID-18 @slice-169
   Scenario: An unstaged edit and an undeclared untracked file never reach the run, and the unstaged edit is counted
     Given the staged file "tasks/phase-1.yaml" holding the lines:
       """
@@ -465,7 +465,7 @@ Feature: An opted-in check reruns from a local record when nothing it ran on cha
   # A3, q-102. The same edit or file made after a clean run leaves the key
   # as it was, so the next run hits: the next commit holds the same tree.
   # Before the work the second run runs the probe again.
-  @ID-EVID-19 @slice-169 @wip
+  @ID-EVID-19 @slice-169
   Scenario Outline: An unstaged edit or an unrelated untracked file does not change the key
     Given the staged file "tasks/phase-1.yaml" holding the lines:
       """
@@ -494,7 +494,7 @@ Feature: An opted-in check reruns from a local record when nothing it ran on cha
   # working folder: it reads the unstaged edit there, looks nothing up and
   # records nothing, so each run runs. Its JSON is today's. Before the work
   # the flag is unknown, exit 2.
-  @ID-EVID-20 @slice-169 @wip
+  @ID-EVID-20 @slice-169
   Scenario: --working-tree runs in the working folder, sees the unstaged edit and records nothing
     Given the staged file "tasks/phase-1.yaml" holding the lines:
       """
@@ -521,7 +521,7 @@ Feature: An opted-in check reruns from a local record when nothing it ran on cha
   # pending and runs nothing, even though T-002's record of the same
   # command is there to be found. That half is a guard, passing today; the
   # hit for T-002 is what fails before the work.
-  @ID-EVID-21 @slice-169 @wip
+  @ID-EVID-21 @slice-169
   Scenario: An opted-in after: push check stays pending beside a record of its command
     Given the staged file "tasks/phase-1.yaml" holding the lines:
       """
@@ -554,7 +554,7 @@ Feature: An opted-in check reruns from a local record when nothing it ran on cha
   # once a change is staged. Before the work the JSON has no evidence.
   # Proposed: evidence.tree is the tree's object name, as git write-tree
   # prints it.
-  @ID-EVID-22 @slice-169 @wip
+  @ID-EVID-22 @slice-169
   Scenario Outline: The key's tree is the index's: HEAD's when nothing is staged
     Given the staged file "tasks/phase-1.yaml" holding the lines:
       """
@@ -583,7 +583,7 @@ Feature: An opted-in check reruns from a local record when nothing it ran on cha
   # Under a gitlink no repository with a submodule could otherwise run an
   # opted-in check by hand. Before the work the JSON has no evidence, so
   # its reason fails.
-  @ID-EVID-23 @slice-169 @wip
+  @ID-EVID-23 @slice-169
   Scenario Outline: A checkout that cannot be made runs the check uncached in the working folder, never exit 3
     Given the staged file "tasks/phase-1.yaml" holding the lines:
       """
@@ -619,7 +619,7 @@ Feature: An opted-in check reruns from a local record when nothing it ran on cha
   # different input and misses; removing it again is the first input once
   # more, and hits the first record. Before the work the JSON has no
   # evidence, so the second run's evidence Then fails.
-  @ID-EVID-24 @slice-169 @wip
+  @ID-EVID-24 @slice-169
   Scenario: A missing declared input is hashed as absent, not as empty, and is not copied in
     Given the staged file "tasks/phase-1.yaml" holding the lines:
       """
@@ -650,7 +650,7 @@ Feature: An opted-in check reruns from a local record when nothing it ran on cha
   # and fails as the shell makes it (127, command not found, which every
   # sh reports alike), and that failure is recorded and replayed like any
   # other. Before the work the second run runs the probe again.
-  @ID-EVID-25 @slice-169 @wip
+  @ID-EVID-25 @slice-169
   Scenario: A declared tool missing from PATH is hashed as absent, and the check fails as it would without it
     Given the staged file "tasks/phase-1.yaml" holding the lines:
       """
@@ -676,7 +676,7 @@ Feature: An opted-in check reruns from a local record when nothing it ran on cha
   # record the main checkout made. The worktree is added once the base is
   # committed, so it checks out the same tree. Before the work the
   # worktree's run runs the probe again.
-  @ID-EVID-26 @slice-169 @wip
+  @ID-EVID-26 @slice-169
   Scenario: A linked worktree on the same tree hits the record the main checkout made
     Given the staged file "tasks/phase-1.yaml" holding the lines:
       """
@@ -701,7 +701,7 @@ Feature: An opted-in check reruns from a local record when nothing it ran on cha
   # time. The config holds ci.env for both runs, so the policy is the same
   # and only the bound environment differs. Before the work the JSON has
   # no evidence, so the hit Then fails.
-  @ID-EVID-27 @slice-169 @wip
+  @ID-EVID-27 @slice-169
   Scenario: With ci.env, ci run misses the record a hand-run itos task left, and records its own
     Given the staged file "tasks/phase-1.yaml" holding the lines:
       """
@@ -731,7 +731,7 @@ Feature: An opted-in check reruns from a local record when nothing it ran on cha
   # reuses T-001's run and reports its evidence: the same key and hit,
   # recorded false. A later invocation for T-002 alone hits the record T-001's
   # run: made. Before the work the JSON has no evidence.
-  @ID-EVID-28 @slice-169 @wip
+  @ID-EVID-28 @slice-169
   Scenario: A run: and a fails: on one command share one record, and a reused occurrence reports the run it reused
     Given the staged file "tasks/phase-1.yaml" holding the lines:
       """
@@ -770,7 +770,7 @@ Feature: An opted-in check reruns from a local record when nothing it ran on cha
   # looks for it. Before the work both run in the working folder, where the
   # marker stays, and a shared checkout would keep it too, so the Then
   # finding none fails.
-  @ID-EVID-29 @slice-169 @wip
+  @ID-EVID-29 @slice-169
   Scenario: Each missed check runs in a checkout of its own, so one check's files never reach another's run
     Given the staged file "tasks/phase-1.yaml" holding the lines:
       """
@@ -802,7 +802,7 @@ Feature: An opted-in check reruns from a local record when nothing it ran on cha
   # key and record. Neither declared input exists, so both are hashed as
   # absent and differ only by path. Before the work check.Key shares one run
   # between them, so the probe runs once and that Then fails.
-  @ID-EVID-30 @slice-169 @wip
+  @ID-EVID-30 @slice-169
   Scenario Outline: One command declared differently by two tasks is two runs, each keyed by its own declaration
     Given the staged file "tasks/phase-1.yaml" holding the lines:
       """

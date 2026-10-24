@@ -44,6 +44,10 @@ type Query struct {
 // themselves, the exit their Code.
 type Ports interface {
 	Config(ctx context.Context) (*config.Loaded, error)
+	// Evidence is the engine that looks up the checks that opt in to evidence
+	// records by the index tree, bound to the repository and its store; a
+	// run takes it unless --working-tree asks for the working folder.
+	Evidence(ctx context.Context, cfg *config.Loaded) *check.Evidence
 	Sound(ctx context.Context) (Sound, error)
 	ItemID(ctx context.Context, cfg *config.Loaded, registryIDs []string) (string, error)
 	Tracker(ctx context.Context, cfg *config.Loaded) trackerport.Tracker
@@ -87,6 +91,10 @@ type Answer struct {
 	Label     string
 	Rows      []taskRow
 	Failing   bool
+	// Evidence is the engine the checks were looked up through, nil under
+	// --working-tree; it says whether any opted-in check was and how many
+	// changed paths the run left out.
+	Evidence *check.Evidence
 
 	Tasks      []ledger.Task
 	Statuses   work.Statuses
@@ -152,12 +160,12 @@ const (
 // the push, else done. A task with none is done when its work item is
 // (closed, work done having taken its checks out of the ledger, slice 101),
 // review otherwise: no item, or one not done.
-func judgeTask(task ledger.Task, runner *check.Runner, statuses work.Statuses) (taskStatus, []check.Result) {
+func judgeTask(task ledger.Task, runner *check.Runner, statuses work.Statuses) (taskStatus, []check.Result, []*check.EvidenceInfo) {
 	if len(task.DoneWhen) == 0 {
 		if status, _ := statuses.Of(task.ID); status == "done" {
-			return statusDone, nil
+			return statusDone, nil, nil
 		}
-		return statusReview, nil
+		return statusReview, nil, nil
 	}
 	if runner.Verbose {
 		log := runner.Stdout
@@ -167,16 +175,17 @@ func judgeTask(task ledger.Task, runner *check.Runner, statuses work.Statuses) (
 		fmt.Fprintf(log, "\n%s %s\n", task.ID, task.Title)
 	}
 	results := make([]check.Result, len(task.DoneWhen))
+	infos := make([]*check.EvidenceInfo, len(task.DoneWhen))
 	for i, c := range task.DoneWhen {
-		results[i] = runner.Run(c)
+		results[i], infos[i] = runner.RunInfo(c)
 	}
 	switch {
 	case slices.Contains(results, check.Fail):
-		return statusFailing, results
+		return statusFailing, results, infos
 	case slices.Contains(results, check.Pending):
-		return statusPending, results
+		return statusPending, results, infos
 	}
-	return statusDone, results
+	return statusDone, results, infos
 }
 
 // groupFlag is the group the first of the group flags names, in their order
@@ -258,6 +267,9 @@ type taskRow struct {
 	task    ledger.Task
 	status  taskStatus
 	results []check.Result
+	// evidence is the evidence of each check that opted in, nil for one that
+	// did not.
+	evidence []*check.EvidenceInfo
 }
 
 // run is `task <id>…`: runs the tasks' checks in written order, each
@@ -287,6 +299,11 @@ func (h Handler) run(ctx context.Context, q Query, stdout, stderr io.Writer) (An
 	}
 	runner := check.NewRunner(cfg, stdout, stderr)
 	runner.Verbose, runner.ToStderr = len(selected) == 1, q.ToStderr
+	var a Answer
+	if !slices.Contains(q.Args, "--working-tree") {
+		runner.Evidence = h.ports.Evidence(ctx, cfg)
+		a.Evidence = runner.Evidence
+	}
 	for _, t := range selected {
 		if t.Err != nil {
 			return Answer{}, t.Err
@@ -294,10 +311,9 @@ func (h Handler) run(ctx context.Context, q Query, stdout, stderr io.Writer) (An
 	}
 	statuses := work.ItemStatuses(cfg.Source, cfg.Work.Registry)
 	rows := make([]taskRow, len(selected))
-	var a Answer
 	for i, t := range selected {
-		status, results := judgeTask(t, runner, statuses)
-		rows[i] = taskRow{t, status, results}
+		status, results, infos := judgeTask(t, runner, statuses)
+		rows[i] = taskRow{t, status, results, infos}
 		if status == statusFailing {
 			a.Failing = true
 		}

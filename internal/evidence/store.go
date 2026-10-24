@@ -1,0 +1,123 @@
+package evidence
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"os"
+	"path/filepath"
+)
+
+// Folder is the store's folder in itos's folder of the git common dir, and
+// the names in it: a record is the folder <key> holding Manifest, Result and
+// the Complete marker, written last; its lock is <key>.lock; a record is
+// written in a folder named .tmp-<key>-<unique>, which no reader reads, and
+// renamed into place.
+const (
+	Folder     = "evidence"
+	manifest   = "manifest.json"
+	resultFile = "result.json"
+	complete   = "complete"
+)
+
+// Stored is the manifest file: the key and everything it binds.
+type Stored struct {
+	Key string `json:"key"`
+	Manifest
+}
+
+// Result is the result file: how the check ended, the tail of what it
+// printed, when, and where it ran.
+type Result struct {
+	Exit       int               `json:"exit"`
+	Output     string            `json:"output"`
+	Truncated  bool              `json:"truncated,omitempty"`
+	Started    string            `json:"started"`
+	Ended      string            `json:"ended"`
+	Provenance map[string]string `json:"provenance"`
+}
+
+// record is a record read back whole.
+type record struct {
+	stored Stored
+	result Result
+}
+
+// dir is the store's folder.
+func (e *Engine) dir(ctx context.Context) (string, error) { return e.Store.Path(ctx, Folder) }
+
+// lookup reads the record of a key, and whether there is one to trust. A
+// record is trusted only whole: its marker there, its manifest a manifest of
+// this schema that hashes to the key its folder is named by, its result a
+// result. Anything less is no record, as a folder that does not exist is
+// none. Lookup takes no lock.
+func (e *Engine) lookup(ctx context.Context, key string) (record, bool) {
+	root, err := e.dir(ctx)
+	if err != nil {
+		return record{}, false
+	}
+	at := filepath.Join(root, key)
+	if _, err := os.Stat(filepath.Join(at, complete)); err != nil {
+		return record{}, false
+	}
+	var r record
+	if !readJSON(filepath.Join(at, manifest), &r.stored) || !readJSON(filepath.Join(at, resultFile), &r.result) {
+		return record{}, false
+	}
+	if r.stored.Schema != Schema || r.stored.Key != key || r.stored.Manifest.Key() != key {
+		return record{}, false
+	}
+	return r, true
+}
+
+// readJSON reads a file into v, and whether it could.
+func readJSON(name string, v any) bool {
+	text, err := os.ReadFile(name)
+	return err == nil && json.Unmarshal(text, v) == nil
+}
+
+// mkdirTemp is os.MkdirTemp, which a test swaps for a folder that refuses a
+// file.
+var mkdirTemp = os.MkdirTemp
+
+// write makes the record of a key: in a temporary folder of the store, its
+// files synced and the marker last, then renamed to the key's folder, which
+// is never overwritten. A rename onto a folder that holds anything fails,
+// and the record is then not made.
+func (e *Engine) write(ctx context.Context, key string, b bound, res Result) (err error) {
+	root, err := e.dir(ctx)
+	if err != nil {
+		return err
+	}
+	if err = os.MkdirAll(root, 0o700); err != nil {
+		return err
+	}
+	tmp, err := mkdirTemp(root, ".tmp-"+key+"-")
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err != nil {
+			_ = os.RemoveAll(tmp)
+		}
+	}()
+	// Marshalling these types cannot fail.
+	stored, _ := json.MarshalIndent(Stored{Key: key, Manifest: b.Manifest}, "", "  ")
+	result, _ := json.MarshalIndent(res, "", "  ")
+	for _, f := range []struct{ name, text string }{{manifest, string(stored) + "\n"}, {resultFile, string(result) + "\n"}, {complete, "complete\n"}} {
+		if err = writeSynced(filepath.Join(tmp, f.name), []byte(f.text)); err != nil {
+			return err
+		}
+	}
+	return os.Rename(tmp, filepath.Join(root, key))
+}
+
+// writeSynced writes a file readable by its owner alone and syncs it.
+func writeSynced(name string, text []byte) error {
+	f, err := os.OpenFile(name, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
+	if err != nil {
+		return err
+	}
+	_, written := f.Write(text)
+	return errors.Join(written, f.Sync(), f.Close())
+}

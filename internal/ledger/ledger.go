@@ -159,7 +159,7 @@ func anchored(pattern string) bool {
 
 var (
 	taskKeys  = []string{"id", "type", "title", "why", "done_when"}
-	checkKeys = []string{"run", "fails", "after", "timeout", "prose", "cost"}
+	checkKeys = []string{"run", "fails", "after", "timeout", "prose", "cost", "evidence"}
 )
 
 func problem(rule, message, fix string) out.Problem {
@@ -213,6 +213,9 @@ func checkProblems(check any, where string) []out.Problem {
 		found = append(found, problem("ledger-check-command", where+"'s command is not text",
 			"quote "+where+"'s command as one string"))
 	}
+	if v := c.At("evidence"); v != value.Undefined {
+		found = append(found, evidenceProblems(v, where)...)
+	}
 	for _, cv := range checkValues {
 		if v := c.At(cv.key); v != value.Undefined && !cv.valid(v) {
 			found = append(found, problem("ledger-check-value",
@@ -220,6 +223,15 @@ func checkProblems(check any, where string) []out.Problem {
 		}
 	}
 	return found
+}
+
+// evidenceProblems are what is wrong with a check's evidence: its shape,
+// then, when it has one, the texts in it.
+func evidenceProblems(v any, where string) []out.Problem {
+	if found := config.EvidenceShape(v, where, "ledger-check-evidence"); len(found) > 0 {
+		return found
+	}
+	return config.EvidenceOf(v).Problems(where, "ledger-check-evidence")
 }
 
 // shown is a check's value as its problem names it: as JSON, but a number

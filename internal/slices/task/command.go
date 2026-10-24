@@ -12,7 +12,7 @@ var Command = declare.Command{
   task next-id                     the ledger's next free task ID; reads only
 `,
 	Help: map[string]string{
-		"": `Usage: itos task <id>… [--skip <ids>]
+		"": `Usage: itos task <id>… [--skip <ids>] [--working-tree]
        itos task --group <g> [--skip <ids>]
        itos task --pending
        itos task list [--group <g>]
@@ -31,7 +31,23 @@ check that more than one task lists (the same command and timeout) runs once,
 and each task reads its exit status by its own run: or fails:.
 Exit 1 when a check fails or an ID is not in the ledger, 2 when nothing matches.
 
---json: {"schema":1,"tasks":[{"id","type","title","group","status","checks":[{"command","fails"?,"result"}]}]}`,
+A check that opts in with an evidence mapping (evidence: {}, or the inputs,
+env and tools it declares) runs on the staged tree, as the commit-msg hook's
+checks do, and is looked up by it: a record of the same tree, command,
+timeout, declaration, config settings, itos version and platform answers at
+once ("cached evidence", the recorded exit status and output), and a miss
+runs in a disposable checkout of the index tree, holding the declared inputs
+and no unstaged edit or other untracked file, and records its result under
+.git/itos/evidence. A check that does not opt in runs in the working folder
+as it always did. A run that leaves changes out says how many tracked paths
+were not staged. --working-tree runs every check in the working folder,
+looking nothing up and recording nothing.
+
+--json: {"schema":1,"tasks":[{"id","type","title","group","status","checks":[{"command","fails"?,"result","evidence"?}]}],"unstaged"?}
+evidence, of a check that opted in: {"source":"local","hit","recorded","key","tree","recorded_at"?,"reason"?,"provenance"?};
+reason says why a run that did not hit recorded nothing (snapshot-unusable: the checkout
+could not be made, so the check ran in the working folder). unstaged, whenever such a
+check was looked up, counts the tracked paths whose working copy differs from the index.`,
 
 		"list": `Usage: itos task list [--group <g>]
 
@@ -75,7 +91,7 @@ written and nothing committed.
 or {"schema":1,"ok":false,"problems":[{"rule","message","fix"}]}`,
 	},
 	Spec: declare.Spec{Flags: []declare.Flag{declare.Value("--group"), declare.Value("--phase"), declare.Value("--skip"),
-		declare.Switch("--pending")}, More: declare.GroupLabel, Words: true, Subs: map[string]declare.Spec{
+		declare.Switch("--pending"), declare.Switch("--working-tree")}, More: declare.GroupLabel, Words: true, Subs: map[string]declare.Spec{
 		"list": {Flags: []declare.Flag{declare.Value("--group"), declare.Value("--phase")}, More: declare.GroupLabel},
 		"add": {Flags: []declare.Flag{declare.Value("--group"), declare.Value("--phase"), declare.Value("--type"),
 			declare.Value("--title"), declare.Value("--why"), declare.Values("--check"), declare.Values("--timeout")},

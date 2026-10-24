@@ -94,6 +94,13 @@ func (l *Loaded) Get(key string) any {
 	return at
 }
 
+// Settings is the config's settings after the defaults as JSON: the tree the
+// typed config is decoded from, and nothing of where it was read, whether it
+// is the stealth one or what it reads its data from. Two configs with the
+// same settings give the same text wherever they sit, which is what a key
+// that binds the policy needs. Keys are in the order the file wrote them.
+func (l *Loaded) Settings() string { return value.JSON(l.tree) }
+
 // HasSection is whether the file has a section, or a key at a dotted path
 // (ci.steps), rather than only its defaults.
 func (l *Loaded) HasSection(key string) bool {

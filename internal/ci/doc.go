@@ -30,6 +30,13 @@
 //     the setting says: it runs once a day to report, and a failure that
 //     stops it hides every step after it for a day (slice 133).
 //
+// A step that is a mapping with run: and an evidence declaration, and a task
+// check with one, are looked up by the index tree through Options.Evidence
+// (internal/evidence) and run, on a miss, in a checkout of it; --json then
+// lists the evidence of each command looked up, in run order, and the
+// tracked paths the index leaves out (unstaged). Without an engine, or
+// without a declaration, they run as before.
+//
 // Every step and check sees ci.env, and the range's ends (plan.Ends) as
 // ITOS_FROM and ITOS_TO, which ci.env cannot override. The log goes to
 // stdout, or to stderr under --json, which keeps stdout for its one object;

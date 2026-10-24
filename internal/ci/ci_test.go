@@ -1,6 +1,7 @@
 package ci
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"os"
@@ -11,8 +12,10 @@ import (
 
 	"github.com/donvargax/itos/v8/internal/check"
 	"github.com/donvargax/itos/v8/internal/config"
+	"github.com/donvargax/itos/v8/internal/evidence"
 	"github.com/donvargax/itos/v8/internal/ledger"
 	"github.com/donvargax/itos/v8/internal/plan"
+	privport "github.com/donvargax/itos/v8/internal/store/private/port"
 	"github.com/donvargax/itos/v8/internal/store/tree/adapter"
 	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
 )
@@ -217,3 +220,95 @@ func TestTheNightlyGoesOnPastAFailingStep(t *testing.T) {
 		t.Errorf("a push's run: exit %d, failures %+v, stderr %q", code, failures, stderr)
 	}
 }
+
+// fakeGit is a repository whose index is one tree, with an edit not staged.
+type fakeGit struct{ unstaged []string }
+
+func (fakeGit) IndexTree(context.Context) (string, error)         { return "tree", nil }
+func (fakeGit) IndexPaths(context.Context) ([]string, error)      { return nil, nil }
+func (g fakeGit) UnstagedPaths(context.Context) ([]string, error) { return g.unstaged, nil }
+func (fakeGit) Snapshot(context.Context, string) (evidence.Checkout, error) {
+	return evidence.Checkout{Dir: "", Remove: func() error { return nil }}, nil
+}
+
+type fakeStore struct{ root string }
+
+func (s fakeStore) Path(_ context.Context, name string) (string, error) {
+	return filepath.Join(s.root, name), nil
+}
+func (fakeStore) Read(context.Context, string) ([]byte, bool, error)  { return nil, false, nil }
+func (fakeStore) Write(context.Context, string, []byte) error         { return nil }
+func (fakeStore) NotIgnored(context.Context, string) bool             { return false }
+func (fakeStore) Hold(context.Context, string) (privport.Held, error) { return fakeHeld{}, nil }
+
+type fakeHeld struct{}
+
+func (fakeHeld) Release(context.Context) error { return nil }
+
+// A step that opts in is looked up and recorded, and answers from its record
+// the next run, which names its exit code as a failing step does; the run's
+// JSON lists the evidence of each command looked up, and the paths not
+// staged; a step that did not opt in, or a run with no engine, is as it was.
+func TestAStepThatOptsInIsLookedUp(t *testing.T) {
+	count := filepath.ToSlash(filepath.Join(t.TempDir(), "runs"))
+	command := "echo ran >> " + count + "; exit 5"
+	opted := plan.Step{Command: command, Evidence: &config.Evidence{}}
+	plain := plan.Step{Command: "exit 0"}
+	engine := func(store string) *check.Evidence {
+		return &check.Evidence{Cfg: load(t), Git: fakeGit{unstaged: []string{"a"}}, Store: fakeStore{store}, Binding: evidence.ThisBinary(), Mode: "ci", CIEnv: map[string]string{}}
+	}
+	store := t.TempDir()
+	p := &plan.Plan{Order: []plan.Item{{Step: &plain}, {Step: &opted}}}
+	code, stdout, stderr := run(t, p, Options{JSON: true, Evidence: engine(store)})
+	var report struct {
+		Evidence []map[string]any `json:"evidence"`
+		Unstaged *int             `json:"unstaged"`
+	}
+	if err := json.Unmarshal([]byte(stdout), &report); err != nil {
+		t.Fatalf("%v: %s", err, stdout)
+	}
+	if code != 1 || len(report.Evidence) != 1 || report.Evidence[0]["command"] != command ||
+		report.Evidence[0]["hit"] != false || report.Evidence[0]["recorded"] != true || report.Unstaged == nil || *report.Unstaged != 1 {
+		t.Fatalf("first run: exit %d, evidence %v, unstaged %v\nstdout %s\nstderr %s", code, report.Evidence, report.Unstaged, stdout, stderr)
+	}
+	if !strings.Contains(stderr, "CI failed at: "+command+" (it exited 5)") || !strings.Contains(stderr, "1 changed path not staged") {
+		t.Errorf("stderr %q", stderr)
+	}
+	code, stdout, stderr = run(t, p, Options{JSON: true, Evidence: engine(store)})
+	report.Evidence = nil
+	if err := json.Unmarshal([]byte(stdout), &report); err != nil {
+		t.Fatal(err)
+	}
+	if code != 1 || report.Evidence[0]["hit"] != true || !strings.Contains(stderr, "(it exited 5)") || !strings.Contains(stderr, "cached evidence") {
+		t.Errorf("second run: exit %d, evidence %v, stderr %q", code, report.Evidence, stderr)
+	}
+	runs, _ := os.ReadFile(count)
+	if string(runs) != "ran\n" {
+		t.Errorf("the step ran %q", runs)
+	}
+	// No engine: the step runs as it always did, and the JSON has no evidence.
+	code, stdout, _ = run(t, &plan.Plan{Order: []plan.Item{{Step: &opted}}}, Options{JSON: true})
+	if code != 1 || strings.Contains(stdout, `"evidence"`) || strings.Contains(stdout, `"unstaged"`) {
+		t.Errorf("without an engine: exit %d, %s", code, stdout)
+	}
+	if runs, _ = os.ReadFile(count); string(runs) != "ran\nran\n" {
+		t.Errorf("the step ran %q", runs)
+	}
+	// An engine that no step used leaves the JSON as it was.
+	_, stdout, _ = run(t, &plan.Plan{Order: []plan.Item{{Step: &plain}}}, Options{JSON: true, Evidence: engine(store)})
+	if strings.Contains(stdout, `"evidence"`) {
+		t.Errorf("an engine nothing used: %s", stdout)
+	}
+	// An engine that cannot count the unstaged paths gives no count.
+	broken := engine(store)
+	broken.Git = noCount{fakeGit{}}
+	_, stdout, _ = run(t, &plan.Plan{Order: []plan.Item{{Step: &opted}}}, Options{JSON: true, Evidence: broken})
+	if !strings.Contains(stdout, `"evidence"`) || strings.Contains(stdout, `"unstaged"`) {
+		t.Errorf("without a count: %s", stdout)
+	}
+}
+
+// noCount cannot say what is unstaged.
+type noCount struct{ fakeGit }
+
+func (noCount) UnstagedPaths(context.Context) ([]string, error) { return nil, errors.New("git") }

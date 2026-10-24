@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/donvargax/itos/v8/internal/check"
 	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/engine/record"
 	"github.com/donvargax/itos/v8/internal/kind"
@@ -91,6 +92,10 @@ type ports struct {
 	body       string
 	registered []string
 	released   int
+	// evidence is the engine the Evidence port gives, and asked how often it
+	// was asked for.
+	evidence *check.Evidence
+	asked    int
 }
 
 func newPorts(t *testing.T, text string, tree map[string]string) *ports {
@@ -102,6 +107,11 @@ func newPorts(t *testing.T, text string, tree map[string]string) *ports {
 }
 
 func (p *ports) Config(context.Context) (*config.Loaded, error) { return p.cfg, p.cfgErr }
+
+func (p *ports) Evidence(context.Context, *config.Loaded) *check.Evidence {
+	p.asked++
+	return p.evidence
+}
 
 func (p *ports) Sound(ctx context.Context) (Sound, error) {
 	s := Sound{Release: func() { p.released++ }, Code: p.soundCode}
@@ -471,5 +481,28 @@ func TestUnknownIDs(t *testing.T) {
 	cfg.Ledger.ID = &id
 	if got, want := unknownIDs(cfg, args, tasks), []string{"T-099"}; !slices.Equal(got, want) {
 		t.Errorf("with ledger.id %s: got %q, want %q", id, got, want)
+	}
+}
+
+// The checks are looked up through the evidence engine the port gives,
+// unless --working-tree asks for the working folder, which asks for none;
+// the engine is the runner's, and a run that looked nothing up has no count of
+// unstaged paths in its JSON.
+func TestRunTakesTheEvidenceEngineUnlessWorkingTree(t *testing.T) {
+	p := newPorts(t, configText, files)
+	p.evidence = &check.Evidence{}
+	for _, c := range []struct {
+		args  []string
+		asked int
+	}{{[]string{"T-1"}, 1}, {[]string{"T-1", "--working-tree"}, 0}, {[]string{"--working-tree", "T-1"}, 0}} {
+		p.asked = 0
+		code, stdout, stderr, err := line(t, p, true, false, c.args...)
+		if code != 0 || err != nil || p.asked != c.asked || strings.Contains(stdout, `"unstaged"`) || strings.Contains(stdout, `"evidence"`) {
+			t.Errorf("task %v: exit %d, %v, asked %d times, stdout %q, stderr %q", c.args, code, err, p.asked, stdout, stderr)
+		}
+	}
+	p.asked = 0
+	if _, _, _, err := line(t, p, false, false, "list"); err != nil || p.asked != 0 {
+		t.Errorf("task list asked for an engine: %v, %d", err, p.asked)
 	}
 }

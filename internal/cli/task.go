@@ -3,6 +3,7 @@ package cli
 import (
 	"context"
 
+	"github.com/donvargax/itos/v8/internal/check"
 	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/engine/record"
 	"github.com/donvargax/itos/v8/internal/ledger"
@@ -27,6 +28,11 @@ type taskPorts struct{ o Out }
 
 // Config is loadConfig.
 func (taskPorts) Config(context.Context) (*config.Loaded, error) { return loadConfig() }
+
+// Evidence is newEvidence of a hand-run itos task.
+func (taskPorts) Evidence(_ context.Context, cfg *config.Loaded) *check.Evidence {
+	return newEvidence(cfg, "task")
+}
 
 // Sound is soundRegistry.
 func (p taskPorts) Sound(context.Context) (taskslice.Sound, error) {

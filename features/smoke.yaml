@@ -60,6 +60,10 @@
   scenarios:
     - id: "@ID-DRAFT-03"
       why: a change and a command line drafted, then promoted in order, each committed, the file's point in one run
+- file: evidence-local.feature
+  scenarios:
+    - id: "@ID-EVID-01"
+      why: an opted-in check's repeat answers from its record and the JSON says so, the file's point in two runs
 - file: extensions.feature
   scenarios:
     - id: "@ID-EXT-04"

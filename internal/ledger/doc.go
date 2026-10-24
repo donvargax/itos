@@ -16,6 +16,12 @@
 // folder. IDPattern is ledger.id's one reader, anchored as ^(?:id)$, any ID
 // with no ledger.id.
 //
+// A check may declare evidence (config.Evidence), which opts it in to
+// evidence records: Check.Evidence is its declaration, nil for a check that
+// does not, and the schema holds its shape and texts (a mapping of inputs,
+// env and tools, each a list of texts, an input that is no glob and no path
+// outside the repository).
+//
 // The schema is strict: duplicate or malformed IDs, unknown types, unknown
 // keys, both or neither of run and fails, and a cost: static written below a
 // late check of the same task, which written order would run late anyway. A
