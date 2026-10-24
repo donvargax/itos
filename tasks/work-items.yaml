@@ -8872,7 +8872,7 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: []
+    depends_on: [p1-typed-items]
     kind: idea
     why: >
       2026-10-12, T-168: the user's calls on the testing tiers were made in conversation and
@@ -8881,7 +8881,7 @@ items:
       it itself. A form with no question (--title, --context or a text naming where the call was
       made) would mint the number, write the record in the format and keep the list, as it does for
       an answered question.
-    tags: [ask, v8]
+    tags: [ask, v9]
 
   - id: p1-task-type-fits-paths
     title: task add warns when a task's type cannot touch what its why and checks name
