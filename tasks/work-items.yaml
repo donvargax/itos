@@ -13593,3 +13593,18 @@ items:
       help promises exit 3 for nobody, and work show then lists an item in progress as owner nobody.
       The help names the no-people case beside stealth, the take's output says it recorded no owner,
       and config check could warn that takes will record none.
+
+  - id: p1-status-local
+    title: itos status can read local state alone, so a coordinator can poll many repositories
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [p2-cross-repo-contract]
+    kind: idea
+    why: >
+      Found by the cross-repository coordinator research (2026-10-24, p2-cross-repo-contract): itos
+      status asks the remote and GitHub on every call (the CI run, last green, the nightly,
+      visibility), about five API calls a repository, so twelve repositories polled every minute is
+      about 3,600 calls an hour against GitHub's 5,000. A flag that reads only local state (head,
+      doing, next, questions, unpushed), or a coordinator that polls work and decision often and
+      status rarely, would keep it under the limit.
