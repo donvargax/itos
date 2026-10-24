@@ -4514,5 +4514,5 @@
     changes its own limit and asserts the file still reads old. No skip, no production change, no
     gate change; the build constraint (linux || darwin) stays.
   done_when:
-    - run: "! grep -n 'Setrlimit' internal/store/private/adapter/fsize_test.go | grep -v -i child >/dev/null || grep -q 'os.Args\\[0\\]' internal/store/private/adapter/fsize_test.go"
+    - run: grep -q 'os.Args\[0\]' internal/store/private/adapter/fsize_test.go
     - run: names=$(go test ./internal/store/private/adapter -list '^TestStoreKeepsTheFileAWriteFailsToReplace$') && printf '%s\n' "$names" | grep -qx 'TestStoreKeepsTheFileAWriteFailsToReplace' && go test ./internal/store/private/adapter -count=3 -run '^TestStoreKeepsTheFileAWriteFailsToReplace$'
