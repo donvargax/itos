@@ -2646,7 +2646,7 @@ items:
     title: A failed CI run names its failed step, failing tests and scenarios with their first error lines, and a release names its tag
     phase: 1
     owner: donvargax
-    status: todo
+    status: doing
     depends_on: [slice-51]
     kind: slice
     why: >
