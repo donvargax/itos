@@ -631,9 +631,14 @@ func TestTheOutputIsATail(t *testing.T) {
 	if text, cut := short.Text(); text != "abc" || cut {
 		t.Errorf("%q %v", text, cut)
 	}
-	exact := tail{max: 3}
-	_, _ = exact.Write([]byte("abcd"))
-	if text, cut := exact.Text(); text != "bcd" || !cut {
+	full := tail{max: 3}
+	_, _ = full.Write([]byte("abc"))
+	if text, cut := full.Text(); text != "abc" || cut {
+		t.Errorf("%q %v", text, cut)
+	}
+	over := tail{max: 3}
+	_, _ = over.Write([]byte("abcd"))
+	if text, cut := over.Text(); text != "bcd" || !cut {
 		t.Errorf("%q %v", text, cut)
 	}
 	r := newRig(t)
