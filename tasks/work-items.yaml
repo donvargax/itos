@@ -13666,3 +13666,23 @@ items:
       Since bug-134 a depends_on that is not a list is a problem, so Issues and sound have no error
       source left, yet their callers in internal/work still handle one. Drop the error from their
       signatures.
+
+  - id: bug-135
+    title: config check's stale question-link warnings name each stale item and say how to fix it
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: bug
+    why: >
+      From slice-156 (#49, q-74), split 2026-10-24 by the user's call: decision relink is v9's
+      (p1-typed-items' generic link replaces it), and v8 ships only the fix lines. config check
+      warns (asks-answered-unknown-item) or errs (asks-unknown-item) that questions name items the
+      registry no longer has, 23 lines on every config check, task, init and commit-msg hook run in
+      itos-cc, with no fix line. Each warning names the stale item and its fix: edit that question's
+      item key in the asks file by hand to the item's new id, or remove the key, the one hand edit
+      of the asks file the guides allow until v9's link exists; the fix in the --json fix field and
+      in the text message, since config check's text prints no fix lines. Severity and exit
+      unchanged. slice-156's ID-ASK-28 (features/decision-relink.feature) is the shape to start
+      from, its advice reworded from decision relink to the hand edit.
+    refs: [internal/engine/configcheck/configcheck.go, features/decision-relink.feature]
