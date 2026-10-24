@@ -115,14 +115,17 @@ judges one mutation site of the changed functions and the coverage of the
 lines added or changed (q-57). A survivor, or an uncovered changed line, is
 real: kill it with a test, or show the mutant equivalent and except it.
 
-1. **Push with `tools/bin/itos push --no-wait`** in the background, straight
-   to `main` (no branches or pull requests), and take its result from the
-   completion notification; never sleep or poll. Read a rejection before
-   diagnosing it (`tools/bin/itos push --help` gives its outcomes): the
-   pre-push hook failing is as likely as the remote having moved.
-2. After a successful push, report its exact SHA, your commits, the checks
-   that ran and any remaining work, from a clean checkout. Hand back without
-   watching CI or closing the item; the coordinator does both. A repair
+1. **Push** with `tools/bin/itos push` in the foreground (600000 ms
+   timeout), straight to `main` (no branches or pull requests; a worktree
+   branch with no upstream goes to `main`, bug-136): it waits for CI. If the
+   call is cut off, run `tools/bin/itos ci watch <sha>` in the foreground
+   once more; never sleep, poll or loop. Read a rejection before diagnosing
+   it (`tools/bin/itos push --help` gives its outcomes): the pre-push hook
+   failing is as likely as the remote having moved.
+2. A red run is yours: fix the cause, never the check, and push again. Once
+   CI is green, close the item with `tools/bin/itos work done <item>`.
+3. Report the exact pushed SHA, the green run's address, your commits, the
+   checks that ran and any remaining work, from a clean checkout. A repair
    worktree hands its commits to the coordinator and does not push. No
    background job may outlive the handoff.
 

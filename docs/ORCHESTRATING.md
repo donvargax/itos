@@ -101,10 +101,10 @@ handoff line below replaces the template's "wait for CI … close the item":
   push's changed functions and the coverage of its changed lines; a survivor
   or an uncovered line needs a test. No by-hand push proof, `itos task`,
   golangci-lint or staticcheck: pre-push runs the linters, CI the rest; run a
-  diagnostic only when it is the work. Push with `tools/bin/itos push
-  --no-wait` in the foreground (600000 ms timeout), then report the exact
-  pushed SHA, commits, checks and remaining work. Do not watch CI or close the
-  item.
+  diagnostic only when it is the work. The agent pushes, waits for CI,
+  fixes a red run and closes the item, as AGENTS.md's Finishing says
+  (`ci watch <sha>` if the push is cut off); the coordinator checks the run
+  it names and reviews the diff (T-302).
 - **What the push proof flags:** an error check after a call that already
   returns that error is a dead branch, an uncovered line (T-281, T-282). A
   test forcing a filesystem error uses one every OS reports alike (a NUL byte
@@ -171,7 +171,7 @@ was in this file when the file was reorganized that day.
   Recorded by 2026-10-04.
 - **Agents write wait loops around a background push** (bugs 35 and 123,
   slices 83 and 170): a subagent cannot await a completion notice. Hence the
-  brief's foreground `--no-wait`. Exit: permanent. Recorded 2026-10-06; last
+  brief's foreground push, which blocks until CI ends. Exit: permanent. Recorded 2026-10-06; last
   seen 2026-10-24.
 - **Watch CI on every push, a docs one too, and read `git log origin/main..main`
   before a session's first push**: commits an earlier session left unpushed
