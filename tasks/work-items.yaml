@@ -8226,14 +8226,9 @@ items:
     title: The pre-push hook refuses any update to a tag the remote already has, even onto a descendant
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: []
     kind: idea
-    why: >
-      slice-131's agent (2026-10-11): slice-128's rewrite check refuses a ref whose remote commit is
-      not an ancestor of the pushed one, so a forced move of a release tag onto a descendant commit
-      passes it, through the real git past the shim and guard. A tag is never moved (the release
-      rule), so any update of an existing remote tag is refused, ancestor or not.
     refs: [internal/cli/hook.go]
     tags: [hooks, v8]
 
