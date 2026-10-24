@@ -5025,7 +5025,7 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: []
+    depends_on: [p1-typed-items]
     kind: idea
     why: >
       itos draft lists a change by its header and paths only (slice-96), so a coordinator who
@@ -5040,7 +5040,7 @@ items:
       p1-draft-copies-listed (after slice-99): itos draft edit prints its copies' folder once, and
       itos draft and its --json list an edit draft as any change, so a later session must know the
       edits/<id>/ layout; list each edit draft's copies folder, and the paths in --json.
-    tags: [draft, v8]
+    tags: [draft, v9]
 
   - id: p1-wrap-long-body
     title: Wrap a long commit body in linear time
