@@ -10790,6 +10790,15 @@ items:
       provider gave is not among the people. work done --json gives ci unwatched but not that
       whether its commits are pushed went unchecked for want of a remote. verify --json names no
       problem or rule for a failing commit, as above.
+
+      2026-10-24 grooming (the user's call): merged in two push entries. p1-push-json-not-waited
+      (slice 56): a push whose commits touch only the work registry returns without waiting, and
+      under --json its object is the one --no-wait or ci.watch.provider none prints, with no ci key,
+      so a script cannot tell a run skipped on purpose from no watch set up; a ci value such as
+      not-waited would say it. p1-push-json-registry-conflict (after slice-66): itos push explains a
+      rebase stopped on a conflict in the work registry (two takes of one item) in text only; under
+      --json the outcome stays rebase-stopped with nothing of the registry or the items both sides
+      changed (internal/cli/push.go).
     tags: [message, v8]
 
   - id: p1-lint-itos-cc-linters
