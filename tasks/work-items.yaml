@@ -13536,3 +13536,19 @@ items:
     status: doing
     depends_on: []
     kind: task
+
+  - id: p1-haiku-implementer-trial
+    title: Trial a Haiku 5.5 implementing agent (high effort) on a task, once the loop runs as a state machine
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [p1-item-lifecycle]
+    kind: idea
+    why: >
+      The user, 2026-10-23: once the orchestration loop runs as a state machine with the right
+      agents per role (p1-item-lifecycle, or a v8 driver that walks today's commands), run a Haiku
+      5.5 implementing agent at high effort on a task, launched per launch with the Agent tool's
+      model and effort parameters. Record what p1-sonnet-implementer-trial records (interventions,
+      CI reds and causes, reviewer findings, spec or model), so the three models compare on like
+      items. Sonnet's misses so far were environment ones (pushed state, Windows), so pick a task
+      where the gates would catch such a miss.
