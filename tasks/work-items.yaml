@@ -10018,6 +10018,11 @@ items:
       6:49, 6:46 and 3:12, reusing nothing until the tests stopped changing (run 4 reused 182 of
       238). Snapshots for 5 files: 742 KB. The user chose to wait for itos-cc#56 before local scoped
       runs replace q-41/q-55; with #56 the reruns would judge only survivors.
+
+      2026-10-23 grooming, the user: committed results it is (this item over
+      p1-drop-mutation-cache's 2026-10-10 call): the structural fix for the nightly staying red, a
+      complete inventory to kill or except in batches; p1-line-endings-for-the-mutation-cache comes
+      with it.
     refs: [itos.yaml, itos-cc.yaml, .metrics/mutate, docs/decisions, https://github.com/donvargax/itos-cc/issues/56]
     tags: [proof, v8]
     deferred: >
