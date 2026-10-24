@@ -13375,15 +13375,9 @@ items:
     title: config check's message for an unknown footer source leaves out registry
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: bug
-    why: >
-      Was p1-footer-source-message. config-footer-source says a source "is ledger, text or { tests:
-      <kind> }" (internal/config/cross.go:153) though registry is one, and its own fix line names
-      registry. The 2026-10-24 grooming found no corpus case pins the words any more:
-      conformance/config.yaml:311 and 314 (HEAD and v8.12.2) pin only the rule and area. Also cut
-      the comment at cross.go:144-145, which the change makes wrong.
     refs: [internal/config/cross.go]
 
   - id: bug-127
