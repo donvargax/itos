@@ -13428,8 +13428,8 @@ items:
   - id: bug-130
     title: A git that fails reads as changes no commit holds
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: bug
     why: >
