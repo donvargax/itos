@@ -12670,6 +12670,11 @@ items:
       (p1-red-agent). Changing what an item's status means breaks registries and scenarios: v9
       design input with p1-typed-items (q-89). The v8 work in flight (evidence records, the
       reviewer, the red agent) builds the proofs its transitions need.
+
+      The user, 2026-10-24: each move also names who may make it: the person, the coordinator or an
+      implementing session. An implementer never marks its own diff reviewed or closes its item, and
+      only the person settles a decision, so a move by the wrong role is refused as an out-of-order
+      one is.
     tags: [work, v9]
 
   - id: p1-snapshot-git-context
