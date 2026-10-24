@@ -413,7 +413,7 @@ items:
       registry is staged, and T-023 drops the pre-commit check, which never watched the people file
       either; only CI's prose steps catch it, after the push. The commit-msg hook could run the
       registry's check when work.people's file is staged too.
-    tags: [hooks]
+    tags: [hooks, v8]
 
   - id: slice-117
     title: The commit-msg hook runs the smoke rule over the index when a kind's test file is staged
@@ -436,7 +436,7 @@ items:
       later in the same push, passes CI, whose config check reads only the head. source.ts can read
       a commit's tree, so verify could run the check at each commit that touches the data. Needs a
       scenario.
-    tags: [verify]
+    tags: [verify, v8]
 
   - id: p1-pre-commit-asks-what-skips
     title: A project's pre-commit hook asks itos which staged files need no tests
@@ -452,7 +452,7 @@ items:
       with work.registry or ledger.files leaves its hook skipping the wrong files, silently. An itos
       command could answer from the config whether every staged file is prose or itos's data, so the
       hook's exit is one line that follows the config.
-    tags: [hooks]
+    tags: [hooks, v8]
 
   - id: T-023
     title: The pre-commit hook leaves itos's data to the commit-msg hook
@@ -671,7 +671,7 @@ items:
       Writing it for itos makes the worked example show what a consumer may now write; the plan
       is the same either way (ci plan --whole and --nightly unchanged), so it is a build commit
       with a task whose check compares the plan before and after.
-    tags: [config]
+    tags: [gates, v8]
 
   - id: p1-ci-checks-once
     title: CI's plan runs a check two named tasks list once
@@ -821,7 +821,7 @@ items:
       The plan merges only the kind of the first tests: step of ci.steps, with one smoke set, and the
       smoke rule names the kind scenario: in a config with two kinds (scenarios and Go tests, say)
       every tests: step would take the first kind's merged command.
-    tags: [ci]
+    tags: [ci, v8]
 
   - id: slice-11
     title: ci run's log names a merged check by its kind of named tests
@@ -854,7 +854,7 @@ items:
       before commits.since, say), so a project's own range command may judge commits before it;
       the built-in moves rule judges verify's own list of commits, which leaves them out. A {since}
       in the template, or a range given as a commit list, would close it.
-    tags: [verify]
+    tags: [verify, v8]
 
   - id: p1-hooks-config-write
     title: "hooks install writes lefthook's and pre-commit's config"
@@ -990,7 +990,7 @@ items:
       behaviour. A feat's or fix's body says what changed and why (AGENTS.md), so the notes could
       give it under its header, or the scenarios it names; the template is the place.
     refs: [tools/bin/release-notes/main.go]
-    tags: [release]
+    tags: [release, v8]
 
   - id: p3-version-prerelease
     title: itos compares a pre-release below its release, and requires can name one
@@ -1051,7 +1051,7 @@ items:
       the clone. The same check (git cat-file -e, then --is-shallow-repository) could make it a
       problem naming the commit, with git fetch --unshallow or fetch-depth: 0 as its fix, and a
       <from> no clone has (a typo) one of its own.
-    tags: [verify]
+    tags: [verify, v8]
 
   - id: p1-wip-red-first
     title: A command that shows a slice's @wip scenarios fail against the current binary
@@ -1129,7 +1129,7 @@ items:
       and pass on its own, modelled on previous-release's compatibility check (the old binary judged
       against the new scenarios, here to prove they fail before the implementation). Once both land,
       the red-first test commit leaves the agents' rules.
-    tags: [tests]
+    tags: [evidence]
 
   - id: p1-commit-message-file
     title: Commit messages through a file, so a heredoc cannot be piped into git
@@ -1201,7 +1201,7 @@ items:
       new Then collided with an existing Given of the same words. Fourth.
 
       Its next-id part is slice-60; what is left is itos tests steps and itos tests undefined.
-    tags: [tests]
+    tags: [tests, v8]
 
   - id: slice-67
     title: "itos status, where the work stands, printed at the end of itos go"
@@ -1225,7 +1225,7 @@ items:
       nothing recorded. An optional spend: list on an item, written by the coordinator (itos work done
       <id> --tokens 175k), and itos work cost printing totals and medians per kind and phase and an
       estimate of the queue. No budgets and no refusals.
-    tags: [work]
+    tags: [agents, v8]
 
   - id: p1-smoke-suggest
     title: "itos tests smoke suggest proposes a smoke entry for a file that needs one"
@@ -1258,7 +1258,7 @@ items:
       (which moves p1-several-test-kinds up); slices and property-based tests stay prose. Here they
       fit a TypeScript CLI with no domain layer, whose scenarios and conformance corpus are
       already black-box integration tests.
-    tags: [tests]
+    tags: [architecture]
 
   - id: p1-fixtures-folder-unused
     title: tools/itos/fixtures/ is unused, its only readers being checks T-125 dropped
@@ -1277,6 +1277,7 @@ items:
       there and run it, or delete the folder, and drop tools/itos/fixtures/** from commits.scopes
       .test, which exists for it alone.
     refs: [tools/itos/fixtures, itos.yaml]
+    tags: [gates, v8]
 
   - id: p1-tampered-fixture-unused
     title: The tampered corpus fixture, which a dropped check ran and nothing runs now
@@ -1295,6 +1296,7 @@ items:
       something would go unseen. It wants a home: a case in the corpus whose fixture file names
       what must fail, or a self-test beside the runner.
     refs: [tools/itos/conformance/fixtures/tampered.yaml, tools/itos/conformance/run.ts]
+    tags: [gates, v8]
 
   # ---- phase 2 ----------------------------------------------------------------
   - id: T-039
@@ -1491,7 +1493,7 @@ items:
       checks that rule: a static check over .github/workflows/ (such a trigger beside issues: write
       or pull-requests: write, or a gh label or issue edit step) would hold it on every push.
     refs: [docs/ORCHESTRATING.md, tools/bin/inbox]
-    tags: [ci]
+    tags: [gates, v8]
 
   - id: T-058
     title: v1.1.0, the config's patterns as RE2 in both implementations
@@ -1755,7 +1757,7 @@ items:
       also how agents in different repositories talk (p2-cross-repo-contract); a label sorts an
       issue, never makes it trusted, which stays who acted (the inbox's rule). Not needed yet.
     refs: [PLAN.md]
-    tags: [work]
+    tags: [providers]
 
   - id: p2-github-pure
     title: The work registry as GitHub itself
@@ -1771,7 +1773,7 @@ items:
       which also hold the queue's order (p1-work-queue-order) at the cost of more API. The ledger
       stays in the repository either way, since a task's checks are commands run at a commit.
     refs: [PLAN.md]
-    tags: [work]
+    tags: [providers]
 
   - id: slice-46
     title: The pre-push hook verifies the commits it pushes
@@ -1923,7 +1925,7 @@ items:
       the newest. Nothing removes them but the user; a run could drop the versions it
       has not run for some months, or the cache could keep a few.
     refs: [internal/launch/launch.go]
-    tags: [launcher]
+    tags: [launcher, v8]
 
   - id: slice-47
     title: One command moves a repository's pin to a release
@@ -1959,7 +1961,7 @@ items:
       relative to the top, unset or empty at the top) would let it, or the extension could run
       where it was started with ITOS_ROOT still the top.
     refs: [PLAN.md, features/extensions.feature]
-    tags: [extensions]
+    tags: [extensions, v8]
 
   - id: p3-shim-push-args
     title: git push with a remote or a branch through the git shim
@@ -2043,7 +2045,7 @@ items:
       and a refusal in a v2.x would break a config v2.0 accepted (docs/ORCHESTRATING.md's lesson on
       compatibility), the coordinator's call (2026-10-03).
     refs: [PLAN.md]
-    tags: [config]
+    tags: [config, v8]
 
   - id: p3-commit-editor-template
     title: itos commit through the editor puts the footers right below the subject
@@ -2060,7 +2062,7 @@ items:
       itos commit could hand git a template with the subject's line and a blank one before the
       footers (git commit -t, or prepare-commit-msg), so the editor's commit reads as -m's does.
     refs: [internal/cli/gitcommit.go, features/commit-command.feature]
-    tags: [commit]
+    tags: [commit, v8]
 
   - id: slice-36
     title: itos commit writes every footer a commit needs, its required ones refused up front
@@ -2111,7 +2113,7 @@ items:
       ci plan prints, and ci scope with no range is a usage error. Both could take git.Unpushed as
       verify and ci plan do, with a scenario each.
     refs: [internal/cli/commands.go, features/stealth.feature]
-    tags: [stealth]
+    tags: [stealth, v8]
 
   - id: p3-stealth-ignored-keys
     title: config check warns of the keys a stealth config sets and never reads
@@ -2129,7 +2131,7 @@ items:
       prints the github one. config check could warn of each, as it warns of a missing people
       file, with a scenario.
     refs: [internal/config/defaults.go, internal/cli/configcheck.go, features/stealth.feature]
-    tags: [stealth]
+    tags: [stealth, v8]
 
   - id: p3-pr-rebase-merge
     title: itos init offers to make the repository's pull requests rebase-and-merge
@@ -2189,7 +2191,7 @@ items:
       Met again in #111 (2026-10-21): a long --upgrading is refused by footer-max-line-length
       instead of being wrapped onto continuation lines as --scenarios is.
     refs: [internal/cli/gitcommit.go, internal/message/footers.go]
-    tags: [commit]
+    tags: [commit, v8]
 
   - id: p3-stealth-amend-keeps-links
     title: A stealth amend through itos commit keeps the links its flags do not replace
@@ -2205,7 +2207,7 @@ items:
       it is required). Merging the carried note with the flags' links, each footer once, would
       make an amend mean the same in both modes.
     refs: [internal/cli/gitcommit.go, features/stealth.feature]
-    tags: [stealth]
+    tags: [stealth, v8]
 
   - id: slice-45
     title: itos config get prints a config key's value as itos reads it
@@ -2297,7 +2299,7 @@ items:
       pinning and installing it would make bearable; and a role-level check command, so config
       check can validate a source's own files (itos-cc's itos-cc-debt.yaml).
     refs: [features/extensions.feature, features/pin.feature, PLAN.md]
-    tags: [config]
+    tags: [extensions]
 
   - id: p3-nightly-govulncheck
     title: The nightly runs govulncheck, so a vulnerability disclosed later is found
@@ -2314,7 +2316,7 @@ items:
       flag an exception a week old as no longer needed) would find it the next morning; it needs
       the network, which the nightly has.
     refs: [tasks/phase-3.yaml, itos.yaml]
-    tags: [ci]
+    tags: [gates, v8]
 
   - id: p3-ci-step-paths
     title: A CI step says which paths it is for, so a range that leaves them alone skips it
@@ -2337,7 +2339,7 @@ items:
       it per push, so the change that breaks it is told before it lands, not the next morning
       (T-164). A case for moving this up from phase 3.
     refs: [itos.yaml, PLAN.md]
-    tags: [ci]
+    tags: [ci, v8]
 
   - id: p3-changes-at-commit
     title: A Changes footer naming nothing of the last release is refused at the commit
@@ -2355,7 +2357,7 @@ items:
       names), refusing a typo before it lands; that is a footer source itos does not have (a
       tag's tree, not the commit's), so a feat with its scenario.
     refs: [tools/bin/previous-release/main.go, internal/message/footers.go, itos.yaml]
-    tags: [commit]
+    tags: [commit, v8]
 
   - id: T-068
     title: v2.3.0, the itos plugin for Claude Code
@@ -2390,7 +2392,7 @@ items:
       git push into an itos repository named that way is not denied. Reading such a folder as the
       sh would hand it to git (a drive from /<letter>/, a rooted path on the current drive) is a
       fix with its scenario, which only the windows platform job can run.
-    tags: [guard]
+    tags: [guard, v8]
 
   - id: p3-role-protocol
     title: One adapter protocol for every role a command fills, the test kinds' own
@@ -2468,7 +2470,7 @@ items:
       protocol 1, staged and range commands with {from} and {to}, exit 0, 1, 2, 3 and 75 (ADR-0036),
       and problem rule ids prefixed by their source (cc/mutant-survived).
     refs: [PLAN.md]
-    tags: [config]
+    tags: [proof]
 
   - id: p3-debt-claims
     title: Work items claim debt entries, and itos refuses debt nobody owns
@@ -2492,7 +2494,7 @@ items:
       new debt join an item quietly, so itos work list could show how many entries each item
       claims.
     refs: [PLAN.md]
-    tags: [work]
+    tags: [proof]
 
   - id: p3-config-21-own-value
     title: "@ID-CONFIG-21 sets a hooks.bin the default does not contain"
@@ -2524,7 +2526,7 @@ items:
       version, which may predate the command and prints its own main help instead. binaryCommand
       could take help <command> for its own commands too. itos help init is the same (slice 48).
     refs: [internal/launch/launch.go]
-    tags: [upgrade]
+    tags: [launcher, v8]
 
   - id: bug-10
     title: ci plan and ci run read work's defaults where the config has no work section
@@ -2548,7 +2550,7 @@ items:
       gates until someone writes one. init could write ci.steps (itos config check, the smoke
       check) and a workflow beside them, so CI runs the same gates from the first push.
     refs: [internal/cli/starter.go, features/init.feature]
-    tags: [init]
+    tags: [init, v8]
 
   - id: p3-notice-names-pin
     title: The update notice names itos pin as the way to move the pin
@@ -2668,7 +2670,7 @@ items:
       jobs, fetching logs and grepping them (3 to 5 commands per red today). Queued after slice-171,
       before p1-pr-mode.
     refs: [internal/providers/watch.go, internal/cli/watch.go]
-    tags: [ci]
+    tags: [ci, v8]
 
   - id: bug-26
     title: A ci section may hold watch or range alone, ci.steps needed only by ci plan and ci run
@@ -2702,7 +2704,7 @@ items:
       stealth configs under <git common dir>/itos/, each with a scope, the hooks choosing by the
       staged paths and refusing a commit spanning two.
     refs: [internal/config/stealth.go, features/stealth.feature]
-    tags: [config]
+    tags: [stealth]
 
   - id: p3-stealth-branch-push
     title: A scenario for itos push of a feature branch under a stealth config
@@ -2718,7 +2720,7 @@ items:
       nothing proves it for a feature branch, stealth or not. Scenarios: a new branch pushed to
       origin/<branch> with main untouched, and its notes not pushed.
     refs: [features/push.feature, features/stealth.feature]
-    tags: [tests]
+    tags: [push, v8]
 
   - id: p1-done-without-scenarios
     title: itos work done says when a slice has no @slice scenarios at all
@@ -2734,7 +2736,7 @@ items:
       none. done could say so (a note, or a refusal unless --no-scenarios), without breaking
       @ID-WORK-18's promise as released.
     refs: [internal/cli/workdone.go, features/work.feature]
-    tags: [work]
+    tags: [work, v8]
 
   - id: T-080
     title: The conformance runner runs on a PATH of its own, as the help tests now do
@@ -2814,7 +2816,7 @@ items:
       Backlog review of 2026-10-10, batch 2: folds in p3-specialist-agents: specialist agents (a
       spec writer, a reviewer) are built only with a clear design and evidence they pay off, and
       this standing review is the evidence to gather first.
-    tags: [docs]
+    tags: [agents]
 
   - id: slice-64
     title: itos go and itos guide work, the generic guides in the binary
@@ -2871,7 +2873,7 @@ items:
       Found by the post-landing review of slice 54: an empty --as= falls back to the identity
       provider, so --as=$UNSET silently proposes another person's work, bug 11's failure mode. Also
       work check ignores every argument after its first.
-    tags: [work]
+    tags: [work, v8]
 
   - id: p1-registry-code-cleanup
     title: The registry and ledger writers share their helpers
@@ -2908,7 +2910,7 @@ items:
       Found by itos-cc dry (2026-10-03): git(), lastRelease() and anyReleasable() are copied across
       plugin-version, previous-release, release-version and schema-contract. One shared package
       under tools/bin.
-    tags: [ci]
+    tags: [gates, v8]
 
   - id: p3-guard-cd
     title: The guard judges a git command by the folder a cd in the command moves to
@@ -2943,7 +2945,7 @@ items:
       From another coordinator's notes (2026-10-05): task add --group N with a phase the registry
       does not list fails without help; it could list the phases and how to add one, and default to
       the only phase when no group is given.
-    tags: [work]
+    tags: [work, v8]
 
   - id: T-081
     title: "Changes: names a corpus case by a unique prefix of its name"
@@ -2973,7 +2975,7 @@ items:
       without waiting, and under --json its object is the one --no-wait or ci.watch.provider none
       prints, with no ci key, so a script cannot tell a run skipped on purpose from no watch set up.
       A ci value such as "not-waited", added beside success, failure, timeout and error, would say it.
-    tags: [push]
+    tags: [push, v8]
 
   - id: slice-80
     title: Under --stealth, init writes the rules for agents where git never sees them
@@ -3018,7 +3020,7 @@ items:
       after its promotion says unknown item without naming what it became. Low: a literal why: |
       prints each line as a paragraph. Cleanup: history.go and workshow.go rebuild the notes
       arguments showNotes has, BareID would do for TagPrefix+ID, Link.Key is unused.
-    tags: [work]
+    tags: [work, v8]
 
   - id: slice-63
     title: itos work show lists the commits that wrote an item's spec
@@ -3041,7 +3043,7 @@ items:
       message, and every commit made by plain git commit, still reach the hook unwrapped and are
       refused for a line over 100. git lets a commit-msg hook rewrite the message file, so the hook
       could apply the same message.Wrap before the built-in lint judges it.
-    tags: [commit]
+    tags: [hooks, v8]
 
   - id: p1-commit-wrap-delegate-limit
     title: A delegated header lint can say its body line limit, so itos commit wraps under it
@@ -3077,7 +3079,7 @@ items:
       The coordinator's recommendation, open for the user: an explicit itos follow reopen <id>
       [--note], so a note added to a closed thread after the fact does not bring it back.
     refs: [features/follow.feature]
-    tags: [followup]
+    tags: [followup, v8]
 
   - id: p2-cross-repo-contract
     title: itos as the per-repository layer under a cross-repository coordinator
@@ -3126,7 +3128,7 @@ items:
       value.Wrap's greedy loop (which counts runes where the lint counts UTF-16 units, as
       workwrite.go's body wrap does); message.CommentChar returns 'auto' for core.commentChar=auto,
       in the lint too. Tests for -F -, the unchanged-file path and CRLF.
-    tags: [commit]
+    tags: [commit, v8]
 
   - id: bug-16
     title: itos follow and a stealth config keep every write of two writers at once, and follow doc keeps a thread private
@@ -3196,7 +3198,7 @@ items:
 
       Decision 35 (2026-10-06): once T-100 lands a config error's words are no longer judged, so a
       fix rewords this message with no Changes footer.
-    tags: [config]
+    tags: [config, v8]
 
   - id: T-083
     title: Declare the Item footer in this repository, standing in for Task for test, docs and chore
@@ -3262,7 +3264,7 @@ items:
       registry or the items both sides changed, so an agent reading the JSON cannot tell a lost take
       from any conflict.
     refs: [internal/cli/push.go]
-    tags: [push]
+    tags: [push, v8]
 
   - id: p1-show-queue-place
     title: itos work show says where the item is in the queue
@@ -3277,7 +3279,7 @@ items:
       the queue, so a reader of one item, or the plugin's titles, cannot see its place without
       reading the YAML.
     refs: [internal/work/show.go]
-    tags: [work]
+    tags: [work, v8]
 
   - id: slice-70
     title: itos status names the newest release and the feat and fix commits since it
@@ -3482,7 +3484,7 @@ items:
       run, release-notes -json, which the workflow now makes and uploads as upgrading.json.
       upgrading-json.ts judges only the asset it generates itself; a --json <file> mode, as
       release-notes.ts has --notes, would let release-cut.ts judge the snapshot's.
-    tags: [ci]
+    tags: [gates]
 
   - id: bug-22
     title: itos ask record's commit body fits the line limit whatever the title's length
@@ -3506,7 +3508,7 @@ items:
       commit-msg hook nor CI said so; the coordinator caught it by hand before an agent built on
       them. An ID is one scenario's, @wip or not, and one area is one feature file: both rules hold
       at commit.
-    tags: [tests]
+    tags: [tests, v8]
 
   - id: slice-115
     title: The notice of a pin fallen behind, and itos init's note of it, name itos upgrade instead of itos pin
@@ -3573,7 +3575,7 @@ items:
       to move a CI step's go install .../cmd/itos@v<version>, which itos upgrade neither edits nor
       mentions. It lists it with the asks, never edits it, keeping to the three edits the user
       chose.
-    tags: [upgrade]
+    tags: [upgrade, v8]
 
   - id: p1-nightly-late-done-checks
     title: done_when holds acceptance only, and guarantees come from standing rules, not tasks
@@ -3630,7 +3632,7 @@ items:
       lines that fetch tools/bin/install-launcher from the release's tag and run it. Its Upgrading
       section could give both with the release's version, and its self-test hold them there.
     refs: [tools/bin/release-notes/main.go, action.yml, tools/bin/install-launcher]
-    tags: [release]
+    tags: [release, v8]
 
   - id: T-094
     title: The module path is github.com/donvargax/itos/v4, for v4.0.0
@@ -3653,7 +3655,7 @@ items:
       teaching every new repository a key it should not need. Dropping the two lines changes init's
       output and its corpus cases (init.yaml), so it is a behaviour change of its own, not slice
       79's.
-    tags: [init]
+    tags: [init, v8]
 
   - id: p1-git-config-pre-push-always
     title: The git-config hook manager declares the pre-push hook whatever hooks.pre_push says
@@ -3719,7 +3721,7 @@ items:
       overtaken. What this item tracks is the user's other solution, the guided item-aware commits
       of docs/plans/guided-commits.md, which the answers to q-30 to q-39 name.
     refs: [internal/guard/guard.go, integrations/claude-code/hooks/hooks.json]
-    tags: [guard]
+    tags: [guard, v9]
 
   - id: p3-init-agent-rules-import-check
     title: itos init reports a CLAUDE.md that no longer imports AGENTS.md
@@ -3735,7 +3737,7 @@ items:
       where the block is there could report a CLAUDE.md lacking the import, naming itos init
       --agent-rules, never counted as missing.
     refs: [features/init.feature, internal/cli/initrules.go]
-    tags: [init]
+    tags: [init, v8]
 
   - id: p1-t008-check-the-walk
     title: T-008's check runs the walk's test, not FirstGreen's
@@ -3775,7 +3777,7 @@ items:
       post-merge hook under the stealth config) could report the drift, or refresh the copy, which
       is itos's own text between its markers.
     refs: [internal/cli/initrulesstealth.go, features/init.feature]
-    tags: [init]
+    tags: [stealth, v8]
 
   - id: slice-81
     title: A scope's except list takes paths back out of its never
@@ -3818,7 +3820,7 @@ items:
       itos receives what is left and cannot tell. The help of ask add, work add, and every --why and
       --note could say to quote the text, and each could take it from a file or stdin (-F <file>, -
       for stdin), as itos commit does, the one way that works the same on every shell.
-    tags: [message]
+    tags: [cli, v8]
 
   - id: p1-commit-empty-hint
     title: itos commit with nothing staged names --allow-empty
@@ -3962,6 +3964,7 @@ items:
     deferred: >
       Any feat or fix now cuts v7.0.0-rc.1 (T-123), and the user wants rc.1 to be the itos-cc
       integration (decision 42), so this lands after slice-100. Resume it then.
+    tags: [cli, v8]
 
   - id: bug-39
     title: A YAML alias cycle is refused, not a crash
@@ -3997,6 +4000,7 @@ items:
     deferred: >
       Any feat or fix now cuts v7.0.0-rc.1 (T-123), and the user wants rc.1 to be the itos-cc
       integration (decision 42), so this lands after slice-100. Resume it then.
+    tags: [init, v8]
 
   - id: bug-43
     title: init --stealth on a project's config is a usage error
@@ -4027,7 +4031,7 @@ items:
       Found by the code review of 07b0e6d (2026-10-05). ITOS_VERSION is used as a path segment
       unchecked (launch.go:168-176, 321): ../../x makes cached() exec a file outside the cache.
     refs: [internal/launch/launch.go]
-    tags: [launcher]
+    tags: [launcher, v8]
 
   - id: p1-launcher-rehash-cache
     title: A pinned run re-hashes the cached binary
@@ -4041,7 +4045,7 @@ items:
       checksums.txt, so a binary swapped beside a genuine checksums.txt still runs; matters with a
       shared or restored ITOS_CACHE (launch.go:334-343).
     refs: [internal/launch/launch.go]
-    tags: [launcher]
+    tags: [launcher, v8]
 
   - id: p3-windows-hardlink-shim
     title: A hard-linked git shim on Windows stays manageable
@@ -4064,7 +4068,7 @@ items:
       install no interrupt handling, so the prompt returns while git and the editor still hold the
       console.
     refs: [internal/launch/run_other.go, internal/cli/extension_other.go]
-    tags: [windows]
+    tags: [windows, v8]
 
   - id: p1-ledger-id-grouping
     title: ledger.id is anchored as a group
@@ -4171,7 +4175,7 @@ items:
       blockSpan in initrules.go matches marker lines inside a fenced example, so an AGENTS.md
       showing the markers has its example replaced, or is refused as two blocks.
     refs: [internal/cli/initrules.go]
-    tags: [init]
+    tags: [init, v8]
 
   - id: p1-unknown-flags-refused
     title: Every command refuses an unknown flag
@@ -4212,7 +4216,7 @@ items:
       Found by the code review of 07b0e6d (2026-10-05). Superseding an already superseded record
       overwrites its link (cli/ask.go:546).
     refs: [internal/cli/ask.go]
-    tags: [ask]
+    tags: [ask, v8]
 
   - id: p1-failure-exit-codes
     title: An I/O failure exits 1, not 2
@@ -4307,7 +4311,7 @@ items:
       The user's call (2026-10-05): with formatters run on every commit, style is never the right
       type. This repository dropped it in T-098; the starter still lists it
       (internal/cli/starter.go), though there it needs a Task.
-    tags: [init]
+    tags: [init, v8]
 
   - id: p3-gate-changes-visible
     title: Gate changes made hard to miss, and a human's signature if ever cheap
@@ -4329,7 +4333,7 @@ items:
       too: a push moving it forward skips the commits it passes over in its own verify, as RangeArgs
       reads the head's config; reading it from the range's base would cost T-136-style escapes an
       extra push, so showing such a change is the lighter answer.
-    tags: [ci]
+    tags: [gates]
 
   - id: p3-marketplace-description
     title: The marketplace's plugin description says what the plugin does now
@@ -4342,7 +4346,7 @@ items:
       Found by T-097's agent (2026-10-05): .claude-plugin/marketplace.json still says the plugin
       says how to find work, commit and push through itos, out of date since T-092 dropped the
       skill, and unlike plugin.json.
-    tags: [plugin]
+    tags: [plugin, v8]
 
   - id: p3-path-refusal-once
     title: Name a refused path once when a scope's only and never both refuse it
@@ -4355,7 +4359,7 @@ items:
       A test commit touching tools/selftest/gates.ts is refused twice for the same path, once by
       test's only list and once by its never (T-098 gave test both): itos commit check-paths and the
       commit-msg hook print the same line twice. One line per refused path is enough.
-    tags: [commit]
+    tags: [commit, v8]
 
   - id: T-099
     title: The module path is github.com/donvargax/itos/v5, and this config holds nothing v5 removed
@@ -4387,7 +4391,7 @@ items:
       imports the old path; the agent committed the refactor with tools/bin edited but unstaged.
       Vetting the staged tree (a worktree of the index), or letting one commit carry a module move,
       would make the split honest.
-    tags: [hooks]
+    tags: [gates, v8]
 
   - id: T-105
     title: TestRollbackGitCannotStart takes seconds, not nine minutes
@@ -4425,7 +4429,7 @@ items:
       code review of 07b0e6d (gitshim.go linksItos and os.Link): after an upgrade replaces itos.exe,
       install and uninstall both refuse their own stale shim.
     refs: [internal/cli/gitshim.go]
-    tags: [windows]
+    tags: [windows, v8]
 
   - id: p1-untyped-ignored-headers
     title: Judge a one-parent commit whose lint-ignored header names no type
@@ -4443,7 +4447,7 @@ items:
       own is refused, would close the gap; it changes the conformance cases moves.yaml 'a message
       whose type is not one of commits.types is the header lint's, as a merge's is' and
       messages.yaml's version case, so it is the user's call.
-    tags: [commit]
+    tags: [commit, v9]
 
   - id: bug-46
     title: "Who the session is: one person needs no gh, and gh is bounded"
@@ -4468,7 +4472,7 @@ items:
       --why/--title/--add-check/--drop-check would write and commit it as task add does (writing
       only under stealth); changing a done task's checks asks a reason for the commit body, since it
       changes the evidence (T-008 and T-092's checks were changed by hand on 2026-10-05).
-    tags: [work]
+    tags: [work, v8]
 
   - id: p3-stealth-ledger-portability
     title: A stealth config's ledger, registry and questions exported and imported
@@ -4498,7 +4502,7 @@ items:
       stderr when a download starts, give the connection a short timeout so a dead one fails in
       seconds, and name the host and the file in a timeout's error. Audit every other network call
       likewise.
-    tags: [launcher]
+    tags: [launcher, v8]
 
   - id: p3-itos-repos
     title: itos repos, the status of every sibling repository at once
@@ -4573,7 +4577,7 @@ items:
       command kind, but itos tests moves <kind> stays Gherkin-only, its pinned message saying the
       rule reads feature files. Waits on slice-82 (q-15).
     refs: [internal/cli, features/moves-command.feature]
-    tags: [tests]
+    tags: [tests, v8]
 
   - id: T-100
     title: previous-release judges an old case by itos's machine output alone, and CI reads ci range and version through --json
@@ -4619,7 +4623,7 @@ items:
       scenario, the item or the commit is only in the message today (out.Problem is rule, message,
       fix). Each rule documents its keys; added after v6 they are additive (T-076).
     refs: [internal/out/out.go]
-    tags: [message]
+    tags: [message, v8]
 
   - id: T-133
     title: Document built-in and delegated JSON problem rule IDs
@@ -4754,7 +4758,7 @@ items:
       No extra renderer, ci-summary flag or implementation is needed for #27, and no GitHub closure
       was performed.
     refs: [docs/ORCHESTRATING.md, AGENTS.md, internal/guide]
-    tags: [docs]
+    tags: [agents, v9]
 
   - id: p1-agent-rules-suspend
     title: A permanent rule can be suspended, printed nowhere but kept, and restored if its mistake comes back
@@ -4768,7 +4772,7 @@ items:
       permanent one only stops being needed when models stop making the mistake, and nothing shows
       that. A suspended rule is printed nowhere; a sighting of its mistake restores it; one that
       stays suspended through a model release is deleted. The vanilla baseline, one rule at a time.
-    tags: [docs]
+    tags: [agents, v9]
 
   - id: p1-guide-as-rule-data
     title: itos's built-in guide and brief template are rule data, versioned with itos, with each project's rules layered on top
@@ -4831,7 +4835,7 @@ items:
       older release had them, listing them first, one breaking change each, for the user to keep or
       drop. Candidates: itos guide coordinate (itos go prints the same guide with the status) and
       help history such as work list's 'until v4.0.0' line. Not in v8 yet (the user, 2026-10-10).
-    tags: [config]
+    tags: [cli, v9]
 
   - id: p1-model-baseline
     title: "LeashBench: itos work replayed with the guidance on, gates only and off, across models and harnesses"
@@ -4867,7 +4871,7 @@ items:
       itos go's inbox shows it; a new model also makes a run due, and each results file names its
       model.
     refs: [docs/plans/leashbench.md]
-    tags: [tests]
+    tags: [agents]
 
   - id: p1-baseline-reminder
     title: A monthly workflow opens a LeashBench due issue, and a new model makes a run due
@@ -4902,7 +4906,7 @@ items:
       command the parse (values by name, the positional words) would leave one reader.
       readCommitFlags stays, since git commit reaches it through the shim unparsed.
     refs: [internal/cli/spec.go]
-    tags: [config]
+    tags: [architecture]
 
   - id: p1-unknown-command-help
     title: itos <command> --help of no command exits 2, as itos help <command> does
@@ -4916,7 +4920,7 @@ items:
       but itos nosuch --help still prints the main help and exits 0 (help.yaml's case an unknown
       command's help is itos's). Rule 12 of docs/CLI.md asks exit 2 for an unknown command either
       way; the case is a breaking change of its own.
-    tags: [message]
+    tags: [cli, v9]
 
   - id: p1-sequential-gate
     title: A project that works one item at a time can say so, and itos work take refuses parallel work
@@ -4943,7 +4947,7 @@ items:
       Backlog review of 2026-10-10, batch 1: folds in p1-checkout-lease: itos draft (slice-96)
       solved the coordinator's case; carry the enforcement half, a commit-msg refusal of a commit
       whose footer is not the doing item's, with free paths and a stale expiry.
-    tags: [work]
+    tags: [work, v8]
 
   - id: slice-96
     title: itos draft keeps the coordinator's pending changes, and promotes them when no work is going on
@@ -4966,7 +4970,7 @@ items:
       cannot make for a reason of its own exits 128, none of itos's codes (decision 36, docs/CLI.md
       rule 31). Classify it as push does: a hook's refusal 1, anything git reports without a kind
       70.
-    tags: [commit]
+    tags: [commit, v9]
 
   - id: T-103
     title: go-schema.ts's value-not-allowed case names hooks.manager, which v6 removed
@@ -5013,7 +5017,7 @@ items:
       kept for the old format. Open risk: whether agents keep the state current. followup note says
       on stderr when the state is older than the newest notes; watch how it goes, and change the
       design if it does not hold.
-    tags: [ask]
+    tags: [followup, v9]
 
   - id: p1-ask-20-duplicate
     title: Drop @ID-ASK-20, which checks what @ID-ASK-22 checks since slice 92
@@ -5069,7 +5073,7 @@ items:
       It fits the user's trunk model (a red full suite blocks the release, not the push, as Amp
       does). The 2026-10-15 audit's caution stands: reconcile with p1-agent-git-ci-contract before
       building.
-    tags: [ci]
+    tags: [ci, v8]
 
   - id: bug-47
     title: ci watch and push judge a run cancelled by a newer push by the newer run (#17)
@@ -5168,7 +5172,7 @@ items:
       itos draft lists a change by its header and paths only (slice-96), so a coordinator who
       drafted a spec in the morning cannot read what it holds, its patch and its whole message,
       before promoting it between agents, short of opening the patch file in the git folder.
-    tags: [work]
+    tags: [draft, v8]
 
   - id: p1-wrap-long-body
     title: Wrap a long commit body in linear time
@@ -5196,7 +5200,7 @@ items:
       2026-10-23, the user: fine with branches for parallel agents, since red main blocks them
       (every later push's CI inherits the red commit, #113, and work done refuses an item whose
       newest commit is red); queued after p1-ci-watch-failed-step, ahead of p1-evidence-pre-push.
-    tags: [push]
+    tags: [push, v8]
 
   - id: p1-parallel-pilot
     title: Two agents at once, each in its own clone or devcontainer, on items with disjoint refs
@@ -5209,7 +5213,7 @@ items:
       The user asked for parallel work (2026-10-06). A pilot of two, the coordinator watching main,
       before more. Waits on p1-pr-mode (the integration) and bug-41 (a superseded run read as a
       failure); drafts (slice-96) let the coordinator commit between.
-    tags: [work]
+    tags: [agents, v8]
 
   - id: p1-registry-merge
     title: The work registry merges without conflicts when two sessions change different items
@@ -5228,7 +5232,7 @@ items:
       comment: a ledger file conflicts the same way when one session's work done drops a task's
       done_when lines and another's task add or promote appends the next task right after them;
       whatever merges the registry should cover the ledgers too.
-    tags: [work]
+    tags: [work, v8]
 
   - id: p1-refs-overlap
     title: itos work warns when two doing items have overlapping refs or commit scopes
@@ -5240,7 +5244,7 @@ items:
     why: >
       Which items may run side by side is the coordinator judgement today; items carry refs, so itos
       can flag two doing items whose refs overlap. Found discussing parallel work, 2026-10-06.
-    tags: [work]
+    tags: [work, v8]
 
   - id: p1-pr-items
     title: A pull request names its item, its merge closes it, and work done reads merged-and-green from GitHub
@@ -5252,7 +5256,7 @@ items:
     why: >
       The user, 2026-10-06: pr mode can pair with GitHub for itos items, as the inbox already turns
       issues into items. Kept apart from p1-pr-mode so the switch stays small.
-    tags: [work]
+    tags: [push, v8]
 
   - id: T-109
     title: "docs/ARCHITECTURE.md is a map: per-package detail lives in package doc comments, history in the changelog"
@@ -5286,7 +5290,7 @@ items:
       Backlog review of 2026-10-10, batch 4: folds in p1-init-plugin-rule-22: in the same breaking
       change, --plugin <scope> requires its value and no longer takes no (docs/CLI.md rule 22, POSIX
       guideline 7), so --no-plugin is the one way to decline, with no second spelling kept.
-    tags: [init]
+    tags: [init, v9]
 
   - id: p1-init-plugin-rule-22
     title: init --plugin takes its scope always (docs/CLI.md rule 22), --no-plugin being the way to decline
@@ -5317,7 +5321,7 @@ items:
       whether it is a v6.x refactor or waits for the next major release. If it goes ahead,
       p1-init-plugin-rule-22 folds into it. itos-template uses kong from its start, its evidence for
       this.
-    tags: [config]
+    tags: [cli, v9]
 
   - id: p1-bot-dependency-prs
     title: Renovate dependency pull requests pass itos rules and merge themselves when CI is green
@@ -5350,7 +5354,7 @@ items:
       with itos.yaml (cooldown, commit types, rebase strategy). A Dependabot repository still needs
       the brief's default-branch workflow_run merge (no PR code checked out, least permissions, gh
       pr merge --match-head-commit, the latest run of every required workflow green).
-    tags: [ci]
+    tags: [ci, v8]
 
   - id: T-111
     title: CI checks that the built itos answers every command the Claude Code plugin calls
@@ -5400,7 +5404,7 @@ items:
       T-150 (2026-10-10) also found no command prints the declared tags: its check read them with
       config get work.tags and stripped the JSON. work list could name them, e.g. when --tag is
       given one work.tags does not declare.
-    tags: [work]
+    tags: [work, v8]
 
   - id: p1-no-policy-text-tests
     title: No test or self-test reads a policy file as text; a test of a gate runs the gate
@@ -5420,6 +5424,7 @@ items:
       Backlog review of 2026-10-10, batch 2: folds in p3-plugin-version-prose-reason: when
       plugin-version.ts's string check goes, reword itos.yaml's comments that say the plugin's skill
       is Markdown; the plugin holds none since T-092.
+    tags: [gates, v8]
 
   - id: T-129
     title: Conformance Git fixtures cannot loop through the shim, and every case cleans up within a deadline
@@ -5441,6 +5446,7 @@ items:
       lists nothing and exits 0, where docs/CLI.md rule 25 (check each argument before using it,
       refuse a bad one with exit 2) wants a refusal naming work.tags, as work add and work edit
       already refuse it.
+    tags: [work, v9]
 
   - id: p1-go-comments-without-history
     title: The Go code's comments say what and why, not which slice or bug made it
@@ -5461,6 +5467,7 @@ items:
       internal/ and cmd/ still name TypeScript modules (commit-data.ts's stagedDataIssues at
       hook.go:233, say); the same pass removes them.
     refs: [internal/, cmd/]
+    tags: [architecture, v8]
 
   - id: p1-tools-bin-unit-tests-in-ci
     title: CI runs the unit tests of the tools/bin programs a range changes
@@ -5486,6 +5493,7 @@ items:
       all of Azure storage; the choice is between naming the productionresultssa hosts, or itos ci
       watch printing the failed steps' annotations and log tail through api.github.com, which the
       allowlist has.
+    tags: [ci]
 
   - id: p1-devcontainer-nightly-build
     title: The nightly builds the devcontainer and proves its sandbox
@@ -5502,6 +5510,7 @@ items:
       allowlist applied after a restart, git the shim, a name outside the list refused and an
       address outside it rejected, go build and a commit through the hooks. A nightly step could
       build the image and run those probes, failing the run on any.
+    tags: [gates, v8]
 
   - id: p1-devcontainer-untested-gaps
     title: "The devcontainer's untested gaps: Docker's embedded resolver, a host uid other than 1000, arm64"
@@ -5517,6 +5526,7 @@ items:
       user, which it was not tested to do there; a host uid other than 1000 leaves /commandhistory
       unowned, since the base's sudo chown is gone; arm64 is built but never run. Each needs a probe
       like T-108's, best run by p1-devcontainer-nightly-build.
+    tags: [gates]
 
   - id: T-114
     title: The gates self-test touches a Go source without anchoring on its comment layout
@@ -5548,6 +5558,7 @@ items:
       false pass in a preview, not a gate: git stores no leading blank line and the hook now judges
       the cleaned header.
     refs: [internal/message/lint.go, internal/message/footers.go]
+    tags: [commit, v8]
 
   - id: bug-49
     title: work done judges a commit pushed with later registry-only commits by the run of their head
@@ -5570,6 +5581,7 @@ items:
       branch whose head has it (watchCovered). itos ci watch <sha> still waits for that commit's own
       run, so watching a commit pushed with later commits times out at ci.watch.timeout; itos push
       watches the head it pushed and is not affected.
+    tags: [ci, v8]
 
   - id: p1-watch-run-failed-with-no-failed-job
     title: A CI run GitHub failed with every job green reads as a red with no job named
@@ -5584,6 +5596,7 @@ items:
       answered 500. itos push printed CI failure naming no job, exit 1, a red with nothing to fix. A
       failed run with no failed job could say so and exit 75, as a cancelled run with no successor
       does: a rerun or a new push may pass.
+    tags: [ci, v8]
 
   - id: T-115
     title: The Windows platform job's features run well under go test's 10-minute limit
@@ -5607,6 +5620,7 @@ items:
       between them. Writing the hooks' entries into .git/config and the commit's sha from its output
       would cut that, and the job's headroom grows back as the suite grows; worth it only when the
       Windows Features step nears 300 s again.
+    tags: [tests, v8]
 
   - id: T-116
     title: Sessions in repositories that use itos report its problems once, after checking the release and searching the issues
@@ -5631,6 +5645,7 @@ items:
       each other's fresh folder aside, a window of microseconds between one's move and the other's
       rename. Both need a pin's checksums to change for a version already cached, which a release
       never does; decide whether either is worth a lock or a retry.
+    tags: [launcher]
 
   - id: slice-99
     title: itos draft edits a file change off the working tree, so a coordinator drafts specs while an agent holds the checkout
@@ -5652,6 +5667,7 @@ items:
       as any change, so a later session that wants to go on editing the copies has to know the
       edits/<id>/ layout from the help. Listing each edit draft's copies folder (and the paths in
       --json) would let it find them again.
+    tags: [draft, v8]
 
   - id: p1-previous-release-selftest-red
     title: previous-release's self-test passes again, and a gate runs it
@@ -5685,6 +5701,7 @@ items:
       done-task checks are the static ones alone: previous-release.ts went red unseen this way after
       T-106. Either the nightly runs every self-test, or a check refuses a self-test no step names.
     refs: [tools/selftest, itos.yaml]
+    tags: [gates]
 
   - id: T-118
     title: "Releases can be pre-releases: while itos.yaml says so, a major cuts vN.0.0-rc.N, marked pre-release, not latest"
@@ -5708,6 +5725,7 @@ items:
       files_after and json, so from the first release carrying hook install's new cases it judges
       more than it says: they should name git_config_after too (a ci change to
       tools/bin/previous-release, and its self-test's wording).
+    tags: [gates, v8]
 
   - id: p1-hook-install-refused-command
     title: hook install --json says which command a refused entry's command names
@@ -5723,6 +5741,7 @@ items:
       meant. T-113 pinned it as it behaves, so it is now contract: decide before v7 whether refused
       entries report what is there (likely what a script wants, beside a wanted key for what itos
       would write), and change it in the v7 bundle if so.
+    tags: [hooks, v9]
 
   - id: slice-146
     title: Show only the authoritative ledger specification for tasks
@@ -5764,6 +5783,7 @@ items:
       check recovery remain independent items.
     deferred: >
       Wait for the planned next major, as agreed in q-66.
+    tags: [work, v9]
 
   - id: p1-config-release-prerelease
     title: itos.yaml accepts release.prerelease, the marker that turns release candidates on
@@ -5900,6 +5920,7 @@ items:
       #92 (8.5.0): work drop's --why starting with a word and a colon is read as a footer and
       refused, and the refusal's fix points at the hook, not at the --why. The fourth independent
       report of this item (2026-10-05, 10-07, 10-10, #92).
+    tags: [work, v8]
 
   - id: T-124
     title: itos writes its coverage counters before it replaces itself with syscall.Exec
@@ -5927,6 +5948,7 @@ items:
       Dissolved by slice-106 (issue #28, the user's call 2026-10-08): the proof moves into CI,
       judged over the range since the last green run, and work done no longer runs it, so no item's
       own range is ever judged. Drop this once slice-106 lands.
+    tags: [proof]
 
   - id: p1-proof-json-outcome
     title: work done --json says whether the code proof ran, and on which base
@@ -5941,6 +5963,7 @@ items:
       one it never ran on (no proof.code, or commits that touch no code); only the close commit's
       body and stderr say so. A key such as proof: passed|not-run with its base, added, would say
       it.
+    tags: [proof]
 
   - id: p1-proof-check-timeout
     title: proof.code.check runs under a timeout, a hung provider refusing with exit 75
@@ -5954,6 +5977,7 @@ items:
       provider that hangs holds work done until someone kills it. itos-cc's mutation check runs
       nothing slow, so a bound such as hooks.commit_msg.check_timeout's would cost nothing; past it
       the check would be a temporary failure, never a pass.
+    tags: [proof]
 
   - id: T-125
     title: This repository's nightly reruns no done task's checks, and its done tasks keep none
@@ -5993,6 +6017,7 @@ items:
       sha paths never run there. Under v7's standing rules (p1-tools-bin-unit-tests-in-ci) the
       script gets a test CI runs (its cases, a fake git for the annotated and pre-release ones), and
       a workflow job uses the action by a release tag.
+    tags: [gates, v8]
 
   - id: slice-104
     title: A bug is a kind of its own, minted bug-<n> by work add --kind bug
@@ -6029,6 +6054,7 @@ items:
       registry, the ledger, the questions or the drafts change, before the reply is drawn. The
       user's call: a question gains a title, itos decision add --title, which itos decision prints
       and the titles show. Raises the plugin's version (T-074).
+    tags: [plugin, v8]
 
   - id: slice-106
     title: The code proof runs in itos ci run over the range, and work done no longer runs it
@@ -6059,6 +6085,7 @@ items:
       saved-results-only claim tracked by #45 and the overbroad whole-run proof assurance tracked by
       #35; T-180 corrects those prose claims while preserving behavior.
     refs: [README.md, internal/plan/data.go]
+    tags: [proof, v8]
 
   - id: slice-164
     title: Report optional code-proof summaries and reject explicit zero work
@@ -6074,6 +6101,7 @@ items:
       the CI step prints a line such as 1 function judged, 6 mutants killed, 0 excepted; a check
       that judged nothing while the range touches proof.code's paths fails the step, since it then
       proves nothing. After slice-106, whose CI step is where the line goes.
+    tags: [proof, v8]
 
   - id: p1-proof-empty-range
     title: A range with no readable start runs no code proof, and says nothing about it
@@ -6090,6 +6118,7 @@ items:
       that needs a green run runs anyway. Decide which it is and say so in the plan: judge from the
       root commit, fail the run, or list the proof as left out with the reason, the way a task not
       started is listed.
+    tags: [proof, v8]
 
   - id: p1-proof-status
     title: itos status does not say a repository has a proof, or that a run judged one
@@ -6103,6 +6132,7 @@ items:
       status never names proof.code: a reader cannot tell the repository measures its code at all,
       nor whether the run it reports carried the proof, until a run is red over a mutant. Say what
       the config holds and whether the run read it, as status says what it could not read.
+    tags: [proof, v8]
 
   - id: p1-agent-rules-ci-summary
     title: The rules block summarises CI steps instead of listing each one
@@ -6145,6 +6175,7 @@ items:
       adding the plugins entry beside --plugin and --no-plugin (p1-init-no-plugin), with the T-074
       version check learning the package.json. The titles drawing is held back as
       p3-opencode-titles, which waits on anomalyco/opencode#53019
+    tags: [plugin]
 
   - id: p3-opencode-titles
     title: The itos plugin draws each ID with its title in opencode, as it does in Claude Code
@@ -6164,6 +6195,7 @@ items:
       fixed it there), and the v1 display-only request #11864 was closed after 90 days. titles.ts
       itself is host-agnostic and moves as is; what is missing is the seam, so this waits on #53019
       and lands with the plugin (p3-opencode-plugin)
+    tags: [plugin]
 
   - id: p1-work-spec-files
     title: An item's spec names the files it will touch, derived where it can be
@@ -6186,6 +6218,7 @@ items:
       is labelled likely, never only, so an agent that trusts it still looks. One command (work
       spec, or a section on work show), composing with p1-tests-next-id-and-steps, which asks the
       same question of a slice's scenarios
+    tags: [work, v8]
 
   - id: p1-titles-beside-ids
     title: Every id itos prints for a person carries its title beside it
@@ -6205,6 +6238,7 @@ items:
       only itosis own text lacks it. --json stays exactly as it is (ADR-0035: machine output is the
       contract), and a footer keeps its id, since that is what a commit names; the rule is for the
       lines a person reads
+    tags: [message, v8]
 
   - id: T-127
     title: CI confirms a release without downloading one, and caches the launcher
@@ -6265,6 +6299,7 @@ items:
       savings. Coordinate with p1-agent-test-runs-once; preserve relevant integration coverage and
       the independent CI verdict.
     refs: [itos-cc.yaml, tools/bin/itos-cc-tests, docs/ORCHESTRATING.md]
+    tags: [proof]
 
   - id: p1-targeted-quality-evidence
     title: CI requires fresh coverage, CRAP, Scrap and mutation evidence for changed code
@@ -6358,6 +6393,7 @@ items:
         internal/proof/proof.go,
         docs/decisions/0044-no-coverage-threshold-mutants-judge-the-tests-and-fail-uncovered-refuses-untested-changed-code.md,
       ]
+    tags: [proof]
 
   - id: p1-mutation-fail-fast
     title: Adopt opt-in changed-function mutation fail-fast when the provider supports it
@@ -6379,6 +6415,7 @@ items:
       available and preserve targeted coverage, --since, explicit paths and freshness checks. No
       provider upgrade or new flag is assumed for the current slice.
     refs: [docs/ORCHESTRATING.md, itos-cc.yaml]
+    tags: [proof]
 
   - id: T-130
     title: Hand CI watching and item closure to the coordinator
@@ -6438,6 +6475,7 @@ items:
         internal/idcounter/counter_test.go,
         .github/workflows/ci.yml,
       ]
+    tags: [windows]
 
   - id: T-131
     title: Bound CI mutation rechecks and align proof commands with Go code paths
@@ -6462,6 +6500,7 @@ items:
       of the harness and of CI while a second implementation of refs, fast-forward pushes and auth
       sits under the code that most needs to match git. Worth revisiting only if git absence ever
       blocks a platform itos must run on.
+    tags: [architecture]
 
   - id: p1-line-endings-for-the-mutation-cache
     title: A .gitattributes keeps the bytes the mutation cache hashes, whatever core.autocrlf says
@@ -6477,6 +6516,7 @@ items:
       hashes exactly what the cache holds. A clone with Git for Windows default core.autocrlf=true
       checks CRLF out, every hash mismatches, the whole cache reads stale, and a cache refreshed
       there is stale in CI. Nothing in the repository enforces the line endings the cache assumes.
+    tags: [proof]
 
   - id: p1-windows-shell-on-the-path
     title: A windows clone without sh on the PATH runs neither a check nor a hook, and says so
@@ -6492,6 +6532,7 @@ items:
       at all. The features own programs now find sh beside git.exe (features/testdata/script-exe);
       the product does not, and init doctor says nothing about it. 39 scenarios fail on such a
       clone, which is the whole suite of checks.
+    tags: [windows, v8]
 
   - id: p1-follow-note-time-zone-on-windows
     title: A note time honours TZ on windows, as the scenario says it does
@@ -6507,6 +6548,7 @@ items:
       and every windows machine west of it fails the scenario. Reading TZ needs a zone database Go
       does not have on windows (time/tzdata embedded, or ZONEINFO), so this is a call about the
       binary size and not a small fix.
+    tags: [windows, v8]
 
   - id: T-135
     title: Every program in tools/ starts this repository's shell programs, windows included
@@ -6530,6 +6572,7 @@ items:
       judges, and every self-test that removes a scratch tree this way meets it on a windows clone,
       which the ci job never runs and the platform matrix does not either. Retrying, closing handles
       first, or leaving the tree are the ways out; which one is a call for whoever specifies it.
+    tags: [windows]
 
   - id: slice-108
     title: Initialize a fresh project from reusable itos policy without importing template work data
@@ -6603,6 +6646,7 @@ items:
     deferred: >
       The user (2026-10-17): too much work for the value; move commits.since by hand when old
       commits fail newer rules, until p1-verify-verdict-once's design.
+    tags: [verify, v8]
 
   - id: p1-written-yaml-formatter-stable
     title: The YAML itos writes passes this repository's formatter
@@ -6624,6 +6668,7 @@ items:
       hatch, built only when a consumer needs it, is an optional config command itos runs on the
       files it wrote, {files} filled in, before committing them.
     refs: [internal/cli/workwrite.go]
+    tags: [work]
 
   - id: T-137
     title: The formatter leaves the files itos writes under tasks/ to itos
@@ -6701,6 +6746,7 @@ items:
       front of the queue, behind p1-agent-git-ci-contract. No narrow or broad shell-analysis
       implementation was selected in q-67.
     refs: [internal/guard/guard.go, internal/guard/doc.go, features/guard.feature]
+    tags: [guard, v8]
 
   - id: slice-109
     title: ci range starts at commits.since when no green run gives a start
@@ -6801,6 +6847,7 @@ items:
       help.go:99 and cases.go:363. Every survivor of nightlies 39948599784 and 40018388348 is now
       killed or excepted; the next nightly draws fresh ones.
     refs: [internal/cli/gitshim.go, internal/cli/push.go, internal/work/propose.go]
+    tags: [proof]
 
   - id: slice-110
     title: init --policy derives a command adapter's smoke set
@@ -6824,6 +6871,7 @@ items:
       does not exist yet, rather than the policy file the person passed, so the message points at
       the wrong file to fix. Every refusal about the source's content should name the source.
     refs: [internal/cli/initpolicy.go]
+    tags: [init, v8]
 
   - id: p1-drop-mutation-cache
     title: Stop committing itos-cc's mutation cache
@@ -6849,6 +6897,7 @@ items:
       workdone, ask; ledger) are out of date and the new store packages have none, since recording
       one is a local mutation run q-41 rules out. docs/plans/slices-and-ports.md's line that each
       move carries its snapshots is dropped in T-227.
+    tags: [proof, v8]
 
   - id: slice-112
     title: init --policy keeps a smoke set the project already has when it passes the smoke check
@@ -6873,6 +6922,7 @@ items:
       derived set so points at the wrong check command. Comment lines only, so the data and the
       smoke rule are right.
     refs: [internal/cli/init.go, internal/cli/starter.go]
+    tags: [init, v8]
 
   - id: slice-158
     title: Record final evidence in the validated project close commit
@@ -6931,6 +6981,7 @@ items:
       p1-reusable-completion-evidence. Stealth persistence needs an explicit first-delivery boundary
       because that mode creates no close commit.
     refs: [features/work-evidence.feature, internal/cli/workdone.go, internal/cli/workwrite.go]
+    tags: [work, v8]
 
   - id: p1-decision-add-answer
     title: itos decision add --answer records a question already answered in one commit
@@ -6947,6 +6998,7 @@ items:
       read the same. Halves those commits and their pushes; slice-109's fallback to commits.since
       already covers the first-parent window they once overflowed. The user agreed 2026-10-10.
     refs: [internal/cli, internal/ask]
+    tags: [ask, v8]
 
   - id: p1-work-promote-kind-bug
     title: Decide whether work promote --kind takes bug
@@ -6959,6 +7011,7 @@ items:
       Slice 104 made bug a kind minted by work add --kind bug, but work promote still takes --kind
       slice|task only, and no spec says whether an idea found to be a bug should be promoted to one.
       If it should, promote needs a scenario minting bug-<n> as it mints slice-<n>.
+    tags: [work, v9]
 
   - id: p1-work-note-bug-spec
     title: Refuse a note on a bug as on a slice, its why being its feature file
@@ -6972,6 +7025,7 @@ items:
       (work.SpecKind, rule work-note-spec), and the registry's header says a bug's why lives in its
       feature file. Since slice 104 an item of kind bug is neither to SpecKind, so a note on one
       lands in the registry. A scenario should say whether bug joins SpecKind's kinds.
+    tags: [work, v9]
 
   - id: p1-unit-tests-never-mint-for-real
     title: No unit test can move the real id counter
@@ -6991,6 +7045,7 @@ items:
       (draftmint_test.go's mintingRepo does), and a guard refuses to mint when the process is a go
       test binary whose working folder is a real clone, or the counter's remote is injected.
     refs: [internal/cli/idmint.go, internal/cli/workmint_test.go, internal/cli/taskadd_test.go, internal/cli/draftmint_test.go]
+    tags: [tests, v8]
 
   - id: T-139
     title: "Cut v7.0.0: remove the pre-release marker"
@@ -7029,6 +7084,7 @@ items:
       Keep this idea for any later decision to add whole-tree proof execution; do not claim that a
       green full test run proves code when the configured proof was omitted. No new whole-run gate
       or deferral has been chosen.
+    tags: [proof]
 
   - id: slice-155
     title: Name scheduled code proof and explain when ranged proof is omitted
@@ -7062,6 +7118,7 @@ items:
       whole-tree mutation run, no output added to --tests-only execution or configured nightly
       execution. Those modes already have their own contracts.
     refs: [features/ci-proof-report.feature, internal/plan/data.go, internal/plan/plan.go, internal/cli/ci.go, internal/ci/ci.go]
+    tags: [proof, v8]
 
   - id: slice-131
     title: itos push --tag and --ref push a tag or another branch, never forced, and tags only when asked
@@ -7098,6 +7155,7 @@ items:
       empty-heading observation is not reproduced there. Keep it as historical migration context; do
       not invent a current release-generator fix or rewrite old release bodies from that observation
       alone.
+    tags: [upgrade]
 
   - id: slice-161
     title: Record ADR validation separately from decision acceptance
@@ -7114,6 +7172,7 @@ items:
       first probe. Wanted: a reader meeting a record can tell whether it has been tried, and a
       session about to build from one learns it before writing anything (a record proposed until
       something proves it, a warning, or an answered-but-unproven state).
+    tags: [ask, v8]
 
   - id: p1-flag-defaults-policy
     title: Each command's plain invocation is the recommended one, starting with itos init --agent-rules
@@ -7134,6 +7193,7 @@ items:
       remain explicit, and plugin/global shim installation stay opt-in. This parent retains the
       broader flag-default audit, which has no blanket default change authorized. Treat defaults by
       actual ordinary user intent and existing compatibility, not invert every opt-in flag.
+    tags: [cli, v9]
 
   - id: p1-testing-tiers-guide
     title: "The guide says which tier each gate belongs to: fast local, judging CI, thorough nightly"
@@ -7165,6 +7225,7 @@ items:
       before partial resolution or pinned execution; private stealth configs, in-tree alternatives
       and external policy-import documents remain supported. Shared external metadata and per-branch
       plan selection remain separate, undecided work, not claimed solved by the refusal.
+    tags: [config]
 
   - id: T-141
     title: The repository ignores local notes in .tmp/ and the metrics reports beside .metrics/mutate/
@@ -7197,6 +7258,7 @@ items:
       had to be corrected first. The exceptions and the cached results are the tests' own data;
       letting test commits touch them removes a commit and a briefing trap from every survivor fix,
       here and in each repository that copies this policy.
+    tags: [gates, v8]
 
   - id: p1-work-item-dates
     title: Work items carry added and since, and questions asked and answered, as RFC 3339 UTC datetimes
@@ -7219,6 +7281,7 @@ items:
       dates from git history as an automatic step of itos upgrade (p1-upgrade-applies-config-steps),
       never a one-time command, since until v10 a command kept only for one migration is cost with
       no need.
+    tags: [work, v8]
 
   - id: p1-work-backlog-summary
     title: "itos work summary shows the backlog's shape: counts, age, the queue's state and stale doing items"
@@ -7238,6 +7301,7 @@ items:
       whether their checks pass would replace all of it. Items with no dates show their age as
       unknown and are counted. Every coordinator does this review across many itos-driven
       repositories, so each script costs again.
+    tags: [work, v8]
 
   - id: slice-157
     title: Refuse mistaken bare ID-area stems with a valid full-stem correction
@@ -7273,6 +7337,7 @@ items:
       the current kind and registry, but a rejected alias never reserves an ID or contacts the
       counter.
     refs: [features/next-id-stems.feature, internal/cli/nextid.go, internal/tests/nextid.go, internal/cli/help.go]
+    tags: [tests, v8]
 
   - id: p1-drop-done-dependency
     title: Dropping an idea already built frees the items that wait on it, as work done does
@@ -7299,6 +7364,7 @@ items:
       dropped together should be judged as one change: an item whose only live dependants are
       dropped in the same command is free to drop, whatever the order the ids are named in. A
       grooming merge drops chains like this often.
+    tags: [work, v8]
 
   - id: p1-schema-contract-needs-declarations
     title: schema-contract refuses a config key dropped without a rename or removal declared
@@ -7313,6 +7379,7 @@ items:
       release has and this one lacks with no declaration would leave the value where no itos reads
       it. schema-contract (T-070) should refuse that range unless the schema declares it, so a
       forgotten declaration fails CI. A ci task.
+    tags: [gates, v8]
 
   - id: p1-notes-split-automatic-by-hand
     title: The release notes split what itos upgrade applies from what is left by hand
@@ -7326,6 +7393,7 @@ items:
       release schema declares, then By hand with the breaking changes and Upgrading footers. The
       release notes Upgrading section should split the same way, the declared renames and removals
       listed as applied by itos upgrade and the footers as what is left by hand.
+    tags: [release, v8]
 
   - id: p1-upgrade-data-steps
     title: itos upgrade applies data steps to the committed files itos writes, such as the work-item dates backfill
@@ -7340,6 +7408,7 @@ items:
       reader for an old format stays in the code. Its first use: crossing the release of
       p1-work-item-dates, fill each work item added and since and each question asked and answered
       from git history where missing, and commit the registry alone. No one-time command for it.
+    tags: [upgrade, v8]
 
   - id: p1-guide-red-first-live-fix
     title: itos guide work says how a fix to live scenarios goes red first
@@ -7355,6 +7424,7 @@ items:
       instead; one reading only the guide would split it wrong and be refused. The guide should say
       that for a fix to live scenarios, red first means running the changed scenarios before the
       code change and seeing each fail at its new step, all in the one fix commit.
+    tags: [agents, v8]
 
   - id: p1-show-slice-changed-scenarios
     title: work show lists the live scenarios a slice changes, not only those tagged with it
@@ -7369,6 +7439,7 @@ items:
       the agent's reading list missed what the slice changes. work show could also list scenarios
       whose spec comment or the slice's commits name the slice, or a slice could tag the scenarios
       it changes as well.
+    tags: [work, v8]
 
   - id: T-159
     title: The push proof judges the same site until the range's code changes, so fixing it does not draw a new one
@@ -7470,6 +7541,7 @@ items:
       the ids do not fit the header, and work.RegistryHeader reads one id after the verb, so work
       show lists none of them for an item they changed. Reading the comma list, and the ids a
       counted header's body names, would find them.
+    tags: [work, v8]
 
   - id: p1-core-changelog
     title: itos changelog writes the changelog from the commits, whole or by task, item or scenario
@@ -7496,6 +7568,7 @@ items:
       pinned by tools/bin/pinned, which stays). T-149 deletes tools/changelog.ts and the root
       cliff.toml without a replacement; lift this to build itos changelog when a consumer wants a
       history across releases, sharing work show's commit lookup.
+    tags: [release]
 
   - id: p1-core-cli-corpus-kind
     title: "itos runs a CLI's case corpus as a test kind: arguments, exit code, --json and files written"
@@ -7511,6 +7584,7 @@ items:
       go/cli branch is one). It enters itos core as a test kind beside the Gherkin and command kinds
       once its case format is designed as a public contract; until then T-144 keeps it a tool of
       this repository, so the format is not decided under the pressure of the move off Node.
+    tags: [tests]
 
   - id: p1-use-anti-context-bloat
     title: This repository runs anti-context-bloat, pinned, in place of tools/bin/doc-budget
@@ -7528,6 +7602,7 @@ items:
       itself. itos makes it a gate the way it runs itos-cc: pinned through tools/bin/pinned and run
       as a commit and CI step against caps. This item swaps the program for the tool here once the
       tool's first release is out; its own backlog lives in its repository.
+    tags: [gates]
 
   - id: T-152
     title: The push proof judges changed lines, covered by units, features or the corpus
@@ -7567,6 +7642,7 @@ items:
       current measurements. Keep this report idea for eventual explicit absorption after both tasks
       land; no product implementation or mutation campaign is part of specification.
     refs: [itos-cc.yaml, tools/itos/conformance, tools/bin/itos-cc-tests]
+    tags: [proof]
 
   - id: slice-119
     title: itos guide prints the procedure an agent reads before an action, and itos go is the coordinator's start
@@ -7608,6 +7684,7 @@ items:
       p1-agent-rules-as-data, and holding v8's release-candidate window open for that is weeks; the
       next major.
     refs: [docs/ORCHESTRATING.md, internal/guide]
+    tags: [agents, v9]
 
   - id: p1-draft-list-short
     title: itos draft lists a command draft by its command and id, not its whole command line
@@ -7624,6 +7701,7 @@ items:
       add p1-x, itos work edit p1-y --depends-on …) with long values elided; --json keeps the whole
       command.
     refs: [internal/cli]
+    tags: [draft, v8]
 
   - id: p1-work-edit-tag-many
     title: work edit adds or removes one tag across items, and tags several items differently in one commit
@@ -7643,7 +7721,7 @@ items:
       the hooks (this session's freeze took one work defer of 27 ids, which works). One shape for
       both: work edit reading a file of per-id changes (note, tags) and landing them as one commit.
     refs: [internal/cli]
-    tags: [work]
+    tags: [work, v8]
 
   - id: p1-v8-deprecation-sweep
     title: v8 drops the commands, flags and spellings kept only for compatibility
@@ -7672,6 +7750,7 @@ items:
       steps. The filled brief should say plainly that writing the missing step definitions is the
       test commit's job, and that only a scenario that passes before the fix, or fails in setup no
       step can fix, is a reason to stop.
+    tags: [agents, v8]
 
   - id: p1-guide-work-item
     title: itos guide work <item> prints the item after the guide, as itos work show does
@@ -7684,6 +7763,7 @@ items:
       Cut from p1-guide-before-action (2026-10-10): every implementing agent runs itos guide work
       and then itos work show <item>, two round trips to start. With an item, guide work prints
       both. Rules scoped to the item come later with p1-agent-rules-as-data.
+    tags: [agents, v8]
 
   - id: p1-doc-budget-procedures
     title: The doc budget caps the procedures, and holds the guides' essentials at their new size
@@ -7699,6 +7779,7 @@ items:
       the six procedures itos guide prints (internal/guide/brief.md, land.md, repair.md, decide.md,
       commit.md, push.md), each read before its step. A ci commit lowers the two caps and adds one
       per procedure; p1-use-anti-context-bloat later moves the caps to that tool.
+    tags: [gates, v8]
 
   - id: p1-guide-brief-handoff
     title: The brief template hands CI and closing to the coordinator, as itos guide land says
@@ -7769,7 +7850,7 @@ items:
       (a type or an exception judged by the diff being import lines only), or a hook that vets the
       staged tree, would make it one clean commit.
     refs: [itos.yaml, .vite-hooks/pre-commit]
-    tags: [commit]
+    tags: [gates, v8]
 
   - id: slice-126
     title: The launcher hands itos upgrade to the target version when it is newer, so each release applies its own steps
@@ -7828,7 +7909,7 @@ items:
       says so and prints the gh api command that adds the ruleset; it never changes the repository's
       settings itself. Offline or another host: one line saying it could not tell.
     refs: [internal/cli/init.go, internal/providers]
-    tags: [init]
+    tags: [init, v8]
 
   - id: p3-evaluate-cupcake
     title: Evaluate Cupcake against itos's guard for the harness-side rules
@@ -7874,7 +7955,7 @@ items:
       reach the changed lines, or leaving the proof to CI alone now that line scope makes surprises
       rare.
     refs: [itos.yaml, AGENTS.md]
-    tags: [ci]
+    tags: [proof]
 
   - id: T-153
     title: The previous-release self-test passes with the runner's native-git lookup
@@ -7950,7 +8031,7 @@ items:
       all-checks-before-minting wording: the first delivery provides bounded assurance, not a
       projection engine or a guarantee about future inputs.
     refs: [internal/cli/idmint.go, features/draft.feature]
-    tags: [work]
+    tags: [work, v8]
 
   - id: p1-ci-run-help-proof-check
     title: ci run's help says the code proof runs proof.code.check, which may judge fresh mutants
@@ -7973,7 +8054,7 @@ items:
       refactor type covers source-held documentation and comments, not relabeling any change to
       proof execution.
     refs: [internal/cli/help.go, internal/plan/plan.go, tools/itos/conformance/help.yaml, tasks/phase-1.yaml]
-    tags: [ci, docs]
+    tags: [proof]
 
   - id: p1-draft-decision-id
     title: draft add of decision add prints the q id it will take, and decision add takes its answer
@@ -7990,7 +8071,7 @@ items:
       for one decision already made. Print the id at draft add as the others do, and let decision
       add take --answer for a question asked and answered at once.
     refs: [internal/cli/draft.go, features/draft.feature]
-    tags: [work]
+    tags: [draft, v8]
 
   - id: p1-upgrade-already-refreshes-block
     title: itos upgrade on a project already on the newest release still rewrites a stale agent block
@@ -8007,7 +8088,7 @@ items:
       Also from that slice: a command line holding -- is not handed off; the called binary runs it
       as before.
     refs: [internal/cli/upgrade.go, features/upgrade-handoff.feature]
-    tags: [upgrade]
+    tags: [upgrade, v8]
 
   - id: T-154
     title: TestRefreshedRules passes on Windows
@@ -8030,7 +8111,7 @@ items:
       refactor passed silently over 79 paths. A path neither in the tree nor staged as deleted is a
       mistake in the call; say so (exit 2) rather than judge it.
     refs: [internal/cli/commit.go]
-    tags: [commit]
+    tags: [commit, v8]
 
   - id: T-155
     title: The push proof passes over launch.Main's not-handed return, an equivalent mutant
@@ -8071,7 +8152,7 @@ items:
       argued for), and decision answer refused the second (q-58 is already answered), so the final
       answer went into tasks/asks.yaml by hand before decision record. An answer not yet recorded as
       a decision should take a --replace or an appended answer, committed as answer does.
-    tags: [work]
+    tags: [ask, v8]
 
   - id: p1-decision-record-hook-lock
     title: decision record's commit passes a pre-commit hook that re-stages what it formats
@@ -8093,7 +8174,7 @@ items:
       Reproduced 2026-10-11 on q-60, the third failure in three tries today; records 47 to 49 were
       written by hand. Every decision recorded here now costs a hand-written record.
     refs: [internal/adr, features/ask.feature]
-    tags: [hooks]
+    tags: [ask]
 
   - id: p2-harvest-gitattributes
     title: A .gitattributes keeps every text file LF on every checkout
@@ -8154,7 +8235,7 @@ items:
       the user's ~/.claude/CLAUDE.md and ~/.agents/AGENTS.md, which only some harnesses read. A
       user-level itos setting (the tools, each one's repository and report form) that itos go prints
       for that user alone would make it harness-neutral. After v8.
-    tags: [cli, docs]
+    tags: [cli]
 
   - id: T-161
     title: The nightly judges every mutation site of the functions changed since the last green nightly, with strict coverage
@@ -8180,7 +8261,7 @@ items:
       <path>; keep an explicit file list, --pathspec-from-file included only if every line is a
       file.
     refs: [internal/shim/add.go]
-    tags: [commit, guard]
+    tags: [commit, guard, v8]
 
   - id: p1-help-cases-regenerate
     title: A command regenerates the corpus's help cases from the binary, with no extension on the PATH
@@ -8197,7 +8278,7 @@ items:
       program (or a corpus runner flag) writes them from the binary with the extensions hidden, as
       the features hide them (T-087).
     refs: [tools/itos/conformance/help.yaml, internal/cli/help.go]
-    tags: [tests, docs]
+    tags: [tests, v8]
 
   - id: p1-corpus-dev-binary-version
     title: The corpus's pin case passes with a plain go build binary, or says it needs a stamped one
@@ -8212,7 +8293,7 @@ items:
       as a real failure. Stamp the version the case needs, or have the runner say the case needs
       tools/bin/itos's stamped build.
     refs: [tools/itos/conformance/config.yaml, tools/itos/conformance/run.ts]
-    tags: [tests]
+    tags: [tests, v8]
 
   - id: p1-load-refuses-unusable-values
     title: Every command refuses the values config check finds no tool can use
@@ -8241,7 +8322,7 @@ items:
       ledger's minting (no ID twice). A pilot after v8; CI and itos-cc run it with a fixed seed so a
       mutant is not killed on one run and kept on the next. If it pays, a standard tier (#41).
     refs: [internal/work, internal/value]
-    tags: [tests, work]
+    tags: [tests]
 
   - id: p3-tla-id-counter
     title: "Pilot agent-formal-verify: a TLA+ model of the ID counter claimed on the remote, run by the nightly"
@@ -8278,7 +8359,7 @@ items:
       skills (reproduce first, how and why, interrogate) on demand in a scratch project, routing
       hook and poteto-mode off, and judge whether slices come back better. Beside
       p3-evaluate-cupcake.
-    tags: [docs]
+    tags: [agents]
 
   - id: p2-adopt-go-template-itos
     title: itos adopts go-template-itos (go/cli) as a linked project, its conflicts resolved and template-shaped improvements sent back as issues
@@ -8306,7 +8387,7 @@ items:
       p1-pin-actions-by-sha (the user's call); the adoption takes the template's versions only where
       they differ.
     refs: [docs/decisions, itos.yaml, go.mod]
-    tags: [release, docs]
+    tags: [gates, v8]
 
   - id: p1-work-merge
     title: work merge folds an idea into another item, keeping its why
@@ -8321,7 +8402,7 @@ items:
       (work show printed titles alone). A merge that appends each folded item's why to the target
       (an idea's why, or a slice's or task's spec as a note in the brief) and records the merge
       would keep it where the agent looks.
-    tags: [work]
+    tags: [work, v9]
 
   - id: p1-typed-items
     title: One kind of work item, typed by the conventional-commit type it becomes; an untyped item is an idea
@@ -8355,7 +8436,7 @@ items:
       store) is the type's or the record's. Weigh with p2-itos-data-store, which the store behind it
       may need, and with the slices refactor's tracker-store port (ADR-0053), which should not
       freeze today's per-kind files into its interface.
-    tags: [work]
+    tags: [records, v9]
 
   - id: p1-promote-renames-asks
     title: work promote renames the idea in the questions file too, as it does in every depends_on
@@ -8380,7 +8461,7 @@ items:
       refuses, so a scenario cannot set both; none needs it yet. Merge settings into one tree before
       writing, as the step now does for a key the base config already holds.
     refs: [features/steps_test.go]
-    tags: [tests]
+    tags: [tests, v8]
 
   - id: bug-105
     title: An answered question naming a renamed item is a warning, and work promote renames question links
@@ -8422,7 +8503,7 @@ items:
       Fossil tickets and a taskmapper-shaped issue provider are the two needs that will reshape it,
       likely at the record level (list, take, done, drop) above or beside the file adapter, in v9.
     refs: [internal/work, internal/providers]
-    tags: [work, providers]
+    tags: [work, providers, v8]
 
   - id: p2-pilot-mise
     title: Pilot mise in place of tools/bin/pinned, with the 7-day age rule kept
@@ -8444,7 +8525,7 @@ items:
       this. A v8.x pilot during the adoption; if it holds, replace pinned here and backport to
       go-template-itos as an issue.
     refs: [tools/bin/pinned]
-    tags: [ci, release]
+    tags: [gates]
 
   - id: p1-prepush-new-ref-base
     title: The pre-push hook judges a new tag or branch from the nearest commit the remote has, not as all new
@@ -8460,7 +8541,7 @@ items:
       nearest commit the remote already has (its commits on no remote-tracking branch are none), and
       run the pre-push commands only when it adds commits.
     refs: [internal/cli/hook.go]
-    tags: [push, hooks]
+    tags: [hooks, v8]
 
   - id: p1-prepush-refuses-tag-moves
     title: The pre-push hook refuses any update to a tag the remote already has, even onto a descendant
@@ -8475,7 +8556,7 @@ items:
       passes it, through the real git past the shim and guard. A tag is never moved (the release
       rule), so any update of an existing remote tag is refused, ancestor or not.
     refs: [internal/cli/hook.go]
-    tags: [push, hooks, release]
+    tags: [hooks, v8]
 
   - id: p1-shim-push-named-refs
     title: The git shim maps git push origin <tag> and -u origin <branch> onto itos push --tag and --ref
@@ -8492,7 +8573,7 @@ items:
       --tag and --ref, and say what itos push cannot take. Re-added under a new id, since a dropped
       item cannot be reopened (p1-typed-items' status commands).
     refs: [internal/shim]
-    tags: [push, guard]
+    tags: [push, v8]
 
   - id: T-158
     title: "Cut v8.0.0: remove the pre-release marker"
@@ -8518,7 +8599,7 @@ items:
       Met twice more on 2026-10-12: T-160 (the coordinator's own task) and T-169 (minted by
       slice-135's agent mid-slice, never taken), each a refused work done, then a take commit and a
       done commit.
-    tags: [work]
+    tags: [work, v8]
 
   - id: p1-pre-commit-windows
     title: The pre-commit hook formats on Windows
@@ -8534,6 +8615,7 @@ items:
       there. CI is unaffected: the format step runs on Linux and the platform jobs run no hooks.
       Either pinned learns dprint's Windows zip (x86_64-pc-windows-msvc) and Git Bash's uname, or
       the hook says plainly that it cannot format there.
+    tags: [gates, v8]
 
   - id: p1-drop-vite-hooks-path
     title: itos.yaml's config set stops naming .vite-hooks
@@ -8559,7 +8641,7 @@ items:
       exists. T-148 excused three of them from staticcheck's ST1005 with a lint:ignore rather than
       reword them, as rewording changes what itos prints: a fix with a scenario saying what each
       malformed registry is refused with.
-    tags: [work]
+    tags: [work, v8]
 
   - id: p1-shellcheck-scripts
     title: shellcheck lints the repository's shell scripts as a static step of CI's plan
@@ -8580,6 +8662,7 @@ items:
       2026-10-12: T-147 is dropped (the plugin's titles stay TypeScript, run by Claude Code), so
       this waits on nothing; the plugin's only shell is guard.sh.
     refs: [tools/bin/pre-commit, integrations/claude-code/hooks/guard.sh, itos.yaml]
+    tags: [gates, v8]
 
   - id: p1-work-show-closing-checks
     title: itos work show prints the checks a closed task was judged by
@@ -8598,7 +8681,7 @@ items:
       ledger under an inert key was weighed and turned down: it grows the ledger and reads as live,
       the confusion the user hit in another repository.
     refs: [internal/work, tasks/README.md]
-    tags: [work]
+    tags: [work, v8]
 
   - id: p1-archive-closed
     title: Closed items, tasks and answered questions move to an archive itos reads and agents need not
@@ -8620,7 +8703,7 @@ items:
       print the same text). The gain is grep noise as much as tokens. Not breaking (the user,
       2026-10-11): the files' readers are agents, who follow the rules' pointer, not programs bound
       to the layout, so it ships in a minor. Pairs with p1-work-show-closing-checks.
-    tags: [work]
+    tags: [records, v8]
 
   - id: p1-message-doc-header-agreement
     title: internal/message's doc comment stops naming the deleted header-agreement self-test
@@ -8635,7 +8718,7 @@ items:
       messages.yaml). internal/message/doc.go still says that file holds the built-in header lint to
       a recorded fixture of commitlint's verdicts. A refactor commit rewording that sentence to name
       what holds the lint now; T-143 left it, as its brief changed no Go under internal/.
-    tags: [docs]
+    tags: [docs, v8]
 
   - id: p1-gate-edit-without-task
     title: A small build or ci change can name the idea it does instead of a task
@@ -8653,7 +8736,7 @@ items:
       in_place_of, as other types allow), its done judged by the commit landing green, or let the
       policy name which types may name an idea. Weigh against keeping every gate change behind a
       task with a check.
-    tags: [commit]
+    tags: [commit, v8]
 
   - id: p1-build-go-no-caller
     title: "tools/bin/build-go has no caller: keep it as the one stamped build, or drop it"
@@ -8670,7 +8753,7 @@ items:
       stamped builds go through it, so the -ldflags line lives in one place, or it goes, with its
       covers rule and its .goreleaser.yaml mentions, when T-149 deletes tools/parity.
     refs: [tools/bin/build-go, itos.yaml, .github/workflows/ci.yml]
-    tags: [ci]
+    tags: [gates, v8]
 
   - id: p1-work-edit-rename-ref
     title: work edit renames one ref across every item that names it, in one commit
@@ -8687,7 +8770,7 @@ items:
       be one call and one commit, and a file move would not leave refs naming a path that is gone,
       which nothing checks today.
     refs: [internal/cli/workedit.go]
-    tags: [work]
+    tags: [work, v8]
 
   - id: p1-lint-names-footer-line
     title: The footer-leading-blank warning names the line git reads as the start of the footer, and why
@@ -8731,7 +8814,7 @@ items:
       normal hooks, unrelated staging and rollback follow existing decision writers. Auto-upgrade
       repair is now p1-upgrade-repair-question-links.
     refs: [features/decision-relink.feature, internal/cli/ask.go, internal/cli/configcheck.go, internal/ask/ask.go]
-    tags: [work]
+    tags: [ask, v8]
 
   - id: p1-upgrade-notes-tidy
     title: itos upgrade's notes leave out the steps it did, and group a commit's changed cases under one header
@@ -8765,7 +8848,7 @@ items:
       remaining substantive parent design is reconciling automatically completed operations with
       mixed free-text manual instructions without dropping genuine cleanup requests.
     refs: [internal/cli/upgrade.go]
-    tags: [upgrade]
+    tags: [upgrade, v8]
 
   - id: bug-107
     title: itos work show prints a task's ledger why twice
@@ -8817,7 +8900,7 @@ items:
       do, passes its files in its eight checks; drop the flag when T-191 closes, or once its checks
       pass cmd internal as the nightly step now does.
     refs: [itos.yaml, internal/idcounter/counter_file_windows.go]
-    tags: [ci]
+    tags: [proof, v8]
 
   - id: T-162
     title: The Go changed since the 2026-10-08 nightly is covered, and init.go's drawn survivor is killed
@@ -8865,7 +8948,7 @@ items:
       --exclude-identities). Waits on that release; until then T-161's step stays a sample, as the
       #41 progress comment should say.
     refs: [itos.yaml, tools/bin/nightly-base]
-    tags: [ci]
+    tags: [proof, v8]
 
   - id: p1-race-detector
     title: The unit tests run under the race detector in some tier
@@ -8879,7 +8962,7 @@ items:
       push watch and the feature runner are concurrent code, and a data race shows only under -race.
       Linux CI's unit step or the nightly; the cost per push decides which (rapid feedback: the
       nightly unless it is cheap).
-    tags: [ci, tests]
+    tags: [gates, v8]
 
   - id: p2-fuzz-parsers
     title: "Go fuzz targets for the parsers: commit messages and footers, the config, the YAML readers"
@@ -8930,7 +9013,7 @@ items:
       errors retain their existing behavior. Standalone ci watch has no push-range proof and retains
       existing 404 behavior. No new config, retry switch, extra remote fetch, push retry or policy
       change.
-    tags: [ci, push]
+    tags: [push, v8]
     refs: [features/watch-registration.feature, internal/cli/push.go, internal/cli/watch.go, internal/providers/watch.go]
 
   - id: slice-151
@@ -8954,7 +9037,7 @@ items:
       {from}/{to} and ITOS_FROM/ITOS_TO, including empty from for an all-history run. Explicitly
       warn that whole is currently accepted but has no effect; p1-ci-step-whole-inert owns resolving
       that mismatch, with no planner change hidden in this help work.
-    tags: [ci, docs]
+    tags: [ci, v8]
     refs: [features/ci-help.feature, internal/cli/help.go, internal/cli/configcheck.go, internal/config/defaults.go, internal/plan/ends.go]
 
   - id: p1-init-shim-under-pin
@@ -9018,7 +9101,7 @@ items:
       hook and over the range in CI as a static step; the nightly could scan the whole history. The
       user (2026-10-12): its own item, not waiting on p2-adopt-go-template-itos, which had folded it
       in on 2026-10-11.
-    tags: [ci, hooks]
+    tags: [gates, v8]
 
   - id: p1-pin-actions-by-sha
     title: Every action in the workflows is pinned to a commit SHA, the tag in a comment beside it
@@ -9032,7 +9115,7 @@ items:
       jobs by commit SHA, the ci job by tag (actions/checkout@v4), and a tag can move under a
       release. The user (2026-10-12): its own item, not waiting on p2-adopt-go-template-itos, which
       had folded in p2-harvest-pinned-actions on 2026-10-11.
-    tags: [ci]
+    tags: [gates, v8]
 
   - id: p1-nightly-report-names-steps
     title: The Nightly red issue names each failed step of the nightly plan, from ci run's failures
@@ -9083,6 +9166,7 @@ items:
       file holds a live scenario), so its scenarios cannot go live that way even when every one is
       named. The header check could ignore the wip tag alone when the rest of the header is
       unchanged and every scenario it brings live is allowed by Live.
+    tags: [tests, v8]
 
   - id: p1-moves-live-to-wip
     title: The moves rule refuses a live scenario turning @wip outside except_types, on a Gherkin kind as on a command kind
@@ -9138,7 +9222,7 @@ items:
       editing meanwhile, and itos push then refused for tracked changes no commit holds, so the take
       rode with the work. Either work take pushes itself, or itos push pushes the committed range
       past unrelated unstaged edits.
-    tags: [docs]
+    tags: [agents, v8]
 
   - id: p1-doc-budget-at-commit
     title: The pre-commit hook runs the doc budget when a capped file is staged
@@ -9180,6 +9264,7 @@ items:
       standing; a record superseding it would hold the security reason the code comments now carry
       alone.
     refs: [docs/decisions/0029-the-plugin-s-hooks-run-the-itos-the-repository-s-git-hooks-run.md, integrations/claude-code/hooks/guard.sh]
+    tags: [docs, v8]
 
   - id: T-168
     title: itos guide brief says which tier a new check belongs to, and a decision record holds why
@@ -9203,7 +9288,7 @@ items:
       it itself. A form with no question (--title, --context or a text naming where the call was
       made) would mint the number, write the record in the format and keep the list, as it does for
       an answered question.
-    tags: [ask]
+    tags: [ask, v8]
 
   - id: p1-task-type-fits-paths
     title: task add warns when a task's type cannot touch what its why and checks name
@@ -9218,7 +9303,7 @@ items:
       agent committed docs and the ledger kept type: feat. task add could read the paths its checks
       name and warn when the type's scope cannot touch them, or the ledger's type could be read as a
       default the commit may differ from.
-    tags: [work]
+    tags: [work, v9]
 
   - id: bug-109
     title: The footer-leading-blank warning names the line read as the start of the footer, and why
@@ -9262,7 +9347,7 @@ items:
       drops every absorbed idea so too ('Became T-165', 'Became bug-110'). work done <idea> --by
       <item>, accepted once that item is done, records the idea done by it, and work show lists it
       under that item.
-    tags: [work]
+    tags: [work, v8]
     refs: [internal/cli/workdone.go, internal/work/write.go, internal/work/registry.go, internal/work/show.go, features/work.feature]
 
   - id: slice-150
@@ -9294,7 +9379,7 @@ items:
       or a partial pin-write failure. Workflow bytes, staging and HEAD remain unchanged by
       reporting. Automatic action-ref updates are not needed to satisfy this report and are outside
       this delivery.
-    tags: [upgrade]
+    tags: [upgrade, v8]
     refs: [internal/cli/upgrade.go, action.yml, docs/decisions/0024-a-global-itos-is-a-launcher-that-runs-the-version-a-repository-pins.md, features/upgrade-command.feature]
 
   - id: T-169
@@ -9320,7 +9405,7 @@ items:
       provider endpoint not faked yet) and add the ci task beside the slice, so the agent neither
       mints one nor stops. itos guide brief could say so, or the corpus fake could answer from a
       case's files without a gate change.
-    tags: [docs, tests]
+    tags: [agents, v8]
 
   - id: T-170
     title: Run Linux push tests once while preserving three-platform coverage
@@ -9360,7 +9445,7 @@ items:
       executed once within that run; this is not permission to drop coverage or disable the
       independent CI verdict.
     refs: [internal/guide/brief.md, internal/guide/work.md, internal/guide/push.md, AGENTS.md, docs/ORCHESTRATING.md, tasks/README.md]
-    tags: [tests, docs]
+    tags: [tests, v8]
 
   - id: p1-agent-test-runs-once
     title: Agents rely on declared automated checks and avoid duplicate test runs
@@ -9421,7 +9506,7 @@ items:
       execution, not a source grep claiming functionality. Do not replace real feature/step
       assertions or weaken a gate as a shortcut to fewer runs.
     refs: [internal/guide/brief.md, internal/guide/work.md, internal/guide/push.md, AGENTS.md, tools/bin/go-unit-tests, itos.yaml]
-    tags: [tests, hooks, docs]
+    tags: [tests, v8]
 
   - id: T-173
     title: Build CLI hook fixtures without Git subprocesses
@@ -9448,7 +9533,7 @@ items:
       behavior and any coverage collection contract during adoption. This is separate from the
       completed implementation of registry-only CI routing and duplicate Linux job removal.
     refs: [features/README.md, itos-cc.yaml, itos.yaml]
-    tags: [tests, ci]
+    tags: [tests]
     deferred: >
       The user is validating the approach in another repository and will bring it here when ready;
       wait for that result before implementation.
@@ -9509,6 +9594,7 @@ items:
       points to this read-only view. This is a definition outline, not yet a promoted or
       scenario-backed item.
     refs: [internal/cli/workshow.go, internal/ledger/tasks.go, features/show.feature]
+    tags: [work, v8]
 
   - id: p1-guides-use-configured-footers
     title: Guides prescribe only commit links the project's footer policy supports
@@ -9571,6 +9657,7 @@ items:
       add does not depend on the promotion repair. The broad config-dependent brief renderer is
       still outside this delivery. Keep this report for explicit absorption after T-183 lands.
     refs: [internal/guide/brief.md, internal/guide/work.md, internal/guide/guide.go, internal/message/written.go]
+    tags: [agents]
 
   - id: slice-137
     title: Classify committed registry bookkeeping for workflow job selection
@@ -9614,6 +9701,7 @@ items:
       demonstration; there is no authorization here to change ci run execution or this repository's
       current helper.
     refs: [internal/cli/ci.go, internal/plan, tools/bin/ci-repo/main.go]
+    tags: [ci, v8]
 
   - id: slice-141
     title: Replace a command draft without losing its reserved ID
@@ -9638,6 +9726,7 @@ items:
       promotion using the retained ID. Depends on the shared preflight contract in
       p1-draft-checks-before-minting; not yet promoted or specified as scenarios.
     refs: [internal/cli/draft.go, internal/cli/draftmint.go, internal/draft, features/draft.feature]
+    tags: [draft, v8]
 
   - id: slice-139
     title: Validate decidable draft commit metadata before creating the draft
@@ -9664,6 +9753,7 @@ items:
       selective promotion and field-scoped rebasing. Any expansion to external lint execution
       requires a separate decision.
     refs: [internal/cli/draft.go, internal/message/written.go, features/draft.feature]
+    tags: [draft, v8]
 
   - id: p1-agent-git-ci-contract
     title: Separate Git validation, helper commands and ownership of CI follow-up
@@ -9696,6 +9786,7 @@ items:
       sequential in the shared checkout; the user is not adopting worktrees or parallel directory
       slices now. Revisit the policy review later in queue order.
     refs: [internal/guide/work.md, internal/guide/push.md, internal/cli/push.go, internal/guard/doc.go, integrations/claude-code/hooks/guard.sh]
+    tags: [agents, v8]
 
   - id: bug-111
     title: Name queue removals as dequeue commits
@@ -9727,6 +9818,7 @@ items:
       shared close commit. The evidence-binding part of #73 waits on the #71/q-70 design and is
       separate. This transaction is a prerequisite for batch completion (#70).
     refs: [internal/cli/workdone.go, internal/cli/workwrite.go, internal/work/write.go, features/work.feature]
+    tags: [work, v8]
 
   - id: slice-143
     title: Close several validated items in one commit
@@ -9758,6 +9850,7 @@ items:
       before checks or writes. This supersedes the deduplication sentence above; preserve input
       order only for distinct IDs.
     refs: [internal/cli/workdone.go, internal/work/several.go, features/work.feature]
+    tags: [work, v8]
 
   - id: T-177
     title: Explain automatic wrapping of scenario-ID footers
@@ -9766,6 +9859,7 @@ items:
     status: todo
     depends_on: []
     kind: task
+    tags: [docs, v8]
 
   - id: slice-144
     title: Show meaningful job and step transitions during CI watches
@@ -9789,6 +9883,7 @@ items:
       policy. Provider capability and exact transition format still need scenarios before
       implementation.
     refs: [internal/cli/watch.go, internal/providers]
+    tags: [ci, v8]
 
   - id: T-178
     title: State delegated publication scope explicitly in worker briefs
@@ -9797,6 +9892,7 @@ items:
     status: todo
     depends_on: []
     kind: task
+    tags: [agents, v8]
 
   - id: p1-repair-plan
     title: Plan failed-main restoration from mixed item history
@@ -9838,6 +9934,7 @@ items:
       day (verify on old commits) are the two cases it would have told apart. See
       p2-trunk-review-and-release.
     refs: [internal/guide/repair.md, internal/work/show.go, internal/cli/workshow.go]
+    tags: [agents, v8]
 
   - id: slice-145
     title: Use scenario specifications instead of copied idea prose for slices
@@ -9871,6 +9968,7 @@ items:
     refs: [internal/work/show.go, internal/work/write.go, internal/cli/workwrite.go, internal/guide/brief.md, features/work.feature]
     deferred: >
       Wait for the planned next major, as agreed in q-71.
+    tags: [work, v9]
 
   - id: slice-147
     title: Draft selected task fields and preserve unrelated ledger changes
@@ -9895,6 +9993,7 @@ items:
       editing acceptance. This is a request for finer granularity, not evidence of reproduced silent
       data loss.
     refs: [internal/cli/draft.go, internal/draft, internal/ledger, features/draft.feature]
+    tags: [draft, v8]
 
   - id: slice-148
     title: Promote selected drafts with dependency and independence checks
@@ -9930,6 +10029,7 @@ items:
       while dependents remain. Final hooks and normal partial-progress behavior remain authoritative
       after execution starts.
     refs: [internal/cli/draft.go, internal/draft, features/draft.feature]
+    tags: [draft, v8]
 
   - id: p1-ci-step-whole-inert
     title: Resolve the accepted but unused ci.steps whole flag
@@ -9947,6 +10047,7 @@ items:
       semantics. Do not teach whole:true as effective in help until settled. Source inspection only;
       no runtime regression reproduced yet.
     refs: [internal/config/schema.go, internal/config/types.go, internal/plan/plan.go]
+    tags: [ci, v9]
 
   - id: slice-152
     title: Group repeated upgrade report entries under one commit heading
@@ -9966,6 +10067,7 @@ items:
       their existing entries, ordering and shape. No interpretation or execution of footer prose and
       no change to upgrade edits.
     refs: [features/upgrade-notes.feature, internal/cli/upgrade.go]
+    tags: [upgrade, v8]
 
   - id: T-179
     title: Correct the embedded CI code-proof help and planner comment
@@ -9974,6 +10076,7 @@ items:
     status: todo
     depends_on: []
     kind: task
+    tags: [proof, v8]
 
   - id: p1-task-check-status-wording
     title: Distinguish passing task checks from work-item completion in task output
@@ -9996,6 +10099,7 @@ items:
       side remark (checks that grep a runbook pass before the evidence exists) is
       p1-task-signoff-check's.
     refs: [internal/cli/task.go, features/task.feature]
+    tags: [work, v8]
 
   - id: slice-166
     title: tests list gives each scenario a fingerprint of what it runs, and itos-cc's listing prints it (#112)
@@ -10024,6 +10128,7 @@ items:
       final result narrative after green 094e634b072f618cdd8aa4e252151fa758553bca; a full original
       refusal transcript was unavailable.
     refs: [internal/cli/workdone.go]
+    tags: [evidence, v8]
 
   - id: p1-upgrade-repair-question-links
     title: Repair question-item links during upgrade only from proven rename history
@@ -10040,6 +10145,7 @@ items:
       never guess or auto-clear. No automatic upgrade repair is included in the first
       explicit-relink delivery and no deferral has been chosen.
     refs: [internal/cli/upgrade.go, internal/cli/ask.go, internal/cli/configcheck.go]
+    tags: [upgrade]
 
   - id: bug-112
     title: Run commit-msg task checks from an isolated staged snapshot
@@ -10069,6 +10175,7 @@ items:
       default-policy change is chosen here. Existing installation behavior is not silently redefined
       by the active-shim detection fix.
     refs: [internal/cli/initshim.go, internal/cli/gitshim.go, internal/launch/launch.go]
+    tags: [init, v8]
 
   - id: bug-113
     title: Recognize an active launcher shim from a pinned init runtime
@@ -10096,6 +10203,7 @@ items:
     depends_on: [T-179]
     kind: task
     refs: [README.md, internal/cli/help.go, internal/plan/data.go, internal/proof/proof.go]
+    tags: [proof, v8]
 
   - id: T-181
     title: Build the conformance binary from the tested tree and split fixture coverage
@@ -10104,6 +10212,7 @@ items:
     status: todo
     depends_on: []
     kind: task
+    tags: [proof, v8]
 
   - id: T-182
     title: Dispatch listed mutation tests to features and conformance fixtures
@@ -10113,6 +10222,7 @@ items:
     depends_on: [T-181]
     kind: task
     refs: [itos-cc.yaml, tools/bin/itos-cc-tests, tools/bin/itos-cc-corpus, tools/bin/conformance]
+    tags: [proof, v8]
 
   - id: T-183
     title: Make guide commit-link examples conditional on the footer policy
@@ -10122,6 +10232,7 @@ items:
     depends_on: [slice-138]
     kind: task
     refs: [internal/guide/brief.md, internal/guide/work.md, internal/guide/commit.md]
+    tags: [agents, v8]
 
   - id: slice-159
     title: Write local agent rules by default on fresh initialization
@@ -10136,6 +10247,7 @@ items:
       --no-agent-rules opts out, reruns retain explicit rewrite, and plugin/global Git shim stay
       opt-in. Split this concrete default from the broader command-default audit.
     refs: [internal/cli/init.go, internal/cli/initrules.go, internal/cli/initrulesstealth.go, features/init.feature]
+    tags: [init, v9]
 
   - id: slice-160
     title: Refuse runtime project configs outside the working tree
@@ -10150,6 +10262,7 @@ items:
       execution, preserving private stealth configs and policy files read only as import input.
       Shared external metadata and per-branch planning are separate designs.
     refs: [internal/config/config.go, internal/config/stealth.go, internal/config/top.go]
+    tags: [config, v8]
 
   - id: slice-162
     title: Run explicitly selected live tests from the working tree
@@ -10164,6 +10277,7 @@ items:
       using existing configured selection. No WIP guarantee, red-proof interpretation, automatic
       commits, stashing or worktrees. The original idea retains WIP and red-first policy design.
     refs: [internal/tests/run.go, internal/tests/gherkin.go, internal/cli/tests.go]
+    tags: [tests, v8]
 
   - id: p1-historical-range-commands
     title: Define historical policy epochs for arbitrary range commands
@@ -10180,6 +10294,7 @@ items:
       borrowing a new command for old policy. No epoch segmentation or historical script checkout is
       chosen yet.
     refs: [internal/cli/verify.go]
+    tags: [verify]
 
   - id: p1-proof-summary-provider-adoption
     title: Adopt the common proof-summary envelope in the configured provider
@@ -10196,6 +10311,7 @@ items:
       do not claim issue #25 is fully visible to this consumer until adoption is covered. No
       provider patch or wrapper is implemented in the specification phase.
     refs: [itos.yaml, internal/proof/proof.go]
+    tags: [proof, v8]
 
   - id: T-184
     title: Document the missing v7 migration guidance and v8 distinctions
@@ -10205,6 +10321,7 @@ items:
     depends_on: []
     kind: task
     refs: [README.md, docs/upgrading.md, internal/idcounter/doc.go, internal/cli/nextid.go]
+    tags: [upgrade, v8]
 
   - id: T-185
     title: The Nightly red issue names each failed plan step and the mutation sites it found
@@ -10281,7 +10398,7 @@ items:
       238). Snapshots for 5 files: 742 KB. The user chose to wait for itos-cc#56 before local scoped
       runs replace q-41/q-55; with #56 the reruns would judge only survivors.
     refs: [itos.yaml, itos-cc.yaml, .metrics/mutate, docs/decisions, https://github.com/donvargax/itos-cc/issues/56]
-    tags: [ci, tests]
+    tags: [proof, v8]
     deferred: >
       Waits on itos-cc#56: committed Go results go stale on any test change one import hop away, so
       they cannot stay fresh here.
@@ -10300,6 +10417,7 @@ items:
       wording passes every gate and the Nightly red issue goes back to saying nothing of the plan's
       failures, unseen until a red night. A self-test could run itos ci run --nightly with failing
       fake steps, as ci-mutation-budget does, and feed its output to nightly-report's reader.
+    tags: [gates, v8]
 
   - id: T-188
     title: Verification starts at the last green commit again, so main's CI can be green
@@ -10332,6 +10450,7 @@ items:
       Filed as itos-cc#53 (2026-10-17). Meanwhile T-187 gives gluedAt's clause a continue (the
       user's call); when a pinned itos-cc fixes #53, take it out and close this.
     refs: [internal/message/header.go]
+    tags: [proof, v8]
 
   - id: p2-trunk-review-and-release
     title: Trunk-only work with review after the commit, keyed to items, and review debt gating release
@@ -10423,7 +10542,7 @@ items:
       gate on release rather than merge, and itos already releases only on green. How Amp meets
       SOC2's change approval without pre-merge review is not in the summary: worth finding out,
       since review after the commit as audit evidence would be a selling point.
-    tags: [review, ci, work]
+    tags: [review]
 
   - id: p2-security-agent-scan
     title: Try an autonomous security agent (Strix) on itos once its CLI surface is in scope
@@ -10442,7 +10561,7 @@ items:
       the workflows. If tried: read its curl installer first, run once against a git archive export
       in a scratch folder, never this checkout, with the key in a file only the user writes and a
       token budget. The user has Anthropic API credits for it.
-    tags: [ci]
+    tags: [gates]
 
   - id: p2-agent-shared-trunk
     title: Agents share one working tree and trunk through intent-carrying reads and writes
@@ -10482,7 +10601,7 @@ items:
       migrate then contract. Same author's piper and alchemy-celld share its stack (Effect for
       contracts and typed failures, XState for lifecycles, Alchemy for infrastructure, Cloudflare
       and celld as targets).
-    tags: [work, commit]
+    tags: [agents]
 
   - id: p2-itos-data-store
     title: "itos's data outgrows one YAML file per kind: per-item files, with SQLite as a derived index"
@@ -10506,7 +10625,7 @@ items:
       atomic writes for the derived part only. Fits v9's typed-items redesign; related:
       p1-archive-closed. Open: per-item files or events, the migration and the verify/moves rules
       over a split registry.
-    tags: [work, config]
+    tags: [records, v9]
 
   - id: p1-watch-step-function
     title: The CI watch decides each look in a pure step and bounds every pass by its deadline
@@ -10533,7 +10652,7 @@ items:
       checking the deadline before following a run would bound it. watch.go:138:95 (failing never
       giving up) is the same family: bounded only by the 600 s deadline.
     refs: [internal/cli/watch.go]
-    tags: [ci, push]
+    tags: [ci, v8]
 
   - id: p2-vcs-and-tracker-seams
     title: "itos runs over more than git and files: a VCS seam and a tracking seam, Fossil the first second backend"
@@ -10609,7 +10728,7 @@ items:
       in core behind the interface; extensions once it has survived two or three providers (far
       future).
     refs: [internal/providers, PLAN.md]
-    tags: [providers, work, commit]
+    tags: [architecture]
 
   - id: p3-github-alternative-notes
     title: "Notes for a separate product: an agent-first GitHub alternative, UI first, on Cloudflare"
@@ -10635,7 +10754,7 @@ items:
       code browser, working), DiffsHub, Pierre's Code Storage, Entire, joelhooks/rat-king (agent
       network, same stack). The user's view: the hosting players do not conflict with it; more
       differentiators to come from the user.
-    tags: [review, providers]
+    tags: [review]
 
   - id: bug-116
     title: A yes to init's rules question under a stealth config writes nothing
@@ -10659,6 +10778,7 @@ items:
       refusal writes nothing, but the shared counter moved. Mint after every check passes, or give
       the ID back on refusal. Also: a bug could take its phase from its refs' slice or default to
       the active phase, so the first try need not fail.
+    tags: [work]
 
   - id: T-189
     title: work promote ends a ledger error after the reservation as its check does
@@ -10681,6 +10801,7 @@ items:
       ledger entry, so a Task footer naming it is refused as an unknown task, the gap #54 met
       through promote. Either work add --kind task refuses and names task add, or it takes --type
       and --check and writes the entry as promote now does.
+    tags: [work, v8]
 
   - id: p1-uncommitted-git-failure
     title: A git that fails reads as changes no commit holds
@@ -10694,6 +10815,7 @@ items:
       git status as a file with changes, so a git that cannot run makes every registry writer refuse
       with '<file> has changes no commit holds', naming the wrong cause. It should report git's
       failure as the error it is.
+    tags: [work, v8]
 
   - id: p1-verify-verdict-once
     title: CI judges each commit's verify once and keeps the verdict, keyed by its SHA
@@ -10716,6 +10838,7 @@ items:
       shared with p1-mutation-results-committed and p2-itos-data-store. Still uncovered: commits
       left unpushed while rules change, and deleting a file with its rule in one push.
     refs: [internal/cli/verify.go, internal/providers/range.go]
+    tags: [verify, v8]
 
   - id: p1-task-check-failure-reason
     title: "itos task says why a check failed: stopped at its timeout, or the tail of its output"
@@ -10733,6 +10856,7 @@ items:
       or ledger.check.timeout); a failure shows the last lines of its output, or where the full
       output was written; --json carries a reason and an output tail.
     refs: [internal/check, internal/cli]
+    tags: [work, v8]
 
   - id: p1-ci-scope-empty-from-help
     title: ci scope's help says what an empty <from> does
@@ -10749,6 +10873,7 @@ items:
       author cannot rely on it without trying. One help line, such as 'An empty <from> (no range:
       run everything) prints docs_only=false.', and a scenario that holds it.
     refs: [internal/cli/help.go]
+    tags: [ci, v8]
 
   - id: p1-task-checks-once-at-done
     title: A task's checks run once, at work done, all of them, and are kept fast
@@ -10788,6 +10913,7 @@ items:
       it in the foreground past the harness shell timeout; the agent stopped it. A long check could
       run in the background or say up front how long it may take.
     refs: [internal/cli/workdone.go, internal/cli/hook.go, docs/decisions]
+    tags: [evidence, v8]
 
   - id: p1-inbox-marks-triaged
     title: The inbox marks the issues the registry already tracks
@@ -10804,6 +10930,7 @@ items:
       ledger, the questions and the feature files for '#<n>' and split the actionable list into new
       and tracked, naming the items for each tracked one.
     refs: [tools/bin/inbox]
+    tags: [gates, v8]
 
   - id: p1-windows-unit-selector-paths
     title: The affected-unit hook selects native Windows package paths
@@ -10822,6 +10949,7 @@ items:
       CLI package run, which passed; do not treat this gate exit zero as unit-test evidence until
       repaired.
     refs: [tools/bin/go-unit-tests]
+    tags: [gates, v8]
 
   - id: p1-cli-argument-fixture-starts
     title: CLI argument-error tests avoid unnecessary repository setup
@@ -10840,6 +10968,7 @@ items:
       earlier or claim a speedup by losing later assertions; restoring coverage skipped after
       refusingHook is separate work.
     refs: [internal/cli/workeach_test.go, internal/cli/workmint_test.go]
+    tags: [tests, v8]
 
   - id: T-190
     title: Build itos with Go 1.27.3, past the crypto/x509 vulnerability of 1.27.2
@@ -10878,6 +11007,7 @@ items:
       task the registry lists. Either commit --item accepts a ledger task and writes the Task
       footer, or the brief template in itos guide brief says --task for a task. The first removes
       the trap for every agent; the second only for the briefed ones.
+    tags: [commit, v8]
 
   - id: p1-fix-deps-releases
     title: A fix(deps) commit that bumps what the binary links releases a patch without code or scenarios
@@ -10896,6 +11026,7 @@ items:
       patch; the change must reach the binary (the toolchain line, or a module go list -deps
       ./cmd/itos names), else it is chore(deps) or build. Needs: per-scope rules in the commit
       config, or a built-in deps rule; release-version reading fix(deps).
+    tags: [release, v8]
 
   - id: T-193
     title: The features-scope self-test expects one run per Examples row of a Scenario Outline
@@ -10941,6 +11072,7 @@ items:
 
       Minimum git 2.51 (the user, 2026-10-21): no move or port may use a git feature newer than
       2.51. After the refactor, p1-hooks-before-git-2-54 is the first item, before the other issues.
+    tags: [architecture]
 
   - id: p1-conformance-only-by-name
     title: tools/bin/conformance --only takes a corpus file by its name as well as its path
@@ -10953,6 +11085,7 @@ items:
       bug-114's agent (2026-10-21): --only init.yaml failed with 'open init.yaml: no such file or
       directory'; only tools/itos/conformance/init.yaml worked. A bare name resolved against the
       corpus folder saves a retry each time an agent runs one corpus file.
+    tags: [tests, v8]
 
   - id: bug-118
     title: itos push tells an append clash in the registry from a same-item clash, and never advises rebase --skip for it
@@ -10975,6 +11108,7 @@ items:
       which ones touch internal/cli, and parsed tasks/work-items.yaml with Python: work show takes
       one item, work list prints no fields beyond id, kind, status and title. A --fields option (or
       work list --json carrying every field) answers it read-only.
+    tags: [work, v8]
 
   - id: T-194
     title: "The gates of itos-cc's layout: pinned golangci-lint with depguard, architecture-check and its fixtures"
@@ -11015,6 +11149,7 @@ items:
       refuse naming git branch --set-upstream-to=origin/<main>, or push to the configured main
       branch. The guard also refuses git push --delete, so the stray branch needs gh api to remove:
       the push could say which branch it created.
+    tags: [push, v8]
 
   - id: T-197
     title: "The corpus runner judges json: less message, fix and text, and json_has: matches a subset"
@@ -11132,6 +11267,7 @@ items:
       provider gave is not among the people. work done --json gives ci unwatched but not that
       whether its commits are pushed went unchecked for want of a remote. verify --json names no
       problem or rule for a failing commit, as above.
+    tags: [message, v8]
 
   - id: p1-lint-itos-cc-linters
     title: Turn on the itos-cc linters the tree fails today
@@ -11153,6 +11289,7 @@ items:
       reasons, and whether the fmt writes are excluded from errcheck. Fixing them is product code,
       so beside or after the moves of docs/plans/slices-and-ports.md.
     refs: [T-194]
+    tags: [architecture, v8]
 
   - id: p1-testdata-path-type
     title: Give tools/testdata a change type
@@ -11173,6 +11310,7 @@ items:
       not build until the next ci commit. The refactor type's paths could include tools/** Go code
       callers, or the split rule could allow tools/** with internal/** in one refactor.
     refs: [T-194]
+    tags: [gates, v8]
 
   - id: p1-previous-release-pins-script-outputs
     title: previous-release judges the script-facing plain outputs exactly
@@ -11321,7 +11459,7 @@ items:
 
       Designed as a type of p1-typed-items' one record (the user, 2026-10-21), not as a command
       group of its own; built after it, or as its pilot.
-    tags: [followup]
+    tags: [records, v9]
 
   - id: p1-followup-topics
     title: A followup thread is on a topic, with zero or more people, not with one person only
@@ -11338,7 +11476,7 @@ items:
 
       Designed as a type of p1-typed-items' one record (the user, 2026-10-21), not as a command
       group of its own; built after it, or as its pilot.
-    tags: [followup]
+    tags: [followup, v9]
 
   - id: p1-followup-drafts
     title: A followup note is a draft until sent, and a draft can be edited before it is
@@ -11356,7 +11494,7 @@ items:
 
       Designed as a type of p1-typed-items' one record (the user, 2026-10-21), not as a command
       group of its own; built after it, or as its pilot.
-    tags: [followup]
+    tags: [followup, v9]
 
   - id: p1-followup-supersede
     title: A followup note can supersede an earlier one, instead of the newest winning by convention
@@ -11374,7 +11512,7 @@ items:
 
       Designed as a type of p1-typed-items' one record (the user, 2026-10-21), not as a command
       group of its own; built after it, or as its pilot.
-    tags: [followup]
+    tags: [followup, v9]
 
   - id: p1-risk-register
     title: "A risk register: risks with likelihood, impact, owner, mitigation and status, shown beside the work"
@@ -11393,7 +11531,7 @@ items:
 
       Designed as a type of p1-typed-items' one record (the user, 2026-10-21), not as a command
       group of its own; built after it, or as its pilot.
-    tags: [work]
+    tags: [records, v9]
 
   - id: p1-session-artifacts
     title: A session records the scripts and outputs it produced, with their paths, so the next session can find them
@@ -11412,7 +11550,7 @@ items:
 
       Designed as a type of p1-typed-items' one record (the user, 2026-10-21), not as a command
       group of its own; built after it, or as its pilot.
-    tags: [status]
+    tags: [records, v9]
 
   - id: p1-session-handoff
     title: itos status shows what is in flight, so no session writes a handoff
@@ -11442,7 +11580,7 @@ items:
       .git/itos/notes.md goes back to facts true only of this clone, and the rule to prune it at
       each coordinator start goes with it. No itos handoff command; the typed-record dependency
       above no longer applies.
-    tags: [status]
+    tags: [status, v8]
 
   - id: p1-doc-references
     title: Reference documents an area's work should read, tracked so briefs and agents find them
@@ -11462,7 +11600,7 @@ items:
 
       Designed as a type of p1-typed-items' one record (the user, 2026-10-21), not as a command
       group of its own; built after it, or as its pilot.
-    tags: [docs]
+    tags: [records, v9]
 
   - id: p2-shared-docs
     title: Docs that hold for several repositories are kept once, not copied into each
@@ -11530,7 +11668,7 @@ items:
       the message already ends with. A config key such as commits.trailers: ["Name: value"], written
       last on every commit itos makes and kept last by itos commit, settles both. The report's stray
       blank lines after work done's message did not reproduce here.
-    tags: [commit]
+    tags: [commit, v8]
 
   - id: p1-upgrade-consumer-summary
     title: itos upgrade opens with what a consumer must decide, and leaves itos's own changed cases out
@@ -11545,7 +11683,7 @@ items:
       them; the three decisions it needed were buried. Print per release the breaking changes and
       Upgrading notes first, then the config edits made; summarise Changes on purpose as one count
       per release unless asked for (--cases).
-    tags: [upgrade]
+    tags: [upgrade, v8]
 
   - id: p1-push-skips-ignored-paths
     title: itos push and ci watch expect no run when the watched workflow's push trigger ignores every changed path
@@ -11561,7 +11699,7 @@ items:
       file ci.watch.github.workflow names, at the pushed commit, apply GitHub's matching (negations
       included), and say no run is expected (exit 0). Reading the workflow is preferred to a
       ci.watch.ignore_paths key, which drifts.
-    tags: [push]
+    tags: [push, v8]
 
   - id: p1-take-without-people-says-so
     title: work take says when it records no owner, and work show does not read a doing item as nobody's
@@ -11576,7 +11714,7 @@ items:
       work show then lists an item in progress as owner nobody. The help names the no-people case
       beside stealth, the take's output says it recorded no owner, and config check could warn that
       takes will record none.
-    tags: [work]
+    tags: [work, v8]
 
   - id: p1-work-show-deferred
     title: work show says an item is deferred or blocked, and why
@@ -11589,7 +11727,7 @@ items:
       #93 (8.5.0): work show is what a coordinator and an agent read before taking an item, and for
       a deferred one it says only status: todo, so it reads as ready (work take does refuse it).
       Print deferred: <why> and blocked by: <why> under the status, as itos work lists them.
-    tags: [work]
+    tags: [work, v8]
 
   - id: p1-go-without-config
     title: itos go where there is no config says so and stops, naming both init modes
@@ -11603,7 +11741,7 @@ items:
       only itos init, then the coordinator guide that cannot apply, exit 0. Print what is missing,
       itos init (and what a tracked init adds to every commit) and itos init --stealth, and stop
       with exit 3 (the environment lacks something), so a wrapper can tell it from a normal go.
-    tags: [cli]
+    tags: [cli, v8]
 
   - id: p1-defer-until
     title: work defer takes a date from which itos work and itos status list the item as due to resume
@@ -11617,7 +11755,7 @@ items:
       its free-text reason, where nothing reads it, so the item stays out of sight. work defer
       --until <date> keeps the date beside the reason; from that date itos work and status list the
       item as due. Same date form as p1-work-item-dates.
-    tags: [work]
+    tags: [work, v8]
 
   - id: p1-queue-closed-anchor
     title: A queue draft anchored on the item in progress still promotes after that item closes
@@ -11632,7 +11770,7 @@ items:
       reads an anchor that left the queue by closing as its old place, or draft add warns that the
       anchor will leave the queue and names --top when it is the doing head. The warning is
       preferred: remembering old places is state for little gain.
-    tags: [work]
+    tags: [work, v8]
 
   - id: p1-commit-hints-doing-item
     title: itos commit names the committer's item in progress when a commit that could link it does not
@@ -11646,7 +11784,7 @@ items:
       and nothing said so. When the committer owns exactly one doing item and the type accepts its
       footer without requiring it, print one line naming the item and the flag; add nothing.
       p3-guard-replacement's guided commits replace it.
-    tags: [commit]
+    tags: [commit, v8]
 
   - id: p1-smoke-beside-feature
     title: A feature file can declare its own smoke scenario, so the smoke set needs no shared file
@@ -11662,7 +11800,7 @@ items:
       sidecar the smoke config globs would let tests smoke check keep its rule (one live entry per
       file) without the shared list. The tag is preferred. Matters as soon as several lanes add
       feature files (the slices refactor's step 9).
-    tags: [tests]
+    tags: [tests, v8]
 
   - id: p1-decision-record-amends
     title: decision record --amends <n> links the new record and the one it amends, both ways
@@ -11677,7 +11815,7 @@ items:
       its amendment; this repository links ADR-0035, 0052 and 0054 by hand. --amends <n>
       (repeatable) writes Amends ADR-n in the new record and Amended by ADR-new in n, status kept,
       one commit; config check holds the links as it holds supersede links.
-    tags: [ask]
+    tags: [ask, v8]
 
   - id: p1-done-says-checks-end
     title: work done says which checks stop running when it closes a task, and where a lasting one belongs
@@ -11692,7 +11830,7 @@ items:
       design, but work done can name the checks it removes and say that one meant to keep running
       belongs in ci.steps or ci.nightly.steps; a lasting mark that moves a check there at close is
       the larger option.
-    tags: [work]
+    tags: [work, v8]
 
   - id: p1-task-signoff-check
     title: A task can require the person's evidence at work done instead of, or beside, its checks
@@ -11711,7 +11849,7 @@ items:
       q-91 decided (ADR, the user 2026-10-21): the guarantee is a close commit signed with the
       person's own sign-off key (distinct from keys signing ordinary commits; hardware touch or
       passphrase), verified in CI; evidence alone is not enough.
-    tags: [work]
+    tags: [work, v8]
 
   - id: p1-check-message-help-tree
     title: commit check-message's help says which tree it reads footer ids at when no --at is given
@@ -11724,7 +11862,7 @@ items:
       #106: its help says only that --at reads the footers' ids at that commit; with no --at a
       read_at: commit footer is read at the staged tree (the index) and others at the working tree,
       which a person checking an unstaged untagging does not expect.
-    tags: [commit]
+    tags: [commit, v8]
 
   - id: p1-registry-only-policy
     title: A documented policy file sets up a registry-only repository through itos init --policy
@@ -11738,7 +11876,7 @@ items:
       a shipped, documented policy file for itos init --policy: the registry, queue, decisions and
       deferrals, no required footers, no smoke set, no CI plan. First verify such a policy passes
       init and config check; a gap it finds is a fix in init or config check, not a new mode.
-    tags: [init]
+    tags: [init, v8]
 
   - id: p1-push-retry-moved-remote
     title: itos push retries, up to three times, a push the remote refused because it moved
@@ -11754,7 +11892,7 @@ items:
       three tries, each reported, and only for that refusal. Today push.go says a refused push is
       never retried, on purpose; that comment and its help change. p1-pr-mode would remove the race
       later.
-    tags: [push]
+    tags: [push, v8]
 
   - id: slice-165
     title: "itos's hooks run on a git older than 2.54: hook files in the hooks folder git uses, chained with any there, where config hooks do not run"
@@ -11780,7 +11918,7 @@ items:
       behind the same VCS port could serve those reads. Measure first: profile itos status, verify
       and work show on this repository and count git spawns; build it only where spawns dominate. It
       never writes, never runs hooks, and the contract suite holds it to the git adapter's answers.
-    tags: [providers]
+    tags: [architecture]
 
   - id: T-224
     title: Tests cover the paths T-218 re-plumbed in commit, push, work show and work write
@@ -11804,7 +11942,7 @@ items:
       coordinators most often catch when landing. A guide step, not a gate. Not proposed:
       swarm-forge's role pipeline.
     refs: [internal/guides]
-    tags: [work]
+    tags: [agents, v8]
 
   - id: p1-agent-questions
     title: Agents' questions to the coordinator are recorded beside the item, with their answers
@@ -11819,7 +11957,7 @@ items:
       records it. Something like an ask and an answer kept with the item, distinct from itos
       decision (the person's), leaves the grant where the next reader of the item's commits looks.
       Waits on the parallel pilot, where the need shows.
-    tags: [work]
+    tags: [agents, v8]
 
   - id: p1-work-done-wip-examples
     title: work done refuses or names a closing slice's Examples blocks still tagged @wip
@@ -11833,7 +11971,7 @@ items:
       waiting on a harness change), and the close said nothing: the closing check seems to read
       scenario-level tags only. Refuse, or name the example-level @wip blocks the close leaves.
     refs: [internal/tests/gherkin.go, features/work.feature]
-    tags: [work]
+    tags: [work, v8]
 
   - id: p1-commit-adds-untracked-paths
     title: itos commit <paths> adds the untracked files it is given
@@ -11846,7 +11984,7 @@ items:
       From #111. itos commit with a new untracked path fails with the pathspec did-not-match error
       from git, so the agent adds it by hand first. A path named explicitly is the caller's file;
       adding it keeps the explicit-path rule the shim enforces.
-    tags: [commit]
+    tags: [commit, v8]
 
   - id: p1-push-red-descendant
     title: push and ci watch say a followed descendant run's red may be other commits' and name them
@@ -11868,7 +12006,7 @@ items:
       reported that red as T-231's. Also: CI seeds the push proof by the range's start, so while
       main is red every later push draws the same site and stays red until the repair lands.
     refs: [internal/providers]
-    tags: [push, ci]
+    tags: [push, v8]
 
   - id: bug-119
     title: A git that fails as itos reserves an ID exits 70 again, as v8.5.2 does, not 3
@@ -11918,6 +12056,7 @@ items:
       reaches the disk only through the tracker port, so Transact should make the folders above a
       created document and remove those it made when it puts the documents back, with a contract
       case, and ask.go should drop madeDirs and unmake. Found during T-226.
+    tags: [architecture, v8]
 
   - id: T-228
     title: "Engines have a home and a gate: internal/engine with depguard rules and architecture fixtures"
@@ -12012,7 +12151,7 @@ items:
       contract or adapter tests does. Add the case at the adapter (and the contract, if the fake
       should hold it too), so the cli test can go when work becomes a slice.
     refs: [internal/store/tracker/adapter]
-    tags: [work]
+    tags: [architecture, v8]
 
   - id: T-276
     title: Raise the pinned itos-cc from v0.12.0 to v0.26.0
@@ -12082,7 +12221,7 @@ items:
       line executes), not words in data passed to another program; where a command line cannot be
       parsed, say which construct and what to do instead. Related: p1-guard-follows-cd (#69).
     refs: [internal/slices/guard, internal/guard, integrations/claude-code/hooks/guard.sh]
-    tags: [guard]
+    tags: [guard, v8]
 
   - id: p1-commit-nil-config-panic
     title: itos commit panics where there is no config
@@ -12306,7 +12445,7 @@ items:
       bound in run<Name>, and the allow list drop them, as ADR-0053 puts the outside world behind
       ports. After step 9.
     refs: [.golangci.yml, internal/providers, internal/release, internal/shell]
-    tags: [cli]
+    tags: [architecture, v8]
 
   - id: bug-120
     title: itos commit run where there is no itos config hands the command to git instead of panicking
@@ -12340,7 +12479,7 @@ items:
       internal/kind (or out) as one exported function that cli's ExitCode and the slices call; v9's
       exit codes (ADR-0053, 80-82, 100, 130) then change in one place. After step 9's lanes.
     refs: [internal/kind, internal/cli/cli.go, internal/slices/pin]
-    tags: [cli]
+    tags: [architecture, v8]
 
   - id: T-269
     title: The pre-push hook runs staticcheck when Go changed, as it runs golangci-lint
@@ -12387,6 +12526,7 @@ items:
       Correction (T-249's agent, 2026-10-22): the second read's error branch is now covered by a
       test with a fake that refuses the second Show, so the push proof no longer counts it
       uncovered; the idea stands for reading the stealth footers once.
+    tags: [hooks, v8]
 
   - id: p1-scratch-author-date
     title: scratch test repositories clear the author date a hook exports
@@ -12403,6 +12543,7 @@ items:
       TestStagedDataIssues passed run by hand and failed under the hook until it cleared the date
       itself (T-249). Clearing GIT_AUTHOR_DATE and GIT_COMMITTER_DATE in scratchFolder, notesRepo
       and gitConfigRepo would keep a test from passing or failing by where it runs.
+    tags: [tests, v8]
 
   - id: p1-record-glue-in-engine
     title: The record glue the slices copy (hold, write around record.Write, the refusal printing) lives in the record engine
@@ -12419,7 +12560,7 @@ items:
       T-271: the draft slice's inPlace still reaches os.Getwd directly (its test skips on Windows);
       with the Getwd port it can take it through Ports.
     refs: [internal/engine/record, internal/slices/task, internal/slices/decision]
-    tags: [work]
+    tags: [architecture, v8]
 
   - id: T-272
     title: Tests cover the branches the init slice's move left uncovered
@@ -12443,6 +12584,7 @@ items:
       keeps configPath and loadConfigFile methods; status (T-263) will need the same.
       internal/config could give it once (the path, the config, or why it cannot be read, or that it
       is not there), so the slices stop carrying copies of the same glue.
+    tags: [architecture, v8]
 
   - id: p1-stealth-rules-terminal-yes
     title: A yes at the terminal writes the rules for agents under a stealth config
@@ -12475,6 +12617,7 @@ items:
       T-267 found workArgs, workArgsEmpty, workArgsParsed and trackedText the same way. A check over
       the non-test build, run where the hooks or CI already lint, would report them when the last
       real caller goes.
+    tags: [gates, v8]
 
   - id: p1-vcs-fake-parent-revs
     title: The VCS fake resolves a revision with a ^ suffix as git does
@@ -12490,6 +12633,7 @@ items:
       the wrong reason, as one of T-267 did until its coverage showed it. The fake reading a
       trailing ^ (and ^N, ~N) as the first parent, held by the port contract against the git
       adapter, would keep the fake honest for every slice that walks history.
+    tags: [architecture, v8]
 
   - id: T-274
     title: The docs say every command is a slice, after step 9
@@ -12528,6 +12672,7 @@ items:
       hook install and Ready go back to the git config alone (ADR-0037), features/old-git.feature's
       scenarios are removed in a breaking feat, and the oldest supported git rises to 2.54. Revisit
       when the common distributions ship 2.54 or later.
+    tags: [hooks, v9]
 
   - id: p1-old-git-ci-job
     title: A nightly job runs the hook scenarios against a real git 2.51
@@ -12543,6 +12688,7 @@ items:
       2.51 (cached) and runs features/old-git.feature, and the commit and push scenarios, with it
       first on the PATH. Nightly, not per push: slow and wide (ADR-0051). Goes with
       p1-drop-hook-files-compat when the path is removed.
+    tags: [gates, v8]
 
   - id: T-280
     title: The nightly's changed-sites step judges from T-191's head, not the last green nightly of 2026-10-08
@@ -12567,6 +12713,7 @@ items:
       check that precondition first, over the _test.go files of the package and of the packages
       depending on it, and fail with a sentence naming the test that reads the line and saying to
       pick another, as T-277 picked the covered check line of internal/ci with a small script.
+    tags: [gates, v8]
 
   - id: p1-guard-env-assignments
     title: The guard reads any env word holding = as an assignment, as env does
@@ -12582,7 +12729,7 @@ items:
       T-191's TestGitCalls pins today's narrow reading; changing it is a fix with a scenario. The
       guard's doc calls it not a fortress, so it is minor. Related: p1-guard-quoted-text,
       p1-guard-follows-cd.
-    tags: [guard]
+    tags: [guard, v8]
 
   - id: T-278
     title: itos-cc-tests prints each scenario's fingerprint as the third column
@@ -12623,6 +12770,7 @@ items:
       tag sits on its second tag line splits differently), and such a scenario is then listed
       without a fingerprint. Reading IDs, wip and blocks from the Gherkin AST too would leave one
       reader of a feature file; the moves rule's block comparison would need its own design.
+    tags: [tests, v8]
 
   - id: T-281
     title: "Fingerprints returns no error: gherkinList's unreachable error path goes"
@@ -12653,6 +12801,7 @@ items:
       reports the commit-msg hook missing, naming an upgrade of git, even where hook install, which
       init runs, has just written them. It should judge each event as hooks.Ready does on such a
       git; needs a scenario.
+    tags: [init, v8]
 
   - id: p1-hook-file-not-executable
     title: Ready refuses a hook file git would not run because it is not executable
@@ -12667,6 +12816,7 @@ items:
       executable (with a hint), so a project's own .husky/commit-msg calling itos with mode 644
       passes Ready while git runs nothing. The Folder port would report whether the file is
       executable (moot on Windows, where Git for Windows runs it through sh).
+    tags: [hooks, v8]
 
   - id: T-283
     title: Tests kill the survivors the nightly of 2026-10-23 (run 39948599784) drew
@@ -12693,7 +12843,7 @@ items:
       slice-144 (watch transitions) and p1-watch-run-failed-with-no-failed-job, neither of which
       covers a dropped job.
     refs: [internal/engine/ciwatch]
-    tags: [ci, push]
+    tags: [ci, v8]
 
   - id: p1-ci-run-check-result-lines
     title: itos ci run prints a result line for each task check, a silent pass included
@@ -12711,7 +12861,7 @@ items:
       differently from one skipped or never reached. Near p1-task-check-failure-reason (#82, itos
       task gives no reason), which is about failures in itos task, not ci run passes.
     refs: [internal/slices/ci]
-    tags: [ci]
+    tags: [ci, v8]
 
   - id: p1-amend-keeps-head-links
     title: itos commit --amend with a new message keeps the link footers HEAD has when it gives none
@@ -12729,7 +12879,7 @@ items:
       a Task: footer the message has (slice 36); p3-stealth-amend-keeps-links is the stealth half of
       the same rule, so the design should cover both modes.
     refs: [internal/slices/commit]
-    tags: [commit]
+    tags: [commit, v8]
 
   - id: p1-cheap-coordinator-trial
     title: "Trial a cheaper model as coordinator: a dispatcher over strong spec and review agents"
@@ -12781,7 +12931,7 @@ items:
       of effort. Claude Code coordinates and implements in this repository from now on. The user may
       retry a cheaper coordinator in other repositories once the coordinator role is simpler
       (perhaps through the state-machine work).
-    tags: [docs]
+    tags: [agents]
     deferred: >
       The user ended the Sol coordinator trial and keeps the reviewer on its CLI for now; both may
       be retried once the coordinator role is simpler.
@@ -12860,7 +13010,7 @@ items:
 
       2026-10-23, the user keeps the reviewer on its CLI for now: the MCP server had trouble with
       asynchronous responses and long-running reviews.
-    tags: [docs]
+    tags: [agents]
     deferred: >
       The user ended the Sol coordinator trial and keeps the reviewer on its CLI for now; both may
       be retried once the coordinator role is simpler.
@@ -12896,7 +13046,7 @@ items:
       p1-evidence-local, p1-evidence-ci, p1-evidence-red-first and p1-evidence-pre-push. This item
       stays as the umbrella until they land.
     refs: [internal/check, internal/slices/task, internal/slices/ci, internal/slices/hook]
-    tags: [tests, hooks, ci]
+    tags: [evidence, v8]
 
   - id: p1-red-agent
     title: A red agent writes a slice's step definitions and proves them red; the implementer only turns them green
@@ -12953,7 +13103,7 @@ items:
       work, not a mandatory extra stage for every small test repair. Unit assertions must exercise
       the actual production or actual concurrent-fixture path, not merely a helper that no real path
       uses.
-    tags: [tests, docs]
+    tags: [agents, v8]
 
   - id: slice-169
     title: Opted-in checks rerun instantly from a local record keyed by the index tree (evidence records, A1 and A3)
@@ -12979,7 +13129,7 @@ items:
       (90-day retention) asking for fresh CI (B2, feat; live pinning scenarios in the feat commit);
       the workflow uploads the bundle, verified by a gate self-test (B3, ci); this repository turns
       on ci.evidence and then require_ci, each after its feature (B4, B5, ci).
-    tags: [ci, work]
+    tags: [evidence, v8]
 
   - id: p1-evidence-red-first
     title: CI proves a slice's scenarios red against the parent build, and an opted-in work done requires it (evidence records, C)
@@ -12997,7 +13147,7 @@ items:
       work.evidence.require_red_first requires the trusted red record plus later green CI (C3, its
       own test commit first); a per-commit CI job calls the command (C4, ci); this repository turns
       the key on after both (C5, ci).
-    tags: [tests, ci, work]
+    tags: [evidence, v8]
 
   - id: p1-evidence-pre-push
     title: Pre-push runs the checks of the tasks a push names, on a snapshot of each pushed commit, keyed by its tree
@@ -13017,7 +13167,7 @@ items:
       the pre-push hook run the done_when checks of the tasks a push names, on the snapshots, each
       failure naming task, command, exit and output; opted-in checks answer from their records. CI
       still runs them. Comes after p1-evidence-local.
-    tags: [hooks]
+    tags: [evidence, v8]
 
   - id: p1-registry-dirty-right-after-commit
     title: A registry writer run right after another itos commit can read the registry as changed and refuse
@@ -13061,7 +13211,7 @@ items:
       (p1-red-agent). Changing what an item's status means breaks registries and scenarios: v9
       design input with p1-typed-items (q-89). The v8 work in flight (evidence records, the
       reviewer, the red agent) builds the proofs its transitions need.
-    tags: [work]
+    tags: [work, v9]
 
   - id: p1-snapshot-git-context
     title: "Snapshot task checks see a complete private Git context: HEAD, refs, history and the proposal"
@@ -13081,7 +13231,7 @@ items:
       child's working folder changes; a source-tree path maps into the snapshot, no fallback to an
       unstaged config), with scenarios for relative and absolute pointers. Never fabricate a commit
       for the proposal.
-    tags: [hooks]
+    tags: [hooks, v8]
 
   - id: p1-snapshot-stealth
     title: Snapshot task checks under a stealth config read the captured private data, not the source's
@@ -13097,7 +13247,7 @@ items:
       rewriting for arbitrary ledger, registry and smoke locations, a consistent effective private
       view, default discovery and explicit ITOS_CONFIG specified separately; private data is never
       copied into tracked paths.
-    tags: [hooks]
+    tags: [hooks, v8]
 
   - id: p1-snapshot-proposal-changes
     title: Decide what a commit-msg check run means when the staged proposal changes while it runs
@@ -13113,7 +13263,7 @@ items:
       handshake, not sleeps; then decide whether itos needs a refusal at all, what state it compares
       and which public invocation shows it. A direct-hook fixture alone proves nothing about git
       commit's locking.
-    tags: [hooks]
+    tags: [hooks, v8]
 
   - id: p1-snapshot-cleanup-timeouts
     title: Snapshot cleanup failures and timeouts are reported, and hook help states the snapshot's input boundary
@@ -13131,7 +13281,7 @@ items:
       or a justified seam. Also the hook commit-msg help text: staged project inputs, uncopied local
       dependencies, inherited external inputs, no OS sandbox, with a scenario using the itos prints
       the help of step.
-    tags: [hooks]
+    tags: [hooks, v8]
 
   - id: p1-snapshot-selection-regression
     title: Scenarios show task-check selection, cost order, limits and verdicts unchanged under the staged snapshot
@@ -13146,7 +13296,7 @@ items:
       snapshot context: choose which existing scenarios suffice, split the rest into one invocation
       per scenario or outline row, tag already-passing cases as guards, and where red proof is
       needed use staged-versus-disk inputs that make the expected verdict differ today.
-    tags: [hooks]
+    tags: [hooks, v8]
 
   - id: p1-initcmd-shim-tidy
     title: initcmd's shim offer reuses its outcome and standing helpers in the kept-first-Git branch, and its doc says what kept covers
@@ -13163,7 +13313,7 @@ items:
       (shim.go:39-40) still says kept means a link to this itos was there; it now also covers a
       first PATH Git that is any itos, a hard link or a copy included. A refactor and a doc comment,
       no behaviour change.
-    tags: [init]
+    tags: [init, v8]
 
   - id: bug-121
     title: Remove automatic guide routing from generated agent instructions
@@ -13196,6 +13346,7 @@ items:
       incident. Define a durable restoration policy that the enforced moves rule can actually carry
       out; do not silently bypass the gate or assume a revert restores a runnable CI range.
     refs: [internal/guide/repair.md, features/README.md]
+    tags: [agents, v8]
 
   - id: slice-167
     title: Load explicit per-guide Markdown overrides
@@ -13211,6 +13362,7 @@ items:
       commit policy stays separate. This lets a project tailor coordinator instructions while
       preserving gates. Raw shipped-guide export and launcher bypass are split into slice-168.
     refs: [internal/guide, internal/engine/guides, internal/slices/guide, internal/slices/gocmd, internal/config, features/guide.feature]
+    tags: [agents, v8]
 
   - id: p1-projectfile-exception-reason
     title: Correct the explanation of the equivalent projectFile mutation
@@ -13226,6 +13378,7 @@ items:
       returns the same error. Correct only the explanation, without broadening or removing the
       exception or rewriting the historical commit.
     refs: [itos-cc.yaml, internal/tests/tsv.go]
+    tags: [proof, v8]
 
   - id: slice-168
     title: Export raw shipped guides without config or version selection
@@ -13242,6 +13395,7 @@ items:
       separate launcher/CLI delivery so the risky version-selection exception is reviewed
       independently. No go --builtin; --builtin with --json is a usage error.
     refs: [internal/guide, internal/launch, internal/cli, internal/slices/guide, features/guide.feature]
+    tags: [agents, v8]
 
   - id: T-288
     title: Cover five unit-test gaps found by Nightly 40018388348
@@ -13266,6 +13420,7 @@ items:
       not authorised here. Retired wip ASK-34 and ASK-37..40 describe material to re-specify, not
       live promises.
     refs: [features/decision-validation.feature, internal/adr, internal/slices/decision]
+    tags: [ask, v8]
 
   - id: p1-reviewer-budget-controls
     title: Expose reviewer budgets and budget-exhaustion outcomes through the normal CLI
@@ -13316,6 +13471,7 @@ items:
       may eventually replace covered weaker checks instead of stacking forever, but no gate removal
       or proof experiment is authorised by recording this assessment.
     refs: [tasks/README.md, features/README.md, itos.yaml, docs/ORCHESTRATING.md]
+    tags: [tests]
 
   - id: T-290
     title: Settle the last three survivors of Nightly 40018388348
@@ -13338,6 +13494,7 @@ items:
       wanted, which needs the person's agreement and misreports the outcome. Coordinators need a way
       to close an idea whose work landed elsewhere, recording the repository and commits, without
       promoting it to a slice or task that has no scenarios or checks here.
+    tags: [work, v8]
 
   - id: T-291
     title: cli.Main takes its working folder from the run value and never changes the process folder
@@ -13361,6 +13518,7 @@ items:
       their records by that tree. Its scenario: stage a change, edit a tracked file further without
       staging, see the check run on the staged snapshot without the unstaged edit, then commit again
       with the same index and hit the record. Feat, minor.
+    tags: [evidence, v8]
 
   - id: T-292
     title: "Ignore what a clone keeps for itself: .claude/, a hook's git environment, commit-message files"
@@ -13417,6 +13575,7 @@ items:
       platforms (run 40052540847), review approved with no findings ($0.23). Its portability account
       found on its own that a re-executed child inheriting GOCOVERDIR would write coverage data
       where it must not, and strips it; the first item under the required account.
+    tags: [agents, v8]
 
   - id: slice-170
     title: "The local evidence store survives contention and damage: lock waits, stale locks, failed renames, corrupt or markerless records (evidence records, A2)"
@@ -13439,6 +13598,7 @@ items:
       is 11998 bytes under a cap of 12000 (tools/bin/doc-budget/caps.json), so the line could not
       grow: trim the doc by the 30 bytes the line needs, or raise the cap in a ci commit that says
       why.
+    tags: [evidence, v8]
 
   - id: p1-evidence-slice-import
     title: Let a slice import internal/evidence, or keep it behind check's aliases
@@ -13455,6 +13615,7 @@ items:
       or extend the rule and the fixtures' domains with internal/evidence in a build commit, which
       would let a slice's tests build an engine over fakes (the task slice's tests cannot, so its
       JSON for an opted-in check is judged by the scenarios alone).
+    tags: [evidence, v8]
   - id: p1-evidence-run-io-and-reasons
     title: Opted-in checks keep a verbose check's stdin and stderr, and the evidence reasons are one documented list
     phase: 1
@@ -13474,6 +13635,7 @@ items:
 
       Also from the repair's review (2026-10-23): internal/check/evidence_test.go's fakeGit.lookups
       is never incremented, so its != 0 assertion cannot fail; count IndexTree calls or drop it.
+    tags: [evidence, v8]
 
   - id: p1-find-honours-ceiling
     title: The VCS adapter's Find stops at GIT_CEILING_DIRECTORIES, as git's own discovery does
@@ -13488,6 +13650,7 @@ items:
       honouring GIT_CEILING_DIRECTORIES, unlike git's repository discovery, so a stray .git above a
       fixture changes what itos finds; git itself would stop at the ceiling. Check whether the
       contract fixtures set a ceiling and whether Find should.
+    tags: [architecture, v8]
 
   - id: p1-inprocess-extensions-deferred
     title: The in-process driver defers the extension scenarios, which exec over the test binary
@@ -13504,6 +13667,7 @@ items:
       ID-GUARD-11; each extension scenario that execs needs its reason there (or the @binary-only
       tag step 1 of docs/plans/in-process-tier.md names) before a full in-process run can be read,
       and the parallel driver's run of every area.
+    tags: [tests, v8]
 
   - id: p1-stale-bin-itos-under-a-hook
     title: tools/bin/itos rebuilt from inside a scenario's git hook fails go's VCS stamping
@@ -13520,6 +13684,7 @@ items:
       scenarios failed for a reason that is not theirs. tools/bin/itos could build with git's
       repository variables cleared (GIT_DIR, GIT_INDEX_FILE, GIT_WORK_TREE and the like) or with
       -buildvcs set from its own checkout, so a rebuild never depends on the git that called it.
+    tags: [gates, v8]
 
   - id: p1-evidence-store-housekeeping
     title: Remove old unfinished temporary folders and quarantined entries from the evidence store
@@ -13533,6 +13698,7 @@ items:
       .tmp-<key>-<unique> folder a killed writer left, but nothing ever removes either, so a store
       only grows. Decide what removes them (age, count, a command) and keep it off the lookup path,
       which takes no lock.
+    tags: [evidence, v8]
 
   - id: T-293
     title: The private store's write-failure test lowers the file size limit only in a child process
@@ -13541,6 +13707,7 @@ items:
     status: done
     depends_on: []
     kind: task
+    tags: [tests]
 
   - id: p1-haiku-implementer-trial
     title: Trial a Haiku 5.5 implementing agent (high effort) on a task, once the loop runs as a state machine
@@ -13557,6 +13724,7 @@ items:
       CI reds and causes, reviewer findings, spec or model), so the three models compare on like
       items. Sonnet's misses so far were environment ones (pushed state, Windows), so pick a task
       where the gates would catch such a miss.
+    tags: [agents, v8]
 
   - id: p1-evidence-work-done
     title: work done answers opted-in checks from evidence records
