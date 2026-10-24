@@ -13795,3 +13795,14 @@ items:
     why: >
       From slice-174's spec (2026-10-24, its follow-ups): else the next session starts on stale
       refs.
+
+  - id: p1-pr-stealth
+    title: Decide pr mode under a stealth config
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [slice-174]
+    kind: idea
+    why: >
+      From slice-174's spec (2026-10-24, its follow-ups): a stealth repository's footers live in
+      notes GitHub never sees; config check may refuse the pair.
