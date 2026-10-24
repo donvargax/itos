@@ -13866,3 +13866,32 @@ items:
       the close's ledger edit counts as registry bookkeeping for pr's rule, or the close goes
       another way; decide before this repository switches to pr, since most of its items are tasks.
     tags: [push, work]
+
+  - id: p2-distributed-builds-poc
+    title: "Distributed builds and tests with proofs kept: a Go-only proof of concept here, later its own Bazel-based tool"
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The user, 2026-10-24: distributed builds and distributed tests for every kind of test, keeping
+      the proofs, for all of the user's repositories (Go, TypeScript, Flutter, likely Rust and
+      Python), so the eventual tool is its own project built on Bazel (remote cache and Remote
+      Execution API: BuildBuddy, NativeLink, Buildbarn). itos (or itos-cc) hosts the Go-only proof
+      of concept first. Shape agreed: itos decides what must run (ci plan, tests list) and keeps the
+      proof; the distribution layer runs it. PoC steps, cheapest first: (1) a spike allowed in v8:
+      measure where CI's time goes (build, unit tests, features, platform jobs, code proof) from
+      recent run timings; (2) a shared Go build and test cache through GOCACHEPROG on a store
+      reachable over the tailnet; (3) shard named tests by ID across runners (features first),
+      results merged; (4) evidence records (docs/plans/evidence-records.md) shared as a
+      content-addressed result cache, written only by trusted runs. Runners: all workflows on
+      self-hosted runners planned; GitHub-hosted runners can join the tailnet with
+      tailscale/github-action (ephemeral tagged keys, ACLs to the cache port). Hard rules: the
+      repository is public, so self-hosted runners are ephemeral and isolated per job, with approval
+      for outside contributors' pull requests; only main and the user's own branches write to the
+      cache, pull requests read only, else a cache hit proves nothing. Why not Bazel for the PoC:
+      the features are not hermetic by design (real git repos, PATH games, the shim), Windows and
+      macOS remote execution is weak, and per-test coverage and mutation runs map poorly; the PoC
+      learns the proof model, Bazel carries it across languages later.
+    tags: [ci, proof, architecture, v9]
