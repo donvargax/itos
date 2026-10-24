@@ -13603,3 +13603,17 @@ items:
       design is likely the real cause of #88's confusion. Also: a people file listing no one gets no
       config check warning, though takes then record no owner.
     refs: [internal/slices/work/write.go]
+
+  - id: p1-decision-record-long-path-fallback
+    title: decision record names its file in the commit body however long its path, since selfBody breaks long words
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Found by bug-132's spec and diff review (2026-10-24): bug-22's workaround
+      (internal/slices/decision/handler.go:421-428) names the folder instead of a record path too
+      long for a line; since bug-132 selfBody breaks a word longer than the line
+      (message.BreakLong), so the fallback is likely unneeded. ID-ASK-19 holds either way.
+    refs: [internal/slices/decision/handler.go]
