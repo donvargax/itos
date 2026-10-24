@@ -62,6 +62,7 @@ type world struct {
 	stdout, stderr string
 	lastCommand    string
 	initShim       *initShimFixture
+	hardLinked     *hardLinkFixture // the file the hard-link steps linked to (shim_test.go)
 	snapFixture    *snapshotFixture
 
 	releases  *releaseServer // the release server, when the scenario starts one

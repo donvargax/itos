@@ -11,6 +11,7 @@
 package features
 
 import (
+	"crypto/sha256"
 	"fmt"
 	"os"
 	"os/exec"
@@ -43,6 +44,20 @@ func initializeShimSteps(sc *godog.ScenarioContext, w *world) {
 	sc.Step(`^the file "([^"]*)" is not staged$`, func(path string) error { return w.staged(path, false) })
 	sc.Step(`^that repository's HEAD says "([^"]*)"$`, w.plainHeadSays)
 	sc.Step(`^"([^"]*)" runs itos$`, w.runsItos)
+
+	sc.Step(`^"([^"]*)" is a hard link to another itos$`, w.hardLinkToOtherItos)
+	sc.Step(`^"([^"]*)" is a hard link to a program that is not itos$`, w.hardLinkToOtherProgram)
+	sc.Step(`^the other itos is unchanged$`, w.otherItosUnchanged)
+	sc.Step(`^no git is left in "([^"]*)"$`, w.noGitLeft)
+	sc.Step(`^"([^"]*)" is still that program$`, w.stillThatProgram)
+}
+
+// What the hard-link steps made: the file the link was made to, and its
+// content's digest, which the steps that follow compare, since removing or
+// replacing the link changes the file's link count and nothing else.
+type hardLinkFixture struct {
+	target string
+	digest [sha256.Size]byte
 }
 
 // The folder holding the scenario's git link.
@@ -232,6 +247,88 @@ func (w *world) runsItos(path string) error {
 	}
 	if !os.SameFile(got, want) {
 		return fmt.Errorf("%s is not the itos binary %s\n%s", path, bin, w.report())
+	}
+	return nil
+}
+
+// The path of a program named in a step, from the scratch repository's top
+// (path.exe on windows).
+func (w *world) programIn(path string) string {
+	return programPath(filepath.Join(w.dir, filepath.FromSlash(path)))
+}
+
+// The program at path is a hard link to another itos: the itos under test,
+// stamped 8.1.0, copied into the scenario's folder first, so the link never
+// reaches the shared stamped build and stays on one filesystem.
+func (w *world) hardLinkToOtherItos(path string) error {
+	bin, err := stampedItos("8.1.0")
+	if err != nil {
+		return err
+	}
+	other := programPath(filepath.Join(w.dir, "other-itos", "itos"))
+	if err := initShimCopy(bin, other); err != nil {
+		return err
+	}
+	return w.hardLink(other, path)
+}
+
+// The program at path is a hard link to a program that is not itos: a script,
+// or on windows a script-exe, a Go binary whose main package is not
+// cmd/itos.
+func (w *world) hardLinkToOtherProgram(path string) error {
+	other := filepath.Join(w.dir, "other-program", "program")
+	if err := os.MkdirAll(filepath.Dir(other), 0o755); err != nil {
+		return err
+	}
+	if err := w.writeProgram(other, "#!/bin/sh\nexit 0\n"); err != nil {
+		return err
+	}
+	return w.hardLink(programPath(other), path)
+}
+
+func (w *world) hardLink(target, path string) error {
+	text, err := os.ReadFile(target)
+	if err != nil {
+		return err
+	}
+	link := w.programIn(path)
+	if err := os.MkdirAll(filepath.Dir(link), 0o755); err != nil {
+		return err
+	}
+	if err := os.Link(target, link); err != nil {
+		return err
+	}
+	w.hardLinked = &hardLinkFixture{target: target, digest: sha256.Sum256(text)}
+	return nil
+}
+
+func (w *world) otherItosUnchanged() error {
+	return w.holdsDigest(w.hardLinked.target, "the other itos")
+}
+
+func (w *world) stillThatProgram(path string) error {
+	return w.holdsDigest(w.programIn(path), path)
+}
+
+func (w *world) holdsDigest(path, name string) error {
+	text, err := os.ReadFile(path)
+	if err != nil {
+		return fmt.Errorf("%s: %w\n%s", name, err, w.report())
+	}
+	if sha256.Sum256(text) != w.hardLinked.digest {
+		return fmt.Errorf("%s changed\n%s", name, w.report())
+	}
+	return nil
+}
+
+// Nothing is named git in the folder (git.exe on windows), not even a link
+// that points nowhere.
+func (w *world) noGitLeft(folder string) error {
+	link := w.programIn(folder + "/git")
+	if _, err := os.Lstat(link); err == nil {
+		return fmt.Errorf("%s is still there\n%s", link, w.report())
+	} else if !os.IsNotExist(err) {
+		return err
 	}
 	return nil
 }
