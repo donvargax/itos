@@ -13409,8 +13409,8 @@ items:
   - id: bug-128
     title: git-shim install and uninstall recognise a hard-linked itos as git
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: bug
     why: >
