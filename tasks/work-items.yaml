@@ -4839,11 +4839,11 @@ items:
     refs: [features/ask.feature, internal/cli]
 
   - id: p1-followup-state
-    title: A followup thread has an editable state, the live view, over its append-only notes
+    title: "Followup notes as a record type: a thread's editable state, topics with zero or more people, drafts, superseding notes"
     phase: 1
     owner: null
     status: todo
-    depends_on: []
+    depends_on: [p1-typed-items]
     kind: idea
     why: >
       The user's call (2026-10-06), to try and change if it does not work. Threads grow large in a
@@ -4858,6 +4858,12 @@ items:
       kept for the old format. Open risk: whether agents keep the state current. followup note says
       on stderr when the state is older than the newest notes; watch how it goes, and change the
       design if it does not hold.
+
+      2026-10-24 grooming, merged in p1-followup-topics (a thread is on a topic, --with optional and
+      repeatable; may be one object with p1-research-log), p1-followup-drafts (a note is a draft
+      until sent; sent notes stay append-only) and p1-followup-supersede (note --supersedes <n>; doc
+      exports the standing ones unless --all). Their whys stand in their dropped entries. One type
+      of p1-typed-items' record, built after it or as its pilot.
     tags: [followup, v9]
 
   - id: p1-ask-20-duplicate
