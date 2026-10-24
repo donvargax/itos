@@ -12375,6 +12375,12 @@ items:
       2026-10-24 grooming, merged in p3-stealth-amend-keeps-links: in stealth the flags' links
       replace the note an amend carries (internal/slices/commit/git.go:326-331); the same rule
       covers both.
+
+      p3-stealth-amend-keeps-links in full: found in slice 36, in a project itos commit --amend
+      --scenarios <ids> keeps the Task: footer the message already has; under a stealth config the
+      flags' links replace the note the amend carried, so the task must be given again (the up-front
+      check names --task when it is required). Merging the carried note with the flags' links, each
+      footer once, would make an amend mean the same in both modes.
     refs: [internal/slices/commit]
     tags: [commit, v9]
 
