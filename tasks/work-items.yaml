@@ -12746,7 +12746,7 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: []
+    depends_on: [p3-guard-replacement]
     kind: idea
     why: >
       From the reviewer's approved diff review of bug-113 (2026-10-23, non-blocking):
@@ -12756,7 +12756,7 @@ items:
       (shim.go:39-40) still says kept means a link to this itos was there; it now also covers a
       first PATH Git that is any itos, a hard link or a copy included. A refactor and a doc comment,
       no behaviour change.
-    tags: [init, v8]
+    tags: [init, v9]
 
   - id: bug-121
     title: Remove automatic guide routing from generated agent instructions
