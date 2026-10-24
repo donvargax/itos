@@ -7072,7 +7072,7 @@ items:
       including that auxiliary previews are not minted scenario IDs. Read-only discovery may inspect
       the current kind and registry, but a rejected alias never reserves an ID or contacts the
       counter.
-    refs: [features/next-id-stems.feature, internal/cli/nextid.go, internal/tests/nextid.go, internal/cli/help.go]
+    refs: [internal/slices/tests/handler.go, internal/slices/tests/command.go, internal/tests/nextid.go, features/next-id-stems.feature]
     tags: [tests, v8]
 
   - id: p1-drop-done-dependency
