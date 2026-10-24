@@ -2219,6 +2219,10 @@ items:
       check can validate a source's own files (itos-cc's itos-cc-debt.yaml).
     refs: [features/extensions.feature, features/pin.feature, PLAN.md]
     tags: [extensions]
+    deferred: >
+      No repository relies on an extension yet: the dependency checks it was for stayed in-tree
+      (tools/bin/deps-check). Its paragraph on p3-role-protocol is moot, that item dropped.
+      2026-10-24 grooming.
 
   - id: p3-nightly-govulncheck
     title: The nightly runs govulncheck, so a vulnerability disclosed later is found
