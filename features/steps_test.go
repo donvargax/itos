@@ -546,6 +546,7 @@ func initializeScenario(sc *godog.ScenarioContext) {
 
 	sc.Step(`^itos exits with code (\d+)$`, w.exitsWith)
 	sc.Step(`^its output says "([^"]*)"$`, w.outputSays)
+	sc.Step(`^its output says "([^"]*)", whatever its line breaks$`, w.outputSaysFolded)
 	// The range's start as a CI step is given it (slice 83).
 	sc.Step(`^its output says "([^"]*)" with the first commit's full SHA$`, func(text string) error {
 		if len(w.commits) == 0 {
@@ -2582,6 +2583,15 @@ func (w *world) exitsWith(code int) error {
 func (w *world) outputSays(text string) error {
 	if !strings.Contains(w.output(), text) {
 		return fmt.Errorf("the output does not say %q\n%s", text, w.report())
+	}
+	return nil
+}
+
+// outputSaysFolded is outputSays over the output with every run of white
+// space, line breaks included, read as one space: help wraps its lines.
+func (w *world) outputSaysFolded(text string) error {
+	if !strings.Contains(strings.Join(strings.Fields(w.output()), " "), text) {
+		return fmt.Errorf("the output does not say %q, whatever its line breaks\n%s", text, w.report())
 	}
 	return nil
 }
