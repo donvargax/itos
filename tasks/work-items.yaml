@@ -11315,7 +11315,7 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: []
+    depends_on: [p1-typed-items]
     kind: idea
     why: >
       #104 (8.5.0): an answer that changes one sentence of a standing record can only supersede it
@@ -11323,7 +11323,7 @@ items:
       its amendment; this repository links ADR-0035, 0052 and 0054 by hand. --amends <n>
       (repeatable) writes Amends ADR-n in the new record and Amended by ADR-new in n, status kept,
       one commit; config check holds the links as it holds supersede links.
-    tags: [ask, v8]
+    tags: [ask, v9]
 
   - id: p1-done-says-checks-end
     title: work done says which checks stop running when it closes a task, and where a lasting one belongs
