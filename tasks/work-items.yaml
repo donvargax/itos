@@ -12370,6 +12370,15 @@ items:
       could not be read (no conclusion yet), and say that the run's conclusion decided. Near
       slice-144 (watch transitions) and p1-watch-run-failed-with-no-failed-job, neither of which
       covers a dropped job.
+
+      2026-10-24 grooming (the user's call): merged in p1-watch-run-failed-with-no-failed-job, the
+      other case where the run's conclusion and its jobs disagree. On 2026-10-07 run 37640476742
+      (bug-49 push) ended failure though its four jobs succeeded: GitHub hit an internal server
+      error starting release, a job that never ran, and its rerun API answered 500; itos push
+      printed CI failure naming no job, exit 1, a red with nothing to fix. One pass over the jobs
+      settles both: name a job with no conclusion yet, say that the run's conclusion decided, and
+      for a failed run with no failed job say so and exit 75, as a cancelled run with no successor
+      does (a rerun or a new push may pass).
     refs: [internal/engine/ciwatch]
     tags: [ci, v8]
 
