@@ -13325,3 +13325,20 @@ items:
       done or the lifecycle can require an approved review of the landed head. The reviewer stays an
       external tool; itos only stores and checks the record.
     tags: [evidence, v8]
+
+  - id: p1-prepush-changed-line-coverage
+    title: The pre-push hook fails a changed line no unit test covers, before CI's push proof does
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The user, 2026-10-23: until the in-process tier's step 5 runs a mutant locally, an interim
+      cheap check. Two reds on main today (T-291's Within guard, slice-171's capture.text) were
+      changed lines no test executed, found only by CI's push proof. Pre-push already runs the unit
+      tests of the changed packages (tools/bin/go-unit-tests); run them with coverage and fail on a
+      changed executable line no test covers, at the same rule itos-cc's --fail-uncovered=lines
+      applies in CI (ADR-0044: no percentage threshold), no mutants. Scenario-only coverage stays
+      CI's until the in-process tier. A gate change (build or ci), no release.
+    tags: [proof, v8]
