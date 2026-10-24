@@ -207,3 +207,142 @@ Feature: itos push, the pull-rebase-push routine as one command
     When itos runs "push --ref ci/windows"
     Then itos exits with code 0
     And the remote has the branch "ci/windows" with "docs: try windows"
+
+  # Bug 136 (was p1-push-no-upstream-worktree), met three times: Claude
+  # Code's isolation worktrees put each agent on a new branch,
+  # worktree-agent-<id>, with no upstream, and itos push pushed it to origin
+  # and the branch's own name, a stray remote branch in a repository that
+  # pushes only to main, so the agent's take never reached main; under
+  # Claude Code's Bash sandbox .git/config cannot be written, so the
+  # upstream cannot be set by hand either. Under trunk (push.mode trunk, or
+  # no push.mode, or no config), a branch with no upstream
+  # (branch.<name>.remote or .merge unset) goes to origin's default branch:
+  # the branch origin's HEAD names, asked of the remote as slice 174 finds
+  # main (git ls-remote --symref origin HEAD), after the no-remote check and
+  # before the fetch. It is fetched and rebased onto as an upstream is, and
+  # every line naming the upstream names it: Pushed <sha> to origin/main.
+  # The text also says that the branch has no upstream and that itos push
+  # --ref <branch> pushes it to its own name; --json's remote and branch are
+  # origin and that branch, no new key. itos push writes no upstream: each
+  # push asks the remote again, so it works where git config cannot be
+  # written. Unchanged: a branch with an upstream; push.mode pr, where an
+  # item's branch goes to its own name whatever its upstream says (slice
+  # 174); --tag and --ref, which ask for no default branch; and a remote
+  # with no branch at all, whose first push makes the branch's own name, as
+  # the corpus's no-upstream case does. Fails before the fix at the history
+  # step: today the commit goes to origin/worktree-agent-1 and main lacks it.
+  @ID-PUSH-16 @bug-136 @wip
+  Scenario: A branch with no upstream is rebased onto the remote's default branch and pushed to it, making no branch of its name
+    Given the remote has gained the commit "chore: tidy the docs" touching "docs.md"
+    And the clone is on the new branch "worktree-agent-1"
+    And the clone has the commit "feat: add the widget" touching "widget.md"
+    When itos runs "push"
+    Then itos exits with code 0
+    And the remote's branch ends with "chore: tidy the docs" then "feat: add the widget", with no merge commit
+    And the remote has no branch "worktree-agent-1"
+    And its output names the remote branch's head as the commit pushed
+
+  # The meeting itself: git worktree add -b with no start point makes the
+  # branch at HEAD with no upstream, as Claude Code's isolation does. The
+  # push leaves the branch without one: it never writes git config, which
+  # the sandbox refuses. Fails before the fix at the main step.
+  @ID-PUSH-17 @bug-136 @wip
+  Scenario: A push from a linked worktree's new branch lands on the remote's default branch and records no upstream
+    Given the clone has a linked worktree on the new branch "worktree-agent-1", where itos runs
+    And the clone has the commit "feat: add the widget" touching "widget.md"
+    When itos runs "push --no-wait"
+    Then itos exits with code 0
+    And the remote's branch has "feat: add the widget"
+    And the remote has no branch "worktree-agent-1"
+    And the clone's branch "worktree-agent-1" has no upstream
+
+  # --json is the contract (ADR-0035): branch is where the commit went, the
+  # default branch, not the local branch's name. push.mode trunk written out
+  # is the same as none. Fails before the fix at the branch step: today it
+  # is "worktree-agent-1".
+  @ID-PUSH-18 @bug-136 @wip
+  Scenario: Under push.mode trunk, push --json from a branch with no upstream names the default branch it pushed to
+    Given the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: trunk
+      """
+    And the clone is on the new branch "worktree-agent-1"
+    And the clone has the commit "feat: add the widget" touching "widget.md"
+    When itos runs "push --json"
+    Then itos exits with code 0
+    And its JSON's "outcome" is "pushed"
+    And its JSON's "remote" is "origin"
+    And its JSON's "branch" is "main"
+
+  # The default branch is asked of the remote, never guessed as main. Fails
+  # before the fix at the develop step: today develop does not get the
+  # commit.
+  @ID-PUSH-19 @bug-136 @wip
+  Scenario: A branch with no upstream goes to the branch the remote's HEAD names, whatever its name
+    Given the remote's HEAD names its new branch "develop", made at its main's head
+    And the clone is on the new branch "worktree-agent-1"
+    And the clone has the commit "feat: add the widget" touching "widget.md"
+    When itos runs "push"
+    Then itos exits with code 0
+    And the remote has the branch "develop" with "feat: add the widget"
+    And the remote's branch does not have "feat: add the widget"
+    And the remote has no branch "worktree-agent-1"
+
+  # A remote with branches whose HEAD names none of them gives no default
+  # branch, and falling back to the branch's own name is the bug: refused
+  # before anything is fetched or pushed, exit 3, as slice 174 refuses it
+  # under pr. Fails before the fix at the exit code: today the branch is
+  # pushed, exit 0.
+  @ID-PUSH-20 @bug-136 @wip
+  Scenario: A branch with no upstream and a remote whose HEAD names no branch it has is refused, exit 3
+    Given the remote's HEAD names the branch "trunk", which it does not have
+    And the clone is on the new branch "worktree-agent-1"
+    And the clone has the commit "feat: add the widget" touching "widget.md"
+    When itos runs "push --json"
+    Then itos exits with code 3
+    And its JSON's "outcome" is "no-default-branch"
+    And the remote has no branch "worktree-agent-1"
+
+  # What the bug left behind: a stray branch of the local branch's name on
+  # the remote. With no upstream the push still goes to the default branch,
+  # never to the stray one, so one stray push does not draw the next. Fails
+  # before the fix at the first main step: today both commits go to the
+  # stray branch.
+  @ID-PUSH-21 @bug-136 @wip
+  Scenario: A branch with no upstream goes to the default branch though the remote has a branch of its name
+    Given the clone is on the new branch "worktree-agent-1"
+    And the clone has the commit "feat: add the widget" touching "widget.md"
+    And git pushes HEAD to the remote's new branch "worktree-agent-1"
+    And the clone has the commit "test: cover the widget" touching "widget-test.md"
+    When itos runs "push"
+    Then itos exits with code 0
+    And the remote's branch has "feat: add the widget"
+    And the remote's branch has "test: cover the widget"
+
+  # The fix is for a branch with no upstream alone: one whose upstream is
+  # its own name on the remote goes there, not to the default branch.
+  # Passes today and must keep passing.
+  @ID-PUSH-22 @bug-136 @guard @wip
+  Scenario: A branch whose upstream is the remote's branch of its name is pushed there, not to the default branch
+    Given the clone is on the new branch "topic"
+    And git pushes HEAD to the remote's new branch "topic"
+    And the clone's git config says "branch.topic.remote" is "origin"
+    And the clone's git config says "branch.topic.merge" is "refs/heads/topic"
+    And the clone has the commit "feat: add the widget" touching "widget.md"
+    When itos runs "push"
+    Then itos exits with code 0
+    And the remote has the branch "topic" with "feat: add the widget"
+    And the remote's branch does not have "feat: add the widget"
+
+  # --ref is how a branch with no upstream is pushed to its own name under
+  # trunk, the way the push's text names: it asks for no default branch.
+  # Passes today and must keep passing.
+  @ID-PUSH-23 @bug-136 @guard @wip
+  Scenario: push --ref naming the current branch with no upstream pushes it to its own name
+    Given the clone is on the new branch "worktree-agent-1"
+    And the clone has the commit "feat: add the widget" touching "widget.md"
+    When itos runs "push --ref worktree-agent-1"
+    Then itos exits with code 0
+    And the remote has the branch "worktree-agent-1" with "feat: add the widget"
+    And the remote's branch does not have "feat: add the widget"
