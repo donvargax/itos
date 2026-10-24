@@ -11588,7 +11588,7 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: [p1-parallel-pilot]
+    depends_on: []
     kind: idea
     why: >
       From #110. In parallel runs agents stop mid-item to ask the coordinator for a scope grant (a
