@@ -13880,3 +13880,20 @@ items:
       select and whole agree and a CI range stops naming tests no run executes.
     refs: [internal/tests]
     tags: [tests, proof]
+
+  - id: p1-work-search-closed
+    title: Find items by text, closed ones included
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      2026-10-24: the coordinator turned Nightly 40091179284's survivors into T-301 after searching
+      tasks/work-items.yaml for the sites; T-298 had settled the same five hours earlier, but work
+      done drops a closed item's why, so only the ledger entry (tasks/phase-1.yaml) and T-298's
+      commits still named them. The duplicate cost an implementing agent's run (dropped, 92b668c0).
+      A search over every item's title, why, ledger entry and the bodies of the commits that name it
+      (itos work search <text>, or work list --all --grep) would have found it at once; the
+      coordinator's step that turns a nightly or an issue into work runs it first.
+    tags: [work]
