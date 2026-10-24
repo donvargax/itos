@@ -13454,3 +13454,17 @@ items:
       store-unusable failures inside the checkout, which slice-170's 'runs uncached, as today' must
       settle. Record the reasons in docs/plans/evidence-records.md and the feature contract, decide
       the verbose I/O, and list config-step-evidence and ledger-check-evidence in docs/rule-ids.md.
+
+  - id: p1-find-honours-ceiling
+    title: The VCS adapter's Find stops at GIT_CEILING_DIRECTORIES, as git's own discovery does
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      T-291's agent (2026-10-23): an empty /tmp/.git of unknown origin made the vcs adapter
+      contract's Find("../outside") find a repository on unchanged code too. Find walks up without
+      honouring GIT_CEILING_DIRECTORIES, unlike git's repository discovery, so a stray .git above a
+      fixture changes what itos finds; git itself would stop at the ceiling. Check whether the
+      contract fixtures set a ceiling and whether Find should.
