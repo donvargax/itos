@@ -4571,5 +4571,3 @@
     before its end is said, but a cancelled run with no newer run to follow ends 75 without it
     (watch.go:168-169, 179-182). The comment changes to what the code does; the behaviour stays: a
     cancelled run has nothing failed to name.
-  done_when:
-    - run: grep -q 'cancelled run is followed or ends 75' internal/engine/ciwatch/doc.go

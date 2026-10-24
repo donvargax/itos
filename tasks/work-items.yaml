@@ -13311,6 +13311,6 @@ items:
     title: ciwatch's doc.go says a cancelled run gets no failure detail
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
