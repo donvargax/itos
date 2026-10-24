@@ -5091,25 +5091,9 @@ items:
     title: "push.mode pr: agents work on item branches merged by rebase-merge, claims stay on main"
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: slice
-    why: >
-      Was p1-pr-mode.
-      The user agreed 2026-10-06; the decision record holds the terms.
-
-      Backlog review of 2026-10-10, batch 1: folds in p3-pr-rebase-merge: init offers the repository
-      settings (ADR-0039) with gh api repos/<o>/<r> -X PATCH -F allow_rebase_merge=true -F
-      allow_squash_merge=false -F allow_merge_commit=false, printing the command when gh is missing
-      or refused.
-
-      2026-10-23, the user: fine with branches for parallel agents, since red main blocks them
-      (every later push's CI inherits the red commit, #113, and work done refuses an item whose
-      newest commit is red); queued after p1-ci-watch-failed-step, ahead of p1-evidence-pre-push.
-
-      The user, 2026-10-23: PR mode and sequential mode are both maintained ways of working, a
-      repository choosing by its needs; PR mode is not the end state. Specify the setting with both
-      values (p1-sequential-gate is sequential's guarantee).
     tags: [push, v8]
 
   - id: p1-parallel-pilot
