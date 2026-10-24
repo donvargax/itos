@@ -6306,7 +6306,7 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: [p1-targeted-coverage-reuse]
+    depends_on: []
     kind: idea
     why: >
       The user asked on 2026-10-08 for enforcement that coverage, CRAP and Scrap were executed, as
