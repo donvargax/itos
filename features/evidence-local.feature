@@ -4,8 +4,8 @@ Feature: An opted-in check reruns from a local record when nothing it ran on cha
   A1 and A3 as q-102 amended A3, and of A2 only what a miss needs: the store,
   its lock taken on a miss, and the write by rename. What the store does
   under contention or damage is slice-170's (evidence-store.feature). A4,
-  the commit-msg hook's lookup, is p1-evidence-commit-msg and is not
-  specified here.
+  the commit-msg hook's lookup, is slice-171's (evidence-hook.feature) and
+  is not specified here.
 
   Opting in. A done_when check, or a run: entry of ci.steps, opts in with an
   evidence mapping; "evidence: {}" opts in with nothing declared.
