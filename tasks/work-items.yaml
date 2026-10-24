@@ -11330,7 +11330,7 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: []
+    depends_on: [p1-typed-items]
     kind: idea
     why: >
       #109 (8.5.0): a generator's check guarding a committed file against drift stopped running when
@@ -11338,7 +11338,7 @@ items:
       design, but work done can name the checks it removes and say that one meant to keep running
       belongs in ci.steps or ci.nightly.steps; a lasting mark that moves a check there at close is
       the larger option.
-    tags: [work, v8]
+    tags: [work, v9]
 
   - id: p1-task-signoff-check
     title: A task can require the person's evidence at work done instead of, or beside, its checks
