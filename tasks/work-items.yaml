@@ -7406,7 +7406,7 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: []
+    depends_on: [p1-typed-items]
     kind: idea
     why: >
       Found by T-150 (2026-10-10): tagging 121 reviewed items took 24 registry commits, one per tag,
@@ -7427,7 +7427,7 @@ items:
       one ref inside each item's list (T-146's deleted programs named beside other refs), where
       --refs replaces the whole list.
     refs: [internal/cli]
-    tags: [work, v8]
+    tags: [work, v9]
 
   - id: p1-v8-deprecation-sweep
     title: v8 drops the commands, flags and spellings kept only for compatibility
