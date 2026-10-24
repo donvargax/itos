@@ -7047,35 +7047,9 @@ items:
     title: Refuse mistaken bare ID-area stems with a valid full-stem correction
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: slice
-    why: >
-      Was p1-next-id-names-the-stem.
-      On 2026-10-10, itos tests next-id scenario UPGRADECMD --count 7 was refused with 'UPGRADECMD
-      is no area of tests.scenario's id: its next id is only read', when the stem it claims for is
-      ID-UPGRADECMD. The refusal should name the stem it would accept (did you mean ID-UPGRADECMD),
-      or take the area without the configured prefix. A wrong guess costs a round trip on the
-      correct path, in every repository whose scenario ids carry a prefix.
-
-      #59 (2026-10-12), on 8.1.0: with id 'ID-[A-Z]+-\d+' and @ID-SEC-01 present, next-id scenario
-      SEC prints @SEC-1, an id the pattern does not match, unpadded, ignoring ID-SEC-01; only ID-SEC
-      gives @ID-SEC-02. Minting an id the kind's pattern refuses is a bug, not only a message.
-
-      q-75 chooses refusal and a concrete correction, not automatic normalization. First delivery
-      targets the current ID- area model: when the configured ID pattern guarantees an ID- prefix,
-      the supplied non-area bare stem has one valid candidate ID-<stem> under the existing area
-      check, and it is not a recognized auxiliary series, refuse with usage 2 before counter access.
-      Print the configured pattern, rejected stem and a valid corrected command, retaining --count
-      when given; emit no fabricated ID. Reserved auxiliary stems slice and bug, and other raw
-      tag/registry series already present for this kind, remain read-only previews even if adding
-      ID- could also match. Full valid stems and all other existing preview behavior remain
-      unchanged; do not infer arbitrary regex prefixes or normalize silently. Support both uncounted
-      and counted calls and command adapters without repeating a list invocation; preserve the
-      existing JSON error convention and auxiliary claimed:false result. Document the boundary,
-      including that auxiliary previews are not minted scenario IDs. Read-only discovery may inspect
-      the current kind and registry, but a rejected alias never reserves an ID or contacts the
-      counter.
     refs: [internal/slices/tests/handler.go, internal/slices/tests/command.go, internal/tests/nextid.go, features/next-id-stems.feature]
     tags: [tests, v8]
 
