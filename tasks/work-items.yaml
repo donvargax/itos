@@ -12240,16 +12240,9 @@ items:
     title: The guard reads any env word holding = as an assignment, as env does
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: []
     kind: idea
-    why: >
-      T-191's agent (2026-10-22): the guard's isAssignment (internal/slices/guard/domain/guard.go)
-      takes an env assignment to be NAME=value with NAME a shell identifier, but env treats any word
-      holding = as one, so env A-B=1 git commit is not seen as a git commit and passes the guard.
-      T-191's TestGitCalls pins today's narrow reading; changing it is a fix with a scenario. The
-      guard's doc calls it not a fortress, so it is minor. Related: p1-guard-quoted-text,
-      p1-guard-follows-cd.
     tags: [guard, v8]
 
   - id: T-278
