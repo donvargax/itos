@@ -58,6 +58,8 @@ queue:
   - bug-129
   - bug-130
   - bug-131
+  - bug-132
+  - bug-133
   - p1-defer-reason-footer
   - p1-take-without-people-says-so
   - p1-js-error-texts
