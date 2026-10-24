@@ -458,6 +458,7 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	initializeTestsTSVSteps(sc, w)
 	initializeSnapshotSteps(sc, w)
 	initializeEvidenceSteps(sc, w)
+	initializeEvidenceDoneSteps(sc, w)
 
 	sc.Step(`^itos verifies every commit up to HEAD$`, func() error { return w.itos("verify", "", "HEAD") })
 	sc.Step(`^itos checks the config$`, func() error { return w.itos("config", "check") })
