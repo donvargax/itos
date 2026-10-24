@@ -2448,6 +2448,11 @@ items:
       (binaryCommand), and itos pin --help with them, but itos help pin is handed to the pinned
       version, which may predate the command and prints its own main help instead. binaryCommand
       could take help <command> for its own commands too. itos help init is the same (slice 48).
+
+      2026-10-24 grooming: still live, binaryCommand (launch.go:186-197) matches pin, upgrade, init
+      and git-shim, never help <cmd>, so help pin and help upgrade go to the pinned version. upgrade
+      is a binary command since slice 75; the init case is mostly moot since bug 104
+      (launch.go:191).
     refs: [internal/launch/launch.go]
     tags: [launcher, v8]
 
