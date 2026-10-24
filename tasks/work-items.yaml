@@ -7722,7 +7722,7 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: []
+    depends_on: [p1-typed-items]
     kind: idea
     why: >
       2026-10-11: recording the user's answer while an agent held the checkout, draft add --
@@ -7735,7 +7735,7 @@ items:
       2026-10-24 grooming (the user's call): its second half, decision add taking --answer, moved to
       p1-decision-add-answer, the same flag.
     refs: [internal/cli/draft.go, features/draft.feature]
-    tags: [draft, v8]
+    tags: [draft, v9]
 
   - id: p1-upgrade-already-refreshes-block
     title: itos upgrade on a project already on the newest release still rewrites a stale agent block
