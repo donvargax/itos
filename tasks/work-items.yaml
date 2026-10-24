@@ -6497,7 +6497,7 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: []
+    depends_on: [p3-guard-replacement]
     kind: idea
     why: >
       Issue #34 (https://github.com/donvargax/itos/issues/34). itos guard claude-code judges every
@@ -6552,7 +6552,7 @@ items:
       front of the queue, behind p1-agent-git-ci-contract. No narrow or broad shell-analysis
       implementation was selected in q-67.
     refs: [internal/guard/guard.go, internal/guard/doc.go, features/guard.feature]
-    tags: [guard, v8]
+    tags: [guard, v9]
 
   - id: slice-109
     title: ci range starts at commits.since when no green run gives a start
