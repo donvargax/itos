@@ -78,13 +78,12 @@ Feature: push.mode pr, an item's work on its own branch merged by rebase, claims
   job's result and the run's address and exits with the run's result, 0 or
   1, the commits and the pull request standing either way; --no-wait
   returns at once. When it asked GitHub to rebase the pull request, the head
-  it pushed is no longer the pull request's: it reads the pull request's
-  head with gh pr view <item> --repo <repository> --json headRefOid, again
-  each ci.watch.interval until it is no longer the head it pushed (GitHub
-  rebases after it answers), and waits for that head's run instead, so
-  every push is watched; a head still unchanged at ci.watch.timeout exits
-  75, as a run not finished does. Main's run after the merge is a later
-  item.
+  it pushed is no longer the pull request's, and the new one is GitHub's to
+  make, so it waits for no run: it exits 0, saying no CI run is waited for
+  and that the pull request's checks, at its address, are GitHub's to judge,
+  and --json has neither ci nor run, as a trunk push it does not wait for
+  (slice 56). Watching the rebased head's checks, and main's run after the
+  merge, are later items.
 
   The wait is a report, not a gate: auto-merge is turned on before it, so
   what stops a red merge is the repository's required checks, which itos
@@ -108,9 +107,7 @@ Feature: push.mode pr, an item's work on its own branch merged by rebase, claims
   GITHUB_REPOSITORY owner/scratch, it records each call, answers pr list
   with the open pull requests of the --head branch as gh does ([] for none),
   and answers pr create with the address the scenario gives, holding that
-  pull request open from then on. pr view's headRefOid is the remote's
-  branch head, until pr update-branch moves it to the commit the scenario
-  names. The remote is a bare repository whose HEAD
+  pull request open from then on. The remote is a bare repository whose HEAD
   names main.
 
   Background:
@@ -529,14 +526,16 @@ Feature: push.mode pr, an item's work on its own branch merged by rebase, claims
     And the remote has no branch "slice-9"
     And the recording gh was never called
 
-  # In a repository with several agents main has usually moved, so most
-  # pushes ask GitHub to rebase: watching the head pushed would watch a run
-  # that is cancelled or never counts (its SHA is not the pull request's).
-  # The push reads the rebased head and waits for its run, so every push is
-  # watched. Fails before the build at the fake GitHub step: today the
-  # unknown key push leaves the config unread, so nothing is watched.
+  # After update-branch the head pushed is no longer the pull request's,
+  # and the head GitHub makes cannot be read safely in this slice (it may
+  # still answer the old one), so the push waits for no run and says so: the
+  # pull request's checks are GitHub's to judge, and the repository's
+  # required checks are what stop a red merge. --json has neither ci nor
+  # run, as for a trunk push it does not wait for. Fails before the build at
+  # the update-branch step: today the commits are pushed and gh never
+  # called.
   @ID-PUSHMODE-21 @slice-174 @wip
-  Scenario: Under pr with ci.watch, a push that asks GitHub to rebase its pull request waits for the rebased head's run
+  Scenario: Under pr with ci.watch, a push that asks GitHub to rebase its pull request waits for no run and says so
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
       push:
@@ -548,12 +547,15 @@ Feature: push.mode pr, an item's work on its own branch merged by rebase, claims
     And the clone has the commit "feat: add the widget" touching "widget.md"
     And git pushes HEAD to the remote's new branch "slice-9"
     And the recording gh has the pull request "https://github.example/o/r/pull/7" open for the branch "slice-9"
-    And the recording gh's pr update-branch moves the pull request's head to "1111111111111111111111111111111111111111"
     And the remote has gained the commit "chore: tidy the docs" touching "docs.md"
     And the clone has the commit "test: cover the widget" touching "widget-test.md"
     When itos runs "push --json"
     Then itos exits with code 0
-    And the fake GitHub was asked for the run of the commit "1111111111111111111111111111111111111111" alone
+    And the recording gh's "pr update-branch" call has "slice-9"
+    And the fake GitHub was never asked about a run
+    And its output says "no CI run is waited for"
+    And its output says "https://github.example/o/r/pull/7"
+    And its JSON's "outcome" is "pushed"
     And its JSON's "pull_request.updated" is true
-    And its JSON's "ci" is "success"
-    And the recording gh's "pr view" call has "--json headRefOid"
+    And its JSON has no "ci"
+    And its JSON has no "run"
