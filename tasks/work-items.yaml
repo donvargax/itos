@@ -55,6 +55,7 @@ phases:
   3: donvargax
 
 queue:
+  - T-298
   - bug-124
   - bug-125
   - p1-work-done-wip-examples
