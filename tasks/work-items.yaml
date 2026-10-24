@@ -8359,7 +8359,7 @@ items:
     title: internal/message's doc comment stops naming the deleted header-agreement self-test
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
     tags: [docs, v8]
