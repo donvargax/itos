@@ -13406,6 +13406,13 @@ items:
       caught (an environment-dependent rule and an architecture workaround). Review cycle cost:
       $2.27 + $0.41.
 
+      slice-170 outcome (2026-10-23): ~9 min build, no help, clean bookkeeping; a tail --pid wait
+      (forbidden); the reviewer caught a convenient reading against the JSON contract (fixed:
+      already-recorded); CI red on Windows for a rename-over-a-file case the brief had warned about
+      (fixed by judging before the rename, with a Windows-shaped seam); round 2 approved. Next items
+      carry a required portability account in the report and the reviewer asks the same of every
+      diff. slice-171 and T-293 are the test of that.
+
   - id: slice-170
     title: "The local evidence store survives contention and damage: lock waits, stale locks, failed renames, corrupt or markerless records (evidence records, A2)"
     phase: 1
