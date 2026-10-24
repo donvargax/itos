@@ -1,97 +1,191 @@
 @phase-1
 Feature: An unambiguous bare scenario area gets a correction before any ID is reserved
-  # #59, q-75: refuse rather than silently normalize. This first fix uses
-  # the current ID- area model: the pattern guarantees an ID- prefix and
-  # ID-<input> passes the existing area predicate, while <input> does not.
-  # Do not infer prefixes for arbitrary regexes or alternatives with other
-  # prefixes. Existing full stems retain their normal claim behavior.
-  # Auxiliary previews are distinct: slice and bug are always preserved;
-  # an existing raw tag/listing/registry series is preserved too. Thus a
-  # custom tag series is not reinterpreted as a new scenario-ID request.
-  # Other existing preview behavior stays as it was. A rejected shorthand
-  # exits 2, prints no ID, names the supplied stem and configured pattern,
-  # and shows a valid corrected command retaining --count when supplied.
-  # It never reaches the counter. JSON errors keep their existing shape.
-  # Read the kind's data at most once for discovery; do not run tests.
+  #59: with the id 'ID-[A-Z]+-\d+' and the scenario ID-SEC-01 present,
+  itos tests next-id scenario SEC printed SEC-1, an id the pattern refuses,
+  and exited 0. q-75 chose refusal with a concrete correction over silent
+  normalization, keeping the auxiliary previews (slice, bug) and every full
+  stem as they are.
+
+  The rule. tests next-id <kind> <stem> refuses the stem with a correction
+  when all of these hold, and behaves as it does today otherwise:
+  1. the text of the kind's id pattern, a leading ^ dropped, begins with
+  ID-: the test that namedtests.Area and the ID- padding already make;
+  2. the stem is no area (Area of the stem is false) and ID-<stem> is one
+  (Area of ID-<stem> is true);
+  3. the stem is neither slice nor bug, and no id the kind holds (its
+  files' tags under a gherkin adapter, its listing's IDs under a command
+  adapter) and no id of the work registry is <stem>-<digits>: a raw series
+  already in use stays a read-only preview.
+  Why the text of the pattern, and not "every string the pattern matches
+  begins with ID-": the text test is the one Area makes, so a correction is
+  offered exactly when the corrected stem is claimed as an area, and the
+  corrected command always claims, never only reads; it needs no analysis
+  of the regex, which q-75 rules out (no prefixes inferred from arbitrary
+  regexes). So 'ID-[A-Z]+-\d+|T-\d+-[a-z]+', whose ID-SEC is an area today,
+  refuses SEC and corrects it to ID-SEC, where the every-match reading
+  would keep printing SEC-1; and 'T-\d+-[a-z]+|ID-[A-Z]+-\d+', whose
+  ID-SEC is no area either, offers no correction (ID-NEXTID-13).
+
+  The refusal is a usage error: exit 2, nothing on stdout, and on stderr
+  the stem, the configured id pattern and the corrected command, itos tests
+  next-id <kind> ID-<stem>, followed by --count <n> when --count was given.
+  The correction does not repeat --json or -q: they choose how itos
+  reports, not what it claims. Under --json the refusal keeps the existing
+  JSON usage-error contract, today's for a --count of a stem that only
+  reads: exit 2, stdout empty, the message on stderr. The exact wording is
+  not judged (ADR-0052), only its parts.
+
+  The correction wins over today's --count refusal: handler.go refuses
+  --count of a non-area stem before the registry is read, and for a stem
+  the rule corrects that refusal is not given, the correction is; a stem the
+  rule does not correct (slice, bug, a raw series) keeps that usage error,
+  word for word. Deciding rule 3 reads the registry and the kind's ids
+  once, the same read NextTag makes (a command adapter is called once to
+  list the working tree); no test runs, and the id counter is never
+  contacted or written.
+
+  How the counter is observed: the Background's repository is a clone of a
+  remote, so the counter is the remote's ref refs/itos/ids (ids.feature).
+  The scenario's repository has never minted, so "the remote has no ref
+  refs/itos/ids" after a refusal shows nothing was reserved, and "the
+  remote's id counter for ID-SEC is 3" after the corrected claim shows the
+  claim alone moved it. ID-NEXTID-12 makes the remote unreachable: a run
+  that contacted the counter would exit 3, and the refusal exits 2.
+
+  Existing tests that must keep passing: next-id.feature's live scenarios;
+  internal/slices/tests/tests_test.go:474 (TestNextIDRefusesWhatItCannotRead)
+  and internal/cli/tests_test.go:90
+  (TestTestsNextIDRefusesAWrongLineAndClaimsNothing), which pin the exact
+  --count refusal for slice, an auxiliary stem the rule never corrects.
 
   Background:
     Given a repository whose ledger has the task "T-001"
-    And tests.scenario.id is "ID-[A-Z]+-\d+"
-    And the feature files have the live scenario "@ID-SEC-01"
-    And the ID counter records every request
+    And a clone of it, where itos runs
+    And a feature file "a.feature" with the live scenario "@ID-SEC-01"
 
+  # Red before the work: the first row exits 0 printing @SEC-1; the second
+  # exits 2 with today's --count refusal, which names no correction.
   @wip @ID-NEXTID-08 @slice-157
   Scenario Outline: A mistaken bare area is refused with the actual usable stem
-    Given no raw "SEC" auxiliary series exists in the kind's tags or registry
     When itos runs "<command>"
     Then itos exits with code 2
-    And stdout contains no ID
-    And its diagnostic names "SEC" and the configured ID pattern
-    And its diagnostic shows "<correction>" as the corrected command
-    And it has not printed "@SEC-1" as a result
-    And the ID counter received no request
-    And HEAD, index and files are unchanged
+    And stdout is empty
+    And its stderr says "ID-[A-Z]+-\d+"
+    And its stderr says "<correction>"
+    And the remote has no ref "refs/itos/ids"
 
     Examples:
-      | command                                   | correction                                        |
-      | tests next-id scenario SEC                 | itos tests next-id scenario ID-SEC                 |
-      | tests next-id scenario SEC --count 2       | itos tests next-id scenario ID-SEC --count 2       |
+      | command                              | correction                                   |
+      | tests next-id scenario SEC           | itos tests next-id scenario ID-SEC           |
+      | tests next-id scenario SEC --count 2 | itos tests next-id scenario ID-SEC --count 2 |
 
+  # Red before the work at the first exit code: SEC exits 0 printing @SEC-1.
+  # The corrected command's first ID, @ID-SEC-02, shows the refusal reserved
+  # nothing for ID-SEC, and the counter at 3 that the claim alone moved it.
   @wip @ID-NEXTID-09 @slice-157
-  Scenario: The correction preserves the existing allocation and width rules
-    Given the counter has no prior reservation for "ID-SEC"
-    When itos runs "tests next-id scenario SEC --count 2"
-    Then itos exits with code 2 without a reservation
+  Scenario: The corrected command claims as a full stem always has, the refusal having taken no number
+    When itos runs "tests next-id scenario SEC"
+    Then itos exits with code 2
+    And its stderr says "itos tests next-id scenario ID-SEC"
+    And the remote has no ref "refs/itos/ids"
     When itos runs "tests next-id scenario ID-SEC --count 2 --json"
     Then itos exits with code 0
-    And its JSON retains stem "ID-SEC", claimed true and IDs "@ID-SEC-02" and "@ID-SEC-03"
-    And those IDs match the configured pattern after removing the tag prefix
-    And the counter recorded only that valid two-ID claim
+    And its JSON's "stem" is "ID-SEC"
+    And its JSON's "ids" is ["@ID-SEC-02", "@ID-SEC-03"]
+    And its JSON's "claimed" is true
+    And the remote's id counter for "ID-SEC" is 3
     When itos runs "tests next-id scenario ID-SEC"
-    Then its next claimed ID is "@ID-SEC-04"
+    Then itos exits with code 0
+    And its output says "@ID-SEC-04"
 
+  # Under a pattern that takes lowercase areas, ID-slice, ID-bug and
+  # ID-batch are areas, so rule 3 alone keeps slice, bug and batch (a raw
+  # series, @batch-7) previews. The steps up to sec pass today and must
+  # after; sec, which no series uses, is red before the work: it exits 0
+  # printing @sec-1.
   @wip @ID-NEXTID-10 @slice-157
-  Scenario: Auxiliary series are not mistaken for shorthand scenario areas
-    Given tests.scenario.id also accepts lowercase area letters after "ID-"
-    And a scenario has the auxiliary tag "@batch-7"
-    And the registry has "slice-9" and "bug-4"
-    When I preview the next IDs for stems "slice", "bug" and "batch"
-    Then every preview exits with code 0
-    And the respective IDs are "@slice-10", "@bug-5" and "@batch-8"
-    And their JSON reports claimed false with the original stem
-    And the ID counter received no request
-    When I request --count for an auxiliary preview
-    Then it retains its existing usage-error behavior without a reservation
+  Scenario: Auxiliary series stay previews while an unused lowercase stem is corrected
+    Given the tests kind "scenario" has the id pattern "ID-[A-Za-z]+-\d+"
+    And a feature file with the scenario "@ID-SEC-02" tagged "@batch-7 @bug-4"
+    And the work registry has the item "slice-9" owned by nobody with the status "todo"
+    When itos runs "tests next-id scenario slice --json"
+    Then itos exits with code 0
+    And its JSON's "ids" is ["@slice-10"]
+    And its JSON's "claimed" is false
+    When itos runs "tests next-id scenario bug --json"
+    Then itos exits with code 0
+    And its JSON's "ids" is ["@bug-5"]
+    And its JSON's "claimed" is false
+    When itos runs "tests next-id scenario batch --json"
+    Then itos exits with code 0
+    And its JSON's "ids" is ["@batch-8"]
+    And its JSON's "claimed" is false
+    When itos runs "tests next-id scenario batch --count 2"
+    Then itos exits with code 2
+    And stdout is empty
+    And its stderr does not say "ID-batch"
+    When itos runs "tests next-id scenario sec"
+    Then itos exits with code 2
+    And stdout is empty
+    And its stderr says "itos tests next-id scenario ID-sec"
+    And the remote has no ref "refs/itos/ids"
 
+  # The fixture kind is behind a command adapter that logs each call; its
+  # listing is ID-SEC-01, a non-live F-002 and OPS-2. Red before the work:
+  # SEC exits 0 printing SEC-1 (the kind has no tag prefix). OPS, a raw
+  # series of the listing, stays a preview, as today.
   @wip @ID-NEXTID-11 @slice-157
-  Scenario: A command-adapter kind receives the same correction without duplicate listing
-    Given the scenario kind uses a command adapter listing "ID-SEC-01"
-    And its configured ID pattern guarantees the "ID-" prefix
-    And no raw "SEC" series exists in that listing or the registry
-    When itos runs "tests next-id scenario SEC"
-    Then itos exits with code 2 and suggests "ID-SEC"
-    And the adapter was invoked at most once to list the current tree
-    And no adapter runner or counter request occurred
+  Scenario: A command-adapter kind gets the same correction, its listing read once
+    Given a command adapter lists live IDs "ID-SEC-01" and "OPS-2" in that order, with an intervening non-live test
+    And the tests kind "fixture" has the id pattern "ID-[A-Z]+-\d+"
+    When itos runs "tests next-id fixture SEC"
+    Then itos exits with code 2
+    And stdout is empty
+    And its stderr says "itos tests next-id fixture ID-SEC"
+    And the adapter was called once for "worktree"
+    And the remote has no ref "refs/itos/ids"
+    When itos runs "tests next-id fixture OPS"
+    Then itos exits with code 0
+    And its output says "OPS-3"
 
+  # Red before the work: the first run exits 2 today with the --count
+  # refusal, which names no correction; the second exits 0 printing @SEC-1.
+  # Neither contacts the counter today, since SEC is no area. The
+  # unreachable remote proves the refusal never contacts it: a run that did
+  # would exit 3.
   @wip @ID-NEXTID-12 @slice-157
-  Scenario: Refusal remains useful in JSON and with an unavailable counter
-    Given the ID counter cannot be reached
-    And no raw "SEC" auxiliary series exists in the kind's tags or registry
-    When itos runs "tests next-id scenario SEC --json"
-    Then itos exits with code 2 using the existing JSON usage-error contract
-    And its error names the valid full-stem correction
-    And no minted id or ids result is emitted
-    And the counter received no request
+  Scenario: The refusal keeps the JSON usage-error contract and never contacts the counter
+    Given the remote cannot be reached
+    When itos runs "tests next-id scenario SEC --count 2 --json"
+    Then itos exits with code 2
+    And stdout is empty
+    And its stderr says "itos tests next-id scenario ID-SEC --count 2"
+    And its stderr does not say "--json"
     When itos runs "tests next-id scenario SEC -q"
-    Then it still exits with code 2 and reports the correction as an error
+    Then itos exits with code 2
+    And stdout is empty
+    And its stderr says "itos tests next-id scenario ID-SEC"
+    And its stderr does not say " -q"
 
+  # The two readings of rule 1 differ on the first pattern: its text begins
+  # with ID-, so SEC is corrected (red before the work: it exits 0 printing
+  # @SEC-1). The second pattern's text begins with T-, so its ID-SEC is no
+  # area and SEC keeps today's preview: that part passes today and must
+  # after. Today's help names neither SEC nor the corrected command.
   @wip @ID-NEXTID-13 @slice-157
-  Scenario: The correction rule is documented without guessing arbitrary regex prefixes
-    Given a kind whose ID pattern admits different literal prefixes and no unique supported correction
-    When I request a stem that retains the existing auxiliary-preview behavior
-    Then itos does not invent a full-stem correction or silently claim a different series
-    And its existing preview result and claimed flag are preserved
+  Scenario: Only a pattern whose text begins with ID- gets a correction, and help says so
+    Given the tests kind "scenario" has the id pattern "ID-[A-Z]+-\d+|T-\d+-[a-z]+"
+    When itos runs "tests next-id scenario SEC"
+    Then itos exits with code 2
+    And stdout is empty
+    And its stderr says "itos tests next-id scenario ID-SEC"
+    Given the tests kind "scenario" has the id pattern "T-\d+-[a-z]+|ID-[A-Z]+-\d+"
+    When itos runs "tests next-id scenario SEC --json"
+    Then itos exits with code 0
+    And its JSON's "ids" is ["@SEC-1"]
+    And its JSON's "claimed" is false
+    And the remote has no ref "refs/itos/ids"
     When itos runs "help tests next-id"
-    Then its help demonstrates the full stem "ID-SEC"
-    And it explains the refused unambiguous bare-area spelling
-    And it distinguishes claimed scenario IDs from read-only auxiliary tag previews
+    Then itos exits with code 0
+    And its output says "itos tests next-id scenario SEC", whatever its line breaks
+    And its output says "itos tests next-id scenario ID-SEC", whatever its line breaks
