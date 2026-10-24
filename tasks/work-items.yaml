@@ -5119,12 +5119,12 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: [p1-pr-mode]
+    depends_on: [p1-pr-mode, p1-typed-items]
     kind: idea
     why: >
       The user, 2026-10-06: pr mode can pair with GitHub for itos items, as the inbox already turns
       issues into items. Kept apart from p1-pr-mode so the switch stays small.
-    tags: [push, v8]
+    tags: [push, v9]
 
   - id: T-109
     title: "docs/ARCHITECTURE.md is a map: per-package detail lives in package doc comments, history in the changelog"
