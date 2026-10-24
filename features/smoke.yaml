@@ -148,6 +148,10 @@
   scenarios:
     - id: "@ID-PREPUSH-01"
       why: a pushed commit that breaks the commit rules refused by the hook, saying how to fix it, the file's point
+- file: push-mode.feature
+  scenarios:
+    - id: "@ID-PUSHMODE-01"
+      why: an item's branch pushed to its own name, its pull request opened and auto-merge turned on by rebase, the file's point
 - file: push.feature
   scenarios:
     - id: "@ID-PUSH-01"

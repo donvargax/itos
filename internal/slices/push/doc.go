@@ -85,6 +85,32 @@
 // push does (refusalExit). A branch the remote moved is git's to refuse, or
 // the pre-push hook's (rewrites).
 //
+// # push.mode pr
+//
+// With push.mode pr (slice 174, ADR-0039; trunk, the default, is all of the
+// above) prMode loads the config before anything is fetched, an unreadable
+// one pushing as trunk. Main is the branch the remote's HEAD names, asked
+// of the remote (Ports.RemoteHead, git ls-remote --symref) and required to
+// have the branch (defaultBranch: no-default-branch, exit 3). On main the
+// routine runs as above, but a push that adds a commit touching more than
+// the registry is refused once rebased (addsWork, workOnMain); --ref naming
+// main is judged the same against the remote's main (judgeRefs). On another
+// branch pushItem (pr.go) takes over: its name must be an item of the work
+// registry (work.IDsAt), then it fetches main and the item's branch,
+// rebases onto the item's when the remote has it, else onto main
+// (ontoName names it in the rebase's messages), and pushes in one atomic
+// push the registry commits directly above main (registryPrefix) to main
+// and the head to the item's branch; a branch of such commits alone goes to
+// main with no pull request (pushRegistry). Every gh call (Ports.Gh) names
+// the repository (Ports.GitHubRepository, required once the branch is
+// rebased): pullRequest finds the open pull request or opens one, turns on
+// auto-merge by rebase and, when main has a commit the pushed head lacks,
+// asks GitHub to rebase it (update-branch) instead of forcing the branch;
+// such a push waits for no run, as the head it pushed is no longer the
+// pull request's. A gh that is missing or fails exits 3, the branch pushed
+// already (pull-request-failed). Answer.PullRequest is --json's
+// pull_request.
+//
 // Handle reaches the world through Ports, which the slice owns and
 // internal/cli binds: the repository (the VCS port, git behind it), its git
 // config and hooks folder (hooks.Ports and gitrun.Config), whether a config

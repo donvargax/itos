@@ -1048,6 +1048,8 @@ cases:
           commit_msg:
             task_checks: true
             check_timeout: 60
+        push:
+          mode: trunk
         guide:
           orchestrating: docs/ORCHESTRATING.md
   # config get: a key's value as the tools read it, for a program beside itos
@@ -1067,6 +1069,21 @@ cases:
     stdout_contract: true
     stdout: |
       bin/mine
+  - name: config get prints push.mode's default, trunk, when the config leaves it out
+    argv: [config, get, push.mode]
+    exit: 0
+    stdout_contract: true
+    stdout: |
+      trunk
+  - name: config check refuses a push.mode other than trunk or pr
+    argv: [config, check, --json]
+    files:
+      itos.yaml: "version: 1\npush: { mode: squash }\n"
+    exit: 2
+    json_has:
+      valid: false
+      problems:
+        - { rule: config-enum, area: config }
   - name: config get prints a default the config leaves out
     argv: [config, get, hooks.bin]
     exit: 0

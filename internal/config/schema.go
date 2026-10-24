@@ -318,6 +318,10 @@ var schema = about("itos's policy: the ledger, the commit rules, the named tests
 			"check_timeout", about("The seconds a check may hold a commit, above 0.", num),
 		)),
 	)),
+	"push", about("How itos push lands work.", obj(nil,
+		"mode", about("trunk (every commit goes to the branch's upstream) or pr (an item's work goes on a branch named for the item, "+
+			"merged through a pull request; only the registry's commits go straight to main).", enum("trunk", "pr")),
+	)),
 	"proof", about("What itos ci run judges beyond its steps: the proof of done, computed from the range's commits, never "+
 		"written by the agent; left out, itos works as before.", obj(nil,
 		"code", about("The code proof: when the range touches paths, the run makes check a step of its plan and fails when it does not exit 0.",

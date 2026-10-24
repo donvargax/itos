@@ -49,6 +49,9 @@ func (c CLI) Run(ctx context.Context, stdout, stderr io.Writer, h Handler) (int,
 		if a.Outcome == "pushed" && a.Commit != "" {
 			fields = append(fields, out.Field{Key: "commit", Value: a.Commit})
 		}
+		if a.PullRequest != nil {
+			fields = append(fields, out.Field{Key: "pull_request", Value: a.PullRequest})
+		}
 		if a.Watched != nil {
 			fields = append(fields, a.Watched.Fields()...)
 		}

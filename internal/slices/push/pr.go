@@ -1,0 +1,302 @@
+package push
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"io"
+	"regexp"
+	"slices"
+	"strconv"
+	"strings"
+
+	"github.com/donvargax/itos/v8/internal/engine/gitrun"
+	"github.com/donvargax/itos/v8/internal/providers"
+	vcsport "github.com/donvargax/itos/v8/internal/vcs/port"
+	"github.com/donvargax/itos/v8/internal/work"
+)
+
+// PullRequest is the pull request of an item's branch under push.mode pr, as
+// --json gives it: its address and number, whether this push opened it, and
+// whether it asked GitHub to rebase it.
+type PullRequest struct {
+	URL     string `json:"url"`
+	Number  int    `json:"number"`
+	Created bool   `json:"created"`
+	Updated bool   `json:"updated"`
+}
+
+// prMode is whether the config says push.mode pr, keeping the config for the
+// run. A push with no config, or one that cannot be read, is a trunk push.
+func (r *pushRun) prMode(ctx context.Context) bool {
+	if !r.ports.ConfigFound(ctx) {
+		return false
+	}
+	cfg, err := r.ports.LoadConfig(ctx)
+	if err != nil || cfg.Push.Mode != "pr" {
+		return false
+	}
+	r.cfg = cfg
+	return true
+}
+
+// defaultBranch is main under pr: the branch the remote's HEAD names, which
+// the remote has. done, with the outcome reported, when the remote cannot be
+// asked (fetch-failed, by the kind of git's message) or answers without such
+// a branch (no-default-branch).
+func (r pushRun) defaultBranch(ctx context.Context) (main string, a Answer, done bool) {
+	talk := gitrun.Talking(r.origin, nil, io.Discard, nil)
+	main, err := r.ports.RemoteHead(ctx, r.remote, talk)
+	if err != nil {
+		io.WriteString(r.o.Stderr, words(err))
+		failure := remoteKind(err)
+		return "", r.report(remoteExit(failure), "fetch-failed", r.remoteLines("reading "+r.remote+"'s HEAD failed", failure)...), true
+	}
+	has, err := r.ports.RemoteRefs(ctx, r.remote, []string{"refs/heads/" + main}, talk)
+	if main == "" || err != nil || len(has) == 0 {
+		return "", r.report(missing, "no-default-branch",
+			fmt.Sprintf("itos push: %s's HEAD names no branch %s has, so there is no main to put the work behind; nothing was fetched or pushed.", r.remote, r.remote),
+			"Set the remote's default branch, then itos push again."), true
+	}
+	return main, Answer{}, false
+}
+
+// judgeRefs judges --ref under pr: one naming main is a push from main,
+// refused when it adds a commit that touches more than the registry,
+// against the remote's main. done with that refusal, or the fetch's failure;
+// not done for a --ref that names no main, or a branch the clone lacks, which
+// pushNamed reports.
+func (r *pushRun) judgeRefs(ctx context.Context, refs []string) (Answer, bool) {
+	r.remote = r.namedRemote(ctx)
+	main, a, done := r.defaultBranch(ctx)
+	if done || !slices.Contains(refs, main) {
+		return a, done
+	}
+	r.branch = main
+	local, err := r.ports.Ref(ctx, "refs/heads/"+main)
+	if err != nil {
+		return Answer{}, false
+	}
+	onto, _, failure, failed := r.fetch(ctx, r.remote, "refs/heads/"+main)
+	if failed {
+		return r.report(remoteExit(failure), "fetch-failed", r.remoteLines("fetching "+r.upstream()+" failed", failure)...), true
+	}
+	if r.addsWork(ctx, onto, local) {
+		return r.workOnMain(), true
+	}
+	return Answer{}, false
+}
+
+// addsWork is whether the commits onto..sha include one that touches more
+// than the registry; commits that cannot be listed count as work.
+func (r pushRun) addsWork(ctx context.Context, onto, sha string) bool {
+	ahead, err := r.ports.Commits(ctx, vcsport.Range{From: onto, To: sha})
+	return err != nil || len(ahead) > 0 && !r.registryOnly(ctx, onto, sha, r.cfg.Work.Registry)
+}
+
+// workOnMain is the refusal of a push to main that adds work (outcome
+// work-on-main): under pr only the registry's commits go straight to main.
+func (r pushRun) workOnMain() Answer {
+	return r.report(policy, "work-on-main",
+		fmt.Sprintf("itos push: push.mode is pr, and this push adds commits to %s that touch more than %s; nothing was pushed.",
+			r.upstream(), r.cfg.Work.Registry),
+		"Carry the work to its item's branch with git switch -c <item>, then itos push again from there.")
+}
+
+// pushItem is a push from a branch other than main under pr (ADR-0039): the
+// branch is named for its item, which the registry must list; it is rebased
+// onto the remote's item branch when there is one, else onto main, and the
+// registry's commits directly above main go to main, the rest to the item's
+// branch, in one atomic push; then the pull request is found or opened.
+func (r *pushRun) pushItem(ctx context.Context, item, main string) Answer {
+	v := r.ports
+	registry := r.cfg.Work.Registry
+	r.branch = item
+	if ids, err := work.IDsAt(r.cfg.Trees, registry, ""); err != nil || !ids[item] {
+		return r.report(policy, "not-item-branch",
+			fmt.Sprintf("itos push: push.mode is pr, so a branch is named for its item, and %s is no item of %s; nothing was fetched or pushed.", item, registry),
+			"Rename the branch with git branch -m <item>, then itos push again.")
+	}
+	theirMain, _, failure, failed := r.fetch(ctx, r.remote, "refs/heads/"+main)
+	if failed {
+		return r.report(remoteExit(failure), "fetch-failed", r.remoteLines("fetching "+r.remote+"/"+main+" failed", failure)...)
+	}
+	tip, exists, failure, failed := r.fetch(ctx, r.remote, "refs/heads/"+item)
+	if failed {
+		return r.report(remoteExit(failure), "fetch-failed", r.remoteLines("fetching "+r.upstream()+" failed", failure)...)
+	}
+	onto := theirMain
+	r.ontoName = r.remote + "/" + main
+	if exists {
+		onto, r.ontoName = tip, r.upstream()
+	}
+	if !v.IsAncestor(ctx, onto, "HEAD") {
+		if a, done := r.rebase(ctx, onto); done {
+			return a
+		}
+	}
+	if a, failed := r.resolveHead(ctx); failed {
+		return a
+	}
+	ahead, err := v.Commits(ctx, vcsport.Range{From: theirMain, To: r.sha})
+	if err != nil {
+		fmt.Fprintf(r.o.Stderr, "itos: cannot list the commits %s adds to %s/%s: %s\n", item, r.remote, main, err)
+		return Answer{Code: missing}
+	}
+	if len(ahead) == 0 {
+		return r.report(0, "nothing-to-push", fmt.Sprintf("Nothing to push: %s adds nothing to %s/%s.", item, r.remote, main))
+	}
+	toMain := r.registryPrefix(ctx, theirMain, ahead, tip)
+	if toMain == len(ahead) {
+		return r.pushRegistry(ctx, main, theirMain)
+	}
+	repository := v.GitHubRepository(ctx, r.cfg, r.remote)
+	if repository == "" {
+		return r.report(missing, "no-github-repository",
+			fmt.Sprintf("itos push: %s has work for a pull request, and %s names no GitHub repository to open it in; nothing was pushed.", item, r.remote),
+			"Set "+r.cfg.CI.Range.GitHub.RepositoryEnv+" to owner/name, or point the remote at a GitHub repository, then itos push again.")
+	}
+	pushing := !exists || tip != r.sha
+	if pushing {
+		specs := []string{r.sha + ":refs/heads/" + item}
+		if toMain > 0 {
+			specs = append([]string{ahead[toMain-1] + ":refs/heads/" + main}, specs...)
+		}
+		if a, failed := r.send(ctx, specs, true); failed {
+			return a
+		}
+	}
+	return r.pullRequest(ctx, repository, main, pushing, !v.IsAncestor(ctx, theirMain, r.sha))
+}
+
+// registryPrefix is how many of the commits above main, oldest first, go to
+// main: those that start at main's head, each directly on the one before,
+// touch only the registry and are not on the item's branch yet (theirs, its
+// tip, "" when the remote has none).
+func (r pushRun) registryPrefix(ctx context.Context, main string, ahead []string, theirs string) int {
+	v := r.ports
+	parent := main
+	for i, c := range ahead {
+		if v.Parent(ctx, c) != parent || theirs != "" && v.IsAncestor(ctx, c, theirs) {
+			return i
+		}
+		files, err := v.Touched(ctx, vcsport.Range{From: parent, To: c}, true)
+		if !touchesOnlyRegistry(r.cfg.Work.Registry, files, err) {
+			return i
+		}
+		parent = c
+	}
+	return len(ahead)
+}
+
+// pushRegistry sends a branch whose commits are all the registry's to main
+// alone: the item's branch is not pushed, no pull request is opened and no
+// run waited for, as for registry commits pushed from main.
+func (r *pushRun) pushRegistry(ctx context.Context, main, onto string) Answer {
+	r.branch = main
+	if a, failed := r.send(ctx, []string{r.sha + ":refs/heads/" + main}, true); failed {
+		return a
+	}
+	pushed := r.pushedLine(ctx, "")
+	if r.noWait {
+		return r.report(0, "pushed", pushed)
+	}
+	return r.wait(ctx, r.remote, onto, pushed)
+}
+
+// pullRequest finds the item's open pull request or opens one, turns on
+// auto-merge by rebase and, when main has a commit the pushed head lacks
+// (behind), asks GitHub to rebase it rather than forcing the branch. A push
+// that asked for the rebase waits for no run: the head it pushed is no longer
+// the pull request's. pushed is whether this run pushed the item's branch.
+func (r *pushRun) pullRequest(ctx context.Context, repository, main string, pushed, behind bool) Answer {
+	item := r.branch
+	listed, a, failed := r.gh(ctx, "pr", "list", "--repo", repository, "--head", item, "--state", "open", "--json", "number,url")
+	if failed {
+		return a
+	}
+	var open []PullRequest
+	if err := json.Unmarshal([]byte(listed), &open); err != nil {
+		return r.ghFailed("gh pr list", "its answer is not a list of pull requests: "+err.Error())
+	}
+	if len(open) > 0 {
+		r.pr = &PullRequest{URL: open[0].URL, Number: open[0].Number}
+	} else {
+		created, a, failed := r.gh(ctx, "pr", "create", "--repo", repository, "--base", main, "--head", item, "--fill")
+		if failed {
+			return a
+		}
+		url := lastLine(created)
+		if url == "" {
+			return r.ghFailed("gh pr create", "it printed no address")
+		}
+		r.pr = &PullRequest{URL: url, Number: pullNumber(url), Created: true}
+	}
+	if _, a, failed := r.gh(ctx, "pr", "merge", item, "--repo", repository, "--auto", "--rebase"); failed {
+		return a
+	}
+	if behind {
+		if _, a, failed := r.gh(ctx, "pr", "update-branch", item, "--repo", repository, "--rebase"); failed {
+			return a
+		}
+		r.pr.Updated = true
+	}
+	if !pushed {
+		return r.report(0, "nothing-to-push", fmt.Sprintf("Nothing to push: %s is at %s. Pull request: %s", item, r.upstream(), r.pr.URL))
+	}
+	line := r.pushedLine(ctx, r.pr.URL)
+	switch {
+	case r.noWait:
+		return r.report(0, "pushed", line)
+	case r.pr.Updated:
+		return r.report(0, "pushed", line,
+			fmt.Sprintf("No CI run is waited for: the pull request's checks at %s are GitHub's to judge.", r.pr.URL))
+	}
+	return r.wait(ctx, r.remote, "", line)
+}
+
+// gh runs gh with the arguments: failed, with pull-request-failed reported,
+// when it is not installed or fails. The branch is pushed already.
+func (r pushRun) gh(ctx context.Context, args ...string) (string, Answer, bool) {
+	stdout, err := r.ports.Gh(ctx, args...)
+	if err == nil {
+		return stdout, Answer{}, false
+	}
+	command := "gh " + strings.Join(args[:2], " ")
+	if errors.Is(err, providers.ErrNoGh) {
+		return "", r.ghFailed(command, "gh is not on the PATH"), true
+	}
+	reason := err.Error()
+	var failed *providers.GhFailed
+	if errors.As(err, &failed) && strings.TrimSpace(failed.Words) != "" {
+		reason = strings.TrimSpace(failed.Words)
+	}
+	return "", r.ghFailed(command, reason), true
+}
+
+// ghFailed is the pull-request-failed outcome (exit 3): the command that
+// failed and why, and that itos push again finishes the pull request.
+func (r pushRun) ghFailed(command, reason string) Answer {
+	return r.report(missing, "pull-request-failed",
+		fmt.Sprintf("itos push: %s is pushed, but %s failed: %s", r.upstream(), command, reason),
+		"Fix that, then itos push again: it opens the pull request (gh pr create) and turns on auto-merge (gh pr merge --auto --rebase).")
+}
+
+// lastLine is the last line of the text that is not empty.
+func lastLine(text string) string {
+	lines := strings.Split(strings.TrimSpace(text), "\n")
+	return strings.TrimSpace(lines[len(lines)-1])
+}
+
+var pullPath = regexp.MustCompile(`/pull/(\d+)`)
+
+// pullNumber is the number in a pull request's address, 0 when it has none.
+func pullNumber(url string) int {
+	m := pullPath.FindStringSubmatch(url)
+	if m == nil {
+		return 0
+	}
+	n, _ := strconv.Atoi(m[1])
+	return n
+}

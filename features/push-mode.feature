@@ -13,7 +13,8 @@ Feature: push.mode pr, an item's work on its own branch merged by rebase, claims
   naming the key and both modes; config get push.mode prints trunk when the
   config leaves it out; the schema lists it (config.feature). Under trunk,
   with no config, or with a config that cannot be read, itos push is what it
-  was, whatever the branch (an unreadable config under pr is a later item).
+  was: it asks the remote's HEAD nothing, calls no gh and opens no pull
+  request (an unreadable config under pr is a later item).
 
   Under pr, itos push reads the config before it fetches. The remote is the
   branch's upstream's, else origin, as before. Main is the branch the
@@ -119,7 +120,7 @@ Feature: push.mode pr, an item's work on its own branch merged by rebase, claims
   # to main, and GitHub is asked to open its pull request and merge it by
   # rebase once its checks pass. Fails before the build at the first gh
   # line: today the branch is pushed and gh never called.
-  @ID-PUSHMODE-01 @slice-174 @wip
+  @ID-PUSHMODE-01 @slice-174
   Scenario: Under pr, a push from the item's branch pushes that branch, opens its pull request and turns on auto-merge by rebase
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -147,7 +148,7 @@ Feature: push.mode pr, an item's work on its own branch merged by rebase, claims
   # push rebases it onto the remote's main, so the pull request starts up to
   # date and a later push stays a fast-forward. Fails before the build at the
   # last step: today a new branch is pushed as it is, with no rebase.
-  @ID-PUSHMODE-02 @slice-174 @wip
+  @ID-PUSHMODE-02 @slice-174
   Scenario: Under pr, the first push of an item's branch rebases it onto the remote's main
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -167,7 +168,7 @@ Feature: push.mode pr, an item's work on its own branch merged by rebase, claims
   # goes to the branch, so the lock is main's whichever branch took it.
   # Fails before the build at the first remote step: today both commits go
   # to the new branch and main has neither.
-  @ID-PUSHMODE-03 @slice-174 @wip
+  @ID-PUSHMODE-03 @slice-174
   Scenario: Under pr, a take on the item's branch goes to main and the work to the branch
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -187,7 +188,7 @@ Feature: push.mode pr, an item's work on its own branch merged by rebase, claims
   # A later push of a branch whose pull request is open adds its commits to
   # that pull request and opens no other. Fails before the build at the
   # address: today the commits are pushed and no pull request is named.
-  @ID-PUSHMODE-04 @slice-174 @wip
+  @ID-PUSHMODE-04 @slice-174
   Scenario: Under pr, a push to an item's branch whose pull request is open names it and opens no other
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -211,7 +212,7 @@ Feature: push.mode pr, an item's work on its own branch merged by rebase, claims
   # asks GitHub to rebase it (q-19) instead of rebasing locally, which would
   # need a force: the push itself rebases onto the remote's item branch and
   # is a fast-forward, exit 0. Fails before the build at the gh line.
-  @ID-PUSHMODE-05 @slice-174 @wip
+  @ID-PUSHMODE-05 @slice-174
   Scenario: Under pr, a push to a pull request main has moved past asks GitHub to rebase it, never forcing
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -236,7 +237,7 @@ Feature: push.mode pr, an item's work on its own branch merged by rebase, claims
   # missing or failing, as in @ID-PUSHMODE-11) is finished: with nothing to
   # push it still opens the pull request. Fails before the build at the gh
   # line: today nothing to push returns at once.
-  @ID-PUSHMODE-06 @slice-174 @wip
+  @ID-PUSHMODE-06 @slice-174
   Scenario: Under pr, an item's branch the remote has with no pull request gets one, though there is nothing to push
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -257,7 +258,7 @@ Feature: push.mode pr, an item's work on its own branch merged by rebase, claims
   # on main, which pr mode exists to keep it off. An item's branch goes to
   # its own name whatever its upstream says. Fails before the build at the
   # main step: today the commit is pushed to main.
-  @ID-PUSHMODE-07 @slice-174 @wip
+  @ID-PUSHMODE-07 @slice-174
   Scenario: Under pr, an item's branch tracking main is pushed to its own branch, not to main
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -276,7 +277,7 @@ Feature: push.mode pr, an item's work on its own branch merged by rebase, claims
   # committed on main is refused with the way to its item's branch, before
   # the push, so main has none of it. Fails before the build at the exit
   # code: today it is pushed to main, exit 0.
-  @ID-PUSHMODE-08 @slice-174 @wip
+  @ID-PUSHMODE-08 @slice-174
   Scenario: Under pr, a push from main of a commit touching more than the registry is refused, naming git switch -c
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -295,7 +296,7 @@ Feature: push.mode pr, an item's work on its own branch merged by rebase, claims
   # to main (ADR-0039), so two agents never take one item. Passes today,
   # where no mode is read, and must keep passing once pr mode refuses work
   # on main.
-  @ID-PUSHMODE-09 @slice-174 @guard @wip
+  @ID-PUSHMODE-09 @slice-174 @guard
   Scenario: Under pr, a push from main of commits touching only the registry goes straight to main, opening no pull request
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -313,7 +314,7 @@ Feature: push.mode pr, an item's work on its own branch merged by rebase, claims
   # item of the registry is refused before anything is fetched or pushed,
   # with the rename that fixes it. Fails before the build at the exit code:
   # today the branch is pushed, exit 0.
-  @ID-PUSHMODE-10 @slice-174 @wip
+  @ID-PUSHMODE-10 @slice-174
   Scenario: Under pr, a push from a branch that names no item is refused, naming git branch -m
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -333,7 +334,7 @@ Feature: push.mode pr, an item's work on its own branch merged by rebase, claims
   # exit says the pull request is not opened, and itos push again opens it
   # (@ID-PUSHMODE-06). Fails before the build at the exit code: today the
   # branch is pushed, exit 0.
-  @ID-PUSHMODE-11 @slice-174 @wip
+  @ID-PUSHMODE-11 @slice-174
   Scenario: Under pr, with no gh on the PATH the item's branch is pushed and the push exits 3, saying how to finish
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -359,7 +360,7 @@ Feature: push.mode pr, an item's work on its own branch merged by rebase, claims
   # unknown key push leaves the config unread after the push, so nothing is
   # watched and it exits 0; once push.mode is a known key, at the address of
   # the pull request.
-  @ID-PUSHMODE-12 @slice-174 @wip
+  @ID-PUSHMODE-12 @slice-174
   Scenario: Under pr with ci.watch, a push from an item's branch waits for the pushed head's run and exits 1 when it fails
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -381,7 +382,7 @@ Feature: push.mode pr, an item's work on its own branch merged by rebase, claims
   # --json is the contract (ADR-0035): an agent reads the pull request's
   # address from it. Fails before the build at the pull_request line: today
   # the JSON has no such key.
-  @ID-PUSHMODE-13 @slice-174 @wip
+  @ID-PUSHMODE-13 @slice-174
   Scenario: Under pr, push --json names the pull request it opened
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -400,7 +401,7 @@ Feature: push.mode pr, an item's work on its own branch merged by rebase, claims
   # --ref pushes a branch for another platform's CI (slice 131), which is no
   # item's work: it opens no pull request under pr either. Passes today and
   # must keep passing.
-  @ID-PUSHMODE-14 @slice-174 @guard @wip
+  @ID-PUSHMODE-14 @slice-174 @guard
   Scenario: Under pr, push --ref pushes the branch it names and opens no pull request
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -414,23 +415,23 @@ Feature: push.mode pr, an item's work on its own branch merged by rebase, claims
     And the remote has the branch "ci/windows" with "docs: try windows"
     And the recording gh was never called
 
-  # trunk is the default: with no push.mode, a branch named for an item is
-  # pushed to its own name as before, and GitHub is never asked for a pull
-  # request. Passes today and must keep passing.
-  @ID-PUSHMODE-15 @slice-174 @guard @wip
-  Scenario: Without push.mode, a push from a branch named for an item pushes it as before, opening no pull request
+  # trunk is the default: with no push.mode, itos push is what it was and
+  # GitHub is never asked for a pull request, whatever the branch is called.
+  # Where a branch with no upstream is pushed under trunk is bug-136's, not
+  # this scenario's. Passes today and must keep passing.
+  @ID-PUSHMODE-15 @slice-174 @guard
+  Scenario: Without push.mode, a push from a branch named for an item calls no gh and opens no pull request
     Given a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
     And the clone is on the new branch "slice-9"
     And the clone has the commit "feat: add the widget" touching "widget.md"
     When itos runs "push"
     Then itos exits with code 0
-    And the remote has the branch "slice-9" with "feat: add the widget"
     And the recording gh was never called
 
   # trunk, written out, is the counterpart of @ID-PUSHMODE-08: work pushed
   # from main lands on main. Passes today, where no mode is read, and must
   # keep passing.
-  @ID-PUSHMODE-16 @slice-174 @guard @wip
+  @ID-PUSHMODE-16 @slice-174 @guard
   Scenario: Under trunk, a push from main of any commit goes to main, opening no pull request
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -447,7 +448,7 @@ Feature: push.mode pr, an item's work on its own branch merged by rebase, claims
   # --ref main would push work to main past @ID-PUSHMODE-08's refusal, so
   # under pr it is judged as a push from main against the remote's main.
   # Fails before the build at the exit code: today --ref main pushes, exit 0.
-  @ID-PUSHMODE-17 @slice-174 @wip
+  @ID-PUSHMODE-17 @slice-174
   Scenario: Under pr, push --ref naming main is refused like work pushed from main
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -466,7 +467,7 @@ Feature: push.mode pr, an item's work on its own branch merged by rebase, claims
   # calls no gh, so it needs no GitHub repository (@ID-PUSHMODE-20 is the
   # refusal for a branch with work). Fails before the build at the main
   # step: today the take goes to the new branch.
-  @ID-PUSHMODE-18 @slice-174 @wip
+  @ID-PUSHMODE-18 @slice-174
   Scenario: Under pr, an item's branch holding only registry commits sends them to main and opens no pull request
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -487,7 +488,7 @@ Feature: push.mode pr, an item's work on its own branch merged by rebase, claims
   # branch it does not have gives no main, and the push stops before
   # anything is fetched or pushed. Fails before the build at the exit code:
   # today the branch is pushed, exit 0.
-  @ID-PUSHMODE-19 @slice-174 @wip
+  @ID-PUSHMODE-19 @slice-174
   Scenario: Under pr, a remote whose HEAD names no branch it has is refused, exit 3
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -509,7 +510,7 @@ Feature: push.mode pr, an item's work on its own branch merged by rebase, claims
   # environment, has none to name, and the push stops before anything is
   # fetched or pushed. Fails before the build at the exit code: today the
   # branch is pushed, exit 0.
-  @ID-PUSHMODE-20 @slice-174 @wip
+  @ID-PUSHMODE-20 @slice-174
   Scenario: Under pr, a push with no GitHub repository to name is refused, exit 3
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -534,7 +535,7 @@ Feature: push.mode pr, an item's work on its own branch merged by rebase, claims
   # that joins the address to that; @ID-PUSHMODE-22 pins --json's keys.
   # Fails before the build at the update-branch step: today the commits are
   # pushed and gh never called.
-  @ID-PUSHMODE-21 @slice-174 @wip
+  @ID-PUSHMODE-21 @slice-174
   Scenario: Under pr with ci.watch, a push that asks GitHub to rebase its pull request waits for no run and says so
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -559,7 +560,7 @@ Feature: push.mode pr, an item's work on its own branch merged by rebase, claims
   # push it does not wait for (slice 56), so a reader tells the skip by their
   # absence. Fails before the build at the pull_request step: today the JSON
   # has no such key.
-  @ID-PUSHMODE-22 @slice-174 @wip
+  @ID-PUSHMODE-22 @slice-174
   Scenario: Under pr with ci.watch, push --json after asking GitHub to rebase has neither ci nor run
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """

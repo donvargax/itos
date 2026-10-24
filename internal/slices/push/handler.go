@@ -32,7 +32,10 @@ type Query struct {
 // ConfigFound, whether there is a config file, itos being set up; Stealth,
 // whether the config is the stealth one; LoadConfig, the config, loaded from
 // the working tree; and Watcher, ci.watch's provider for cfg, for a commit
-// pushed to remote, ok false when it is none.
+// pushed to remote, ok false when it is none. For push.mode pr (pr.go),
+// RemoteHead, the branch the remote's HEAD names; Gh, gh run with the
+// arguments, its stdout, providers.ErrNoGh when it is not installed; and
+// GitHubRepository, the repository every gh call names, "" for none.
 type Ports interface {
 	vcsport.VCS
 	hooks.Ports
@@ -41,6 +44,9 @@ type Ports interface {
 	Stealth(ctx context.Context) bool
 	LoadConfig(ctx context.Context) (*config.Loaded, error)
 	Watcher(ctx context.Context, cfg *config.Loaded, remote string) (providers.Watcher, bool, error)
+	RemoteHead(ctx context.Context, remote string, talk vcsport.Talk) (string, error)
+	Gh(ctx context.Context, args ...string) (string, error)
+	GitHubRepository(ctx context.Context, cfg *config.Loaded, remote string) string
 }
 
 // Handler is push's application, over its ports.
@@ -64,7 +70,8 @@ type Out struct {
 // Answer is how the push ended: Code, its exit; Outcome, what --json names
 // it, "" when nothing is left to report; Lines, what it says, on stdout
 // for a success, else on stderr; Remote and Branch, the upstream's; Tags
-// and Refs, what --tag and --ref named; Commit, the commit pushed; and
+// and Refs, what --tag and --ref named; Commit, the commit pushed;
+// PullRequest, the pull request of an item's branch under push.mode pr; and
 // Watched, the CI run waited for after the push, if one was.
 type Answer struct {
 	Code           int
@@ -73,6 +80,7 @@ type Answer struct {
 	Remote, Branch string
 	Tags, Refs     []string
 	Commit         string
+	PullRequest    *PullRequest
 	Watched        *ciwatch.Watched
 }
 
@@ -102,7 +110,13 @@ func (h Handler) Handle(ctx context.Context, q Query, o Out) (Answer, error) {
 			return r.report(missing, "hooks-not-run", "itos: "+err.Error()), nil
 		}
 	}
+	pr := r.prMode(ctx)
 	if len(q.Tags)+len(q.Refs) > 0 {
+		if pr && len(q.Refs) > 0 {
+			if a, done := r.judgeRefs(ctx, q.Refs); done {
+				return a, nil
+			}
+		}
 		return r.pushNamed(ctx, q.Tags, q.Refs), nil
 	}
 	if a, done := r.ready(ctx); done {
@@ -120,6 +134,17 @@ func (h Handler) Handle(ctx context.Context, q Query, o Out) (Answer, error) {
 	if !set && !hasRemote(ctx, v, remote) {
 		return r.report(missing, "no-remote", fmt.Sprintf("itos push: %s has no upstream and there is no remote %s to push to", branch, remote)), nil
 	}
+	onMain := false
+	if pr {
+		main, a, done := r.defaultBranch(ctx)
+		if done {
+			return a, nil
+		}
+		if branch != main {
+			return r.pushItem(ctx, branch, main), nil
+		}
+		onMain = true
+	}
 	onto, exists, failure, failed := r.fetch(ctx, remote, ref)
 	if failed {
 		return r.report(remoteExit(failure), "fetch-failed", r.remoteLines("fetching "+r.upstream()+" failed", failure)...), nil
@@ -129,16 +154,28 @@ func (h Handler) Handle(ctx context.Context, q Query, o Out) (Answer, error) {
 			return a, nil
 		}
 	}
-	var err error
-	r.sha, err = v.Resolve(ctx, "HEAD")
-	if err != nil {
-		fmt.Fprintf(o.Stderr, "itos: cannot resolve HEAD after the rebase: %s\n", err)
-		return Answer{Code: missing}, nil
+	if a, failed := r.resolveHead(ctx); failed {
+		return a, nil
 	}
 	if exists {
 		if ahead, err := v.Commits(ctx, vcsport.Range{From: onto, To: r.sha}); err == nil && len(ahead) == 0 {
 			return r.report(0, "nothing-to-push", fmt.Sprintf("Nothing to push: %s is at %s.", branch, r.upstream())), nil
 		}
 	}
+	if onMain && r.addsWork(ctx, onto, r.sha) {
+		return r.workOnMain(), nil
+	}
 	return r.push(ctx, remote, ref, onto), nil
+}
+
+// resolveHead sets sha to HEAD's commit once the rebase is over: failed, with
+// the exit reported, when it cannot be told.
+func (r *pushRun) resolveHead(ctx context.Context) (Answer, bool) {
+	sha, err := r.ports.Resolve(ctx, "HEAD")
+	if err != nil {
+		fmt.Fprintf(r.o.Stderr, "itos: cannot resolve HEAD after the rebase: %s\n", err)
+		return Answer{Code: missing}, true
+	}
+	r.sha = sha
+	return Answer{}, false
 }

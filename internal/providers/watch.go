@@ -201,10 +201,7 @@ func watchGitHub(cfg *config.Loaded, key string, s WatchSetup) (GitHub, error) {
 		return GitHub{}, fmt.Errorf("%s's github provider needs a token, and there is none: set %s (ci.range.github.token_env), or install gh and run gh auth login",
 			key, orList(r.TokenEnv))
 	}
-	repository := s.Env(r.RepositoryEnv)
-	if repository == "" {
-		repository = GitHubRepository(s.RemoteURL)
-	}
+	repository := Repository(cfg, s.Env, s.RemoteURL)
 	if repository == "" {
 		return GitHub{}, fmt.Errorf("%s's github provider cannot tell the GitHub repository from the remote's URL %q: set %s to owner/name",
 			key, s.RemoteURL, r.RepositoryEnv)

@@ -8,6 +8,7 @@ import (
 	"path"
 	"path/filepath"
 
+	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/engine/ciwatch"
 	"github.com/donvargax/itos/v8/internal/engine/gitrun"
 	"github.com/donvargax/itos/v8/internal/kind"
@@ -27,17 +28,29 @@ type pushRun struct {
 	sha            string           // the commit pushed, resolved once before the push
 	noWait         bool             // --no-wait: push and return, whatever ci.watch says
 	watched        *ciwatch.Watched // the CI run waited for after the push, if one was
+	cfg            *config.Loaded   // the config, when push.mode is pr (prMode)
+	ontoName       string           // what the branch is rebased onto, when it is not the upstream (pr.go)
+	pr             *PullRequest     // the pull request of the item's branch, once found or opened (pr.go)
 }
 
 // report ends the run: Run prints the outcome under --json, else the lines
 // on stdout for a success, on stderr for anything else.
 func (r pushRun) report(code int, outcome string, lines ...string) Answer {
 	return Answer{Code: code, Outcome: outcome, Lines: lines, Remote: r.remote, Branch: r.branch, Tags: r.tags,
-		Refs: r.refs, Commit: r.sha, Watched: r.watched}
+		Refs: r.refs, Commit: r.sha, Watched: r.watched, PullRequest: r.pr}
 }
 
 // upstream is the upstream's name as people write it: origin/main.
 func (r pushRun) upstream() string { return r.remote + "/" + r.branch }
+
+// base is what the branch is rebased onto, as people write it: the upstream,
+// else what a pr-mode push chose (ontoName).
+func (r pushRun) base() string {
+	if r.ontoName != "" {
+		return r.ontoName
+	}
+	return r.upstream()
+}
 
 // ready is whether the working tree can be pulled into: no rebase in
 // progress, no conflict left and no uncommitted change to a tracked file;
@@ -165,7 +178,7 @@ func (r pushRun) rebase(ctx context.Context, onto string) (Answer, bool) {
 	}
 	if v.Rebasing(ctx) || len(v.Conflicted(ctx)) > 0 {
 		lines := []string{
-			fmt.Sprintf("itos push: the rebase onto %s stopped; nothing was pushed.", r.upstream()),
+			fmt.Sprintf("itos push: the rebase onto %s stopped; nothing was pushed.", r.base()),
 			"Resolve the conflicts, git add the files and run git rebase --continue, then itos push again;",
 			"or run git rebase --abort to go back to where the branch was.",
 		}
@@ -173,7 +186,7 @@ func (r pushRun) rebase(ctx context.Context, onto string) (Answer, bool) {
 	}
 	if code != 0 {
 		return r.report(policy, "rebase-failed",
-			fmt.Sprintf("itos push: the rebase onto %s did not run (git's message above); nothing was pushed", r.upstream())), true
+			fmt.Sprintf("itos push: the rebase onto %s did not run (git's message above); nothing was pushed", r.base())), true
 	}
 	return Answer{}, false
 }
@@ -212,18 +225,18 @@ func (r pushRun) registryConflict(ctx context.Context) []string {
 	}
 	clashes := work.Clashes(show("REBASE_HEAD^"), show("HEAD"), show("REBASE_HEAD"))
 	if len(clashes) == 0 {
-		return []string{"", fmt.Sprintf("The conflict is in the work registry, %s: a commit on %s and yours added or", registry, r.upstream()),
+		return []string{"", fmt.Sprintf("The conflict is in the work registry, %s: a commit on %s and yours added or", registry, r.base()),
 			"changed different items, so nothing was taken twice. Keep both sides' items in the file, git add it",
 			"and run git rebase --continue, then itos push again; or run git rebase --abort to leave it."}
 	}
-	lines := []string{"", fmt.Sprintf("The conflict is in the work registry, %s: a commit on %s changed", registry, r.upstream()),
+	lines := []string{"", fmt.Sprintf("The conflict is in the work registry, %s: a commit on %s changed", registry, r.base()),
 		"the same item as yours, so it was taken, or changed, there first, and the remote keeps that."}
 	for _, c := range clashes {
 		switch {
 		case c.Taken && c.Owner != "":
-			lines = append(lines, fmt.Sprintf("  %s is taken: a commit on %s made %s its owner first.", c.ID, r.upstream(), c.Owner))
+			lines = append(lines, fmt.Sprintf("  %s is taken: a commit on %s made %s its owner first.", c.ID, r.base(), c.Owner))
 		default:
-			lines = append(lines, fmt.Sprintf("  %s was changed on %s too.", c.ID, r.upstream()))
+			lines = append(lines, fmt.Sprintf("  %s was changed on %s too.", c.ID, r.base()))
 		}
 	}
 	return append(lines,
@@ -239,27 +252,45 @@ func (r pushRun) registryConflict(ctx context.Context) []string {
 // when the push makes the branch. HEAD is not read again: a commit made
 // while the hook ran is not the one pushed.
 func (r pushRun) push(ctx context.Context, remote, ref, onto string) Answer {
-	outcome := r.ports.Push(ctx, remote, []string{r.sha + ":" + ref}, vcsport.Pushing{Quiet: r.o.Quiet},
-		r.talk(r.o.Stderr))
-	code, err := gitrun.ExitOf(outcome)
-	if err != nil {
-		fmt.Fprintf(r.o.Stderr, "itos: cannot run git: %s\n", err)
-		return Answer{Code: missing}
+	if a, failed := r.send(ctx, []string{r.sha + ":" + ref}, false); failed {
+		return a
 	}
-	if code != 0 {
-		if failure := remoteKind(outcome); failure != kind.Unknown {
-			return r.report(remoteExit(failure), "push-failed", r.remoteLines("the push to "+r.upstream()+" failed", failure)...)
-		}
-		return r.report(refusalExit(outcome), "push-failed",
-			fmt.Sprintf("itos push: the push to %s failed (git's message above); nothing was forced.", r.upstream()),
-			"If the remote moved, run itos push again to rebase onto it; if a hook refused it, fix what it reported first.")
-	}
-	shown, _ := r.ports.Show(ctx, r.sha)
-	pushed := fmt.Sprintf("Pushed %s to %s.", shown.Short, r.upstream())
+	pushed := r.pushedLine(ctx, "")
 	if r.noWait {
 		return r.report(0, "pushed", pushed)
 	}
 	return r.wait(ctx, remote, onto, pushed)
+}
+
+// send pushes the refspecs, in one atomic push when atomic is set: failed,
+// with the outcome reported, when git or the pre-push hook refuses it.
+func (r pushRun) send(ctx context.Context, specs []string, atomic bool) (Answer, bool) {
+	outcome := r.ports.Push(ctx, r.remote, specs, vcsport.Pushing{Atomic: atomic, Quiet: r.o.Quiet}, r.talk(r.o.Stderr))
+	code, err := gitrun.ExitOf(outcome)
+	if err != nil {
+		fmt.Fprintf(r.o.Stderr, "itos: cannot run git: %s\n", err)
+		return Answer{Code: missing}, true
+	}
+	if code != 0 {
+		if failure := remoteKind(outcome); failure != kind.Unknown {
+			return r.report(remoteExit(failure), "push-failed", r.remoteLines("the push to "+r.upstream()+" failed", failure)...), true
+		}
+		return r.report(refusalExit(outcome), "push-failed",
+			fmt.Sprintf("itos push: the push to %s failed (git's message above); nothing was forced.", r.upstream()),
+			"If the remote moved, run itos push again to rebase onto it; if a hook refused it, fix what it reported first."), true
+	}
+	return Answer{}, false
+}
+
+// pushedLine says what was pushed: the commit and where, then, when there is
+// one, the pull request's address.
+func (r pushRun) pushedLine(ctx context.Context, address string) string {
+	shown, _ := r.ports.Show(ctx, r.sha)
+	line := fmt.Sprintf("Pushed %s to %s.", shown.Short, r.upstream())
+	if address != "" {
+		line += " Pull request: " + address
+	}
+	return line
 }
 
 // wait waits for the CI run of the commit pushed when ci.watch has a

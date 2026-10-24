@@ -2,6 +2,7 @@ package cli
 
 import (
 	"context"
+	"os"
 
 	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/providers"
@@ -39,4 +40,16 @@ func (p pushPorts) LoadConfig(context.Context) (*config.Loaded, error) { return 
 // Watcher is watcher.
 func (pushPorts) Watcher(_ context.Context, cfg *config.Loaded, remote string) (providers.Watcher, bool, error) {
 	return watcher(cfg, remote, Out{})
+}
+
+// Gh is providers.Gh in the folder itos runs in.
+func (p pushPorts) Gh(ctx context.Context, args ...string) (string, error) {
+	return providers.Gh(ctx, p.Dir, args...)
+}
+
+// GitHubRepository is providers.Repository, the environment's and the
+// remote's URL.
+func (p pushPorts) GitHubRepository(ctx context.Context, cfg *config.Loaded, remote string) string {
+	url, _ := p.RemoteURL(ctx, remote)
+	return providers.Repository(cfg, os.Getenv, url)
 }

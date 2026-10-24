@@ -2,7 +2,8 @@
 // the ledger's layout (ledger), the commit types, footers, path sets and
 // scopes (commits), the named tests and their adapters (tests), CI's steps,
 // costs, prose shortcut, nightly and range (ci), the work registry and the
-// people (work), the hooks (hooks), the pin (pin), the proof of done work
+// people (work), the hooks (hooks), how itos push lands work (push.mode:
+// trunk, the default, or pr, slice 174), the pin (pin), the proof of done work
 // done requires (proof, slice 100) and where verification starts
 // (commits.since). A project changes its policy here, not in the
 // code, and every reader of the config goes through Load; none has a

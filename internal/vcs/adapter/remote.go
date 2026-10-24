@@ -50,6 +50,25 @@ func (g Git) RemoteRefs(ctx context.Context, remote string, refs []string, talk 
 	return found, nil
 }
 
+// RemoteHead is the branch the remote's HEAD names, asked of the remote
+// itself with git ls-remote --symref, since a clone's refs/remotes/<remote>/HEAD
+// is missing after git remote add; "" when the remote answers without a HEAD
+// naming a branch. Not in the VCS port: only itos push in pr mode asks it.
+func (g Git) RemoteHead(ctx context.Context, remote string, talk port.Talk) (string, error) {
+	out, err := g.output(ctx, talk, true, "ls-remote", "--symref", remote, "HEAD")
+	if err != nil {
+		return "", err
+	}
+	for _, line := range strings.Split(out, "\n") {
+		if target, ok := strings.CutPrefix(line, "ref: "); ok {
+			if ref, name, _ := strings.Cut(target, "\t"); name == "HEAD" {
+				return strings.TrimPrefix(ref, "refs/heads/"), nil
+			}
+		}
+	}
+	return "", nil
+}
+
 // Fetch is git fetch --quiet --no-tags of the refspec, then FETCH_HEAD's
 // commit; git fetch -q of the remote's own refspecs when refspec is "".
 func (g Git) Fetch(ctx context.Context, remote, refspec string, talk port.Talk) (string, error) {

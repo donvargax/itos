@@ -61,6 +61,33 @@ job's step and what its log says failed, and the tags the run's head carries are
 named, as itos ci watch does. The commits are pushed either way.
 --no-wait pushes and returns.
 
+push.mode pr (trunk by default; ADR-0039) keeps work off main: it goes on a
+branch named for its item and reaches main through a pull request. Main is the
+branch the remote's HEAD names (git ls-remote --symref), a remote with none it
+has refused before anything is fetched, exit 3. On main the commits that touch
+only the work registry (a take, a close, a queue move, an idea) go to main as
+above, so two agents never take one item; a push that adds any other commit
+is refused once rebased, exit 1, nothing pushed, saying to carry the work to
+its item's branch with git switch -c <item>, and so is --ref naming main. On
+any other branch, whose name must be an item of the registry (else exit 1,
+saying git branch -m <item>), the branch goes to the remote's branch of its
+own name, whatever its upstream says, rebased onto the remote's item branch
+when there is one, else onto main; the registry's commits directly above main
+go to main, in the same git push --atomic. Then gh --repo <repository>, the
+repository ci.range.github.repository_env names, else the remote's URL
+(none: exit 3, before anything is pushed), finds the open pull request or
+opens it (gh pr create --fill), turns on auto-merge by rebase (gh pr merge
+--auto --rebase, never squash) and, when main has a commit the pushed head
+lacks, asks GitHub to rebase it (gh pr update-branch --rebase) rather than
+forcing the branch; the push prints the pull request's address, and these
+calls run with nothing to push too. A branch of the registry's commits alone
+goes to main with no pull request. With no gh, or a gh that fails, the branch
+is pushed already: exit 3, naming the gh command, and itos push again
+finishes it. With ci.watch the push waits for the run of the head it pushed
+as above, the pull request standing either way; when it asked GitHub to
+rebase the pull request it waits for no run, and says the pull request's
+checks are GitHub's to judge.
+
 --tag <tag> and --ref <branch>, each as often as wanted, push the tags and
 the local branches named, and nothing else, each to the remote's tag or
 branch of the same name, in one git push --atomic: all of them land or none
@@ -77,10 +104,12 @@ and branch adds.
 Exit: 0 pushed, or nothing to push; 1 refused before the pull, the rebase
 stopped, the remote or the pre-push hook refused the push, a tag or a branch
 named that the clone does not have, a tag the remote has as another object,
-or the CI run waited for failed; 2 an argument, or a core.hooksPath set by
+the CI run waited for failed, or, under push.mode pr, work pushed to main or
+a branch that names no item; 2 an argument, or a core.hooksPath set by
 git -c; 3 no git repository, itos's pre-push hook that would not run, no
 upstream and no remote origin, a remote that is no repository or that git
-cannot find, or a CI run not to be looked at; 75 a remote that cannot be
+cannot find, a CI run not to be looked at, or, under push.mode pr, a remote
+with no main, no GitHub repository to name, or a pull request not opened; 75 a remote that cannot be
 reached (a connection refused or timed out, a host that does not resolve), a
 CI run not finished, a CI run cancelled with no newer run to follow, or
 GitHub's API failing; 70 a fetch, a read of the remote's tags or a push that
@@ -88,11 +117,15 @@ failed for another reason. The kind of a failed fetch or push is
 read from git's message; git's own exit code is never itos's.
 
 --json: git's output on stderr;
-        {"schema":1,"ok","outcome","remote"?,"branch"?,"tags"?,"refs"?,"commit"?,"ci"?,"run"?},
-        tags and refs what --tag and --ref named, outcome one of pushed,
+        {"schema":1,"ok","outcome","remote"?,"branch"?,"tags"?,"refs"?,"commit"?,"pull_request"?,"ci"?,"run"?},
+        tags and refs what --tag and --ref named, pull_request
+        {"url","number","created","updated"} after a push from an item's
+        branch under push.mode pr, outcome one of pushed,
         nothing-to-push, uncommitted, rebase-in-progress, detached, no-remote,
-        no-such-ref, tag-exists, fetch-failed (reading the remote's tags too),
-        rebase-stopped, rebase-failed, push-failed;
+        no-such-ref, tag-exists, fetch-failed (reading the remote's tags or
+        HEAD too), rebase-stopped, rebase-failed, push-failed, and under
+        push.mode pr work-on-main, not-item-branch, no-default-branch,
+        no-github-repository, pull-request-failed;
         ci, run and superseded as itos ci watch's, when it waited`,
 	},
 	Spec: declare.Spec{Unread: true},

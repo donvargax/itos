@@ -55,6 +55,19 @@ type fake struct {
 	rebase    func() error
 	pushed    [][]string
 	talk      vcsport.Talk
+
+	// push.mode pr (pr_test.go): the branch the remote's HEAD names and the
+	// error asking it, gh's answer to the arguments of each call and the
+	// calls, the GitHub repository the calls name, and the error listing a
+	// range's commits.
+	remoteHead string
+	headErr    error
+	gh         func(args []string) (string, error)
+	ghCalls    [][]string
+	repository string
+	commitsErr error
+	fetchErrs  map[string]error // by refspec, a fetch that fails whatever fetchErr says
+	atomic     []bool           // whether each push was atomic
 }
 
 func (f *fake) ConfigFound(context.Context) bool { return f.found }
@@ -65,6 +78,27 @@ func (f *fake) LoadConfig(context.Context) (*config.Loaded, error) { return f.cf
 
 func (f *fake) Watcher(context.Context, *config.Loaded, string) (providers.Watcher, bool, error) {
 	return f.watcher, f.watchOK, f.watchErr
+}
+
+func (f *fake) RemoteHead(context.Context, string, vcsport.Talk) (string, error) {
+	return f.remoteHead, f.headErr
+}
+
+func (f *fake) Gh(_ context.Context, args ...string) (string, error) {
+	f.ghCalls = append(f.ghCalls, args)
+	if f.gh == nil {
+		return "", nil
+	}
+	return f.gh(args)
+}
+
+func (f *fake) GitHubRepository(context.Context, *config.Loaded, string) string { return f.repository }
+
+func (f *fake) Commits(ctx context.Context, r vcsport.Range) ([]string, error) {
+	if f.commitsErr != nil {
+		return nil, f.commitsErr
+	}
+	return f.VCS.Commits(ctx, r)
 }
 
 func (f *fake) Config(_ context.Context, key string, _ bool) []string { return f.git[key] }
@@ -109,6 +143,9 @@ func (f *fake) Fetch(ctx context.Context, remote, refspec string, talk vcsport.T
 	if f.fetchErr != nil {
 		return "", f.fetchErr
 	}
+	if err := f.fetchErrs[refspec]; err != nil {
+		return "", err
+	}
 	return f.VCS.Fetch(ctx, remote, refspec, talk)
 }
 
@@ -127,7 +164,7 @@ func (f *fake) Rebase(ctx context.Context, onto string, quiet bool, talk vcsport
 }
 
 func (f *fake) Push(ctx context.Context, remote string, specs []string, p vcsport.Pushing, talk vcsport.Talk) error {
-	f.pushed, f.talk = append(f.pushed, specs), talk
+	f.pushed, f.talk, f.atomic = append(f.pushed, specs), talk, append(f.atomic, p.Atomic)
 	if f.pushErr != nil {
 		return f.pushErr
 	}
@@ -135,9 +172,12 @@ func (f *fake) Push(ctx context.Context, remote string, specs []string, p vcspor
 }
 
 // loaded is the config of the text.
-func loaded(t *testing.T, text string) *config.Loaded {
+func loaded(t *testing.T, text string) *config.Loaded { return loadedWith(t, text, nil) }
+
+// loadedWith is the config of the text over a working tree holding the files.
+func loadedWith(t *testing.T, text string, files map[string]string) *config.Loaded {
 	t.Helper()
-	tree := treefake.Trees{Common: ".git", Files: map[string]map[string]string{"worktree": {}}}
+	tree := treefake.Trees{Common: ".git", Files: map[string]map[string]string{"worktree": files}}
 	src, err := tree.At(t.Context(), "worktree")
 	if err != nil {
 		t.Fatal(err)
@@ -208,7 +248,13 @@ type report struct {
 	Refs    []string `json:"refs"`
 	Commit  string   `json:"commit"`
 	CI      string   `json:"ci"`
-	Run     *struct {
+	PR      *struct {
+		URL     string `json:"url"`
+		Number  int    `json:"number"`
+		Created bool   `json:"created"`
+		Updated bool   `json:"updated"`
+	} `json:"pull_request"`
+	Run *struct {
 		URL string `json:"url"`
 	} `json:"run"`
 }

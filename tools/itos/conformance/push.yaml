@@ -225,3 +225,47 @@ cases:
       remote: origin
       branch: main
       commit: '{{sha.head}}'
+  # push.mode pr (slice 174, ADR-0039): an item's work goes on a branch named
+  # for its item and reaches main through a pull request; only the registry's
+  # commits go straight to main. These two refusals call no gh; the rest of
+  # pr mode, which needs one, is features/push-mode.feature's.
+  - name: under push.mode pr a push from main of a commit touching more than the registry is refused, nothing pushed
+    argv: [push, --json]
+    git:
+      - commit: "chore: start"
+        files: { README.md: "scratch\n" }
+        label: start
+      - run: git init -q --bare .git/origin.git && git -C .git/origin.git symbolic-ref HEAD refs/heads/main && git remote add origin .git/origin.git && git push -q -u origin main
+      - commit: "feat: add the widget"
+        files: { widget.md: "widget\n" }
+    files:
+      itos.yaml: "version: 1\npush: { mode: pr }\n"
+    exit: 1
+    files_after:
+      .git/origin.git/refs/heads/main: "{{sha.start}}\n"
+    json:
+      schema: 1
+      ok: false
+      outcome: work-on-main
+      remote: origin
+      branch: main
+  - name: under push.mode pr a push from a branch that names no item of the registry is refused, nothing pushed
+    argv: [push, --json]
+    git:
+      - commit: "chore: start"
+        files: { README.md: "scratch\n" }
+        label: start
+      - run: git init -q --bare .git/origin.git && git -C .git/origin.git symbolic-ref HEAD refs/heads/main && git remote add origin .git/origin.git && git push -q -u origin main && git checkout -q -b tidy
+      - commit: "chore: tidy the readme"
+        files: { README.md: "tidy\n" }
+    files:
+      itos.yaml: "version: 1\npush: { mode: pr }\n"
+    exit: 1
+    files_after:
+      .git/origin.git/refs/heads/tidy: null
+    json:
+      schema: 1
+      ok: false
+      outcome: not-item-branch
+      remote: origin
+      branch: tidy

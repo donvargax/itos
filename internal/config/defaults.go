@@ -89,6 +89,9 @@ func defaults() *value.Map {
 			// a check that needs longer is late.
 			"commit_msg", m("task_checks", true, "check_timeout", 60.0),
 		),
+		// Trunk, so a config without push.mode pushes as it always did
+		// (slice 174).
+		"push", m("mode", "trunk"),
 		// The repository's own notes, which itos go appends to the
 		// coordinator's guide (slice 64): beside its other docs.
 		"guide", m("orchestrating", "docs/ORCHESTRATING.md"),

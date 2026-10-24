@@ -755,7 +755,7 @@ Feature: Every key the config accepts is one itos reads
   # are maintained ways of working (the user, 2026-10-23), so both pass.
   # Fails before the build at the exit code: today push is an unknown key,
   # exit 2.
-  @ID-CONFIG-73 @slice-174 @wip
+  @ID-CONFIG-73 @slice-174
   Scenario Outline: config check accepts push.mode <mode>
     Given the config sets "push.mode" to "<mode>"
     When itos checks the config
@@ -769,7 +769,7 @@ Feature: Every key the config accepts is one itos reads
   # squash is the merge ADR-0039 rules out, the likeliest wrong value. The
   # refusal names the key and both modes. Fails before the build at
   # "push.mode": today config check says only "unknown key push".
-  @ID-CONFIG-74 @slice-174 @wip
+  @ID-CONFIG-74 @slice-174
   Scenario: config check refuses a push.mode other than trunk or pr, naming both
     Given the config sets "push.mode" to "squash"
     When itos checks the config
@@ -780,7 +780,7 @@ Feature: Every key the config accepts is one itos reads
   # A config without push.mode pushes as before: its default is trunk.
   # Fails before the build at the exit code: today config get refuses the
   # unknown key, exit 2.
-  @ID-CONFIG-75 @slice-174 @wip
+  @ID-CONFIG-75 @slice-174
   Scenario: config get prints push.mode's default, trunk, when the config leaves it out
     When itos runs "config get push.mode"
     Then itos exits with code 0

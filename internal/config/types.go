@@ -23,10 +23,20 @@ type Config struct {
 	CI    CI            `json:"ci"`
 	Work  Work          `json:"work"`
 	Hooks Hooks         `json:"hooks"`
+	// Push is how itos push lands work (slice 174); never nil once loaded,
+	// the table giving trunk.
+	Push Push `json:"push"`
 	// Proof is what a CI run judges beyond its steps (slice 100, moved into
 	// the run by slice 106), nil when the file has no proof: itos then works
 	// as before, and a change closes on what the run already judged.
 	Proof *Proof `json:"proof"`
+}
+
+// Push is how itos push lands work: Mode trunk pushes every commit to the
+// branch's upstream, pr puts an item's work on its own branch and opens its
+// pull request (ADR-0039).
+type Push struct {
+	Mode string `json:"mode"`
 }
 
 // Proof is the proof of done a change of each kind needs (slice 100; decision
