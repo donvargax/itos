@@ -735,7 +735,7 @@ Feature: The work registry
   # (@ID-WORK-49 holds that none is asked). Fails at the output step: today
   # the lines are "slice-1 is in progress: committed …" and "slice-1 is
   # already in progress; nothing to change".
-  @ID-WORK-153 @bug-133 @wip
+  @ID-WORK-153 @bug-133
   Scenario Outline: With no people file, work take says it records no owner
     Given the people file is missing
     And no identity can be looked up
@@ -753,7 +753,7 @@ Feature: The work registry
   # null, and its --json does not change: the item's owner null already
   # says no owner was recorded, and a key for it would change schema 1's
   # shape for one case. Givens as @ID-WORK-153's. Passes before the fix.
-  @ID-WORK-154 @bug-133 @wip @guard
+  @ID-WORK-154 @bug-133 @guard
   Scenario: With no people file, work take still succeeds and commits, its JSON's owner null
     Given the people file is missing
     And no identity can be looked up
@@ -786,7 +786,7 @@ Feature: The work registry
   # subcommands named), so this scenario does; its step folds the line
   # breaks the help is wrapped at. Help is printed before any config is
   # read, so it needs no Given. Fails at the first output step.
-  @ID-WORK-155 @bug-133 @wip
+  @ID-WORK-155 @bug-133
   Scenario Outline: work take's and give-back's help name the write with no one in the people
     When itos runs "help work <command>"
     Then itos exits with code 0
@@ -807,7 +807,7 @@ Feature: The work registry
   # nobody owns). --json does not change: owner null. The registry is what
   # such a take leaves (@ID-WORK-154); work show asks no one who the
   # session is. Fails at the first output step: today "owner: nobody,".
-  @ID-WORK-156 @bug-133 @wip
+  @ID-WORK-156 @bug-133
   Scenario Outline: work show prints no owner as "-", not as nobody
     Given the people file is missing
     And the work registry has the item "slice-1" owned by nobody with the status "<status>"

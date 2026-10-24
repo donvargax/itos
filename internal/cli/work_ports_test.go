@@ -111,7 +111,7 @@ func TestWorkPortsWriteThroughTheRealCode(t *testing.T) {
 	registryWriterRepo(t, "phases: { 1: null }\nitems:\n  - { id: slice-9, title: Nine, phase: 1, owner: null, status: todo, depends_on: [] }\n")
 	var stdout, stderr strings.Builder
 	if code, err := runWork([]string{"take", "slice-9"}, Out{Stdout: &stdout, Stderr: &stderr, OS: runtime.GOOS}); code != 0 || err != nil ||
-		!strings.HasPrefix(stdout.String(), "slice-9 is in progress: committed ") {
+		!strings.HasPrefix(stdout.String(), "slice-9 is in progress with no owner recorded: committed ") {
 		t.Errorf("runWork take slice-9 = %d, %v, stdout %q, stderr %q", code, err, stdout.String(), stderr.String())
 	}
 	if header := strings.TrimSpace(gitIn(t, "log", "-1", "--format=%s")); header != "docs: take slice-9" {

@@ -156,7 +156,7 @@ func TestWritesAsJSON(t *testing.T) {
 func TestWritesUnderAStealthConfig(t *testing.T) {
 	p := over(t, writable(true))
 	code, stdout, stderr, err := run(t, p, "take", "slice-4")
-	if code != 0 || err != nil || stderr != "" || stdout != "slice-4 is in progress: the registry is the stealth config's, so nothing is committed\n" {
+	if code != 0 || err != nil || stderr != "" || stdout != "slice-4 is in progress with no owner recorded: the registry is the stealth config's, so nothing is committed\n" {
 		t.Errorf("work take under a stealth config = %d, %v, %q, %q", code, err, stdout, stderr)
 	}
 	if !strings.Contains(registryIn(t, p), "{ id: slice-4, title: Next, phase: 1, owner: null, status: doing,") {

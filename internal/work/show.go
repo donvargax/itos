@@ -140,7 +140,7 @@ func RegistryHeader(header string) (id string, ok bool) {
 }
 
 // Print writes the item as work show's text begins: its id and title, then
-// its kind, status, owner (nobody for none), phase, the items it depends on
+// its kind, status, owner ("-" for none), phase, the items it depends on
 // and those depending on it, its refs and issue when it has them, and its why
 // wrapped at width, each paragraph after a blank line: a task's ledger why
 // first (LedgerWhy), then the registry's unless it reads the same (Listed).
@@ -156,11 +156,7 @@ func (s Shown) Print(w io.Writer, width int) {
 		return join(items, ", ")
 	}
 	fmt.Fprintf(w, "%s  %s\n", at("id"), at("title"))
-	owner := "nobody"
-	if v := s.Item.At("owner"); !absent(v) {
-		owner = value.String(v)
-	}
-	fmt.Fprintf(w, "  kind: %s, status: %s, owner: %s, phase: %s\n", at("kind"), at("status"), owner, at("phase"))
+	fmt.Fprintf(w, "  kind: %s, status: %s, owner: %s, phase: %s\n", at("kind"), at("status"), at("owner"), at("phase"))
 	if deps := list("depends_on"); deps != "" {
 		fmt.Fprintf(w, "  depends on: %s\n", deps)
 	}

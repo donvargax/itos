@@ -100,8 +100,11 @@ it first), an item done, dropped or deferred, one whose owner, or its group's,
 is someone else, one that waits on an item not done, a commit a hook refuses
 (the registry put back). An item already in progress for the person changes
 nothing. Exit 3 when the person is nobody or not among the people. Under a
-stealth config the registry is written and nothing committed; with no --as
-every item is the session's, and its owner is left as it is.
+stealth config the registry is written and nothing committed. Under a stealth
+config, or with no one in the people (no people file, an unreadable one, or
+one listing no one), with no --as nobody is asked and nothing exits 3: every
+item is the session's, its owner is left as it is, and the line says "no owner
+recorded" when it has none.
 
 --json: {"schema":1,"ok":true,"item":{…},"commit":"<sha>"|null}, or
 {"schema":1,"ok":false,"problems":[{"rule","message","fix"}]}`,
@@ -343,7 +346,9 @@ is not sound or has changes no commit holds, an id no item has, an item not
 in progress (naming its status), one whose owner, or its group's, is someone
 else (naming them), a commit a hook refuses. Exit 2 without --why, 3 when the
 person is nobody or not among the people. Under a stealth config the registry
-is written and nothing committed; with no --as every item is the session's.
+is written and nothing committed. Under a stealth config, or with no one in the
+people (no people file, an unreadable one, or one listing no one), with no --as
+nobody is asked and nothing exits 3: every item is the session's.
 
 Several ids are each given back for the one reason, every one judged before
 anything is written: when any one would be refused, nothing is written and

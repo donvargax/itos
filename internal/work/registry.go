@@ -114,6 +114,10 @@ func parse(cfg *config.Loaded, text string) (Registry, error) {
 	return r, nil
 }
 
+// noOwnerWords end PeopleProblem's messages: with no one in the people a
+// work take with no --as records no owner (bug 133).
+const noOwnerWords = " and work take with no --as records no owner"
+
 // PeopleProblem is what config check warns of when a project's people file
 // is missing or cannot be read, nil when it reads or the config is the
 // stealth one, which reads none. It is a warning, never a failure: without
@@ -127,14 +131,14 @@ func PeopleProblem(cfg *config.Loaded) *out.Problem {
 	if !cfg.Source.Has(context.Background(), file) {
 		return &out.Problem{
 			Rule:    "work-people-missing",
-			Message: "no people file at " + file + " (work.people), so the registry's owners go unchecked",
+			Message: "no people file at " + file + " (work.people), so the registry's owners go unchecked" + noOwnerWords,
 			Fix:     "list the people who may own work in " + file + ", or set work.people.file to where they are",
 		}
 	}
 	if _, err := providers.People(cfg.Source, cfg.Work.People); err != nil {
 		return &out.Problem{
 			Rule:    "work-people-unreadable",
-			Message: err.Error() + ", so the registry's owners go unchecked",
+			Message: err.Error() + ", so the registry's owners go unchecked" + noOwnerWords,
 			Fix:     "correct " + file,
 		}
 	}

@@ -260,7 +260,8 @@ func writeAll(ctx context.Context, s *writing, files []record.File, header, body
 // take and work give-back: --as (as), else who the identity provider says,
 // as for work (identify, the config's work.identity provider). every is a
 // session that owns every item, asked of nobody: a stealth config, or no one
-// in the people (Registry.Nobody: a people file missing or listing nobody),
+// in the people (Registry.Nobody: a people file missing, unreadable or
+// listing nobody),
 // with no --as (bug 46). The problem, exit 3, is a person who is nobody or
 // not among the people.
 func whoActs(cfg *config.Loaded, registry domain.Registry, as string, identify providers.Identity) (person string, every bool, problem *out.Problem) {

@@ -236,9 +236,9 @@ func (c CLI) line(id string, change *domain.Change, sha string) string {
 	switch c.Sub {
 	case "take":
 		if change.Unchanged {
-			return id + " is already in progress" + forWhom(change) + "; nothing to change"
+			return id + " is already in progress" + forTake(change) + "; nothing to change"
 		}
-		return fmt.Sprintf("%s is in progress%s: %s", id, forWhom(change), done)
+		return fmt.Sprintf("%s is in progress%s: %s", id, forTake(change), done)
 	case "add":
 		return fmt.Sprintf("%s is a new %s: %s", id, c.New.Kind, done)
 	case "edit":
@@ -363,6 +363,15 @@ func forWhom(change *domain.Change) string {
 		return " for " + owner
 	}
 	return ""
+}
+
+// forTake is forWhom of a take, or " with no owner recorded" when the item
+// has none after it (bug 133).
+func forTake(change *domain.Change) string {
+	if who := forWhom(change); who != "" {
+		return who
+	}
+	return " with no owner recorded"
 }
 
 // where is where work queue puts the items, as its lines say it.

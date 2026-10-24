@@ -174,7 +174,7 @@ Feature: Every key the config accepts is one itos reads
   # that warns, ends in the same words. A people file listing no one warns
   # of nothing today; that is not this bug's. The corpus pins the
   # warning's rule and area, not its words. Fails at the output step.
-  @ID-CONFIG-70 @bug-133 @wip
+  @ID-CONFIG-70 @bug-133
   Scenario: config check's warning of a missing people file says a take records no owner
     Given the people file is missing
     When itos checks the config

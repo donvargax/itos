@@ -55,7 +55,8 @@
 //   - work take calls work.Take; its person, as work give-back's (whoActs),
 //     is Whoami's, nobody or one the people do not list exiting 3, and under
 //     a stealth config, or with no one in the people, nobody is asked and the
-//     owner is left as it is. work add mints the id of a slice, a task or a
+//     owner is left as it is, its line saying "with no owner recorded" when
+//     it has none (bug 133). work add mints the id of a slice, a task or a
 //     bug through ItemID before work.Add; an idea keeps its author's.
 //   - work promote (promote.go) calls work.Promote, and judges all it can
 //     refuse before ItemID reserves the id (slice 138): work.Promotable,
