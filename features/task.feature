@@ -206,3 +206,24 @@ Feature: The task runner runs each check once, and lists task status without run
     And the registry's item "T-003" is a task titled "Split internal/slices/work/registry/commit/body/a-path-deep-enough-that-it-runs-past-the-line/of-the-header-lint/selfbody.go in two" with the status "todo"
     And the last commit's body has no line longer than 100 characters
     And the last commit's body, its line breaks taken out, says "internal/slices/work/registry/commit/body/a-path-deep-enough-that-it-runs-past-the-line/of-the-header-lint/selfbody.go"
+
+  # Bug 134: the words for a second YAML document are value.Parse's, which
+  # every reader shares, and they were the TypeScript itos's yaml package's
+  # ("Source contains multiple documents; please use
+  # YAML.parseAllDocuments()"). They become itos's own for every reader,
+  # not only the registry (@ID-WORK-162): the ledger is one reader past it.
+  # The threads file is not, as it refuses a second document before
+  # value.Parse sees it (@ID-FOLLOW-09). Naming the file is
+  # p1-yaml-errors-name-file's, not this bug's. Fails at the last step:
+  # today the line says parseAllDocuments.
+  @ID-TASK-18 @bug-134 @wip
+  Scenario: task list refuses a ledger file holding a second document in itos's words, not the yaml package's
+    Given the committed file "tasks/phase-1.yaml" holding the lines:
+      """
+      - { id: T-001, type: chore, title: Tidy }
+      --- []
+      """
+    When itos runs "task list"
+    Then itos exits with code 2
+    And its output says "document"
+    And its output does not say "parseAllDocuments"
