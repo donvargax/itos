@@ -9040,23 +9040,9 @@ items:
     title: Declare neighboring scenarios in done_when instead of manual brief commands
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: []
     kind: idea
-    why: >
-      The user directed this on 2026-10-14 while reviewing repeated local and CI test runs. Required
-      neighboring scenarios belong in the work item acceptance data, done_when, so the automated
-      gates select and execute them. The brief should name that declaration and its owning gate, not
-      tell an implementing agent to run a second copy before pushing. Preserve coverage of both
-      commands when behavior moves between them and broad shared-code coverage when justified, but
-      express those requirements as checks the planner can merge with the smoke set and named
-      scenarios. Update itos guide brief, work and push plus this repository AGENTS.md and
-      docs/ORCHESTRATING.md consistently. Account for slices and bugs, which currently have
-      scenarios rather than ledger done_when, without losing their neighbors: use a linked
-      acceptance task or specify the item-model support before implementation. Acceptance should
-      prove the declared neighboring scenarios are selected by the automated plan and each is
-      executed once within that run; this is not permission to drop coverage or disable the
-      independent CI verdict.
     refs: [internal/guide/brief.md, internal/guide/work.md, internal/guide/push.md, AGENTS.md, docs/ORCHESTRATING.md, tasks/README.md]
     tags: [tests, v8]
 
@@ -9144,16 +9130,9 @@ items:
     title: Adopt faster e2e feature testing after the user validates it in another repository
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: []
     kind: idea
-    why: >
-      The user is test-driving ideas for faster e2e feature execution in another repository and
-      wants itos to adopt them once ready. Wait for the user to provide that validated approach and
-      its evidence; do not invent or implement a competing runner optimization here in the meantime.
-      Preserve named scenario selection, done_when-driven neighboring coverage, per-platform
-      behavior and any coverage collection contract during adoption. This is separate from the
-      completed implementation of registry-only CI routing and duplicate Linux job removal.
     refs: [features/README.md, itos-cc.yaml, itos.yaml]
     tags: [tests]
     deferred: >
