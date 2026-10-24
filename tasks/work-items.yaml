@@ -64,7 +64,6 @@ queue:
   - p1-defer-reason-footer
   - p3-commit-long-text-footer
   - p1-core-changelog
-  - T-295
   - bug-38
   - bug-42
   - p1-problem-fields
