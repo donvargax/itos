@@ -55,17 +55,26 @@ phases:
   3: donvargax
 
 queue:
+  - p1-features-itos-on-path-busy
+  - p1-evidence-cap-test-windows-timing
+  - p1-work-as-empty
+  - p1-supersede-standing-only
+  - p1-work-done-wip-examples
+  - p1-uncommitted-git-failure
+  - p1-guard-quoted-text
+  - p1-defer-reason-footer
+  - p1-take-without-people-says-so
+  - p1-js-error-texts
+  - slice-156
   - p1-pr-mode
   - p1-agent-test-runs-once
   - p1-mutation-results-committed
   - p1-text-from-file
-  - p1-defer-reason-footer
   - p3-commit-long-text-footer
   - p1-core-changelog
   - bug-38
   - bug-42
   - p1-problem-fields
-  - p1-work-as-empty
   - p1-tools-bin-shared
   - p1-agent-git-ci-contract
 
