@@ -2028,7 +2028,7 @@ items:
     tags: [stealth, v8]
 
   - id: p3-stealth-ignored-keys
-    title: config check warns of the keys a stealth config sets and never reads
+    title: "Config refuses keys a config sets that nothing reads: header_lint's hook and stdin under builtin, and a stealth config's hooks.bin, work.people and work.identity"
     phase: 3
     owner: null
     status: todo
@@ -2042,8 +2042,12 @@ items:
       config asks no provider, --as or not, so nothing reads it there, yet --print-defaults still
       prints the github one. config check could warn of each, as it warns of a missing people
       file, with a scenario.
+
+      2026-10-24 grooming, merged in p3-header-lint-unread-keys (HeaderLint keeps Hook and Stdin
+      under builtin, types.go:85-93, and nothing warns). The user: v9's schema refuses them rather
+      than v8 warning; simpler, and v9 breaks anyway.
     refs: [internal/config/defaults.go, internal/cli/configcheck.go, features/stealth.feature]
-    tags: [stealth, v8]
+    tags: [stealth, config, v9]
 
   - id: p3-pr-rebase-merge
     title: itos init offers to make the repository's pull requests rebase-and-merge
