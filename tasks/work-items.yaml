@@ -7904,7 +7904,7 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: [slice-128]
+    depends_on: [slice-128, p3-guard-replacement]
     kind: idea
     why: >
       slice-128's agent (2026-10-11): the shim refuses git add -A, -u, . and a folder, but git add
@@ -7913,7 +7913,7 @@ items:
       <path>; keep an explicit file list, --pathspec-from-file included only if every line is a
       file.
     refs: [internal/shim/add.go]
-    tags: [commit, guard, v8]
+    tags: [commit, guard, v9]
 
   - id: p1-help-cases-regenerate
     title: A command regenerates the corpus's help cases from the binary, with no extension on the PATH
