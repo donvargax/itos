@@ -57,7 +57,6 @@ phases:
 queue:
   - bug-124
   - bug-125
-  - p1-work-as-empty
   - p1-supersede-standing-only
   - p1-work-done-wip-examples
   - p1-uncommitted-git-failure
@@ -2759,13 +2758,9 @@ items:
     title: itos work --as= with no handle is refused, as --as with none is
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: []
     kind: idea
-    why: >
-      Found by the post-landing review of slice 54: an empty --as= falls back to the identity
-      provider, so --as=$UNSET silently proposes another person's work, bug 11's failure mode. Also
-      work check ignores every argument after its first.
     tags: [work, v8]
 
   - id: p1-registry-code-cleanup
