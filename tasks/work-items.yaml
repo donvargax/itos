@@ -11492,13 +11492,13 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: []
+    depends_on: [p3-guard-replacement]
     kind: idea
     why: >
       From #111. itos commit with a new untracked path fails with the pathspec did-not-match error
       from git, so the agent adds it by hand first. A path named explicitly is the caller's file;
       adding it keeps the explicit-path rule the shim enforces.
-    tags: [commit, v8]
+    tags: [commit, v9]
 
   - id: p1-push-red-descendant
     title: push and ci watch say a followed descendant run's red may be other commits' and name them
