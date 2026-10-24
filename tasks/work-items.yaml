@@ -13412,6 +13412,11 @@ items:
       carry a required portability account in the report and the reviewer asks the same of every
       diff. slice-171 and T-293 are the test of that.
 
+      T-293 (2026-10-23, Sonnet high, test-only): ~3 min, no help, CI green first time on all three
+      platforms (run 40052540847), review approved with no findings ($0.23). Its portability account
+      found on its own that a re-executed child inheriting GOCOVERDIR would write coverage data
+      where it must not, and strips it; the first item under the required account.
+
   - id: slice-170
     title: "The local evidence store survives contention and damage: lock waits, stale locks, failed renames, corrupt or markerless records (evidence records, A2)"
     phase: 1
