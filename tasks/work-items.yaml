@@ -13357,3 +13357,20 @@ items:
       and absolute pointers.
     refs: [internal/vcs/adapter/snapshot.go, internal/engine/evidence, features/hook-task-snapshot.feature]
     tags: [hooks, evidence, v8]
+
+  - id: p1-snapshot-shallow-boundary
+    title: A task snapshot of a shallow clone keeps its shallow boundary, so history walks stop where the clone does
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [bug-123]
+    kind: idea
+    why: >
+      Split from bug-123's spec by its drafter (2026-10-24): bug-123 gives the snapshot HEAD,
+      history through the shared objects, refs and remotes, but without the source's .git/shallow a
+      history walk in a shallow clone fails with bad object past the boundary, though the source
+      stops cleanly there. It matters most for ci run's opted-in steps, which share TaskSnapshot and
+      run in CI checkouts, usually shallow. Copy the shallow file into the snapshot; a scenario with
+      a depth-1 clone row.
+    refs: [internal/vcs/adapter/snapshot.go]
+    tags: [hooks, evidence, v8]
