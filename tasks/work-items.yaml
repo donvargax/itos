@@ -13448,8 +13448,8 @@ items:
   - id: bug-131
     title: The guard reads env with any NAME=value word before git commit as a git commit
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: bug
     why: >
