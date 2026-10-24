@@ -5192,6 +5192,10 @@ items:
       settings (ADR-0039) with gh api repos/<o>/<r> -X PATCH -F allow_rebase_merge=true -F
       allow_squash_merge=false -F allow_merge_commit=false, printing the command when gh is missing
       or refused.
+
+      2026-10-23, the user: fine with branches for parallel agents, since red main blocks them
+      (every later push's CI inherits the red commit, #113, and work done refuses an item whose
+      newest commit is red); queued after p1-ci-watch-failed-step, ahead of p1-evidence-pre-push.
     tags: [push]
 
   - id: p1-parallel-pilot
