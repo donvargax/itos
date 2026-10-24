@@ -4627,7 +4627,7 @@
 
 - id: T-301
   type: test
-  title: Settle the six survivors of Nightly 40091179284
+  title: Settle the five survivors of Nightly 40091179284
   why: >
     Nightly 40091179284 at a9bbd836 (2026-10-24) is red on survivors only, no scenario failing. Kill
     each with a package-local test, or except it in itos-cc.yaml only with an equivalence proof

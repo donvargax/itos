@@ -13854,7 +13854,7 @@ items:
     refs: [internal/slices/push]
 
   - id: T-301
-    title: Settle the six survivors of Nightly 40091179284
+    title: Settle the five survivors of Nightly 40091179284
     phase: 1
     owner: null
     status: todo
