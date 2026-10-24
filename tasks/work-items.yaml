@@ -13369,3 +13369,19 @@ items:
       p1-sonnet-implementer-trial, and running it is what tells whether a cheap coordinator is
       realistic (p1-cheap-coordinator-trial).
     tags: [agents, v8]
+
+  - id: p1-conformance-job-logs
+    title: The conformance corpus's fake GitHub lists a job with its id and steps and serves its log, so a case pins a failed run's step and failures
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      slice-172 gave a failed job step, log and failures keys, read from the jobs API's steps and a
+      log GitHub redirects to. The corpus's fake GitHub (tools/bin/conformance/corpus/github.go)
+      lists neither ids nor steps and serves no log, so the two old cases of a failed run only pin
+      log: unreadable and no case pins step, failures or tags; the features alone judge them. The
+      fake needs jobs with id and steps, a logs path that redirects to a download address, and a
+      case per kind; tools/bin/** is a ci or build commit's, as p1-brief-names-fake-endpoints notes.
+    tags: [v8]
