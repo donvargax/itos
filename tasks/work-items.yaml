@@ -10687,7 +10687,7 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: []
+    depends_on: [p1-cli-kong]
     kind: idea
     why: >
       The corpus count for ADR-0052 (2026-10-21) found what a contract-only corpus cannot pin. No
@@ -10743,7 +10743,10 @@ items:
       rebase stopped on a conflict in the work registry (two takes of one item) in text only; under
       --json the outcome stays rebase-stopped with nothing of the registry or the items both sides
       changed (internal/cli/push.go).
-    tags: [message, v8]
+
+      2026-10-24 grooming: the problem-field paragraph moved to p1-problem-fields. The user: fold
+      the rest into v9's JSON contract (q-89), not additive v8 fields.
+    tags: [message, v9]
 
   - id: p1-lint-itos-cc-linters
     title: Turn on the itos-cc linters the tree fails today
