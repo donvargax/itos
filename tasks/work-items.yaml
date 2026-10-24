@@ -8343,7 +8343,7 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: []
+    depends_on: [p1-typed-items]
     kind: idea
     why: >
       The user's call (2026-10-11), to keep the data agents read small. Today tasks/work-items.yaml
@@ -8358,7 +8358,7 @@ items:
       print the same text). The gain is grep noise as much as tokens. Not breaking (the user,
       2026-10-11): the files' readers are agents, who follow the rules' pointer, not programs bound
       to the layout, so it ships in a minor. Pairs with p1-work-show-closing-checks.
-    tags: [records, v8]
+    tags: [records, v9]
 
   - id: p1-message-doc-header-agreement
     title: internal/message's doc comment stops naming the deleted header-agreement self-test
