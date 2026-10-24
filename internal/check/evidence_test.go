@@ -12,6 +12,7 @@ import (
 	"github.com/donvargax/itos/v8/internal/evidence"
 	"github.com/donvargax/itos/v8/internal/ledger"
 	privport "github.com/donvargax/itos/v8/internal/store/private/port"
+	"github.com/donvargax/itos/v8/internal/vcs/port/porttest"
 )
 
 // A check that opts in and one that does not are two checks, as are two
@@ -34,7 +35,7 @@ func TestKeyHoldsTheEvidenceDeclaration(t *testing.T) {
 	}
 }
 
-type fakeGit struct{ checkouts int }
+type fakeGit struct{ checkouts, lookups int }
 
 func (*fakeGit) IndexTree(context.Context) (string, error)       { return "tree", nil }
 func (*fakeGit) IndexPaths(context.Context) ([]string, error)    { return nil, nil }
@@ -96,8 +97,41 @@ func TestRunnerLooksUpTheChecksThatOptIn(t *testing.T) {
 	if _, info := without.RunInfo(opted); info != nil {
 		t.Errorf("a Runner with no engine looked a check up: %+v", info)
 	}
-	after := ledger.Check{Run: text("true"), After: "push", Evidence: &config.Evidence{}}
-	if got, info := r.RunInfo(after); got != Pending || info != nil {
-		t.Errorf("an after: push check: %v %+v", got, info)
+}
+
+// An after: push check is never looked up or recorded and has no evidence,
+// whether it waits for the push or runs because HEAD is pushed. The push
+// state is the VCS's, which the test sets: HEAD is on a remote branch, or on
+// none.
+func TestAnAfterPushCheckIsNeverLookedUpOrRecorded(t *testing.T) {
+	history := []porttest.Commit{{Name: "c-a"}}
+	for _, c := range []struct {
+		name   string
+		remote string
+		want   Result
+	}{{"not pushed", "", Pending}, {"pushed", "c-a", Pass}} {
+		t.Run(c.name, func(t *testing.T) {
+			cfg := load(t, "version: 1\n")
+			named := map[string]string{"HEAD": "c-a"}
+			if c.remote != "" {
+				named["refs/remotes/origin/main"] = c.remote
+			}
+			cfg.VCS = &porttest.VCS{History: history, Named: named}
+			git, root := &fakeGit{}, t.TempDir()
+			var log bytes.Buffer
+			r := NewRunner(cfg, &log, &log)
+			r.Evidence = &Evidence{Cfg: cfg, Git: git, Store: store{root}, Binding: evidence.ThisBinary(), Mode: "task"}
+			after := ledger.Check{Run: text("true"), After: "push", Evidence: &config.Evidence{}}
+			got, info := r.RunInfo(after)
+			if got != c.want || info != nil {
+				t.Errorf("the check: %v %+v, want %v and no evidence", got, info, c.want)
+			}
+			if git.lookups != 0 || git.checkouts != 0 || r.Evidence.Used() || len(r.Evidence.Entries()) != 0 {
+				t.Errorf("looked up: %d trees, %d checkouts, used %v", git.lookups, git.checkouts, r.Evidence.Used())
+			}
+			if _, err := os.Stat(filepath.Join(root, evidence.Folder)); !os.IsNotExist(err) {
+				t.Errorf("the store was touched: %v", err)
+			}
+		})
 	}
 }

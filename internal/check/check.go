@@ -105,7 +105,9 @@ func (r *Runner) Run(c ledger.Check) Result {
 
 // RunInfo is Run, with the evidence of the check when it opted in and the
 // Runner has an Evidence engine: a check opted in is looked up by the index
-// tree and runs, on a miss, in a checkout of it; a check that reads the exit
+// tree and runs, on a miss, in a checkout of it (never an after: push check,
+// which is neither looked up nor recorded, whether it runs or waits); a check
+// that reads the exit
 // status of a run its invocation already made reports that run's evidence,
 // not recorded again. A check that did not opt in has none.
 func (r *Runner) RunInfo(c ledger.Check) (Result, *evidence.Info) {
@@ -136,7 +138,7 @@ func (r *Runner) RunInfo(c ledger.Check) (Result, *evidence.Info) {
 			kept.Recorded = false
 			info = &kept
 		}
-	case c.Evidence != nil && r.Evidence != nil:
+	case c.Evidence != nil && r.Evidence != nil && !c.Pushed():
 		o := r.Evidence.Run(context.Background(), evidence.Request{
 			Command: c.Command(), Seconds: Timeout(r.Cfg, c), Decl: *c.Evidence, Verbose: r.Verbose, Log: log,
 		})
