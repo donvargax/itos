@@ -13648,15 +13648,9 @@ items:
     title: itos push watches the pull request's checks after GitHub rebases it, by a head GitHub has settled
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-174]
     kind: slice
-    why: >
-      Was p1-pr-rebased-head-watched.
-      From slice-174's spec (2026-10-24, its follow-ups): after update-branch itos waits for no run
-      (reading headRefOid races GitHub's update and can report the previous push's green run); most
-      pushes in a repository with several agents ask for the rebase, so until then most go
-      unwatched.
 
   - id: p1-pr-left-behind
     title: A pull request main leaves behind after the last push is rebased
