@@ -154,6 +154,14 @@ Keys:
   `^itos …`. The patterns name only commands static by what they
   are and never match a `sh -c`, which may wrap anything: a `sh -c` that
   needs nothing built, no browser and no network says `cost: static`.
+- `evidence` (optional): a mapping that opts the check in to evidence records,
+  so a rerun with nothing changed answers at once (below). `evidence: {}` opts
+  in with nothing declared; `inputs` are paths from the repository's top that
+  the command reads and git does not track (a folder covers every file under
+  it; no globs), `env` names of variables it reads, `tools` programs it runs.
+  Only a deterministic command opts in: one that reads the network, the clock
+  or anything undeclared would be answered with a stale result. A `run:` entry
+  of `ci.steps` written as a mapping takes the same `evidence` key.
 
 **Written order.** A task's checks never run before the ones written above
 them (`ci.cost.keep_written_order`), so a static check may not follow a late
@@ -183,6 +191,22 @@ check reads) reads the earlier run's result instead; run that task alone,
 status in the work registry (`todo`, `doing`, `done`, `blocked`), or
 `no item` when the registry has no item with the task's ID: what the people
 working have recorded, not what the checks would find.
+
+A check that opts in with `evidence` runs on the staged tree, as the commit-msg
+hook's checks do, and is looked up by it. `itos task` and `itos ci run` key it
+by the index tree (`HEAD`'s with nothing staged), its command and timeout, its
+declaration, the config's settings, itos's version, the OS and the declared
+environment, inputs and tools, and a record of that key answers at once
+(`cached evidence`, the recorded exit status and output). A miss runs in a
+disposable checkout of the index tree of its own, holding the declared inputs
+and no unstaged edit or other untracked file, and records its result under the
+git common dir's `itos/evidence`, which is never committed and proves nothing
+to CI. A run that leaves changes out says how many tracked paths were `not
+staged`, and `--json` carries them as `unstaged` and each such check's
+`evidence`. `tools/bin/itos task <id> --working-tree` runs every check in the
+working folder as before, looking nothing up. If the checkout cannot be made
+(a gitlink in the index, say) the check runs in the working folder, its
+`evidence.reason` `snapshot-unusable`, and its verdict is its own.
 
 CI's plan is `ci` in `itos.yaml`. It runs the checks of every task referenced
 by a `Task:` footer in the pushed commits; the commit-msg hook runs only their
