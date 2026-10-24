@@ -7172,7 +7172,7 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: []
+    depends_on: [p1-typed-items]
     kind: idea
     why: >
       slice-115 (2026-10-10) changed @ID-UPDATE-06 and @ID-INIT-20, which keep their older @slice-28
@@ -7180,7 +7180,7 @@ items:
       the agent's reading list missed what the slice changes. work show could also list scenarios
       whose spec comment or the slice's commits name the slice, or a slice could tag the scenarios
       it changes as well.
-    tags: [work, v8]
+    tags: [work, v9]
 
   - id: T-159
     title: The push proof judges the same site until the range's code changes, so fixing it does not draw a new one
