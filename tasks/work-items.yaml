@@ -13702,3 +13702,18 @@ items:
       'ID-CONFIG-71, ID-CONFIG-72' from the message and 'ID-CONFIG-71 ID-CONFIG-72' from
       --scenarios, and every gate passed it. A link footer given twice should be one footer (merged,
       each id once) or refused naming both sources.
+
+  - id: p1-pr-init-settings
+    title: init offers pr mode's repository settings
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [slice-174]
+    kind: idea
+    why: >
+      From slice-174's spec (2026-10-24, its follow-ups): allow_rebase_merge and allow_auto_merge
+      on, squash and merge commits off, delete_branch_on_merge, and a ruleset on main requiring the
+      checks and an up-to-date branch; without them gh pr merge --auto cannot be turned on or waits
+      on nothing, and the wait itos push does is a report, not a gate. Carries what
+      p3-pr-rebase-merge (folded into p1-pr-mode, now slice-174) wanted: the gh api PATCH, printed
+      when gh is missing or refused, plus allow_auto_merge it lacked.
