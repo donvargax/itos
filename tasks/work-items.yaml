@@ -13851,7 +13851,7 @@ items:
   - id: T-302
     title: Implementing agents wait for CI, fix a red run and close their item
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
