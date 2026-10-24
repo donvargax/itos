@@ -296,3 +296,12 @@ mutation:
       replacement: ">"
       reason: "Equivalent: end is either -1 or d + 3 with d >= at, and at >= 0 (words, its only caller, starts at 0 and only moves at forward), so end is -1 or at least 3 and end >= 0 and end > 0 agree on every value it takes."
       line_text: if end >= 0 && (boundary(end) || is(end, ordinal.after)) {
+    - file: internal/engine/evidence/tail.go
+      function: github.com/donvargax/itos/v8/internal/engine/evidence.tail#Write
+      hash: 61674e850f99432f
+      line_in_function: 3
+      column: 16
+      original: ">"
+      replacement: ">="
+      reason: "Equivalent for max > 0, the only max there is: tail is built once, with max OutputTail (a 32 KiB constant), and its tests use 3, 4 and 8. Under >= Write also trims when len(buf) is exactly 2*max, to the last max bytes with cut set. Either way buf is a suffix of everything written, at least max bytes long once cut is set or len(buf) > max, and Text returns its last max bytes with true exactly when more than max bytes were written (len(buf) > max, or cut, which only a trim sets and a trim only follows more than max bytes), so a trim at 2*max, which holds more than max bytes, changes neither. Only max == 0 differs, where an empty Write sets cut under >=."
+      line_text: if len(t.buf) > 2*t.max {
