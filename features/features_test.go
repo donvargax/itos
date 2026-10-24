@@ -144,6 +144,11 @@
 //     replaced whole, and tags on the fixture's commits. itos is run with
 //     --config itos.yaml; ci run's JSON is read as JSON, its logs by whole
 //     lines, and what ran by the files the scripts append to.
+//   - ci_proof_report_test.go: the same fixture; lines of ci plan's and ci run's
+//     streams read whole and by their place, a tag's full SHA written into an
+//     expected line, commits.since or the proof section edited in the scratch
+//     config, and a commit's tree deleted from the objects (a loose object, or
+//     the step fails as a setup error).
 //   - cover_test.go: with GOCOVERDIR or ITOS_CC_TEST_COVERDIR set, the itos
 //     under test is a -cover build of the tree, made once a run (T-121), and
 //     with ITOS_CC_TEST_COVERDIR every command a scenario starts writes its

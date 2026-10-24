@@ -458,6 +458,7 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	initializeDraftSteps(sc, w)
 	initializeProofSteps(sc, w)
 	initializeProofSummarySteps(sc, w)
+	initializeProofReportSteps(sc, w)
 	initializeIDSteps(sc, w)
 	initializePromoteSteps(sc, w)
 	initializeTestsListSteps(sc, w)
