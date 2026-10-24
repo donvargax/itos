@@ -13741,3 +13741,14 @@ items:
       (reading headRefOid races GitHub's update and can report the previous push's green run); most
       pushes in a repository with several agents ask for the rebase, so until then most go
       unwatched.
+
+  - id: p1-pr-left-behind
+    title: A pull request main leaves behind after the last push is rebased
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [slice-174]
+    kind: idea
+    why: >
+      From slice-174's spec (2026-10-24, its follow-ups): update-branch runs only when itos pushes,
+      so a pull request main moves past afterwards stalls under a required up-to-date branch.
