@@ -672,6 +672,67 @@ Feature: Every key the config accepts is one itos reads
     Then itos exits with code 1
     And its output says "q-1"
 
+  # Bug 135 (#49, the user's call, 2026-10-24): the warning of @ID-CONFIG-59
+  # and the error of @ID-CONFIG-60 named the question and its stale item but
+  # not how to repair them, and no command re-points a question: slice-156's
+  # decision relink went to v9, where the typed items' generic link replaces
+  # it. So each says the hand edit, the one the asks file takes until then:
+  # set that question's item key in the asks file to the item's new id, or
+  # remove the key. config check's text prints a warning's or a problem's
+  # message alone (its WARN and FAIL lines), never its fix, and itos task,
+  # itos init and the commit-msg hook print the same message, so the advice
+  # is in the message and again in the JSON's fix. Severity and exit are
+  # unchanged: the warning passes, exit 0, among the JSON's warnings. The
+  # file is committed past the hooks (the step commits with --no-verify), as
+  # an itos before bug 105 left it; no hook is installed.
+  @wip @ID-CONFIG-71 @bug-135
+  Scenario: config check's warning about an answered question naming a missing item says how to repair it by hand
+    Given the committed file "tasks/asks.yaml" holding the lines:
+      """
+      questions:
+        - id: q-1
+          item: "p1-gone"
+          question: "Which way?"
+          answer: "This way."
+      """
+    When itos checks the config
+    Then itos exits with code 0
+    And its output says "WARN tasks/asks.yaml: q-1, answered, names the item p1-gone"
+    And its output says "by hand, set q-1's item in tasks/asks.yaml to p1-gone's new id"
+    And its output says "or remove q-1's item key"
+    When itos checks the config as JSON
+    Then itos exits with code 0
+    And its JSON's warning "asks-answered-unknown-item"'s "fix" says "by hand, set q-1's item in tasks/asks.yaml to p1-gone's new id"
+    And its JSON's warning "asks-answered-unknown-item"'s "fix" says "or remove q-1's item key"
+
+  # The error's advice is the warning's: an open question's item, renamed or
+  # dropped, is repaired by the same edit. q-1, answered, keeps its warning
+  # beside q-2's error, each naming another item, so the error's advice must
+  # name its own question and item. The error fails the check, exit 1, among
+  # the JSON's problems.
+  @wip @ID-CONFIG-72 @bug-135
+  Scenario: config check's error about an open question naming a missing item says how to repair it by hand
+    Given the committed file "tasks/asks.yaml" holding the lines:
+      """
+      questions:
+        - id: q-1
+          item: "p1-gone"
+          question: "Which way?"
+          answer: "This way."
+        - id: q-2
+          item: "p1-lost"
+          question: "Why not?"
+      """
+    When itos checks the config
+    Then itos exits with code 1
+    And its output says "FAIL tasks/asks.yaml: q-2 names the item p1-lost"
+    And its output says "by hand, set q-2's item in tasks/asks.yaml to p1-lost's new id"
+    And its output says "or remove q-2's item key"
+    When itos checks the config as JSON
+    Then itos exits with code 1
+    And its JSON's problem "asks-unknown-item"'s "fix" says "by hand, set q-2's item in tasks/asks.yaml to p1-lost's new id"
+    And its JSON's problem "asks-unknown-item"'s "fix" says "or remove q-2's item key"
+
   # The message for an unknown footer source listed ledger, text and tests but
   # left out registry, which is one and which the fix line already named.
   @ID-CONFIG-69 @bug-126
