@@ -141,8 +141,6 @@ func footerProblems(_ *value.Map, c *Config) []out.Problem {
 	return found
 }
 
-// The message is the one released before the registry was a source, which
-// the conformance corpus records; the fix names every source.
 func sourceProblems(c *Config, where string, s FooterSource) []out.Problem {
 	if s.IsName {
 		if s.Name == "ledger" || s.Name == "registry" || s.Name == "text" {
@@ -150,7 +148,7 @@ func sourceProblems(c *Config, where string, s FooterSource) []out.Problem {
 		}
 		return []out.Problem{{
 			Rule:    "config-footer-source",
-			Message: where + ".source is ledger, text or { tests: <kind> }",
+			Message: where + ".source is ledger, registry, text or { tests: <kind> }",
 			Fix:     "set " + where + ".source to ledger, registry, text or { tests: <kind> }",
 		}}
 	}

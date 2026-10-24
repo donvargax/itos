@@ -655,3 +655,19 @@ Feature: Every key the config accepts is one itos reads
     When itos checks the config
     Then itos exits with code 1
     And its output says "q-1"
+
+  # The message for an unknown footer source listed ledger, text and tests but
+  # left out registry, which is one and which the fix line already named.
+  @ID-CONFIG-69 @bug-126
+  Scenario: config check names registry among the footer sources it accepts
+    Given the committed file "itos.yaml" holding the lines:
+      """
+      version: 1
+      commits:
+        footers:
+          Task: { source: nowhere }
+      """
+    When itos runs "config check"
+    Then itos exits with code 2
+    And its output says "commits.footers.Task.source"
+    And its output says "ledger, registry, text or { tests: <kind> }"
