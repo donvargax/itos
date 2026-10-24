@@ -7275,14 +7275,14 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: [slice-118]
+    depends_on: [slice-118, p1-typed-items]
     kind: idea
     why: >
       Slice 118's commits of several ids are headed "docs: drop a, b", or "docs: drop 12 items" when
       the ids do not fit the header, and work.RegistryHeader reads one id after the verb, so work
       show lists none of them for an item they changed. Reading the comma list, and the ids a
       counted header's body names, would find them.
-    tags: [work, v8]
+    tags: [work, v9]
 
   - id: p1-core-changelog
     title: itos changelog writes the changelog from the commits, whole or by task, item or scenario
