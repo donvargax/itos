@@ -12943,7 +12943,7 @@ items:
     tags: [tests, docs]
 
   - id: slice-169
-    title: Opted-in checks rerun instantly from a local record when nothing they ran on changed (evidence records, A1 to A3)
+    title: Opted-in checks rerun instantly from a local record keyed by the index tree (evidence records, A1 and A3)
     phase: 1
     owner: null
     status: todo
