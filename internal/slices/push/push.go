@@ -32,6 +32,7 @@ type pushRun struct {
 	cfg            *config.Loaded   // the config, when push.mode is pr (prMode)
 	ontoName       string           // what the branch is rebased onto, when it is not the upstream (pr.go)
 	pr             *PullRequest     // the pull request of the item's branch, once found or opened (pr.go)
+	rebased        *rebased         // the rebase GitHub was asked for, once it was (pr.go)
 	noUpstream     string           // the local branch, when it has no upstream and goes to the remote's default branch (trunkDefault)
 }
 
@@ -370,13 +371,39 @@ func (r *pushRun) wait(ctx context.Context, remote, onto, pushed string) Answer 
 		fmt.Fprintf(r.o.Stderr, "itos: %s; the commits are pushed, and itos ci watch %s waits for their run\n", err, sha)
 		r.watched = &ciwatch.Watched{Code: missing, Outcome: "error"}
 	} else {
-		w := ciwatch.Watch(ctx, cfg, wr, r.ports, sha, remote, "", ciwatch.Out(r.o))
-		r.watched = &w
+		if r.rebased != nil {
+			head, lost, a, failed := r.rebasedHead(ctx, cfg)
+			if failed {
+				return a
+			}
+			if lost {
+				r.watched = &ciwatch.Watched{Code: temporary, Outcome: "timeout"}
+			} else {
+				sha = head
+				r.say(fmt.Sprintf("GitHub rebased the pull request onto %s: watching the run of %s, its new head.", r.rebased.ontoName, short(sha)))
+			}
+		}
+		if r.watched == nil {
+			w := ciwatch.Watch(ctx, cfg, wr, r.ports, sha, remote, "", ciwatch.Out(r.o))
+			r.watched = &w
+		}
 	}
 	if r.o.JSON {
 		return r.report(r.watched.Code, "pushed")
 	}
 	return Answer{Code: r.watched.Code}
+}
+
+// say prints a line of the wait's progress where the watch's goes: stdout,
+// stderr under --json, nowhere under -q.
+func (r pushRun) say(line string) {
+	switch {
+	case r.o.Quiet:
+	case r.o.JSON:
+		fmt.Fprintln(r.o.Stderr, line)
+	default:
+		fmt.Fprintln(r.o.Stdout, line)
+	}
 }
 
 // registryOnly is whether the commits the push added to the upstream's

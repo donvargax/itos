@@ -68,6 +68,10 @@ type fake struct {
 	commitsErr error
 	fetchErrs  map[string]error // by refspec, a fetch that fails whatever fetchErr says
 	atomic     []bool           // whether each push was atomic
+	// The quiet fetches (no prompt) by refspec, and what runs when one is made:
+	// a head the clone lacked arriving.
+	quiet   []string
+	onQuiet func()
 }
 
 func (f *fake) ConfigFound(context.Context) bool { return f.found }
@@ -140,6 +144,12 @@ func (f *fake) MoveHookFile(context.Context, string, string) error {
 }
 
 func (f *fake) Fetch(ctx context.Context, remote, refspec string, talk vcsport.Talk) (string, error) {
+	if talk.NoPrompt {
+		f.quiet = append(f.quiet, refspec)
+		if f.onQuiet != nil {
+			f.onQuiet()
+		}
+	}
 	if f.fetchErr != nil {
 		return "", f.fetchErr
 	}

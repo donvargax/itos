@@ -97,9 +97,11 @@ calls run with nothing to push too. A branch of the registry's commits alone
 goes to main with no pull request. With no gh, or a gh that fails, the branch
 is pushed already: exit 3, naming the gh command, and itos push again
 finishes it. With ci.watch the push waits for the run of the head it pushed
-as above, the pull request standing either way; when it asked GitHub to
-rebase the pull request it waits for no run, and says the pull request's
-checks are GitHub's to judge.
+as above, the pull request standing either way. When it asked GitHub to
+rebase the pull request, the head it pushed is no longer the pull request's:
+it asks gh pr view for the head GitHub made (the first that has main's head
+as an ancestor), says so and waits for that head's run; none within
+ci.watch.timeout of the request exits 75 and watches no run.
 
 --tag <tag> and --ref <branch>, each as often as wanted, push the tags and
 the local branches named, and nothing else, each to the remote's tag or

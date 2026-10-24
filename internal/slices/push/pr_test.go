@@ -6,6 +6,7 @@ import (
 	"maps"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/donvargax/itos/v8/internal/providers"
 	vcsport "github.com/donvargax/itos/v8/internal/vcs/port"
@@ -238,26 +239,26 @@ func TestPushItemBranchOfTakesAlone(t *testing.T) {
 
 // A branch the remote has with nothing new to push still gets its pull
 // request; one main has moved past is rebased by GitHub, never forced, and a
-// push that asked for that waits for no run, saying so, whatever ci.watch
-// says; --json then has neither ci nor run.
+// push that asked for that looks at no run when ci.watch is off or --no-wait
+// is given: gh pr view is never called then (the wait for the rebased head is
+// TestPushItemBranchWatchesTheRebasedHead's).
 func TestPushItemBranchBehindMain(t *testing.T) {
-	watching := "ci: { watch: { provider: github } }\n"
-	behind := func() *fake {
-		f := prRepo(t, watching)
+	behind := func(config ...string) *fake {
+		f := prRepo(t, config...)
 		f.watcher, f.watchOK = providers.Watcher{Look: func(string) (providers.Run, bool, error) {
 			t.Error("a run was looked at")
 			return providers.Run{}, false, nil
-		}}, true
+		}}, len(config) > 0
 		f.gh = answers(opened, open7)
 		f.Remote["origin"].Refs["refs/heads/slice-9"] = mine
 		f.on(item, "nw000")
 		return f
 	}
+	watching := "ci: { watch: { provider: github } }\n"
 	f := behind()
 	code, stdout, stderr, _ := call(t, f)
 	head := f.head(t)
-	if code != 0 || stderr != "" || stdout != "Pushed "+head[:len(head)-1]+" to origin/slice-9. Pull request: "+open7+"\n"+
-		"No CI run is waited for: the pull request's checks at "+open7+" are GitHub's to judge.\n" {
+	if code != 0 || stderr != "" || stdout != "Pushed "+head[:len(head)-1]+" to origin/slice-9. Pull request: "+open7+"\n" {
 		t.Fatalf("exit %d\n%s%s", code, stdout, stderr)
 	}
 	want := "pr update-branch slice-9 --repo owner/name --rebase"
@@ -270,24 +271,279 @@ func TestPushItemBranchBehindMain(t *testing.T) {
 	if code != 0 || r.Outcome != "pushed" || r.PR == nil || !r.PR.Updated || r.PR.Created || r.CI != "" || r.Run != nil {
 		t.Errorf("--json: exit %d\n%s", code, stdout)
 	}
-	f = behind()
-	if code, stdout, _, _ := call(t, f, "--no-wait"); code != 0 || strings.Contains(stdout, "No CI run") {
-		t.Errorf("--no-wait: exit %d\n%s", code, stdout)
+	f = behind(watching)
+	if code, stdout, _, _ := call(t, f, "--no-wait"); code != 0 || strings.Contains(stdout, "GitHub rebased") || len(f.ghCalls) != 3 {
+		t.Errorf("--no-wait: exit %d\n%s\n%v", code, stdout, f.calls())
 	}
 	// Nothing new to push: the pull request is still found, merged and
-	// rebased by GitHub.
-	f = behind()
+	// rebased by GitHub, and no run is waited for.
+	f = behind(watching)
 	f.on(item, mine)
 	code, stdout, _, _ = call(t, f, "--json")
 	r = reported(t, stdout)
 	if code != 0 || r.Outcome != "nothing-to-push" || r.PR == nil || !r.PR.Updated || len(f.pushed) != 0 || len(f.ghCalls) != 3 {
 		t.Errorf("nothing to push: exit %d\n%s", code, stdout)
 	}
-	f = behind()
+	f = behind(watching)
 	f.on(item, mine)
 	f.gh = answers(opened, "")
 	if code, stdout, _, _ := call(t, f); code != 0 || stdout != "Nothing to push: slice-9 is at origin/slice-9. Pull request: "+opened+"\n" {
 		t.Errorf("nothing to push, a pull request opened: exit %d\n%s", code, stdout)
+	}
+}
+
+// clock is the time the wait for the rebased head sees: it moves only when
+// the wait sleeps, or when a test advances it, and each sleep is kept. A
+// sleep of no time would never move it, so it fails the test.
+type clock struct {
+	at    time.Time
+	slept []time.Duration
+}
+
+// clocked puts a clock in the place of the wait's own for the test.
+func clocked(t *testing.T) *clock {
+	t.Helper()
+	c := &clock{at: time.Unix(1_000_000, 0)}
+	wasNow, wasSleep := now, sleep
+	now = func() time.Time { return c.at }
+	sleep = func(d time.Duration) {
+		if d <= 0 {
+			t.Fatalf("a sleep of %s", d)
+		}
+		c.slept = append(c.slept, d)
+		c.at = c.at.Add(d)
+	}
+	t.Cleanup(func() { now, sleep = wasNow, wasSleep })
+	return c
+}
+
+// rebasing is a push of the item's branch that main has moved past (origin's
+// up), whose pull request GitHub is asked to rebase, with ci.watch on github
+// and the settings, an interval of 2 seconds and a timeout of 30 unless it
+// gives them. gh pr view answers the heads in turn, the last for good; the
+// run of every head looked at is a success, and the heads looked at are kept.
+// rb000, a commit above up, is the head GitHub makes; nw000, the head pushed,
+// and mine, the previous push's, lack up. The clone has rb000 unless gain is
+// set, which then makes it arrive with the first quiet fetch.
+func rebasing(t *testing.T, settings string, gain bool, heads ...string) (f *fake, looked *[]string) {
+	t.Helper()
+	if settings == "" {
+		settings = "interval: 2, timeout: 30"
+	}
+	f = prRepo(t, "ci: { watch: { provider: github, "+settings+" } }\n")
+	gained := vcsfake.Commit{Name: "rb000", Parents: []string{up}, Message: "test: more\n", Tree: maps.Clone(f.History[1].Tree)}
+	if gain {
+		f.onQuiet = func() { f.History = append(f.History, gained) }
+	} else {
+		f.History = append(f.History, gained)
+	}
+	looked = new([]string)
+	f.watcher, f.watchOK = providers.Watcher{Look: func(sha string) (providers.Run, bool, error) {
+		*looked = append(*looked, sha)
+		return providers.Run{URL: "https://ci/1", Status: "completed", Conclusion: "success"}, true, nil
+	}}, true
+	views := 0
+	f.gh = func(args []string) (string, error) {
+		if strings.Join(args[:2], " ") != "pr view" {
+			return answers(opened, open7)(args)
+		}
+		head := heads[min(views, len(heads)-1)]
+		views++
+		return fmt.Sprintf(`{"headRefOid":%q}`+"\n", head), nil
+	}
+	f.Remote["origin"].Refs["refs/heads/slice-9"] = mine
+	f.on(item, "nw000")
+	return f, looked
+}
+
+// views are the gh pr view calls.
+func (f *fake) views() []string {
+	var views []string
+	for _, c := range f.calls() {
+		if strings.HasPrefix(c, "pr view ") {
+			views = append(views, c)
+		}
+	}
+	return views
+}
+
+// After gh pr update-branch the wait asks gh pr view for the item's head at
+// once and each ci.watch.interval, passes over every head without main's head
+// (the head pushed, the previous push's, none, one the clone cannot have) and
+// watches the run of the first that has it, saying so where the watch's
+// progress goes.
+func TestPushItemBranchWatchesTheRebasedHead(t *testing.T) {
+	c := clocked(t)
+	f, looked := rebasing(t, "", false, mine, "nw000", "", "zz999", "rb000")
+	code, stdout, stderr, _ := call(t, f)
+	head := f.head(t)
+	if code != 0 || stderr != "" || fmt.Sprint(*looked) != "[rb000]" || fmt.Sprint(c.slept) != "[2s 2s 2s 2s]" ||
+		stdout != "Pushed "+head[:len(head)-1]+" to origin/slice-9. Pull request: "+open7+"\n"+
+			"GitHub rebased the pull request onto origin/main: watching the run of rb000, its new head.\n"+
+			"CI run: https://ci/1\nCI passed: https://ci/1\n" {
+		t.Fatalf("exit %d, looked %v, slept %v\n%s%s", code, *looked, c.slept, stdout, stderr)
+	}
+	view := "pr view slice-9 --repo owner/name --json headRefOid"
+	if views := f.views(); len(views) != 5 || views[0] != view || views[4] != view {
+		t.Errorf("gh was called\n%s", strings.Join(f.calls(), "\n"))
+	}
+	// One quiet fetch of the item's branch for the head the clone lacked, and
+	// none for an empty answer.
+	if fmt.Sprint(f.quiet) != "[refs/heads/slice-9]" {
+		t.Errorf("quiet fetches %v", f.quiet)
+	}
+
+	// Whatever update-branch printed, a head that has main's head already is
+	// taken at the first answer.
+	c = clocked(t)
+	f, looked = rebasing(t, "", false, "rb000")
+	code, stdout, _, _ = call(t, f)
+	if code != 0 || fmt.Sprint(*looked) != "[rb000]" || len(c.slept) != 0 || len(f.views()) != 1 || !strings.Contains(stdout, "watching the run of rb000, its new head.\n") {
+		t.Errorf("a head that has main's: exit %d, looked %v, slept %v\n%s", code, *looked, c.slept, stdout)
+	}
+
+	// A head the clone lacks arrives with a quiet fetch of the item's branch.
+	c = clocked(t)
+	f, looked = rebasing(t, "", true, "rb000")
+	code, _, _, _ = call(t, f)
+	if code != 0 || fmt.Sprint(*looked) != "[rb000]" || len(c.slept) != 0 || fmt.Sprint(f.quiet) != "[refs/heads/slice-9]" {
+		t.Errorf("a head fetched: exit %d, looked %v, quiet %v", code, *looked, f.quiet)
+	}
+
+	// The progress goes to stderr under --json, which carries the run, and
+	// nowhere under -q.
+	clocked(t)
+	f, _ = rebasing(t, "", false, "rb000")
+	code, stdout, stderr, _ = call(t, f, "--json")
+	r := reported(t, stdout)
+	if code != 0 || r.Outcome != "pushed" || r.CI != "success" || r.Run == nil || r.Run.URL != "https://ci/1" || r.PR == nil || !r.PR.Updated ||
+		stderr != "GitHub rebased the pull request onto origin/main: watching the run of rb000, its new head.\nCI run: https://ci/1\nCI passed: https://ci/1\n" {
+		t.Errorf("--json: exit %d\n%s%s", code, stdout, stderr)
+	}
+	f, _ = rebasing(t, "", false, "rb000")
+	if code, stdout, stderr, _ := call(t, f, "-q"); code != 0 || stdout != "" || stderr != "" {
+		t.Errorf("-q: exit %d\n%s%s", code, stdout, stderr)
+	}
+
+	// The commit the new head is watched under is a long one, shortened.
+	clocked(t)
+	f, looked = rebasing(t, "", false, "rb00000000")
+	f.History = append(f.History, vcsfake.Commit{Name: "rb00000000", Parents: []string{up}, Message: "test: more\n", Tree: f.History[1].Tree})
+	if _, stdout, _, _ := call(t, f); fmt.Sprint(*looked) != "[rb00000000]" || !strings.Contains(stdout, "watching the run of rb00000, its new head.\n") {
+		t.Errorf("a long head: looked %v\n%s", *looked, stdout)
+	}
+}
+
+// A head the watch fails on is the watch's: the run of the rebased head that
+// failed exits 1, and a provider that cannot be built is as it was, before
+// any gh pr view.
+func TestPushItemBranchWatchesTheRebasedHeadToItsEnd(t *testing.T) {
+	clocked(t)
+	f, _ := rebasing(t, "", false, "rb000")
+	f.watcher.Look = func(string) (providers.Run, bool, error) {
+		return providers.Run{URL: "https://ci/1", Status: "completed", Conclusion: "failure"}, true, nil
+	}
+	if code, stdout, _, _ := call(t, f); code != policy || !strings.Contains(stdout, "watching the run of rb000, its new head.\n") {
+		t.Errorf("a run that failed: exit %d\n%s", code, stdout)
+	}
+	f, _ = rebasing(t, "", false, "rb000")
+	f.watchErr = errors.New("no token")
+	code, stdout, stderr, _ := call(t, f)
+	head := f.head(t)
+	if code != missing || len(f.views()) != 0 || strings.Contains(stdout, "GitHub rebased") ||
+		stderr != "itos: no token; the commits are pushed, and itos ci watch "+head+" waits for their run\n" {
+		t.Errorf("a provider that cannot look: exit %d\n%s%s", code, stdout, stderr)
+	}
+}
+
+// GitHub never rebasing: the wait gives up ci.watch.timeout after the
+// update-branch call, not after the wait began, exiting 75 with the words and
+// --json's ci timeout, and no run is looked at.
+func TestPushItemBranchGivesUpOnARebaseThatNeverComes(t *testing.T) {
+	c := clocked(t)
+	f, looked := rebasing(t, "interval: 2, timeout: 5", false, "nw000")
+	code, stdout, stderr, _ := call(t, f)
+	head := f.head(t)
+	if code != temporary || len(*looked) != 0 || fmt.Sprint(c.slept) != "[2s 2s 1s]" || len(f.views()) != 4 ||
+		stdout != "Pushed "+head[:len(head)-1]+" to origin/slice-9. Pull request: "+open7+"\n" ||
+		stderr != "itos: GitHub has not rebased the pull request onto origin/main after 5 seconds (ci.watch.timeout), so no CI run was watched; its checks are at "+open7+".\n" {
+		t.Errorf("exit %d, looked %v, slept %v\n%s%s", code, *looked, c.slept, stdout, stderr)
+	}
+	clocked(t)
+	f, looked = rebasing(t, "interval: 2, timeout: 5", false, "nw000")
+	code, stdout, _, _ = call(t, f, "--json")
+	r := reported(t, stdout)
+	if code != temporary || r.OK || r.Outcome != "pushed" || r.CI != "timeout" || r.Run != nil || len(*looked) != 0 {
+		t.Errorf("--json: exit %d\n%s", code, stdout)
+	}
+
+	// The time counts from the update-branch call: 3 seconds of it passed
+	// before the first answer, so 2 are left, not 5.
+	c = clocked(t)
+	f, _ = rebasing(t, "interval: 4, timeout: 5", false, "nw000")
+	answer := f.gh
+	f.gh = func(args []string) (string, error) {
+		defer func() {
+			if args[1] == "update-branch" {
+				c.at = c.at.Add(3 * time.Second)
+			}
+		}()
+		return answer(args)
+	}
+	code, _, stderr, _ = call(t, f)
+	if code != temporary || fmt.Sprint(c.slept) != "[2s]" || !strings.Contains(stderr, "after 5 seconds") {
+		t.Errorf("counted from update-branch: exit %d, slept %v\n%s", code, c.slept, stderr)
+	}
+
+	// A fraction of a second is written as it is.
+	c = clocked(t)
+	f, _ = rebasing(t, "interval: 0.5, timeout: 1.5", false, "nw000")
+	code, _, stderr, _ = call(t, f)
+	if code != temporary || fmt.Sprint(c.slept) != "[500ms 500ms 500ms]" || !strings.Contains(stderr, "after 1.5 seconds") {
+		t.Errorf("fractions: exit %d, slept %v\n%s", code, c.slept, stderr)
+	}
+}
+
+// A gh pr view that fails, or whose answer is no head, is any gh call that
+// fails: exit 3, pull-request-failed, naming gh pr view; the branch is pushed.
+func TestPushItemBranchWhereGhPrViewFails(t *testing.T) {
+	for name, c := range map[string]struct {
+		view func() (string, error)
+		says string
+	}{
+		"fails": {func() (string, error) {
+			return "", &providers.GhFailed{Words: "HTTP 502\n", Err: errors.New("exit status 1")}
+		}, "gh pr view failed: HTTP 502\n"},
+		"no gh":    {func() (string, error) { return "", providers.ErrNoGh }, "gh pr view failed: gh is not on the PATH\n"},
+		"not json": {func() (string, error) { return "no\n", nil }, "gh pr view failed: its answer is not a pull request's head: invalid character 'o' in literal null (expecting 'u')\n"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			clocked(t)
+			f, looked := rebasing(t, "", false, "rb000")
+			answer := f.gh
+			f.gh = func(args []string) (string, error) {
+				if args[1] == "view" {
+					return c.view()
+				}
+				return answer(args)
+			}
+			code, _, stderr, _ := call(t, f)
+			if code != missing || len(*looked) != 0 || len(f.pushed) != 1 || !strings.Contains(stderr, c.says) {
+				t.Errorf("exit %d\n%s", code, stderr)
+			}
+			f, _ = rebasing(t, "", false, "rb000")
+			answer = f.gh
+			f.gh = func(args []string) (string, error) {
+				if args[1] == "view" {
+					return c.view()
+				}
+				return answer(args)
+			}
+			_, stdout, _, _ := call(t, f, "--json")
+			if r := reported(t, stdout); r.OK || r.Outcome != "pull-request-failed" {
+				t.Errorf("--json: %s", stdout)
+			}
+		})
 	}
 }
 

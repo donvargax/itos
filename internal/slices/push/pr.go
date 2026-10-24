@@ -10,9 +10,12 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 
+	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/engine/gitrun"
 	"github.com/donvargax/itos/v8/internal/providers"
+	"github.com/donvargax/itos/v8/internal/value"
 	vcsport "github.com/donvargax/itos/v8/internal/vcs/port"
 	"github.com/donvargax/itos/v8/internal/work"
 )
@@ -195,7 +198,7 @@ func (r *pushRun) pushItem(ctx context.Context, item, main string) Answer {
 			return a
 		}
 	}
-	return r.pullRequest(ctx, repository, main, pushing, !v.IsAncestor(ctx, theirMain, r.sha))
+	return r.pullRequest(ctx, repository, main, theirMain, pushing, !v.IsAncestor(ctx, theirMain, r.sha))
 }
 
 // registryPrefix is how many of the commits above main, oldest first, go to
@@ -235,10 +238,11 @@ func (r *pushRun) pushRegistry(ctx context.Context, main, onto string) Answer {
 
 // pullRequest finds the item's open pull request or opens one, turns on
 // auto-merge by rebase and, when main has a commit the pushed head lacks
-// (behind), asks GitHub to rebase it rather than forcing the branch. A push
-// that asked for the rebase waits for no run: the head it pushed is no longer
-// the pull request's. pushed is whether this run pushed the item's branch.
-func (r *pushRun) pullRequest(ctx context.Context, repository, main string, pushed, behind bool) Answer {
+// (behind), asks GitHub to rebase it rather than forcing the branch; the wait
+// then watches the run of the head GitHub makes (rebasedHead), not the one
+// pushed. theirMain is main's head as the push fetched it. pushed is whether
+// this run pushed the item's branch.
+func (r *pushRun) pullRequest(ctx context.Context, repository, main, theirMain string, pushed, behind bool) Answer {
 	item := r.branch
 	listed, a, failed := r.gh(ctx, "pr", "list", "--repo", repository, "--head", item, "--state", "open", "--json", "number,url")
 	if failed {
@@ -265,23 +269,93 @@ func (r *pushRun) pullRequest(ctx context.Context, repository, main string, push
 		return a
 	}
 	if behind {
+		asked := now()
 		if _, a, failed := r.gh(ctx, "pr", "update-branch", item, "--repo", repository, "--rebase"); failed {
 			return a
 		}
 		r.pr.Updated = true
+		r.rebased = &rebased{repository: repository, onto: theirMain, ontoName: r.remote + "/" + main, since: asked}
 	}
 	if !pushed {
 		return r.report(0, "nothing-to-push", fmt.Sprintf("Nothing to push: %s is at %s. Pull request: %s", item, r.upstream(), r.pr.URL))
 	}
 	line := r.pushedLine(ctx, r.pr.URL)
-	switch {
-	case r.noWait:
+	if r.noWait {
 		return r.report(0, "pushed", line)
-	case r.pr.Updated:
-		return r.report(0, "pushed", line,
-			fmt.Sprintf("No CI run is waited for: the pull request's checks at %s are GitHub's to judge.", r.pr.URL))
 	}
 	return r.wait(ctx, r.remote, "", line)
+}
+
+// rebased is the rebase GitHub was asked for (gh pr update-branch): the
+// repository gh names, main's head as the push fetched it (onto) and its name
+// as people write it, and when the request was made, from which
+// ci.watch.timeout counts.
+type rebased struct {
+	repository, onto, ontoName string
+	since                      time.Time
+}
+
+// sleep and now are how the wait for the rebased head pauses and tells the
+// time; a test makes them a clock that only sleep moves.
+var (
+	sleep = time.Sleep
+	now   = time.Now
+)
+
+// fetchTimeout is how long the quiet fetch of a head the clone lacks may take.
+const fetchTimeout = 20 * time.Second
+
+// rebasedHead is the head GitHub made when it rebased the pull request, found
+// by asking gh pr view for the item's head at once and each ci.watch.interval,
+// and taking the first that has main's head as an ancestor: until GitHub has
+// rebased, gh pr view answers the head pushed or the previous push's, neither
+// of which has it. lost is whether ci.watch.timeout passed first, counted from
+// the request, with the outcome left to the caller; failed, with the outcome
+// reported, when gh pr view does.
+func (r *pushRun) rebasedHead(ctx context.Context, cfg *config.Loaded) (head string, lost bool, a Answer, failed bool) {
+	rb := r.rebased
+	interval := time.Duration(*cfg.CI.Watch.Interval * float64(time.Second))
+	timeout := *cfg.CI.Watch.Timeout
+	deadline := rb.since.Add(time.Duration(timeout * float64(time.Second)))
+	for {
+		viewed, ended, bad := r.gh(ctx, "pr", "view", r.branch, "--repo", rb.repository, "--json", "headRefOid")
+		if bad {
+			return "", false, ended, true
+		}
+		var view struct {
+			HeadRefOid string `json:"headRefOid"`
+		}
+		if err := json.Unmarshal([]byte(viewed), &view); err != nil {
+			return "", false, r.ghFailed("gh pr view", "its answer is not a pull request's head: "+err.Error()), true
+		}
+		if r.hasCommit(ctx, view.HeadRefOid) && r.ports.IsAncestor(ctx, rb.onto, view.HeadRefOid) {
+			return view.HeadRefOid, false, Answer{}, false
+		}
+		left := deadline.Sub(now())
+		if left <= 0 {
+			fmt.Fprintf(r.o.Stderr, "itos: GitHub has not rebased the pull request onto %s after %s seconds (ci.watch.timeout), so no CI run was watched; its checks are at %s.\n",
+				rb.ontoName, value.Number(timeout), r.pr.URL)
+			return "", true, Answer{}, false
+		}
+		sleep(min(interval, left))
+	}
+}
+
+// hasCommit is whether the clone has the commit rev names, after one quiet
+// fetch of the item's branch from the remote when it does not (the watch
+// fetches a head it lacks the same way); an empty rev names none.
+func (r *pushRun) hasCommit(ctx context.Context, rev string) bool {
+	if rev == "" {
+		return false
+	}
+	if _, err := r.ports.Resolve(ctx, rev); err == nil {
+		return true
+	}
+	ctx, cancel := context.WithTimeout(ctx, fetchTimeout)
+	defer cancel()
+	_, _ = r.ports.Fetch(ctx, r.remote, "refs/heads/"+r.branch, vcsport.Talk{NoPrompt: true})
+	_, err := r.ports.Resolve(ctx, rev)
+	return err == nil
 }
 
 // gh runs gh with the arguments: failed, with pull-request-failed reported,

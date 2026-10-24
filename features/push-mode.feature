@@ -573,72 +573,12 @@ Feature: push.mode pr, an item's work on its own branch merged by rebase, claims
     And the remote has no branch "slice-9"
     And the recording gh was never called
 
-  # Slice 175 replaces this scenario with @ID-PUSHMODE-23: the change that
-  # builds it deletes this one and names it in Changes:.
-  # After update-branch the head pushed is no longer the pull request's,
-  # and the head GitHub makes cannot be read safely in this slice (it may
-  # still answer the old one), so the push waits for no run and says so: the
-  # pull request's checks are GitHub's to judge, and the repository's
-  # required checks are what stop a red merge. The text run pins the line
-  # that joins the address to that; @ID-PUSHMODE-22 pins --json's keys.
-  # Fails before the build at the update-branch step: today the commits are
-  # pushed and gh never called.
-  @ID-PUSHMODE-21 @slice-174
-  Scenario: Under pr with ci.watch, a push that asks GitHub to rebase its pull request waits for no run and says so
-    Given the config, committed and pushed to the remote's main, adds the YAML:
-      """
-      push:
-        mode: pr
-      """
-    And ci.watch asks a fake GitHub, which reports the run "https://ci.example/runs/1"
-    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
-    And the clone is on the new branch "slice-9"
-    And the clone has the commit "feat: add the widget" touching "widget.md"
-    And git pushes HEAD to the remote's new branch "slice-9"
-    And the recording gh has the pull request "https://github.example/o/r/pull/7" open for the branch "slice-9"
-    And the remote has gained the commit "chore: tidy the docs" touching "docs.md"
-    And the clone has the commit "test: cover the widget" touching "widget-test.md"
-    When itos runs "push"
-    Then itos exits with code 0
-    And the recording gh's "pr update-branch" call has "slice-9"
-    And the fake GitHub was never asked about a run
-    And its output says "checks at https://github.example/o/r/pull/7 are GitHub's to judge"
-
-  # Slice 175 replaces this scenario with @ID-PUSHMODE-24 and
-  # @ID-PUSHMODE-25: the change that builds it deletes this one and names it
-  # in Changes:.
-  # --json has neither ci nor run when no run was waited for, as for a trunk
-  # push it does not wait for (slice 56), so a reader tells the skip by their
-  # absence. Fails before the build at the pull_request step: today the JSON
-  # has no such key.
-  @ID-PUSHMODE-22 @slice-174
-  Scenario: Under pr with ci.watch, push --json after asking GitHub to rebase has neither ci nor run
-    Given the config, committed and pushed to the remote's main, adds the YAML:
-      """
-      push:
-        mode: pr
-      """
-    And ci.watch asks a fake GitHub, which reports the run "https://ci.example/runs/1"
-    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
-    And the clone is on the new branch "slice-9"
-    And the clone has the commit "feat: add the widget" touching "widget.md"
-    And git pushes HEAD to the remote's new branch "slice-9"
-    And the recording gh has the pull request "https://github.example/o/r/pull/7" open for the branch "slice-9"
-    And the remote has gained the commit "chore: tidy the docs" touching "docs.md"
-    And the clone has the commit "test: cover the widget" touching "widget-test.md"
-    When itos runs "push --json"
-    Then itos exits with code 0
-    And its JSON's "outcome" is "pushed"
-    And its JSON's "pull_request.updated" is true
-    And its JSON has no "ci"
-    And its JSON has no "run"
-
   # The slice's point: in a repository with several agents main has usually
   # moved, so most pushes ask GitHub to rebase, and the run that judges the
   # pull request is the rebased head's. The push waits for it and exits with
   # its result, red here. Fails before the work at the exit code: today the
   # push waits for no run and exits 0.
-  @ID-PUSHMODE-23 @slice-175 @wip
+  @ID-PUSHMODE-23 @slice-175
   Scenario: Under pr with ci.watch, a push that asks GitHub to rebase its pull request waits for the run of the head GitHub made
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -669,7 +609,7 @@ Feature: push.mode pr, an item's work on its own branch merged by rebase, claims
   # so the push passes it over and watches the head GitHub made alone; --json
   # carries that run as ci and run. Fails before the work at the fake GitHub
   # step: today no run is asked about.
-  @ID-PUSHMODE-24 @slice-175 @wip
+  @ID-PUSHMODE-24 @slice-175
   Scenario: Under pr with ci.watch, a push never takes the previous push's head that gh pr view still answers for the rebased one
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -698,7 +638,7 @@ Feature: push.mode pr, an item's work on its own branch merged by rebase, claims
   # 75 as a run that never appears does, naming where the checks are, the
   # branch and its pull request standing. Fails before the work at the exit
   # code: today it exits 0.
-  @ID-PUSHMODE-25 @slice-175 @wip
+  @ID-PUSHMODE-25 @slice-175
   Scenario: Under pr with ci.watch, a pull request GitHub never rebases exits 75 at ci.watch.timeout, watching no run
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -728,7 +668,7 @@ Feature: push.mode pr, an item's work on its own branch merged by rebase, claims
   # --no-wait returns once the pull request is asked for, so it never looks
   # for the head GitHub makes. A guard: it passes before the fix and must
   # after it.
-  @ID-PUSHMODE-26 @slice-175 @guard @wip
+  @ID-PUSHMODE-26 @slice-175 @guard
   Scenario: Under pr with ci.watch, push --no-wait after asking GitHub to rebase never calls gh pr view
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -752,7 +692,7 @@ Feature: push.mode pr, an item's work on its own branch merged by rebase, claims
   # The head is looked for only to watch its run: with no ci.watch provider
   # (none, the default) there is none to watch, so no gh pr view. A guard: it
   # passes before the fix and must after it.
-  @ID-PUSHMODE-27 @slice-175 @guard @wip
+  @ID-PUSHMODE-27 @slice-175 @guard
   Scenario: Under pr without ci.watch, a push that asks GitHub to rebase never calls gh pr view
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """

@@ -115,11 +115,22 @@
 // the repository (Ports.GitHubRepository, required once the branch is
 // rebased): pullRequest finds the open pull request or opens one, turns on
 // auto-merge by rebase and, when main has a commit the pushed head lacks,
-// asks GitHub to rebase it (update-branch) instead of forcing the branch;
-// such a push waits for no run, as the head it pushed is no longer the
-// pull request's. A gh that is missing or fails exits 3, the branch pushed
-// already (pull-request-failed). Answer.PullRequest is --json's
-// pull_request.
+// asks GitHub to rebase it (update-branch) instead of forcing the branch.
+// A gh that is missing or fails exits 3, the branch pushed already
+// (pull-request-failed). Answer.PullRequest is --json's pull_request.
+//
+// The head pushed is no longer the pull request's once GitHub rebases it
+// (slice 175), and gh pr view can answer the head pushed or the previous
+// push's until it has. So wait, after the config, the Watcher and the
+// "Pushed ..." line, has rebasedHead ask gh pr view at once and each
+// ci.watch.interval, and take the first head the clone has (after one quiet
+// fetch of the item's branch, hasCommit) that has main's head, as the push
+// fetched it, as an ancestor; it says so (say) and watches that head's run
+// under its own ci.watch.timeout. None within ci.watch.timeout of the
+// update-branch call exits 75, outcome pushed, ci timeout, no run; a gh pr
+// view that fails is a gh call that fails. sleep and now are the wait's clock,
+// which a test replaces. --no-wait, or no ci.watch provider, calls no gh pr
+// view.
 //
 // Handle reaches the world through Ports, which the slice owns and
 // internal/cli binds: the repository (the VCS port, git behind it), its git
