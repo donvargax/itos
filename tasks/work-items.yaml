@@ -13324,8 +13324,8 @@ items:
   - id: bug-123
     title: A task check run in a snapshot sees the repository's HEAD, history, refs and remotes, and a check can opt out to the working tree
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: bug
     why: >
