@@ -158,8 +158,12 @@ Feature: The git shim, git commit and git push as itos's in an itos repository
   # "that is not itos" in git-shim's help (command.go: "It never replaces a
   # git that is not itos (exit 1), and replaces another itos, a link to one
   # or a copy"), its refusals (run.go), init's (initcmd/shim.go) and the doc
-  # comments (gitshim/doc.go, handler.go, shim/doc.go, install.go); "Replaced
-  # %s, a link to another itos" becomes "Replaced %s, another itos". A
+  # comments (gitshim/doc.go, handler.go, shim/doc.go, install.go), and
+  # likewise everywhere else these words describe this check: init's help
+  # (initcmd/command.go), its messages (initcmd/shim.go, "replaced %s, a link
+  # to another itos" too), its doc comments (initcmd/doc.go, handler.go,
+  # shim.go) and README.md; "Replaced %s, a link to another itos" becomes
+  # "Replaced %s, another itos". A
   # scenario or corpus case of the last release asserting the old words is
   # named in Changes:.
   # The other itos is stampedItos("8.1.0") copied into the scenario's folder
