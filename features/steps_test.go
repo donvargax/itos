@@ -56,6 +56,7 @@ type world struct {
 	threadsBefore    string            // the threads file's text, as a step wrote it
 	promotion        *promotionFixture // the task-promotion fixture, when a step wrote one (promote_test.go)
 	evidenceKey      string            // the evidence key a --json run named, which a step kept (evidence_test.go)
+	evidenceStore    *evidenceFixture  // what the fixture holds of the evidence store (evidence_store_test.go)
 
 	exit           int
 	stdout, stderr string

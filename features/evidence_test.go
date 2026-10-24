@@ -29,6 +29,10 @@ n=$(find "$EVIDENCE_LOG" -name 'run-*' -type d | wc -l | tr -d ' ')
 out="$EVIDENCE_LOG/run-$n"
 mkdir "$out" || exit 90
 printf '%s' "$*" > "$out/args"
+if test -f "$EVIDENCE_LOG/order"; then
+ mv "$EVIDENCE_LOG/order" "$EVIDENCE_LOG/order-done" || exit 91
+ . "$EVIDENCE_LOG/order-done" || exit 91
+fi
 (pwd -W 2>/dev/null || pwd -P) > "$out/cwd"
 code="$1"
 shift
@@ -146,6 +150,7 @@ func initializeEvidenceSteps(sc *godog.ScenarioContext, w *world) {
 		}
 		return nil
 	})
+	initializeEvidenceStoreSteps(sc, w)
 	sc.Step(`^the evidence store holds no record$`, func() error {
 		got, err := w.evidenceRecords(false)
 		if err != nil {
@@ -348,8 +353,8 @@ func (w *world) lastProbeRun(file string) (string, error) {
 }
 
 // evidenceRecords are the folders of the store that are records: not a
-// temporary folder, which begins with a dot, and, when complete is asked,
-// holding the completion marker.
+// temporary folder, which begins with a dot, nor a quarantined one, whose
+// name holds one, and, when complete is asked, holding the completion marker.
 func (w *world) evidenceRecords(complete bool) ([]string, error) {
 	common, err := w.commonDir()
 	if err != nil {
@@ -365,7 +370,7 @@ func (w *world) evidenceRecords(complete bool) ([]string, error) {
 	}
 	var records []string
 	for _, e := range entries {
-		if !e.IsDir() || strings.HasPrefix(e.Name(), ".") {
+		if !e.IsDir() || strings.Contains(e.Name(), ".") {
 			continue
 		}
 		if _, err := os.Stat(filepath.Join(dir, e.Name(), "complete")); complete && err != nil {
