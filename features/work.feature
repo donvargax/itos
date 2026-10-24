@@ -1022,6 +1022,46 @@ Feature: The work registry
     Then itos exits with code 1
     And its output says "@ID-A-01"
 
+  # Bug 129 (issue #111): work done read an item's scenarios by their tag
+  # lines alone, so an outline tagged with the item counted as live while an
+  # Examples block under it was still tagged @wip, rows the runner skips
+  # (godog gives a row its block's tags, and every run excludes @wip), and
+  # the close went through, exit 0, without a word. A part of the item's
+  # scenario still @wip is a scenario not yet live: work done refuses it as
+  # it refuses a @wip scenario (exit 1, the rule work-done-wip, nothing
+  # written), naming the scenario and the block, by its name ("Examples:
+  # <name>"), or by its line in the file when it has none, so the person
+  # finds the rows left. The fixture is features/tagged.feature, committed
+  # at HEAD under the scratch config's scenario kind, as the step for a
+  # tagged scenario writes it: the outline @ID-A-01 tagged @slice-9, whose
+  # first block, "Examples: live", has no tag and one row, and whose second
+  # has the name and the tag line the step gives and one row of its own.
+  # No remote and no ci.watch: today the close is made, exit 0, so the
+  # exit code fails first. Naming the block is new text.
+  @ID-WORK-149 @bug-129 @wip
+  Scenario: work done refuses a slice one of whose outlines still has an Examples block tagged @wip, naming it
+    Given the work registry has the item "slice-9" owned by "someone" with the status "doing"
+    And a feature file with the outline "@ID-A-01" tagged "@slice-9", one Examples block live and the block "waiting on the harness" tagged "@wip"
+    When itos runs "work done slice-9"
+    Then itos exits with code 1
+    And its output says "@ID-A-01"
+    And its output says "waiting on the harness"
+    And the registry's item "slice-9" has the status "doing" and the owner "someone"
+
+  # Bug 129: an outline none of whose Examples blocks is @wip closes as
+  # today, and the close names no block. Its second block carries a tag
+  # other than @wip, so a fix that took any tagged Examples block for one
+  # still @wip fails here. The same fixture as @ID-WORK-149.
+  @ID-WORK-150 @bug-129 @guard @wip
+  Scenario: work done closes a slice whose outline has a tagged Examples block that is not @wip
+    Given the work registry has the item "slice-9" owned by "someone" with the status "doing"
+    And a feature file with the outline "@ID-A-01" tagged "@slice-9", one Examples block live and the block "slow rows" tagged "@slow"
+    When itos runs "work done slice-9"
+    Then itos exits with code 0
+    And its output does not say "slow rows"
+    And the registry's item "slice-9" has the status "done" and the owner "someone"
+    And the last commit's header is "docs: close slice-9"
+
   # Slice 106 (issue #28, the comment above @ID-CI-20 in ci.feature): the
   # code proof moved into CI, so work done no longer runs proof.code.check:
   # the green run it requires judged the proof of every commit in its range.
