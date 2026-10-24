@@ -9659,7 +9659,7 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: []
+    depends_on: [p3-guard-replacement]
     kind: idea
     why: >
       Residual installation boundary found while specifying #53. Active existing-shim recognition
@@ -9673,7 +9673,7 @@ items:
       default-policy change is chosen here. Existing installation behavior is not silently redefined
       by the active-shim detection fix.
     refs: [internal/cli/initshim.go, internal/cli/gitshim.go, internal/launch/launch.go]
-    tags: [init, v8]
+    tags: [init, v9]
 
   - id: bug-113
     title: Recognize an active launcher shim from a pinned init runtime
