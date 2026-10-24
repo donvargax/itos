@@ -13414,8 +13414,8 @@ items:
   - id: bug-126
     title: config check's message for an unknown footer source leaves out registry
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: bug
     why: >
