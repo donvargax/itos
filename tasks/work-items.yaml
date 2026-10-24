@@ -58,6 +58,8 @@ queue:
   - T-298
   - bug-124
   - bug-126
+  - bug-129
+  - bug-130
   - p1-work-done-wip-examples
   - p1-uncommitted-git-failure
   - p1-guard-quoted-text
