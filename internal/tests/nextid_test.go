@@ -3,6 +3,7 @@ package tests
 import (
 	"os"
 	"path/filepath"
+	"slices"
 	"testing"
 
 	"github.com/donvargax/itos/v8/internal/config"
@@ -61,22 +62,45 @@ func TestNextTagCountsACommandKindsListedIDs(t *testing.T) {
 	}
 }
 
-// A kind the config lacks and a feature file that cannot be read stop the
-// ids from being gathered, and NextTag with them.
-func TestNextTagStopsAtWhatItCannotRead(t *testing.T) {
+// A Gherkin kind's tags and the others are counted, a kind the config lacks
+// and a feature file that cannot be read stop the ids from being gathered,
+// and NextTag with them.
+func TestNextTagCountsAGherkinKindsTagsAndStopsAtWhatItCannotRead(t *testing.T) {
 	if _, err := NextTag(&config.Loaded{}, "scenario", "ID-A", nil); err == nil {
 		t.Error("NextTag of a kind the config lacks: no error")
+	}
+	pattern := `ID-[A-Z]+-\d+`
+	kindOver := func(root string) *config.Loaded {
+		k := config.Kind{Root: &root, ID: &pattern, TagPrefix: "@"}
+		k.Adapter.Name = "gherkin"
+		cfg := &config.Loaded{}
+		cfg.Tests.Keys = []string{"scenario"}
+		cfg.Tests.Values = map[string]config.Kind{"scenario": k}
+		return cfg
+	}
+	good := t.TempDir()
+	if err := os.WriteFile(filepath.Join(good, "a.feature"), []byte("Feature: A\n\n  @ID-A-01 @slice-9\n  Scenario: one\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if got, err := NextTag(kindOver(good), "scenario", "ID-A", []string{"ID-A-03"}); err != nil || got != "@ID-A-04" {
+		t.Errorf("NextTag of the file's ID-A-01 and another's ID-A-03 = %q, %v, want @ID-A-04", got, err)
+	}
+	held, err := HeldIDs(kindOver(good), "scenario", kindOver(good).Tests.Values["scenario"], []string{"slice-3"})
+	if err != nil || !slices.Equal(held, []string{"slice-3", "ID-A-01", "slice-9"}) {
+		t.Errorf("HeldIDs = %q, %v, want the registry's ids then the file's tags", held, err)
+	}
+	noRoot := kindOver(good)
+	k := noRoot.Tests.Values["scenario"]
+	k.Root = nil
+	noRoot.Tests.Values["scenario"] = k
+	if got, err := NextTag(noRoot, "scenario", "ID-A", nil); err == nil {
+		t.Errorf("NextTag of a kind with no root = %q, want an error", got)
 	}
 	dangling := t.TempDir()
 	if err := os.Symlink(filepath.Join(dangling, "nothing"), filepath.Join(dangling, "b.feature")); err != nil {
 		t.Skip("no symbolic links here:", err)
 	}
-	k := config.Kind{Root: &dangling, TagPrefix: "@"}
-	k.Adapter.Name = "gherkin"
-	cfg := &config.Loaded{}
-	cfg.Tests.Keys = []string{"scenario"}
-	cfg.Tests.Values = map[string]config.Kind{"scenario": k}
-	if got, err := NextTag(cfg, "scenario", "ID-A", nil); err == nil {
+	if got, err := NextTag(kindOver(dangling), "scenario", "ID-A", nil); err == nil {
 		t.Errorf("NextTag over a feature file that cannot be read = %q, want an error", got)
 	}
 }
