@@ -79,10 +79,10 @@ Feature: push.mode pr, an item's work on its own branch merged by rebase, claims
   1, the commits and the pull request standing either way; --no-wait
   returns at once. When it asked GitHub to rebase the pull request, the head
   it pushed is no longer the pull request's, and the new one is GitHub's to
-  make, so it waits for no run: it exits 0, saying no CI run is waited for
-  and that the pull request's checks, at its address, are GitHub's to judge,
-  and --json has neither ci nor run, as a trunk push it does not wait for
-  (slice 56). Watching the rebased head's checks, and main's run after the
+  make, so it waits for no run: it exits 0, and its text ends with the line
+  "No CI run is waited for: the pull request's checks at <address> are
+  GitHub's to judge."; --json has neither ci nor run, as for a trunk push it
+  does not wait for (slice 56). Watching the rebased head's checks, and main's run after the
   merge, are later items.
 
   The wait is a report, not a gate: auto-merge is turned on before it, so
@@ -530,10 +530,10 @@ Feature: push.mode pr, an item's work on its own branch merged by rebase, claims
   # and the head GitHub makes cannot be read safely in this slice (it may
   # still answer the old one), so the push waits for no run and says so: the
   # pull request's checks are GitHub's to judge, and the repository's
-  # required checks are what stop a red merge. --json has neither ci nor
-  # run, as for a trunk push it does not wait for. Fails before the build at
-  # the update-branch step: today the commits are pushed and gh never
-  # called.
+  # required checks are what stop a red merge. The text run pins the line
+  # that joins the address to that; @ID-PUSHMODE-22 pins --json's keys.
+  # Fails before the build at the update-branch step: today the commits are
+  # pushed and gh never called.
   @ID-PUSHMODE-21 @slice-174 @wip
   Scenario: Under pr with ci.watch, a push that asks GitHub to rebase its pull request waits for no run and says so
     Given the config, committed and pushed to the remote's main, adds the YAML:
@@ -549,12 +549,33 @@ Feature: push.mode pr, an item's work on its own branch merged by rebase, claims
     And the recording gh has the pull request "https://github.example/o/r/pull/7" open for the branch "slice-9"
     And the remote has gained the commit "chore: tidy the docs" touching "docs.md"
     And the clone has the commit "test: cover the widget" touching "widget-test.md"
-    When itos runs "push --json"
+    When itos runs "push"
     Then itos exits with code 0
     And the recording gh's "pr update-branch" call has "slice-9"
     And the fake GitHub was never asked about a run
-    And its output says "no CI run is waited for"
-    And its output says "https://github.example/o/r/pull/7"
+    And its output says "checks at https://github.example/o/r/pull/7 are GitHub's to judge"
+
+  # --json has neither ci nor run when no run was waited for, as for a trunk
+  # push it does not wait for (slice 56), so a reader tells the skip by their
+  # absence. Fails before the build at the pull_request step: today the JSON
+  # has no such key.
+  @ID-PUSHMODE-22 @slice-174 @wip
+  Scenario: Under pr with ci.watch, push --json after asking GitHub to rebase has neither ci nor run
+    Given the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+      """
+    And ci.watch asks a fake GitHub, which reports the run "https://ci.example/runs/1"
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the clone is on the new branch "slice-9"
+    And the clone has the commit "feat: add the widget" touching "widget.md"
+    And git pushes HEAD to the remote's new branch "slice-9"
+    And the recording gh has the pull request "https://github.example/o/r/pull/7" open for the branch "slice-9"
+    And the remote has gained the commit "chore: tidy the docs" touching "docs.md"
+    And the clone has the commit "test: cover the widget" touching "widget-test.md"
+    When itos runs "push --json"
+    Then itos exits with code 0
     And its JSON's "outcome" is "pushed"
     And its JSON's "pull_request.updated" is true
     And its JSON has no "ci"
