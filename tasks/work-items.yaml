@@ -5910,7 +5910,7 @@ items:
     phase: 3
     owner: null
     status: todo
-    depends_on: []
+    depends_on: [p1-typed-items]
     kind: idea
     why: >
       The user, 2026-10-08, after having to ask what q-26 and q-27 were, and seeing this idea's id
@@ -5924,7 +5924,7 @@ items:
       registry, the ledger, the questions or the drafts change, before the reply is drawn. The
       user's call: a question gains a title, itos decision add --title, which itos decision prints
       and the titles show. Raises the plugin's version (T-074).
-    tags: [plugin, v8]
+    tags: [plugin, v9]
 
   - id: slice-106
     title: The code proof runs in itos ci run over the range, and work done no longer runs it
