@@ -5479,15 +5479,9 @@ items:
     title: A CI run GitHub failed with every job green reads as a red with no job named
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: []
     kind: idea
-    why: >
-      On 2026-10-07 run 37640476742 (bug-49 push) ended failure though its four jobs succeeded:
-      GitHub hit an internal server error starting release, a job that never ran, and its rerun API
-      answered 500. itos push printed CI failure naming no job, exit 1, a red with nothing to fix. A
-      failed run with no failed job could say so and exit 75, as a cancelled run with no successor
-      does: a rerun or a new push may pass.
     tags: [ci, v8]
 
   - id: T-115
