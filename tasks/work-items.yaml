@@ -55,7 +55,7 @@ phases:
   3: donvargax
 
 queue:
-  - p1-pr-mode
+  - slice-174
   - p1-agent-test-runs-once
   - p1-mutation-results-committed
   - p1-text-from-file
@@ -5086,14 +5086,15 @@ items:
     depends_on: []
     kind: idea
 
-  - id: p1-pr-mode
+  - id: slice-174
     title: "push.mode pr: agents work on item branches merged by rebase-merge, claims stay on main"
     phase: 1
     owner: donvargax
     status: todo
     depends_on: []
-    kind: idea
+    kind: slice
     why: >
+      Was p1-pr-mode.
       The user agreed 2026-10-06; the decision record holds the terms.
 
       Backlog review of 2026-10-10, batch 1: folds in p3-pr-rebase-merge: init offers the repository
@@ -5115,7 +5116,7 @@ items:
     phase: 1
     owner: null
     status: dropped
-    depends_on: [p1-pr-mode, bug-41, slice-106]
+    depends_on: [slice-174, bug-41, slice-106]
     kind: idea
     tags: [agents, v8]
 
@@ -5155,7 +5156,7 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: [p1-pr-mode, p1-typed-items]
+    depends_on: [slice-174, p1-typed-items]
     kind: idea
     why: >
       The user, 2026-10-06: pr mode can pair with GitHub for itos items, as the inbox already turns
