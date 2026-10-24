@@ -2121,15 +2121,9 @@ items:
     title: A stealth amend through itos commit keeps the links its flags do not replace
     phase: 3
     owner: null
-    status: todo
+    status: dropped
     depends_on: [slice-36]
     kind: idea
-    why: >
-      Found in slice 36: in a project, itos commit --amend --scenarios <ids> keeps the Task:
-      footer the message already has; under a stealth config the flags' links replace the note
-      the amend carried, so the task must be given again (the up-front check names --task when
-      it is required). Merging the carried note with the flags' links, each footer once, would
-      make an amend mean the same in both modes.
     refs: [internal/cli/gitcommit.go, features/stealth.feature]
     tags: [stealth, v8]
 
