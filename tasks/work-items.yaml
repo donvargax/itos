@@ -4467,6 +4467,11 @@ items:
       registry text back over the first writer's committed change. bug-34's second read narrowed the
       window from minutes to milliseconds; it is no lock. Rare by the one-agent-per-checkout rule,
       so an idea until it bites.
+
+      2026-10-23 grooming, verified not absorbed: the tracker adapter's Hold
+      (internal/store/tracker/adapter/files.go) takes lock.Hold only under stealth and returns at
+      once in project mode, so two writers in one working tree still race as above. Agents in
+      separate worktrees each have their own registry file, so parallel agents do not raise it.
     refs: [internal/cli/workwrite.go]
     tags: [work]
 
