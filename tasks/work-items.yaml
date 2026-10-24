@@ -13402,7 +13402,7 @@ items:
       ignores every argument after its first.
 
   - id: bug-125
-    title: ask record --supersedes refuses a record already superseded
+    title: decision record --supersedes overwrites the link of a record already superseded
     phase: 1
     owner: null
     status: todo
@@ -13412,7 +13412,7 @@ items:
       Was p1-supersede-standing-only. Found by the code review of 07b0e6d (2026-10-05): superseding
       an already superseded record overwrites its link (cli/ask.go:546) instead of refusing, so the
       chain of records loses the earlier successor.
-    refs: [internal/cli/ask.go]
+    refs: [internal/slices/decision/handler.go, features/ask.feature]
 
   - id: T-298
     title: Settle the five survivors of Nightly 40091179284
