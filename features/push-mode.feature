@@ -13,18 +13,28 @@ Feature: push.mode pr, an item's work on its own branch merged by rebase, claims
   naming the key and both modes; config get push.mode prints trunk when the
   config leaves it out; the schema lists it (config.feature). Under trunk,
   with no config, or with a config that cannot be read, itos push is what it
-  was, whatever the branch.
+  was, whatever the branch (an unreadable config under pr is a later item).
 
-  Under pr, itos push reads the config before it fetches. Main is the
-  remote's default branch, the one the remote's HEAD names; the remote is
-  the branch's upstream's, else origin, as before.
+  Under pr, itos push reads the config before it fetches. The remote is the
+  branch's upstream's, else origin, as before. Main is the branch the
+  remote's HEAD names, asked of the remote itself (git ls-remote --symref
+  <remote> HEAD), since a clone's refs/remotes/<remote>/HEAD is missing
+  after git remote add; a remote whose HEAD names no branch it has is
+  refused before anything is fetched, exit 3 (outcome no-default-branch).
+  The GitHub repository is the watch's (ci.range.github.repository_env's
+  variable, else the remote's URL), and every gh call names it with --repo,
+  so gh never picks another remote, a fork's upstream say; with none, a
+  push from an item's branch is refused before anything is fetched, exit 3
+  (outcome no-github-repository).
 
   On main, the commits the push adds that touch only the work registry (a
   take, a close, a queue move, an idea: slice 56's rule) go straight to main
   as under trunk, so two agents never take one item. A push that adds any
   other commit is refused once rebased onto main, exit 1, nothing pushed
   (outcome work-on-main), saying to carry the work to its item's branch with
-  git switch -c <item>.
+  git switch -c <item>. --ref naming main is judged the same way, against
+  the remote's main, so the refusal has no way round; --ref naming any other
+  branch, and --tag, push what they name as under trunk.
 
   On any other branch, the branch's name is the item: it must be the id of
   an item of the work registry, else the push is refused before anything is
@@ -36,46 +46,57 @@ Feature: push.mode pr, an item's work on its own branch merged by rebase, claims
   never needs force. Of the commits it adds, those directly above main's head
   that touch only the registry (a take made on the branch) go to main and the
   rest to the item branch, in one git push --atomic: both land or neither,
-  the pre-push hook judging both.
+  the pre-push hook judging both. A branch whose commits are all such goes
+  to main alone: the item's branch is not pushed, no pull request is opened
+  and no run waited for, as for registry commits pushed from main.
 
-  Then, unless the branch adds nothing to main, its pull request: gh pr
-  create --base <main> --head <item> --fill when no pull request of the
-  branch is open; gh pr merge <item> --auto --rebase, never squash (each
-  commit is a changelog entry with its footers, and GitHub's squash appends a
-  Co-authored-by paragraph that pushes them out of the trailer block); and,
-  when main has a commit the pushed head lacks, gh pr update-branch <item>
-  --rebase, so GitHub rebases the branch rather than itos forcing it. These
-  run with nothing to push too, so itos push again finishes a push whose
-  pull request was not opened. The push prints the pull request's address.
+  Then, unless the branch adds nothing to main, its pull request. gh pr list
+  --repo <repository> --head <item> --state open --json number,url finds the
+  open one, [] when there is none; with none, gh pr create --repo
+  <repository> --base <main> --head <item> --fill opens it, printing its
+  address. Then gh pr merge <item> --repo <repository> --auto --rebase, never
+  squash (each commit is a changelog entry with its footers, and GitHub's
+  squash appends a Co-authored-by paragraph that pushes them out of the
+  trailer block); and, when main has a commit the pushed head lacks, gh pr
+  update-branch <item> --repo <repository> --rebase, so GitHub rebases the
+  branch rather than itos forcing it. These run with nothing to push too, so
+  itos push again finishes a push whose pull request was not opened. The
+  push prints the pull request's address.
 
-  itos reads no remote URL: gh finds the GitHub repository off the clone's
-  remotes, by its own rules. With no gh on the PATH, or a gh call that fails
-  (signed out, no GitHub remote, a refusal), the branch is pushed already:
-  exit 3 (outcome pull-request-failed), gh's words and the gh command that
-  failed named, and itos push again to finish it.
+  With no gh on the PATH, or a gh call that fails (signed out, a refusal),
+  the branch is pushed already: exit 3 (outcome pull-request-failed), gh's
+  words and the gh command that failed named, and itos push again to finish
+  it.
 
-  No CI run is waited for, whatever ci.watch says and --no-wait or not: the
-  branch has no run until CI runs on pull_request, a later item; GitHub shows
-  the pull request's checks at its address, and auto-merge waits for them.
-  --tag and --ref push what they name and nothing else, as under trunk.
+  With ci.watch's provider, the push then waits for the CI run of the head
+  it pushed, as trunk waits for main's: CI runs on pull_request, and the
+  watch finds a run by its head commit whatever its event. It prints each
+  job's result and the run's address and exits with the run's result, 0 or
+  1, the commits and the pull request standing either way; --no-wait
+  returns at once. When it asked GitHub to rebase the pull request, the head
+  it pushed is no longer the pull request's, so it waits for no run and says
+  so. Main's run after the merge is a later item.
 
   --json adds "pull_request": {"url","number","created","updated"} after a
   push from an item's branch, created saying whether it opened the pull
-  request, updated whether it asked GitHub to rebase it; outcome gains
-  work-on-main, not-item-branch and pull-request-failed.
+  request, updated whether it asked GitHub to rebase it, beside ci and run
+  when it waited; outcome gains work-on-main, not-item-branch,
+  no-default-branch, no-github-repository and pull-request-failed.
 
   Not in this slice: work done is unchanged (rebase-merge keeps each commit's
   footers, so a main holding the merged commits closes the item as before;
   refusing to close while the pull request is open is p1-pr-items); itos
-  init offering the repository's settings; CI on pull_request and watching a
-  pull request's checks; a pull request GitHub cannot rebase onto main; a
-  registry commit made on the branch above the work, which rides the pull
-  request.
+  init offering the repository's settings; main's run after the merge; a
+  pull request main leaves behind after the last push, or GitHub cannot
+  rebase; a registry commit made on the branch above the work, which rides
+  the pull request.
 
-  The recording gh stands in for GitHub: first on the PATH, it records each
-  call, answers pr create with the address the scenario gives and then holds
-  that pull request open for pr view and pr list; the remote is a bare
-  repository whose HEAD names main.
+  The recording gh stands in for GitHub: first on the PATH, with
+  GITHUB_REPOSITORY owner/scratch, it records each call, answers pr list
+  with the open pull requests of the --head branch as gh does ([] for none),
+  and answers pr create with the address the scenario gives, holding that
+  pull request open from then on. The remote is a bare repository whose HEAD
+  names main.
 
   Background:
     Given a repository whose ledger has the task "T-001"
@@ -100,11 +121,14 @@ Feature: push.mode pr, an item's work on its own branch merged by rebase, claims
     Then itos exits with code 0
     And the remote has the branch "slice-9" with "feat: add the widget"
     And the remote's branch does not have "feat: add the widget"
+    And the recording gh's "pr list" call has "--head slice-9"
+    And the recording gh's "pr list" call has "--state open"
     And the recording gh's "pr create" call has "--base main"
     And the recording gh's "pr create" call has "--head slice-9"
     And the recording gh's "pr merge" call has "slice-9"
     And the recording gh's "pr merge" call has "--auto"
     And the recording gh's "pr merge" call has "--rebase"
+    And every call of the recording gh has "--repo owner/scratch"
     And its output says "https://github.example/o/r/pull/1"
 
   # The branch was made from a main the remote has moved past: its first
@@ -194,6 +218,7 @@ Feature: push.mode pr, an item's work on its own branch merged by rebase, claims
     And the remote has the branch "slice-9" with "test: cover the widget"
     And the recording gh's "pr update-branch" call has "slice-9"
     And the recording gh's "pr update-branch" call has "--rebase"
+    And every call of the recording gh has "--repo owner/scratch"
 
   # itos push again is how a push whose pull request was not opened (gh
   # missing or failing, as in @ID-PUSHMODE-11) is finished: with nothing to
@@ -304,6 +329,7 @@ Feature: push.mode pr, an item's work on its own branch merged by rebase, claims
         mode: pr
       """
     And no gh on the PATH
+    And the GitHub repository in the environment is "owner/scratch"
     And the clone is on the new branch "slice-9"
     And the clone has the commit "feat: add the widget" touching "widget.md"
     When itos runs "push"
@@ -312,25 +338,31 @@ Feature: push.mode pr, an item's work on its own branch merged by rebase, claims
     And its output says "gh pr create"
     And its output says "itos push again"
 
-  # CI runs on pushes to main today; a branch has no run to wait for until
-  # CI runs on pull_request, a later item. With ci.watch set, the push still
-  # waits for none and names the pull request, where GitHub shows its
-  # checks. Fails before the build at the fake GitHub line: today the push
-  # waits for the pushed commit's run.
+  # The red-main protection: CI runs on pull_request (ci.yml), and the watch
+  # finds a run by its head commit whatever its event, so under ci.watch the
+  # push waits for the pushed head's run as trunk waits for main's, and a
+  # red run exits 1, naming the failed job, with the branch and its pull
+  # request standing. Fails before the build at the exit code: today the
+  # unknown key push leaves the config unread after the push, so nothing is
+  # watched and it exits 0; once push.mode is a known key, at the address of
+  # the pull request.
   @ID-PUSHMODE-12 @slice-174 @wip
-  Scenario: Under pr, a push from an item's branch waits for no CI run, whatever ci.watch says
+  Scenario: Under pr with ci.watch, a push from an item's branch waits for the pushed head's run and exits 1 when it fails
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
       push:
         mode: pr
       """
     And ci.watch asks a fake GitHub, which reports the run "https://ci.example/runs/1"
+    And the watched run's job "ci" fails and its job "platform" succeeds
     And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
     And the clone is on the new branch "slice-9"
     And the clone has the commit "feat: add the widget" touching "widget.md"
     When itos runs "push"
-    Then itos exits with code 0
-    And the fake GitHub was never asked about a run
+    Then itos exits with code 1
+    And its output says "ci: failure"
+    And the fake GitHub was asked for the run of the clone's HEAD
+    And the remote has the branch "slice-9" with "feat: add the widget"
     And its output says "https://github.example/o/r/pull/1"
 
   # --json is the contract (ADR-0035): an agent reads the pull request's
@@ -397,4 +429,84 @@ Feature: push.mode pr, an item's work on its own branch merged by rebase, claims
     When itos runs "push"
     Then itos exits with code 0
     And the remote's branch has "feat: add the widget"
+    And the recording gh was never called
+
+  # --ref main would push work to main past @ID-PUSHMODE-08's refusal, so
+  # under pr it is judged as a push from main against the remote's main.
+  # Fails before the build at the exit code: today --ref main pushes, exit 0.
+  @ID-PUSHMODE-17 @slice-174 @wip
+  Scenario: Under pr, push --ref naming main is refused like work pushed from main
+    Given the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+      """
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the clone has the commit "feat: add the widget" touching "widget.md"
+    When itos runs "push --ref main"
+    Then itos exits with code 1
+    And its output says "git switch -c"
+    And the remote's branch does not have "feat: add the widget"
+
+  # A branch holding only a take has no work for a pull request: the take
+  # goes to main, where claims live, and the item's branch is not pushed.
+  # Fails before the build at the main step: today the take goes to the new
+  # branch.
+  @ID-PUSHMODE-18 @slice-174 @wip
+  Scenario: Under pr, an item's branch holding only registry commits sends them to main and opens no pull request
+    Given the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+      """
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the clone is on the new branch "slice-9"
+    And the clone has the commit "docs: take slice-9" making "bo" the owner of "slice-9"
+    When itos runs "push"
+    Then itos exits with code 0
+    And the remote's branch has "docs: take slice-9"
+    And the remote has no branch "slice-9"
+    And the recording gh was never called
+
+  # Main is asked of the remote, never guessed: a remote whose HEAD names a
+  # branch it does not have gives no main, and the push stops before
+  # anything is fetched or pushed. Fails before the build at the exit code:
+  # today the branch is pushed, exit 0.
+  @ID-PUSHMODE-19 @slice-174 @wip
+  Scenario: Under pr, a remote whose HEAD names no branch it has is refused, exit 3
+    Given the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+      """
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the remote's HEAD names the branch "trunk", which it does not have
+    And the clone is on the new branch "slice-9"
+    And the clone has the commit "feat: add the widget" touching "widget.md"
+    When itos runs "push --json"
+    Then itos exits with code 3
+    And its JSON's "outcome" is "no-default-branch"
+    And the remote has no branch "slice-9"
+    And the recording gh was never called
+
+  # Every gh call names the repository itos pushes to; a remote that names
+  # no GitHub repository (here a folder), with no repository in the
+  # environment, has none to name, and the push stops before anything is
+  # fetched or pushed. Fails before the build at the exit code: today the
+  # branch is pushed, exit 0.
+  @ID-PUSHMODE-20 @slice-174 @wip
+  Scenario: Under pr, a push with no GitHub repository to name is refused, exit 3
+    Given the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+      """
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And no GitHub repository in the environment
+    And the clone is on the new branch "slice-9"
+    And the clone has the commit "feat: add the widget" touching "widget.md"
+    When itos runs "push --json"
+    Then itos exits with code 3
+    And its JSON's "outcome" is "no-github-repository"
+    And the remote has no branch "slice-9"
     And the recording gh was never called
