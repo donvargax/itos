@@ -82,7 +82,7 @@ Feature: push.mode pr, an item's work on its own branch merged by rebase, claims
   0 or 1, the commits and the pull request standing either way; --no-wait
   returns at once. The head is the one it pushed, unless it asked GitHub to
   rebase the pull request: then it is the head GitHub makes (slice 175,
-  next). Main's run after the merge is a later item.
+  below). Main's run after the merge is a later item.
 
   After gh pr update-branch (slice 175) the head pushed is no longer the
   pull request's, and the one GitHub makes is not known when gh answers:

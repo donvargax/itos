@@ -1,21 +1,29 @@
-// The steps of push.mode pr (push-mode.feature, slice 174): the config
-// committed and pushed with a block of YAML added to it; a recording gh
-// standing in for GitHub, first on the PATH, which records each call and keeps
-// the pull requests it opens; the clone on a new branch, with or without
-// tracking the remote's main; the GitHub repository the environment names
+// The steps of push.mode pr (push-mode.feature, slices 174 and 175): the
+// config committed and pushed with a block of YAML added to it; a recording gh
+// standing in for GitHub, first on the PATH, which records each call, keeps
+// the pull requests it opens, answers a pull request's head and rebases the
+// remote's branch when asked to update it (or leaves it as it is, or answers
+// the head from before the rebase for a few calls, as a GitHub that has not
+// caught up does); the clone on a new branch, with or without tracking the
+// remote's main; the GitHub repository the environment names
 // (GITHUB_REPOSITORY), as the fake GitHub gives it, or none; the remote's HEAD
-// naming a branch it does not have; and what a branch of the remote ends with.
+// naming a branch it does not have; what a branch of the remote ends with; and
+// the head of a remote's branch the fake GitHub was asked for the run of.
 package features
 
 import (
 	"errors"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"strings"
 
 	"github.com/cucumber/godog"
+
+	"github.com/donvargax/itos/v8/internal/git"
 )
 
 func initializePushModeSteps(sc *godog.ScenarioContext, w *world) {
@@ -25,6 +33,13 @@ func initializePushModeSteps(sc *godog.ScenarioContext, w *world) {
 	})
 	sc.Step(`^a recording gh on the PATH, which opens pull requests as "([^"]*)"$`, w.recordingGh)
 	sc.Step(`^the recording gh has the pull request "([^"]*)" open for the branch "([^"]*)"$`, w.ghHasPullRequest)
+	sc.Step(`^the recording gh's pr update-branch leaves the branch as it is$`, func() error {
+		return os.WriteFile(w.ghKeeps(), nil, 0o644)
+	})
+	sc.Step(`^the recording gh's pr view answers the pull request's previous head for its first (\d+) calls after pr update-branch$`, func(n int) error {
+		return os.WriteFile(w.ghStale(), fmt.Appendf(nil, "%d\n", n), 0o644)
+	})
+	sc.Step(`^the fake GitHub was asked for the run of the head of the remote's branch "([^"]*)"$`, w.fakeGitHubGivenRemoteBranchHead)
 	sc.Step(`^the recording gh's "([^"]*)" call has "([^"]*)"$`, w.ghCallHas)
 	sc.Step(`^every call of the recording gh has "([^"]*)"$`, w.ghEveryCallHas)
 	sc.Step(`^the recording gh was never called$`, func() error { return w.ghNeverCalled("") })
@@ -77,11 +92,28 @@ func (w *world) remoteBranchEndsWith(branch, older, newer string) error {
 func (w *world) ghCalls() string { return filepath.Join(w.support, "gh-calls") }
 func (w *world) ghPulls() string { return filepath.Join(w.support, "gh-pull-requests") }
 
+// The files that steer pr view and pr update-branch: the first exists when the
+// branch is to be left as it is; the second holds the number of calls pr view
+// answers the previous head for after pr update-branch, the third how many are
+// left; the head a branch had when the recording gh was given its pull request
+// is in the fourth, by the branch's name; the fifth is where pr update-branch
+// rebases.
+func (w *world) ghKeeps() string     { return filepath.Join(w.support, "gh-update-keeps") }
+func (w *world) ghStale() string     { return filepath.Join(w.support, "gh-stale-calls") }
+func (w *world) ghStaleLeft() string { return filepath.Join(w.support, "gh-stale-left") }
+func (w *world) ghPrevious(branch string) string {
+	return filepath.Join(w.support, "gh-previous-"+branch)
+}
+func (w *world) ghRebaseDir() string { return filepath.Join(w.support, "gh-rebase") }
+
 // recordingGh is a gh first on the PATH that stands in for GitHub: it records
 // each call, answers pr list with the open pull requests of its --head branch
 // as gh does ([] for none), and answers pr create with the address given,
-// holding that pull request open from then on; any other call succeeds
-// silently. The environment names owner/scratch as the GitHub repository, as
+// holding that pull request open from then on; pr view answers the head of the
+// remote's branch it names as {"headRefOid": <sha>}, and pr update-branch
+// rebases that branch onto the remote's main, as GitHub does, in a clone of its
+// own that it pushes back (a step can have it leave the branch as it is); any
+// other call succeeds silently. The environment names owner/scratch as the GitHub repository, as
 // the fake GitHub does. A pull request's number is the end of its address.
 func (w *world) recordingGh(address string) error {
 	bin, err := w.binOnPath()
@@ -115,8 +147,30 @@ case "$verb" in
   printf '%%s %%s\n' "$head" %[3]s >> %[2]s
   printf '%%s\n' %[3]s
   ;;
+"pr view")
+  oid=$(%[4]s --git-dir=%[5]s rev-parse "refs/heads/$3") || exit 1
+  if [ -f %[8]s ]; then
+    left=$(cat %[8]s)
+    if [ "$left" -gt 0 ]; then
+      echo $((left - 1)) > %[8]s
+      oid=$(cat %[9]s"$3")
+    fi
+  fi
+  printf '{"headRefOid":"%%s"}\n' "$oid"
+  ;;
+"pr update-branch")
+  if [ ! -f %[6]s ]; then
+    rm -rf %[10]s
+    %[4]s clone -q --branch "$3" %[5]s %[10]s &&
+      %[4]s -C %[10]s rebase -q origin/main &&
+      %[4]s -C %[10]s push -q --no-verify --force origin "HEAD:refs/heads/$3" || exit 1
+  fi
+  if [ -f %[7]s ]; then cp %[7]s %[8]s; fi
+  ;;
 esac
-`, calls, pulls, quote(address))
+`, calls, pulls, quote(address), quote(filepath.ToSlash(git.Bin(runtime.GOOS))), quote(filepath.ToSlash(w.remote())),
+		quote(filepath.ToSlash(w.ghKeeps())), quote(filepath.ToSlash(w.ghStale())), quote(filepath.ToSlash(w.ghStaleLeft())),
+		quote(filepath.ToSlash(w.ghPrevious(""))), quote(filepath.ToSlash(w.ghRebaseDir())))
 	if err := w.writeProgram(filepath.Join(bin, "gh"), script); err != nil {
 		return err
 	}
@@ -126,10 +180,18 @@ esac
 	return nil
 }
 
-// The recording gh holds the pull request open for the branch.
+// The recording gh holds the pull request open for the branch, and keeps the
+// head the remote's branch has now as the pull request's previous head.
 func (w *world) ghHasPullRequest(address, branch string) error {
 	if _, err := os.Stat(programPath(filepath.Join(w.support, "bin", "gh"))); err != nil {
 		return errors.New("no recording gh: put one on the PATH first")
+	}
+	// A branch the remote does not have (a pull request merged and its branch
+	// deleted) has no previous head to answer.
+	if head, err := w.remoteBranchHead(branch); err == nil {
+		if err := os.WriteFile(w.ghPrevious(branch), []byte(head+"\n"), 0o644); err != nil {
+			return err
+		}
 	}
 	f, err := os.OpenFile(w.ghPulls(), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
 	if err != nil {
@@ -137,6 +199,42 @@ func (w *world) ghHasPullRequest(address, branch string) error {
 	}
 	_, err = fmt.Fprintf(f, "%s %s\n", branch, address)
 	return errors.Join(err, f.Close())
+}
+
+// The full SHA of the remote's branch.
+func (w *world) remoteBranchHead(branch string) (string, error) {
+	cmd := exec.Command(git.Bin(runtime.GOOS), "rev-parse", "--verify", "refs/heads/"+branch)
+	cmd.Dir = w.remote()
+	cmd.Env = w.env()
+	out, err := cmd.Output()
+	if err != nil {
+		return "", fmt.Errorf("git rev-parse refs/heads/%s in the remote: %w", branch, err)
+	}
+	return strings.TrimSpace(string(out)), nil
+}
+
+// The fake GitHub gave a look at the watched run, and every look it gave was
+// of the head the remote's branch has now, by its full SHA.
+func (w *world) fakeGitHubGivenRemoteBranchHead(branch string) error {
+	if w.github == nil {
+		return errors.New("no fake GitHub: start one first")
+	}
+	head, err := w.remoteBranchHead(branch)
+	if err != nil {
+		return err
+	}
+	w.github.mu.Lock()
+	given := slices.Clone(w.github.given)
+	w.github.mu.Unlock()
+	if len(given) == 0 {
+		return fmt.Errorf("the fake GitHub was never asked for the watched run; it was asked %v\n%s", w.github.requests(), w.report())
+	}
+	for _, sha := range given {
+		if sha != head {
+			return fmt.Errorf("the fake GitHub was asked for the run of %q, not the head %s of the remote's branch %q\n%s", sha, head, branch, w.report())
+		}
+	}
+	return nil
 }
 
 // Each call of the recording gh, as its arguments were given, in order; none
