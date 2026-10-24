@@ -1,14 +1,14 @@
 @phase-1
-Feature: work done runs a task's static checks through the evidence engine and names its late ones as left to CI
-  itos work done runs the static checks of a task it closes, every one of
-  them in written order, a static check written below a late one included,
-  and stops at the first failure, refusing the close, nothing written. A
-  check's class is the cost rule's, so with ci.cost.keep_written_order a
-  check below a late one is late. Each runs under its own timeout, its
-  timeout: or ledger.check.timeout; hooks.commit_msg.check_timeout caps the
-  hook alone. Late checks are CI's, which runs every check of the tasks a
-  push names: work done never runs them, and names them as left to CI.
-  Future work: once p1-evidence-ci lands, work done checks their CI record.
+Feature: work done runs a task's checks up to its first late one through the evidence engine and names the rest as left to CI
+  itos work done runs a task's checks in written order up to its first late
+  one, as today, and stops at the first failure, refusing the close, nothing
+  written. The first late check and every check written after it, static
+  ones too, are CI's, which runs every check of the tasks a push names: work
+  done never runs them, and names them as left to CI. Future work: once
+  p1-evidence-ci lands, work done checks their CI record. Each check runs
+  under its own timeout, its timeout: or ledger.check.timeout, and
+  hooks.commit_msg.check_timeout caps the hook alone: this only loosens, as
+  a check the hook's cap stopped may now pass, so no consumer must act.
   The order of work done's refusals is unchanged: the item's scenarios that
   are still @wip, then commits no remote has, then the task's static checks,
   then the CI watch, so a failing check refuses before CI is asked.
@@ -41,14 +41,15 @@ Feature: work done runs a task's static checks through the evidence engine and n
     done's watch lines are. A failure prints the task, its title, the
     command and the output tail, as itos task prints a failure, and the
     problem's message names the command and its exit or its timeout. A hit
-    says "cached evidence". Each late check is named on a line saying it is
-    "left to CI".
+    says "cached evidence". Each check left to CI is named on a line saying
+    it is "left to CI".
   - JSON, proposed. The work-done-task-check problem gains task, command,
     exit (null when the check did not exit by itself), timed_out, and
     output, the tail a record keeps. Once an opted-in check was looked up,
     a close's or a refusal's JSON gains evidence, ci run's list: each entry
     the command and its evidence, in run order. A close gains left_to_ci,
-    [{task, command}] for each late check, when the task has one. A run with
+    [{task, command}] for each check left to CI, in written order, when the
+    task has one. A run with
     neither has today's JSON.
 
   # evidence-probe is evidence-local.feature's: a hit is a run its log does
@@ -277,9 +278,9 @@ Feature: work done runs a task's static checks through the evidence engine and n
     And its output does not say "cached evidence"
     And the registry's item "T-001" has the status "done" and the owner "someone"
 
-  # Late checks are CI's: named, never run here, while a static check below one still runs.
+  # From the first late check on, every check is CI's: named, never run here.
   @ID-EVID-54 @slice-173 @wip
-  Scenario: work done names a task's late checks as left to CI without running them, and runs a static check written below one
+  Scenario: work done names its first late check and the static one after it as left to CI, running neither
     Given the committed file "tasks/phase-1.yaml" holding the lines:
       """
       - id: T-001
@@ -297,9 +298,8 @@ Feature: work done runs a task's static checks through the evidence engine and n
     And the watched run's jobs "ci" and "platform" succeed
     When itos runs "work done T-001 --json"
     Then itos exits with code 0
-    And the evidence probe ran "0 input.txt" 0 times
-    And the evidence probe ran "0 README.md" 1 time
-    And its JSON's "left_to_ci" is [{"task": "T-001", "command": "evidence-probe 0 input.txt"}]
+    And the evidence probe ran 0 times
+    And its JSON's "left_to_ci" is [{"task": "T-001", "command": "evidence-probe 0 input.txt"}, {"task": "T-001", "command": "evidence-probe 0 README.md"}]
     And its output says "left to CI"
     And the registry's item "T-001" has the status "done" and the owner "someone"
 
