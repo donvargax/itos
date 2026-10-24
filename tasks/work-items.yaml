@@ -3905,13 +3905,9 @@ items:
     title: A pinned run re-hashes the cached binary
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: []
     kind: idea
-    why: >
-      Found by the code review of 07b0e6d (2026-10-05). Under a pin cached() checks only
-      checksums.txt, so a binary swapped beside a genuine checksums.txt still runs; matters with a
-      shared or restored ITOS_CACHE (launch.go:334-343).
     refs: [internal/launch/launch.go]
     tags: [launcher, v8]
 
