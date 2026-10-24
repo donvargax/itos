@@ -283,11 +283,16 @@ Feature: The work registry
   # Bug 132: a word longer than a body line (a path in a title or a why, a
   # long id, a deep ledger path) was left whole on a line of its own, which
   # the lint refuses over 100 characters unless the line holds a URL, so the
-  # commit was refused after the command wrote its files. Such a word is
-  # broken across lines, each within the limit, after the last "/" that fits
-  # or else at the limit, and no character of it is lost; the registry keeps
-  # the title as given. work edit --note's text never reaches the body (it
-  # says "a note on its why"), so a title stands in for it here.
+  # commit was refused after the command wrote its files. selfBody breaks
+  # such a word across lines, each within the limit, after the last "/" that
+  # fits or else at the limit, and no character of it is lost. Fitting and
+  # the limit count UTF-16 units, as the lint does, and a break never splits
+  # a character. A break never starts a line with what the wrap bars there (a
+  # footer token, a breaking-change note, a configured footer key and its
+  # colon, git's comment char): it moves to an earlier "/" or character. The
+  # registry keeps the title as given; the body's line breaks are removed,
+  # not made spaces, to find the word whole. work edit --note's text never
+  # reaches the body (it says "a note on its why"), so a title stands in.
   @ID-WORK-159 @bug-132 @wip
   Scenario: work edit of a title holding a word longer than a body line commits a body within the limit
     Given the work registry has the idea "p1-thing" owned by nobody
@@ -585,10 +590,11 @@ Feature: The work registry
   # trailers. The wrap leaves trailers as written: git read the why as a
   # footer, and the lint refused it as a footer line over 100 characters
   # after the registry was written, with only the lint's line to go by. The
-  # command's own sentence now leads the body and the why follows it, wrapped
-  # as itos commit wraps a body, so no line starts with the why's "Word:".
-  # work defer and work give-back wrote their reasons first too; the shared
-  # body writer's unit tests hold them.
+  # command's own sentence now leads the body and the why follows it, as the
+  # several-id writers already have it (DropEach, DeferEach, GiveBackEach):
+  # the single-id bodies of work drop, work defer and work give-back are
+  # reordered so, with no new field, and selfBody's wrap then starts no line
+  # with the why's "Word:". Defer and give-back are held by unit tests.
   @ID-WORK-157 @bug-132 @wip
   Scenario: work drop commits a why that starts with a word and a colon as prose, never as a footer
     Given the work registry has the idea "p1-thing" owned by nobody
