@@ -2819,7 +2819,7 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: [bug-12]
+    depends_on: [bug-12, p1-typed-items]
     kind: idea
     why: >
       Found specifying bug 12: no command lists a new phase (group) in the registry, so the first
@@ -2831,7 +2831,7 @@ items:
       From another coordinator's notes (2026-10-05): task add --group N with a phase the registry
       does not list fails without help; it could list the phases and how to add one, and default to
       the only phase when no group is given.
-    tags: [work, v8]
+    tags: [work, v9]
 
   - id: T-081
     title: "Changes: names a corpus case by a unique prefix of its name"
