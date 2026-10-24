@@ -56,7 +56,6 @@ phases:
 
 queue:
   - T-298
-  - bug-124
   - bug-126
   - bug-129
   - bug-130
