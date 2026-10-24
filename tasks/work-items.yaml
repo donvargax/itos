@@ -4010,14 +4010,9 @@ items:
     title: The rules block says what the gates enforce, edge cases included
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: []
     kind: idea
-    why: >
-      Found by the code review of 07b0e6d (2026-10-05). only: [] (or an empty $set) refuses every
-      path though the block says the type may touch anything, must_touch: [] goes unmentioned, and
-      staged range checks are listed for every type though the hook runs them only for types with a
-      scope entry (initrules.go:511,521,580).
     refs: [internal/cli/initrules.go]
     tags: [init]
 
