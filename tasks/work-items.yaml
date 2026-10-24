@@ -13033,6 +13033,11 @@ items:
       it, restored main to its exact previous value with update-ref against the bad value, deleted
       the tags and disclosed it; nothing reached origin. Brief lesson: scratch git repositories go
       through git -C <path>, never a cd.
+
+      The user, 2026-10-24: measure the coordinator's side per handoff too (tokens for the brief,
+      reading the report, nudges and repairs), beside the implementer's own. A cheaper implementer
+      that needs a longer brief or more repair rounds can cost more in all, so the trial compares
+      the two sums, not the implementer's alone.
     tags: [agents, v8]
 
   - id: slice-170
@@ -13168,6 +13173,11 @@ items:
       CI reds and causes, reviewer findings, spec or model), so the three models compare on like
       items. Sonnet's misses so far were environment ones (pushed state, Windows), so pick a task
       where the gates would catch such a miss.
+
+      The user, 2026-10-24: measure the coordinator's side per handoff too (tokens for the brief,
+      reading the report, nudges and repairs), beside the implementer's own. A cheaper implementer
+      that needs a longer brief or more repair rounds can cost more in all, so the trial compares
+      the two sums, not the implementer's alone.
     tags: [agents, v8]
 
   - id: slice-173
