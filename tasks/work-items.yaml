@@ -6072,7 +6072,7 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: []
+    depends_on: [p1-typed-items]
     kind: idea
     why: >
       An agent begins by searching: slice-106 (2026-10-08) had no refs at all, so its agent found
@@ -6088,7 +6088,7 @@ items:
       is labelled likely, never only, so an agent that trusts it still looks. One command (work
       spec, or a section on work show), composing with p1-tests-next-id-and-steps, which asks the
       same question of a slice's scenarios
-    tags: [work, v8]
+    tags: [work, v9]
 
   - id: p1-titles-beside-ids
     title: Every id itos prints for a person carries its title beside it
