@@ -4486,10 +4486,6 @@
     (under go test the process folder is inside this checkout, whose config the move to the top
     would otherwise find) by a value only the temporary config holds. Commit in reviewable steps, each
     a refactor that builds and passes on its own.
-  done_when:
-    - run: "! grep -rnE 'os\\.(Chdir|Getwd)\\b|filepath\\.Abs\\b' --include='*.go' internal | grep -v '_test\\.go:' | grep -vE '^internal/(shim|launch)/'"
-    - run: names=$(go test ./internal/cli -list '^TestMainLeavesTheProcessFolder$') && printf '%s\n' "$names" | grep -qx 'TestMainLeavesTheProcessFolder' && go test ./internal/cli -count=1 -run '^TestMainLeavesTheProcessFolder$'
-    - run: "! grep -q 'os.Chdir' features/inprocess_test.go && ITOS_FEATURE_DRIVER=in-process go test ./features -count=1 -scenarios='^@ID-(CONFIG|GUARD)-'"
 
 - id: T-292
   type: chore

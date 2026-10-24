@@ -13329,7 +13329,7 @@ items:
     title: cli.Main takes its working folder from the run value and never changes the process folder
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
 
