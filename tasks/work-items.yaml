@@ -61,7 +61,6 @@ queue:
   - p3-commit-long-text-footer
   - bug-38
   - bug-42
-  - bug-127
   - p1-problem-fields
   - p1-tools-bin-shared
   - p1-agent-git-ci-contract
