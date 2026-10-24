@@ -13747,3 +13747,20 @@ items:
     status: doing
     depends_on: []
     kind: task
+
+  - id: p1-evidence-review-record
+    title: A review's verdict is a record in ADR-0060's shape, so spec reviewed and diff reviewed are provable states
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The 2026-10-23 grooming: p1-item-lifecycle's spec-reviewed and diff-reviewed states need
+      proof, and no item records a review. Today the reviewer CLI's verdict lives in the clone's
+      .git/itos/review files and its own log. Record it in the evidence record shape (key: the
+      reviewed commit and artifact, the reviewer's profile and model; verdict APPROVED,
+      CHANGES_REQUESTED or INCOMPLETE; findings; round), locally and, opted in, from CI, so work
+      done or the lifecycle can require an approved review of the landed head. The reviewer stays an
+      external tool; itos only stores and checks the record.
+    tags: [evidence, v8]
