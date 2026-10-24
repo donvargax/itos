@@ -11065,7 +11065,7 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: []
+    depends_on: [p1-typed-items]
     kind: idea
     why: >
       The user, 2026-10-21: every coordinator session appends its handoff to .git/itos/notes.md by
@@ -11088,7 +11088,7 @@ items:
       .git/itos/notes.md goes back to facts true only of this clone, and the rule to prune it at
       each coordinator start goes with it. No itos handoff command; the typed-record dependency
       above no longer applies.
-    tags: [status, v8]
+    tags: [status, v9]
 
   - id: p1-doc-references
     title: Reference documents an area's work should read, tracked so briefs and agents find them
