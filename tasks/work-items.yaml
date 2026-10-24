@@ -13682,3 +13682,16 @@ items:
       already has a fix field, and the gaps are that config check's text shows no fix and the fix
       names neither the file nor the stale item nor says by hand.
     refs: [internal/engine/configcheck/configcheck.go, features/decision-relink.feature]
+
+  - id: p1-commit-duplicate-link-footer
+    title: itos commit refuses or merges a link footer given both in the message and by its flag
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Seen 2026-10-24 on 38aac54e (bug-135): the commit carries two Scenarios: footers,
+      'ID-CONFIG-71, ID-CONFIG-72' from the message and 'ID-CONFIG-71 ID-CONFIG-72' from
+      --scenarios, and every gate passed it. A link footer given twice should be one footer (merged,
+      each id once) or refused naming both sources.
