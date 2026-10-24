@@ -7513,6 +7513,11 @@ items:
       steps. The filled brief should say plainly that writing the missing step definitions is the
       test commit's job, and that only a scenario that passes before the fix, or fails in setup no
       step can fix, is a reason to stop.
+
+      2026-10-23 grooming, merged in p1-guide-work-item: itos guide work <item> prints the guide
+      then the item (as work show does), so an implementing agent starts in one round trip instead
+      of two; the brief side is itos guide brief <item> filled from the item. A loop driver needs
+      both.
     tags: [agents, v8]
 
   - id: p1-guide-work-item
