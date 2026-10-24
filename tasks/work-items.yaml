@@ -13895,3 +13895,27 @@ items:
       macOS remote execution is weak, and per-test coverage and mutation runs map poorly; the PoC
       learns the proof model, Bazel carries it across languages later.
     tags: [ci, proof, architecture, v9]
+
+  - id: p1-github-registry-spike
+    title: "Spike: mirror queued items as GitHub issues and run a few through pr mode, to inform the v9 registry"
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [slice-175, slice-176]
+    kind: idea
+    why: >
+      The user, 2026-10-24: after the switch to push.mode pr, test the GitHub registry (v9,
+      p1-github-registry-pilot) by faking it, no itos code. A throwaway script outside itos's source
+      mirrors the open, queued items (a couple of dozen) as issues in donvargax/itos itself,
+      labelled itos-item plus type and area labels, and maps the moves: take = assign + doing label,
+      done/drop = close completed/not planned, add = create, queue = a ranking label or field. The
+      YAML registry stays the source of truth; the script runs beside it. A few real items go end to
+      end through pr mode with Closes #n in the pull request. tools/bin/inbox skips itos-item. In
+      the real repository on purpose, not a scratch one: v9 puts consumer reports and items in one
+      tracker, so triage, the trust rule (only allow-listed authors' issues are items), label
+      collisions and rate limits shared with the CI watch are what the spike must show. It answers:
+      do registry conflicts and registry commits to main disappear; does a rebase-merge with Closes
+      #n close the item; gh latency and rate limits at an agent's pace; how work done finds an
+      item's commits when the item is an issue number. Findings go onto p1-github-registry-pilot as
+      the v9 design's inputs. Cleanup: close every itos-item issue as not planned, delete the label.
+    tags: [work, providers]
