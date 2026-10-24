@@ -13875,3 +13875,19 @@ items:
     status: done
     depends_on: []
     kind: task
+
+  - id: p1-pr-task-close
+    title: Under pr, closing a task with checks reaches main, though work done edits its ledger file
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [slice-176]
+    kind: idea
+    why: >
+      Found by slice-176's spec drafter (2026-10-24): work done on a task also edits its ledger file
+      (it takes the task's checks out, ADR-0043), so the close commit touches more than the work
+      registry and itos push under push.mode pr refuses it on main as work-on-main (slice-174's
+      registry-only rule, slice 56). Under pr a task with checks can then never be closed. Either
+      the close's ledger edit counts as registry bookkeeping for pr's rule, or the close goes
+      another way; decide before this repository switches to pr, since most of its items are tasks.
+    tags: [push, work]
