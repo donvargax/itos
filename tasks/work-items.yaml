@@ -9988,6 +9988,11 @@ items:
       wording passes every gate and the Nightly red issue goes back to saying nothing of the plan's
       failures, unseen until a red night. A self-test could run itos ci run --nightly with failing
       fake steps, as ci-mutation-budget does, and feed its output to nightly-report's reader.
+
+      2026-10-23: slice-172 (v8.11.0) made itos ci watch --json carry each failed job's step and
+      failures (go-test, scenario, ci-run, tail) with their lines, cleaned by nightly-report's own
+      rules. nightly-report could read that instead of its own log parser, one parser for both; its
+      standard-library-only constraint is what to weigh.
     tags: [gates, v8]
 
   - id: T-188
