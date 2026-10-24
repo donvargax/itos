@@ -56,7 +56,6 @@ phases:
 
 queue:
   - bug-123
-  - T-297
   - p1-work-as-empty
   - p1-supersede-standing-only
   - p1-work-done-wip-examples
