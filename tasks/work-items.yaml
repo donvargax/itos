@@ -13481,3 +13481,17 @@ items:
       closing check seems to read scenario-level tags only. Refuse, or name the example-level @wip
       blocks the close leaves.
     refs: [internal/tests/gherkin.go, features/work.feature]
+
+  - id: bug-130
+    title: A git that fails reads as changes no commit holds
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: bug
+    why: >
+      Was p1-uncommitted-git-failure. Found by slice 138's unit tests: uncommitted
+      (internal/cli/workwrite.go) treats an error from git status as a file with changes, so a git
+      that cannot run makes every registry writer refuse with '<file> has changes no commit holds',
+      naming the wrong cause. It should report git's failure as the error it is.
+    refs: [internal/cli/workwrite.go]
