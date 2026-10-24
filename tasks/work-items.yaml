@@ -13860,3 +13860,23 @@ items:
     status: todo
     depends_on: []
     kind: task
+
+  - id: p1-tests-list-tags
+    title: tests list gives each Gherkin test its effective tags (#117)
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Issue #117 (2026-10-24): tests list --json gives a scenario its id, file, live and
+      fingerprint, and live means only not wip_tag. A consumer's runner often runs fewer (itos-cc's
+      in-process runner skips @binary-only scenarios and unconverted feature files), so a code proof
+      listing the live scenarios measured one its runner never executes and failed closed
+      (count.preparation-failed, no per-ID coverage); itos-cc reverted its proof.code and lists
+      through a program of its own meanwhile. Asked: each Gherkin test's effective tags (its own and
+      its feature's, as the fingerprint reads them) in tests list --json and --tsv; optionally a
+      kind's run declaring the tags it never executes (tests.<kind>.run.exclude_tags), so list,
+      select and whole agree and a CI range stops naming tests no run executes.
+    refs: [internal/tests]
+    tags: [tests, proof]
