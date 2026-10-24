@@ -3,7 +3,8 @@
 // its linked worktree, and a file of the repository that exists or says a
 // text. Bug 16's: one command run many times at once, each run's exit
 // checked (stealth.feature's work add uses them too), the threads file
-// written directly, and a run under a time zone. Bug 17's: the line after or
+// written directly, and a run under a time zone (bug 127's: with the Go
+// toolchain's zone database). Bug 17's: the line after or
 // before a text in a file is blank. Slice 71's: a file has a line, alone or
 // after another (init.feature's AGENTS.md block uses them too). Bug 35's: a
 // command line run in the linked worktree, the run a scenario is about.
@@ -76,6 +77,28 @@ func initializeFollowSteps(sc *godog.ScenarioContext, w *world) {
 		w.vars = append(w.vars, "TZ="+zone)
 		return w.itos(strings.Fields(args)...)
 	})
+	sc.Step(`^itos runs "([^"]*)" with TZ "([^"]*)" and the Go toolchain's zone database$`, func(args, zone string) error {
+		database, err := toolchainZoneDatabase()
+		if err != nil {
+			return err
+		}
+		w.vars = append(w.vars, "TZ="+zone, "ZONEINFO="+database)
+		return w.itos(strings.Fields(args)...)
+	})
+}
+
+// toolchainZoneDatabase is the zone database every runner that builds itos
+// has: lib/time/zoneinfo.zip of the Go toolchain, where Go's ZONEINFO looks.
+func toolchainZoneDatabase() (string, error) {
+	out, err := exec.Command("go", "env", "GOROOT").Output()
+	if err != nil {
+		return "", fmt.Errorf("setup: go env GOROOT: %w", err)
+	}
+	database := filepath.Join(strings.TrimSpace(string(out)), "lib", "time", "zoneinfo.zip")
+	if _, err := os.Stat(database); err != nil {
+		return "", fmt.Errorf("setup: the Go toolchain's zone database is not at %s: %w", database, err)
+	}
+	return database, nil
 }
 
 // numberWords are what "one" to "twenty" counts through.
