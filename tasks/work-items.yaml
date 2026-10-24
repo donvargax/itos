@@ -13436,14 +13436,9 @@ items:
     title: work done says nothing of a closing slice's Examples blocks still tagged @wip
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: bug
-    why: >
-      Was p1-work-done-wip-examples. From #111: a slice closed while a tagged Examples block under
-      its live outline kept @wip (rows waiting on a harness change), and the close said nothing: the
-      closing check seems to read scenario-level tags only. Refuse, or name the example-level @wip
-      blocks the close leaves.
     refs: [internal/tests/gherkin.go, features/work.feature]
 
   - id: bug-130
