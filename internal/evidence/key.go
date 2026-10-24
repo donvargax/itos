@@ -177,6 +177,9 @@ func canonical(text string) string {
 // git does not track, in the order Walk gives them, a folder named .git
 // left out.
 func (e *Engine) read(b *bound, declared string, tracked map[string]bool) error {
+	if !config.IsRepoPath(declared) {
+		return fmt.Errorf("evidence input %q is not a path from the repository's top", declared)
+	}
 	rel := path.Clean(declared)
 	if tracked[rel] {
 		return nil

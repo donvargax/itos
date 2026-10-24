@@ -210,3 +210,30 @@ func TestAToolThatCannotBeReadCannotBeKeyed(t *testing.T) {
 		t.Error("a tool that cannot be read was keyed")
 	}
 }
+
+// A declared input that leaves the repository, or is absolute, is never
+// read or copied, whatever config check would say: the ledger is read
+// without it. The check runs in the working folder, unkeyed and unrecorded,
+// and nothing is written outside a checkout.
+func TestAnInputOutsideTheRepositoryIsRefused(t *testing.T) {
+	r := newRig(t)
+	outside := filepath.Join(filepath.Dir(r.work), "outside.txt")
+	if err := os.WriteFile(outside, []byte("x"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	for _, input := range []string{"../outside.txt", "a/../../outside.txt", "..", outside, "", `a\b`} {
+		if _, err := r.bind(t.Context(), r.request("true", config.Evidence{Inputs: []string{input}}), "tree"); err == nil {
+			t.Errorf("the input %q was keyed", input)
+		}
+		o := r.Run(t.Context(), r.request("true", config.Evidence{Inputs: []string{input}}))
+		if !o.OK || o.Info.Reason != ReasonUnkeyable || o.Info.Recorded || o.Info.Key != "" {
+			t.Errorf("the input %q: %+v", input, o)
+		}
+	}
+	if r.git.checkouts != 0 {
+		t.Errorf("%d checkouts were made", r.git.checkouts)
+	}
+	if _, err := r.bind(t.Context(), r.request("true", config.Evidence{Inputs: []string{"a/../b", "c"}}), "tree"); err != nil {
+		t.Errorf("a path that stays in the repository: %v", err)
+	}
+}

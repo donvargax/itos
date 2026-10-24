@@ -53,6 +53,15 @@ func (e Evidence) Text() string {
 // declared.
 func IsGlob(p string) bool { return strings.ContainsAny(p, "*?[") }
 
+// IsRepoPath is whether a declared input is a path from the repository's
+// top, written with /: not empty, not absolute and not leaving the
+// repository once cleaned. Whatever reads or copies an input holds it to
+// this, since a ledger is read without config check.
+func IsRepoPath(p string) bool {
+	clean := path.Clean(p)
+	return p != "" && !path.IsAbs(p) && clean != ".." && !strings.HasPrefix(clean, "../") && !strings.Contains(p, `\`)
+}
+
 // EvidenceOf reads a declaration as the ledger writes it: a mapping, whose
 // lists keep the texts in them. Anything else is no declaration, nil, which
 // config check has already refused.
@@ -113,10 +122,10 @@ func (e Evidence) Problems(where, rule string) []out.Problem {
 		found = append(found, out.Problem{Rule: rule, Message: where + "'s evidence " + message, Fix: fix})
 	}
 	for _, p := range e.Inputs {
-		switch clean := path.Clean(p); {
+		switch {
 		case IsGlob(p):
 			problem(fmt.Sprintf("input %s is a glob", p), "declare the folder that holds the files, or each file by its path")
-		case p == "" || path.IsAbs(p) || clean == ".." || strings.HasPrefix(clean, "../") || strings.Contains(p, `\`):
+		case !IsRepoPath(p):
 			problem(fmt.Sprintf("input %q is not a path from the repository's top", p),
 				"write the path from the repository's top, with / between its parts")
 		}
