@@ -32,13 +32,29 @@ type Problem struct {
 	Fix     string `json:"fix"`
 }
 
+// String is the outcome as ci run --json gives it.
+func (o Outcome) String() string {
+	return [...]string{"passed", "refused", "cannot-run"}[o]
+}
+
 // Verdict is how a check answered: its outcome, the problems its --json
 // listed (with Refused, and with CannotRun when it printed them), and with
-// CannotRun why, as the end of a sentence ("exited 3").
+// CannotRun why, as the end of a sentence ("exited 3"). A check that exited
+// 0 gives the Summary its itos_proof envelope normalized, nil when it opted
+// in to none; one whose envelope breaks the contract cannot run, Invalid
+// naming the field; one whose envelope says it judged nothing is Refused,
+// with that Summary and no problems (NoWork).
 type Verdict struct {
 	Outcome  Outcome
 	Problems []Problem
 	Why      string
+	Summary  *Summary
+	Invalid  *FieldError
+}
+
+// NoWork is whether the check exited 0 saying it judged no work at all.
+func (v Verdict) NoWork() bool {
+	return v.Outcome == Refused && v.Summary != nil
 }
 
 // Touches is whether one of the files matches one of the globs.
@@ -82,7 +98,7 @@ type answer struct {
 // stdout.
 func Read(code int, stdout []byte) Verdict {
 	if code == 0 {
-		return Verdict{Outcome: Passed}
+		return readPassed(stdout)
 	}
 	a, readable := parse(stdout)
 	if code == 1 && readable && !*a.OK {
@@ -96,6 +112,20 @@ func Read(code int, stdout []byte) Verdict {
 		v.Problems = a.Problems
 	}
 	return v
+}
+
+// readPassed is the verdict of a check that exited 0: it passes whatever it
+// prints, unless it opted in to the summary envelope (ReadSummary) and
+// broke its contract, or reported that it judged nothing.
+func readPassed(stdout []byte) Verdict {
+	summary, invalid := ReadSummary(stdout)
+	switch {
+	case invalid != nil:
+		return Verdict{Outcome: CannotRun, Why: invalid.Message(), Invalid: invalid}
+	case summary != nil && summary.Judged != nil && *summary.Judged == 0:
+		return Verdict{Outcome: Refused, Summary: summary}
+	}
+	return Verdict{Outcome: Passed, Summary: summary}
 }
 
 // parse is the object stdout holds, and whether it is one of the contract's:

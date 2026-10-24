@@ -12,8 +12,10 @@
 // for Read.
 //
 // Read judges the provider's answer by itos-cc's machine contract (its
-// docs/CLI.md): exit 0 passes, whatever it prints; exit 1 with the --json
-// object {"schema":1,"ok":false,"problems":[{"rule","message","fix",…}]}
+// docs/CLI.md): exit 0 passes, whatever it prints, unless it opted in to the
+// itos_proof envelope (ReadSummary, slice 164) and broke it or judged no
+// work; exit 1 with the --json object
+// {"schema":1,"ok":false,"problems":[{"rule","message","fix",…}]}
 // refuses, its problems kept (the keys besides rule, message and fix are the
 // problem's subject, read by no one here); anything else cannot run: a
 // command that did not start or was stopped, an exit 1 whose stdout is no

@@ -28,6 +28,10 @@
   scenarios:
     - id: "@ID-CI-01"
       why: ci run logs a merged check under the kind it ran in, the file's point
+- file: ci-proof-summary.feature
+  scenarios:
+    - id: "@ID-CI-52"
+      why: a passing code proof's envelope logged as one summary line, the file's point in one run
 - file: cli.feature
   scenarios:
     - id: "@ID-CLI-01"

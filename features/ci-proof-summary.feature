@@ -145,7 +145,7 @@ Feature: Optional provider summaries make a successful code proof inspectable
     And only "internal/example.go" is committed with message "chore: change example" and tagged "summary-head"
     And every itos invocation uses the binary under test from the scratch root with "--config itos.yaml", no pin and no inherited ITOS_CONFIG
 
-  @wip @slice-164 @ID-CI-52
+  @slice-164 @ID-CI-52
   Scenario: A successful opt-in provider prints only the reported range-wide fields
     When I invoke itos with "ci run summary-base summary-head"
     Then stdout contains the complete line "Code proof summary: judged=1; unit=function; killed=6; excepted=0" exactly once
@@ -159,7 +159,7 @@ Feature: Optional provider summaries make a successful code proof inspectable
       tests @(?:ID-A-02)\b
       """
 
-  @wip @slice-164 @ID-CI-53
+  @slice-164 @ID-CI-53
   Scenario: Explicit zero judged work retains its measured summary while refusing CI
     Given the scratch file "proof.stdout" contains exactly:
       """
@@ -181,7 +181,7 @@ Feature: Optional provider summaries make a successful code proof inspectable
     And "proof-runs" has exactly 1 line
     And "ci-runs" contains only "before"
 
-  @wip @slice-164 @ID-CI-54
+  @slice-164 @ID-CI-54
   Scenario Outline: A legacy successful provider gains an unavailable-summary report
     Given the scratch file "proof.stdout" contains exactly:
       """
@@ -212,7 +212,7 @@ Feature: Optional provider summaries make a successful code proof inspectable
       | duplicate unknown native key | {"files":[],"files":[{"judged":0}]}                                                                          |
       | differently cased envelope   | {"ITOS_PROOF":{"version":1,"judged":0,"unit":"function"}}                                                   |
 
-  @wip @slice-164 @ID-CI-55
+  @slice-164 @ID-CI-55
   Scenario Outline: Normalization keeps unavailable metrics separate from measured zero
     Given the scratch file "proof.stdout" contains exactly:
       """
@@ -241,7 +241,7 @@ Feature: Optional provider summaries make a successful code proof inspectable
       | unit without metrics           | {"version":1,"unit":"function"}                                  | "function"   | null   | Code proof summary: unit=function                                      |
       | differently cased count        | {"version":1,"Judged":0,"unit":"function"}                       | "function"   | null   | Code proof summary: unit=function                                      |
 
-  @wip @slice-164 @ID-CI-56
+  @slice-164 @ID-CI-56
   Scenario Outline: Invalid opt-in metadata is a failed proof with a summary-contract problem
     Given the scratch file "proof.stdout" contains exactly:
       """
@@ -324,7 +324,7 @@ Feature: Optional provider summaries make a successful code proof inspectable
       | identical excepted           | {"itos_proof":{"version":1,"excepted":0,"excepted":0}}                                                         | itos_proof.excepted  |
       | identical uncovered          | {"itos_proof":{"version":1,"uncovered":0,"uncovered":0}}                                                       | itos_proof.uncovered |
 
-  @wip @slice-164 @ID-CI-57
+  @slice-164 @ID-CI-57
   Scenario Outline: A provider failure gains positive JSON execution evidence without accepting its counts
     Given the scratch file "proof.exit" contains "<exit>"
     And the scratch file "proof.stdout" contains exactly:
@@ -355,7 +355,7 @@ Feature: Optional provider summaries make a successful code proof inspectable
       | 3    | 2       | cannot-run | ci-code-proof,mutation.survived |
       | 1    | "1"     | refused    | mutation.survived               |
 
-  @wip @slice-164 @ID-CI-58
+  @slice-164 @ID-CI-58
   Scenario: Only an executed proof has a measured JSON result
     Given the commit "docs: add a note" touching only "README.md" on top of it is tagged "summary-docs"
     When I invoke itos with "ci run summary-base summary-head --json"
@@ -392,7 +392,7 @@ Feature: Optional provider summaries make a successful code proof inspectable
     And neither stream contains "Code proof summary:" or "Code proof summary unavailable:"
     And "proof-runs" still has exactly the executed control's single line
 
-  @wip @slice-164 @ID-CI-59
+  @slice-164 @ID-CI-59
   Scenario: JSON normalizes only common fields and keeps execution logs on stderr
     Given the scratch file "proof.stdout" contains exactly:
       """
@@ -412,7 +412,7 @@ Feature: Optional provider summaries make a successful code proof inspectable
     And stdout contains neither "provider diagnostic" nor "Code proof summary:"
     And "proof-runs" contains exactly one line with "--since " followed by the full SHA of "summary-base" and " --json"
 
-  @wip @slice-164 @ID-CI-60
+  @slice-164 @ID-CI-60
   Scenario: Positive JSON evidence retains descriptive counts without deriving a second verdict
     Given the scratch file "proof.stdout" contains exactly:
       """

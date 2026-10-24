@@ -53,6 +53,20 @@ type driver struct {
 	stderr   io.Writer
 	runner   *check.Runner
 	evidence *evidence.Engine
+	ends     plan.Ends
+	proofRun *ProofRun
+}
+
+// ProofRun is the code proof of a run that was executed, as --json's proof
+// gives it: the command run, the range's resolved ends, how the provider
+// answered (passed, refused or cannot-run) and the summary it reported, null
+// when it reported none or was not read for one.
+type ProofRun struct {
+	Command string         `json:"command"`
+	From    string         `json:"from"`
+	To      string         `json:"to"`
+	Outcome string         `json:"outcome"`
+	Summary *proof.Summary `json:"summary"`
 }
 
 // Run carries out a plan and gives the run's exit code: 0, or 1 for a
@@ -68,7 +82,7 @@ func Run(cfg *config.Loaded, p *plan.Plan, o Options) (int, error) {
 			return 0, err
 		}
 	}
-	d := driver{cfg: cfg, log: o.Stdout, stderr: o.Stderr, evidence: o.Evidence}
+	d := &driver{cfg: cfg, log: o.Stdout, stderr: o.Stderr, evidence: o.Evidence, ends: p.Ends}
 	if o.JSON {
 		d.log = o.Stderr
 	}
@@ -118,6 +132,9 @@ func Run(cfg *config.Loaded, p *plan.Plan, o Options) (int, error) {
 		if failed != nil {
 			fields = append(fields, out.Field{Key: "failed_at", Value: failed}, out.Field{Key: "failures", Value: failures})
 		}
+		if d.proofRun != nil {
+			fields = append(fields, out.Field{Key: "proof", Value: d.proofRun})
+		}
 		if d.evidence != nil && d.evidence.Used() {
 			fields = append(fields, out.Field{Key: "evidence", Value: d.evidence.Entries()})
 			if unstaged, counted := d.evidence.Unstaged(); counted {
@@ -137,7 +154,7 @@ func Run(cfg *config.Loaded, p *plan.Plan, o Options) (int, error) {
 // preamble is what the run says before its first item: the unknown tasks,
 // named against the ledger's folder, which end it; the tasks not started;
 // and what a prose-only range runs and leaves out.
-func (d driver) preamble(p *plan.Plan) (*Failure, error) {
+func (d *driver) preamble(p *plan.Plan) (*Failure, error) {
 	if len(p.Unknown) > 0 {
 		layout, err := ledger.LayoutOf(d.cfg)
 		if err != nil {
@@ -163,7 +180,7 @@ func (d driver) preamble(p *plan.Plan) (*Failure, error) {
 
 // proseLine says what a prose-only range runs: the prose steps as
 // ci.prose.steps gives them, then the named tasks' checks that read prose.
-func (d driver) proseLine() string {
+func (d *driver) proseLine() string {
 	var steps strings.Builder
 	if d.cfg.CI.Prose != nil {
 		for _, step := range d.cfg.CI.Prose.Steps {
@@ -181,7 +198,7 @@ func (d driver) proseLine() string {
 // failure carries the step's exit code, named on stderr after lead ("CI
 // failed at" for the run's first, "also failed at" for a later one), 1 when
 // it has none (stopped by a signal, or never started).
-func (d driver) step(s *plan.Step, lead string) *Failure {
+func (d *driver) step(s *plan.Step, lead string) *Failure {
 	command := s.Command
 	fmt.Fprintf(d.log, "\n$ %s\n", command)
 	var ok bool
@@ -212,13 +229,35 @@ func (d driver) step(s *plan.Step, lead string) *Failure {
 // release that needs the run never runs; a check that cannot run fails it
 // too, as any step does (@ID-CI-19), never a pass. The run's exit code is 1
 // either way, the code of a step passed through (decision 35).
-func (d driver) proof(s *plan.Step, lead string) *Failure {
+//
+// A check that exits 0 may report, in the itos_proof envelope of its stdout,
+// what it judged (slice 164, issue #25): the run logs one line of it, and
+// fails, without the generic ci-code-proof problem, a check whose envelope
+// breaks the contract (ci-code-proof-summary) or says it judged no work
+// (ci-code-proof-empty). The executed proof, however it ended, is --json's
+// proof.
+func (d *driver) proof(s *plan.Step, lead string) *Failure {
 	fmt.Fprintf(d.log, "\n$ %s\n", s.Command)
 	v := proof.Run(d.cfg, s.Command, d.stderr)
+	d.proofRun = &ProofRun{Command: s.Command, From: d.ends.From, To: d.ends.To, Outcome: v.Outcome.String(), Summary: v.Summary}
 	problems := proofProblems(v.Problems)
 	switch {
 	case v.Outcome == proof.Passed:
+		fmt.Fprintln(d.log, v.Summary.Line())
 		return nil
+	case v.Invalid != nil:
+		problems = []out.Problem{{
+			Rule:    "ci-code-proof-summary",
+			Message: "the code proof's summary breaks its contract: " + v.Invalid.Message(),
+			Fix:     "make proof.code.check print a valid itos_proof envelope (README.md, Proof of done), or none, and push the range again",
+		}}
+	case v.NoWork():
+		fmt.Fprintln(d.log, v.Summary.Line())
+		problems = []out.Problem{{
+			Rule:    "ci-code-proof-empty",
+			Message: "the code proof reported that it judged no work (judged 0), so it proves nothing for this range",
+			Fix:     "make proof.code.check judge the changed code: widen its scope or correct the base it is given, and push the range again",
+		}}
 	case v.Outcome == proof.CannotRun:
 		problems = append([]out.Problem{{
 			Rule: "ci-code-proof",
@@ -257,7 +296,7 @@ func proofProblems(found []proof.Problem) []out.Problem {
 
 // check is one task check: logged as merged, covered, left out or pending,
 // else run; a failure names the task and its title after lead.
-func (d driver) check(c *plan.Check, lead string) *Failure {
+func (d *driver) check(c *plan.Check, lead string) *Failure {
 	command := c.Check.Command()
 	fmt.Fprintf(d.log, "\n%s\n", c.Task.ID)
 	switch c.Action {

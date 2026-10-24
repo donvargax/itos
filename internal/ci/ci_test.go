@@ -1,6 +1,7 @@
 package ci
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -115,6 +116,82 @@ func TestTheCodeProofFailsTheRunByItsProblems(t *testing.T) {
 	if code, stdout, stderr := run(t, &plan.Plan{Order: []plan.Item{{Step: &step}}}, Options{}); code != 0 ||
 		!strings.Contains(stdout, "CI passed") || strings.Contains(stderr, "code proof") {
 		t.Errorf("a passing proof: exit %d, stdout %q, stderr %q", code, stdout, stderr)
+	}
+}
+
+// The summary a passing code proof reports (slice 164, issue #25): one log
+// line before the result, the proof as --json's proof member with the ends of
+// the plan, a summary that breaks the contract or says no work was judged
+// failing the run with a problem of its own, and no proof member when the
+// proof was not reached.
+func TestTheCodeProofReportsItsSummary(t *testing.T) {
+	envelope := func(summary string) string { return `printf '%s\n' '{"itos_proof":` + summary + `}'` }
+	const unavailable = "Code proof summary unavailable: provider did not report a summary."
+	for _, c := range []struct {
+		name, command, line, outcome, summary string
+		code                                  int
+		rule                                  string
+	}{
+		{"a summary", envelope(`{"version":1,"judged":1,"unit":"function","killed":6}`),
+			"Code proof summary: judged=1; unit=function; killed=6", "passed",
+			`{"version":1,"judged":1,"unit":"function","files":null,"killed":6,"survived":null,"excepted":null,"uncovered":null}`, 0, ""},
+		{"none", "exit 0", unavailable, "passed", "null", 0, ""},
+		{"no work", envelope(`{"version":1,"judged":0,"unit":"function"}`),
+			"Code proof summary: judged=0; unit=function", "refused",
+			`{"version":1,"judged":0,"unit":"function","files":null,"killed":null,"survived":null,"excepted":null,"uncovered":null}`,
+			1, "ci-code-proof-empty"},
+		{"a broken summary", envelope(`{"version":2}`), "", "cannot-run", "null", 1, "ci-code-proof-summary"},
+		{"a check that cannot run", "exit 3", "", "cannot-run", "null", 1, "ci-code-proof"},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			step := plan.Step{Command: c.command, Proof: true}
+			p := &plan.Plan{Order: []plan.Item{{Step: &step}}, Ends: plan.Ends{From: "aaa", To: "bbb"}}
+			code, stdout, stderr := run(t, p, Options{JSON: true})
+			var report struct {
+				OK    bool `json:"ok"`
+				Proof struct {
+					Command, From, To, Outcome string
+					Summary                    json.RawMessage
+				}
+				Failures []struct {
+					Problems []struct{ Rule string }
+				}
+			}
+			if err := json.Unmarshal([]byte(stdout), &report); err != nil {
+				t.Fatal(err)
+			}
+			proof := report.Proof
+			var summary bytes.Buffer
+			_ = json.Compact(&summary, proof.Summary)
+			if code != c.code || proof.Command != c.command || proof.From != "aaa" || proof.To != "bbb" ||
+				proof.Outcome != c.outcome || summary.String() != c.summary {
+				t.Errorf("exit %d, proof %+v, stdout %q", code, proof, stdout)
+			}
+			if c.line == "" && strings.Contains(stderr, "Code proof summary") ||
+				c.line != "" && strings.Count(stderr, "\n"+c.line+"\n") != 1 {
+				t.Errorf("the summary line %q: stderr %q", c.line, stderr)
+			}
+			if c.rule == "" {
+				if !report.OK || len(report.Failures) != 0 {
+					t.Errorf("a pass failed: %q", stdout)
+				}
+				return
+			}
+			if len(report.Failures) != 1 || len(report.Failures[0].Problems) == 0 || report.Failures[0].Problems[0].Rule != c.rule ||
+				!strings.Contains(stderr, "\n"+c.rule+": ") {
+				t.Errorf("rule %s: failures %+v, stderr %q", c.rule, report.Failures, stderr)
+			}
+		})
+	}
+	// A proof the run never reached has no proof member, and a text run logs
+	// its line on stdout, before the result.
+	first, proof := plan.Step{Command: "exit 3"}, plan.Step{Command: "exit 0", Proof: true}
+	if _, stdout, _ := run(t, &plan.Plan{Order: []plan.Item{{Step: &first}, {Step: &proof}}}, Options{JSON: true}); strings.Contains(stdout, `"proof"`) {
+		t.Errorf("an unreached proof is in the report: %q", stdout)
+	}
+	_, stdout, _ := run(t, &plan.Plan{Order: []plan.Item{{Step: &proof}}}, Options{})
+	if !strings.Contains(stdout, "\n$ exit 0\n"+unavailable+"\n\nCI passed\n") {
+		t.Errorf("the text log: %q", stdout)
 	}
 }
 

@@ -478,6 +478,35 @@ that needs a green run never runs. Nothing passes over that: a mutant that is
 truly equivalent is excepted in `itos-cc.yaml` with its reason, for the
 person to review, and nothing else is.
 
+A check that exits 0 may also say what it judged, so the log shows more than a
+pass. It prints one JSON object whose top-level `itos_proof` member is the
+envelope, any other member being its own:
+
+```json
+{"itos_proof": {"version": 1, "judged": 12, "unit": "function", "killed": 40, "excepted": 2}}
+```
+
+`version` is the integer `1`. The other members are optional counts, each an
+unsigned integer up to 9007199254740991 or `null`: `judged`, `files`,
+`killed`, `survived`, `excepted` and `uncovered`, range-wide, never per task;
+`unit` names what `judged` counts (ASCII letters, digits, `_` and `-`, starting
+with a letter, at most 64 characters) and is required when `judged` is given.
+Names are case-sensitive and a repeated one is an error, but unknown members
+are ignored and never copied. `ci run` logs one line before the result, the
+reported fields in that order (`Code proof summary: judged=12; unit=function;
+killed=40; excepted=2`), or says the provider reported none, which an
+unreported field is, never zero. Stdout with no such object (empty, text, other
+JSON) keeps the exit-code contract above; the envelope is read from a check that
+exited 0 only. An envelope that breaks the contract fails the run
+(`ci-code-proof-summary`, naming the field), and so does one that says
+`judged` is `0`, since a proof of nothing proves nothing
+(`ci-code-proof-empty`): fix `proof.code.check`'s scope or `{base}`. The other
+counts are descriptive; survivors and uncovered lines are still the check's to
+fail on. With `--json`, the report gains `proof` once the proof ran:
+`command`, `from` and `to` (the range's full SHAs), `outcome` (`passed`,
+`refused` or `cannot-run`) and the normalized `summary`, `null` when none was
+read.
+
 Recording the results is the author's, before the push: the check reads what
 a run of the provider recorded and runs no tests of its own, so the range's
 code has results before the range is judged. `config check` refuses a check

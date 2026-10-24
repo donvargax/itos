@@ -16,7 +16,11 @@
 //     its --json, so a survivor, an uncovered or a missing result fails the
 //     run naming each problem's rule and message, and a check that cannot run
 //     fails it too, never a pass (slice 106, issue #28). The run's exit code
-//     is 1, as for any other failing step.
+//     is 1, as for any other failing step. A check that passes may report
+//     what it judged in an itos_proof envelope (slice 164, issue #25): the
+//     log gets one line of it before the result, a broken envelope or a
+//     judged of 0 fails the run with a problem of its own, and --json gains
+//     proof, the executed proof's command, ends, outcome and summary.
 //   - A task check the plan runs goes through a verbose check.Runner, so its
 //     command line and output keep their place in the log; a failure exits 1,
 //     naming the task and its title. A check merged into the run of named

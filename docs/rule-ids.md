@@ -177,6 +177,8 @@ The built-in header linter emits these individual rules. Their names come from t
 ### `ci run`
 
 - `ci-code-proof`: the configured code-proof provider reports failure or cannot provide a usable result. Provider-supplied problem IDs are passed through unchanged and are not built-in itos IDs.
+- `ci-code-proof-summary`: a code-proof provider that exited 0 printed an `itos_proof` envelope that breaks its contract; the message names the field.
+- `ci-code-proof-empty`: a code-proof provider that exited 0 reported `judged` as 0, so the proof judged no work.
 
 ## Configured and delegated IDs
 

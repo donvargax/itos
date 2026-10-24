@@ -240,7 +240,53 @@ cases:
         - step: sh proof.sh mutation check --since {{sha.smoke}} --fail-uncovered --json
           problems: [{ rule: mutation.survived }]
           code: 1
+      proof:
+        command: sh proof.sh mutation check --since {{sha.smoke}} --fail-uncovered --json
+        from: "{{sha.smoke}}"
+        to: "{{sha.code}}"
+        outcome: refused
+        summary: null
     stdout_has: "src/a.ts:3:9"
+
+  - name: a code proof that reports what it judged logs it, and --json carries it
+    argv: [ci, run, "{{sha.smoke}}", "{{sha.code}}", --json]
+    files:
+      proof.sh: |
+        printf '%s\n' '{"itos_proof":{"version":1,"judged":3,"unit":"function","killed":7}}'
+      itos.yaml: |
+        version: 1
+        ledger: { files: "tasks/phase-{group}.yaml", id: "T-\\d+" }
+        commits:
+          footers:
+            Task: { source: ledger, validate_for: all, read_at: commit }
+        ci:
+          steps:
+            - { run: echo lint, cost: static }
+          cost: { static: ["^echo lint$"] }
+        proof:
+          code:
+            paths: ["tools/**"]
+            check: "sh proof.sh --since {base} --json"
+        work: { registry: tasks/work-items.yaml }
+    exit: 0
+    json:
+      schema: 1
+      ok: true
+      proof:
+        command: sh proof.sh --since {{sha.smoke}} --json
+        from: "{{sha.smoke}}"
+        to: "{{sha.code}}"
+        outcome: passed
+        summary:
+          version: 1
+          judged: 3
+          unit: function
+          files: null
+          killed: 7
+          survived: null
+          excepted: null
+          uncovered: null
+    stderr_has: ["\nCode proof summary: judged=3; unit=function; killed=7\n"]
 
   - name: a code proof that cannot run fails the run, never a pass
     argv: [ci, run, "{{sha.smoke}}", "{{sha.code}}", --json]
@@ -266,6 +312,12 @@ cases:
       ok: false
       failed_at: { step: "sh -c 'exit 3' --since {{sha.smoke}}", problems: [{ rule: ci-code-proof }], code: 1 }
       failures: [{ step: "sh -c 'exit 3' --since {{sha.smoke}}", problems: [{ rule: ci-code-proof }], code: 1 }]
+      proof:
+        command: "sh -c 'exit 3' --since {{sha.smoke}}"
+        from: "{{sha.smoke}}"
+        to: "{{sha.code}}"
+        outcome: cannot-run
+        summary: null
 
   - name: a CI with no tests step reads no kind of named tests and no smoke set
     argv: [ci, run, "{{sha.unknown}}", "{{sha.waiting}}", --json]
