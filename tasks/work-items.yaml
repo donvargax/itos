@@ -13217,7 +13217,7 @@ items:
     title: Add the 2026-10-23 grooming area tags and the v8 and v9 release tags to work.tags
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
 

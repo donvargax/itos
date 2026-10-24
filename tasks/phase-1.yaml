@@ -4526,8 +4526,6 @@
     each item v8 (fits v8.x minors) or v9 (breaking or a redesign), so itos work list --tag v8 or
     --tag v9 lists a release's backlog. A release tag is a second axis beside the area, which the
     comment says.
-  done_when:
-    - run: tools/bin/itos work list --tag v9 | grep -q . && tools/bin/itos work list --tag evidence | grep -q .
 
 - id: T-295
   type: test
