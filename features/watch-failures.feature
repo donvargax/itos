@@ -26,19 +26,29 @@ Feature: A failed CI run names the step each failed job failed at and what faile
   substrings.
 
   A failure's kind is go-test, scenario, ci-run or tail. go-test is go
-  test's "--- FAIL: <name>" of a test that has lines of its own or no failed
-  subtest (a parent is named by its failed subtests), its lines the ones
-  under it, and its package the "FAIL", tab, package line that follows it.
-  scenario is godog's summary of failed steps ("--- Failed steps:", then
-  "Scenario: <name> # <file>:<line>" and its failing step with the error
-  under it, as its pretty and progress formatters print it), its name the
-  scenario's without its location, its lines the step and the error; go
-  test's "--- FAIL: TestFeatures/<name>" of that scenario, its spaces as
-  underscores, is the same failure, never a second. ci-run is itos ci run's
-  "CI failed at" or "also failed at" line, its name the text after the lead
-  less the colon and space that open it, its lines the ones after it up to
-  a blank line, GitHub's next "##[" line or the next failure line: the code
-  proof's problems, each its rule and message (mutation.survived,
+  test's "--- FAIL: <name>" line of a test with no failed subtest. Its lines
+  are those indented deeper than that line, up to the first indented no
+  deeper (a sibling's "--- FAIL:", "FAIL", the "FAIL", tab, package line,
+  "ok", "PASS" or "=== RUN"); a deeper "--- FAIL:" line starts a subtest,
+  whose lines are its own by the same rule and never its parent's. A test
+  with a failed subtest is never a failure of its own: its own lines (such
+  as TestFeatures' "a scenario failed", printed after its subtests) are
+  dropped, and its failed leaves are listed, each by its full name. Its
+  package is the first "FAIL", tab, package line after it. scenario is an
+  entry of godog's summary of failed steps, as its pretty formatter prints
+  it: after "--- Failed steps:", "Scenario: <name> # <file>:<line>", its
+  failing step and "Error: " with the error, whose further lines godog
+  prints as they are, up to the blank line that ends the entry. Its name is
+  the scenario's without its location; its lines are the step and the
+  Error line, each less godog's indentation, then the error's further lines
+  as printed. godog's pretty print of the scenario before the summary is
+  not read. go test's "--- FAIL: TestFeatures/<name>" of that scenario, its
+  name rewritten as go test rewrites a subtest's (spaces as underscores,
+  and its other rules), is the same failure, never a second. ci-run is itos
+  ci run's "CI failed at" or "also failed at" line, its name the text after
+  the lead less the colon or space that opens it, its lines the ones after
+  it up to a blank line, GitHub's next "##[" line or the next failure line:
+  the code proof's problems, each its rule and message (mutation.survived,
   mutation.uncovered-statement and the rest) and its fix. tail, which has
   no name, is given when no failure found has lines of its own: the last 20
   lines up to and including GitHub's first "##[error]" line, else the log's
@@ -48,7 +58,8 @@ Feature: A failed CI run names the step each failed job failed at and what faile
   runner's CRLF reads as LF; each line loses the timestamp GitHub stamps it
   with and every terminal escape sequence (CSI, colours among them, and
   OSC), as tools/bin/nightly-report reads the nightly's logs (T-185). A
-  failure's lines lose the indentation they share, the rest kept. The
+  go-test or ci-run failure's lines lose the indentation they share, the
+  rest kept. The
   limits: 10 lines a failure, 20 failures a job, 20 lines a tail; what is
   left out is counted (more_lines, more_failures) and said in the text,
   never cut silently. A log is asked for once per failed job, after the run
@@ -132,28 +143,96 @@ Feature: A failed CI run names the step each failed job failed at and what faile
     And its stderr says "TestRunnerLooksUpTheChecksThatOptIn"
     And its stderr says "evidence_test.go:101: the runner looked up 0 checks, want 2"
 
-  # godog's summary names the scenario and its failing step; go test's
-  # subtest line for the same scenario is folded into it, and the parent
-  # TestFeatures, with no lines of its own, is named by it. The log is
-  # coloured, as godog's pretty formatter colours it, and the lines come out
-  # with no escape sequence.
-  @ID-WATCH-37 @slice-172 @wip
-  Scenario: A failed godog scenario is named with its failing step and the step's error
-    Given the watched run's job "ci" fails at its step "Run the named tests", its log:
+  # A plain Go subtest, no godog: the parent's own line, printed after its
+  # subtest as t.Errorf after t.Run prints it, is dropped, and only the leaf
+  # is listed, by its full name, with its package and its own lines.
+  @ID-WATCH-47 @slice-172 @wip
+  Scenario: A failed Go subtest is named alone, by its full name, never its parent
+    Given the watched run's job "ci" fails at its step "Run the unit tests", its log:
       """
-      --- Failed steps:
-
-        Scenario: A push waits for its run # features/watch.feature:27
-          Then its output says "ci: success" # features/watch.feature:31
-            Error: the output does not say "ci: success"
-
-      --- FAIL: TestFeatures (2.41s)
-          --- FAIL: TestFeatures/A_push_waits_for_its_run (0.31s)
+      --- FAIL: TestPlanOrders (0.00s)
+          --- FAIL: TestPlanOrders/a_task_before_its_check (0.00s)
+              plan_test.go:52: the check ran before its task
+          plan_test.go:60: 1 of 3 orders failed
       FAIL
-      FAIL	github.com/donvargax/itos/v8/features	2.452s
+      FAIL	github.com/donvargax/itos/v8/internal/plan	0.011s
       ##[error]Process completed with exit code 1.
       """
-    And the fake GitHub serves the log of the job "ci" with terminal colours
+    When itos runs "ci watch --json"
+    Then itos exits with code 1
+    And its JSON's job "ci" lists these failures:
+      | kind    | name                                   |
+      | go-test | TestPlanOrders/a_task_before_its_check |
+    And its JSON's job "ci"'s failure "TestPlanOrders/a_task_before_its_check" has "package" "github.com/donvargax/itos/v8/internal/plan"
+    And its JSON's job "ci"'s failure "TestPlanOrders/a_task_before_its_check" has the lines:
+      """
+      plan_test.go:52: the check ran before its task
+      """
+
+  # The log is this repository's own red feature run, as go test prints it
+  # without -v (taken from a local run on 2026-10-23, the report trimmed):
+  # godog's pretty print, its summary of failed steps, then go test's lines.
+  # Each \e is an escape character, coloured as godog colours it, part of a
+  # line and not the whole; the line that holds only a reset ends the entry
+  # once stripped. The error's further lines, the world's report, start at
+  # the margin. godog prints the scenario's "Scenario:" line twice; only the
+  # summary's counts. go test's subtest for the scenario, with lines of its
+  # own (suite.go:640), is the same failure; the parent TestFeatures, whose
+  # own line "features_test.go:232: a scenario failed" comes after it, has a
+  # failed subtest and so is no failure.
+  @ID-WATCH-37 @slice-172 @wip
+  Scenario: A failed godog scenario is named with its failing step and the step's error
+    Given the watched run's job "ci" fails at its step "Run the named tests", its log, each \e in it an escape character:
+      """
+      \e[1;37mFeature:\e[0m itos push waits for the CI run it started
+
+        \e[1;37mScenario:\e[0m A push waits for its run                     \e[1;30m# watch.feature:27\e[0m
+          \e[32mWhen\e[0m \e[32mitos runs "push"\e[0m                            \e[1;30m# release_test.go:190 -> *world\e[0m
+          \e[31mAnd\e[0m \e[31mits output says "ci: success"\e[0m              \e[1;30m# steps_test.go:544 -> *world\e[0m
+          \e[1;31mafter scenario hook failed: the output does not say "ci: success"
+      exit 1
+      --- stdout
+      --- stderr
+      , step error: the output does not say "ci: success"
+      exit 1
+      --- stdout
+      --- stderr
+      \e[0m
+
+      --- \e[31mFailed steps:\e[0m
+
+        \e[31mScenario: A push waits for its run\e[0m \e[1;30m# watch.feature:27\e[0m
+          \e[31mAnd its output says "ci: success"\e[0m \e[1;30m# watch.feature:31\e[0m
+            \e[31mError: \e[0m\e[1;31mafter scenario hook failed: the output does not say "ci: success"
+      exit 1
+      --- stdout
+      --- stderr
+      , step error: the output does not say "ci: success"
+      exit 1
+      --- stdout
+      --- stderr
+      \e[0m
+
+
+      1 scenarios (\e[31m1 failed\e[0m)
+      7 steps (\e[32m6 passed\e[0m, \e[31m1 failed\e[0m)
+      474.834233ms
+      --- FAIL: TestFeatures (0.50s)
+          --- FAIL: TestFeatures/A_push_waits_for_its_run (0.46s)
+              suite.go:640: after scenario hook failed: the output does not say "ci: success"
+                  exit 1
+                  --- stdout
+                  --- stderr
+                  , step error: the output does not say "ci: success"
+                  exit 1
+                  --- stdout
+                  --- stderr
+          features_test.go:232: a scenario failed
+      FAIL
+      FAIL	github.com/donvargax/itos/v8/features	0.519s
+      FAIL
+      ##[error]Process completed with exit code 1.
+      """
     When itos runs "ci watch --json"
     Then itos exits with code 1
     And its JSON's job "ci" lists these failures:
@@ -161,8 +240,15 @@ Feature: A failed CI run names the step each failed job failed at and what faile
       | scenario | A push waits for its run |
     And its JSON's job "ci"'s failure "A push waits for its run" has the lines:
       """
-      Then its output says "ci: success" # features/watch.feature:31
-        Error: the output does not say "ci: success"
+      And its output says "ci: success" # watch.feature:31
+      Error: after scenario hook failed: the output does not say "ci: success"
+      exit 1
+      --- stdout
+      --- stderr
+      , step error: the output does not say "ci: success"
+      exit 1
+      --- stdout
+      --- stderr
       """
     And its stderr says "A push waits for its run"
 
@@ -255,12 +341,14 @@ Feature: A failed CI run names the step each failed job failed at and what faile
   # GitHub creates the tag when the release job publishes the release, while
   # the run is still going, so it is on the remote by the time the run
   # completes. Only the tags at the run's head count: the older release at
-  # its parent is not named.
+  # its parent is not named. The release's tag is annotated, so the remote
+  # lists it as a tag object and, peeled, the commit: it counts by the commit
+  # it points to, which a match on the unpeeled ref would miss.
   @ID-WATCH-42 @slice-172 @wip
   Scenario: A push whose run cut a release names the tag it published
     Given the remote's head is tagged "v1.2.0"
     And the clone has the commit "feat: add the archive" touching "a.txt"
-    And the watched run's jobs "ci" and "release" succeed, and once itos has pushed, the remote's head is tagged "v1.3.0"
+    And the watched run's jobs "ci" and "release" succeed, and once itos has pushed, the remote's head is given the annotated tag "v1.3.0"
     When itos runs "push --json"
     Then itos exits with code 0
     And its JSON's "run.tags" is ["v1.3.0"]
