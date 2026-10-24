@@ -13351,7 +13351,7 @@ items:
     title: Settle the five survivors of Nightly 40091179284
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
 

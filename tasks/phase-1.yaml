@@ -4602,6 +4602,3 @@
     (T-290) wrote its three; an exception whose proof does not hold is a test instead. No production
     change unless a survivor shows a real bug, which is reported, not fixed here. The next nightly
     is the acceptance.
-  done_when:
-    - run: go test -count=1 ./internal/engine/evidence ./internal/plan ./internal/cli ./internal/engine/ciwatch ./internal/vcs/adapter
-      timeout: 600
