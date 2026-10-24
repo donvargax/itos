@@ -63,7 +63,7 @@ func (g Git) sourceContext() (c gitContext, err error) {
 		}
 	}
 	sort.Slice(c.refs, func(i, j int) bool { return c.refs[i].name < c.refs[j].name })
-	config, err := source.Output("config", "--local", "--null", "--get-regexp", `^(remote|branch)\.`)
+	config, err := source.Output("config", "--local", "--includes", "--null", "--get-regexp", `^(remote|branch)\.`)
 	var exit *exec.ExitError
 	if err != nil && !(errors.As(err, &exit) && exit.ExitCode() == 1) {
 		return c, fmt.Errorf("git config: %w", err)

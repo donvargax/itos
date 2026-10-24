@@ -4,6 +4,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/donvargax/itos/v8/internal/message"
 	"testing"
 
 	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
@@ -59,6 +61,7 @@ func TestHookCaptureAndCheckoutUseCapturedTree(t *testing.T) {
 func TestHookCheckEnvIsTheHooksLessTheCommitsOwn(t *testing.T) {
 	t.Setenv("GIT_INDEX_FILE", filepath.Join(t.TempDir(), "index"))
 	t.Setenv(AmendEnv, "1")
+	t.Setenv(message.FootersEnv, "Task: T-9")
 	t.Setenv("ITOS_CHECK_ENV_KEPT", "kept")
 	env := (hookPorts{}).CheckEnv(t.Context())
 	got := map[string]bool{}
@@ -66,7 +69,7 @@ func TestHookCheckEnvIsTheHooksLessTheCommitsOwn(t *testing.T) {
 		name, _, _ := strings.Cut(kv, "=")
 		got[name] = true
 	}
-	if got["GIT_INDEX_FILE"] || got[AmendEnv] || !got["ITOS_CHECK_ENV_KEPT"] {
+	if got["GIT_INDEX_FILE"] || got[AmendEnv] || got[message.FootersEnv] || !got["ITOS_CHECK_ENV_KEPT"] {
 		t.Errorf("the check's environment: %v", got)
 	}
 }

@@ -35,6 +35,7 @@ func contextRepo(t *testing.T) (Git, string) {
 	gitIn(t, dir, "", "branch", "-q", "--set-upstream-to=origin/main", "main")
 	gitIn(t, dir, "", "remote", "set-head", "origin", "main")
 	gitIn(t, dir, "", "branch", "side")
+	gitIn(t, dir, "", "branch", "inc")
 	gitIn(t, dir, "", "config", "branch.side.remote", "origin")
 	gitIn(t, dir, "", "config", "branch.side.merge", "refs/heads/side")
 	gitIn(t, dir, "", "config", "alias.zz", "status")
@@ -42,10 +43,14 @@ func contextRepo(t *testing.T) (Git, string) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := config.WriteString("[remote \"other\"]\n\tprune\n"); err != nil {
+	if _, err := config.WriteString("[remote \"other\"]\n\tprune\n[include]\n\tpath = included.config\n"); err != nil {
 		t.Fatal(err)
 	}
 	if err := config.Close(); err != nil {
+		t.Fatal(err)
+	}
+	included := "[remote \"included\"]\n\turl = /included.git\n[branch \"inc\"]\n\tremote = included\n\tmerge = refs/heads/inc\n"
+	if err := os.WriteFile(filepath.Join(dir, ".git", "included.config"), []byte(included), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	write(t, dir, "b", "staged")
@@ -116,6 +121,9 @@ func TestTaskSnapshotHasTheSourcesGitContext(t *testing.T) {
 		if !strings.Contains(config+"\n", line+"\n") {
 			t.Errorf("the snapshot's config lacks %q:\n%s", line, config)
 		}
+	}
+	if got := g.in(t, snapshot, "config", "--local", "--get", "remote.included.url"); got != "/included.git" {
+		t.Errorf("a remote the source includes is %q in the snapshot", got)
 	}
 	for _, left := range []string{"alias.zz", "branch.side", "user."} {
 		if strings.Contains(config, left) {
@@ -203,6 +211,17 @@ func TestTaskSnapshotHeadInEachState(t *testing.T) {
 		}
 		if got := g.in(t, snapshot, "config", "--local", "--get-regexp", `^branch\.`); got != "failed" {
 			t.Errorf("a detached HEAD has the upstream of a branch: %q", got)
+		}
+	})
+	t.Run("upstream through an include", func(t *testing.T) {
+		g, _ := contextRepo(t)
+		gitIn(t, g.Dir, "", "checkout", "-q", "inc")
+		snapshot, _ := snapshotOf(t, g)
+		if got := g.in(t, snapshot, "config", "--local", "--get", "branch.inc.remote"); got != "included" {
+			t.Errorf("the upstream remote of a branch through an include is %q", got)
+		}
+		if got := g.in(t, snapshot, "config", "--local", "--get", "branch.inc.merge"); got != "refs/heads/inc" {
+			t.Errorf("the upstream merge of a branch through an include is %q", got)
 		}
 	})
 	t.Run("unborn", func(t *testing.T) {
