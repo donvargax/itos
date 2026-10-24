@@ -27,8 +27,9 @@ func main() {
 	if code := launch.Main(cl, args, os.Stderr, launch.Platform{OS: goos, Arch: runtime.GOARCH}); code != nil {
 		os.Exit(*code)
 	}
-	// The one read of the process's working folder: the run's folder, ""
-	// when it is gone, every relative path then the process's as before.
+	// The run's folder is the process's working folder once the shim and
+	// the launcher, which read it themselves, hand the run on; "" when it
+	// is gone, every relative path then the process's as before.
 	dir, _ := os.Getwd()
 	os.Exit(cli.Main(cli.Run{Args: args, Stdout: os.Stdout, Stderr: os.Stderr, OS: goos, Dir: dir}))
 }

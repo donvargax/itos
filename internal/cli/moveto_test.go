@@ -97,3 +97,44 @@ func TestMoveToGivesNoOrigin(t *testing.T) {
 		t.Errorf("moveTo from a relative folder = %q, want no origin", origin)
 	}
 }
+
+// A path typed in a subfolder is read there, though itos runs at the top:
+// commit check-message's file, tests smoke check's --features; tests list
+// lists the kind at the working tree. The run's folder says where the
+// person stood; the process stands elsewhere.
+func TestPathsTypedInASubfolder(t *testing.T) {
+	dir := gitConfigRepo(t, `version: 1
+commits: { types: [docs], header_lint: { use: builtin } }
+tests:
+  scenario: { root: features, id: "ID-[A-Z]+-\\d+", tag_prefix: "@", smoke: { file: smoke.yaml } }
+`)
+	feature := "Feature: A\n\n  @ID-A-01\n  Scenario: One\n    When I go\n"
+	writeFiles(t, map[string]string{
+		filepath.Join(dir, "smoke.yaml"):                    "- file: a.feature\n  scenarios: [{ id: \"@ID-A-01\", why: it goes }]\n",
+		filepath.Join(dir, "features", "a.feature"):         feature,
+		filepath.Join(dir, "sub", "copy", "a.feature"):      feature,
+		filepath.Join(dir, "sub", "copy", "orphan.feature"): "Feature: B\n\n  @ID-B-01\n  Scenario: Two\n    When I stay\n",
+		filepath.Join(dir, "sub", "message.txt"):            "docs: say a thing\n",
+		filepath.Join(dir, "message.txt"):                   "no type at all\n",
+	})
+	t.Chdir(t.TempDir())
+	in := func(folder string, args ...string) (int, string, string) {
+		t.Helper()
+		var stdout, stderr strings.Builder
+		code := Main(Run{Args: args, Stdout: &stdout, Stderr: &stderr, OS: runtime.GOOS, Dir: folder})
+		return code, stdout.String(), stderr.String()
+	}
+	sub := filepath.Join(dir, "sub")
+	if code, _, stderr := in(sub, "commit", "check-message", "message.txt"); code != 0 {
+		t.Errorf("check-message of the subfolder's message.txt: exit %d, %s", code, stderr)
+	}
+	if code, _, _ := in(dir, "commit", "check-message", "message.txt"); code != ExitPolicy {
+		t.Errorf("check-message of the top's message.txt: exit %d, want %d", code, ExitPolicy)
+	}
+	if code, _, stderr := in(sub, "tests", "smoke", "check", "scenario", "--features", "copy"); code != ExitPolicy || !strings.Contains(stderr, "orphan.feature") {
+		t.Errorf("smoke check of the subfolder's copy: exit %d, %s, want its orphan named", code, stderr)
+	}
+	if code, stdout, stderr := in(sub, "tests", "list", "scenario"); code != 0 || !strings.Contains(stdout, "ID-A-01  a.feature") || strings.Contains(stdout, "ID-B-01") {
+		t.Errorf("tests list from the subfolder: exit %d, %q %s, want the top's features alone", code, stdout, stderr)
+	}
+}
