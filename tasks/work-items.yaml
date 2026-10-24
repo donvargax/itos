@@ -13837,3 +13837,18 @@ items:
       both as temporary, with the proxy named, is likely more useful. 'Failed to connect to … over
       proxy' already reads as unreachable.
     refs: [internal/git/remote.go]
+
+  - id: p1-bare-head-master
+    title: A remote whose HEAD names an unborn branch gets its HEAD set, or a clearer refusal, after a first push
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Found by bug-136's diff review (2026-10-24): a bare remote made by git init --bare without -b
+      has HEAD naming master; a first push from main to it (no branches yet) keeps the branch's own
+      name, and from then on every no-upstream push is refused no-default-branch, since HEAD names a
+      branch the remote lacks. itos push could say so and name git symbolic-ref HEAD refs/heads/main
+      in the remote (or gh repo edit --default-branch), or a first push could set it.
+    refs: [internal/slices/push]
