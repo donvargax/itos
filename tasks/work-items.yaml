@@ -13557,3 +13557,17 @@ items:
       CI reds and causes, reviewer findings, spec or model), so the three models compare on like
       items. Sonnet's misses so far were environment ones (pushed state, Windows), so pick a task
       where the gates would catch such a miss.
+
+  - id: p1-evidence-work-done
+    title: work done answers opted-in checks from evidence records
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      itos work done runs the done task checks through judge.FirstFailure as the commit-msg hook
+      did, with no evidence engine, so an opted-in check a hand run or the hook just recorded runs
+      again at work done. Slice 171 made FirstFailure take an evidence engine through
+      check.Execution; bind one in internal/cli workPorts.FirstFailure (tree, key and refusal rules
+      as the hook). Not part of A4; the plan does not list it.
