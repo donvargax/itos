@@ -13466,3 +13466,17 @@ items:
       reproduce each refusal first and change only what is too strict. p1-guard-follows-cd and the
       Windows paths stay v9.
     refs: [internal/slices/guard, internal/shim, integrations/claude-code/hooks/guard.sh]
+
+  - id: p1-examples-item-tags
+    title: An item tag on an Examples block makes its rows that item's, and work done and work show read it
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Found by bug-129's spec (2026-10-24): Gherkin gives an Examples block's tags to its rows, so
+      @slice-9 on a block of an outline tagged with another slice makes those rows slice-9's (they
+      run under -scenarios='^@slice-9$'), but tests.Tagged reads only scenario and header tag lines,
+      so work done and work show miss them. Read block tags, or refuse an item tag on a block.
+    refs: [internal/tests/gherkin.go]
