@@ -13413,3 +13413,19 @@ items:
       is 11998 bytes under a cap of 12000 (tools/bin/doc-budget/caps.json), so the line could not
       grow: trim the doc by the 30 bytes the line needs, or raise the cap in a ci commit that says
       why.
+
+  - id: p1-evidence-slice-import
+    title: Let a slice import internal/evidence, or keep it behind check's aliases
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      A slice may import only the domain packages depguard's slice-packages rule and
+      tools/testdata/architecture's domains list name, and neither names internal/evidence.
+      Slice-169 gave the task slice its types through aliases in internal/check (check.Evidence,
+      check.EvidenceInfo) instead of loosening the rule without a fixture. Decide: keep the aliases,
+      or extend the rule and the fixtures' domains with internal/evidence in a build commit, which
+      would let a slice's tests build an engine over fakes (the task slice's tests cannot, so its
+      JSON for an opted-in check is judged by the scenarios alone).
