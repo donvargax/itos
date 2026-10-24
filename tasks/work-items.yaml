@@ -7654,7 +7654,7 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: []
+    depends_on: [p1-typed-items]
     kind: slice
     why: >
       Was p1-draft-checks-before-minting.
@@ -7705,7 +7705,7 @@ items:
       all-checks-before-minting wording: the first delivery provides bounded assurance, not a
       projection engine or a guarantee about future inputs.
     refs: [internal/cli/idmint.go, features/draft.feature]
-    tags: [work, v8]
+    tags: [work, v9]
 
   - id: p1-ci-run-help-proof-check
     title: ci run's help says the code proof runs proof.code.check, which may judge fresh mutants
