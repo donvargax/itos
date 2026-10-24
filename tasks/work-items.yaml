@@ -11256,14 +11256,14 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: []
+    depends_on: [p1-typed-items]
     kind: idea
     why: >
       #98 (an ops repository deferring hardware keys to 2027): a deferral's date can only live in
       its free-text reason, where nothing reads it, so the item stays out of sight. work defer
       --until <date> keeps the date beside the reason; from that date itos work and status list the
       item as due. Same date form as p1-work-item-dates.
-    tags: [work, v8]
+    tags: [work, v9]
 
   - id: p1-queue-closed-anchor
     title: A queue draft anchored on the item in progress still promotes after that item closes
