@@ -13839,8 +13839,8 @@ items:
   - id: slice-177
     title: Under pr, closing a task with checks reaches main, though work done edits its ledger file
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: [slice-176]
     kind: slice
     why: >
