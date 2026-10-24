@@ -6,6 +6,7 @@ package features
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -112,6 +113,20 @@ func initializeEvidenceStoreSteps(sc *godog.ScenarioContext, w *world) {
 			if !bytes.Equal(got, want) {
 				return fmt.Errorf("the kept key's %s is not the one the fixture moved aside", name)
 			}
+		}
+		return nil
+	})
+	sc.Step(`^its JSON's evidence for the task "([^"]*)" has "reason" "([^"]*)" and the kept record's time$`, w.evidenceKeptRecordsTime)
+	sc.Step(`^its JSON's evidence for the task "([^"]*)" has "recorded" true and no "reason"$`, func(task string) error {
+		if err := w.evidenceOfTaskIs(task, "recorded", true); err != nil {
+			return err
+		}
+		evidence, err := w.evidenceOfTask(task)
+		if err != nil {
+			return err
+		}
+		if reason, has := evidence["reason"]; has {
+			return fmt.Errorf("the task %s's evidence has the reason %v\n%s", task, reason, w.report())
 		}
 		return nil
 	})
@@ -346,4 +361,22 @@ func (w *world) quarantinedAs(reason string) error {
 		}
 	}
 	return nil
+}
+
+// evidenceKeptRecordsTime is whether the task's evidence has the reason and
+// the time the kept record, the one the fixture moved aside, ended at, with
+// hit and recorded false.
+func (w *world) evidenceKeptRecordsTime(task, reason string) error {
+	for field, want := range map[string]any{"reason": reason, "hit": false, "recorded": false} {
+		if err := w.evidenceOfTaskIs(task, field, want); err != nil {
+			return err
+		}
+	}
+	var kept struct {
+		Ended string `json:"ended"`
+	}
+	if err := json.Unmarshal(w.evidenceFix().files["result.json"], &kept); err != nil || kept.Ended == "" {
+		return fmt.Errorf("the record the fixture moved aside has no end time: %v", err)
+	}
+	return w.evidenceOfTaskIs(task, "recorded_at", kept.Ended)
 }

@@ -92,20 +92,21 @@ const (
 // write makes the record of a key: in a temporary folder of the store, its
 // files synced and the marker last, then renamed to the key's folder, which
 // is never overwritten. A rename that fails judges what is at the key: a
-// whole record is kept as it is and this one is dropped (placed false), and
+// whole record is kept as it is and this one is dropped (placed false, kept
+// the record that is there), and
 // anything else is quarantined, after which the rename is tried once more.
 // What cannot be judged or moved aside is an error, and no record is made.
-func (e *Engine) write(ctx context.Context, key string, b bound, res Result) (placed bool, err error) {
+func (e *Engine) write(ctx context.Context, key string, b bound, res Result) (placed bool, kept record, err error) {
 	root, err := e.dir(ctx)
 	if err != nil {
-		return false, err
+		return false, record{}, err
 	}
 	if err = os.MkdirAll(root, 0o700); err != nil {
-		return false, err
+		return false, record{}, err
 	}
 	tmp, err := mkdirTemp(root, ".tmp-"+key+"-")
 	if err != nil {
-		return false, err
+		return false, record{}, err
 	}
 	defer func() {
 		if !placed {
@@ -117,23 +118,23 @@ func (e *Engine) write(ctx context.Context, key string, b bound, res Result) (pl
 	result, _ := json.MarshalIndent(res, "", "  ")
 	for _, f := range []struct{ name, text string }{{manifest, string(stored) + "\n"}, {resultFile, string(result) + "\n"}, {complete, "complete\n"}} {
 		if err = writeSynced(filepath.Join(tmp, f.name), []byte(f.text)); err != nil {
-			return false, err
+			return false, record{}, err
 		}
 	}
 	final := filepath.Join(root, key)
 	if rename(tmp, final) == nil {
-		return true, nil
+		return true, record{}, nil
 	}
-	if _, ok := e.lookup(ctx, key); ok {
-		return false, nil
+	if rec, ok := e.lookup(ctx, key); ok {
+		return false, rec, nil
 	}
 	if err = e.quarantine(root, key); err != nil {
-		return false, err
+		return false, record{}, err
 	}
 	if err = rename(tmp, final); err != nil {
-		return false, err
+		return false, record{}, err
 	}
-	return true, nil
+	return true, record{}, nil
 }
 
 // quarantine renames what is at the key's place aside, to

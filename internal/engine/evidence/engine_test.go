@@ -441,6 +441,8 @@ func failingRename(t *testing.T, calls []int, before func()) {
 // with its own result and recording nothing.
 func TestARenameThatFailsKeepsAWholeRecordAtTheKey(t *testing.T) {
 	other := newRig(t)
+	other.Mode = "ci"
+	other.Now = func() time.Time { return time.Date(2026, 10, 23, 9, 8, 7, 0, time.UTC) }
 	first := other.Run(t.Context(), other.request("exit 2", config.Evidence{}))
 	r := newRig(t)
 	root := filepath.Join(r.store.root, Folder)
@@ -450,8 +452,11 @@ func TestARenameThatFailsKeepsAWholeRecordAtTheKey(t *testing.T) {
 		}
 	})
 	o := r.Run(t.Context(), r.request("exit 2", config.Evidence{}))
-	if o.OK || o.Code != 2 || o.Info.Hit || o.Info.Recorded || o.Info.Reason != "" || o.Info.Key != first.Info.Key {
+	if o.OK || o.Code != 2 || o.Info.Hit || o.Info.Recorded || o.Info.Reason != ReasonAlreadyRecorded || o.Info.Key != first.Info.Key {
 		t.Errorf("%+v", o)
+	}
+	if o.Info.RecordedAt != "2026-10-23T09:08:07Z" || o.Info.Provenance["itos"] != "1.2.3" || o.Info.Provenance["mode"] != "ci" {
+		t.Errorf("the kept record's time and provenance: %+v", o.Info)
 	}
 	entries, err := os.ReadDir(root)
 	if err != nil || len(entries) != 1 || entries[0].Name() != first.Info.Key {

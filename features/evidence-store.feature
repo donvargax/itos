@@ -22,7 +22,9 @@ Feature: The local evidence store survives contention and damage
     written in a folder named .tmp-<key>-<unique>, which no reader ever
     reads, and renamed into place, never overwritten. A rename that fails
     judges what is at the destination: a complete record that matches its
-    key is used as it is; anything else is quarantined. A final record
+    key is kept as it is, and the writer, whose check has run, reports its
+    own verdict with hit false, recorded false, reason already-recorded and
+    recorded_at the kept record's time; anything else is quarantined. A final record
     without its completion marker, or whose manifest does not parse or does
     not match its key, is renamed to <key>.<reason>-<UTC timestamp>, the
     reason markerless or corrupt, and the check reruns and records.
@@ -169,16 +171,17 @@ Feature: The local evidence store survives contention and damage
     And the kept key's record <record>
     And the evidence store <quarantine>
     And the evidence store holds no temporary folder
+    And its JSON's evidence for the task "T-001" <evidence>
     When itos runs "task T-001 --json"
     Then itos exits with code 0
     And the evidence probe ran 2 times
     And its JSON's evidence for the task "T-001" has "hit" true
 
     Examples:
-      | planted                                            | record                             | quarantine                                             |
-      | the record moved aside                             | is the one the fixture moved aside | holds no quarantined entry                             |
-      | a regular file                                     | is complete                        | holds the kept key's entry quarantined as "corrupt"    |
-      | the record moved aside, less its completion marker | is complete                        | holds the kept key's entry quarantined as "markerless" |
+      | planted                                            | record                             | quarantine                                             | evidence                                                    |
+      | the record moved aside                             | is the one the fixture moved aside | holds no quarantined entry                             | has "reason" "already-recorded" and the kept record's time  |
+      | a regular file                                     | is complete                        | holds the kept key's entry quarantined as "corrupt"    | has "recorded" true and no "reason"                         |
+      | the record moved aside, less its completion marker | is complete                        | holds the kept key's entry quarantined as "markerless" | has "recorded" true and no "reason"                         |
 
   # A2. A final record found broken at lookup is a miss: it is renamed
   # aside under its reason, the check reruns, and a fresh record takes its

@@ -21,8 +21,7 @@ const Source = "local"
 const OutputTail = 32 << 10
 
 // The reasons a check that ran left no record. A rerun that does not hit
-// always has one when it recorded nothing, except a writer whose record lost
-// its place to a whole one that another writer made.
+// always has one when it recorded nothing.
 const (
 	// ReasonSnapshotUnusable: the checkout of the index tree could not be
 	// made (a gitlink in the index, the snapshots folder unusable, a declared
@@ -33,6 +32,10 @@ const (
 	ReasonLockTimeout = "lock-timeout"
 	// ReasonStoreUnusable: the store could not be written.
 	ReasonStoreUnusable = "store-unusable"
+	// ReasonAlreadyRecorded: the check ran, but another writer's whole record
+	// of its key took the record's place first, and is kept as it is; the
+	// evidence carries that record's time and provenance.
+	ReasonAlreadyRecorded = "already-recorded"
 	// ReasonUnkeyable: what the key binds could not be read.
 	ReasonUnkeyable = "unkeyable"
 	// ReasonInconclusive: the check timed out or did not exit by itself, a
@@ -299,12 +302,13 @@ func (e *Engine) execute(ctx context.Context, req Request, info Info, b bound, r
 	if reason != "" || o.Info.Reason != "" {
 		return o
 	}
-	placed, err := e.write(ctx, info.Key, b, res)
+	placed, kept, err := e.write(ctx, info.Key, b, res)
 	if err != nil {
 		o.Info.Reason = ReasonStoreUnusable
 		return o
 	}
 	if !placed {
+		o.Info.Reason, o.Info.RecordedAt, o.Info.Provenance = ReasonAlreadyRecorded, kept.result.Ended, kept.result.Provenance
 		return o
 	}
 	o.Info.Recorded, o.Info.RecordedAt, o.Info.Provenance = true, res.Ended, res.Provenance
