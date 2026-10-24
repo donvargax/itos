@@ -13385,3 +13385,16 @@ items:
     kind: idea
     refs: [docs/ORCHESTRATING.md]
     tags: [agents, v8]
+
+  - id: bug-124
+    title: An empty --as= falls back to the identity provider, and work check ignores arguments after its first
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: bug
+    why: >
+      Was p1-work-as-empty. Found by the post-landing review of slice 54: itos work --as= with no
+      handle falls back to the identity provider instead of being refused as --as with none is, so
+      --as=$UNSET silently proposes another person's work, bug 11's failure mode. Also work check
+      ignores every argument after its first.
