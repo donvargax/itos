@@ -3007,6 +3007,10 @@ items:
       issues as the inbox through which agents talk. Needed mostly for opencode today. Likely a
       separate tool that uses itos, not an itos feature, still open. The user has a very basic
       prototype to share.
+
+      The user, 2026-10-24: the starting point and proof of concept is their opencode page,
+      ~/tmp/llms-safe/opencode-server/sessions.html (sessions grouped by project directory through
+      opencode serve's HTTP API, run.sh starting the server): opencode support alone first.
     tags: [status, v9]
 
   - id: bug-15
