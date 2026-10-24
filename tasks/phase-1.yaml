@@ -4528,3 +4528,39 @@
     comment says.
   done_when:
     - run: tools/bin/itos work list --tag v9 | grep -q . && tools/bin/itos work list --tag evidence | grep -q .
+
+- id: T-295
+  type: test
+  title: Validate the ID counter repairs on a native Windows machine
+  why: >
+    Deferred by the person in this session: continue independent development without waiting for
+    Windows validation, but keep this follow-up near the top of the queue. Validate the repairs
+    pushed at b4c19b3e3c703d9f48e6526c40a398d89bd4ff89 or a descendant on a native Windows machine
+    (a covering Windows CI job can provide this evidence). Exercise
+    TestTaskAddPropagatesReservationFailures, TestWorkAddPropagatesIDReservationFailures,
+    TestWorkPromotePropagatesReservationFailures and @ID-IDS-07 concurrent remote reservations.
+    Confirm the copied executable fixtures run, explicit fetched-counter refs resolve, and
+    concurrent clones still mint distinct IDs with fast-forward-only remote claims. Record the exact
+    tested SHA, commands and Windows results; Linux passes are not Windows proof. This postpones
+    validation, not the existing Windows release gate, and does not declare slice-102 done or permit
+    stale/missing mutation evidence. The implementing repair also isolated inherited GIT_* fixture
+    routing after it corrupted the shared Git config and linked worktree HEAD; preserve that
+    isolation. Native Windows CI on the repaired SHA b4c19b3e3c703d9f48e6526c40a398d89bd4ff89 still
+    failed: https://github.com/donvargax/itos/actions/runs/37888237910. The portable
+    reservation-failure unit fixtures no longer failed, but @ID-IDS-07 still fails resolving
+    refs/itos/fetched-ids^{commit}. Therefore the explicit-ref change is not a confirmed Windows
+    fix; diagnose the native Windows Git/wrapper argument path before further product changes. A
+    wrapper/caret-escaping hypothesis remains unproven. The person deferred Windows work rather than
+    removing its gate; keep this first-priority follow-up open while independent CI configuration
+    work continues. Logs are preserved locally in .git/itos/ci-37888237910-windows.log. Native
+    Windows validation is now available at exact SHA 6ca8bb2411d9eded582851e6a47efde05c09c27c:
+    https://github.com/donvargax/itos/actions/runs/37895603788 reports platform (windows-latest)
+    success, with Ubuntu and macOS also successful. This covering job runs native unit tests and
+    every feature, including @ID-IDS-07, after the other session repaired scenario program argument
+    forwarding. The earlier explicit-ref change alone was not sufficient. Windows validation no
+    longer needs to block independent development or a Windows repair assignment. Overall CI still
+    fails the scoped complete-cache mutation proof, so the item remains open until a green covering
+    run permits closure; preserve this success evidence rather than repeating speculative Linux-only
+    Windows fixes.
+  done_when:
+    - run: gh run view 37895603788 --repo donvargax/itos --json conclusion --jq .conclusion | grep -qx success
