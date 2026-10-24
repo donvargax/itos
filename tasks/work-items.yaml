@@ -13525,3 +13525,19 @@ items:
       failing git status, so itos push (push.go:52) and draft promote (draft/handler.go:367) go
       ahead as on a clean tree where they should report git's failure: bug-130's opposite.
     refs: [internal/git/state.go, internal/slices/push/push.go, internal/slices/draft/handler.go]
+
+  - id: p1-tracked-failing-git-untracked
+    title: Tracked reads a failing git as an untracked file
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Found by bug-130's spec (2026-10-24): Tracked (ls-files --error-unmatch through Succeeds,
+      internal/vcs/port/vcs.go:225) swallows git's failure and reads it as untracked, so
+      Files.uncommitted's tracked != there makes an existing file look dirty, and initcmd's
+      rulesstealth.go:122 reads it as untracked too. Split from bug-130 at its spec review: it needs
+      a new signature (an error beside the bool), each caller's handling, and a unit test with a
+      fake git.
+    refs: [internal/vcs/port/vcs.go, internal/store/tracker/adapter/files.go, internal/slices/initcmd/rulesstealth.go]
