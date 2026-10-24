@@ -8060,6 +8060,13 @@ items:
       (work show printed titles alone). A merge that appends each folded item's why to the target
       (an idea's why, or a slice's or task's spec as a note in the brief) and records the merge
       would keep it where the agent looks.
+
+      Met again 2026-10-24: the coordinator merged five items by work edit --note on the survivor
+      plus work drop, wrote short summaries and claimed the whys stood in the dropped entries; the
+      drop had removed them (1 to 31 lines each), and the user's two notes on p1-guard-quoted-text
+      were cut the same way when it became bug-131. Found by a side agent, restored by hand from
+      history. Converting an idea to a bug (work add --kind bug, queue, drop) loses its why the same
+      way; see p1-work-promote-kind-bug.
     tags: [work, v9]
 
   - id: p1-typed-items
