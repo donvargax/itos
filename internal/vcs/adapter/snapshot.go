@@ -181,3 +181,15 @@ func (g Git) UnstagedPaths(context.Context) ([]string, error) {
 func (g Git) IndexPaths(context.Context) ([]string, error) {
 	return g.git().Paths("ls-files", "--cached", "--")
 }
+
+// RevTree is the tree a revision names (git rev-parse <rev>^{tree}).
+func (g Git) RevTree(_ context.Context, rev string) (string, error) {
+	tree, err := g.git().Read("rev-parse", "--verify", rev+"^{tree}")
+	return strings.TrimSpace(tree), err
+}
+
+// TreePaths are the paths of the files the revision's tree holds (git
+// ls-tree -r --name-only): the files a snapshot of that tree has.
+func (g Git) TreePaths(_ context.Context, rev string) ([]string, error) {
+	return g.git().Paths("ls-tree", "-r", "--name-only", rev, "--")
+}

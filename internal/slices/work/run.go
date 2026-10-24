@@ -9,6 +9,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/donvargax/itos/v8/internal/ask"
+	"github.com/donvargax/itos/v8/internal/engine/evidence"
 	"github.com/donvargax/itos/v8/internal/out"
 	"github.com/donvargax/itos/v8/internal/tests"
 	"github.com/donvargax/itos/v8/internal/value"
@@ -276,7 +277,10 @@ func (c CLI) closed(stdout, stderr io.Writer, a Answer) (int, error) {
 			found = []out.Problem{}
 		}
 		fields := append([]out.Field{{Key: "ok", Value: false}, {Key: "problems", Value: found}}, a.CI.Fields()...)
-		return a.Code, out.Emit(stdout, fields...)
+		return a.Code, out.Emit(stdout, withEvidence(fields, a.Evidence)...)
+	case a.Code != 0 && c.JSON:
+		fields := []out.Field{{Key: "ok", Value: false}, {Key: "problems", Value: a.Refused}}
+		return a.Code, out.Emit(stdout, withEvidence(fields, a.Evidence)...)
 	case a.Code != 0:
 		return c.refuse(stdout, stderr, a.Refused, a.Code)
 	}
@@ -293,6 +297,15 @@ func (c CLI) closed(stdout, stderr io.Writer, a Answer) (int, error) {
 		fmt.Fprintln(stdout, d.Line)
 	}
 	return 0, nil
+}
+
+// withEvidence is the fields with the evidence of the task checks looked up,
+// when there is any.
+func withEvidence(fields []out.Field, entries []evidence.Entry) []out.Field {
+	if len(entries) == 0 {
+		return fields
+	}
+	return append(fields, out.Field{Key: "evidence", Value: entries})
 }
 
 // promoted prints work promote's change: the idea, what it became and the

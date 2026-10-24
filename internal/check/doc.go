@@ -18,11 +18,13 @@
 // in, or a Runner with no engine (itos task --working-tree), runs in the
 // working folder, nothing looked up or written.
 //
-// CostOf, CostedChecks and ChecksBeforeLate are the cost classes and the
-// written order: a check is static by its own cost: static, else by a
-// pattern of ci.cost.static, else late, and a task's checks keep their
-// written order, so the commit-msg hook runs a task's checks only up to its
-// first late one. (config check's written-order rule stays in internal/ledger,
+// CostOf, CostedChecks, ChecksBeforeLate, StaticChecks and LateChecks are the
+// cost classes and the written order: a check is static by its own cost:
+// static, else by a pattern of ci.cost.static, else late, and a task's checks
+// keep their written order, so the commit-msg hook runs a task's checks only
+// up to its first late one, while work done runs every static one (a static
+// check written below a late one included, unless ci.cost.keep_written_order
+// makes it late) and names the late ones as left to CI. (config check's written-order rule stays in internal/ledger,
 // since it reads the ledger before it is typed.)
 //
 // RunCaptured is how the commit-msg hook runs a check: quiet, stdout and

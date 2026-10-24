@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/donvargax/itos/v8/internal/config"
@@ -151,5 +152,31 @@ func TestRunCaptured(t *testing.T) {
 	}
 	if run.Result != Pass || run.Capped {
 		t.Errorf("its own environment: %+v", run)
+	}
+}
+
+// work done runs every static check of a task, wherever it is written, and
+// leaves the late ones to CI: without keep_written_order a static check below
+// a late one is static, with it the check is late.
+func TestStaticAndLateChecks(t *testing.T) {
+	task := ledger.Task{ID: "T-1", DoneWhen: []ledger.Check{
+		{Run: text("a"), Cost: "static"},
+		{Run: text("b")},
+		{Run: text("c"), Cost: "static"},
+	}}
+	names := func(checks []CostedCheck) string {
+		var found []string
+		for _, c := range checks {
+			found = append(found, c.Check.Command())
+		}
+		return strings.Join(found, " ")
+	}
+	cfg := load(t, "version: 1\n")
+	if static, late := names(StaticChecks(cfg, task)), names(LateChecks(cfg, task)); static != "a c" || late != "b" {
+		t.Errorf("static %q, late %q", static, late)
+	}
+	cfg = load(t, "version: 1\nci: { steps: [\"true\"], cost: { keep_written_order: true } }\n")
+	if static, late := names(StaticChecks(cfg, task)), names(LateChecks(cfg, task)); static != "a" || late != "b c" {
+		t.Errorf("kept in order: static %q, late %q", static, late)
 	}
 }

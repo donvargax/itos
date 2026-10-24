@@ -170,8 +170,9 @@
 //
 // work is the work slice (internal/slices/work); work.go binds its Ports
 // to loadConfig, the working tree, work.identity's provider, tracker,
-// newItemID, judge.FirstFailure in the commit-msg hook's environment
-// (checkEnv) and watcher. workAddLine and workPromoteLine are the slice's
+// newItemID, judge.StaticFailure in the commit-msg hook's environment
+// (checkEnv), its opted-in checks looked up by HEAD's tree through
+// newDoneEvidence (evidence.go), and watcher. workAddLine and workPromoteLine are the slice's
 // AddLine and PromoteLine, which draft reads a work add and a work promote
 // line with.
 //

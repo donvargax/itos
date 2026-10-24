@@ -170,3 +170,33 @@ func TestUnstagedAndIndexPaths(t *testing.T) {
 		t.Error("index paths outside a repository")
 	}
 }
+
+// A revision's tree and the paths in it are HEAD's, not the index's or the
+// working folder's.
+func TestRevTreeAndTreePathsReadTheRevision(t *testing.T) {
+	dir := alone(t)
+	gitIn(t, dir, "", "init", "-q")
+	write(t, dir, "kept", "committed")
+	gitIn(t, dir, "", "add", "kept")
+	gitIn(t, dir, "", "commit", "-q", "-m", "first")
+	write(t, dir, "staged", "new")
+	gitIn(t, dir, "", "add", "staged")
+	write(t, dir, "kept", "edited")
+	g := Git{Dir: dir}
+	want, err := g.git().Read("rev-parse", "HEAD^{tree}")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if tree, err := g.RevTree(t.Context(), "HEAD"); err != nil || tree != strings.TrimSpace(want) {
+		t.Errorf("RevTree = %q, %v, want %q", tree, err, want)
+	}
+	if paths, err := g.TreePaths(t.Context(), "HEAD"); err != nil || !slices.Equal(paths, []string{"kept"}) {
+		t.Errorf("TreePaths = %v, %v", paths, err)
+	}
+	if tree, err := g.RevTree(t.Context(), "nope"); err == nil || tree != "" {
+		t.Errorf("RevTree of no revision = %q, %v", tree, err)
+	}
+	if _, err := g.TreePaths(t.Context(), "nope"); err == nil {
+		t.Error("TreePaths of no revision gave no error")
+	}
+}

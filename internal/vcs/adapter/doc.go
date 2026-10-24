@@ -37,6 +37,8 @@
 // index, and IndexPaths the paths the index holds, which the evidence
 // records read to count what a run on the index leaves out and to tell a
 // declared input the tree covers from one it does not.
+// RevTree and TreePaths read a revision's tree and the paths in it, which
+// work done keys its checks' evidence by in place of the index.
 // IndexTree captures the active index once. TaskSnapshot checks it out below
 // the source common dir's itos/snapshots, with independent metadata and writable
 // objects, a file alternate for source objects and copied checkout-mode policy.

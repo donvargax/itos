@@ -14,6 +14,8 @@ import (
 	"github.com/donvargax/itos/v8/internal/check"
 	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/engine/ciwatch"
+	"github.com/donvargax/itos/v8/internal/engine/evidence"
+	"github.com/donvargax/itos/v8/internal/engine/judge"
 	"github.com/donvargax/itos/v8/internal/engine/record"
 	"github.com/donvargax/itos/v8/internal/ledger"
 	"github.com/donvargax/itos/v8/internal/message"
@@ -65,15 +67,18 @@ func (h Handler) done(ctx context.Context, id string, o Out) (Answer, error) {
 	if len(found) == 0 {
 		found = unpushed(ctx, cfg.VCS, id, landing, o.Stderr)
 	}
+	var ran taskRun
 	if len(found) == 0 {
-		if found, err = h.failingTask(ctx, cfg, id, o.Stderr); err != nil {
+		if ran, found, err = h.failingTask(ctx, cfg, id, o.Stderr); err != nil {
 			return a, err
 		}
+		a.Evidence = ran.evidence
 	}
 	if len(found) > 0 {
 		a.Refused, a.Code = found, refused
 		return a, nil
 	}
+	ran.say(id, o)
 	ci, found, err := h.landedCI(ctx, cfg, id, landing, o)
 	if err != nil {
 		return a, err
@@ -122,6 +127,12 @@ func (h Handler) done(ctx context.Context, id string, o Out) (Answer, error) {
 		line += "; its checks are out of " + checks.Path
 	}
 	fields := ci.Fields()
+	if len(ran.evidence) > 0 {
+		fields = append(fields, out.Field{Key: "evidence", Value: ran.evidence})
+	}
+	if len(ran.late) > 0 {
+		fields = append(fields, out.Field{Key: "left_to_ci", Value: ran.late})
+	}
 	unqueued, queueSHA, found, err := unqueueDone(ctx, s, id, o)
 	if err != nil || len(found) > 0 {
 		return stopped(a, found, err)
@@ -338,37 +349,81 @@ func unpushed(ctx context.Context, v vcsport.VCS, id string, j doneCommit, stder
 	}}
 }
 
-// failingTask is the problem of a task whose static checks fail, run as the
-// commit-msg hook runs them (FirstFailure, capped by
-// hooks.commit_msg.check_timeout), each failure's output on stderr. An item
-// that is no task of the ledger has none, nor has a config with no ledger.id.
-func (h Handler) failingTask(ctx context.Context, cfg *config.Loaded, id string, stderr io.Writer) ([]out.Problem, error) {
+// taskRun is what work done found of a task's checks that passed: the
+// evidence of those looked up and the late checks left to CI.
+type taskRun struct {
+	evidence []evidence.Entry
+	late     []leftToCI
+}
+
+// leftToCI is a late check of the task: CI runs it, work done does not.
+type leftToCI struct {
+	Task    string `json:"task"`
+	Command string `json:"command"`
+}
+
+// say names each late check as left to CI, on stdout, or stderr under JSON
+// as the watch's lines go, and not at all under -q.
+func (r taskRun) say(id string, o Out) {
+	w := o.Stdout
+	if o.JSON {
+		w = o.Stderr
+	}
+	if o.Quiet {
+		return
+	}
+	for _, c := range r.late {
+		fmt.Fprintf(w, "%s's check `%s` is late: left to CI\n", id, c.Command)
+	}
+}
+
+// failingTask is the problem of a task whose static checks fail, every one
+// run in written order through the evidence engine on HEAD's tree (TaskChecks),
+// each under its own timeout, the first failure's output on stderr. A task
+// that passes names its late checks, left to CI. An item that is no task of
+// the ledger has none, nor has a config with no ledger.id.
+func (h Handler) failingTask(ctx context.Context, cfg *config.Loaded, id string, stderr io.Writer) (taskRun, []out.Problem, error) {
+	var ran taskRun
 	if cfg.Ledger.ID == nil || !ledger.IDPattern(cfg).MatchString(id) {
-		return nil, nil
+		return ran, nil, nil
 	}
 	tasks, err := ledger.Tasks(cfg)
 	if err != nil {
-		return nil, err
+		return ran, nil, err
 	}
 	for _, task := range tasks {
 		if task.ID != id {
 			continue
 		}
-		limit := check.NoCap
-		if t := cfg.Hooks.CommitMsg.CheckTimeout; t != nil {
-			limit = *t
+		checked, err := h.ports.TaskChecks(ctx, cfg, task, stderr)
+		ran.evidence = checked.Evidence
+		if err != nil {
+			return ran, nil, err
 		}
-		why, err := h.ports.FirstFailure(ctx, cfg, task, limit, stderr)
-		if err != nil || why == "" {
-			return nil, err
+		if f := checked.Failure; f != nil {
+			return ran, []out.Problem{refusal(id, f)}, nil
 		}
-		return []out.Problem{{
-			Rule:    "work-done-task-check",
-			Message: fmt.Sprintf("%s's check fails: %s", id, why),
-			Fix:     "itos task " + id + " shows what its checks want",
-		}}, nil
+		for _, c := range check.LateChecks(cfg, task) {
+			ran.late = append(ran.late, leftToCI{Task: id, Command: c.Check.Command()})
+		}
 	}
-	return nil, nil
+	return ran, nil, nil
+}
+
+// refusal is the problem of a task check that failed: its words, and under
+// --json its task, command, exit (null when it did not exit by itself),
+// timeout and output tail.
+func refusal(id string, f *judge.Failure) out.Problem {
+	run := out.CheckRun{Task: f.Task, Command: f.Command, TimedOut: f.TimedOut, Output: f.Output}
+	if !f.TimedOut && f.Code >= 0 {
+		run.Exit = &f.Code
+	}
+	return out.Problem{
+		Rule:     "work-done-task-check",
+		Message:  fmt.Sprintf("%s's check fails: %s", id, f.Why),
+		Fix:      "itos task " + id + " shows what its checks want",
+		CheckRun: &run,
+	}
 }
 
 // closedChecks is the ledger with the closed task's checks taken out

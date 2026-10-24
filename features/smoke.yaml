@@ -60,6 +60,10 @@
   scenarios:
     - id: "@ID-DRAFT-03"
       why: a change and a command line drafted, then promoted in order, each committed, the file's point in one run
+- file: evidence-done.feature
+  scenarios:
+    - id: "@ID-EVID-46"
+      why: work done answers an opted-in check from the record a hand run left on the same tree, the file's point in two runs
 - file: evidence-hook.feature
   scenarios:
     - id: "@ID-EVID-32"

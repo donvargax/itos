@@ -10,6 +10,8 @@ import (
 	"github.com/donvargax/itos/v8/internal/ask"
 	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/engine/ciwatch"
+	"github.com/donvargax/itos/v8/internal/engine/evidence"
+	"github.com/donvargax/itos/v8/internal/engine/judge"
 	"github.com/donvargax/itos/v8/internal/ledger"
 	"github.com/donvargax/itos/v8/internal/message"
 	"github.com/donvargax/itos/v8/internal/out"
@@ -30,18 +32,26 @@ import (
 // a write holds, reads and commits through; ItemID, the id work add
 // gives an item of a numbered kind: the one a draft reserved for the
 // command, else one minted past registryIDs; and for work done,
-// FirstFailure, a task's checks run as the commit-msg hook runs them,
-// capped at limit, the first failure's output on stderr and what went
-// wrong, "" when none failed, and Watcher, ci.watch's provider for cfg,
-// for a commit pushed to remote. The repository is the config's VCS.
+// TaskChecks, a task's static checks run in written order through the
+// evidence engine on HEAD's tree (Checked), the first failure's output on
+// stderr, and Watcher, ci.watch's provider for cfg, for a commit pushed to
+// remote. The repository is the config's VCS.
 type Ports interface {
 	Config(ctx context.Context) (*config.Loaded, error)
 	Worktree(ctx context.Context) treeport.Source
 	Identity(ctx context.Context, cfg *config.Loaded) providers.Identity
 	Tracker(ctx context.Context, cfg *config.Loaded) trackerport.Tracker
 	ItemID(ctx context.Context, cfg *config.Loaded, kind string, registryIDs []string) (string, error)
-	FirstFailure(ctx context.Context, cfg *config.Loaded, task ledger.Task, limit float64, stderr io.Writer) (string, error)
+	TaskChecks(ctx context.Context, cfg *config.Loaded, task ledger.Task, stderr io.Writer) (Checked, error)
 	Watcher(ctx context.Context, cfg *config.Loaded, remote string) (providers.Watcher, bool, error)
+}
+
+// Checked is what running a task's static checks found: Failure, the first
+// that failed (nil when none did), and the Evidence of each opted-in check
+// looked up, in run order.
+type Checked struct {
+	Failure  *judge.Failure
+	Evidence []evidence.Entry
 }
 
 // Handler is work's application, over its ports.
@@ -76,7 +86,8 @@ type Out struct {
 // else the Change of one id, made for ID (work add's minted one), the
 // Several of more, what work promote Promoted or what work done Done, and
 // the Commit, "" under a stealth config or when nothing changed. work done
-// refused by its CI run is CI, the watch, Code its exit.
+// refused by its CI run is CI, the watch, Code its exit; Evidence is that of
+// the task checks it looked up, which its --json gives.
 type Answer struct {
 	File     string
 	Found    []out.Problem
@@ -96,6 +107,7 @@ type Answer struct {
 	Promoted *Promoted
 	Done     *Closed
 	CI       *ciwatch.Watched
+	Evidence []evidence.Entry
 	Commit   string
 }
 

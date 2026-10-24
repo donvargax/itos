@@ -12,6 +12,8 @@ import (
 	"testing"
 
 	"github.com/donvargax/itos/v8/internal/config"
+	"github.com/donvargax/itos/v8/internal/engine/evidence"
+	"github.com/donvargax/itos/v8/internal/engine/judge"
 	"github.com/donvargax/itos/v8/internal/ledger"
 	"github.com/donvargax/itos/v8/internal/message"
 	"github.com/donvargax/itos/v8/internal/providers"
@@ -27,8 +29,9 @@ import (
 // ports are work's ports over the fakes: a config or the error loading it,
 // the working tree, the identity provider, the tracker's fake, the id
 // ItemID gives, past the registry's ids it was given, or its error; what
-// FirstFailure says of a task's checks, or its error, each task checked kept
-// in checked as its id and cap, during called as they run; and the watcher
+// TaskChecks says of a task's checks (a failure, the evidence looked up), or
+// its error, each task checked kept in checked as its id, during called as
+// they run; and the watcher
 // Watcher gives, or its error.
 type ports struct {
 	cfg        *config.Loaded
@@ -41,10 +44,15 @@ type ports struct {
 	given      *[]string
 	failure    string
 	failureErr error
-	checked    *[]string
-	during     func()
-	watcher    providers.Watcher
-	watcherErr error
+	evidence   []evidence.Entry
+	// failureCode and failureTimedOut are the failure's exit code and
+	// whether its timeout stopped it.
+	failureCode     int
+	failureTimedOut bool
+	checked         *[]string
+	during          func()
+	watcher         providers.Watcher
+	watcherErr      error
 }
 
 func (p ports) Config(context.Context) (*config.Loaded, error) { return p.cfg, p.err }
@@ -62,17 +70,19 @@ func (p ports) ItemID(_ context.Context, _ *config.Loaded, kind string, registry
 	return p.minted, p.mintErr
 }
 
-func (p ports) FirstFailure(_ context.Context, _ *config.Loaded, task ledger.Task, limit float64, stderr io.Writer) (string, error) {
+func (p ports) TaskChecks(_ context.Context, _ *config.Loaded, task ledger.Task, stderr io.Writer) (Checked, error) {
 	if p.checked != nil {
-		*p.checked = append(*p.checked, fmt.Sprintf("%s %v", task.ID, limit))
+		*p.checked = append(*p.checked, task.ID)
 	}
 	if p.during != nil {
 		p.during()
 	}
+	checked := Checked{Evidence: p.evidence}
 	if p.failure != "" {
 		fmt.Fprintf(stderr, "%s: the check said why\n", task.ID)
+		checked.Failure = &judge.Failure{Task: task.ID, Command: "false", Why: p.failure, Output: "why\n", Code: p.failureCode, TimedOut: p.failureTimedOut}
 	}
-	return p.failure, p.failureErr
+	return checked, p.failureErr
 }
 
 func (p ports) Watcher(context.Context, *config.Loaded, string) (providers.Watcher, bool, error) {

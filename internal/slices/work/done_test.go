@@ -2,6 +2,7 @@ package work
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"io/fs"
 	"maps"
@@ -9,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/donvargax/itos/v8/internal/engine/evidence"
 	"github.com/donvargax/itos/v8/internal/kind"
 	"github.com/donvargax/itos/v8/internal/providers"
 	trackerport "github.com/donvargax/itos/v8/internal/store/tracker/port"
@@ -45,6 +47,10 @@ const doneFeature = `Feature: Done
 // once and giving up at once.
 const watching = configText + "ci:\n  watch:\n    provider: github\n    interval: 0\n    timeout: 0.01\n"
 
+// staticLedgerText is the ledger whose task's one check is static, so that
+// closing it names no late check.
+const staticLedgerText = "- id: T-1\n  type: chore\n  title: Adopt\n  why: Adopt it.\n  done_when:\n    - run: \"true\"\n      cost: static\n"
+
 // closable is a fixture whose registry is doneText, slice-3's scenarios in
 // the working tree and at HEAD, and whose ledger file the tracker holds as
 // committed, under a stealth config when stealth.
@@ -52,6 +58,7 @@ func closable(stealth bool) fixture {
 	f := sound()
 	f.files["work-items.yaml"] = doneText
 	f.files["features/done.feature"] = doneFeature
+	f.files[ledgerFile] = staticLedgerText
 	for i := range f.history {
 		f.history[i].Tree = maps.Clone(f.history[i].Tree)
 		f.history[i].Tree["features/done.feature"] = doneFeature
@@ -116,7 +123,7 @@ func TestDoneSaysWhatItDid(t *testing.T) {
 	p.checked = &checked
 	code, stdout, _, err = run(t, p, "done", "T-1")
 	if code != 0 || err != nil || stdout != "T-1 is done: committed "+sha+" docs: close T-1; its checks are out of tasks/phase-1.yaml\n" ||
-		!slices.Equal(checked, []string{"T-1 60"}) {
+		!slices.Equal(checked, []string{"T-1"}) {
 		t.Errorf("work done T-1 = %d, %v, %q, checked %q", code, err, stdout, checked)
 	}
 	if ledger := docIn(t, p, ledgerFile); ledger != "- id: T-1\n  type: chore\n  title: Adopt\n  why: Adopt it.\n" {
@@ -125,16 +132,6 @@ func TestDoneSaysWhatItDid(t *testing.T) {
 	if len(*txs) != 1 || len((*txs)[0].Changes) != 2 || !strings.HasSuffix(bodyOf((*txs)[0]), " Its checks are taken out of tasks/phase-1.yaml: "+
 		"they were its progress while it was open, and gated this close. The commit before this one, c-4, still holds them.") {
 		t.Errorf("the close's transactions: %d, the first %q", len(*txs), bodyOf((*txs)[0]))
-	}
-
-	f := closable(false)
-	f.config = configText + "hooks:\n  commit_msg:\n    check_timeout: 5\n"
-	f.files[ledgerFile] = "- { id: T-0, type: chore, title: Before }\n" + ledgerText
-	p = over(t, f)
-	checked = []string{}
-	p.checked = &checked
-	if code, _, _, err := run(t, p, "done", "T-1"); code != 0 || err != nil || !slices.Equal(checked, []string{"T-1 5"}) {
-		t.Errorf("work done T-1 capped = %d, %v, checked %q", code, err, checked)
 	}
 
 	// An id of the ledger's shape that no task has is closed as any item.
@@ -695,5 +692,90 @@ func TestRunOf(t *testing.T) {
 		if got := c.j.runOf(c.run); got != c.want {
 			t.Errorf("%+v.runOf(%+v) = %q, want %q", c.j, c.run, got, c.want)
 		}
+	}
+}
+
+// A task's late checks are CI's: work done names each as left to CI, on
+// stdout, or on stderr under --json, which gives them as left_to_ci; -q says
+// nothing, and a task with none, or whose check fails, names none.
+func TestDoneNamesTheLateChecksLeftToCI(t *testing.T) {
+	late := closable(false)
+	late.files[ledgerFile] = ledgerText
+
+	code, stdout, _, err := run(t, over(t, late), "done", "T-1")
+	if code != 0 || err != nil || !strings.HasPrefix(stdout, "T-1's check `true` is late: left to CI\nT-1 is done: committed ") {
+		t.Errorf("work done T-1 = %d, %v, %q", code, err, stdout)
+	}
+	code, stdout, stderr, err := run(t, over(t, late), "--json", "done", "T-1")
+	o := object(t, stdout)
+	left, _ := json.Marshal(o["left_to_ci"])
+	if code != 0 || err != nil || string(left) != `[{"command":"true","task":"T-1"}]` || !strings.Contains(stderr, "T-1's check `true` is late: left to CI\n") {
+		t.Errorf("work --json done T-1 = %d, %v, %v, %q", code, err, o, stderr)
+	}
+	if code, stdout, stderr, err := run(t, over(t, late), "-q", "done", "T-1"); code != 0 || err != nil || stdout != "" || strings.Contains(stderr, "left to CI") {
+		t.Errorf("work -q done T-1 = %d, %v, %q, %q", code, err, stdout, stderr)
+	}
+	_, stdout, _, _ = run(t, over(t, closable(false)), "--json", "done", "T-1")
+	if o := object(t, stdout); o["left_to_ci"] != nil || o["evidence"] != nil {
+		t.Errorf("a task with no late check has left_to_ci or evidence: %v", o)
+	}
+
+	p := over(t, late)
+	p.failure = "`false` exited 1"
+	if code, _, stderr, _ := run(t, p, "done", "T-1"); code != refused || strings.Contains(stderr, "left to CI") {
+		t.Errorf("a failing check names late ones: %d, %q", code, stderr)
+	}
+}
+
+// The evidence of the task checks looked up is in --json whatever came of
+// the close: the close, a failing check and a CI run that did not pass.
+func TestDoneGivesTheEvidenceOfTheChecksLookedUp(t *testing.T) {
+	entries := []evidence.Entry{{Command: "true", Info: evidence.Info{Source: "local", Hit: true}}}
+	evidenceOf := func(o map[string]any) string {
+		text, _ := json.Marshal(o["evidence"])
+		return string(text)
+	}
+	const want = `[{"command":"true","hit":true,"recorded":false,"source":"local"}]`
+
+	p := over(t, closable(false))
+	p.evidence = entries
+	_, stdout, _, _ := run(t, p, "--json", "done", "T-1")
+	if o := object(t, stdout); o["ok"] != true || evidenceOf(o) != want {
+		t.Errorf("a close: %v", o)
+	}
+
+	p = over(t, closable(false))
+	p.evidence, p.failure = entries, "`false` exited 1"
+	code, stdout, _, _ := run(t, p, "--json", "done", "T-1")
+	o := object(t, stdout)
+	problem := o["problems"].([]any)[0].(map[string]any)
+	if code != refused || evidenceOf(o) != want || problem["rule"] != "work-done-task-check" || problem["task"] != "T-1" ||
+		problem["command"] != "false" || problem["exit"] != float64(0) || problem["timed_out"] != false || problem["output"] != "why\n" {
+		t.Errorf("a failing check: %d, %v", code, o)
+	}
+
+	p = over(t, closable(false))
+	p.failure, p.failureCode, p.failureTimedOut = "`false` ran past its timeout (1s)", 0, true
+	_, stdout, _, _ = run(t, p, "--json", "done", "T-1")
+	problem = object(t, stdout)["problems"].([]any)[0].(map[string]any)
+	if exit, has := problem["exit"]; !has || exit != nil || problem["timed_out"] != true {
+		t.Errorf("a check that timed out: %v", problem)
+	}
+	p = over(t, closable(false))
+	p.failure, p.failureCode = "`false` was stopped", -1
+	_, stdout, _, _ = run(t, p, "--json", "done", "T-1")
+	if exit, has := object(t, stdout)["problems"].([]any)[0].(map[string]any)["exit"]; !has || exit != nil {
+		t.Errorf("a check that did not exit by itself has exit %v", exit)
+	}
+
+	watched := closable(false)
+	watched.config = watching
+	p = over(t, watched)
+	p.evidence = entries
+	failed := providers.Run{URL: "f", Status: "completed", Conclusion: "failure", HeadSHA: "c-1a"}
+	p.watcher = look(map[string]providers.Run{"c-1a": failed}, failed)
+	code, stdout, _, _ = run(t, p, "--json", "done", "T-1")
+	if o := object(t, stdout); code != refused || o["ci"] != "failure" || evidenceOf(o) != want {
+		t.Errorf("a CI run that did not pass: %d, %v", code, o)
 	}
 }

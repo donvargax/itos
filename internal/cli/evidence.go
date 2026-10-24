@@ -76,3 +76,30 @@ func newHookEvidence(cfg *config.Loaded, tree, goos string) *evidence.Engine {
 	e.Git, e.Hint, e.Hook = hookGit{Git: e.Git, tree: tree}, "", true
 	return e
 }
+
+// doneGit is the evidence engine's view of the repository for work done,
+// which judges landed work: HEAD's tree stands where the index's does, for
+// the key and for the checkout a miss runs in, and the working folder's
+// unstaged changes are not counted, since none reaches the run.
+type doneGit struct{ evidenceGit }
+
+// IndexTree is HEAD's tree.
+func (g doneGit) IndexTree(ctx context.Context) (string, error) { return g.Git.RevTree(ctx, "HEAD") }
+
+// IndexPaths are the paths of HEAD's tree.
+func (g doneGit) IndexPaths(ctx context.Context) ([]string, error) {
+	return g.Git.TreePaths(ctx, "HEAD")
+}
+
+// UnstagedPaths are none: work done says nothing of a change HEAD leaves out.
+func (doneGit) UnstagedPaths(context.Context) ([]string, error) { return nil, nil }
+
+// newDoneEvidence is the engine for work done's checks, on HEAD's tree:
+// keyed as itos task keys the same check on a clean index, so a hand run,
+// the commit-msg hook and work done pay once. A check whose checkout cannot
+// be made runs uncached in the working folder, as a hand run's does.
+func newDoneEvidence(cfg *config.Loaded, goos string) *evidence.Engine {
+	e := newEvidence(cfg, "done", goos)
+	e.Git, e.Hint = doneGit{evidenceGit{vcs.Git{Dir: cfg.Folder()}}}, ""
+	return e
+}

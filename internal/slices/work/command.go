@@ -147,8 +147,8 @@ them. A check meant to keep running belongs in ci.steps or ci.nightly.steps.
 Landed is: none of the item's scenarios at HEAD
 (those tagged @<id>, @slice-<n> for the item slice-<n>, @bug-<n> for bug-<n>)
 still @wip; each of the item's own commits on a remote (itos push them); a
-task's static checks passing, as the commit-msg hook runs them; and with
-ci.watch, a CI run that has the newest of its own commits passed. Its own
+task's static checks passing; and with ci.watch, a CI run that has the newest
+of its own commits passed. Its own
 commits are those whose footers name it (Item:, Task:, or Scenarios: naming one
 of its scenarios), as itos work show lists them, its registry commits aside.
 Commits no remote has that are not the item's are passed over, so several
@@ -163,6 +163,23 @@ pushed or not, passed over and the newest commit that touches more judged;
 pushed with them, that commit may have no run of its own, and the newest run
 on its branch whose head has it judges it. Without ci.watch CI is not
 checked, and done says so.
+A task's static checks are every done_when check whose cost is static, in the
+order written, a static check written below a late one included (with
+ci.cost.keep_written_order a check below a late one is late itself), each under
+its own timeout (its timeout:, else ledger.check.timeout; hooks.commit_msg.check_timeout
+caps the commit-msg hook alone), stopping at the first that fails, whose output
+done prints under the task and its check as itos task does. The late checks
+are CI's, which runs every check of the tasks a push names: done never runs
+them, and says each is left to CI. An after: push check stays pending, neither
+run nor looked up. A check that opts in to evidence is looked up by HEAD's
+tree, never the index's, and answers from a record a hand run or the commit-msg
+hook left there ("cached evidence"); a miss runs in a checkout of HEAD's tree
+under the git common dir's itos/snapshots and is recorded, and one whose
+checkout cannot be made runs uncached in the working folder, its exit its own.
+A staged change or an unstaged edit reaches neither the run nor the key. A
+check without evidence runs in the working folder, in the commit-msg hook's
+environment. These checks are local feedback: a record answers done and proves
+nothing to CI.
 The code proof of the config's proof.code is not run here: CI's run, which
 done requires green, judges it over the whole range (itos ci run --help).
 Refused, nothing written (exit 1): any of those not so, a registry, or the
@@ -176,8 +193,13 @@ An item the registry's queue holds is then taken out of it, in a commit of its
 own, "docs: queue <id>". Under a stealth config the registry and the ledger
 are written and nothing committed.
 
---json: {"schema":1,"ok":true,"item":{…},"ci":"success"|"unwatched","run"?,"queue_commit"?:"<sha>"|null,"commit":"<sha>"|null},
-or {"schema":1,"ok":false,"problems":[{"rule","message","fix"}],"ci"?,"run"?}`,
+--json: {"schema":1,"ok":true,"item":{…},"ci":"success"|"unwatched","run"?,"evidence"?:[{"command","hit","recorded",…}],"left_to_ci"?:[{"task","command"}],"queue_commit"?:"<sha>"|null,"commit":"<sha>"|null},
+or {"schema":1,"ok":false,"problems":[{"rule","message","fix"}],"ci"?,"run"?,"evidence"?};
+a failing check's problem (rule work-done-task-check) adds "task", "command",
+"exit" (null when it did not exit by itself), "timed_out" and "output", the
+tail of what it printed. "evidence" is there once an opted-in check was looked
+up, in run order; "left_to_ci" names each late check of a task closed. The
+late checks are named on stderr under --json.`,
 
 		"add": `Usage: itos work add [<idea-id>] --title <title> --why <why> [--kind idea|slice|task|bug]
          [--phase <phase>] [--owner <handle>] [--depends-on <id>,…] [--refs <ref>,…]

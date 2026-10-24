@@ -60,7 +60,7 @@ Feature: work done runs a task's static checks through the evidence engine and n
     And a clone of it, where itos runs
 
   # The hand run on a clean index keys HEAD's tree, which work done keys.
-  @ID-EVID-46 @slice-173 @wip
+  @ID-EVID-46 @slice-173
   Scenario: work done answers an opted-in check from the record a hand run on the same tree left
     Given the committed file "tasks/phase-1.yaml" holding the lines:
       """
@@ -84,7 +84,7 @@ Feature: work done runs a task's static checks through the evidence engine and n
     And the registry's item "T-001" has the status "done" and the owner "someone"
 
   # The hand run keys the index, which differs from HEAD, so work done misses.
-  @ID-EVID-47 @slice-173 @wip
+  @ID-EVID-47 @slice-173
   Scenario: A miss at work done runs on HEAD's tree, never the index or the working copy, and records
     Given the committed file "tasks/phase-1.yaml" holding the lines:
       """
@@ -111,7 +111,7 @@ Feature: work done runs a task's static checks through the evidence engine and n
     And the evidence store holds 2 complete records
 
   # Failed results are reusable at work done as by hand.
-  @ID-EVID-48 @slice-173 @wip
+  @ID-EVID-48 @slice-173
   Scenario: A cached failure refuses the close with the recorded output
     Given the committed file "tasks/phase-1.yaml" holding the lines:
       """
@@ -138,7 +138,7 @@ Feature: work done runs a task's static checks through the evidence engine and n
     And the registry's item "T-001" has the status "doing" and the owner "someone"
 
   # One report for every failing static check, opted in or not, failed or timed out.
-  @ID-EVID-49 @slice-173 @wip
+  @ID-EVID-49 @slice-173
   Scenario Outline: A failing static check's --json problem names the task, the command, the exit and the output tail
     Given the committed file "tasks/phase-1.yaml" holding the lines:
       """
@@ -171,7 +171,7 @@ Feature: work done runs a task's static checks through the evidence engine and n
       | echo started; sleep 3; evidence-probe 0 input.txt | timeout: 1    | null | true      | started        |
 
   # The check's own timeout outlasts the hook's cap, and work done waits for it.
-  @ID-EVID-50 @slice-173 @wip
+  @ID-EVID-50 @slice-173
   Scenario: work done runs a check under its own timeout, not hooks.commit_msg.check_timeout
     Given the committed file "tasks/phase-1.yaml" holding the lines:
       """
@@ -194,7 +194,7 @@ Feature: work done runs a task's static checks through the evidence engine and n
     And the registry's item "T-001" has the status "done" and the owner "someone"
 
   # The plain check is the last written, so the last run is its.
-  @ID-EVID-51 @slice-173 @wip
+  @ID-EVID-51 @slice-173
   Scenario: At work done a check that does not opt in runs again in the working folder, beside one answered from its record
     Given the committed file "tasks/phase-1.yaml" holding the lines:
       """
@@ -220,7 +220,7 @@ Feature: work done runs a task's static checks through the evidence engine and n
     And the evidence probe's last run was in the working folder
 
   # A project that opts nothing in sees today's work done, even after a hand run.
-  @ID-EVID-52 @slice-173 @wip @guard
+  @ID-EVID-52 @slice-173 @guard
   Scenario: With no opted-in check, work done runs the check in the working folder after a hand run, and stores nothing
     Given the committed file "tasks/phase-1.yaml" holding the lines:
       """
@@ -246,7 +246,7 @@ Feature: work done runs a task's static checks through the evidence engine and n
     And the evidence store holds no record
 
   # T-002's failing record of the same command would refuse the close if looked up.
-  @ID-EVID-53 @slice-173 @wip @guard
+  @ID-EVID-53 @slice-173 @guard
   Scenario: An opted-in after: push check stays pending at work done, beside a failing record of its command
     Given the committed file "tasks/phase-1.yaml" holding the lines:
       """
@@ -278,7 +278,7 @@ Feature: work done runs a task's static checks through the evidence engine and n
     And the registry's item "T-001" has the status "done" and the owner "someone"
 
   # Late checks are CI's: named, never run here, while a static check below one still runs.
-  @ID-EVID-54 @slice-173 @wip
+  @ID-EVID-54 @slice-173
   Scenario: work done names a task's late checks as left to CI without running them, and runs a static check written below one
     Given the committed file "tasks/phase-1.yaml" holding the lines:
       """
@@ -304,7 +304,7 @@ Feature: work done runs a task's static checks through the evidence engine and n
     And the registry's item "T-001" has the status "done" and the owner "someone"
 
   # A gitlink in HEAD's tree leaves no checkout to make, so the check runs where a hand run would.
-  @ID-EVID-56 @slice-173 @wip
+  @ID-EVID-56 @slice-173
   Scenario Outline: A checkout of HEAD's tree that cannot be made runs the check uncached in the working folder, its exit its own
     Given the committed file "tasks/phase-1.yaml" holding the lines:
       """
@@ -337,7 +337,7 @@ Feature: work done runs a task's static checks through the evidence engine and n
       | 1    | 1    | doing  |
 
   # A cached failure still refuses before the CI watch, which is never asked.
-  @ID-EVID-55 @slice-173 @wip @guard
+  @ID-EVID-55 @slice-173 @guard
   Scenario: A failing check refuses the close before the CI watch, whose red run goes unreported
     Given the committed file "tasks/phase-1.yaml" holding the lines:
       """

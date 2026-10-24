@@ -12,6 +12,20 @@ type Problem struct {
 	Rule    string `json:"rule"`
 	Message string `json:"message"`
 	Fix     string `json:"fix,omitempty"`
+	// CheckRun, set for a task check that failed, adds its keys to the
+	// problem under --json.
+	*CheckRun
+}
+
+// CheckRun is the run of a task check that failed: its task, its command,
+// its exit (null when it did not exit by itself), whether its timeout
+// stopped it and the tail of what it printed.
+type CheckRun struct {
+	Task     string `json:"task"`
+	Command  string `json:"command"`
+	Exit     *int   `json:"exit"`
+	TimedOut bool   `json:"timed_out"`
+	Output   string `json:"output"`
 }
 
 // Field is one key of a JSON object, written in the order given: Go's maps

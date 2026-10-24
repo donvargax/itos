@@ -21,7 +21,10 @@
 // 134), for both verify and the hook. FirstFailure runs one task's checks
 // before its first late one, capped, printing the first failure's output as
 // itos task prints it and returning what went wrong in a few words: the
-// commit-msg hook's last rule and work done's.
+// commit-msg hook's last rule. StaticFailure is work done's: every static
+// check of the task in written order, a static one below a late one
+// included, each under its own timeout, stopping at the first failure, which
+// it describes (Failure); a late check is CI's and never runs.
 //
 // The repository is the VCS port the caller binds (cfg.VCS); every exit code,
 // usage error and the config's own checks are the caller's.

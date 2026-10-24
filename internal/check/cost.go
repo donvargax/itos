@@ -95,3 +95,27 @@ func ChecksBeforeLate(cfg *config.Loaded, task ledger.Task) []CostedCheck {
 	}
 	return costed
 }
+
+// StaticChecks are a task's checks of the static class wherever they are
+// written, a static one below a late one included (a check below a late one
+// is late itself under keep_written_order): work done runs these, in written
+// order, where the commit-msg hook runs ChecksBeforeLate.
+func StaticChecks(cfg *config.Loaded, task ledger.Task) []CostedCheck {
+	return ofCost(cfg, task, Static)
+}
+
+// LateChecks are a task's checks of the late class, which CI runs and work
+// done names as left to it.
+func LateChecks(cfg *config.Loaded, task ledger.Task) []CostedCheck {
+	return ofCost(cfg, task, Late)
+}
+
+func ofCost(cfg *config.Loaded, task ledger.Task, cost Cost) []CostedCheck {
+	var found []CostedCheck
+	for _, c := range CostedChecks(cfg, task) {
+		if c.Cost == cost {
+			found = append(found, c)
+		}
+	}
+	return found
+}

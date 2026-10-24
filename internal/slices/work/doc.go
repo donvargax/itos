@@ -4,8 +4,8 @@
 // command line, its Query and Handler the application, over the Ports it
 // owns, which internal/cli binds: the config, the working tree,
 // work.identity's provider, the tracker the questions and the registry are
-// in, the id work add mints, and for work done a task's checks, run as the
-// commit-msg hook runs them, and ci.watch's provider; the repository is the
+// in, the id work add mints, and for work done a task's static checks, run in
+// the commit-msg hook's environment, and ci.watch's provider; the repository is the
 // config's VCS.
 //
 // Command (command.go) declares its name, help and flag spec, by which
@@ -68,8 +68,15 @@
 //     order, stopping at the first that refuses (exit 1): the item's
 //     scenarios at HEAD (tests.Tagged), none still @wip; no commit of the
 //     judged commit that no remote has (said and skipped with no remote at
-//     all); a task's static checks, by FirstFailure, when the id is a task
-//     of the ledger; and with ci.watch, the judged commit's run, through
+//     all); a task's static checks, by TaskChecks (judge.StaticFailure), when
+//     the id is a task of the ledger: every static check in written order, a
+//     static one below a late one included, each under its own timeout, an
+//     opted-in one looked up by HEAD's tree through the evidence engine and
+//     an after: push one left pending; the first failure refuses, its
+//     problem carrying under --json the task, command, exit, timed_out and
+//     output, and the evidence looked up; the late checks are CI's, named on
+//     stdout (stderr under --json) as left to CI, and a close's JSON gives
+//     them as left_to_ci; and with ci.watch, the judged commit's run, through
 //     Watcher and internal/engine/ciwatch. The judged commit is the newest of
 //     the item's own (ownCommit, slice 127): those whose footers link to it
 //     (linksTo, as work show's belonging reads them), its registry commits

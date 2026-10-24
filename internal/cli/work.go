@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 
+	"github.com/donvargax/itos/v8/internal/check"
 	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/engine/judge"
 	"github.com/donvargax/itos/v8/internal/ledger"
@@ -27,7 +28,7 @@ func runWork(args []string, o Out) (int, error) {
 
 // workPorts are the work slice's ports over the real code: loadConfig, the
 // working tree, work.identity's provider, the tracker on o's OS, newItemID,
-// given the id a draft reserved, judge.FirstFailure and watcher.
+// given the id a draft reserved, judge.StaticFailure and watcher.
 type workPorts struct{ o Out }
 
 // Config is loadConfig.
@@ -51,10 +52,24 @@ func (p workPorts) ItemID(_ context.Context, cfg *config.Loaded, kind string, re
 	return newItemID(cfg, kind, registryIDs, p.o.reserved, p.o.OS)
 }
 
-// FirstFailure is judge.FirstFailure in the environment the commit-msg
-// hook runs a task's checks in (checkEnv).
-func (workPorts) FirstFailure(_ context.Context, cfg *config.Loaded, task ledger.Task, limit float64, stderr io.Writer) (string, error) {
-	return judge.FirstFailure(cfg, task, limit, checkEnv(), stderr)
+// TaskChecks is judge.StaticFailure in the environment the commit-msg hook
+// runs a task's checks in (checkEnv), the task's opted-in checks looked up
+// by HEAD's tree through newDoneEvidence; with none, no engine is made and
+// each check runs in the working folder.
+func (p workPorts) TaskChecks(_ context.Context, cfg *config.Loaded, task ledger.Task, stderr io.Writer) (workslice.Checked, error) {
+	var execution check.Execution
+	for _, c := range check.StaticChecks(cfg, task) {
+		if c.Check.Evidence != nil && !c.Check.Pushed() {
+			execution.Evidence = newDoneEvidence(cfg, p.o.OS)
+			break
+		}
+	}
+	failure, err := judge.StaticFailure(cfg, task, checkEnv(), stderr, execution)
+	checked := workslice.Checked{Failure: failure}
+	if execution.Evidence != nil {
+		checked.Evidence = execution.Evidence.Entries()
+	}
+	return checked, err
 }
 
 // Watcher is watcher.

@@ -7,11 +7,13 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"strings"
 	"testing"
 
 	"github.com/donvargax/itos/v8/internal/ledger"
 	"github.com/donvargax/itos/v8/internal/store/tracker/adapter"
+	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
 )
 
 // workPorts bind the work slice to the real code: the config the working
@@ -137,13 +139,15 @@ func TestWorkAddLineIsTheSlices(t *testing.T) {
 	}
 }
 
-// work done runs a task's checks through FirstFailure, judge.FirstFailure
-// in the commit-msg hook's environment, which has no GIT_INDEX_FILE: the
-// first failure's output on stderr and what went wrong.
-func TestWorkPortsRunATasksChecksAsTheHookDoes(t *testing.T) {
+// work done runs a task's static checks through TaskChecks, judge.StaticFailure
+// in the commit-msg hook's environment, which has no GIT_INDEX_FILE: every
+// static check in written order, one below a late check included, the late one
+// never run, the first failure's output on stderr and described. No check opts
+// in to evidence, so no engine is made.
+func TestWorkPortsRunATasksStaticChecksAsTheHookDoes(t *testing.T) {
 	closeRepo(t)
 	putFile(t, filepath.Join("tasks", "phase-1.yaml"), "- id: T-1\n  type: docs\n  title: One\n  why: Because.\n  done_when:\n"+
-		"    - { run: 'test -z \"$GIT_INDEX_FILE\"', cost: static }\n    - { run: \"false\", cost: static }\n")
+		"    - { run: 'test -z \"$GIT_INDEX_FILE\"', cost: static }\n    - { run: \"exit 7\", cost: late }\n    - { run: \"false\", cost: static }\n")
 	t.Setenv("GIT_INDEX_FILE", "elsewhere")
 	cfg, err := loadConfig("")
 	if err != nil {
@@ -154,9 +158,77 @@ func TestWorkPortsRunATasksChecksAsTheHookDoes(t *testing.T) {
 		t.Fatalf("the ledger's tasks: %v, %v", tasks, err)
 	}
 	var stderr strings.Builder
-	why, err := workPorts{}.FirstFailure(t.Context(), cfg, tasks[0], 60, &stderr)
-	if err != nil || why != "`false` exited 1" || stderr.String() != "T-1 One\n  $ false\n" {
-		t.Errorf("FirstFailure = %q, %v, stderr %q", why, err, stderr.String())
+	checked, err := workPorts{}.TaskChecks(t.Context(), cfg, tasks[0], &stderr)
+	f := checked.Failure
+	if err != nil || f == nil || f.Task != "T-1" || f.Command != "false" || f.Why != "`false` exited 1" || f.Code != 1 || f.TimedOut ||
+		checked.Evidence != nil || stderr.String() != "T-1 One\n  $ false\n" {
+		t.Errorf("TaskChecks = %+v, %v, stderr %q", checked, err, stderr.String())
+	}
+}
+
+// An opted-in check is looked up by HEAD's tree, never the index's: a staged
+// change and an unstaged edit reach neither its run nor its key, nothing is
+// said of them, the miss is recorded, the evidence is given, and a second run
+// answers from the record.
+func TestWorkPortsKeepOptedInChecksOnHEADsTree(t *testing.T) {
+	closeRepo(t)
+	putFile(t, filepath.Join("tasks", "phase-1.yaml"), "- id: T-1\n  type: docs\n  title: One\n  why: Because.\n  done_when:\n"+
+		"    - { run: \"cat input; exit 3\", cost: static, evidence: {} }\n")
+	putFile(t, "input", "committed\n")
+	gitIn(t, "add", "--", "tasks/phase-1.yaml", "input")
+	gitIn(t, "commit", "-q", "-m", "chore: add the check")
+	head := strings.TrimSpace(gitIn(t, "rev-parse", "HEAD^{tree}"))
+	putFile(t, "input", "staged\n")
+	gitIn(t, "add", "--", "input")
+	putFile(t, "input", "edited\n")
+	cfg, err := loadConfig("")
+	if err != nil {
+		t.Fatal(err)
+	}
+	tasks, err := ledger.Tasks(cfg)
+	if err != nil || len(tasks) != 1 {
+		t.Fatalf("the ledger's tasks: %v, %v", tasks, err)
+	}
+	ports := workPorts{Out{OS: runtime.GOOS}}
+	var stderr strings.Builder
+	checked, err := ports.TaskChecks(t.Context(), cfg, tasks[0], &stderr)
+	f := checked.Failure
+	if err != nil || f == nil || f.Code != 3 || f.Output != "committed\n" || len(checked.Evidence) != 1 {
+		t.Fatalf("TaskChecks = %+v, %v, stderr %q", checked, err, stderr.String())
+	}
+	first := checked.Evidence[0]
+	if first.Command != "cat input; exit 3" || first.Tree != head || !first.Recorded || first.Hit || first.Reason != "" || strings.Contains(stderr.String(), "not staged") {
+		t.Errorf("the miss: %+v, stderr %q", first, stderr.String())
+	}
+	stderr.Reset()
+	again, err := ports.TaskChecks(t.Context(), cfg, tasks[0], &stderr)
+	if err != nil || again.Failure == nil || again.Failure.Output != "committed\n" || len(again.Evidence) != 1 || !again.Evidence[0].Hit || again.Evidence[0].Key != first.Key {
+		t.Errorf("the hit: %+v, %v", again, err)
+	}
+}
+
+// work done's view of the repository is HEAD's: its tree stands where the
+// index's does, its paths are the tracked ones (a path only the index holds is
+// not), and no change is unstaged.
+func TestDoneGitReadsHEADsTree(t *testing.T) {
+	closeRepo(t)
+	putFile(t, "input", "committed\n")
+	gitIn(t, "add", "--", "input")
+	gitIn(t, "commit", "-q", "-m", "chore: add the input")
+	putFile(t, "staged", "new\n")
+	gitIn(t, "add", "--", "staged")
+	putFile(t, "input", "edited\n")
+	g := doneGit{evidenceGit{vcs.Git{Dir: "."}}}
+	tree, err := g.IndexTree(t.Context())
+	if want := strings.TrimSpace(gitIn(t, "rev-parse", "HEAD^{tree}")); err != nil || tree != want {
+		t.Errorf("IndexTree = %q, %v, not HEAD's %q", tree, err, want)
+	}
+	paths, err := g.IndexPaths(t.Context())
+	if err != nil || !slices.Contains(paths, "input") || slices.Contains(paths, "staged") {
+		t.Errorf("IndexPaths = %v, %v", paths, err)
+	}
+	if unstaged, err := g.UnstagedPaths(t.Context()); err != nil || unstaged != nil {
+		t.Errorf("UnstagedPaths = %v, %v", unstaged, err)
 	}
 }
 
