@@ -13517,8 +13517,8 @@ items:
   - id: bug-132
     title: A command that commits a given text as its body never lets a line of it read as a footer or overrun the line limit
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: bug
     why: >
