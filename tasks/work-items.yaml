@@ -13438,3 +13438,18 @@ items:
     status: todo
     depends_on: []
     kind: task
+
+  - id: p1-positionals-capped
+    title: A command given more positional arguments than its usage takes refuses them
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [p1-cli-kong]
+    kind: idea
+    why: >
+      Found by bug-124's spec (2026-10-24): the parse spec cannot cap positionals, so every parser
+      that takes argsengine.First drops the rest silently. Verified: itos commit check-message
+      <file> <extra> and itos version <extra> exit 0; by reading, tests list, tests moves and tests
+      smoke check|ids <kind> <extra> do the same. bug-124 fixes work check alone. p1-cli-kong's
+      parser caps positionals by declaration, so this is v9's.
+    tags: [v9]
