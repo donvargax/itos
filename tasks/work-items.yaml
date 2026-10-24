@@ -10950,17 +10950,9 @@ items:
     title: A followup thread is on a topic, with zero or more people, not with one person only
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: []
     kind: idea
-    why: >
-      The user, 2026-10-21: threads follow a topic (a vendor, an integration, a recurring meeting)
-      as often as a person. --with becomes optional and repeatable; followup lists by topic and
-      filters by person. p1-followup-state already argues one thread per topic, not per team. May
-      merge with p1-research-log if a topic thread with no person is the same thing as a log.
-
-      Designed as a type of p1-typed-items' one record (the user, 2026-10-21), not as a command
-      group of its own; built after it, or as its pilot.
     tags: [followup, v9]
 
   - id: p1-followup-drafts
