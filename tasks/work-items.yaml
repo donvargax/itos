@@ -1954,15 +1954,9 @@ items:
     title: config check warns of header_lint's hook and stdin when use is builtin
     phase: 3
     owner: null
-    status: todo
+    status: dropped
     depends_on: [slice-25]
     kind: idea
-    why: >
-      Found in slice 25: under use: builtin, a hook or stdin left in commits.header_lint is read by
-      nothing, against PLAN.md §5's rule that every key accepted is one a tool reads. config check
-      warns of them, with a scenario, and never refuses them: v2.0.0 accepts them (its Known issues),
-      and a refusal in a v2.x would break a config v2.0 accepted (docs/ORCHESTRATING.md's lesson on
-      compatibility), the coordinator's call (2026-10-03).
     refs: [PLAN.md]
     tags: [config, v8]
 
