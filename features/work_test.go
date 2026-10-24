@@ -119,6 +119,7 @@ func initializeWorkSteps(sc *godog.ScenarioContext, w *world) {
 	sc.Step(`^the last commit's header is not "([^"]*)"$`, w.lastHeaderIsNot)
 	sc.Step(`^the last commit's body says "([^"]*)"$`, w.lastBodySays)
 	sc.Step(`^the last commit's body has no line longer than (\d+) characters$`, w.lastBodyFits)
+	sc.Step(`^the last commit's body, its line breaks taken out, says "([^"]*)"$`, w.lastBodyJoinedSays)
 	sc.Step(`^the last commit touches only "([^"]*)"$`, func(path string) error { return w.lastTouchesOnly(path) })
 	sc.Step(`^the last commit touches only "([^"]*)" and "([^"]*)"$`, func(a, b string) error { return w.lastTouchesOnly(a, b) })
 	sc.Step(`^the ledger file "([^"]*)" has the task "([^"]*)" with the check "([^"]*)"$`, w.ledgerFileHasTask)
@@ -558,6 +559,19 @@ func (w *world) lastBodySays(text string) error {
 	}
 	if !strings.Contains(strings.Join(strings.Fields(out), " "), strings.Join(strings.Fields(text), " ")) {
 		return fmt.Errorf("the last commit's body does not say %q:\n%s\n%s", text, out, w.report())
+	}
+	return nil
+}
+
+// The last commit's body with its line breaks removed, not made spaces,
+// holds the text: a word broken across lines is found whole (bug 132).
+func (w *world) lastBodyJoinedSays(text string) error {
+	out, err := w.gitOutput("log", "-1", "--format=%b")
+	if err != nil {
+		return err
+	}
+	if !strings.Contains(strings.ReplaceAll(out, "\n", ""), text) {
+		return fmt.Errorf("the last commit's body, its line breaks taken out, does not say %q:\n%s\n%s", text, out, w.report())
 	}
 	return nil
 }
