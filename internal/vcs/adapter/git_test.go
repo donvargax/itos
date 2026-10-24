@@ -233,6 +233,10 @@ func laidOut(t *testing.T, l porttest.Layout) (port.VCS, string) {
 		gitIn(t, base, "", "init", "-q", "--bare", "-b", "main", origin)
 		gitIn(t, repo, "", "push", "-q", origin, "b:refs/heads/main", "t:refs/heads/theirs")
 		gitIn(t, repo, "", "remote", "add", "origin", origin)
+		// A proxy answers for a host that cannot be reached, so git would
+		// not say the host is unreachable; this one goes direct.
+		t.Setenv("NO_PROXY", "itos.invalid")
+		t.Setenv("no_proxy", "itos.invalid")
 		gitIn(t, repo, "", "remote", "add", "down", "https://itos.invalid/x.git")
 		gitIn(t, repo, "", "config", "branch.main.remote", "origin")
 		gitIn(t, repo, "", "config", "branch.main.merge", "refs/heads/main")
