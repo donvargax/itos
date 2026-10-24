@@ -55,7 +55,6 @@ phases:
   3: donvargax
 
 queue:
-  - slice-171
   - slice-172
   - p1-pr-mode
   - p1-agent-test-runs-once
