@@ -12863,7 +12863,7 @@ items:
       not authorised here. Retired wip ASK-34 and ASK-37..40 describe material to re-specify, not
       live promises.
     refs: [features/decision-validation.feature, internal/adr, internal/slices/decision]
-    tags: [ask, v8]
+    tags: [ask, v9]
 
   - id: p1-reviewer-budget-controls
     title: Expose reviewer budgets and budget-exhaustion outcomes through the normal CLI
