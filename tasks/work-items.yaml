@@ -7024,7 +7024,7 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: []
+    depends_on: [p1-typed-items]
     kind: idea
     why: >
       No itos data stores a date: an item's age, how long it has been doing, or when it closed lives
@@ -7040,7 +7040,7 @@ items:
       dates from git history as an automatic step of itos upgrade (p1-upgrade-applies-config-steps),
       never a one-time command, since until v10 a command kept only for one migration is cost with
       no need.
-    tags: [work, v8]
+    tags: [work, v9]
 
   - id: p1-work-backlog-summary
     title: "itos work summary shows the backlog's shape: counts, age, the queue's state and stale doing items"
