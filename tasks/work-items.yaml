@@ -13837,3 +13837,20 @@ items:
     status: todo
     depends_on: []
     kind: task
+
+  - id: p1-remote-failure-proxy
+    title: A proxy's refusal or unresolvable proxy reads as an unreachable remote
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Found 2026-10-24 under the Bash sandbox's proxy: git says 'CONNECT tunnel failed, response
+      403' (or 'Proxy CONNECT aborted') when a proxy refuses the destination, and 'Could not resolve
+      proxy: <host>' when the proxy itself does not resolve; RemoteFailure reads neither, so the
+      adapter gives port.Other and itos push exits as an unknown failure rather than 75 (try again).
+      git cannot tell a blocked destination from a host that is down from the refusal alone; reading
+      both as temporary, with the proxy named, is likely more useful. 'Failed to connect to … over
+      proxy' already reads as unreachable.
+    refs: [internal/git/remote.go]
