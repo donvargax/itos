@@ -6777,7 +6777,7 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: []
+    depends_on: [p1-typed-items]
     kind: idea
     why: >
       Most decisions of 2026-10-09 (q-50 to q-55) were answered in chat before the coordinator
@@ -6792,7 +6792,7 @@ items:
       recording an answer while an agent held the checkout). p1-draft-decision-id keeps its first
       half, draft add printing the q id it will take.
     refs: [internal/cli, internal/ask]
-    tags: [ask, v8]
+    tags: [ask, v9]
 
   - id: p1-work-promote-kind-bug
     title: Decide whether work promote --kind takes bug
