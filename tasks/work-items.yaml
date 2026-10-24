@@ -13871,3 +13871,11 @@ items:
       the proof from commits.since would change which proof a run selects; decide whether that is
       wanted before building it.
     tags: [proof, ci]
+
+  - id: T-302
+    title: Implementing agents wait for CI, fix a red run and close their item
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task
