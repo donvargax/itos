@@ -13226,6 +13226,11 @@ items:
       from the item); its first users are p1-haiku-implementer-trial and
       p1-sonnet-implementer-trial, and running it is what tells whether a cheap coordinator is
       realistic (p1-cheap-coordinator-trial).
+
+      The user, 2026-10-24: escalation goes to an answering agent first, not the person: it settles
+      what the spec does not, drawing on decisions already recorded (here and in other repositories,
+      p2-cross-repo-contract), and records each answer for the person's daily or weekly review. Only
+      a hard blocker reaches the person at once.
     tags: [agents, v8]
 
   - id: p1-conformance-job-logs
