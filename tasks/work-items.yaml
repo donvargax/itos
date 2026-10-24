@@ -2661,6 +2661,12 @@ items:
       failed at line and the FAIL lines before it, a bounded tail) through api.github.com, for ci
       watch and for itos status's red Nightly line. Merges p1-devcontainer-actions-logs' second
       option.
+
+      2026-10-23, the user: cut the ceremony of a red run. Beyond the failed step, the push and ci
+      watch result names the failing tests and scenarios with their first error lines, so a
+      coordinator or a state machine hands the failure to the agent that pushed without listing
+      jobs, fetching logs and grepping them (3 to 5 commands per red today). Queued after slice-171,
+      before p1-pr-mode.
     refs: [internal/providers/watch.go, internal/cli/watch.go]
     tags: [ci]
 
