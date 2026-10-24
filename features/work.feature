@@ -146,13 +146,22 @@ Feature: The work registry
   # cause. git's failure is an error, naming git's command and what git said,
   # and it exits 70, as a git that fails while work add reserves an ID does
   # (@ID-IDS-08, bug 119): the repository is located and the config loaded by
-  # then, so no kind fits, whatever kind git.Read gives it. Exit 1 stays for
-  # policy, a file the person changed or a commit git or a hook refused
-  # (work-commit-failed). The git that fails is the one itos runs (ITOS_GIT),
-  # set after the registry is committed, and fails git status alone, so the
-  # hooks check before it still finds itos's hooks declared and the check is
-  # the first to meet the failure. The fixture's words are judged, not
-  # itos's: what git said reaches the person (ADR-0052).
+  # then, so no kind fits. The wrap, kind.Wrap(kind.Unknown, …), sits in the
+  # tracker adapter's Files, as Files.counter's does for bug 119. Exit 1
+  # stays for policy, a file the person changed or a commit git or a hook
+  # refused (work-commit-failed). git's words are kept by the VCS's
+  # PathStatus itself, read through the adapter's output (port.Failed, which
+  # holds git's stderr) in place of git.Read, which drops it: one call
+  # changed, no second status read beside it. Its other caller, itos init's
+  # excludeIfShown, prints the error after "Could not list … in the git
+  # folder's info/exclude:" and goes on, so its exit code is unchanged; only
+  # the words after the colon change, which no scenario or corpus case reads.
+  # The git that fails is the one itos runs (ITOS_GIT), set after the
+  # registry is committed, and fails git status alone: the hooks check before
+  # it still finds itos's hooks declared, and git ls-files still finds the
+  # registry tracked, so git status's failure alone decides the outcome. The
+  # fixture's words are judged, not itos's: what git said reaches the person
+  # (ADR-0052).
   @ID-WORK-151 @bug-130 @wip
   Scenario: A git status that fails is reported as git's failure, exit 70, not as changes no commit holds
     Given the work registry has the item "slice-9" owned by nobody with the status "todo"
