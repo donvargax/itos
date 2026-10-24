@@ -13434,8 +13434,8 @@ items:
   - id: T-298
     title: Settle the five survivors of Nightly 40091179284
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
 
