@@ -12678,20 +12678,9 @@ items:
     title: "Snapshot task checks see a complete private Git context: HEAD, refs, history and the proposal"
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: [bug-112]
     kind: idea
-    why: >
-      Split from bug-112 by its review (2026-10-23), taking its old HOOKSNAP-04 and -05. bug-112
-      already chose history through objects/info/alternates and stripping the git rev-parse
-      --local-env-vars set. Still to decide: HEAD and ref population, unborn and detached HEAD,
-      linked worktrees, a fixture with a genuinely Git-supplied alternate index, concrete
-      observations (HEAD SHA or unborn, branch or detached, a history query, the staged tree)
-      written to an external observer log, a nested repository, and private writes to refs, index
-      and objects never reaching the source. Also the in-tree ITOS_CONFIG remap (resolved before the
-      child's working folder changes; a source-tree path maps into the snapshot, no fallback to an
-      unstaged config), with scenarios for relative and absolute pointers. Never fabricate a commit
-      for the proposal.
     tags: [hooks, v8]
 
   - id: p1-snapshot-stealth
