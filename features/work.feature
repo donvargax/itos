@@ -293,7 +293,7 @@ Feature: The work registry
   # registry keeps the title as given; the body's line breaks are removed,
   # not made spaces, to find the word whole. work edit --note's text never
   # reaches the body (it says "a note on its why"), so a title stands in.
-  @ID-WORK-159 @bug-132 @wip
+  @ID-WORK-159 @bug-132
   Scenario: work edit of a title holding a word longer than a body line commits a body within the limit
     Given the work registry has the idea "p1-thing" owned by nobody
     And the header lint is itos's built-in one
@@ -595,7 +595,7 @@ Feature: The work registry
   # the single-id bodies of work drop, work defer and work give-back are
   # reordered so, with no new field, and selfBody's wrap then starts no line
   # with the why's "Word:". Defer and give-back are held by unit tests.
-  @ID-WORK-157 @bug-132 @wip
+  @ID-WORK-157 @bug-132
   Scenario: work drop commits a why that starts with a word and a colon as prose, never as a footer
     Given the work registry has the idea "p1-thing" owned by nobody
     And the header lint is itos's built-in one
@@ -609,7 +609,7 @@ Feature: The work registry
   # A guard for bug 132: an ordinary why, under the same lint and hook,
   # still lands in the body whole wherever the fix places it. It passes
   # before the fix and must after.
-  @ID-WORK-158 @bug-132 @guard @wip
+  @ID-WORK-158 @bug-132 @guard
   Scenario: work drop still commits an ordinary why in its body, every line within the limit
     Given the work registry has the idea "p1-thing" owned by nobody
     And the header lint is itos's built-in one

@@ -24,7 +24,7 @@ func TestDeferAndResume(t *testing.T) {
 		"    deferred: >\n      Waits for the next major release.\n" +
 		"  - { id: s, title: S, phase: 1, status: todo, kind: slice }\n"
 	if change.Text != want || change.Header != "docs: defer i" ||
-		!strings.HasPrefix(change.Body, "Waits for the next major release. Set i") ||
+		!strings.HasPrefix(change.Body, "Set i") || !strings.HasSuffix(change.Body, " Waits for the next major release.") ||
 		change.Item.At("deferred") != "Waits for the next major release.\n" || change.Item.At("status") != "todo" {
 		t.Errorf("defer i:\n got %q\nwant %q\n%+v", change.Text, want, change)
 	}

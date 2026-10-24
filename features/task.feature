@@ -196,7 +196,7 @@ Feature: The task runner runs each check once, and lists task status without run
   # in every commit itos makes of its own files (ID-WORK-159 in
   # work.feature); decision record's title is the same case, by the same
   # writer, and is left to its unit tests.
-  @ID-TASK-17 @bug-132 @wip
+  @ID-TASK-17 @bug-132
   Scenario: task add of a title holding a word longer than a body line commits a body within the limit
     Given the work registry has the item "T-001" owned by nobody with the status "done"
     And the header lint is itos's built-in one

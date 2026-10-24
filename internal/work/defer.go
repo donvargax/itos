@@ -60,8 +60,8 @@ func Defer(cfg *config.Loaded, r Registry, text, id, reason string) (Change, []o
 	if err != nil || len(found) > 0 {
 		return Change{}, found, err
 	}
-	body := fmt.Sprintf("%s Set %s (%s) deferred, with itos work defer: it keeps its status, its owner and its place in the queue.",
-		strings.TrimSpace(reason), id, value.JSON(value.String(item.At("title"))))
+	body := fmt.Sprintf("Set %s (%s) deferred, with itos work defer: it keeps its status, its owner and its place in the queue. %s",
+		id, value.JSON(value.String(item.At("title"))), strings.TrimSpace(reason))
 	return Change{Text: edited, Item: after, Header: "docs: defer " + id, Body: body}, nil, nil
 }
 

@@ -183,10 +183,14 @@ func dirty(cfg *config.Loaded, files []File, err error) (*out.Problem, error) {
 // colon, or git's comment char, a break there moving back a word. A plain
 // wrap started lines with whatever word came next, so a question or a why
 // holding "word:" drew the lint's footer-leading-blank warning on itos's own
-// commit (bug 18).
+// commit (bug 18). A word longer than the line is then broken inside
+// (message.BreakLong, bug 132), which the lint would refuse whole. A text the
+// person gave never leads the body: led by "Word:", its line was a footer to
+// git.
 func selfBody(cfg *config.Loaded, header, body string) string {
 	parts := []string{header, strings.Join(strings.Fields(body), " ")}
-	return message.Wrap(parts, BodyWidth, cfg.CommentChar(), cfg.Commits.Footers.Keys)[1]
+	wrapped := message.Wrap(parts, BodyWidth, cfg.CommentChar(), cfg.Commits.Footers.Keys)[1]
+	return message.BreakLong(wrapped, BodyWidth, cfg.CommentChar(), cfg.Commits.Footers.Keys)
 }
 
 // and is the names joined as a list is said: "a", "a and b", "a, b and c".

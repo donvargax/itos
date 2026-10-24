@@ -142,6 +142,56 @@ func (p *twoParts) ReadRune() (rune, int, error) {
 	return r, n, nil
 }
 
+// BreakLong is a body with each line longer than limit and holding no URL
+// (the lint allows one) broken inside its words (bug 132), for the body of a
+// commit itos makes of its own files, where a word longer than the line (a
+// path, a long id) would be refused whole; Wrap leaves it so for itos commit,
+// whose message is the person's. A line is cut after its last "/" that
+// leaves a piece within limit, else at the limit, no character lost and none
+// split; the lint and limit count UTF-16 units. No cut starts a line with
+// what Wrap's breaks bar (opensFooter): it moves to an earlier "/" or
+// character, and a line with no cut allowed is left as it is.
+func BreakLong(text string, limit int, commentChar string, keys []string) string {
+	barred := func(rest string) bool { return opensFooter("", rest, commentChar, keys) }
+	lines := strings.Split(text, "\n")
+	var out []string
+	for _, l := range lines {
+		for length(l) > limit && !url.MatchString(l) {
+			at := cutAt(l, limit, barred)
+			if at == 0 {
+				break
+			}
+			out = append(out, l[:at])
+			l = l[at:]
+		}
+		out = append(out, l)
+	}
+	return strings.Join(out, "\n")
+}
+
+// cutAt is where to cut a line of more than limit: the last byte offset
+// after a "/" with the line before it within limit, else the last offset
+// with one, and the rest after it not barred; 0 when none is.
+func cutAt(l string, limit int, barred func(rest string) bool) int {
+	var ends []int
+	for i, units := 0, 0; i < len(l); {
+		r, w := utf8.DecodeRuneInString(l[i:])
+		if units += utf16Len(r); units > limit {
+			break
+		}
+		i += w
+		ends = append(ends, i)
+	}
+	for _, slash := range []bool{true, false} {
+		for k := len(ends) - 1; k >= 0; k-- {
+			if at := ends[k]; (!slash || l[at-1] == '/') && !barred(l[at:]) {
+				return at
+			}
+		}
+	}
+	return 0
+}
+
 // wrapLine is one line broken at its spaces into lines of at most limit, a
 // list item's continuation lines indented to its text; a word longer than
 // the limit has a line of its own, whole. A break is never made where the

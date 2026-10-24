@@ -21,7 +21,7 @@ func TestDrop(t *testing.T) {
 	want := "phases: { 1: null }\nqueue:\n  - s\nitems:\n" +
 		"  - { id: i, title: I, phase: 1, status: dropped, kind: idea, deferred: 'later' }\n" +
 		"  - { id: s, title: S, phase: 1, status: todo, kind: slice }\n"
-	if change.Text != want || change.Header != "docs: drop i" || !strings.HasPrefix(change.Body, "Superseded by s. Set i") ||
+	if change.Text != want || change.Header != "docs: drop i" || !strings.HasPrefix(change.Body, "Set i") || !strings.HasSuffix(change.Body, " Superseded by s.") ||
 		!slices.Equal(change.Queue, []string{"s"}) || change.Item.Has("why") {
 		t.Errorf("drop i:\n got %q\nwant %q\n%+v", change.Text, want, change)
 	}

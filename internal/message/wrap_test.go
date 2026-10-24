@@ -119,3 +119,64 @@ func TestWrapLargeBodyInLinearTime(t *testing.T) {
 		}
 	}
 }
+
+// A line longer than the limit with no URL is cut inside its words, after
+// the last "/" that leaves a piece within the limit, else at the limit; a
+// short line, a URL's line and a text with no long line come back as they
+// were (bug 132).
+func TestBreakLong(t *testing.T) {
+	for _, c := range []struct{ line, want string }{
+		{"a short line", "a short line"},
+		{"aaaa/bbbb/cccc/dddd/eeee/ffff", "aaaa/bbbb/cccc/dddd/\neeee/ffff"},
+		{"aaaa/bbbb/cccc/dddd/", "aaaa/bbbb/cccc/dddd/"},
+		{strings.Repeat("x", 45), strings.Repeat("x", 20) + "\n" + strings.Repeat("x", 20) + "\n" + strings.Repeat("x", 5)},
+		{"https://example.com/" + strings.Repeat("x", 45), "https://example.com/" + strings.Repeat("x", 45)},
+		{"one " + strings.Repeat("y", 30), "one " + strings.Repeat("y", 16) + "\n" + strings.Repeat("y", 14)},
+	} {
+		if got := BreakLong(c.line, 20, "#", nil); got != c.want {
+			t.Errorf("BreakLong(%q):\n%q\nwant:\n%q", c.line, got, c.want)
+		}
+	}
+	text := "first\nlonger-than-twenty-characters/x\nlast"
+	if got, want := BreakLong(text, 20, "#", nil), "first\nlonger-than-twenty-c\nharacters/x\nlast"; got != want {
+		t.Errorf("BreakLong of lines:\n%q\nwant:\n%q", got, want)
+	}
+}
+
+// A cut never starts a line with what Wrap's breaks bar, a footer note, a
+// configured footer's key and its colon, or the comment char: it moves to an
+// earlier "/", else an earlier character, and a line with no cut allowed is
+// left over the limit for the lint to judge.
+func TestBreakLongNeverOpensAFooter(t *testing.T) {
+	for _, c := range []struct{ line, want string }{
+		{"aaaa/bbbb/cccc/dddd/#92xxxxxxx", "aaaa/bbbb/cccc/\ndddd/#92xxxxxxx"},
+		{"aaaa/bbbb/cccc/dddd/Scenarios:@A-1", "aaaa/bbbb/cccc/\ndddd/Scenarios:@A-1"},
+		{"aaaaaaaaaaaaaaaaaaaaaa#92", "aaaaaaaaaaaaaaaaaaaa\naa#92"},
+		{"aaaaaaaaaaaaaaaaaaaa#92", "aaaaaaaaaaaaaaaaaaa\na#92"},
+		{"aaaaaaaaaaaaaaaaaaaaaa/Scenarios:", "aaaaaaaaaaaaaaaaaaaa\naa/Scenarios:"},
+		{strings.Repeat("#", 30), strings.Repeat("#", 30)},
+	} {
+		if got := BreakLong(c.line, 20, "#", []string{"Scenarios"}); got != c.want {
+			t.Errorf("BreakLong(%q):\n%q\nwant:\n%q", c.line, got, c.want)
+		}
+	}
+}
+
+// The limit counts UTF-16 units as the lint does, a character beyond U+FFFF
+// two, and a cut never splits a character: every line is within the limit,
+// and no character is lost.
+func TestBreakLongCountsUTF16(t *testing.T) {
+	word := "a" + strings.Repeat("😀", 12) + "é" + strings.Repeat("😀", 3)
+	got := BreakLong(word, 20, "#", nil)
+	if want := "a" + strings.Repeat("😀", 9) + "\n" + strings.Repeat("😀", 3) + "é" + strings.Repeat("😀", 3); got != want {
+		t.Errorf("BreakLong:\n%q\nwant:\n%q", got, want)
+	}
+	for _, l := range strings.Split(got, "\n") {
+		if length(l) > 20 {
+			t.Errorf("the line %q is %d units", l, length(l))
+		}
+	}
+	if strings.ReplaceAll(got, "\n", "") != word {
+		t.Errorf("BreakLong lost characters: %q", got)
+	}
+}

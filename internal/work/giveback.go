@@ -57,11 +57,11 @@ func GiveBack(cfg *config.Loaded, r Registry, text, id, person string, every boo
 	if err != nil || len(found) > 0 {
 		return Change{}, found, err
 	}
-	body := fmt.Sprintf("%s Set %s back to todo, with itos work give-back", strings.TrimSpace(reason), titledItem(item))
+	body := fmt.Sprintf("Set %s back to todo, with itos work give-back", titledItem(item))
 	if who, ok := item.At("owner").(string); ok && who != "" {
 		body += ": it keeps its owner, " + who
 	}
-	return Change{Text: edited, Item: after, Header: "docs: give back " + id, Body: body + "."}, nil, nil
+	return Change{Text: edited, Item: after, Header: "docs: give back " + id, Body: body + ". " + strings.TrimSpace(reason)}, nil, nil
 }
 
 // GiveBackEach is GiveBack made to each id (slice 122), the reason last in

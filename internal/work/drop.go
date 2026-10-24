@@ -73,7 +73,7 @@ func Drop(cfg *config.Loaded, r Registry, text, id, reason string) (Change, []ou
 	if err != nil || len(found) > 0 {
 		return Change{}, found, err
 	}
-	body := fmt.Sprintf("%s Set %s (%s) to dropped, with itos work drop", strings.TrimSpace(reason), id, value.JSON(value.String(item.At("title"))))
+	body := fmt.Sprintf("Set %s (%s) to dropped, with itos work drop", id, value.JSON(value.String(item.At("title"))))
 	switch {
 	case hasWhy && queued:
 		body += ", its why dropped and the item taken out of the queue"
@@ -82,7 +82,7 @@ func Drop(cfg *config.Loaded, r Registry, text, id, reason string) (Change, []ou
 	case queued:
 		body += ", the item taken out of the queue"
 	}
-	body += ": it stays in the registry, so its id is never given again."
+	body += ": it stays in the registry, so its id is never given again. " + strings.TrimSpace(reason)
 	return Change{Text: edited, Item: after, Queue: queue, Header: "docs: drop " + id, Body: body}, nil, nil
 }
 

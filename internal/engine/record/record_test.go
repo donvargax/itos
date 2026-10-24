@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/donvargax/itos/v8/internal/config"
+	"github.com/donvargax/itos/v8/internal/message"
 	"github.com/donvargax/itos/v8/internal/out"
 	"github.com/donvargax/itos/v8/internal/store/tracker/port"
 	"github.com/donvargax/itos/v8/internal/store/tracker/port/porttest"
@@ -17,6 +18,7 @@ import (
 	treefake "github.com/donvargax/itos/v8/internal/store/tree/port/porttest"
 	"github.com/donvargax/itos/v8/internal/value"
 	vcsfake "github.com/donvargax/itos/v8/internal/vcs/port/porttest"
+	"github.com/donvargax/itos/v8/internal/work"
 )
 
 // A project's tracker over the fake, registry.yaml its registry and
@@ -244,6 +246,102 @@ func TestCommitBodyWrapsClearOfFooters(t *testing.T) {
 		}
 		if strings.Join(strings.Fields(got), " ") != body {
 			t.Errorf("the body's words are not the given ones, in order:\n%s", got)
+		}
+	}
+}
+
+// A config over the fakes whose header lint is itos's own and whose footers
+// are the ones the tests' bodies could be read as.
+func lintConfig(t *testing.T) *config.Loaded {
+	t.Helper()
+	trees := treefake.Trees{Files: map[string]map[string]string{"worktree": nil}}
+	src, err := trees.At(t.Context(), "worktree")
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := config.FromText(&vcsfake.VCS{}, trees, src, "itos.yaml",
+		"version: 1\ncommits:\n  header_lint: { use: builtin }\n  footers:\n    Item: { source: text }\nwork: { registry: tasks/work-items.yaml }\n", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return cfg
+}
+
+// The registry of a text, as Load gives it.
+func registryOf(t *testing.T, text string) work.Registry {
+	t.Helper()
+	raw, err := value.Parse(text)
+	if err != nil {
+		t.Fatal(err)
+	}
+	r := work.Registry{Phases: value.Prop(raw, "phases").(*value.Map)}
+	for _, item := range value.Prop(raw, "items").([]any) {
+		m := value.Copy(item).(*value.Map)
+		if m.At("depends_on") == value.Undefined {
+			m.Set("depends_on", []any{})
+		}
+		r.Items = append(r.Items, m)
+	}
+	return r
+}
+
+// The body of a commit itos makes of a text the person gave never reads as a
+// footer and never runs over the line, whichever command writes it, where
+// the text opens with "Word:" or holds a word longer than the line (bug
+// 132): each of work drop, defer, give-back, add and edit, run through the
+// body writer, is a message the built-in header lint and the footer rules
+// let pass, whole.
+func TestSelfBodyOfGivenTexts(t *testing.T) {
+	cfg := lintConfig(t)
+	path := "internal/slices/work/registry/commit/body/a-path-deep-enough-that-it-runs-past-the-line/of-the-header-lint/selfbody.go"
+	text := "phases: { 1: null }\nitems:\n" +
+		"  - { id: i, title: " + path + ", phase: 1, status: todo, owner: null, kind: idea, why: a gap }\n" +
+		"  - { id: s, title: " + path + ", phase: 1, status: doing, owner: p, kind: slice }\n"
+	r := registryOf(t, text)
+	title := "Split " + path + " in two"
+	for _, reason := range []string{
+		"Superseded: slice-9 does what this idea asked for, and its scenarios pin it.",
+		"Item: bug-1 " + strings.Repeat("and more ", 20),
+		"See " + path + " for why.",
+		path,
+	} {
+		for _, c := range []struct {
+			run func() (work.Change, []out.Problem, error)
+			// said is whether the body carries the text given.
+			said bool
+		}{
+			{func() (work.Change, []out.Problem, error) { return work.Drop(cfg, r, text, "i", reason) }, true},
+			{func() (work.Change, []out.Problem, error) { return work.Defer(cfg, r, text, "i", reason) }, true},
+			{func() (work.Change, []out.Problem, error) {
+				return work.GiveBack(cfg, r, text, "s", "p", false, reason)
+			}, true},
+			{func() (work.Change, []out.Problem, error) {
+				return work.Add(cfg, r, text, work.New{ID: "p1-new", Title: title, Why: reason, Kind: "idea"}, nil)
+			}, false},
+			{func() (work.Change, []out.Problem, error) {
+				return work.Edit(cfg, r, text, "i", work.Edits{Title: &title, Note: reason}, nil)
+			}, false},
+		} {
+			change, found, err := c.run()
+			if err != nil || len(found) > 0 {
+				t.Fatalf("%q: %v, %v", reason, found, err)
+			}
+			body := selfBody(cfg, change.Header, change.Body)
+			whole := change.Header + "\n\n" + body
+			problems, err := message.HeaderProblems(cfg, whole, "")
+			footers, ferr := message.FooterProblems(cfg, whole, message.Reading{})
+			if err != nil || ferr != nil || len(problems) > 0 || len(footers) > 0 {
+				t.Errorf("%q:\n%s\nheader %v (%v), footers %v (%v)", reason, whole, problems, err, footers, ferr)
+			}
+			for _, line := range strings.Split(body, "\n") {
+				if strings.HasPrefix(line, "Superseded:") || strings.HasPrefix(line, "Item:") {
+					t.Errorf("a line of the body opens as a footer: %q", line)
+				}
+			}
+			if joined := strings.ReplaceAll(strings.ReplaceAll(body, "\n", ""), " ", ""); c.said &&
+				!strings.Contains(joined, strings.ReplaceAll(reason, " ", "")) {
+				t.Errorf("the body lost the text %q:\n%s", reason, body)
+			}
 		}
 	}
 }

@@ -20,7 +20,7 @@ func TestGiveBack(t *testing.T) {
 	}
 	want := strings.Replace(text, "status: doing\n    kind: slice", "status: todo\n    kind: slice", 1)
 	if change.Text != want || change.Header != "docs: give back s" ||
-		change.Body != `Blocked on another project. Set s ("S") back to todo, with itos work give-back: it keeps its owner, p.` ||
+		change.Body != `Set s ("S") back to todo, with itos work give-back: it keeps its owner, p. Blocked on another project.` ||
 		change.Item.At("status") != "todo" || change.Item.At("owner") != "p" {
 		t.Errorf("give back s:\n got %q\nwant %q\n%+v", change.Text, want, change)
 	}
@@ -29,7 +29,7 @@ func TestGiveBack(t *testing.T) {
 	}
 	// An item nobody owns is anyone's to give back, its body naming no owner.
 	nobody, found, err := GiveBack(cfg, r, text, "t", "p", false, "Later.")
-	if err != nil || len(found) > 0 || nobody.Body != `Later. Set t ("T") back to todo, with itos work give-back.` {
+	if err != nil || len(found) > 0 || nobody.Body != `Set t ("T") back to todo, with itos work give-back. Later.` {
 		t.Errorf("give back t: %+v, %v, %v", nobody, found, err)
 	}
 	// A session that owns every item gives back anyone's.
