@@ -57,7 +57,6 @@ phases:
 queue:
   - bug-124
   - bug-125
-  - p1-supersede-standing-only
   - p1-work-done-wip-examples
   - p1-uncommitted-git-failure
   - p1-guard-quoted-text
@@ -4073,12 +4072,9 @@ items:
     title: ask record --supersedes refuses a record already superseded
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: []
     kind: idea
-    why: >
-      Found by the code review of 07b0e6d (2026-10-05). Superseding an already superseded record
-      overwrites its link (cli/ask.go:546).
     refs: [internal/cli/ask.go]
     tags: [ask, v8]
 
