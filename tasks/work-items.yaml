@@ -2182,6 +2182,9 @@ items:
       without a session, T-066's checks could run tsc over the plugin with them.
     refs: [integrations/claude-code/tsconfig.json]
     tags: [plugin]
+    deferred: >
+      Blocked until Claude Code can write its plugin type declarations without a session;
+      vite.config.ts and package.json are gone (T-149). 2026-10-24 grooming.
 
   - id: T-067
     title: A dependency check refuses Go modules younger than a week, and known vulnerabilities
