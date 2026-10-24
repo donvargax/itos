@@ -12944,6 +12944,12 @@ items:
       Measure time to accepted behavior and defect signal, not check volume. Proof-backed evidence
       may eventually replace covered weaker checks instead of stacking forever, but no gate removal
       or proof experiment is authorised by recording this assessment.
+
+      2026-10-23 grooming: its deliverable now has data. The reviewer's log (claude-agent-sdk
+      .review-logs/itos/reviews.jsonl, every review's verdict, rounds and cost), CI's red runs with
+      their causes, and the Sonnet trial's record (p1-sonnet-implementer-trial) say which review
+      rounds, scenarios and gates caught real defects and which found nothing; the measuring side of
+      the trials.
     refs: [tasks/README.md, features/README.md, itos.yaml, docs/ORCHESTRATING.md]
     tags: [tests]
 
