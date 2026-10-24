@@ -13617,3 +13617,19 @@ items:
       reword them, as rewording changes what itos prints: a fix with a scenario saying what each
       malformed registry is refused with.
     refs: [internal/work/registry.go, internal/value/value.go]
+
+  - id: p1-brief-scratch-probes
+    title: The brief tells agents to probe only in a scratch repository, entered with a checked cd and absolute paths
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      2026-10-24: bug-134's spec drafter ran a probe loop 'cd $S/r && …; t(){ printf … >
+      tasks/work-items.yaml; …}' after the cd failed; the ';' ran the loop anyway and the relative
+      path overwrote the main checkout's registry with a malformed fixture (items: [5]), ten times.
+      The coordinator caught it from a failed pull and restored it. Briefs carry no rule about where
+      an agent may write besides its worktree. itos guide brief's template (or this repository's
+      ORCHESTRATING lines) could say: write only inside the worktree or a scratch repository under
+      the scratchpad, enter it with cd <dir> || exit 1, and use absolute paths.
