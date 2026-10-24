@@ -13405,6 +13405,11 @@ items:
       --as=$UNSET silently proposes another person's work, bug 11's failure mode. Also work check
       ignores every argument after its first.
 
+      From its spec (2026-10-24): the empty handle came with bug 11's own fix (640f02fc, which added
+      --as=<handle>), beside slice 54's feat. --as '' (what --as "$UNSET" passes) is the same hole.
+      The provider is asked only with several people; with one, the fallback is that person. Only
+      the proposal has it: take, give-back and status refuse an empty --as today.
+
   - id: bug-125
     title: decision record --supersedes overwrites the link of a record already superseded
     phase: 1
