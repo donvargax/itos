@@ -121,3 +121,12 @@ Feature: itos guard claude-code, Claude Code's guard against git commit and git 
     When itos runs "hook pre-tool-use"
     Then itos exits with code 2
     And its output says "itos guard claude-code"
+
+  # env takes any word holding an = before the command as an assignment, not
+  # only NAME=value with a shell identifier for NAME, so env A-B=1 git commit
+  # runs git commit; the guard read it as a command named A-B=1.
+  @ID-GUARD-13 @bug-131
+  Scenario: git commit after an env assignment whose name is no shell identifier is denied
+    When Claude Code asks itos about the Bash command "env A-B=1 git commit -m 'chore: tidy the readme'"
+    Then itos exits with code 0
+    And itos denies the command, its reason saying "itos commit"

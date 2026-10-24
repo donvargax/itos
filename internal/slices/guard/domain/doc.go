@@ -18,8 +18,9 @@
 // backslashes taken out, single-quoted, double-quoted with no expansion),
 // and the first word that is not fixed ends what the call can say. gitCall
 // skips the call's leading assignments and the precommands command, exec,
-// nohup and env (with env's NAME=VALUE words), takes git or a path ending in
-// /git, then git's global options (-C <path> moving the folder judged, as
+// nohup and env (with the options it skips and its assignments, any word
+// holding an =, where bash's own are shell identifiers), takes git or a path
+// ending in /git, then git's global options (-C <path> moving the folder judged, as
 // git would move, the valued options passing over their next word, any
 // other - word passed over) and the subcommand. Text an argument carries
 // (grep 'git commit') is a word, not a command. Reason asks the managed

@@ -174,19 +174,11 @@ func gitCall(args []*syntax.Word) (GitCall, bool) {
 		}
 		words = append(words, w)
 	}
-	i := 0
-	for env := false; i < len(words); i++ {
-		w := words[i]
-		if precommands[w] {
-			env = env || w == "env"
-			continue
-		}
-		if env && isAssignment(w) {
-			continue
-		}
-		break
+	i, ok := commandIndex(words)
+	if !ok {
+		return GitCall{}, false
 	}
-	if i >= len(words) || !isGit(words[i]) {
+	if !isGit(words[i]) {
 		return GitCall{}, false
 	}
 	call := GitCall{Dir: "."}
@@ -221,18 +213,66 @@ func isGit(name string) bool {
 	return name == "git" || strings.HasSuffix(name, "/git")
 }
 
-// isAssignment is whether a word is env's NAME=VALUE.
-func isAssignment(w string) bool {
-	name, _, ok := strings.Cut(w, "=")
-	if !ok || name == "" {
-		return false
-	}
-	for i, r := range name {
-		if r != '_' && (r < 'A' || r > 'Z') && (r < 'a' || r > 'z') && (i == 0 || r < '0' || r > '9') {
-			return false
+// commandIndex is where the command the precommands run starts in words: past
+// command, exec, nohup and env with what env skips. ok is false when there is
+// no such command or env's words cannot be read.
+func commandIndex(words []string) (int, bool) {
+	for i := 0; i < len(words); {
+		switch w := words[i]; {
+		case w == "env":
+			var ok bool
+			if i, ok = skipEnv(words, i+1); !ok {
+				return 0, false
+			}
+		case precommands[w]:
+			i++
+		default:
+			return i, true
 		}
 	}
-	return true
+	return 0, false
+}
+
+// envFlags are env's options without a value that the guard reads past.
+var envFlags = map[string]bool{"-": true, "-i": true, "-0": true, "--ignore-environment": true, "--null": true}
+
+// skipEnv is the index of the first word after env's options and assignments
+// (words[i:] is what follows env): -i, -0, -, --ignore-environment, --null,
+// -u NAME in the forms env takes it, and -- ending the options. An option env
+// has otherwise (-S, -C) cannot be read, so ok is false.
+func skipEnv(words []string, i int) (int, bool) {
+	options := true
+	for i < len(words) {
+		w := words[i]
+		switch {
+		case options && w == "--":
+			options = false
+		case options && (w == "-u" || w == "--unset"):
+			i++
+			if i >= len(words) {
+				return 0, false
+			}
+		case options && strings.HasPrefix(w, "-"):
+			if !envFlags[w] && !strings.HasPrefix(w, "-u") && !strings.HasPrefix(w, "--unset=") {
+				return 0, false
+			}
+		case isAssignment(w):
+			options = false
+		default:
+			return i, true
+		}
+		i++
+	}
+	return i, true
+}
+
+// isAssignment is whether a word is an assignment to env: any word with a
+// name before an =, as env reads it. Bash is stricter (the name must be a shell
+// identifier), but a bare assignment before a command is the parser's, which
+// keeps bash's rule, and bash runs A-B=1 git as the command A-B=1.
+func isAssignment(w string) bool {
+	name, _, ok := strings.Cut(w, "=")
+	return ok && name != ""
 }
 
 // literal is the word as bash passes it to the command, when it is fixed
