@@ -2922,7 +2922,7 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: [slice-58]
+    depends_on: [slice-58, p3-commit-long-text-footer]
     kind: idea
     why: >
       Left by slice 58: itos commit wraps the body of a message from -m or -F, but the editor's
