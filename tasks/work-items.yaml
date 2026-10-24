@@ -13399,3 +13399,17 @@ items:
       lock-timeout, an unusable store running uncached with reason store-unusable, rename failures
       judging the destination, quarantine of corrupt or markerless records, unfinished temporary
       folders ignored). EVID-08 rows each spend lock.Wait 10 s.
+
+  - id: p1-evidence-architecture-map
+    title: List internal/evidence in docs/ARCHITECTURE.md's map
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Slice-169 added internal/evidence (the key, the store and the engine behind evidence records),
+      and the map's Where to look names running checks as internal/check alone. docs/ARCHITECTURE.md
+      is 11998 bytes under a cap of 12000 (tools/bin/doc-budget/caps.json), so the line could not
+      grow: trim the doc by the 30 bytes the line needs, or raise the cap in a ci commit that says
+      why.
