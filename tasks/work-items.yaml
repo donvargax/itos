@@ -3129,14 +3129,9 @@ items:
     title: itos push --json says when its rebase stopped on the work registry
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: [slice-66]
     kind: idea
-    why: >
-      Slice 66 has itos push explain a rebase stopped on a conflict in the work registry (two takes
-      of one item) in text only; under --json the outcome stays rebase-stopped with nothing of the
-      registry or the items both sides changed, so an agent reading the JSON cannot tell a lost take
-      from any conflict.
     refs: [internal/cli/push.go]
     tags: [push, v8]
 
