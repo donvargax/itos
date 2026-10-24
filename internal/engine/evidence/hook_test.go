@@ -98,6 +98,10 @@ func TestAMissRunsUnderTheCapAndIsKeyedByTheOwnTimeout(t *testing.T) {
 	own := r.request("cd /; sleep 5; true", config.Evidence{})
 	own.Seconds = 600
 	cap := 0.05
+	// Far above what a shell takes to start, even on a slow runner, so the run
+	// that must finish is not racing the cap; the cap that stops a run is the
+	// short one.
+	roomy := 2.0
 	capped := own
 	capped.RunSeconds = &cap
 	started := time.Now()
@@ -110,7 +114,7 @@ func TestAMissRunsUnderTheCapAndIsKeyedByTheOwnTimeout(t *testing.T) {
 	}
 	quick := r.request("echo done", config.Evidence{})
 	quick.Seconds = 600
-	quick.RunSeconds = &cap
+	quick.RunSeconds = &roomy
 	first := r.Run(t.Context(), quick)
 	if !first.OK || first.TimedOut || !first.Info.Recorded {
 		t.Fatalf("a run under the cap: %+v", first)
