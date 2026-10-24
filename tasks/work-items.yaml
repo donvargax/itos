@@ -13817,7 +13817,7 @@ items:
     title: The VCS contract's unreachable remote is reached with no proxy
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
 

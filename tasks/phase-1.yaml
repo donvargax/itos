@@ -4624,5 +4624,3 @@
     the pre-push hook refuses every push from such an environment (met 2026-10-24 landing
     slice-174). laidOut in internal/vcs/adapter/git_test.go sets NO_PROXY for itos.invalid before
     adding the down remote. No product change.
-  done_when:
-    - run: go test ./internal/vcs/adapter -run 'TestGitKeepsTheContract/remote_refs' -count=1
