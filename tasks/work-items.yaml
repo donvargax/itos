@@ -3898,6 +3898,10 @@ items:
     why: >
       Found by the code review of 07b0e6d (2026-10-05). ITOS_VERSION is used as a path segment
       unchecked (launch.go:168-176, 321): ../../x makes cached() exec a file outside the cache.
+
+      2026-10-24 grooming: choose uses ITOS_VERSION unchecked (launch.go:233-245) and ensure and
+      cached join it into a path (415, 427-430); Handed and unguarded already test config.PinVersion
+      (284, 206), so the fix is one call.
     refs: [internal/launch/launch.go]
     tags: [launcher, v8]
 
