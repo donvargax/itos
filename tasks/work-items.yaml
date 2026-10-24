@@ -13501,3 +13501,16 @@ items:
       share that liveness, so a feat can name an outline whose rows never run. bug-129 fixes work
       done alone; this is the same rule for the rest.
     refs: [internal/tests/gherkin.go]
+
+  - id: p1-changed-failing-git-clean
+    title: itos push and draft promote read a failing git status as a clean tree
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Found by bug-130's spec (2026-10-24): git.Runner.Changed (internal/git/state.go) ignores a
+      failing git status, so itos push (push.go:52) and draft promote (draft/handler.go:367) go
+      ahead as on a clean tree where they should report git's failure: bug-130's opposite.
+    refs: [internal/git/state.go, internal/slices/push/push.go, internal/slices/draft/handler.go]
