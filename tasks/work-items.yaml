@@ -5353,6 +5353,13 @@ items:
       one-line reason per scenario, and the reviewer flags a needless comment under NOTES (never a
       blocker). One sweep per file kind, each its own task (refactor for Go, docs or test for
       features, ci for workflows), so each lands small.
+
+      The user, same day: not the reviewer. What can be automated is a static analysis check, not a
+      model's review: a check (an itos-cc or anti-* rule, or a small tool in this repository's
+      gates) that flags the mechanical patterns (a slice or bug id in a comment, red-first 'Before
+      the work' notes in feature files, comments that repeat the next line), reported as guidance at
+      pre-push and in CI like DRY, CRAP and Scrap (p1-targeted-quality-evidence). The reviewer
+      prompt change was reverted.
     refs: [internal/, cmd/]
     tags: [architecture, v8]
 
