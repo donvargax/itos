@@ -748,3 +748,40 @@ Feature: Every key the config accepts is one itos reads
     Then itos exits with code 2
     And its output says "commits.footers.Task.source"
     And its output says "ledger, registry, text or { tests: <kind> }"
+
+  # Slice 174 (ADR-0039, q-19): push.mode, new, says how itos push lands
+  # work: trunk, every commit straight to main as before, or pr, an item's
+  # work on its own branch merged by rebase (push-mode.feature). Both values
+  # are maintained ways of working (the user, 2026-10-23), so both pass.
+  # Fails before the build at the exit code: today push is an unknown key,
+  # exit 2.
+  @ID-CONFIG-73 @slice-174 @wip
+  Scenario Outline: config check accepts push.mode <mode>
+    Given the config sets "push.mode" to "<mode>"
+    When itos checks the config
+    Then itos exits with code 0
+
+    Examples:
+      | mode  |
+      | trunk |
+      | pr    |
+
+  # squash is the merge ADR-0039 rules out, the likeliest wrong value. The
+  # refusal names the key and both modes. Fails before the build at
+  # "push.mode": today config check says only "unknown key push".
+  @ID-CONFIG-74 @slice-174 @wip
+  Scenario: config check refuses a push.mode other than trunk or pr, naming both
+    Given the config sets "push.mode" to "squash"
+    When itos checks the config
+    Then itos exits with code 2
+    And its output says "push.mode"
+    And its output says "trunk, pr"
+
+  # A config without push.mode pushes as before: its default is trunk.
+  # Fails before the build at the exit code: today config get refuses the
+  # unknown key, exit 2.
+  @ID-CONFIG-75 @slice-174 @wip
+  Scenario: config get prints push.mode's default, trunk, when the config leaves it out
+    When itos runs "config get push.mode"
+    Then itos exits with code 0
+    And its output says "trunk"
