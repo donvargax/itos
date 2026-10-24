@@ -13905,3 +13905,20 @@ items:
       item's commits when the item is an issue number. Findings go onto p1-github-registry-pilot as
       the v9 design's inputs. Cleanup: close every itos-item issue as not planned, delete the label.
     tags: [work, providers]
+
+  - id: p1-pr-done-older-merge
+    title: Under pr, work done judges an item by its latest merged pull request, not an older commit already on main
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      From slice-176's diff review (2026-10-24, .git/itos/review/slice-176-diff-r1.txt): when an
+      earlier pull request's commit of the item is on <remote>/<main> and a later merged one is not
+      pulled yet, work done judges the item by the older commit and closes it, as slice-176's spec
+      says (the newest of the item's commits in HEAD's history counts only when <remote>/<main> has
+      it). Rare with one pull request per item; matters once an item needs a second one. Also noted:
+      providers.GhReason duplicates push's own gh wording (internal/slices/push/pr.go pushRun.gh),
+      which could call it.
+    tags: [push, work]
