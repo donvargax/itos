@@ -4269,20 +4269,9 @@ items:
     title: git-shim install and uninstall recognise a hard-linked itos as git
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: [p3-guard-replacement]
     kind: idea
-    why: >
-      linksItos (internal/cli/gitshim.go) knows an itos as this binary or a symbolic link to a file
-      named itos, so a git that is a hard link to another itos, as git-shim install makes on windows
-      when symbolic links are refused and which an upgraded itos.exe leaves behind as a different
-      file, is refused as a git that is not a link to itos by install, uninstall and init. Bug 45
-      gave git.IsItos the build information check that tells such a git; the shim commands could use
-      it to replace or remove one.
-
-      Backlog review of 2026-10-10, batch 3: folds in p3-windows-hardlink-shim: seen first in the
-      code review of 07b0e6d (gitshim.go linksItos and os.Link): after an upgrade replaces itos.exe,
-      install and uninstall both refuse their own stale shim.
     refs: [internal/cli/gitshim.go]
     tags: [windows, v9]
 
