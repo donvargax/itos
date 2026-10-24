@@ -13582,3 +13582,28 @@ items:
       a new signature (an error beside the bool), each caller's handling, and a unit test with a
       fake git.
     refs: [internal/vcs/port/vcs.go, internal/store/tracker/adapter/files.go, internal/slices/initcmd/rulesstealth.go]
+
+  - id: bug-132
+    title: A command that commits a given text as its body never lets a line of it read as a footer or overrun the line limit
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: bug
+    why: >
+      Was p1-defer-reason-footer. Found 2026-10-07: work defer writes its reason as the commit body
+      as given, so a reason starting with a word and a colon (Releasable: …) is read by the lint as
+      a footer, and a long one is refused as a footer line over 100 characters; the command failed
+      with only the lint's line to go by. The reason is wrapped and placed so no line of it can open
+      a footer, as itos commit wraps a body. Backlog review of 2026-10-10, batch 3: folds in
+      p1-reason-read-as-footer: first seen 2026-10-05 dropping ideas with a why starting
+      Superseded:. selfBody leaves a first body line starting Word: unwrapped as a footer, so the
+      hook refuses it after the command wrote its files. The fix covers every command that commits a
+      given text as its body: work drop, defer, edit and add, task add, decision add, answer and
+      record. Queued: grooming writes such reasons by the dozen. Backlog review of 2026-10-10, batch
+      3: folds in p1-self-commit-long-word: a word longer than the line (a path in a why, a long
+      item id, a deep ledger path) also gets the commit refused after the command wrote its files;
+      one answer in selfBody covers every registry, task and decision commit. #92 (8.5.0): work
+      drop's --why starting with a word and a colon is read as a footer and refused, and the
+      refusal's fix points at the hook, not at the --why. The fourth independent report of this item
+      (2026-10-05, 10-07, 10-10, #92).
