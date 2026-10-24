@@ -147,7 +147,7 @@ Feature: itos followup, private threads with people
   # Tokyo's 14:02 printed as 05:02) and holds on Linux and macOS either way.
   # Its step points ZONEINFO at the Go toolchain's lib/time/zoneinfo.zip
   # (go env GOROOT), the one database every runner has.
-  @ID-FOLLOW-15 @bug-127 @wip
+  @ID-FOLLOW-15 @bug-127
   Scenario: A note's time honours a named TZ on every OS
     Given the threads file holds the thread "sync-ana" with a note stamped "2026-10-04T05:02:00Z"
     When itos runs "followup show sync-ana" with TZ "Asia/Tokyo" and the Go toolchain's zone database

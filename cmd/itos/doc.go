@@ -7,6 +7,10 @@
 // package under internal branches on runtime.GOOS, so a unit test runs each
 // OS's path on any, and a build-tagged file holds only a call one OS lacks.
 //
+// The zone is set here too (localZone): Go takes the local zone from the OS on
+// Windows and ignores TZ, so main sets time.Local from a TZ it can read there,
+// before any command runs.
+//
 // A run passes through four packages in this order, each of which may end it:
 //
 //  1. Started under the name git, through the link itos git-shim install

@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 	"runtime"
+	"time"
 
 	"github.com/donvargax/itos/v8/internal/cli"
 	"github.com/donvargax/itos/v8/internal/launch"
@@ -12,6 +13,7 @@ import (
 
 func main() {
 	goos := runtime.GOOS
+	time.Local = localZone(goos, os.Getenv("TZ"), time.LoadLocation)
 	v := vcs.Git{Platform: goos}
 	cl := commandLine()
 	args := os.Args[1:]
