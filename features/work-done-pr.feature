@@ -115,6 +115,10 @@ Feature: Under push.mode pr, work done closes an item only once its pull request
   commit is one with an Item: footer naming it, the config's registry footer
   turned on, as slice 127's scenarios make it.
 
+  The implementing commit also rewords push-mode.feature's description
+  where it says work done is unchanged under pr and names p1-pr-items: it
+  points to this slice (slice-176) instead.
+
   Background:
     Given a repository whose ledger has the task "T-001"
     And a clone of it, where itos runs
