@@ -13454,7 +13454,7 @@ items:
     refs: [internal/store/tracker/adapter/files.go, features/work.feature]
 
   - id: bug-131
-    title: The guard and the shim refuse only what a command line runs, never the word git inside data
+    title: The guard reads env with any NAME=value word before git commit as a git commit
     phase: 1
     owner: null
     status: todo
@@ -13471,7 +13471,18 @@ items:
       PATH shim. The user, 2026-10-24: fix in v8, the shim too if it is the one too strict;
       reproduce each refusal first and change only what is too strict. p1-guard-follows-cd and the
       Windows paths stay v9.
-    refs: [internal/slices/guard, internal/shim, integrations/claude-code/hooks/guard.sh]
+
+      Re-scoped 2026-10-24 by its spec's reproduction: none of the reported refusals (heredoc or
+      python -c bodies holding git, grep with \|, a redirection, echo $?, apostrophes, git commit in
+      a quoted argument, the push proof typed out) is made by itos: the guard gave no answer to
+      each, at this build and at the 8.5.2 launcher, and the shim ran each. A line the guard cannot
+      judge (sh -c, eval, a variable, a parse error) gets no answer either; only a cd first is
+      denied (p1-guard-follows-cd, v9). They fit Claude Code's own permission asks, which an
+      unattended subagent meets as refusals. What stays is the note merged in from
+      p1-guard-env-assignments (T-191's agent, 2026-10-22): isAssignment takes an env assignment to
+      be NAME=value with NAME a shell identifier, but env treats any word holding = as one, so env
+      A-B=1 git commit passes; T-191's TestGitCalls pins today's narrow reading.
+    refs: [internal/slices/guard/domain/guard.go, features/guard.feature]
 
   - id: p1-examples-item-tags
     title: An item tag on an Examples block makes its rows that item's, and work done and work show read it
