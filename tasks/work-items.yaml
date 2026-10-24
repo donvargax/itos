@@ -3008,6 +3008,15 @@ items:
       The user, 2026-10-24: the starting point and proof of concept is their opencode page,
       ~/tmp/llms-safe/opencode-server/sessions.html (sessions grouped by project directory through
       opencode serve's HTTP API, run.sh starting the server): opencode support alone first.
+
+      The user, 2026-10-24, correcting the research's first-version sketch (which made the person
+      the coordinator and ran nothing by itself): deterministic means it can be automated. The
+      projects run on their own, agents implementing everything and never waiting on the person.
+      Only a question no repository can answer, or a hard blocker, leaves the loop, and even then
+      another agent answers it first: the person reviews those decisions daily or weekly rather than
+      being asked as they arise. Many questions repeat across repositories with the same answer, so
+      answers are reused across them (a shared decision memory the answering agent consults). More
+      to think through before a design.
     tags: [status, v9]
 
   - id: bug-15
