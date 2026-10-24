@@ -58,7 +58,6 @@ queue:
   - bug-132
   - bug-133
   - bug-134
-  - p3-marketplace-description
   - T-299
   - slice-156
   - p1-pr-mode
@@ -4221,13 +4220,9 @@ items:
     title: The marketplace's plugin description says what the plugin does now
     phase: 3
     owner: null
-    status: todo
+    status: dropped
     depends_on: []
     kind: idea
-    why: >
-      Found by T-097's agent (2026-10-05): .claude-plugin/marketplace.json still says the plugin
-      says how to find work, commit and push through itos, out of date since T-092 dropped the
-      skill, and unlike plugin.json.
     tags: [plugin, v8]
 
   - id: p3-path-refusal-once
