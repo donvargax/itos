@@ -457,6 +457,7 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	initializeTestsListSteps(sc, w)
 	initializeTestsTSVSteps(sc, w)
 	initializeSnapshotSteps(sc, w)
+	initializeSnapshotContextSteps(sc, w)
 	initializeEvidenceSteps(sc, w)
 	initializeEvidenceDoneSteps(sc, w)
 

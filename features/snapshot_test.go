@@ -14,6 +14,8 @@ import (
 type snapshotFixture struct {
 	files                   map[string]string
 	git                     map[string]string
+	context                 map[string]string
+	config                  string
 	common, temporary, mode string
 }
 
@@ -40,6 +42,28 @@ case "$1" in
  generate) mkdir -p "$(dirname "$2")"; printf generated > "$2" ;;
  leave-artifacts) mkdir -p gen; printf 'private-artifact\n' > gen/artifact.txt; printf 'snapshot-artifact-output\n'; exit "$2" ;;
  record-run) exit 0 ;;
+ git-context)
+ { git rev-parse --verify -q HEAD || echo unborn; } > "$out/head"
+ { git symbolic-ref -q HEAD || echo detached; } > "$out/branch"
+ { git rev-parse --verify -q HEAD~1 || echo none; } > "$out/parent"
+ git write-tree > "$out/index"
+ git for-each-ref --format='%(refname) %(objectname)' > "$out/refs"
+ git config --get-regexp '^remote\.' | sort > "$out/remotes"
+ { git rev-parse --symbolic-full-name '@{u}' 2>/dev/null || echo none; } > "$out/upstream"
+ exit 0 ;;
+ write-git)
+ git update-ref refs/heads/probe-branch HEAD || exit 1
+ git tag probe-tag || exit 1
+ up=$(git rev-parse --symbolic-full-name '@{u}') || exit 1
+ git update-ref "$up" 'HEAD~1' || exit 1
+ git config remote.origin.url /nowhere || exit 1
+ blob=$(printf snapshot-private-object | git hash-object -w --stdin) || exit 1
+ git commit -q --allow-empty -m probe || exit 1
+ commit=$(git rev-parse HEAD) || exit 1
+ printf '%s\n%s\n' "$blob" "$commit" > "$out/objects"
+ git read-tree --empty || exit 1
+ git symbolic-ref HEAD refs/heads/probe-branch || exit 1
+ exit 0 ;;
  inspect-entries)
  git ls-files -s > "$out/entries"
  while read -r mode hash stage path; do
@@ -126,8 +150,14 @@ func initializeSnapshotSteps(sc *godog.ScenarioContext, w *world) {
 		if err != nil {
 			return err
 		}
-		w.snapFixture.git, err = w.snapshotGit()
-		return err
+		if w.snapFixture.git, err = w.snapshotGit(); err != nil {
+			return err
+		}
+		if w.snapFixture.config, err = w.gitOutput("config", "--local", "--list"); err != nil {
+			return err
+		}
+		w.snapFixture.context = w.gitContextIn(w.dir)
+		return nil
 	})
 	sc.Step(`^the source files, (?:modes, )?staged entries, HEAD and refs match the saved state$`, w.snapshotUnchanged)
 	sc.Step(`^no stash or registered worktree was created$`, w.snapshotUnchanged)
