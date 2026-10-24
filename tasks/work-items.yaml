@@ -12385,6 +12385,10 @@ items:
       and flags give none, or a dedicated --reword. In a project, --amend --scenarios already keeps
       a Task: footer the message has (slice 36); p3-stealth-amend-keeps-links is the stealth half of
       the same rule, so the design should cover both modes.
+
+      2026-10-24 grooming, merged in p3-stealth-amend-keeps-links: in stealth the flags' links
+      replace the note an amend carries (internal/slices/commit/git.go:326-331); the same rule
+      covers both.
     refs: [internal/slices/commit]
     tags: [commit, v9]
 
