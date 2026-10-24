@@ -9236,7 +9236,7 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: [slice-140]
+    depends_on: [slice-140, p1-typed-items]
     kind: slice
     why: >
       Was p1-draft-replace-reserved-command.
@@ -9254,7 +9254,7 @@ items:
       promotion using the retained ID. Depends on the shared preflight contract in
       p1-draft-checks-before-minting; not yet promoted or specified as scenarios.
     refs: [internal/cli/draft.go, internal/cli/draftmint.go, internal/draft, features/draft.feature]
-    tags: [draft, v8]
+    tags: [draft, v9]
 
   - id: slice-139
     title: Validate decidable draft commit metadata before creating the draft
