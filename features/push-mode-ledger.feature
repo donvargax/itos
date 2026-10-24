@@ -53,7 +53,7 @@ Feature: Under push.mode pr, the ledger edits itos makes beside the registry go 
 
   The implementing commit rewords push-mode.feature's description where it
   names what goes straight to main (a take, a close, a queue move, an idea:
-  slice 56's rule) to point here, once slice 175 has landed in that file.
+  slice 56's rule) to point here; slice 175 has landed in that file.
 
   The recording gh is push-mode.feature's. Its steps are reused; two are
   new. "the clone has the commit <subject> closing the task <id> and taking
@@ -141,6 +141,27 @@ Feature: Under push.mode pr, the ledger edits itos makes beside the registry go 
         mode: pr
       """
     And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the task "T-001" has the committed check "false"
+    When itos runs "push"
+    Then itos exits with code 1
+    And its output says "git switch -c"
+    And the remote's branch ends with "chore: add to the config"
+    And the recording gh was never called
+
+  # The rule judges commit by commit: an idea added to the registry beside
+  # a separate commit touching only the ledger is refused, because the
+  # ledger-only commit is not the registry's on its own; a judgement over
+  # the union of the push's paths would let it through. A guard: it passes
+  # before the fix and must after it.
+  @ID-PUSHLEDGER-07 @slice-177 @guard @wip
+  Scenario: Under pr, a push from main of an idea and a separate ledger-only commit is still refused
+    Given the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+      """
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the clone has the commit "docs: add p1-widget" adding the idea "p1-widget" to the registry
     And the task "T-001" has the committed check "false"
     When itos runs "push"
     Then itos exits with code 1
