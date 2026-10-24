@@ -125,6 +125,11 @@
 //     "one poll later" is the second look and "never asked" no request. "No
 //     gh on the PATH" hides gh as claude always is; "no GitHub token" takes
 //     the fake's token out.
+//   - watch_failures_test.go: a failed job of the watched run is listed with
+//     its id and the steps the jobs API lists, and its log is answered as
+//     GitHub answers one: a redirect to a download address serving the text,
+//     each line stamped with its time and ended by LF or CRLF, or 410. The
+//     steps read the jobs of itos's --json back by name.
 //   - shim_test.go: the link is to the binary the itos under test runs,
 //     never tools/bin/itos; it lives in the support folder's shim/, put first
 //     on every command's PATH (pathFirst), so no step leaves a shim on the

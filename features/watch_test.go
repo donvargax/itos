@@ -48,10 +48,15 @@ type watchedRun struct {
 }
 
 type watchedJob struct {
-	Name       string `json:"name"`
-	Status     string `json:"status"`
-	Conclusion string `json:"conclusion,omitempty"`
+	Name       string        `json:"name"`
+	Status     string        `json:"status"`
+	Conclusion string        `json:"conclusion,omitempty"`
+	steps      []watchedStep // the steps the jobs API lists for it (slice 172), none for a job without
+	log        string        // the log GitHub keeps of it, as its steps wrote it (slice 172)
 }
+
+// A step of a job, as the jobs API lists it once the job completed.
+type watchedStep struct{ Name, Conclusion string }
 
 func initializeWatchSteps(sc *godog.ScenarioContext, w *world) {
 	sc.Step(`^the watched run's jobs "([^"]*)" and "([^"]*)" succeed$`, func(a, b string) error {

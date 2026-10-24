@@ -80,12 +80,19 @@ type fakeGitHub struct {
 	// What it does when first asked for the watched run, before it answers
 	// (bug 34): a change made while the asker waits. An error answers 500.
 	firstLook func() error
+	// A job's log, by the job's name (slice 172): whether the fake answers 410
+	// for it, as GitHub does past its retention, and whether it serves it with
+	// CRLF line ends, as a Windows runner's output has.
+	logGone, logCRLF map[string]bool
 }
 
-// The fake GitHub's two endpoints: a workflow's runs, and a run's jobs.
+// The fake GitHub's endpoints: a workflow's runs, a run's jobs, a job's log
+// (which redirects, as GitHub's does, to a download address) and that address.
 var (
-	runsPath = regexp.MustCompile(`^/repos/` + regexp.QuoteMeta(fakeRepository) + `/actions/workflows/([^/]+)/runs$`)
-	jobsPath = regexp.MustCompile(`^/repos/` + regexp.QuoteMeta(fakeRepository) + `/actions/runs/(\d+)/jobs$`)
+	runsPath     = regexp.MustCompile(`^/repos/` + regexp.QuoteMeta(fakeRepository) + `/actions/workflows/([^/]+)/runs$`)
+	jobsPath     = regexp.MustCompile(`^/repos/` + regexp.QuoteMeta(fakeRepository) + `/actions/runs/(\d+)/jobs$`)
+	logPath      = regexp.MustCompile(`^/repos/` + regexp.QuoteMeta(fakeRepository) + `/actions/jobs/(\d+)/logs$`)
+	downloadPath = regexp.MustCompile(`^/log-downloads/(\d+)$`)
 )
 
 // The ID of the watched run's first look; its nth is one more for each look
@@ -115,8 +122,24 @@ func (g *fakeGitHub) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		http.Error(rw, `{"message":"API rate limit exceeded for user ID 1."}`, http.StatusForbidden)
 		return
 	}
+	// The download address GitHub redirects a log to is signed, so it asks for
+	// no token.
+	if m := downloadPath.FindStringSubmatch(req.URL.Path); m != nil && req.Method == http.MethodGet {
+		id, _ := strconv.Atoi(m[1])
+		g.writeLog(rw, req, id)
+		return
+	}
 	if req.Method != http.MethodGet || req.Header.Get("Authorization") != "Bearer "+fakeToken {
 		http.NotFound(rw, req)
+		return
+	}
+	if m := logPath.FindStringSubmatch(req.URL.Path); m != nil {
+		id, _ := strconv.Atoi(m[1])
+		if _, ok := g.jobWithID(id); !ok {
+			http.NotFound(rw, req)
+			return
+		}
+		http.Redirect(rw, req, fmt.Sprintf("%s/log-downloads/%d", g.server.URL, id), http.StatusFound)
 		return
 	}
 	if m := jobsPath.FindStringSubmatch(req.URL.Path); m != nil {
@@ -199,35 +222,93 @@ func (g *fakeGitHub) peek(sha string) gitHubRun {
 	return r
 }
 
-// The jobs of the run with the ID, as GitHub lists them: a conclusion only
-// once a job completed.
-func (g *fakeGitHub) writeJobs(rw http.ResponseWriter, req *http.Request, id int) {
-	var jobs []watchedJob
+// The jobs of the run with the ID, in the order the fake lists them.
+func (g *fakeGitHub) jobsOf(id int) ([]watchedJob, bool) {
 	switch {
 	case id >= watchedID && id-watchedID < len(g.watched):
-		jobs = g.watched[id-watchedID].Jobs
+		return g.watched[id-watchedID].Jobs, true
 	case id >= 1 && id <= len(g.runs):
-		jobs = g.runs[id-1].jobs
-	default:
+		return g.runs[id-1].jobs, true
+	}
+	return nil, false
+}
+
+// A job's ID is its run's, then its place among the run's jobs, so that the
+// fake can tell the job a log is asked for.
+func jobID(run, index int) int { return run*100 + index + 1 }
+
+// The job with the ID, as jobID gives it.
+func (g *fakeGitHub) jobWithID(id int) (watchedJob, bool) {
+	jobs, ok := g.jobsOf(id / 100)
+	if index := id%100 - 1; ok && index >= 0 && index < len(jobs) {
+		return jobs[index], true
+	}
+	return watchedJob{}, false
+}
+
+// The jobs of the run with the ID, as GitHub lists them: a conclusion only
+// once a job completed, and the steps of a job that has some.
+func (g *fakeGitHub) writeJobs(rw http.ResponseWriter, req *http.Request, id int) {
+	jobs, ok := g.jobsOf(id)
+	if !ok {
 		http.NotFound(rw, req)
 		return
 	}
+	type step struct {
+		Name       string `json:"name"`
+		Status     string `json:"status"`
+		Conclusion string `json:"conclusion"`
+		Number     int    `json:"number"`
+	}
 	type job struct {
+		ID         int     `json:"id"`
 		Name       string  `json:"name"`
 		Status     string  `json:"status"`
 		Conclusion *string `json:"conclusion"`
+		Steps      []step  `json:"steps,omitempty"`
 	}
 	listed := []job{}
-	for _, j := range jobs {
-		one := job{Name: j.Name, Status: j.Status}
+	for i, j := range jobs {
+		one := job{ID: jobID(id, i), Name: j.Name, Status: j.Status}
 		if j.Conclusion != "" {
 			conclusion := j.Conclusion
 			one.Conclusion = &conclusion
+		}
+		for n, s := range j.steps {
+			one.Steps = append(one.Steps, step{Name: s.Name, Status: "completed", Conclusion: s.Conclusion, Number: n + 1})
 		}
 		listed = append(listed, one)
 	}
 	rw.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(rw).Encode(map[string]any{"total_count": len(listed), "jobs": listed})
+}
+
+// The log of the job with the ID as GitHub keeps it: each line stamped with
+// the time it was written, to the tenth of a microsecond, and ended by LF, or
+// by CRLF when a step made the job's runner Windows; 410 once a step said the
+// log is gone.
+func (g *fakeGitHub) writeLog(rw http.ResponseWriter, req *http.Request, id int) {
+	j, ok := g.jobWithID(id)
+	if !ok {
+		http.NotFound(rw, req)
+		return
+	}
+	if g.logGone[j.Name] {
+		http.Error(rw, `{"message":"Logs are no longer available"}`, http.StatusGone)
+		return
+	}
+	end := "\n"
+	if g.logCRLF[j.Name] {
+		end = "\r\n"
+	}
+	at := time.Date(2026, 10, 23, 10, 0, 0, 123456700, time.UTC)
+	var text strings.Builder
+	for _, line := range strings.Split(strings.TrimSuffix(j.log, "\n"), "\n") {
+		text.WriteString(at.Format("2006-01-02T15:04:05.0000000Z") + " " + line + end)
+		at = at.Add(time.Millisecond)
+	}
+	rw.Header().Set("Content-Type", "text/plain")
+	_, _ = rw.Write([]byte(text.String()))
 }
 
 // The repository as GitHub's endpoint gives it: its name, its visibility and
