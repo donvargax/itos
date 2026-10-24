@@ -13793,24 +13793,9 @@ items:
     title: itos push with no upstream pushes to the remote's default branch, or refuses, instead of creating a remote branch of its name
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-174]
     kind: bug
-    why: >
-      Was p1-push-no-upstream-worktree. T-193's agent (2026-10-21), in a Claude Code isolated
-      worktree (branch worktree-agent-<id>, no upstream): itos push --no-wait pushed origin and the
-      branch's own name, creating a stray remote branch, though this repository pushes only to main;
-      the take never reached main until the agent set the upstream by hand. In a linked worktree or
-      with no upstream, itos push should refuse naming git branch --set-upstream-to=origin/<main>,
-      or push to the configured main branch. The guard also refuses git push --delete, so the stray
-      branch needs gh api to remove: the push could say which branch it created. Met again
-      2026-10-24 by the first implementer launched with the Agent tool's isolation: worktree: its
-      worktree's branch worktree-agent-<id> had no upstream, so itos push would have pushed
-      origin/worktree-agent-<id>; the agent set the upstream to origin/main by hand. 2026-10-24,
-      under Claude Code's Bash sandbox: writes to .git/config are refused (a /dev/null mask on
-      .git/config.lock), so git worktree add cannot record a new branch's upstream and git branch
-      --set-upstream-to fails; an itos push that needs no upstream config (pushing to the configured
-      branch, or the one PR mode names) works under it.
     refs: [internal/slices/push]
 
   - id: T-300
