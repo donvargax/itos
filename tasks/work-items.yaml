@@ -13752,3 +13752,14 @@ items:
     why: >
       From slice-174's spec (2026-10-24, its follow-ups): update-branch runs only when itos pushes,
       so a pull request main moves past afterwards stalls under a required up-to-date branch.
+
+  - id: p1-pr-rebase-conflict
+    title: A pull request GitHub cannot rebase gets a way out that never forces
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [slice-174]
+    kind: idea
+    why: >
+      From slice-174's spec (2026-10-24, its follow-ups): conflicts with main make update-branch and
+      the rebase-merge fail; the agent needs a path that never force-pushes.
