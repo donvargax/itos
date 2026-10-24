@@ -80,6 +80,7 @@ func initializeWorkSteps(sc *godog.ScenarioContext, w *world) {
 		return w.registryIdeaWithRefs(id, fmt.Sprintf("\n      - %s\n      - %s\n", a, b))
 	})
 	sc.Step(`^a feature file with the scenario "([^"]*)" tagged "([^"]*)"$`, w.taggedScenario)
+	sc.Step(`^a feature file with the outline "([^"]*)" tagged "([^"]*)", one Examples block live and the block "([^"]*)" tagged "([^"]*)"$`, w.taggedOutline)
 	sc.Step(`^itos has run "([^"]*)"$`, func(line string) error { return w.hasRunLine(w.dir, line) })
 	sc.Step(`^the registry's queue names "([^"]*)"$`, w.registryQueueNames)
 	sc.Step(`^while work done waits for CI, a commit takes "([^"]*)" for "([^"]*)"$`, w.takenWhileWaiting)
@@ -649,15 +650,33 @@ func (w *world) stillStaged(path string) error {
 // tags, committed, so a command reading the scenarios at HEAD finds it; the
 // config gains the kind tests.scenario, which reads features/.
 func (w *world) taggedScenario(id, tags string) error {
+	text := fmt.Sprintf("Feature: Tagged\n\n  %s %s\n  Scenario: %s runs\n    When it runs\n", id, tags, id)
+	return w.committedFeature(text, "test: a tagged scenario")
+}
+
+// A feature file of one outline, its tag line the ID and the tags, with two
+// Examples blocks of one row each: "live", which has no tag, and the one
+// named, whose tag line is the tags given. Written here, never as text of a
+// feature file of this repository, whose tag readers would take its tag
+// lines for this repository's own.
+func (w *world) taggedOutline(id, tags, block, blockTags string) error {
+	text := fmt.Sprintf("Feature: Tagged\n\n  %s %s\n  Scenario Outline: %s runs\n    When it runs <n>\n\n"+
+		"    Examples: live\n      | n |\n      | 1 |\n\n    %s\n    Examples: %s\n      | n |\n      | 2 |\n",
+		id, tags, id, blockTags, block)
+	return w.committedFeature(text, "test: a tagged outline")
+}
+
+// The feature file features/tagged.feature, committed under the config's
+// scenario kind.
+func (w *world) committedFeature(text, header string) error {
 	w.config.scenarios = true
 	if err := w.writeConfig(); err != nil {
 		return err
 	}
-	text := fmt.Sprintf("Feature: Tagged\n\n  %s %s\n  Scenario: %s runs\n    When it runs\n", id, tags, id)
 	if err := w.write(filepath.Join("features", "tagged.feature"), text); err != nil {
 		return err
 	}
-	return w.commit("test: a tagged scenario")
+	return w.commit(header)
 }
 
 // The item is of the kind, titled so, with the status.
