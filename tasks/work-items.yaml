@@ -10295,7 +10295,7 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: []
+    depends_on: [p1-typed-items]
     kind: idea
     why: >
       Slice 138 made work promote --kind task write the task's ledger entry in the promotion's
@@ -10303,7 +10303,7 @@ items:
       ledger entry, so a Task footer naming it is refused as an unknown task, the gap #54 met
       through promote. Either work add --kind task refuses and names task add, or it takes --type
       and --check and writes the entry as promote now does.
-    tags: [work, v8]
+    tags: [work, v9]
 
   - id: p1-uncommitted-git-failure
     title: A git that fails reads as changes no commit holds
