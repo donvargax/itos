@@ -6249,6 +6249,10 @@ items:
       measurement-required behavior independent of metric thresholds. No coverage-percentage or
       Scrap failure policy was added, and no new coverage/mutation execution was run for this
       investigation.
+
+      2026-10-23: the user asked whether DRY, CRAP and Scrap run; they do not, anywhere (the last
+      local .metrics reports are from 2026-10-03). Mutation was built (the push proof, ADR-0057);
+      this item's CRAP and Scrap half was not.
     refs:
       [
         itos.yaml,
