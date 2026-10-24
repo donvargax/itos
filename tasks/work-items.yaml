@@ -13631,3 +13631,15 @@ items:
       a generated trailer under its 25% rule, so a wrapped body line starting with it can make the
       body trailers. It reaches itos commit's Wrap and selfBody alike.
     refs: [internal/message/wrap.go]
+
+  - id: p1-commit-failed-fix-names-itos
+    title: work-commit-failed says a lint refusal of a body itos composed is itos's own bug
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Found by bug-132's spec (2026-10-24): the fix line of work-commit-failed says 'fix what git or
+      the hook above says', pointing the person at the hook; since bug-132 a header lint refusal of
+      a body itos wrote itself is itos's bug, and the line could say so and name where to report it.
