@@ -11270,7 +11270,7 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: []
+    depends_on: [p1-typed-items]
     kind: idea
     why: >
       #101 (8.5.0): draft add -- work queue X --after <doing item> fails at promote every time,
@@ -11278,7 +11278,7 @@ items:
       reads an anchor that left the queue by closing as its old place, or draft add warns that the
       anchor will leave the queue and names --top when it is the doing head. The warning is
       preferred: remembering old places is state for little gain.
-    tags: [work, v8]
+    tags: [work, v9]
 
   - id: p1-commit-hints-doing-item
     title: itos commit names the committer's item in progress when a commit that could link it does not
