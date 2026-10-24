@@ -6089,7 +6089,7 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: []
+    depends_on: [p1-typed-items]
     kind: idea
     why: >
       The person reads titles, not codes (2026-10-08): a report naming T-125, p1-parallel-pilot and
@@ -6102,7 +6102,10 @@ items:
       only itosis own text lacks it. --json stays exactly as it is (ADR-0035: machine output is the
       contract), and a footer keeps its id, since that is what a commit names; the rule is for the
       lines a person reads
-    tags: [message, v8]
+
+      2026-10-24 grooming: the bare ids are in texts of the command groups p1-typed-items replaces,
+      so v9 (the user).
+    tags: [message, v9]
 
   - id: T-127
     title: CI confirms a release without downloading one, and caches the launcher
