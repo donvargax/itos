@@ -6919,7 +6919,7 @@ items:
       belong on stderr. No generated CI list returns to AGENTS.md (q-45), no fake base or automatic
       whole-tree mutation run, no output added to --tests-only execution or configured nightly
       execution. Those modes already have their own contracts.
-    refs: [features/ci-proof-report.feature, internal/plan/data.go, internal/plan/plan.go, internal/cli/ci.go, internal/ci/ci.go]
+    refs: [features/ci-proof-report.feature, internal/plan/data.go, internal/plan/scope.go, internal/plan/json.go, internal/plan/plan.go, internal/slices/ci/handler.go, internal/ci/ci.go]
     tags: [proof, v8]
 
   - id: slice-131
