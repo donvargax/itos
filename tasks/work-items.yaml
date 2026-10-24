@@ -13603,8 +13603,8 @@ items:
   - id: bug-134
     title: itos names the file, key and fix for a malformed registry instead of printing JavaScript's error texts
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: bug
     why: >
