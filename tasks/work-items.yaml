@@ -13469,3 +13469,19 @@ items:
       honouring GIT_CEILING_DIRECTORIES, unlike git's repository discovery, so a stray .git above a
       fixture changes what itos finds; git itself would stop at the ceiling. Check whether the
       contract fixtures set a ceiling and whether Find should.
+
+  - id: p1-inprocess-extensions-deferred
+    title: The in-process driver defers the extension scenarios, which exec over the test binary
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Under ITOS_FEATURE_DRIVER=in-process, a scenario of extensions.feature runs an itos-<name>
+      extension, and cli.Main's runProgram replaces the process by it on unix (syscall.Exec), so the
+      go test binary itself becomes the extension and the whole run ends at the first one, every
+      scenario after it unrun (seen in T-291's full in-process runs). inProcessDeferred names only
+      ID-GUARD-11; each extension scenario that execs needs its reason there (or the @binary-only
+      tag step 1 of docs/plans/in-process-tier.md names) before a full in-process run can be read,
+      and the parallel driver's run of every area.
