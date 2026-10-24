@@ -10457,6 +10457,11 @@ items:
       Expected: a timeout says it was stopped after N seconds, with the fix (the check's timeout:,
       or ledger.check.timeout); a failure shows the last lines of its output, or where the full
       output was written; --json carries a reason and an output tail.
+
+      2026-10-23 grooming, merged in p1-task-check-status-wording (#65: itos task's wording made a
+      read-only look run the checks and say done while work show said doing): one line per check,
+      its status worded as the item's state is, its output tail from the evidence record, in itos
+      task and ci run alike.
     refs: [internal/check, internal/cli]
     tags: [work, v8]
 
