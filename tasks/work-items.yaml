@@ -5451,6 +5451,11 @@ items:
       passes without its Task footer, where the same message without the blank line is refused. A
       false pass in a preview, not a gate: git stores no leading blank line and the hook now judges
       the cleaned header.
+
+      2026-10-24 grooming (the user's call): merged in p1-check-message-help-tree (#106):
+      check-message's help says only that --at reads the footers' ids at that commit; with no --at a
+      read_at: commit footer is read at the staged tree (the index) and others at the working tree,
+      which a person checking an unstaged untagging does not expect. Say so in its help.
     refs: [internal/message/lint.go, internal/message/footers.go]
     tags: [commit, v8]
 
