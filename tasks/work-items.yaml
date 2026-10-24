@@ -6570,6 +6570,11 @@ items:
       flag and requested no workflow changes now. Move this proposed guard enhancement out of the
       front of the queue, behind p1-agent-git-ci-contract. No narrow or broad shell-analysis
       implementation was selected in q-67.
+
+      Met again 2026-10-24, three times in one day: spec drafters for bug-134 and slice-174 were
+      denied a plain git commit in a scratch repository under $TMPDIR, outside any itos project,
+      because the guard judges the session's folder; the first denial led to the failed cd that
+      overwrote the main checkout's registry (p1-brief-scratch-probes).
     refs: [internal/guard/guard.go, internal/guard/doc.go, features/guard.feature]
     tags: [guard, v9]
 
