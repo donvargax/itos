@@ -57,8 +57,8 @@ phases:
 queue:
   - slice-175
   - slice-176
-  - p1-github-registry-spike
   - p1-pr-task-close
+  - p1-github-registry-spike
   - p1-agent-test-runs-once
   - p1-mutation-results-committed
   - p1-text-from-file
