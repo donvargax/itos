@@ -5088,7 +5088,7 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: []
+    depends_on: [p1-typed-items]
     kind: idea
     why: >
       Every take, close and queue commits tasks/work-items.yaml, so parallel work conflicts there on
@@ -5100,7 +5100,7 @@ items:
       comment: a ledger file conflicts the same way when one session's work done drops a task's
       done_when lines and another's task add or promote appends the next task right after them;
       whatever merges the registry should cover the ledgers too.
-    tags: [work, v8]
+    tags: [work, v9]
 
   - id: p1-refs-overlap
     title: itos work warns when two doing items have overlapping refs or commit scopes
