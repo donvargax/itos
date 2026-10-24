@@ -5380,6 +5380,13 @@ items:
       all of Azure storage; the choice is between naming the productionresultssa hosts, or itos ci
       watch printing the failed steps' annotations and log tail through api.github.com, which the
       allowlist has.
+
+      2026-10-24 grooming: still open, not absorbed. slice-172 (was p1-ci-watch-failed-step) reads a
+      failed job's output through /repos/<repo>/actions/jobs/<id>/logs
+      (internal/providers/watch.go:420), which answers with the same redirect to Azure blob storage,
+      so inside the devcontainer the watch still cannot show why CI failed. The choice left: allow
+      the productionresultssa hosts, or fall back to the failed steps' annotations, which
+      api.github.com serves itself.
     tags: [ci]
 
   - id: p1-devcontainer-nightly-build
