@@ -2110,6 +2110,9 @@ items:
       units, as workwrite.go's body wrap does; message.CommentChar returns 'auto' for
       core.commentChar=auto, in the lint too. Tests for -F -, the unchanged-file path and CRLF.
       Raised: queued after slice-164, as it bites every feat and fix and ends a lesson.
+
+      Correction to the note above: it was already sixth in the registry's queue, after
+      p1-defer-reason-footer; the queue was left as it is.
     refs: [internal/cli/gitcommit.go, internal/message/footers.go]
     tags: [commit, v8]
 
