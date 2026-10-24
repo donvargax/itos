@@ -13857,7 +13857,7 @@ items:
     title: Settle the five survivors of Nightly 40091179284
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: []
     kind: task
 
