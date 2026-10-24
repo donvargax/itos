@@ -13153,6 +13153,12 @@ items:
       reading the report, nudges and repairs), beside the implementer's own. A cheaper implementer
       that needs a longer brief or more repair rounds can cost more in all, so the trial compares
       the two sums, not the implementer's alone.
+
+      The user, 2026-10-24: Anthropic's advisor tool (API beta advisor_20260301: the executor
+      consults a stronger advisor model mid-task, which sees the whole transcript and returns short
+      advice) could pair a Haiku implementer with an Opus advisor. It is API-only, so it bills
+      against API credits rather than the subscription: weigh its cost against the subscription
+      Sonnet implementers before trying it.
     tags: [agents, v8]
 
   - id: slice-173
