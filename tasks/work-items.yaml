@@ -6280,6 +6280,11 @@ items:
       consider adopting the flag in local changed-function briefs; keep aggregate diagnosis
       available and preserve targeted coverage, --since, explicit paths and freshness checks. No
       provider upgrade or new flag is assumed for the current slice.
+
+      2026-10-23 grooming, the user: keep. Agents run no local mutation today (ADR-0057) and a push
+      runs one mutant, so fail-fast has nothing to cut; it becomes useful when
+      docs/plans/in-process-tier.md step 5 runs a mutant of the changed functions at pre-push, or
+      when a complete local run is wanted (p1-mutation-results-committed's package runs).
     refs: [docs/ORCHESTRATING.md, itos-cc.yaml]
     tags: [proof]
 
