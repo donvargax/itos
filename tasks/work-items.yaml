@@ -13091,16 +13091,9 @@ items:
     title: The commit-msg hook answers opted-in checks from records keyed by the staged snapshot (evidence records, A4)
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-169]
     kind: slice
-    why: >
-      Was p1-evidence-commit-msg.
-      Split from p1-evidence-local on 2026-10-23: A4 of docs/plans/evidence-records.md (ADR-0060).
-      bug-112 now runs commit-msg checks from a disposable snapshot of the exact index tree; key
-      their records by that tree. Its scenario: stage a change, edit a tracked file further without
-      staging, see the check run on the staged snapshot without the unstaged edit, then commit again
-      with the same index and hit the record. Feat, minor.
     tags: [evidence, v8]
 
   - id: T-292
