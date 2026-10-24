@@ -13676,4 +13676,9 @@ items:
       in the text message, since config check's text prints no fix lines. Severity and exit
       unchanged. slice-156's ID-ASK-28 (features/decision-relink.feature) is the shape to start
       from, its advice reworded from decision relink to the hand edit.
+
+      From its spec (2026-10-24): no guide forbids hand-editing the asks file (itos help decision
+      only says questions are kept as data), so the fix line needs no exception sentence; the JSON
+      already has a fix field, and the gaps are that config check's text shows no fix and the fix
+      names neither the file nor the stale item nor says by hand.
     refs: [internal/engine/configcheck/configcheck.go, features/decision-relink.feature]
