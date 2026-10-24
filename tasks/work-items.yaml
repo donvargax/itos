@@ -9642,16 +9642,9 @@ items:
     title: Repair question-item links during upgrade only from proven rename history
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: []
     kind: idea
-    why: >
-      Residual #49 scope after q-74 selected explicit decision relink and actionable diagnostics
-      first. Any future automatic repair must establish real rename provenance and a unique valid
-      current destination; copied Was prose is not sufficient evidence. Preserve unresolved links
-      and report ambiguity when history is missing, shallow, conflicting or otherwise inconclusive;
-      never guess or auto-clear. No automatic upgrade repair is included in the first
-      explicit-relink delivery and no deferral has been chosen.
     refs: [internal/cli/upgrade.go, internal/cli/ask.go, internal/cli/configcheck.go]
     tags: [upgrade]
 
