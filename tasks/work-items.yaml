@@ -5137,8 +5137,8 @@ items:
   - id: slice-176
     title: Under pr, work done closes an item only once its pull request has merged and main's run of it is green
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: [slice-174]
     kind: slice
     why: >
