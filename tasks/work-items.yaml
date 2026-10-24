@@ -13717,3 +13717,14 @@ items:
       on nothing, and the wait itos push does is a report, not a gate. Carries what
       p3-pr-rebase-merge (folded into p1-pr-mode, now slice-174) wanted: the gh api PATCH, printed
       when gh is missing or refused, plus allow_auto_merge it lacked.
+
+  - id: p1-pr-main-run-after-merge
+    title: In pr mode, main's run after the merge is watched
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [slice-174]
+    kind: idea
+    why: >
+      From slice-174's spec (2026-10-24, its follow-ups): rebase-merge gives new SHAs, so the green
+      that closes an item is main's run of them, which nothing watches yet.
