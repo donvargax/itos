@@ -58,6 +58,7 @@ queue:
   - T-293
   - slice-171
   - p1-ci-watch-failed-step
+  - p1-pr-mode
   - p1-agent-test-runs-once
   - p1-mutation-results-committed
   - p1-text-from-file
