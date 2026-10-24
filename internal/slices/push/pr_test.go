@@ -903,3 +903,96 @@ func TestPushRefUnderPr(t *testing.T) {
 		t.Errorf("a tag: exit %d, pushed %v", code, f.pushed)
 	}
 }
+
+// The ledger beside the registry (slice 177): a commit is the registry's, for
+// the push from main and --ref main, when it touches the registry and every
+// other path it touches is a ledger file.
+func TestPushFromMainUnderPrTakesTheLedgerBesideTheRegistry(t *testing.T) {
+	const layout = "ledger: { files: 'tasks/phase-{group}.yaml' }\n"
+	with := func(extra ...string) map[string]string {
+		tree := map[string]string{"README.md": "start\n", "up.md": "up.md\n", registryFile: "taken\n"}
+		for _, p := range extra {
+			tree[p] = p + "\n"
+		}
+		return tree
+	}
+	for name, c := range map[string]struct {
+		config string
+		tree   map[string]string
+		pushed bool
+	}{
+		"the registry alone":                {layout, with(), true},
+		"the registry and a ledger file":    {layout, with("tasks/phase-1.yaml"), true},
+		"two ledger files":                  {layout, with("tasks/phase-1.yaml", "tasks/phase-2.yaml"), true},
+		"the registry and another file":     {layout, with("tasks/phase-1.yaml", "widget.md"), false},
+		"a name the ledger does not have":   {layout, with("tasks/notes.yaml"), false},
+		"a folder the ledger does not have": {layout, with("other/phase-1.yaml"), false},
+		"a folder inside the ledger's":      {layout, with("tasks/sub/phase-1.yaml"), false},
+		"no ledger section":                 {"", with("tasks/phase-1.yaml"), false},
+		"the ledger alone":                  {layout, map[string]string{"README.md": "start\n", "up.md": "up.md\n", "tasks/phase-1.yaml": "x\n"}, false},
+	} {
+		for _, args := range [][]string{nil, {"--ref", "main"}} {
+			t.Run(name+strings.Join(args, " "), func(t *testing.T) {
+				f := prRepo(t, c.config)
+				f.on("main", mine)
+				f.History[2].Parents = []string{up}
+				f.History[2].Tree = c.tree
+				code, _, stderr, _ := call(t, f, args...)
+				if c.pushed && (code != 0 || len(f.pushed) != 1) || !c.pushed && (code != policy || len(f.pushed) != 0) {
+					t.Errorf("exit %d, pushed %v\n%s", code, f.pushed, stderr)
+				}
+			})
+		}
+	}
+}
+
+// Paths that cannot be read are not the registry's, nor are none at all.
+func TestRegistryPathsNeedTheRegistryAndPathsThatRead(t *testing.T) {
+	cfg := loaded(t, "version: 1\nledger: { files: 'tasks/phase-{group}.yaml' }\n")
+	registry := cfg.Work.Registry
+	if registryPaths(cfg, []string{registry}, errors.New("unreadable")) || registryPaths(cfg, nil, nil) {
+		t.Error("paths that cannot be read, or none, were the registry's")
+	}
+	if !registryPaths(cfg, []string{"tasks/phase-1.yaml", registry}, nil) {
+		t.Error("the registry and a ledger file were not the registry's")
+	}
+}
+
+// A ledger-only commit is not made the registry's by a commit beside it that
+// touches the registry: the push is judged commit by commit.
+func TestPushFromMainUnderPrJudgesEachCommit(t *testing.T) {
+	f := prRepo(t, "ledger: { files: 'tasks/phase-{group}.yaml' }\n")
+	f.on("main", "rg000")
+	ledgerTree := map[string]string{"README.md": "start\n", "up.md": "up.md\n", "tasks/phase-1.yaml": "x\n"}
+	registryTree := maps.Clone(ledgerTree)
+	registryTree[registryFile] = "taken\n"
+	f.History = append(f.History,
+		vcsfake.Commit{Name: "lg000", Parents: []string{up}, Message: "docs: a check\n", Tree: ledgerTree},
+		vcsfake.Commit{Name: "rg000", Parents: []string{"lg000"}, Message: "docs: take\n", Tree: registryTree})
+	if code, _, stderr, _ := call(t, f); code != policy || len(f.pushed) != 0 {
+		t.Errorf("exit %d, pushed %v\n%s", code, f.pushed, stderr)
+	}
+	f.History[len(f.History)-2].Tree = registryTree
+	f.History[len(f.History)-1].Tree = maps.Clone(registryTree)
+	f.History[len(f.History)-1].Tree[registryFile] = "taken twice\n"
+	if code, _, stderr, _ := call(t, f); code != 0 || len(f.pushed) != 1 {
+		t.Errorf("a close and a take: exit %d, pushed %v\n%s", code, f.pushed, stderr)
+	}
+}
+
+// On an item's branch a task added directly above main goes to main as a take
+// does, and a ledger-only commit above it stays with the work.
+func TestPushItemBranchSendsALedgerBesideTheRegistryToMain(t *testing.T) {
+	f := prRepo(t, "ledger: { files: 'tasks/phase-{group}.yaml' }\n")
+	added := map[string]string{"README.md": "start\n", "up.md": "up.md\n", registryFile: "taken\n", "tasks/phase-1.yaml": "x\n"}
+	checked := maps.Clone(added)
+	checked["tasks/phase-1.yaml"] = "y\n"
+	f.History = append(f.History,
+		vcsfake.Commit{Name: "td000", Parents: []string{up}, Message: "docs: add\n", Tree: added},
+		vcsfake.Commit{Name: "ck000", Parents: []string{"td000"}, Message: "docs: check\n", Tree: checked})
+	f.on(item, "ck000")
+	code, _, stderr, _ := call(t, f)
+	if code != 0 || len(f.pushed) != 1 || len(f.pushed[0]) != 2 || f.pushed[0][0] != "td000:refs/heads/main" || f.pushed[0][1] != "ck000:refs/heads/slice-9" {
+		t.Fatalf("exit %d, pushed %v\n%s", code, f.pushed, stderr)
+	}
+}

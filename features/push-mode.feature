@@ -34,9 +34,10 @@ Feature: push.mode pr, an item's work on its own branch merged by rebase, claims
   anything is pushed, exit 3 (outcome no-github-repository); one that
   sends only registry commits to main calls no gh and needs none.
 
-  On main, the commits the push adds that touch only the work registry (a
-  take, a close, a queue move, an idea: slice 56's rule) go straight to main
-  as under trunk, so two agents never take one item. A push that adds any
+  On main, the commits the push adds that are the registry's (a take, a
+  close, a queue move, an idea: slice 56's rule, widened by slice-177 to the
+  ledger edits made beside the registry, push-mode-ledger.feature) go
+  straight to main as under trunk, so two agents never take one item. A push that adds any
   other commit is refused once rebased onto main, exit 1, nothing pushed
   (outcome work-on-main), saying to carry the work to its item's branch with
   git switch -c <item>. --ref naming main is judged the same way, against
@@ -51,8 +52,8 @@ Feature: push.mode pr, an item's work on its own branch merged by rebase, claims
   main). It is rebased onto the remote's item branch when there is one, else
   onto main, so a first push starts up to date with main and a later one
   never needs force. Of the commits it adds, those directly above main's head
-  that touch only the registry (a take made on the branch) go to main and the
-  rest to the item branch, in one git push --atomic: both land or neither,
+  that are the registry's (a take made on the branch; slice-177) go to main
+  and the rest to the item branch, in one git push --atomic: both land or neither,
   the pre-push hook judging both. A branch whose commits are all such goes
   to main alone: the item's branch is not pushed, no pull request is opened
   and no run waited for, as for registry commits pushed from main.
@@ -144,7 +145,8 @@ Feature: push.mode pr, an item's work on its own branch merged by rebase, claims
 
   The recording gh stands in for GitHub: first on the PATH, with
   GITHUB_REPOSITORY owner/scratch, it records each call, answers pr list
-  with the open pull requests of the --head branch as gh does ([] for none),
+  with the pull requests of the --head branch that its --state names (open,
+  gh's default, merged, closed or all) as gh does ([] for none; slice-176),
   and answers pr create with the address the scenario gives, holding that
   pull request open from then on. pr view answers {"headRefOid": <sha>},
   the remote's branch's head; pr update-branch rebases the remote's branch

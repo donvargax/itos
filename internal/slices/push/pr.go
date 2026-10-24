@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"path"
+	"path/filepath"
 	"regexp"
 	"slices"
 	"strconv"
@@ -14,6 +16,7 @@ import (
 
 	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/engine/gitrun"
+	"github.com/donvargax/itos/v8/internal/ledger"
 	"github.com/donvargax/itos/v8/internal/providers"
 	"github.com/donvargax/itos/v8/internal/value"
 	vcsport "github.com/donvargax/itos/v8/internal/vcs/port"
@@ -119,11 +122,43 @@ func (r *pushRun) judgeRefs(ctx context.Context, refs []string) (Answer, bool) {
 	return Answer{}, false
 }
 
-// addsWork is whether the commits onto..sha include one that touches more
-// than the registry; commits that cannot be listed count as work.
+// addsWork is whether the commits onto..sha include one that is not the
+// registry's (registryCommit), each judged by itself; commits that cannot be
+// listed count as work.
 func (r pushRun) addsWork(ctx context.Context, onto, sha string) bool {
 	ahead, err := r.ports.Commits(ctx, vcsport.Range{From: onto, To: sha})
-	return err != nil || len(ahead) > 0 && !r.registryOnly(ctx, onto, sha, r.cfg.Work.Registry)
+	return err != nil || slices.ContainsFunc(ahead, func(c string) bool { return !r.registryCommit(ctx, c) })
+}
+
+// registryCommit is whether the commit, against its first parent, is the
+// registry's for pr's two judgements (slice 177): see registryPaths.
+func (r pushRun) registryCommit(ctx context.Context, commit string) bool {
+	files, err := r.ports.Touched(ctx, vcsport.Range{From: r.ports.Parent(ctx, commit), To: commit}, true)
+	return registryPaths(r.cfg, files, err)
+}
+
+// registryPaths is whether the paths a commit touches are the registry's: the
+// work registry, and no path but ledger files besides, which work done, task
+// add and work promote edit beside it. With no ledger section no path is a
+// ledger file, and the rule is touchesOnlyRegistry's.
+func registryPaths(cfg *config.Loaded, files []string, err error) bool {
+	if err != nil {
+		return false
+	}
+	registry := path.Clean(filepath.ToSlash(cfg.Work.Registry))
+	layout, noLedger := ledger.LayoutOf(cfg)
+	touched := false
+	for _, f := range files {
+		f = path.Clean(f)
+		switch {
+		case f == registry:
+			touched = true
+		case noLedger == nil && path.Dir(f) == layout.Dir && layout.File.MatchString(path.Base(f)):
+		default:
+			return false
+		}
+	}
+	return touched
 }
 
 // workOnMain is the refusal of a push to main that adds work (outcome
@@ -203,8 +238,8 @@ func (r *pushRun) pushItem(ctx context.Context, item, main string) Answer {
 
 // registryPrefix is how many of the commits above main, oldest first, go to
 // main: those that start at main's head, each directly on the one before,
-// touch only the registry and are not on the item's branch yet (theirs, its
-// tip, "" when the remote has none).
+// are the registry's (registryCommit) and are not on the item's branch yet
+// (theirs, its tip, "" when the remote has none).
 func (r pushRun) registryPrefix(ctx context.Context, main string, ahead []string, theirs string) int {
 	v := r.ports
 	parent := main
@@ -212,8 +247,7 @@ func (r pushRun) registryPrefix(ctx context.Context, main string, ahead []string
 		if v.Parent(ctx, c) != parent || theirs != "" && v.IsAncestor(ctx, c, theirs) {
 			return i
 		}
-		files, err := v.Touched(ctx, vcsport.Range{From: parent, To: c}, true)
-		if !touchesOnlyRegistry(r.cfg.Work.Registry, files, err) {
+		if !r.registryCommit(ctx, c) {
 			return i
 		}
 		parent = c

@@ -76,7 +76,7 @@ Feature: Under push.mode pr, the ledger edits itos makes beside the registry go 
   # beside the registry, and goes from main to main as any close does.
   # Fails before the work at the exit code: today it is refused as
   # work-on-main, exit 1.
-  @ID-PUSHLEDGER-01 @slice-177 @wip
+  @ID-PUSHLEDGER-01 @slice-177
   Scenario: Under pr, a task's close that takes out its checks goes from main straight to main, opening no pull request
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -94,7 +94,7 @@ Feature: Under push.mode pr, the ledger edits itos makes beside the registry go 
   # must be on main before it can be taken there. work promote --kind task
   # commits the same two files and is judged by the same rule. Fails before
   # the work at the exit code: today it is refused as work-on-main, exit 1.
-  @ID-PUSHLEDGER-02 @slice-177 @wip
+  @ID-PUSHLEDGER-02 @slice-177
   Scenario: Under pr, a task added on main goes straight to main, opening no pull request
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -112,7 +112,7 @@ Feature: Under push.mode pr, the ledger edits itos makes beside the registry go 
   # added directly above main (a follow-up found mid-work) goes to main,
   # the work above it to the item's branch. Fails before the work at the
   # main step: today the task's commit rides the pull request with the work.
-  @ID-PUSHLEDGER-03 @slice-177 @wip
+  @ID-PUSHLEDGER-03 @slice-177
   Scenario: Under pr, a task added on an item's branch directly above main goes to main and the work to the branch
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -133,7 +133,7 @@ Feature: Under push.mode pr, the ledger edits itos makes beside the registry go 
   # bookkeeping, so it still goes through a pull request: main still ends
   # with the config's commit. A guard: it passes before the fix and must
   # after it.
-  @ID-PUSHLEDGER-04 @slice-177 @guard @wip
+  @ID-PUSHLEDGER-04 @slice-177 @guard
   Scenario: Under pr, a push from main of a commit touching only the ledger is still refused, naming git switch -c
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -153,7 +153,7 @@ Feature: Under push.mode pr, the ledger edits itos makes beside the registry go 
   # ledger-only commit is not the registry's on its own; a judgement over
   # the union of the push's paths would let it through. A guard: it passes
   # before the fix and must after it.
-  @ID-PUSHLEDGER-07 @slice-177 @guard @wip
+  @ID-PUSHLEDGER-07 @slice-177 @guard
   Scenario: Under pr, a push from main of an idea and a separate ledger-only commit is still refused
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -172,7 +172,7 @@ Feature: Under push.mode pr, the ledger edits itos makes beside the registry go 
   # The registry in a commit is not enough: every other path must be a
   # ledger file, so work beside a take is still work. A guard: it passes
   # before the fix and must after it.
-  @ID-PUSHLEDGER-05 @slice-177 @guard @wip
+  @ID-PUSHLEDGER-05 @slice-177 @guard
   Scenario: Under pr, a push from main of a commit touching the registry and another file is still refused
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -191,7 +191,7 @@ Feature: Under push.mode pr, the ledger edits itos makes beside the registry go 
   # the ledger, which a run judges, so the push waits for its run rather
   # than saying its commits touch only the registry. A guard: it passes
   # before the fix and must after it.
-  @ID-PUSHLEDGER-06 @slice-177 @guard @wip
+  @ID-PUSHLEDGER-06 @slice-177 @guard
   Scenario: Under trunk with ci.watch, a push of a task's close goes to main and waits for its run
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """

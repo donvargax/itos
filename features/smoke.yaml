@@ -160,6 +160,10 @@
   scenarios:
     - id: "@ID-PREPUSH-01"
       why: a pushed commit that breaks the commit rules refused by the hook, saying how to fix it, the file's point
+- file: push-mode-ledger.feature
+  scenarios:
+    - id: "@ID-PUSHLEDGER-01"
+      why: a task's close that edits the ledger beside the registry going from main to main under pr, the file's point
 - file: push-mode.feature
   scenarios:
     - id: "@ID-PUSHMODE-01"

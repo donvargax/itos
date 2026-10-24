@@ -102,14 +102,19 @@
 // one pushing as trunk. Main is the branch the remote's HEAD names, asked
 // of the remote (Ports.RemoteHead, git ls-remote --symref) and required to
 // have the branch (defaultBranch: no-default-branch, exit 3). On main the
-// routine runs as above, but a push that adds a commit touching more than
-// the registry is refused once rebased (addsWork, workOnMain); --ref naming
-// main is judged the same against the remote's main (judgeRefs). On another
+// routine runs as above, but a push that adds a commit that is not the
+// registry's is refused once rebased (addsWork, workOnMain); --ref naming
+// main is judged the same against the remote's main (judgeRefs). A commit is
+// the registry's (registryCommit, slice 177), judged by itself against its
+// first parent, when it touches the work registry and every other path it
+// touches is a ledger file (registryPaths): the close of a task with checks,
+// task add and work promote --kind task edit the ledger beside the registry.
+// With no ledger section no path is one. On another
 // branch pushItem (pr.go) takes over: its name must be an item of the work
 // registry (work.IDsAt), then it fetches main and the item's branch,
 // rebases onto the item's when the remote has it, else onto main
 // (ontoName names it in the rebase's messages), and pushes in one atomic
-// push the registry commits directly above main (registryPrefix) to main
+// push the registry's commits directly above main (registryPrefix) to main
 // and the head to the item's branch; a branch of such commits alone goes to
 // main with no pull request (pushRegistry). Every gh call (Ports.Gh) names
 // the repository (Ports.GitHubRepository, required once the branch is
