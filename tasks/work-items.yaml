@@ -4662,6 +4662,13 @@ items:
       establishes the reported symptom's mapping, not completion of this broader rules-as-data idea.
       No extra renderer, ci-summary flag or implementation is needed for #27, and no GitHub closure
       was performed.
+
+      2026-10-23 grooming, merged in p1-agent-rules-suspend (a permanent rule can be suspended,
+      printed nowhere, restored by a sighting of its mistake, deleted after staying suspended
+      through a model release: the vanilla baseline one rule at a time) and p1-notes-placement (itos
+      go stops appending the notes whole: a note is a startup essential or attached to a role,
+      procedure or item, printed where it applies; split from this item on 2026-10-10, q-47 and
+      q-48). One design with p1-typed-items, v9.
     refs: [docs/ORCHESTRATING.md, AGENTS.md, internal/guide]
     tags: [agents, v9]
 
