@@ -60,7 +60,6 @@ queue:
   - bug-126
   - bug-129
   - bug-130
-  - p1-uncommitted-git-failure
   - p1-guard-quoted-text
   - p1-defer-reason-footer
   - p1-take-without-people-says-so
@@ -10300,14 +10299,9 @@ items:
     title: A git that fails reads as changes no commit holds
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: []
     kind: idea
-    why: >
-      Found by slice 138's unit tests: uncommitted (internal/cli/workwrite.go) treats an error from
-      git status as a file with changes, so a git that cannot run makes every registry writer refuse
-      with '<file> has changes no commit holds', naming the wrong cause. It should report git's
-      failure as the error it is.
     tags: [work, v8]
 
   - id: p1-verify-verdict-once
