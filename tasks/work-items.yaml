@@ -2042,6 +2042,12 @@ items:
       2026-10-24 grooming, merged in p3-header-lint-unread-keys (HeaderLint keeps Hook and Stdin
       under builtin, types.go:85-93, and nothing warns). The user: v9's schema refuses them rather
       than v8 warning; simpler, and v9 breaks anyway.
+
+      p3-header-lint-unread-keys in full: found in slice 25, under use: builtin a hook or stdin left
+      in commits.header_lint is read by nothing, against PLAN.md §5's rule that every key accepted
+      is one a tool reads. It was to warn rather than refuse because v2.0.0 accepted them and a
+      refusal in a v2.x would break a config v2.0 accepted (the coordinator's call, 2026-10-03); v9,
+      a major, is where refusing them belongs.
     refs: [internal/config/defaults.go, internal/cli/configcheck.go, features/stealth.feature]
     tags: [stealth, config, v9]
 
