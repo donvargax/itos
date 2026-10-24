@@ -8394,18 +8394,9 @@ items:
     title: A small build or ci change can name the idea it does instead of a task
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: []
     kind: idea
-    why: >
-      Found 2026-10-11 by the coordinator: removing three lines from itos.yaml's config set
-      (p1-drop-vite-hooks-path, an idea) was refused, 'ci commits need --task <id>', and --item was
-      not accepted in its place. Doing it by the rules takes a promote, a ledger entry by hand
-      (p1-task-add-promoted) and a task check, for a change whose proof is the gate that runs it; it
-      was folded into T-143 instead. Let a build or ci commit carry Item: <idea> (commits.footers
-      in_place_of, as other types allow), its done judged by the commit landing green, or let the
-      policy name which types may name an idea. Weigh against keeping every gate change behind a
-      task with a check.
     tags: [commit, v8]
 
   - id: p1-build-go-no-caller
