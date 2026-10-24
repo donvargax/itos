@@ -7047,7 +7047,7 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: [p1-work-item-dates]
+    depends_on: [p1-work-item-dates, p1-typed-items]
     kind: idea
     why: >
       On 2026-10-10 the coordinator summarised the backlog for the person and itos gave none of it
@@ -7060,7 +7060,7 @@ items:
       whether their checks pass would replace all of it. Items with no dates show their age as
       unknown and are counted. Every coordinator does this review across many itos-driven
       repositories, so each script costs again.
-    tags: [work, v8]
+    tags: [work, v9]
 
   - id: slice-157
     title: Refuse mistaken bare ID-area stems with a valid full-stem correction
