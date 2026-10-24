@@ -13542,8 +13542,8 @@ items:
   - id: bug-133
     title: work take says when it records no owner, and its help names the no-people case
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: bug
     why: >
