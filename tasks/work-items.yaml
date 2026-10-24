@@ -4472,6 +4472,10 @@ items:
       Decision 35 (2026-10-06): message and fix may change, yet the path a rule refused, the
       scenario, the item or the commit is only in the message today (out.Problem is rule, message,
       fix). Each rule documents its keys; added after v6 they are additive (T-076).
+
+      2026-10-24 grooming, moved in from p1-json-gaps (T-199's paragraph): a problem names the path,
+      config key or id only in its message. Additive keys survive q-89's v9 design, so this stays
+      v8.
     refs: [internal/out/out.go]
     tags: [message, v8]
 
