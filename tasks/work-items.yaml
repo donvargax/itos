@@ -13829,3 +13829,11 @@ items:
       --set-upstream-to fails; an itos push that needs no upstream config (pushing to the configured
       branch, or the one PR mode names) works under it.
     refs: [internal/slices/push]
+
+  - id: T-300
+    title: The VCS contract's unreachable remote is reached with no proxy
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task
