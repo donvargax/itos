@@ -4602,3 +4602,17 @@
     (T-290) wrote its three; an exception whose proof does not hold is a test instead. No production
     change unless a survivor shows a real bug, which is reported, not fixed here. The next nightly
     is the acceptance.
+
+- id: T-299
+  type: refactor
+  title: internal/message's doc comment stops naming the deleted header-agreement self-test
+  why: >
+    T-143 deleted tools/selftest/header-agreement.ts unported (red by design since squash! and
+    fixup! are judged by type; the header lint is the @ID-CMSG scenarios' and the corpus's
+    messages.yaml). internal/message/doc.go still says that file holds the built-in header lint to a
+    recorded fixture of commitlint's verdicts. A refactor commit rewording that sentence to name
+    what holds the lint now; T-143 left it, as its brief changed no Go under internal/. 2026-10-24
+    grooming: cut the sentence at internal/message/doc.go:117-119 naming the deleted
+    tools/selftest/header-agreement.ts rather than reword it.
+  done_when:
+    - run: "! grep -q 'header-agreement.ts' internal/message/doc.go"
