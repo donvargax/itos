@@ -13384,6 +13384,15 @@ items:
       Effort: high for implementation (the user, 2026-10-23), medium to be tried once high has a
       baseline.
 
+      2026-10-23, slice-169 (Sonnet high, first item): no interventions; ~29 min, 170 tool calls; 24
+      scenarios green, full suite, previous-release, conformance and schema-contract passing
+      locally; honest report of its own slips. CI red on all platforms (run 40046207102): an after:
+      push check recorded once the commit was pushed, a test depending on push state, invisible to
+      its local pre-push run. The diff review blocked on an architecture bypass (internal/evidence
+      outside internal/engine, reached through type aliases so the lint passed for the wrong reason)
+      and noted an input path escaping the checkout. Resumed the same agent to fix forward; cause:
+      the model (spec had the after: push rule).
+
   - id: slice-170
     title: "The local evidence store survives contention and damage: lock waits, stale locks, failed renames, corrupt or markerless records (evidence records, A2)"
     phase: 1
