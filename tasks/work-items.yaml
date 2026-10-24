@@ -13365,15 +13365,8 @@ items:
     title: Briefs push with itos push --no-wait in the foreground, so no agent writes a wait loop
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: []
     kind: idea
-    why: >
-      The lesson 'Agents write their own wait loops' (docs/ORCHESTRATING.md) named
-      p1-push-fits-foreground as its exit, dropped 2026-10-10, so nothing ends it; it recurred on
-      2026-10-24 (bug-123's agent: a background until loop, saying a subagent has no way to wait for
-      the completion notification). --no-wait waits only for the pre-push hook, which fits the
-      harness's foreground limit (600000 ms), so the brief can say: run it in the foreground with
-      that timeout, no background job. bug-123's follow-up push did exactly that without a loop.
     refs: [docs/ORCHESTRATING.md]
     tags: [agents, v8]
