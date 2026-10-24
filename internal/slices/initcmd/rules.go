@@ -44,6 +44,7 @@ import (
 	"strings"
 
 	"github.com/donvargax/itos/v8/internal/engine/agentrules"
+	vcsport "github.com/donvargax/itos/v8/internal/vcs/port"
 )
 
 const (
@@ -102,7 +103,7 @@ func (r rulesOffer) run(ctx context.Context) (rulesOutcome, int) {
 		say("%s is not written: %s.", agentsFile, problem)
 		return rulesOutcome{Action: "failed", Files: none, Problem: problem}, exitPolicy
 	}
-	text, _, err := agentrules.ReadText(agentsFile)
+	text, _, err := r.readText(ctx, agentsFile)
 	if err != nil {
 		return failed(err.Error(), r.flag.Given)
 	}
@@ -186,7 +187,7 @@ func (r rulesOffer) question(prompt string) string {
 // at its end, and the import into CLAUDE.md, and gives what it did to each.
 func (r rulesOffer) writeRules(ctx context.Context, text, before string, found *string, after,
 	block string) ([]writtenFile, error) {
-	_, crlf, err := agentrules.ReadText(agentsFile)
+	_, crlf, err := r.readText(ctx, agentsFile)
 	if err != nil {
 		return nil, err
 	}
@@ -201,7 +202,7 @@ func (r rulesOffer) writeRules(ctx context.Context, text, before string, found *
 		}
 	case text == "":
 		agents.Action = "wrote"
-		if exists(agentsFile) {
+		if exists(vcsport.Within(ctx, r.ports, agentsFile)) {
 			agents.Action = "updated"
 		}
 		if err := r.ports.WriteText(ctx, agentsFile, block, crlf); err != nil {
@@ -216,8 +217,8 @@ func (r rulesOffer) writeRules(ctx context.Context, text, before string, found *
 	files = append(files, agents)
 
 	claude := writtenFile{claudeFile, "kept"}
-	if !sameFile(claudeFile, agentsFile) {
-		text, crlf, err := agentrules.ReadText(claudeFile)
+	if !sameFile(vcsport.Within(ctx, r.ports, claudeFile), vcsport.Within(ctx, r.ports, agentsFile)) {
+		text, crlf, err := r.readText(ctx, claudeFile)
 		if err != nil {
 			return nil, err
 		}
@@ -226,7 +227,7 @@ func (r rulesOffer) writeRules(ctx context.Context, text, before string, found *
 		})
 		if !imports {
 			claude.Action = "updated"
-			if !exists(claudeFile) {
+			if !exists(vcsport.Within(ctx, r.ports, claudeFile)) {
 				claude.Action = "wrote"
 			}
 			if text != "" && !strings.HasSuffix(text, "\n") {
@@ -238,6 +239,13 @@ func (r rulesOffer) writeRules(ctx context.Context, text, before string, found *
 		}
 	}
 	return append(files, claude), nil
+}
+
+// readText is agentrules.ReadText of the file p, read from the folder itos
+// runs in, an error naming it as given.
+func (r rulesOffer) readText(ctx context.Context, p string) (string, bool, error) {
+	text, crlf, err := agentrules.ReadText(vcsport.Within(ctx, r.ports, p))
+	return text, crlf, named(err, p)
 }
 
 // sameFile is whether two paths are one file, a link to the other say.

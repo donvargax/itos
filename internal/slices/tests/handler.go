@@ -2,7 +2,6 @@ package tests
 
 import (
 	"context"
-	"os"
 	"strings"
 
 	"github.com/donvargax/itos/v8/internal/config"
@@ -126,8 +125,7 @@ func (h Handler) list(ctx context.Context, q Query) (Answer, error) {
 	if k.Root != nil {
 		root = *k.Root
 	}
-	project, _ := os.Getwd()
-	rows, refused := namedtests.TSV(list, root, project)
+	rows, refused := namedtests.TSV(list, root, h.ports.Folder(ctx))
 	return Answer{List: list, Rows: rows, Refused: refused}, nil
 }
 

@@ -115,6 +115,13 @@ func (f *fake) InstallHooks(_ context.Context, stdout io.Writer, json bool) (int
 	return f.hooksCode, f.hooksErr
 }
 
+// At moves the fake to the folder dir: its Root, which the VCS's Folder
+// gives.
+func (f *fake) At(_ context.Context, dir string) Ports {
+	f.VCS.Root = dir
+	return f
+}
+
 func (f *fake) Abs(_ context.Context, path string) (string, error) {
 	if f.absErr != nil {
 		return "", f.absErr

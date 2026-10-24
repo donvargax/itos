@@ -46,15 +46,14 @@ type fake struct {
 	commitErr           error
 	restoreErr          error
 	untrackErr          error
-	getwdErr            error
 	tempErr             error
 	saveErr             error
 	// tempClosed is CreateTemp giving the file it made closed, so nothing
 	// can be written to it; temp is the last file it made.
 	tempClosed bool
 	temp       string
-	// here is the folder Getwd gives, when set.
-	here string
+	// at are the folders At moved the ports to, in order.
+	at []string
 	// then is done after Exec, RunLine or Blob runs, when set.
 	then func()
 
@@ -151,14 +150,12 @@ func (f *fake) RunLine(_ context.Context, args []string, w io.Writer, reserved s
 	return f.runCode
 }
 
-func (f *fake) Getwd(context.Context) (string, error) {
-	if f.getwdErr != nil {
-		return "", f.getwdErr
-	}
-	if f.here != "" {
-		return f.here, nil
-	}
-	return os.Getwd()
+// At moves the fake to the folder dir: its Root, which the VCS's Folder
+// gives.
+func (f *fake) At(_ context.Context, dir string) Ports {
+	f.at = append(f.at, dir)
+	f.VCS.Root = dir
+	return f
 }
 
 func (f *fake) CreateTemp(_ context.Context, dir, pattern string) (*os.File, error) {
@@ -211,7 +208,12 @@ func (f *fake) Untrack(ctx context.Context, paths []string) error {
 
 func (f *fake) Globals(context.Context, []string) Line { return f.line }
 
-func (f *fake) ApplyGlobals(context.Context, []string) error { return f.globalsErr }
+func (f *fake) ApplyGlobals(context.Context, []string) (Minting, error) {
+	if f.globalsErr != nil {
+		return nil, f.globalsErr
+	}
+	return f, nil
+}
 
 func (f *fake) ReadLine(context.Context, []string) ([]string, error) { return f.read, f.readErr }
 
@@ -277,16 +279,16 @@ func (x *index) Diff(context.Context, string, []string) (string, error) {
 	return x.diff, x.diffErr
 }
 
-// repo is a scratch work tree itos stands at the top of, HEAD holding
-// notes.md, and the fake over it: the work tree's folder and the drafts'
-// file, whose folder is there.
+// repo is a scratch work tree itos runs at the top of (the fake's Root), the
+// process standing elsewhere, HEAD holding notes.md, and the fake over it:
+// the work tree's folder and the drafts' file, whose folder is there.
 func repo(t *testing.T) (*fake, string, string) {
 	t.Helper()
 	dir := t.TempDir()
 	if real, err := filepath.EvalSymlinks(dir); err == nil {
 		dir = real
 	}
-	t.Chdir(dir)
+	t.Chdir(t.TempDir())
 	common := filepath.Join(dir, ".git")
 	file := filepath.Join(common, config.StealthFolder, domain.Folder, domain.FileName)
 	if err := os.MkdirAll(filepath.Dir(file), 0o700); err != nil {
@@ -294,6 +296,7 @@ func repo(t *testing.T) (*fake, string, string) {
 	}
 	f := &fake{
 		VCS: &vcsfake.VCS{
+			Root:    dir,
 			Located: map[string]vcsport.Location{"": {Top: dir, GitDir: common, Common: common}},
 			History: []vcsfake.Commit{{Name: "c1", Message: "docs: start\n", Tree: map[string]string{"notes.md": "Old.\n"}}},
 			Named:   map[string]string{"HEAD": "c1"},
@@ -494,13 +497,13 @@ func TestAddAChange(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(dir, "new", "deep", "file.md"), []byte("Made.\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	t.Chdir(filepath.Join(dir, "new"))
+	f.Root = filepath.Join(dir, "new")
 	code, stdout, stderr, err := draftIn(t, f, "", false, false, "add", "say", "-m", "docs: say\n\nWhy.", "../notes.md", "deep")
 	if code != 0 || err != nil || stdout != "say drafted: docs: say  (notes.md, new/deep)\n" {
 		t.Fatalf("add: exit %d, %v, stdout %q, stderr %q", code, err, stdout, stderr)
 	}
-	if here, _ := os.Getwd(); here != dir {
-		t.Errorf("add left itos in %s, not the top", here)
+	if strings.Join(f.at, " ") != dir {
+		t.Errorf("add went on in %q, not the top", f.at)
 	}
 	if patch, err := os.ReadFile(domain.Patch(file, "say")); err != nil || string(patch) != "the patch\n" {
 		t.Errorf("the patch holds %q (%v)", patch, err)

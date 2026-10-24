@@ -383,11 +383,11 @@ func TestPolicyPathsRefuseALinkLoop(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("a symbolic link needs a privilege on Windows")
 	}
-	scratch(t, "", nil)
+	f := scratch(t, "", nil)
 	if err := os.Symlink("loop", "loop"); err != nil {
 		t.Fatal(err)
 	}
-	got := policyPaths(".", []policyFile{{key: "ledger.files", path: filepath.Join("loop", "phase-1.yaml")}})
+	got := policyPaths(f.Root, ".", []policyFile{{key: "ledger.files", path: filepath.Join("loop", "phase-1.yaml")}})
 	if len(got) != 1 || got[0].Message != "ledger.files puts loop/phase-1.yaml outside the project" {
 		t.Errorf("%v", got)
 	}
@@ -396,14 +396,16 @@ func TestPolicyPathsRefuseALinkLoop(t *testing.T) {
 // writeNew makes the file's folder and writes it, and never writes over a
 // file there.
 func TestWriteNew(t *testing.T) {
-	scratch(t, "", map[string]string{"there.txt": "mine\n"})
-	if err := writeNew(filepath.Join("a", "b.txt"), "new\n"); err != nil || read(filepath.Join("a", "b.txt")) != "new\n" {
+	dir := scratch(t, "", map[string]string{"there.txt": "mine\n"}).Root
+	t.Chdir(t.TempDir())
+	if err := writeNew(dir, filepath.Join("a", "b.txt"), "new\n"); err != nil || read(filepath.Join(dir, "a", "b.txt")) != "new\n" {
 		t.Errorf("%v", err)
 	}
-	if err := writeNew("there.txt", "new\n"); err == nil || read("there.txt") != "mine\n" {
-		t.Errorf("over a file: %v", err)
+	if err := writeNew(dir, "there.txt", "new\n"); err == nil || read(filepath.Join(dir, "there.txt")) != "mine\n" ||
+		!strings.Contains(err.Error(), " there.txt: ") || strings.Contains(err.Error(), dir) {
+		t.Errorf("over a file: %v, want an error naming it as given", err)
 	}
-	if err := writeNew(filepath.Join("there.txt", "c.txt"), "new\n"); err == nil {
-		t.Error("in a file: no error")
+	if err := writeNew(dir, filepath.Join("there.txt", "c.txt"), "new\n"); err == nil || strings.Contains(err.Error(), dir) {
+		t.Errorf("in a file: %v, want an error naming it as given", err)
 	}
 }

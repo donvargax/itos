@@ -42,7 +42,7 @@ func (h Handler) write(ctx context.Context, stealth, initialized bool, offer Off
 	if head, err := h.ports.Resolve(ctx, "HEAD"); err == nil {
 		since = head
 	}
-	s := starter{stealth: stealth, since: since, scenarios: hasFeatureFiles(starterFeatures)}
+	s := starter{stealth: stealth, since: since, scenarios: hasFeatureFiles(h.path(ctx, starterFeatures))}
 	version, sums, pinErr := h.ports.Release(ctx, "")
 	if pinErr == nil {
 		s.pin = &[2]string{version, release.SHA256(sums)}
@@ -51,9 +51,9 @@ func (h Handler) write(ctx context.Context, stealth, initialized bool, offer Off
 	var files []writtenFile
 	write := func(p, text string) error {
 		action := "kept"
-		if !exists(p) {
-			if err := os.MkdirAll(filepath.Dir(p), 0o777); err != nil {
-				return err
+		if !exists(h.path(ctx, p)) {
+			if err := os.MkdirAll(filepath.Dir(h.path(ctx, p)), 0o777); err != nil {
+				return named(err, filepath.Dir(p))
 			}
 			if err := h.ports.WriteFile(ctx, p, []byte(text), 0o666); err != nil {
 				return err
@@ -69,7 +69,7 @@ func (h Handler) write(ctx context.Context, stealth, initialized bool, offer Off
 	smoke, smokeIDs := "", 0
 	if s.scenarios {
 		cfg, err := h.fromText(ctx, file, s.config(), stealth)
-		if exists(file) {
+		if exists(h.path(ctx, file)) {
 			cfg, err = h.loadConfigFile(ctx, file)
 		}
 		if err != nil {
@@ -79,7 +79,7 @@ func (h Handler) write(ctx context.Context, stealth, initialized bool, offer Off
 		if err != nil {
 			return 0, err
 		}
-		s.untagged = len(list.Tests) == 0 && !exists(file)
+		s.untagged = len(list.Tests) == 0 && !exists(h.path(ctx, file))
 		smoke, smokeIDs = starterSmokeSet(list)
 	}
 	if err := write(file, s.config()); err != nil {

@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"path/filepath"
 	"strings"
 
 	"github.com/donvargax/itos/v8/internal/slices/guard/domain"
@@ -16,8 +15,8 @@ import (
 const refused = 1
 
 // CLI is `guard <harness>`'s command line: the harness, claude-code alone so
-// far, and the folder itos was started in, which a relative input folder is
-// read from and which is judged when the input names none.
+// far, and the folder itos was started in, absolute, which a relative input
+// folder is read from and which is judged when the input names none.
 type CLI struct {
 	Harness string
 	Started string
@@ -79,12 +78,7 @@ func (c CLI) Run(ctx context.Context, stdin io.Reader, stdout, stderr io.Writer,
 		fmt.Fprintf(stderr, "itos: guard claude-code cannot read Claude Code's %s input on stdin: %s\n", domain.Event, err)
 		return refused
 	}
-	here, err := filepath.Abs(c.Started)
-	if err != nil {
-		fmt.Fprintf(stderr, "itos: guard claude-code cannot tell the folder it runs in: %s\n", err)
-		return refused
-	}
-	reason, deny := h.Handle(ctx, Query{Input: in, Here: here})
+	reason, deny := h.Handle(ctx, Query{Input: in, Here: c.Started})
 	if !deny {
 		return 0
 	}

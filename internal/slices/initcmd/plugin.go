@@ -258,7 +258,7 @@ func excludeIfShown(ctx context.Context, v vcsport.VCS, p string) (bool, error) 
 	if err != nil {
 		return false, err
 	}
-	file := filepath.Join(l.Common, "info", "exclude")
+	file := vcsport.Within(ctx, v, filepath.Join(l.Common, "info", "exclude"))
 	raw, _ := os.ReadFile(file)
 	text := string(raw)
 	if text != "" && !strings.HasSuffix(text, "\n") {

@@ -35,11 +35,6 @@ func (s Store) Path(ctx context.Context, name string) (string, error) {
 	common := l.Common
 	if !filepath.IsAbs(common) {
 		cwd := s.VCS.Folder(ctx)
-		if cwd == "" {
-			// Where the run's folder is the process's (draft and init,
-			// until they move without moving the process).
-			cwd, _ = os.Getwd()
-		}
 		if real, err := filepath.EvalSymlinks(cwd); err == nil {
 			cwd = real
 		}

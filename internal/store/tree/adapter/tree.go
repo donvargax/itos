@@ -77,11 +77,6 @@ func (t Trees) At(ctx context.Context, tree string) (port.Source, error) {
 	}
 	// git gives the top folder with its links resolved, as Node's cwd is.
 	cwd := dir
-	if cwd == "" {
-		// Where the run's folder is the process's (draft and init, until
-		// they move without moving the process).
-		cwd, _ = os.Getwd()
-	}
 	if real, err := filepath.EvalSymlinks(cwd); err == nil {
 		cwd = real
 	}

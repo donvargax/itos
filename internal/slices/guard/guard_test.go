@@ -3,7 +3,6 @@ package guard
 import (
 	"context"
 	"errors"
-	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -53,25 +52,6 @@ func TestRun(t *testing.T) {
 	in := strings.NewReader(`{"tool_name":"Bash","tool_input":{"command":"git push"},"cwd":` + `"` + filepath.ToSlash(repo) + `"}`)
 	if code := c.Run(context.Background(), in, failing{}, &stderr, h); code != 1 || !strings.Contains(stderr.String(), "cannot write its PreToolUse answer") {
 		t.Errorf("an answer it cannot write: exit %d, stderr %q", code, stderr.String())
-	}
-}
-
-// A folder it cannot tell, where the process stands in one removed, is exit
-// 1 and a stderr line, never an answer.
-func TestRunWhereTheFolderWent(t *testing.T) {
-	gone := t.TempDir()
-	t.Chdir(gone)
-	if err := os.Remove(gone); err != nil {
-		t.Skip("this system cannot remove the folder a process stands in")
-	}
-	if _, err := filepath.Abs("."); err == nil {
-		t.Skip("this system still tells a removed folder")
-	}
-	var stdout, stderr strings.Builder
-	in := strings.NewReader(`{"tool_name":"Bash","tool_input":{"command":"git commit"}}`)
-	code := CLI{Harness: "claude-code", Started: "."}.Run(context.Background(), in, &stdout, &stderr, NewHandler(folders{}))
-	if code != 1 || stdout.String() != "" || !strings.Contains(stderr.String(), "cannot tell the folder it runs in") {
-		t.Errorf("exit %d, stdout %q, stderr %q", code, stdout.String(), stderr.String())
 	}
 }
 

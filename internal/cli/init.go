@@ -5,7 +5,6 @@ import (
 	"io"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"strings"
 
 	"github.com/donvargax/itos/v8/internal/engine/agentrules"
@@ -21,10 +20,7 @@ import (
 // ports bound to the real code; --git-shim-dir and --policy are read from
 // where itos was started.
 func runInit(args []string, o Out) (int, error) {
-	// The init slice still moves the process, so its ports read from
-	// wherever it stands.
-	o.Dir = ""
-	ctx, p := context.Background(), initPorts{o: o}
+	ctx, p := context.Background(), initPortsIn(o)
 	c, err := initslice.Parse(ctx, args, o.Origin, o.JSON, o.Tests, p)
 	if err != nil {
 		return 0, err
@@ -35,17 +31,28 @@ func runInit(args []string, o Out) (int, error) {
 // initPorts are the init slice's ports over the real code: git, the trees
 // over it, the working tree, the flags of itos task that name no group,
 // pin's release, hook install, the terminal, the programs on the PATH and
-// git-shim install's links on the OS o names, with o.
+// git-shim install's links on the OS o names, with o, in the folder o's Dir
+// names.
 type initPorts struct {
 	vcs.Git
 	o Out
 }
 
+// initPortsIn are the init ports of o, in its folder.
+func initPortsIn(o Out) initPorts { return initPorts{Git: vcs.Git{Dir: o.Dir}, o: o} }
+
+// At is the ports in the folder dir, entered from this one.
+func (p initPorts) At(_ context.Context, dir string) initslice.Ports {
+	o := p.o
+	o.Dir = entered(o.OS, o.Dir, dir)
+	return initPortsIn(o)
+}
+
 // Trees is the tree adapter over git.
-func (initPorts) Trees(context.Context) port.Trees { return trees.Trees{VCS: vcs.Git{}} }
+func (p initPorts) Trees(context.Context) port.Trees { return trees.Trees{VCS: p.Git} }
 
 // Worktree is the working tree's files.
-func (initPorts) Worktree(context.Context) port.Source { return trees.Worktree }
+func (p initPorts) Worktree(context.Context) port.Source { return trees.WorktreeIn(p.Dir) }
 
 // TaskFlags is ungroupedTaskFlags.
 func (initPorts) TaskFlags(context.Context) []string { return ungroupedTaskFlags() }
@@ -60,22 +67,24 @@ func (p initPorts) InstallHooks(_ context.Context, stdout io.Writer, json bool) 
 	return hookInstall(false, false, o)
 }
 
-// Abs is filepath.Abs.
-func (initPorts) Abs(_ context.Context, path string) (string, error) { return filepath.Abs(path) }
-
-// WriteFile is os.WriteFile.
-func (initPorts) WriteFile(_ context.Context, name string, data []byte, perm os.FileMode) error {
-	return os.WriteFile(name, data, perm)
+// Abs is the path read from the ports' folder.
+func (p initPorts) Abs(_ context.Context, path string) (string, error) {
+	return within(p.Dir, path), nil
 }
 
-// MkdirAll is os.MkdirAll.
-func (initPorts) MkdirAll(_ context.Context, path string, perm os.FileMode) error {
-	return os.MkdirAll(path, perm)
+// WriteFile is os.WriteFile of the file read from the ports' folder.
+func (p initPorts) WriteFile(_ context.Context, name string, data []byte, perm os.FileMode) error {
+	return named(os.WriteFile(within(p.Dir, name), data, perm), name)
 }
 
-// WriteText is agentrules.WriteText.
-func (initPorts) WriteText(_ context.Context, path, text string, crlf bool) error {
-	return agentrules.WriteText(path, text, crlf)
+// MkdirAll is os.MkdirAll of the folder read from the ports' folder.
+func (p initPorts) MkdirAll(_ context.Context, path string, perm os.FileMode) error {
+	return named(os.MkdirAll(within(p.Dir, path), perm), path)
+}
+
+// WriteText is agentrules.WriteText of the file read from the ports' folder.
+func (p initPorts) WriteText(_ context.Context, path, text string, crlf bool) error {
+	return named(agentrules.WriteText(within(p.Dir, path), text, crlf), path)
 }
 
 // Terminal is onTerminal.
@@ -87,11 +96,12 @@ func (initPorts) Stdin(context.Context) io.Reader { return os.Stdin }
 // LookPath is exec.LookPath.
 func (initPorts) LookPath(_ context.Context, file string) (string, error) { return exec.LookPath(file) }
 
-// Command runs name with args, its stdout and stderr together.
-func (initPorts) Command(_ context.Context, name string, args ...string) (string, error) {
+// Command runs name with args in the ports' folder, its stdout and stderr
+// together.
+func (p initPorts) Command(_ context.Context, name string, args ...string) (string, error) {
 	cmd := exec.Command(name, args...)
 	var output strings.Builder
-	cmd.Stdout, cmd.Stderr = &output, &output
+	cmd.Stdout, cmd.Stderr, cmd.Dir = &output, &output, p.Dir
 	err := cmd.Run()
 	return output.String(), err
 }

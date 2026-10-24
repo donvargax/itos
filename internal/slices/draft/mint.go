@@ -2,7 +2,6 @@ package draft
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"os"
 	"slices"
@@ -11,24 +10,20 @@ import (
 	"github.com/donvargax/itos/v8/internal/engine/ids"
 )
 
-// software is the exit code of an error of no kind, sysexits' EX_SOFTWARE
-// (itos --help).
-const software = 70
-
 // mintingLines are the commands that mint an item's id, as their first two
 // words.
 var mintingLines = [][2]string{{"work", "add"}, {"work", "promote"}, {"task", "add"}}
 
 // mintedKind is the kind of item whose id the itos arguments mint when they
-// run, slice, bug or task; "" when they mint none, or when the command refuses
-// the line, which mints nothing either and is kept to fail at promote, as
-// any drafted line is.
-func (h Handler) mintedKind(ctx context.Context, command []string) string {
-	g := h.ports.Globals(ctx, command)
+// run, read through m, slice, bug or task; "" when they mint none, or when
+// the command refuses the line, which mints nothing either and is kept to
+// fail at promote, as any drafted line is.
+func mintedKind(ctx context.Context, m Minting, command []string) string {
+	g := m.Globals(ctx, command)
 	if g.Help || len(g.Rest) < 2 || !slices.Contains(mintingLines, [2]string{g.Rest[0], g.Rest[1]}) {
 		return ""
 	}
-	read, err := h.ports.ReadLine(ctx, command)
+	read, err := m.ReadLine(ctx, command)
 	if err != nil {
 		return ""
 	}
@@ -36,19 +31,19 @@ func (h Handler) mintedKind(ctx context.Context, command []string) string {
 	switch g.Rest[0] {
 	case "work":
 		if g.Rest[1] == "promote" {
-			kind, err := h.ports.WorkPromoteKind(ctx, args)
+			kind, err := m.WorkPromoteKind(ctx, args)
 			if err != nil {
 				return ""
 			}
 			return kind
 		}
-		if kind, err := h.ports.WorkAddKind(ctx, args); err == nil && kind != "idea" {
+		if kind, err := m.WorkAddKind(ctx, args); err == nil && kind != "idea" {
 			return kind
 		}
 		return ""
 	}
-	if cfg, err := h.ports.Config(ctx); err == nil {
-		if err := h.ports.TaskAdd(ctx, cfg, args); err == nil {
+	if cfg, err := m.Config(ctx); err == nil {
+		if err := m.TaskAdd(ctx, cfg, args); err == nil {
 			return "task"
 		}
 	}
@@ -56,24 +51,26 @@ func (h Handler) mintedKind(ctx context.Context, command []string) string {
 }
 
 // mint is the id a drafted command mints, minted now as the command would
-// mint it, under its own global flags; "" for one that mints none. A
-// registry the command would refuse is reported, its code given.
+// mint it, under its own global flags, in the folder they name; "" for one
+// that mints none. A registry the command would refuse is reported, its
+// code given.
 func (h Handler) mint(ctx context.Context, command []string) (minted string, code int, err error) {
-	err = h.inPlace(ctx, func() error {
-		if err := h.ports.ApplyGlobals(ctx, command); err != nil {
+	err = inPlace(func() error {
+		m, err := h.ports.ApplyGlobals(ctx, command)
+		if err != nil {
 			return nil
 		}
-		kind := h.mintedKind(ctx, command)
+		kind := mintedKind(ctx, m, command)
 		if kind == "" {
 			return nil
 		}
-		sound, err := h.ports.Sound(ctx)
+		sound, err := m.Sound(ctx)
 		defer sound.Release()
 		if sound.Cfg == nil {
 			code = sound.Code
 			return err
 		}
-		minted, err = h.ports.Mint(ctx, sound.Cfg, kind, ids.Items(sound.Registry))
+		minted, err = m.Mint(ctx, sound.Cfg, kind, ids.Items(sound.Registry))
 		return err
 	})
 	return minted, code, err
@@ -81,27 +78,20 @@ func (h Handler) mint(ctx context.Context, command []string) (minted string, cod
 
 // runReserved runs a minting draft's command in this process through
 // RunLine, with the id it reserved, its output on w, and gives its exit
-// code; one that leaves this process where it cannot be put back is
-// reported on w as an error of no kind is, as a failure.
+// code.
 func (h Handler) runReserved(ctx context.Context, d domain.Draft, w io.Writer) int {
 	var code int
-	if err := h.inPlace(ctx, func() error {
+	_ = inPlace(func() error {
 		code = h.ports.RunLine(ctx, d.Command, w, d.Minted)
 		return nil
-	}); err != nil {
-		fmt.Fprintf(w, "itos: %s\n", err)
-		return software
-	}
+	})
 	return code
 }
 
 // inPlace runs f, then puts back what a command's global flags change in
-// this process: the folder it runs in, ITOS_CONFIG and NO_COLOR.
-func (h Handler) inPlace(ctx context.Context, f func() error) error {
-	here, err := h.ports.Getwd(ctx)
-	if err != nil {
-		return err
-	}
+// this process's environment: ITOS_CONFIG and NO_COLOR. The folder they
+// move to is the run's, never the process's.
+func inPlace(f func() error) error {
 	env := map[string]*string{}
 	for _, name := range []string{"ITOS_CONFIG", "NO_COLOR"} {
 		if value, ok := os.LookupEnv(name); ok {
@@ -117,9 +107,6 @@ func (h Handler) inPlace(ctx context.Context, f func() error) error {
 		} else {
 			os.Setenv(name, *value)
 		}
-	}
-	if err := os.Chdir(here); err != nil {
-		return err
 	}
 	return ran
 }

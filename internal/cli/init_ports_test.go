@@ -26,13 +26,13 @@ func TestRunInitBindsItsPorts(t *testing.T) {
 	if _, err := runInit([]string{"--bogus"}, o); ExitCode(err) != ExitUsage {
 		t.Errorf("--bogus: %v", err)
 	}
-	initScratch(t, "commit", nil)
-	ctx, p := context.Background(), initPorts{o: o}
-	if p.Worktree(ctx) != trees.Worktree || len(p.TaskFlags(ctx)) == 0 {
+	dir := initScratch(t, "commit", nil)
+	o.Dir = dir
+	ctx, p := context.Background(), initPortsIn(o)
+	if p.Worktree(ctx) != trees.WorktreeIn(dir) || len(p.TaskFlags(ctx)) == 0 {
 		t.Error("the working tree or the task flags")
 	}
-	abs, _ := filepath.Abs("bin")
-	if got, err := p.Abs(ctx, "bin"); got != abs || err != nil {
+	if got, err := p.Abs(ctx, "bin"); got != filepath.Join(dir, "bin") || err != nil {
 		t.Errorf("bin made absolute: %q, %v", got, err)
 	}
 	if _, _, err := p.Release(ctx, ""); err == nil {
@@ -43,7 +43,7 @@ func TestRunInitBindsItsPorts(t *testing.T) {
 	if code, err := p.InstallHooks(ctx, &hooks, true); code != 0 || err != nil || !json.Valid([]byte(hooks.String())) {
 		t.Errorf("hook install: exit %d, %v:\n%s", code, err, hooks.String())
 	}
-	initScratch(t, "commit", nil)
+	o.Dir = initScratch(t, "commit", nil)
 	code, err := runInit([]string{"--plugin", "no", "--no-git-shim", "--agent-rules"}, o)
 	want := "git add itos.yaml tasks/phase-1.yaml tasks/work-items.yaml AGENTS.md CLAUDE.md, then itos commit --task T-1"
 	if code != 0 || err != nil || !strings.Contains(stdout.String(), want) {

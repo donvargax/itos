@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 
 	"github.com/donvargax/itos/v8/internal/config"
@@ -38,10 +39,12 @@ type Query struct {
 // name no group, which internal/cli's flag spec holds; Release, the release
 // to pin, the version wanted or with "" the newest, and its checksums.txt
 // (pinengine.Pinned); InstallHooks, hook install run as itos hook install
-// runs, writing to stdout, its object under json, and its exit code; and
-// Abs, WriteFile, MkdirAll and WriteText, filepath.Abs, os.WriteFile,
-// os.MkdirAll and agentrules.WriteText, ports so a test makes them fail, as
-// no failure of theirs comes alike from every OS.
+// runs, writing to stdout, its object under json, and its exit code; Abs,
+// a path made absolute from the folder itos runs in (the VCS's Folder),
+// and WriteFile, MkdirAll and WriteText, os.WriteFile, os.MkdirAll and
+// agentrules.WriteText of a path read from there, ports so a test makes
+// them fail, as no failure of theirs comes alike from every OS; and At, the
+// ports of the same run in the folder dir, the top init moves to.
 //
 // The offers reach the rest: Terminal, whether a person is at the other
 // end, stdin and stdout both a terminal, and Stdin, where a terminal's
@@ -75,6 +78,7 @@ type Ports interface {
 	MakeLink(ctx context.Context, self, link string, replace bool) error
 	PathStanding(ctx context.Context, dir string) (at int, realGit string, realAt int)
 	StandingLine(ctx context.Context, dir string, at int, realGit string, realAt int) string
+	At(ctx context.Context, dir string) Ports
 }
 
 // Offer is what the offers are told: the command line's answers, whether
@@ -135,6 +139,26 @@ func NewHandler(p Ports) Handler {
 	return Handler{ports: p}
 }
 
+// at is the handler over the ports in the folder dir (Ports.At).
+func (h Handler) at(ctx context.Context, dir string) Handler {
+	return Handler{ports: h.ports.At(ctx, dir)}
+}
+
+// path is the path p read from the folder itos runs in.
+func (h Handler) path(ctx context.Context, p string) string {
+	return vcsport.Within(ctx, h.ports, p)
+}
+
+// named is err naming the file p as it was given, not as it was read from
+// the folder itos runs in.
+func named(err error, p string) error {
+	var failed *fs.PathError
+	if errors.As(err, &failed) {
+		failed.Path = p
+	}
+	return err
+}
+
 // Out is where init writes as it works, and the global flags that shape it:
 // --json, and Tests, where the run's test listings warn.
 type Out struct {
@@ -168,11 +192,11 @@ func (h Handler) handle(ctx context.Context, q Query, o Out) (int, error) {
 	if q.Policy != "" {
 		return h.policyInit(ctx, q, log, o)
 	}
-	initialized, err := h.atTop(ctx, log)
+	h, initialized, err := h.atTop(ctx, log)
 	if err != nil {
 		return 0, err
 	}
-	if file := h.configPath(ctx); exists(file) {
+	if file := h.configPath(ctx); exists(h.path(ctx, file)) {
 		// A stealth config is for a clone that cannot change the project:
 		// where the project has its own, --stealth would only copy what it
 		// commits into files that go stale unreported (bug 43).
@@ -216,37 +240,36 @@ func (h Handler) fromText(ctx context.Context, file, text string, stealth bool) 
 	return config.FromText(h.ports, h.ports.Trees(ctx), h.ports.Worktree(ctx), file, text, stealth)
 }
 
-// atTop moves to the top of the repository the folder is in, after git init
-// when it is in none, and says whether it ran git init.
-func (h Handler) atTop(ctx context.Context, log io.Writer) (bool, error) {
-	inRepo, err := h.toTop(ctx)
+// atTop is the handler at the top of the repository the folder is in, after
+// git init when it is in none, and says whether it ran git init.
+func (h Handler) atTop(ctx context.Context, log io.Writer) (Handler, bool, error) {
+	h, inRepo, err := h.toTop(ctx)
 	if err != nil || inRepo {
-		return false, err
+		return h, false, err
 	}
-	return true, h.gitInit(ctx, log)
+	return h, true, h.gitInit(ctx, log)
 }
 
-// toTop moves to the top of the repository the folder is in, and says
+// toTop is the handler at the top of the repository the folder is in, and
 // whether it is in one; in a git folder it is a usage error.
-func (h Handler) toTop(ctx context.Context) (bool, error) {
+func (h Handler) toTop(ctx context.Context) (Handler, bool, error) {
 	l, err := h.ports.Locate(ctx, "")
 	if err != nil {
-		return false, nil
+		return h, false, nil
 	}
 	if l.Top == "" {
-		return false, kind.Wrap(kind.Usage, errors.New("init runs in a repository's working tree, not in its git folder"))
+		return h, false, kind.Wrap(kind.Usage, errors.New("init runs in a repository's working tree, not in its git folder"))
 	}
-	return true, os.Chdir(l.Top)
+	return h.at(ctx, l.Top), true, nil
 }
 
-// gitInit makes the folder a git repository, and says so; the git adapter
-// locates it afresh from then on.
+// gitInit makes the folder itos runs in a git repository, and says so; the
+// git adapter locates it afresh from then on.
 func (h Handler) gitInit(ctx context.Context, log io.Writer) error {
 	if err := h.ports.Init(ctx); err != nil {
 		return err
 	}
-	here, _ := os.Getwd()
-	fmt.Fprintf(log, "Ran git init: %s is a git repository now.\n", here)
+	fmt.Fprintf(log, "Ran git init: %s is a git repository now.\n", h.ports.Folder(ctx))
 	return nil
 }
 

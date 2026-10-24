@@ -57,6 +57,7 @@ import (
 	"github.com/donvargax/itos/v8/internal/release"
 	"github.com/donvargax/itos/v8/internal/tests"
 	"github.com/donvargax/itos/v8/internal/value"
+	vcsport "github.com/donvargax/itos/v8/internal/vcs/port"
 )
 
 // The adoption task init --policy writes in a project, its type and its
@@ -98,7 +99,7 @@ func (h Handler) policyInit(ctx context.Context, q Query, log io.Writer, o Out) 
 		return 0, out.Usage("init --policy writes the project's own config, itos.yaml at its top or with --stealth in "+
 			"the git folder, not the %s that --config or ITOS_CONFIG names", named)
 	}
-	plan, refusal, err := h.policyPlanned(ctx, policy, stealth, q.Origin)
+	h, plan, refusal, err := h.policyPlanned(ctx, policy, stealth, q.Origin)
 	if err != nil {
 		return 0, err
 	}
@@ -117,7 +118,7 @@ func (h Handler) policyInit(ctx context.Context, q Query, log io.Writer, o Out) 
 			written = append(written, writtenFile{filepath.ToSlash(f.path), "kept"})
 			continue
 		}
-		if err := writeNew(f.path, f.text); err != nil {
+		if err := writeNew(h.ports.Folder(ctx), f.path, f.text); err != nil {
 			return 0, partial(err, initialized, written)
 		}
 		written = append(written, writtenFile{filepath.ToSlash(f.path), "wrote"})
@@ -161,20 +162,21 @@ func (h Handler) policyInit(ctx context.Context, q Query, log io.Writer, o Out) 
 // policyPlanned reads and judges the policy, from where the person stood,
 // and plans what init would write of it, then finds what of a project is
 // there already and derives the smoke sets: a refusal with nothing written,
-// git init included.
-func (h Handler) policyPlanned(ctx context.Context, policy string, stealth bool, origin string) (policyPlan, *policyRefusal, error) {
+// git init included. It gives the handler at the top it moves to.
+func (h Handler) policyPlanned(ctx context.Context, policy string, stealth bool, origin string) (Handler, policyPlan, *policyRefusal, error) {
 	plan := policyPlan{file: "itos.yaml", stealth: stealth}
-	text, err := os.ReadFile(typed(origin, policy))
+	text, err := os.ReadFile(h.path(ctx, typed(origin, policy)))
 	if err != nil {
-		return plan, nil, &config.Error{File: policy, Problems: []out.Problem{{Rule: "config-unreadable",
+		err = named(err, typed(origin, policy))
+		return h, plan, nil, &config.Error{File: policy, Problems: []out.Problem{{Rule: "config-unreadable",
 			Message: "cannot be read: " + err.Error(), Fix: "name the itos config whose policy the project takes"}}}
 	}
 	src, err := h.fromText(ctx, policy, string(text), false)
 	if err != nil {
-		return plan, nil, err
+		return h, plan, nil, err
 	}
-	if plan.inRepo, err = h.toTop(ctx); err != nil {
-		return plan, nil, err
+	if h, plan.inRepo, err = h.toTop(ctx); err != nil {
+		return h, plan, nil, err
 	}
 	found, common := "", ".git"
 	if plan.inRepo {
@@ -198,19 +200,19 @@ func (h Handler) policyPlanned(ctx context.Context, policy string, stealth bool,
 	}
 	cfg, made, err := h.policyConfig(ctx, policy, string(text), src, plan)
 	if err != nil {
-		return plan, nil, err
+		return h, plan, nil, err
 	}
 	files, problems := policyData(cfg, stealth)
-	problems = append(problems, policyPaths(filepath.Dir(plan.file), files)...)
+	problems = append(problems, policyPaths(h.ports.Folder(ctx), filepath.Dir(plan.file), files)...)
 	if len(problems) > 0 {
-		return plan, nil, &config.Error{File: policy, Problems: problems}
+		return h, plan, nil, &config.Error{File: policy, Problems: problems}
 	}
 	if there := policyThere(cfg, plan.file, found, files); there != nil {
-		return plan, there, nil
+		return h, plan, there, nil
 	}
 	plan.files = append([]policyFile{{path: plan.file, text: made}}, files...)
 	refusal, err := policySmokeSets(cfg, plan.files)
-	return plan, refusal, err
+	return h, plan, refusal, err
 }
 
 // policySaid is what init --policy wrote, from where, from when and pinning
@@ -378,11 +380,12 @@ func freshRegistry(key string) string {
 
 // policyPaths are the files init would write outside the root (the
 // project's top, or the stealth folder), as written or once the symbolic
-// links of the part of their path that is there are followed.
-func policyPaths(root string, files []policyFile) []out.Problem {
+// links of the part of their path that is there are followed, each read
+// from the folder dir.
+func policyPaths(dir, root string, files []policyFile) []out.Problem {
 	var problems []out.Problem
 	for _, f := range files {
-		if !inside(root, f.path) {
+		if !inside(vcsport.In(dir, root), vcsport.In(dir, f.path)) {
 			problems = append(problems, out.Problem{Rule: "init-policy-path",
 				Message: fmt.Sprintf("%s puts %s outside %s", f.key, filepath.ToSlash(f.path), rootName(root)),
 				Fix:     "point " + f.key + " at a path inside it"})
@@ -399,7 +402,8 @@ func rootName(root string) string {
 	return filepath.ToSlash(root)
 }
 
-// inside is whether p stays in root, both resolved by resolved.
+// inside is whether p stays in root, both absolute and resolved by
+// resolved.
 func inside(root, p string) bool {
 	r, errRoot := resolved(root)
 	q, errPath := resolved(filepath.Dir(p))
@@ -407,13 +411,11 @@ func inside(root, p string) bool {
 	return errRoot == nil && errPath == nil && err == nil && filepath.IsLocal(rel)
 }
 
-// resolved is p made absolute, the symbolic links of its deepest part that
-// is there followed and the rest joined to it as written. Abs fails only
-// where the working folder is gone, and then so does EvalSymlinks.
+// resolved is the absolute path p, the symbolic links of its deepest part
+// that is there followed and the rest joined to it as written.
 func resolved(p string) (string, error) {
-	abs, _ := filepath.Abs(p)
 	rest := ""
-	for at := abs; ; at = filepath.Dir(at) {
+	for at := filepath.Clean(p); ; at = filepath.Dir(at) {
 		if _, err := os.Lstat(at); err == nil || filepath.Dir(at) == at {
 			real, err := filepath.EvalSymlinks(at)
 			return filepath.Join(real, rest), err
@@ -437,12 +439,12 @@ func policyThere(cfg *config.Loaded, file, found string, files []policyFile) *po
 		}
 	}
 	for _, p := range []string{found, file, "itos.yaml"} {
-		if p != "" && lexists(p) {
+		if p != "" && lexists(vcsport.In(cfg.Folder(), p)) {
 			add(p)
 		}
 	}
 	layout, _ := ledger.LayoutOf(cfg)
-	if entries, err := os.ReadDir(filepath.FromSlash(layout.Dir)); err == nil {
+	if entries, err := os.ReadDir(vcsport.In(cfg.Folder(), filepath.FromSlash(layout.Dir))); err == nil {
 		for _, e := range entries {
 			if layout.File.MatchString(e.Name()) {
 				add(path.Join(layout.Dir, e.Name()))
@@ -450,7 +452,7 @@ func policyThere(cfg *config.Loaded, file, found string, files []policyFile) *po
 		}
 	}
 	for _, f := range files {
-		if !strings.HasPrefix(f.key, "tests.") && lexists(f.path) {
+		if !strings.HasPrefix(f.key, "tests.") && lexists(vcsport.In(cfg.Folder(), f.path)) {
 			add(f.path)
 		}
 	}
@@ -516,7 +518,7 @@ func policySmokeSets(cfg *config.Loaded, files []policyFile) (*policyRefusal, er
 		var list tests.List
 		var found []out.Problem
 		var err error
-		if files[i].kept = lexists(f.path); files[i].kept {
+		if files[i].kept = lexists(vcsport.In(cfg.Folder(), f.path)); files[i].kept {
 			found, err = policySmokeCheck(cfg, name, f.path)
 		} else {
 			list, err = tests.ListTests(cfg, name, "worktree", nil)
@@ -571,15 +573,15 @@ func policyListRefused(name string, err error) *policyRefusal {
 		tail:  "Make tests." + name + "'s adapter list the project's tests, then run init --policy again."}
 }
 
-// writeNew writes a file that is not there, its folder made first, and
-// fails rather than write over one.
-func writeNew(p, text string) error {
-	if err := os.MkdirAll(filepath.Dir(p), 0o777); err != nil {
-		return err
+// writeNew writes a file that is not there, read from the folder dir, its
+// folder made first, and fails rather than write over one.
+func writeNew(dir, p, text string) error {
+	if err := os.MkdirAll(vcsport.In(dir, filepath.Dir(p)), 0o777); err != nil {
+		return named(err, filepath.Dir(p))
 	}
-	f, err := os.OpenFile(p, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o666)
+	f, err := os.OpenFile(vcsport.In(dir, p), os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o666)
 	if err != nil {
-		return err
+		return named(err, p)
 	}
 	_, err = f.WriteString(text)
 	return errors.Join(err, f.Close())

@@ -35,3 +35,6 @@ type followupPorts struct{ adapter.Store }
 
 // Now is time.Now.
 func (followupPorts) Now(context.Context) time.Time { return time.Now() }
+
+// Folder is the folder the store's git runs in.
+func (p followupPorts) Folder(ctx context.Context) string { return p.Store.VCS.Folder(ctx) }

@@ -19,6 +19,7 @@ import (
 	"github.com/donvargax/itos/v8/internal/out"
 	trackerport "github.com/donvargax/itos/v8/internal/store/tracker/port"
 	"github.com/donvargax/itos/v8/internal/value"
+	vcsport "github.com/donvargax/itos/v8/internal/vcs/port"
 	"github.com/donvargax/itos/v8/internal/work"
 )
 
@@ -408,7 +409,7 @@ func (h Handler) record(ctx context.Context, q Query, o Out) (Answer, error) {
 		Created: !before.There, Rule: "decision-index-uncommitted"})
 	question.Decision = strconv.Itoa(n)
 	files[0].Text = ask.Text(f)
-	made, err := madeDirs(dir)
+	made, err := madeDirs(cfg.Folder(), dir)
 	if err != nil {
 		return a, err
 	}
@@ -434,17 +435,18 @@ func (h Handler) record(ctx context.Context, q Query, o Out) (Answer, error) {
 	return a, nil
 }
 
-// madeDirs makes the folder and those above it that are not there, and
-// says which it made, the deepest first, for unmake.
-func madeDirs(dir string) ([]string, error) {
+// madeDirs makes the folder, read from the folder base, and those above it
+// that are not there, and says which it made, read from there, the deepest
+// first, for unmake.
+func madeDirs(base, dir string) ([]string, error) {
 	var made []string
 	for at := dir; at != "." && at != string(filepath.Separator) && at != ""; at = filepath.Dir(at) {
-		if _, err := os.Stat(at); err == nil {
+		if _, err := os.Stat(vcsport.In(base, at)); err == nil {
 			break
 		}
-		made = append(made, at)
+		made = append(made, vcsport.In(base, at))
 	}
-	return made, os.MkdirAll(dir, 0o755)
+	return made, os.MkdirAll(vcsport.In(base, dir), 0o755)
 }
 
 // unmake removes the folders madeDirs made, when they are empty again.

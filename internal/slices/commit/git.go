@@ -198,7 +198,8 @@ type gitArgs struct {
 	fileAt        valueAt
 	amend, noEdit bool
 	refused       string
-	// origin is the query's Origin, where -F's file is read from.
+	// origin is where -F's file is read from: the query's Origin, from the
+	// folder itos runs in.
 	origin string
 }
 
@@ -445,7 +446,7 @@ func (h Handler) commit(ctx context.Context, q Query, o Out) (Answer, error) {
 		return Answer{}, err
 	}
 	g := readGitArgs(flags.git)
-	g.origin = q.Origin
+	g.origin = vcsport.Within(ctx, h.ports, q.Origin)
 	if err := refuseCommitArgs(g); err != nil {
 		return Answer{}, err
 	}

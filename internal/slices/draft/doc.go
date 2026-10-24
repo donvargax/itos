@@ -56,6 +56,9 @@
 // to the run Main handed it, with the id, which the command writes instead
 // of minting another: no flag or argument hands an id over, so the
 // commands still refuse one a person passes. inPlace puts back what the
-// line's global flags change in this process. A draft dropped leaves its
-// id a gap, as the counter never hands a number out twice.
+// line's global flags change in this process's environment; the folder
+// they move to is the run's (Minting's ApplyGlobals), as the top add, edit
+// and promote move to is (Ports.At): the process's never changes. A draft
+// dropped leaves its id a gap, as the counter never hands a number out
+// twice.
 package draft

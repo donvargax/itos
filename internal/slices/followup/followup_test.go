@@ -22,6 +22,17 @@ type ports struct{ *porttest.Store }
 
 func (ports) Now(context.Context) time.Time { return at }
 
+// Folder is the process's folder, which the tests stand in.
+func (ports) Folder(context.Context) string { return "" }
+
+// in is the ports run in the folder dir.
+type in struct {
+	ports
+	dir string
+}
+
+func (p in) Folder(context.Context) string { return p.dir }
+
 // faulty is the fake store failing as set: a Path, Read or Write that fails,
 // or a lock that cannot be given back.
 type faulty struct {
@@ -270,23 +281,20 @@ func TestRunDoc(t *testing.T) {
 	}
 }
 
-// A relative doc path where the process stands in a folder removed is an
-// error, nothing written.
-func TestRunDocWhereTheFolderWent(t *testing.T) {
-	p := ports{store(t)}
+// A relative doc path is read from the folder itos runs in, wherever the
+// process stands.
+func TestRunDocInTheFolderItosRunsIn(t *testing.T) {
+	dir := t.TempDir()
+	p := in{ports{store(t)}, dir}
 	if code, _, _, err := followup(t, p, false, "add", "a", "--with", "ana", "--title", "T", "--note", "N"); code != 0 || err != nil {
 		t.Fatal(code, err)
 	}
-	gone := t.TempDir()
-	t.Chdir(gone)
-	if err := os.Remove(gone); err != nil {
-		t.Skip("this system cannot remove the folder a process stands in")
+	t.Chdir(t.TempDir())
+	if code, _, _, err := followup(t, p, false, "doc", "a", "a.md"); code != 0 || err != nil {
+		t.Fatal(code, err)
 	}
-	if _, err := filepath.Abs("."); err == nil {
-		t.Skip("this system still tells a removed folder")
-	}
-	if _, _, _, err := followup(t, p, false, "doc", "a", "a.md"); err == nil {
-		t.Error("a doc written where the folder went")
+	if _, err := os.Stat(filepath.Join(dir, "a.md")); err != nil {
+		t.Errorf("the doc is not in the folder itos runs in: %v", err)
 	}
 }
 

@@ -206,12 +206,7 @@ func (f Files) counter(ctx context.Context) (idcounter.Store, error) {
 		return idcounter.Store{}, kind.Wrap(kind.Unknown, err)
 	}
 	root := f.VCS.Folder(ctx)
-	if root == "" {
-		// Where the run's folder is the process's (draft and init, until
-		// they move without moving the process).
-		root, _ = os.Getwd()
-	}
-	common := vcs.In(root, l.Common)
+	common := f.path(ctx, l.Common)
 	remote := ""
 	if !f.Stealth {
 		remote, _, _ = f.VCS.Upstream(ctx, f.VCS.Branch(ctx))

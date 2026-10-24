@@ -4,12 +4,10 @@ import (
 	"context"
 	"errors"
 	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/donvargax/itos/v8/internal/config"
-	domain "github.com/donvargax/itos/v8/internal/draft"
 )
 
 // mintedKind is the kind the line's command would make, as that command
@@ -37,18 +35,17 @@ func TestMintedKind(t *testing.T) {
 	} {
 		f := &fake{line: Line{Rest: []string{"work", "add"}}, read: []string{"work", "add"}, addKind: "slice"}
 		c.set(f)
-		if got := NewHandler(f).mintedKind(ctx, []string{"the", "line"}); got != c.want {
+		if got := mintedKind(ctx, f, []string{"the", "line"}); got != c.want {
 			t.Errorf("%s: mintedKind = %q, want %q", c.name, got, c.want)
 		}
 	}
 }
 
-// mint mints the id under the line's own global flags, putting back what
-// they changed; a line they refuse, or one that mints nothing, mints none.
+// mint mints the id under the line's own global flags, through the Minting
+// of the folder they name, putting back what they changed in the
+// environment; a line they refuse, or one that mints nothing, mints none.
 func TestMint(t *testing.T) {
 	ctx := context.Background()
-	here := t.TempDir()
-	t.Chdir(here)
 	t.Setenv("ITOS_CONFIG", "kept")
 	t.Setenv("NO_COLOR", "")
 	os.Unsetenv("NO_COLOR")
@@ -60,18 +57,15 @@ func TestMint(t *testing.T) {
 	if minted != "slice-5" || code != 0 || err != nil || released != 1 || strings.Join(f.mintedFor, " ") != "slice" {
 		t.Errorf("mint = %q, %d, %v; released %d, minted for %q", minted, code, err, released, f.mintedFor)
 	}
-	// The line's flags move the process and set its variables; mint puts
-	// them back.
-	if err := os.Mkdir("elsewhere", 0o755); err != nil {
-		t.Fatal(err)
-	}
-	f.minted = "slice-6"
-	moved := &moving{fake: f}
+	// The line's flags name another folder and set the variables; mint
+	// mints there and puts the variables back.
+	there := &fake{line: f.line, read: f.read, addKind: "slice", minted: "slice-6", sound: f.sound}
+	moved := &moving{fake: f, there: there}
 	if minted, _, err := NewHandler(moved).mint(ctx, nil); minted != "slice-6" || err != nil {
 		t.Errorf("mint after moving = %q, %v", minted, err)
 	}
-	if now, _ := os.Getwd(); !sameFolder(now, here) || os.Getenv("ITOS_CONFIG") != "kept" {
-		t.Errorf("mint left the process in %s, ITOS_CONFIG %q", now, os.Getenv("ITOS_CONFIG"))
+	if os.Getenv("ITOS_CONFIG") != "kept" {
+		t.Errorf("mint left ITOS_CONFIG %q", os.Getenv("ITOS_CONFIG"))
 	}
 	if _, set := os.LookupEnv("NO_COLOR"); set {
 		t.Error("mint left NO_COLOR set")
@@ -94,20 +88,17 @@ func TestMint(t *testing.T) {
 	}
 }
 
-// moving is the fake whose ApplyGlobals moves the process and sets its
-// variables, as --root, --config and --no-color do.
-type moving struct{ *fake }
-
-func (m *moving) ApplyGlobals(context.Context, []string) error {
-	os.Setenv("ITOS_CONFIG", "other")
-	os.Setenv("NO_COLOR", "1")
-	return os.Chdir("elsewhere")
+// moving is the fake whose ApplyGlobals names the folder there runs in and
+// sets the variables, as --root, --config and --no-color do.
+type moving struct {
+	*fake
+	there *fake
 }
 
-func sameFolder(a, b string) bool {
-	x, errX := os.Stat(a)
-	y, errY := os.Stat(b)
-	return errX == nil && errY == nil && os.SameFile(x, y)
+func (m *moving) ApplyGlobals(context.Context, []string) (Minting, error) {
+	os.Setenv("ITOS_CONFIG", "other")
+	os.Setenv("NO_COLOR", "1")
+	return m.there, nil
 }
 
 // runReserved runs the line in this process with the id reserved, and
@@ -121,29 +112,14 @@ func TestRunReserved(t *testing.T) {
 	}
 }
 
-// Where inPlace cannot read the folder the process stands in, it runs
-// nothing, and runReserved reports that as itos's own failure, exit 70;
-// a folder it cannot go back to is an error; else it gives f's error.
-func TestInPlaceGivesBackWhatFailed(t *testing.T) {
-	ctx := context.Background()
-	t.Chdir(t.TempDir())
-	f := &fake{getwdErr: errBroken}
-	ran := false
-	if err := NewHandler(f).inPlace(ctx, func() error { ran = true; return nil }); !errors.Is(err, errBroken) || ran {
-		t.Errorf("inPlace with no folder to read: %v, f ran: %v", err, ran)
-	}
-	var out strings.Builder
-	code := NewHandler(f).runReserved(ctx, domain.Draft{ID: "x", Command: []string{"work"}, Minted: "slice-9"}, &out)
-	if code != software || out.String() != "itos: broken\n" {
-		t.Errorf("runReserved with no folder to read: exit %d, output %q", code, out.String())
-	}
-	f = &fake{here: filepath.Join(t.TempDir(), "gone")}
-	if err := NewHandler(f).inPlace(ctx, func() error { return nil }); err == nil || !strings.Contains(err.Error(), "gone") {
-		t.Errorf("inPlace with no folder to go back to: %v", err)
-	}
-	f.here = ""
-	if err := NewHandler(f).inPlace(ctx, func() error { return os.ErrInvalid }); err != os.ErrInvalid {
+// inPlace gives f's error, the environment put back.
+func TestInPlaceGivesFsError(t *testing.T) {
+	t.Setenv("NO_COLOR", "kept")
+	if err := inPlace(func() error { os.Setenv("NO_COLOR", "1"); return os.ErrInvalid }); err != os.ErrInvalid {
 		t.Errorf("inPlace gave %v, not f's error", err)
+	}
+	if os.Getenv("NO_COLOR") != "kept" {
+		t.Errorf("NO_COLOR is %q, not put back", os.Getenv("NO_COLOR"))
 	}
 }
 

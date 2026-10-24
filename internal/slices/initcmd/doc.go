@@ -13,9 +13,11 @@
 // looked at, what init does not take, --git-shim-dir with --no-git-shim and
 // --stealth with --plugin project.
 //
-// Handle moves to the repository's top (toTop), after a git init where no
+// Handle moves to the repository's top (toTop: the ports of the top, Ports'
+// At, the process's own folder never changed), after a git init where no
 // repository is found (gitInit, the VCS's Init), before anything asks
-// config.Path; in a git folder it is a usage error. With a config there it
+// config.Path; in a git folder it is a usage error. Every path init reads
+// or writes relative is read from the folder it runs in, the VCS's Folder. With a config there it
 // writes nothing and is a doctor (report): configcheck.Findings' problems
 // and hookProblems' (a git that runs no hook its config declares, else each
 // of itos's two entries the git config does not declare, hooks.Declared over

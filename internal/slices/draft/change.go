@@ -90,24 +90,22 @@ func (h Handler) editPatch(ctx context.Context, file string, d domain.Draft) (pa
 	return made.Name(), "", nil
 }
 
-// topPaths are the typed paths as the repository's top names them, with
-// itos at the top; a path outside the work tree is a usage error.
-func (h Handler) topPaths(ctx context.Context, command string, typedPaths []string, origin string) ([]string, error) {
+// topPaths are the typed paths as the repository's top names them, and the
+// handler at the top, where the command goes on; a path outside the work
+// tree is a usage error.
+func (h Handler) topPaths(ctx context.Context, command string, typedPaths []string, origin string) ([]string, Handler, error) {
 	l, err := h.ports.Locate(ctx, "")
 	if err == nil && l.Top == "" {
 		err = errors.New("no work tree")
 	}
 	if err != nil {
-		return nil, fmt.Errorf("the work tree's top cannot be read: %w", err)
+		return nil, h, fmt.Errorf("the work tree's top cannot be read: %w", err)
 	}
 	top := l.Top
 	if real, err := filepath.EvalSymlinks(top); err == nil {
 		top = real
 	}
-	here, err := h.ports.Getwd(ctx)
-	if err != nil {
-		return nil, err
-	}
+	here := h.ports.Folder(ctx)
 	if real, err := filepath.EvalSymlinks(here); err == nil {
 		here = real
 	}
@@ -119,59 +117,56 @@ func (h Handler) topPaths(ctx context.Context, command string, typedPaths []stri
 		}
 		rel, err := filepath.Rel(top, full)
 		if err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
-			return nil, out.Usage("%s: %s is outside the work tree", command, p)
+			return nil, h, out.Usage("%s: %s is outside the work tree", command, p)
 		}
 		paths[i] = filepath.ToSlash(rel)
 	}
-	if err := os.Chdir(top); err != nil {
-		return nil, err
-	}
-	return paths, nil
+	return paths, h.at(ctx, top), nil
 }
 
 // takeChange writes the change of the paths against HEAD as the draft's
-// patch, beside the list at file, and gives the paths as the top names them
-// and the files the change touches. A path that names nothing in the work
-// tree or HEAD, a path git ignores, no change at all and no HEAD are
-// refusals, nothing written.
-func (h Handler) takeChange(ctx context.Context, file, id string, typedPaths []string, origin string) (paths, names []string, refused *out.Problem, err error) {
-	paths, err = h.topPaths(ctx, "draft add", typedPaths, origin)
+// patch, beside the list at file, and gives the paths as the top names them,
+// the files the change touches and the handler at the top. A path that
+// names nothing in the work tree or HEAD, a path git ignores, no change at
+// all and no HEAD are refusals, nothing written.
+func (h Handler) takeChange(ctx context.Context, file, id string, typedPaths []string, origin string) (paths, names []string, at Handler, refused *out.Problem, err error) {
+	paths, h, err = h.topPaths(ctx, "draft add", typedPaths, origin)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, h, nil, err
 	}
 	if _, err := h.ports.Resolve(ctx, "HEAD"); err != nil {
-		return nil, nil, &out.Problem{Rule: "draft-no-head", Message: "the repository has no commit yet, and a change is drafted against HEAD",
+		return nil, nil, h, &out.Problem{Rule: "draft-no-head", Message: "the repository has no commit yet, and a change is drafted against HEAD",
 			Fix: "commit something first"}, nil
 	}
 	scratch, err := os.MkdirTemp(filepath.Dir(file), ".index-")
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, h, nil, err
 	}
 	defer os.RemoveAll(scratch)
 	index := h.ports.Scratch(ctx, filepath.Join(scratch, "index"))
 	if err := index.ReadTree(ctx, "HEAD"); err != nil {
-		return nil, nil, nil, fmt.Errorf("git read-tree HEAD: %w", err)
+		return nil, nil, h, nil, fmt.Errorf("git read-tree HEAD: %w", err)
 	}
 	if err := index.AddAll(ctx, paths); err != nil {
-		return nil, nil, &out.Problem{Rule: "draft-paths", Message: fmt.Sprintf("%s cannot be drafted: %s", and(paths), err),
+		return nil, nil, h, &out.Problem{Rule: "draft-paths", Message: fmt.Sprintf("%s cannot be drafted: %s", and(paths), err),
 			Fix: "name files the work tree or HEAD has, and git does not ignore"}, nil
 	}
 	names, err = index.Changed(ctx, "HEAD", paths)
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("git diff --cached: %w", err)
+		return nil, nil, h, nil, fmt.Errorf("git diff --cached: %w", err)
 	}
 	if len(names) == 0 {
-		return nil, nil, &out.Problem{Rule: "draft-no-change", Message: fmt.Sprintf("%s has no change against HEAD to draft", and(paths)),
+		return nil, nil, h, &out.Problem{Rule: "draft-no-change", Message: fmt.Sprintf("%s has no change against HEAD to draft", and(paths)),
 			Fix: "change the files first, or draft a command line with -- <itos args>…"}, nil
 	}
 	patch, err := index.Diff(ctx, "HEAD", paths)
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("git diff --cached --binary: %w", err)
+		return nil, nil, h, nil, fmt.Errorf("git diff --cached --binary: %w", err)
 	}
 	if err := domain.WriteFile(domain.Patch(file, id), []byte(patch)); err != nil {
-		return nil, nil, nil, err
+		return nil, nil, h, nil, err
 	}
-	return paths, names, nil, nil
+	return paths, names, h, nil, nil
 }
 
 // splitNULs is a NUL-separated list, the empty entries dropped.
@@ -220,12 +215,12 @@ func (h Handler) putBack(ctx context.Context, names []string) error {
 		}
 	}
 	for _, name := range made {
-		if err := os.Remove(name); err != nil && !errors.Is(err, fs.ErrNotExist) {
+		if err := os.Remove(vcsport.Within(ctx, h.ports, name)); err != nil && !errors.Is(err, fs.ErrNotExist) {
 			failed = errors.Join(failed, err)
 			continue
 		}
 		for dir := filepath.Dir(name); dir != "." && dir != string(filepath.Separator); dir = filepath.Dir(dir) {
-			if os.Remove(dir) != nil {
+			if os.Remove(vcsport.Within(ctx, h.ports, dir)) != nil {
 				break
 			}
 		}

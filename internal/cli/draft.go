@@ -26,22 +26,30 @@ func runDraft(args []string, o Out) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	// The draft slice still moves the process, so its ports read from
-	// wherever it stands.
-	o.Dir = ""
-	return c.Run(context.Background(), o.Stdout, o.Stderr, draftslice.NewHandler(draftPorts{o: o}))
+	return c.Run(context.Background(), o.Stdout, o.Stderr, draftslice.NewHandler(draftPortsIn(o)))
 }
 
 // draftPorts are the draft slice's ports over the real code, reporting as o
-// says: the VCS port and git's patches are the git adapter's.
+// says, in the folder o's Dir names: the VCS port and git's patches are the
+// git adapter's.
 type draftPorts struct {
 	vcs.Git
 	o Out
 }
 
+// draftPortsIn are the draft ports of o, in its folder.
+func draftPortsIn(o Out) draftPorts { return draftPorts{Git: vcs.Git{Dir: o.Dir}, o: o} }
+
+// At is the ports in the folder dir, entered from this one.
+func (p draftPorts) At(_ context.Context, dir string) draftslice.Ports {
+	o := p.o
+	o.Dir = entered(o.OS, o.Dir, dir)
+	return draftPortsIn(o)
+}
+
 // Hold is the private store's Hold.
 func (p draftPorts) Hold(ctx context.Context, name string) (privateport.Held, error) {
-	return private.Store{OS: p.o.OS, VCS: vcs.Git{}}.Hold(ctx, name)
+	return private.Store{OS: p.o.OS, VCS: p.Git}.Hold(ctx, name)
 }
 
 // TreeEntries is the git adapter's.
@@ -63,16 +71,18 @@ func (p draftPorts) Scratch(_ context.Context, index string) draftslice.Index {
 }
 
 // HooksReady is hooksReady.
-func (draftPorts) HooksReady(_ context.Context, event string) error { return hooksReady("", event) }
+func (p draftPorts) HooksReady(_ context.Context, event string) error {
+	return hooksReady(p.Dir, event)
+}
 
 // Self is executable.
 func (draftPorts) Self(context.Context) (string, error) { return executable() }
 
-// Exec runs the binary self with the arguments, never through a shell, its
-// output on w, and gives its exit code.
-func (draftPorts) Exec(_ context.Context, self string, args []string, w io.Writer) (int, error) {
+// Exec runs the binary self with the arguments in the ports' folder, never
+// through a shell, its output on w, and gives its exit code.
+func (p draftPorts) Exec(_ context.Context, self string, args []string, w io.Writer) (int, error) {
 	cmd := exec.Command(self, args...)
-	cmd.Stdout, cmd.Stderr = w, w
+	cmd.Stdout, cmd.Stderr, cmd.Dir = w, w, p.Dir
 	if err := cmd.Run(); err != nil {
 		var exit *exec.ExitError
 		if errors.As(err, &exit) {
@@ -83,14 +93,11 @@ func (draftPorts) Exec(_ context.Context, self string, args []string, w io.Write
 	return 0, nil
 }
 
-// RunLine is the run Main handed the command (Out's runLine).
+// RunLine is the run Main handed the command (Out's runLine), started in
+// the ports' folder.
 func (p draftPorts) RunLine(_ context.Context, args []string, w io.Writer, reserved string) int {
-	here, _ := os.Getwd()
-	return p.o.runLine(here, args, w, w, reserved)
+	return p.o.runLine(p.Dir, args, w, w, reserved)
 }
-
-// Getwd is os.Getwd.
-func (draftPorts) Getwd(context.Context) (string, error) { return os.Getwd() }
 
 // CreateTemp is os.CreateTemp.
 func (draftPorts) CreateTemp(_ context.Context, dir, pattern string) (*os.File, error) {
@@ -108,18 +115,21 @@ func (draftPorts) Globals(_ context.Context, command []string) draftslice.Line {
 	return draftslice.Line{Help: g.Help, Rest: g.Rest}
 }
 
-// ApplyGlobals is applyGlobals of the line's global flags.
-func (p draftPorts) ApplyGlobals(_ context.Context, command []string) error {
+// ApplyGlobals is applyGlobals of the line's global flags, from the ports'
+// folder: the ports in the folder they move to.
+func (p draftPorts) ApplyGlobals(_ context.Context, command []string) (draftslice.Minting, error) {
 	dir, _, err := applyGlobals(ParseGlobals(command), p.o.Dir, p.o.OS)
-	if err != nil || dir == "" {
-		return err
+	if err != nil {
+		return nil, err
 	}
-	return os.Chdir(dir)
+	o := p.o
+	o.Dir = dir
+	return draftPortsIn(o), nil
 }
 
 // ReadLine is readLine's Rest.
-func (draftPorts) ReadLine(_ context.Context, command []string) ([]string, error) {
-	read, err := readLine("", command)
+func (p draftPorts) ReadLine(_ context.Context, command []string) ([]string, error) {
+	read, err := readLine(p.Dir, command)
 	return read.Rest, err
 }
 
@@ -142,7 +152,7 @@ func (draftPorts) TaskAdd(_ context.Context, cfg *config.Loaded, args []string) 
 }
 
 // Config is loadConfig.
-func (draftPorts) Config(context.Context) (*config.Loaded, error) { return loadConfig("") }
+func (p draftPorts) Config(context.Context) (*config.Loaded, error) { return loadConfig(p.Dir) }
 
 // Sound is soundRegistry.
 func (p draftPorts) Sound(context.Context) (draftslice.Sound, error) {

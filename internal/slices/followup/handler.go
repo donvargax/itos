@@ -12,6 +12,7 @@ import (
 	"github.com/donvargax/itos/v8/internal/out"
 	"github.com/donvargax/itos/v8/internal/slices/followup/domain"
 	"github.com/donvargax/itos/v8/internal/store/private/port"
+	vcsport "github.com/donvargax/itos/v8/internal/vcs/port"
 )
 
 // Query is what followup asks: Sub, "" for the list (every thread with
@@ -36,11 +37,13 @@ func (q Query) changes() bool {
 }
 
 // Ports are what followup reaches the world through, which internal/cli
-// binds: the clone's private store, where the threads are, and Now, the
-// time a change is dated with, the one clock followup reads.
+// binds: the clone's private store, where the threads are; Now, the time a
+// change is dated with, the one clock followup reads; and Folder, the
+// folder itos runs in, which a doc's Typed path is read from.
 type Ports interface {
 	port.Store
 	Now(ctx context.Context) time.Time
+	Folder(ctx context.Context) string
 }
 
 // Handler is followup's application, over its ports.
@@ -154,10 +157,7 @@ func (h Handler) Handle(ctx context.Context, q Query) (a Answer, err error) {
 // thread recording where. A file already there is refused unless q.Force; a
 // path git add could commit sets a.Exposed (bug 16).
 func (h Handler) doc(ctx context.Context, q Query, a *Answer) (*out.Problem, error) {
-	target, err := filepath.Abs(q.Typed)
-	if err != nil {
-		return nil, err
-	}
+	target := vcsport.In(h.ports.Folder(ctx), q.Typed)
 	info, err := os.Stat(target)
 	switch {
 	case err == nil && info.IsDir():

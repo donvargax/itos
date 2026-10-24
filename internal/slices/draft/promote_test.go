@@ -17,7 +17,7 @@ import (
 func TestTopPathsRefusesTheWorkTreeParent(t *testing.T) {
 	f, dir, _ := repo(t)
 	parent := filepath.Dir(dir)
-	paths, err := NewHandler(f).topPaths(context.Background(), "draft add", []string{parent}, "")
+	paths, _, err := NewHandler(f).topPaths(context.Background(), "draft add", []string{parent}, "")
 	var usage out.UsageError
 	if paths != nil || !errors.As(err, &usage) || err.Error() != "draft add: "+parent+" is outside the work tree" {
 		t.Fatalf("topPaths for %q: %v, %v", parent, paths, err)
@@ -67,7 +67,7 @@ func TestPromoteEveryKind(t *testing.T) {
 	if err := os.Mkdir(sub, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	t.Chdir(sub)
+	f.Root = sub
 	code, stdout, stderr, err := draft(t, f, false, "promote")
 	want := "check promoted: itos work check (no commit)\n" +
 		"make promoted: itos work add --kind slice (no commit)\n" +
@@ -75,8 +75,8 @@ func TestPromoteEveryKind(t *testing.T) {
 	if code != 0 || err != nil || stdout != want || stderr != "ran\nran here\n" {
 		t.Fatalf("promote: exit %d, %v, stdout %q, stderr %q", code, err, stdout, stderr)
 	}
-	if here, _ := os.Getwd(); here != dir {
-		t.Errorf("promote ran in %s, not the top", here)
+	if f.Root != dir {
+		t.Errorf("promote ran in %s, not the top", f.Root)
 	}
 	if strings.Join(f.ran[0], " ") != "/itos work check" || strings.Join(f.reserved, " ") != "slice-5" {
 		t.Errorf("ran %q, reserving %q", f.ran, f.reserved)
@@ -97,12 +97,12 @@ func TestPromoteEveryKind(t *testing.T) {
 	}
 	keep(t, file, check)
 	f.Located = map[string]vcsport.Location{"": {Common: f.Located[""].Common}}
-	t.Chdir(sub)
+	f.Root = sub
 	if code, _, _, err := draft(t, f, false, "promote"); code != 0 || err != nil {
 		t.Errorf("promote with no top: exit %d, %v", code, err)
 	}
-	if here, _ := os.Getwd(); here != sub {
-		t.Errorf("promote with no top moved to %s", here)
+	if f.Root != sub {
+		t.Errorf("promote with no top moved to %s", f.Root)
 	}
 }
 
@@ -181,9 +181,6 @@ func TestPromoteFails(t *testing.T) {
 		set    func(*fake, string)
 		want   string
 	}{
-		"no top to move to": {drafts: []domain.Draft{check}, set: func(f *fake, _ string) {
-			f.Located = map[string]vcsport.Location{"": {Top: filepath.Join(f.Located[""].Top, "gone"), Common: f.Located[""].Common}}
-		}, want: "gone"},
 		"no hooks": {drafts: []domain.Draft{check, say}, set: func(f *fake, _ string) { f.hooksErr = errBroken }, want: "broken"},
 		"no binary": {drafts: []domain.Draft{check}, set: func(f *fake, _ string) { f.selfErr = errBroken },
 			want: "this itos cannot find its own binary to run check: broken"},
@@ -311,24 +308,5 @@ func TestPromoteAnEditDraft(t *testing.T) {
 	}
 	if left, _ := filepath.Glob(filepath.Join(filepath.Dir(file), ".edit.*")); len(left) > 0 {
 		t.Errorf("the patch made is left: %q", left)
-	}
-}
-
-// topPaths moves itos to the top, an error when it cannot.
-func TestTopPathsCannotMove(t *testing.T) {
-	f, dir, _ := repo(t)
-	top := filepath.Join(dir, "gone")
-	f.Located = map[string]vcsport.Location{"": {Top: top}}
-	if _, err := NewHandler(f).topPaths(context.Background(), "draft add", []string{filepath.Join(top, "a.md")}, ""); err == nil {
-		t.Error("topPaths gave no error for a top it cannot move to")
-	}
-}
-
-// topPaths cannot read the folder itos runs in: an error.
-func TestTopPathsCannotReadWhereItRuns(t *testing.T) {
-	f, _, _ := repo(t)
-	f.getwdErr = errBroken
-	if _, err := NewHandler(f).topPaths(context.Background(), "draft add", []string{"notes.md"}, ""); !errors.Is(err, errBroken) {
-		t.Errorf("topPaths gave %v, not Getwd's error", err)
 	}
 }

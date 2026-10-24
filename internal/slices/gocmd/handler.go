@@ -90,7 +90,7 @@ func (h Handler) standing(ctx context.Context, c guides.Config, stderr io.Writer
 func (h Handler) config(ctx context.Context) guides.Config {
 	src := h.ports.Worktree(ctx)
 	file := config.Path(h.ports, src)
-	if _, err := os.Stat(file); err != nil {
+	if _, err := os.Stat(vcsport.Within(ctx, h.ports, file)); err != nil {
 		return guides.Config{File: file}
 	}
 	cfg, err := config.Load(h.ports, h.ports.Trees(ctx), src, file)

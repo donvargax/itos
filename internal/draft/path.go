@@ -2,7 +2,6 @@ package draft
 
 import (
 	"context"
-	"os"
 	"path/filepath"
 
 	"github.com/donvargax/itos/v8/internal/config"
@@ -32,11 +31,6 @@ func absCommon(ctx context.Context, v vcsport.VCS) string {
 		return l.Common
 	}
 	cwd := v.Folder(ctx)
-	if cwd == "" {
-		// Where the run's folder is the process's (draft and init, until
-		// they move without moving the process).
-		cwd, _ = os.Getwd()
-	}
 	if real, err := filepath.EvalSymlinks(cwd); err == nil {
 		cwd = real
 	}

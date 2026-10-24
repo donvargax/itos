@@ -41,9 +41,11 @@ type Query struct {
 // is run by this itos's binary, Self, through Exec, which gives its exit
 // code; one whose id was minted when drafted, in this process through
 // RunLine. Minting reads a drafted line as its command would (Minting).
-// Getwd, CreateTemp and Save are os.Getwd, os.CreateTemp and domain.Save,
-// ports so a test makes them fail, as no failure of theirs comes alike
-// from every OS.
+// CreateTemp and Save are os.CreateTemp and domain.Save, ports so a test
+// makes them fail, as no failure of theirs comes alike from every OS. At
+// is the ports of the same run in the folder dir, which a command that
+// moves to the top partway through reads and runs from on: the VCS's
+// Folder is the one it runs in, and the process's never changes.
 type Ports interface {
 	vcsport.VCS
 	Minting
@@ -57,16 +59,17 @@ type Ports interface {
 	Self(ctx context.Context) (string, error)
 	Exec(ctx context.Context, self string, args []string, w io.Writer) (int, error)
 	RunLine(ctx context.Context, args []string, w io.Writer, reserved string) int
-	Getwd(ctx context.Context) (string, error)
 	CreateTemp(ctx context.Context, dir, pattern string) (*os.File, error)
 	Save(ctx context.Context, file string, drafts domain.File) error
+	At(ctx context.Context, dir string) Ports
 }
 
 // Minting is how a drafted command line that mints an item's id is read
 // and its id minted, through the code of the commands that mint one, which
 // stays in internal/cli. Globals are the line's global flags as itos reads
-// them, ApplyGlobals sets what they set in this process, and ReadLine is
-// the line as the command table reads it, the command's name and its
+// them, ApplyGlobals sets what they set in this process's environment and
+// gives the Minting of the folder they move to, and ReadLine is the line
+// as the command table reads it, the command's name and its
 // arguments. WorkAddKind and WorkPromoteKind are the kind work add and work
 // promote would make of their arguments, TaskAdd refuses what task add
 // would; each a usage error for a line the command refuses. Config is the
@@ -74,7 +77,7 @@ type Ports interface {
 // the kind's next id past registryIDs.
 type Minting interface {
 	Globals(ctx context.Context, command []string) Line
-	ApplyGlobals(ctx context.Context, command []string) error
+	ApplyGlobals(ctx context.Context, command []string) (Minting, error)
 	ReadLine(ctx context.Context, command []string) ([]string, error)
 	WorkAddKind(ctx context.Context, args []string) (string, error)
 	WorkPromoteKind(ctx context.Context, args []string) (string, error)
@@ -130,6 +133,11 @@ type Handler struct {
 // NewHandler is the handler over p.
 func NewHandler(p Ports) Handler {
 	return Handler{ports: p}
+}
+
+// at is the handler over the ports in the folder dir (Ports.At).
+func (h Handler) at(ctx context.Context, dir string) Handler {
+	return Handler{ports: h.ports.At(ctx, dir)}
 }
 
 // Progress is where promote reports as it goes: Stderr, which a command
@@ -215,7 +223,7 @@ func (h Handler) add(ctx context.Context, q Query, file string, drafts domain.Fi
 	if d.IsChange() {
 		var refused *out.Problem
 		var err error
-		d.Paths, names, refused, err = h.takeChange(ctx, file, d.ID, q.Paths, q.Origin)
+		d.Paths, names, h, refused, err = h.takeChange(ctx, file, d.ID, q.Paths, q.Origin)
 		if err != nil {
 			return Answer{}, err
 		}
@@ -244,7 +252,7 @@ func (h Handler) edit(ctx context.Context, q Query, file string, drafts domain.F
 	if had := drafts.Find(id); had != nil {
 		return idTaken(*had), nil
 	}
-	paths, err := h.topPaths(ctx, "draft edit", q.Paths, q.Origin)
+	paths, h, err := h.topPaths(ctx, "draft edit", q.Paths, q.Origin)
 	if err != nil {
 		return Answer{}, err
 	}
@@ -405,9 +413,7 @@ func (h Handler) promote(ctx context.Context, file string, drafts domain.File, p
 	// The patches name files from the work tree's top, as git apply reads
 	// them where it runs.
 	if l, err := h.ports.Locate(ctx, ""); err == nil && l.Top != "" {
-		if err := os.Chdir(l.Top); err != nil {
-			return Answer{}, err
-		}
+		h = h.at(ctx, l.Top)
 	}
 	if found := h.checkoutBusy(ctx); len(found) > 0 {
 		a.Problems = found
