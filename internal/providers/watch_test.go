@@ -329,3 +329,146 @@ func TestVisibilityReadsTheRepository(t *testing.T) {
 		t.Errorf("a 404: %q, %v", got, err)
 	}
 }
+
+func TestRunOfReadsEachJobsIDAndItsSteps(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case strings.Contains(r.URL.Path, "/workflows/"):
+			w.Write([]byte(`{"workflow_runs":[{"id":2,"html_url":"new","status":"completed","conclusion":"failure"}]}`))
+		default:
+			w.Write([]byte(`{"jobs":[
+				{"id":77,"name":"ci","status":"completed","conclusion":"failure","steps":[
+					{"name":"Set up job","conclusion":"success"},
+					{"name":"Run the unit tests","conclusion":"failure"},
+					{"name":"Complete job","conclusion":null}]},
+				{"id":78,"name":"platform","status":"completed","conclusion":"success"}]}`))
+		}
+	}))
+	defer server.Close()
+	was := GitHubAPI
+	GitHubAPI = server.URL
+	defer func() { GitHubAPI = was }()
+
+	run, _, err := GitHub{Repository: "o/n", Token: "t", Workflow: "ci.yml"}.RunOf("abc")
+	if err != nil || len(run.Jobs) != 2 {
+		t.Fatalf("read %+v, err %v", run, err)
+	}
+	ci, platform := run.Jobs[0], run.Jobs[1]
+	if ci.ID != 77 || platform.ID != 78 || len(ci.Steps) != 3 || ci.Steps[1] != (Step{Name: "Run the unit tests", Conclusion: "failure"}) ||
+		ci.Steps[2].Conclusion != "" || platform.Steps != nil {
+		t.Fatalf("read %+v", run.Jobs)
+	}
+}
+
+func TestAJobsFailedStepIsTheFirstThatConcludedNeitherSuccessNorSkipped(t *testing.T) {
+	for name, tc := range map[string]struct {
+		steps []Step
+		want  string
+	}{
+		"none listed":           {nil, ""},
+		"all succeeded":         {[]Step{{"a", "success"}, {"b", "success"}}, ""},
+		"a failure":             {[]Step{{"a", "success"}, {"b", "failure"}, {"c", "skipped"}}, "b"},
+		"the first of two":      {[]Step{{"a", "failure"}, {"b", "cancelled"}}, "a"},
+		"skipped is passed":     {[]Step{{"a", "skipped"}, {"b", "cancelled"}}, "b"},
+		"a timeout ends cancel": {[]Step{{"a", "success"}, {"b", "cancelled"}}, "b"},
+		"no conclusion yet":     {[]Step{{"a", ""}, {"b", "failure"}}, "b"},
+		"only unconcluded":      {[]Step{{"a", ""}}, ""},
+	} {
+		if got := (Job{Steps: tc.steps}).FailedStep(); got != tc.want {
+			t.Errorf("%s: %q, not %q", name, got, tc.want)
+		}
+	}
+}
+
+// logServer answers a job's log with a redirect to a path that serves the
+// text, as GitHub answers with a redirect to a short-lived address.
+func logServer(t *testing.T, serve http.HandlerFunc) *GitHub {
+	t.Helper()
+	mux := http.NewServeMux()
+	mux.HandleFunc("/repos/o/n/actions/jobs/9/logs", func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") != "Bearer t" || r.Header.Get("Accept") != "application/vnd.github+json" {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		http.Redirect(w, r, "/download/9", http.StatusFound)
+	})
+	mux.HandleFunc("/download/9", serve)
+	server := httptest.NewServer(mux)
+	t.Cleanup(server.Close)
+	return &GitHub{Repository: "o/n", Token: "t", API: server.URL}
+}
+
+func TestJobLogFollowsGitHubsRedirectToTheText(t *testing.T) {
+	g := logServer(t, func(w http.ResponseWriter, _ *http.Request) {
+		w.Write([]byte("2026-10-23T10:00:00.1234567Z one\r\n2026-10-23T10:00:00.1234568Z two\r\n"))
+	})
+	text, err := g.JobLog(9)
+	if err != nil || text != "2026-10-23T10:00:00.1234567Z one\r\n2026-10-23T10:00:00.1234568Z two\r\n" {
+		t.Fatalf("read %q, err %v", text, err)
+	}
+}
+
+func TestJobLogIsAnErrorForAnythingButTheText(t *testing.T) {
+	for name, serve := range map[string]http.HandlerFunc{
+		"past its retention":   func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusGone) },
+		"a redirect to a 404":  func(w http.ResponseWriter, r *http.Request) { http.NotFound(w, r) },
+		"a redirect to itself": func(w http.ResponseWriter, r *http.Request) { http.Redirect(w, r, "/download/9", http.StatusFound) },
+		"an answer cut short": func(w http.ResponseWriter, _ *http.Request) {
+			w.Header().Set("Content-Length", "100")
+			w.Write([]byte("cut"))
+		},
+	} {
+		if text, err := logServer(t, serve).JobLog(9); err == nil {
+			t.Errorf("%s: read %q", name, text)
+		}
+	}
+	if _, err := logServer(t, func(http.ResponseWriter, *http.Request) {}).JobLog(8); err == nil {
+		t.Error("a job GitHub does not know: no error")
+	}
+}
+
+func TestJobLogRefusesALogBeyondTheLimit(t *testing.T) {
+	was := LogLimit
+	LogLimit = 5
+	defer func() { LogLimit = was }()
+	g := logServer(t, func(w http.ResponseWriter, _ *http.Request) { w.Write([]byte("12345")) })
+	if text, err := g.JobLog(9); err != nil || text != "12345" {
+		t.Fatalf("a log of the limit's size: %q, %v", text, err)
+	}
+	g = logServer(t, func(w http.ResponseWriter, _ *http.Request) { w.Write([]byte("123456")) })
+	if text, err := g.JobLog(9); err == nil {
+		t.Fatalf("a log beyond the limit: %q", text)
+	}
+}
+
+func TestJobLogIsAnErrorWhenGitHubCannotBeAsked(t *testing.T) {
+	if _, err := (GitHub{Repository: "o/n", API: "http://[::1"}).JobLog(9); err == nil {
+		t.Error("an address that is none: no error")
+	}
+	server := httptest.NewServer(http.NotFoundHandler())
+	server.Close()
+	if _, err := (GitHub{Repository: "o/n", API: server.URL}).JobLog(9); err == nil {
+		t.Error("no network: no error")
+	}
+}
+
+func TestALookIsAnErrorWhenGitHubCannotBeAsked(t *testing.T) {
+	if _, _, err := (GitHub{Repository: "o/n", Workflow: "ci.yml", API: "http://[::1"}).RunOf("abc"); err == nil || kind.Of(err) == kind.Temporary {
+		t.Errorf("an address that is none: %v", err)
+	}
+	server := httptest.NewServer(http.NotFoundHandler())
+	server.Close()
+	if _, _, err := (GitHub{Repository: "o/n", Workflow: "ci.yml", API: server.URL}).RunOf("abc"); kind.Of(err) != kind.Temporary {
+		t.Errorf("no network: %v", err)
+	}
+}
+
+func TestTheGitHubWatcherReadsJobLogs(t *testing.T) {
+	env := func(name string) string {
+		return map[string]string{"GITHUB_TOKEN": "t", "GITHUB_REPOSITORY": "o/n"}[name]
+	}
+	watcher, ok, err := WatchProvider(githubWatchConfig(), WatchSetup{Env: env})
+	if !ok || err != nil || watcher.Log == nil {
+		t.Fatalf("ok %v, err %v, log %v", ok, err, watcher.Log)
+	}
+}

@@ -63,6 +63,11 @@
 // x-ratelimit-reset when none remain, else 0; Wait reads it from any error. NightlyProvider reads ci.watch.github.nightly_workflow's newest
 // run on a branch (NewestRun) as RunOf reads a commit's; a provider naming
 // no nightly gives no look. The loop that waits is internal/cli's watchRun.
+// Log, github's JobLog, is a failed job's log (slice 172): GitHub redirects the
+// request to a short-lived address serving the text, which the client follows
+// (and drops the token for off GitHub's host); anything but the text is an
+// error, a log past LogLimit too, and the caller never retries. A Job also
+// carries its ID and the Steps the jobs API lists, which --json leaves out.
 //
 // # Who a session works for, and the people
 //

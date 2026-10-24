@@ -166,7 +166,7 @@ func Watch(ctx context.Context, cfg *config.Loaded, wr providers.Watcher, v vcsp
 				break
 			}
 			if run.Conclusion != "cancelled" {
-				w := Ended(run, o, end)
+				w := Ended(Detail(ctx, wr, v, remote, run), o, end)
 				w.Superseded = superseded
 				return w
 			}
@@ -266,18 +266,23 @@ func fetchQuietly(ctx context.Context, v vcsport.VCS, remote string) {
 }
 
 // Ended is the watch of a run that completed: 0 when it succeeded, else 1,
-// naming the jobs that did not succeed; the end goes to end, a failure's to
-// o.Stderr.
+// naming the jobs that did not succeed and, once Detail has been to them,
+// what failed in each; the end goes to end, a failure's to o.Stderr. The tags
+// the run's head carries are named beside its address.
 func Ended(run providers.Run, o Out, end io.Writer) Watched {
+	tagged := ""
+	if len(run.Tags) > 0 {
+		tagged = "; tags: " + strings.Join(run.Tags, ", ")
+	}
 	if run.Conclusion == "success" {
 		if !o.Quiet {
-			fmt.Fprintf(end, "CI passed: %s\n", run.URL)
+			fmt.Fprintf(end, "CI passed: %s%s\n", run.URL, tagged)
 		}
 		return Watched{Code: 0, Outcome: "success", Run: &run}
 	}
 	var failed []string
 	for _, j := range run.Jobs {
-		if j.Done() && j.Conclusion != "success" && j.Conclusion != "skipped" && j.Conclusion != "neutral" {
+		if failedJob(j) {
 			failed = append(failed, j.Name)
 		}
 	}
@@ -285,8 +290,15 @@ func Ended(run providers.Run, o Out, end io.Writer) Watched {
 	if len(failed) > 0 {
 		line += "; failed jobs: " + strings.Join(failed, ", ")
 	}
-	fmt.Fprintln(o.Stderr, line)
+	fmt.Fprintln(o.Stderr, line+tagged)
+	describe(o.Stderr, run)
 	return Watched{Code: exitPolicy, Outcome: "failure", Run: &run}
+}
+
+// failedJob is whether the job finished and did not succeed, skipped and
+// neutral ones aside.
+func failedJob(j providers.Job) bool {
+	return j.Done() && j.Conclusion != "success" && j.Conclusion != "skipped" && j.Conclusion != "neutral"
 }
 
 // short is a commit's abbreviation as the TypeScript's slice(0, 7) writes it.

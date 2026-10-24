@@ -38,21 +38,67 @@ import (
 // ran on, its branch and when it was made say which run it is, for finding
 // the run that superseded a cancelled one; --json leaves them out.
 type Run struct {
-	URL        string `json:"url"`
-	Status     string `json:"status"`
-	Conclusion string `json:"conclusion,omitempty"`
-	Jobs       []Job  `json:"jobs"`
-	ID         int64  `json:"-"`
-	HeadSHA    string `json:"-"`
-	Branch     string `json:"-"`
-	Created    string `json:"-"`
+	URL        string   `json:"url"`
+	Status     string   `json:"status"`
+	Conclusion string   `json:"conclusion,omitempty"`
+	Jobs       []Job    `json:"jobs"`
+	Tags       []string `json:"tags,omitempty"`
+	ID         int64    `json:"-"`
+	HeadSHA    string   `json:"-"`
+	Branch     string   `json:"-"`
+	Created    string   `json:"-"`
 }
 
-// Job is one job of a run, as Run is.
+// Job is one job of a run, as Run is. A job that did not succeed gains, once
+// the run completed (slice 172), the Step it failed at, whether its Log was
+// read, the Failures that log names and how many more it left out; its ID
+// and the steps the API lists say how they were found, and --json leaves
+// them out.
 type Job struct {
-	Name       string `json:"name"`
-	Status     string `json:"status"`
-	Conclusion string `json:"conclusion,omitempty"`
+	Name         string    `json:"name"`
+	Status       string    `json:"status"`
+	Conclusion   string    `json:"conclusion,omitempty"`
+	Step         string    `json:"step,omitempty"`
+	Log          string    `json:"log,omitempty"`
+	Failures     []Failure `json:"failures,omitempty"`
+	MoreFailures int       `json:"more_failures,omitempty"`
+	ID           int64     `json:"-"`
+	Steps        []Step    `json:"-"`
+}
+
+// Step is a step of a job as the jobs API lists it.
+type Step struct {
+	Name       string
+	Conclusion string
+}
+
+// Failure is something a failed job's log names (slice 172): its Kind
+// (go-test, scenario, ci-run or tail), its Name when it has one, the Package
+// of a Go test, its first Lines and how many more it left out.
+type Failure struct {
+	Kind      string   `json:"kind"`
+	Name      string   `json:"name,omitempty"`
+	Package   string   `json:"package,omitempty"`
+	Lines     []string `json:"lines"`
+	MoreLines int      `json:"more_lines,omitempty"`
+}
+
+// The values of a job's Log: its log was read, or could not be.
+const (
+	LogRead       = "read"
+	LogUnreadable = "unreadable"
+)
+
+// FailedStep is the name of the job's first step that concluded neither
+// success nor skipped, "" when there is none, as for a job the API lists no
+// steps of.
+func (j Job) FailedStep() string {
+	for _, s := range j.Steps {
+		if s.Conclusion != "" && s.Conclusion != "success" && s.Conclusion != "skipped" {
+			return s.Name
+		}
+	}
+	return ""
 }
 
 // Done is whether the run has finished with a conclusion recorded: GitHub
@@ -79,13 +125,18 @@ type Runs func(branch string) ([]Run, error)
 // (slice 135), asked once: "" with an error when it cannot be told.
 type Visibility func() (string, error)
 
+// JobLog is the log of the job with the ID, as the provider keeps it, once,
+// never retried: an error when it cannot be read.
+type JobLog func(id int64) (string, error)
+
 // Watcher is ci.watch's provider: Look at a commit's run, the Runs on a
-// branch, and the repository's Visibility, nil for a provider that cannot
-// tell it.
+// branch, the repository's Visibility, nil for a provider that cannot tell
+// it, and the JobLog of a failed job, nil for one that keeps none.
 type Watcher struct {
 	Look       Watch
 	Runs       Runs
 	Visibility Visibility
+	Log        JobLog
 }
 
 // WatchSetup is what the github provider needs from outside the config: the
@@ -110,7 +161,7 @@ func WatchProvider(cfg *config.Loaded, s WatchSetup) (watch Watcher, ok bool, er
 		return Watcher{}, false, err
 	}
 	g.Workflow = w.GitHub.Workflow
-	return Watcher{Look: g.RunOf, Runs: g.RunsOn, Visibility: g.Visibility}, true, nil
+	return Watcher{Look: g.RunOf, Runs: g.RunsOn, Visibility: g.Visibility, Log: g.JobLog}, true, nil
 }
 
 // Nightly looks once at the last nightly's run: found is false when there
@@ -283,16 +334,25 @@ func (g GitHub) newestOf(path string) (Run, bool, error) {
 	run := found[0]
 	var jobs struct {
 		Jobs []struct {
+			ID         int64   `json:"id"`
 			Name       string  `json:"name"`
 			Status     string  `json:"status"`
 			Conclusion *string `json:"conclusion"`
+			Steps      []struct {
+				Name       string  `json:"name"`
+				Conclusion *string `json:"conclusion"`
+			} `json:"steps"`
 		} `json:"jobs"`
 	}
 	if err := g.get(fmt.Sprintf("/repos/%s/actions/runs/%d/jobs?per_page=100", g.Repository, run.ID), &jobs); err != nil {
 		return Run{}, false, err
 	}
 	for _, j := range jobs.Jobs {
-		run.Jobs = append(run.Jobs, Job{Name: j.Name, Status: j.Status, Conclusion: deref(j.Conclusion)})
+		job := Job{ID: j.ID, Name: j.Name, Status: j.Status, Conclusion: deref(j.Conclusion)}
+		for _, s := range j.Steps {
+			job.Steps = append(job.Steps, Step{Name: s.Name, Conclusion: deref(s.Conclusion)})
+		}
+		run.Jobs = append(run.Jobs, job)
 	}
 	return run, true, nil
 }
@@ -304,15 +364,24 @@ func deref(s *string) string {
 	return *s
 }
 
-// get reads one GitHub API path into into, with the token when there is one.
-func (g GitHub) get(path string, into any) error {
+// request is the GET of one GitHub API path, with the token when there is one.
+func (g GitHub) request(path string) (*http.Request, error) {
 	req, err := http.NewRequest(http.MethodGet, g.api()+path, nil)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	req.Header.Set("Accept", "application/vnd.github+json")
 	if g.Token != "" {
 		req.Header.Set("Authorization", "Bearer "+g.Token)
+	}
+	return req, nil
+}
+
+// get reads one GitHub API path into into, with the token when there is one.
+func (g GitHub) get(path string, into any) error {
+	req, err := g.request(path)
+	if err != nil {
+		return err
 	}
 	res, err := (&http.Client{Timeout: Timeout}).Do(req)
 	if err != nil {
@@ -334,6 +403,41 @@ func (g GitHub) get(path string, into any) error {
 		return kind.Wrap(kind.Temporary, fmt.Errorf("GitHub's API answered what is not JSON for %s: %w", path, err))
 	}
 	return nil
+}
+
+// LogLimit is the most of a job's log the github provider reads, in bytes;
+// a test lowers it.
+var LogLimit = 64 << 20
+
+// JobLog is the log of the job with the ID, as GitHub keeps it: its text, each
+// line stamped with its time. GitHub answers the request with a redirect to a
+// short-lived address that serves the text, which the client follows, and
+// drops the token for when it leaves GitHub's host. Any answer but the text
+// is an error, with no retry: a log past its retention is a 410, a redirect
+// that leads nowhere or an answer cut short is as good as one, and a log
+// beyond LogLimit is refused whole, for its tail is what a reader wants.
+func (g GitHub) JobLog(id int64) (string, error) {
+	path := fmt.Sprintf("/repos/%s/actions/jobs/%d/logs", g.Repository, id)
+	req, err := g.request(path)
+	if err != nil {
+		return "", err
+	}
+	res, err := (&http.Client{Timeout: Timeout}).Do(req)
+	if err != nil {
+		return "", fmt.Errorf("GitHub's API did not answer for %s: %w", path, err)
+	}
+	defer res.Body.Close()
+	if res.StatusCode < 200 || res.StatusCode > 299 {
+		return "", fmt.Errorf("GitHub's API answered %s for %s", res.Status, path)
+	}
+	text, err := io.ReadAll(io.LimitReader(res.Body, int64(LogLimit)+1))
+	switch {
+	case err != nil:
+		return "", fmt.Errorf("GitHub's answer for %s was cut short: %w", path, err)
+	case len(text) > LogLimit:
+		return "", fmt.Errorf("the log %s names is more than %d bytes", path, LogLimit)
+	}
+	return string(text), nil
 }
 
 // RateLimited is a request GitHub refused for its rate limit (bug 40), and

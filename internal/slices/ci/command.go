@@ -120,9 +120,26 @@ going, or not there, after the timeout, six looks in a row failing for a
 server error, a rate limit or no network, or the run cancelled with no newer
 run to follow.
 
+Once the run completed, each job that did not succeed is named with the step
+it failed at and what its log says failed: go test's failing tests with their
+package and first error lines, godog's failed scenarios with their failing
+step and its error, itos ci run's failed steps (the code proof's problems
+among them), or, when none of those has lines of its own, the last 20 lines of
+the log up to GitHub's first error line. A failure keeps 10 lines and a job 20
+failures; what is left out is counted and said. A job's log is asked for once,
+never retried, and one that cannot be read changes neither what is said of the
+job's step nor the exit code. The tags the remote has at the run's head are
+named too, where the run cut a release. This follows the end line, on stderr
+whatever -q and --json say.
+
 --json: the progress on stderr; {"schema":1,"ok","commit","ci","run"?,"superseded"?},
-        ci one of success, failure, cancelled, timeout, error; run {"url","status","conclusion"?,"jobs"},
-        the run followed when a newer one was, superseded the cancelled run's url`,
+        ci one of success, failure, cancelled, timeout, error;
+        run {"url","status","conclusion"?,"jobs","tags"?}, the tags of the run's head commit;
+        a job {"name","status","conclusion"?,"step"?,"log"?,"failures"?,"more_failures"?},
+        step the one the job failed at, log read or unreadable, a failure
+        {"kind","name"?,"package"?,"lines","more_lines"?}, kind go-test, scenario, ci-run or tail,
+        more_failures the failures left out; the run followed when a newer one was,
+        superseded the cancelled run's url`,
 	},
 	Spec: declare.Spec{Subs: map[string]declare.Spec{
 		"plan":  {Flags: []declare.Flag{declare.Switch("--nightly"), declare.Switch("--whole"), declare.Value("--data-at")}},

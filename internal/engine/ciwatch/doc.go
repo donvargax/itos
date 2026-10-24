@@ -35,6 +35,18 @@
 // the same rule, given the branch, the newest run on it whose head has the
 // commit as an ancestor judges it, and the watch says which run it follows.
 //
+// A run that completed is given Detail before its end is said (slice 172,
+// features/watch-failures.feature): the remote's tags at its head commit
+// (git ls-remote, an annotated tag by its ^{} commit), and, for each job that
+// did not succeed, the step it failed at and what its log names, the log asked
+// of providers.Watcher.Log once and never retried, none for a run that
+// succeeded. readLog (logs.go) cleans the log as tools/bin/nightly-report
+// does, and names its go test failures (a parent with a failed subtest never
+// one of its own), godog's failed scenarios (merged with their go test
+// subtest), itos ci run's failed steps and, when none has lines of its own, a
+// tail; a failure keeps 10 lines, a job 20 failures, a tail 20 lines, the
+// rest counted. An unreadable log is said, and never changes the exit code.
+//
 // The outcome is a Watched (the exit code, success, failure, cancelled,
 // timeout or error, the run as last seen, the cancelled run's address when a
 // newer one was followed), whose Fields are the ci, run and superseded keys

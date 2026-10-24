@@ -56,7 +56,9 @@ succeeded, 1 when it did not, naming the failed jobs; 75 when the run is
 still going after ci.watch.timeout seconds or GitHub's API keeps failing, 3
 when it cannot be looked at, naming itos ci watch <sha>. A run a newer push
 cancelled is followed by that push's run, as itos ci watch follows it, and
-one with no newer run to follow exits 75. The commits are pushed either way.
+one with no newer run to follow exits 75. A run that failed names each failed
+job's step and what its log says failed, and the tags the run's head carries are
+named, as itos ci watch does. The commits are pushed either way.
 --no-wait pushes and returns.
 
 --tag <tag> and --ref <branch>, each as often as wanted, push the tags and

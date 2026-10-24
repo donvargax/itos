@@ -78,6 +78,7 @@ cases:
         - name: ci
           status: completed
           conclusion: failure
+          log: unreadable
         - name: platform
           status: completed
           conclusion: success
@@ -355,6 +356,7 @@ cases:
         - name: ci
           status: completed
           conclusion: failure
+          log: unreadable
   - name: push --no-wait pushes and returns, no run looked at
     argv: [push, --no-wait, --json]
     git:

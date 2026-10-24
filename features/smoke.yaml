@@ -196,6 +196,10 @@
   scenarios:
     - id: "@ID-UPGRADE-01"
       why: a commit without the free-text footer its type needs is rejected, the footer's rule, one hook run
+- file: watch-failures.feature
+  scenarios:
+    - id: "@ID-WATCH-36"
+      why: a failed run's job named by its step, the failing Go test, its package and its first error lines, the file's point
 - file: watch.feature
   scenarios:
     - id: "@ID-WATCH-01"

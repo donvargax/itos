@@ -98,7 +98,7 @@ Feature: A failed CI run names the step each failed job failed at and what faile
   # The step is the jobs API's, the first that concluded neither success nor
   # skipped (a job GitHub timed out ends its step cancelled). The log matches
   # nothing known, so it brings a tail (@ID-WATCH-39), not read here.
-  @ID-WATCH-35 @slice-172 @wip
+  @ID-WATCH-35 @slice-172
   Scenario: A push whose run fails names the step its failed job failed at
     Given the watched run's job "ci" fails at its step "Run the unit tests", its log:
       """
@@ -115,7 +115,7 @@ Feature: A failed CI run names the step each failed job failed at and what faile
   # and its package's FAIL line, then itos ci run's line for the step. The
   # test's lines lose go test's indentation. The ci-run failure has no lines
   # of its own, but the test has, so no tail.
-  @ID-WATCH-36 @slice-172 @wip
+  @ID-WATCH-36 @slice-172
   Scenario: A failed Go test is named with its package and its first error lines
     Given the watched run's job "ci" fails at its step "Run the unit tests", its log:
       """
@@ -146,7 +146,7 @@ Feature: A failed CI run names the step each failed job failed at and what faile
   # A plain Go subtest, no godog: the parent's own line, printed after its
   # subtest as t.Errorf after t.Run prints it, is dropped, and only the leaf
   # is listed, by its full name, with its package and its own lines.
-  @ID-WATCH-47 @slice-172 @wip
+  @ID-WATCH-47 @slice-172
   Scenario: A failed Go subtest is named alone, by its full name, never its parent
     Given the watched run's job "ci" fails at its step "Run the unit tests", its log:
       """
@@ -180,7 +180,7 @@ Feature: A failed CI run names the step each failed job failed at and what faile
   # own (suite.go:640), is the same failure; the parent TestFeatures, whose
   # own line "features_test.go:232: a scenario failed" comes after it, has a
   # failed subtest and so is no failure.
-  @ID-WATCH-37 @slice-172 @wip
+  @ID-WATCH-37 @slice-172
   Scenario: A failed godog scenario is named with its failing step and the step's error
     Given the watched run's job "ci" fails at its step "Run the named tests", its log, each \e in it an escape character:
       """
@@ -255,7 +255,7 @@ Feature: A failed CI run names the step each failed job failed at and what faile
   # itos ci run prints the code proof's problems on stderr after its "CI
   # failed at the code proof:" line, each rule and message, then its fix:
   # the ci-run failure's lines, up to the blank line after them.
-  @ID-WATCH-38 @slice-172 @wip
+  @ID-WATCH-38 @slice-172
   Scenario: A code proof that fails is named with its mutation lines
     Given the watched run's job "ci" fails at its step "Run itos ci run", its log:
       """
@@ -282,7 +282,7 @@ Feature: A failed CI run names the step each failed job failed at and what faile
   # A log that matches nothing known still says something: the last 20 lines
   # up to GitHub's line for the step's exit, never the cleanup after it, and
   # the 11 before them counted.
-  @ID-WATCH-39 @slice-172 @wip
+  @ID-WATCH-39 @slice-172
   Scenario: A failed job whose log matches nothing known is given its log's bounded tail
     Given the watched run's job "ci" fails at its step "Build", its log the lines "line 1" to "line 30", then GitHub's line for exit code 2 and its cleanup
     When itos runs "ci watch --json"
@@ -298,7 +298,7 @@ Feature: A failed CI run names the step each failed job failed at and what faile
   # Proposal: itos ci run's line for a step names its command and exit code
   # and nothing else, so a ci-run failure with no lines of its own brings the
   # tail too, which holds the step's own output (go vet's here).
-  @ID-WATCH-40 @slice-172 @wip
+  @ID-WATCH-40 @slice-172
   Scenario: A step itos ci run names with no lines of its own brings the log's tail too
     Given the watched run's job "ci" fails at its step "Run itos ci run", its log:
       """
@@ -323,7 +323,7 @@ Feature: A failed CI run names the step each failed job failed at and what faile
   # once showed a reader refusing a log for its terminal escape sequences:
   # itos strips them (@ID-WATCH-37), so that is no reason here. The run's
   # verdict stands: exit 1, never 3 or 75 for a log.
-  @ID-WATCH-41 @slice-172 @wip
+  @ID-WATCH-41 @slice-172
   Scenario: A failed job whose log cannot be read keeps its step, says so, and the watch still exits 1
     Given the watched run's job "ci" fails at its step "Run the unit tests", its log:
       """
@@ -344,7 +344,7 @@ Feature: A failed CI run names the step each failed job failed at and what faile
   # its parent is not named. The release's tag is annotated, so the remote
   # lists it as a tag object and, peeled, the commit: it counts by the commit
   # it points to, which a match on the unpeeled ref would miss.
-  @ID-WATCH-42 @slice-172 @wip
+  @ID-WATCH-42 @slice-172
   Scenario: A push whose run cut a release names the tag it published
     Given the remote's head is tagged "v1.2.0"
     And the clone has the commit "feat: add the archive" touching "a.txt"
@@ -357,7 +357,7 @@ Feature: A failed CI run names the step each failed job failed at and what faile
   # Each failed job is named with its own step and failures, in the jobs'
   # order. The Windows job's log has CRLF line ends, as a Windows runner's
   # test output does, and its lines carry no CR.
-  @ID-WATCH-43 @slice-172 @wip
+  @ID-WATCH-43 @slice-172
   Scenario: Several failed jobs in one run are each named with their step and failures
     Given the watched run's job "ci" fails at its step "Run the unit tests", its log:
       """
@@ -391,7 +391,7 @@ Feature: A failed CI run names the step each failed job failed at and what faile
 
   # A guard, which holds before the work and must after it: a green run asks
   # for no log, and its jobs and run gain no key.
-  @ID-WATCH-44 @slice-172 @wip @guard
+  @ID-WATCH-44 @slice-172 @guard
   Scenario: A run that succeeds asks for no log and names nothing new
     Given the watched run's jobs "ci" and "platform" succeed
     When itos runs "ci watch --json"
@@ -404,7 +404,7 @@ Feature: A failed CI run names the step each failed job failed at and what faile
   # Proposal: 10 lines a failure and 20 failures a job, enough for a handoff
   # and small enough for an agent's context; what is left out is counted in
   # the JSON and said in the text.
-  @ID-WATCH-45 @slice-172 @wip
+  @ID-WATCH-45 @slice-172
   Scenario: A job with more failures and lines than the limits names what it left out
     Given the watched run's job "ci" fails at its step "Run the unit tests", its log 25 failed Go tests of 14 error lines each
     When itos runs "ci watch --json"
@@ -417,7 +417,7 @@ Feature: A failed CI run names the step each failed job failed at and what faile
   # A job the jobs API lists with no steps (one that failed before its first
   # step, say) has no step to name: it keeps today's lines and gains no
   # "step", while its log is still read.
-  @ID-WATCH-46 @slice-172 @wip
+  @ID-WATCH-46 @slice-172
   Scenario: A failed job listed with no steps names no step and is still given its log
     Given the watched run's job "ci" fails with no steps listed, its log:
       """
