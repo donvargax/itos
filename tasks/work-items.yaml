@@ -5331,7 +5331,7 @@ items:
     tags: [work, v9]
 
   - id: p1-go-comments-without-history
-    title: The Go code's comments say what and why, not which slice or bug made it
+    title: Comments in every tracked file kind (Go, feature files, YAML, workflows) stay only where the code is ambiguous or its purpose hidden
     phase: 1
     owner: null
     status: todo
@@ -5348,6 +5348,20 @@ items:
       Backlog review of 2026-10-10, batch 1: folds in p3-architecture-go-names: 67 comment lines in
       internal/ and cmd/ still name TypeScript modules (commit-data.ts's stagedDataIssues at
       hook.go:233, say); the same pass removes them.
+
+      The user, 2026-10-23: unnecessary comments are across file kinds, not Go alone. Counted that
+      day: about 19,700 comment lines in Go (doc.go and exported identifiers' doc comments are this
+      repository's way to explain a package and stay), 3,200 in feature files, 1,300 in YAML and
+      workflows. The rule (code is king): a comment stays only where the code is ambiguous or serves
+      a purpose the code does not show (security is the user's example); history (which slice or bug
+      made it), restatement and relocated detail are cut, never moved. Feature files: a scenario's
+      reason above its tag line in a line or two; decisions that outlive the slice go in the
+      description or a decision record; red-first notes ('Before the work, X fails at ...') are
+      history once the slice lands and go then (slice-170 found several already stale). Also stop
+      new ones at the source: briefs and spec drafters ask for decisions in the description and a
+      one-line reason per scenario, and the reviewer flags a needless comment under NOTES (never a
+      blocker). One sweep per file kind, each its own task (refactor for Go, docs or test for
+      features, ci for workflows), so each lands small.
     refs: [internal/, cmd/]
     tags: [architecture, v8]
 
