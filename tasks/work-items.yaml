@@ -8414,7 +8414,7 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: []
+    depends_on: [p1-typed-items]
     kind: slice
     why: >
       Was p1-asks-relink.
@@ -8440,8 +8440,8 @@ items:
       command, and carry the same advice in existing JSON fix fields. Private/custom asks paths,
       normal hooks, unrelated staging and rollback follow existing decision writers. Auto-upgrade
       repair is now p1-upgrade-repair-question-links.
-    refs: [features/decision-relink.feature, internal/cli/ask.go, internal/cli/configcheck.go, internal/ask/ask.go]
-    tags: [ask, v8]
+    refs: [features/decision-relink.feature, internal/slices/decision, internal/engine/configcheck/configcheck.go]
+    tags: [ask, v9]
 
   - id: p1-upgrade-notes-tidy
     title: itos upgrade's notes leave out the steps it did, and group a commit's changed cases under one header
