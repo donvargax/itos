@@ -56,6 +56,16 @@ func initializeEvidenceDoneSteps(sc *godog.ScenarioContext, w *world) {
 		}
 		return nil
 	})
+	sc.Step(`^its JSON's warning "([^"]*)"'s "([^"]*)" says "([^"]*)"$`, func(rule, field, text string) error {
+		warning, err := w.warningOfRule(rule)
+		if err != nil {
+			return err
+		}
+		if got, _ := warning[field].(string); !strings.Contains(got, text) {
+			return fmt.Errorf("the warning %s's %s is %q, which does not say %q\n%s", rule, field, got, text, w.report())
+		}
+		return nil
+	})
 	sc.Step(`^its JSON's evidence for the command "([^"]*)" has "([^"]*)" "([^"]*)"$`, func(command, field, want string) error {
 		var report struct {
 			Evidence []map[string]any `json:"evidence"`
@@ -89,4 +99,20 @@ func (w *world) problemOfRule(rule string) (map[string]any, error) {
 		}
 	}
 	return nil, fmt.Errorf("the JSON has no problem whose rule is %q\n%s", rule, w.report())
+}
+
+// warningOfRule is the one entry of the JSON's warnings whose rule is given.
+func (w *world) warningOfRule(rule string) (map[string]any, error) {
+	var report struct {
+		Warnings []map[string]any `json:"warnings"`
+	}
+	if err := json.Unmarshal([]byte(w.stdout), &report); err != nil {
+		return nil, fmt.Errorf("the output is not JSON: %v\n%s", err, w.report())
+	}
+	for _, p := range report.Warnings {
+		if p["rule"] == rule {
+			return p, nil
+		}
+	}
+	return nil, fmt.Errorf("the JSON has no warning whose rule is %q\n%s", rule, w.report())
 }
