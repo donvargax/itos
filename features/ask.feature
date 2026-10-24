@@ -276,7 +276,7 @@ Feature: itos decision, the decisions waiting on the person a repository's work 
   # superseded too, its own refusal names the next, so no chain is walked.
   # A cycle needs no check of its own: the new record is always the next
   # number, which nothing supersedes and which supersedes nothing yet.
-  @ID-ASK-41 @bug-125 @wip
+  @ID-ASK-41 @bug-125
   Scenario: decision record refuses to supersede a record already superseded, writing nothing
     Given itos has run the command line "decision add 'Labels or Projects?'"
     And itos has run the command line "decision answer q-1 'Labels.'"
@@ -298,7 +298,7 @@ Feature: itos decision, the decisions waiting on the person a repository's work 
   # The refusal must not catch a standing record that itself supersedes
   # another: the second link of a chain still supersedes, and the first
   # link is kept.
-  @ID-ASK-42 @bug-125 @guard @wip
+  @ID-ASK-42 @bug-125 @guard
   Scenario: decision record still supersedes a standing record, the second link of a chain included
     Given itos has run the command line "decision add 'Labels or Projects?'"
     And itos has run the command line "decision answer q-1 'Labels.'"

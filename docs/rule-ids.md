@@ -144,6 +144,7 @@ The built-in header linter emits these individual rules. Their names come from t
 - `ask-unanswered`: the requested answer has not been supplied.
 - `ask-recorded`: the decision has already been recorded.
 - `ask-no-decision`: the referenced decision does not exist.
+- `ask-superseded`: the decision record to supersede is already superseded.
 - `decisions-number-twice`: two decision records use the same number.
 - `decisions-superseded-by-missing`: a decision names a superseding decision that does not exist.
 

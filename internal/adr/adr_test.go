@@ -95,6 +95,23 @@ func TestLive(t *testing.T) {
 	}
 }
 
+// Superseded is a status starting with superseded in any case, naming a
+// record or not; deprecated, rejected, live and unreadable ones are not.
+func TestSuperseded(t *testing.T) {
+	for text, want := range map[string]bool{
+		"# A\n":                                             false,
+		"---\nstatus: accepted\n---\n\n# A\n":               false,
+		"---\nstatus: deprecated\n---\n\n# A\n":             false,
+		"---\nstatus: rejected\n---\n\n# A\n":               false,
+		"---\nstatus: superseded by ADR-0002\n---\n\n# A\n": true,
+		"---\nstatus: SUPERSEDED\n---\n\n# A\n":             true,
+	} {
+		if got := (Record{Text: text}).Superseded(); got != want {
+			t.Errorf("Superseded() = %v, want %v, for:\n%s", got, want, text)
+		}
+	}
+}
+
 // Superseding sets the status: the line replaced, added to frontmatter
 // without one, and frontmatter added to a record with none.
 func TestSetStatus(t *testing.T) {

@@ -23,7 +23,8 @@
 // work.decisions names: Considered Options from --option, which repeated
 // takes out of the arguments before the args engine reads the rest; a
 // supersede sets the old record's status and the new one names it in More
-// Information. The question gains decision: <n>, and the questions, the new
+// Information, and is refused, nothing written, for a record already
+// superseded (ask-superseded). The question gains decision: <n>, and the questions, the new
 // record, the one it supersedes and the folder's index are committed
 // together, "docs: record q-<n> as decision <m>", each written naming its
 // own rule for changes no commit holds (decision-file-uncommitted,

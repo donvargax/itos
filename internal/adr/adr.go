@@ -87,6 +87,12 @@ func (r Record) Live() bool {
 	return !slices.ContainsFunc(ended, func(e string) bool { return strings.HasPrefix(status, e) })
 }
 
+// Superseded is whether the record's status starts, in any case, with
+// superseded: a record another replaced, whatever it names.
+func (r Record) Superseded() bool {
+	return strings.HasPrefix(strings.ToLower(r.Status()), "superseded")
+}
+
 // Title is the record's title: its first "# " heading after the
 // frontmatter, outside a fenced code block; "" when it has none.
 func (r Record) Title() string {

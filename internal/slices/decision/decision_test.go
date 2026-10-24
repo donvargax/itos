@@ -674,6 +674,54 @@ func TestRecordSupersedesNone(t *testing.T) {
 	}
 }
 
+// --supersedes naming a record already superseded is refused, nothing
+// written or made: it names the successor its status gives and the fix
+// supersedes that one; a status naming none leaves the fix without a number;
+// a deprecated record is not refused. --json gives the problem.
+func TestRecordSupersedesSuperseded(t *testing.T) {
+	for _, test := range []struct {
+		status, want string
+	}{
+		{"superseded by ADR-0002", "decision record 1 is already superseded by ADR-0002, so it cannot be superseded again\n  fix: --supersedes 2 supersedes the record that replaced it\n"},
+		{"Superseded", "decision record 1 is already Superseded, so it cannot be superseded again\n  fix: supersede the record that replaced it instead; this one's status does not name it\n"},
+	} {
+		text := strings.Replace(oldRecord, "status: accepted", "status: "+test.status, 1)
+		file := filepath.Join(decisions, "0001-old.md")
+		p, tracker := over(t, map[string]string{decisions + "/0001-old.md": text}, map[string]string{
+			asks: questions("id: q-1\nquestion: \"Q?\"\nanswer: \"A.\""),
+			file: text,
+		})
+		code, _, stderr, err := call(t, p, "record", "q-1", "--title", "T", "--supersedes", "1")
+		if code != 1 || err != nil || stderr != test.want {
+			t.Errorf("%s: %d, %v, %q", test.status, code, err, stderr)
+		}
+		if got := doc(t, tracker, file); got != text {
+			t.Errorf("%s: the old record is %q", test.status, got)
+		}
+		if got := doc(t, tracker, asks); strings.Contains(got, "decision:") {
+			t.Errorf("%s: the questions are %q", test.status, got)
+		}
+		if _, err := os.Stat("docs"); !errors.Is(err, os.ErrNotExist) {
+			t.Errorf("%s: a refused record made a folder: %v", test.status, err)
+		}
+		code, stdout, _, err := call(t, p, "--json", "record", "q-1", "--title", "T", "--supersedes", "1")
+		if code != 1 || err != nil || !strings.Contains(stdout, `"rule": "ask-superseded"`) {
+			t.Errorf("%s --json: %d, %v, %q", test.status, code, err, stdout)
+		}
+	}
+	text := strings.Replace(oldRecord, "status: accepted", "status: deprecated", 1)
+	p, tracker := over(t, map[string]string{decisions + "/0001-old.md": text}, map[string]string{
+		asks:                                    questions("id: q-1\nquestion: \"Q?\"\nanswer: \"A.\""),
+		filepath.Join(decisions, "0001-old.md"): text,
+	})
+	if code, _, _, err := call(t, p, "record", "q-1", "--title", "T", "--supersedes", "1"); code != 0 || err != nil {
+		t.Errorf("a deprecated record: %d, %v", code, err)
+	}
+	if got := doc(t, tracker, filepath.Join(decisions, "0001-old.md")); !strings.Contains(got, "status: superseded by ADR-0002") {
+		t.Errorf("the deprecated record is %q", got)
+	}
+}
+
 // A commit refused, or an error writing, removes the folders made for the
 // record, every file as it was.
 func TestRecordRefusedUnmakes(t *testing.T) {

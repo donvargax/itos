@@ -493,6 +493,24 @@ cases:
       ok: false
       problems:
       - rule: ask-no-decision
+  - name: decision record refuses to supersede a record already superseded, and writes nothing
+    argv: [decision, record, q-1, --title, Labels, --supersedes, "4", --json]
+    git:
+      - commit: "docs: start"
+        files:
+          asks.yaml: *asks
+          docs/decisions/0004-use-projects.md: "---\nstatus: superseded by ADR-0005\n---\n\n# Use Projects\n"
+          docs/decisions/0005-use-go.md: "---\nstatus: accepted\n---\n\n# Use Go\n"
+    exit: 1
+    files_after:
+      asks.yaml: *asks
+      docs/decisions/0004-use-projects.md: "---\nstatus: superseded by ADR-0005\n---\n\n# Use Projects\n"
+      docs/decisions/0006-labels.md: null
+    json:
+      schema: 1
+      ok: false
+      problems:
+      - rule: ask-superseded
   - name: decision record refuses an index with changes no commit holds, and writes nothing
     argv: [decision, record, q-1, --title, Labels, --json]
     git:

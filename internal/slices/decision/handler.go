@@ -394,6 +394,10 @@ func (h Handler) record(ctx context.Context, q Query, o Out) (Answer, error) {
 			return a, nil
 		}
 		older := records[at]
+		if older.Superseded() {
+			a.Problems = []out.Problem{alreadySuperseded(supersedes, older)}
+			return a, nil
+		}
 		records[at].Text = adr.SetStatus(older.Text, adr.SupersededBy(n))
 		files = append(files, record.File{Path: filepath.Join(dir, older.File), Old: older.Text, Text: records[at].Text,
 			Rule: "decision-file-uncommitted"})
@@ -433,6 +437,22 @@ func (h Handler) record(ctx context.Context, q Query, o Out) (Answer, error) {
 	}
 	a.Number, a.Record = n, files[1].Path
 	return a, nil
+}
+
+// alreadySuperseded is the refusal to supersede the record again: it names
+// the record that superseded it as its status does, and the fix supersedes
+// that one instead; a status naming no record leaves the fix without a number.
+func alreadySuperseded(n int, older adr.Record) out.Problem {
+	status := older.Status()
+	p := out.Problem{
+		Rule:    "ask-superseded",
+		Message: fmt.Sprintf("decision record %d is already %s, so it cannot be superseded again", n, status),
+		Fix:     "supersede the record that replaced it instead; this one's status does not name it",
+	}
+	if m, ok := older.SupersededByNumber(); ok {
+		p.Fix = fmt.Sprintf("--supersedes %d supersedes the record that replaced it", m)
+	}
+	return p
 }
 
 // madeDirs makes the folder, read from the folder base, and those above it
