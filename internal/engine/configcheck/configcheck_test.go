@@ -198,7 +198,8 @@ func TestFindingsProblems(t *testing.T) {
 	want := []string{
 		"config: itos.yaml: ledger.group.label is skip, and --skip is already another flag of itos task, so it never takes a group",
 		"registry: p1-a: skip 1 is not listed",
-		"asks: tasks/asks.yaml: q-2 names the item p1-b, which tasks/work-items.yaml does not have",
+		"asks: tasks/asks.yaml: q-2 names the item p1-b, which tasks/work-items.yaml does not have; " +
+			"by hand, set q-2's item in tasks/asks.yaml to p1-b's new id, or remove q-2's item key",
 	}
 	if got := messages(r.found); r.err != nil || r.code != 1 || !slices.Equal(got, want) {
 		t.Errorf("got %d %q %v, want %q", r.code, got, r.err, want)
@@ -273,18 +274,44 @@ func TestFindingsWarnings(t *testing.T) {
 	}
 	want := Found{Area: "asks"}
 	want.Rule = "asks-answered-unknown-item"
-	want.Message = "tasks/asks.yaml: q-1, answered, names the item p1-gone, which tasks/work-items.yaml does not have"
-	want.Fix = "name the item's new id in q-1's item, or remove its item"
+	want.Fix = "by hand, set q-1's item in tasks/asks.yaml to p1-gone's new id, or remove q-1's item key"
+	want.Message = "tasks/asks.yaml: q-1, answered, names the item p1-gone, which tasks/work-items.yaml does not have; " + want.Fix
 	if r.warnings[1] != want {
 		t.Errorf("warning %+v, want %+v", r.warnings[1], want)
 	}
 	r = findingsOf(t, with(sound(), map[string]string{"tasks/asks.yaml": "questions:\n  - { id: q-1, item: p1-gone, question: \"Why?\" }\n"}), "")
 	want = Found{Area: "asks"}
 	want.Rule = "asks-unknown-item"
-	want.Message = "tasks/asks.yaml: q-1 names the item p1-gone, which tasks/work-items.yaml does not have"
-	want.Fix = "name an item of tasks/work-items.yaml in q-1's item, or remove its item"
+	want.Fix = "by hand, set q-1's item in tasks/asks.yaml to p1-gone's new id, or remove q-1's item key"
+	want.Message = "tasks/asks.yaml: q-1 names the item p1-gone, which tasks/work-items.yaml does not have; " + want.Fix
 	if r.err != nil || r.code != 1 || len(r.found) != 1 || r.found[0] != want || len(r.warnings) != 0 {
 		t.Errorf("open: %+v", r)
+	}
+}
+
+// The repair names the questions' file the config sets, not tasks/asks.yaml,
+// in the message and in the fix, for an answered question and an open one.
+func TestFindingsRepairNamesTheConfiguredAsks(t *testing.T) {
+	r := findingsOf(t, with(sound(), map[string]string{
+		"itos.yaml": "version: 1\nledger: { files: \"tasks/phase-{group}.yaml\" }\nwork: { asks: data/questions.yaml, people: { source: yaml, file: people.yaml } }\n",
+		"data/questions.yaml": "questions:\n  - { id: q-1, item: p1-gone, question: \"Why?\", answer: \"So.\" }\n" +
+			"  - { id: q-2, item: p1-lost, question: \"How?\" }\n",
+	}), "")
+	if r.err != nil || r.code != 1 || len(r.found) != 1 || len(r.warnings) != 1 {
+		t.Fatalf("got %+v", r)
+	}
+	for _, c := range []struct {
+		got          Found
+		message, fix string
+	}{
+		{r.warnings[0], "data/questions.yaml: q-1, answered, names the item p1-gone, which tasks/work-items.yaml does not have; ",
+			"by hand, set q-1's item in data/questions.yaml to p1-gone's new id, or remove q-1's item key"},
+		{r.found[0], "data/questions.yaml: q-2 names the item p1-lost, which tasks/work-items.yaml does not have; ",
+			"by hand, set q-2's item in data/questions.yaml to p1-lost's new id, or remove q-2's item key"},
+	} {
+		if c.got.Message != c.message+c.fix || c.got.Fix != c.fix {
+			t.Errorf("got %+v, want message %q and fix %q", c.got, c.message+c.fix, c.fix)
+		}
 	}
 }
 

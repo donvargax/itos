@@ -165,8 +165,11 @@ func Findings(ctx context.Context, v vcsport.VCS, trees port.Trees, src port.Sou
 // twice, ...), else each open question naming an item the registry does not
 // have, since it holds that item up. Its warnings are each answered question
 // naming one (bug 105): an answered question is a record, and its item gone,
-// renamed or dropped, breaks nothing a command does. None when the file is
-// not there; a registry that cannot be read is work.Problems' to report.
+// renamed or dropped, breaks nothing a command does. Both say the repair, in
+// the message, which config check's text prints alone, and in the fix: no
+// command re-points a question, so the asks file is edited by hand (bug 135).
+// None when the file is not there; a registry that cannot be read is
+// work.Problems' to report.
 func asksProblems(ctx context.Context, cfg *config.Loaded) (problems, warnings []out.Problem, err error) {
 	file := cfg.Work.Asks
 	if !cfg.Source.Has(ctx, file) {
@@ -196,18 +199,19 @@ func asksProblems(ctx context.Context, cfg *config.Loaded) (problems, warnings [
 		if q.Item == "" || items[q.Item] {
 			continue
 		}
+		repair := fmt.Sprintf("by hand, set %s's item in %s to %s's new id, or remove %s's item key", q.ID, file, q.Item, q.ID)
 		if q.Status() == ask.Answered {
 			warnings = append(warnings, out.Problem{
 				Rule:    "asks-answered-unknown-item",
-				Message: fmt.Sprintf("%s: %s, answered, names the item %s, which %s does not have", file, q.ID, q.Item, cfg.Work.Registry),
-				Fix:     "name the item's new id in " + q.ID + "'s item, or remove its item",
+				Message: fmt.Sprintf("%s: %s, answered, names the item %s, which %s does not have; %s", file, q.ID, q.Item, cfg.Work.Registry, repair),
+				Fix:     repair,
 			})
 			continue
 		}
 		problems = append(problems, out.Problem{
 			Rule:    "asks-unknown-item",
-			Message: fmt.Sprintf("%s: %s names the item %s, which %s does not have", file, q.ID, q.Item, cfg.Work.Registry),
-			Fix:     "name an item of " + cfg.Work.Registry + " in " + q.ID + "'s item, or remove its item",
+			Message: fmt.Sprintf("%s: %s names the item %s, which %s does not have; %s", file, q.ID, q.Item, cfg.Work.Registry, repair),
+			Fix:     repair,
 		})
 	}
 	return problems, warnings, nil

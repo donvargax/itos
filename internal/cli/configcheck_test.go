@@ -62,7 +62,8 @@ func TestConfigFindings(t *testing.T) {
 	findings(ExitPolicy,
 		"config: itos.yaml: ledger.group.label is skip, and --skip is already another flag of itos task, so it never takes a group",
 		"registry: p1-a: skip 1 is not listed",
-		"asks: tasks/asks.yaml: q-2 names the item p1-b, which tasks/work-items.yaml does not have")
+		"asks: tasks/asks.yaml: q-2 names the item p1-b, which tasks/work-items.yaml does not have; "+
+			"by hand, set q-2's item in tasks/asks.yaml to p1-b's new id, or remove q-2's item key")
 
 	writeFiles(t, map[string]string{
 		"itos.yaml": "version: 1\nledger: { files: \"tasks/{group}/phase.yaml\" }\n" +
@@ -129,8 +130,8 @@ func TestConfigFindingsAnsweredQuestionsWarn(t *testing.T) {
 	}
 	want := Found{Area: "asks"}
 	want.Rule = "asks-answered-unknown-item"
-	want.Message = "tasks/asks.yaml: q-1, answered, names the item p1-gone, which tasks/work-items.yaml does not have"
-	want.Fix = "name the item's new id in q-1's item, or remove its item"
+	want.Fix = "by hand, set q-1's item in tasks/asks.yaml to p1-gone's new id, or remove q-1's item key"
+	want.Message = "tasks/asks.yaml: q-1, answered, names the item p1-gone, which tasks/work-items.yaml does not have; " + want.Fix
 	if warnings[0] != want {
 		t.Errorf("warning %+v, want %+v", warnings[0], want)
 	}

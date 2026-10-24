@@ -685,7 +685,7 @@ Feature: Every key the config accepts is one itos reads
   # unchanged: the warning passes, exit 0, among the JSON's warnings. The
   # file is committed past the hooks (the step commits with --no-verify), as
   # an itos before bug 105 left it; no hook is installed.
-  @wip @ID-CONFIG-71 @bug-135
+  @ID-CONFIG-71 @bug-135
   Scenario: config check's warning about an answered question naming a missing item says how to repair it by hand
     Given the committed file "tasks/asks.yaml" holding the lines:
       """
@@ -710,7 +710,7 @@ Feature: Every key the config accepts is one itos reads
   # beside q-2's error, each naming another item, so the error's advice must
   # name its own question and item. The error fails the check, exit 1, among
   # the JSON's problems.
-  @wip @ID-CONFIG-72 @bug-135
+  @ID-CONFIG-72 @bug-135
   Scenario: config check's error about an open question naming a missing item says how to repair it by hand
     Given the committed file "tasks/asks.yaml" holding the lines:
       """
