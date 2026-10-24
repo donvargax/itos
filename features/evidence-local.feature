@@ -76,7 +76,12 @@ Feature: An opted-in check reruns from a local record when nothing it ran on cha
     fields are not judged. recorded is true only on the occurrence that ran
     and wrote the record. A check one invocation runs once for several
     tasks reports, on each later occurrence, the evidence of the run it
-    reused: the same key and hit, recorded false. ci run --json gains
+    reused: the same key and hit, recorded false. Two checks share one run
+    only when their command, timeout and evidence declaration all match
+    (the same inputs, env and tools, or both without one), the mode staying
+    out; checks that differ, one opted in and one not among them, are
+    separate runs, each keyed and recorded by its own declaration, so
+    check.Key gains the declaration. ci run --json gains
     evidence, a list of the same, each with its command, in run order. Both
     gain unstaged, the count of tracked paths whose working copy differs
     from the index (untracked files not counted), whenever an opted-in
@@ -789,3 +794,40 @@ Feature: An opted-in check reruns from a local record when nothing it ran on cha
     And the evidence probe's last run found no "marker.txt"
     And the evidence probe's last run was in a disposable checkout under the git common dir's "itos/snapshots"
     And the evidence store holds 2 complete records
+
+  # A1, A3. The evidence declaration is part of check.Key: one command
+  # whose declarations differ is two checks, each run and each keyed and
+  # recorded by its own declaration. A check with no declaration runs as
+  # today and is never recorded; one declaring other inputs gets its own
+  # key and record. Neither declared input exists, so both are hashed as
+  # absent and differ only by path. Before the work check.Key shares one run
+  # between them, so the probe runs once and that Then fails.
+  @ID-EVID-30 @slice-169 @wip
+  Scenario Outline: One command declared differently by two tasks is two runs, each keyed by its own declaration
+    Given the staged file "tasks/phase-1.yaml" holding the lines:
+      """
+      - id: T-001
+        type: chore
+        title: Tidy
+        done_when:
+          - run: evidence-probe 0 input.txt
+            evidence: { inputs: [gen/a.txt] }
+      - id: T-002
+        type: chore
+        title: Trim
+        done_when:
+          - run: evidence-probe 0 input.txt
+            <declaration>
+      """
+    And the committed file "input.txt" holding "one"
+    When itos runs "task T-001 T-002 --json"
+    Then itos exits with code 0
+    And the evidence probe ran 2 times
+    And its JSON's evidence for the task "T-001" has "recorded" true
+    And <second>
+    And the evidence store holds <records>
+
+    Examples:
+      | declaration                       | second                                                                           | records            |
+      | # no evidence                     | its JSON gives the task "T-002"'s check "evidence-probe 0 input.txt" no evidence | 1 complete record  |
+      | evidence: { inputs: [gen/b.txt] } | its JSON's evidence for the tasks "T-001" and "T-002" has different keys         | 2 complete records |
