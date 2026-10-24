@@ -19,13 +19,17 @@ Feature: push.mode pr, an item's work on its own branch merged by rebase, claims
   branch's upstream's, else origin, as before. Main is the branch the
   remote's HEAD names, asked of the remote itself (git ls-remote --symref
   <remote> HEAD), since a clone's refs/remotes/<remote>/HEAD is missing
-  after git remote add; a remote whose HEAD names no branch it has is
-  refused before anything is fetched, exit 3 (outcome no-default-branch).
-  The GitHub repository is the watch's (ci.range.github.repository_env's
-  variable, else the remote's URL), and every gh call names it with --repo,
-  so gh never picks another remote, a fork's upstream say; with none, a
-  push from an item's branch is refused before anything is fetched, exit 3
-  (outcome no-github-repository).
+  after git remote add. An ls-remote that fails exits by the kind git's
+  message gives it, as the fetch does: 75 for a remote it cannot reach, 3
+  for one that is no repository (outcome fetch-failed). A remote that
+  answers without a HEAD naming a branch it has is refused before anything
+  is fetched, exit 3 (outcome no-default-branch). The GitHub repository is
+  the watch's (ci.range.github.repository_env's variable, else the remote's
+  URL), and every gh call names it with --repo, so gh never picks another
+  remote, a fork's upstream say. With none, a push from an item's branch
+  that has work for a pull request is refused once rebased, before
+  anything is pushed, exit 3 (outcome no-github-repository); one that
+  sends only registry commits to main calls no gh and needs none.
 
   On main, the commits the push adds that touch only the work registry (a
   take, a close, a queue move, an idea: slice 56's rule) go straight to main
@@ -74,8 +78,17 @@ Feature: push.mode pr, an item's work on its own branch merged by rebase, claims
   job's result and the run's address and exits with the run's result, 0 or
   1, the commits and the pull request standing either way; --no-wait
   returns at once. When it asked GitHub to rebase the pull request, the head
-  it pushed is no longer the pull request's, so it waits for no run and says
-  so. Main's run after the merge is a later item.
+  it pushed is no longer the pull request's: it reads the pull request's
+  head with gh pr view <item> --repo <repository> --json headRefOid, again
+  each ci.watch.interval until it is no longer the head it pushed (GitHub
+  rebases after it answers), and waits for that head's run instead, so
+  every push is watched; a head still unchanged at ci.watch.timeout exits
+  75, as a run not finished does. Main's run after the merge is a later
+  item.
+
+  The wait is a report, not a gate: auto-merge is turned on before it, so
+  what stops a red merge is the repository's required checks, which itos
+  init does not set yet (a later item).
 
   --json adds "pull_request": {"url","number","created","updated"} after a
   push from an item's branch, created saying whether it opened the pull
@@ -95,7 +108,9 @@ Feature: push.mode pr, an item's work on its own branch merged by rebase, claims
   GITHUB_REPOSITORY owner/scratch, it records each call, answers pr list
   with the open pull requests of the --head branch as gh does ([] for none),
   and answers pr create with the address the scenario gives, holding that
-  pull request open from then on. The remote is a bare repository whose HEAD
+  pull request open from then on. pr view's headRefOid is the remote's
+  branch head, until pr update-branch moves it to the commit the scenario
+  names. The remote is a bare repository whose HEAD
   names main.
 
   Background:
@@ -338,11 +353,12 @@ Feature: push.mode pr, an item's work on its own branch merged by rebase, claims
     And its output says "gh pr create"
     And its output says "itos push again"
 
-  # The red-main protection: CI runs on pull_request (ci.yml), and the watch
-  # finds a run by its head commit whatever its event, so under ci.watch the
-  # push waits for the pushed head's run as trunk waits for main's, and a
-  # red run exits 1, naming the failed job, with the branch and its pull
-  # request standing. Fails before the build at the exit code: today the
+  # CI runs on pull_request (ci.yml), and the watch finds a run by its head
+  # commit whatever its event, so under ci.watch the push waits for the
+  # pushed head's run as trunk waits for main's, and a red run exits 1,
+  # naming the failed job, with the branch and its pull request standing. A
+  # report, not a gate: auto-merge is on already, and only the repository's
+  # required checks (init's settings, a later item) stop a red merge. Fails before the build at the exit code: today the
   # unknown key push leaves the config unread after the push, so nothing is
   # watched and it exits 0; once push.mode is a known key, at the address of
   # the pull request.
@@ -449,9 +465,10 @@ Feature: push.mode pr, an item's work on its own branch merged by rebase, claims
     And the remote's branch does not have "feat: add the widget"
 
   # A branch holding only a take has no work for a pull request: the take
-  # goes to main, where claims live, and the item's branch is not pushed.
-  # Fails before the build at the main step: today the take goes to the new
-  # branch.
+  # goes to main, where claims live, and the item's branch is not pushed. It
+  # calls no gh, so it needs no GitHub repository (@ID-PUSHMODE-20 is the
+  # refusal for a branch with work). Fails before the build at the main
+  # step: today the take goes to the new branch.
   @ID-PUSHMODE-18 @slice-174 @wip
   Scenario: Under pr, an item's branch holding only registry commits sends them to main and opens no pull request
     Given the config, committed and pushed to the remote's main, adds the YAML:
@@ -461,6 +478,7 @@ Feature: push.mode pr, an item's work on its own branch merged by rebase, claims
       """
     And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
     And the clone is on the new branch "slice-9"
+    And no GitHub repository in the environment
     And the clone has the commit "docs: take slice-9" making "bo" the owner of "slice-9"
     When itos runs "push"
     Then itos exits with code 0
@@ -510,3 +528,32 @@ Feature: push.mode pr, an item's work on its own branch merged by rebase, claims
     And its JSON's "outcome" is "no-github-repository"
     And the remote has no branch "slice-9"
     And the recording gh was never called
+
+  # In a repository with several agents main has usually moved, so most
+  # pushes ask GitHub to rebase: watching the head pushed would watch a run
+  # that is cancelled or never counts (its SHA is not the pull request's).
+  # The push reads the rebased head and waits for its run, so every push is
+  # watched. Fails before the build at the fake GitHub step: today the
+  # unknown key push leaves the config unread, so nothing is watched.
+  @ID-PUSHMODE-21 @slice-174 @wip
+  Scenario: Under pr with ci.watch, a push that asks GitHub to rebase its pull request waits for the rebased head's run
+    Given the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+      """
+    And ci.watch asks a fake GitHub, which reports the run "https://ci.example/runs/1"
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the clone is on the new branch "slice-9"
+    And the clone has the commit "feat: add the widget" touching "widget.md"
+    And git pushes HEAD to the remote's new branch "slice-9"
+    And the recording gh has the pull request "https://github.example/o/r/pull/7" open for the branch "slice-9"
+    And the recording gh's pr update-branch moves the pull request's head to "1111111111111111111111111111111111111111"
+    And the remote has gained the commit "chore: tidy the docs" touching "docs.md"
+    And the clone has the commit "test: cover the widget" touching "widget-test.md"
+    When itos runs "push --json"
+    Then itos exits with code 0
+    And the fake GitHub was asked for the run of the commit "1111111111111111111111111111111111111111" alone
+    And its JSON's "pull_request.updated" is true
+    And its JSON's "ci" is "success"
+    And the recording gh's "pr view" call has "--json headRefOid"
