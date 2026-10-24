@@ -60,7 +60,6 @@ queue:
   - bug-126
   - bug-129
   - bug-130
-  - p1-work-done-wip-examples
   - p1-uncommitted-git-failure
   - p1-guard-quoted-text
   - p1-defer-reason-footer
@@ -11456,13 +11455,9 @@ items:
     title: work done refuses or names a closing slice's Examples blocks still tagged @wip
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: []
     kind: idea
-    why: >
-      From #111. A slice closed while a tagged Examples block under its live outline kept @wip (rows
-      waiting on a harness change), and the close said nothing: the closing check seems to read
-      scenario-level tags only. Refuse, or name the example-level @wip blocks the close leaves.
     refs: [internal/tests/gherkin.go, features/work.feature]
     tags: [work, v8]
 
