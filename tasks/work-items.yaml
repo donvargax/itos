@@ -11229,13 +11229,13 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: []
+    depends_on: [p1-typed-items]
     kind: idea
     why: >
       #93 (8.5.0): work show is what a coordinator and an agent read before taking an item, and for
       a deferred one it says only status: todo, so it reads as ready (work take does refuse it).
       Print deferred: <why> and blocked by: <why> under the status, as itos work lists them.
-    tags: [work, v8]
+    tags: [work, v9]
 
   - id: p1-go-without-config
     title: itos go where there is no config says so and stops, naming both init modes
