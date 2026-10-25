@@ -13157,6 +13157,22 @@ items:
       what the spec does not, drawing on decisions already recorded (here and in other repositories,
       p2-cross-repo-contract), and records each answer for the person's daily or weekly review. Only
       a hard blocker reaches the person at once.
+
+      The user, 2026-10-25: the driver is a program walking the item state machine, and runs several
+      implementations in parallel, on items touching different areas (p1-refs-overlap), which is
+      what lifts the coordinator's throughput. The stages are now push.mode pr's with push.pr.draft,
+      walked by hand on slices 179 and 181 and on #134: spec drafter (Opus) commits the spec and
+      pushes, which opens the item's draft pull request; the reviewer CLI's pr mode, stage spec,
+      posts its verdict and threads and prints one line (VERDICT round=N threads_open=k URL); fix
+      rounds by the drafter, replies on threads, the reviewer's next round resolves them; the
+      implementer (Sonnet) starts from the item's branch, red first, pushes the draft, hands back;
+      reviewer pr mode, stage diff; thread rounds; the implementer alone runs itos push --ready
+      (marks ready, rebases, waits for CI and Copilot's review, refuses open threads, turns on
+      auto-merge); the merge; work done on main; the issue closes by Closes #n. Each transition
+      reads state from GitHub (the pull request's draft state, threads, reviews, checks) and itos
+      (ci watch, work show), never from the agents' reports, which are claims. Judgement stays with
+      the coordinator: triage, the spec's decisions, disputes between drafter and reviewer (#137's
+      round 1 blocker was the reviewer's misread), and anything the person decides.
     tags: [agents, v8]
 
   - id: p1-conformance-job-logs
