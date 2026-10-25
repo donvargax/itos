@@ -13692,6 +13692,13 @@ items:
       From slice-174's spec (2026-10-24, its follow-ups): an idea added mid-work rides the pull
       request today, and registry edits conflict often across branches.
 
+      Seen 2026-10-25 (parallel pilot): T-308's implementer added two ideas on its branch (#147);
+      main's coordinator added one at the same end of tasks/work-items.yaml meanwhile, so gh pr
+      update-branch failed with RebaseConflictError and, itos push never forcing, the only way
+      through was a force-with-lease rewrite dropping them (the person's call); the ideas were then
+      added on main. With several lanes every implementer idea is a likely conflict. Also: the takes
+      of spec-first branches (p1-pr-take-after-spec).
+
   - id: p1-pr-take-switches
     title: work take under pr pushes the take and switches to the item's branch
     phase: 1
