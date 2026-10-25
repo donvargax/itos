@@ -330,45 +330,149 @@ func knownFor(cfg *config.Loaded, key string, f config.Footer, r Reading) (known
 }
 
 // CheckFooter is one footer's rule over the footers of a commit of the type
-// typ, in its message or, under a stealth config, its note: "" when it
-// holds, else why not. An error when its source cannot be read.
-func CheckFooter(cfg *config.Loaded, key, typ, message string, r Reading) (string, error) {
+// typ, in its message or, under a stealth config, its note: nothing when it
+// holds, else why not, one sentence per problem. An error when its source
+// cannot be read.
+func CheckFooter(cfg *config.Loaded, key, typ, message string, r Reading) ([]string, error) {
 	f, _ := cfg.Commits.Footers.Get(key)
 	required := applies(f.RequiredFor, typ) && !(r.Made && cfg.Before(f, r.At))
 	if f.Text() {
-		return checkText(cfg, key, f, typ, message, required), nil
+		return said(checkText(cfg, key, f, typ, message, required)), nil
 	}
 	ids := IDs(cfg, message, key)
 	if required && len(ids) == 0 && !stoodIn(cfg, key, typ, message) {
-		return fmt.Sprintf("%s commits need a %s footer%s", typ, example(cfg, key, f), stealthNeed(cfg, key, f)), nil
+		return said(fmt.Sprintf("%s commits need a %s footer%s", typ, example(cfg, key, f), stealthNeed(cfg, key, f))), nil
 	}
 	// No ID, nothing to check: the footer's source is not read.
 	if !applies(f.ValidateFor, typ) || len(ids) == 0 {
-		return "", nil
+		return nil, nil
 	}
 	k, err := knownFor(cfg, key, f, r)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	var unknown, pending []string
+	none := false
 	for _, id := range ids {
-		if !k.all[id] {
+		switch {
+		case k.all[id]:
+			if f.Live() && k.notLive[id] {
+				pending = append(pending, id)
+			}
+		case isLedger(f) && strings.EqualFold(id, "none"):
+			none = true
+		default:
 			unknown = append(unknown, id)
-		} else if f.Live() && k.notLive[id] {
-			pending = append(pending, id)
 		}
+	}
+	var found []string
+	if none {
+		found = append(found, noNone(cfg, key, typ))
 	}
 	if len(unknown) > 0 {
-		return fmt.Sprintf("unknown %s: %s", noun(f), strings.Join(unknown, ", ")), nil
+		found = append(found, fmt.Sprintf("unknown %s: %s", noun(f), strings.Join(unknown, ", ")))
 	}
-	if len(pending) > 0 {
-		why, err := notLiveWhy(cfg, f)
-		if err != nil {
-			return "", err
+	if len(found) > 0 || len(pending) == 0 {
+		return found, nil
+	}
+	why, err := notLiveWhy(cfg, f)
+	if err != nil {
+		return nil, err
+	}
+	return said(why + ": " + strings.Join(pending, ", ")), nil
+}
+
+// said is a rule's sentence as its list of problems: none for "".
+func said(why string) []string {
+	if why == "" {
+		return nil
+	}
+	return []string{why}
+}
+
+// noNone is what a ledger footer naming none is told, in any case of the
+// word, since Upgrading: takes none and the habit follows: the footer takes
+// a ledger task's id. Where another footer of IDs stands in for it in a
+// commit of the type, the sentence goes on to name that footer and, when an
+// itos commit flag writes it, the flag. Its fix is noNoneFix.
+func noNone(cfg *config.Loaded, key, typ string) string {
+	why := fmt.Sprintf("the %s: footer takes a ledger task's id, and has no none", key)
+	other, ok := standIn(cfg, key, typ)
+	if !ok {
+		return why
+	}
+	f := cfg.Commits.Footers.Values[other]
+	why += fmt.Sprintf("; a %s commit names its %s in %s: instead", typ, standInWhat(f), other)
+	if flag := footerFlag(cfg, other, f); flag != "" {
+		why += ", with itos commit " + flag + " " + flagWhat(flag)
+	}
+	return why
+}
+
+// standInSentence is the end of noNone's sentence that names a stand-in:
+// what it names, its key and the flag that writes it, if one does.
+var standInSentence = regexp.MustCompile(`; a \w+ commit names its (.+) in (\S+): instead(, with itos commit (\S+ \S+))?$`)
+
+// noNoneFix is the fix of noNone's sentence, not for any other: name a task
+// by an id the ledger has, or the stand-in the sentence names.
+func noNoneFix(why, src string) (string, bool) {
+	if !strings.Contains(why, ", and has no none") {
+		return "", false
+	}
+	fix := "name the task the commit belongs to by an id " + src + " has"
+	if m := standInSentence.FindStringSubmatch(why); m != nil {
+		fix += ", or the " + m[1] + " in " + m[2] + ":"
+		if m[4] != "" {
+			fix += " with itos commit " + m[4]
 		}
-		return why + ": " + strings.Join(pending, ", "), nil
 	}
-	return "", nil
+	return fix, true
+}
+
+// flagWhat is what an itos commit flag takes.
+func flagWhat(flag string) string {
+	if flag == "--scenarios" {
+		return "<ids>"
+	}
+	return "<id>"
+}
+
+// standInWhat is what a stand-in footer names, by its source: a registry
+// item, a ledger task, or a test of its kind.
+func standInWhat(f config.Footer) string {
+	switch {
+	case f.Registry():
+		return "registry item"
+	case isLedger(f):
+		return "ledger task"
+	}
+	return f.Source.Tests
+}
+
+// standIns are the footers of IDs, in the config's order, that stand in for
+// the footer key in a commit of the type typ (their in_place_of names key for
+// typ).
+func standIns(cfg *config.Loaded, key, typ string) []string {
+	var keys []string
+	for _, other := range cfg.Commits.Footers.Keys {
+		f := cfg.Commits.Footers.Values[other]
+		if other == key || f.Text() {
+			continue
+		}
+		if types, ok := f.InPlaceOf.Get(key); ok && applies(&types, typ) {
+			keys = append(keys, other)
+		}
+	}
+	return keys
+}
+
+// standIn is the first footer standing in for key in a commit of the type.
+func standIn(cfg *config.Loaded, key, typ string) (string, bool) {
+	keys := standIns(cfg, key, typ)
+	if len(keys) == 0 {
+		return "", false
+	}
+	return keys[0], true
 }
 
 // stoodIn is whether another footer of IDs that the footers carry stands in
@@ -376,17 +480,9 @@ func CheckFooter(cfg *config.Loaded, key, typ, message string, r Reading) (strin
 // for typ), so the commit needs no footer of key. A stand-in's own IDs are
 // its own rule's to judge.
 func stoodIn(cfg *config.Loaded, key, typ, footers string) bool {
-	for _, other := range cfg.Commits.Footers.Keys {
-		f := cfg.Commits.Footers.Values[other]
-		if other == key || f.Text() {
-			continue
-		}
-		types, ok := f.InPlaceOf.Get(key)
-		if ok && applies(&types, typ) && len(IDs(cfg, footers, other)) > 0 {
-			return true
-		}
-	}
-	return false
+	return slices.ContainsFunc(standIns(cfg, key, typ), func(other string) bool {
+		return len(IDs(cfg, footers, other)) > 0
+	})
 }
 
 // checkText is a free-text footer's rule: a type it is required for carries
@@ -420,21 +516,21 @@ func FooterProblems(cfg *config.Loaded, message string, r Reading) ([]out.Proble
 			footers = r.Note
 			why = typedFooter(cfg, key, message)
 		}
+		whys := said(why)
 		if why == "" {
 			var err error
-			if why, err = CheckFooter(cfg, key, typ, footers, r); err != nil {
+			if whys, err = CheckFooter(cfg, key, typ, footers, r); err != nil {
 				return nil, err
 			}
 		}
-		if why == "" {
-			continue
-		}
 		rule := strings.ToLower(key) + "-footer"
-		fix, err := fixFor(cfg, rule, why)
-		if err != nil {
-			return nil, err
+		for _, why := range whys {
+			fix, err := fixFor(cfg, rule, why)
+			if err != nil {
+				return nil, err
+			}
+			found = append(found, out.Problem{Rule: rule, Message: why, Fix: fix})
 		}
-		found = append(found, out.Problem{Rule: rule, Message: why, Fix: fix})
 	}
 	return found, nil
 }

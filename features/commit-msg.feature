@@ -243,7 +243,7 @@ Feature: The commit-msg hook
   # Before the fix the hook says "unknown tasks: none" under the rule
   # task-footer and exits 1, so this scenario fails at the step that its
   # output says "has no none".
-  @ID-CMSG-16 @bug-139 @wip
+  @ID-CMSG-16 @bug-139
   Scenario: A ledger footer naming none says the footer takes a task's id, not that a task is unknown
     When the commit-msg hook checks the message:
       """
@@ -260,7 +260,7 @@ Feature: The commit-msg hook
   # none is matched whatever its case. Before the fix the hook says "unknown
   # tasks: None": the scenario fails at the step that its output says "has
   # no none".
-  @ID-CMSG-17 @bug-139 @wip
+  @ID-CMSG-17 @bug-139
   Scenario: A ledger footer naming None in another case is told the same
     When the commit-msg hook checks the message:
       """
@@ -276,7 +276,7 @@ Feature: The commit-msg hook
   # and reported in today's words. Before the fix the hook says "unknown
   # tasks: none, T-999": the scenario fails at the step that its output says
   # "has no none".
-  @ID-CMSG-18 @bug-139 @wip
+  @ID-CMSG-18 @bug-139
   Scenario: A ledger footer naming none beside an unknown task names none and still reports the task
     When the commit-msg hook checks the message:
       """

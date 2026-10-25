@@ -32,6 +32,11 @@
 // whose source is that kind (TestsFooter), so Task: and Scenarios: are only
 // this repository's names for them.
 //
+// A ledger footer naming none, in any case, is told it takes a ledger task's
+// id and has no none (noNone, bug 139), not that a task is unknown, going on
+// to the footer that stands in for it in the commit's type and the flag that
+// writes that; its other IDs are checked as ever, in a problem after it.
+//
 // A footer whose source is text carries no IDs: `<Key>: <text>`, each line
 // one footer, the text whatever a consumer of the project must do, or the
 // word none (None is the one reading of it). Its rule is only that it is

@@ -65,6 +65,9 @@ func footerFix(cfg *config.Loaded, rule, message string) (string, error) {
 			}
 			src = layout.Dir + "/"
 		}
+		if fix, ok := noNoneFix(message, src); ok {
+			return fix, nil
+		}
 		switch {
 		case needs.MatchString(message):
 			return "add a line `" + key + ": <id>` after a blank line at the end, naming what the commit belongs to", nil
