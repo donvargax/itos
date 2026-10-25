@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"slices"
+	"strings"
 
 	"github.com/donvargax/itos/v8/internal/engine/configcheck"
 	"github.com/donvargax/itos/v8/internal/out"
@@ -26,10 +28,36 @@ func (c CLI) Run(ctx context.Context, stdout, stderr io.Writer, h Handler) (int,
 		if c.JSON {
 			return 0, out.Emit(stdout, out.Field{Key: "defaults", Value: a.Defaults})
 		}
-		_, err := fmt.Fprint(stdout, value.YAML(a.Defaults))
+		_, err := fmt.Fprint(stdout, withStepsExample(value.YAML(a.Defaults)))
 		return 0, err
 	}
 	return a.Code, c.checked(stdout, stderr, a)
+}
+
+// stepsExample is ci.steps as a comment, the same in every repository.
+const stepsExample = `  # steps has no default. A step is a command, a command with its cost class,
+  # or the run of a kind's named tests (itos help ci run). Each is given the
+  # range's ends as ITOS_FROM and ITOS_TO, and as {from} and {to} in its text:
+  # steps:
+  #   - tools/lint-range {from} {to}
+  #   - run: go vet ./...
+  #     cost: static
+  #   - tests: scenario
+`
+
+// withStepsExample is the defaults' YAML with stepsExample at the end of its
+// ci mapping, the line before the next top-level key; unchanged without a ci.
+func withStepsExample(yaml string) string {
+	lines := strings.SplitAfter(yaml, "\n")
+	at := slices.Index(lines, "ci:\n")
+	if at < 0 {
+		return yaml
+	}
+	end := at + 1
+	for end < len(lines) && strings.HasPrefix(lines[end], " ") {
+		end++
+	}
+	return strings.Join(lines[:end], "") + stepsExample + strings.Join(lines[end:], "")
 }
 
 // checked prints check's findings: under --json one object, else each

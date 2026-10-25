@@ -19,7 +19,10 @@ var Command = declare.Command{
        itos ci run [<from> <to>] | --nightly [--tests]
        itos ci scope <from> <to>
        itos ci range --head <sha> [--base <sha>]
-       itos ci watch [<sha>]`,
+       itos ci watch [<sha>]
+
+The forms of a ci.steps entry, and the range each step is given
+(ITOS_FROM, ITOS_TO, {from} and {to}): itos help ci run.`,
 
 		"plan": `Usage: itos ci plan <from> <to> | --nightly | --whole [--data-at <sha>]
 
@@ -88,6 +91,30 @@ records its result under .git/itos/evidence, in a checkout that has the
 repository's git context. A task check that says snapshot: false runs in the
 working folder, nothing looked up or recorded. A run that leaves changes out
 says how many tracked paths were not staged.
+
+Each entry of ci.steps and ci.nightly.steps is one of:
+  <command>          a shell command; static when a ci.cost.static
+                     pattern matches it, else late
+  { run: <command>, cost: static|late }
+                     a command whose cost: is its class, whatever the
+                     patterns say (left out, as for a plain command)
+  { tests: <kind> }  the run of tests.<kind>: its run.whole when the
+                     range cannot be read (an empty or all-zeros
+                     <from>, or no range) and on the nightly, else its
+                     run.select over the smoke set, the tests the
+                     range's footers name and the task checks merged
+                     into it, and no run when that selects nothing; a
+                     cost: sets its class too
+A step's whole: true is accepted and has no effect yet: a tests: step
+is narrowed to the range all the same.
+Every step and task check the run runs has the range's ends in its
+environment as ITOS_FROM and ITOS_TO, full SHAs, which ci.env cannot
+change: ITOS_FROM is <from>, or commits.since's commit when <from> is
+empty, all zeros or behind it, and is empty when neither gives a start;
+--nightly's are commits.since's commit (or empty) and HEAD. {from} and
+{to} in a step's text are filled in with the same ends, each as one
+quoted shell word (write --from {from}, not '{from}'), and ci plan
+prints the step so filled in.
 
 --json: the run's log on stderr; {"schema":1,"ok","failed_at"?,"failures"?,"evidence"?,"proof"?,"unstaged"?} on stdout,
         failures every failure in run order, failed_at the first; evidence, when a check

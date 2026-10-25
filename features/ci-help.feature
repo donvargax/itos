@@ -65,7 +65,7 @@ Feature: CI setup is discoverable without reading the implementation
 
   # Fails at "its output says "itos help ci run"": the ci help is its usage
   # lines alone, which name "itos ci run" and no help topic.
-  @wip @ID-CI-62 @slice-151
+  @ID-CI-62 @slice-151
   Scenario: ci's help points to ci run's help for the step forms and the range a step is given
     When itos prints the help of "ci"
     Then itos exits with code 0
@@ -74,7 +74,7 @@ Feature: CI setup is discoverable without reading the implementation
 
   # Fails at the first "its output says": ci run's help names run: and
   # tests: steps only in passing and shows no form of an entry.
-  @wip @ID-CI-63 @slice-151
+  @ID-CI-63 @slice-151
   Scenario: ci run's help shows each form a ci.steps entry takes
     When itos prints the help of "ci run"
     Then itos exits with code 0
@@ -84,7 +84,7 @@ Feature: CI setup is discoverable without reading the implementation
 
   # Fails at "its output says "ITOS_FROM and ITOS_TO"": ci run's help names
   # neither variable, nor {from} and {to}.
-  @wip @ID-CI-64 @slice-151
+  @ID-CI-64 @slice-151
   Scenario: ci run's help says how a step is given the range, and when its start is empty
     When itos prints the help of "ci run"
     Then itos exits with code 0
@@ -97,7 +97,7 @@ Feature: CI setup is discoverable without reading the implementation
   # schema's promise ("every test of its kind") out of the help, folded as
   # the positive check is (a new step, the mirror of outputSaysFolded), so a
   # line break inside the phrase cannot let it through.
-  @wip @ID-CI-65 @slice-151
+  @ID-CI-65 @slice-151
   Scenario: ci run's help warns that a step's whole flag has no effect
     When itos prints the help of "ci run"
     Then itos exits with code 0
@@ -128,7 +128,7 @@ Feature: CI setup is discoverable without reading the implementation
   #
   # Fails at "stdout contains the complete line "  # steps:" exactly once":
   # the YAML has no comment.
-  @wip @ID-CI-66 @slice-151
+  @ID-CI-66 @slice-151
   Scenario: --print-defaults shows ci.steps' forms as comments, the defaults unchanged
     Given a repository whose ledger has the task "T-001"
     When itos prints the defaults of the config
