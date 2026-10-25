@@ -14387,7 +14387,7 @@ items:
   - id: T-311
     title: This repository sends docs commits from main straight to main, specs excepted (push.pr.direct)
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
