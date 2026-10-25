@@ -44,7 +44,8 @@ Feature: itos upgrade moves a project to a newer itos and walks it through what 
   donvargax/itos@<ref>: its file, the line of its uses: key, its ref and its
   with.version as written, and says what chooses the itos that runs: the
   action installs a launcher, and the repository's pin chooses the itos that
-  runs, or with no pin the release each line installs. A workflow it cannot
+  runs, or with no pin the release each line installs, unless the workflow
+  sets ITOS_VERSION or loads another config. A workflow it cannot
   read is a scan problem, named with why. A stealth config names none, since
   no workflow reads it (slice 150).
 

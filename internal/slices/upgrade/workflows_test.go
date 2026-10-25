@@ -121,13 +121,21 @@ func TestScanWorkflowsNotYAML(t *testing.T) {
 	uses, problems := scanWorkflows(fstest.MapFS{
 		".github/workflows/a.yml":   workflow("jobs:\n  one:\n    steps:\n      - uses: donvargax/itos@v9.1.0\n"),
 		".github/workflows/bad.yml": workflow("name: bad\njobs:\n  check:\n    steps: [\n"),
+		// A key written twice, or a second document, would leave half a workflow read.
+		".github/workflows/dup.yml":   workflow("on: push\non: pull_request\n"),
+		".github/workflows/many.yml":  workflow("on: push\n---\njobs: {}\n"),
+		".github/workflows/twice.yml": workflow(launches + "jobs:\n  two:\n    steps: []\n"),
 	})
 	wantLines(t, "uses", uses, ".github/workflows/a.yml:4: donvargax/itos@v9.1.0")
-	if len(problems) != 1 || problems[0].File != ".github/workflows/bad.yml" {
+	if len(problems) != 4 || problems[0].File != ".github/workflows/bad.yml" ||
+		problems[1].File != ".github/workflows/dup.yml" || problems[2].File != ".github/workflows/many.yml" ||
+		problems[3].File != ".github/workflows/twice.yml" {
 		t.Fatalf("problems: %v", problems)
 	}
-	if m := problems[0].Message; !strings.HasPrefix(m, "cannot be read as YAML: ") || !strings.Contains(m, "line 4") {
-		t.Errorf("a message that says why: %q", m)
+	for i, says := range []string{"line 4", "must be unique", "more than one document", "must be unique"} {
+		if m := problems[i].Message; !strings.HasPrefix(m, "cannot be read as YAML: ") || !strings.Contains(m, says) {
+			t.Errorf("%s: a message that says why (%s): %q", problems[i].File, says, m)
+		}
 	}
 }
 
@@ -214,8 +222,8 @@ func TestRunNamesWorkflowLines(t *testing.T) {
 		"  .github/workflows/bad.yaml cannot be read as YAML: "
 	i, j := strings.Index(printed, section), strings.Index(printed, "\nBy hand: nothing.")
 	if i < 0 || j < i || !strings.Contains(printed[i:j], ", so its steps are not named\n\nThe action installs a launcher, "+
-		"the release its ref or its version input names, and the repository's pin chooses the itos that runs: "+
-		"itos 9.3.0, whatever these lines say.\n") {
+		"the release its ref or its version input names, and the repository's pin chooses the itos that runs, "+
+		"itos 9.3.0, whatever these lines say, unless the workflow sets ITOS_VERSION or loads another config.\n") {
 		t.Errorf("printed:\n%s", printed)
 	}
 	if text, _ := os.ReadFile(filepath.Join(workflowsDir, "ci.yml")); string(text) != strings.ReplaceAll(launches, "\n", "\r\n") {
@@ -227,7 +235,8 @@ func TestRunNamesWorkflowLines(t *testing.T) {
 	writeWorkflow(t, "ci.yml", launches)
 	_, printed, _ = upgradeRun(p, false)
 	if !strings.Contains(printed, "  .github/workflows/ci.yml:5: donvargax/itos@v9.1.0\n\nThe config pins no itos, so each of "+
-		"these lines runs the release it installs; itos pin pins one.\n\nBy hand") ||
+		"these lines runs the release it installs, unless the workflow sets ITOS_VERSION or loads another config; "+
+		"itos pin pins one.\n\nBy hand") ||
 		strings.Contains(printed, "chooses the itos that runs") {
 		t.Errorf("no pin:\n%s", printed)
 	}
@@ -243,7 +252,8 @@ func TestRunAlreadyNamesWorkflowLines(t *testing.T) {
 		"Workflow steps that launch the itos action, none of which upgrade moves:\n" +
 		"  .github/workflows/ci.yml:5: donvargax/itos@v9.1.0\n\n" +
 		"The action installs a launcher, the release its ref or its version input names, and the repository's pin " +
-		"chooses the itos that runs: itos 9.3.0, whatever these lines say.\n"; printed != want {
+		"chooses the itos that runs, itos 9.3.0, whatever these lines say, unless the workflow sets ITOS_VERSION or " +
+		"loads another config.\n"; printed != want {
 		t.Errorf("already:\n%s\nwant:\n%s", printed, want)
 	}
 

@@ -59,9 +59,11 @@ It names, and moves none of, each step of the workflows directly in
 donvargax/itos@<ref>: its file, the line of its uses: key, the ref as written
 and its with.version when it has one. The action installs a launcher, the
 release its ref or its version input names, and the repository's pin chooses
-the itos that runs, so such a line need not move; with no pin each line runs
-the release it installs, and itos pin pins one. A workflow that cannot be
-read is named with why, and its steps are not. A stealth config names none,
+the itos that runs, so such a line need not move, unless the workflow sets
+ITOS_VERSION or loads another config; with no pin each line runs the release
+it installs, under the same two exceptions, and itos pin pins one. A workflow that cannot be
+read as YAML (a syntax error, a key written twice, more than one document) is
+named with why, and its steps are not. A stealth config names none,
 since no workflow reads it. The lines come after the releases, before By
 hand, and after "already on" when there is nothing to upgrade.
 
