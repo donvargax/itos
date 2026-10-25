@@ -14383,3 +14383,11 @@ items:
       fixed regression without reading the log.
     refs: [tools/bin/nightly-report]
     tags: [ci, tests, v8]
+
+  - id: T-311
+    title: This repository sends docs commits from main straight to main, specs excepted (push.pr.direct)
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task

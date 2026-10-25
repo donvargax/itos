@@ -4791,3 +4791,21 @@
   done_when:
     - run: go test -count=1 ./internal/idcounter ./internal/nextid
       timeout: 600
+
+- id: T-311
+  type: build
+  title: This repository sends docs commits from main straight to main, specs excepted (push.pr.direct)
+  why: >
+    The person, 2026-10-25, once slice-186 landed: set push.pr.direct in itos.yaml to types [docs],
+    except [features/**], so a coordinator's docs commit (notes, guides, decision records, hand
+    edits of the ledger and registry) goes from main straight to main, main's pre-push hook and CI
+    judging it as before, while a spec (anything under features/) still goes through its item's pull
+    request, where the reviewer reads it (ADR-0061). It ends the standing workaround (a placeholder
+    branch and pull request for each docs commit, or the person's admin push). In the same push, as
+    slice-186's description says: AGENTS.md's Finishing (only registry and ledger bookkeeping goes
+    straight to main) and docs/ORCHESTRATING.md's notes on the docs-to-main exception say what now
+    goes to main, within their doc budgets; the ledger edit beside the config change is its own docs
+    commit (AGENTS.md). Prove it after the merge with one docs commit pushed from main by itos push.
+  done_when:
+    - run: tools/bin/itos config get push.pr.direct.types | grep -q docs
+    - run: tools/bin/itos config get push.pr.direct.except | grep -q "features/\*\*"
