@@ -14114,3 +14114,20 @@ items:
       merge --rebase, the head pinned with --match-head-commit) rather than ask for auto-merge.
     refs: [internal/slices/push/pr.go]
     tags: [push, v8]
+
+  - id: p1-hook-breaking-alias
+    title: The commit-msg hook takes BREAKING CHANGE for a required BREAKING-CHANGE footer, as a release reads them
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      From bug-138 (#143, Copilot): itos commit now treats BREAKING-CHANGE and BREAKING CHANGE as
+      one footer only to refuse differing texts, because the hook's Missing and checkText match a
+      required footer by its declared key alone: a message giving "BREAKING CHANGE: x" fails a
+      config that requires BREAKING-CHANGE, though the release reads both forms as one note. If the
+      hook honoured the alias, itos commit could treat the two as one footer throughout and write
+      nothing for a spaced form with the same text.
+    refs: [internal/message/written.go, internal/message/trailers.go]
+    tags: [commit, message, v8]
