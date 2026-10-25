@@ -33,7 +33,13 @@
 // HEAD's for --amend --no-edit; nothing for the editor's or -F -), its
 // type's required footers that neither it nor the flags give
 // (message.Missing), each named by its flag; Run reports them as a
-// rejection, exit 1, before git runs. Where itos is set up, hooks.Ready
+// rejection, exit 1, before git runs. settle compares, where itos reads the
+// message, each footer a flag would write (message.Written) with the
+// message's, read as the hook reads footers (Written.Against): one it
+// already gives with the same IDs or texts is not written again, and one it
+// gives with another value is refused before git runs, exit 1, listed before
+// any missing footer. The links are never compared under a stealth config,
+// where they are not in the message. Where itos is set up, hooks.Ready
 // refuses with exit 3 a commit git would make without itos's commit-msg
 // hook. wrapBody then wraps the message (message.Wrap); each -m value is
 // rewritten in its argument, and an -F text (stdin's for -F -) goes to a

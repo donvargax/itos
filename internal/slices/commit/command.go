@@ -74,13 +74,14 @@ hook of itos's (run itos hook install once in the clone), or, on a git that
 runs no hook its config declares (older than ` + configHooksSince + `), no commit-msg hook
 file in the folder git runs hooks from calls itos's (hook install writes one).
 
-Exit: git's own code; 1 when a required footer is missing or a footer the message
-gives differs from its flag's; 2 when the first
-word is no subcommand, a flag has no value or the config no footer for it, or
-an argument is refused; 3 when itos's commit-msg hook would not run.
+Exit: git's own code; 1 when a required footer is missing or a footer the
+message gives differs from its flag's; 2 when the first word is no subcommand,
+a flag has no value or the config no footer for it, or an argument is
+refused; 3 when itos's commit-msg hook would not run.
 
 --json: git's output on stderr; {"schema":1,"ok","commit"?}, or when a footer
-        is missing or differs {"schema":1,"ok":false,"problems":[{"rule","message","fix"}]}`,
+        is missing or differs
+        {"schema":1,"ok":false,"problems":[{"rule","message","fix"}]}`,
 
 		"check-message": `Usage: itos commit check-message <file|-> [--at <sha>]
 
