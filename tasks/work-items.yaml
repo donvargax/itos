@@ -10420,6 +10420,11 @@ items:
       files; chore and docs may not touch them, refactor needs --task, test covers only _test.go, so
       the only commit open to the item was a fix with Scenarios:, which publishes a release for
       comments.
+
+      Seen again 2026-10-25: slice-184's diff review asked to reword one sentence of
+      internal/slices/push/doc.go after the feat; docs, chore and test refuse the path and refactor
+      needs a Task:, so the rewording was dropped ("cut by cut to 255 code points" still reads
+      awkwardly there).
     tags: [commit, v9]
 
   - id: p1-fix-deps-releases
