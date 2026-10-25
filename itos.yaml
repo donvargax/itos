@@ -549,3 +549,9 @@ proof:
     # re-judges what failed instead of drawing another, and the local run, seeded by origin/main,
     # draws what CI will. The gates' seeds are fixed, the nightly's fresh (q-54) (T-159).
     check: "tools/bin/pinned itos-cc mutation run --count 1 --since {base} --seed {base} --fail-uncovered=lines --json cmd internal"
+
+# Work reaches main through pull requests merged by rebase once their checks
+# pass; registry and ledger bookkeeping goes straight to main (slices 174-177,
+# T-303).
+push:
+  mode: pr
