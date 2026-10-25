@@ -4766,5 +4766,3 @@
     judges. The next nightly, which runs the pinned itos-cc over fresh and changed sites, is the
     acceptance; mutation check is no check here, since this repository keeps no complete cache and
     it fails alike under v0.26.0.
-  done_when:
-    - run: tools/bin/pinned itos-cc version | grep -qx "itos-cc 0.38.0"

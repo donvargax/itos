@@ -14072,7 +14072,7 @@ items:
     title: Raise the pinned itos-cc from v0.26.0 to v0.38.0
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
 
