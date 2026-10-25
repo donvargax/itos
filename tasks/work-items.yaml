@@ -14214,11 +14214,9 @@ items:
     title: Under push.mode pr, itos push sends the commit types push.pr names to main with the registry's commits (#131)
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: slice
-    why: >
-      Tracked in GitHub issue #131 (registry pilot: the issue holds the item).
     refs: [internal/slices/push/pr.go]
     tags: [push, v8]
 
