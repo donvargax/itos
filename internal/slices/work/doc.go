@@ -112,9 +112,12 @@
 //     judge the commit: the head, fetched once from refs/pull/<n>/head when
 //     the clone lacks it, must differ from the commit (git diff --name-only)
 //     in the work registry and ledger files alone (outsideBookkeeping,
-//     slice 177's ledger rule), and its run, looked at once, never waited
-//     for, must have completed with success and listed a job that was not
-//     skipped (ciwatch.DraftsRun). Then it is the close's CI, named in the
+//     slice 177's ledger rule), for a task whose ledger files the diff lists
+//     the task's own checks must be the same in the ledger at the head and at
+//     the commit (sameChecks, bug 137; a ledger that cannot be read at either
+//     is no comparison), and its run, looked at once, never waited for, must
+//     have completed with success and listed a job that was not skipped
+//     (ciwatch.DraftsRun). Then it is the close's CI, named in the
 //     close's body and in --json's pull_request (url, head, trusted, there
 //     once the merged pull request has a head and ci.watch is on); else a
 //     line says why where the watch's progress goes, and main's run judges
