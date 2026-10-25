@@ -510,8 +510,10 @@ func TestWrittenAgainstAMessage(t *testing.T) {
 			`Upgrading: the message gives "run x", --upgrading gives "none"`},
 		{"an empty text", text("Upgrading", "none"), "feat: x\n\nUpgrading:\n", Differs,
 			`Upgrading: the message gives nothing, --upgrading gives "none"`},
-		{"breaking, the other form", text("BREAKING-CHANGE", "x"), "feat: x\n\nBREAKING CHANGE: x\n", Same, ""},
-		{"breaking, both forms", text("BREAKING-CHANGE", "x", "y"), "feat: x\n\nBREAKING CHANGE: x\nBREAKING-CHANGE: y\n", Same, ""},
+		{"breaking, the spaced form alone is written anyway", text("BREAKING-CHANGE", "x"), "feat: x\n\nBREAKING CHANGE: x\n", Absent, ""},
+		{"breaking, the own key", text("BREAKING-CHANGE", "x"), "feat: x\n\nBREAKING-CHANGE: x\n", Same, ""},
+		{"breaking, both forms with the same text", text("BREAKING-CHANGE", "x"), "feat: x\n\nBREAKING CHANGE: x\nBREAKING-CHANGE: x\n", Same, ""},
+		{"breaking, the own key short of the flag's texts", text("BREAKING-CHANGE", "x", "y"), "feat: x\n\nBREAKING CHANGE: x\nBREAKING-CHANGE: y\n", Absent, ""},
 		{"breaking differs", text("BREAKING-CHANGE", "x"), "feat: x\n\nBREAKING CHANGE: y\n", Differs,
 			`BREAKING-CHANGE: the message gives "y", --breaking gives "x"`},
 	} {
@@ -529,5 +531,28 @@ func TestWrittenAgainstAMessage(t *testing.T) {
 	}
 	if got := text("Upgrading", "a", "b").Lines(); !slices.Equal(got, []string{"Upgrading: a", "Upgrading: b"}) {
 		t.Errorf("lines %q", got)
+	}
+}
+
+// A message that gives a breaking change only under BREAKING CHANGE, the
+// spaced form, with the flag's text gets the flag's BREAKING-CHANGE line
+// written, as the hook, which reads the declared key alone, would otherwise
+// find the footer missing; the spaced form with another text is refused.
+func TestBreakingInTheSpacedFormIsWrittenForTheHook(t *testing.T) {
+	cfg := load(t, "version: 1\ncommits:\n  types: [feat]\n  footers:\n    BREAKING-CHANGE: { source: text, required_for: [feat] }\n")
+	w := Written{Key: "BREAKING-CHANGE", Flag: "--breaking", Text: true, Values: []string{"x"}}
+	msg := "feat: x\n\nBREAKING CHANGE: x\n"
+	standing, _ := w.Against(cfg, msg)
+	if standing != Absent {
+		t.Fatalf("standing %v", standing)
+	}
+	if got := Missing(cfg, "feat", "", msg); !slices.Equal(got, []string{"BREAKING-CHANGE"}) {
+		t.Errorf("the message alone is missing %q", got)
+	}
+	if got := Missing(cfg, "feat", "", Trailed(msg, w.Lines(), "#")); len(got) != 0 {
+		t.Errorf("the message with the flag's line is missing %q", got)
+	}
+	if standing, _ := w.Against(cfg, "feat: x\n\nBREAKING CHANGE: y\n"); standing != Differs {
+		t.Errorf("another text: %v", standing)
 	}
 }

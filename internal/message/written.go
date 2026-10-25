@@ -195,7 +195,9 @@ func (w Written) Lines() []string {
 type Standing int
 
 const (
-	// Absent: the message has no footer of the key; the flag's is written.
+	// Absent: the message does not give the flag's own key with the flag's
+	// values, and gives no other (BREAKING CHANGE, the spaced form, counting
+	// only for the refusal); the flag's footer is written.
 	Absent Standing = iota
 	// Same: the message gives the footer with the flag's values; nothing is
 	// written.
@@ -204,22 +206,25 @@ const (
 	Differs
 )
 
-// breakingForms are the two keys one BREAKING-CHANGE footer is written with.
+// breakingForms are the two keys a BREAKING-CHANGE footer is read under.
 var breakingForms = []string{"BREAKING-CHANGE", breakingKey}
 
 // Against compares the footer the flag would write with the message's, both
 // read as the commit-msg hook reads footers (the trailer block, rawIDs and
 // unfolded): the sets of the IDs, with the footer's strip_prefix off, or of
 // the texts, of every line of the key, order, repeats and wrapping aside.
-// BREAKING-CHANGE and BREAKING CHANGE are one footer. A message that gives
-// the key with other values is a problem naming both, rule
-// <key>-footer-differs.
+// A message that gives the key with other values is a problem naming both,
+// rule <key>-footer-differs. BREAKING-CHANGE and BREAKING CHANGE are read as
+// one footer for that refusal only: the texts of both are compared, but the
+// footer is the same, and nothing is written, only when the message gives
+// the flag's own key, BREAKING-CHANGE, with the flag's texts; the hook reads
+// that key alone, so the spaced form's texts still get the flag's line.
 func (w Written) Against(cfg *config.Loaded, message string) (Standing, out.Problem) {
 	keys := []string{w.Key}
 	if slices.Contains(breakingForms, w.Key) {
 		keys = breakingForms
 	}
-	var said []string
+	var said, own []string
 	present := false
 	prefix := ""
 	flagged := w.Values
@@ -235,17 +240,25 @@ func (w Written) Against(cfg *config.Loaded, message string) (Standing, out.Prob
 	footers := trailers(message, cfg.CommentChar())
 	for _, key := range keys {
 		present = present || slices.ContainsFunc(footers, func(t trailer) bool { return t.key == key })
+		var given []string
 		if w.Text {
-			said = append(said, Texts(message, key, cfg.CommentChar())...)
+			given = Texts(message, key, cfg.CommentChar())
 		} else {
-			said = append(said, rawIDs(footers, key)...)
+			given = rawIDs(footers, key)
+		}
+		said = append(said, given...)
+		if key == w.Key {
+			own = given
 		}
 	}
 	if !present {
 		return Absent, out.Problem{}
 	}
 	if sameSet(said, flagged, prefix) {
-		return Same, out.Problem{}
+		if sameSet(own, flagged, prefix) {
+			return Same, out.Problem{}
+		}
+		return Absent, out.Problem{}
 	}
 	return Differs, out.Problem{
 		Rule: strings.ToLower(w.Key) + "-footer-differs",
