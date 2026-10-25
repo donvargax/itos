@@ -312,8 +312,13 @@ Feature: itos commit, a commit whose footers itos writes
   # - a footer of free text (its flag --<key in lower case>): the set of the
   #   texts every line of its key gives, each unfolded onto one line and
   #   trimmed, against the flag's texts read the same way;
-  # - --breaking: a footer of free text whose key is BREAKING-CHANGE or
-  #   BREAKING CHANGE, the two forms one footer, as a release reads them.
+  # - --breaking: a footer of free text whose key is BREAKING-CHANGE. The
+  #   message's BREAKING-CHANGE and BREAKING CHANGE lines are read together
+  #   for the refusal alone: when their texts are not the flag's, it is
+  #   refused. It is the same, and nothing is written, only when the message
+  #   gives BREAKING-CHANGE itself with the flag's texts; texts given only
+  #   under BREAKING CHANGE still get the flag's BREAKING-CHANGE line, as the
+  #   hook reads that key alone.
   # Equal sets: nothing of that footer is written; the other flags' footers
   # still are. Sets that differ, one holding more or fewer included, since
   # itos cannot tell which the person meant: refused before git runs, exit

@@ -708,8 +708,13 @@ func TestCommitComparesItsFootersWithTheMessage(t *testing.T) {
 		t.Errorf("one footer the message lacks: exit %d, %v, %+v", code, err, f.made)
 	}
 
+	if code, _, _, err := run(t, f, "", false, "--task", "T-1", "--upgrading", "none", "--breaking", "x", "-m", given+"\nBREAKING CHANGE: x"); code != 0 || err != nil ||
+		!slices.Equal(f.made[2].Args, []string{"--trailer", "BREAKING-CHANGE: x", "-m", given + "\nBREAKING CHANGE: x"}) {
+		t.Errorf("the spaced form is written: exit %d, %v, %+v", code, err, f.made)
+	}
+
 	code, _, stderr, err := run(t, f, "", false, "--task", "T-2", "--upgrading", "none", "--breaking", "x", "-m", given+"\nBREAKING CHANGE: y")
-	if code != refused || err != nil || len(f.made) != 2 || !strings.HasPrefix(stderr, rejected(f)+"\n  - Task: the message gives T-1, --task gives T-2\n"+
+	if code != refused || err != nil || len(f.made) != 3 || !strings.HasPrefix(stderr, rejected(f)+"\n  - Task: the message gives T-1, --task gives T-2\n"+
 		"  - BREAKING-CHANGE: the message gives \"y\", --breaking gives \"x\"\n") || strings.Count(stderr, "\n  - ") != 2 {
 		t.Errorf("other values: exit %d, %v, %d commits\n%s", code, err, len(f.made), stderr)
 	}
@@ -725,16 +730,16 @@ func TestCommitComparesItsFootersWithTheMessage(t *testing.T) {
 	}
 
 	if code, _, _, err := run(t, f, "", false, "--task", "T-2", "--upgrading", "x"); code != 0 || err != nil ||
-		!slices.Equal(f.made[2].Args, []string{"--trailer", "Task: T-2", "--trailer", "Upgrading: x"}) {
+		!slices.Equal(f.made[3].Args, []string{"--trailer", "Task: T-2", "--trailer", "Upgrading: x"}) {
 		t.Errorf("the editor's message: exit %d, %v, %+v", code, err, f.made)
 	}
 
 	f.VCS.History[0].Message = "docs: start\n\nUpgrading: none\n"
 	if code, _, _, err := run(t, f, "", false, "--amend", "--no-edit", "--upgrading", "none"); code != 0 || err != nil ||
-		!slices.Equal(f.made[3].Args, []string{"--amend", "--no-edit"}) {
+		!slices.Equal(f.made[4].Args, []string{"--amend", "--no-edit"}) {
 		t.Errorf("an amend keeping a footer: exit %d, %v, %+v", code, err, f.made)
 	}
-	if code, _, _, err := run(t, f, "", false, "--amend", "--no-edit", "--upgrading", "x"); code != refused || err != nil || len(f.made) != 4 {
+	if code, _, _, err := run(t, f, "", false, "--amend", "--no-edit", "--upgrading", "x"); code != refused || err != nil || len(f.made) != 5 {
 		t.Errorf("an amend changing a footer: exit %d, %v, %d commits", code, err, len(f.made))
 	}
 
