@@ -13921,3 +13921,19 @@ items:
     status: done
     depends_on: []
     kind: task
+
+  - id: p1-pr-done-from-worktree
+    title: Under pr, an agent in a linked worktree can close its item after the merge
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Met switching this repository to pr (T-303, 2026-10-24): slice-176's work done runs only on
+      main, and a linked worktree cannot check out main while the main checkout has it, so an
+      implementing agent in a Claude Code isolation worktree cannot close its own item; the
+      coordinator closes it on main after the merge. Options: let work done judge <remote>/<main>
+      from any branch and write the close as a registry-only commit pushed straight to main
+      (slice-177's rule sends it there), or a detached HEAD at <remote>/<main>.
+    tags: [push, work]
