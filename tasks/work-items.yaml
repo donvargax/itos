@@ -7945,6 +7945,11 @@ items:
       verification last matched so a change to them marks it stale. The races met since are
       candidates too: the ID counter's Windows lock flake (p1-idcounter-windows-lock-flake) and the
       evidence store's lock and rename (slices 170 to 173).
+
+      Demoted 2026-10-25 (the person: formal verification is not for everything): the counter's
+      claim is tested on the real code by T-310's concurrent property test (a linearizability
+      check). Pilot TLA+ only for a protocol whose design, not its code, is in doubt and that such a
+      test cannot reach.
     refs: [docs/decisions/0045-every-id-itos-writes-is-minted-and-the-counter-is-claimed-on-the-remote.md]
     tags: [tests]
 
