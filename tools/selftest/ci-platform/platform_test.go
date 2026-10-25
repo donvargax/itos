@@ -226,6 +226,7 @@ func scopedContract(t *testing.T, w workflow, full bool) error {
 func TestSelftest(t *testing.T) {
 	scratch.Gate(t)
 	t.Run("platform Go uses the exact verified toolchain", testToolchain)
+	t.Run("the nightly runs every feature once a platform, in shards where it needs them", testNightlyShards)
 	t.Run("one test owner and launcher check per platform", func(t *testing.T) {
 		if err := contract(t, readWorkflow(t)); err != nil {
 			t.Fatal(err)
