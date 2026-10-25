@@ -4692,3 +4692,14 @@
     worktree fail. AGENTS.md's Finishing step 1 says to start from the updated main (where a merged
     spec already is) with git branch -m <item>, and docs/ORCHESTRATING.md says the coordinator
     deletes its local <item> branch once the pull request merges.
+
+- id: T-305
+  type: build
+  title: Open this repository's pull requests as drafts, waiting for Copilot's review
+  why: >
+    slice-179 (#124) built push.pr.draft and push.pr.review_by; its spec turns both on here in a
+    build commit of the same push, with AGENTS.md's Finishing rewritten for itos push --ready.
+    Copilot's ruleset review skips drafts (review_draft_pull_requests false), so --ready waits for
+    it by its GraphQL login.
+  done_when:
+    - run: tools/bin/itos config get push.pr.draft | grep -qx true

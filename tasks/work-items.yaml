@@ -13956,3 +13956,11 @@ items:
     why: >
       Tracked in GitHub issue #124 (registry pilot: the issue holds the item).
     tags: [push]
+
+  - id: T-305
+    title: Open this repository's pull requests as drafts, waiting for Copilot's review
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task
