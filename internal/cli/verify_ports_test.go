@@ -81,3 +81,17 @@ func TestVerifyPortsAskTheStealthConfig(t *testing.T) {
 		t.Errorf("got %+v", got)
 	}
 }
+
+// A range given with only its start is a usage error, and verify exits 0
+// beside it: the dispatcher reads the error, never the code.
+func TestVerifyWithOneEndOfARangeIsAUsageError(t *testing.T) {
+	var stdout, stderr strings.Builder
+	code, err := runVerify([]string{"HEAD"}, Out{Stdout: &stdout, Stderr: &stderr})
+	var u out.UsageError
+	if code != 0 || !errors.As(err, &u) || !strings.Contains(err.Error(), "verify needs <from> <to>") {
+		t.Errorf("exit %d, %v, want 0 and the usage error", code, err)
+	}
+	if stdout.Len() != 0 || stderr.Len() != 0 {
+		t.Errorf("stdout %q, stderr %q, want none", stdout.String(), stderr.String())
+	}
+}
