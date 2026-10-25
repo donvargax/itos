@@ -40,8 +40,8 @@ Feature: Under push.mode pr, work done closes an item only once its pull request
   before), work done asks GitHub for the item's pull requests, with gh
   naming the repository with --repo as itos push does (ci.range.github's
   repository_env variable, else the remote's URL): gh pr list --repo
-  <repository> --head <id> --state all --json state,mergedAt,number,url. It
-  asks every time, commits on main or not, since an item whose earlier work
+  <repository> --head <id> --state all --json
+  state,mergedAt,number,url,headRefOid. It asks every time, commits on main or not, since an item whose earlier work
   merged can have more in an open pull request. Of the pull requests listed,
   an open one counts first, then a merged one (mergedAt set), then one
   closed unmerged (state CLOSED, mergedAt null); among several of one kind,
