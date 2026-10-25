@@ -4750,3 +4750,24 @@
   done_when:
     - run: go test -count=1 ./features
       timeout: 900
+
+- id: T-309
+  type: build
+  title: Raise the pinned itos-cc from v0.26.0 to v0.38.0
+  why: >
+    T-276 pinned itos-cc v0.26.0 on 2026-10-22; v0.27.0 to v0.38.0 have shipped since (2026-10-24
+    and 25). Wanted: v0.28.0 excepts a survivor from the identity a CI report names with no mutation
+    run (the nightly-survivor loop, T-307), v0.27.0 keeps listed kills fresh when only an importing
+    test changes, v0.31.0 leaves git-ignored files out of worker copies, v0.38.0 records a flaky
+    mutant and takes --repeat. At risk: v0.30.0 and v0.34.0 to v0.36.0 refuse what itos-cc.yaml may
+    hold today (anchors, aliases, merge keys, tags, non-string keys, a second document, any key it
+    does not list, a newer version), and v0.38.0 fails mutation check on a flaky mutant. Move the
+    pin as tools/bin/pinned says (the version and all four platform hashes together, from the
+    release), fix itos-cc.yaml in the same build commit if the new version refuses it, and read each
+    release's notes for any other flag or output itos.yaml's steps or tools/bin read (nightly-report
+    parses mutation output). Report anything the bump changes in what the push proof or the nightly
+    judges.
+  done_when:
+    - run: tools/bin/pinned itos-cc version | grep -qx "itos-cc 0.38.0"
+    - run: tools/bin/pinned itos-cc mutation check
+      timeout: 600

@@ -14069,3 +14069,11 @@ items:
       out" and its running tests). Related: p1-nightly-report-reads-ci-run-output.
     refs: [tools/bin/nightly-report]
     tags: [ci, v8]
+
+  - id: T-309
+    title: Raise the pinned itos-cc from v0.26.0 to v0.38.0
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task
