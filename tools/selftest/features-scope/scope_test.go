@@ -310,7 +310,11 @@ func TestSelftest(t *testing.T) {
 				RunsOn   string `yaml:"runs-on"`
 				Strategy struct {
 					Matrix struct {
-						OS []string `yaml:"os"`
+						OS      []string `yaml:"os"`
+						Include []struct {
+							OS    string `yaml:"os"`
+							Shard string `yaml:"shard"`
+						} `yaml:"include"`
 					} `yaml:"matrix"`
 				} `yaml:"strategy"`
 				Steps []struct {
@@ -321,8 +325,10 @@ func TestSelftest(t *testing.T) {
 		if err := yaml.Unmarshal(data, &workflow); err != nil {
 			t.Fatal(err)
 		}
-		platformRun := regexp.MustCompile(`^` + regexp.QuoteMeta(whole) + `(?:\s+-timings=\S+)?\s*$`)
+		// A platform's shards (T-308) run every scenario together, when they are all i/n of one n.
+		platformRun := regexp.MustCompile(`^` + regexp.QuoteMeta(whole) + `(?:\s+\$\{SHARD:\+-shard=\$SHARD\})?(?:\s+-timings=\S+)?\s*$`)
 		covered := map[string]bool{}
+		shards := map[string][]string{}
 		for _, job := range workflow.Jobs {
 			if job.If != "" || job.RunsOn != "${{ matrix.os }}" {
 				continue
@@ -339,6 +345,16 @@ func TestSelftest(t *testing.T) {
 					covered[system] = covered[system] || strings.HasPrefix(runner, system+"-")
 				}
 			}
+			for _, entry := range job.Strategy.Matrix.Include {
+				for _, system := range []string{"ubuntu", "macos", "windows"} {
+					if strings.HasPrefix(entry.OS, system+"-") {
+						shards[system] = append(shards[system], entry.Shard)
+					}
+				}
+			}
+		}
+		for system, each := range shards {
+			covered[system] = covered[system] || allShards(each)
 		}
 		for _, system := range []string{"ubuntu", "macos", "windows"} {
 			if !covered[system] {
@@ -373,4 +389,21 @@ func TestSelftest(t *testing.T) {
 	t.Run("the smoke rule holds today", func(t *testing.T) {
 		scratch.Itos(t, root, "tests", "smoke", "check", "scenario")
 	})
+}
+
+// allShards is whether the shards, "" for a job that runs every scenario, are one such job or every
+// "i/n" of one n, once each.
+func allShards(shards []string) bool {
+	if len(shards) == 1 && shards[0] == "" {
+		return true
+	}
+	n, seen := 0, map[int]bool{}
+	for _, shard := range shards {
+		var i, total int
+		if _, err := fmt.Sscanf(shard, "%d/%d", &i, &total); err != nil || i < 1 || i > total || (n != 0 && total != n) || seen[i] {
+			return false
+		}
+		n, seen[i] = total, true
+	}
+	return n != 0 && len(seen) == n
 }
