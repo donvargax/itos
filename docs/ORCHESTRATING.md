@@ -102,10 +102,10 @@ handoff line below replaces the template's "wait for CI … close the item":
   or an uncovered line needs a test. No by-hand push proof, `itos task`,
   golangci-lint or staticcheck: pre-push runs the linters, CI the rest; run a
   diagnostic only when it is the work. The agent finishes as AGENTS.md's
-  Finishing says: it hands back the draft, the coordinator's reviewer posts
-  on it, and the agent addresses the threads and alone runs `itos push
-  --ready`; the coordinator checks the run and closes the item on main
-  after the merge (T-302, T-303, slice-179).
+  Finishing says: it hands back the draft; the coordinator's reviewer posts
+  on a spec, a diff only on ADR-0061's list; the agent addresses the
+  threads and alone runs `itos push --ready`; the coordinator closes it on
+  main after the merge (T-303, slice-179).
 - **What the push proof flags:** an error check after a call that already
   returns that error is a dead branch, an uncovered line (T-281, T-282). A
   test forcing a filesystem error uses one every OS reports alike (a NUL byte
