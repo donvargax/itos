@@ -153,16 +153,11 @@ Feature: The id counter, so an id itos mints is minted once
   # commit whose counters/slice is 11, moves the ref to it with update-ref
   # <new> <old>, and exits 0; later pushes it lets through. receive-pack then
   # finds the ref moved under it and refuses the push in the race's own
-  # words. So the scenario exercises "cannot lock ref ... is at ... but
-  # expected", which git prints whatever its version, and "incorrect old
-  # value provided" only where the machine's git gives that reason (2.56
-  # does; an older git gives "failed to update ref"), each wording a case of
-  # the classifier's unit test too. A hook that only printed the words and
-  # declined would give the reason "hook declined" and leave the ref
-  # unmoved, as no real race does, and would refuse a fix that retries when
-  # the ref moved, whatever git's words. The retry fetches 11 and claims 12
-  # in one push: the remote's counter is 12, not 13. Before the fix it fails
-  # at "itos exits with code 0" (it exits 3).
+  # words ("cannot lock ref ... is at ... but expected", and the reason
+  # "incorrect old value provided" where the machine's git gives it; an
+  # older git says "failed to update ref"). The retry fetches 11 and claims
+  # 12 in one push: the remote's counter is 12, not 13. Before the fix it
+  # fails at "itos exits with code 0" (it exits 3).
   #
   # Decided (the coordinator, 2026-10-25): a lost race is told by the remote's
   # state, not by git's words, which differ across versions (this bug is one
@@ -171,7 +166,8 @@ Feature: The id counter, so an id itos mints is minted once
   # attempt built on, whatever git said; a refusal that leaves the ref where it
   # was is a real one (ID-IDS-10). So a lock another push held, and won, is a
   # lost race too, and the word list of nonFastForward need not grow. A real
-  # refusal keeps exit 3.
+  # refusal keeps exit 3. ID-IDS-09 alone cannot tell this from adding git's
+  # words to that list; ID-IDS-11 can.
   @ID-IDS-09 @bug-141 @wip
   Scenario: A counter push that loses the race as the remote updates the ref fetches the counter again and retries
     Given a repository whose ledger has the task "T-001"
@@ -182,7 +178,27 @@ Feature: The id counter, so an id itos mints is minted once
     When itos runs the command line "work add --kind slice --title 'Do the thing' --why 'Because.'"
     Then itos exits with code 0
     And its output says "slice-12"
-    And its output does not say "cannot pushing"
+    And the remote's id counter for "slice" is 12
+
+  # The decision's own check: the remote's update hook moves refs/itos/ids as
+  # in ID-IDS-09, then declines the push itself (exit 1), so git's words are
+  # "hook declined", which no word list names, while the ref has moved past
+  # the commit the attempt built on. Judged by the ref, itos fetches and
+  # retries, and the hook lets the retry through; judged by git's words, it
+  # exits 3. The new Given is ID-IDS-09's with "and the remote declines that
+  # push". Before the fix it fails at "itos exits with code 0" (it exits 3),
+  # and a fix that only adds git's lost-race words to nonFastForward still
+  # fails there.
+  @ID-IDS-11 @bug-141 @wip
+  Scenario: A counter push refused after the remote's ref moved is retried, whatever words the remote gave
+    Given a repository whose ledger has the task "T-001"
+    And a clone of it, where itos runs
+    And the work registry has the item "slice-9" owned by nobody with the status "todo"
+    And another clone of the remote has minted "slice-10"
+    And another clone claims "slice-11" on the remote while the clone's next counter push is received, and the remote declines that push
+    When itos runs the command line "work add --kind slice --title 'Do the thing' --why 'Because.'"
+    Then itos exits with code 0
+    And its output says "slice-12"
     And the remote's id counter for "slice" is 12
 
   # A refusal that is no lost race is not retried: exit 3, as today, and
