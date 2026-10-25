@@ -113,6 +113,12 @@
 //     The remote's branch is read in the bare repository itself, so what was
 //     pushed is what the remote has. Two takes of one item edit the item's
 //     one registry line, so they conflict.
+//   - prepush_refs_test.go: the pre-push hook's commands record which of them
+//     ran and the base per_base was given, read against the full SHAs of
+//     the clone's commits by subject; another branch of the remote is made
+//     in the clone the remote gains commits from, and an origin with no
+//     branch is a new bare repository, the clone's remote-tracking refs
+//     deleted.
 //   - range_test.go: the fake GitHub, an httptest server itos is pointed at
 //     through GITHUB_API_URL, given GITHUB_REPOSITORY and GITHUB_TOKEN as
 //     Actions gives them. It holds runs of several workflows, each on a
