@@ -185,12 +185,15 @@ func runEchoArgs(t *testing.T, program string, env []string, args ...string) []s
 // (internal/idcounter), and a windows program ran its script through sh, whose
 // own reading of the command line it was started with ate the caret: the ref
 // reached the script as ^commit, git resolved nothing, and @ID-IDS-07 failed
-// on windows alone, linux and macos running the script by its #! line.
+// on windows alone, linux and macos running the script by its #! line. A
+// U+2026 and a code point beyond the Basic Multilingual Plane are among the
+// arguments, which windows passes as UTF-16: the recording gh of slice 184
+// records the title of a pull request cut with the ellipsis.
 func TestProgramForwardsItsArguments(t *testing.T) {
 	args := []string{
 		"rev-parse", "--verify", "--quiet",
 		"refs/itos/fetched-ids^{commit}",
-		"two words", "", `back\slash`, "it's", "$HOME", "*", "a\nnewline", "last",
+		"two words", "", `back\slash`, "it's", "$HOME", "*", "a\nnewline", "ends with \u2026", "a \U0001F642 beyond the BMP", "last",
 	}
 	got := runEchoArgs(t, echoProgram(t), nil, args...)
 	if !slices.Equal(got, args) {
