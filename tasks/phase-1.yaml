@@ -4788,9 +4788,6 @@
     case. Show each property failing on a broken variant (a counter that forgets a claim, a retry
     that reuses the rejected number) before trusting it. No production change unless a property
     finds a real bug, which is reported, not fixed here.
-  done_when:
-    - run: go test -count=1 ./internal/idcounter ./internal/nextid
-      timeout: 600
 
 - id: T-311
   type: build

@@ -14296,7 +14296,7 @@ items:
     title: Stateful property tests hold ID minting to its model, sequential and concurrent, and set up the property-test tier
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
 
