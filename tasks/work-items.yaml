@@ -7924,6 +7924,14 @@ items:
       race (bug 44) and the drafts lock. TLC runs as a test kind with a command adapter in the
       nightly tier (it needs Java), and the model's properties are mutation-checked as the tool
       does. Only after the PBT pilot, and dropped if it finds nothing or costs too much.
+
+      Compared 2026-10-25: pstack now ships create-formal-verification-skill and
+      maintain-formal-verification-skill, the method this pilot wants: pick the riskiest promise,
+      show each property failing on a broken variant (a mutant of the model or the code), state
+      bounds and what is left out, one cheap command to rerun, and record the files and commit the
+      verification last matched so a change to them marks it stale. The races met since are
+      candidates too: the ID counter's Windows lock flake (p1-idcounter-windows-lock-flake) and the
+      evidence store's lock and rename (slices 170 to 173).
     refs: [docs/decisions/0045-every-id-itos-writes-is-minted-and-the-counter-is-claimed-on-the-remote.md]
     tags: [tests]
 
