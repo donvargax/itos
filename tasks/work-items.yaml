@@ -14025,3 +14025,14 @@ items:
     why: >
       Tracked in GitHub issue #140 (registry pilot: the issue holds the item).
     tags: [push]
+
+  - id: bug-138
+    title: "itos commit writes a second Scenarios: footer when the message already has one (#142)"
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: bug
+    why: >
+      Tracked in GitHub issue #142 (registry pilot: the issue holds the item).
+    tags: [commit]
