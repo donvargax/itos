@@ -14040,8 +14040,8 @@ items:
   - id: T-307
     title: Settle the three survivors of Nightly 40190179961
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
 
