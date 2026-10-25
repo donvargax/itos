@@ -14333,24 +14333,9 @@ items:
     title: "Two clones minting on the remote counter at once: the loser fails with \"cannot lock ref\" instead of retrying"
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [T-310]
     kind: bug
-    why: >
-      Found 2026-10-25 by T-310's concurrent property
-      (TestPropertyConcurrentRemoteCounterIsLinearizable, real git, 3 clones), 9 runs of 9 with the
-      fixed seed and seeds 1 to 3; shrunk to two clones each running one Claim at the same moment.
-      When the two pushes of refs/itos/ids race on the remote, git reports "remote: error: cannot
-      lock ref 'refs/itos/ids': is at X but expected Y" and "[remote rejected] ... (incorrect old
-      value provided)". nonFastForward in internal/idcounter/counter.go knows only
-      "non-fast-forward", "fetch first", "stale info" and "reference already exists", so mintRemote
-      returns remoteError("pushing") ("cannot pushing id counter on remote (nothing was written)")
-      instead of fetching and retrying as ADR-0045 says. Nothing is written and a rerun works, but a
-      lost race is refused and the message is ungrammatical. Confirmed by overlay: adding the two
-      wordings makes the property pass on every run. The held-out property
-      (.git/itos/T-310-remote-property.txt in the coordinator's clone) is the regression, landed
-      with the fix; ids.feature's "Concurrent clones claim distinct numbers from the same remote
-      counter" never hits the exact race.
     refs: [internal/idcounter/counter.go]
     tags: [records, v8]
 
