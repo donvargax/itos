@@ -65,6 +65,39 @@ func (s Statuses) Of(id string) (any, bool) {
 // that does not read as a list of items, has none; an id that is not text is
 // no item's.
 func IDsAt(trees port.Trees, path, tree string) (map[string]bool, error) {
+	list, err := itemsAt(trees, path, tree)
+	if err != nil {
+		return nil, err
+	}
+	ids := map[string]bool{}
+	for _, item := range list {
+		if id, ok := value.Prop(item, "id").(string); ok {
+			ids[id] = true
+		}
+	}
+	return ids, nil
+}
+
+// TitleAt is the title of the registry's item id at path in a tree (IDsAt
+// names the trees), each run of space in it one space and none at either end
+// (slice 184): "" for a tree that cannot be opened, one without the
+// registry, one that does not read as a list of items, an item it lacks, or a
+// title that is no text or is empty once trimmed.
+func TitleAt(trees port.Trees, path, tree, id string) string {
+	list, _ := itemsAt(trees, path, tree)
+	for _, item := range list {
+		if value.Prop(item, "id") == id {
+			title, _ := value.Prop(item, "title").(string)
+			return value.Trim(value.Collapse(title))
+		}
+	}
+	return ""
+}
+
+// itemsAt are the entries of the registry's items list at path in a tree,
+// none for a tree without the registry or one that does not read as a list of
+// items; an error when the tree cannot be opened.
+func itemsAt(trees port.Trees, path, tree string) ([]any, error) {
 	ctx := context.Background()
 	if tree == "" {
 		tree = "worktree"
@@ -73,26 +106,17 @@ func IDsAt(trees port.Trees, path, tree string) (map[string]bool, error) {
 	if err != nil {
 		return nil, err
 	}
-	ids := map[string]bool{}
 	if !from.Has(ctx, path) {
-		return ids, nil
+		return nil, nil
 	}
 	text, err := from.Read(ctx, path)
 	if err != nil {
-		return ids, nil
+		return nil, nil
 	}
 	raw, err := value.Parse(text)
 	if err != nil {
-		return ids, nil
+		return nil, nil
 	}
-	list, ok := value.Prop(raw, "items").([]any)
-	if !ok {
-		return ids, nil
-	}
-	for _, item := range list {
-		if id, ok := value.Prop(item, "id").(string); ok {
-			ids[id] = true
-		}
-	}
-	return ids, nil
+	list, _ := value.Prop(raw, "items").([]any)
+	return list, nil
 }

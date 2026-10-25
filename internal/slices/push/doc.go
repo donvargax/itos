@@ -124,6 +124,23 @@
 // A gh that is missing or fails exits 3, the branch pushed already
 // (pull-request-failed). Answer.PullRequest is --json's pull_request.
 //
+// The pull request is titled after the item and described by it (slice 184,
+// title.go), not by its first commit, which gh pr create --fill would give it
+// and is the item's spec: describe reads the item's title from the registry
+// at the head pushed (work.TitleAt, whitespace collapsed), and gh pr create
+// gets --title=<item>: <title>, cut by cut to 255 code points and U+2026 past
+// the 256 GitHub keeps, and --body=<title>, an empty line and a "Closes #<n>"
+// line for each issue of the parenthesised list that ends the title (closing:
+// only "#" and digits, so another repository's issue, or a number elsewhere in
+// the title, closes nothing; never the why). An item with no title that is
+// text, absent from that registry, or with a registry that cannot be read, is
+// titled by its id alone in both, as a push never fails here with its branch
+// pushed. retitle gives an open pull request still titled with the subject of
+// the first commit the push adds to the item's branch (the first that does not
+// go to main, pullRequest's first) the same title with gh pr edit, after gh
+// pr list and before any other call; a title a person wrote, or the item's
+// already, is left as it is, and so is the description.
+//
 // The head pushed is no longer the pull request's once GitHub rebases it
 // (slice 175), and gh pr view can answer the head pushed or the previous
 // push's until it has. So wait, after the config, the Watcher and the
@@ -142,7 +159,7 @@
 // push.pr.draft (slice 179; push.pr is read under pr alone, config.PushPR)
 // makes the pull request a draft that nothing judges or merges until
 // itos push --ready marks it ready. pullRequest asks gh pr list for number,
-// url and isDraft under either setting, and under draft a plain push opens a
+// url, isDraft and title under either setting, and under draft a plain push opens a
 // missing one with gh pr create --draft and goes no further: no gh pr merge,
 // no gh pr update-branch even when main moved, no wait whatever ci.watch
 // says; it never changes a draft state, and says, by draftNote, which the

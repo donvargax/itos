@@ -153,7 +153,7 @@ Feature: Under push.mode pr, itos push titles an item's pull request after the i
   # the item and described by it, closing its issue on merge, with no
   # --fill. Fails before the work at the --title step: today pr create is
   # called with --fill and no --title.
-  @ID-PRTITLE-01 @slice-184 @wip
+  @ID-PRTITLE-01 @slice-184
   Scenario: Under pr, the first push from an item's branch titles its pull request after the item and closes the item's issue in its description
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -175,7 +175,7 @@ Feature: Under push.mode pr, itos push titles an item's pull request after the i
   # its title gets its own Closes line, since GitHub needs the keyword
   # before each. Fails before the work at the --body step: today the body
   # is --fill's.
-  @ID-PRTITLE-02 @slice-184 @wip
+  @ID-PRTITLE-02 @slice-184
   Scenario: Under pr, an item whose title ends with a list of issues closes each of them
     Given the work registry has the item "slice-13" owned by nobody with the status "todo" and the title "Watch two workflows (#12, #15)"
     And the config, committed and pushed to the remote's main, adds the YAML:
@@ -195,7 +195,7 @@ Feature: Under push.mode pr, itos push titles an item's pull request after the i
   # closing either on merge would close the wrong issue. The body is the
   # title alone. Fails before the work at the --title step: today pr create
   # has no --title.
-  @ID-PRTITLE-03 @slice-184 @wip
+  @ID-PRTITLE-03 @slice-184
   Scenario: Under pr, an issue mentioned inside an item's title, or another repository's at its end, closes nothing
     Given the work registry has the item "slice-14" owned by nobody with the status "todo" and the title "Follow #9 into the docs (itos-cc#27)"
     And the config, committed and pushed to the remote's main, adds the YAML:
@@ -214,7 +214,7 @@ Feature: Under push.mode pr, itos push titles an item's pull request after the i
   # This repository's own setting: a draft is opened with the same title
   # and description, --draft after them. Fails before the work at the
   # --title step: today the call is --fill --draft.
-  @ID-PRTITLE-04 @slice-184 @wip
+  @ID-PRTITLE-04 @slice-184
   Scenario: Under push.pr.draft, the first push opens the draft titled after the item and described by it
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -235,7 +235,7 @@ Feature: Under push.mode pr, itos push titles an item's pull request after the i
   # an ellipsis, while the description keeps it whole and its Closes, read
   # from the whole title, survives the cut. Fails before the work at the
   # --title step: today pr create has no --title.
-  @ID-PRTITLE-05 @slice-184 @wip
+  @ID-PRTITLE-05 @slice-184
   Scenario: Under pr, an item's title too long for GitHub is cut in the pull request's title and kept whole in its description
     Given the work registry has the item "slice-15" owned by nobody with the status "todo" and the title "Make the long title of an item, one that runs well past what GitHub keeps for the title of a pull request, reach that pull request whole in its description, while the title itself is cut to the length GitHub allows and ends with an ellipsis, so that nothing a person wrote is lost on the way, and the rest is in the description (#12)"
     And the config, committed and pushed to the remote's main, adds the YAML:
@@ -254,7 +254,7 @@ Feature: Under push.mode pr, itos push titles an item's pull request after the i
   # itos passes arguments, never a shell line: what a shell would expand or
   # split reaches GitHub as the registry wrote it. Fails before the work at
   # the --title step: today pr create has no --title.
-  @ID-PRTITLE-06 @slice-184 @wip
+  @ID-PRTITLE-06 @slice-184
   Scenario: Under pr, an item's title with characters a shell would read reaches the pull request as written
     Given the work registry has the item "slice-16" owned by nobody with the status "todo" and the title "Keep $HOME, `pwd`, 'quotes', a & b; c | d and *.md as written"
     And the config, committed and pushed to the remote's main, adds the YAML:
@@ -274,7 +274,7 @@ Feature: Under push.mode pr, itos push titles an item's pull request after the i
   # the title alone, and opens nothing. Under push.pr.draft, since a plain
   # draft push stops early and must retitle all the same. Fails before the
   # work at the --json step: today pr list asks number,url,isDraft.
-  @ID-PRTITLE-07 @slice-184 @wip
+  @ID-PRTITLE-07 @slice-184
   Scenario: Under pr, an open pull request still titled by --fill after its first commit is retitled after the item, its description left as it is
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -299,7 +299,7 @@ Feature: Under push.mode pr, itos push titles an item's pull request after the i
 
   # A title a person wrote is theirs: itos push never edits it. A guard: it
   # passes before the work, which calls no gh pr edit, and must after it.
-  @ID-PRTITLE-08 @slice-184 @guard @wip
+  @ID-PRTITLE-08 @slice-184 @guard
   Scenario: Under pr, an open pull request whose title a person edited keeps it
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """

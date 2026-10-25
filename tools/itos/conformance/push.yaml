@@ -314,3 +314,43 @@ cases:
       outcome: not-item-branch
       remote: origin
       branch: tidy
+  # The pull request is titled after the item and described by it, with a
+  # Closes line for the issue its title ends with (slice 184); the rest of pr
+  # mode, which needs a recording gh and its pull requests, is
+  # features/push-mode-title.feature's. The gh here records its arguments,
+  # a line break in the body staying one.
+  - name: under push.mode pr the first push of an item's branch opens its pull request titled after the item, described by it and closing its issue
+    argv: [push, --no-wait]
+    git:
+      - commit: "chore: start"
+        files:
+          README.md: "scratch\n"
+          tasks/work-items.yaml: |
+            phases: { 1: null }
+            items:
+              - { id: slice-12, title: "Add the widget (#12)", phase: 1, owner: null, status: todo, depends_on: [] }
+        label: start
+      - run: git init -q --bare .git/origin.git && git -C .git/origin.git symbolic-ref HEAD refs/heads/main && git remote add origin .git/origin.git && git push -q -u origin main && git checkout -q -b slice-12
+      - commit: "docs: specify slice-12, the widget"
+        files: { spec.md: "spec\n" }
+    files:
+      itos.yaml: "version: 1\npush: { mode: pr }\n"
+      bin/gh:
+        executable: true
+        text: |
+          #!/bin/sh
+          printf '%s\n' "$*" >> "$(dirname "$0")/../gh-calls"
+          case "$1 $2" in
+          "pr list") echo '[]' ;;
+          "pr create") echo https://github.example/o/r/pull/1 ;;
+          esac
+    env: { PATH: "{{dir}}/bin{{PATH_SEP}}{{PATH}}", GITHUB_REPOSITORY: owner/name }
+    exit: 0
+    stdout_has: https://github.example/o/r/pull/1
+    files_after:
+      gh-calls: |
+        pr list --repo owner/name --head slice-12 --state open --json number,url,isDraft,title
+        pr create --repo owner/name --base main --head slice-12 --title=slice-12: Add the widget (#12) --body=Add the widget (#12)
+
+        Closes #12
+        pr merge slice-12 --repo owner/name --auto --rebase
