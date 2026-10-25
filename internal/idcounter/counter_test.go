@@ -318,7 +318,10 @@ func TestCounterErrorClassifiers(t *testing.T) {
 	}
 }
 
-func TestMintRemoteRetriesConcurrentFastForward(t *testing.T) {
+// clonedStores are n clones of one bare remote that holds a main branch and
+// no counter, each a Store on its own repository, and the remote's folder.
+func clonedStores(t *testing.T, n int) (stores []Store, remote string) {
+	t.Helper()
 	t.Setenv("GIT_CONFIG_GLOBAL", os.DevNull)
 	t.Setenv("GIT_CONFIG_NOSYSTEM", "1")
 	t.Setenv("GIT_AUTHOR_NAME", "")
@@ -328,7 +331,7 @@ func TestMintRemoteRetriesConcurrentFastForward(t *testing.T) {
 	t.Setenv("GIT_AUTHOR_DATE", "2000-01-01T00:00:00Z")
 	t.Setenv("GIT_COMMITTER_DATE", "2000-01-01T00:00:00Z")
 	base := t.TempDir()
-	remote := filepath.Join(base, "origin.git")
+	remote = filepath.Join(base, "origin.git")
 	gitRun(t, base, "init", "-q", "--bare", remote)
 	gitRun(t, remote, "symbolic-ref", "HEAD", "refs/heads/main")
 	seed := filepath.Join(base, "seed")
@@ -341,13 +344,18 @@ func TestMintRemoteRetriesConcurrentFastForward(t *testing.T) {
 	gitRun(t, seed, "commit", "-q", "-m", "base")
 	gitRun(t, seed, "remote", "add", "origin", remote)
 	gitRun(t, seed, "push", "-q", "origin", "HEAD:refs/heads/main")
-	stores := make([]Store, 2)
+	stores = make([]Store, n)
 	for i := range stores {
 		root := filepath.Join(base, "clone-"+strconv.Itoa(i))
 		gitRun(t, base, "clone", "-q", remote, root)
 		gitIdentity(t, root)
 		stores[i] = Store{Root: root, VCS: vcs.Git{Platform: runtime.GOOS, Dir: root}, CommonDir: filepath.Join(root, ".git"), Remote: "origin"}
 	}
+	return stores, remote
+}
+
+func TestMintRemoteRetriesConcurrentFastForward(t *testing.T) {
+	stores, remote := clonedStores(t, 2)
 	var wg sync.WaitGroup
 	got := make(chan int, len(stores))
 	errs := make(chan error, len(stores))
