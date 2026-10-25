@@ -8891,31 +8891,9 @@ items:
     title: "Report workflow action refs and explain runtime pin selection during upgrade"
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: slice
-    why: >
-      Was p1-upgrade-names-action-uses.
-      #63 (2026-10-12): after itos upgrade 8.3.0 a consumer's workflows still launched the action at
-      v8.0.1's commit, and nothing named those lines. The action installs the launcher and the
-      repository's pin chooses the itos that runs (action.yml's header, ADR-0024), so the old line
-      still runs the pinned release; the session could not tell and moved them by hand. itos upgrade
-      moves each uses: donvargax/itos@<sha or tag> line in .github/workflows/ to the new release's
-      commit and tag comment, as it moves the install script's lines, or at least names each one it
-      leaves and says the pin decides what runs.
-
-      Specification choice uses the explicit alternative accepted by #63: report every matching
-      workflow action reference and explain launcher-versus-runtime selection. Do not automatically
-      rewrite action refs or tag comments. action.yml confirms both the action ref and with.version
-      choose the installed launcher, while a loaded repository pin chooses the runtime; with.version
-      is not a pin override. Scan workflow YAML structurally, not comments or run strings; include
-      file/line/raw ref and an explicit version input when present, without guessing the release
-      behind a SHA or evaluating expressions. Report already-current upgrades too. JSON gains
-      additive action_uses and action_scan_problems arrays; preserve existing upgrade fields and
-      edit lists. A malformed workflow yields a named advisory scan problem, not silent completeness
-      or a partial pin-write failure. Workflow bytes, staging and HEAD remain unchanged by
-      reporting. Automatic action-ref updates are not needed to satisfy this report and are outside
-      this delivery.
     tags: [upgrade, v8]
     refs: [internal/cli/upgrade.go, action.yml, docs/decisions/0024-a-global-itos-is-a-launcher-that-runs-the-version-a-repository-pins.md, features/upgrade-command.feature]
 
