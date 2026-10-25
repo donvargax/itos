@@ -8,6 +8,8 @@ import (
 	"strings"
 	"testing"
 	"testing/fstest"
+
+	"go.yaml.in/yaml/v3"
 )
 
 func workflow(text string) *fstest.MapFile { return &fstest.MapFile{Data: []byte(text)} }
@@ -306,5 +308,22 @@ func TestRunJSONWorkflowLines(t *testing.T) {
 	code, printed, _ := upgradeRun(p, true)
 	if got := compact(t, printed); code != policy || !strings.HasSuffix(got, `"action_uses":[],"action_scan_problems":[]}`) {
 		t.Errorf("a refusal: %d %s", code, got)
+	}
+}
+
+// A mapping node is read in key and value pairs: one left with a key and no
+// value, which the parser never gives, has no entry and is not indexed past
+// its end.
+func TestKeyedStopsAtTheLastPair(t *testing.T) {
+	key := &yaml.Node{Kind: yaml.ScalarNode, Value: "uses"}
+	value := &yaml.Node{Kind: yaml.ScalarNode, Value: "donvargax/itos@v1"}
+	if k, v := keyed(&yaml.Node{Kind: yaml.MappingNode, Content: []*yaml.Node{key, value}}, "uses"); k != key || v != value {
+		t.Errorf("a pair: %v, %v", k, v)
+	}
+	if k, v := keyed(&yaml.Node{Kind: yaml.MappingNode, Content: []*yaml.Node{key}}, "uses"); k != nil || v != nil {
+		t.Errorf("a key with no value: %v, %v", k, v)
+	}
+	if got := values(&yaml.Node{Kind: yaml.MappingNode, Content: []*yaml.Node{key, value, key}}); len(got) != 1 || got[0] != value {
+		t.Errorf("values of a key with no value: %v", got)
 	}
 }
