@@ -37,8 +37,8 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   A plain itos push from an item's branch, under push.pr.draft true, does
   what slice 174 does up to the pull request (the rebase, the registry
   commits to main, the atomic push) and then: gh pr list --repo <repository>
-  --head <item> --state open --json number,url,isDraft (isDraft is asked
-  under either setting of draft); with none open, gh pr create --repo
+  --head <item> --state open --json number,url,isDraft,title (isDraft
+  and title are asked under either setting of draft); with none open, gh pr create --repo
   <repository> --base <main> --head <item> and the title and the description
   of push-mode-title.feature (slice 184), then --draft. It turns on no
   auto-merge (no gh pr merge), asks GitHub for no rebase (no gh pr
