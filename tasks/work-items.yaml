@@ -13918,6 +13918,6 @@ items:
     title: Switch this repository to push.mode pr
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task

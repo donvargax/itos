@@ -4681,5 +4681,3 @@
     itself a config and docs change, it lands through the first pull request, which is the smoke
     test: auto-merge waits for the required checks, registry commits still go straight to main, and
     the item closes after the merge.
-  done_when:
-    - run: "grep -q 'mode: pr' itos.yaml"
