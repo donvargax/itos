@@ -119,9 +119,9 @@ This repository runs `push.mode: pr` (T-303): an item's work reaches `main`
 through a pull request merged by rebase once its checks pass; only registry
 and ledger bookkeeping (a take, a close, `task add`) goes straight to `main`.
 
-1. **Work on the item's branch**, named for the item: in a worktree,
-   `git branch -m <item>`, or `git switch -c <item> origin/<item>` when its
-   spec is already there. Take the item there; the take goes to `main`.
+1. **Work on the item's branch**, named for the item: in a worktree made
+   from the updated `main` (a merged spec is already there),
+   `git branch -m <item>`. Take the item there; the take goes to `main`.
 2. **Push** with `tools/bin/itos push` in the foreground (600000 ms
    timeout): it pushes the branch, opens or updates its pull request, turns
    on auto-merge and waits for its checks, those of the head GitHub makes
