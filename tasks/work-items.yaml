@@ -14261,3 +14261,20 @@ items:
       without a pull request).
     refs: [itos.yaml, .github/workflows/ci.yml, internal/plan]
     tags: [ci, v9]
+
+  - id: p1-push-thread-commands
+    title: itos replies to and resolves a pull request's review threads
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Seen 2026-10-25 in every lane of the parallel pilot: each agent and the coordinator replied to
+      and resolved review threads by hand with gh api graphql (addPullRequestReviewThreadReply,
+      resolveReviewThread, thread ids looked up by a query), shadowing PATH's stale gh. itos push
+      --ready already refuses while a thread is unresolved and names each; a way to answer one from
+      itos (the thread named as --ready names it, the reply text, resolve or leave open for a
+      disagreement) would make the documented loop (fix, push, resolve) one command per thread.
+    refs: [internal/slices/push]
+    tags: [push, v8]
