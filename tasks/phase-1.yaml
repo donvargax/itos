@@ -4763,3 +4763,31 @@
     judges. The next nightly, which runs the pinned itos-cc over fresh and changed sites, is the
     acceptance; mutation check is no check here, since this repository keeps no complete cache and
     it fails alike under v0.26.0.
+
+- id: T-310
+  type: test
+  title: Stateful property tests hold ID minting to its model, sequential and concurrent, and set up the property-test tier
+  why: >
+    The person, 2026-10-25: the domain is verified by stateful, model-based property tests
+    (properties of the system over random sequences of domain operations, against a plain model),
+    not by input-level properties, which are fuzzing, nor by formal models of everything; ID minting
+    first, since it was missed. ADR-0045's counter (internal/idcounter, through the tracker port;
+    internal/nextid; itos tests next-id) is the target. Sequential: random sequences of Mint,
+    Claim(n), a remote that moves or rejects a push, a fetch, stealth or no remote (the file
+    counter), checked after every step against a model that is just the set of numbers handed out
+    and the counter: no number twice, every reservation above the repository's highest id, the
+    counter never behind what was handed out, a failed write leaving at most a gap. Concurrent: the
+    same operations from several goroutines or clones at once (a linearizability check, as
+    QuickCheck's parallel state machines or Porcupine do), so the remote counter's claim and the
+    file counter's lock are tested on the real code, not a TLA+ model; the Windows lock flake
+    (p1-idcounter-windows-lock-flake) is a known case. Set up the tier in this task:
+    pgregory.net/rapid as the itos templates use it (a build commit for go.mod, deps-check judging
+    it); every run in the hooks, per-push CI and itos-cc's mutation runs uses a fixed seed so a kill
+    is stable (ADR-0051: deterministic where a tier gates), and the nightly runs the same properties
+    with a fresh seed, printing it; a failing seed found nightly is committed as a fixed regression
+    case. Show each property failing on a broken variant (a counter that forgets a claim, a retry
+    that reuses the rejected number) before trusting it. No production change unless a property
+    finds a real bug, which is reported, not fixed here.
+  done_when:
+    - run: go test -count=1 ./internal/idcounter ./internal/nextid
+      timeout: 600
