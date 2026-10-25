@@ -28,7 +28,8 @@ func Revs(from, to string) []string {
 // boundary of git rev-list --boundary over them, less any that is an
 // ancestor of another (git merge-base --independent), each a commit some
 // remote branch has; adds is whether any commit is unpushed. A range git
-// cannot read adds with no base, which asks for everything to be judged.
+// cannot read, or bases it cannot reduce, add with no base, which asks for
+// everything to be judged.
 func (r Runner) UnpushedBases(to string) (bases []string, adds bool) {
 	lines, err := r.Lines(append([]string{"rev-list", "--boundary"}, Revs(Unpushed, to)...)...)
 	if err != nil {
@@ -42,9 +43,7 @@ func (r Runner) UnpushedBases(to string) (bases []string, adds bool) {
 		}
 	}
 	if len(bases) > 1 {
-		if bases, err = r.Lines(append([]string{"merge-base", "--independent"}, bases...)...); err != nil {
-			return nil, true
-		}
+		bases, _ = r.Lines(append([]string{"merge-base", "--independent"}, bases...)...)
 	}
 	return bases, adds
 }
