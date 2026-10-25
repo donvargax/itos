@@ -11,6 +11,8 @@ import (
 	"strings"
 	"testing"
 
+	"go.yaml.in/yaml/v3"
+
 	itosconfig "github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/out"
 	treeport "github.com/donvargax/itos/v8/internal/store/tree/port"
@@ -224,6 +226,32 @@ func TestCheckedListsNoProblemAsEmpty(t *testing.T) {
 	}
 }
 
+// The ci.steps example ends the ci mapping, before the next key, and is a
+// valid ci.steps once its comment marks are taken off; a table with no ci is
+// printed as it is.
+func TestWithStepsExample(t *testing.T) {
+	got := withStepsExample("a: 1\nci:\n  x: 1\n  y:\n    - z\nwork:\n  w: 1\n")
+	if want := "a: 1\nci:\n  x: 1\n  y:\n    - z\n" + stepsExample + "work:\n  w: 1\n"; got != want {
+		t.Errorf("ci before another key = %q, want %q", got, want)
+	}
+	if got, want := withStepsExample("ci:\n  x: 1\n"), "ci:\n  x: 1\n"+stepsExample; got != want {
+		t.Errorf("ci last = %q, want %q", got, want)
+	}
+	if got := withStepsExample("a: 1\n"); got != "a: 1\n" {
+		t.Errorf("no ci = %q", got)
+	}
+	_, example, _ := strings.Cut(stepsExample, "  # steps:\n")
+	var doc struct {
+		CI struct {
+			Steps []any `yaml:"steps"`
+		} `yaml:"ci"`
+	}
+	file := "ci:\n  steps:\n" + strings.ReplaceAll(example, "  # ", "  ")
+	if err := yaml.Unmarshal([]byte(file), &doc); err != nil || len(doc.CI.Steps) != 3 {
+		t.Errorf("the example uncommented = %+v, %v\n%s", doc, err, file)
+	}
+}
+
 // --print-defaults prints the table of defaults for this config's ledger,
 // as YAML or JSON, the table's own when the config does not load, and a
 // stealth config's when it is the stealth one.
@@ -238,7 +266,7 @@ func TestPrintDefaults(t *testing.T) {
 		t.Errorf("--json check --print-defaults = exit %d, %v, stdout %q", code, err, stdout)
 	}
 	p.trees.Files["worktree"]["itos.yaml"] = "version: 1\nnope: 1\nledger: { files: \"ledger/phase-{group}.yaml\" }\n"
-	if code, stdout, _, err := call(t, p, "check", "--print-defaults"); code != 0 || err != nil || stdout != value.YAML(itosconfig.DefaultsFor(nil, false)) {
+	if code, stdout, _, err := call(t, p, "check", "--print-defaults"); code != 0 || err != nil || stdout != withStepsExample(value.YAML(itosconfig.DefaultsFor(nil, false))) {
 		t.Errorf("check --print-defaults, a config that does not load = exit %d, %v, stdout %q", code, err, stdout)
 	}
 	// The stealth config, in the git common dir the repository names.
@@ -252,7 +280,7 @@ func TestPrintDefaults(t *testing.T) {
 	t.Setenv("ITOS_CONFIG", stealth)
 	p.VCS.Located = map[string]vcsport.Location{"": {Top: ".", GitDir: ".git", Common: ".git"}}
 	p.trees.Files["worktree"][filepath.ToSlash(stealth)] = "version: 1\n"
-	if _, stdout, _, err := call(t, p, "check", "--print-defaults"); err != nil || stdout != value.YAML(itosconfig.DefaultsFor(nil, true)) || stdout == value.YAML(itosconfig.DefaultsFor(nil, false)) {
+	if _, stdout, _, err := call(t, p, "check", "--print-defaults"); err != nil || stdout != withStepsExample(value.YAML(itosconfig.DefaultsFor(nil, true))) || stdout == withStepsExample(value.YAML(itosconfig.DefaultsFor(nil, false))) {
 		t.Errorf("check --print-defaults, stealth = %v, stdout %q", err, stdout)
 	}
 }
