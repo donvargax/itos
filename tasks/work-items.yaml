@@ -14116,3 +14116,22 @@ items:
       merge --rebase, the head pinned with --match-head-commit) rather than ask for auto-merge.
     refs: [internal/slices/push/pr.go]
     tags: [push, v8]
+
+  - id: p1-itos-fewer-git-starts-per-run
+    title: itos starts fewer gits per run
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Counted by strace over a Linux run of every feature (T-308): itos starts 8.5 gits for each run
+      of itos the features make (13 300 gits in 1 575 runs), 16.6 in the evidence features (3 019 in
+      182 runs), and the steps start 8 900 of their own. A miss of an opted-in check starts about a
+      dozen alone (git init --template, three config probes, symbolic-ref, checkout-index,
+      write-tree, diff, ls-tree). On Windows a start costs several times Linux's, so these are most
+      of what the features cost there, and T-308 sharded the nightly because no step can shorten
+      them. Worth a look at which are repeated in one run (in the evidence features rev-parse
+      --git-path 241 times, show :itos.yaml 162, rev-parse --show-toplevel --git-dir 169) and could
+      be answered by one.
+    tags: [tests, v8]
