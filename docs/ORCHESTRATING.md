@@ -121,10 +121,9 @@ handoff line below replaces the template's "wait for CI … close the item":
 ## Independent work and red repairs
 
 q-41: independent work may go on while CI is pending; a red repair comes
-first. Under pr (T-303) the coordinator's specs and docs go through pull
-requests too: a spec is the first commit on its item's branch (`git
-switch -c <item>`, `itos push`, back to main once merged). Agents work in
-isolation worktrees here.
+first. Under pr (T-303) specs and docs go through pull requests too: a
+spec is the first commit on its item's branch; after the merge the
+coordinator deletes its local `<item>`. Agents use isolation worktrees.
 
 ## Lessons from this repository
 
