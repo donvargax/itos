@@ -13982,3 +13982,14 @@ items:
     why: >
       Tracked in GitHub issue #136 (registry pilot: the issue holds the item).
     tags: [push]
+
+  - id: slice-183
+    title: The commit-msg hook and verify refuse attribution lines (#138)
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: slice
+    why: >
+      Tracked in GitHub issue #138 (registry pilot: the issue holds the item).
+    tags: [commit]
