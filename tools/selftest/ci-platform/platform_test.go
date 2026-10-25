@@ -105,12 +105,16 @@ func contract(t *testing.T, w workflow) error {
 	return nil
 }
 
+// notDraft is the only condition the ci and platform jobs carry: a draft pull request's run
+// skips both, and marking it ready runs them (slice 179).
+const notDraft = "${{ github.event_name != 'pull_request' || !github.event.pull_request.draft }}"
+
 func scopedContract(t *testing.T, w workflow, full bool) error {
 	t.Helper()
 	counts := map[string]int{}
 	for _, id := range []string{"ci", "platform"} {
 		j, ok := w.Jobs[id]
-		if !ok || j.If != "" || len(j.Needs) != 0 {
+		if !ok || j.If != notDraft || len(j.Needs) != 0 {
 			return fmt.Errorf("missing or conditional %s job", id)
 		}
 		oses := []string{j.RunsOn}
@@ -242,7 +246,7 @@ func TestSelftest(t *testing.T) {
 			t.Fatalf("plan has %d core unit runs, %d named runs", units, named)
 		}
 	})
-	for _, remove := range []string{"ubuntu-latest", "macos-latest", "windows-latest", "launcher", "launcher version", "Linux launcher", "Linux launcher version", "unit", "named", "release", "duplicate Linux"} {
+	for _, remove := range []string{"ubuntu-latest", "macos-latest", "windows-latest", "launcher", "launcher version", "Linux launcher", "Linux launcher version", "unit", "named", "release", "duplicate Linux", "no draft condition", "another condition"} {
 		t.Run("reject missing coverage "+remove, func(t *testing.T) {
 			w := readWorkflow(t)
 			j := w.Jobs["platform"]
@@ -269,6 +273,12 @@ func TestSelftest(t *testing.T) {
 				delete(w.Jobs, "release")
 			case "duplicate Linux":
 				j.Strategy.Matrix.OS = append(j.Strategy.Matrix.OS, "ubuntu-latest")
+			case "no draft condition":
+				j.If = ""
+			case "another condition":
+				linux := w.Jobs["ci"]
+				linux.If = "${{ github.event_name != 'pull_request' }}"
+				w.Jobs["ci"] = linux
 			}
 			w.Jobs["platform"] = j
 			if err := contract(t, w); err == nil {

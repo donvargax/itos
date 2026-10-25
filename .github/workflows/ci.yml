@@ -2,6 +2,7 @@ name: CI
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
   push:
     branches: [main]
 
@@ -19,12 +20,14 @@ env:
   TO: ${{ github.event.pull_request.head.sha || github.sha }}
 
 jobs:
-  # One job, always run, always reported: a prose-only push still gets its
-  # green check, it just has less to prove. What each range has to run is
+  # One job, run and reported for every push and every pull request but a draft's
+  # (nothing judges a draft; marking it ready runs this on the same head): a
+  # prose-only push still gets its green check, it just has less to prove. What each range has to run is
   # decided by `go run ./tools/bin/ci-repo run` using itos.yaml, so it is the same
   # decision locally, including registry-only changes without named requirements.
   ci:
     name: ci (ubuntu-latest)
+    if: ${{ github.event_name != 'pull_request' || !github.event.pull_request.draft }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -117,6 +120,7 @@ jobs:
   # (T-170); the nightly requires all three named jobs to succeed and proves their scope.
   platform:
     name: platform (${{ matrix.os }})
+    if: ${{ github.event_name != 'pull_request' || !github.event.pull_request.draft }}
     strategy:
       fail-fast: false
       matrix:
