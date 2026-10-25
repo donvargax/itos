@@ -12511,6 +12511,15 @@ items:
       work.evidence.require_red_first requires the trusted red record plus later green CI (C3, its
       own test commit first); a per-commit CI job calls the command (C4, ci); this repository turns
       the key on after both (C5, ci).
+
+      Compared 2026-10-25 with poteto's pstack (tdd and prove-it-works skills): it demands that a
+      red test fail for the predicted reason, quoting the assertion's diff, since "red is a colour,
+      not a measurement". ADR-0060's design counts any Then failure, so a scenario failing at the
+      wrong Then (a crash before the checked step, a wrong exit code) still passes as red. Every
+      spec here already says, in a comment above each scenario, at which step it fails before the
+      work; the record could hold the failing step and its first error line, and red-first could
+      refuse a scenario that failed at another step than the one its comment (or a tag) names. Until
+      this item, red-first rests on the implementer's report alone, as pstack's does.
     tags: [evidence, v8]
 
   - id: p1-evidence-pre-push
