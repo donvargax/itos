@@ -72,7 +72,10 @@ func timeKind(kind string, took time.Duration) {
 }
 
 // A scenario's clock: when it and its current step began.
-type scenarioClock struct{ began, stepBegan time.Time }
+type scenarioClock struct {
+	began, stepBegan time.Time
+	outsideShard     bool
+}
 
 // timeScenario registers the hooks that start a scenario's clock and time its
 // steps, first of the scenario's hooks, so its time holds its set-up; end
@@ -83,8 +86,9 @@ func timeScenario(sc *godog.ScenarioContext) *scenarioClock {
 		return nil
 	}
 	c := &scenarioClock{}
-	sc.Before(func(ctx context.Context, _ *godog.Scenario) (context.Context, error) {
+	sc.Before(func(ctx context.Context, s *godog.Scenario) (context.Context, error) {
 		c.began = time.Now()
+		c.outsideShard = !inShard(s)
 		return ctx, nil
 	})
 	sc.StepContext().Before(func(ctx context.Context, _ *godog.Step) (context.Context, error) {
@@ -92,7 +96,9 @@ func timeScenario(sc *godog.ScenarioContext) *scenarioClock {
 		return ctx, nil
 	})
 	sc.StepContext().After(func(ctx context.Context, st *godog.Step, _ godog.StepResultStatus, err error) (context.Context, error) {
-		timeKind(quoted.ReplaceAllString(st.Text, `"…"`), time.Since(c.stepBegan))
+		if !c.outsideShard {
+			timeKind(quoted.ReplaceAllString(st.Text, `"…"`), time.Since(c.stepBegan))
+		}
 		return ctx, err
 	})
 	return c
@@ -103,6 +109,9 @@ func (c *scenarioClock) end(sc *godog.ScenarioContext) {
 		return
 	}
 	sc.After(func(ctx context.Context, s *godog.Scenario, err error) (context.Context, error) {
+		if c.outsideShard {
+			return ctx, err
+		}
 		timings.Lock()
 		timings.scenarios = append(timings.scenarios, scenarioTime{s.Name, s.Uri, time.Since(c.began)})
 		timings.Unlock()
