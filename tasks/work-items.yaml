@@ -14018,8 +14018,8 @@ items:
   - id: slice-184
     title: itos push titles an item's pull request after the item, not after its first commit (#140)
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: slice
     why: >
