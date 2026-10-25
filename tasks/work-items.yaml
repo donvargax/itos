@@ -14279,11 +14279,9 @@ items:
     title: "itos commit --task none says \"unknown tasks: none\" instead of that Task: takes a ledger task's id (#133)"
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: bug
-    why: >
-      Tracked in GitHub issue #133 (registry pilot: the issue holds the item).
     refs: [internal/slices/commit]
     tags: [commit, v8]
 
