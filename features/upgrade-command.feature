@@ -36,7 +36,17 @@ Feature: itos upgrade moves a project to a newer itos and walks it through what 
   "releases":[{"version","breaking","upgrading","changes","config"} or
   {"version","notes"} for a release with no upgrading.json],"edited":[paths],
   "applied":[{"version","kind":"renamed"|"removed","key","from"?,"value"?}],
-  "manual":[{"version","text"}]}
+  "manual":[{"version","text"}],"action_uses":[{"file","line","ref",
+  "version_input"?}],"action_scan_problems":[{"file","message"}]}
+
+  It also names, and moves none of, each step in the workflows directly in
+  .github/workflows (*.yml and *.yaml, read as YAML) that uses
+  donvargax/itos@<ref>: its file, the line of its uses: key, its ref and its
+  with.version as written, and says what chooses the itos that runs: the
+  action installs a launcher, and the repository's pin chooses the itos that
+  runs, or with no pin the release each line installs. A workflow it cannot
+  read is a scan problem, named with why. A stealth config names none, since
+  no workflow reads it (slice 150).
 
   # Slice 126: upgrade is handed to the version it moves to when that is
   # newer than the itos that runs (upgrade-handoff.feature), so the itos
@@ -326,7 +336,7 @@ Feature: itos upgrade moves a project to a newer itos and walks it through what 
   # Each fails before the work at the first step that reads the report: the
   # output does not name the line (20, 23, 32), or the JSON has no
   # action_uses (21, 22, 24, 31).
-  @ID-UPGRADECMD-20 @slice-150 @wip
+  @ID-UPGRADECMD-20 @slice-150
   Scenario: upgrade names each workflow line that launches the itos action, and says the pin chooses the itos that runs
     Given the config pins the version "9.1.0" of the release server
     And the committed file ".github/workflows/ci.yml" holding the lines:
@@ -368,7 +378,7 @@ Feature: itos upgrade moves a project to a newer itos and walks it through what 
 
   # A quoted value is the same uses: read as YAML; a branch is named as any
   # ref is, and an expression in with.version as written.
-  @ID-UPGRADECMD-21 @slice-150 @wip
+  @ID-UPGRADECMD-21 @slice-150
   Scenario: upgrade --json lists each workflow line that launches the itos action, sorted by file and line, and edits none
     Given the config pins the version "9.1.0" of the release server
     And the committed file ".github/workflows/b.yaml" holding the lines:
@@ -405,7 +415,7 @@ Feature: itos upgrade moves a project to a newer itos and walks it through what 
     And its JSON's "edited" is ["itos.yaml"]
     And the file ".github/workflows/a.yml" has the same contents as its committed version
 
-  @ID-UPGRADECMD-22 @slice-150 @wip
+  @ID-UPGRADECMD-22 @slice-150
   Scenario: Only a step's uses of the itos action is named: not a comment, a script, another action, a reusable workflow or a file GitHub does not run
     Given the config pins the version "9.1.0" of the release server
     And the committed file ".github/workflows/ci.yml" holding the lines:
@@ -448,7 +458,7 @@ Feature: itos upgrade moves a project to a newer itos and walks it through what 
     And its JSON's "action_uses" is []
     And its JSON's "action_scan_problems" is []
 
-  @ID-UPGRADECMD-23 @slice-150 @wip
+  @ID-UPGRADECMD-23 @slice-150
   Scenario: A project already on the version still has its workflow lines named, and nothing changes
     Given the config pins the version "9.3.0" of the release server
     And the committed file ".github/workflows/ci.yml" holding the lines:
@@ -470,7 +480,7 @@ Feature: itos upgrade moves a project to a newer itos and walks it through what 
     And the config is unchanged
     And the file ".github/workflows/ci.yml" has the same contents as its committed version
 
-  @ID-UPGRADECMD-24 @slice-150 @wip
+  @ID-UPGRADECMD-24 @slice-150
   Scenario: A workflow that is not YAML is named as a scan problem, the other workflows' lines are named, and the pin still moves
     Given the config pins the version "9.1.0" of the release server
     And the committed file ".github/workflows/ci.yml" holding the lines:
@@ -499,7 +509,7 @@ Feature: itos upgrade moves a project to a newer itos and walks it through what 
     And its JSON's "edited" is ["itos.yaml"]
     And the file ".github/workflows/bad.yml" has the same contents as its committed version
 
-  @ID-UPGRADECMD-31 @slice-150 @wip
+  @ID-UPGRADECMD-31 @slice-150
   Scenario: Under a stealth config upgrade names no workflow line, since no workflow reads that config's pin
     Given itos's config is kept in the git folder
     And the config pins the version "9.1.0" of the release server
@@ -522,7 +532,7 @@ Feature: itos upgrade moves a project to a newer itos and walks it through what 
 
   # With no pin the launcher runs itself (ADR-0024, internal/launch's
   # unpinned), so the release each line installs is the one that runs.
-  @ID-UPGRADECMD-32 @slice-150 @wip
+  @ID-UPGRADECMD-32 @slice-150
   Scenario: With no pin, upgrade names each workflow line and says the release it installs is the itos that runs
     Given the repository has the install script of the version "9.1.0" of the release server
     And the committed file ".github/workflows/ci.yml" holding the lines:
