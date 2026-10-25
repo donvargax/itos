@@ -233,6 +233,9 @@ func TestFeatures(t *testing.T) {
 		initializer = func(sc *godog.ScenarioContext) {
 			initializeScenario(sc)
 			sc.Before(func(ctx context.Context, scenario *godog.Scenario) (context.Context, error) {
+				if !inShard(scenario) {
+					return ctx, nil
+				}
 				selected++
 				id := inProcessScenarioID(scenario)
 				if reason, deferred := inProcessDeferred[id]; deferred {

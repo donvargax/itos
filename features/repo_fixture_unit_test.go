@@ -15,7 +15,13 @@ func gitForTest(t *testing.T, dir string, args ...string) string {
 	t.Helper()
 	cmd := exec.Command(git.Bin(runtime.GOOS), args...)
 	cmd.Dir = dir
-	cmd.Env = append(os.Environ(), "GIT_CONFIG_GLOBAL="+os.DevNull, "GIT_CONFIG_NOSYSTEM=1",
+	var env []string
+	for _, kv := range os.Environ() {
+		if !strings.HasPrefix(kv, "GIT_") {
+			env = append(env, kv)
+		}
+	}
+	cmd.Env = append(env, "GIT_CONFIG_GLOBAL="+os.DevNull, "GIT_CONFIG_NOSYSTEM=1",
 		"GIT_AUTHOR_NAME=a", "GIT_AUTHOR_EMAIL=a@localhost", "GIT_COMMITTER_NAME=a", "GIT_COMMITTER_EMAIL=a@localhost")
 	out, err := cmd.CombinedOutput()
 	if err != nil {
