@@ -14133,6 +14133,13 @@ items:
       CI and got auto-merge on only because the rebase made the pull request unclean again: two
       waits on CI for one merge. When the pull request is clean, --ready should merge it (gh pr
       merge --rebase, the head pinned with --match-head-commit) rather than ask for auto-merge.
+
+      Seen again 2026-10-25, twice: slice-151 (#149) once, and T-310 (#156) three --ready runs in a
+      row, each refused at gh pr merge --auto with "Pull request is in clean status", so the
+      implementer merged it directly with gh pr merge --rebase --match-head-commit <the head the
+      green run judged>, what --ready should do itself when the pull request is clean. With strict
+      required checks off, a pull request stays clean after main moves, so a rerun does not help; it
+      now blocks merges, not only costs a CI wait.
     refs: [internal/slices/push/pr.go]
     tags: [push, v8]
 
