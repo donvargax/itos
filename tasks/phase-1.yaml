@@ -4662,3 +4662,24 @@
     the agent's to fix forward; once green, itos work done <item>; report the pushed SHA and the
     green run. The coordinator still checks the named run against the pushed head and reviews the
     diff after the push. The wait-loop lesson stays: a foreground call that blocks is not a loop.
+
+- id: T-303
+  type: build
+  title: Switch this repository to push.mode pr
+  why: >
+    The person, 2026-10-24: work in pr mode as soon as possible. slice-175 (rebased head watched),
+    slice-176 (work done waits for the merge) and slice-177 (ledger edits beside the registry reach
+    main) landed today (v8.16.1-v8.16.3); the repository's merge settings were applied by hand
+    (rebase-merge only, auto-merge, delete branch on merge, update branch) and the main ruleset
+    requires ci (ubuntu-latest), platform (macos-latest) and platform (windows-latest) on an
+    up-to-date branch, with an admin bypass for the registry commits pr sends straight to main. This
+    task sets push.mode: pr in itos.yaml and rewrites the working rules for it: everything but
+    registry and ledger commits goes through a pull request, the coordinator's specs and docs
+    included (the person's call); an implementer's worktree branch is renamed to its item id (or
+    starts from origin/<item> when a spec is already there); itos push opens the pull request, turns
+    on auto-merge and waits for its checks; work done runs on main only after the merge. Being
+    itself a config and docs change, it lands through the first pull request, which is the smoke
+    test: auto-merge waits for the required checks, registry commits still go straight to main, and
+    the item closes after the merge.
+  done_when:
+    - run: "grep -q 'mode: pr' itos.yaml"

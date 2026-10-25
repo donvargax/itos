@@ -13913,3 +13913,11 @@ items:
       providers.GhReason duplicates push's own gh wording (internal/slices/push/pr.go pushRun.gh),
       which could call it.
     tags: [push, work]
+
+  - id: T-303
+    title: Switch this repository to push.mode pr
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task
