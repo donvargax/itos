@@ -28,6 +28,10 @@
   scenarios:
     - id: "@ID-CI-01"
       why: ci run logs a merged check under the kind it ran in, the file's point
+- file: ci-help.feature
+  scenarios:
+    - id: "@ID-CI-63"
+      why: ci run's help showing each form a ci.steps entry takes, the file's point in one run
 - file: ci-proof-report.feature
   scenarios:
     - id: "@ID-CI-46"
