@@ -72,10 +72,11 @@ func TestTitleAt(t *testing.T) {
       two lines
 `
 	files := map[string]string{
-		"ok.yaml":      registry,
-		"items.yaml":   "items: 3\n",
-		"invalid.yaml": "items: [\n",
-		"scalar.yaml":  "just text\n",
+		"ok.yaml":       registry,
+		"items.yaml":    "items: 3\n",
+		"invalid.yaml":  "items: [\n",
+		"scalar.yaml":   "just text\n",
+		"folder/x.yaml": "items: []\n",
 	}
 	trees := porttest.Trees{Common: ".git", Files: map[string]map[string]string{"worktree": files, "abc": files}}
 	for _, c := range []struct{ path, tree, id, want string }{
@@ -90,6 +91,7 @@ func TestTitleAt(t *testing.T) {
 		{"invalid.yaml", "", "S-1", ""},
 		{"scalar.yaml", "", "S-1", ""},
 		{"missing.yaml", "", "S-1", ""},
+		{"folder", "", "S-1", ""}, // a folder holds a file but cannot be read
 		{"ok.yaml", "def", "S-1", ""},
 	} {
 		if got := TitleAt(trees, c.path, c.tree, c.id); got != c.want {
