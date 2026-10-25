@@ -13173,6 +13173,17 @@ items:
       (ci watch, work show), never from the agents' reports, which are claims. Judgement stays with
       the coordinator: triage, the spec's decisions, disputes between drafter and reviewer (#137's
       round 1 blocker was the reviewer's misread), and anything the person decides.
+
+      The user, 2026-10-25: the driver supports every flow, the registry in the repository's YAML or
+      in GitHub issues, crossed with strict trunk-based development (push.mode trunk) or pull
+      requests (push.mode pr, draft or not). So the driver never branches on the flow: it calls
+      itos's commands (push, push --ready, work done, ci watch, the registry moves) and reads their
+      answers, and itos turns each config into behaviour, held by its scenarios. What itos lacks for
+      that: one per-item next-step answer (the state machine's current state and next transition)
+      under all four flows, where today state is spread over work show, the pull request, its
+      threads and ci watch; the registry moves (take, done, queue) behind one interface for YAML and
+      GitHub; and the review in both forms, the reviewer CLI's pr mode posting on a pull request
+      under pr, its plan and diff modes on pushed commits under trunk.
     tags: [agents, v8]
 
   - id: p1-conformance-job-logs
