@@ -28,6 +28,7 @@ import (
 
 // One scenario's state.
 type world struct {
+	outsideShard     bool   // the scenario is another shard's, and is skipped (shard_test.go)
 	root             string // the itos checkout: where go.mod is
 	bin              string // the itos binary under test
 	dir              string // the scratch repository, or the clone of it itos runs in
@@ -618,7 +619,7 @@ func (w *world) setUp(s *godog.Scenario) error {
 	if w.support, err = os.MkdirTemp("", "itos-features-support-"); err != nil {
 		return err
 	}
-	if err := w.git("init", "-q", "-b", "main"); err != nil {
+	if err := w.initRepository(w.dir); err != nil {
 		return err
 	}
 	return w.declareHooks(w.dir)
@@ -828,6 +829,9 @@ func (w *world) gitIn(dir string, args ...string) error {
 }
 
 func (w *world) head() (string, error) {
+	if sha, ok := headSHA(w.dir); ok {
+		return sha, nil
+	}
 	cmd := exec.Command(git.Bin(runtime.GOOS), "rev-parse", "HEAD")
 	cmd.Dir = w.dir
 	cmd.Env = w.env()
