@@ -3601,6 +3601,17 @@ items:
       claude-code, slice-89) and p1-guard-follows-cd extends it, so replacing it with deny rules is
       overtaken. What this item tracks is the user's other solution, the guided item-aware commits
       of docs/plans/guided-commits.md, which the answers to q-30 to q-39 name.
+
+      The person, 2026-10-25, during the parallel pilot: the guard and the git shim were good
+      intentions built as broad blocks; too limiting, and with pull requests their limits became
+      real friction. The redesign adds guard rails only around mistakes agents were actually seen
+      making, narrow and additive, and none around an idea not backed by evidence; now is the
+      moment, in v9. Evidence from 2026-10-25: the guard refused a raw push of a coordinator docs
+      commit (so ADR-0061 rode a placeholder branch, until slice-186 and T-311), refused git commit
+      and push against a scratch repository under $TMPDIR (p1-guard-git-outside-repo), and agents
+      shadowed PATH's shim and gh to work at all; the 16 other guard and shim ideas in this registry
+      are the same blocks patched one case at a time. Start from the list of mistakes seen (in the
+      friction log of each pilot), each with its rail and the evidence it rests on.
     refs: [internal/guard/guard.go, integrations/claude-code/hooks/hooks.json]
     tags: [guard, v9]
 
