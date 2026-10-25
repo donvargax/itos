@@ -4716,3 +4716,17 @@
     items return to the YAML.
   done_when:
     - run: "true"
+
+- id: T-307
+  type: test
+  title: Settle the three survivors of Nightly 40190179961
+  why: >
+    Nightly 40190179961 (issue #29) left three survivors in its changed-site run:
+    internal/shell/shell.go:117:52 shell#Run (&& to ||), internal/engine/evidence/key.go:150:22
+    Engine#bind (> to >=) and internal/cli/verify.go:16:10 runVerify (0 to 1). Kill each with a
+    test, or except it in itos-cc.yaml with a proof that holds, as 418ebdde (T-290) wrote its three;
+    an exception whose proof does not hold is a test instead. No production change unless a survivor
+    shows a real bug, which is reported, not fixed here. The next nightly is the acceptance.
+  done_when:
+    - run: go test -count=1 ./internal/shell ./internal/engine/evidence ./internal/cli
+      timeout: 600
