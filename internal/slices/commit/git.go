@@ -327,14 +327,16 @@ func (g *gitArgs) readCluster(cluster string, index int, next func() (string, va
 }
 
 // message is the commit's message as far as itos can read it before git
-// runs: the -m ones joined as git joins them, the -F file (not stdin), or,
-// for an amend with --no-edit, HEAD's in v; false when it comes from the
-// editor.
+// runs: the -m ones joined as git joins them, the -F file, or, for an amend
+// with --no-edit and no -F, HEAD's in v; false when it comes from the editor
+// or stdin (-F -, whose text replaces HEAD's).
 func (g gitArgs) message(ctx context.Context, v vcsport.VCS) (string, bool) {
 	switch {
 	case len(g.messages) > 0:
 		return strings.Join(g.messages, "\n\n"), true
-	case g.file != "" && g.file != "-":
+	case g.file == "-":
+		return "", false
+	case g.file != "":
 		text, err := os.ReadFile(typed(g.origin, g.file))
 		return string(text), err == nil
 	case g.amend && g.noEdit:

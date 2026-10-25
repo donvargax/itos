@@ -751,3 +751,15 @@ func TestCommitComparesItsFootersWithTheMessage(t *testing.T) {
 
 // rejected is the config's reject message, the first line of a refusal.
 func rejected(f *fake) string { return f.cfg.Commits.RejectMessage }
+
+// An amend with --no-edit whose message comes from stdin (-F -) is not read
+// as HEAD's: its footers are neither compared with HEAD's nor dropped.
+func TestCommitDoesNotReadHeadForAStdinMessage(t *testing.T) {
+	f := over(t, repository(false), rules)
+	f.VCS.History[0].Message = "docs: start\n\nUpgrading: none\n"
+	stdin(t, "docs: again\n\nUpgrading: x\n")
+	if code, _, _, err := run(t, f, "", false, "--amend", "--no-edit", "-F", "-", "--upgrading", "x"); code != 0 || err != nil ||
+		len(f.made) != 1 || !slices.Contains(f.made[0].Args, "Upgrading: x") {
+		t.Errorf("exit %d, %v, %+v", code, err, f.made)
+	}
+}
