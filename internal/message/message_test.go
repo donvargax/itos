@@ -340,7 +340,7 @@ tests:
 	for id, unknown := range map[string]bool{"U-1": false, "U-2": true} {
 		var warn strings.Builder
 		said, err := CheckFooter(cfg, "Tests", "test", "test: x\n\nTests: "+id+"\n", Reading{Warn: &warn})
-		if err != nil || (said != "") != unknown || !strings.Contains(warn.String(), "index has no") ||
+		if err != nil || (len(said) > 0) != unknown || !strings.Contains(warn.String(), "index has no") ||
 			!strings.Contains(warn.String(), "read against the working tree") {
 			t.Errorf("Tests: %s said %q, %v, warned %q", id, said, err, warn.String())
 		}
@@ -554,5 +554,105 @@ func TestBreakingInTheSpacedFormIsWrittenForTheHook(t *testing.T) {
 	}
 	if standing, _ := w.Against(cfg, "feat: x\n\nBREAKING CHANGE: y\n"); standing != Differs {
 		t.Errorf("another text: %v", standing)
+	}
+}
+
+// A ledger footer naming none, in any case, is told it takes a ledger task's
+// id and has no none (bug 139), going on to the footer that stands in for it
+// in a commit of the type and the itos commit flag that writes that, each as
+// the config gives them; the fix says the same. Every other ID is judged as
+// before, one a second problem after it, and a ledger task named none is
+// known.
+func TestLedgerFooterNamingNone(t *testing.T) {
+	const (
+		first    = "name the task the commit belongs to by an id tasks/ has"
+		unknown  = "name an id tasks/ has, or add it first in a docs commit"
+		standing = "; a chore commit names its "
+	)
+	problems := func(cfg *config.Loaded, message, note string) []string {
+		t.Helper()
+		found, err := FooterProblems(cfg, message, Reading{Note: note})
+		if err != nil {
+			t.Fatal(err)
+		}
+		var said []string
+		for _, p := range found {
+			said = append(said, p.Rule+": "+p.Message+" | "+p.Fix)
+		}
+		return said
+	}
+	t.Chdir(t.TempDir())
+	if err := os.MkdirAll("tasks", 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile("work-items.yaml", []byte("items: []\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile("tasks/phase-1.yaml", []byte("- id: T-1\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	ledger := `version: 1
+ledger: { files: "tasks/phase-{group}.yaml", group: { label: phase, pattern: "\\d+", numeric: true }, id: "T-\\d+" }
+work: { registry: work-items.yaml }
+tests:
+  scenario: { root: features, id: "ID-[A-Z]+-\\d+" }
+  proof: { root: features, id: "P-\\d+" }
+commits:
+  footers:
+    Task: { source: ledger, required_for: [chore, refactor], validate_for: all }
+`
+	items := ledger + "    Item: { source: registry, validate_for: all, in_place_of: { Task: [chore] } }\n"
+	scenarios := ledger + "    Scenarios: { source: { tests: scenario }, in_place_of: { Task: [chore] } }\n"
+	proofs := scenarios + "    Proofs: { source: { tests: proof }, in_place_of: { Task: [chore] } }\n"
+	noFlag := ledger + "    Scenarios: { source: { tests: scenario } }\n    Proofs: { source: { tests: proof }, in_place_of: { Task: [chore] } }\n"
+	sentence := "task-footer: the Task: footer takes a ledger task's id, and has no none"
+	for _, c := range []struct {
+		name, config, message string
+		want                  []string
+	}{
+		{"no stand-in", ledger, "chore: x\n\nTask: none\n", []string{sentence + " | " + first}},
+		{"a type it does not serve", items, "refactor: x\n\nTask: none\n", []string{sentence + " | " + first}},
+		{"the registry", items, "chore: x\n\nTask: none\n", []string{
+			sentence + standing + "registry item in Item: instead, with itos commit --item <id> | " +
+				first + ", or the registry item in Item: with itos commit --item <id>"}},
+		{"another case", items, "chore: x\n\nTask: NONE\n", []string{
+			sentence + standing + "registry item in Item: instead, with itos commit --item <id> | " +
+				first + ", or the registry item in Item: with itos commit --item <id>"}},
+		{"named tests", scenarios, "chore: x\n\nTask: None\n", []string{
+			sentence + standing + "scenario in Scenarios: instead, with itos commit --scenarios <ids> | " +
+				first + ", or the scenario in Scenarios: with itos commit --scenarios <ids>"}},
+		{"named tests no flag writes", noFlag, "chore: x\n\nTask: none\n", []string{
+			sentence + standing + "proof in Proofs: instead | " + first + ", or the proof in Proofs:"}},
+		{"the first stand-in", proofs, "chore: x\n\nTask: none\n", []string{
+			sentence + standing + "scenario in Scenarios: instead, with itos commit --scenarios <ids> | " +
+				first + ", or the scenario in Scenarios: with itos commit --scenarios <ids>"}},
+		{"beside an unknown task", ledger, "chore: x\n\nTask: none, T-999\n", []string{
+			sentence + " | " + first, "task-footer: unknown tasks: T-999 | " + unknown}},
+		{"beside a known task", ledger, "chore: x\n\nTask: T-1\nTask: none\n", []string{sentence + " | " + first}},
+		{"an unknown task", items, "chore: x\n\nTask: T-999\n", []string{"task-footer: unknown tasks: T-999 | " + unknown}},
+		{"a known task", items, "chore: x\n\nTask: T-1\n", nil},
+		{"none in a footer that is not the ledger's", items, "chore: x\n\nTask: T-1\nItem: none\n", []string{
+			"item-footer: unknown items: none | name an id work-items.yaml has, or add it first in a docs commit"}},
+	} {
+		if got := problems(load(t, c.config), c.message, ""); !slices.Equal(got, c.want) {
+			t.Errorf("%s: got %q, want %q", c.name, got, c.want)
+		}
+	}
+
+	if err := os.WriteFile("tasks/phase-1.yaml", []byte("- id: T-1\n- id: none\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if got := problems(load(t, items), "chore: x\n\nTask: none\n", ""); got != nil {
+		t.Errorf("a ledger task named none: %q", got)
+	}
+	if err := os.WriteFile("tasks/phase-1.yaml", []byte("- id: T-1\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	cfg := load(t, items)
+	cfg.Stealth = true
+	got := problems(cfg, "chore: x\n", "Task: none")
+	if len(got) != 1 || !strings.HasPrefix(got[0], sentence+standing) || !strings.HasSuffix(got[0], first+", or the registry item in Item: with itos commit --item <id>") {
+		t.Errorf("stealth: %q", got)
 	}
 }

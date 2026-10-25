@@ -454,7 +454,7 @@ Feature: itos commit, a commit whose footers itos writes
   # A chore, which Item: serves: the sentence names --item. Before the fix
   # the hook says "unknown tasks: none" and the commit is refused, exit 1, so
   # the scenario fails at the step that its output says "has no none".
-  @ID-COMMITCMD-31 @bug-139 @wip
+  @ID-COMMITCMD-31 @bug-139
   Scenario: --task none on a type Item: stands in for says Task: has no none and names --item
     Given the config has an Item footer of registry items, taken in place of Task for test, docs and chore
     When itos commits with the arguments "--task none -m 'chore: tidy the readme'"
@@ -467,7 +467,7 @@ Feature: itos commit, a commit whose footers itos writes
   # A refactor, which Item: does not serve (ID-FOOT-09): the first sentence
   # alone, no --item. Before the fix it fails at the step that its output
   # says "has no none".
-  @ID-COMMITCMD-32 @bug-139 @wip
+  @ID-COMMITCMD-32 @bug-139
   Scenario: --task none on a type no footer stands in for says Task: has no none without naming --item
     Given the config has an Item footer of registry items, taken in place of Task for test, docs and chore
     When itos commits with the arguments "--task none -m 'refactor: split the parser'"
@@ -479,7 +479,7 @@ Feature: itos commit, a commit whose footers itos writes
   # Passes before the fix: it guards that only none is told anew, and that
   # an unknown task on a type Item: serves keeps today's words, with no
   # --item hint.
-  @ID-COMMITCMD-33 @bug-139 @wip
+  @ID-COMMITCMD-33 @bug-139
   Scenario: --task naming an unknown task on a type Item: stands in for is still told the task is unknown
     Given the config has an Item footer of registry items, taken in place of Task for test, docs and chore
     When itos commits with the arguments "--task T-999 -m 'chore: tidy the readme'"
@@ -494,7 +494,7 @@ Feature: itos commit, a commit whose footers itos writes
   # fix the new one. Before the fix the message is "unknown tasks: none", so
   # the scenario fails at the step that the problem's message says "has no
   # none".
-  @ID-COMMITCMD-34 @bug-139 @wip
+  @ID-COMMITCMD-34 @bug-139
   Scenario: commit check-message --json gives Task: none's problem its rule, sentence and fix
     Given the scratch file "msg.txt" contains exactly:
       """
