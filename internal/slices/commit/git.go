@@ -464,13 +464,15 @@ func trailers(lines []string) []string {
 
 // commit is `itos commit [--task <ids>] [--item <ids>] [--scenarios
 // <ids>] [--<footer> <text>] [--breaking <text>] [<git commit args>…]`: a commit missing a
-// footer its type requires refused before git runs, else git commit with the
-// footers as trailers, or under a stealth config the links as the new
+// footer its type requires, or whose message gives a footer with other
+// values than its flag's (settle), refused before git runs, else git commit
+// with the footers the message does not already give as trailers, or under a stealth config the links as the new
 // commit's note and the content as trailers, git's streams the terminal's
 // (its stdout on stderr under --json), -q passed on as git's --quiet, and
 // git's exit code handed back, with HEAD under --json once it made one.
-// trailer.ifExists is addIfDifferent for the commit, so a footer the
-// message already has, as an amend's does, is not written twice.
+// settle drops a footer the message gives with the flag's values, so an amend
+// keeps one; trailer.ifExists is addIfDifferent for the commit, which
+// still keeps a line out of a message itos does not read (the editor's, -F -).
 func (h Handler) commit(ctx context.Context, q Query, o Out) (Answer, error) {
 	cfg, absent, err := h.ports.CommitConfig(ctx)
 	if err != nil {
