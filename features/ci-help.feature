@@ -27,11 +27,12 @@ Feature: CI setup is discoverable without reading the implementation
   #                        patterns say (left out, as for a plain command)
   #     { tests: <kind> }  the run of tests.<kind>: its run.whole when the
   #                        range cannot be read (an empty or all-zeros
-  #                        <from>, or no range) and on the nightly, else its
-  #                        run.select over the smoke set, the tests the
-  #                        range's footers name and the task checks merged
-  #                        into it, and no run when that selects nothing; a
-  #                        cost: sets its class too
+  #                        <from>, or no range), when a task check merged
+  #                        into it is recognized as: whole, and on the
+  #                        nightly, else its run.select over the smoke set,
+  #                        the tests the range's footers name and the task
+  #                        checks merged into it, and no run when that
+  #                        selects nothing; a cost: sets its class too
   #   A step's whole: true is accepted and has no effect yet: a tests: step
   #   is narrowed to the range all the same.
   #   Every step and task check the run runs has the range's ends in its
@@ -45,8 +46,9 @@ Feature: CI setup is discoverable without reading the implementation
   #
   # Each claim is the code's: plan.stepOf and check.CostOf (a cost: wins,
   # then ci.cost.static, else late, on a tests: step too), plan.Make and
-  # tests.CommandFor (no readable range selects tests.Whole, so run.whole;
-  # else run.select over run.ids_pattern; nothing selected drops the step),
+  # tests.CommandFor (no readable range, or a merged check recognized as:
+  # whole, selects tests.Whole, so run.whole; else run.select over
+  # run.ids_pattern; nothing selected drops the step),
   # nightlyPlan (a tests: step is run.whole), plan.EndsOf and
   # (*config.Loaded).RangeStart (the start, commits.since, empty), ci.Run (ITOS_FROM
   # and ITOS_TO set after ci.env), tests.FillRange (tests.ShellWord quotes
