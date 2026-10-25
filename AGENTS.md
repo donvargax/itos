@@ -115,23 +115,32 @@ judges one mutation site of the changed functions and the coverage of the
 lines added or changed (q-57). A survivor, or an uncovered changed line, is
 real: kill it with a test, or show the mutant equivalent and except it.
 
-This repository runs `push.mode: pr` (T-303): an item's work reaches `main`
-through a pull request merged by rebase once its checks pass; only registry
-and ledger bookkeeping (a take, a close, `task add`) goes straight to `main`.
+This repository runs `push.mode: pr` with `push.pr.draft` (T-303,
+slice-179): an item's work reaches `main` through one pull request, a draft
+until you mark it ready, merged by rebase once its checks and Copilot's
+review pass; only registry and ledger bookkeeping (a take, a close, `task
+add`) goes straight to `main`. The coordinator pushed the spec as the pull
+request's first commit; every commit of the item goes on it.
 
-1. **Work on the item's branch**, named for the item: in a worktree made
-   from the updated `main` (a merged spec is already there),
-   `git branch -m <item>`. Take the item there; the take goes to `main`.
-2. **Push** with `tools/bin/itos push` in the foreground (600000 ms
-   timeout): it pushes the branch, opens or updates its pull request, turns
-   on auto-merge and waits for its checks, those of the head GitHub makes
-   when it rebases the branch too. If the call is cut off, run
-   `tools/bin/itos ci watch <sha>` in the foreground once more; never sleep,
-   poll or loop. Read a rejection before diagnosing it (`tools/bin/itos push
-   --help` gives its outcomes). Never push to `main` another way.
-3. A red run is yours: fix the cause, never the check, and push again.
-   GitHub merges the pull request once its checks pass.
-4. Report the pull request's address, the pushed SHA, the green run, your
+1. **Work on the item's branch**: in a worktree,
+   `git switch --no-track -c <item> origin/<item>`, which holds the spec.
+   Take the item there; the take goes to `main`.
+2. **Push as you work** with `tools/bin/itos push`: it updates the draft and
+   waits for nothing; no CI judges a draft. Never push to `main` another
+   way. Hand back once the work is done, the draft pushed: the coordinator
+   reviews it and posts on the pull request.
+3. **Address each review thread**: fix it and push, or reply on the pull
+   request; then resolve it.
+4. **Mark it ready** with `tools/bin/itos push --ready` in the foreground
+   (600000 ms timeout): it marks the pull request ready, waits for its
+   checks (those of the head GitHub makes when it rebases the branch too)
+   and Copilot's review, refuses while a thread is unresolved, then turns on
+   auto-merge. A red run, or a thread Copilot opens, is yours: fix the cause,
+   never the check, address the thread as above, and `--ready` again. If the
+   call is cut off, run `tools/bin/itos ci watch <sha>` in the foreground
+   once more; never sleep, poll or loop. Read a rejection before diagnosing
+   it (`tools/bin/itos push --help` gives its outcomes).
+5. Report the pull request's address, the pushed SHA, the green run, your
    commits, the checks that ran and any remaining work, from a clean
    checkout. `work done` runs on `main` after the merge (slice-176), which a
    worktree cannot check out: the coordinator closes the item. No background
