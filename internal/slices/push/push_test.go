@@ -66,7 +66,7 @@ type fake struct {
 	ghCalls    [][]string
 	repository string
 	commitsErr error
-	touchedErr error            // the error listing the paths a range touches
+	diffErr    error            // the error listing the paths two commits differ in
 	showErr    error            // the error showing a commit
 	fetchErrs  map[string]error // by refspec, a fetch that fails whatever fetchErr says
 	atomic     []bool           // whether each push was atomic
@@ -107,11 +107,11 @@ func (f *fake) Commits(ctx context.Context, r vcsport.Range) ([]string, error) {
 	return f.VCS.Commits(ctx, r)
 }
 
-func (f *fake) Touched(ctx context.Context, r vcsport.Range, merges bool) ([]string, error) {
-	if f.touchedErr != nil {
-		return nil, f.touchedErr
+func (f *fake) Diff(ctx context.Context, from, to string) ([]string, error) {
+	if f.diffErr != nil {
+		return nil, f.diffErr
 	}
-	return f.VCS.Touched(ctx, r, merges)
+	return f.VCS.Diff(ctx, from, to)
 }
 
 func (f *fake) Show(ctx context.Context, rev string) (vcsport.Entry, error) {
