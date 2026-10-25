@@ -188,3 +188,103 @@ Feature: The commit-msg hook
     When the commit-msg hook checks a message whose first line is blank, then "chore: tidy the readme"
     Then itos exits with code 1
     And its output says "Task"
+
+  # Bug 139 (issue #133, met on slice-179's PR #130): an implementer typed
+  # `itos commit --task none` out of habit, since Upgrading: takes none, and
+  # the commit-msg hook said "unknown tasks: none", which reads as if a task
+  # named none were missing from the ledger.
+  #
+  # Where it is said. One rule says it: the ledger footer's check in
+  # internal/message (CheckFooter, run by FooterProblems), which every path
+  # that judges a message's footers runs: this hook (LintFile), itos commit,
+  # which makes no ID check of its own and is refused by the hook git runs
+  # (commit-command.feature), itos commit check-message and itos verify (both
+  # message.Check). So the fix is in that rule, and every one of the four
+  # says the same words; a fix in itos commit's flags alone would leave a
+  # typed "Task: none" in the old trap. CI's plan is not one of them: it
+  # takes only the footer IDs the ledger's id pattern matches (IDsIn), so
+  # none never reaches its unknown tasks.
+  #
+  # The rule. When an ID the ledger footer names is unknown to the ledger and
+  # is the word none, in any case (none, None, NONE: the same habit), the
+  # footer's problem is no longer "unknown tasks: none" but
+  #   the Task: footer takes a ledger task's id, and has no none
+  # with the footer's key as the config names it in place of Task. Where
+  # another footer of IDs stands in for the ledger footer in a commit of this
+  # type (its in_place_of names the ledger footer for the type, as the
+  # Item: footer does for test, docs and chore in the config of the
+  # scenarios), the sentence goes on
+  #   ; a chore commit names its registry item in Item: instead, with itos commit --item <id>
+  # (the type, the stand-in's key and its flag as the config gives them; a
+  # stand-in no itos commit flag writes is named without the "with …" part),
+  # since the text output prints the sentence and not the fix. A type no
+  # stand-in serves gets the first sentence alone.
+  #
+  # What stays. The rule (task-footer) and the exit code (1, the hook's and
+  # git's refusal; 1 for check-message and verify) are today's. A ledger
+  # that really has a task whose id is none is not judged: only an unknown
+  # ID is. Every other unknown ID is reported in today's words, "unknown
+  # tasks: T-999", with no --item hint (ID-CMSG-03, ID-FOOT-01 and
+  # ID-COMMITCMD-33 hold that). A list holding none beside other IDs names
+  # none once in the sentence above and still checks the others: an unknown
+  # one is a second problem of the same rule after it, "unknown tasks:
+  # T-999", with its own fix; a known one adds nothing, and the message is
+  # still refused for the none. The required footer check is unchanged:
+  # "Task: none" gives an ID, so it is never "chore commits need a …".
+  #
+  # --json: the problem keeps its shape, {"rule":"task-footer","message",
+  # "fix"} (with "level":"error" under the built-in header lint or a
+  # delegate). Its message is the sentence above; its fix is "name the task
+  # the commit belongs to by an id <ledger folder>/ has" (ID-COMMITCMD-34),
+  # and, where a stand-in serves, goes on ", or the registry item in Item:
+  # with itos commit --item <id>". The fix of an unknown ID that is not none
+  # is today's.
+  #
+  # Before the fix the hook says "unknown tasks: none" under the rule
+  # task-footer and exits 1, so this scenario fails at the step that its
+  # output says "has no none".
+  @ID-CMSG-16 @bug-139 @wip
+  Scenario: A ledger footer naming none says the footer takes a task's id, not that a task is unknown
+    When the commit-msg hook checks the message:
+      """
+      chore: tidy the readme
+
+      Task: none
+      """
+    Then itos exits with code 1
+    And its output says "the Task: footer takes a ledger task's id, and has no none"
+    And its output names the rule "task-footer"
+    And its output does not say "unknown tasks"
+    And its output does not say "--item"
+
+  # none is matched whatever its case. Before the fix the hook says "unknown
+  # tasks: None": the scenario fails at the step that its output says "has
+  # no none".
+  @ID-CMSG-17 @bug-139 @wip
+  Scenario: A ledger footer naming None in another case is told the same
+    When the commit-msg hook checks the message:
+      """
+      chore: tidy the readme
+
+      Task: None
+      """
+    Then itos exits with code 1
+    And its output says "has no none"
+    And its output does not say "unknown tasks: None"
+
+  # none beside an unknown task: none is named, and T-999 is still checked
+  # and reported in today's words. Before the fix the hook says "unknown
+  # tasks: none, T-999": the scenario fails at the step that its output says
+  # "has no none".
+  @ID-CMSG-18 @bug-139 @wip
+  Scenario: A ledger footer naming none beside an unknown task names none and still reports the task
+    When the commit-msg hook checks the message:
+      """
+      chore: tidy the readme
+
+      Task: none, T-999
+      """
+    Then itos exits with code 1
+    And its output says "has no none"
+    And its output says "unknown tasks: T-999"
+    And its output does not say "unknown tasks: none"
