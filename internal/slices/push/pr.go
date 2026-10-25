@@ -16,7 +16,9 @@ import (
 
 	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/engine/gitrun"
+	"github.com/donvargax/itos/v8/internal/glob"
 	"github.com/donvargax/itos/v8/internal/ledger"
+	"github.com/donvargax/itos/v8/internal/message"
 	"github.com/donvargax/itos/v8/internal/providers"
 	"github.com/donvargax/itos/v8/internal/value"
 	vcsport "github.com/donvargax/itos/v8/internal/vcs/port"
@@ -119,18 +121,51 @@ func (r *pushRun) judgeRefs(ctx context.Context, refs []string) (Answer, bool) {
 	if failed {
 		return r.report(remoteExit(failure), "fetch-failed", r.remoteLines("fetching "+r.upstream()+" failed", failure)...), true
 	}
-	if r.addsWork(ctx, onto, local) {
-		return r.workOnMain(), true
+	if oldest, adds := r.addsWork(ctx, onto, local); adds {
+		return r.workOnMain(ctx, oldest), true
 	}
 	return Answer{}, false
 }
 
-// addsWork is whether the commits onto..sha include one that is not the
-// registry's (registryCommit), each judged by itself; commits that cannot be
-// listed count as work.
-func (r pushRun) addsWork(ctx context.Context, onto, sha string) bool {
+// addsWork is whether the commits onto..sha include one that is neither the
+// registry's (registryCommit) nor one push.pr.direct sends straight to main
+// (direct), each judged by itself, and the oldest such commit; commits that
+// cannot be listed count as work, with no commit named.
+func (r pushRun) addsWork(ctx context.Context, onto, sha string) (oldest string, adds bool) {
 	ahead, err := r.ports.Commits(ctx, vcsport.Range{From: onto, To: sha})
-	return err != nil || slices.ContainsFunc(ahead, func(c string) bool { return !r.registryCommit(ctx, c) })
+	if err != nil {
+		return "", true
+	}
+	i := slices.IndexFunc(ahead, func(c string) bool { return !r.registryCommit(ctx, c) && !r.direct(ctx, c) })
+	if i < 0 {
+		return "", false
+	}
+	return ahead[i], true
+}
+
+// direct is whether the commit is one push.pr.direct sends straight to main
+// (slice 186): its type is one of push.pr.direct.types and no path it touches,
+// against its first parent with renames off, matches a push.pr.direct.except
+// glob; a glob that cannot be read matches.
+func (r pushRun) direct(ctx context.Context, commit string) bool {
+	d := r.cfg.Push.PR.Direct
+	if len(d.Types) == 0 {
+		return false
+	}
+	entry, err := r.ports.Show(ctx, commit)
+	if err != nil || !slices.Contains(d.Types, message.Type(entry.Message)) {
+		return false
+	}
+	files, err := r.ports.Touched(ctx, vcsport.Range{From: r.ports.Parent(ctx, commit), To: commit}, true)
+	if err != nil {
+		return false
+	}
+	for _, f := range files {
+		if matched, err := glob.MatchesAny(path.Clean(f), d.Except); matched || err != nil {
+			return false
+		}
+	}
+	return true
 }
 
 // registryCommit is whether the commit, against its first parent, is the
@@ -165,12 +200,21 @@ func registryPaths(cfg *config.Loaded, files []string, err error) bool {
 }
 
 // workOnMain is the refusal of a push to main that adds work (outcome
-// work-on-main): under pr only the registry's commits go straight to main.
-func (r pushRun) workOnMain() Answer {
+// work-on-main): under pr only the registry's commits, and those
+// push.pr.direct names, go straight to main. With push.pr.direct.types set it
+// names the oldest commit that is neither, when it can be told.
+func (r pushRun) workOnMain(ctx context.Context, oldest string) Answer {
+	hint := "Carry the work to its item's branch with git switch -c <item>, then itos push again from there."
+	if oldest != "" && len(r.cfg.Push.PR.Direct.Types) > 0 {
+		if entry, err := r.ports.Show(ctx, oldest); err == nil {
+			return r.report(policy, "work-on-main",
+				fmt.Sprintf("itos push: push.mode is pr, and this push adds %s %s to %s, which is neither the registry's nor a commit push.pr.direct sends straight to main; nothing was pushed.",
+					oldest[:min(len(oldest), 7)], entry.Subject, r.upstream()), hint)
+		}
+	}
 	return r.report(policy, "work-on-main",
 		fmt.Sprintf("itos push: push.mode is pr, and this push adds commits to %s that touch more than %s; nothing was pushed.",
-			r.upstream(), r.cfg.Work.Registry),
-		"Carry the work to its item's branch with git switch -c <item>, then itos push again from there.")
+			r.upstream(), r.cfg.Work.Registry), hint)
 }
 
 // pushItem is a push from a branch other than main under pr (ADR-0039): the

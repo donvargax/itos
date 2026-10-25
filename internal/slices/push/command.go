@@ -78,10 +78,14 @@ push.mode pr (trunk by default; ADR-0039) keeps work off main: it goes on a
 branch named for its item and reaches main through a pull request. Main is the
 branch the remote's HEAD names (git ls-remote --symref), a remote with none it
 has refused before anything is fetched, exit 3. On main the commits that touch
-only the work registry (a take, a close, a queue move, an idea) go to main as
-above, so two agents never take one item; a push that adds any other commit
-is refused once rebased, exit 1, nothing pushed, saying to carry the work to
-its item's branch with git switch -c <item>, and so is --ref naming main. On
+only the work registry, and the ledger files beside it (a take, a close, a
+queue move, an idea, a task added), go to main as above, so two agents never
+take one item; so do the commits of the types push.pr.direct.types lists that
+touch no path a glob of push.pr.direct.except matches (none by default). A push
+that adds any other commit, with those among them or not, is refused once
+rebased, exit 1, nothing pushed, saying to carry the work to its item's branch
+with git switch -c <item> (with push.pr.direct.types set, naming the oldest
+commit that is neither), and so is --ref naming main. On
 any other branch, whose name must be an item of the registry (else exit 1,
 saying git branch -m <item>), the branch goes to the remote's branch of its
 own name, whatever its upstream says, rebased onto the remote's item branch

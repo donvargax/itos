@@ -164,6 +164,10 @@
   scenarios:
     - id: "@ID-PUSHREF-01"
       why: an item's first push, a new branch from the remote's main, judged from main's head and not by the whole run, the file's point
+- file: push-mode-direct.feature
+  scenarios:
+    - id: "@ID-PUSHDIRECT-01"
+      why: a docs commit going from main to main under pr with push.pr.direct naming docs, the file's point
 - file: push-mode-draft.feature
   scenarios:
     - id: "@ID-PUSHDRAFT-06"
