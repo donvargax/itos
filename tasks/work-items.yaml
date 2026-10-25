@@ -8130,14 +8130,15 @@ items:
     refs: [tools/bin/pinned]
     tags: [gates]
 
-  - id: p1-prepush-new-ref-base
+  - id: slice-182
     title: The pre-push hook judges a new tag or branch from the nearest commit the remote has, not as all new
     phase: 1
     owner: null
     status: todo
     depends_on: []
-    kind: idea
+    kind: slice
     why: >
+      Was p1-prepush-new-ref-base.
       slice-131's agent (2026-10-11): a new ref has no remote commit it replaces, so the hook runs
       hooks.pre_push's whole command set (go-unit-tests --all here) even when the ref names a commit
       already on the remote's main, as a release tag does. Judge a new ref's commits from the
