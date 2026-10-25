@@ -14368,3 +14368,18 @@ items:
       architecture fixture, as the idcounter-internals rule does.
     refs: [internal/proptest]
     tags: [architecture, tests, v8]
+
+  - id: p1-nightly-report-property-seed
+    title: nightly-report names a failing property test's seed and the command that replays it
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      From T-310 (#156): the nightly's property step prints "property tests: RAPID_SEED=n
+      RAPID_CHECKS=1000" and a failing check its -rapid.seed and fail file; the Nightly red issue
+      should quote them, so the next session commits the fail file under testdata/rapid/<test>/ as a
+      fixed regression without reading the log.
+    refs: [tools/bin/nightly-report]
+    tags: [ci, tests, v8]
