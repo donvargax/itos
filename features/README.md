@@ -52,11 +52,16 @@ go test ./features -count=1 -scenarios='^@ID-SINCE-' # the live scenarios with a
 ITOS_BIN=/path/to/itos go test ./features -count=1   # another build, a release's binary say
 go test ./features -count=1 -timings=t.txt           # writes where the run spent its time
 go test ./features -count=1 -concurrency=1           # one scenario at a time
+go test ./features -count=1 -shard=1/2               # the first of two shares of the scenarios
 ITOS_FEATURE_DRIVER=in-process go test ./features -count=1 # top-level itos in process, serially
 GOCOVERDIR=$d go test ./features -count=1            # itos built with -cover, its coverage in $d
 ITOS_CC_TEST_COVERDIR=$d go test ./features -count=1 # the same, each scenario's in $d/<its ID>
 tools/bin/itos tests smoke run scenario              # exactly the smoke set
 ```
+
+`-shard=i/n` runs the scenarios whose feature file, name and steps hash to `i`
+of `n`, the others skipped; the nightly's Windows jobs run the suite in two
+(T-308), since go test stops a package at ten minutes.
 
 The scenarios run as many at a time as the machine has CPUs (T-115), so a
 step keeps its state in its scenario's world and never changes the process's
