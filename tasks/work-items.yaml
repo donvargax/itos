@@ -14007,8 +14007,8 @@ items:
   - id: bug-137
     title: work done trusts a merged pull request's run although main added a check to the item's own task since (#141)
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: [slice-181]
     kind: bug
     why: >
