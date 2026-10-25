@@ -279,6 +279,9 @@ func (c CLI) closed(stdout, stderr io.Writer, a Answer) (int, error) {
 			found = []out.Problem{}
 		}
 		fields := append([]out.Field{{Key: "ok", Value: false}, {Key: "problems", Value: found}}, a.CI.Fields()...)
+		if a.PullRequest != nil {
+			fields = append(fields, out.Field{Key: "pull_request", Value: *a.PullRequest})
+		}
 		return a.Code, out.Emit(stdout, withEvidence(fields, a.Evidence)...)
 	case a.Code != 0 && c.JSON:
 		fields := []out.Field{{Key: "ok", Value: false}, {Key: "problems", Value: a.Refused}}

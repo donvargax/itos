@@ -164,7 +164,7 @@ func TestDonePRCloses(t *testing.T) {
 		if code != 0 || err != nil || !strings.HasPrefix(stdout, "T-1 is done: committed ") || strings.Contains(stderr, "no remote has") {
 			t.Errorf("work done T-1 with %s = %d, %v, %q, %q", pulls, code, err, stdout, stderr)
 		}
-		want := [][]string{{"pr", "list", "--repo", "owner/scratch", "--head", "T-1", "--state", "all", "--json", "state,mergedAt,number,url"}}
+		want := [][]string{{"pr", "list", "--repo", "owner/scratch", "--head", "T-1", "--state", "all", "--json", "state,mergedAt,number,url,headRefOid"}}
 		if len(*calls) != 1 || !slices.Equal((*calls)[0], want[0]) || !slices.Equal(*heads, []string{"upstream"}) {
 			t.Errorf("work done T-1 asked gh %q and the remote %q, want %q and upstream", *calls, *heads, want)
 		}

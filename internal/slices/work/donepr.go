@@ -83,9 +83,11 @@ func remoteFailed(err error, remote, id string, o Out) *refusedPR {
 
 // pull is a pull request as gh pr list gives it.
 type pull struct {
-	State    string  `json:"state"`
-	MergedAt *string `json:"mergedAt"`
-	URL      string  `json:"url"`
+	State      string  `json:"state"`
+	MergedAt   *string `json:"mergedAt"`
+	Number     int     `json:"number"`
+	URL        string  `json:"url"`
+	HeadRefOid string  `json:"headRefOid"`
 }
 
 // pullRequests are the item's pull requests, each kind's first as gh lists
@@ -99,7 +101,7 @@ func pullRequests(ctx context.Context, ports Ports, cfg *config.Loaded, id, remo
 			fmt.Sprintf("push.mode is pr, so work done asks for %s's pull request, and %s names no GitHub repository to ask in", id, remote),
 			"set "+cfg.CI.Range.GitHub.RepositoryEnv+" to owner/name, or point the remote at a GitHub repository", id, missing)
 	}
-	listed, err := ports.Gh(ctx, "pr", "list", "--repo", repository, "--head", id, "--state", "all", "--json", "state,mergedAt,number,url")
+	listed, err := ports.Gh(ctx, "pr", "list", "--repo", repository, "--head", id, "--state", "all", "--json", "state,mergedAt,number,url,headRefOid")
 	reason := ""
 	var list []pull
 	if err != nil {
@@ -129,37 +131,38 @@ func pullRequests(ctx context.Context, ports Ports, cfg *config.Loaded, id, remo
 	return open, merged, closed, nil
 }
 
-// prLanded is nil when the item's pull requests let work done go on: none is
-// open (whatever main holds, since more of its work can be in a pull request
-// still), and the newest of its own commits (landing) is on <remote>/<main>
-// as the clone last fetched it. Under pr work reaches main only through a
-// pull request, so a commit merged into main here alone has not landed. Else
-// the refusal, by the kind of the pull request there is.
-func prLanded(ctx context.Context, ports Ports, cfg *config.Loaded, id, remote, main string, landing doneCommit) *refusedPR {
+// prLanded is the merged pull request, nil when there is none, when the
+// item's pull requests let work done go on: none is open (whatever main
+// holds, since more of its work can be in a pull request still), and the
+// newest of its own commits (landing) is on <remote>/<main> as the clone last
+// fetched it. Under pr work reaches main only through a pull request, so a
+// commit merged into main here alone has not landed. Else the refusal, by the
+// kind of the pull request there is.
+func prLanded(ctx context.Context, ports Ports, cfg *config.Loaded, id, remote, main string, landing doneCommit) (*pull, *refusedPR) {
 	open, merged, closed, stop := pullRequests(ctx, ports, cfg, id, remote)
 	if stop != nil {
-		return stop
+		return nil, stop
 	}
 	on := remote + "/" + main
 	if open != nil {
-		return prRefusal("work-done-pr-open",
+		return nil, prRefusal("work-done-pr-open",
 			fmt.Sprintf("%s's pull request %s is open, so its work is not on %s and %s is not done", id, open.URL, on, id),
 			"wait for it to merge", id, refused)
 	}
 	if landing.sha != "" && cfg.VCS.IsAncestor(ctx, landing.sha, "refs/remotes/"+on) {
-		return nil
+		return merged, nil
 	}
 	switch {
 	case merged != nil:
-		return prRefusal("work-done-pr-merged",
+		return nil, prRefusal("work-done-pr-merged",
 			fmt.Sprintf("%s's pull request %s has merged, but HEAD has no commit of %s that %s has", id, merged.URL, id, on),
 			"bring main up to date with git pull", id, refused)
 	case closed != nil:
-		return prRefusal("work-done-pr-closed",
+		return nil, prRefusal("work-done-pr-closed",
 			fmt.Sprintf("%s's pull request %s was closed without merging, so its work is not on %s and %s is not done", id, closed.URL, on, id),
 			"push its work again from the branch "+id+" with itos push, which opens a new pull request", id, refused)
 	}
-	return prRefusal("work-done-no-pull-request",
+	return nil, prRefusal("work-done-no-pull-request",
 		fmt.Sprintf("%s has no commit of %s and %s has no pull request, so its work has not landed", on, id, id),
 		"push its work from the branch "+id+" with itos push, which opens its pull request", id, refused)
 }

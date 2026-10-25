@@ -103,9 +103,23 @@
 //     asked for the item's pull requests (Ports.Gh, every state) whatever
 //     main holds; an open one refuses, else the newest own commit counts
 //     only when <remote>/<main>, as last fetched, has it, and is judged as
-//     above (its run is main's, never the pull request's), else the kind of
-//     the pull request (merged, closed without merging, none) is the
-//     refusal. The judged commit is never HEAD's under pr. Under a stealth config the
+//     above (its run is main's, unless the merged pull request's head's
+//     judges it, below), else the kind of the pull request (merged, closed
+//     without merging, none) is the refusal. The judged commit is never
+//     HEAD's under pr. With ci.watch, gh also gives the merged pull
+//     request's head (headRefOid), and trustedRun (trust.go, slice 181)
+//     asks, before main's run is looked for, whether that head's run may
+//     judge the commit: the head, fetched once from refs/pull/<n>/head when
+//     the clone lacks it, must differ from the commit (git diff --name-only)
+//     in the work registry and ledger files alone (outsideBookkeeping,
+//     slice 177's ledger rule), and its run, looked at once, never waited
+//     for, must have completed with success and listed a job that was not
+//     skipped (ciwatch.DraftsRun). Then it is the close's CI, named in the
+//     close's body and in --json's pull_request (url, head, trusted, there
+//     once the merged pull request has a head and ci.watch is on); else a
+//     line says why where the watch's progress goes, and main's run judges
+//     as above, a head's run that is no pass refusing nothing. Under a
+//     stealth config the
 //     registry's lock is given back while the checks run. Since they can
 //     take minutes, the registry is then read again and work.Done judged and
 //     made afresh on it, so a registry commit made during the wait is kept,

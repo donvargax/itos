@@ -120,11 +120,28 @@ func (p ports) Gh(_ context.Context, args ...string) (string, error) {
 
 func (p ports) GitHubRepository(context.Context, *config.Loaded, string) string { return p.repository }
 
-// broken is the VCS fake with its log, a commit's patch or git show's text
-// failing when set.
+// broken is the VCS fake with its log, a commit's patch, git show's text or a
+// diff failing when set, and with fetch, when set, standing in for a fetch of
+// a refspec: its error fails it, and it may add to the fake's history the
+// commits it brings.
 type broken struct {
 	*vcsfake.VCS
-	log, patch, shown error
+	log, patch, shown, diff error
+	fetch                   func(ctx context.Context, remote, refspec string, talk vcsport.Talk) error
+}
+
+func (b broken) Diff(ctx context.Context, from, to string) ([]string, error) {
+	if b.diff != nil {
+		return nil, b.diff
+	}
+	return b.VCS.Diff(ctx, from, to)
+}
+
+func (b broken) Fetch(ctx context.Context, remote, refspec string, talk vcsport.Talk) (string, error) {
+	if b.fetch != nil {
+		return "", b.fetch(ctx, remote, refspec, talk)
+	}
+	return b.VCS.Fetch(ctx, remote, refspec, talk)
 }
 
 func (b broken) Log(ctx context.Context, r vcsport.Range) ([]vcsport.Entry, error) {

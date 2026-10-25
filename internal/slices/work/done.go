@@ -57,6 +57,7 @@ func (h Handler) done(ctx context.Context, id string, o Out) (Answer, error) {
 		a.Release = func() {}
 	}
 	var remote, main string
+	var merged *mergedHead
 	if cfg.Push.Mode == "pr" {
 		var stop *refusedPR
 		if remote, main, stop = prMain(ctx, h.ports, cfg, id, o); stop != nil {
@@ -73,10 +74,12 @@ func (h Handler) done(ctx context.Context, id string, o Out) (Answer, error) {
 	switch {
 	case cfg.Push.Mode == "pr":
 		if len(found) == 0 {
-			if stop := prLanded(ctx, h.ports, cfg, id, remote, main, landing); stop != nil {
+			m, stop := prLanded(ctx, h.ports, cfg, id, remote, main, landing)
+			if stop != nil {
 				a.Refused, a.Code = stop.found, stop.code
 				return a, nil
 			}
+			merged = headOf(m, remote, main)
 		}
 	case landing.sha == "":
 		landing = judgedCommit(ctx, cfg.VCS, cfg.Work.Registry)
@@ -96,12 +99,12 @@ func (h Handler) done(ctx context.Context, id string, o Out) (Answer, error) {
 		return a, nil
 	}
 	ran.say(id, o)
-	ci, found, err := h.landedCI(ctx, cfg, id, landing, o)
+	ci, pulled, found, err := h.landedCI(ctx, cfg, id, landing, merged, o)
 	if err != nil {
 		return a, err
 	}
 	if ci.Code != 0 {
-		a.Refused, a.Code, a.CI = found, ci.Code, &ci
+		a.Refused, a.Code, a.CI, a.PullRequest = found, ci.Code, &ci, pulled
 		return a, nil
 	}
 	// The checks can take minutes, and the registry can change meanwhile: a
@@ -119,7 +122,12 @@ func (h Handler) done(ctx context.Context, id string, o Out) (Answer, error) {
 		return a, err
 	}
 	if ci.Run != nil && ci.Run.URL != "" {
-		change.Body += " " + landing.runOf(ci.Run) + " passed: " + ci.Run.URL + "."
+		if pulled != nil && pulled.Trusted {
+			change.Body += fmt.Sprintf(" The CI run of %s, the head of %s's pull request %s, whose tree %s has but for the work registry and the ledger, passed: %s.",
+				short(pulled.Head), id, pulled.URL, short(landing.sha), ci.Run.URL)
+		} else {
+			change.Body += " " + landing.runOf(ci.Run) + " passed: " + ci.Run.URL + "."
+		}
 	}
 	files := []record.File{{Path: cfg.Work.Registry, Old: s.text, Text: change.Text}}
 	checks, err := closedChecks(cfg, id, s.tracker.Load)
@@ -144,6 +152,9 @@ func (h Handler) done(ctx context.Context, id string, o Out) (Answer, error) {
 		line += "; its checks are out of " + checks.Path
 	}
 	fields := ci.Fields()
+	if pulled != nil {
+		fields = append(fields, out.Field{Key: "pull_request", Value: *pulled})
+	}
 	if len(ran.evidence) > 0 {
 		fields = append(fields, out.Field{Key: "evidence", Value: ran.evidence})
 	}
@@ -477,22 +488,25 @@ func closedChecks(cfg *config.Loaded, id string, load ledger.Load) (*ledger.Edit
 	return &edited, nil
 }
 
-// landedCI is the judged commit's CI run with ci.watch: for the newest of the
-// item's own commits, any run that covers it and passed (passedRun, slice
-// 127); else, or while there is none, its run, waited for as itos ci watch
-// waits, or, while it has none, the run on its upstream branch that covers it
-// (bug 49): Code 0 when it passed, else the refusal (1 for a run that did not
-// pass, its problem naming its address, 3 for one that did not end or could
-// not be looked at). Without ci.watch nothing is watched, and done says so on
-// stderr and goes on, its --json ci "unwatched".
-func (h Handler) landedCI(ctx context.Context, cfg *config.Loaded, id string, j doneCommit, o Out) (ciwatch.Watched, []out.Problem, error) {
+// landedCI is the judged commit's CI run with ci.watch: under push.mode pr,
+// the merged pull request's head's run when it judges the commit (trustedRun,
+// slice 181); else, for the newest of the item's own commits, any run that
+// covers it and passed (passedRun, slice 127); else, or while there is none,
+// its run, waited for as itos ci watch waits, or, while it has none, the run
+// on its upstream branch that covers it (bug 49): Code 0 when it passed, else
+// the refusal (1 for a run that did not pass, its problem naming its address,
+// 3 for one that did not end or could not be looked at). The PullRequest is
+// the merged pull request with a head, nil without one or without ci.watch.
+// Without ci.watch nothing is watched, and done says so on stderr and goes on,
+// its --json ci "unwatched".
+func (h Handler) landedCI(ctx context.Context, cfg *config.Loaded, id string, j doneCommit, m *mergedHead, o Out) (ciwatch.Watched, *PullRequest, []out.Problem, error) {
 	if cfg.CI.Watch.Provider == "none" {
 		fmt.Fprintln(o.Stderr, "itos: ci.watch.provider is none, so CI was not checked")
-		return ciwatch.Watched{Outcome: "unwatched"}, nil, nil
+		return ciwatch.Watched{Outcome: "unwatched"}, nil, nil, nil
 	}
 	sha := j.sha
 	if sha == "" {
-		return ciwatch.Watched{}, nil, errors.New("HEAD names no commit, so it has no CI run")
+		return ciwatch.Watched{}, nil, nil, errors.New("HEAD names no commit, so it has no CI run")
 	}
 	remote, branch := "origin", ""
 	if local := cfg.VCS.Branch(ctx); local != "" {
@@ -500,19 +514,25 @@ func (h Handler) landedCI(ctx context.Context, cfg *config.Loaded, id string, j 
 		remote, ref, _ = cfg.VCS.Upstream(ctx, local)
 		branch = strings.TrimPrefix(ref, "refs/heads/")
 	}
+	var pulled *PullRequest
+	if m != nil {
+		pulled = &PullRequest{URL: m.url, Head: m.head}
+	}
 	w := ciwatch.Watched{Code: missing, Outcome: "error"}
 	wr, _, err := h.ports.Watcher(ctx, cfg, remote)
 	if err != nil {
 		fmt.Fprintf(o.Stderr, "itos: %s\n", err)
+	} else if trusted, ok := trustedRun(ctx, cfg, id, m, j, wr, o); ok {
+		w, pulled.Trusted = trusted, true
 	} else if passed, ok := passedRun(ctx, cfg.VCS, wr, j, remote, branch, o); ok {
 		w = passed
 	} else {
 		w = ciwatch.Watch(ctx, cfg, wr, cfg.VCS, sha, remote, branch, watchOut(o))
 	}
 	if w.Code == 0 || w.Outcome != "failure" {
-		return w, nil, nil
+		return w, pulled, nil, nil
 	}
-	return w, []out.Problem{{
+	return w, pulled, []out.Problem{{
 		Rule:    "work-done-ci",
 		Message: fmt.Sprintf("%s did not pass, so %s is not done: %s", j.runOf(w.Run), id, w.Run.URL),
 		Fix:     "fix what failed, push the fix with itos push, then run itos work done " + id + " again",

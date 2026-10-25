@@ -54,7 +54,7 @@ func explain(log providers.JobLog, j providers.Job) providers.Job {
 // beside the tag object as the ref with ^{}. None when the remote cannot be
 // read.
 func tagsAt(ctx context.Context, v vcsport.VCS, remote, sha string) []string {
-	ctx, cancel := context.WithTimeout(ctx, fetchTimeout)
+	ctx, cancel := context.WithTimeout(ctx, FetchTimeout)
 	defer cancel()
 	refs, err := v.RemoteRefs(ctx, remote, []string{"refs/tags/*"}, vcsport.Talk{NoPrompt: true})
 	if err != nil {

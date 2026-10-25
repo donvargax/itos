@@ -236,6 +236,10 @@
   scenarios:
     - id: "@ID-PRDONE-01"
       why: work done from main refusing an item whose pull request is open, asking gh whatever main holds, the file's point
+- file: work-done-pr-trust.feature
+  scenarios:
+    - id: "@ID-PRTRUST-01"
+      why: work done closing on the merged pull request's green run when main gained only a registry commit since its head, the file's point
 - file: work.feature
   scenarios:
     - id: "@ID-WORK-01"
