@@ -14388,6 +14388,6 @@ items:
     title: This repository sends docs commits from main straight to main, specs excepted (push.pr.direct)
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
