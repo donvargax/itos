@@ -50,7 +50,9 @@ Feature: Under push.mode pr, work done trusts the merged pull request's green ru
   change is bookkeeping, since the full plan runs a task's checks only for
   a task its range names, and itos verify and config check, which judge a
   ledger edit, run in main's own run of the commit that made it. A diff
-  git cannot give is no comparison: work done waits for main's run.
+  git cannot give is no comparison: work done waits for main's run. For
+  a task the comparison has one more condition, its own checks (bug 137,
+  below).
 
   A head the clone lacks. The head GitHub merges is often one its
   update-branch made (itos push --ready asks for it whenever main moved),
@@ -86,6 +88,101 @@ Feature: Under push.mode pr, work done trusts the merged pull request's green ru
   after it; that is accepted (guardrails over hardening), since both
   commits had main's runs of their own. After update-branch the head's
   base is main of that moment, and the merge ref's tree is the head's own.
+
+  The item's own checks (bug 137, issue 141). The paths are not all a
+  run judges: CI runs a task's checks only for a task its range names
+  (plan.For runs TasksIn's), read from the ledger of the tree it runs
+  on. A ledger commit that gives the item's own task a check and reaches
+  main after the head's run started names no task, or, naming it, runs
+  it on a tree without the item's work; main's run of the merged
+  commits, which name the task, runs it on the merged tree, and slice
+  176 waited for that run. Trusted, the head's run closes the task
+  though it never had the check, the close takes the task's checks out
+  of the ledger, and no later run names them: a late check, which work
+  done leaves to CI and never runs, ran nowhere. So for an item that is
+  a task of the ledger (ledger.id set and the item's id matching it, as
+  work done decides that it runs a task's checks), when git lists a
+  ledger file the comparison also reads the ledger at the head and at
+  <landing>, each as itos ci plan --data-at reads a commit's ledger (the
+  config as loaded, the ledger files that commit's tree has), and holds
+  only when the item's checks are the same at both: the entries with
+  its id, in the order the ledger reads them, as many at both, each
+  pair's done_when equal check by check in every key the ledger reads
+  of a check (run, fails, after, timeout, cost, prose, evidence,
+  snapshot), and neither commit with an entry of the id whose checks
+  cannot be read (a done_when that is no list, a check with no command).
+  No entry at either is the same. Otherwise <on>'s CI run judges
+  <landing>, the head's run not looked at. A ledger work done cannot
+  read at either commit (a file that is not YAML, or not a list) is no
+  comparison: main's run judges, a line saying so. The paths are still
+  compared first, so a tree that differs in another path says that and
+  reads no ledger; a slice or a bug, which has no entry, reads none and
+  is unchanged, and so is a task when git lists no ledger file.
+
+  What the rule leaves alone, each weighed by what waiting for main's
+  run would have stopped:
+  - The item's title, why and type, and the file its entry is in: the
+    plan reads a task's checks, naming a failing one by its title
+    alone; itos verify holds a commit's Task: to the ledger by its ID
+    alone (ledger.IDs); config check judges an entry's form in
+    main's run of the commit that changed it, as above. So none of them
+    changes a verdict of main's run of the merged commits, and none is
+    compared; nor is the entry's text, so a reformatted entry is the
+    same entry.
+  - Another task's entry, a check main gave a task the pull request's
+    commits name included: main's run runs that check whether or not
+    work done waits, CI running on every push to main, and the check
+    stays in the ledger, so each later run of main, whose range starts
+    at the last green run, names the task again and stays red until it
+    passes, and the check still gates its own task's close. Only the
+    item's close takes checks out, so only the item's can be lost.
+  - The task removed and added again: compared as each commit has it.
+    The rebase puts the pull request's commits on main as the merge
+    found it, so every merged commit's ledger is <landing>'s but for
+    the pull request's own edits: the same checks at both is trusted;
+    other checks, or no entry at <landing> (removed for good), is
+    main's run's to judge.
+  - A check given in a file other than the entry's: a second entry of
+    the id there makes the entries differ in number, and the plan runs
+    every entry of a named id; config check refuses the duplicate in
+    its own commit's run.
+  - ledger.files, ledger.id, ledger.group or any key of the config:
+    itos.yaml is no bookkeeping path, so the trees already differ, the
+    ledger is read with the one config both commits have, and an entry
+    moved to a file ledger.files does not match is a path that is no
+    ledger file.
+  - work done's own checks. It runs the task's static checks before it
+    looks at CI, from the ledger the clone has, which after the
+    fast-forward has main's check, so a static check main added is run
+    here; and the close's write refuses a ledger file, of a task with
+    checks, that is not sound. But those runs are local feedback, which
+    a record a hand run left can answer, and slice 176 made CI's run the
+    proof: they close none of this for a static check, and nothing for
+    a late one, which work done says it leaves to CI. An after: push
+    check is pending in a push's run and in work done alike, so the
+    trust changes nothing for it; it is compared with the rest, the
+    rule being simpler for it.
+  Weighed and not taken: comparing only the checks work done does not
+  run (the late ones) would put a local run, or a hand run's record, in
+  CI's place; trusting when the checks at <landing> are among the
+  head's, a removal asking no new verdict, is sound but saves a wait
+  only when a check is taken off an open item's task on main, and
+  equality is the simpler rule; comparing the item's whole entry, as
+  issue 141 asks, would make a why edited while the pull request is
+  open cost the wait for nothing.
+
+  What the rule accepts. A check main gave the task after the head's
+  base and before the head's run started was in the run's tree, the
+  merge ref, but is not in the head, so work done waits for main's run
+  though the head's run judged it; after update-branch, which itos
+  push --ready asks for whenever main moved, the head has it. And the
+  registry, which stays bookkeeping though ci.wait_on_status reads it:
+  a named task whose status that lists at the run's tree is held back,
+  its checks not run, so an item taken on main only after its head's
+  run started had them left out of that run. That is not compared:
+  work done closes only an item that is doing, the item is taken
+  before its pull request is marked ready, and the ready run's tree
+  has the take (guardrails over hardening).
 
   The head's run. Once the comparison holds, the head's run is looked at
   once, never waited for: the newest run of ci.watch.github.workflow whose
@@ -125,6 +222,13 @@ Feature: Under push.mode pr, work done trusts the merged pull request's green ru
     address> has not passed, so <on>'s CI run judges <l>", or ", but no CI
     run of the head was found, so <on>'s CI run judges <l>" when there is
     none or the look failed;
+  - the item's checks differ (bug 137): the trusted line's start, to
+    "but for the work registry and the ledger", then ", but <id>'s
+    checks in the ledger differ from the head's, so <on>'s CI run
+    judges <l>";
+  - the ledger cannot be read (bug 137): the same start, then ", but
+    the ledger at <s> cannot be read, so <on>'s CI run judges <l>", <s>
+    the short SHA of the head when its ledger cannot be read, else <l>;
   - the head is not in the clone, after the fetch: "<id>'s pull request
     <url> merged with the head <h>, which this clone does not have and
     could not fetch from <remote>'s refs/pull/<n>/head, so <on>'s CI run
@@ -233,6 +337,49 @@ Feature: Under push.mode pr, work done trusts the merged pull request's green ru
   GitHub's steps touch no repository. "the ledger's files are <pattern>"
   is the one that leaves changes uncommitted (the ledger moved, the config
   rewritten), so PRTRUST-03 commits and pushes them before its branch.
+
+  Bug 137's fix. Its scenarios are PRTRUST-08, which fails before the
+  work, and the guard PRTRUST-09. The fix names no case in Changes:, as
+  no scenario or case of v8.19.0 closes a task under pr on a merged
+  head, and says Upgrading: none. It adds the condition where work
+  done's help and the work package's doc.go say the trust ("when the
+  commit's tree differs from the head's only in the work registry and
+  the ledger files"). The implementer's unit tests, for what no
+  scenario here shows: the cannot-be-read line, for the head and for
+  <landing>; an entry moved to another ledger file with its checks,
+  trusted; the entry gone at <landing>, and gone and added again with
+  other checks, each main's run, and added again with the same checks,
+  trusted; a second entry of the id in another file; a check whose
+  timeout, cost or after alone changed; an entry whose checks cannot be
+  read; a slice whose tree differs in a ledger file that cannot be
+  read, trusted, no ledger read; a task when git lists the registry
+  alone, no ledger read; --json's pull_request, trusted false, when the
+  checks differ.
+
+  Bug 137's steps. Its scenarios close the Background's task T-001:
+  "the task <id> has the committed check <command>" (reused) gives it a
+  static check, here "true", which work done runs and which passes,
+  committed in the clone with the ledger alone (PRTRUST-09 gives the
+  task T-002 one the same way, adding it), and the registry step
+  makes the item T-001 doing as it makes slice-9, both before the
+  config step pushes the clone's commits, so the head's base has them.
+  New steps, each editing the scratch ledger's one file, where
+  ledger.files puts it, in the other clone the registry steps use,
+  brought up to the remote's main (cloned, or fetched and reset to
+  origin/main), the clone's HEAD pushed to the remote's main first
+  unless the remote's main has it already, so that one may follow
+  another; the file committed alone past the hooks and pushed to the
+  remote's main; each failing when the file has no task of the id:
+  "the remote has gained the commit <subject> adding the late check
+  <command> to the ledger's task <id>", which appends { run: <command>,
+  cost: late } to the task's done_when, making one when it has none,
+  its other checks and keys as they were; "the remote has gained the
+  commit <subject> giving the ledger's task <id> the why <why>", which
+  sets the task's why, its other keys and checks as they were. Either
+  may write the file in another form, so long as the ledger reads every
+  other task as before. The item's commit is the branch step's, linked
+  to T-001 by its Item: footer: the rule reads no footer, so which
+  footer names the task is not these scenarios' question.
 
   Background:
     Given a repository whose ledger has the task "T-001"
@@ -438,3 +585,72 @@ Feature: Under push.mode pr, work done trusts the merged pull request's green ru
     And its output says "so the head's CI run judges"
     And its output says "CI passed: https://ci.example/runs/pr"
     And the registry's item "slice-9" has the status "done" and the owner "someone"
+
+  # Bug 137's hole: after the head's run, main gave the item's own task a
+  # check, so that run never had it, while main's run of the merged
+  # commits would run it. The check is late, so work done leaves it to CI
+  # and never runs it, and it fails: the close the trust makes today
+  # lands on a check that ran nowhere and takes it out of the ledger. The
+  # paths alone allow the trust (main gained a ledger commit), so only the
+  # item's checks stop it, and main's run, which never finishes, is waited
+  # for. Fails before the work at the exit code: today the head's run
+  # closes it, exit 0.
+  @ID-PRTRUST-08 @bug-137 @wip
+  Scenario: Under pr, work done waits for main's run when main gave the item's own task a check since the merged pull request's head
+    Given the task "T-001" has the committed check "true"
+    And the work registry has the item "T-001" owned by "someone" with the status "doing"
+    And the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+      """
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And ci.watch asks a fake GitHub, which reports the run "https://ci.example/runs/1"
+    And the watched run never finishes
+    And ci.watch.timeout is 3
+    And the remote's branch "T-001" has the item "T-001"'s commit touching "widget.md", which the clone's main lacks
+    And the fake GitHub's run of the head of the remote's branch "T-001", "https://ci.example/runs/pr", succeeded
+    And the recording gh has the pull request "https://github.example/o/r/pull/7" merged for the branch "T-001"
+    And the remote has gained the commit "docs: add a check to T-001" adding the late check "exit 1" to the ledger's task "T-001"
+    And GitHub rebase-merges the remote's branch "T-001" onto the remote's main
+    And the clone has fetched the remote
+    And the clone fast-forwards its main to the branch "main"
+    When itos runs "work done T-001"
+    Then itos exits with code 75
+    And its output says "but T-001's checks in the ledger differ from the head's, so"
+    And its output does not say "https://ci.example/runs/pr"
+    And the registry's item "T-001" has the status "doing" and the owner "someone"
+
+  # Bug 137's boundary: main's ledger commits since the head are still
+  # bookkeeping when the item's checks are the same at both. Another task,
+  # T-002, gained a late check, which gates T-002's own close and stays in
+  # the ledger, and the item's own entry gained a why, which no run
+  # judges. A guard: it passes before the work and must after it, so a fix
+  # that compares the ledger files, or the item's whole entry, fails it.
+  @ID-PRTRUST-09 @bug-137 @guard @wip
+  Scenario: Under pr, work done still closes a task on the head's green run when main changed only another task's checks and the task's own why
+    Given the task "T-001" has the committed check "true"
+    And the task "T-002" has the committed check "true"
+    And the work registry has the item "T-001" owned by "someone" with the status "doing"
+    And the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+      """
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And ci.watch asks a fake GitHub, which reports the run "https://ci.example/runs/1"
+    And the watched run never finishes
+    And ci.watch.timeout is 3
+    And the remote's branch "T-001" has the item "T-001"'s commit touching "widget.md", which the clone's main lacks
+    And the fake GitHub's run of the head of the remote's branch "T-001", "https://ci.example/runs/pr", succeeded
+    And the recording gh has the pull request "https://github.example/o/r/pull/7" merged for the branch "T-001"
+    And the remote has gained the commit "docs: add a check to T-002" adding the late check "exit 1" to the ledger's task "T-002"
+    And the remote has gained the commit "docs: say why T-001" giving the ledger's task "T-001" the why "Main says why."
+    And GitHub rebase-merges the remote's branch "T-001" onto the remote's main
+    And the clone has fetched the remote
+    And the clone fast-forwards its main to the branch "main"
+    When itos runs "work done T-001"
+    Then itos exits with code 0
+    And its output says "so the head's CI run judges"
+    And its output says "CI passed: https://ci.example/runs/pr"
+    And the registry's item "T-001" has the status "done" and the owner "someone"
