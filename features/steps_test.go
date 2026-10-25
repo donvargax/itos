@@ -472,6 +472,7 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	initializeProofSteps(sc, w)
 	initializeProofSummarySteps(sc, w)
 	initializeProofReportSteps(sc, w)
+	initializeCIHelpSteps(sc, w)
 	initializeIDSteps(sc, w)
 	initializePromoteSteps(sc, w)
 	initializeTestsListSteps(sc, w)
@@ -566,6 +567,7 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	sc.Step(`^itos exits with code (\d+)$`, w.exitsWith)
 	sc.Step(`^its output says "([^"]*)"$`, w.outputSays)
 	sc.Step(`^its output says "([^"]*)", whatever its line breaks$`, w.outputSaysFolded)
+	sc.Step(`^its output does not say "([^"]*)", whatever its line breaks$`, w.outputDoesNotSayFolded)
 	// The range's start as a CI step is given it (slice 83).
 	sc.Step(`^its output says "([^"]*)" with the first commit's full SHA$`, func(text string) error {
 		if len(w.commits) == 0 {
@@ -2653,6 +2655,15 @@ func (w *world) outputSaysFolded(text string) error {
 func (w *world) outputDoesNotSay(text string) error {
 	if strings.Contains(w.output(), text) {
 		return fmt.Errorf("the output says %q\n%s", text, w.report())
+	}
+	return nil
+}
+
+// outputDoesNotSayFolded is outputDoesNotSay over the output folded as
+// outputSaysFolded folds it, so a phrase help wrapped over two lines is found.
+func (w *world) outputDoesNotSayFolded(text string) error {
+	if strings.Contains(strings.Join(strings.Fields(w.output()), " "), text) {
+		return fmt.Errorf("the output says %q, whatever its line breaks\n%s", text, w.report())
 	}
 	return nil
 }
