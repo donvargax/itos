@@ -137,7 +137,7 @@ Feature: Under push.mode pr, the commit types push.pr.direct names go from main 
   # The slice's point: a coordinator's decision record, committed on main,
   # goes straight to main with no pull request. Fails before the work at
   # the exit code: the hook refuses the unreadable config, exit 1.
-  @ID-PUSHDIRECT-01 @slice-186 @wip
+  @ID-PUSHDIRECT-01 @slice-186
   Scenario: Under pr with push.pr.direct naming docs, a docs commit pushed from main goes straight to main, opening no pull request
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -159,7 +159,7 @@ Feature: Under push.mode pr, the commit types push.pr.direct names go from main 
   # docs commit below the take is no reason to refuse it and both land in
   # one push, in their order. Fails before the work at the exit code: the
   # hook refuses the unreadable config, exit 1.
-  @ID-PUSHDIRECT-02 @slice-186 @wip
+  @ID-PUSHDIRECT-02 @slice-186
   Scenario: Under pr with push.pr.direct naming docs, a docs commit below a take, pushed from main, goes to main with it
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -182,7 +182,7 @@ Feature: Under push.mode pr, the commit types push.pr.direct names go from main 
   # reads every spec (ADR-0061). The refusal names the commit and the key.
   # Fails before the work at the words: the push is refused, exit 1, but by
   # the hook, which names the unknown key, not the commit.
-  @ID-PUSHDIRECT-03 @slice-186 @wip
+  @ID-PUSHDIRECT-03 @slice-186
   Scenario: Under pr, a docs commit pushed from main that touches a path push.pr.direct.except names is refused, naming the commit and push.pr.direct
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -207,7 +207,7 @@ Feature: Under push.mode pr, the commit types push.pr.direct names go from main 
   # reorders commits. The refusal names the oldest commit not admitted, the
   # feat, whose type push.pr.direct does not list. Fails before the work at
   # the words: the hook refuses the unreadable config, naming neither.
-  @ID-PUSHDIRECT-04 @slice-186 @wip
+  @ID-PUSHDIRECT-04 @slice-186
   Scenario: Under pr, a push from main of an admitted docs commit and a commit of a type push.pr.direct does not name is refused whole
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -234,7 +234,7 @@ Feature: Under push.mode pr, the commit types push.pr.direct names go from main 
   # push gives that output today.) Fails before the work at the commit
   # rules' words: the hook refuses the unreadable config before it judges
   # any commit.
-  @ID-PUSHDIRECT-05 @slice-186 @wip
+  @ID-PUSHDIRECT-05 @slice-186
   Scenario: Under pr, an admitted docs commit pushed from main is still judged by the pre-push hook, which refuses one the commit rules refuse
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -256,7 +256,7 @@ Feature: Under push.mode pr, the commit types push.pr.direct names go from main 
   # admits what a push from main admits, as it refuses what one refuses
   # (ID-PUSHMODE-17). Fails before the work at the exit code: the hook
   # refuses the unreadable config, exit 1.
-  @ID-PUSHDIRECT-06 @slice-186 @wip
+  @ID-PUSHDIRECT-06 @slice-186
   Scenario: Under pr with push.pr.direct naming docs, push --ref main sends a docs commit to main
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -279,7 +279,7 @@ Feature: Under push.mode pr, the commit types push.pr.direct names go from main 
   # and it sits directly above main. Fails before the work at the exit code:
   # the hook refuses the unreadable config, exit 1; once the key is read it
   # is a guard of what the work must not change.
-  @ID-PUSHDIRECT-07 @slice-186 @wip
+  @ID-PUSHDIRECT-07 @slice-186
   Scenario: Under pr with push.pr.direct naming docs, a docs commit directly above main on an item's branch still rides its pull request
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -301,7 +301,7 @@ Feature: Under push.mode pr, the commit types push.pr.direct names go from main 
   # The keys are push.pr's, read only under pr. Fails before the work at the
   # exit code: today config check refuses the unknown key push.pr.direct,
   # exit 2.
-  @ID-PUSHDIRECT-08 @slice-186 @wip
+  @ID-PUSHDIRECT-08 @slice-186
   Scenario: config check accepts push.pr.direct's types and except
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -318,7 +318,7 @@ Feature: Under push.mode pr, the commit types push.pr.direct names go from main 
   # Off by default: with no types, a push from main sends the registry's
   # commits alone, as before. Fails before the work at the exit code: today
   # config get refuses the unknown key, exit 2.
-  @ID-PUSHDIRECT-09 @slice-186 @wip
+  @ID-PUSHDIRECT-09 @slice-186
   Scenario: config get prints push.pr.direct.types' default, the empty list, when the config leaves it out
     When itos runs "config get push.pr.direct.types"
     Then itos exits with code 0
@@ -328,7 +328,7 @@ Feature: Under push.mode pr, the commit types push.pr.direct names go from main 
   # refused as any work is (ID-PUSHMODE-08), in today's words, which name
   # no key the repository did not set. A guard: it passes before the work
   # and must after it.
-  @ID-PUSHDIRECT-10 @slice-186 @guard @wip
+  @ID-PUSHDIRECT-10 @slice-186 @guard
   Scenario: Under pr without push.pr.direct, a docs commit pushed from main is still refused in today's words
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """

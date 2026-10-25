@@ -1053,6 +1053,9 @@ cases:
           pr:
             draft: false
             review_by: []
+            direct:
+              types: []
+              except: []
         guide:
           orchestrating: docs/ORCHESTRATING.md
   # config get: a key's value as the tools read it, for a program beside itos
@@ -1098,6 +1101,41 @@ cases:
     exit: 2
     json_has:
       valid: false
+  - name: config get prints push.pr.direct.types' default, the empty list, when the config leaves it out
+    argv: [config, get, push.pr.direct.types]
+    exit: 0
+    stdout_contract: true
+    stdout: |
+      []
+  - name: config get prints push.pr.direct.except's default, the empty list, when the config leaves it out
+    argv: [config, get, push.pr.direct.except]
+    exit: 0
+    stdout_contract: true
+    stdout: |
+      []
+  - name: config check refuses a push.pr.direct.types that is not a list of strings
+    argv: [config, check, --json]
+    files:
+      itos.yaml: "version: 1\npush: { pr: { direct: { types: docs } } }\n"
+    exit: 2
+    json_has:
+      valid: false
+  - name: config check refuses a push.pr.direct.except that is not a list of strings
+    argv: [config, check, --json]
+    files:
+      itos.yaml: "version: 1\npush: { pr: { direct: { except: [1] } } }\n"
+    exit: 2
+    json_has:
+      valid: false
+  - name: config check refuses a push.pr.direct.except naming a path set the config lacks
+    argv: [config, check, --json]
+    files:
+      itos.yaml: "version: 1\npush: { pr: { direct: { except: ['$specs'] } } }\n"
+    exit: 2
+    json_has:
+      valid: false
+      problems:
+        - { rule: config-path-set, area: config }
   - name: config check refuses a push.mode other than trunk or pr
     argv: [config, check, --json]
     files:

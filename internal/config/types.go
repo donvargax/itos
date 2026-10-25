@@ -42,10 +42,20 @@ type Push struct {
 
 // PushPR is push.pr: Draft, whether itos push opens and updates an item's
 // pull request as a draft, which itos push --ready marks ready; ReviewBy, the
-// GitHub logins whose review --ready waits for before it turns on auto-merge.
+// GitHub logins whose review --ready waits for before it turns on auto-merge;
+// Direct, the commits a push from main sends straight to main (slice 186).
 type PushPR struct {
-	Draft    bool     `json:"draft"`
-	ReviewBy []string `json:"review_by"`
+	Draft    bool       `json:"draft"`
+	ReviewBy []string   `json:"review_by"`
+	Direct   PushDirect `json:"direct"`
+}
+
+// PushDirect is push.pr.direct: Types, the commit types a push from main sends
+// to main beside the registry's commits; Except, the path globs ($name
+// expanded) that keep a commit of those types off main.
+type PushDirect struct {
+	Types  []string `json:"types"`
+	Except []string `json:"except"`
 }
 
 // Proof is the proof of done a change of each kind needs (slice 100; decision

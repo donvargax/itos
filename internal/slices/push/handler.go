@@ -179,8 +179,10 @@ func (h Handler) Handle(ctx context.Context, q Query, o Out) (Answer, error) {
 			return r.report(0, "nothing-to-push", fmt.Sprintf("Nothing to push: %s is at %s.", branch, r.upstream())), nil
 		}
 	}
-	if onMain && r.addsWork(ctx, onto, r.sha) {
-		return r.workOnMain(), nil
+	if onMain {
+		if oldest, adds := r.addsWork(ctx, onto, r.sha); adds {
+			return r.workOnMain(ctx, oldest), nil
+		}
 	}
 	return r.push(ctx, remote, ref, onto), nil
 }

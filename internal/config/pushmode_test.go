@@ -58,3 +58,37 @@ func TestPushPR(t *testing.T) {
 		}
 	}
 }
+
+// push.pr.direct (slice 186) sends nothing by default; its types are read as
+// written and its except has each $name expanded from commits.path_sets; a
+// value that is not a list of strings is refused, as is a $name the sets lack.
+func TestPushPRDirect(t *testing.T) {
+	c, err := load(t, "version: 1\n")
+	if err != nil || c.Push.PR.Direct.Types == nil || len(c.Push.PR.Direct.Types) != 0 || len(c.Push.PR.Direct.Except) != 0 {
+		t.Errorf("by default: %+v, %v", c.Push.PR.Direct, err)
+	}
+	c, err = load(t, "version: 1\ncommits: { path_sets: { specs: ['features/**', 'docs/spec.md'] } }\n"+
+		"push: { mode: pr, pr: { direct: { types: [docs, chore], except: ['$specs', 'x/*'] } } }\n")
+	if err != nil || !slices.Equal(c.Push.PR.Direct.Types, []string{"docs", "chore"}) ||
+		!slices.Equal(c.Push.PR.Direct.Except, []string{"features/**", "docs/spec.md", "x/*"}) {
+		t.Errorf("set: %+v, %v", c.Push.PR.Direct, err)
+	}
+	for text, want := range map[string]string{
+		"version: 1\npush: { pr: { direct: { types: docs } } }\n":           "push.pr.direct.types should be a list",
+		"version: 1\npush: { pr: { direct: { types: [1] } } }\n":            "push.pr.direct.types should be a list of strings",
+		"version: 1\npush: { pr: { direct: { except: 'features/**' } } }\n": "push.pr.direct.except should be a list",
+		"version: 1\npush: { pr: { direct: { except: [[a]] } } }\n":         "push.pr.direct.except should be a list of strings",
+		"version: 1\npush: { pr: { direct: { except: ['$specs'] } } }\n":    "push.pr.direct.except names $specs, which commits.path_sets does not have",
+		"version: 1\npush: { pr: { direct: { kinds: [docs] } } }\n":         "unknown key push.pr.direct.kinds",
+	} {
+		_, err := load(t, text)
+		if got := messages(t, err); len(got) != 1 || !strings.HasPrefix(got[0], want) {
+			t.Errorf("%q: got %q, want %q", text, got, want)
+		}
+	}
+	for _, key := range []string{"push.pr.direct", "push.pr.direct.types", "push.pr.direct.except"} {
+		if ok, _ := KnownKey(key); !ok {
+			t.Errorf("%s is no key of the schema", key)
+		}
+	}
+}
