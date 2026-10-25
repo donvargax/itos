@@ -14052,3 +14052,20 @@ items:
     status: todo
     depends_on: []
     kind: task
+
+  - id: p1-nightly-report-fixture-fails
+    title: nightly-report names a failing scenario only from go test's own FAIL lines, never from a scenario's fixture text
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Nightly 40190179961: the Windows job timed out at 600 s with no scenario failed, yet the
+      report on issue #29 listed "--- FAIL: TestFeatures/A_push_waits_for_its_run" as a failing
+      scenario. That line is a fixture docstring of watch-failures.feature, printed in godog's
+      pretty output while the suite ran. A reader that misnames a failure sends the next session
+      after a scenario that passed; a timeout should read as a timeout (go test's "panic: test timed
+      out" and its running tests). Related: p1-nightly-report-reads-ci-run-output.
+    refs: [tools/bin/nightly-report]
+    tags: [ci, v8]
