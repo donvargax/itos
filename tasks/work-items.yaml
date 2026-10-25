@@ -14017,11 +14017,9 @@ items:
     title: itos push titles an item's pull request after the item, not after its first commit (#140)
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: slice
-    why: >
-      Tracked in GitHub issue #140 (registry pilot: the issue holds the item).
     tags: [push]
 
   - id: bug-138
