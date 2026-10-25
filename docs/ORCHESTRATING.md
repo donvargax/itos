@@ -28,8 +28,6 @@ the open questions. Read these too:
   handoff itos does not hold yet; record the rest in itos as it happens
   (`p1-session-handoff` ends this step).
 
-Here itos is `tools/bin/itos`, this tree's build, for every command and gate.
-
 ## The inbox
 
 Repositories that use itos report its problems as issues on donvargax/itos,
@@ -120,11 +118,11 @@ handoff line below replaces the template's "wait for CI … close the item":
 
 ## Independent work and red repairs
 
-q-41: independent work may go on while CI is pending; a red repair comes
-first. Under pr (T-303) an item has one pull request, a draft its spec
-opens; every commit of the item goes on it, and only the implementer
-marks it ready. After the merge the coordinator deletes its local
-`<item>`. Agents use isolation worktrees.
+q-41: independent work goes on while CI is pending; a red repair first.
+Under pr (T-303) an item has one pull request, a draft its spec opens;
+every commit of the item goes on it, only the implementer marks it
+ready. After the merge the coordinator deletes its local `<item>`. A
+docs commit off `features/` goes from `main` by `itos push` (T-311). Agents use isolation worktrees.
 
 ## Lessons from this repository
 
