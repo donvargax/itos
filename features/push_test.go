@@ -74,6 +74,8 @@ func initializePushSteps(sc *godog.ScenarioContext, w *world) {
 	sc.Step(`^the clone has the commit "([^"]*)" making "([^"]*)" the owner of "([^"]*)"$`, w.cloneTakes)
 	sc.Step(`^the remote has gained the commit "([^"]*)" adding the idea "([^"]*)" to the registry$`, w.remoteGainsIdea)
 	sc.Step(`^the remote has gained the commit "([^"]*)" adding the task "([^"]*)" to the ledger$`, w.remoteGainsTask)
+	sc.Step(`^the remote has gained the commit "([^"]*)" adding the late check "([^"]*)" to the ledger's task "([^"]*)"$`, w.remoteGainsLateCheck)
+	sc.Step(`^the remote has gained the commit "([^"]*)" giving the ledger's task "([^"]*)" the why "([^"]*)"$`, w.remoteGainsTaskWhy)
 	sc.Step(`^the clone has the commit "([^"]*)" adding the idea "([^"]*)" to the registry$`, w.cloneAddsIdea)
 	sc.Step(`^the remote's registry gives "([^"]*)" the owner "([^"]*)"$`, w.remoteRegistryOwner)
 	sc.Step(`^the clone has a commit no remote has that takes "([^"]*)" for "([^"]*)"$`, w.cloneTakesUnpushed)
@@ -426,12 +428,64 @@ func (w *world) remoteGainsTask(subject, id string) error {
 	})
 }
 
+// The ledger's task of the id, with the check { run: command, cost: late }
+// appended to its done_when (made when it has none), pushed to the remote's
+// main from another clone as remoteGainsRegistry commits it (bug 137).
+func (w *world) remoteGainsLateCheck(subject, command, id string) error {
+	check := fmt.Sprintf("{ run: %q, cost: late }", command)
+	return w.remoteGainsRegistry(subject, func(dir string) error {
+		return w.editLedgerTask(dir, id, func(line string) string {
+			if before, after, ok := strings.Cut(line, ", done_when: ["); ok {
+				checks, rest, _ := strings.Cut(after, "]")
+				return before + ", done_when: [" + checks + ", " + check + "]" + rest
+			}
+			return strings.TrimSuffix(line, " }") + ", done_when: [" + check + "] }"
+		})
+	})
+}
+
+// The ledger's task of the id, with the why given, pushed to the remote's
+// main from another clone as remoteGainsRegistry commits it (bug 137).
+func (w *world) remoteGainsTaskWhy(subject, id, why string) error {
+	return w.remoteGainsRegistry(subject, func(dir string) error {
+		return w.editLedgerTask(dir, id, func(line string) string {
+			line, _, _ = strings.Cut(line, ", why: ")
+			return strings.TrimSuffix(line, " }") + fmt.Sprintf(", why: %q }", why)
+		})
+	})
+}
+
+// The line of the task of the id in the ledger's one file in the clone at
+// dir, as ledgerText writes it, replaced by edit's; an error when the file
+// has no such task.
+func (w *world) editLedgerTask(dir, id string, edit func(line string) string) error {
+	file := filepath.Join(dir, w.data(w.ledgerPath()))
+	text, err := os.ReadFile(file)
+	if err != nil {
+		return err
+	}
+	lines := strings.Split(string(text), "\n")
+	i := slices.IndexFunc(lines, func(l string) bool { return strings.HasPrefix(l, "- { id: "+id+",") })
+	if i < 0 {
+		return fmt.Errorf("the ledger has no task %s:\n%s", id, text)
+	}
+	lines[i] = edit(lines[i])
+	return os.WriteFile(file, []byte(strings.Join(lines, "\n")), 0o644)
+}
+
 // The clone's registry, as the scenario wrote it, pushed to the remote's
-// main first, so both start from it, then edited in another clone by edit,
+// main first, so both start from it unless the remote's main has it already,
+// so that one gain may follow another, then edited in another clone by edit,
 // and committed and pushed past the hooks.
 func (w *world) remoteGainsRegistry(subject string, edit func(dir string) error) error {
-	if err := w.git("push", "-q", "--no-verify", "origin", "HEAD:refs/heads/main"); err != nil {
+	head, err := w.head()
+	if err != nil {
 		return err
+	}
+	if w.gitIn(w.remote(), "merge-base", "--is-ancestor", head, "refs/heads/main") != nil {
+		if err := w.git("push", "-q", "--no-verify", "origin", "HEAD:refs/heads/main"); err != nil {
+			return err
+		}
 	}
 	other := filepath.Join(w.support, "other")
 	if _, err := os.Stat(other); err != nil {
