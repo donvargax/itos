@@ -14396,3 +14396,20 @@ items:
     status: done
     depends_on: []
     kind: task
+
+  - id: p1-guard-git-outside-repo
+    title: The guard hook lets git run against a repository outside the working tree
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      From bug-141's spec drafter (2026-10-25): the PreToolUse guard refused a Bash command running
+      /usr/bin/git commit and push against a scratch repository under $TMPDIR (an experiment on
+      git's ref locking, nothing of this repository), telling it to use itos commit and itos push;
+      the drafter had to move the experiment into a script file to run it. The guard protects this
+      repository's history; a git -C <path> or a cd into a repository whose top level is not this
+      one could pass.
+    refs: [internal/slices/guard]
+    tags: [guard, v8]
