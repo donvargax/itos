@@ -14278,3 +14278,19 @@ items:
       disagreement) would make the documented loop (fix, push, resolve) one command per thread.
     refs: [internal/slices/push]
     tags: [push, v8]
+
+  - id: p1-upgrade-names-itos-version-env
+    title: itos upgrade names a workflow that sets ITOS_VERSION beside the itos action's steps
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      From slice-150 (#150, Copilot): the report now says the pin chooses the itos that runs unless
+      the workflow sets ITOS_VERSION or loads another config, but the scan reads no env, so it
+      cannot say which workflows do. Naming each env ITOS_VERSION (workflow, job or step level)
+      beside the steps would let the sentence be exact. A composite action under .github/actions
+      that wraps donvargax/itos@ is likewise never named (excluded by slice-150's spec).
+    refs: [internal/slices/upgrade]
+    tags: [upgrade, v8]
