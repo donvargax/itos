@@ -10,10 +10,12 @@ package message
 // it before git runs.
 
 import (
+	"fmt"
 	"slices"
 	"strings"
 
 	"github.com/donvargax/itos/v8/internal/config"
+	"github.com/donvargax/itos/v8/internal/out"
 )
 
 // LedgerFooter is the key of the footer itos commit --task writes: the first
@@ -166,4 +168,122 @@ func FooterLines(key string, ids []string) []string {
 		lines = append(lines, line.String())
 	}
 	return lines
+}
+
+// Written is one footer a flag of itos commit writes: its key, the flag that
+// gives it, and its values, the IDs of a footer of IDs or the texts of one of
+// free text (Text), as the flags gave them.
+type Written struct {
+	Key, Flag string
+	Text      bool
+	Values    []string
+}
+
+// Lines are the footer's lines as itos commit writes them.
+func (w Written) Lines() []string {
+	if !w.Text {
+		return FooterLines(w.Key, w.Values)
+	}
+	lines := make([]string, len(w.Values))
+	for i, v := range w.Values {
+		lines[i] = w.Key + ": " + v
+	}
+	return lines
+}
+
+// Standing is how a message stands to a footer a flag would write.
+type Standing int
+
+const (
+	// Absent: the message has no footer of the key; the flag's is written.
+	Absent Standing = iota
+	// Same: the message gives the footer with the flag's values; nothing is
+	// written.
+	Same
+	// Differs: the message gives the footer with other values than the flag's.
+	Differs
+)
+
+// breakingForms are the two keys one BREAKING-CHANGE footer is written with.
+var breakingForms = []string{"BREAKING-CHANGE", breakingKey}
+
+// Against compares the footer the flag would write with the message's, both
+// read as the commit-msg hook reads footers (the trailer block, rawIDs and
+// unfolded): the sets of the IDs, with the footer's strip_prefix off, or of
+// the texts, of every line of the key, order, repeats and wrapping aside.
+// BREAKING-CHANGE and BREAKING CHANGE are one footer. A message that gives
+// the key with other values is a problem naming both, rule
+// <key>-footer-differs.
+func (w Written) Against(cfg *config.Loaded, message string) (Standing, out.Problem) {
+	keys := []string{w.Key}
+	if slices.Contains(breakingForms, w.Key) {
+		keys = breakingForms
+	}
+	var said []string
+	present := false
+	prefix := ""
+	flagged := w.Values
+	if w.Text {
+		flagged = make([]string, len(w.Values))
+		for i, v := range w.Values {
+			flagged[i] = unfolded(v)
+		}
+	} else {
+		f, _ := cfg.Commits.Footers.Get(w.Key)
+		prefix = strip(f)
+	}
+	footers := trailers(message, cfg.CommentChar())
+	for _, key := range keys {
+		present = present || slices.ContainsFunc(footers, func(t trailer) bool { return t.key == key })
+		if w.Text {
+			said = append(said, Texts(message, key, cfg.CommentChar())...)
+		} else {
+			said = append(said, rawIDs(footers, key)...)
+		}
+	}
+	if !present {
+		return Absent, out.Problem{}
+	}
+	if sameSet(said, flagged, prefix) {
+		return Same, out.Problem{}
+	}
+	return Differs, out.Problem{
+		Rule: strings.ToLower(w.Key) + "-footer-differs",
+		Message: fmt.Sprintf("%s: the message gives %s, %s gives %s",
+			w.Key, listed(said, w.Text), w.Flag, listed(flagged, w.Text)),
+		Fix: fmt.Sprintf("give %s: once, in the message or with %s", w.Key, w.Flag),
+	}
+}
+
+// sameSet is whether two lists hold the same values, once the prefix is off
+// each, whatever their order and repeats.
+func sameSet(a, b []string, prefix string) bool {
+	set := func(list []string) []string {
+		trimmed := make([]string, len(list))
+		for i, v := range list {
+			trimmed[i] = strings.TrimPrefix(v, prefix)
+		}
+		slices.Sort(trimmed)
+		return slices.Compact(trimmed)
+	}
+	return slices.Equal(set(a), set(b))
+}
+
+// listed are values as a rejection names them, each once in the order given,
+// joined by ", ", texts in double quotes, "nothing" when none says anything.
+func listed(values []string, text bool) string {
+	var shown []string
+	for _, v := range unique(values) {
+		if v == "" {
+			continue
+		}
+		if text {
+			v = `"` + v + `"`
+		}
+		shown = append(shown, v)
+	}
+	if len(shown) == 0 {
+		return "nothing"
+	}
+	return strings.Join(shown, ", ")
 }

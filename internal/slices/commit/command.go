@@ -37,9 +37,13 @@ characters at most, the key on each. Each footer of free text (source: text)
 has a flag of its name in lower case (--upgrading for Upgrading:), unless
 --task, --item, --scenarios or --breaking has that name, and --breaking
 writes BREAKING-CHANGE:, the form git reads as a trailer; their value is the
-next argument, whatever it is. Every flag may repeat, and a footer the
-message already has is not written again (trailer.ifExists addIfDifferent),
-so an amend keeps one.
+next argument, whatever it is. Every flag may repeat. Where itos reads the
+message (-m, -F <file>, HEAD's for --amend --no-edit), a footer it already
+gives with the same value, read as the hook reads it, is not written again, so
+an amend keeps one, and one it gives with another value is refused, naming the
+footer and both values, nothing committed; a message it does not read (the
+editor's, -F -) gets each line unless it has that very line (trailer.ifExists
+addIfDifferent).
 
 Before git runs, a commit whose type requires a footer that neither the flags
 nor the message give is refused, naming the flag, and nothing is committed;
@@ -70,12 +74,13 @@ hook of itos's (run itos hook install once in the clone), or, on a git that
 runs no hook its config declares (older than ` + configHooksSince + `), no commit-msg hook
 file in the folder git runs hooks from calls itos's (hook install writes one).
 
-Exit: git's own code; 1 when a required footer is missing; 2 when the first
+Exit: git's own code; 1 when a required footer is missing or a footer the message
+gives differs from its flag's; 2 when the first
 word is no subcommand, a flag has no value or the config no footer for it, or
 an argument is refused; 3 when itos's commit-msg hook would not run.
 
 --json: git's output on stderr; {"schema":1,"ok","commit"?}, or when a footer
-        is missing {"schema":1,"ok":false,"problems":[{"rule","message","fix"}]}`,
+        is missing or differs {"schema":1,"ok":false,"problems":[{"rule","message","fix"}]}`,
 
 		"check-message": `Usage: itos commit check-message <file|-> [--at <sha>]
 

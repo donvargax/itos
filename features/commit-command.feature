@@ -374,7 +374,7 @@ Feature: itos commit, a commit whose footers itos writes
   #
   # Fails before the fix: git adds "Scenarios: @ID-A-01 @ID-A-02" beside the
   # message's two lines, so each ID is named twice.
-  @ID-COMMITCMD-27 @bug-138 @wip
+  @ID-COMMITCMD-27 @bug-138
   Scenario: A footer the message already gives with the same IDs on other lines is not written again
     Given a feature file "a.feature" with the live scenario "@ID-A-01"
     And a feature file "b.feature" with the live scenario "@ID-A-02"
@@ -391,7 +391,7 @@ Feature: itos commit, a commit whose footers itos writes
 
   # Both scenarios are live, so before the fix the hook takes the two
   # footers and the commit is made: the scenario fails at the exit code.
-  @ID-COMMITCMD-28 @bug-138 @wip
+  @ID-COMMITCMD-28 @bug-138
   Scenario: A footer the message gives with other IDs than its flag's is refused before git runs, naming both
     Given a feature file "a.feature" with the live scenario "@ID-A-01"
     And a feature file "b.feature" with the live scenario "@ID-A-02"
@@ -408,7 +408,7 @@ Feature: itos commit, a commit whose footers itos writes
     And no commit was made
 
   # Passes before the fix: it guards the case addIfDifferent already caught.
-  @ID-COMMITCMD-29 @bug-138 @wip
+  @ID-COMMITCMD-29 @bug-138
   Scenario: A footer the message gives on the very line its flag would write stays one footer
     Given a feature file "a.feature" with the live scenario "@ID-A-01"
     And the scratch file "msg.txt" contains exactly:
@@ -424,7 +424,7 @@ Feature: itos commit, a commit whose footers itos writes
   # Passes before the fix: it guards against reading every line that starts
   # with a footer's key, which would refuse this commit for a footer it has
   # not got.
-  @ID-COMMITCMD-30 @bug-138 @wip
+  @ID-COMMITCMD-30 @bug-138
   Scenario: A body line that starts with a footer's key is no footer, so the flag's footer is written
     Given a feature file "a.feature" with the live scenario "@ID-A-01"
     And the scratch file "msg.txt" contains exactly:

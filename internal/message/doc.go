@@ -150,5 +150,7 @@
 // a word, and with none left the line runs over the limit. The registry
 // writers wrap their bodies with it too. Trailed is a message with footers
 // added as git commit --trailer adds them, which itos commit's check of a
-// missing footer reads.
+// missing footer reads. Written is a footer a flag of itos commit writes, and
+// Against compares it with a message's as the hook reads footers (bug 138):
+// absent, the same IDs or texts, or other ones, a problem naming both.
 package message

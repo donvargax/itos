@@ -268,6 +268,18 @@ cases:
     env: { ITOS_GIT: "{{dir}}/old-git" }
     exit: 3
     stderr_has: ["2.30.0", ".git/hooks", "itos hook install"]
+  - name: itos commit refuses, exit 1, a footer the message gives with other values than its flag's, naming both, and commits nothing
+    argv: [commit, --task, T-001, -m, "build: tidy\n\nTask: T-002"]
+    git:
+      - commit: "docs: start"
+        files: { README.md: "scratch\n" }
+        label: base
+      - stage: { README.md: "tidier\n" }
+    exit: 1
+    stdout: ""
+    stderr_has: ["Task: the message gives T-002, --task gives T-001"]
+    files_after:
+      .git/refs/heads/main: "{{sha.base}}\n"
   - name: itos push refuses, exit 3, where the git config declares no pre-push hook of itos's
     argv: [--json, push]
     git:

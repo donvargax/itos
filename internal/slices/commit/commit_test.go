@@ -689,3 +689,65 @@ func TestShort(t *testing.T) {
 		t.Errorf("short = %q, %q", short("0123456789"), short("abc"))
 	}
 }
+
+// A footer a flag would write is compared with the message's where itos
+// reads it (-m, -F <file>, HEAD's for --amend --no-edit): the same values
+// write nothing of it, the others' are still written, other values are
+// refused before git runs, the differing footers first, as problems under
+// --json; the editor's message is not read, and under a stealth config only
+// the content is compared, the links never being in the message.
+func TestCommitComparesItsFootersWithTheMessage(t *testing.T) {
+	f := over(t, repository(false), rules)
+	given := "feat: x\n\nTask: T-1\nUpgrading: none"
+	if code, _, _, err := run(t, f, "", false, "--task", "T-1", "--upgrading", "none", "-m", given); code != 0 || err != nil ||
+		!slices.Equal(f.made[0].Args, []string{"-m", given}) {
+		t.Errorf("the same footers: exit %d, %v, %+v", code, err, f.made)
+	}
+	if code, _, _, err := run(t, f, "", false, "--task", "T-1", "--breaking", "y", "-m", given); code != 0 || err != nil ||
+		!slices.Equal(f.made[1].Args, []string{"--trailer", "BREAKING-CHANGE: y", "-m", given}) {
+		t.Errorf("one footer the message lacks: exit %d, %v, %+v", code, err, f.made)
+	}
+
+	code, _, stderr, err := run(t, f, "", false, "--task", "T-2", "--upgrading", "none", "--breaking", "x", "-m", given+"\nBREAKING CHANGE: y")
+	if code != refused || err != nil || len(f.made) != 2 || !strings.HasPrefix(stderr, rejected(f)+"\n  - Task: the message gives T-1, --task gives T-2\n"+
+		"  - BREAKING-CHANGE: the message gives \"y\", --breaking gives \"x\"\n") || strings.Count(stderr, "\n  - ") != 2 {
+		t.Errorf("other values: exit %d, %v, %d commits\n%s", code, err, len(f.made), stderr)
+	}
+	code, stdout, _, err := run(t, f, "", true, "--task", "T-2", "--upgrading", "x", "-m", given)
+	if code != refused || err != nil || !strings.Contains(stdout, `"rule": "task-footer-differs"`) ||
+		!strings.Contains(stdout, `"fix": "give Upgrading: once, in the message or with --upgrading"`) {
+		t.Errorf("--json: exit %d, %v\n%s", code, err, stdout)
+	}
+
+	code, _, stderr, err = run(t, f, "", false, "--task", "T-2", "-m", "feat: x\n\nTask: T-1")
+	if code != refused || err != nil || !strings.Contains(stderr, "  - Task: the message gives T-1, --task gives T-2\n  - feat commits need --upgrading <text|none>\n") {
+		t.Errorf("differing and missing: exit %d, %v\n%s", code, err, stderr)
+	}
+
+	if code, _, _, err := run(t, f, "", false, "--task", "T-2", "--upgrading", "x"); code != 0 || err != nil ||
+		!slices.Equal(f.made[2].Args, []string{"--trailer", "Task: T-2", "--trailer", "Upgrading: x"}) {
+		t.Errorf("the editor's message: exit %d, %v, %+v", code, err, f.made)
+	}
+
+	f.VCS.History[0].Message = "docs: start\n\nUpgrading: none\n"
+	if code, _, _, err := run(t, f, "", false, "--amend", "--no-edit", "--upgrading", "none"); code != 0 || err != nil ||
+		!slices.Equal(f.made[3].Args, []string{"--amend", "--no-edit"}) {
+		t.Errorf("an amend keeping a footer: exit %d, %v, %+v", code, err, f.made)
+	}
+	if code, _, _, err := run(t, f, "", false, "--amend", "--no-edit", "--upgrading", "x"); code != refused || err != nil || len(f.made) != 4 {
+		t.Errorf("an amend changing a footer: exit %d, %v, %d commits", code, err, len(f.made))
+	}
+
+	s := stealthOver(t, repository(false), rules)
+	if code, _, _, err := run(t, s, "", false, "--task", "T-2", "--upgrading", "none", "-m", "feat: x\n\nTask: T-1\nUpgrading: none"); code != 0 || err != nil ||
+		!slices.Equal(s.made[0].Args, []string{"-m", "feat: x\n\nTask: T-1\nUpgrading: none"}) ||
+		!slices.Contains(s.talks[0].Env, message.FootersEnv+"=Task: T-2") {
+		t.Errorf("a stealth link: exit %d, %v, %+v", code, err, s.made)
+	}
+	if code, _, _, err := run(t, s, "", false, "--task", "T-1", "--upgrading", "x", "-m", "feat: x\n\nUpgrading: none"); code != refused || err != nil || len(s.made) != 1 {
+		t.Errorf("a stealth content: exit %d, %v, %d commits", code, err, len(s.made))
+	}
+}
+
+// rejected is the config's reject message, the first line of a refusal.
+func rejected(f *fake) string { return f.cfg.Commits.RejectMessage }

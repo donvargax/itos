@@ -462,3 +462,72 @@ commits:
 		}
 	}
 }
+
+// A message gives a footer a flag would write, or not, as the hook reads
+// footers: the IDs of every line of its key, the strip_prefix off, and the
+// texts, unfolded, compared as sets; BREAKING-CHANGE and BREAKING CHANGE are
+// one footer; a body line that starts with the key is no footer. A differing
+// footer is a problem naming both values, an empty one "nothing".
+func TestWrittenAgainstAMessage(t *testing.T) {
+	cfg := load(t, "version: 1\ncommits:\n  footers:\n    Scenarios: { source: { tests: scenario }, strip_prefix: \"@\" }\n"+
+		"    Upgrading: { source: text }\n"+
+		"tests:\n  scenario: { root: features, id: \"ID-[A-Z]+-\\\\d+\" }\n")
+	ids := func(values ...string) Written { return Written{Key: "Scenarios", Flag: "--scenarios", Values: values} }
+	text := func(key string, values ...string) Written {
+		flag := "--" + strings.ToLower(key)
+		if key == "BREAKING-CHANGE" {
+			flag = "--breaking"
+		}
+		return Written{Key: key, Flag: flag, Text: true, Values: values}
+	}
+	for _, c := range []struct {
+		name    string
+		w       Written
+		message string
+		want    Standing
+		problem string
+	}{
+		{"no footer", ids("@ID-A-1"), "feat: x\n\nUpgrading: none\n", Absent, ""},
+		{"no footer at all", ids("@ID-A-1"), "feat: x\n", Absent, ""},
+		{"the same line", ids("@ID-A-1"), "feat: x\n\nScenarios: @ID-A-1\n", Same, ""},
+		{"other lines, other order, a repeat", ids("@ID-B-2", "@ID-A-1", "@ID-A-1"),
+			"feat: x\n\nScenarios: @ID-A-1\nScenarios: @ID-B-2,\n  @ID-A-1\n", Same, ""},
+		{"the prefix is off both sides", ids("ID-A-1"), "feat: x\n\nScenarios: @ID-A-1\n", Same, ""},
+		{"case counts", ids("@id-a-1"), "feat: x\n\nScenarios: @ID-A-1\n", Differs,
+			"Scenarios: the message gives @ID-A-1, --scenarios gives @id-a-1"},
+		{"more IDs in the message", ids("@ID-A-1"), "feat: x\n\nScenarios: @ID-A-1 @ID-B-2\n", Differs,
+			"Scenarios: the message gives @ID-A-1, @ID-B-2, --scenarios gives @ID-A-1"},
+		{"fewer IDs in the message", ids("@ID-A-1", "@ID-B-2"), "feat: x\n\nScenarios: @ID-A-1\n", Differs,
+			"Scenarios: the message gives @ID-A-1, --scenarios gives @ID-A-1, @ID-B-2"},
+		{"an empty footer", ids("@ID-A-1"), "feat: x\n\nScenarios:\n", Differs,
+			"Scenarios: the message gives nothing, --scenarios gives @ID-A-1"},
+		{"a body line is no footer", ids("@ID-A-1"), "feat: x\n\nScenarios: @ID-B-2\nand prose\n\nUpgrading: none\n", Absent, ""},
+		{"a comment line is passed over", ids("@ID-A-1"), "feat: x\n\nScenarios: @ID-A-1\n# Scenarios: @ID-B-2\n", Same, ""},
+		{"a text unfolded", text("Upgrading", "run x"), "feat: x\n\nUpgrading: run\n  x\n", Same, ""},
+		{"a flag's text unfolded", text("Upgrading", "run\n  x"), "feat: x\n\nUpgrading: run x\n", Same, ""},
+		{"texts, any order", text("Upgrading", "b", "a"), "feat: x\n\nUpgrading: a\nUpgrading: b\nUpgrading: a\n", Same, ""},
+		{"another text", text("Upgrading", "none"), "feat: x\n\nUpgrading: run x\n", Differs,
+			`Upgrading: the message gives "run x", --upgrading gives "none"`},
+		{"an empty text", text("Upgrading", "none"), "feat: x\n\nUpgrading:\n", Differs,
+			`Upgrading: the message gives nothing, --upgrading gives "none"`},
+		{"breaking, the other form", text("BREAKING-CHANGE", "x"), "feat: x\n\nBREAKING CHANGE: x\n", Same, ""},
+		{"breaking, both forms", text("BREAKING-CHANGE", "x", "y"), "feat: x\n\nBREAKING CHANGE: x\nBREAKING-CHANGE: y\n", Same, ""},
+		{"breaking differs", text("BREAKING-CHANGE", "x"), "feat: x\n\nBREAKING CHANGE: y\n", Differs,
+			`BREAKING-CHANGE: the message gives "y", --breaking gives "x"`},
+	} {
+		got, problem := c.w.Against(cfg, c.message)
+		if got != c.want || problem.Message != c.problem {
+			t.Errorf("%s: %v, %q; want %v, %q", c.name, got, problem.Message, c.want, c.problem)
+		}
+	}
+	_, p := text("BREAKING-CHANGE", "x").Against(cfg, "feat: x\n\nBREAKING-CHANGE: y\n")
+	if p.Rule != "breaking-change-footer-differs" || p.Fix != "give BREAKING-CHANGE: once, in the message or with --breaking" {
+		t.Errorf("problem %+v", p)
+	}
+	if got := ids("@ID-A-1", "@ID-B-2").Lines(); !slices.Equal(got, []string{"Scenarios: @ID-A-1 @ID-B-2"}) {
+		t.Errorf("lines %q", got)
+	}
+	if got := text("Upgrading", "a", "b").Lines(); !slices.Equal(got, []string{"Upgrading: a", "Upgrading: b"}) {
+		t.Errorf("lines %q", got)
+	}
+}
