@@ -173,6 +173,9 @@
 //     git init's git folder, with itos's hooks written into its config, and
 //     reads HEAD from the git folder's files, so none of them starts a git
 //     (T-308).
+//   - shard_test.go: -shard=i/n runs the scenarios whose hash is i of n, the
+//     others skipped before their set-up, so a platform splits the suite
+//     across jobs (T-308).
 //
 // The header lint, where a scenario needs one, is itos's built-in one (use:
 // builtin), which needs nothing installed and holds no footer rule, so a
@@ -209,6 +212,11 @@ func TestFeatures(t *testing.T) {
 	filter, err := tagFilter(*scenarios, ".")
 	if err != nil {
 		t.Fatal(err)
+	}
+	if *shardFlag != "" {
+		if shardIndex, shardCount, err = parseShard(*shardFlag); err != nil {
+			t.Fatal(err)
+		}
 	}
 	t.Cleanup(removeCallerPath)
 	t.Cleanup(removeRepoTemplate)

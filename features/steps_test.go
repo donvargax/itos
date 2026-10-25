@@ -203,9 +203,16 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	clock := timeScenario(sc)
 	defer clock.end(sc)
 	sc.Before(func(ctx context.Context, s *godog.Scenario) (context.Context, error) {
+		if !inShard(s) {
+			w.outsideShard = true
+			return ctx, godog.ErrSkip
+		}
 		return ctx, timed("(the scenario's set-up)", func() error { return w.setUp(s) })
 	})
 	sc.After(func(ctx context.Context, _ *godog.Scenario, err error) (context.Context, error) {
+		if w.outsideShard {
+			return ctx, err
+		}
 		_ = timed("(the scenario's clean-up)", func() error {
 			w.stopReleaseServer()
 			os.RemoveAll(w.dir)
