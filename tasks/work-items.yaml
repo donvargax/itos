@@ -14310,3 +14310,21 @@ items:
     status: todo
     depends_on: []
     kind: task
+
+  - id: p1-merge-mutant-red
+    title: A merge of several pull requests does not turn main red on a mutant no pull request's run drew
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Seen 2026-10-25 (run 40236599186): #149 and #150 each passed their code proof, one fresh
+      mutant per push, and main's run of the merged range drew a third site, in slice-150's code,
+      which survived; main went red after both merged. With several lanes merging, main's run judges
+      a range no pull request was judged as. Options: main's run judges only the commits its merge
+      added that no pull request run covered (none, after a rebase merge), or the pull request's run
+      draws from the whole range it will land as (its head against main), so what merges was judged;
+      a survivor on main is still real and gets a test.
+    refs: [itos.yaml]
+    tags: [ci, push, v8]
