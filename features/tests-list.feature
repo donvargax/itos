@@ -115,7 +115,7 @@ Feature: Live named tests have a directly consumable TSV listing
   # a kill by a listed test by the test's file, so any edit to a feature file
   # (a comment, a new @wip scenario beside live ones) stales every kill any of
   # its scenarios made, and the code proof goes red after spec commits no
-  # test can see. Since itos-cc v0.24.0 (this repository pins v0.26.0, T-276)
+  # test can see. Since itos-cc v0.24.0
   # a listed test may carry a fingerprint, opaque to itos-cc, and its kill
   # holds while the fingerprint does. tests list --json gives each test of a
   # Gherkin kind a "fingerprint": the SHA-256, in lowercase hex, of a
