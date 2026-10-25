@@ -551,11 +551,15 @@ proof:
     check: "tools/bin/pinned itos-cc mutation run --count 1 --since {base} --seed {base} --fail-uncovered=lines --json cmd internal"
 
 # Work reaches main through pull requests merged by rebase once their checks
-# pass; registry and ledger bookkeeping goes straight to main (slices 174-177,
-# T-303). A pull request stays a draft, unjudged, until itos push --ready,
-# which waits for Copilot's review before auto-merge (slice-179).
+# pass; registry and ledger bookkeeping, and docs commits off features/, go
+# straight to main (slices 174-177, 186, T-303, T-311). A pull request stays a
+# draft, unjudged, until itos push --ready, which waits for Copilot's review
+# before auto-merge (slice-179).
 push:
   mode: pr
   pr:
     draft: true
     review_by: [copilot-pull-request-reviewer]
+    direct:
+      types: [docs]
+      except: ["features/**"]
