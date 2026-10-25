@@ -34,3 +34,13 @@ func TestRunInTheFolder(t *testing.T) {
 		}
 	}
 }
+
+// A command that exits with a code of its own, and is stopped by no signal,
+// has that code and no signal.
+func TestRunAnExitCodeIsNoSignal(t *testing.T) {
+	cfg := &config.Loaded{VCS: &porttest.VCS{Root: t.TempDir()}}
+	cfg.Shell = []string{"sh", "-c"}
+	if r := Run(cfg, "exit 3", Options{}); r.Code != 3 || r.Signal != 0 || r.TimedOut || r.Err != nil || r.Status() != "3" {
+		t.Errorf("exit 3: %+v, status %q, want code 3 and no signal", r, r.Status())
+	}
+}
