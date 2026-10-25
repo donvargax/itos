@@ -14077,3 +14077,24 @@ items:
     status: todo
     depends_on: []
     kind: task
+
+  - id: p1-pr-take-after-spec
+    title: Under push.pr.draft a take made on an item branch that opens with its spec reaches main only at the merge
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Seen 2026-10-25 in the parallel pilot: bug-137, bug-138 and slice-184 were each taken in a
+      worktree on the item branch that holds the coordinator's spec as its first commit; the take
+      commit sits above the spec, so registryPrefix (slice-177, 30939913) sends nothing to main and
+      the take travels in the pull request. T-307 and T-308, whose branches start at main, had
+      theirs sent to main. So while a spec-first item is being built, main's registry still says
+      todo and nobody's: itos status reads "Nothing in progress", itos work offers it to anyone, and
+      AGENTS.md's Finishing ("Take the item there; the take goes to main") is untrue. Either the
+      push sends a take found anywhere above main to main (a registry-only commit whose change is
+      the item's own take, rebased out of the branch), or the take is made on main before the switch
+      (p1-pr-take-switches), and AGENTS.md says which.
+    refs: [internal/slices/push/pr.go, AGENTS.md]
+    tags: [push, work, v8]
