@@ -120,6 +120,7 @@ type scratchConfig struct {
 	hooksBin          string            // hooks.bin
 	prePushRecord     bool              // hooks.pre_push's commands record that they ran
 	prePushCommit     string            // hooks.pre_push's command, one that commits in the clone
+	prePushBases      bool              // hooks.pre_push's commands record which of them ran, and per_base's base
 	watch             *watchConfig      // ci.watch
 	rangeGitHub       string            // ci.range.github's workflow, with ci.range's provider github, when set
 	ledgerFooter      string            // the key of the footer whose source is the ledger; Task when empty
@@ -441,6 +442,7 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	initializeCommitSteps(sc, w)
 	initializeOldGitSteps(sc, w)
 	initializePushSteps(sc, w)
+	initializePrePushRefSteps(sc, w)
 	initializePushModeSteps(sc, w)
 	initializeWorkDonePRSteps(sc, w)
 	initializeWatchSteps(sc, w)
@@ -1045,7 +1047,7 @@ func (w *world) writeConfig() error {
 		w.writeWork(&b)
 	}
 	if w.config.hooksBin != "" || w.config.taskChecks != nil || w.config.checkTimeout > 0 ||
-		w.config.prePushRecord || w.config.prePushCommit != "" {
+		w.config.prePushRecord || w.config.prePushBases || w.config.prePushCommit != "" {
 		b.WriteString("hooks:\n")
 	}
 	if w.config.hooksBin != "" {
@@ -1054,6 +1056,11 @@ func (w *world) writeConfig() error {
 	if w.config.prePushRecord {
 		record := "printf '%s\\n' ran >> " + quote(w.prePushRecord())
 		fmt.Fprintf(&b, "  pre_push: { per_base: %q, whole: %q }\n", record, record)
+	}
+	if w.config.prePushBases {
+		record := quote(w.prePushRecord())
+		fmt.Fprintf(&b, "  pre_push: { per_base: %q, whole: %q }\n",
+			`printf '%s\n' "per_base {base}" >> `+record, `printf '%s\n' whole >> `+record)
 	}
 	if c := w.config.prePushCommit; c != "" {
 		fmt.Fprintf(&b, "  pre_push: { per_base: %q, whole: %q }\n", c, c)
