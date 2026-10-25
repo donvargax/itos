@@ -245,8 +245,8 @@ func fromText(file, text string, isStealth func(string) bool) (*Loaded, error) {
 }
 
 // expandSets replaces each $name of a path list (commits.scopes', ci.prose's
-// paths, a range check's code) by commits.path_sets.<name>, and is a problem
-// for a name the sets do not have.
+// paths, push.pr.direct.except, a range check's code) by commits.path_sets.<name>,
+// and is a problem for a name the sets do not have.
 func expandSets(tree *value.Map) []out.Problem {
 	commits := value.Prop(tree, "commits")
 	sets, _ := value.Prop(commits, "path_sets").(*value.Map)
@@ -293,6 +293,11 @@ func expandSets(tree *value.Map) []out.Problem {
 	}
 	if prose, ok := value.Prop(value.Prop(tree, "ci"), "prose").(*value.Map); ok {
 		prose.Set("paths", expand(prose.At("paths").([]any), "ci.prose.paths"))
+	}
+	if direct, ok := value.Prop(value.Prop(value.Prop(tree, "push"), "pr"), "direct").(*value.Map); ok {
+		if globs, ok := direct.At("except").([]any); ok {
+			direct.Set("except", expand(globs, "push.pr.direct.except"))
+		}
 	}
 	return found
 }

@@ -91,8 +91,8 @@ func defaults() *value.Map {
 		),
 		// Trunk, so a config without push.mode pushes as it always did
 		// (slice 174); pr opens ready pull requests unless asked for drafts
-		// (slice 179).
-		"push", m("mode", "trunk", "pr", m("draft", false, "review_by", l())),
+		// (slice 179); push.pr.direct sends nothing straight to main (slice 186).
+		"push", m("mode", "trunk", "pr", m("draft", false, "review_by", l(), "direct", m("types", l(), "except", l()))),
 		// The repository's own notes, which itos go appends to the
 		// coordinator's guide (slice 64): beside its other docs.
 		"guide", m("orchestrating", "docs/ORCHESTRATING.md"),

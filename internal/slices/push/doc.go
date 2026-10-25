@@ -102,14 +102,23 @@
 // one pushing as trunk. Main is the branch the remote's HEAD names, asked
 // of the remote (Ports.RemoteHead, git ls-remote --symref) and required to
 // have the branch (defaultBranch: no-default-branch, exit 3). On main the
-// routine runs as above, but a push that adds a commit that is not the
-// registry's is refused once rebased (addsWork, workOnMain); --ref naming
-// main is judged the same against the remote's main (judgeRefs). A commit is
-// the registry's (registryCommit, slice 177), judged by itself against its
-// first parent, when it touches the work registry and every other path it
-// touches is a ledger file (registryPaths): the close of a task with checks,
-// task add and work promote --kind task edit the ledger beside the registry.
-// With no ledger section no path is one. On another
+// routine runs as above, but a push that adds a commit that is neither the
+// registry's nor one push.pr.direct sends is refused once rebased (addsWork,
+// workOnMain); --ref naming main is judged the same against the remote's main
+// (judgeRefs). A commit is the registry's (registryCommit, slice 177), judged
+// by itself against its first parent, when it touches the work registry and
+// every other path it touches is a ledger file (registryPaths): the close of
+// a task with checks, task add and work promote --kind task edit the ledger
+// beside the registry. With no ledger section no path is one. A commit is
+// direct (slice 186), judged as the registry's is, with renames off, when its
+// type (message.Type) is one of push.pr.direct.types and no path it touches
+// matches a push.pr.direct.except glob (internal/glob; one it cannot read
+// matches); the registry's commits and these may sit in any order, and a
+// range with any other commit is refused whole. With types set the refusal
+// names the oldest commit that is neither, by its seven-character SHA and
+// subject, else (empty types, or commits that cannot be listed) it is the old
+// words. Only addsWork reads push.pr.direct: what registryPrefix sends from an
+// item's branch is the registry's commits alone. On another
 // branch pushItem (pr.go) takes over: its name must be an item of the work
 // registry (work.IDsAt), then it fetches main and the item's branch,
 // rebases onto the item's when the remote has it, else onto main

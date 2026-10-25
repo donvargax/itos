@@ -1014,3 +1014,145 @@ func TestPushItemBranchSendsALedgerBesideTheRegistryToMain(t *testing.T) {
 		t.Fatalf("exit %d, pushed %v\n%s", code, f.pushed, stderr)
 	}
 }
+
+// prRepoDirect is prRepo with push.pr.direct set to the YAML given, none when
+// it is empty.
+func prRepoDirect(t *testing.T, direct string) *fake {
+	t.Helper()
+	f := prRepo(t)
+	text := "version: 1\npush: { mode: pr }\n"
+	if direct != "" {
+		text = "version: 1\npush: { mode: pr, pr: { direct: " + direct + " } }\n"
+	}
+	f.cfg = loadedWith(t, text, map[string]string{registryFile: "items:\n  - { id: " + item + " }\n"})
+	return f
+}
+
+// push.pr.direct (slice 186): from main, and with --ref main, a commit whose
+// type the key lists and that touches no path an except glob matches goes to
+// main with the registry's; any other commit refuses the whole push, naming
+// the oldest commit that is neither the registry's nor admitted when types is
+// set, else in the old words. The paths are the commit's against its first
+// parent with renames off, so a file moved out of an excepted folder still
+// touches it.
+func TestPushFromMainUnderPrSendsTheCommitsDirectNames(t *testing.T) {
+	const direct = "{ types: [docs, revert], except: ['features/**'] }"
+	const old = "that touch more than tasks/work-items.yaml; nothing was pushed."
+	const named = "adds mine0 docs: mine to origin/main, which is neither the registry's nor a commit push.pr.direct sends straight to main; nothing was pushed."
+	for name, c := range map[string]struct {
+		config, message string
+		add, remove     []string
+		fail            func(*fake)
+		want            string // "" pushed, else a part of the refusal
+	}{
+		"a docs commit":                {config: direct, message: "docs: mine\n", add: []string{"docs/a.md"}},
+		"a docs commit with a scope":   {config: direct, message: "docs(x)!: mine\n", add: []string{"docs/a.md"}},
+		"a revert":                     {config: direct, message: "Revert \"feat: mine\"\n", add: []string{"docs/a.md"}},
+		"a commit touching nothing":    {config: direct, message: "docs: mine\n"},
+		"a type the key does not list": {config: direct, message: "feat: mine\n", add: []string{"docs/a.md"}, want: strings.Replace(named, "docs: mine", "feat: mine", 1)},
+		"a message with no type":       {config: direct, message: "mine\n", add: []string{"docs/a.md"}, want: strings.Replace(named, "docs: mine", "mine", 1)},
+		"an excepted path":             {config: direct, message: "docs: mine\n", add: []string{"docs/a.md", "features/a.feature"}, want: named},
+		"a path an except glob misses": {config: direct, message: "docs: mine\n", add: []string{"docs/features/a.md"}},
+		"a feature file moved out":     {config: direct, message: "docs: mine\n", add: []string{"docs/a.md"}, remove: []string{"features/b.feature"}, want: named},
+		"an except glob that cannot be read": {config: direct, message: "docs: mine\n", add: []string{"docs/a.md"}, want: named,
+			fail: func(f *fake) { f.cfg.Push.PR.Direct.Except = []string{"nope/*", "?bad"} }},
+		"paths that cannot be read": {config: direct, message: "docs: mine\n", want: named,
+			fail: func(f *fake) { f.touchedErr = errors.New("no such range") }},
+		"types left empty":  {config: "{ except: ['x'] }", message: "docs: mine\n", add: []string{"docs/a.md"}, want: old},
+		"no push.pr.direct": {message: "docs: mine\n", add: []string{"docs/a.md"}, want: old},
+		"commits that cannot be listed": {config: direct, message: "docs: mine\n", add: []string{"docs/a.md"}, want: old,
+			fail: func(f *fake) { f.commitsErr = errors.New("no such range") }},
+		"a commit that cannot be shown": {config: direct, message: "docs: mine\n", add: []string{"docs/a.md"}, want: old,
+			fail: func(f *fake) { f.showErr = errors.New("no such commit") }},
+	} {
+		for _, args := range [][]string{nil, {"--ref", "main"}} {
+			t.Run(name+strings.Join(args, " "), func(t *testing.T) {
+				f := prRepoDirect(t, c.config)
+				f.on("main", mine)
+				f.History[1].Tree["features/b.feature"] = "b\n"
+				tree := maps.Clone(f.History[1].Tree)
+				for _, p := range c.add {
+					tree[p] = p + "\n"
+				}
+				for _, p := range c.remove {
+					delete(tree, p)
+				}
+				f.History[2].Parents, f.History[2].Tree, f.History[2].Message = []string{up}, tree, c.message
+				if c.fail != nil {
+					c.fail(f)
+				}
+				code, _, stderr, _ := call(t, f, args...)
+				switch {
+				case c.want == "" && (code != 0 || len(f.pushed) != 1 || len(f.ghCalls) != 0):
+					t.Errorf("exit %d, pushed %v, gh %v\n%s", code, f.pushed, f.ghCalls, stderr)
+				case c.want != "" && (code != policy || len(f.pushed) != 0 || !strings.Contains(stderr, c.want)):
+					t.Errorf("exit %d, pushed %v\n%s", code, f.pushed, stderr)
+				}
+			})
+		}
+	}
+}
+
+// The registry's commits and the commits push.pr.direct sends go together in
+// any order, a commit that is both is the registry's, and any other commit in
+// the range refuses it whole, named by the oldest.
+func TestPushFromMainUnderPrMixesTheRegistryAndTheCommitsDirectNames(t *testing.T) {
+	const direct = "{ types: [docs] }"
+	for name, c := range map[string]struct {
+		messages []string
+		want     string
+	}{
+		"direct below a take":  {[]string{"docs: note", "chore: take"}, ""},
+		"direct above a take":  {[]string{"chore: take", "docs: note"}, ""},
+		"direct between takes": {[]string{"chore: take", "docs: note", "chore: take again"}, ""},
+		"work above direct":    {[]string{"docs: note", "feat: work"}, "feat: work to origin/main"},
+		"work below direct":    {[]string{"feat: work", "docs: note"}, "feat: work to origin/main"},
+		"two works":            {[]string{"docs: note", "feat: work", "fix: more work"}, "feat: work to origin/main"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			f := prRepoDirect(t, direct)
+			parent, trees := up, maps.Clone(f.History[1].Tree)
+			for i, m := range c.messages {
+				tree := maps.Clone(trees)
+				if strings.HasPrefix(m, "chore") {
+					tree[registryFile] = fmt.Sprint("taken ", i, "\n")
+				} else {
+					tree[fmt.Sprint("f", i, ".md")] = "x\n"
+				}
+				commit := vcsfake.Commit{Name: fmt.Sprint("mx00", i), Parents: []string{parent}, Message: m + "\n", Tree: tree}
+				f.History, parent, trees = append(f.History, commit), commit.Name, tree
+			}
+			f.on("main", parent)
+			code, _, stderr, _ := call(t, f)
+			if c.want == "" && (code != 0 || len(f.pushed) != 1) || c.want != "" && (code != policy || len(f.pushed) != 0 || !strings.Contains(stderr, c.want)) {
+				t.Errorf("exit %d, pushed %v\n%s", code, f.pushed, stderr)
+			}
+		})
+	}
+}
+
+// A docs commit directly above main on an item's branch is the item's work
+// whatever push.pr.direct lists: registryPrefix does not read it.
+func TestPushItemBranchKeepsADirectCommitWithItsWork(t *testing.T) {
+	f := prRepoDirect(t, "{ types: [docs] }")
+	f.History[2].Parents = []string{up}
+	f.History[2].Message = "docs: mine\n"
+	f.History[2].Tree = maps.Clone(f.History[1].Tree)
+	f.History[2].Tree["docs/a.md"] = "a\n"
+	code, _, stderr, _ := call(t, f)
+	if code != 0 || len(f.pushed) != 1 || len(f.pushed[0]) != 1 || f.pushed[0][0] != mine+":refs/heads/slice-9" {
+		t.Errorf("exit %d, pushed %v\n%s", code, f.pushed, stderr)
+	}
+}
+
+// The refusal names the commit by seven characters of its SHA.
+func TestPushFromMainUnderPrNamesTheCommitBySevenCharacters(t *testing.T) {
+	const sha = "abcdef0123456789abcdef0123456789abcdef01"
+	f := prRepoDirect(t, "{ types: [docs] }")
+	f.History[2].Name, f.History[2].Parents, f.History[2].Message = sha, []string{up}, "feat: mine\n"
+	f.on("main", sha)
+	code, _, stderr, _ := call(t, f)
+	if want := "this push adds abcdef0 feat: mine to origin/main, which"; code != policy || !strings.Contains(stderr, want) {
+		t.Errorf("exit %d\n%s", code, stderr)
+	}
+}
