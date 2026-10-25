@@ -14294,3 +14294,15 @@ items:
       that wraps donvargax/itos@ is likewise never named (excluded by slice-150's spec).
     refs: [internal/slices/upgrade]
     tags: [upgrade, v8]
+
+  - id: bug-139
+    title: "itos commit --task none says \"unknown tasks: none\" instead of that Task: takes a ledger task's id (#133)"
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: bug
+    why: >
+      Tracked in GitHub issue #133 (registry pilot: the issue holds the item).
+    refs: [internal/slices/commit]
+    tags: [commit, v8]
