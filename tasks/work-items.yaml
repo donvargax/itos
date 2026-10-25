@@ -14176,3 +14176,23 @@ items:
       (commit times, the reflog, stat data in the index), so worth it only when the Windows shards
       near 300 s again.
     tags: [tests, v8]
+
+  - id: p1-pr-conflict-path
+    title: Under pr, an item branch whose commits conflict with main has a way through itos
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Seen 2026-10-25 (T-308, #147): gh pr update-branch --rebase failed with RebaseConflictError,
+      itos push rebased the local branch onto origin/T-308 rather than origin/main and stopped on
+      the same conflict, and the pre-push hook refused a lease-pinned rewrite of the item's own
+      branch. The only path left was deleting the remote branch through the API, which closed the
+      pull request and its review history; a new one was opened from the rebased commits. Wanted:
+      itos push, told the update-branch conflicted, rebases onto main itself, leaves the conflict
+      for the person as it does any rebase, and pushes the result to the item's own branch with a
+      lease on the head it read (a rewrite the pre-push hook allows for an item branch under pr,
+      never for main). p1-pr-registry-to-main removes the commonest cause.
+    refs: [internal/slices/push/pr.go]
+    tags: [push, v8]
