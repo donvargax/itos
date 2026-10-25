@@ -22,6 +22,7 @@ import (
 // the ask; a command in fail fails with its error.
 type pulls struct {
 	open, created string
+	title         string // the open pull request's title
 	draft         bool
 	heads         []string
 	reviews       []string // the logins of the reviews' authors, "" for an author that is gone
@@ -41,7 +42,7 @@ func (p *pulls) gh(args []string) (string, error) {
 		if p.open == "" {
 			return "[]\n", nil
 		}
-		return fmt.Sprintf(`[{"number":7,"url":%q,"isDraft":%t}]`, p.open, p.draft) + "\n", nil
+		return fmt.Sprintf(`[{"number":7,"url":%q,"isDraft":%t,"title":%q}]`, p.open, p.draft, p.title) + "\n", nil
 	case "pr create":
 		return "Creating the pull request\n" + p.created + "\n", nil
 	case "pr view":
@@ -129,7 +130,7 @@ func pushedLine(f *fake, t *testing.T, address string) string {
 }
 
 const (
-	list     = "pr list --repo owner/name --head slice-9 --state open --json number,url,isDraft"
+	list     = "pr list --repo owner/name --head slice-9 --state open --json number,url,isDraft,title"
 	merge    = "pr merge slice-9 --repo owner/name --auto --rebase"
 	ready    = "pr ready slice-9 --repo owner/name"
 	sayDraft = "The pull request is a draft: nothing judges or merges it until itos push --ready marks it ready.\n"
@@ -152,7 +153,7 @@ func TestPushUnderDraftOpensADraftAndNothingMore(t *testing.T) {
 	if code != 0 || stderr != "" || stdout != pushedLine(f, t, opened)+sayDraft {
 		t.Fatalf("exit %d\n%s%s", code, stdout, stderr)
 	}
-	if got, want := f.calls(), []string{list, "pr create --repo owner/name --base main --head slice-9 --fill --draft"}; !reflect.DeepEqual(got, want) {
+	if got, want := f.calls(), []string{list, "pr create --repo owner/name --base main --head slice-9 --title=slice-9 --body=slice-9 --draft"}; !reflect.DeepEqual(got, want) {
 		t.Errorf("gh was called\n%s", strings.Join(got, "\n"))
 	}
 
@@ -269,7 +270,7 @@ func TestPushReadyOpensOrKeepsTheReadyPullRequest(t *testing.T) {
 	if r := reported(t, stdout); code != 0 || r.PR == nil || !r.PR.Created || r.PR.Draft || !r.PR.AutoMerge || r.CI != "" {
 		t.Errorf("exit %d\n%s", code, stdout)
 	}
-	create := "pr create --repo owner/name --base main --head slice-9 --fill"
+	create := "pr create --repo owner/name --base main --head slice-9 --title=slice-9 --body=slice-9"
 	if got, want := f.calls(), []string{list, create, graphql(1), merge}; !reflect.DeepEqual(got, want) || p.asks != 1 {
 		t.Errorf("gh was called\n%s", strings.Join(got, "\n"))
 	}

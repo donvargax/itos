@@ -66,6 +66,7 @@ type fake struct {
 	ghCalls    [][]string
 	repository string
 	commitsErr error
+	showErr    error            // the error showing a commit
 	fetchErrs  map[string]error // by refspec, a fetch that fails whatever fetchErr says
 	atomic     []bool           // whether each push was atomic
 	// The quiet fetches (no prompt) by refspec, and what runs when one is made:
@@ -103,6 +104,13 @@ func (f *fake) Commits(ctx context.Context, r vcsport.Range) ([]string, error) {
 		return nil, f.commitsErr
 	}
 	return f.VCS.Commits(ctx, r)
+}
+
+func (f *fake) Show(ctx context.Context, rev string) (vcsport.Entry, error) {
+	if f.showErr != nil {
+		return vcsport.Entry{}, f.showErr
+	}
+	return f.VCS.Show(ctx, rev)
 }
 
 func (f *fake) Config(_ context.Context, key string, _ bool) []string { return f.git[key] }

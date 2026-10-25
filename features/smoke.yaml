@@ -172,6 +172,10 @@
   scenarios:
     - id: "@ID-PUSHLEDGER-01"
       why: a task's close that edits the ledger beside the registry going from main to main under pr, the file's point
+- file: push-mode-title.feature
+  scenarios:
+    - id: "@ID-PRTITLE-01"
+      why: the first push titles the pull request after the item and closes the item's issue, with no --fill, the file's point
 - file: push-mode.feature
   scenarios:
     - id: "@ID-PUSHMODE-01"

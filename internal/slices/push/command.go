@@ -89,8 +89,15 @@ when there is one, else onto main; the registry's commits directly above main
 go to main, in the same git push --atomic. Then gh --repo <repository>, the
 repository ci.range.github.repository_env names, else the remote's URL
 (none: exit 3, before anything is pushed), finds the open pull request or
-opens it (gh pr create --fill), turns on auto-merge by rebase (gh pr merge
---auto --rebase, never squash; push.pr.draft, below, changes that) and, when main has a commit the pushed head
+opens it (gh pr create), titled "<item>: <the item's title in the registry>"
+(cut to 255 characters and an ellipsis past what GitHub keeps; the item's id
+alone when the registry at the pushed head gives it no title) and described by
+that title and a "Closes #<n>" line for each issue the parenthesised list that
+ends it names, "(#12)" or "(#12, #15)"; one already open that is still titled
+after its first commit, as gh pr create --fill titles one, is retitled (gh pr
+edit --title), its description left as it is. It turns on auto-merge by rebase
+(gh pr merge --auto --rebase, never squash; push.pr.draft, below, changes
+that) and, when main has a commit the pushed head
 lacks, asks GitHub to rebase it (gh pr update-branch --rebase) rather than
 forcing the branch; the push prints the pull request's address, and these
 calls run with nothing to push too. A branch of the registry's commits alone

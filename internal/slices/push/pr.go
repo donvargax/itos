@@ -236,7 +236,7 @@ func (r *pushRun) pushItem(ctx context.Context, item, main string) Answer {
 			return a
 		}
 	}
-	return r.pullRequest(ctx, repository, main, theirMain, pushing, !v.IsAncestor(ctx, theirMain, r.sha))
+	return r.pullRequest(ctx, repository, main, theirMain, ahead[toMain], pushing, !v.IsAncestor(ctx, theirMain, r.sha))
 }
 
 // registryPrefix is how many of the commits above main, oldest first, go to
@@ -283,10 +283,10 @@ func (r *pushRun) pushRegistry(ctx context.Context, main, onto string) Answer {
 // run of the head GitHub makes (rebasedHead), not the one pushed. theirMain is
 // main's head as the push fetched it. pushed is whether this run pushed the
 // item's branch.
-func (r *pushRun) pullRequest(ctx context.Context, repository, main, theirMain string, pushed, behind bool) Answer {
+func (r *pushRun) pullRequest(ctx context.Context, repository, main, theirMain, first string, pushed, behind bool) Answer {
 	item := r.branch
 	draft := r.cfg.Push.PR.Draft
-	listed, a, failed := r.gh(ctx, "pr", "list", "--repo", repository, "--head", item, "--state", "open", "--json", "number,url,isDraft")
+	listed, a, failed := r.gh(ctx, "pr", "list", "--repo", repository, "--head", item, "--state", "open", "--json", "number,url,isDraft,title")
 	if failed {
 		return a
 	}
@@ -294,14 +294,19 @@ func (r *pushRun) pullRequest(ctx context.Context, repository, main, theirMain s
 		Number  int    `json:"number"`
 		URL     string `json:"url"`
 		IsDraft bool   `json:"isDraft"`
+		Title   string `json:"title"`
 	}
 	if err := json.Unmarshal([]byte(listed), &open); err != nil {
 		return r.ghFailed("gh pr list", "its answer is not a list of pull requests: "+err.Error())
 	}
 	if len(open) > 0 {
 		r.pr = &PullRequest{URL: open[0].URL, Number: open[0].Number, Draft: open[0].IsDraft}
+		if a, failed := r.retitle(ctx, repository, open[0].Title, first); failed {
+			return a
+		}
 	} else {
-		create := []string{"pr", "create", "--repo", repository, "--base", main, "--head", item, "--fill"}
+		title, body := r.describe(item)
+		create := []string{"pr", "create", "--repo", repository, "--base", main, "--head", item, "--title=" + title, "--body=" + body}
 		asDraft := draft && !r.markReady
 		if asDraft {
 			create = append(create, "--draft")

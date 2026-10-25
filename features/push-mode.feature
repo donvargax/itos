@@ -61,8 +61,9 @@ Feature: push.mode pr, an item's work on its own branch merged by rebase, claims
   Then, unless the branch adds nothing to main, its pull request. gh pr list
   --repo <repository> --head <item> --state open --json number,url finds the
   open one, [] when there is none; with none, gh pr create --repo
-  <repository> --base <main> --head <item> --fill opens it, printing its
-  address. Then gh pr merge <item> --repo <repository> --auto --rebase, never
+  <repository> --base <main> --head <item> opens it (its title and its
+  description are push-mode-title.feature's, slice 184, which replaced
+  --fill), printing its address. Then gh pr merge <item> --repo <repository> --auto --rebase, never
   squash (each commit is a changelog entry with its footers, and GitHub's
   squash appends a Co-authored-by paragraph that pushes them out of the
   trailer block); and, when main has a commit the pushed head lacks, gh pr

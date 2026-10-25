@@ -39,7 +39,8 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   commits to main, the atomic push) and then: gh pr list --repo <repository>
   --head <item> --state open --json number,url,isDraft (isDraft is asked
   under either setting of draft); with none open, gh pr create --repo
-  <repository> --base <main> --head <item> --fill --draft. It turns on no
+  <repository> --base <main> --head <item> and the title and the description
+  of push-mode-title.feature (slice 184), then --draft. It turns on no
   auto-merge (no gh pr merge), asks GitHub for no rebase (no gh pr
   update-branch, even when main has moved: nothing judges a draft, and
   --ready asks for it), and waits for no run, ci.watch or not. It never

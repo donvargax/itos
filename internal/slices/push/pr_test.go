@@ -105,8 +105,8 @@ func TestPushItemBranchOpensItsPullRequest(t *testing.T) {
 		t.Errorf("origin has %v; pushed %v atomic %v", f.Remote["origin"].Refs, f.pushed, f.atomic)
 	}
 	want := []string{
-		"pr list --repo owner/name --head slice-9 --state open --json number,url,isDraft",
-		"pr create --repo owner/name --base main --head slice-9 --fill",
+		"pr list --repo owner/name --head slice-9 --state open --json number,url,isDraft,title",
+		"pr create --repo owner/name --base main --head slice-9 --title=slice-9 --body=slice-9",
 		"pr merge slice-9 --repo owner/name --auto --rebase",
 	}
 	if got := f.calls(); fmt.Sprint(got) != fmt.Sprint(want) {
