@@ -1057,7 +1057,7 @@ func TestPushFromMainUnderPrSendsTheCommitsDirectNames(t *testing.T) {
 		"an except glob that cannot be read": {config: direct, message: "docs: mine\n", add: []string{"docs/a.md"}, want: named,
 			fail: func(f *fake) { f.cfg.Push.PR.Direct.Except = []string{"nope/*", "?bad"} }},
 		"paths that cannot be read": {config: direct, message: "docs: mine\n", want: named,
-			fail: func(f *fake) { f.touchedErr = errors.New("no such range") }},
+			fail: func(f *fake) { f.diffErr = errors.New("no such commit") }},
 		"types left empty":  {config: "{ except: ['x'] }", message: "docs: mine\n", add: []string{"docs/a.md"}, want: old},
 		"no push.pr.direct": {message: "docs: mine\n", add: []string{"docs/a.md"}, want: old},
 		"commits that cannot be listed": {config: direct, message: "docs: mine\n", add: []string{"docs/a.md"}, want: old,
@@ -1154,5 +1154,31 @@ func TestPushFromMainUnderPrNamesTheCommitBySevenCharacters(t *testing.T) {
 	code, _, stderr, _ := call(t, f)
 	if want := "this push adds abcdef0 feat: mine to origin/main, which"; code != policy || !strings.Contains(stderr, want) {
 		t.Errorf("exit %d\n%s", code, stderr)
+	}
+}
+
+// A merge is judged by what it changes against its first parent, not by the
+// history it merges in: an excepted path added and reverted on the remote
+// leaves the merge of it touching nothing excepted.
+func TestPushFromMainUnderPrJudgesAMergeByItsFirstParent(t *testing.T) {
+	f := prRepoDirect(t, "{ types: [docs], except: ['features/**'] }")
+	start := f.History[0].Tree
+	added := maps.Clone(start)
+	added["features/x.feature"] = "x\n"
+	reverted := maps.Clone(start)
+	reverted["up.md"] = "up.md\n"
+	local := maps.Clone(start)
+	local["docs/a.md"] = "a\n"
+	merged := maps.Clone(reverted)
+	merged["docs/a.md"] = "a\n"
+	f.History[1].Parents, f.History[1].Tree = []string{"fx000"}, reverted
+	f.History = append(f.History,
+		vcsfake.Commit{Name: "fx000", Parents: []string{base}, Message: "docs: spec\n", Tree: added},
+		vcsfake.Commit{Name: "lc000", Parents: []string{base}, Message: "docs: local\n", Tree: local},
+		vcsfake.Commit{Name: "mg000", Parents: []string{"lc000", up}, Message: "docs: merge\n", Tree: merged})
+	f.on("main", "mg000")
+	code, _, stderr, _ := call(t, f)
+	if code != 0 || len(f.pushed) != 1 {
+		t.Errorf("exit %d, pushed %v\n%s", code, f.pushed, stderr)
 	}
 }

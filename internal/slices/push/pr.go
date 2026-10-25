@@ -144,8 +144,8 @@ func (r pushRun) addsWork(ctx context.Context, onto, sha string) (oldest string,
 }
 
 // direct is whether the commit is one push.pr.direct sends straight to main
-// (slice 186): its type is one of push.pr.direct.types and no path it touches,
-// against its first parent with renames off, matches a push.pr.direct.except
+// (slice 186): its type is one of push.pr.direct.types and no path it changes
+// against its first parent, renames off, merged-in history left out, matches a push.pr.direct.except
 // glob; a glob that cannot be read matches.
 func (r pushRun) direct(ctx context.Context, commit string) bool {
 	d := r.cfg.Push.PR.Direct
@@ -156,7 +156,7 @@ func (r pushRun) direct(ctx context.Context, commit string) bool {
 	if err != nil || !slices.Contains(d.Types, message.Type(entry.Message)) {
 		return false
 	}
-	files, err := r.ports.Touched(ctx, vcsport.Range{From: r.ports.Parent(ctx, commit), To: commit}, true)
+	files, err := r.ports.Diff(ctx, r.ports.Parent(ctx, commit), commit)
 	if err != nil {
 		return false
 	}
