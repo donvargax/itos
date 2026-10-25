@@ -173,10 +173,11 @@ func reportWorkflows(w io.Writer, a Answer) {
 	case len(a.Uses) == 0:
 	case a.Pinned:
 		fmt.Fprintf(w, "\nThe action installs a launcher, the release its ref or its version input names, and the "+
-			"repository's pin chooses the itos that runs: itos %s, whatever these lines say.\n", a.To)
+			"repository's pin chooses the itos that runs, itos %s, whatever these lines say, unless the workflow "+
+			"sets ITOS_VERSION or loads another config.\n", a.To)
 	default:
-		fmt.Fprintln(w, "\nThe config pins no itos, so each of these lines runs the release it installs; "+
-			"itos pin pins one.")
+		fmt.Fprintln(w, "\nThe config pins no itos, so each of these lines runs the release it installs, unless the "+
+			"workflow sets ITOS_VERSION or loads another config; itos pin pins one.")
 	}
 }
 

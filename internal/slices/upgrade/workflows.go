@@ -8,6 +8,8 @@ import (
 	"strings"
 
 	"go.yaml.in/yaml/v3"
+
+	"github.com/donvargax/itos/v8/internal/value"
 )
 
 const (
@@ -77,12 +79,15 @@ func why(err error) string {
 }
 
 // stepUses is the uses of the itos action in the steps of text's jobs, by
-// line.
+// line. Text that value.Parse refuses (a syntax error, a key written twice,
+// several documents, aliases that expand without bound) is an error, so no
+// report is made of half a workflow.
 func stepUses(file string, text []byte) ([]actionUse, error) {
-	var doc yaml.Node
-	if err := yaml.Unmarshal(text, &doc); err != nil {
+	if _, err := value.Parse(string(text)); err != nil {
 		return nil, err
 	}
+	var doc yaml.Node
+	_ = yaml.Unmarshal(text, &doc) // value.Parse read it without error
 	var uses []actionUse
 	for _, job := range values(entry(&doc, "jobs")) {
 		for _, step := range items(entry(job, "steps")) {

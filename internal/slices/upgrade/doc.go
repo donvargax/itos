@@ -43,9 +43,11 @@
 // its with.version as written. The action installs a launcher, which the
 // ref or the version input chooses, and the repository's pin chooses the itos
 // that runs (action.yml, ADR-0024), so a line left as it is runs the pinned
-// release; with no pin the release it installs runs, which the report says.
-// A workflow that cannot be read is a scan problem naming it and why, the
-// others still scanned. A stealth config, never committed, is read by no
+// release; with no pin the release it installs runs, which the report says,
+// both unless the workflow sets ITOS_VERSION or loads another config, which
+// the scan does not read. A workflow that value.Parse refuses (a syntax
+// error, a key written twice, several documents) or that cannot be read is a
+// scan problem naming it and why, the others still scanned. A stealth config, never committed, is read by no
 // workflow, so it names none. --json carries both as action_uses and
 // action_scan_problems, [] when empty and on a refusal.
 //
