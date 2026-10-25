@@ -14332,8 +14332,8 @@ items:
   - id: bug-141
     title: "Two clones minting on the remote counter at once: the loser fails with \"cannot lock ref\" instead of retrying"
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: [T-310]
     kind: bug
     why: >
