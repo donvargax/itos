@@ -305,3 +305,21 @@ mutation:
       replacement: ">="
       reason: "Equivalent for max > 0, the only max there is: tail is built once, with max OutputTail (a 32 KiB constant), and its tests use 3, 4 and 8. Under >= Write also trims when len(buf) is exactly 2*max, to the last max bytes with cut set. Either way buf is a suffix of everything written, at least max bytes long once cut is set or len(buf) > max, and Text returns its last max bytes with true exactly when more than max bytes were written (len(buf) > max, or cut, which only a trim sets and a trim only follows more than max bytes), so a trim at 2*max, which holds more than max bytes, changes neither. Only max == 0 differs, where an empty Write sets cut under >=."
       line_text: if len(t.buf) > 2*t.max {
+    - file: internal/git/unpushed.go
+      function: github.com/donvargax/itos/v8/internal/git.Runner#UnpushedBases
+      hash: b1bbd55d70209c1b
+      line_in_function: 13
+      column: 16
+      original: ">"
+      replacement: ">="
+      reason: "Equivalent: with exactly one boundary commit, git merge-base --independent prints that commit alone, so reducing a single base gives the same list as not reducing it; with none the branch is not reached either way (len > 0 differs from len > 1 only at one)."
+      line_text: if len(bases) > 1 {
+    - file: internal/git/unpushed.go
+      function: github.com/donvargax/itos/v8/internal/git.Runner#UnpushedBases
+      hash: b1bbd55d70209c1b
+      line_in_function: 13
+      column: 18
+      original: "1"
+      replacement: "0"
+      reason: "Equivalent: the bound 0 for 1 reduces a single boundary commit too, which git merge-base --independent prints unchanged, and an empty list never satisfies len > 0, so every input gives the same bases."
+      line_text: if len(bases) > 1 {
