@@ -14278,8 +14278,8 @@ items:
   - id: bug-139
     title: "itos commit --task none says \"unknown tasks: none\" instead of that Task: takes a ledger task's id (#133)"
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: bug
     why: >
