@@ -129,8 +129,9 @@ request's first commit; every commit of the item goes on it.
    waits for nothing; no CI judges a draft. Never push to `main` another
    way. Hand back once the work is done, the draft pushed: the coordinator
    reviews it and posts on the pull request.
-3. **Address each review thread**: fix it and push, or reply on the pull
-   request; then resolve it.
+3. **Address each review thread**: fix it, push, then resolve it. A finding
+   you disagree with gets your reasoning as a reply and stays open (it
+   blocks the merge); hand back, and the coordinator decides.
 4. **Mark it ready** with `tools/bin/itos push --ready` in the foreground
    (600000 ms timeout): it marks the pull request ready, waits for its
    checks (those of the head GitHub makes when it rebases the branch too)
