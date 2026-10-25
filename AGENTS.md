@@ -115,19 +115,27 @@ judges one mutation site of the changed functions and the coverage of the
 lines added or changed (q-57). A survivor, or an uncovered changed line, is
 real: kill it with a test, or show the mutant equivalent and except it.
 
-1. **Push** with `tools/bin/itos push` in the foreground (600000 ms
-   timeout), straight to `main` (no branches or pull requests; a worktree
-   branch with no upstream goes to `main`, bug-136): it waits for CI. If the
-   call is cut off, run `tools/bin/itos ci watch <sha>` in the foreground
-   once more; never sleep, poll or loop. Read a rejection before diagnosing
-   it (`tools/bin/itos push --help` gives its outcomes): the pre-push hook
-   failing is as likely as the remote having moved.
-2. A red run is yours: fix the cause, never the check, and push again. Once
-   CI is green, close the item with `tools/bin/itos work done <item>`.
-3. Report the exact pushed SHA, the green run's address, your commits, the
-   checks that ran and any remaining work, from a clean checkout. A repair
-   worktree hands its commits to the coordinator and does not push. No
-   background job may outlive the handoff.
+This repository runs `push.mode: pr` (T-303): an item's work reaches `main`
+through a pull request merged by rebase once its checks pass; only registry
+and ledger bookkeeping (a take, a close, `task add`) goes straight to `main`.
+
+1. **Work on the item's branch**, named for the item: in a worktree,
+   `git branch -m <item>`, or `git switch -c <item> origin/<item>` when its
+   spec is already there. Take the item there; the take goes to `main`.
+2. **Push** with `tools/bin/itos push` in the foreground (600000 ms
+   timeout): it pushes the branch, opens or updates its pull request, turns
+   on auto-merge and waits for its checks, those of the head GitHub makes
+   when it rebases the branch too. If the call is cut off, run
+   `tools/bin/itos ci watch <sha>` in the foreground once more; never sleep,
+   poll or loop. Read a rejection before diagnosing it (`tools/bin/itos push
+   --help` gives its outcomes). Never push to `main` another way.
+3. A red run is yours: fix the cause, never the check, and push again.
+   GitHub merges the pull request once its checks pass.
+4. Report the pull request's address, the pushed SHA, the green run, your
+   commits, the checks that ran and any remaining work, from a clean
+   checkout. `work done` runs on `main` after the merge (slice-176), which a
+   worktree cannot check out: the coordinator closes the item. No background
+   job may outlive the handoff.
 
 No changelog to write and no release to cut: each commit's body is its
 changelog entry, and a green push carrying a `feat` or a `fix` publishes the
