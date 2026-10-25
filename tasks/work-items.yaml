@@ -14426,3 +14426,20 @@ items:
       push refusing the same tree ("push the take before your work").
     refs: [internal/work]
     tags: [work, v8]
+
+  - id: p1-review-by-real-review
+    title: push.pr.review_by does not count a review that says it could not review
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Seen 2026-10-25 on #158: Copilot's quota ran out and it posted "Copilot was unable to review
+      this pull request because the user who requested the review has insufficient remaining quota";
+      itos push --ready counted that as the required review by copilot-pull-request-reviewer and the
+      pull request merged unreviewed. A review that holds no verdict (Copilot's ccr-overview marker
+      missing, or its known refusal words) should leave --ready waiting, exit 75, naming why, so the
+      person sees the quota is gone instead of merges going on without the review.
+    refs: [internal/slices/push]
+    tags: [push, review, v8]
