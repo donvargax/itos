@@ -552,6 +552,10 @@ proof:
 
 # Work reaches main through pull requests merged by rebase once their checks
 # pass; registry and ledger bookkeeping goes straight to main (slices 174-177,
-# T-303).
+# T-303). A pull request stays a draft, unjudged, until itos push --ready,
+# which waits for Copilot's review before auto-merge (slice-179).
 push:
   mode: pr
+  pr:
+    draft: true
+    review_by: [copilot-pull-request-reviewer]
