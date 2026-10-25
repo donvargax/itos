@@ -175,6 +175,11 @@ type VCS interface {
 	// remote, or with the unpushed commits growing from several remote
 	// branches' commits, none an ancestor of another.
 	UnpushedBase(ctx context.Context, to string) string
+	// UnpushedBases are the commits the unpushed commits of to grow from,
+	// each a commit some remote branch has and none an ancestor of another;
+	// adds is whether any commit of to is unpushed. A to that names no
+	// commit adds with no base.
+	UnpushedBases(ctx context.Context, to string) (bases []string, adds bool)
 
 	// Show is the commit a revision names; an error when it names none.
 	Show(ctx context.Context, rev string) (Entry, error)

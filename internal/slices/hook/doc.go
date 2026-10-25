@@ -73,23 +73,39 @@
 //     otherwise. hooks.commit_msg.task_checks: false turns them off.
 //
 // hook pre-push (prepush.go) reads git's ref lines, or under pre-commit or
-// prek the line their environment gives, as pushedRefs: each ref's local
-// commit and the remote's commit it replaces when this clone has it, a
-// deleted ref left out. First it refuses a push that rewrites the remote
-// (slice 128, rewrites): a ref whose remote commit this clone lacks, or
-// that is not an ancestor of the commit pushed, as only a forced push
-// replaces; refuseRewrite names the ref and itos push, exit 1, before the
-// config is read and with no command run. It verifies next (verifyPush):
-// judge.Over on each distinct pushedRange, <remote sha>..<local sha>, or
-// the unpushed commits up to the local one when there is no remote commit
-// to compare with, each run's report written to a buffer, so a push whose
-// commits pass prints nothing. A failing range's report is printed with
-// fixAdvice (git commit --amend, or git rebase -i from the parent of the
+// prek the line their environment gives, as pushLines, a line's carriage
+// return dropped. First it refuses a push that would move or delete a tag
+// the remote has (slice 182, movedTag): a line whose remote ref is under
+// refs/tags/ and whose remote SHA is not zeros, a deleted ref's line
+// included, whatever the new commit builds on and whether or not this clone
+// has the old one; refuseTag names the tag and the commits (the tag
+// objects' for an annotated tag), says no way round is offered, exit 1,
+// before the config is read and with no command run, under every config, and
+// is the only refusal a push with such a tag makes. Then the refs a push
+// sends, pushedRefs: each ref's local commit and the remote's commit it
+// replaces when this clone has it, a deleted ref left out. It refuses a push
+// that rewrites the remote (slice 128, rewrites): a ref whose remote commit
+// this clone lacks, or that is not an ancestor of the commit pushed, as only
+// a forced push replaces; refuseRewrite names the ref and itos push, exit 1,
+// before the config is read and with no command run. It verifies next
+// (verifyPush): judge.Over on each distinct pushedRange, <remote sha>..<local
+// sha>, or the unpushed commits up to the local one when there is no remote
+// commit to compare with, each run's report written to a buffer, so a push
+// whose commits pass prints nothing. A failing range's report is printed
+// with fixAdvice (git commit --amend, or git rebase -i from the parent of the
 // first failing commit, --root for a root commit) and the hook exits 1 with
-// no command run. Then it runs hooks.pre_push's per_base once per remote
-// base this clone has (pushBases), else whole, through the Shell port with
-// the hook's streams, nothing for a deleted branch, and nothing at all
-// without hooks.pre_push.
+// no command run. Then it runs hooks.pre_push's per_base once per base
+// (pushBases), each distinct one once: an existing ref's remote commit, and
+// for a new ref, branch or tag alike, the remote commits its own commits
+// grow from, the VCS port's UnpushedBases over the commit it names (a tag
+// object peels to its commit), so a merge of two remote branches has two
+// and a ref that adds no commit has none and runs nothing; whole runs, alone,
+// when a ref adds commits and grows from none (no remote-tracking ref, or
+// unrelated history) or an existing ref's remote commit is one this clone
+// lacks. The remote-tracking refs are every remote's and the hook fetches
+// nothing, so a stale one only makes a base older, and more is judged. Each
+// command goes through the Shell port with the hook's streams, nothing for a
+// deleted ref, and nothing at all without hooks.pre_push.
 //
 // Handle reaches the world through Ports, which the slice owns and
 // internal/cli binds: the repository (the VCS port, git behind it), its

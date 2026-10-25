@@ -160,6 +160,10 @@
   scenarios:
     - id: "@ID-PREPUSH-01"
       why: a pushed commit that breaks the commit rules refused by the hook, saying how to fix it, the file's point
+- file: prepush-refs.feature
+  scenarios:
+    - id: "@ID-PUSHREF-01"
+      why: an item's first push, a new branch from the remote's main, judged from main's head and not by the whole run, the file's point
 - file: push-mode-draft.feature
   scenarios:
     - id: "@ID-PUSHDRAFT-06"

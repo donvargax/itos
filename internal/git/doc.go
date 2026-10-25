@@ -49,7 +49,9 @@
 // commit of HEAD no remote has. UnpushedBase is the pushed commit they grow
 // from (one boundary of rev-list
 // --boundary left by merge-base --independent), the end itself when nothing
-// is unpushed, else empty, as a new branch's.
+// is unpushed, else empty, as a new branch's. UnpushedBases are all of them
+// (the pre-push hook runs per_base once for each, slice 182), and whether
+// any commit is unpushed.
 //
 // # The state itos push and the registry writers read
 //

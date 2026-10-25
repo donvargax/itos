@@ -53,20 +53,33 @@ prints its report and decides: exit 1, or the header lint's own code.`,
 		"pre-push": `Usage: itos hook pre-push <remote> <url>
 
 The pre-push hook. Reads git's ref lines on stdin (or PRE_COMMIT_FROM_REF and
-PRE_COMMIT_TO_REF under pre-commit or prek) and first refuses a push that
-would replace a remote ref's commit with one that does not build on it, as a
-forced push does: the remote's commit is not an ancestor of the commit
-pushed, or this clone lacks it. It names the ref and itos push, which rebases
-onto the remote's commits instead, runs nothing more and exits 1; a new
-branch is not refused. Then it verifies the commits each pushed ref adds, as
-itos verify does (messages, paths, range checks, commits.since left out): the
-ones after the remote's commit it replaces, else (a new branch) the ones on
-no remote-tracking branch. It prints nothing for commits that pass. A failure
-prints verify's report and how to fix the commits (git commit --amend for the
-last one, git rebase -i for an earlier one), runs nothing more and exits 1.
-Then it runs hooks.pre_push.per_base once per remote commit the push builds
-on, else hooks.pre_push.whole (a new branch); without hooks.pre_push,
-nothing. A deleted branch runs nothing. Exit 1 when a command fails.`,
+PRE_COMMIT_TO_REF under pre-commit or prek) and first refuses, whatever the
+config, a push that would move or delete a tag the remote already has (a ref
+under refs/tags/ whose remote commit is not zeros), forced or not, whether or
+not the new commit builds on the old: a tag is never moved or deleted, so
+itos offers no way round it; a tag that must go is deleted on the remote's
+host. It names the tag and the commits, runs nothing more and exits 1. Then
+it refuses a push that would replace another remote ref's commit with one
+that does not build on it, as a forced push does: the remote's commit is not
+an ancestor of the commit pushed, or this clone lacks it. It names the ref
+and itos push, which rebases onto the remote's commits instead, runs nothing
+more and exits 1; a new ref is not refused. Then it verifies the commits each
+pushed ref adds, as itos verify does (messages, paths, range checks,
+commits.since left out): the ones after the remote's commit it replaces,
+else (a new ref) the ones on no remote-tracking branch. It prints nothing for
+commits that pass. A failure prints verify's report and how to fix the
+commits (git commit --amend for the last one, git rebase -i for an earlier
+one), runs nothing more and exits 1. Then it runs hooks.pre_push.per_base once
+per remote commit the push builds on: an existing ref's remote commit, and for
+a new branch or tag the remote commits its commits grow from (the boundary of
+git rev-list <commit> --not --remotes, less any that is an ancestor of
+another), each of them once however many refs share it. A new ref that adds no
+commit brings none and runs nothing; one that adds commits and grows from no
+remote commit (no remote-tracking ref, or unrelated history) asks for
+hooks.pre_push.whole, which then runs alone. The remote-tracking refs are
+every remote's, as the clone last saw them: the hook fetches nothing. Without
+hooks.pre_push, nothing. A deleted branch runs nothing. Exit 1 when a command
+fails.`,
 
 		"install": `Usage: itos hook install [--print] [--force]
 

@@ -254,6 +254,33 @@ func VCSContract[C T[C]](t C, open func(t C, l Layout) (port.VCS, string)) {
 			}
 		}
 	})
+	t.Run("unpushed bases", func(t C) {
+		for _, c := range []struct {
+			remotes  []string
+			to       string
+			want     []string
+			wantAdds bool
+		}{
+			{[]string{"b"}, "m", []string{"b"}, true},
+			{[]string{"b"}, "b", nil, false},
+			{[]string{"c"}, "m", []string{"c"}, true},
+			{nil, "m", nil, true},
+			{[]string{"c", "s"}, "m", []string{"c", "s"}, true},
+			{[]string{"b"}, "nope", nil, true},
+		} {
+			v, _ := open(t, Layout{Remotes: c.remotes})
+			var want []string
+			for _, rev := range c.want {
+				want = append(want, resolved(t, v, rev)[0])
+			}
+			got, adds := v.UnpushedBases(t.Context(), c.to)
+			slices.Sort(got)
+			slices.Sort(want)
+			if !slices.Equal(got, want) || adds != c.wantAdds {
+				t.Errorf("UnpushedBases(%s) with remote branches at %q are %q, %v; want %s %q, %v", c.to, c.remotes, got, adds, c.want, want, c.wantAdds)
+			}
+		}
+	})
 	t.Run("shallow", func(t C) {
 		v, _ := open(t, main)
 		if v.Shallow(t.Context()) {
