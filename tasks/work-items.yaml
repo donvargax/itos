@@ -14029,8 +14029,8 @@ items:
   - id: bug-138
     title: "itos commit writes a second Scenarios: footer when the message already has one (#142)"
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: bug
     why: >
