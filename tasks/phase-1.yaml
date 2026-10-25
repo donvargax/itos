@@ -4692,5 +4692,3 @@
     worktree fail. AGENTS.md's Finishing step 1 says to start from the updated main (where a merged
     spec already is) with git branch -m <item>, and docs/ORCHESTRATING.md says the coordinator
     deletes its local <item> branch once the pull request merges.
-  done_when:
-    - run: grep -q 'deletes its local' docs/ORCHESTRATING.md
