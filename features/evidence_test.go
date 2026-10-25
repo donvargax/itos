@@ -25,7 +25,8 @@ import (
 // (absent-<path>). It prints "<path>: <text>" lines and exits <exit>. mark
 // writes <path> holding "mark" in the folder it runs in.
 const evidenceProbe = `#!/bin/sh
-n=$(find "$EVIDENCE_LOG" -name 'run-*' -type d | wc -l | tr -d ' ')
+n=0
+while test -d "$EVIDENCE_LOG/run-$n"; do n=$((n + 1)); done
 out="$EVIDENCE_LOG/run-$n"
 mkdir "$out" || exit 90
 printf '%s' "$*" > "$out/args"
@@ -33,17 +34,23 @@ if test -f "$EVIDENCE_LOG/order"; then
  mv "$EVIDENCE_LOG/order" "$EVIDENCE_LOG/order-done" || exit 91
  . "$EVIDENCE_LOG/order-done" || exit 91
 fi
-(pwd -W 2>/dev/null || pwd -P) > "$out/cwd"
+{ pwd -W 2>/dev/null || pwd -P; } > "$out/cwd"
 code="$1"
 shift
 if test "$code" = mark; then
  printf mark > "$1"
  exit 0
 fi
+nl='
+'
 for p in "$@"; do
- f=$(printf '%s' "$p" | tr '/' '_')
+ f=$p
+ while case $f in */*) true;; *) false;; esac; do f=${f%%/*}_${f#*/}; done
  if test -f "$p"; then
-  t=$(cat "$p")
+  t=
+  while IFS= read -r line; do t=$t$line$nl; done < "$p"
+  t=$t$line
+  while case $t in *"$nl") true;; *) false;; esac; do t=${t%"$nl"}; done
   printf '%s' "$t" > "$out/read-$f"
   printf '%s: %s\n' "$p" "$t"
  else
