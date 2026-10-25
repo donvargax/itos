@@ -13949,8 +13949,8 @@ items:
   - id: slice-179
     title: push.mode pr opens draft pull requests; itos push --ready marks ready (#124)
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: slice
     why: >
