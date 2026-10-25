@@ -291,3 +291,150 @@ Feature: itos commit, a commit whose footers itos writes
     Then itos exits with code 129
     And its output says "unknown option"
     And its output does not say "panic"
+
+  # Bug 138 (issue #142, met on slice-181's PR #137): itos commit wrote its
+  # footers as git's --trailer under trailer.ifExists=addIfDifferent, which
+  # compares whole lines, so a message that already gave Scenarios: with the
+  # same IDs laid out on other lines got a second Scenarios: footer, and the
+  # duplicate had to be amended out.
+  #
+  # The rule. Before git runs, each footer a flag would write is compared
+  # with the same footer in the message, both read by the reader the
+  # commit-msg hook reads footers with (internal/message: the trailer block,
+  # IDs and Texts), never by a second parser:
+  # - a footer of IDs (--task's ledger footer, --item's registry footer,
+  #   --scenarios' named tests' footer, so Task: and Item: are the same case
+  #   as Scenarios:): the set of IDs every line of its key in the trailer
+  #   block gives, continuation lines included, commas or whitespace between
+  #   them, the footer's strip_prefix taken off, against the set of the
+  #   flag's IDs read the same way. Order, repeats and how the lines are
+  #   wrapped do not count; case does;
+  # - a footer of free text (its flag --<key in lower case>): the set of the
+  #   texts every line of its key gives, each unfolded onto one line and
+  #   trimmed, against the flag's texts read the same way;
+  # - --breaking: a footer of free text whose key is BREAKING-CHANGE or
+  #   BREAKING CHANGE, the two forms one footer, as a release reads them.
+  # Equal sets: nothing of that footer is written; the other flags' footers
+  # still are. Sets that differ, one holding more or fewer included, since
+  # itos cannot tell which the person meant: refused before git runs, exit
+  # 1, as a commit missing a required footer is, in the same rejection, the
+  # differing footers listed first: the config's reject message, then a line
+  # per footer, "<Key>: the message gives <value>, <flag> gives <value>",
+  # IDs as written, each once in the order given, joined by ", "; texts in
+  # double quotes, joined by ", "; "nothing" for a key with an empty value.
+  # Under --json each is a problem whose rule is the key in lower case and
+  # "-footer-differs" (scenarios-footer-differs, and for --breaking
+  # breaking-change-footer-differs), whose message is that line and whose
+  # fix is "give <Key>: once, in the message or with <flag>".
+  # git does not run, so nothing is committed; the hooks check (exit 3)
+  # comes after it, as it does after the required-footer refusal.
+  #
+  # Which message: the one the required-footer check already reads before
+  # git runs, -m (the -m values joined as git joins them), -F <file>, or
+  # HEAD's for --amend --no-edit. An amend through --no-edit keeps one
+  # footer when the value is the same (ID-COMMITCMD-11 holds), and is now
+  # refused when it is another: adding a second item or more scenarios to
+  # HEAD is an amend with -m or -F giving the whole footer, or with the
+  # editor. The editor's message (an amend's without --no-edit too) and -F -
+  # are not read, as the required-footer check does not read them: each line
+  # is still added unless the message has that very line, as before. The
+  # person sees and edits the editor's message after git writes the
+  # trailers, and refusing there would block an amend meant to replace a
+  # footer in the editor; -F - is read only by the wrap, later.
+  #
+  # Only a footer counts: a line that starts with "Scenarios:" in the body
+  # (in a paragraph with prose, or not the message's last) is no trailer to
+  # git or to the hook, so it is neither compared nor refused, and the
+  # flag's footer is written as before. Under a stealth config the links
+  # (Task, Item, Scenarios) never go into the message, so only the content
+  # (free text, BREAKING-CHANGE) is compared. trailer.ifExists stays
+  # addIfDifferent; a --trailer the person hands git among its own
+  # arguments is git's and is not compared.
+  #
+  # No case of v8.19.0's scenarios or corpus changes, so no Changes: footer.
+  # itos commit --help's "a footer the message already has is not written
+  # again (trailer.ifExists addIfDifferent), so an amend keeps one" becomes:
+  # where itos reads the message (-m, -F <file>, HEAD's for --amend
+  # --no-edit), a footer it already gives with the same value, read as the
+  # hook reads it, is not written again, so an amend keeps one, and one it
+  # gives with another value is refused, naming the footer and both values,
+  # nothing committed; a message it does not read (the editor's, -F -) gets
+  # each line unless it has that very line (trailer.ifExists
+  # addIfDifferent). Its Exit line's 1 adds "or a footer the message gives
+  # differs from its flag's"; the package's doc.go says the same.
+  #
+  # Steps: "HEAD's <key> footers name exactly <ids>, each once" checks that
+  # a new HEAD was made and reads git log -1
+  # --format=%(trailers:key=<key>,valueonly,unfold), git's own reading of
+  # the trailers, splits each value on commas and whitespace, and requires
+  # the IDs found to be exactly those listed, each once, in any order. The
+  # message files are written by the existing doc-string step "the scratch
+  # file <path> contains exactly:", in the repository's root, where itos
+  # runs.
+  #
+  # Fails before the fix: git adds "Scenarios: @ID-A-01 @ID-A-02" beside the
+  # message's two lines, so each ID is named twice.
+  @ID-COMMITCMD-27 @bug-138 @wip
+  Scenario: A footer the message already gives with the same IDs on other lines is not written again
+    Given a feature file "a.feature" with the live scenario "@ID-A-01"
+    And a feature file "b.feature" with the live scenario "@ID-A-02"
+    And the scratch file "msg.txt" contains exactly:
+      """
+      feat: greet
+
+      Scenarios: @ID-A-01
+      Scenarios: @ID-A-02
+      """
+    When itos commits with the arguments "--scenarios @ID-A-01,@ID-A-02 -F msg.txt"
+    Then itos exits with code 0
+    And HEAD's "Scenarios" footers name exactly "@ID-A-01, @ID-A-02", each once
+
+  # Both scenarios are live, so before the fix the hook takes the two
+  # footers and the commit is made: the scenario fails at the exit code.
+  @ID-COMMITCMD-28 @bug-138 @wip
+  Scenario: A footer the message gives with other IDs than its flag's is refused before git runs, naming both
+    Given a feature file "a.feature" with the live scenario "@ID-A-01"
+    And a feature file "b.feature" with the live scenario "@ID-A-02"
+    And the scratch file "msg.txt" contains exactly:
+      """
+      feat: greet
+
+      Scenarios: @ID-A-01
+      """
+    When itos commits with the arguments "--scenarios @ID-A-02 -F msg.txt"
+    Then itos exits with code 1
+    And its output says "the message gives @ID-A-01"
+    And its output says "--scenarios gives @ID-A-02"
+    And no commit was made
+
+  # Passes before the fix: it guards the case addIfDifferent already caught.
+  @ID-COMMITCMD-29 @bug-138 @wip
+  Scenario: A footer the message gives on the very line its flag would write stays one footer
+    Given a feature file "a.feature" with the live scenario "@ID-A-01"
+    And the scratch file "msg.txt" contains exactly:
+      """
+      feat: greet
+
+      Scenarios: @ID-A-01
+      """
+    When itos commits with the arguments "--scenarios @ID-A-01 -F msg.txt"
+    Then itos exits with code 0
+    And the message of HEAD has the footer "Scenarios: @ID-A-01" once
+
+  # Passes before the fix: it guards against reading every line that starts
+  # with a footer's key, which would refuse this commit for a footer it has
+  # not got.
+  @ID-COMMITCMD-30 @bug-138 @wip
+  Scenario: A body line that starts with a footer's key is no footer, so the flag's footer is written
+    Given a feature file "a.feature" with the live scenario "@ID-A-01"
+    And the scratch file "msg.txt" contains exactly:
+      """
+      feat: greet
+
+      The old message carried its footer in the body,
+      Scenarios: @ID-A-02
+      where neither git nor the hook reads it as one.
+      """
+    When itos commits with the arguments "--scenarios @ID-A-01 -F msg.txt"
+    Then itos exits with code 0
+    And the message of HEAD has the footer "Scenarios: @ID-A-01"
