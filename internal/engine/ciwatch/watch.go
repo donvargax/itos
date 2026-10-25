@@ -68,9 +68,9 @@ var sleep = time.Sleep
 // looked past and an outage is handed to whoever runs it again.
 const giveUp = 6
 
-// fetchTimeout is how long the quiet fetch of a head the clone lacks may
+// FetchTimeout is how long the quiet fetch of a head the clone lacks may
 // take.
-const fetchTimeout = 20 * time.Second
+const FetchTimeout = 20 * time.Second
 
 // Watcher is ci.watch's provider for cfg, for a commit pushed to remote,
 // whose address v gives: ok is false when the provider is none. setup is
@@ -105,9 +105,9 @@ func WatchReady(ctx context.Context, cfg *config.Loaded, wr providers.Watcher, v
 	return watch(ctx, cfg, wr, v, sha, remote, "", o, true)
 }
 
-// draftsRun is whether a run is only a draft's: it lists no job, or every job
+// DraftsRun is whether a run is only a draft's: it lists no job, or every job
 // it lists was skipped.
-func draftsRun(run providers.Run) bool {
+func DraftsRun(run providers.Run) bool {
 	return !slices.ContainsFunc(run.Jobs, func(j providers.Job) bool { return j.Conclusion != "skipped" })
 }
 
@@ -148,7 +148,7 @@ func watch(ctx context.Context, cfg *config.Loaded, wr providers.Watcher, v vcsp
 	for {
 		pause = 0
 		run, found, err := wr.Look(target)
-		if skipped && found && draftsRun(run) {
+		if skipped && found && DraftsRun(run) {
 			found = false
 		}
 		switch {
@@ -278,13 +278,13 @@ func hasCommit(ctx context.Context, v vcsport.VCS, rev string) bool {
 }
 
 // fetchQuietly fetches the remote's branches, never prompting for
-// credentials, within fetchTimeout; a fetch that fails leaves the clone as
+// credentials, within FetchTimeout; a fetch that fails leaves the clone as
 // it was.
 func fetchQuietly(ctx context.Context, v vcsport.VCS, remote string) {
 	if remote == "" {
 		return
 	}
-	ctx, cancel := context.WithTimeout(ctx, fetchTimeout)
+	ctx, cancel := context.WithTimeout(ctx, FetchTimeout)
 	defer cancel()
 	_, _ = v.Fetch(ctx, remote, "", vcsport.Talk{NoPrompt: true})
 }

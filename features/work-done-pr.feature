@@ -65,7 +65,8 @@ Feature: Under push.mode pr, work done closes an item only once its pull request
   trunk, a red one refused (work-done-ci, exit 1), one that does not end
   exit 75; without ci.watch CI is not checked, as before, said on stderr.
   The merge gave the commits new SHAs, so the run that judges them is
-  main's, never the pull request's. Waiting rather than refusing while
+  main's, unless slice 181 (work-done-pr-trust.feature) lets the merged
+  pull request's head's run judge them. Waiting rather than refusing while
   main's run is going is trunk's behaviour, reused unchanged.
 
   With no such commit, the pull request's kind gives the refusal, exit 1:

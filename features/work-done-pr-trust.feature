@@ -244,7 +244,7 @@ Feature: Under push.mode pr, work done trusts the merged pull request's green ru
   # run never finishes, so only the trust closes in time. Fails before the
   # work at the exit code: today main's run is waited for until
   # ci.watch.timeout, exit 75.
-  @ID-PRTRUST-01 @slice-181 @wip
+  @ID-PRTRUST-01 @slice-181
   Scenario: Under pr, work done closes on the merged pull request's green run when main gained only a registry commit since its head
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -272,7 +272,7 @@ Feature: Under push.mode pr, work done trusts the merged pull request's green ru
   # an empty diff, and it counts. --json names the run and the pull
   # request. Fails before the work at the exit code: today main's run is
   # waited for until ci.watch.timeout, exit 75.
-  @ID-PRTRUST-02 @slice-181 @wip
+  @ID-PRTRUST-02 @slice-181
   Scenario: Under pr, work done --json closes on the head's green run when the merged tree is the head's, naming the pull request as trusted
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -306,7 +306,7 @@ Feature: Under push.mode pr, work done trusts the merged pull request's green ru
   # is committed and pushed before the branch, so only the task differs.
   # Fails before the work at the exit code: today main's run is waited for
   # until ci.watch.timeout, exit 75.
-  @ID-PRTRUST-03 @slice-181 @wip
+  @ID-PRTRUST-03 @slice-181
   Scenario: Under pr, work done closes on the head's green run when main gained only a ledger commit since its head
     Given the ledger's files are "tasks/ledger-{group}.yaml"
     And the clone commits its changes and pushes them to the remote's main
@@ -337,7 +337,7 @@ Feature: Under push.mode pr, work done trusts the merged pull request's green ru
   # head's run is green and is not looked at. Fails before the work at the
   # "differs from it in NOTES.md" step: today main's run closes it, saying
   # nothing of the pull request's head.
-  @ID-PRTRUST-04 @slice-181 @wip
+  @ID-PRTRUST-04 @slice-181
   Scenario: Under pr, work done waits for main's run when main gained a code commit since the head, naming the path
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -364,7 +364,7 @@ Feature: Under push.mode pr, work done trusts the merged pull request's green ru
   # nothing, and main's green run closes it. Fails before the work at the
   # "has not passed" step: today main's run closes it, saying nothing of
   # the head's run, and the JSON has no pull_request.
-  @ID-PRTRUST-05 @slice-181 @wip
+  @ID-PRTRUST-05 @slice-181
   Scenario: Under pr, work done --json waits for main's run when the merged pull request's head's run failed
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -390,7 +390,7 @@ Feature: Under push.mode pr, work done trusts the merged pull request's green ru
   # Without ci.watch CI is not checked, and no tree is compared or line
   # said, though the trust's conditions hold. A guard: it passes before
   # the work and must after it.
-  @ID-PRTRUST-06 @slice-181 @wip @guard
+  @ID-PRTRUST-06 @slice-181 @guard
   Scenario: Under pr without ci.watch, work done closes a merged item as before, comparing no trees
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -415,7 +415,7 @@ Feature: Under push.mode pr, work done trusts the merged pull request's green ru
   # fetches refs/pull/7/head, then compares and trusts. Fails before the
   # work at the exit code: today main's run is waited for until
   # ci.watch.timeout, exit 75.
-  @ID-PRTRUST-07 @slice-181 @wip
+  @ID-PRTRUST-07 @slice-181
   Scenario: Under pr, work done fetches a merged head the clone lacks from the pull request's ref, then closes on its green run
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """

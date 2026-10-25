@@ -94,7 +94,9 @@ type Out struct {
 // Several of more, what work promote Promoted or what work done Done, and
 // the Commit, "" under a stealth config or when nothing changed. work done
 // refused by its CI run is CI, the watch, Code its exit; Evidence is that of
-// the task checks it looked up, which its --json gives.
+// the task checks it looked up, which its --json gives, and PullRequest the
+// merged pull request it found with a head, under ci.watch, which --json gives
+// beside CI.
 type Answer struct {
 	File     string
 	Found    []out.Problem
@@ -105,17 +107,18 @@ type Answer struct {
 	Refused  []out.Problem
 	Shown    *Shown
 
-	Release  func()
-	Code     int
-	Each     []string
-	ID       string
-	Change   *domain.Change
-	Several  *domain.Several
-	Promoted *Promoted
-	Done     *Closed
-	CI       *ciwatch.Watched
-	Evidence []evidence.Entry
-	Commit   string
+	Release     func()
+	Code        int
+	Each        []string
+	ID          string
+	Change      *domain.Change
+	Several     *domain.Several
+	Promoted    *Promoted
+	Done        *Closed
+	CI          *ciwatch.Watched
+	PullRequest *PullRequest
+	Evidence    []evidence.Entry
+	Commit      string
 }
 
 // Shown is work show's item: the Item, whether it is a Task of the ledger,
