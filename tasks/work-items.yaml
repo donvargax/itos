@@ -14210,3 +14210,15 @@ items:
       never for main). p1-pr-registry-to-main removes the commonest cause.
     refs: [internal/slices/push/pr.go]
     tags: [push, v8]
+
+  - id: slice-186
+    title: Under push.mode pr, itos push sends the commit types push.pr names to main with the registry's commits (#131)
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: slice
+    why: >
+      Tracked in GitHub issue #131 (registry pilot: the issue holds the item).
+    refs: [internal/slices/push/pr.go]
+    tags: [push, v8]
