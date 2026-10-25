@@ -12,6 +12,7 @@ import (
 	"runtime"
 	"slices"
 	"strings"
+	"unicode"
 
 	"github.com/cucumber/godog"
 
@@ -45,6 +46,7 @@ func initializeCommitSteps(sc *godog.ScenarioContext, w *world) {
 
 	sc.Step(`^the message of HEAD has the footer "([^"]*)"$`, w.headHasFooter)
 	sc.Step(`^the message of HEAD has the footer "([^"]*)" once$`, w.headHasFooterOnce)
+	sc.Step(`^HEAD's "([^"]*)" footers name exactly "([^"]*)", each once$`, w.headFootersNameExactly)
 	sc.Step(`^the message of HEAD says "([^"]*)"$`, w.headMessageSays)
 	sc.Step(`^the message of HEAD does not say "([^"]*)"$`, w.headMessageDoesNotSay)
 	sc.Step(`^the itos note on HEAD says "([^"]*)"$`, w.headNoteSays)
@@ -447,6 +449,28 @@ func (w *world) headHasFooterOnce(footer string) error {
 	if n != 1 {
 		message, _ := w.gitOutput("log", "-1", "--format=%B")
 		return fmt.Errorf("HEAD has the footer %q %d times, not once; its message:\n%s", footer, n, message)
+	}
+	return nil
+}
+
+// A new HEAD's footers of the key, as git reads them (unfolded, their values
+// alone), name exactly the IDs listed, each once, in any order.
+func (w *world) headFootersNameExactly(key, list string) error {
+	if _, err := w.newHeadMessage(); err != nil {
+		return err
+	}
+	out, err := w.gitOutput("log", "-1", "--format=%(trailers:key="+key+",valueonly,unfold)")
+	if err != nil {
+		return err
+	}
+	split := func(text string) []string {
+		ids := strings.FieldsFunc(text, func(r rune) bool { return r == ',' || unicode.IsSpace(r) })
+		slices.Sort(ids)
+		return ids
+	}
+	if got, want := split(out), split(list); !slices.Equal(got, want) {
+		message, _ := w.gitOutput("log", "-1", "--format=%B")
+		return fmt.Errorf("HEAD's %s footers name %q, not exactly %q each once; its message:\n%s", key, got, want, message)
 	}
 	return nil
 }
