@@ -46,11 +46,13 @@ func (w *world) templateGitDir() (string, error) {
 	return filepath.Join(repoTemplate.dir, ".git"), nil
 }
 
-// removeRepoTemplate removes the folder templateGitDir made.
+// removeRepoTemplate removes the folder templateGitDir made, which the next
+// use makes again.
 func removeRepoTemplate() {
 	if repoTemplate.dir != "" {
 		_ = os.RemoveAll(repoTemplate.dir)
 	}
+	repoTemplate.dir, repoTemplate.err, repoTemplate.once = "", nil, sync.Once{}
 }
 
 // initRepository is git init -q -b main in dir, the template's git folder

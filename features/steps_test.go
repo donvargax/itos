@@ -777,9 +777,12 @@ func pathHiding(names ...string) string {
 
 // removeCallerPath removes the folders callerPath and pathHiding made.
 func removeCallerPath() {
+	hiddenPathsMu.Lock()
+	defer hiddenPathsMu.Unlock()
 	if callerPathDir != "" {
 		_ = os.RemoveAll(callerPathDir)
 	}
+	callerPathDir, hiddenPaths = "", map[string]string{}
 }
 
 // isOneOf is whether a folder's entry is a program of the names the PATH
