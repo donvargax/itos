@@ -10,10 +10,13 @@
 // naming a branch it does not have; what a branch of the remote ends with; and
 // the head of a remote's branch the fake GitHub was asked for the run of; and
 // the commits itos makes beside the registry (slice 177): a task's close that
-// takes out its checks, and an idea added with a file.
+// takes out its checks, and an idea added with a file. Slice 179's give the
+// recording gh draft pull requests, reviews and review threads, and say a call
+// of it lacks a text.
 package features
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -36,6 +39,17 @@ func initializePushModeSteps(sc *godog.ScenarioContext, w *world) {
 	})
 	sc.Step(`^a recording gh on the PATH, which opens pull requests as "([^"]*)"$`, w.recordingGh)
 	sc.Step(`^the recording gh has the pull request "([^"]*)" open for the branch "([^"]*)"$`, w.ghHasPullRequest)
+	sc.Step(`^the recording gh has the draft pull request "([^"]*)" open for the branch "([^"]*)"$`, w.ghHasDraftPullRequest)
+	sc.Step(`^the recording gh answers that the pull request has a review by "([^"]*)"$`, w.ghAnswersReview)
+	sc.Step(`^the recording gh answers that the pull request has an unresolved review thread on "([^"]*)" line (\d+), its first comment the lines "([^"]*)" and "([^"]*)"$`,
+		func(path string, line int, first, second string) error {
+			return w.ghAnswersThread(false, path, line, first, second)
+		})
+	sc.Step(`^the recording gh answers that the pull request has a resolved review thread on "([^"]*)" line (\d+), its first comment the lines "([^"]*)" and "([^"]*)"$`,
+		func(path string, line int, first, second string) error {
+			return w.ghAnswersThread(true, path, line, first, second)
+		})
+	sc.Step(`^the recording gh's "([^"]*)" call does not have "([^"]*)"$`, w.ghCallLacks)
 	sc.Step(`^the recording gh's pr update-branch leaves the branch as it is$`, func() error {
 		return os.WriteFile(w.ghKeeps(), nil, 0o644)
 	})
@@ -44,10 +58,10 @@ func initializePushModeSteps(sc *godog.ScenarioContext, w *world) {
 	})
 	sc.Step(`^the fake GitHub was asked for the run of the head of the remote's branch "([^"]*)"$`, w.fakeGitHubGivenRemoteBranchHead)
 	sc.Step(`^the recording gh has the pull request "([^"]*)" merged for the branch "([^"]*)"$`, func(address, branch string) error {
-		return w.ghHasPullRequestIn(address, branch, "MERGED")
+		return w.ghHasPullRequestIn(address, branch, "MERGED", false)
 	})
 	sc.Step(`^the recording gh has the pull request "([^"]*)" closed without merging for the branch "([^"]*)"$`, func(address, branch string) error {
-		return w.ghHasPullRequestIn(address, branch, "CLOSED")
+		return w.ghHasPullRequestIn(address, branch, "CLOSED", false)
 	})
 	sc.Step(`^the recording gh fails every call, saying "([^"]*)"$`, func(words string) error {
 		return os.WriteFile(w.ghFailure(), []byte(words+"\n"), 0o644)
@@ -124,11 +138,19 @@ func (w *world) ghPrevious(branch string) string {
 }
 func (w *world) ghRebaseDir() string { return filepath.Join(w.support, "gh-rebase") }
 
+// The nodes api graphql answers for the pull request's reviews and review
+// threads, each a JSON object, comma-separated (slice 179).
+func (w *world) ghReviews() string { return filepath.Join(w.support, "gh-reviews") }
+func (w *world) ghThreads() string { return filepath.Join(w.support, "gh-threads") }
+
 // recordingGh is a gh first on the PATH that stands in for GitHub: it records
 // each call, answers pr list with the pull requests of its --head branch that
 // its --state names (open, gh's default, merged, closed or all) as gh does ([]
-// for none), and answers pr create with the address given, holding that pull
-// request open from then on; pr view answers the head of the remote's branch it
+// for none), each with its isDraft, and answers pr create with the address
+// given, holding that pull request open from then on, a draft when the call
+// has --draft (slice 179); pr ready <branch> makes that branch's pull
+// requests ready, and api graphql answers the reviews and the review threads
+// the steps gave it, the same for every call; pr view answers the head of the remote's branch it
 // names as {"headRefOid": <sha>}, and pr update-branch rebases that branch onto
 // the remote's main, as GitHub does, in a clone of its own that it pushes back
 // (a step can have it leave the branch as it is); any other call succeeds
@@ -157,21 +179,38 @@ case "$verb" in
 "pr list")
   found=
   if [ -f %[2]s ]; then
-    while read -r branch url kind; do
+    while read -r branch url kind draft; do
       if [ "$branch" = "$head" ]; then
         case "$state/$kind" in all/*|open/OPEN|merged/MERGED|closed/CLOSED) ;; *) continue ;; esac
         merged=null
         if [ "$kind" = MERGED ]; then merged='"2026-10-24T10:00:00Z"'; fi
         if [ -n "$found" ]; then found="$found,"; fi
-        found="$found{\"number\":${url##*/},\"url\":\"$url\",\"state\":\"$kind\",\"mergedAt\":$merged}"
+        found="$found{\"number\":${url##*/},\"url\":\"$url\",\"state\":\"$kind\",\"isDraft\":${draft:-false},\"mergedAt\":$merged}"
       fi
     done < %[2]s
   fi
   printf '[%%s]\n' "$found"
   ;;
 "pr create")
-  printf '%%s %%s OPEN\n' "$head" %[3]s >> %[2]s
+  draft=false
+  for a in "$@"; do if [ "$a" = --draft ]; then draft=true; fi; done
+  printf '%%s %%s OPEN %%s\n' "$head" %[3]s "$draft" >> %[2]s
   printf '%%s\n' %[3]s
+  ;;
+"pr ready")
+  : > %[14]s
+  while read -r branch url kind draft; do
+    if [ "$branch" = "$3" ]; then draft=false; fi
+    printf '%%s %%s %%s %%s\n' "$branch" "$url" "$kind" "${draft:-false}" >> %[14]s
+  done < %[2]s
+  mv %[14]s %[2]s
+  ;;
+"api graphql")
+  reviews=
+  threads=
+  if [ -f %[12]s ]; then reviews=$(cat %[12]s); fi
+  if [ -f %[13]s ]; then threads=$(cat %[13]s); fi
+  printf '{"data":{"repository":{"pullRequest":{"reviews":{"nodes":[%%s]},"reviewThreads":{"nodes":[%%s]}}}}}\n' "$reviews" "$threads"
   ;;
 "pr view")
   oid=$(%[4]s --git-dir=%[5]s rev-parse "refs/heads/$3") || exit 1
@@ -196,7 +235,8 @@ case "$verb" in
 esac
 `, calls, pulls, quote(address), quote(filepath.ToSlash(git.Bin(runtime.GOOS))), quote(filepath.ToSlash(w.remote())),
 		quote(filepath.ToSlash(w.ghKeeps())), quote(filepath.ToSlash(w.ghStale())), quote(filepath.ToSlash(w.ghStaleLeft())),
-		quote(filepath.ToSlash(w.ghPrevious(""))), quote(filepath.ToSlash(w.ghRebaseDir())), quote(filepath.ToSlash(w.ghFailure())))
+		quote(filepath.ToSlash(w.ghPrevious(""))), quote(filepath.ToSlash(w.ghRebaseDir())), quote(filepath.ToSlash(w.ghFailure())),
+		quote(filepath.ToSlash(w.ghReviews())), quote(filepath.ToSlash(w.ghThreads())), quote(filepath.ToSlash(w.ghPulls()+".new")))
 	if err := w.writeProgram(filepath.Join(bin, "gh"), script); err != nil {
 		return err
 	}
@@ -208,13 +248,18 @@ esac
 
 // The recording gh holds the pull request open for the branch.
 func (w *world) ghHasPullRequest(address, branch string) error {
-	return w.ghHasPullRequestIn(address, branch, "OPEN")
+	return w.ghHasPullRequestIn(address, branch, "OPEN", false)
+}
+
+// The recording gh holds the pull request open for the branch, as a draft.
+func (w *world) ghHasDraftPullRequest(address, branch string) error {
+	return w.ghHasPullRequestIn(address, branch, "OPEN", true)
 }
 
 // The recording gh holds the pull request for the branch, OPEN, MERGED or
-// CLOSED (closed without merging), and keeps the head the remote's branch has
+// CLOSED (closed without merging), a draft or not, and keeps the head the remote's branch has
 // now as the pull request's previous head.
-func (w *world) ghHasPullRequestIn(address, branch, state string) error {
+func (w *world) ghHasPullRequestIn(address, branch, state string, draft bool) error {
 	if _, err := os.Stat(programPath(filepath.Join(w.support, "bin", "gh"))); err != nil {
 		return errors.New("no recording gh: put one on the PATH first")
 	}
@@ -229,7 +274,41 @@ func (w *world) ghHasPullRequestIn(address, branch, state string) error {
 	if err != nil {
 		return err
 	}
-	_, err = fmt.Fprintf(f, "%s %s %s\n", branch, address, state)
+	_, err = fmt.Fprintf(f, "%s %s %s %t\n", branch, address, state, draft)
+	return errors.Join(err, f.Close())
+}
+
+// The recording gh's api graphql answers that the pull request has a review
+// whose author's login is the one given.
+func (w *world) ghAnswersReview(login string) error {
+	return w.ghAddNode(w.ghReviews(), map[string]any{"author": map[string]any{"login": login}})
+}
+
+// The recording gh's api graphql answers that the pull request has a review
+// thread, resolved or not, on the path and line, with one comment whose body
+// is the two lines.
+func (w *world) ghAnswersThread(resolved bool, path string, line int, first, second string) error {
+	return w.ghAddNode(w.ghThreads(), map[string]any{"isResolved": resolved, "path": path, "line": line,
+		"comments": map[string]any{"nodes": []any{map[string]any{"body": first + "\n" + second}}}})
+}
+
+// The node, as JSON, joins those the file holds.
+func (w *world) ghAddNode(file string, node any) error {
+	if _, err := os.Stat(programPath(filepath.Join(w.support, "bin", "gh"))); err != nil {
+		return errors.New("no recording gh: put one on the PATH first")
+	}
+	text, err := json.Marshal(node)
+	if err != nil {
+		return err
+	}
+	f, err := os.OpenFile(file, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
+	if err != nil {
+		return err
+	}
+	if info, err := f.Stat(); err == nil && info.Size() > 0 {
+		text = append([]byte(","), text...)
+	}
+	_, err = f.Write(text)
 	return errors.Join(err, f.Close())
 }
 
@@ -300,6 +379,30 @@ func (w *world) ghCallHas(command, text string) error {
 	}
 	if !slices.ContainsFunc(named, func(call string) bool { return strings.Contains(call, text) }) {
 		return fmt.Errorf("no %q call of the recording gh has %q:\n%s\n%s", command, text, strings.Join(named, "\n"), w.report())
+	}
+	return nil
+}
+
+// Some call of the recording gh starts with the words of the command, and none
+// of them has the text.
+func (w *world) ghCallLacks(command, text string) error {
+	calls, err := w.ghCallLines()
+	if err != nil {
+		return err
+	}
+	var named []string
+	for _, call := range calls {
+		if strings.HasPrefix(call, command+" ") || call == command {
+			named = append(named, call)
+		}
+	}
+	if len(named) == 0 {
+		return fmt.Errorf("the recording gh was never called as %q; its calls:\n%s\n%s", command, strings.Join(calls, "\n"), w.report())
+	}
+	for _, call := range named {
+		if strings.Contains(call, text) {
+			return fmt.Errorf("a %q call of the recording gh has %q: %s\n%s", command, text, call, w.report())
+		}
 	}
 	return nil
 }
