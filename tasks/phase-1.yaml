@@ -4730,3 +4730,23 @@
   done_when:
     - run: go test -count=1 ./internal/shell ./internal/engine/evidence ./internal/cli
       timeout: 600
+
+- id: T-308
+  type: test
+  title: The Windows nightly features run well under go test's 10-minute limit again
+  why: >
+    The windows-latest Features step of the nightly grew from 264 s (run 39948599784, 2026-10-23,
+    724 scenarios, 1040 s of scenarios added up) to 494 s (run 40091179284, 880 scenarios, 1946 s
+    added up), and run 40190179961 (2026-10-25) hit go test's 600 s default and panicked with
+    nothing broken. Most of the growth is the evidence features of slices 169 to 173 (evidence-hook,
+    -local, -done and -store, 56 scenarios at 7 to 21 s each on Windows, where each missed opted-in
+    check runs in a checkout of its own). As T-115 settled: find where those scenarios spend the
+    time from a Windows run's timings (checkouts per check, git starts per step, which
+    p1-features-fewer-git-starts measured), then make them cheaper or run the suite in shards across
+    jobs; never raise the timeout, which only moves the cliff, and never take a scenario off
+    Windows. Back to T-115's range, the step well under 400 s. A per-push platform job that runs
+    every feature on Windows meets the same cliff. A shard is a ci commit beside this task's test
+    commits; the next nightly's Windows step is the acceptance.
+  done_when:
+    - run: go test -count=1 ./features
+      timeout: 900
