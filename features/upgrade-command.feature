@@ -421,6 +421,9 @@ Feature: itos upgrade moves a project to a newer itos and walks it through what 
             # - uses: donvargax/itos@v9.1.0
             - uses: someone/itos@v9.1.0
             - uses: donvargax/itos-cc@v9.1.0
+            - uses: someone/wrapper@v1
+              with:
+                uses: donvargax/itos@v9.1.0
             - uses: ./
             - run: |
                 echo "uses: donvargax/itos@v9.1.0"
