@@ -321,6 +321,11 @@ var schema = about("itos's policy: the ledger, the commit rules, the named tests
 	"push", about("How itos push lands work.", obj(nil,
 		"mode", about("trunk (every commit goes to the branch's upstream) or pr (an item's work goes on a branch named for the item, "+
 			"merged through a pull request; only the registry's commits go straight to main).", enum("trunk", "pr")),
+		"pr", about("How itos push handles an item's pull request under push.mode pr.", obj(nil,
+			"draft", about("Whether itos push opens and updates an item's pull request as a draft, which nothing judges or merges until "+
+				"itos push --ready marks it ready (push.mode pr).", boo),
+			"review_by", about("The GitHub logins whose review itos push --ready waits for before it turns on auto-merge, as GitHub's GraphQL gives them (a bot's without \"[bot]\"); empty, it waits for none.", strs),
+		)),
 	)),
 	"proof", about("What itos ci run judges beyond its steps: the proof of done, computed from the range's commits, never "+
 		"written by the agent; left out, itos works as before.", obj(nil,

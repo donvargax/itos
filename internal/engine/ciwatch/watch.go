@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"slices"
 	"strings"
 	"time"
 
@@ -91,6 +92,26 @@ func Watcher(ctx context.Context, cfg *config.Loaded, v vcsport.VCS, remote stri
 // it whose head has the commit as an ancestor (Covering), followed as a
 // cancelled run's successor is.
 func Watch(ctx context.Context, cfg *config.Loaded, wr providers.Watcher, v vcsport.VCS, sha, remote, branch string, o Out) Watched {
+	return watch(ctx, cfg, wr, v, sha, remote, branch, o, false)
+}
+
+// WatchReady is Watch for itos push --ready (slice 179), which marks a draft
+// ready: the draft's last push ran CI with every job skipped, and GitHub may
+// record that run as a success, so a look that finds a run all of whose jobs
+// were skipped, or that lists none, is taken for no run yet and made again
+// each ci.watch.interval within ci.watch.timeout, until the run the marking
+// starts on the same head shows.
+func WatchReady(ctx context.Context, cfg *config.Loaded, wr providers.Watcher, v vcsport.VCS, sha, remote string, o Out) Watched {
+	return watch(ctx, cfg, wr, v, sha, remote, "", o, true)
+}
+
+// draftsRun is whether a run is only a draft's: it lists no job, or every job
+// it lists was skipped.
+func draftsRun(run providers.Run) bool {
+	return !slices.ContainsFunc(run.Jobs, func(j providers.Job) bool { return j.Conclusion != "skipped" })
+}
+
+func watch(ctx context.Context, cfg *config.Loaded, wr providers.Watcher, v vcsport.VCS, sha, remote, branch string, o Out, skipped bool) Watched {
 	progress, end := o.Stdout, o.Stdout
 	if o.JSON {
 		progress, end = o.Stderr, o.Stderr
@@ -127,6 +148,9 @@ func Watch(ctx context.Context, cfg *config.Loaded, wr providers.Watcher, v vcsp
 	for {
 		pause = 0
 		run, found, err := wr.Look(target)
+		if skipped && found && draftsRun(run) {
+			found = false
+		}
 		switch {
 		case err != nil:
 			if w, end := failing(err); end {

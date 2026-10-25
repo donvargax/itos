@@ -284,3 +284,92 @@ func TestAWatchLooksAgainWhileAnyTimeIsLeft(t *testing.T) {
 		}
 	})
 }
+
+// WatchReady (slice 179) takes a run all of whose jobs were skipped, or that
+// lists none, for no run yet, as the draft's run is: it looks again until the
+// run that marking the pull request ready starts shows, whose result it gives.
+// A run with one job that was not skipped, finished or not, is a real run, and
+// plain Watch takes the draft's run for what it says.
+func TestWatchReadyPassesOverADraftsRun(t *testing.T) {
+	noSleep(t)
+	jobs := func(conclusions ...string) []providers.Job {
+		var listed []providers.Job
+		for i, c := range conclusions {
+			j := providers.Job{Name: string(rune('a' + i)), Status: "completed", Conclusion: c}
+			if c == "" {
+				j.Status = "in_progress"
+			}
+			listed = append(listed, j)
+		}
+		return listed
+	}
+	draft := func(listed []providers.Job) providers.Run {
+		return providers.Run{URL: "draft", Status: "completed", Conclusion: "success", Jobs: listed}
+	}
+	real := providers.Run{URL: "real", Status: "completed", Conclusion: "failure", Jobs: jobs("failure", "success")}
+	for name, first := range map[string]providers.Run{"skipped jobs": draft(jobs("skipped", "skipped")), "no jobs": draft(nil)} {
+		t.Run(name, func(t *testing.T) {
+			looks := 0
+			look := func(string) (providers.Run, bool, error) {
+				if looks++; looks == 1 {
+					return first, true, nil
+				}
+				return real, true, nil
+			}
+			var stdout, stderr strings.Builder
+			w := WatchReady(context.Background(), watchConfig(0, 60), providers.Watcher{Look: look}, &porttest.VCS{}, "abc", "", Out{Stdout: &stdout, Stderr: &stderr})
+			if w.Code != exitPolicy || w.Outcome != "failure" || w.Run == nil || w.Run.URL != "real" || looks != 2 ||
+				strings.Contains(stdout.String()+stderr.String(), "draft") {
+				t.Errorf("code %d, outcome %s, looks %d\n%s%s", w.Code, w.Outcome, looks, stdout.String(), stderr.String())
+			}
+		})
+	}
+	for name, first := range map[string]providers.Run{
+		"a job that succeeded": draft(jobs("skipped", "success")),
+		"a job that failed":    {URL: "draft", Status: "completed", Conclusion: "failure", Jobs: jobs("skipped", "failure")},
+	} {
+		t.Run(name, func(t *testing.T) {
+			looks := 0
+			look := func(string) (providers.Run, bool, error) {
+				looks++
+				return first, true, nil
+			}
+			var stdout, stderr strings.Builder
+			w := WatchReady(context.Background(), watchConfig(0, 60), providers.Watcher{Look: look}, &porttest.VCS{}, "abc", "", Out{Stdout: &stdout, Stderr: &stderr})
+			if w.Run == nil || w.Run.URL != "draft" || looks != 1 {
+				t.Errorf("code %d, outcome %s, looks %d\n%s%s", w.Code, w.Outcome, looks, stdout.String(), stderr.String())
+			}
+		})
+	}
+	t.Run("a job still going", func(t *testing.T) {
+		looks := 0
+		look := func(string) (providers.Run, bool, error) {
+			if looks++; looks == 1 {
+				return providers.Run{URL: "going", Status: "in_progress", Jobs: jobs("skipped", "")}, true, nil
+			}
+			return providers.Run{URL: "going", Status: "completed", Conclusion: "success", Jobs: jobs("skipped", "success")}, true, nil
+		}
+		var stdout, stderr strings.Builder
+		w := WatchReady(context.Background(), watchConfig(0, 60), providers.Watcher{Look: look}, &porttest.VCS{}, "abc", "", Out{Stdout: &stdout, Stderr: &stderr})
+		if w.Code != 0 || looks != 2 || !strings.Contains(stdout.String(), "CI run: going") {
+			t.Errorf("code %d, looks %d\n%s%s", w.Code, looks, stdout.String(), stderr.String())
+		}
+	})
+	t.Run("no other run comes", func(t *testing.T) {
+		look := func(string) (providers.Run, bool, error) { return draft(jobs("skipped")), true, nil }
+		var stdout, stderr strings.Builder
+		w := WatchReady(context.Background(), watchConfig(0, 0.05), providers.Watcher{Look: look}, &porttest.VCS{}, "abc", "", Out{Stdout: &stdout, Stderr: &stderr})
+		if w.Code != exitTemporary || w.Outcome != "timeout" || w.Run != nil || !strings.Contains(stderr.String(), "has not appeared") ||
+			strings.Contains(stdout.String(), "draft") {
+			t.Errorf("code %d, outcome %s\n%s%s", w.Code, w.Outcome, stdout.String(), stderr.String())
+		}
+	})
+	t.Run("Watch takes the draft's run as it is", func(t *testing.T) {
+		look := func(string) (providers.Run, bool, error) { return draft(jobs("skipped", "skipped")), true, nil }
+		var stdout, stderr strings.Builder
+		w := watchRun(watchConfig(0, 60), providers.Watcher{Look: look}, "abc", "", Out{Stdout: &stdout, Stderr: &stderr})
+		if w.Code != 0 || w.Outcome != "success" {
+			t.Errorf("code %d, outcome %s\n%s%s", w.Code, w.Outcome, stdout.String(), stderr.String())
+		}
+	})
+}

@@ -260,10 +260,12 @@ type report struct {
 	Commit  string   `json:"commit"`
 	CI      string   `json:"ci"`
 	PR      *struct {
-		URL     string `json:"url"`
-		Number  int    `json:"number"`
-		Created bool   `json:"created"`
-		Updated bool   `json:"updated"`
+		URL       string `json:"url"`
+		Number    int    `json:"number"`
+		Created   bool   `json:"created"`
+		Updated   bool   `json:"updated"`
+		Draft     bool   `json:"draft"`
+		AutoMerge bool   `json:"auto_merge"`
 	} `json:"pull_request"`
 	Run *struct {
 		URL string `json:"url"`
@@ -312,7 +314,7 @@ func TestParse(t *testing.T) {
 		"--ref --no-wait":       "push --ref needs a branch's name",
 		"--ref +main":           "push never forces: +main is a forcing refspec; push --ref takes a branch's name",
 		"--tag v1:v2":           "push --tag takes a tag's name, not a refspec (v1:v2): it pushes to the remote's of the same name",
-		"--tag v1 origin":       "push takes no arguments but --no-wait, --tag <tag> and --ref <branch>: it pushes HEAD to the branch's upstream (origin)",
+		"--tag v1 origin":       "push takes no arguments but --no-wait, --ready, --tag <tag> and --ref <branch>: it pushes HEAD to the branch's upstream (origin)",
 		"--ref=b --force":       "push never forces: --force would overwrite the remote's commits; itos push rebases onto them instead",
 		"--tag v1 --tag -":      "push --tag needs a tag's name",
 		"--no-verify":           "push refuses --no-verify: it skips the pre-push hook, and the checks it runs; push without it, and fix what the hook reports",
@@ -323,7 +325,7 @@ func TestParse(t *testing.T) {
 		"+main":                 "push never forces: +main is a forcing refspec; itos push rebases onto the remote's commits instead",
 		"--follow-tags":         "push takes no arguments",
 		"-n":                    "push takes no arguments",
-		"--no-wait --no-wait x": "push takes no arguments but --no-wait, --tag <tag> and --ref <branch>: it pushes HEAD to the branch's upstream (x)",
+		"--no-wait --no-wait x": "push takes no arguments but --no-wait, --ready, --tag <tag> and --ref <branch>: it pushes HEAD to the branch's upstream (x)",
 	} {
 		_, err := Parse(strings.Fields(args), false, false, "")
 		var u out.UsageError

@@ -2,6 +2,7 @@ package config
 
 import (
 	"slices"
+	"strings"
 	"testing"
 )
 
@@ -25,5 +26,35 @@ func TestPushMode(t *testing.T) {
 	}
 	if ok, _ := KnownKey("push.mode"); !ok {
 		t.Error("push.mode is no key of the schema")
+	}
+}
+
+// push.pr (slice 179) is off by default: draft false and review_by empty; a
+// file's values are read, a draft that is not a bool and a review_by that is
+// not a list of strings are refused, and both keys are in the schema.
+func TestPushPR(t *testing.T) {
+	c, err := load(t, "version: 1\n")
+	if err != nil || c.Push.PR.Draft || len(c.Push.PR.ReviewBy) != 0 {
+		t.Errorf("by default: %+v, %v", c.Push.PR, err)
+	}
+	c, err = load(t, "version: 1\npush: { mode: pr, pr: { draft: true, review_by: [copilot-pull-request-reviewer, bo] } }\n")
+	if err != nil || !c.Push.PR.Draft || !slices.Equal(c.Push.PR.ReviewBy, []string{"copilot-pull-request-reviewer", "bo"}) {
+		t.Errorf("set: %+v, %v", c.Push.PR, err)
+	}
+	for text, want := range map[string]string{
+		"version: 1\npush: { pr: { draft: yes please } }\n":  "push.pr.draft should be a boolean",
+		"version: 1\npush: { pr: { review_by: copilot } }\n": "push.pr.review_by should be a list",
+		"version: 1\npush: { pr: { review_by: [1] } }\n":     "push.pr.review_by should be a list of strings",
+		"version: 1\npush: { pr: { squash: true } }\n":       "unknown key push.pr.squash",
+	} {
+		_, err := load(t, text)
+		if got := messages(t, err); len(got) != 1 || !strings.HasPrefix(got[0], want) {
+			t.Errorf("%q: got %q, want %q", text, got, want)
+		}
+	}
+	for _, key := range []string{"push.pr", "push.pr.draft", "push.pr.review_by"} {
+		if ok, _ := KnownKey(key); !ok {
+			t.Errorf("%s is no key of the schema", key)
+		}
 	}
 }

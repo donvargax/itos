@@ -13,6 +13,7 @@ import (
 	"github.com/donvargax/itos/v8/internal/engine/ciwatch"
 	"github.com/donvargax/itos/v8/internal/engine/gitrun"
 	"github.com/donvargax/itos/v8/internal/kind"
+	"github.com/donvargax/itos/v8/internal/providers"
 	vcsport "github.com/donvargax/itos/v8/internal/vcs/port"
 	"github.com/donvargax/itos/v8/internal/work"
 )
@@ -28,6 +29,7 @@ type pushRun struct {
 	tags, refs     []string         // what --tag and --ref named, when they did (slice 131)
 	sha            string           // the commit pushed, resolved once before the push
 	noWait         bool             // --no-wait: push and return, whatever ci.watch says
+	markReady      bool             // --ready: mark a draft pull request ready, wait for it, then turn on auto-merge (ready.go)
 	watched        *ciwatch.Watched // the CI run waited for after the push, if one was
 	cfg            *config.Loaded   // the config, when push.mode is pr (prMode)
 	ontoName       string           // what the branch is rebased onto, when it is not the upstream (pr.go)
@@ -361,37 +363,60 @@ func (r *pushRun) wait(ctx context.Context, remote, onto, pushed string) Answer 
 	if !ok && err == nil {
 		return r.report(0, "pushed", pushed)
 	}
-	if !r.o.JSON && !r.o.Quiet {
-		fmt.Fprintln(r.o.Stdout, pushed)
-		for _, l := range r.noUpstreamNote() {
-			fmt.Fprintln(r.o.Stdout, l)
-		}
-	}
-	if err != nil {
-		fmt.Fprintf(r.o.Stderr, "itos: %s; the commits are pushed, and itos ci watch %s waits for their run\n", err, sha)
-		r.watched = &ciwatch.Watched{Code: missing, Outcome: "error"}
-	} else {
-		if r.rebased != nil {
-			head, lost, a, failed := r.rebasedHead(ctx, cfg)
-			if failed {
-				return a
-			}
-			if lost {
-				r.watched = &ciwatch.Watched{Code: temporary, Outcome: "timeout"}
-			} else {
-				sha = head
-				r.say(fmt.Sprintf("GitHub rebased the pull request onto %s: watching the run of %s, its new head.", r.rebased.ontoName, short(sha)))
-			}
-		}
-		if r.watched == nil {
-			w := ciwatch.Watch(ctx, cfg, wr, r.ports, sha, remote, "", ciwatch.Out(r.o))
-			r.watched = &w
-		}
+	r.announce(pushed)
+	if a, failed := r.watchRun(ctx, cfg, wr, err, remote, sha); failed {
+		return a
 	}
 	if r.o.JSON {
 		return r.report(r.watched.Code, "pushed")
 	}
 	return Answer{Code: r.watched.Code}
+}
+
+// announce prints the pushed line, and the no-upstream note, where a success's
+// lines go, before a wait that takes long: not under --json or -q.
+func (r pushRun) announce(pushed string) {
+	if r.o.JSON || r.o.Quiet {
+		return
+	}
+	fmt.Fprintln(r.o.Stdout, pushed)
+	for _, l := range r.noUpstreamNote() {
+		fmt.Fprintln(r.o.Stdout, l)
+	}
+}
+
+// watchRun sets watched to the watch of the commit's run: the error the
+// provider could not be built with, said as an error of the watch; the run of
+// the head GitHub made when it rebased the pull request (rebasedHead, lost
+// when none showed within ci.watch.timeout); else the run of sha, which
+// --ready watches as WatchReady does. failed, with the outcome reported, when
+// gh pr view does.
+func (r *pushRun) watchRun(ctx context.Context, cfg *config.Loaded, wr providers.Watcher, err error, remote, sha string) (Answer, bool) {
+	if err != nil {
+		fmt.Fprintf(r.o.Stderr, "itos: %s; the commits are pushed, and itos ci watch %s waits for their run\n", err, sha)
+		r.watched = &ciwatch.Watched{Code: missing, Outcome: "error"}
+		return Answer{}, false
+	}
+	if r.rebased != nil {
+		head, lost, a, failed := r.rebasedHead(ctx, cfg)
+		if failed {
+			return a, true
+		}
+		if lost {
+			r.watched = &ciwatch.Watched{Code: temporary, Outcome: "timeout"}
+			return Answer{}, false
+		}
+		sha = head
+		r.say(fmt.Sprintf("GitHub rebased the pull request onto %s: watching the run of %s, its new head.", r.rebased.ontoName, short(sha)))
+	}
+	var w ciwatch.Watched
+	if r.markReady {
+		w = ciwatch.WatchReady(ctx, cfg, wr, r.ports, sha, remote, ciwatch.Out(r.o))
+	} else {
+		w = ciwatch.Watch(ctx, cfg, wr, r.ports, sha, remote, "", ciwatch.Out(r.o))
+	}
+	r.watched = &w
+	return Answer{}, false
 }
 
 // say prints a line of the wait's progress where the watch's goes: stdout,

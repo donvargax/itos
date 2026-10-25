@@ -34,9 +34,18 @@ type Config struct {
 
 // Push is how itos push lands work: Mode trunk pushes every commit to the
 // branch's upstream, pr puts an item's work on its own branch and opens its
-// pull request (ADR-0039).
+// pull request (ADR-0039). PR is read under pr alone (slice 179).
 type Push struct {
 	Mode string `json:"mode"`
+	PR   PushPR `json:"pr"`
+}
+
+// PushPR is push.pr: Draft, whether itos push opens and updates an item's
+// pull request as a draft, which itos push --ready marks ready; ReviewBy, the
+// GitHub logins whose review --ready waits for before it turns on auto-merge.
+type PushPR struct {
+	Draft    bool     `json:"draft"`
+	ReviewBy []string `json:"review_by"`
 }
 
 // Proof is the proof of done a change of each kind needs (slice 100; decision
