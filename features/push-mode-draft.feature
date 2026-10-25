@@ -114,7 +114,9 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
     reviews(first: 100) { nodes { author { login } } }
     reviewThreads(first: 100) { nodes { isResolved path line
     comments(first: 1) { nodes { body } } } } } } }
-  Step 4 asks it until the reviews are there; step 5 judges the threads of
+  sent as one line, each run of whitespace one space, since the recording
+  gh keeps a call to one line and the steps below read it so. Step 4 asks
+  it until the reviews are there; step 5 judges the threads of
   its last answer, or of one asked then when review_by is empty. A pull
   request with more than 100 reviews or threads is out of scope. A gh api
   call that fails, or an answer without that shape, is any gh call that
