@@ -101,11 +101,11 @@ handoff line below replaces the template's "wait for CI … close the item":
   push's changed functions and the coverage of its changed lines; a survivor
   or an uncovered line needs a test. No by-hand push proof, `itos task`,
   golangci-lint or staticcheck: pre-push runs the linters, CI the rest; run a
-  diagnostic only when it is the work. The agent works on the item's
-  branch, pushes, waits for its pull request's checks and fixes a red run,
-  as AGENTS.md's Finishing says (`ci watch <sha>` if the push is cut off);
-  the coordinator checks the run, reviews the diff and closes the item on
-  main after the merge (T-302, T-303).
+  diagnostic only when it is the work. The agent finishes as AGENTS.md's
+  Finishing says: it hands back the draft, the coordinator's reviewer posts
+  on it, and the agent addresses the threads and alone runs `itos push
+  --ready`; the coordinator checks the run and closes the item on main
+  after the merge (T-302, T-303, slice-179).
 - **What the push proof flags:** an error check after a call that already
   returns that error is a dead branch, an uncovered line (T-281, T-282). A
   test forcing a filesystem error uses one every OS reports alike (a NUL byte
@@ -121,9 +121,10 @@ handoff line below replaces the template's "wait for CI … close the item":
 ## Independent work and red repairs
 
 q-41: independent work may go on while CI is pending; a red repair comes
-first. Under pr (T-303) specs and docs go through pull requests too: a
-spec is the first commit on its item's branch; after the merge the
-coordinator deletes its local `<item>`. Agents use isolation worktrees.
+first. Under pr (T-303) an item has one pull request, a draft its spec
+opens; every commit of the item goes on it, and only the implementer
+marks it ready. After the merge the coordinator deletes its local
+`<item>`. Agents use isolation worktrees.
 
 ## Lessons from this repository
 

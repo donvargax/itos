@@ -134,8 +134,8 @@ Feature: push.mode pr, an item's work on its own branch merged by rebase, claims
 
   --json adds "pull_request": {"url","number","created","updated"} after a
   push from an item's branch, created saying whether it opened the pull
-  request, updated whether it asked GitHub to rebase it, beside ci and run
-  when it waited; outcome gains work-on-main, not-item-branch,
+  request, updated whether it asked GitHub to rebase it (slice 179 adds
+  draft and auto_merge), beside ci and run when it waited; outcome gains work-on-main, not-item-branch,
   no-default-branch, no-github-repository and pull-request-failed.
 
   Not in this slice: work done under pr, which closes an item only once its
