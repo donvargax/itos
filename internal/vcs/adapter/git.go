@@ -162,6 +162,10 @@ func (g Git) Readable(_ context.Context, r port.Range) bool {
 
 func (g Git) UnpushedBase(_ context.Context, to string) string { return g.git().UnpushedBase(to) }
 
+func (g Git) UnpushedBases(_ context.Context, to string) ([]string, bool) {
+	return g.git().UnpushedBases(to)
+}
+
 // EnvGit names the real git, absolute: set by itos for every program it
 // starts, read by every itos those start.
 const EnvGit = git.EnvGit

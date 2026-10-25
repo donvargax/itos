@@ -14,22 +14,30 @@ import (
 	vcsport "github.com/donvargax/itos/v8/internal/vcs/port"
 )
 
-// zeros is a SHA git writes for no commit: a new branch's remote side, a
-// deleted branch's local side.
+// zeros is a SHA git writes for no commit: a new ref's remote side, a
+// deleted ref's local side.
 var zeros = regexp.MustCompile(`^0+$`)
 
-// pushedRef is one ref a push sends, from git's `<local ref> <local sha>
-// <remote ref> <remote sha>` line: the commit it sends, the remote's commit
-// it replaces when this clone has that one, else "" (a new branch, or a
-// remote commit the clone lacks), and the remote ref with the commit it is
-// at, "" for a new branch.
-type pushedRef struct{ local, base, ref, remote string }
+// tags is where a tag's ref is on the remote.
+const tags = "refs/tags/"
 
-// pushedRefs are the refs a push sends, a deleted one (zero local SHA) left
-// out, since it sends nothing.
-func (h Handler) pushedRefs(ctx context.Context, input string) []pushedRef {
-	var refs []pushedRef
+// pushLine is one of git's `<local ref> <local sha> <remote ref> <remote
+// sha>` lines, the fields it has: what is pushed, to which ref of the remote
+// and what that ref is at there.
+type pushLine struct{ local, ref, remote string }
+
+// deleted is whether the line deletes the remote's ref: it sends no commit.
+func (l pushLine) deleted() bool { return l.local == "" || zeros.MatchString(l.local) }
+
+// existing is whether the remote has the ref already.
+func (l pushLine) existing() bool { return l.remote != "" && !zeros.MatchString(l.remote) }
+
+// pushLines are git's ref lines, a line's carriage return, as a Windows
+// editor or pipe may leave one, not part of its last field.
+func pushLines(input string) []pushLine {
+	var lines []pushLine
 	for _, line := range strings.Split(input, "\n") {
+		line = strings.TrimSuffix(line, "\r")
 		if line == "" {
 			continue
 		}
@@ -40,20 +48,66 @@ func (h Handler) pushedRefs(ctx context.Context, input string) []pushedRef {
 			}
 			return ""
 		}
-		local, remote := field(1), field(3)
-		if local == "" || zeros.MatchString(local) {
+		lines = append(lines, pushLine{local: field(1), ref: field(2), remote: field(3)})
+	}
+	return lines
+}
+
+// pushedRef is one ref a push sends: the commit it sends, the remote's
+// commit it replaces when this clone has that one, else "" (a new ref, or a
+// remote commit the clone lacks), and the remote ref with the commit it is
+// at, "" for a new ref.
+type pushedRef struct{ local, base, ref, remote string }
+
+// pushedRefs are the refs a push sends, a deleted one left out, since it
+// sends nothing.
+func (h Handler) pushedRefs(ctx context.Context, lines []pushLine) []pushedRef {
+	var refs []pushedRef
+	for _, l := range lines {
+		if l.deleted() {
 			continue
 		}
-		ref := pushedRef{local: local, ref: field(2)}
-		if remote != "" && !zeros.MatchString(remote) {
-			ref.remote = remote
-			if hasCommit(ctx, h.ports, remote) {
-				ref.base = remote
+		ref := pushedRef{local: l.local, ref: l.ref}
+		if l.existing() {
+			ref.remote = l.remote
+			if hasCommit(ctx, h.ports, l.remote) {
+				ref.base = l.remote
 			}
 		}
 		refs = append(refs, ref)
 	}
 	return refs
+}
+
+// movedTag is the first line, a deletion's too, that would update a tag the
+// remote already has (slice 182): a tag is never moved or deleted, whether
+// or not the new commit builds on the old and whether or not this clone has
+// the old one.
+func movedTag(lines []pushLine) (pushLine, bool) {
+	for _, l := range lines {
+		if strings.HasPrefix(l.ref, tags) && l.existing() {
+			return l, true
+		}
+	}
+	return pushLine{}, false
+}
+
+// refuseTag is the hook's refusal of a push that moves or deletes the
+// remote's tag: it names the ref and the commits, and says there is no way
+// round it but the remote's host. Nothing here offers itos push, which has
+// nothing to offer a tag.
+func refuseTag(l pushLine) Answer {
+	var said strings.Builder
+	what := fmt.Sprintf("move the remote's tag %s (at %s) to %s", l.ref, short(l.remote), short(l.local))
+	if l.deleted() {
+		what = fmt.Sprintf("delete the remote's tag %s (at %s)", l.ref, short(l.remote))
+	}
+	fmt.Fprintf(&said, "itos: the push would %s; a tag the remote has is never moved or deleted, so the push is "+
+		"refused, and hooks.pre_push's commands did not run.\n", what)
+	if !l.deleted() {
+		fmt.Fprintln(&said, "Tag the new commit with a new name instead.")
+	}
+	return Answer{Code: policy, Said: said.String()}
 }
 
 // hasCommit is whether rev names a commit v has.
@@ -93,20 +147,34 @@ func refuseRewrite(r pushedRef) Answer {
 }
 
 // pushBases are the remote commits a push builds on (pre-push.ts's
-// pushBases). A new branch, or a remote commit this clone does not have,
-// gives no base to compare with, so the whole run is wanted; a deleted branch
-// runs nothing.
-func pushBases(refs []pushedRef) ([]string, bool) {
+// pushBases, slice 182). An existing ref builds on the remote's commit it
+// replaces, a remote commit this clone does not have gives no base to compare
+// with, so the whole run is wanted. A new ref builds on the remote commits
+// its own commits grow from (vcsport.UnpushedBases): none when it adds no
+// commit, which wants nothing run, and the whole run when it adds some and
+// no remote commit is one of them. A deleted ref runs nothing.
+func (h Handler) pushBases(ctx context.Context, refs []pushedRef) ([]string, bool) {
 	var bases []string
 	seen := map[string]bool{}
+	add := func(shas ...string) {
+		for _, sha := range shas {
+			if !seen[sha] {
+				seen[sha] = true
+				bases = append(bases, sha)
+			}
+		}
+	}
 	whole := false
 	for _, ref := range refs {
 		switch {
+		case ref.remote == "":
+			found, adds := h.ports.UnpushedBases(ctx, ref.local)
+			whole = whole || adds && len(found) == 0
+			add(found...)
 		case ref.base == "":
 			whole = true
-		case !seen[ref.base]:
-			seen[ref.base] = true
-			bases = append(bases, ref.base)
+		default:
+			add(ref.base)
 		}
 	}
 	return bases, whole
@@ -221,18 +289,23 @@ func prePushInput() (string, error) {
 }
 
 // prePush is `hook pre-push <remote> <url>` (pre-push.ts's prePush, and
-// slice 46): a push that would rewrite a remote ref refused first (slice
-// 128, rewrites), then verify over what each pushed ref adds, then, when every commit
-// passes, the commands of hooks.pre_push, per_base once per remote base with
-// {base} filled in, else whole, each printed and run with the hook's
-// streams; without hooks.pre_push (or a hooks section), the verify alone,
+// slice 46): a push that would move or delete a tag the remote has refused
+// first (slice 182, movedTag), then one that would rewrite a remote ref
+// (slice 128, rewrites), then verify over what each pushed ref adds, then,
+// when every commit passes, the commands of hooks.pre_push, per_base once
+// per remote base with {base} filled in, else whole, each printed and run
+// with the hook's streams; without hooks.pre_push (or a hooks section), the verify alone,
 // where it was an error before. 0 when all pass, 1 when not.
 func (h Handler) prePush(ctx context.Context, o Out) (Answer, error) {
 	input, err := prePushInput()
 	if err != nil {
 		return Answer{}, err
 	}
-	refs := h.pushedRefs(ctx, input)
+	lines := pushLines(input)
+	if l, ok := movedTag(lines); ok {
+		return refuseTag(l), nil
+	}
+	refs := h.pushedRefs(ctx, lines)
 	if r, ok := h.rewrites(ctx, refs); ok {
 		return refuseRewrite(r), nil
 	}
@@ -251,7 +324,7 @@ func (h Handler) prePush(ctx context.Context, o Out) (Answer, error) {
 		fmt.Fprintf(o.Stdout, "$ %s\n", line)
 		return h.ports.Shell(ctx, cfg, line, shell.Options{Stdin: os.Stdin, Stdout: o.Stdout, Stderr: o.Stderr}).OK()
 	}
-	bases, whole := pushBases(refs)
+	bases, whole := h.pushBases(ctx, refs)
 	ok := true
 	if whole {
 		ok = run(commands.Whole)

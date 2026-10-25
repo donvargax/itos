@@ -271,13 +271,23 @@ func (v VCS) Readable(_ context.Context, r port.Range) bool {
 
 // UnpushedBase is to when nothing is unpushed, else the one commit outside
 // the unpushed ones that they grow from and no other such commit has.
-func (v VCS) UnpushedBase(_ context.Context, to string) string {
+func (v VCS) UnpushedBase(ctx context.Context, to string) string {
+	bases, adds := v.UnpushedBases(ctx, to)
+	switch {
+	case !adds:
+		return to
+	case len(bases) == 1:
+		return bases[0]
+	}
+	return ""
+}
+
+// UnpushedBases are the commits outside the unpushed ones that they grow
+// from and no other such commit has, and whether any is unpushed.
+func (v VCS) UnpushedBases(_ context.Context, to string) ([]string, bool) {
 	in, ok := v.within(port.Range{From: port.Unpushed, To: to})
 	if !ok {
-		return ""
-	}
-	if len(in) == 0 {
-		return to
+		return nil, true
 	}
 	var bounds []string
 	for _, c := range v.History {
@@ -301,8 +311,5 @@ func (v VCS) UnpushedBase(_ context.Context, to string) string {
 			independent = append(independent, b)
 		}
 	}
-	if len(independent) != 1 {
-		return ""
-	}
-	return independent[0]
+	return independent, len(in) > 0
 }

@@ -26,16 +26,20 @@ Feature: The pre-push hook judges a new ref from the nearest commit the remote h
   cannot tell from a first, and since what the remote's tag named is
   already someone's (a module proxy, a release page). git hands the hook a
   tag update whether or not it is forced, and rejects an unforced one
-  itself only afterwards, so the hook's refusal is what the person reads in
-  both cases (itos push --tag over a tag the remote holds, ID-PUSH-13,
-  still exits 1 naming the tag). The refusal goes to stderr, as slice 128's
+  itself only afterwards, so the hook's refusal is what a person pushing with
+  git reads in both cases. itos push --tag over a tag the remote holds
+  (ID-PUSH-13) never reaches the hook: it refuses first, itself, before git
+  push runs (slice 131), and still exits 1 naming the tag. The refusal goes
+  to stderr, as slice 128's
   does, its first line naming the ref and the remote's commit:
   "itos: the push would move the remote's tag refs/tags/<name> (at
   <short sha>) to <short sha>", or "would delete the remote's tag
   refs/tags/<name> (at <short sha>)", then "; a tag the remote has is never
   moved or deleted, so the push is refused, and hooks.pre_push's commands
   did not run."; a move adds the line "Tag the new commit with a new name
-  instead." It exits 1, before the config is read, so under every config
+  instead." For an annotated tag the "(at <short sha>)" and "to <short sha>"
+  are those of the tag objects, which git's line gives, as slice 131's
+  refusal words them. It exits 1, before the config is read, so under every config
   as slice 128's refusal, and with no verify and no command run. itos
   offers no way round it: a tag that truly must go is deleted on the
   remote's host, by hand (the real git's --no-verify skips every hook, as
@@ -129,7 +133,7 @@ Feature: The pre-push hook judges a new ref from the nearest commit the remote h
   # The case the slice is for: an item's first push under push.mode pr.
   # The base is the remote's main as the clone fetched it, the commit the
   # branch was made from. Before the work, whole runs.
-  @ID-PUSHREF-01 @slice-182 @wip
+  @ID-PUSHREF-01 @slice-182
   Scenario: A new branch made from the remote's main runs per_base from main's head, not whole
     Given the remote has gained the commit "docs: the remote's work" touching "OTHER.md"
     And the clone has fetched the remote
@@ -141,7 +145,7 @@ Feature: The pre-push hook judges a new ref from the nearest commit the remote h
 
   # The side branch is made before main gains its commit, so neither base
   # is an ancestor of the other and both stay.
-  @ID-PUSHREF-02 @slice-182 @wip
+  @ID-PUSHREF-02 @slice-182
   Scenario: A new branch merging two remote branches runs per_base once from each
     Given the remote has gained the branch "side" with the commit "docs: the side's work" touching "SIDE.md"
     And the remote has gained the commit "docs: the remote's work" touching "OTHER.md"
@@ -154,7 +158,7 @@ Feature: The pre-push hook judges a new ref from the nearest commit the remote h
 
   # A release: the tag names the clone's HEAD, which the Background pushed
   # to the remote's main. Before the work, whole runs.
-  @ID-PUSHREF-03 @slice-182 @wip
+  @ID-PUSHREF-03 @slice-182
   Scenario: A new tag on a commit the remote has runs no pre-push command
     Given the clone has the annotated tag "v1.0.0" on its HEAD
     When itos runs "push --tag v1.0.0"
@@ -164,7 +168,7 @@ Feature: The pre-push hook judges a new ref from the nearest commit the remote h
 
   # A tag is judged as a new branch is, not skipped for its kind: the tagged
   # commit is the clone's own, built on the remote's main.
-  @ID-PUSHREF-04 @slice-182 @wip
+  @ID-PUSHREF-04 @slice-182
   Scenario: A new tag on a commit the remote lacks runs per_base from the nearest commit the remote has
     Given the remote has gained the commit "docs: the remote's work" touching "OTHER.md"
     And the clone has fetched the remote
@@ -176,7 +180,7 @@ Feature: The pre-push hook judges a new ref from the nearest commit the remote h
     And hooks.pre_push's per_base alone ran, once, with the base "docs: the remote's work"
 
   # A guard: with no remote-tracking ref there is no base, as before.
-  @ID-PUSHREF-05 @slice-182 @wip
+  @ID-PUSHREF-05 @slice-182
   Scenario: A new branch on a remote with no branches runs whole, as before
     Given the clone's remote origin is a new repository with no branches, of which the clone tracks none
     When git pushes HEAD to the remote's new branch "main"
@@ -185,7 +189,7 @@ Feature: The pre-push hook judges a new ref from the nearest commit the remote h
 
   # A guard: itos push rebases onto the remote's commit and pushes main,
   # whose remote commit is the base, as before.
-  @ID-PUSHREF-06 @slice-182 @wip
+  @ID-PUSHREF-06 @slice-182
   Scenario: An existing branch's push runs per_base from the remote's commit, as before
     Given the remote has gained the commit "docs: the remote's work" touching "OTHER.md"
     And the commit "chore: tidy the readme" naming the task "T-001"
@@ -196,7 +200,7 @@ Feature: The pre-push hook judges a new ref from the nearest commit the remote h
   # The hole: the remote's tag names an ancestor of the new commit, so
   # slice 128's rewrite check passes it, and before the work the forced
   # push moves the tag.
-  @ID-PUSHREF-07 @slice-182 @wip
+  @ID-PUSHREF-07 @slice-182
   Scenario: A forced move of a tag the remote has onto a later commit is refused, and the remote keeps it
     Given the remote's head is tagged "v1.0.0"
     And the commit "chore: tidy the readme" naming the task "T-001"
@@ -210,7 +214,7 @@ Feature: The pre-push hook judges a new ref from the nearest commit the remote h
   # The clone has not fetched the remote's tagged commit, so before the work
   # slice 128's check refuses it, telling the person to run itos push; the
   # tag's refusal replaces that one, never adds to it.
-  @ID-PUSHREF-08 @slice-182 @wip
+  @ID-PUSHREF-08 @slice-182
   Scenario: A tag moved onto a commit not built on it gets the tag's refusal alone, not the rewrite's
     Given the remote has gained the commit "docs: the remote's work" touching "OTHER.md"
     And the remote's head is tagged "v1.0.0"
@@ -224,7 +228,7 @@ Feature: The pre-push hook judges a new ref from the nearest commit the remote h
 
   # A deletion and a new push of the name would move the tag in two steps.
   # Before the work the hook leaves a deleted ref out, and the tag goes.
-  @ID-PUSHREF-09 @slice-182 @wip
+  @ID-PUSHREF-09 @slice-182
   Scenario: Deleting a tag the remote has is refused
     Given the remote's head is tagged "v1.0.0"
     When the real git runs "push origin :refs/tags/v1.0.0"

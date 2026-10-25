@@ -56,7 +56,8 @@ func commitFile(t *testing.T, dir, name string) string {
 // With no remote every commit is unpushed and no one commit starts them;
 // with everything pushed the range is empty, starting at its end; with
 // commits on top of a pushed one, that one starts them; and with two remote
-// branches merged under them, neither an ancestor of the other, none can.
+// branches merged under them, neither an ancestor of the other, none can,
+// though UnpushedBases names both; a range git cannot read adds with no base.
 func TestUnpushed(t *testing.T) {
 	dir := t.TempDir()
 	gitIn(t, dir, "init", "-q", "-b", "main")
@@ -66,25 +67,41 @@ func TestUnpushed(t *testing.T) {
 	if got := here.UnpushedBase("HEAD"); got != "" {
 		t.Fatalf("with no remote, UnpushedBase = %q, want \"\"", got)
 	}
+	bases := func(want []string, wantAdds bool) {
+		t.Helper()
+		got, adds := here.UnpushedBases("HEAD")
+		slices.Sort(got)
+		slices.Sort(want)
+		if !slices.Equal(got, want) || adds != wantAdds {
+			t.Fatalf("UnpushedBases = %q, %v; want %q, %v", got, adds, want, wantAdds)
+		}
+	}
+	bases(nil, true)
+	if got, adds := here.UnpushedBases("no-such-commit"); got != nil || !adds {
+		t.Fatalf("UnpushedBases of no commit = %q, %v; want none, true", got, adds)
+	}
 	gitIn(t, dir, "init", "-q", "--bare", filepath.Join(dir, ".git", "remote.git"))
 	gitIn(t, dir, "remote", "add", "origin", filepath.Join(dir, ".git", "remote.git"))
 	gitIn(t, dir, "push", "-q", "origin", "HEAD:refs/heads/main")
 	if got := here.UnpushedBase("HEAD"); got != "HEAD" {
 		t.Fatalf("with everything pushed, UnpushedBase = %q, want HEAD", got)
 	}
+	bases(nil, false)
 	pushed := gitIn(t, dir, "rev-parse", "HEAD")
 	commitFile(t, dir, "c")
 	if got := here.UnpushedBase("HEAD"); got != pushed {
 		t.Fatalf("UnpushedBase = %q, want the pushed %s", got, pushed)
 	}
+	bases([]string{pushed}, true)
 	gitIn(t, dir, "checkout", "-q", "-b", "other", first)
-	commitFile(t, dir, "d")
+	other := commitFile(t, dir, "d")
 	gitIn(t, dir, "push", "-q", "origin", "HEAD:refs/heads/other")
 	gitIn(t, dir, "checkout", "-q", "main")
 	gitIn(t, dir, "merge", "-q", "--no-edit", "other")
 	if got := here.UnpushedBase("HEAD"); got != "" {
 		t.Fatalf("growing from two remote branches, UnpushedBase = %q, want \"\"", got)
 	}
+	bases([]string{pushed, other}, true)
 }
 
 // A rename is both its paths (bug 32) in a commit's, with git's rename

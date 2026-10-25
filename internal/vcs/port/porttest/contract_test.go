@@ -213,6 +213,23 @@ func (b broken) UnpushedBase(ctx context.Context, to string) string {
 	return b.VCS.UnpushedBase(ctx, to)
 }
 
+func (b broken) UnpushedBases(ctx context.Context, to string) ([]string, bool) {
+	bases, adds := b.VCS.UnpushedBases(ctx, to)
+	switch {
+	case b.fault == "unpushed bases not independent" && len(bases) > 0:
+		bases = append(bases, b.History[0].Name)
+	case b.fault == "unpushed bases adds never":
+		adds = false
+	case b.fault == "unpushed bases adds always":
+		adds = true
+	case b.fault == "unpushed bases of nothing add nothing" && len(bases) == 0 && adds && !b.VCS.Readable(ctx, port.Range{From: port.Unpushed, To: to}):
+		adds = false
+	case b.fault == "unpushed bases lose one" && len(bases) > 1:
+		bases = bases[:1]
+	}
+	return bases, adds
+}
+
 // The contract fails a VCS broken for any one of its assertions, each case
 // reporting what it asserts and no other case reporting anything: a
 // contract that cannot fail proves nothing.
@@ -277,6 +294,11 @@ func TestVCSContractFailsEachBrokenVCS(t *testing.T) {
 		{"unpushed base not independent", map[string][]string{"unpushed base": {"UnpushedBase(m) with remote branches at [\"b\"]", "UnpushedBase(m) with remote branches at [\"c\"]", "UnpushedBase(m) with remote branches at [] ", "UnpushedBase(m) with remote branches at [\"c\" \"s\"]"}}},
 		{"unpushed base without remote", map[string][]string{"unpushed base": {"UnpushedBase(m) with remote branches at [] "}}},
 		{"unpushed base of several", map[string][]string{"unpushed base": {"UnpushedBase(m) with remote branches at [\"c\" \"s\"]"}}},
+		{"unpushed bases not independent", map[string][]string{"unpushed bases": {"UnpushedBases(m) with remote branches at [\"b\"]", "UnpushedBases(m) with remote branches at [\"c\"]", "UnpushedBases(m) with remote branches at [\"c\" \"s\"]"}}},
+		{"unpushed bases adds never", map[string][]string{"unpushed bases": {"UnpushedBases(m) with remote branches at [\"b\"]", "UnpushedBases(m) with remote branches at [\"c\"]", "UnpushedBases(m) with remote branches at []", "UnpushedBases(m) with remote branches at [\"c\" \"s\"]", "UnpushedBases(nope)"}}},
+		{"unpushed bases adds always", map[string][]string{"unpushed bases": {"UnpushedBases(b)"}}},
+		{"unpushed bases of nothing add nothing", map[string][]string{"unpushed bases": {"UnpushedBases(nope)"}}},
+		{"unpushed bases lose one", map[string][]string{"unpushed bases": {"UnpushedBases(m) with remote branches at [\"c\" \"s\"]"}}},
 		{"shallow always", map[string][]string{"shallow": {"Shallow: a whole history"}}},
 		{"shallow never", map[string][]string{"shallow": {"Shallow: a clone one commit deep"}}},
 		{"show subject as first line", map[string][]string{"show": {"Show(c) is"}}},
