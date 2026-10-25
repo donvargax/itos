@@ -8580,8 +8580,8 @@ items:
   - id: slice-151
     title: Explain CI step forms and range inputs in CLI help and defaults examples
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: slice
     why: >
