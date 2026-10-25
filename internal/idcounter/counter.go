@@ -177,17 +177,17 @@ func mintRemote(store Store, category string, highest, count int) (int, error) {
 		return 0, kind.Wrap(kind.Missing, errors.New("cannot locate the repository for the id counter"))
 	}
 	ctx := context.Background()
+	parent, err := fetchCounter(ctx, store)
+	if err != nil {
+		return 0, remoteError("fetch the id counter from the remote", err)
+	}
 	for attempt := 0; attempt < 16; attempt++ {
-		parent, err := fetchCounter(ctx, store)
-		if err != nil {
-			return 0, remoteError("fetching", err)
-		}
 		current := 0
 		if parent != "" {
 			data, ok, err := store.VCS.File(ctx, parent, "counters/"+category)
 			switch {
 			case err != nil:
-				return 0, remoteError("reading", err)
+				return 0, remoteError("read the id counter on the remote", err)
 			case ok:
 				current, err = strconv.Atoi(strings.TrimSpace(data))
 				if err != nil || current < 0 {
@@ -203,13 +203,21 @@ func mintRemote(store Store, category string, highest, count int) (int, error) {
 		if err != nil {
 			return 0, fmt.Errorf("build id counter commit: %w", err)
 		}
-		err = store.VCS.Push(ctx, store.Remote, []string{commit + ":" + remoteRef}, vcs.Pushing{NoVerify: true}, vcs.Talk{})
-		if err == nil {
+		pushed := store.VCS.Push(ctx, store.Remote, []string{commit + ":" + remoteRef}, vcs.Pushing{NoVerify: true}, vcs.Talk{})
+		if pushed == nil {
 			return first, nil
 		}
-		if !nonFastForward(err) {
-			return 0, remoteError("pushing", err)
+		// Whatever git said, a push is a lost race when the remote's counter
+		// moved past the commit it was built on; one that left the counter
+		// where it was is the remote's refusal.
+		moved, err := fetchCounter(ctx, store)
+		if err != nil {
+			return 0, remoteError("fetch the id counter from the remote", err)
 		}
+		if moved == parent {
+			return 0, remoteError("push the id counter to the remote", pushed)
+		}
+		parent = moved
 	}
 	return 0, kind.Wrap(kind.Temporary, errors.New("the remote id counter kept advancing; run the command again"))
 }
@@ -248,12 +256,6 @@ func counterCommit(ctx context.Context, v vcs.VCS, parent, category string, n in
 		"itos id counter", "itos-id-counter@localhost")
 }
 
-func nonFastForward(err error) bool {
-	s := strings.ToLower(err.Error())
-	return strings.Contains(s, "non-fast-forward") || strings.Contains(s, "fetch first") ||
-		strings.Contains(s, "stale info") || strings.Contains(s, "reference already exists")
-}
-
-func remoteError(what string, err error) error {
-	return kind.Wrap(kind.Missing, fmt.Errorf("cannot %s id counter on remote (nothing was written): %w", what, err))
+func remoteError(action string, err error) error {
+	return kind.Wrap(kind.Missing, fmt.Errorf("cannot %s (nothing was written): %w", action, err))
 }

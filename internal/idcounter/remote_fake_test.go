@@ -12,9 +12,7 @@ import (
 
 // remoteFake is the VCS port's in-memory fake with the remote the counter is
 // claimed on made to misbehave as a test says: beforePush runs before each
-// push, and may land another clone's claim first or refuse the push; and a
-// push the remote refuses because it moved reads as git words it, which the
-// claim retries on, the fake's own words being no git's.
+// push, and may land another clone's claim first or refuse the push.
 type remoteFake struct {
 	*porttest.VCS
 	beforePush func() error
@@ -36,11 +34,7 @@ func (r *remoteFake) Push(ctx context.Context, remote string, specs []string, p 
 			return err
 		}
 	}
-	err := r.VCS.Push(ctx, remote, specs, p, talk)
-	if failed, ok := err.(*port.Failed); ok && failed.Failure == port.Refused {
-		failed.Words = " ! [rejected] " + remoteRef + " -> " + remoteRef + " (fetch first)\nerror: failed to push some refs\n"
-	}
-	return err
+	return r.VCS.Push(ctx, remote, specs, p, talk)
 }
 
 // refuse is a push the remote refuses for no race: a hook declining it.
