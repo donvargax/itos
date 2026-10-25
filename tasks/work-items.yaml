@@ -14003,11 +14003,9 @@ items:
     title: Under pr, work done trusts the merged pull request's green run when main gained only registry and ledger commits (#136)
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-176]
     kind: slice
-    why: >
-      Tracked in GitHub issue #136 (registry pilot: the issue holds the item).
     tags: [push]
 
   - id: slice-183
