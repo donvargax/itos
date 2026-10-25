@@ -8134,24 +8134,9 @@ items:
     title: The pre-push hook judges a new tag or branch from the nearest commit the remote has, not as all new
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: slice
-    why: >
-      Was p1-prepush-new-ref-base.
-      slice-131's agent (2026-10-11): a new ref has no remote commit it replaces, so the hook runs
-      hooks.pre_push's whole command set (go-unit-tests --all here) even when the ref names a commit
-      already on the remote's main, as a release tag does. Judge a new ref's commits from the
-      nearest commit the remote already has (its commits on no remote-tracking branch are none), and
-      run the pre-push commands only when it adds commits.
-
-      2026-10-24 grooming (the user's call): merged in p1-prepush-refuses-tag-moves, slice-131's
-      agent's other find: slice-128's rewrite check refuses a ref whose remote commit is not an
-      ancestor of the pushed one, so a forced move of a release tag onto a descendant commit passes
-      it, through the real git past the shim and guard. A tag is never moved (the release rule), so
-      any update of a tag the remote already has is refused, ancestor or not. One design: the
-      pre-push hook judges each ref by its kind, a new ref from the nearest commit the remote has,
-      an existing tag never updated.
     refs: [internal/cli/hook.go]
     tags: [hooks, v8]
 
