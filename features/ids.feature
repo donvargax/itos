@@ -163,6 +163,15 @@ Feature: The id counter, so an id itos mints is minted once
   # the ref moved, whatever git's words. The retry fetches 11 and claims 12
   # in one push: the remote's counter is 12, not 13. Before the fix it fails
   # at "itos exits with code 0" (it exits 3).
+  #
+  # Decided (the coordinator, 2026-10-25): a lost race is told by the remote's
+  # state, not by git's words, which differ across versions (this bug is one
+  # wording missed): after a refused push, itos fetches the counter again and
+  # retries, within its attempts, when refs/itos/ids moved past the commit the
+  # attempt built on, whatever git said; a refusal that leaves the ref where it
+  # was is a real one (ID-IDS-10). So a lock another push held, and won, is a
+  # lost race too, and the word list of nonFastForward need not grow. A real
+  # refusal keeps exit 3.
   @ID-IDS-09 @bug-141 @wip
   Scenario: A counter push that loses the race as the remote updates the ref fetches the counter again and retries
     Given a repository whose ledger has the task "T-001"
