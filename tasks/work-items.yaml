@@ -14002,8 +14002,8 @@ items:
   - id: slice-181
     title: Under pr, work done trusts the merged pull request's green run when main gained only registry and ledger commits (#136)
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: [slice-176]
     kind: slice
     why: >
