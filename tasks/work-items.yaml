@@ -8621,23 +8621,9 @@ items:
     title: Explain CI step forms and range inputs in CLI help and defaults examples
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: slice
-    why: >
-      Was p1-ci-steps-discoverable.
-      #57 (2026-10-12): an agent setting up CI read itos's source to learn the step forms ({run,
-      cost}, {tests: <kind>}, whole: true) and that a step gets ITOS_FROM and ITOS_TO in its
-      environment and {from} and {to} in its text. Neither itos ci --help nor config check
-      --print-defaults says so; --print-defaults could show them as commented examples, as it does
-      tests.<kind>.
-
-      First delivery documents actual runtime behavior: plain command, run/cost mapping, and
-      range-selected tests mapping; ci help points to the detailed ci run help. YAML print-defaults
-      gains disabled comment examples without changing its parsed defaults or JSON shape. Explain
-      {from}/{to} and ITOS_FROM/ITOS_TO, including empty from for an all-history run. Explicitly
-      warn that whole is currently accepted but has no effect; p1-ci-step-whole-inert owns resolving
-      that mismatch, with no planner change hidden in this help work.
     tags: [ci, v8]
     refs: [features/ci-help.feature, internal/cli/help.go, internal/cli/configcheck.go, internal/config/defaults.go, internal/plan/ends.go]
 
