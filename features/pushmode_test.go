@@ -12,7 +12,9 @@
 // the commits itos makes beside the registry (slice 177): a task's close that
 // takes out its checks, and an idea added with a file. Slice 179's give the
 // recording gh draft pull requests, reviews and review threads, and say a call
-// of it lacks a text.
+// of it lacks a text. Slice 184's give its pull requests a title, check the
+// length of a call's --title in Unicode code points, and record a line break
+// inside an argument as a backslash and an n, so a call stays one line.
 package features
 
 import (
@@ -26,6 +28,7 @@ import (
 	"runtime"
 	"slices"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/cucumber/godog"
 
@@ -40,6 +43,13 @@ func initializePushModeSteps(sc *godog.ScenarioContext, w *world) {
 	sc.Step(`^a recording gh on the PATH, which opens pull requests as "([^"]*)"$`, w.recordingGh)
 	sc.Step(`^the recording gh has the pull request "([^"]*)" open for the branch "([^"]*)"$`, w.ghHasPullRequest)
 	sc.Step(`^the recording gh has the draft pull request "([^"]*)" open for the branch "([^"]*)"$`, w.ghHasDraftPullRequest)
+	sc.Step(`^the recording gh has the pull request "([^"]*)" open for the branch "([^"]*)", titled "([^"]*)"$`, func(address, branch, title string) error {
+		return w.ghHasPullRequestIn(address, branch, "OPEN", false, title)
+	})
+	sc.Step(`^the recording gh has the draft pull request "([^"]*)" open for the branch "([^"]*)", titled "([^"]*)"$`, func(address, branch, title string) error {
+		return w.ghHasPullRequestIn(address, branch, "OPEN", true, title)
+	})
+	sc.Step(`^the recording gh's "([^"]*)" call has a --title of (\d+) characters ending with "([^"]*)"$`, w.ghCallTitle)
 	sc.Step(`^the recording gh answers that the pull request has a review by "([^"]*)"$`, w.ghAnswersReview)
 	sc.Step(`^the recording gh answers that the pull request has an unresolved review thread on "([^"]*)" line (\d+), its first comment the lines "([^"]*)" and "([^"]*)"$`,
 		func(path string, line int, first, second string) error {
@@ -58,10 +68,10 @@ func initializePushModeSteps(sc *godog.ScenarioContext, w *world) {
 	})
 	sc.Step(`^the fake GitHub was asked for the run of the head of the remote's branch "([^"]*)"$`, w.fakeGitHubGivenRemoteBranchHead)
 	sc.Step(`^the recording gh has the pull request "([^"]*)" merged for the branch "([^"]*)"$`, func(address, branch string) error {
-		return w.ghHasPullRequestIn(address, branch, "MERGED", false)
+		return w.ghHasPullRequestIn(address, branch, "MERGED", false, "")
 	})
 	sc.Step(`^the recording gh has the pull request "([^"]*)" closed without merging for the branch "([^"]*)"$`, func(address, branch string) error {
-		return w.ghHasPullRequestIn(address, branch, "CLOSED", false)
+		return w.ghHasPullRequestIn(address, branch, "CLOSED", false, "")
 	})
 	sc.Step(`^the recording gh fails every call, saying "([^"]*)"$`, func(words string) error {
 		return os.WriteFile(w.ghFailure(), []byte(words+"\n"), 0o644)
@@ -144,12 +154,15 @@ func (w *world) ghReviews() string { return filepath.Join(w.support, "gh-reviews
 func (w *world) ghThreads() string { return filepath.Join(w.support, "gh-threads") }
 
 // recordingGh is a gh first on the PATH that stands in for GitHub: it records
-// each call, answers pr list with the pull requests of its --head branch that
-// its --state names (open, gh's default, merged, closed or all) as gh does ([]
-// for none), each with its isDraft, and answers pr create with the address
-// given, holding that pull request open from then on, a draft when the call
-// has --draft (slice 179); pr ready <branch> makes that branch's pull
-// requests ready, and api graphql answers the reviews and the review threads
+// each call on a line, a line break inside an argument written as a backslash
+// and an n (slice 184); answers pr list with the pull requests of its --head
+// branch that its --state names (open, gh's default, merged, closed or all) as
+// gh does ([] for none), each with its isDraft and its title, and answers pr
+// create with the address given, holding that pull request open from then on,
+// a draft when the call has --draft (slice 179), with the --title=<value> it
+// was given; pr edit <branch> --title=<value> gives that branch's open pull
+// request the title; pr ready <branch> makes that branch's pull requests
+// ready, and api graphql answers the reviews and the review threads
 // the steps gave it, the same for every call; pr view answers the head of the remote's branch it
 // names as {"headRefOid": <sha>}, and pr update-branch rebases that branch onto
 // the remote's main, as GitHub does, in a clone of its own that it pushes back
@@ -164,7 +177,23 @@ func (w *world) recordingGh(address string) error {
 	}
 	calls, pulls := quote(filepath.ToSlash(w.ghCalls())), quote(filepath.ToSlash(w.ghPulls()))
 	script := fmt.Sprintf(`#!/bin/sh
-printf '%%s\n' "$*" >> %[1]s
+nl='
+'
+rep() {
+  s=$1 out=
+  while :; do
+    case $s in
+    *"$2"*) out=$out${s%%%%"$2"*}$3; s=${s#*"$2"} ;;
+    *) out=$out$s; break ;;
+    esac
+  done
+  REPLY=$out
+}
+json() { rep "$1" '\' '\\'; rep "$REPLY" '"' '\"'; }
+rec=
+sep=
+for a in "$@"; do rep "$a" "$nl" '\n'; rec=$rec$sep$REPLY; sep=' '; done
+printf '%%s\n' "$rec" >> %[1]s
 if [ -f %[11]s ]; then cat %[11]s >&2; exit 1; fi
 verb="$1 $2"
 head=
@@ -181,7 +210,7 @@ case "$verb" in
 "pr list")
   found=
   if [ -f %[2]s ]; then
-    while read -r branch url kind draft; do
+    while read -r branch url kind draft title; do
       if [ "$branch" = "$head" ]; then
         case "$state/$kind" in all/*|open/OPEN|merged/MERGED|closed/CLOSED) ;; *) continue ;; esac
         merged=null
@@ -189,7 +218,8 @@ case "$verb" in
         oid=
         case "$json" in *headRefOid*) if [ -f %[9]s"$branch" ]; then oid=",\"headRefOid\":\"$(cat %[9]s"$branch")\""; fi ;; esac
         if [ -n "$found" ]; then found="$found,"; fi
-        found="$found{\"number\":${url##*/},\"url\":\"$url\",\"state\":\"$kind\",\"isDraft\":${draft:-false},\"mergedAt\":$merged$oid}"
+        json "$title"
+        found="$found{\"number\":${url##*/},\"url\":\"$url\",\"title\":\"$REPLY\",\"state\":\"$kind\",\"isDraft\":${draft:-false},\"mergedAt\":$merged$oid}"
       fi
     done < %[2]s
   fi
@@ -197,15 +227,31 @@ case "$verb" in
   ;;
 "pr create")
   draft=false
-  for a in "$@"; do if [ "$a" = --draft ]; then draft=true; fi; done
-  printf '%%s %%s OPEN %%s\n' "$head" %[3]s "$draft" >> %[2]s
+  title=
+  for a in "$@"; do
+    if [ "$a" = --draft ]; then draft=true; fi
+    case "$a" in --title=*) title=${a#--title=} ;; esac
+  done
+  printf '%%s %%s OPEN %%s %%s\n' "$head" %[3]s "$draft" "$title" >> %[2]s
   printf '%%s\n' %[3]s
   ;;
 "pr ready")
   : > %[14]s
-  while read -r branch url kind draft; do
+  while read -r branch url kind draft title; do
     if [ "$branch" = "$3" ]; then draft=false; fi
-    printf '%%s %%s %%s %%s\n' "$branch" "$url" "$kind" "${draft:-false}" >> %[14]s
+    printf '%%s %%s %%s %%s %%s\n' "$branch" "$url" "$kind" "${draft:-false}" "$title" >> %[14]s
+  done < %[2]s
+  mv %[14]s %[2]s
+  ;;
+"pr edit")
+  title=
+  for a in "$@"; do
+    case "$a" in --title=*) title=${a#--title=} ;; esac
+  done
+  : > %[14]s
+  while read -r branch url kind draft old; do
+    if [ "$branch" = "$3" ] && [ "$kind" = OPEN ]; then old=$title; fi
+    printf '%%s %%s %%s %%s %%s\n' "$branch" "$url" "$kind" "${draft:-false}" "$old" >> %[14]s
   done < %[2]s
   mv %[14]s %[2]s
   ;;
@@ -250,20 +296,22 @@ esac
 	return nil
 }
 
-// The recording gh holds the pull request open for the branch.
+// The recording gh holds the pull request open for the branch, untitled.
 func (w *world) ghHasPullRequest(address, branch string) error {
-	return w.ghHasPullRequestIn(address, branch, "OPEN", false)
+	return w.ghHasPullRequestIn(address, branch, "OPEN", false, "")
 }
 
-// The recording gh holds the pull request open for the branch, as a draft.
+// The recording gh holds the pull request open for the branch, as a draft,
+// untitled.
 func (w *world) ghHasDraftPullRequest(address, branch string) error {
-	return w.ghHasPullRequestIn(address, branch, "OPEN", true)
+	return w.ghHasPullRequestIn(address, branch, "OPEN", true, "")
 }
 
 // The recording gh holds the pull request for the branch, OPEN, MERGED or
-// CLOSED (closed without merging), a draft or not, and keeps the head the remote's branch has
-// now as the pull request's previous head.
-func (w *world) ghHasPullRequestIn(address, branch, state string, draft bool) error {
+// CLOSED (closed without merging), a draft or not, with the title ("" for
+// none), and keeps the head the remote's branch has now as the pull
+// request's previous head.
+func (w *world) ghHasPullRequestIn(address, branch, state string, draft bool, title string) error {
 	if _, err := os.Stat(programPath(filepath.Join(w.support, "bin", "gh"))); err != nil {
 		return errors.New("no recording gh: put one on the PATH first")
 	}
@@ -278,7 +326,7 @@ func (w *world) ghHasPullRequestIn(address, branch, state string, draft bool) er
 	if err != nil {
 		return err
 	}
-	_, err = fmt.Fprintf(f, "%s %s %s %t\n", branch, address, state, draft)
+	_, err = fmt.Fprintf(f, "%s %s %s %t %s\n", branch, address, state, draft, title)
 	return errors.Join(err, f.Close())
 }
 
@@ -385,6 +433,33 @@ func (w *world) ghCallHas(command, text string) error {
 		return fmt.Errorf("no %q call of the recording gh has %q:\n%s\n%s", command, text, strings.Join(named, "\n"), w.report())
 	}
 	return nil
+}
+
+// Some call of the recording gh starts with the words of the command, and its
+// --title, the text between "--title=" and the next " --body=", is that many
+// Unicode code points long and ends with the text.
+func (w *world) ghCallTitle(command string, length int, ending string) error {
+	calls, err := w.ghCallLines()
+	if err != nil {
+		return err
+	}
+	var titles []string
+	for _, call := range calls {
+		if !strings.HasPrefix(call, command+" ") {
+			continue
+		}
+		_, after, found := strings.Cut(call, "--title=")
+		if !found {
+			continue
+		}
+		title, _, _ := strings.Cut(after, " --body=")
+		if utf8.RuneCountInString(title) == length && strings.HasSuffix(title, ending) {
+			return nil
+		}
+		titles = append(titles, fmt.Sprintf("%q (%d characters)", title, utf8.RuneCountInString(title)))
+	}
+	return fmt.Errorf("no %q call of the recording gh has a --title of %d characters ending with %q; its titles: %s\n%s",
+		command, length, ending, strings.Join(titles, ", "), w.report())
 }
 
 // Some call of the recording gh starts with the words of the command, and none

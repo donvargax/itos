@@ -58,6 +58,9 @@ func initializeWorkSteps(sc *godog.ScenarioContext, w *world) {
 	sc.Step(`^the work registry has the item "([^"]*)" owned by "([^"]*)" with the status "([^"]*)" and the tags "([^"]*)"$`, func(id, owner, status, tags string) error {
 		return w.registryItemWhy(id, owner, status, "", "", "", tags)
 	})
+	sc.Step(`^the work registry has the item "([^"]*)" owned by nobody with the status "([^"]*)" and the title "([^"]*)"$`, func(id, status, title string) error {
+		return w.registryItemTitled(id, title, "null", status, "", "", "", "")
+	})
 	sc.Step(`^the config's work\.tags is "([^"]*)"$`, func(tags string) error {
 		w.config.workTags = strings.Split(tags, ", ")
 		return w.writeConfig()
@@ -183,11 +186,23 @@ func (w *world) registryItem(id, owner, status, dep, kind string) error {
 // after the item's dependencies (slice 76), and its tags, a list of the
 // names given as "a, b" ("" for none, no key) after it (slice 97).
 func (w *world) registryItemWhy(id, owner, status, dep, kind, why, tags string) error {
+	return w.registryItemTitled(id, "", owner, status, dep, kind, why, tags)
+}
+
+// registryItemTitled is registryItemWhy with a title ("" for the id, the
+// scenarios' usual one). A title is written as a single-quoted YAML text, in
+// which every character is itself but the single quote, written twice, so
+// the title is exactly the text the step gave (slice 184).
+func (w *world) registryItemTitled(id, title, owner, status, dep, kind, why, tags string) error {
+	titleYAML := id
+	if title != "" {
+		titleYAML = "'" + strings.ReplaceAll(title, "'", "''") + "'"
+	}
 	deps := "[]"
 	if dep != "" {
 		deps = "[" + dep + "]"
 	}
-	line := fmt.Sprintf("  - { id: %s, title: %s, phase: 1, owner: %s, status: %s", id, id, owner, status)
+	line := fmt.Sprintf("  - { id: %s, title: %s, phase: 1, owner: %s, status: %s", id, titleYAML, owner, status)
 	if kind != "" {
 		line += ", kind: " + kind
 	}
