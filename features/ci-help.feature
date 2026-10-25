@@ -48,7 +48,7 @@ Feature: CI setup is discoverable without reading the implementation
   # tests.CommandFor (no readable range selects tests.Whole, so run.whole;
   # else run.select over run.ids_pattern; nothing selected drops the step),
   # nightlyPlan (a tests: step is run.whole), plan.EndsOf and
-  # Config.RangeStart (the start, commits.since, empty), ci.Run (ITOS_FROM
+  # (*config.Loaded).RangeStart (the start, commits.since, empty), ci.Run (ITOS_FROM
   # and ITOS_TO set after ci.env), tests.FillRange (tests.ShellWord quotes
   # each end). Wording may be rewrapped; the phrases the scenarios quote
   # stay as written.
@@ -94,13 +94,15 @@ Feature: CI setup is discoverable without reading the implementation
 
   # Fails at "its output says "whole: true is accepted and has no effect"":
   # ci run's help does not mention whole. The negative check keeps the
-  # schema's promise ("every test of its kind") out of the help.
+  # schema's promise ("every test of its kind") out of the help, folded as
+  # the positive check is (a new step, the mirror of outputSaysFolded), so a
+  # line break inside the phrase cannot let it through.
   @wip @ID-CI-65 @slice-151
   Scenario: ci run's help warns that a step's whole flag has no effect
     When itos prints the help of "ci run"
     Then itos exits with code 0
     And its output says "whole: true is accepted and has no effect", whatever its line breaks
-    And its output does not say "every test of its kind"
+    And its output does not say "every test of its kind", whatever its line breaks
 
   # The YAML --print-defaults prints gains, inside the ci mapping after its
   # last default key and before work:, the same in every repository:
