@@ -13941,7 +13941,7 @@ items:
   - id: T-304
     title: Reuse an item's branch name safely under pr
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
