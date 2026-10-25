@@ -52,6 +52,9 @@ func initializeTestsTSVSteps(sc *godog.ScenarioContext, w *world) {
 	var s tsvScenario
 	sc.Before(func(ctx context.Context, sn *godog.Scenario) (context.Context, error) {
 		s = tsvScenario{}
+		if w.outsideShard {
+			return ctx, nil
+		}
 		for _, tag := range sn.Tags {
 			if tag.Name == "@slice-154" {
 				return ctx, w.armTripwires()
