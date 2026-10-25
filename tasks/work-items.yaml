@@ -14008,11 +14008,9 @@ items:
     title: work done trusts a merged pull request's run although main added a check to the item's own task since (#141)
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-181]
     kind: bug
-    why: >
-      Tracked in GitHub issue #141 (registry pilot: the issue holds the item).
     tags: [push]
 
   - id: slice-184
