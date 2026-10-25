@@ -125,9 +125,12 @@ Feature: push.mode pr, an item's work on its own branch merged by rebase, claims
   with neither ci nor run) the change breaks: it deletes both and names
   them in Changes:.
 
-  The wait is a report, not a gate: auto-merge is turned on before it, so
-  what stops a red merge is the repository's required checks, which itos
-  init does not set yet (a later item).
+  Without push.pr.draft the wait is a report, not a gate: auto-merge is
+  turned on before it, so what stops a red merge is the repository's required
+  checks, which itos init does not set yet (a later item). With push.pr.draft
+  (push-mode-draft.feature, slice 179) itos push opens the pull request as a
+  draft and turns on no auto-merge, and itos push --ready makes the wait a
+  gate: auto-merge comes after the checks and the reviews, never before.
 
   --json adds "pull_request": {"url","number","created","updated"} after a
   push from an item's branch, created saying whether it opened the pull

@@ -24,13 +24,16 @@ import (
 )
 
 // PullRequest is the pull request of an item's branch under push.mode pr, as
-// --json gives it: its address and number, whether this push opened it, and
-// whether it asked GitHub to rebase it.
+// --json gives it: its address and number, whether this push opened it,
+// whether it asked GitHub to rebase it, whether it is a draft once the push is
+// done and whether this push turned on auto-merge (slice 179).
 type PullRequest struct {
-	URL     string `json:"url"`
-	Number  int    `json:"number"`
-	Created bool   `json:"created"`
-	Updated bool   `json:"updated"`
+	URL       string `json:"url"`
+	Number    int    `json:"number"`
+	Created   bool   `json:"created"`
+	Updated   bool   `json:"updated"`
+	Draft     bool   `json:"draft"`
+	AutoMerge bool   `json:"auto_merge"`
 }
 
 // prMode is whether the config says push.mode pr, keeping the config for the
@@ -270,26 +273,40 @@ func (r *pushRun) pushRegistry(ctx context.Context, main, onto string) Answer {
 	return r.wait(ctx, r.remote, onto, pushed)
 }
 
-// pullRequest finds the item's open pull request or opens one, turns on
-// auto-merge by rebase and, when main has a commit the pushed head lacks
-// (behind), asks GitHub to rebase it rather than forcing the branch; the wait
-// then watches the run of the head GitHub makes (rebasedHead), not the one
-// pushed. theirMain is main's head as the push fetched it. pushed is whether
-// this run pushed the item's branch.
+// pullRequest finds the item's open pull request or opens one. Under
+// push.pr.draft a plain push opens it as a draft, if it opens it, and does
+// nothing more: no auto-merge, no rebase, no wait. --ready opens it ready or
+// marks the draft ready (gh pr ready), then finishes (ready.go). Otherwise it
+// turns on auto-merge by rebase. In every case but a plain draft push, when
+// main has a commit the pushed head lacks (behind), it asks GitHub to rebase
+// the pull request rather than forcing the branch; the wait then watches the
+// run of the head GitHub makes (rebasedHead), not the one pushed. theirMain is
+// main's head as the push fetched it. pushed is whether this run pushed the
+// item's branch.
 func (r *pushRun) pullRequest(ctx context.Context, repository, main, theirMain string, pushed, behind bool) Answer {
 	item := r.branch
-	listed, a, failed := r.gh(ctx, "pr", "list", "--repo", repository, "--head", item, "--state", "open", "--json", "number,url")
+	draft := r.cfg.Push.PR.Draft
+	listed, a, failed := r.gh(ctx, "pr", "list", "--repo", repository, "--head", item, "--state", "open", "--json", "number,url,isDraft")
 	if failed {
 		return a
 	}
-	var open []PullRequest
+	var open []struct {
+		Number  int    `json:"number"`
+		URL     string `json:"url"`
+		IsDraft bool   `json:"isDraft"`
+	}
 	if err := json.Unmarshal([]byte(listed), &open); err != nil {
 		return r.ghFailed("gh pr list", "its answer is not a list of pull requests: "+err.Error())
 	}
 	if len(open) > 0 {
-		r.pr = &PullRequest{URL: open[0].URL, Number: open[0].Number}
+		r.pr = &PullRequest{URL: open[0].URL, Number: open[0].Number, Draft: open[0].IsDraft}
 	} else {
-		created, a, failed := r.gh(ctx, "pr", "create", "--repo", repository, "--base", main, "--head", item, "--fill")
+		create := []string{"pr", "create", "--repo", repository, "--base", main, "--head", item, "--fill"}
+		asDraft := draft && !r.markReady
+		if asDraft {
+			create = append(create, "--draft")
+		}
+		created, a, failed := r.gh(ctx, create...)
 		if failed {
 			return a
 		}
@@ -297,12 +314,21 @@ func (r *pushRun) pullRequest(ctx context.Context, repository, main, theirMain s
 		if url == "" {
 			return r.ghFailed("gh pr create", "it printed no address")
 		}
-		r.pr = &PullRequest{URL: url, Number: pullNumber(url), Created: true}
+		r.pr = &PullRequest{URL: url, Number: pullNumber(url), Created: true, Draft: asDraft}
 	}
-	if _, a, failed := r.gh(ctx, "pr", "merge", item, "--repo", repository, "--auto", "--rebase"); failed {
-		return a
+	switch {
+	case !draft:
+		if _, a, failed := r.gh(ctx, "pr", "merge", item, "--repo", repository, "--auto", "--rebase"); failed {
+			return a
+		}
+		r.pr.AutoMerge = true
+	case r.markReady && r.pr.Draft:
+		if _, a, failed := r.gh(ctx, "pr", "ready", item, "--repo", repository); failed {
+			return a
+		}
+		r.pr.Draft = false
 	}
-	if behind {
+	if behind && (!draft || r.markReady) {
 		asked := now()
 		if _, a, failed := r.gh(ctx, "pr", "update-branch", item, "--repo", repository, "--rebase"); failed {
 			return a
@@ -310,14 +336,32 @@ func (r *pushRun) pullRequest(ctx context.Context, repository, main, theirMain s
 		r.pr.Updated = true
 		r.rebased = &rebased{repository: repository, onto: theirMain, ontoName: r.remote + "/" + main, since: asked}
 	}
-	if !pushed {
-		return r.report(0, "nothing-to-push", fmt.Sprintf("Nothing to push: %s is at %s. Pull request: %s", item, r.upstream(), r.pr.URL))
+	outcome, line := "pushed", ""
+	if pushed {
+		line = r.pushedLine(ctx, r.pr.URL)
+	} else {
+		outcome, line = "nothing-to-push", fmt.Sprintf("Nothing to push: %s is at %s. Pull request: %s", item, r.upstream(), r.pr.URL)
 	}
-	line := r.pushedLine(ctx, r.pr.URL)
-	if r.noWait {
-		return r.report(0, "pushed", line)
+	switch {
+	case draft && !r.markReady:
+		return r.report(0, outcome, line, draftNote(r.pr.Draft))
+	case r.markReady && r.noWait:
+		return r.report(0, outcome, line, r.pr.URL+" is ready for review; itos push --ready again waits for its checks and reviews, then turns on auto-merge.")
+	case r.markReady:
+		return r.finish(ctx, repository, outcome, line)
+	case !pushed || r.noWait:
+		return r.report(0, outcome, line)
 	}
 	return r.wait(ctx, r.remote, "", line)
+}
+
+// draftNote is what a plain push under push.pr.draft says of the pull request,
+// a draft or already ready, which it leaves as it is.
+func draftNote(draft bool) string {
+	if draft {
+		return "The pull request is a draft: nothing judges or merges it until itos push --ready marks it ready."
+	}
+	return "The pull request is ready: itos push --ready waits for its checks and reviews, then turns on auto-merge."
 }
 
 // rebased is the rebase GitHub was asked for (gh pr update-branch): the
@@ -414,9 +458,15 @@ func (r pushRun) gh(ctx context.Context, args ...string) (string, Answer, bool) 
 // ghFailed is the pull-request-failed outcome (exit 3): the command that
 // failed and why, and that itos push again finishes the pull request.
 func (r pushRun) ghFailed(command, reason string) Answer {
+	again := "Fix that, then itos push again: it opens the pull request (gh pr create) and turns on auto-merge (gh pr merge --auto --rebase)."
+	switch {
+	case r.markReady:
+		again = "Fix that, then itos push --ready again: it opens the pull request ready or marks it ready, waits for its checks and reviews, then turns on auto-merge."
+	case r.cfg != nil && r.cfg.Push.PR.Draft:
+		again = "Fix that, then itos push again: it opens the pull request as a draft (gh pr create --draft)."
+	}
 	return r.report(missing, "pull-request-failed",
-		fmt.Sprintf("itos push: %s is pushed, but %s failed: %s", r.upstream(), command, reason),
-		"Fix that, then itos push again: it opens the pull request (gh pr create) and turns on auto-merge (gh pr merge --auto --rebase).")
+		fmt.Sprintf("itos push: %s is pushed, but %s failed: %s", r.upstream(), command, reason), again)
 }
 
 // lastLine is the last line of the text that is not empty.

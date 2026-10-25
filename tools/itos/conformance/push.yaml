@@ -35,6 +35,10 @@ cases:
     argv: [push, --no-wait, origin, main]
     exit: 2
     stderr_has: [--no-wait, --tag, --ref]
+  - name: push --ready takes no --tag or --ref
+    argv: [push, --ready, --tag, v1]
+    exit: 2
+    stderr_has: [--ready, --tag, --ref]
   - name: push --tag needs a tag's name
     argv: [push, --tag]
     exit: 2

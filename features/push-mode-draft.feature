@@ -27,9 +27,10 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   an item's pull request as a draft, which nothing judges or merges until
   itos push --ready marks it ready (push.mode pr)." and review_by "The
   GitHub logins whose review itos push --ready waits for before it turns on
-  auto-merge; empty, it waits for none." Both are read only under push.mode
+  auto-merge, as GitHub's GraphQL gives them (a bot's without "[bot]");
+  empty, it waits for none." Both are read only under push.mode
   pr. This repository turns them on (push.pr: {draft: true, review_by:
-  ["copilot-pull-request-reviewer[bot]"]}) in a build commit of its own,
+  [copilot-pull-request-reviewer]}) in a build commit of its own,
   once the ruleset below is applied, and rewrites AGENTS.md's Finishing for
   the --ready flow in the same push.
 
@@ -241,7 +242,7 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
 
   # The keys are push.pr's, read only under pr. Fails before the work at the
   # exit code: today config check refuses the unknown key push.pr, exit 2.
-  @ID-PUSHDRAFT-01 @slice-179 @wip
+  @ID-PUSHDRAFT-01 @slice-179
   Scenario: config check accepts push.pr's draft and review_by
     Given the config sets "push.pr" to the YAML "{draft: true, review_by: ['copilot-pull-request-reviewer[bot]']}"
     When itos checks the config
@@ -249,7 +250,7 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
 
   # Off by default, so pr pushes as slices 174 and 175 made it. Fails before
   # the work at the exit code: today config get refuses the unknown key, exit 2.
-  @ID-PUSHDRAFT-02 @slice-179 @wip
+  @ID-PUSHDRAFT-02 @slice-179
   Scenario: config get prints push.pr.draft's default, false, when the config leaves it out
     When itos runs "config get push.pr.draft"
     Then itos exits with code 0
@@ -260,7 +261,7 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   # before the work at the pr create step: today push.pr is an unknown key,
   # so the config cannot be read and the push is a trunk push to main that
   # calls no gh.
-  @ID-PUSHDRAFT-03 @slice-179 @wip
+  @ID-PUSHDRAFT-03 @slice-179
   Scenario: Under push.pr.draft, the first push from an item's branch opens its pull request as a draft, turning on no auto-merge and waiting for no run
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -286,7 +287,7 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   # even a rebase when main has moved: --ready asks for that. Fails before
   # the work at the pr list step: today the config cannot be read and gh is
   # never called.
-  @ID-PUSHDRAFT-04 @slice-179 @wip
+  @ID-PUSHDRAFT-04 @slice-179
   Scenario: Under push.pr.draft, a push to an open draft that main has moved past opens nothing, turns on no auto-merge and asks for no rebase
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -315,7 +316,7 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   # and that nothing turned on auto-merge or watched a run. Fails before the
   # work at the pull_request.draft step: today the push is a trunk push,
   # whose JSON has no pull_request.
-  @ID-PUSHDRAFT-05 @slice-179 @wip
+  @ID-PUSHDRAFT-05 @slice-179
   Scenario: Under push.pr.draft, push --json says the pull request is a draft and auto-merge is off
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -341,7 +342,7 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   # on auto-merge. The review's author is GraphQL's login, without [bot],
   # which matches the config's login with it. Fails before the work at the
   # exit code: today push refuses --ready, exit 2.
-  @ID-PUSHDRAFT-06 @slice-179 @wip
+  @ID-PUSHDRAFT-06 @slice-179
   Scenario: Under push.pr.draft, push --ready marks the draft ready, waits for its run and the review, then turns on auto-merge by rebase
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -374,7 +375,7 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   # nothing to push, --ready still waits for the run of the pull request's
   # head, so a second --ready after a fix pushed plainly judges it. Fails
   # before the work at the exit code: today push refuses --ready, exit 2.
-  @ID-PUSHDRAFT-07 @slice-179 @wip
+  @ID-PUSHDRAFT-07 @slice-179
   Scenario: Under push.pr.draft, push --ready with nothing to push waits for the head's run and, when it fails, turns on no auto-merge
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -404,7 +405,7 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   # one, red here. Fails before the work at the exit code: today push
   # refuses --ready, exit 2; without the rule it would take the skipped run
   # and exit 0.
-  @ID-PUSHDRAFT-08 @slice-179 @wip
+  @ID-PUSHDRAFT-08 @slice-179
   Scenario: Under push.pr.draft, push --ready passes over the draft's run whose jobs were all skipped and waits for the real one
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -430,7 +431,7 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   # its first comment; a resolved one is not named. Said on stderr under
   # --json too. Fails before the work at the exit code: today push refuses
   # --ready, exit 2.
-  @ID-PUSHDRAFT-09 @slice-179 @wip
+  @ID-PUSHDRAFT-09 @slice-179
   Scenario: Under push.pr.draft, push --ready with an unresolved review thread turns on no auto-merge and names the thread, exit 1
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -464,7 +465,7 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   # reviewing (the ruleset not applied, an outage) exits 75, auto-merge off,
   # naming the login as the config writes it. Fails before the work at the
   # exit code: today push refuses --ready, exit 2.
-  @ID-PUSHDRAFT-10 @slice-179 @wip
+  @ID-PUSHDRAFT-10 @slice-179
   Scenario: Under push.pr.draft, push --ready with no review by a review_by login within ci.watch.timeout exits 75, turning on no auto-merge
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -493,7 +494,7 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   # stops: auto-merge unwatched would let GitHub merge before the review.
   # Fails before the work at the exit code: today push refuses --ready,
   # exit 2.
-  @ID-PUSHDRAFT-11 @slice-179 @wip
+  @ID-PUSHDRAFT-11 @slice-179
   Scenario: Under push.pr.draft, push --ready --no-wait marks the draft ready and turns on no auto-merge, saying how to finish
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -523,7 +524,7 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   # mark; without ci.watch no run is waited for, the threads are still asked
   # (none), and auto-merge goes on. Fails before the work at the exit code:
   # today push refuses --ready, exit 2.
-  @ID-PUSHDRAFT-12 @slice-179 @wip
+  @ID-PUSHDRAFT-12 @slice-179
   Scenario: Under push.pr.draft, push --ready from an item's branch with no pull request opens it ready and turns on auto-merge
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -545,7 +546,7 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   # Main has no pull request to mark; the refusal comes before anything is
   # fetched or pushed, so the take stays local. Fails before the work at the
   # exit code: today push refuses --ready, exit 2.
-  @ID-PUSHDRAFT-13 @slice-179 @wip
+  @ID-PUSHDRAFT-13 @slice-179
   Scenario: Under push.pr.draft, push --ready from main is refused, exit 1, pushing nothing
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -566,7 +567,7 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   # on at each push, so --ready has nothing to mark and would only add a gate
   # the config did not ask for. Fails before the work at the exit code: today
   # push refuses --ready as a usage error, exit 2.
-  @ID-PUSHDRAFT-14 @slice-179 @wip
+  @ID-PUSHDRAFT-14 @slice-179
   Scenario: Under pr without push.pr.draft, push --ready is refused, exit 1, before anything is pushed
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -585,7 +586,7 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   # push.pr.draft is off by default: pr opens pull requests ready and turns
   # on auto-merge at each push, as slices 174 and 175 made it. A guard: it
   # passes before the fix and must after it.
-  @ID-PUSHDRAFT-15 @slice-179 @wip @guard
+  @ID-PUSHDRAFT-15 @slice-179 @guard
   Scenario: Under pr without push.pr.draft, a push opens its pull request ready and turns on auto-merge, as before
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -606,7 +607,7 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   # draft is the recording gh's, not the config's: work done reads no
   # push.pr, and a config naming it cannot be read before the work. A guard:
   # it passes before the fix and must after it.
-  @ID-PUSHDRAFT-16 @slice-179 @wip @guard
+  @ID-PUSHDRAFT-16 @slice-179 @guard
   Scenario: Under pr, work done refuses an item whose pull request is an open draft
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """

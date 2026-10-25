@@ -35,6 +35,12 @@
 // the same rule, given the branch, the newest run on it whose head has the
 // commit as an ancestor judges it, and the watch says which run it follows.
 //
+// itos push --ready (slice 179) watches with WatchReady: a draft's last push
+// ran CI with every job skipped, and GitHub may record that run as a success,
+// so a run all of whose jobs were skipped, or that lists none, is taken for no
+// run yet and looked for again each interval within the timeout, until the run
+// that marking the pull request ready starts shows.
+//
 // A run that completed with any conclusion but cancelled is given Detail
 // before its end is said (slice 172, features/watch-failures.feature); a
 // cancelled run is followed or ends 75 as above, and has nothing failed to

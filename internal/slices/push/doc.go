@@ -137,6 +137,39 @@
 // which a test replaces. --no-wait, or no ci.watch provider, calls no gh pr
 // view.
 //
+// # push.pr.draft and --ready
+//
+// push.pr.draft (slice 179; push.pr is read under pr alone, config.PushPR)
+// makes the pull request a draft that nothing judges or merges until
+// itos push --ready marks it ready. pullRequest asks gh pr list for number,
+// url and isDraft under either setting, and under draft a plain push opens a
+// missing one with gh pr create --draft and goes no further: no gh pr merge,
+// no gh pr update-branch even when main moved, no wait whatever ci.watch
+// says; it never changes a draft state, and says, by draftNote, which the
+// pull request is. PullRequest.Draft and AutoMerge are --json's.
+//
+// --ready (Query.Ready, markReady) is refused before anything is fetched or
+// pushed outside push.mode pr with push.pr.draft true (outcome
+// ready-without-draft) and, once main is known, from main (ready-on-main);
+// Parse refuses it beside --tag or --ref. Otherwise pullRequest opens the
+// pull request ready or marks the draft ready (gh pr ready), asks for the
+// rebase when main moved, and with --no-wait stops there. Else finish (ready.go)
+// takes over, whether or not anything was pushed: the run of the pull
+// request's head, the head GitHub made when it was asked to rebase, is
+// watched with ciwatch.WatchReady, which passes over the draft's run whose jobs
+// were all skipped; a run that does not succeed ends it, auto-merge off.
+// With push.pr.review_by, awaitReviews asks GitHub at once and each
+// ci.watch.interval, never faster than reviewPoll, until each login has a
+// review, matched with a trailing "[bot]" dropped from both sides since
+// GraphQL names a bot without it; ci.watch.timeout from the first ask ends it,
+// exit 75, outcome review-timeout. The reviews and the review threads are one
+// gh api graphql question (ask, reviewQuery on one line, since the recording
+// gh of the scenarios keeps a call to one line); an answer without that shape
+// is a gh call that fails. A thread not resolved refuses the merge (exit 1,
+// review-threads-unresolved), named by its file, line and the first line of
+// its first comment; only then gh pr merge --auto --rebase, so auto-merge
+// comes after the checks and the reviews, never before.
+//
 // Handle reaches the world through Ports, which the slice owns and
 // internal/cli binds: the repository (the VCS port, git behind it), its git
 // config and hooks folder (hooks.Ports and gitrun.Config), whether a config

@@ -15,12 +15,14 @@ import (
 	vcsport "github.com/donvargax/itos/v8/internal/vcs/port"
 )
 
-// Query is what push asks: NoWait, --no-wait; Tags and Refs, what --tag and
+// Query is what push asks: NoWait, --no-wait; Ready, --ready, which marks a
+// draft pull request ready and waits for it (slice 179); Tags and Refs, what --tag and
 // --ref named, in the order given (slice 131); and Origin, the folder the
 // person stood in, relative to the repository's top, where git runs; ""
 // when itos runs where it was started.
 type Query struct {
 	NoWait     bool
+	Ready      bool
 	Tags, Refs []string
 	Origin     string
 }
@@ -91,7 +93,7 @@ func (h Handler) Handle(ctx context.Context, q Query, o Out) (Answer, error) {
 		return Answer{}, out.Usage("push refuses core.hooksPath set by git -c: it moves the hooks git runs, skipping the " +
 			"repository's own; push without it")
 	}
-	r := pushRun{ports: h.ports, o: o, origin: q.Origin, git: o.Stdout, noWait: q.NoWait}
+	r := pushRun{ports: h.ports, o: o, origin: q.Origin, git: o.Stdout, noWait: q.NoWait, markReady: q.Ready}
 	if o.JSON {
 		r.git = o.Stderr
 	}
@@ -111,6 +113,11 @@ func (h Handler) Handle(ctx context.Context, q Query, o Out) (Answer, error) {
 		}
 	}
 	pr := r.prMode(ctx)
+	if q.Ready && !(pr && r.cfg.Push.PR.Draft) {
+		return r.report(policy, "ready-without-draft",
+			"itos push: --ready is for push.mode pr with push.pr.draft true, which this config does not set; nothing was fetched or pushed.",
+			"Push without --ready, or set push.mode: pr and push.pr.draft: true."), nil
+	}
 	if len(q.Tags)+len(q.Refs) > 0 {
 		if pr && len(q.Refs) > 0 {
 			if a, done := r.judgeRefs(ctx, q.Refs); done {
@@ -142,6 +149,11 @@ func (h Handler) Handle(ctx context.Context, q Query, o Out) (Answer, error) {
 		}
 		if branch != main {
 			return r.pushItem(ctx, branch, main), nil
+		}
+		if q.Ready {
+			return r.report(policy, "ready-on-main",
+				fmt.Sprintf("itos push: --ready marks an item's pull request ready, and HEAD is on %s, which has none; nothing was fetched or pushed.", main),
+				"Run itos push --ready from the item's branch."), nil
 		}
 		onMain = true
 	} else if !set {

@@ -160,6 +160,10 @@
   scenarios:
     - id: "@ID-PREPUSH-01"
       why: a pushed commit that breaks the commit rules refused by the hook, saying how to fix it, the file's point
+- file: push-mode-draft.feature
+  scenarios:
+    - id: "@ID-PUSHDRAFT-06"
+      why: a draft marked ready, its run and the review waited for, then auto-merge turned on by rebase, the file's point
 - file: push-mode-ledger.feature
   scenarios:
     - id: "@ID-PUSHLEDGER-01"

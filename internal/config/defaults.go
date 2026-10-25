@@ -90,8 +90,9 @@ func defaults() *value.Map {
 			"commit_msg", m("task_checks", true, "check_timeout", 60.0),
 		),
 		// Trunk, so a config without push.mode pushes as it always did
-		// (slice 174).
-		"push", m("mode", "trunk"),
+		// (slice 174); pr opens ready pull requests unless asked for drafts
+		// (slice 179).
+		"push", m("mode", "trunk", "pr", m("draft", false, "review_by", l())),
 		// The repository's own notes, which itos go appends to the
 		// coordinator's guide (slice 64): beside its other docs.
 		"guide", m("orchestrating", "docs/ORCHESTRATING.md"),
