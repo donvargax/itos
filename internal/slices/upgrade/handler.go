@@ -3,6 +3,7 @@ package upgrade
 import (
 	"context"
 	"fmt"
+	"os"
 
 	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/engine/agentrules"
@@ -65,6 +66,13 @@ type Answer struct {
 	Applied   []appliedStep
 	Why       string
 	Unfetched error
+
+	// Uses and Problems are the workflow steps that launch the itos action
+	// and the workflows that could not be read (slice 150): both empty for
+	// a refusal and under a stealth config.
+	Uses     []actionUse
+	Problems []scanProblem
+	Pinned   bool
 }
 
 // refuse is a refusal, saying why: nothing is upgraded.
@@ -87,8 +95,10 @@ func (h Handler) Handle(ctx context.Context, q Query) (Answer, error) {
 	if err != nil {
 		return Answer{}, err
 	}
-	a := Answer{To: q.Want, Releases: []any{}, Edited: []string{}, Applied: []appliedStep{}}
+	a := Answer{To: q.Want, Releases: []any{}, Edited: []string{}, Applied: []appliedStep{},
+		Uses: []actionUse{}, Problems: []scanProblem{}}
 	hasPin := config.PinVersion.MatchString(c.Version)
+	a.Pinned = hasPin
 	switch {
 	case hasPin:
 		a.From = c.Version
@@ -121,6 +131,7 @@ func (h Handler) Handle(ctx context.Context, q Query) (Answer, error) {
 				"changed after it was pinned; every file is left as it was", c.File, v, c.Checksums, sum)
 		}
 		a.Action = already
+		a.Uses, a.Problems = workflowsOf(c, h.ports.Stealth(ctx, c.File))
 		return a, nil
 	}
 	if a.Releases, err = h.walkReleases(ctx, a.From, v); err != nil {
@@ -145,7 +156,9 @@ func (h Handler) Handle(ctx context.Context, q Query) (Answer, error) {
 			return Answer{}, fmt.Errorf("cannot edit %s: %w; every file is left as it was", pinengine.InstallScript, err)
 		}
 	}
-	rules := h.ports.Rules(ctx, h.ports.Stealth(ctx, c.File))
+	stealth := h.ports.Stealth(ctx, c.File)
+	rules := h.ports.Rules(ctx, stealth)
+	a.Uses, a.Problems = workflowsOf(c, stealth)
 	if text != c.Text {
 		if err := h.ports.Write(ctx, c.File, text); err != nil {
 			return Answer{}, err
@@ -166,4 +179,18 @@ func (h Handler) Handle(ctx context.Context, q Query) (Answer, error) {
 	}
 	a.Action = upgraded
 	return a, nil
+}
+
+// workflowsOf names the workflow steps that launch the itos action in the
+// folder itos runs in, none under a stealth config: it is never committed,
+// so no workflow reads its pin.
+func workflowsOf(c pinengine.Config, stealth bool) ([]actionUse, []scanProblem) {
+	if stealth {
+		return []actionUse{}, []scanProblem{}
+	}
+	dir := c.Dir
+	if dir == "" {
+		dir = "."
+	}
+	return scanWorkflows(os.DirFS(dir))
 }

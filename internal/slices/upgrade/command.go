@@ -54,6 +54,17 @@ unless the version it moves to is newer than it: then that version is fetched,
 as a pinned one is, and runs the upgrade with ITOS_UPGRADE_FROM set, so each
 release applies its own steps; its exit code is upgrade's.
 
+It names, and moves none of, each step of the workflows directly in
+.github/workflows (*.yml and *.yaml, read as YAML) whose uses: is
+donvargax/itos@<ref>: its file, the line of its uses: key, the ref as written
+and its with.version when it has one. The action installs a launcher, the
+release its ref or its version input names, and the repository's pin chooses
+the itos that runs, so such a line need not move; with no pin each line runs
+the release it installs, and itos pin pins one. A workflow that cannot be
+read is named with why, and its steps are not. A stealth config names none,
+since no workflow reads it. The lines come after the releases, before By
+hand, and after "already on" when there is nothing to upgrade.
+
 Where AGENTS.md, or a stealth config's copies, holds a block of itos's rules
 for agents other than the one it writes, the itos doing the upgrade rewrites
 it in its own words, only between the markers, as itos init --agent-rules
@@ -61,10 +72,13 @@ does; a file with no block gains none. Each file it rewrites is among those
 it edited.
 
 --json: {"schema":1,"action","from","to","releases","edited","applied",
-        "manual"}, action one of upgraded, already, refused; each release
+        "manual","action_uses","action_scan_problems"}, action one of upgraded, already, refused; each release
         {"version","breaking","upgrading","changes","config"}, or
         {"version","notes"} for one with no upgrading.json; each applied
         {"version","kind":"renamed"|"removed","key","from"?,"value"?}; each
-        manual {"version","text"}`,
+        manual {"version","text"}; action_uses the workflow steps named, each
+        {"file","line","ref","version_input"?}, and action_scan_problems the
+        workflows it could not read, each {"file","message"}, both [] when
+        there are none, under a stealth config and for a refusal`,
 	},
 }
