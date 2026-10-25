@@ -13917,7 +13917,7 @@ items:
   - id: T-303
     title: Switch this repository to push.mode pr
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
