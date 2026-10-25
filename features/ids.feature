@@ -133,3 +133,70 @@ Feature: The id counter, so an id itos mints is minted once
     When itos runs the command line "work add --kind slice --title 'Do the thing' --why 'Because.'"
     Then itos exits with code 70
     And the registry has no item "slice-10"
+
+  # Bug 141: two clones pushing refs/itos/ids at the same moment. A push is
+  # checked against the ref twice: by git push, against the ref the remote
+  # advertised ("fetch first", which itos retries), and by the remote's
+  # receive-pack as it updates the ref under its lock. A push that passes the
+  # first and loses the second is refused with "remote: error: cannot lock
+  # ref 'refs/itos/ids': is at <theirs> but expected <ours>" and "! [remote
+  # rejected] ... (incorrect old value provided)", which itos took for a real
+  # refusal: exit 3, "cannot pushing id counter on remote" (T-310's
+  # concurrent property found it). The race is made deterministic with git
+  # itself. The new Given writes git's update hook in the remote (the bare
+  # origin.git, its hooks folder; a #!/bin/sh script, run by Git's sh on
+  # Windows as the clone's hooks are), which receive-pack runs before it
+  # updates each ref and outside the push's quarantine (a pre-receive hook
+  # may not move a ref there). On the first push of refs/itos/ids only (a
+  # marker file in the remote's folder) it builds, with hash-object, mktree
+  # and commit-tree -p on the old value git hands it, another clone's counter
+  # commit whose counters/slice is 11, moves the ref to it with update-ref
+  # <new> <old>, and exits 0; later pushes it lets through. receive-pack then
+  # finds the ref moved under it and refuses the push in the race's own
+  # words. So the scenario exercises "cannot lock ref ... is at ... but
+  # expected", which git prints whatever its version, and "incorrect old
+  # value provided" only where the machine's git gives that reason (2.56
+  # does; an older git gives "failed to update ref"), each wording a case of
+  # the classifier's unit test too. A hook that only printed the words and
+  # declined would give the reason "hook declined" and leave the ref
+  # unmoved, as no real race does, and would refuse a fix that retries when
+  # the ref moved, whatever git's words. The retry fetches 11 and claims 12
+  # in one push: the remote's counter is 12, not 13. Before the fix it fails
+  # at "itos exits with code 0" (it exits 3).
+  @ID-IDS-09 @bug-141 @wip
+  Scenario: A counter push that loses the race as the remote updates the ref fetches the counter again and retries
+    Given a repository whose ledger has the task "T-001"
+    And a clone of it, where itos runs
+    And the work registry has the item "slice-9" owned by nobody with the status "todo"
+    And another clone of the remote has minted "slice-10"
+    And another clone claims "slice-11" on the remote while the clone's next counter push is received
+    When itos runs the command line "work add --kind slice --title 'Do the thing' --why 'Because.'"
+    Then itos exits with code 0
+    And its output says "slice-12"
+    And its output does not say "cannot pushing"
+    And the remote's id counter for "slice" is 12
+
+  # A refusal that is no lost race is not retried: exit 3, as today, and
+  # nothing written, no counter on the remote. The new Given writes the
+  # remote's update hook as above, one that prints its words on stderr and
+  # exits 1 for every push of refs/itos/ids (git relays them as "remote:
+  # <words>", the reason "hook declined"), the ref never moving. The message
+  # was ungrammatical, as its fetching and reading siblings are: it becomes
+  # "cannot push the id counter to the remote (nothing was written): <git's
+  # error>", and the others "cannot fetch the id counter from the remote" and
+  # "cannot read the id counter on the remote", with the same tail. The
+  # output is checked loosely (ADR-0052): that it names the push, and relays
+  # the remote's reason. Before the fix it fails at its output says "cannot
+  # push the id counter to the remote".
+  @ID-IDS-10 @bug-141 @wip
+  Scenario: A counter push the remote refuses for another reason is not retried, exits 3, and writes nothing
+    Given a repository whose ledger has the task "T-001"
+    And a clone of it, where itos runs
+    And the work registry has the item "slice-9" owned by nobody with the status "todo"
+    And the remote refuses every push of "refs/itos/ids", its hook saying "refs/itos/ids is frozen here"
+    When itos runs the command line "work add --kind slice --title 'Do the thing' --why 'Because.'"
+    Then itos exits with code 3
+    And its output says "cannot push the id counter to the remote"
+    And its output says "refs/itos/ids is frozen here"
+    And the registry has no item "slice-10"
+    And the remote has no ref "refs/itos/ids"
