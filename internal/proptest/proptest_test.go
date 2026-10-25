@@ -49,6 +49,19 @@ func TestChecksSetsTheCountForOnePropertyAndRestoresIt(t *testing.T) {
 	}
 }
 
+// A count Checks set and restored is not one the run named: the next property's
+// Checks still applies.
+func TestChecksIsNotTakenForACountTheRunNamedAfterItRestored(t *testing.T) {
+	fs := rapidFlags("0", "100")
+	t.Run("first", func(t *testing.T) { Checks(7)(t, fs, none) })
+	t.Run("second", func(t *testing.T) {
+		Checks(9)(t, fs, none)
+		if got := fs.Lookup("rapid.checks").Value.String(); got != "9" {
+			t.Errorf("checks = %s, want 9", got)
+		}
+	})
+}
+
 // A count the run names (RAPID_CHECKS, as the nightly does, or -rapid.checks)
 // is not Checks's to change.
 func TestChecksYieldsToACountTheRunNamed(t *testing.T) {

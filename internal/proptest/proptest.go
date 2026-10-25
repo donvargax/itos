@@ -51,7 +51,8 @@ func Checks(n int) Option {
 			return
 		}
 		was := checks.Value.String()
-		_ = fs.Set("rapid.checks", strconv.Itoa(n))
-		t.Cleanup(func() { _ = fs.Set("rapid.checks", was) })
+		// The value's own Set, not the set's: that marks the flag as named on the command line.
+		_ = checks.Value.Set(strconv.Itoa(n))
+		t.Cleanup(func() { _ = checks.Value.Set(was) })
 	}
 }
