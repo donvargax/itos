@@ -73,6 +73,7 @@ func initializePushSteps(sc *godog.ScenarioContext, w *world) {
 	sc.Step(`^the remote has gained the commit "([^"]*)" making "([^"]*)" the owner of "([^"]*)"$`, w.remoteGainsTake)
 	sc.Step(`^the clone has the commit "([^"]*)" making "([^"]*)" the owner of "([^"]*)"$`, w.cloneTakes)
 	sc.Step(`^the remote has gained the commit "([^"]*)" adding the idea "([^"]*)" to the registry$`, w.remoteGainsIdea)
+	sc.Step(`^the remote has gained the commit "([^"]*)" adding the task "([^"]*)" to the ledger$`, w.remoteGainsTask)
 	sc.Step(`^the clone has the commit "([^"]*)" adding the idea "([^"]*)" to the registry$`, w.cloneAddsIdea)
 	sc.Step(`^the remote's registry gives "([^"]*)" the owner "([^"]*)"$`, w.remoteRegistryOwner)
 	sc.Step(`^the clone has a commit no remote has that takes "([^"]*)" for "([^"]*)"$`, w.cloneTakesUnpushed)
@@ -409,6 +410,20 @@ func (w *world) remoteGainsTake(subject, owner, id string) error {
 // remoteGainsRegistry commits it.
 func (w *world) remoteGainsIdea(subject, id string) error {
 	return w.remoteGainsRegistry(subject, func(dir string) error { return w.addIdeaIn(dir, id) })
+}
+
+// A new task, with no checks, pushed to the remote's main from another clone
+// as the ledger's one file gets it (slice 181), committed as remoteGainsRegistry
+// commits.
+func (w *world) remoteGainsTask(subject, id string) error {
+	return w.remoteGainsRegistry(subject, func(dir string) error {
+		file := filepath.Join(dir, w.data(w.ledgerPath()))
+		text, err := os.ReadFile(file)
+		if err != nil {
+			return err
+		}
+		return os.WriteFile(file, append(text, fmt.Sprintf("- { id: %s, type: chore, title: Tidy }\n", id)...), 0o644)
+	})
 }
 
 // The clone's registry, as the scenario wrote it, pushed to the remote's
