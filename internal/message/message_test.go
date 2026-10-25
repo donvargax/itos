@@ -340,7 +340,7 @@ tests:
 	for id, unknown := range map[string]bool{"U-1": false, "U-2": true} {
 		var warn strings.Builder
 		said, err := CheckFooter(cfg, "Tests", "test", "test: x\n\nTests: "+id+"\n", Reading{Warn: &warn})
-		if err != nil || (len(said) > 0) != unknown || !strings.Contains(warn.String(), "index has no") ||
+		if err != nil || (said != "") != unknown || !strings.Contains(warn.String(), "index has no") ||
 			!strings.Contains(warn.String(), "read against the working tree") {
 			t.Errorf("Tests: %s said %q, %v, warned %q", id, said, err, warn.String())
 		}
@@ -603,6 +603,7 @@ commits:
 `
 	items := ledger + "    Item: { source: registry, validate_for: all, in_place_of: { Task: [chore] } }\n"
 	scenarios := ledger + "    Scenarios: { source: { tests: scenario }, in_place_of: { Task: [chore] } }\n"
+	ledgers := ledger + "    Other: { source: ledger, in_place_of: { Task: [chore] } }\n"
 	proofs := scenarios + "    Proofs: { source: { tests: proof }, in_place_of: { Task: [chore] } }\n"
 	noFlag := ledger + "    Scenarios: { source: { tests: scenario } }\n    Proofs: { source: { tests: proof }, in_place_of: { Task: [chore] } }\n"
 	sentence := "task-footer: the Task: footer takes a ledger task's id, and has no none"
@@ -626,6 +627,8 @@ commits:
 		{"the first stand-in", proofs, "chore: x\n\nTask: none\n", []string{
 			sentence + standing + "scenario in Scenarios: instead, with itos commit --scenarios <ids> | " +
 				first + ", or the scenario in Scenarios: with itos commit --scenarios <ids>"}},
+		{"a ledger stand-in", ledgers, "chore: x\n\nTask: none\n", []string{
+			sentence + standing + "ledger task in Other: instead | " + first + ", or the ledger task in Other:"}},
 		{"beside an unknown task", ledger, "chore: x\n\nTask: none, T-999\n", []string{
 			sentence + " | " + first, "task-footer: unknown tasks: T-999 | " + unknown}},
 		{"beside a known task", ledger, "chore: x\n\nTask: T-1\nTask: none\n", []string{sentence + " | " + first}},
@@ -654,5 +657,41 @@ commits:
 	got := problems(cfg, "chore: x\n", "Task: none")
 	if len(got) != 1 || !strings.HasPrefix(got[0], sentence+standing) || !strings.HasSuffix(got[0], first+", or the registry item in Item: with itos commit --item <id>") {
 		t.Errorf("stealth: %q", got)
+	}
+}
+
+// A footer's fix that cannot be made, for a source the config lacks, is the
+// error of the footer rules, not a problem; and a test that exists but is
+// not live is named, an unknown ID being told first.
+func TestFooterProblemsErrorAndNotLive(t *testing.T) {
+	cfg := load(t, "version: 1\ncommits:\n  footers:\n    Task: { source: ledger, required_for: [chore] }\n")
+	if found, err := FooterProblems(cfg, "chore: x\n", Reading{}); err == nil {
+		t.Errorf("a ledger footer without its section: %+v", found)
+	}
+
+	t.Chdir(t.TempDir())
+	lists := `printf '{"protocol":1,"tests":[{"id":"U-1","file":"a_test.go","live":false},{"id":"U-2","file":"a_test.go","live":true}],"files":[]}\n'` + "\n"
+	if err := os.WriteFile("lists.sh", []byte(lists), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	cfg = load(t, `version: 1
+commits:
+  types: [test]
+  footers:
+    Tests: { source: { tests: unit }, validate_for: [test], must_be_live: true }
+tests:
+  unit: { adapter: { command: sh lists.sh }, tag_prefix: "" }
+`)
+	for ids, want := range map[string]string{
+		"U-1":       "not live: U-1",
+		"U-1, U-2":  "not live: U-1",
+		"U-2":       "",
+		"U-1, U-3":  "unknown units: U-3",
+		"U-3, U-3x": "unknown units: U-3, U-3x",
+	} {
+		got, err := CheckFooter(cfg, "Tests", "test", "test: x\n\nTests: "+ids+"\n", Reading{})
+		if err != nil || got != want {
+			t.Errorf("Tests: %s said %q, %v, want %q", ids, got, err, want)
+		}
 	}
 }
