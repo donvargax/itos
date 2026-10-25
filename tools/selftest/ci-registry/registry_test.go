@@ -92,7 +92,7 @@ func TestSelftest(t *testing.T) {
 		{"registry", []string{"tasks/work-items.yaml"}, "docs: take an item", false},
 		{"registry and prose", []string{"tasks/work-items.yaml", "docs/ARCHITECTURE.md"}, "docs: record work", false},
 		{"ordinary prose", []string{"README.md"}, "docs: correct a typo", false},
-		{"ledger", []string{"tasks/phase-1.yaml"}, "docs: describe a task", true},
+		{"ledger", []string{"tasks/phase-1.yaml"}, "docs: describe a task", false},
 		{"other task data", []string{"tasks/other.yaml"}, "docs: add task data", true},
 		{"code", []string{"internal/cli/ci.go"}, "fix: a code change", true},
 		{"registry and code", []string{"tasks/work-items.yaml", "cmd/itos/main.go"}, "fix: a code change", true},
@@ -126,9 +126,9 @@ func TestSelftest(t *testing.T) {
 			}
 		})
 	}
-	// A ledger task's entry is compared at both ends by its id: whole entries gained or lost
-	// are bookkeeping, a change inside one is not. The tasks live in a fixture commit, so the
-	// cases hold whatever the real ledger ends with.
+	// The full plan runs a task's checks only when a commit names the task, so a ledger edit in
+	// a range naming none, whatever it does to a task, is metadata that config check judges.
+	// The tasks live in a fixture commit, so the cases hold whatever the real ledger ends with.
 	entry := func(id, kind, check string) string {
 		return "- id: " + id + "\n  type: " + kind + "\n  title: a fixture task\n  why: >\n    Held by the scope self-test.\n  done_when:\n    - run: " + check + "\n"
 	}
@@ -151,20 +151,16 @@ func TestSelftest(t *testing.T) {
 		{"task added in a new ledger file", map[string]string{"tasks/phase-99998.yaml": entry("T-99998", "chore", "'true'")}, "docs: add T-99998", false},
 		{"task removed", ledger(ledgerAt(base)), "docs: drop T-99997", false},
 		{"task added and another removed", ledger(ledgerAt(base) + entry("T-99998", "chore", "'true'")), "docs: swap tasks", false},
-		{"done_when edited", ledger(strings.Replace(ledgerAt(start), "run: 'true'", "run: 'false'", 1)), "docs: change a check", true},
-		{"type edited", ledger(strings.Replace(ledgerAt(start), "type: ci\n  title: a fixture", "type: docs\n  title: a fixture", 1)), "docs: change a type", true},
-		{"checks taken out when a task closes", ledger(strings.Replace(ledgerAt(start), "  done_when:\n    - run: 'true'\n", "", 1)), "docs: close T-99997", true},
+		{"done_when edited", ledger(strings.Replace(ledgerAt(start), "run: 'true'", "run: 'false'", 1)), "docs: change a check", false},
+		{"type edited", ledger(strings.Replace(ledgerAt(start), "type: ci\n  title: a fixture", "type: docs\n  title: a fixture", 1)), "docs: change a type", false},
+		{"checks taken out when a task closes", ledger(strings.Replace(ledgerAt(start), "  done_when:\n    - run: 'true'\n", "", 1)), "docs: close T-99997", false},
+		{"task moved to another file", map[string]string{"tasks/phase-1.yaml": ledgerAt(base), "tasks/phase-99998.yaml": kept}, "docs: move T-99997", false},
+		{"ledger file deleted", map[string]string{"tasks/phase-2.yaml": deleted}, "docs: delete a ledger file", false},
 		{"task added beside code", map[string]string{"tasks/phase-1.yaml": grown, "internal/cli/ci.go": "package cli\n"}, "fix: add T-99998 and code", true},
 		{"task added beside a feature", map[string]string{"tasks/phase-1.yaml": grown, "features/ci.feature": "Feature: x\n"}, "docs: add T-99998", true},
 		{"task added beside configuration", map[string]string{"tasks/phase-1.yaml": grown, "itos.yaml": "version: 1\n"}, "docs: add T-99998", true},
 		{"task added naming it", ledger(grown), "docs: add T-99998\n\nTask: T-99998", true},
 		{"task added naming a scenario", ledger(grown), "docs: add T-99998\n\nScenarios: ID-CI-19", true},
-		{"task moved to another file", map[string]string{"tasks/phase-1.yaml": ledgerAt(base), "tasks/phase-99998.yaml": kept}, "docs: move T-99997", true},
-		{"ledger file deleted", map[string]string{"tasks/phase-2.yaml": deleted}, "docs: delete a ledger file", true},
-		{"ledger file not a list", ledger("id: T-99997\n"), "docs: break the ledger", true},
-		{"ledger file with a repeated id", ledger(ledgerAt(start) + kept), "docs: repeat a task", true},
-		{"ledger entry without an id", ledger(ledgerAt(start) + "- type: ci\n"), "docs: add a task without an id", true},
-		{"ledger file that is not YAML", ledger("- id: [\n"), "docs: break the ledger", true},
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			to := onto(start, c.message, c.files)
