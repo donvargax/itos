@@ -13945,3 +13945,14 @@ items:
     status: done
     depends_on: []
     kind: task
+
+  - id: slice-179
+    title: push.mode pr opens draft pull requests; itos push --ready marks ready (#124)
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: slice
+    why: >
+      Tracked in GitHub issue #124 (registry pilot: the issue holds the item).
+    tags: [push]
