@@ -423,6 +423,12 @@ func (r taskRun) say(id string, o Out) {
 	}
 }
 
+// isTask is whether the item is a task of the ledger: the config has
+// ledger.id and the id matches it.
+func isTask(cfg *config.Loaded, id string) bool {
+	return cfg.Ledger.ID != nil && ledger.IDPattern(cfg).MatchString(id)
+}
+
 // failingTask is the problem of a task whose static checks fail, every one
 // run in written order through the evidence engine on HEAD's tree (TaskChecks),
 // each under its own timeout, the first failure's output on stderr. A task
@@ -430,7 +436,7 @@ func (r taskRun) say(id string, o Out) {
 // the ledger has none, nor has a config with no ledger.id.
 func (h Handler) failingTask(ctx context.Context, cfg *config.Loaded, id string, stderr io.Writer) (taskRun, []out.Problem, error) {
 	var ran taskRun
-	if cfg.Ledger.ID == nil || !ledger.IDPattern(cfg).MatchString(id) {
+	if !isTask(cfg, id) {
 		return ran, nil, nil
 	}
 	tasks, err := ledger.Tasks(cfg)
@@ -478,7 +484,7 @@ func refusal(id string, f *judge.Failure) out.Problem {
 // no ledger.id, or a task with no checks, whose close leaves the ledger as
 // it is.
 func closedChecks(cfg *config.Loaded, id string, load ledger.Load) (*ledger.Edited, error) {
-	if cfg.Ledger.ID == nil || !ledger.IDPattern(cfg).MatchString(id) {
+	if !isTask(cfg, id) {
 		return nil, nil
 	}
 	edited, ok, err := ledger.WithoutChecks(cfg, id, load)

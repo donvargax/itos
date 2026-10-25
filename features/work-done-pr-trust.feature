@@ -595,7 +595,7 @@ Feature: Under push.mode pr, work done trusts the merged pull request's green ru
   # item's checks stop it, and main's run, which never finishes, is waited
   # for. Fails before the work at the exit code: today the head's run
   # closes it, exit 0.
-  @ID-PRTRUST-08 @bug-137 @wip
+  @ID-PRTRUST-08 @bug-137
   Scenario: Under pr, work done waits for main's run when main gave the item's own task a check since the merged pull request's head
     Given the task "T-001" has the committed check "true"
     And the work registry has the item "T-001" owned by "someone" with the status "doing"
@@ -627,7 +627,7 @@ Feature: Under push.mode pr, work done trusts the merged pull request's green ru
   # the ledger, and the item's own entry gained a why, which no run
   # judges. A guard: it passes before the work and must after it, so a fix
   # that compares the ledger files, or the item's whole entry, fails it.
-  @ID-PRTRUST-09 @bug-137 @guard @wip
+  @ID-PRTRUST-09 @bug-137 @guard
   Scenario: Under pr, work done still closes a task on the head's green run when main changed only another task's checks and the task's own why
     Given the task "T-001" has the committed check "true"
     And the task "T-002" has the committed check "true"

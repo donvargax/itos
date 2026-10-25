@@ -172,8 +172,9 @@ newest of the item's own commits once <remote>/<main>, as last fetched, has it.
 With ci.watch, the merged pull request's head may judge it before main's run
 is looked for: when the commit's tree differs from the head's only in the work
 registry and the ledger files (a head the clone lacks is fetched once from
-refs/pull/<n>/head), the head's run, looked at once, judges the commit if it
-completed with success and ran a job. Done says which run, the close's body
+refs/pull/<n>/head) and, for a task, its own checks in the ledger are the same
+at both, the head's run, looked at once, judges the commit if it completed with
+success and ran a job. Done says which run, the close's body
 names it, and --json gives the pull request, its head and whether it was
 trusted. Otherwise, a head's run that is no pass included, main's run judges
 it, as above.

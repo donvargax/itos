@@ -6,6 +6,8 @@ import (
 	"io"
 	"path"
 	"path/filepath"
+	"reflect"
+	"slices"
 
 	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/engine/ciwatch"
@@ -44,10 +46,13 @@ type PullRequest struct {
 // merge made differs from the head's only in the work registry and ledger
 // files, and the head's run, looked at once, completed with success and lists
 // a job that was not skipped. A head the clone lacks is fetched first, once,
-// from refs/pull/<n>/head, which GitHub keeps after the branch is gone. ok is
-// false, and a line says why, where the watch's progress goes, for a head the
-// clone cannot have, a tree that differs in another path and a head's run that
-// is no pass; a diff git cannot give is no comparison, said nowhere.
+// from refs/pull/<n>/head, which GitHub keeps after the branch is gone. For a
+// task of the ledger whose files the diff lists, its own checks must also be
+// the same at the head and at the commit (sameChecks, bug 137). ok is false,
+// and a line says why, where the watch's progress goes, for a head the clone
+// cannot have, a tree that differs in another path, the item's checks that
+// differ or a ledger that cannot be read, and a head's run that is no pass; a
+// diff git cannot give is no comparison, said nowhere.
 func trustedRun(ctx context.Context, cfg *config.Loaded, id string, m *mergedHead, landing doneCommit, wr providers.Watcher, o Out) (ciwatch.Watched, bool) {
 	if m == nil {
 		return ciwatch.Watched{}, false
@@ -72,7 +77,8 @@ func trustedRun(ctx context.Context, cfg *config.Loaded, id string, m *mergedHea
 		return ciwatch.Watched{}, false
 	}
 	merged += fmt.Sprintf(", and %s, %s's newest commit on %s,", l, id, m.on)
-	if others := outsideBookkeeping(cfg, files); len(others) > 0 {
+	others, ledgers := outsideBookkeeping(cfg, files)
+	if len(others) > 0 {
 		more := ""
 		if len(others) > 1 {
 			more = fmt.Sprintf(" and %d more", len(others)-1)
@@ -81,6 +87,17 @@ func trustedRun(ctx context.Context, cfg *config.Loaded, id string, m *mergedHea
 		return ciwatch.Watched{}, false
 	}
 	merged += " has its tree but for the work registry and the ledger"
+	if ledgers && isTask(cfg, id) {
+		same, unreadable := sameChecks(ctx, cfg, id, m.head, landing.sha)
+		if unreadable != "" {
+			fmt.Fprintf(say, "%s, but the ledger at %s cannot be read, %s\n", merged, short(unreadable), judges)
+			return ciwatch.Watched{}, false
+		}
+		if !same {
+			fmt.Fprintf(say, "%s, but %s's checks in the ledger differ from the head's, %s\n", merged, id, judges)
+			return ciwatch.Watched{}, false
+		}
+	}
 	run, found, err := wr.Look(m.head)
 	if err != nil || !found {
 		fmt.Fprintf(say, "%s, but no CI run of the head was found, %s\n", merged, judges)
@@ -118,17 +135,52 @@ func fetchHead(ctx context.Context, v vcsport.VCS, m *mergedHead) {
 
 // outsideBookkeeping are the paths that are neither the work registry nor a
 // ledger file (slice 177's: a file of ledger.files' folder whose name its
-// pattern matches, none with no ledger section), in the order given.
-func outsideBookkeeping(cfg *config.Loaded, files []string) []string {
+// pattern matches, none with no ledger section), in the order given, and
+// whether any path is a ledger file.
+func outsideBookkeeping(cfg *config.Loaded, files []string) (others []string, ledgers bool) {
 	registry := path.Clean(filepath.ToSlash(cfg.Work.Registry))
 	layout, noLedger := ledger.LayoutOf(cfg)
-	var others []string
 	for _, f := range files {
 		clean := path.Clean(f)
-		if clean == registry || noLedger == nil && path.Dir(clean) == layout.Dir && layout.File.MatchString(path.Base(clean)) {
-			continue
+		isLedger := noLedger == nil && path.Dir(clean) == layout.Dir && layout.File.MatchString(path.Base(clean))
+		ledgers = ledgers || isLedger
+		if clean != registry && !isLedger {
+			others = append(others, f)
 		}
-		others = append(others, f)
 	}
-	return others
+	return others, ledgers
+}
+
+// sameChecks is whether the item's checks in the ledger are the same at the
+// head and at the landing commit (bug 137): the entries with its id, in the
+// order the ledger reads them, as many at both, each pair's done_when equal
+// check by check in every key the ledger reads, and no entry whose checks
+// cannot be read. unreadable is the commit whose ledger cannot be read, the
+// head's first, else "".
+func sameChecks(ctx context.Context, cfg *config.Loaded, id, head, landing string) (same bool, unreadable string) {
+	at, err := entriesAt(ctx, cfg, id, head)
+	if err != nil {
+		return false, head
+	}
+	then, err := entriesAt(ctx, cfg, id, landing)
+	if err != nil {
+		return false, landing
+	}
+	return slices.EqualFunc(at, then, func(a, b ledger.Task) bool {
+		return a.Err == nil && b.Err == nil && slices.EqualFunc(a.DoneWhen, b.DoneWhen, func(x, y ledger.Check) bool { return reflect.DeepEqual(x, y) })
+	}), ""
+}
+
+// entriesAt are the ledger's entries of the id in the commit's tree, as
+// itos ci plan --data-at reads it.
+func entriesAt(ctx context.Context, cfg *config.Loaded, id, sha string) ([]ledger.Task, error) {
+	tree, err := cfg.Trees.At(ctx, sha)
+	if err != nil {
+		return nil, err
+	}
+	tasks, err := ledger.Tasks(cfg.DataFrom(tree))
+	if err != nil {
+		return nil, err
+	}
+	return slices.DeleteFunc(tasks, func(t ledger.Task) bool { return t.ID != id }), nil
 }
