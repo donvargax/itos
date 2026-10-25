@@ -483,7 +483,8 @@ func TestEmit(t *testing.T) {
 	want := `{"schema":1,"action":"upgraded","from":"9.2.0","to":"9.3.0","releases":[{"version":"9.3.0","breaking":null,` +
 		`"upgrading":[{"commit":"","header":"","text":"Do it."}],"changes":null,"config":null}],"edited":[],` +
 		`"applied":[{"version":"9.3.0","kind":"renamed","key":"b","from":"a"},` +
-		`{"version":"9.3.0","kind":"removed","key":"c","value":null}],"manual":[{"version":"9.3.0","text":"Do it."}]}`
+		`{"version":"9.3.0","kind":"removed","key":"c","value":null}],"manual":[{"version":"9.3.0","text":"Do it."}],` +
+		`"action_uses":[],"action_scan_problems":[]}`
 	if got := compact(t, stdout.String()); got != want {
 		t.Errorf("emit:\n%s\nwant\n%s", got, want)
 	}
@@ -588,7 +589,7 @@ func TestRunRefusesJSON(t *testing.T) {
 		p := project(t, r.config, nil)
 		code, printed, err := upgradeRun(p, true, r.args...)
 		want := `{"schema":1,"action":"refused","from":"` + r.from + `","to":"` + r.to +
-			`","releases":[],"edited":[],"applied":[],"manual":[]}`
+			`","releases":[],"edited":[],"applied":[],"manual":[],"action_uses":[],"action_scan_problems":[]}`
 		if code != policy || err != nil || compact(t, printed) != want {
 			t.Errorf("%s: exit %d, %v, %s", r.name, code, err, printed)
 		}
@@ -630,7 +631,8 @@ func TestRunAlready(t *testing.T) {
 		printed != "This project is already on itos 9.3.0: nothing to upgrade.\n" {
 		t.Errorf("already, named: exit %d, %v, %q", code, err, printed)
 	}
-	want := `{"schema":1,"action":"already","from":"9.3.0","to":"9.3.0","releases":[],"edited":[],"applied":[],"manual":[]}`
+	want := `{"schema":1,"action":"already","from":"9.3.0","to":"9.3.0","releases":[],"edited":[],"applied":[],"manual":[],` +
+		`"action_uses":[],"action_scan_problems":[]}`
 	if code, printed, err := upgradeRun(p, true); code != 0 || err != nil || compact(t, printed) != want {
 		t.Errorf("already --json: exit %d, %v, %s", code, err, printed)
 	}
@@ -700,7 +702,7 @@ func TestRunUpgradesTheScript(t *testing.T) {
 		`"upgrading":[{"commit":"abc","header":"feat: x","text":"Do it."}],"changes":[],"config":[]}],` +
 		`"edited":[` + quoted(t, p.file) + `,"` + pinengine.InstallScript + `"],` +
 		`"applied":[{"version":"9.3.0","kind":"removed","key":"ci.watch.timeout","value":600}],` +
-		`"manual":[{"version":"9.3.0","text":"Do it."}]}`
+		`"manual":[{"version":"9.3.0","text":"Do it."}],"action_uses":[],"action_scan_problems":[]}`
 	if code != 0 || err != nil || compact(t, printed) != want {
 		t.Errorf("exit %d, %v:\n%s\nwant\n%s", code, err, compact(t, printed), want)
 	}

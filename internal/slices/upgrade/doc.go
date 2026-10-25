@@ -35,6 +35,20 @@
 // beside the releases as upgrading.json holds them and the edits applied.
 // It commits nothing.
 //
+// It also names, and moves none of, the steps that launch the itos action
+// (slice 150, scanWorkflows, report in Run): each uses: under
+// jobs.<job>.steps of the .github/workflows/*.yml and *.yaml files directly
+// in the folder itos runs in, read as YAML, whose value is
+// donvargax/itos@<ref>, by its file, the line of its uses: key, its ref and
+// its with.version as written. The action installs a launcher, which the
+// ref or the version input chooses, and the repository's pin chooses the itos
+// that runs (action.yml, ADR-0024), so a line left as it is runs the pinned
+// release; with no pin the release it installs runs, which the report says.
+// A workflow that cannot be read is a scan problem naming it and why, the
+// others still scanned. A stealth config, never committed, is read by no
+// workflow, so it names none. --json carries both as action_uses and
+// action_scan_problems, [] when empty and on a refusal.
+//
 // The itos doing the upgrade also rewrites a present block of its rules for
 // agents in its own words, as itos init --agent-rules does (Ports.Rules,
 // internal/engine/agentrules' Refreshed): only between the markers, only in

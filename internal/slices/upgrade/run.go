@@ -47,6 +47,7 @@ func (c CLI) Run(ctx context.Context, stdout, stderr io.Writer, h Handler) (int,
 		return 0, emit(stdout, a)
 	case a.Action == already:
 		fmt.Fprintf(stdout, "This project is already on itos %s: nothing to upgrade.\n", a.To)
+		reportWorkflows(stdout, a)
 		return 0, nil
 	}
 	report(stdout, a)
@@ -79,10 +80,18 @@ func emit(stdout io.Writer, a Answer) error {
 	for i, s := range a.Applied {
 		applied[i] = s.json()
 	}
+	uses, problems := a.Uses, a.Problems
+	if uses == nil {
+		uses = []actionUse{}
+	}
+	if problems == nil {
+		problems = []scanProblem{}
+	}
 	return out.Emit(stdout, out.Field{Key: "action", Value: a.Action}, out.Field{Key: "from", Value: a.From},
 		out.Field{Key: "to", Value: a.To}, out.Field{Key: "releases", Value: a.Releases},
 		out.Field{Key: "edited", Value: a.Edited}, out.Field{Key: "applied", Value: applied},
-		out.Field{Key: "manual", Value: manual(a)})
+		out.Field{Key: "manual", Value: manual(a)}, out.Field{Key: "action_uses", Value: uses},
+		out.Field{Key: "action_scan_problems", Value: problems})
 }
 
 // manual is what every release crossed leaves the person to do, oldest
@@ -119,6 +128,7 @@ func report(w io.Writer, a Answer) {
 			printRelease(w, a, r)
 		}
 	}
+	reportWorkflows(w, a)
 	if len(manual(a)) == 0 {
 		fmt.Fprintln(w, "\nBy hand: nothing.")
 		fmt.Fprintf(w, "\nCheck: itos version prints itos %s, itos version --check exits 0 and itos config check "+
@@ -141,6 +151,33 @@ func report(w io.Writer, a Answer) {
 	}
 	fmt.Fprintf(w, "\nDo what they ask, then check: itos version prints itos %s, itos version --check exits 0 "+
 		"and itos config check passes. Commit the move as the project's own commit.\n", a.To)
+}
+
+// reportWorkflows is the workflow steps that launch the itos action, one a
+// line, the workflows that could not be read, then what chooses the itos
+// that runs: the pin's version when the config pins one, else the release
+// each line installs. It prints nothing when no step names the action and no
+// workflow failed. Nothing it names is moved.
+func reportWorkflows(w io.Writer, a Answer) {
+	if len(a.Uses)+len(a.Problems) == 0 {
+		return
+	}
+	fmt.Fprintln(w, "\nWorkflow steps that launch the itos action, none of which upgrade moves:")
+	for _, u := range a.Uses {
+		fmt.Fprintf(w, "  %s\n", u.line())
+	}
+	for _, p := range a.Problems {
+		fmt.Fprintf(w, "  %s %s, so its steps are not named\n", p.File, p.Message)
+	}
+	switch {
+	case len(a.Uses) == 0:
+	case a.Pinned:
+		fmt.Fprintf(w, "\nThe action installs a launcher, the release its ref or its version input names, and the "+
+			"repository's pin chooses the itos that runs: itos %s, whatever these lines say.\n", a.To)
+	default:
+		fmt.Fprintln(w, "\nThe config pins no itos, so each of these lines runs the release it installs; "+
+			"itos pin pins one.")
+	}
 }
 
 // printRelease is a release's config edits, as made, and what it changes
