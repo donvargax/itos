@@ -13937,3 +13937,11 @@ items:
       from any branch and write the close as a registry-only commit pushed straight to main
       (slice-177's rule sends it there), or a detached HEAD at <remote>/<main>.
     tags: [push, work]
+
+  - id: T-304
+    title: Reuse an item's branch name safely under pr
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task

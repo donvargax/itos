@@ -4681,3 +4681,16 @@
     itself a config and docs change, it lands through the first pull request, which is the smoke
     test: auto-merge waits for the required checks, registry commits still go straight to main, and
     the item closes after the merge.
+
+- id: T-304
+  type: docs
+  title: Reuse an item's branch name safely under pr
+  why: >
+    Copilot's review of PR #122 (2026-10-25): after a spec's pull request merges, GitHub deletes the
+    remote branch (delete_branch_on_merge), so origin/<item> no longer exists, and the coordinator's
+    local <item> branch left in the shared repository makes an agent's git branch -m <item> in its
+    worktree fail. AGENTS.md's Finishing step 1 says to start from the updated main (where a merged
+    spec already is) with git branch -m <item>, and docs/ORCHESTRATING.md says the coordinator
+    deletes its local <item> branch once the pull request merges.
+  done_when:
+    - run: grep -q 'deletes its local' docs/ORCHESTRATING.md
