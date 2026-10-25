@@ -4727,9 +4727,6 @@
     test, or except it in itos-cc.yaml with a proof that holds, as 418ebdde (T-290) wrote its three;
     an exception whose proof does not hold is a test instead. No production change unless a survivor
     shows a real bug, which is reported, not fixed here. The next nightly is the acceptance.
-  done_when:
-    - run: go test -count=1 ./internal/shell ./internal/engine/evidence ./internal/cli
-      timeout: 600
 
 - id: T-308
   type: test
