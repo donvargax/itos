@@ -61,5 +61,6 @@ file and leaves this list, which itos decision record writes.
 - [ADR-0058: On a git older than 2.54, hook files are a temporary compatibility path; the git config stays the default](0058-on-a-git-older-than-2-54-hook-files-are-a-temporary-compatibility-path-the-git-config-stays-the-default.md)
 - [ADR-0059: A local test tier runs in process from the pre-push hook, opt-in in v8](0059-a-local-test-tier-runs-in-process-from-the-pre-push-hook-opt-in-in-v8.md)
 - [ADR-0060: Opted-in checks keep a result keyed by what they ran on; local records speed reruns, CI records prove](0060-opted-in-checks-keep-a-result-keyed-by-what-they-ran-on-local-records-speed-reruns-ci-records-prove.md)
+- [ADR-0061: The model reviewer reads every spec, and the diff only of a change with a high blast radius](0061-the-model-reviewer-reads-every-spec-and-the-diff-only-of-a-change-with-a-high-blast-radius.md)
 
 <!-- itos:decisions:end -->
