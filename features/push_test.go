@@ -491,8 +491,14 @@ func (w *world) cloneTakesUnpushed(id, owner string) error {
 	return w.cloneTakes("docs: take "+id, owner, id)
 }
 
+// An item's owner and status as the registry's line writes them.
+var (
+	ownerOf  = regexp.MustCompile(`owner: [^,}]*`)
+	statusOf = regexp.MustCompile(`status: [^,}]*`)
+)
+
 // The registry of the repository in dir with the item's line, as the work
-// steps write it, giving it the owner and the status doing.
+// steps write it, giving it the owner and the status doing, whoever had it.
 func (w *world) takeIn(dir, id, owner string) error {
 	file := filepath.Join(dir, w.data(startingRegistry))
 	text, err := os.ReadFile(file)
@@ -503,8 +509,8 @@ func (w *world) takeIn(dir, id, owner string) error {
 	found := false
 	for i, line := range lines {
 		if strings.Contains(line, "{ id: "+id+",") {
-			line = strings.Replace(line, "owner: null", "owner: "+owner, 1)
-			lines[i] = strings.Replace(line, "status: todo", "status: doing", 1)
+			line = ownerOf.ReplaceAllLiteralString(line, "owner: "+owner)
+			lines[i] = statusOf.ReplaceAllLiteralString(line, "status: doing")
 			found = true
 		}
 	}

@@ -72,6 +72,11 @@ func initializeWatchSteps(sc *godog.ScenarioContext, w *world) {
 	sc.Step(`^the watched run never finishes$`, func() error {
 		return w.watchedRunPolls(watchedRun{URL: w.watchURL, Status: "in_progress", Jobs: []watchedJob{{Name: "ci", Status: "in_progress"}}})
 	})
+	sc.Step(`^the watched run's first look has its jobs "([^"]*)" and "([^"]*)" skipped, as a draft's run has, and its later looks its job "([^"]*)" failing and its job "([^"]*)" succeeding$`,
+		func(a, b, failing, succeeding string) error {
+			return w.watchedRunPolls(w.finished(job(a, "skipped"), job(b, "skipped")),
+				w.finished(job(failing, "failure"), job(succeeding, "success")))
+		})
 	sc.Step(`^ci\.watch\.timeout is (\d+)$`, func(seconds int) error {
 		w.config.watch.timeout = seconds
 		return w.pushConfig("chore: wait less for CI")
