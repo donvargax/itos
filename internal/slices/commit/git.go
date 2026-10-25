@@ -3,8 +3,8 @@ package commit
 // itos commit with no subcommand (slice 31, features/commit-command.feature):
 // git commit with the footers itos writes. itos reads --task, --item (slice
 // 63) and --scenarios and hands every other argument to git commit as it is, so the message comes
-// from -m, -F or the editor as git takes it. Each footer is passed as git's
-// own --trailer, which git adds to whatever message it ends up with before
+// from -m, -F or the editor as git takes it. Each footer the message does not
+// already give (bug 138) is passed as git's own --trailer, which git adds to whatever message it ends up with before
 // the commit-msg hook runs, so the hook judges a footer itos writes as it
 // judges a typed one, and a commit it refuses is never made. itos hands back
 // git's exit code.
@@ -128,14 +128,13 @@ func readCommitFlags(args []string, texts map[string]string) (commitFlags, error
 	return f, nil
 }
 
-// footerLines are the footers the flags write: the links, each "<key>:
-// <ids>", the ledger's first, then the work registry's, then the named
-// tests', the config's footer for each source; and the
-// content, each "<key>: <text>", the footers of free text in the config's
+// footers are the footers the flags write: the links, the ledger's first,
+// then the work registry's, then the named tests', the config's footer for
+// each source; and the content, the footers of free text in the config's
 // order, then BREAKING-CHANGE, the form git reads as a trailer. A link flag
 // whose footer the config does not have is a usage error, and one given with
 // no config is the error loading it gave (missing).
-func (f commitFlags) footerLines(cfg *config.Loaded, missing error) (links, content []string, err error) {
+func (f commitFlags) footers(cfg *config.Loaded, missing error) (links, content []message.Written, err error) {
 	if len(f.tasks) > 0 || len(f.items) > 0 || len(f.scenarios) > 0 {
 		if cfg == nil {
 			return nil, nil, missing
@@ -156,22 +155,60 @@ func (f commitFlags) footerLines(cfg *config.Loaded, missing error) (links, cont
 			if !ok {
 				return nil, nil, out.Usage("commit %s needs a footer whose source is %s in commits.footers", flag.name, flag.source)
 			}
-			links = append(links, message.FooterLines(key, flag.ids)...)
+			links = append(links, message.Written{Key: key, Flag: flag.name, Values: flag.ids})
 		}
 	}
 	if cfg != nil {
 		for _, key := range cfg.Commits.Footers.Keys {
+			var texts []string
 			for _, t := range f.texts {
 				if t.key == key {
-					content = append(content, key+": "+t.text)
+					texts = append(texts, t.text)
 				}
+			}
+			if len(texts) > 0 {
+				content = append(content, message.Written{Key: key, Flag: message.TextFlag(key), Text: true, Values: texts})
 			}
 		}
 	}
-	for _, text := range f.breaking {
-		content = append(content, "BREAKING-CHANGE: "+text)
+	if len(f.breaking) > 0 {
+		content = append(content, message.Written{Key: "BREAKING-CHANGE", Flag: "--breaking", Text: true, Values: f.breaking})
 	}
 	return links, content, nil
+}
+
+// lines are the lines of the footers.
+func lines(footers []message.Written) []string {
+	var all []string
+	for _, f := range footers {
+		all = append(all, f.Lines()...)
+	}
+	return all
+}
+
+// settle compares each footer a flag would write with the message's (Written
+// .Against): the footers the message does not give, to be written, and the
+// problems of those it gives with other values. A footer it gives with the
+// same values is dropped. Under a stealth config the links are never in the
+// message, so they are all kept.
+func settle(cfg *config.Loaded, text string, stealth bool, links, content []message.Written) (keptLinks, keptContent []message.Written, differing []out.Problem) {
+	keep := func(footers []message.Written) []message.Written {
+		var kept []message.Written
+		for _, f := range footers {
+			switch standing, p := f.Against(cfg, text); standing {
+			case message.Absent:
+				kept = append(kept, f)
+			case message.Differs:
+				differing = append(differing, p)
+			}
+		}
+		return kept
+	}
+	keptLinks = links
+	if !stealth {
+		keptLinks = keep(links)
+	}
+	return keptLinks, keep(content), differing
 }
 
 // gitValued are git commit's long options that take their value as the next
@@ -314,10 +351,8 @@ func (g gitArgs) message(ctx context.Context, v vcsport.VCS) (string, bool) {
 // config the links are the flags' or, for an amend that gives none, HEAD's
 // note, which the amend carries, and the content the message's and the
 // flags'. Nothing when itos cannot read the message (the editor's, or -F -),
-// which the hook judges; a footer no flag writes is the hook's too. HEAD's
-// message, for an amend with --no-edit, is v's.
-func lacking(ctx context.Context, cfg *config.Loaded, v vcsport.VCS, g gitArgs, links, content []string, stealth bool) []out.Problem {
-	text, ok := g.message(ctx, v)
+// which the hook judges; a footer no flag writes is the hook's too.
+func lacking(ctx context.Context, cfg *config.Loaded, text string, ok bool, g gitArgs, links, content []string, stealth bool) []out.Problem {
 	typ := message.Type(text)
 	if !ok || typ == "" {
 		return nil
@@ -450,13 +485,20 @@ func (h Handler) commit(ctx context.Context, q Query, o Out) (Answer, error) {
 	if err := refuseCommitArgs(g); err != nil {
 		return Answer{}, err
 	}
-	links, content, err := flags.footerLines(cfg, absent)
+	linked, texted, err := flags.footers(cfg, absent)
 	if err != nil {
 		return Answer{}, err
 	}
 	stealth := h.ports.Stealth(ctx)
 	if cfg != nil {
-		if found := lacking(ctx, cfg, h.ports, g, links, content, stealth); len(found) > 0 {
+		text, ok := g.message(ctx, h.ports)
+		found := lacking(ctx, cfg, text, ok, g, lines(linked), lines(texted), stealth)
+		if ok {
+			var differing []out.Problem
+			linked, texted, differing = settle(cfg, text, stealth, linked, texted)
+			found = append(differing, found...)
+		}
+		if len(found) > 0 {
 			return Answer{Code: refused, Reject: cfg.Commits.RejectMessage, Problems: found}, nil
 		}
 		// Where itos is set up, a commit git would make without itos's
@@ -465,6 +507,7 @@ func (h Handler) commit(ctx context.Context, q Query, o Out) (Answer, error) {
 			return Answer{}, err
 		}
 	}
+	links, content := lines(linked), lines(texted)
 	v := h.ports
 	env := message.WithoutFooters(os.Environ())
 	amend := "0"
