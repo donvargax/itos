@@ -443,3 +443,67 @@ Feature: itos commit, a commit whose footers itos writes
     When itos commits with the arguments "--scenarios @ID-A-01 -F msg.txt"
     Then itos exits with code 0
     And the message of HEAD has the footer "Scenarios: @ID-A-01"
+
+  # Bug 139 (issue #133): `itos commit --task none` was told "unknown tasks:
+  # none". The rule and its words are written above ID-CMSG-16 in
+  # commit-msg.feature: itos commit makes no ID check of its own, so what it
+  # prints is the hook's, run by git, and these scenarios hold the flag path
+  # the bug was met on. The config's Item: footer stands in for Task: for
+  # test, docs and chore.
+  #
+  # A chore, which Item: serves: the sentence names --item. Before the fix
+  # the hook says "unknown tasks: none" and the commit is refused, exit 1, so
+  # the scenario fails at the step that its output says "has no none".
+  @ID-COMMITCMD-31 @bug-139 @wip
+  Scenario: --task none on a type Item: stands in for says Task: has no none and names --item
+    Given the config has an Item footer of registry items, taken in place of Task for test, docs and chore
+    When itos commits with the arguments "--task none -m 'chore: tidy the readme'"
+    Then itos exits with code 1
+    And its output says "the Task: footer takes a ledger task's id, and has no none"
+    And its output says "a chore commit names its registry item in Item: instead, with itos commit --item <id>"
+    And its output does not say "unknown tasks"
+    And no commit was made
+
+  # A refactor, which Item: does not serve (ID-FOOT-09): the first sentence
+  # alone, no --item. Before the fix it fails at the step that its output
+  # says "has no none".
+  @ID-COMMITCMD-32 @bug-139 @wip
+  Scenario: --task none on a type no footer stands in for says Task: has no none without naming --item
+    Given the config has an Item footer of registry items, taken in place of Task for test, docs and chore
+    When itos commits with the arguments "--task none -m 'refactor: split the parser'"
+    Then itos exits with code 1
+    And its output says "has no none"
+    And its output does not say "--item"
+    And no commit was made
+
+  # Passes before the fix: it guards that only none is told anew, and that
+  # an unknown task on a type Item: serves keeps today's words, with no
+  # --item hint.
+  @ID-COMMITCMD-33 @bug-139 @wip
+  Scenario: --task naming an unknown task on a type Item: stands in for is still told the task is unknown
+    Given the config has an Item footer of registry items, taken in place of Task for test, docs and chore
+    When itos commits with the arguments "--task T-999 -m 'chore: tidy the readme'"
+    Then itos exits with code 1
+    And its output says "unknown tasks: T-999"
+    And its output does not say "has no none"
+    And its output does not say "--item"
+    And no commit was made
+
+  # check-message, the path verify shares (message.Check), under --json: one
+  # problem of the rule task-footer, its message the new sentence and its
+  # fix the new one. Before the fix the message is "unknown tasks: none", so
+  # the scenario fails at the step that the problem's message says "has no
+  # none".
+  @ID-COMMITCMD-34 @bug-139 @wip
+  Scenario: commit check-message --json gives Task: none's problem its rule, sentence and fix
+    Given the scratch file "msg.txt" contains exactly:
+      """
+      chore: tidy the readme
+
+      Task: none
+      """
+    When itos runs "commit check-message msg.txt --json"
+    Then itos exits with code 1
+    And its JSON's "ok" is false
+    And its JSON's problem "task-footer"'s "message" says "has no none"
+    And its JSON's problem "task-footer"'s "fix" says "name the task the commit belongs to by an id"
