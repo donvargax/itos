@@ -335,8 +335,13 @@ func writeRuns(rw http.ResponseWriter, runs []gitHubRun) {
 // the address with the jobs, created after every run before it: completed
 // with the conclusion. The caller holds g.mu.
 func (g *fakeGitHub) addRun(sha, url, conclusion string, jobs []watchedJob) {
+	g.addRunOn(g.branch, sha, url, conclusion, jobs)
+}
+
+// A run as addRun makes one, on the branch.
+func (g *fakeGitHub) addRunOn(branch, sha, url, conclusion string, jobs []watchedJob) {
 	id := len(g.runs) + 1
-	g.runs = append(g.runs, gitHubRun{ID: id, HeadSHA: sha, HeadBranch: g.branch, Status: "completed",
+	g.runs = append(g.runs, gitHubRun{ID: id, HeadSHA: sha, HeadBranch: branch, Status: "completed",
 		Conclusion: &conclusion, CreatedAt: fmt.Sprintf("2026-10-05T12:%02d:00Z", id), HTMLURL: url,
 		workflow: watchedWorkflow, jobs: jobs})
 }

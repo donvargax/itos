@@ -169,10 +169,12 @@ if [ -f %[11]s ]; then cat %[11]s >&2; exit 1; fi
 verb="$1 $2"
 head=
 state=open
+json=
 prev=
 for a in "$@"; do
   if [ "$prev" = --head ]; then head=$a; fi
   if [ "$prev" = --state ]; then state=$a; fi
+  if [ "$prev" = --json ]; then json=$a; fi
   prev=$a
 done
 case "$verb" in
@@ -184,8 +186,10 @@ case "$verb" in
         case "$state/$kind" in all/*|open/OPEN|merged/MERGED|closed/CLOSED) ;; *) continue ;; esac
         merged=null
         if [ "$kind" = MERGED ]; then merged='"2026-10-24T10:00:00Z"'; fi
+        oid=
+        case "$json" in *headRefOid*) if [ -f %[9]s"$branch" ]; then oid=",\"headRefOid\":\"$(cat %[9]s"$branch")\""; fi ;; esac
         if [ -n "$found" ]; then found="$found,"; fi
-        found="$found{\"number\":${url##*/},\"url\":\"$url\",\"state\":\"$kind\",\"isDraft\":${draft:-false},\"mergedAt\":$merged}"
+        found="$found{\"number\":${url##*/},\"url\":\"$url\",\"state\":\"$kind\",\"isDraft\":${draft:-false},\"mergedAt\":$merged$oid}"
       fi
     done < %[2]s
   fi

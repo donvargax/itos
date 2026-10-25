@@ -145,6 +145,13 @@ func initializeWatchSteps(sc *godog.ScenarioContext, w *world) {
 		}
 		return w.fakeRunOf(sha, url, ended)
 	})
+	sc.Step(`^the fake GitHub's run of the head of the remote's branch "([^"]*)", "([^"]*)", (succeeded|failed)$`, func(branch, url, ended string) error {
+		sha, err := w.remoteBranchHead(branch)
+		if err != nil {
+			return err
+		}
+		return w.fakeRunOn(branch, sha, url, ended)
+	})
 	sc.Step(`^the fake GitHub's run of the remote's head, "([^"]*)", (succeeded|failed)$`, func(url, ended string) error {
 		if err := w.watchFakeRuns(); err != nil {
 			return err
@@ -535,6 +542,12 @@ func (w *world) watchFakeRuns() error {
 // than every run before it: its jobs ci and platform succeeding, or ci
 // failing, as ended says; ci.watch set up to ask it (watchFakeRuns).
 func (w *world) fakeRunOf(sha, url, ended string) error {
+	return w.fakeRunOn("", sha, url, ended)
+}
+
+// A run as fakeRunOf gives one, on the branch, the configured one when "" (a
+// pull request's run is on its own branch, slice 181).
+func (w *world) fakeRunOn(branch, sha, url, ended string) error {
 	if err := w.watchFakeRuns(); err != nil {
 		return err
 	}
@@ -545,7 +558,10 @@ func (w *world) fakeRunOf(sha, url, ended string) error {
 	g := w.github
 	g.mu.Lock()
 	defer g.mu.Unlock()
-	g.addRun(sha, url, conclusion, jobs)
+	if branch == "" {
+		branch = g.branch
+	}
+	g.addRunOn(branch, sha, url, conclusion, jobs)
 	return nil
 }
 
