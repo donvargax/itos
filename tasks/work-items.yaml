@@ -14038,11 +14038,9 @@ items:
     title: "itos commit writes a second Scenarios: footer when the message already has one (#142)"
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: bug
-    why: >
-      Tracked in GitHub issue #142 (registry pilot: the issue holds the item).
     tags: [commit]
 
   - id: T-307
