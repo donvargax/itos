@@ -14424,3 +14424,20 @@ items:
       one could pass.
     refs: [internal/slices/guard]
     tags: [guard, v8]
+
+  - id: p1-take-with-unrelated-changes
+    title: work take commits the registry alone without refusing unrelated changes in the tree
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Seen 2026-10-25 (slice-151, bug-139): an implementer holding red-first work it had not
+      committed had to git stash it to run work take, since the take refuses tracked changes, then
+      pop it back. The stash is shared by every worktree and session of a clone, so one agent can
+      pop another's work. The take commits tasks/work-items.yaml alone (as task add and work add
+      do); it need refuse only changes to the registry itself, and say so. Also the friction log's
+      push refusing the same tree ("push the take before your work").
+    refs: [internal/work]
+    tags: [work, v8]
