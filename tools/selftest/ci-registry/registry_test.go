@@ -61,13 +61,27 @@ func TestSelftest(t *testing.T) {
 		}
 		return strings.TrimSpace(x.Stdout)
 	}
-	changing := func(message string, paths ...string) string {
-		git("", "read-tree", base)
-		for _, path := range paths {
-			blob := git("scope fixture\n", "hash-object", "-w", "--stdin")
+	// onto is a commit on top of parent whose tree holds each file with the text given, or
+	// without it for the text deleted.
+	const deleted = "\x00deleted"
+	onto := func(parent, message string, files map[string]string) string {
+		git("", "read-tree", parent)
+		for path, text := range files {
+			if text == deleted {
+				git("", "update-index", "--force-remove", path)
+				continue
+			}
+			blob := git(text, "hash-object", "-w", "--stdin")
 			git("", "update-index", "--add", "--cacheinfo", "100644,"+blob+","+path)
 		}
-		return git("", "commit-tree", git("", "write-tree"), "-p", base, "-m", message)
+		return git("", "commit-tree", git("", "write-tree"), "-p", parent, "-m", message)
+	}
+	changing := func(message string, paths ...string) string {
+		files := map[string]string{}
+		for _, path := range paths {
+			files[path] = "scope fixture\n"
+		}
+		return onto(base, message, files)
 	}
 	for _, c := range []struct {
 		name    string
@@ -107,6 +121,63 @@ func TestSelftest(t *testing.T) {
 			}
 			var s struct{ Full bool }
 			x := invoke("scope", base, to)
+			if x.Code != 0 || json.Unmarshal([]byte(x.Stdout), &s) != nil || s.Full != c.full {
+				t.Fatalf("scope disagrees: %s", x.Output())
+			}
+		})
+	}
+	// A ledger task's entry is compared at both ends by its id: whole entries gained or lost
+	// are bookkeeping, a change inside one is not. The tasks live in a fixture commit, so the
+	// cases hold whatever the real ledger ends with.
+	entry := func(id, kind, check string) string {
+		return "- id: " + id + "\n  type: " + kind + "\n  title: a fixture task\n  why: >\n    Held by the scope self-test.\n  done_when:\n    - run: " + check + "\n"
+	}
+	shown := func(ref, path string) string { return r.Git("show", ref+":"+path) + "\n" }
+	ledgerAt := func(ref string) string { return shown(ref, "tasks/phase-1.yaml") }
+	registryAt := func(ref string) string { return shown(ref, "tasks/work-items.yaml") + "# bookkeeping\n" }
+	kept := entry("T-99997", "ci", "'true'")
+	start := onto(base, "docs: add a fixture task", map[string]string{"tasks/phase-1.yaml": ledgerAt(base) + kept})
+	ledger := func(text string) map[string]string { return map[string]string{"tasks/phase-1.yaml": text} }
+	grown := ledgerAt(start) + entry("T-99998", "chore", "'true'")
+	for _, c := range []struct {
+		name    string
+		files   map[string]string
+		message string
+		full    bool
+	}{
+		{"task added", ledger(grown), "docs: add T-99998", false},
+		{"task added with the registry", map[string]string{"tasks/phase-1.yaml": grown, "tasks/work-items.yaml": registryAt(start)}, "docs: add T-99998", false},
+		{"task added with prose", map[string]string{"tasks/phase-1.yaml": grown, "docs/ARCHITECTURE.md": "prose\n"}, "docs: add T-99998", false},
+		{"task added in a new ledger file", map[string]string{"tasks/phase-99998.yaml": entry("T-99998", "chore", "'true'")}, "docs: add T-99998", false},
+		{"task removed", ledger(ledgerAt(base)), "docs: drop T-99997", false},
+		{"task added and another removed", ledger(ledgerAt(base) + entry("T-99998", "chore", "'true'")), "docs: swap tasks", false},
+		{"done_when edited", ledger(strings.Replace(ledgerAt(start), "run: 'true'", "run: 'false'", 1)), "docs: change a check", true},
+		{"type edited", ledger(strings.Replace(ledgerAt(start), "type: ci\n  title: a fixture", "type: docs\n  title: a fixture", 1)), "docs: change a type", true},
+		{"checks taken out when a task closes", ledger(strings.Replace(ledgerAt(start), "  done_when:\n    - run: 'true'\n", "", 1)), "docs: close T-99997", true},
+		{"task added beside code", map[string]string{"tasks/phase-1.yaml": grown, "internal/cli/ci.go": "package cli\n"}, "fix: add T-99998 and code", true},
+		{"task added beside a feature", map[string]string{"tasks/phase-1.yaml": grown, "features/ci.feature": "Feature: x\n"}, "docs: add T-99998", true},
+		{"task added beside configuration", map[string]string{"tasks/phase-1.yaml": grown, "itos.yaml": "version: 1\n"}, "docs: add T-99998", true},
+		{"task added naming it", ledger(grown), "docs: add T-99998\n\nTask: T-99998", true},
+		{"task added naming a scenario", ledger(grown), "docs: add T-99998\n\nScenarios: ID-CI-19", true},
+		{"task moved to another file", map[string]string{"tasks/phase-1.yaml": ledgerAt(base), "tasks/phase-99998.yaml": kept}, "docs: move T-99997", true},
+		{"ledger file deleted", map[string]string{"tasks/phase-2.yaml": deleted}, "docs: delete a ledger file", true},
+		{"ledger file not a list", ledger("id: T-99997\n"), "docs: break the ledger", true},
+		{"ledger file with a repeated id", ledger(ledgerAt(start) + kept), "docs: repeat a task", true},
+		{"ledger entry without an id", ledger(ledgerAt(start) + "- type: ci\n"), "docs: add a task without an id", true},
+		{"ledger file that is not YAML", ledger("- id: [\n"), "docs: break the ledger", true},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			to := onto(start, c.message, c.files)
+			p := readPlan(start, to)
+			if c.full {
+				if p.Prose || !slices.Contains(p.Steps, "go test ./cmd/... ./internal/...") {
+					t.Fatalf("full checks disappeared: %+v", p)
+				}
+			} else if !p.Prose || !slices.Equal(p.Steps, cfg.CI.Prose.Steps) {
+				t.Fatalf("a ledger range of whole entries did not take the metadata route: %+v", p.Steps)
+			}
+			var s struct{ Full bool }
+			x := invoke("scope", start, to)
 			if x.Code != 0 || json.Unmarshal([]byte(x.Stdout), &s) != nil || s.Full != c.full {
 				t.Fatalf("scope disagrees: %s", x.Output())
 			}
