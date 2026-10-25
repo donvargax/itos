@@ -4703,3 +4703,16 @@
     it by its GraphQL login.
   done_when:
     - run: tools/bin/itos config get push.pr.draft | grep -qx true
+
+- id: T-306
+  type: chore
+  title: "GitHub registry pilot: the footer for pilot items that are not slices"
+  why: >
+    During the GitHub registry pilot (p1-github-registry-spike) an item lives in a GitHub issue
+    labelled itos-item, which commit footers cannot name. Every pilot item but a slice carries this
+    task as its Task: or Item: footer, and its issue as Closes #<n> or a line in the body; a slice
+    keeps a stub of its own, since its scenarios' @slice tag must name it. The check passes from the
+    start because CI runs the checks of every task a push names. Dropped when the pilot ends and its
+    items return to the YAML.
+  done_when:
+    - run: "true"

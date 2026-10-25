@@ -13964,3 +13964,11 @@ items:
     status: todo
     depends_on: []
     kind: task
+
+  - id: T-306
+    title: "GitHub registry pilot: the footer for pilot items that are not slices"
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task
