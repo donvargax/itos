@@ -120,8 +120,8 @@ slice-179): an item's work reaches `main` through one pull request, a draft
 until you mark it ready, merged by rebase once its checks and Copilot's
 review pass; only registry and ledger bookkeeping (a take, a close, `task
 add`) and a docs commit touching nothing under `features/` go straight to
-`main`, from `main`, with `itos push` (T-311). The coordinator pushed the spec as the pull
-request's first commit; every commit of the item goes on it.
+`main`, from `main`, with `itos push` (T-311). The coordinator pushed the
+spec as the pull request's first commit; every commit of the item goes on it.
 
 1. **Work on the item's branch**: in a worktree,
    `git switch --no-track -c <item> origin/<item>`, which holds the spec.
