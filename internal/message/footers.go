@@ -58,16 +58,24 @@ var (
 func IDs(cfg *config.Loaded, links, key string) []string {
 	f, _ := cfg.Commits.Footers.Get(key)
 	prefix := strip(f)
+	ids := rawIDs(linked(cfg, links), key)
+	for i, id := range ids {
+		ids[i] = strings.TrimPrefix(id, prefix)
+	}
+	return ids
+}
+
+// rawIDs are the IDs the footers of one key give, in order, as written.
+func rawIDs(footers []trailer, key string) []string {
 	var ids []string
-	for _, t := range linked(cfg, links) {
+	for _, t := range footers {
 		if t.key != key {
 			continue
 		}
 		for _, id := range idSeparator.Split(t.value, -1) {
-			if id == "" {
-				continue
+			if id != "" {
+				ids = append(ids, id)
 			}
-			ids = append(ids, strings.TrimPrefix(id, prefix))
 		}
 	}
 	return ids

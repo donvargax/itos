@@ -16,10 +16,10 @@
 // the arguments before any --, leaving the rest to git in order: --task,
 // --item and --scenarios (repeatable, split by message.SplitIDs), the flag
 // of each free-text footer (message.TextFlags) and --breaking, whose value
-// is the next argument whatever it is. footerLines gives the links, each
-// flag's footer found by its source and its IDs packed onto lines within
-// the header lint's 100 characters, and the content, <Key>: <text> in the
-// config's order, then BREAKING-CHANGE: <text>. readGitArgs reads git's own
+// is the next argument whatever it is. footers gives the links, each
+// flag's footer (message.Written) found by its source, its IDs packed onto
+// lines within the header lint's 100 characters, and the content, the texts
+// of each footer in the config's order, then BREAKING-CHANGE. readGitArgs reads git's own
 // arguments as git reads them (a valued option's value skipped, so -m
 // --amend is a message): the -m messages, the -F file, --amend and
 // --no-edit, and the first option itos commit refuses (slice 128):
@@ -38,9 +38,10 @@
 // hook. wrapBody then wraps the message (message.Wrap); each -m value is
 // rewritten in its argument, and an -F text (stdin's for -F -) goes to a
 // temporary file named in its place, removed once git exits. trailers makes
-// each footer line a --trailer, which git applies before the editor and the
-// commit-msg hook, under -c trailer.ifExists=addIfDifferent, so a footer an
-// amend already has is not written again.
+// each footer line that is left a --trailer, which git applies before the
+// editor and the commit-msg hook, under -c trailer.ifExists=addIfDifferent,
+// so in a message itos does not read a line it already has is not written
+// again.
 //
 // Under a stealth config the links go to the hook in ITOS_FOOTERS (any
 // inherited one dropped first) and the content stays trailers, and once git
