@@ -19,7 +19,12 @@ Feature: Under push.mode pr, itos push titles an item's pull request after the i
   whose title is no text, or empty once so trimmed (a registry problem work
   check reports), is titled by its id alone, "<item>" in both the title and
   the description: the push never falls back to --fill and never fails for
-  it.
+  it. So is an item the registry at that head lacks, or a registry there
+  that cannot be read or parsed: the guard that the branch names an item
+  reads the working tree, so the push can reach gh pr create with either,
+  the branch already pushed, and failing then would leave a branch with no
+  pull request. Neither has a scenario of its own: both take the same path
+  as the empty title.
 
   The pull request's title is "<item>: <the item's title>". GitHub keeps 256
   characters of a pull request's title, so one longer than that is cut: its
