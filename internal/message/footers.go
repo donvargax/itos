@@ -330,39 +330,36 @@ func knownFor(cfg *config.Loaded, key string, f config.Footer, r Reading) (known
 }
 
 // CheckFooter is one footer's rule over the footers of a commit of the type
-// typ, in its message or, under a stealth config, its note: nothing when it
-// holds, else why not, one sentence per problem. An error when its source
-// cannot be read.
-func CheckFooter(cfg *config.Loaded, key, typ, message string, r Reading) ([]string, error) {
+// typ, in its message or, under a stealth config, its note: "" when it
+// holds, else why not, one problem's sentence per line. An error when its
+// source cannot be read.
+func CheckFooter(cfg *config.Loaded, key, typ, message string, r Reading) (string, error) {
 	f, _ := cfg.Commits.Footers.Get(key)
 	required := applies(f.RequiredFor, typ) && !(r.Made && cfg.Before(f, r.At))
 	if f.Text() {
-		return said(checkText(cfg, key, f, typ, message, required)), nil
+		return checkText(cfg, key, f, typ, message, required), nil
 	}
 	ids := IDs(cfg, message, key)
 	if required && len(ids) == 0 && !stoodIn(cfg, key, typ, message) {
-		return said(fmt.Sprintf("%s commits need a %s footer%s", typ, example(cfg, key, f), stealthNeed(cfg, key, f))), nil
+		return fmt.Sprintf("%s commits need a %s footer%s", typ, example(cfg, key, f), stealthNeed(cfg, key, f)), nil
 	}
 	// No ID, nothing to check: the footer's source is not read.
 	if !applies(f.ValidateFor, typ) || len(ids) == 0 {
-		return nil, nil
+		return "", nil
 	}
 	k, err := knownFor(cfg, key, f, r)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	var unknown, pending []string
 	none := false
 	for _, id := range ids {
-		switch {
-		case k.all[id]:
-			if f.Live() && k.notLive[id] {
-				pending = append(pending, id)
-			}
-		case isLedger(f) && strings.EqualFold(id, "none"):
+		if !k.all[id] && isLedger(f) && strings.EqualFold(id, "none") {
 			none = true
-		default:
+		} else if !k.all[id] {
 			unknown = append(unknown, id)
+		} else if f.Live() && k.notLive[id] {
+			pending = append(pending, id)
 		}
 	}
 	var found []string
@@ -372,22 +369,17 @@ func CheckFooter(cfg *config.Loaded, key, typ, message string, r Reading) ([]str
 	if len(unknown) > 0 {
 		found = append(found, fmt.Sprintf("unknown %s: %s", noun(f), strings.Join(unknown, ", ")))
 	}
-	if len(found) > 0 || len(pending) == 0 {
-		return found, nil
+	if len(found) > 0 {
+		return strings.Join(found, "\n"), nil
 	}
-	why, err := notLiveWhy(cfg, f)
-	if err != nil {
-		return nil, err
+	if len(pending) > 0 {
+		why, err := notLiveWhy(cfg, f)
+		if err != nil {
+			return "", err
+		}
+		return why + ": " + strings.Join(pending, ", "), nil
 	}
-	return said(why + ": " + strings.Join(pending, ", ")), nil
-}
-
-// said is a rule's sentence as its list of problems: none for "".
-func said(why string) []string {
-	if why == "" {
-		return nil
-	}
-	return []string{why}
+	return "", nil
 }
 
 // noNone is what a ledger footer naming none is told, in any case of the
@@ -516,20 +508,22 @@ func FooterProblems(cfg *config.Loaded, message string, r Reading) ([]out.Proble
 			footers = r.Note
 			why = typedFooter(cfg, key, message)
 		}
-		whys := said(why)
 		if why == "" {
 			var err error
-			if whys, err = CheckFooter(cfg, key, typ, footers, r); err != nil {
+			if why, err = CheckFooter(cfg, key, typ, footers, r); err != nil {
 				return nil, err
 			}
 		}
+		if why == "" {
+			continue
+		}
 		rule := strings.ToLower(key) + "-footer"
-		for _, why := range whys {
-			fix, err := fixFor(cfg, rule, why)
+		for _, sentence := range strings.Split(why, "\n") {
+			fix, err := fixFor(cfg, rule, sentence)
 			if err != nil {
 				return nil, err
 			}
-			found = append(found, out.Problem{Rule: rule, Message: why, Fix: fix})
+			found = append(found, out.Problem{Rule: rule, Message: sentence, Fix: fix})
 		}
 	}
 	return found, nil
