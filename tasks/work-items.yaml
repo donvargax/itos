@@ -7945,6 +7945,20 @@ items:
       skills (reproduce first, how and why, interrogate) on demand in a scratch project, routing
       hook and poteto-mode off, and judge whether slices come back better. Beside
       p3-evaluate-cupcake.
+
+      Recompared 2026-10-25 (pstack-claude pushed 2026-10-22; upstream is Lauren Tan's pstack in
+      cursor/plugins): the 2026-10-11 summary, principles that trust without verifying, no longer
+      holds whole. poteto-mode now wants every claim labelled with its evidence (measured, inferred,
+      guess), hands back a fix with its failing and passing runs, builds levers a reviewer reruns,
+      and leaves formal-verification project skills (TLA+, Lean, Kani) the next agent reruns. Its
+      trust model is model-checks-model: an independent multi-model verdict per pull request, "never
+      count your own review, passing tests, or CI as the independent verdict", green not safe. itos
+      is the inverse: CI's mechanical re-judgment is the verdict and the model review sits on top,
+      now only on specs and high-blast-radius diffs (ADR-0061, q-104, which also compares Amp's
+      practice). Worth piloting for: its reproduce-first bug playbook against our red-first, its
+      evidence labels in agent reports (our "a report is a claim"), and its bugbot triage reference
+      beside our Copilot threads. Still against it here: the routing hook's per-session context and
+      the PR-stack playbooks.
     tags: [agents]
 
   - id: p2-adopt-go-template-itos
