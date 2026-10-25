@@ -743,6 +743,12 @@ func TestCommitComparesItsFootersWithTheMessage(t *testing.T) {
 		t.Errorf("an amend changing a footer: exit %d, %v, %d commits", code, err, len(f.made))
 	}
 
+	words := over(t, repository(false), rules)
+	if code, _, _, err := run(t, words, "", false, "--upgrading", "run x", "-m", "docs: x\n\nUpgrading: run x"); code != 0 || err != nil ||
+		!slices.Equal(words.made[0].Args, []string{"-m", "docs: x\n\nUpgrading: run x"}) {
+		t.Errorf("a text of several words: exit %d, %v, %+v", code, err, words.made)
+	}
+
 	s := stealthOver(t, repository(false), rules)
 	if code, _, _, err := run(t, s, "", false, "--task", "T-2", "--upgrading", "none", "-m", "feat: x\n\nTask: T-1\nUpgrading: none"); code != 0 || err != nil ||
 		!slices.Equal(s.made[0].Args, []string{"-m", "feat: x\n\nTask: T-1\nUpgrading: none"}) ||
