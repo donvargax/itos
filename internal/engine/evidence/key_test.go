@@ -1,6 +1,7 @@
 package evidence
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -157,6 +158,20 @@ func TestDeclaredInputsAreHashedAsTheyAre(t *testing.T) {
 	}
 	if keyOf(t, r, req, "tree") != tracked {
 		t.Error("the removal of a tracked input's working copy changed the key")
+	}
+}
+
+// The index is listed only for a declaration with inputs to classify: one with
+// none binds without asking git for it, so a git that cannot list it does not
+// stop the key, and one with inputs fails with git's error.
+func TestTheIndexIsListedOnlyForDeclaredInputs(t *testing.T) {
+	r := newRig(t)
+	r.git.indexedErr = errors.New("index unreadable")
+	if _, err := r.bind(t.Context(), r.request("true", config.Evidence{}), "tree"); err != nil {
+		t.Errorf("no inputs declared: %v", err)
+	}
+	if _, err := r.bind(t.Context(), r.request("true", config.Evidence{Inputs: []string{"x"}}), "tree"); !errors.Is(err, r.git.indexedErr) {
+		t.Errorf("an input declared: %v, want git's error", err)
 	}
 }
 
