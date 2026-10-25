@@ -1,0 +1,15 @@
+#!/bin/sh
+# The nightly's stateful property tests (T-310, ADR-0051): every TestProperty of cmd and internal
+# with a seed drawn for the run and printed, and a thousand checks each. A push runs the same tests
+# with the seed internal/proptest pins and the checks each property sets, so a red reproduces; this
+# step is where they explore. A failure prints the seed of the check that failed (-rapid.seed=<n>)
+# and writes its fail file; to keep it as a regression, run that test with RAPID_SEED=<n> and commit
+# the fail file it writes under testdata/rapid (internal/proptest's doc.go).
+#
+#   tools/bin/nightly-properties
+set -eu
+
+seed=$(($(od -An -N4 -tu4 /dev/urandom | tr -d ' ') + 1))
+echo "property tests: RAPID_SEED=$seed RAPID_CHECKS=1000"
+export RAPID_SEED=$seed RAPID_CHECKS=1000
+exec go test -count=1 -run '^TestProperty' ./cmd/... ./internal/...
