@@ -7907,6 +7907,19 @@ items:
       and comments kept; then the config editor (rename and remove keep every other byte) and the
       ledger's minting (no ID twice). A pilot after v8; CI and itos-cc run it with a fixed seed so a
       mutant is not killed on one run and kept on the next. If it pays, a standard tier (#41).
+
+      The person, 2026-10-25: the whole domain is verified by stateful, model-based property tests:
+      properties of the system over random sequences of domain operations against a plain model,
+      with invariants after each step and shrinking to the shortest failing sequence; input-level
+      properties are fuzzing and formal models are not for everything. ID minting first (T-310,
+      which also sets up rapid, the fixed seed per push and the fresh nightly seed). Then, each its
+      own task once T-310 shows the pattern: this registry lifecycle (add, take, give-back, done,
+      drop, queue, defer); the ledger (minting, a close removing its checks); push's classification
+      of a range (registry prefix, push.pr.direct, work on main) as a function of commit sequences;
+      work done's trust (bug-137 is the kind of sequence such a model finds: a check added to the
+      item's task on main after its head's run); the evidence store (record, lookup, quarantine,
+      under concurrency); the config editor (rename and remove keep every other byte). Concurrency
+      through linearizability checks on the real code, not TLA+.
     refs: [internal/work, internal/value]
     tags: [tests]
 
