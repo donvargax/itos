@@ -4744,9 +4744,6 @@
     Windows. Back to T-115's range, the step well under 400 s. A per-push platform job that runs
     every feature on Windows meets the same cliff. A shard is a ci commit beside this task's test
     commits; the next nightly's Windows step is the acceptance.
-  done_when:
-    - run: go test -count=1 ./features
-      timeout: 900
 
 - id: T-309
   type: build

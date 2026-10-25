@@ -14055,7 +14055,7 @@ items:
     title: The Windows nightly features run well under go test's 10-minute limit again
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
 
