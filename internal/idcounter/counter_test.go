@@ -1,7 +1,6 @@
 package idcounter
 
 import (
-	"errors"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -239,31 +238,55 @@ func TestMintRemoteTreatsMissingCategoryAsZero(t *testing.T) {
 	}
 }
 
-func TestMintRemoteStopsAfterSixteenNonFastForwardPushes(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("the Git command wrapper is a POSIX shell script")
+func TestMintRemoteStopsAfterSixteenPushesLostToTheRemote(t *testing.T) {
+	remote := newRemoteFake()
+	pushes := 0
+	remote.beforePush = func() error {
+		pushes++
+		return remote.advance(t.Context(), "slice", pushes)
 	}
-	root, remote := counterRemote(t, "")
-	base := filepath.Dir(remote)
-	pushes := filepath.Join(base, "pushes")
-	native, err := git.Real(runtime.GOOS)
-	if err != nil {
-		t.Fatal(err)
-	}
-	wrapper := filepath.Join(base, "git-wrapper")
-	script := "#!/bin/sh\nif [ \"$1\" = push ]; then printf x >> \"$ITOS_COUNTER_TEST_PUSHES\"; echo 'stale info' >&2; exit 1; fi\nexec \"" + native + "\" \"$@\"\n"
-	if err := os.WriteFile(wrapper, []byte(script), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	t.Setenv("ITOS_GIT", wrapper)
-	t.Setenv("ITOS_COUNTER_TEST_PUSHES", pushes)
-	n, err := Mint(Store{Root: root, VCS: vcs.Git{Platform: runtime.GOOS, Dir: root}, Remote: "origin"}, "slice", 0)
+	n, err := Mint(Store{Root: "repository", VCS: remote, Remote: origin}, "slice", 0)
 	if n != 0 || err == nil || !strings.Contains(err.Error(), "kept advancing") {
 		t.Fatalf("Mint = (%d, %v), want retry-exhaustion error", n, err)
 	}
-	data, err := os.ReadFile(pushes)
-	if err != nil || len(data) != 16 {
-		t.Fatalf("counter push attempts = %d (%v), want exactly 16", len(data), err)
+	if pushes != 16 {
+		t.Fatalf("counter push attempts = %d, want exactly 16", pushes)
+	}
+}
+
+// A refusal that leaves the counter where it was is the remote's, whichever
+// push it is: after fifteen lost to the remote it is not told as a sixteenth.
+func TestMintRemoteReturnsTheRefusalOfAnyPush(t *testing.T) {
+	remote := newRemoteFake()
+	pushes := 0
+	remote.beforePush = func() error {
+		pushes++
+		if pushes == 16 {
+			return refuse()
+		}
+		return remote.advance(t.Context(), "slice", pushes)
+	}
+	n, err := Mint(Store{Root: "repository", VCS: remote, Remote: origin}, "slice", 0)
+	if n != 0 || err == nil || !strings.Contains(err.Error(), "cannot push the id counter to the remote (nothing was written)") ||
+		!strings.Contains(err.Error(), "declined by a hook") {
+		t.Fatalf("Mint = (%d, %v), want the push's refusal", n, err)
+	}
+	if pushes != 16 {
+		t.Fatalf("counter push attempts = %d, want 16", pushes)
+	}
+}
+
+// The push that failed is judged by the remote's counter, so a remote that
+// cannot be asked is an error of its own, and no number.
+func TestMintRemoteReturnsNoNumberWhenTheRemoteCannotBeAskedAfterAFailedPush(t *testing.T) {
+	remote := newRemoteFake()
+	remote.beforePush = func() error {
+		remote.Remote[origin].Down = true
+		return nil
+	}
+	n, err := Mint(Store{Root: "repository", VCS: remote, Remote: origin}, "slice", 0)
+	if n != 0 || err == nil || !strings.Contains(err.Error(), "cannot fetch the id counter from the remote (nothing was written)") {
+		t.Fatalf("Mint = (%d, %v), want a fetch error", n, err)
 	}
 }
 
@@ -305,17 +328,6 @@ func gitAt(t *testing.T, dir string, args ...string) string {
 		t.Fatalf("git %s in %s: %v\n%s", strings.Join(args, " "), dir, err, out)
 	}
 	return string(out)
-}
-
-func TestCounterErrorClassifiers(t *testing.T) {
-	for _, message := range []string{"non-fast-forward", "fetch first", "stale info", "reference already exists"} {
-		if !nonFastForward(errors.New(message)) {
-			t.Errorf("nonFastForward(%q) = false", message)
-		}
-	}
-	if nonFastForward(errors.New("permission denied")) {
-		t.Error("nonFastForward classified permission denied as a race")
-	}
 }
 
 // clonedStores are n clones of one bare remote that holds a main branch and

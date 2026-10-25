@@ -75,15 +75,15 @@ func TestMintRemoteReturnsNoNumberWhenGitFails(t *testing.T) {
 	for _, tc := range []struct {
 		subcommand, want string
 	}{
-		{"fetch", "cannot fetching id counter on remote"},
-		{"rev-parse", "cannot fetching id counter on remote"},
-		{"show", "cannot reading id counter on remote"},
+		{"fetch", "cannot fetch the id counter from the remote"},
+		{"rev-parse", "cannot fetch the id counter from the remote"},
+		{"show", "cannot read the id counter on the remote"},
 		{"read-tree", "build id counter commit"},
 		{"hash-object", "build id counter commit"},
 		{"update-index", "build id counter commit"},
 		{"write-tree", "build id counter commit"},
 		{"commit-tree", "build id counter commit"},
-		{"push", "cannot pushing id counter on remote"},
+		{"push", "cannot push the id counter to the remote"},
 	} {
 		t.Run(tc.subcommand, func(t *testing.T) {
 			root, remote := counterRemote(t, "3\n")

@@ -168,7 +168,7 @@ Feature: The id counter, so an id itos mints is minted once
   # lost race too, and the word list of nonFastForward need not grow. A real
   # refusal keeps exit 3. ID-IDS-09 alone cannot tell this from adding git's
   # words to that list; ID-IDS-11 can.
-  @ID-IDS-09 @bug-141 @wip
+  @ID-IDS-09 @bug-141
   Scenario: A counter push that loses the race as the remote updates the ref fetches the counter again and retries
     Given a repository whose ledger has the task "T-001"
     And a clone of it, where itos runs
@@ -189,7 +189,7 @@ Feature: The id counter, so an id itos mints is minted once
   # push". Before the fix it fails at "itos exits with code 0" (it exits 3),
   # and a fix that only adds git's lost-race words to nonFastForward still
   # fails there.
-  @ID-IDS-11 @bug-141 @wip
+  @ID-IDS-11 @bug-141
   Scenario: A counter push refused after the remote's ref moved is retried, whatever words the remote gave
     Given a repository whose ledger has the task "T-001"
     And a clone of it, where itos runs
@@ -213,7 +213,7 @@ Feature: The id counter, so an id itos mints is minted once
   # output is checked loosely (ADR-0052): that it names the push, and relays
   # the remote's reason. Before the fix it fails at its output says "cannot
   # push the id counter to the remote".
-  @ID-IDS-10 @bug-141 @wip
+  @ID-IDS-10 @bug-141
   Scenario: A counter push the remote refuses for another reason is not retried, exits 3, and writes nothing
     Given a repository whose ledger has the task "T-001"
     And a clone of it, where itos runs
