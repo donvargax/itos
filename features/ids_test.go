@@ -55,6 +55,15 @@ func initializeIDSteps(sc *godog.ScenarioContext, w *world) {
 	sc.Step(`^the remote has no ref "([^"]*)"$`, func(ref string) error {
 		return w.noRemoteRef(ref)
 	})
+	sc.Step(`^another clone claims "(slice-(\d+))" on the remote while the clone's next counter push is received$`, func(id, n string) error {
+		return w.remoteUpdateHook(otherCloneClaimsHook(id, n, "exec git update-ref refs/itos/ids \"$commit\" \"$2\"\n"))
+	})
+	sc.Step(`^another clone claims "(slice-(\d+))" on the remote while the clone's next counter push is received, and the remote declines that push$`, func(id, n string) error {
+		return w.remoteUpdateHook(otherCloneClaimsHook(id, n, "git update-ref refs/itos/ids \"$commit\" \"$2\" || exit 1\necho 'the remote declines this push' >&2\nexit 1\n"))
+	})
+	sc.Step(`^the remote refuses every push of "refs/itos/ids", its hook saying "([^"]*)"$`, func(reason string) error {
+		return w.remoteUpdateHook(fmt.Sprintf("#!/bin/sh\n[ \"$1\" = refs/itos/ids ] || exit 0\necho %s >&2\nexit 1\n", quote(reason)))
+	})
 	sc.Step(`^the clones concurrently add a slice$`, w.concurrentSliceMints)
 	sc.Step(`^the concurrent clones minted "([^"]*)" and "([^"]*)"$`, w.concurrentSliceMintsAre)
 }
@@ -215,4 +224,29 @@ func (w *world) noRemoteRef(ref string) error {
 		return fmt.Errorf("remote has ref %s", ref)
 	}
 	return nil
+}
+
+// remoteUpdateHook is git's update hook in the remote, which receive-pack
+// runs, outside the push's quarantine, before it updates each ref.
+func (w *world) remoteUpdateHook(script string) error {
+	dir := filepath.Join(w.remote(), "hooks")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return err
+	}
+	return writeExecutable(filepath.Join(dir, "update"), []byte(script))
+}
+
+// otherCloneClaimsHook is an update hook that, on the first push of
+// refs/itos/ids only, builds another clone's counter commit with n for slice
+// on the old value, moves the ref to it, and then runs finish.
+func otherCloneClaimsHook(id, n, finish string) string {
+	return fmt.Sprintf(`#!/bin/sh
+[ "$1" = refs/itos/ids ] || exit 0
+[ -e itos-race-lost ] && exit 0
+: > itos-race-lost
+blob=$(printf '%%s\n' %s | git hash-object -w --stdin) || exit 1
+counters=$(printf '100644 blob %%s\tslice\n' "$blob" | git mktree) || exit 1
+tree=$(printf '040000 tree %%s\tcounters\n' "$counters" | git mktree) || exit 1
+commit=$(git -c user.name=other -c user.email=other@localhost commit-tree -p "$2" -m %s "$tree") || exit 1
+%s`, n, quote("itos: reserve "+id), finish)
 }
