@@ -169,6 +169,10 @@
 //     from before its set-up to after its clean-up, and each kind of step's
 //     (its text, quoted strings blanked), written as a report once the run
 //     ends. The platform jobs print it (T-115).
+//   - repo_fixture_test.go: a scenario's repository starts as a copy of one
+//     git init's git folder, with itos's hooks written into its config, and
+//     reads HEAD from the git folder's files, so none of them starts a git
+//     (T-308).
 //
 // The header lint, where a scenario needs one, is itos's built-in one (use:
 // builtin), which needs nothing installed and holds no footer rule, so a
@@ -207,6 +211,7 @@ func TestFeatures(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(removeCallerPath)
+	t.Cleanup(removeRepoTemplate)
 	removeCover, err := buildCover()
 	if err != nil {
 		t.Fatal(err)

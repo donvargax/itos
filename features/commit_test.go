@@ -293,6 +293,18 @@ func (w *world) declareHooks(dir string) error {
 	if err != nil {
 		return err
 	}
+	var sections []configSection
+	for _, event := range itosHookEvents {
+		sections = append(sections, configSection{
+			name:    `hook "itos-` + event + `"`,
+			entries: [][2]string{{"event", event}, {"command", standIn + " hook " + event}},
+		})
+	}
+	// The entries git config --local would write, written to the file: four
+	// git starts less a scenario (T-308).
+	if done, err := appendGitConfig(dir, sections...); done || err != nil {
+		return err
+	}
 	for _, event := range itosHookEvents {
 		entry := "hook.itos-" + event
 		if err := w.gitIn(dir, "config", "--local", entry+".event", event); err != nil {
