@@ -32,7 +32,9 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   pr. This repository turns them on (push.pr: {draft: true, review_by:
   [copilot-pull-request-reviewer]}) in a build commit of its own,
   once the ruleset below is applied, and rewrites AGENTS.md's Finishing for
-  the --ready flow in the same push.
+  the --ready flow in the same push. Slice 187's build commit changes its
+  review_by to [chatgpt-codex-connector] (Codex), Copilot's quota having run
+  out.
 
   A plain itos push from an item's branch, under push.pr.draft true, does
   what slice 174 does up to the pull request (the rebase, the registry
@@ -77,20 +79,56 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
      failed and push, or wait for the run, then itos push --ready again."
      With no ci.watch provider no run is waited for, and GitHub's required
      checks judge the merge.
-  4. The reviews, with push.pr.review_by not empty: a review on the pull
-     request by each login, of any state and any commit, asked of GitHub at
-     once and each ci.watch.interval until each login has one, the progress
-     line "Waiting for reviews by <logins, comma-separated> on <address>."
-     printed once where the watch's progress goes (stdout, stderr under
-     --json, nowhere under -q). A login matches a review's author when the
-     two are equal once a trailing "[bot]" is dropped from each, since
-     GitHub's GraphQL names a bot without it (copilot-pull-request-reviewer)
-     and its REST API with it (copilot-pull-request-reviewer[bot]). No review
-     by each within ci.watch.timeout of the wait's start exits 75, outcome
-     review-timeout, auto-merge not turned on, stderr (under --json too)
-     "itos: no review by <the logins without one, comma-separated, as the
-     config writes them> on <address> after <n> seconds (ci.watch.timeout),
-     so auto-merge is not turned on; itos push --ready again waits again."
+  4. The reviews, with push.pr.review_by not empty: a verdict on the pull
+     request by each login, for any commit, asked of GitHub at once and each
+     ci.watch.interval until each login has one, the progress line "Waiting
+     for reviews by <logins, comma-separated> on <address>." printed once
+     where the watch's progress goes (stdout, stderr under --json, nowhere
+     under -q). A login matches an author when the two are equal once a
+     trailing "[bot]" is dropped from each, since GitHub's GraphQL names a
+     bot without it (copilot-pull-request-reviewer) and its REST API with it
+     (copilot-pull-request-reviewer[bot]). A verdict (slice 187) is either:
+     a. A review by the login, of any state, that is not a refusal. A
+        refusal is a review whose body's first line begins "Copilot" and has
+        "was unable to review this pull request": Copilot's quota running
+        out ("Copilot was unable to review this pull request because the
+        user who requested the review has insufficient remaining quota.",
+        which counted as the review on #158 and merged it unreviewed) or an
+        error of its own ("Copilot encountered an error and was unable to
+        review this pull request. You can try again by re-requesting a
+        review."). Every real Copilot review here begins with the line
+        "<!-- ccr-overview-v2 -->", but the rule is the refusal's words, not
+        that marker, so a review by any other login (a person's, Codex's
+        when it has findings) counts as it always did.
+     b. A comment on the pull request (an issue comment, not a review) by
+        the login with a line "<!-- codex-review-state:v1 <JSON> -->" whose
+        JSON's code_review.status and security_review.status are both
+        "completed". On a clean pass Codex (chatgpt-codex-connector) posts
+        no review, only this comment, which it edits in place (status
+        "running", then "completed"), and a +1 reaction (#159); its findings
+        come as review threads, which step 5 judges. While either status is
+        anything but "completed" there is no verdict and the wait goes on.
+        The state's other fields (commit_sha, has_any_findings,
+        has_unresolved_findings) are not read, and a state comment by
+        another login (one quoting Codex's) is not Codex's verdict.
+     Nothing is compared with the pull request's head: a verdict on an
+     earlier commit counts, as Copilot's reviews always did, with no
+     re-review after a fix is pushed; resolved threads stay the gate on
+     fixes. itos asks no reviewer for a review (no "@codex review" comment).
+     A login with no verdict and a refusal stops the wait at once, since
+     waiting cannot bring a review nobody asks for again: exit 75, outcome
+     review-refused, auto-merge not turned on, stderr (under --json too),
+     for each such login in the config's order, "itos: <login, as the
+     config writes it> gave no verdict on <address>: "<the first line of
+     its last refusal>"; auto-merge is not turned on: request its review
+     again, then itos push --ready again." A login with a verdict and a
+     refusal (reviewed once requested again) counts: a refusal stays on the
+     pull request. No verdict by each within ci.watch.timeout of the wait's
+     start exits 75, outcome review-timeout, auto-merge not turned on,
+     stderr (under --json too) "itos: no review by <the logins without
+     one, comma-separated, as the config writes them> on <address> after
+     <n> seconds (ci.watch.timeout), so auto-merge is not turned on; itos
+     push --ready again waits again."
   5. The review threads, always under --ready: a thread whose isResolved is
      false refuses the merge, exit 1, outcome review-threads-unresolved,
      auto-merge not turned on, stderr (under --json too, written as it runs)
@@ -113,14 +151,17 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   the owner and name of the one every other gh call names), the query:
     query($owner: String!, $name: String!, $number: Int!) {
     repository(owner: $owner, name: $name) { pullRequest(number: $number) {
-    reviews(first: 100) { nodes { author { login } } }
+    reviews(first: 100) { nodes { author { login } body } }
+    comments(first: 100) { nodes { author { login } body } }
     reviewThreads(first: 100) { nodes { isResolved path line
     comments(first: 1) { nodes { body } } } } } } }
-  sent as one line, each run of whitespace one space, since the recording
-  gh keeps a call to one line and the steps below read it so. Step 4 asks
-  it until the reviews are there; step 5 judges the threads of
-  its last answer, or of one asked then when review_by is empty. A pull
-  request with more than 100 reviews or threads is out of scope. A gh api
+  (slice 187 added the reviews' body and the pull request's comments, for
+  step 4's verdicts) sent as one line, each run of whitespace one space,
+  since the recording gh keeps a call to one line and the steps below read
+  it so. Step 4 asks it until the verdicts are there; step 5 judges the
+  threads of its last answer, or of one asked then when review_by is empty.
+  A pull request with more than 100 reviews, comments or threads is out of
+  scope. A gh api
   call that fails, or an answer without that shape, is any gh call that
   fails: exit 3, outcome pull-request-failed, naming gh api graphql. The
   number is gh pr list's, or the end of the address gh pr create printed.
@@ -156,7 +197,8 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   once the push is done, and "auto_merge", whether this push turned on
   auto-merge (true for every pr push that calls gh pr merge, under draft
   false as before); outcome gains review-timeout,
-  review-threads-unresolved, ready-without-draft and ready-on-main. ci and
+  review-threads-unresolved, ready-without-draft and ready-on-main, and
+  slice 187's review-refused. ci and
   run are the watched run's, as before.
 
   work done (slice-176) needs no change: a draft pull request is OPEN to gh
@@ -195,7 +237,8 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   The repository side, which the person applies, with no scenario: the main
   ruleset gains the copilot_code_review rule with review_draft_pull_requests
   false (Copilot reviews once the pull request is ready, never a draft;
-  confirm on the first draft), and its pull_request rule gains
+  confirm on the first draft; Codex, too, reviews on "Draft marked ready"),
+  and its pull_request rule gains
   required_review_thread_resolution true, so GitHub too refuses a merge with
   a thread open, whoever turns auto-merge on.
 
@@ -208,7 +251,11 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   on, which GitHub merges once green; reviews requested of a login (gh pr
   edit --add-reviewer), rather than waited for; a review whose state is
   CHANGES_REQUESTED, which counts as a review, its threads judging it; work
-  done waiting for a pull request to merge.
+  done waiting for a pull request to merge. Not in slice 187: a Codex
+  state without security_review (a repository with Codex's security review
+  off), which is no verdict until a scenario says otherwise; a notice of
+  Codex's own that it cannot review, not seen yet, which waits as no
+  verdict does; asking a reviewer for a review again.
 
   The steps. The recording gh is push-mode.feature's, and learns four
   things. Its list of pull requests keeps whether each is a draft: pr create
@@ -235,6 +282,24 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   first look is a completed run, conclusion success, both jobs completed
   and skipped, and every later look the run finished with a failed and b
   succeeded.
+
+  Slice 187's steps. The recording gh's api graphql answer gains
+  "comments":{"nodes":[...]} beside reviews and reviewThreads, the comments
+  the steps gave it, none by default, and each review node a "body", ""
+  unless a step gives one. New steps: "the recording gh answers that the
+  pull request has a review by <login> whose body is <body>", a review node
+  with that author's login and body; "the recording gh answers that the pull
+  request has a comment by <login> holding Codex's review state, its code
+  review <status> and its security review <status>", a comment node with
+  that author's login and the body of Codex's comment as #159 has it, its
+  first lines "<!-- codex-pull-request-review-summary -->" and then
+  "<!-- codex-review-state:v1 {"code_review":{"commit_sha":<any 40 hex
+  digits>,"has_any_findings":false,"has_unresolved_findings":false,
+  "status":<status>},"security_review":{the same, its status the second}}
+  -->" (no space inside the JSON), then "## Codex Review Summary"; and the
+  same step ending "for its first <n> api graphql calls, then both
+  <status>", whose comment holds the two statuses given in the answers to
+  the first n calls and that one status for both in every later answer.
 
   Background:
     Given a repository whose ledger has the task "T-001"
@@ -622,3 +687,156 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
     Then itos exits with code 1
     And its output says "https://github.example/o/r/pull/7 is open"
     And the registry's item "slice-9" has the status "doing" and the owner "someone"
+
+  # Codex posts no review on a clean pass: its verdict is the review-state
+  # comment it edits in place, both reviews completed (#159). The config
+  # writes the login as REST does, the comment's author is GraphQL's. Fails
+  # before the work at the exit code: today only a review counts, so --ready
+  # waits out ci.watch.timeout, exit 75.
+  @ID-PUSHDRAFT-17 @slice-187 @wip
+  Scenario: Under push.pr.draft, push --ready counts Codex's review-state comment with both reviews completed as its verdict and turns on auto-merge
+    Given the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+        pr:
+          draft: true
+          review_by: ["chatgpt-codex-connector[bot]"]
+      """
+    And ci.watch asks a fake GitHub, which reports the run "https://ci.example/runs/1"
+    And ci.watch.timeout is 1
+    And the watched run's jobs "ci" and "platform" succeed
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the clone is on the new branch "slice-9"
+    And the clone has the commit "feat: add the widget" touching "widget.md"
+    And git pushes HEAD to the remote's new branch "slice-9"
+    And the recording gh has the draft pull request "https://github.example/o/r/pull/7" open for the branch "slice-9"
+    And the recording gh answers that the pull request has a comment by "chatgpt-codex-connector" holding Codex's review state, its code review "completed" and its security review "completed"
+    When itos runs "push --ready"
+    Then itos exits with code 0
+    And the recording gh's "pr merge" call has "--auto"
+    And its output says "Auto-merge is on"
+
+  # While either of Codex's reviews runs there is no verdict yet: --ready
+  # waits, and ci.watch.timeout ends the wait as for a review that never
+  # came, naming the login. A guard: it passes before the work (no review
+  # at all) and must after it, where it holds that a state comment counts
+  # only once both reviews are completed.
+  @ID-PUSHDRAFT-18 @slice-187 @guard @wip
+  Scenario: Under push.pr.draft, push --ready with Codex's security review still running waits out ci.watch.timeout and exits 75, turning on no auto-merge
+    Given the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+        pr:
+          draft: true
+          review_by: [chatgpt-codex-connector]
+      """
+    And ci.watch asks a fake GitHub, which reports the run "https://ci.example/runs/1"
+    And ci.watch.timeout is 1
+    And the watched run's jobs "ci" and "platform" succeed
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the clone is on the new branch "slice-9"
+    And the clone has the commit "feat: add the widget" touching "widget.md"
+    And git pushes HEAD to the remote's new branch "slice-9"
+    And the recording gh has the draft pull request "https://github.example/o/r/pull/7" open for the branch "slice-9"
+    And the recording gh answers that the pull request has a comment by "chatgpt-codex-connector" holding Codex's review state, its code review "completed" and its security review "running"
+    When itos runs "push --ready --json"
+    Then itos exits with code 75
+    And its JSON's "outcome" is "review-timeout"
+    And its output says "no review by chatgpt-codex-connector"
+    And the recording gh was never called as "pr merge"
+
+  # The wait reads the comment again at each look, as Codex edits it in
+  # place: running on the first looks, completed after. ci.watch.timeout is
+  # long enough for a few looks on a slow runner. Fails before the work at
+  # the exit code: today no review by the login ever comes, so the wait ends
+  # at ci.watch.timeout, exit 75.
+  @ID-PUSHDRAFT-19 @slice-187 @wip
+  Scenario: Under push.pr.draft, push --ready keeps waiting while Codex's reviews run and turns on auto-merge once its review-state comment says both completed
+    Given the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+        pr:
+          draft: true
+          review_by: [chatgpt-codex-connector]
+      """
+    And ci.watch asks a fake GitHub, which reports the run "https://ci.example/runs/1"
+    And ci.watch.timeout is 10
+    And the watched run's jobs "ci" and "platform" succeed
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the clone is on the new branch "slice-9"
+    And the clone has the commit "feat: add the widget" touching "widget.md"
+    And git pushes HEAD to the remote's new branch "slice-9"
+    And the recording gh has the draft pull request "https://github.example/o/r/pull/7" open for the branch "slice-9"
+    And the recording gh answers that the pull request has a comment by "chatgpt-codex-connector" holding Codex's review state, its code review "running" and its security review "running" for its first 2 api graphql calls, then both "completed"
+    When itos runs "push --ready"
+    Then itos exits with code 0
+    And its output says "Waiting for reviews by chatgpt-codex-connector"
+    And the recording gh's "pr merge" call has "--auto"
+
+  # Copilot out of quota posts a review that is a refusal, and #158 merged
+  # on it unreviewed. A refusal is no verdict, and waiting cannot bring a
+  # review nobody asks for again: --ready stops at once, quoting it.
+  # ci.watch.timeout is short so that an implementation that waits instead
+  # fails at the outcome rather than by hanging. Fails before the work at
+  # the exit code: today the refusal counts as the review and auto-merge
+  # goes on, exit 0.
+  @ID-PUSHDRAFT-20 @slice-187 @wip
+  Scenario: Under push.pr.draft, push --ready stops at a review_by login's refusal to review, exit 75, quoting it and turning on no auto-merge
+    Given the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+        pr:
+          draft: true
+          review_by: ["copilot-pull-request-reviewer[bot]"]
+      """
+    And ci.watch asks a fake GitHub, which reports the run "https://ci.example/runs/1"
+    And ci.watch.timeout is 1
+    And the watched run's jobs "ci" and "platform" succeed
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the clone is on the new branch "slice-9"
+    And the clone has the commit "feat: add the widget" touching "widget.md"
+    And git pushes HEAD to the remote's new branch "slice-9"
+    And the recording gh has the draft pull request "https://github.example/o/r/pull/7" open for the branch "slice-9"
+    And the recording gh answers that the pull request has a review by "copilot-pull-request-reviewer" whose body is "Copilot was unable to review this pull request because the user who requested the review has insufficient remaining quota."
+    When itos runs "push --ready --json"
+    Then itos exits with code 75
+    And its JSON's "outcome" is "review-refused"
+    And its JSON's "pull_request.auto_merge" is false
+    And its output says "copilot-pull-request-reviewer[bot] gave no verdict on https://github.example/o/r/pull/7"
+    And its output says "Copilot was unable to review this pull request because"
+    And its output says "request its review again"
+    And the recording gh was never called as "pr merge"
+
+  # Once its review is requested again Copilot reviews, and the refusal
+  # stays on the pull request beside the review: a login with a verdict
+  # counts whatever refusal it posted before. The review begins with
+  # Copilot's overview marker, as every real one here does. A guard: it
+  # passes before the work (any review counts) and must after it, where it
+  # holds that a refusal stops the wait only for a login with no verdict.
+  @ID-PUSHDRAFT-21 @slice-187 @guard @wip
+  Scenario: Under push.pr.draft, push --ready counts a login's review given after its refusal and turns on auto-merge
+    Given the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+        pr:
+          draft: true
+          review_by: ["copilot-pull-request-reviewer[bot]"]
+      """
+    And ci.watch asks a fake GitHub, which reports the run "https://ci.example/runs/1"
+    And ci.watch.timeout is 1
+    And the watched run's jobs "ci" and "platform" succeed
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the clone is on the new branch "slice-9"
+    And the clone has the commit "feat: add the widget" touching "widget.md"
+    And git pushes HEAD to the remote's new branch "slice-9"
+    And the recording gh has the draft pull request "https://github.example/o/r/pull/7" open for the branch "slice-9"
+    And the recording gh answers that the pull request has a review by "copilot-pull-request-reviewer" whose body is "Copilot was unable to review this pull request because the user who requested the review has insufficient remaining quota."
+    And the recording gh answers that the pull request has a review by "copilot-pull-request-reviewer" whose body is "<!-- ccr-overview-v2 -->"
+    When itos runs "push --ready"
+    Then itos exits with code 0
+    And the recording gh's "pr merge" call has "--auto"
