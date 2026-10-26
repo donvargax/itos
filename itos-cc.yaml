@@ -323,3 +323,21 @@ mutation:
       replacement: "0"
       reason: "Equivalent: the bound 0 for 1 reduces a single boundary commit too, which git merge-base --independent prints unchanged, and an empty list never satisfies len > 0, so every input gives the same bases."
       line_text: if len(bases) > 1 {
+    - file: internal/store/tracker/adapter/files.go
+      function: github.com/donvargax/itos/v8/internal/store/tracker/adapter.Files#uncommitted
+      hash: 930004533a520cde
+      line_in_function: 7
+      column: 10
+      original: "false"
+      replacement: "true"
+      reason: "Equivalent: the false travels with a non-nil err, and uncommitted has one caller, Ready, which returns on that err before it reads the bool, so no run sees the value."
+      line_text: return false, err
+    - file: internal/engine/ciwatch/logs.go
+      function: github.com/donvargax/itos/v8/internal/engine/ciwatch#dedent
+      hash: 6789865ce421e5a5
+      line_in_function: 4
+      column: 61
+      original: <
+      replacement: <=
+      reason: "Equivalent: the two differ only for a line whose indentation equals shared, which sets shared to indent(l), the value it already has (indent is a pure function of the line); shared < 0 short-circuits before the comparison, so shared is never negative where it is made."
+      line_text: if strings.TrimSpace(l) != "" && (shared < 0 || indent(l) < shared) {
