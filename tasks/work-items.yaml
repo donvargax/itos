@@ -14468,8 +14468,8 @@ items:
   - id: slice-189
     title: Under pr, an item branch can commit a gate change naming a task only main holds, and is told so instead of "unknown tasks"
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: slice
     why: >
