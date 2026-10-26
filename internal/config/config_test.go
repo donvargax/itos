@@ -206,6 +206,23 @@ func TestAsksBesideTheRegistry(t *testing.T) {
 	}
 }
 
+// A work.registry the file leaves empty is none: the default's, beside its
+// ledger, is the registry work.asks is beside.
+func TestAnEmptyRegistryLeavesAsksBesideTheDefault(t *testing.T) {
+	for text, want := range map[string]string{
+		"version: 1\nwork: { registry: \"\" }\n":                                                 "tasks/asks.yaml",
+		"version: 1\nledger: { files: \"work/phase-{group}.yaml\" }\nwork: { registry: \"\" }\n": "work/asks.yaml",
+	} {
+		c, err := load(t, text)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if c.Work.Asks != want {
+			t.Errorf("%q: asks %q, want %q", text, c.Work.Asks, want)
+		}
+	}
+}
+
 // hooks.bin as a command's first word is also read as itos, and only then.
 func TestReadings(t *testing.T) {
 	c, err := load(t, "version: 1\nci: { steps: [], cost: { static: [\"^itos work check$\"] } }\nhooks: { bin: tools/bin/itos }\n")
