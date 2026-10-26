@@ -14508,3 +14508,20 @@ items:
       false, every commit there is judged). A ci commit beside a check that a superseded PR run is
       cancelled.
     tags: [ci]
+
+  - id: p1-keep-done-checks
+    title: A done task keeps its done_when checks in the ledger, recorded as not rerun, instead of losing them at work done
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The person, 2026-10-26: work done removing a task's done_when (ADR-0043 (b): a task's checks
+      are scaffolding, run while open, then leave the ledger, and nothing reruns them) loses what
+      the task was proved by; git log has it but the ledger no longer reads as the record. Keep the
+      checks on a done task, marked so nothing reruns them (the nightly does not, T-125), or move
+      them to a done record beside the entry; ADR-0043's guarantee (proof from the diff and type,
+      never from a task's own checks) stays. Revisits ADR-0043 (b): a decision record. Not before
+      v9.
+    tags: [v9]
