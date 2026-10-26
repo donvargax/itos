@@ -51,3 +51,23 @@ printf '{"protocol":1,"tests":[],"files":["a.test.ts"]}\n'
 		t.Errorf("warned %q, want %q", warned.String(), want)
 	}
 }
+
+// A Gherkin kind, the default adapter, is read by the built-in reader and
+// lists its feature's scenario; an adapter that is neither a command nor
+// gherkin is refused, naming it.
+func TestListTestsReadsOnlyTheBuiltInGherkinAdapter(t *testing.T) {
+	t.Chdir(t.TempDir())
+	if err := os.Mkdir("features", 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile("features/a.feature", []byte("Feature: a\n\n  @ID-A-01\n  Scenario: one\n    Given x\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	cfg := load(t, "version: 1\ntests:\n  scenario: { root: features, id: \"ID-[A-Z]+-\\\\d+\" }\n  other: { adapter: nope, root: features, id: X }\n")
+	if list, err := ListTests(cfg, "scenario", "worktree", nil); err != nil || len(list.Tests) != 1 || list.Tests[0].ID != "ID-A-01" {
+		t.Errorf("the gherkin kind: %+v, %v", list, err)
+	}
+	if _, err := ListTests(cfg, "other", "worktree", nil); err == nil || !strings.Contains(err.Error(), "tests.other.adapter nope is not built in") {
+		t.Errorf("an adapter of another name: %v", err)
+	}
+}
