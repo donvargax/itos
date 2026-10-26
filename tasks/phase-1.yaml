@@ -4854,7 +4854,7 @@
     but here the metadata route is chosen by tools/bin/ci-repo (its scope result gates the platform
     jobs), not by ci run, so main's runs keep running everything until ci-repo applies the same rule
     through the same code. ci.yml likely needs pull-requests: read beside contents and actions for
-    GET commits/<sha>/pulls. A ci commit on slice-188's pull request, proved on its own merge:
+    GET commits/<sha>/pulls. A pull request of its own from main once slice-188 has merged (a ci commit on slice-188's branch cannot name T-315, added on main after that branch was cut, until slice-189 is in the branch's own build), proved on its own merge:
     main's run of the merge commit takes the trusted route (its log names the trusted run) when the
     tree equals the head's.
   done_when:
