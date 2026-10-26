@@ -55,6 +55,7 @@ phases:
   3: donvargax
 
 queue:
+  - p1-ci-cancel-superseded-pr-runs
   - p1-github-registry-spike
   - p1-agent-test-runs-once
   - p1-mutation-results-committed
