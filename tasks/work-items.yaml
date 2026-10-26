@@ -14507,6 +14507,14 @@ items:
       cancel-in-progress false for every event; for pull_request events it can be true (main keeps
       false, every commit there is judged). A ci commit beside a check that a superseded PR run is
       cancelled.
+
+      Main stays as it is, deliberately: ci.yml already replaces a run still pending on main (run
+      cf2a6bd5 was cancelled so on 2026-10-26) and never one running, and the newest run checks
+      every commit since the last green one. itos-cc learned why (its T-201, cd.yml): cancelling in
+      progress on main let each push of a burst cancel the run before it, so no run finished.
+      itos-cc cancels in progress only in its fast Linux gate (ci.yml test job, T-123, every ref);
+      its full multi-OS suite and release (cd.yml) queue. For pull requests only the head matters,
+      so cancel-in-progress true for pull_request events.
     tags: [ci]
 
   - id: p1-keep-done-checks
