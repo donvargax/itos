@@ -14527,7 +14527,7 @@ items:
   - id: T-315
     title: "This repository's main runs take slice-188's trust: ci-repo applies it and ci.yml may ask which pull request merged a commit"
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
