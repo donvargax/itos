@@ -256,6 +256,17 @@ func TestRunStopsAtWhatItCannotSetOrRead(t *testing.T) {
 	}
 }
 
+// A ci.env the process cannot set stops the run with the error as its answer
+// and the exit 0, never a failing step's 1.
+func TestACiEnvItCannotSetExitsZero(t *testing.T) {
+	var stdout, stderr strings.Builder
+	cfg := load(t)
+	cfg.CI.Env = map[string]string{"A\x00B": "x"}
+	if code, err := Run(cfg, &plan.Plan{}, Options{Stdout: &stdout, Stderr: &stderr}); code != 0 || err == nil {
+		t.Errorf("a ci.env key with a NUL in it: exit %d, %v", code, err)
+	}
+}
+
 // A run runs each named task's checks as its own, so a check two tasks share
 // runs once for each.
 func TestEachTaskRunsASharedCheck(t *testing.T) {
