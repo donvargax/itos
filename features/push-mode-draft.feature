@@ -171,8 +171,10 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   A pull request with more than 100 reviews, comments or threads is out of
   scope. A gh api
   call that fails, or an answer without that shape, is any gh call that
-  fails: exit 3, outcome pull-request-failed, naming gh api graphql. The
-  number is gh pr list's, or the end of the address gh pr create printed.
+  fails: exit 3, outcome pull-request-failed, naming gh api graphql. The one
+  exception is the pull request's comments: an answer without them is read as
+  none, because v8.22.2's recorded answers carry none (and live GitHub always
+  answers what the query asks). The number is gh pr list's, or the end of the address gh pr create printed.
 
   With --no-wait, --ready does steps 1 and 2 and stops: no run, no review,
   no gh api, no auto-merge, since turning auto-merge on unwatched would let
