@@ -14621,3 +14621,19 @@ items:
     status: doing
     depends_on: []
     kind: task
+
+  - id: p1-release-finish-draft-at-tag
+    title: A release run finishes a draft release whose tag already points at HEAD instead of releasing nothing
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Found by T-316 (bug-143), 2026-10-26: when GitHub makes the tag before a publish fails
+      (v8.25.0), a rerun at the same commit reads that tag as the newest release
+      (tools/bin/release-version) and releases nothing, so --clobber helps only when the failure
+      came before the tag. T-316 retries the publish, which covers the incident; the manual gh
+      release edit <tag> --draft=false stays the fallback. Close it fully: release-version, or a
+      step before it, treats a draft release at HEAD's tag as unfinished and publishes it.
+    tags: [ci]
