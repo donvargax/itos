@@ -22,7 +22,10 @@ Feature: Under push.mode pr, a commit not yet on main may name a task main's led
   stays offline. Without that ref, or with a main that lacks the ID too, the
   footer is judged as today, with today's words. The rule is the footer
   rule's, so the commit-msg hook, itos commit check-message, the pre-push
-  hook's judgement of a pushed range and itos verify all apply it.
+  hook's judgement of a pushed range and itos verify all apply it. It
+  covers only footers read at the commit (read_at: commit); one read at the
+  working tree is judged as today. A clone without refs/remotes/<remote>/HEAD
+  has no main for the rule: it does not fall back to <remote>/main.
 
   Why accept, not refuse with a hint. Under pr a commit reaches main only by
   the pull request's rebase-merge onto main's head (ADR-0039), and main
