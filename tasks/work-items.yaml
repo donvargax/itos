@@ -14430,8 +14430,8 @@ items:
   - id: slice-187
     title: "push.pr.review_by counts a reviewer only once it gave a verdict: Codex by its review-state comment, never Copilot's refusal"
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: slice
     why: >
