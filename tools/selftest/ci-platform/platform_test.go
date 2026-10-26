@@ -227,6 +227,7 @@ func TestSelftest(t *testing.T) {
 	scratch.Gate(t)
 	t.Run("platform Go uses the exact verified toolchain", testToolchain)
 	t.Run("the nightly runs every feature once a platform, in shards where it needs them", testNightlyShards)
+	t.Run("the release publishes through a GitHub 5xx and uploads over a rerun's asset", testReleasePublish)
 	t.Run("one test owner and launcher check per platform", func(t *testing.T) {
 		if err := contract(t, readWorkflow(t)); err != nil {
 			t.Fatal(err)
@@ -661,6 +662,78 @@ printf '%s\n' "$SHELL_BIN"
 			}
 			if (result.Code == 0) != tc.ok {
 				t.Fatalf("exit %d, wanted success=%t: %s", result.Code, tc.ok, result.Output())
+			}
+		})
+	}
+}
+
+// The release's Publish step, run as the workflow runs it against a fake gh whose release edit
+// fails its first $FAIL_EDITS times, as GitHub's 500 did on v8.25.0 (bug-143): the upload must
+// replace an asset a failed run left, the publish must be retried, and one that never succeeds
+// must fail the job saying the release is still a draft.
+func testReleasePublish(t *testing.T) {
+	var publish step
+	for _, s := range readWorkflowFile(t, "release.yml").Jobs["release"].Steps {
+		if s.Name == "Publish" {
+			publish = s
+		}
+	}
+	if publish.Run == "" {
+		t.Fatal("release.yml has no Publish step")
+	}
+	for _, tc := range []struct {
+		name, prerelease string
+		fails, edits     int
+		code             int
+		flags            string
+	}{
+		{"a 5xx twice, then published", "false", 2, 3, 0, "--draft=false --latest"},
+		{"a candidate is a pre-release and not latest", "true", 1, 2, 0, "--draft=false --prerelease --latest=false"},
+		{"never published", "false", 100, 6, 1, "--draft=false --latest"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			dir := t.TempDir()
+			scratch.WriteFiles(t, dir, map[string]string{
+				"bin/gh": `#!/bin/sh
+echo "$*" >> "$LOG"
+if [ "$1 $2" = 'release edit' ]; then
+  n=$(cat "$DIR/count" 2>/dev/null || echo 0)
+  echo $((n + 1)) > "$DIR/count"
+  [ "$n" -ge "$FAIL_EDITS" ] || exit 1
+fi
+`,
+				"bin/sleep": "#!/bin/sh\n",
+				"log":       "",
+			})
+			for _, f := range []string{"bin/gh", "bin/sleep"} {
+				if err := os.Chmod(filepath.Join(dir, f), 0o755); err != nil {
+					t.Fatal(err)
+				}
+			}
+			env := scratch.With(scratch.OutsideEnv(), "PATH="+filepath.Join(dir, "bin")+string(os.PathListSeparator)+os.Getenv("PATH"),
+				"LOG="+filepath.Join(dir, "log"), "DIR="+dir, "RUNNER_TEMP=/rt", "TAG=v1.0.0", "PRERELEASE="+tc.prerelease,
+				"FAIL_EDITS="+fmt.Sprint(tc.fails))
+			r := scratch.Run(dir, env, "", "bash", "-e", "-c", publish.Run)
+			if r.Code != tc.code {
+				t.Fatalf("exit %d, not %d:\n%s", r.Code, tc.code, r.Output())
+			}
+			logged, err := os.ReadFile(filepath.Join(dir, "log"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			lines := strings.Split(strings.TrimSpace(string(logged)), "\n")
+			if lines[0] != "release upload v1.0.0 /rt/upgrading.json --clobber" {
+				t.Errorf("the first call is %q, not the upload over an existing asset", lines[0])
+			}
+			if len(lines)-1 != tc.edits {
+				t.Errorf("%d publish attempts, not %d:\n%s", len(lines)-1, tc.edits, logged)
+			}
+			want := "release edit v1.0.0 --notes-file /rt/notes.md " + tc.flags
+			if last := lines[len(lines)-1]; last != want {
+				t.Errorf("the publish is %q, not %q", last, want)
+			}
+			if said := strings.Contains(r.Output(), "still a draft"); said != (tc.code == 1) {
+				t.Errorf("a release left a draft should say so, and only then:\n%s", r.Output())
 			}
 		})
 	}

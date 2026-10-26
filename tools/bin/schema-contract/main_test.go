@@ -2,6 +2,8 @@ package main
 
 import (
 	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"reflect"
 	"strings"
 	"testing"
@@ -242,5 +244,33 @@ func TestValidate(t *testing.T) {
 				t.Fatalf("validate() error = %v, want substring %q", err, tt.wantError)
 			}
 		})
+	}
+}
+
+// A draft release answers 404 for its assets, so a 404 says how to tell a draft and publish it
+// (bug-143); any other failed answer does not.
+func TestDownloadNamesTheDraft(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		if strings.Contains(req.URL.Path, "/v1.2.3/") {
+			http.NotFound(w, req)
+			return
+		}
+		http.Error(w, "boom", http.StatusInternalServerError)
+	}))
+	defer server.Close()
+
+	_, err := download(server.URL, "o/r", "v1.2.3")
+	if err == nil {
+		t.Fatal("a 404 should be an error")
+	}
+	for _, want := range []string{"404", "draft", "gh release edit v1.2.3 --draft=false"} {
+		if !strings.Contains(err.Error(), want) {
+			t.Errorf("a 404 should say %q:\n%v", want, err)
+		}
+	}
+
+	_, err = download(server.URL, "o/r", "v1.2.4")
+	if err == nil || strings.Contains(err.Error(), "draft") {
+		t.Errorf("a 500 is not a draft's answer:\n%v", err)
 	}
 }
