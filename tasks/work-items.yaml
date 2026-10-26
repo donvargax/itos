@@ -14491,8 +14491,8 @@ items:
   - id: slice-188
     title: "CI trusts a green run of the same tree: main's run after a rebase merge does not rerun what the pull request's head proved"
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: slice
     why: >
