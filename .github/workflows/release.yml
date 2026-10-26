@@ -38,8 +38,14 @@ name: Release
 #   6. upgrading.json is uploaded to the draft, then the draft is published with those notes,
 #      which is when GitHub creates the tag, so the tag and a release holding every asset appear
 #      together. upgrading.json is not in checksums.txt, so neither attested nor read by a pin:
-#      itos only prints it. A run that fails before leaves no tag,
-#      only a draft the next run replaces; a tag is never moved;
+#      itos only prints it. The upload replaces an asset already there, and the publish is
+#      retried, so a GitHub 5xx (bug-143: a 500 left v8.25.0 a draft with its tag made, and
+#      schema-contract 404 on it) does not leave the release half-made. A run that fails before
+#      GitHub makes the tag leaves only a draft the next run replaces, and a rerun of the job
+#      completes it; once the tag is made, a run that still fails leaves a draft that nothing
+#      reruns (the next run computes from that tag), to publish by hand,
+#      `gh release edit <tag> --draft=false`, which schema-contract names when it finds the
+#      release a 404; a tag is never moved;
 #   7. proxy.golang.org is asked for the new version, so go install finds it at once (T-165).
 # The releaser never commits: the notes are the release's description, not a file.
 on:
@@ -148,15 +154,27 @@ jobs:
           TAG: v${{ steps.version.outputs.next }}
           PRERELEASE: ${{ steps.version.outputs.prerelease }}
         # The asset is named after the file, upgrading.json; it goes up while the release is a
-        # draft, so the release is never seen without it. A candidate is published as a
-        # pre-release and explicitly not latest; any other release as latest.
+        # draft, so the release is never seen without it, and --clobber lets a rerun that failed
+        # after the upload go up again. A candidate is published as a pre-release and explicitly
+        # not latest; any other release as latest. The publish is retried a few times, as the
+        # attestation check is: GitHub answers it with a 5xx now and then, even after it has made
+        # the tag.
         run: |
-          gh release upload "$TAG" "$RUNNER_TEMP/upgrading.json"
+          gh release upload "$TAG" "$RUNNER_TEMP/upgrading.json" --clobber
           if [ "$PRERELEASE" = true ]; then
-            gh release edit "$TAG" --notes-file "$RUNNER_TEMP/notes.md" --draft=false --prerelease --latest=false
+            flags=(--prerelease --latest=false)
           else
-            gh release edit "$TAG" --notes-file "$RUNNER_TEMP/notes.md" --draft=false --latest
+            flags=(--latest)
           fi
+          for attempt in 1 2 3 4 5 6; do
+            if gh release edit "$TAG" --notes-file "$RUNNER_TEMP/notes.md" --draft=false "${flags[@]}"; then
+              exit 0
+            fi
+            echo "attempt $attempt: the release is not published yet"
+            sleep 10
+          done
+          echo "::error::$TAG is still a draft: publish it by hand with gh release edit $TAG --draft=false"
+          exit 1
       # proxy.golang.org caches a module's version list and @latest and refreshes them on its own
       # schedule, so go install ...@latest lagged each new release by a while (T-165). Asking the
       # proxy for the new version is what makes it fetch the tag at once; @latest follows later.

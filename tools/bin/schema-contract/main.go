@@ -350,6 +350,10 @@ func download(base, repository, tag string) ([]byte, error) {
 		return nil, fmt.Errorf("cannot download it (it needs the network): %v", err)
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode == http.StatusNotFound {
+		return nil, fmt.Errorf("%s answered %s: the release has no %s, or is not published yet; a draft release answers 404 too (a publish that failed leaves one, bug-143): "+
+			"if `gh release view %s --json isDraft` says true, publish it with `gh release edit %s --draft=false`", url, resp.Status, asset, tag, tag)
+	}
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("%s answered %s: the release has no %s, or is not published yet", url, resp.Status, asset)
 	}
