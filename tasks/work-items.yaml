@@ -14477,18 +14477,9 @@ items:
     title: "CI trusts a green run of the same tree: main's run after a rebase merge does not rerun what the pull request's head proved"
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: slice
-    why: >
-      Was p1-ci-trust-same-tree.
-      Seen 2026-10-26 on #160 (slice-187): the PR head b2a7c35d ran the full CI (12 min, three
-      platforms) and main's run of 0f7b4b43 right after the rebase merge ran it again (9 min) on the
-      identical tree (1a6179bb). ci plan could find the merged pull request of a push to main (gh
-      api commits/<sha>/pulls), compare trees, and when they are equal (or differ only in registry
-      and ledger files, the rule slice-181 already applies to work done) and that run is green, run
-      the metadata-only plan instead. Mutation draws and coverage are keyed by the range, so the
-      judged range must be the same too. No v9 redesign needed: a ci plan rule.
     tags: [ci]
 
   - id: T-314
