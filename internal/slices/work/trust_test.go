@@ -310,28 +310,6 @@ func TestDoneGivesThePullRequestOnlyWithAHeadAndCIWatch(t *testing.T) {
 	}
 }
 
-// The paths a head's tree differs in that are neither the registry nor a
-// ledger file, as ledger.files lays the ledger out; with no ledger section no
-// path is one, and a path is cleaned as git gives it.
-func TestOutsideBookkeeping(t *testing.T) {
-	p := over(t, sound())
-	files := []string{"widget.md", "work-items.yaml", "tasks/phase-2.yaml", "tasks/notes.yaml", "tasks/sub/phase-1.yaml", "other/phase-1.yaml", "tasks/phase-1.yml"}
-	want := []string{"widget.md", "tasks/notes.yaml", "tasks/sub/phase-1.yaml", "other/phase-1.yaml", "tasks/phase-1.yml"}
-	if got, _ := outsideBookkeeping(p.cfg, files); !slices.Equal(got, want) {
-		t.Errorf("outsideBookkeeping = %q, want %q", got, want)
-	}
-	if got, _ := outsideBookkeeping(p.cfg, nil); len(got) != 0 {
-		t.Errorf("no paths, outsideBookkeeping = %q", got)
-	}
-	f := sound()
-	f.config = strings.NewReplacer("ledger:\n  files: \"tasks/phase-{group}.yaml\"\n  id: \"T-\\\\d+\"\n", "",
-		"    Task: { source: ledger }\n", "").Replace(configText)
-	bare := over(t, f)
-	if got, _ := outsideBookkeeping(bare.cfg, []string{"work-items.yaml", "tasks/phase-1.yaml"}); !slices.Equal(got, []string{"tasks/phase-1.yaml"}) {
-		t.Errorf("with no ledger section, outsideBookkeeping = %q", got)
-	}
-}
-
 // entry is a ledger file holding the task, T-1 unless it says otherwise, with
 // the checks given, each a flow mapping; none gives it no done_when.
 func entry(id string, checks ...string) string {

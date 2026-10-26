@@ -40,6 +40,10 @@
   scenarios:
     - id: "@ID-CI-52"
       why: a passing code proof's envelope logged as one summary line, the file's point in one run
+- file: ci-trust.feature
+  scenarios:
+    - id: "@ID-CITRUST-01"
+      why: a merged pull request's green head trusted for main's run, only the prose steps planned, the file's point
 - file: cli.feature
   scenarios:
     - id: "@ID-CLI-01"

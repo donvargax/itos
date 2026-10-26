@@ -430,3 +430,36 @@ func TestAStepThatOptsInIsLookedUp(t *testing.T) {
 type noCount struct{ fakeGit }
 
 func (noCount) UnstagedPaths(context.Context) ([]string, error) { return nil, errors.New("git") }
+
+// A run of a trusted range (slice 188) says the trust where a prose-only
+// range's "Only prose changed" line goes, in the log (stderr under --json),
+// then lists what it leaves out; a head not trusted says why before the line
+// of a proof left out, and a plan with neither says nothing of either.
+func TestTheRunSaysTheTrustAndTheNote(t *testing.T) {
+	first := plan.Step{Command: "exit 0"}
+	left := &plan.Check{CostedCheck: check.CostedCheck{Task: ledger.Task{ID: "T-1"}, Check: ledger.Check{Run: new("slow")}}}
+	trusted := func() *plan.Plan {
+		return &plan.Plan{Order: []plan.Item{{Step: &first}}, Prose: true, LeftOut: []*plan.Check{left}, Trusted: &plan.Trust{Line: "Trusted: the said."}}
+	}
+	_, stdout, stderr := run(t, trusted(), Options{})
+	if !strings.HasPrefix(stdout, "Trusted: the said.\n  - T-1: slow   (reads no prose; left out)\n\n$ exit 0\n") || strings.Contains(stdout, "Only prose") || stderr != "" {
+		t.Errorf("trusted: stdout %q, stderr %q", stdout, stderr)
+	}
+	_, stdout, stderr = run(t, trusted(), Options{JSON: true})
+	if !strings.HasPrefix(stderr, "Trusted: the said.\n  - T-1: slow") || strings.Contains(stdout, "Trusted") {
+		t.Errorf("trusted, --json: stdout %q, stderr %q", stdout, stderr)
+	}
+	_, stdout, _ = run(t, &plan.Plan{Order: []plan.Item{{Step: &first}}, Prose: true}, Options{})
+	if !strings.HasPrefix(stdout, "Only prose changed: the named tasks' static and `prose: true` checks.\n") {
+		t.Errorf("prose only: stdout %q", stdout)
+	}
+
+	_, stdout, stderr = run(t, &plan.Plan{Order: []plan.Item{{Step: &first}}, Note: "Not trusted: the said.", ProofOmitted: "Code proof not scheduled: the other."}, Options{})
+	if !strings.HasPrefix(stdout, "Not trusted: the said.\nCode proof not scheduled: the other.\n\n$ exit 0\n") || stderr != "" {
+		t.Errorf("not trusted: stdout %q, stderr %q", stdout, stderr)
+	}
+	_, stdout, stderr = run(t, &plan.Plan{Order: []plan.Item{{Step: &first}}, Note: "Not trusted: the said."}, Options{JSON: true})
+	if !strings.HasPrefix(stderr, "Not trusted: the said.\n\n$ exit 0\n") || strings.Contains(stdout, "Not trusted") {
+		t.Errorf("not trusted, --json: stdout %q, stderr %q", stdout, stderr)
+	}
+}

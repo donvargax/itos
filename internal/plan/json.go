@@ -102,7 +102,7 @@ func (p *Plan) Fields(r Range) []out.Field {
 		}
 		return l
 	}
-	return []out.Field{
+	fields := []out.Field{
 		{Key: "range", Value: r},
 		{Key: "prose", Value: p.Prose},
 		{Key: "steps", Value: list(p.Steps)},
@@ -112,12 +112,17 @@ func (p *Plan) Fields(r Range) []out.Field {
 		{Key: "unknown", Value: list(p.Unknown)},
 		{Key: "not_started", Value: list(p.NotStarted)},
 	}
+	if p.Trusted != nil {
+		fields = append(fields, out.Field{Key: "trusted", Value: p.Trusted})
+	}
+	return fields
 }
 
 // Print prints the plan as text, one item a line: a step's cost and
 // command, the code proof's marked "(code proof)", a check's cost, task,
-// command and action; then, when the config's code proof is left out, the
-// line that says why.
+// command and action; then the line that says a merged pull request's head
+// was not trusted, the line that says why the config's code proof is left
+// out, and the line that says it was trusted, each when the plan has it.
 func (p *Plan) Print(w io.Writer) {
 	for _, item := range p.Order {
 		if item.Step != nil {
@@ -135,7 +140,12 @@ func (p *Plan) Print(w io.Writer) {
 		}
 		fmt.Fprintf(w, "%s  %s: %s   (%s)\n", c.Cost, c.Task.ID, c.Check.Command(), action)
 	}
-	if p.ProofOmitted != "" {
-		fmt.Fprintln(w, p.ProofOmitted)
+	for _, line := range []string{p.Note, p.ProofOmitted} {
+		if line != "" {
+			fmt.Fprintln(w, line)
+		}
+	}
+	if p.Trusted != nil {
+		fmt.Fprintln(w, p.Trusted.Line)
 	}
 }

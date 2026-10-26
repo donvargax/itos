@@ -60,12 +60,25 @@ func waiting(cfg *config.Loaded, d Data, id string) bool {
 // when the config has one and the range touches its paths (codeProof), runs
 // with {base} that start.
 func For(cfg *config.Loaded, from, to string, d Data) (*Plan, error) {
+	return forRange(cfg, from, to, d, nil)
+}
+
+// ForTrusted is For for a range CI trusts a merged pull request's green head
+// for (slice 188): the plan a prose-only range gets, whatever the range
+// touches, with no code proof and no line that says why there is none, and
+// the trust for the plan to say.
+func ForTrusted(cfg *config.Loaded, from, to string, d Data, t *Trust) (*Plan, error) {
+	return forRange(cfg, from, to, d, t)
+}
+
+func forRange(cfg *config.Loaded, from, to string, d Data, trusted *Trust) (*Plan, error) {
 	ids := TasksIn(cfg, from, to)
 	changed, readErr := ChangedErr(cfg.VCS, from, to)
 	prose, err := DocsOnly(cfg, changed)
 	if err != nil {
 		return nil, err
 	}
+	prose = prose || trusted != nil
 	known := Readable(cfg.VCS, from, to)
 	kind, err := TestsKind(cfg)
 	if err != nil {
@@ -74,8 +87,10 @@ func For(cfg *config.Loaded, from, to string, d Data) (*Plan, error) {
 	in := Input{Prose: prose, Known: known, Scenarios: TestsNamedIn(cfg, from, to, kind), Smoke: d.Smoke}
 	ends := EndsOf(cfg, from, to)
 	var omitted string
-	if in.Proof, omitted, err = codeProof(cfg, from, changed, readErr, ends); err != nil {
-		return nil, err
+	if trusted == nil {
+		if in.Proof, omitted, err = codeProof(cfg, from, changed, readErr, ends); err != nil {
+			return nil, err
+		}
 	}
 	has := map[string]bool{}
 	for _, t := range d.Tasks {
@@ -96,7 +111,7 @@ func For(cfg *config.Loaded, from, to string, d Data) (*Plan, error) {
 			p.NotStarted = append(p.NotStarted, id)
 		}
 	}
-	p.ProofOmitted = omitted
+	p.ProofOmitted, p.Trusted = omitted, trusted
 	p.fill(ends)
 	return p, nil
 }

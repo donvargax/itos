@@ -43,13 +43,30 @@ scheduled: the range has no start." (an empty or all-zeros start, even when
 commits.since gives range checks one), "...the range's changes could not be
 read." or "...the range changes no path in proof.code.paths." Neither is
 printed for --nightly, and neither is a verdict on the proof.
+Under push.mode pr, with ci.range's github provider (and its repository) and
+ci.prose's steps, GitHub is asked once which pull request merged the range's
+end (commits/<sha>/pulls). When the range is that pull request's head's
+commits rebased, after commits of main's own that change only the work
+registry and the ledger and name no task or test, each differing from the
+head's only in those files, the tasks it names have the same checks in the
+ledger at the head and at the end, and the head's newest CI run of
+ci.range.github.workflow passed, the range is trusted: the plan is the
+prose-only one (the prose steps, the named tasks' static and prose: true
+checks, no code proof), and the last line says "Trusted: ...". A merged pull
+request that is not trusted says why in a "Not trusted: ..." line. A head the
+clone lacks is fetched once from refs/pull/<n>/head. ci scope asks nothing.
 
 --json: the plan contract, keys only ever added
-        {"schema":1,"range","prose","steps","order","tasks","left_out","unknown","not_started"}`,
+        {"schema":1,"range","prose","steps","order","tasks","left_out","unknown","not_started","trusted"?},
+        trusted, only for a trusted range, {"pull_request","head","run"}`,
 
 		"run": `Usage: itos ci run [<from> <to>] | --nightly [--tests]
 
-Runs the plan: unknown task IDs fail first, tasks not started and checks a
+Runs the plan. A range trusted for a merged pull request's green head, as ci
+plan says, runs the prose plan and says "Trusted: ..." where a prose-only
+range says "Only prose changed: ..."; work only main's run should do (a
+deploy, an upload) belongs in a job of its own, since a trusted run, like a
+prose one, leaves it out. Unknown task IDs fail first, tasks not started and checks a
 prose-only range leaves out are listed, then each step and task check in cost
 order, stopping at the first failure; with ci.stop_at_first_failure false,
 every one runs and the first failure is the run's. A run that goes on says

@@ -111,10 +111,10 @@
 //     asks, before main's run is looked for, whether that head's run may
 //     judge the commit: the head, fetched once from refs/pull/<n>/head when
 //     the clone lacks it, must differ from the commit (git diff --name-only)
-//     in the work registry and ledger files alone (outsideBookkeeping,
+//     in the work registry and ledger files alone (prtrust.OutsideBookkeeping,
 //     slice 177's ledger rule), for a task whose ledger files the diff lists
 //     the task's own checks must be the same in the ledger at the head and at
-//     the commit (sameChecks, bug 137; a ledger that cannot be read at either
+//     the commit (prtrust.SameChecks, bug 137; a ledger that cannot be read at either
 //     is no comparison), and its run, looked at once, never waited for, must
 //     have completed with success and listed a job that was not skipped
 //     (ciwatch.DraftsRun). Then it is the close's CI, named in the

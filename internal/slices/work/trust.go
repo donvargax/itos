@@ -4,16 +4,11 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"path"
-	"path/filepath"
-	"reflect"
-	"slices"
 
 	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/engine/ciwatch"
-	"github.com/donvargax/itos/v8/internal/ledger"
+	"github.com/donvargax/itos/v8/internal/engine/prtrust"
 	"github.com/donvargax/itos/v8/internal/providers"
-	vcsport "github.com/donvargax/itos/v8/internal/vcs/port"
 )
 
 // mergedHead is the head of the item's merged pull request under push.mode
@@ -48,7 +43,7 @@ type PullRequest struct {
 // a job that was not skipped. A head the clone lacks is fetched first, once,
 // from refs/pull/<n>/head, which GitHub keeps after the branch is gone. For a
 // task of the ledger whose files the diff lists, its own checks must also be
-// the same at the head and at the commit (sameChecks, bug 137). ok is false,
+// the same at the head and at the commit (prtrust.SameChecks, bug 137). ok is false,
 // and a line says why, where the watch's progress goes, for a head the clone
 // cannot have, a tree that differs in another path, the item's checks that
 // differ or a ledger that cannot be read, and a head's run that is no pass; a
@@ -66,7 +61,7 @@ func trustedRun(ctx context.Context, cfg *config.Loaded, id string, m *mergedHea
 	judges := fmt.Sprintf("so %s's CI run judges %s", m.on, l)
 	merged := fmt.Sprintf("%s's pull request %s merged with the head %s", id, m.url, h)
 	if _, err := v.Resolve(ctx, m.head); err != nil {
-		fetchHead(ctx, v, m)
+		prtrust.FetchHead(ctx, v, m.remote, m.number)
 		if _, err := v.Resolve(ctx, m.head); err != nil {
 			fmt.Fprintf(say, "%s, which this clone does not have and could not fetch from %s's refs/pull/%d/head, %s\n", merged, m.remote, m.number, judges)
 			return ciwatch.Watched{}, false
@@ -77,7 +72,7 @@ func trustedRun(ctx context.Context, cfg *config.Loaded, id string, m *mergedHea
 		return ciwatch.Watched{}, false
 	}
 	merged += fmt.Sprintf(", and %s, %s's newest commit on %s,", l, id, m.on)
-	others, ledgers := outsideBookkeeping(cfg, files)
+	others, ledgers := prtrust.OutsideBookkeeping(cfg, files)
 	if len(others) > 0 {
 		more := ""
 		if len(others) > 1 {
@@ -88,7 +83,7 @@ func trustedRun(ctx context.Context, cfg *config.Loaded, id string, m *mergedHea
 	}
 	merged += " has its tree but for the work registry and the ledger"
 	if ledgers && isTask(cfg, id) {
-		same, unreadable := sameChecks(ctx, cfg, id, m.head, landing.sha)
+		same, unreadable := prtrust.SameChecks(ctx, cfg, id, m.head, landing.sha)
 		if unreadable != "" {
 			fmt.Fprintf(say, "%s, but the ledger at %s cannot be read, %s\n", merged, short(unreadable), judges)
 			return ciwatch.Watched{}, false
@@ -121,66 +116,4 @@ func progress(o Out) io.Writer {
 		return o.Stderr
 	}
 	return o.Stdout
-}
-
-// fetchHead fetches the merged pull request's head into FETCH_HEAD from the
-// remote's refs/pull/<n>/head, never prompting for credentials, within
-// ciwatch.FetchTimeout, and names no destination, so no branch and no
-// remote-tracking ref changes. A fetch that fails leaves the clone as it was.
-func fetchHead(ctx context.Context, v vcsport.VCS, m *mergedHead) {
-	ctx, cancel := context.WithTimeout(ctx, ciwatch.FetchTimeout)
-	defer cancel()
-	_, _ = v.Fetch(ctx, m.remote, fmt.Sprintf("refs/pull/%d/head", m.number), vcsport.Talk{NoPrompt: true})
-}
-
-// outsideBookkeeping are the paths that are neither the work registry nor a
-// ledger file (slice 177's: a file of ledger.files' folder whose name its
-// pattern matches, none with no ledger section), in the order given, and
-// whether any path is a ledger file.
-func outsideBookkeeping(cfg *config.Loaded, files []string) (others []string, ledgers bool) {
-	registry := path.Clean(filepath.ToSlash(cfg.Work.Registry))
-	layout, noLedger := ledger.LayoutOf(cfg)
-	for _, f := range files {
-		clean := path.Clean(f)
-		isLedger := noLedger == nil && path.Dir(clean) == layout.Dir && layout.File.MatchString(path.Base(clean))
-		ledgers = ledgers || isLedger
-		if clean != registry && !isLedger {
-			others = append(others, f)
-		}
-	}
-	return others, ledgers
-}
-
-// sameChecks is whether the item's checks in the ledger are the same at the
-// head and at the landing commit (bug 137): the entries with its id, in the
-// order the ledger reads them, as many at both, each pair's done_when equal
-// check by check in every key the ledger reads, and no entry whose checks
-// cannot be read. unreadable is the commit whose ledger cannot be read, the
-// head's first, else "".
-func sameChecks(ctx context.Context, cfg *config.Loaded, id, head, landing string) (same bool, unreadable string) {
-	at, err := entriesAt(ctx, cfg, id, head)
-	if err != nil {
-		return false, head
-	}
-	then, err := entriesAt(ctx, cfg, id, landing)
-	if err != nil {
-		return false, landing
-	}
-	return slices.EqualFunc(at, then, func(a, b ledger.Task) bool {
-		return a.Err == nil && b.Err == nil && slices.EqualFunc(a.DoneWhen, b.DoneWhen, func(x, y ledger.Check) bool { return reflect.DeepEqual(x, y) })
-	}), ""
-}
-
-// entriesAt are the ledger's entries of the id in the commit's tree, as
-// itos ci plan --data-at reads it.
-func entriesAt(ctx context.Context, cfg *config.Loaded, id, sha string) ([]ledger.Task, error) {
-	tree, err := cfg.Trees.At(ctx, sha)
-	if err != nil {
-		return nil, err
-	}
-	tasks, err := ledger.Tasks(cfg.DataFrom(tree))
-	if err != nil {
-		return nil, err
-	}
-	return slices.DeleteFunc(tasks, func(t ledger.Task) bool { return t.ID != id }), nil
 }

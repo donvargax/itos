@@ -4,10 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"maps"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"strings"
 	"testing"
 
@@ -667,5 +669,66 @@ func TestAStepOfTestsTakesTheKindsWholeRun(t *testing.T) {
 		if step.Command != want || step.Tests != kind {
 			t.Errorf("tests: %s: command %q, tests %q, want command %q", kind, step.Command, step.Tests, want)
 		}
+	}
+}
+
+// A range trusted for a merged pull request's green head (slice 188) is
+// planned as a prose-only one whatever it touches: the prose steps, no run of
+// named tests and no code proof, nor the line that says why there is none;
+// the plan prints the trust's line last and its JSON names the trust, which
+// no other plan's does. The note of a head not trusted prints before the line
+// of a proof left out.
+func TestForTrustedPlansTheProseRange(t *testing.T) {
+	from, to := gitRange(t)
+	cfg := load(t, scratch+`proof:
+  code:
+    paths: ["internal/**"]
+    check: "cc since {base}"
+`)
+	trust := &Trust{PullRequest: "https://github.example/o/r/pull/7", Head: "h1", Run: "https://ci.example/runs/1", Line: "Trusted: the said."}
+	p, err := ForTrusted(cfg, from, to, Data{Smoke: []string{"ID-S-01"}}, trust)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !p.Prose || p.Trusted != trust || p.ProofOmitted != "" || p.Note != "" || !slices.Equal(p.Steps, []string{"lint"}) {
+		t.Errorf("the trusted plan: %+v", p)
+	}
+	if got := lines(p); got != "static  lint\nTrusted: the said.\n" {
+		t.Errorf("the trusted plan prints:\n%s", got)
+	}
+	var b strings.Builder
+	if err := out.Emit(&b, p.Fields(Range{From: from, To: to, Readable: true})...); err != nil {
+		t.Fatal(err)
+	}
+	var got struct {
+		Prose   bool
+		Trusted map[string]string
+	}
+	if err := json.Unmarshal([]byte(b.String()), &got); err != nil || !got.Prose ||
+		!maps.Equal(got.Trusted, map[string]string{"pull_request": trust.PullRequest, "head": "h1", "run": trust.Run}) ||
+		strings.Index(b.String(), `"trusted"`) < strings.Index(b.String(), `"not_started"`) {
+		t.Errorf("the trusted plan's JSON: %v, %+v\n%s", err, got, b.String())
+	}
+
+	plain, err := For(cfg, from, to, Data{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var plainJSON strings.Builder
+	if err := out.Emit(&plainJSON, plain.Fields(Range{})...); err != nil {
+		t.Fatal(err)
+	}
+	if plain.Prose || plain.Trusted != nil || strings.Contains(plainJSON.String(), "trusted") || plain.Order[1].Step == nil || !plain.Order[1].Step.Proof {
+		t.Errorf("the plan of a range that is not trusted: %+v\n%s", plain, plainJSON.String())
+	}
+
+	plain.Note = "Not trusted: the said."
+	plain.ProofOmitted = "Code proof not scheduled: the said."
+	if got := lines(plain); !strings.HasSuffix(got, "\nNot trusted: the said.\nCode proof not scheduled: the said.\n") {
+		t.Errorf("a head not trusted prints:\n%s", got)
+	}
+	plain.ProofOmitted = ""
+	if got := lines(plain); !strings.HasSuffix(got, "\nNot trusted: the said.\n") || !strings.Contains(got, "(code proof)\n") {
+		t.Errorf("a head not trusted, the proof scheduled, prints:\n%s", got)
 	}
 }

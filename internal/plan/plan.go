@@ -63,6 +63,16 @@ type Item struct {
 	Check *Check
 }
 
+// Trust is a range CI trusts a merged pull request's green head for (slice
+// 188): the pull request's address, its head's full SHA, the head's CI run's
+// address, and Line, the line that says so, which ci plan and ci run print.
+type Trust struct {
+	PullRequest string `json:"pull_request"`
+	Head        string `json:"head"`
+	Run         string `json:"run"`
+	Line        string `json:"-"`
+}
+
 // Plan is what a run does.
 type Plan struct {
 	// Prose is whether only prose changed: the prose steps run, and the named
@@ -91,6 +101,12 @@ type Plan struct {
 	// ProofOmitted is the line that says why a configured code proof is not a
 	// step of this push's plan; "" when it is one, or none is configured.
 	ProofOmitted string
+	// Trusted is the trust that made the plan a prose-only one for a range of
+	// a merged pull request's commits; nil for any other plan.
+	Trusted *Trust
+	// Note is the line that says a merged pull request's head was not
+	// trusted, and why; "" when none counted or it was trusted.
+	Note string
 }
 
 // stepOf is a CI step as the run takes it (ci-scope.ts's stepOf): a command
