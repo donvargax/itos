@@ -62,7 +62,7 @@ func (p *pulls) gh(args []string) (string, error) {
 				reviews = append(reviews, fmt.Sprintf(`{"author":{"login":%q}}`, login))
 			}
 		}
-		return fmt.Sprintf(`{"data":{"repository":{"pullRequest":{"reviews":{"nodes":[%s]},"reviewThreads":{"nodes":[%s]}}}}}`,
+		return fmt.Sprintf(`{"data":{"repository":{"pullRequest":{"reviews":{"nodes":[%s]},"comments":{"nodes":[]},"reviewThreads":{"nodes":[%s]}}}}}`,
 			strings.Join(reviews, ","), strings.Join(p.threads, ",")), nil
 	}
 	return "", nil
@@ -496,7 +496,7 @@ func TestPushReadyWaitsForTheReviews(t *testing.T) {
 	// A review whose author is gone is no review by anyone.
 	f, p = waiting(t, "[a]", "interval: 2, timeout: 30")
 	p.graph = func(int) string {
-		return `{"data":{"repository":{"pullRequest":{"reviews":{"nodes":[{"author":null},{"author":{"login":"a"}}]},"reviewThreads":{"nodes":[]}}}}}`
+		return `{"data":{"repository":{"pullRequest":{"reviews":{"nodes":[{"author":null},{"author":{"login":"a"}}]},"comments":{"nodes":[]},"reviewThreads":{"nodes":[]}}}}}`
 	}
 	if code, _, _, _ := call(t, f, "--ready"); code != 0 {
 		t.Errorf("a review whose author is gone: exit %d", code)
@@ -579,10 +579,14 @@ func TestPushReadyWhereGhFails(t *testing.T) {
 		}, "gh api graphql failed: its answer is not"},
 		"no repository": {func(p *pulls) { p.graph = func(int) string { return `{"data":{"repository":null}}` } }, "gh api graphql failed: its answer is not"},
 		"no reviews": {func(p *pulls) {
-			p.graph = func(int) string { return `{"data":{"repository":{"pullRequest":{"reviewThreads":{"nodes":[]}}}}}` }
+			p.graph = func(int) string {
+				return `{"data":{"repository":{"pullRequest":{"comments":{"nodes":[]},"reviewThreads":{"nodes":[]}}}}}`
+			}
 		}, "gh api graphql failed: its answer is not"},
 		"no threads": {func(p *pulls) {
-			p.graph = func(int) string { return `{"data":{"repository":{"pullRequest":{"reviews":{"nodes":[]}}}}}` }
+			p.graph = func(int) string {
+				return `{"data":{"repository":{"pullRequest":{"reviews":{"nodes":[]},"comments":{"nodes":[]}}}}}`
+			}
 		}, "gh api graphql failed: its answer is not"},
 		"merge": {func(p *pulls) {
 			p.graph = func(int) string { return empty }
@@ -694,5 +698,106 @@ func TestParseReady(t *testing.T) {
 		if !errors.As(err, &u) || err.Error() != "push --ready pushes an item's branch; it takes no --tag or --ref" {
 			t.Errorf("Parse(%s) = %v", args, err)
 		}
+	}
+}
+
+// codexState is the comment Codex edits in place, with a state line holding the
+// two statuses.
+func codexState(code, security string) string {
+	return "<!-- codex-pull-request-review-summary -->\n<!-- codex-review-state:v1 " +
+		fmt.Sprintf(`{"code_review":{"status":%q},"security_review":{"status":%q}}`, code, security) + " -->\n## Codex Review Summary"
+}
+
+const (
+	quota = "Copilot was unable to review this pull request because the user who requested the review has insufficient remaining quota."
+	oops  = "Copilot encountered an error and was unable to review this pull request. You can try again by re-requesting a review."
+)
+
+// A verdict is a review that is no refusal, unless the login wrote a
+// review-state comment, whose two statuses both completed are then the only
+// verdict; a login whose reviews are all refusals, and that wrote no state, is
+// refused with the first line of its last refusal.
+func TestVerdicts(t *testing.T) {
+	review := func(login, body string) authored { return authored{login, body} }
+	for name, c := range map[string]struct {
+		state   pullState
+		missing []string
+		refused []refusal
+	}{
+		"nothing":                            {pullState{}, []string{"a"}, nil},
+		"a review":                           {pullState{reviews: []authored{review("a", "")}}, nil, nil},
+		"a review by a bot, a login without": {pullState{reviews: []authored{review("a[bot]", "x")}}, nil, nil},
+		"another's review":                   {pullState{reviews: []authored{review("b", "")}}, []string{"a"}, nil},
+		"a refusal":                          {pullState{reviews: []authored{review("a", quota+"\nmore")}}, []string{"a"}, []refusal{{"a", quota}}},
+		"an error":                           {pullState{reviews: []authored{review("a", oops)}}, []string{"a"}, []refusal{{"a", oops}}},
+		"the last refusal":                   {pullState{reviews: []authored{review("a", quota), review("a", oops)}}, []string{"a"}, []refusal{{"a", oops}}},
+		"a refusal then a review":            {pullState{reviews: []authored{review("a", quota), review("a", "<!-- ccr-overview-v2 -->")}}, nil, nil},
+		"a review then a refusal":            {pullState{reviews: []authored{review("a", "ok"), review("a", quota)}}, nil, nil},
+		"not Copilot's words":                {pullState{reviews: []authored{review("a", "It was unable to review this pull request")}}, nil, nil},
+		"not on the first line":              {pullState{reviews: []authored{review("a", "hi\n"+quota)}}, nil, nil},
+		"indented first line":                {pullState{reviews: []authored{review("a", "  "+quota)}}, []string{"a"}, []refusal{{"a", quota}}},
+		"a refusal and a bystander":          {pullState{reviews: []authored{review("a", quota), review("b", "")}}, []string{"a"}, []refusal{{"a", quota}}},
+		"completed":                          {pullState{comments: []authored{{"a", codexState("completed", "completed")}}}, nil, nil},
+		"completed by a bot":                 {pullState{comments: []authored{{"a[bot]", codexState("completed", "completed")}}}, nil, nil},
+		"code running":                       {pullState{comments: []authored{{"a", codexState("running", "completed")}}}, []string{"a"}, nil},
+		"security running":                   {pullState{comments: []authored{{"a", codexState("completed", "running")}}}, []string{"a"}, nil},
+		"by another":                         {pullState{comments: []authored{{"b", codexState("completed", "completed")}}}, []string{"a"}, nil},
+		"state beats a review":               {pullState{reviews: []authored{review("a", "### Codex Review")}, comments: []authored{{"a", codexState("completed", "running")}}}, []string{"a"}, nil},
+		"state beats a refusal":              {pullState{reviews: []authored{review("a", quota)}, comments: []authored{{"a", codexState("completed", "running")}}}, []string{"a"}, nil},
+		"state, then a refusal":              {pullState{reviews: []authored{review("a", quota)}, comments: []authored{{"a", codexState("completed", "completed")}}}, nil, nil},
+		"the last state":                     {pullState{comments: []authored{{"a", codexState("running", "running")}, {"a", codexState("completed", "completed")}}}, nil, nil},
+		"carriage return":                    {pullState{comments: []authored{{"a", "x\r\n  " + strings.ReplaceAll(codexState("completed", "completed"), "\n", "\r\n") + "  "}}}, nil, nil},
+		"no security review":                 {pullState{comments: []authored{{"a", "<!-- codex-review-state:v1 {\"code_review\":{\"status\":\"completed\"}} -->"}}}, []string{"a"}, nil},
+		"not json":                           {pullState{comments: []authored{{"a", "<!-- codex-review-state:v1 {nope -->"}}}, []string{"a"}, nil},
+		"another comment":                    {pullState{comments: []authored{{"a", "all completed"}}}, []string{"a"}, nil},
+		"no closing":                         {pullState{comments: []authored{{"a", "<!-- codex-review-state:v1 {\"code_review\":{\"status\":\"completed\"},\"security_review\":{\"status\":\"completed\"}}"}}}, []string{"a"}, nil},
+		"no opening":                         {pullState{comments: []authored{{"a", "{\"code_review\":{\"status\":\"completed\"},\"security_review\":{\"status\":\"completed\"}} -->"}}}, []string{"a"}, nil},
+	} {
+		t.Run(name, func(t *testing.T) {
+			missing, refused := c.state.verdicts([]string{"a"})
+			if !reflect.DeepEqual(missing, c.missing) || !reflect.DeepEqual(refused, c.refused) {
+				t.Errorf("missing %v, refused %v; want %v, %v", missing, refused, c.missing, c.refused)
+			}
+		})
+	}
+	missing, refused := pullState{reviews: []authored{review("c", "")}}.verdicts([]string{"a", "b[bot]", "c"})
+	if !reflect.DeepEqual(missing, []string{"a", "b[bot]"}) || refused != nil {
+		t.Errorf("missing %v, refused %v", missing, refused)
+	}
+}
+
+// A login whose reviews are all refusals stops the wait at once, however long
+// ci.watch.timeout and while another login's verdict is still to come: 75,
+// review-refused, each such login in the config's order with its last refusal,
+// auto-merge off, the answer asked once.
+func TestPushReadyStopsAtARefusal(t *testing.T) {
+	f, p := draftRepo(t, `draft: true, review_by: ["b[bot]", c, a]`, "ci: { watch: { interval: 2, timeout: 30 } }\n")
+	p.open, p.draft = open7, true
+	p.graph = func(int) string {
+		return fmt.Sprintf(`{"data":{"repository":{"pullRequest":{"reviews":{"nodes":[`+
+			`{"author":{"login":"b"},"body":%q},{"author":{"login":"a"},"body":%q},{"author":{"login":"a"},"body":%q}]},`+
+			`"comments":{"nodes":[]},"reviewThreads":{"nodes":[]}}}}}`, quota+"\nmore", quota, oops)
+	}
+	c := clocked(t)
+	code, stdout, stderr, _ := call(t, f, "--json", "--ready")
+	r := reported(t, stdout)
+	want := "itos: b[bot] gave no verdict on " + open7 + ": \"" + quota + "\"; auto-merge is not turned on: request its review again, then itos push --ready again.\n" +
+		"itos: a gave no verdict on " + open7 + ": \"" + oops + "\"; auto-merge is not turned on: request its review again, then itos push --ready again.\n"
+	if code != temporary || r.OK || r.Outcome != "review-refused" || r.PR == nil || r.PR.AutoMerge || p.asks != 1 || len(c.slept) != 0 ||
+		!strings.HasSuffix(stderr, want) || strings.Contains(strings.Join(f.calls(), "\n"), "pr merge") {
+		t.Errorf("exit %d, asks %d, slept %v\n%s%s", code, p.asks, c.slept, stdout, stderr)
+	}
+}
+
+// An answer with no comments (the recording gh of the scenarios before slice
+// 187 gave none) has none, and a review of the login counts.
+func TestPushReadyWhereTheAnswerHasNoComments(t *testing.T) {
+	f, p := draftRepo(t, "draft: true, review_by: [a]")
+	p.open, p.draft = open7, true
+	p.graph = func(int) string {
+		return `{"data":{"repository":{"pullRequest":{"reviews":{"nodes":[{"author":{"login":"a"}}]},"reviewThreads":{"nodes":[]}}}}}`
+	}
+	if code, _, stderr, _ := call(t, f, "--ready"); code != 0 {
+		t.Errorf("exit %d\n%s", code, stderr)
 	}
 }
