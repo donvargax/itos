@@ -109,7 +109,8 @@ Feature: Under push.mode pr, CI trusts the green run of a merged pull request's 
   The head's push drew and judged them over these same changes; a trusted
   push brings no change that push did not, so its own draw, seeded from
   another start, would be a second sample of the same change, which the
-  ADR does not ask for, and it is left out as a prose push leaves it out.
+  ADR does not ask for, and it is left out as a prose push leaves it out
+  (the person's call, 2026-10-26, recorded in ADR-0057's consequences).
   What the rule accepts, as slice 181 accepts it: the registry stays
   bookkeeping though ci.wait_on_status reads it, so a named task whose
   item was todo in the head's run's tree and is doing at <to> had its
@@ -179,20 +180,30 @@ Feature: Under push.mode pr, CI trusts the green run of a merged pull request's 
   repository does not allow; a range whose end is a commit pushed after
   the merge, even a bookkeeping one; main's own commits that change prose,
   which the prose steps would judge; a range holding two pull requests'
-  commits, each with a green head; a setting that turns the trust off.
-  Nor is this repository's own CI, which picks its metadata route in
-  tools/bin/ci-repo rather than through itos ci run: ci-repo's scope, plan,
-  run and tests must apply the same rule through the same code (its scope
-  "full" false, so the platform jobs and the launcher steps skip), and
-  ci.yml must grant the pull-requests: read permission the look needs. A
-  gate is ci's to change, so that is a ci task of its own; until it lands,
-  main's runs here run everything as today.
+  commits, each with a green head. Nor is this repository's own CI, which
+  picks its metadata route in tools/bin/ci-repo rather than through itos
+  ci run: ci-repo's scope, plan, run and tests must apply the same rule
+  through the same code (its scope "full" false, so the platform jobs and
+  the launcher steps skip), and ci.yml must grant the pull-requests: read
+  permission the look needs. That is T-315, a gate's change and so ci's;
+  until it lands, main's runs here run everything as today.
+
+  No switch turns the trust off (the person's call, 2026-10-26). A
+  consumer whose ci.steps do work only main's run should do (a deploy,
+  an upload) loses that work on a trusted run, as it does on a
+  prose-only push today: such work belongs in a job or workflow of its
+  own, as this repository's release job is.
 
   The steps. The world is slice 181's: the remote, the clone where itos
   runs, the item's branch, GitHub's rebase merge and the fake GitHub's
   run of the branch's head (watch.feature), which records it as a run of
-  ci.yml, the workflow ci.range asks about here; that step's own ci.watch
-  setup is not needed. The CI steps are "echo whole plan" and the prose
+  ci.yml, the workflow ci.range asks about here. That run step sets
+  ci.watch up, committing and pushing itos.yaml to main, when no step has;
+  after the branch exists, that commit would make every merged tree
+  differ from the head's in itos.yaml. So the Background sets ci.watch up
+  with "ci.watch asks a fake GitHub, which reports the run <url>" before
+  the config's push, as work-done-pr-trust.feature does, and no Given
+  after the branch writes the config. The CI steps are "echo whole plan" and the prose
   steps "echo prose plan" over **/*.md, so which plan was made reads from
   the output; the item's commit touches src/app.go, no prose path, so
   today every range here plans the whole run. New steps:
@@ -215,10 +226,8 @@ Feature: Under push.mode pr, CI trusts the green run of a merged pull request's 
     --json in its ", with --json" form, and "itos runs CI over the commits
     the fast-forward brought": itos ci plan (ci run) <before> <after>, the
     full SHAs of the clone's main before and after its last fast-forward.
-  What each Given leaves in the clone is slice 181's; a step that writes
-  the config without committing it (the proof's) is followed by "the
-  clone commits its changes and pushes them to the remote's main", so
-  the fast-forwards find a clean working tree.
+  What each Given leaves in the clone is slice 181's; the proof.code step
+  commits and pushes the config itself in a clone, before the branch.
 
   Background:
     Given a repository whose ledger has the task "T-001"
@@ -227,6 +236,7 @@ Feature: Under push.mode pr, CI trusts the green run of a merged pull request's 
     And the CI steps are "echo whole plan"
     And the prose paths are "**/*.md" and the prose steps are "echo prose plan"
     And ci.range asks a fake GitHub for the runs of "ci.yml" on "main"
+    And ci.watch asks a fake GitHub, which reports the run "https://ci.example/runs/1"
     And the config, committed and pushed to the remote's main, adds the YAML:
       """
       push:
@@ -296,7 +306,6 @@ Feature: Under push.mode pr, CI trusts the green run of a merged pull request's 
   @ID-CITRUST-04 @slice-188 @wip
   Scenario: Under pr, ci run of a trusted range runs the prose steps and not the code proof
     Given the config's proof.code covers "src/**" and checks with a provider that finds a survivor in "app.Total"
-    And the clone commits its changes and pushes them to the remote's main
     And the remote's branch "slice-9" has the item "slice-9"'s commit touching "src/app.go", which the clone's main lacks
     And the fake GitHub's run of the head of the remote's branch "slice-9", "https://ci.example/runs/pr", succeeded
     And GitHub rebase-merges the remote's branch "slice-9" onto the remote's main
@@ -327,13 +336,15 @@ Feature: Under push.mode pr, CI trusts the green run of a merged pull request's 
     And its output does not say "echo whole plan"
     And its output says "the head's CI run passed: https://ci.example/runs/pr"
 
-  # Main gained a code commit that its own run judged (the clone's main
-  # has it before the merge, so the range starts after it), and the pull
-  # request merged onto it without taking it in, as a merge onto a main
-  # that moved can: the merged commit's tree is not the head's. Fails
+  # Main gained a commit that its own run judged (the clone's main has it
+  # before the merge, so the range starts after it), and the pull request
+  # merged onto it without taking it in, as a merge onto a main that moved
+  # can: the merged commit's tree is not the head's. NOTES.md is a prose
+  # path here, which makes no difference: the tree rule counts every path
+  # that is neither the registry nor a ledger file. Fails
   # before the work at "Not trusted": today nothing is said.
   @ID-CITRUST-06 @slice-188 @wip
-  Scenario: Under pr, ci plan plans the whole run when the merged commit's tree differs from the head's in a code path, naming it
+  Scenario: Under pr, ci plan plans the whole run when the merged commit's tree differs from the head's outside the registry and the ledger, naming the path
     Given the remote's branch "slice-9" has the item "slice-9"'s commit touching "src/app.go", which the clone's main lacks
     And the fake GitHub's run of the head of the remote's branch "slice-9", "https://ci.example/runs/pr", succeeded
     And the remote has gained the commit "fix: mend a thing" touching "NOTES.md"
@@ -385,14 +396,14 @@ Feature: Under push.mode pr, CI trusts the green run of a merged pull request's 
     And its output says "but T-001's checks in the ledger differ from the head's"
     And its output says "echo whole plan"
 
-  # Main gained a code commit and its revert inside the range, neither
+  # Main gained a commit and its revert inside the range, neither
   # with a green run of its own: both ends' trees match the head's, while
   # the range holds commits no trusted run judged, whose footers today's
   # plan would read. A build that compares the ends alone trusts it.
   # Fails before the work at "which is not the pull request's": today
   # nothing is said.
   @ID-CITRUST-09 @slice-188 @wip
-  Scenario: Under pr, ci plan plans the whole run when the range holds a code commit of main's own, though it was reverted
+  Scenario: Under pr, ci plan plans the whole run when the range holds a commit of main's own outside the registry and the ledger, though it was reverted
     Given the remote's branch "slice-9" has the item "slice-9"'s commit touching "src/app.go", which the clone's main lacks
     And the fake GitHub's run of the head of the remote's branch "slice-9", "https://ci.example/runs/pr", succeeded
     And the remote has gained the commit "fix: add a note" touching "NOTES.md"
