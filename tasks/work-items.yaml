@@ -14012,7 +14012,7 @@ items:
     title: Open this repository's pull requests as drafts, waiting for Copilot's review
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
 

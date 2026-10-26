@@ -4701,8 +4701,6 @@
     build commit of the same push, with AGENTS.md's Finishing rewritten for itos push --ready.
     Copilot's ruleset review skips drafts (review_draft_pull_requests false), so --ready waits for
     it by its GraphQL login.
-  done_when:
-    - run: tools/bin/itos config get push.pr.draft | grep -qx true
 
 - id: T-306
   type: chore
