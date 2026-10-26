@@ -100,10 +100,11 @@ Feature: Under push.mode pr, a commit not yet on main may name a task main's led
     Then itos exits with code 0
     And the message of HEAD has the footer "Task: T-002"
 
-  # The pre-push hook judges the pushed range with the same rule, so the
-  # branch reaches the remote and its draft pull request without a rebase
-  # onto main. Fails before the work at the exit code: today the pre-push
-  # hook refuses the commit, "unknown tasks: T-002", and the push exits 1.
+  # The pre-push hook judges the pushed range with the same rule. The item's
+  # branch is already on the remote, the mid-item case of slice-187, so itos
+  # push rebases onto origin/T-001, which lacks T-002, not onto main. Fails
+  # before the work at the exit code: today the pre-push hook refuses the
+  # commit, "unknown tasks: T-002", and the push exits 1.
   @ID-MAINTASK-02 @slice-189 @wip
   Scenario: Under pr, itos push sends an item's branch whose commit names a task only the remote's main holds
     Given the config, committed and pushed to the remote's main, adds the YAML:
@@ -115,6 +116,7 @@ Feature: Under push.mode pr, a commit not yet on main may name a task main's led
       """
     And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
     And the clone is on the new branch "T-001"
+    And git pushes HEAD to the remote's new branch "T-001"
     And the remote has gained the commit "docs: add T-002" adding the task "T-002" to the ledger
     And the clone has fetched the remote
     And the clone has the commit "chore: tidy the readme" naming the task "T-002" and touching "README.md"
