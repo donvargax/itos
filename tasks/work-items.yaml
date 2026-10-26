@@ -14011,8 +14011,8 @@ items:
   - id: T-305
     title: Open this repository's pull requests as drafts, waiting for Copilot's review
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
 
