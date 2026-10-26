@@ -55,6 +55,7 @@ phases:
   3: donvargax
 
 queue:
+  - bug-143
   - slice-153
   - p1-ci-e2e-workflow
   - p1-reviewer-replay-benchmark
