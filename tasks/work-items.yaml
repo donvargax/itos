@@ -14617,7 +14617,7 @@ items:
   - id: T-316
     title: The release publishes through a GitHub 5xx and a rerun completes a half-made release (bug-143)
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
