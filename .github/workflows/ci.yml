@@ -10,11 +10,12 @@ permissions:
   contents: read
   actions: read # the last green run, where a push's range starts
 
-# A newer push replaces a run still waiting for the runner; a running one
-# finishes. The newest run checks every commit since the last green one.
+# On main a newer push replaces only a run still waiting; a running one finishes, and the
+# newest run checks every commit since the last green one. On a pull request a newer head
+# cancels the older run, since only the head's run is judged.
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   TO: ${{ github.event.pull_request.head.sha || github.sha }}
