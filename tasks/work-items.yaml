@@ -14523,3 +14523,11 @@ items:
       never from a task's own checks) stays. Revisits ADR-0043 (b): a decision record. Not before
       v9.
     tags: [v9]
+
+  - id: T-315
+    title: "This repository's main runs take slice-188's trust: ci-repo applies it and ci.yml may ask which pull request merged a commit"
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task

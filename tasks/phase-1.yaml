@@ -4849,3 +4849,17 @@
     matters, so cancel-in-progress true for pull_request events.
   done_when:
     - run: "grep -q \"cancel-in-progress: \\${{ github.event_name == 'pull_request' }}\" .github/workflows/ci.yml"
+
+- id: T-315
+  type: ci
+  title: "This repository's main runs take slice-188's trust: ci-repo applies it and ci.yml may ask which pull request merged a commit"
+  why: >
+    Slice-188 makes itos ci plan and ci run trust a merged pull request's green head for main's run,
+    but here the metadata route is chosen by tools/bin/ci-repo (its scope result gates the platform
+    jobs), not by ci run, so main's runs keep running everything until ci-repo applies the same rule
+    through the same code. ci.yml likely needs pull-requests: read beside contents and actions for
+    GET commits/<sha>/pulls. A ci commit on slice-188's pull request, proved on its own merge:
+    main's run of the merge commit takes the trusted route (its log names the trusted run) when the
+    tree equals the head's.
+  done_when:
+    - run: "true"
