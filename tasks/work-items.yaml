@@ -14449,7 +14449,7 @@ items:
     title: This repository waits for Codex's verdict before auto-merge (push.pr.review_by)
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
 

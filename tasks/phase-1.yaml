@@ -4830,5 +4830,3 @@
     reviews completed) instead of a Copilot review that never comes, and reword the comment above
     push: to name Codex. A build commit on slice-187's pull request (#160), so the slice's own
     --ready is its first live run.
-  done_when:
-    - run: "true"
