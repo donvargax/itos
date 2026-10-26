@@ -14511,7 +14511,7 @@ items:
     title: A pull request's CI run is cancelled once a newer head of the same pull request starts
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
     tags: [ci]

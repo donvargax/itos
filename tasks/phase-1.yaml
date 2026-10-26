@@ -4845,8 +4845,6 @@
     finished. itos-cc cancels in progress only in its fast Linux gate (ci.yml test job, T-123, every
     ref); its full multi-OS suite and release (cd.yml) queue. For pull requests only the head
     matters, so cancel-in-progress true for pull_request events.
-  done_when:
-    - run: "grep -q \"cancel-in-progress: \\${{ github.event_name == 'pull_request' }}\" .github/workflows/ci.yml"
 
 - id: T-315
   type: ci
