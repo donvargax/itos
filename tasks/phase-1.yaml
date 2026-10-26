@@ -4803,3 +4803,20 @@
     straight to main) and docs/ORCHESTRATING.md's notes on the docs-to-main exception say what now
     goes to main, within their doc budgets; the ledger edit beside the config change is its own docs
     commit (AGENTS.md). Prove it after the merge with one docs commit pushed from main by itos push.
+
+- id: T-312
+  type: test
+  title: Settle the seven survivors of Nightly 40319969484
+  why: >
+    Nightly 40319969484 (issue #29) left seven survivors. Random run:
+    internal/config/defaults.go:122:9 DefaultsFor (|| to &&). Changed-site run:
+    internal/store/tracker/adapter/files.go:128:10 Files#uncommitted (false to true),
+    internal/engine/ciwatch/logs.go:190:61 dedent (< to <=), internal/tests/tests.go:107:22
+    ListTestsUnder (!= to ==), internal/slices/work/donepr.go:41:33 prMain (true to false),
+    internal/ci/ci.go:77:11 ci#Run (0 to 1) and internal/vcs/adapter/run.go:38:61 Git#run (== to
+    !=). Kill each with a test, or except it in itos-cc.yaml with a proof that holds, as 418ebdde
+    (T-290) wrote its three; an exception whose proof does not hold is a test instead. No production
+    change unless a survivor shows a real bug, which is reported, not fixed here. The next nightly
+    is the acceptance.
+  done_when:
+    - run: "true"
