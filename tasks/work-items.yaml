@@ -14597,8 +14597,8 @@ items:
   - id: bug-143
     title: A release whose publish step gets a GitHub 5xx is left a draft with its tag made, and main stays red until someone publishes it by hand
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: bug
     why: >
