@@ -32,7 +32,13 @@
 //     done } step that ran the done tasks' (config-step-tasks, slice 107).
 //   - A prose-only range (only ci.prose.paths) runs the prose steps, then
 //     the named tasks' static checks and those that say prose: true, and
-//     lists what it leaves out.
+//     lists what it leaves out. So does a trusted range (slice 188,
+//     ForTrusted): the commits of a merged pull request whose head's CI run
+//     passed (internal/engine/prtrust), whatever they touch, with no code
+//     proof and no line that says why there is none; the plan holds the
+//     Trust, which ci plan prints last and --json gives as "trusted", and a
+//     merged pull request's head not trusted leaves the plan as it was with
+//     the Note that says why.
 //   - With the config's proof.code and a range that touches proof.code.paths,
 //     the range's code proof is a step of the plan (slice 106, issue #28):
 //     proof.code.check with {base} the range's start, so every commit since

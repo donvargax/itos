@@ -8,6 +8,7 @@ import (
 	cirun "github.com/donvargax/itos/v8/internal/ci"
 	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/engine/ciwatch"
+	"github.com/donvargax/itos/v8/internal/engine/prtrust"
 	"github.com/donvargax/itos/v8/internal/engine/refs"
 	"github.com/donvargax/itos/v8/internal/out"
 	"github.com/donvargax/itos/v8/internal/plan"
@@ -98,7 +99,9 @@ func (h Handler) Handle(ctx context.Context, q Query, o Out) (Answer, error) {
 
 // planOf is the config and the plan a run of it carries out: the nightly's,
 // or a pushed range's with its data from the working tree or, with dataAt,
-// from that commit.
+// from that commit. A range that is a merged pull request's commits, whose
+// head's CI run passed, is planned as a prose-only range (internal/engine/prtrust,
+// slice 188), and a merged pull request's head not trusted says why in the plan.
 func (h Handler) planOf(ctx context.Context, from, to string, nightly bool, dataAt string) (*config.Loaded, *plan.Plan, error) {
 	cfg, err := h.ports.Config(ctx)
 	if err != nil {
@@ -110,10 +113,29 @@ func (h Handler) planOf(ctx context.Context, from, to string, nightly bool, data
 	} else {
 		var d plan.Data
 		if d, err = plan.DataAt(cfg, dataAt); err == nil {
-			p, err = plan.For(cfg, from, to, d)
+			p, err = h.planRange(ctx, cfg, from, to, d)
 		}
 	}
 	return cfg, p, err
+}
+
+// planRange is the plan of a pushed range, trusting a merged pull request's
+// green head for it when GitHub lists one that merged the range's end and the
+// rule of prtrust.Judge holds.
+func (h Handler) planRange(ctx context.Context, cfg *config.Loaded, from, to string, d plan.Data) (*plan.Plan, error) {
+	env := func(name string) string { return h.ports.Env(ctx, name) }
+	var verdict prtrust.Result
+	if look, ok := providers.MergedPullsProvider(cfg, env); ok {
+		verdict = prtrust.Judge(ctx, cfg, look, from, to)
+	}
+	if verdict.Trust != nil {
+		return plan.ForTrusted(cfg, from, to, d, verdict.Trust)
+	}
+	p, err := plan.For(cfg, from, to, d)
+	if p != nil {
+		p.Note = verdict.Note
+	}
+	return p, err
 }
 
 // plan is `ci plan <from> <to> | --nightly | --whole [--data-at <sha>]`

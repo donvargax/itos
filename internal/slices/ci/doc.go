@@ -9,7 +9,10 @@
 // error Parse gives is a usage error. ci plan and ci scope print the plan
 // and whether a range is prose alone, a typed range's refs checked to be
 // commits (the refs engine) before the config is read; ci plan with no
-// range asks the Stealth port first, as verify does. ci run makes the same
+// range asks the Stealth port first, as verify does. A pushed range is
+// planned as a prose-only one when internal/engine/prtrust trusts a merged
+// pull request's green head for it (slice 188), GitHub asked through
+// providers.MergedPullsProvider with the Env port. ci run makes the same
 // plan, cut to its run of named tests under --tests, and carries it out
 // through the RunPlan port. ci range reads the config first, so a broken
 // ci.range is a config error even with --base, then asks

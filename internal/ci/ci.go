@@ -170,10 +170,17 @@ func (d *driver) preamble(p *plan.Plan) (*Failure, error) {
 		fmt.Fprintf(d.log, "%s is named but not started (todo in %s): its checks wait.\n", id, d.cfg.Work.Registry)
 	}
 	if p.Prose {
-		fmt.Fprintln(d.log, d.proseLine())
+		if p.Trusted != nil {
+			fmt.Fprintln(d.log, p.Trusted.Line)
+		} else {
+			fmt.Fprintln(d.log, d.proseLine())
+		}
 		for _, c := range p.LeftOut {
 			fmt.Fprintf(d.log, "  - %s: %s   (reads no prose; left out)\n", c.Task.ID, c.Check.Command())
 		}
+	}
+	if p.Note != "" {
+		fmt.Fprintln(d.log, p.Note)
 	}
 	if p.ProofOmitted != "" {
 		fmt.Fprintln(d.log, p.ProofOmitted)

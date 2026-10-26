@@ -248,7 +248,7 @@ Feature: Under push.mode pr, CI trusts the green run of a merged pull request's 
   # commit, and the head's run is green. Fails before the work at "echo
   # prose plan": today the range touches src/app.go and plans the whole
   # run.
-  @ID-CITRUST-01 @slice-188 @wip
+  @ID-CITRUST-01 @slice-188
   Scenario: Under pr, ci plan plans only the prose steps for a merged pull request whose head's run passed, when main gained only a registry commit
     Given the remote's branch "slice-9" has the item "slice-9"'s commit touching "src/app.go", which the clone's main lacks
     And the fake GitHub's run of the head of the remote's branch "slice-9", "https://ci.example/runs/pr", succeeded
@@ -267,7 +267,7 @@ Feature: Under push.mode pr, CI trusts the green run of a merged pull request's 
   # has its counterpart's tree, an empty diff. --json names the trust.
   # Fails before the work at "prose": today the plan is the whole one,
   # prose false, with no trusted key.
-  @ID-CITRUST-02 @slice-188 @wip
+  @ID-CITRUST-02 @slice-188
   Scenario: Under pr, ci plan --json names the trusted run and pull request when the merged commits have the head's trees
     Given the remote's branch "slice-9" has the item "slice-9"'s commit touching "src/app.go", which the clone's main lacks
     And the fake GitHub's run of the head of the remote's branch "slice-9", "https://ci.example/runs/pr", succeeded
@@ -284,7 +284,7 @@ Feature: Under push.mode pr, CI trusts the green run of a merged pull request's 
   # A ledger file differs and the registry does not. The range names no
   # task, so bug 137's comparison has nothing to compare. Fails before the
   # work at "echo prose plan".
-  @ID-CITRUST-03 @slice-188 @wip
+  @ID-CITRUST-03 @slice-188
   Scenario: Under pr, ci plan trusts the merged pull request's green head when main gained only a ledger commit
     Given the remote's branch "slice-9" has the item "slice-9"'s commit touching "src/app.go", which the clone's main lacks
     And the fake GitHub's run of the head of the remote's branch "slice-9", "https://ci.example/runs/pr", succeeded
@@ -303,7 +303,7 @@ Feature: Under push.mode pr, CI trusts the green run of a merged pull request's 
   # provider would find a survivor (ADR-0057's draw was the head's push's).
   # Fails before the work at the exit code: today the proof runs and fails
   # the run, exit 1.
-  @ID-CITRUST-04 @slice-188 @wip
+  @ID-CITRUST-04 @slice-188
   Scenario: Under pr, ci run of a trusted range runs the prose steps and not the code proof
     Given the config's proof.code covers "src/**" and checks with a provider that finds a survivor in "app.Total"
     And the remote's branch "slice-9" has the item "slice-9"'s commit touching "src/app.go", which the clone's main lacks
@@ -322,7 +322,7 @@ Feature: Under push.mode pr, CI trusts the green run of a merged pull request's 
   # The head is only on the remote's refs/pull/7/head and its branch is
   # gone, as CI's checkout meets a merged head here: itos fetches it, then
   # trusts. Fails before the work at "echo prose plan".
-  @ID-CITRUST-05 @slice-188 @wip
+  @ID-CITRUST-05 @slice-188
   Scenario: Under pr, ci plan fetches a merged head the clone lacks from the pull request's ref, then trusts its green run
     Given the remote's branch "slice-9" and its ref "refs/pull/7/head" have the item "slice-9"'s commit touching "src/app.go", made in a clone of their own
     And the fake GitHub's run of the head of the remote's branch "slice-9", "https://ci.example/runs/pr", succeeded
@@ -343,7 +343,7 @@ Feature: Under push.mode pr, CI trusts the green run of a merged pull request's 
   # path here, which makes no difference: the tree rule counts every path
   # that is neither the registry nor a ledger file. Fails
   # before the work at "Not trusted": today nothing is said.
-  @ID-CITRUST-06 @slice-188 @wip
+  @ID-CITRUST-06 @slice-188
   Scenario: Under pr, ci plan plans the whole run when the merged commit's tree differs from the head's outside the registry and the ledger, naming the path
     Given the remote's branch "slice-9" has the item "slice-9"'s commit touching "src/app.go", which the clone's main lacks
     And the fake GitHub's run of the head of the remote's branch "slice-9", "https://ci.example/runs/pr", succeeded
@@ -363,7 +363,7 @@ Feature: Under push.mode pr, CI trusts the green run of a merged pull request's 
   # The commits and trees allow the trust, but the head's run failed:
   # main's run plans the whole range. Fails before the work at "has not
   # passed": today nothing is said.
-  @ID-CITRUST-07 @slice-188 @wip
+  @ID-CITRUST-07 @slice-188
   Scenario: Under pr, ci plan plans the whole run when the merged pull request's head's run failed, saying so
     Given the remote's branch "slice-9" has the item "slice-9"'s commit touching "src/app.go", which the clone's main lacks
     And the fake GitHub's run of the head of the remote's branch "slice-9", "https://ci.example/runs/pr", failed
@@ -382,7 +382,7 @@ Feature: Under push.mode pr, CI trusts the green run of a merged pull request's 
   # ran it while main's whole plan does. The paths allow the trust (main
   # gained a ledger commit); only the named task's checks stop it. Fails
   # before the work at "differ from the head's": today nothing is said.
-  @ID-CITRUST-08 @slice-188 @wip
+  @ID-CITRUST-08 @slice-188
   Scenario: Under pr, ci plan plans the whole run when main gave a task the range names a check since the merged pull request's head
     Given the remote's branch "slice-9" has the item "slice-9"'s commit naming the task "T-001" and touching "src/app.go", which the clone's main lacks
     And the fake GitHub's run of the head of the remote's branch "slice-9", "https://ci.example/runs/pr", succeeded
@@ -402,7 +402,7 @@ Feature: Under push.mode pr, CI trusts the green run of a merged pull request's 
   # plan would read. A build that compares the ends alone trusts it.
   # Fails before the work at "which is not the pull request's": today
   # nothing is said.
-  @ID-CITRUST-09 @slice-188 @wip
+  @ID-CITRUST-09 @slice-188
   Scenario: Under pr, ci plan plans the whole run when the range holds a commit of main's own outside the registry and the ledger, though it was reverted
     Given the remote's branch "slice-9" has the item "slice-9"'s commit touching "src/app.go", which the clone's main lacks
     And the fake GitHub's run of the head of the remote's branch "slice-9", "https://ci.example/runs/pr", succeeded
