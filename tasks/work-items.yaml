@@ -14441,6 +14441,17 @@ items:
       pull request merged unreviewed. A review that holds no verdict (Copilot's ccr-overview marker
       missing, or its known refusal words) should leave --ready waiting, exit 75, naming why, so the
       person sees the quota is gone instead of merges going on without the review.
+
+      Codex, 2026-10-26 (#159, the person chose Codex after Copilot ran out): on a clean pass Codex
+      posts no GitHub review, only a +1 reaction and one summary issue comment by
+      chatgpt-codex-connector[bot] whose hidden line <!-- codex-review-state:v1
+      {"code_review":{"commit_sha":...,"has_any_findings":false,"has_unresolved_findings":false,"status":"completed"},"security_review":{...}}
+      --> it edits in place (status running, then completed); findings come as review threads. So
+      review_by: [chatgpt-codex-connector] waits forever on a clean PR. The person decided: a
+      reviewer counts once it gave a real verdict on the pull request, any commit, as Copilot always
+      did (no re-review after fix pushes; resolved threads stay the gate on fixes); Codex counts
+      when both reviews of its state comment are completed; a Copilot "unable to review" review does
+      not count. No @codex review posting, no on-push reviews.
     refs: [internal/slices/push]
     tags: [push, review, v8]
 
