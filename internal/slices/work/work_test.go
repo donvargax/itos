@@ -68,6 +68,7 @@ type pr struct {
 	ghErr      error
 	ghCalls    *[][]string
 	headCalls  *[]string
+	headTalks  *[]vcsport.Talk
 }
 
 func (p ports) Config(context.Context) (*config.Loaded, error) { return p.cfg, p.err }
@@ -104,7 +105,10 @@ func (p ports) Watcher(context.Context, *config.Loaded, string) (providers.Watch
 	return p.watcher, p.watcherErr == nil, p.watcherErr
 }
 
-func (p ports) RemoteHead(_ context.Context, remote string, _ vcsport.Talk) (string, error) {
+func (p ports) RemoteHead(_ context.Context, remote string, talk vcsport.Talk) (string, error) {
+	if p.headTalks != nil {
+		*p.headTalks = append(*p.headTalks, talk)
+	}
 	if p.headCalls != nil {
 		*p.headCalls = append(*p.headCalls, remote)
 	}
