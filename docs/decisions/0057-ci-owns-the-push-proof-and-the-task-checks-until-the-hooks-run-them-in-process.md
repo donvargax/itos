@@ -24,3 +24,5 @@ The user, 2026-10-22: no. CI owns both: the push proof (one seeded mutant and th
 ### Consequences
 
 AGENTS.md and docs/ORCHESTRATING.md drop the by-hand push proof and itos task before a push; briefs drop them and the by-hand lint and staticcheck runs pre-push already makes. ADR-0056's in-process tier, when built, adds the local mutant and changed-line coverage to the pre-push hook. q-55 is retired.
+
+The user, 2026-10-26 (slice-188): a push to main that CI trusts skips its own push proof. CI trusts a rebase merge whose commits are a merged pull request's head's (the same messages, the same trees but for the work registry and the ledger, after main's own commits that touch only those and name nothing) when the head's run passed. The head's push already drew a mutant of these changed functions and judged these changed lines; main's draw, seeded from another start, would only be a second sample of the same change. A push of prose alone skips it too.
