@@ -28,37 +28,38 @@ import (
 
 // One scenario's state.
 type world struct {
-	outsideShard     bool   // the scenario is another shard's, and is skipped (shard_test.go)
-	root             string // the itos checkout: where go.mod is
-	bin              string // the itos binary under test
-	dir              string // the scratch repository, or the clone of it itos runs in
-	origin           string // the scratch repository a clone was made of, if one was
-	support          string // files the scenario needs outside the repository
-	coverDir         string // the GOCOVERDIR of every command, with ITOS_CC_TEST_COVERDIR set (cover_test.go)
-	config           scratchConfig
-	commits          []string          // the scratch repository's commits, oldest first
-	workCommits      map[string]string // queue-removal commits saved by name
-	queueIDs         []string
-	queueCommitCount int
-	queueSavedHead   string
-	queueSavedFiles  map[string]string
-	scenarioFiles    map[string]string    // each scenario ID written, to its feature file
-	ledger           []ledgerTask         // the tasks of the ledger's one file (ledgerPath), in order
-	dataDir          string               // where itos's config and data are written: the root, or the git folder (stealth)
-	linked           string               // the linked worktree of the scratch repository, when the scenario adds one
-	watchURL         string               // the address of the watched run
-	registryLines    []string             // the registry's items, one line each, as the work steps wrote them
-	registryQueue    []string             // the registry's queue, as a work step wrote it, nil for none
-	registryText     string               // the registry's text as the work steps last wrote it
-	noGh             bool                 // the PATH has no gh
-	messageFile      string               // the message file's text, as a step wrote it
-	atOnce           []atOnceRun          // the runs of one command started together, as allAtOnce ran them
-	atOnceWords      []string             // the notes or ideas those runs added, in order
-	threadsBefore    string               // the threads file's text, as a step wrote it
-	promotion        *promotionFixture    // the task-promotion fixture, when a step wrote one (promote_test.go)
-	evidenceKey      string               // the evidence key a --json run named, which a step kept (evidence_test.go)
-	evidenceStore    *evidenceFixture     // what the fixture holds of the evidence store (evidence_store_test.go)
-	proofSummary     *proofSummaryFixture // how itos is invoked in the proof summary feature (ci_proof_summary_test.go)
+	outsideShard      bool   // the scenario is another shard's, and is skipped (shard_test.go)
+	root              string // the itos checkout: where go.mod is
+	bin               string // the itos binary under test
+	dir               string // the scratch repository, or the clone of it itos runs in
+	origin            string // the scratch repository a clone was made of, if one was
+	support           string // files the scenario needs outside the repository
+	coverDir          string // the GOCOVERDIR of every command, with ITOS_CC_TEST_COVERDIR set (cover_test.go)
+	config            scratchConfig
+	commits           []string          // the scratch repository's commits, oldest first
+	workCommits       map[string]string // queue-removal commits saved by name
+	queueIDs          []string
+	queueCommitCount  int
+	queueSavedHead    string
+	queueSavedFiles   map[string]string
+	scenarioFiles     map[string]string    // each scenario ID written, to its feature file
+	ledger            []ledgerTask         // the tasks of the ledger's one file (ledgerPath), in order
+	dataDir           string               // where itos's config and data are written: the root, or the git folder (stealth)
+	linked            string               // the linked worktree of the scratch repository, when the scenario adds one
+	watchURL          string               // the address of the watched run
+	registryLines     []string             // the registry's items, one line each, as the work steps wrote them
+	registryQueue     []string             // the registry's queue, as a work step wrote it, nil for none
+	registryText      string               // the registry's text as the work steps last wrote it
+	noGh              bool                 // the PATH has no gh
+	messageFile       string               // the message file's text, as a step wrote it
+	atOnce            []atOnceRun          // the runs of one command started together, as allAtOnce ran them
+	atOnceWords       []string             // the notes or ideas those runs added, in order
+	threadsBefore     string               // the threads file's text, as a step wrote it
+	promotion         *promotionFixture    // the task-promotion fixture, when a step wrote one (promote_test.go)
+	evidenceKey       string               // the evidence key a --json run named, which a step kept (evidence_test.go)
+	evidenceStore     *evidenceFixture     // what the fixture holds of the evidence store (evidence_store_test.go)
+	proofSummary      *proofSummaryFixture // how itos is invoked in the proof summary feature (ci_proof_summary_test.go)
+	ffBefore, ffAfter string               // the clone's main before and after its last fast-forward (workdonepr_test.go)
 
 	exit           int
 	stdout, stderr string
@@ -453,6 +454,7 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	initializePrePushRefSteps(sc, w)
 	initializePushModeSteps(sc, w)
 	initializeWorkDonePRSteps(sc, w)
+	initializeCITrustSteps(sc, w)
 	initializeWatchSteps(sc, w)
 	initializeWatchFailureSteps(sc, w)
 	initializeShimSteps(sc, w)

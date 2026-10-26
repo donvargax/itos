@@ -84,6 +84,26 @@ type fakeGitHub struct {
 	// for it, as GitHub does past its retention, and whether it serves it with
 	// CRLF line ends, as a Windows runner's output has.
 	logGone, logCRLF map[string]bool
+	// The pull requests it lists for a commit, by the commit's full SHA (slice
+	// 188); nil answers every commit's pulls 404, and once a step lists one,
+	// a commit it lists none for gets an empty list.
+	pulls map[string][]fakePull
+}
+
+// A pull request as the fake GitHub's commits/<sha>/pulls lists it.
+type fakePull struct {
+	Number         int    `json:"number"`
+	HTMLURL        string `json:"html_url"`
+	State          string `json:"state"`
+	MergedAt       string `json:"merged_at"`
+	MergeCommitSHA string `json:"merge_commit_sha"`
+	Head           struct {
+		SHA string `json:"sha"`
+		Ref string `json:"ref"`
+	} `json:"head"`
+	Base struct {
+		Ref string `json:"ref"`
+	} `json:"base"`
 }
 
 // The fake GitHub's endpoints: a workflow's runs, a run's jobs, a job's log
@@ -93,6 +113,7 @@ var (
 	jobsPath     = regexp.MustCompile(`^/repos/` + regexp.QuoteMeta(fakeRepository) + `/actions/runs/(\d+)/jobs$`)
 	logPath      = regexp.MustCompile(`^/repos/` + regexp.QuoteMeta(fakeRepository) + `/actions/jobs/(\d+)/logs$`)
 	downloadPath = regexp.MustCompile(`^/log-downloads/(\d+)$`)
+	pullsPath    = regexp.MustCompile(`^/repos/` + regexp.QuoteMeta(fakeRepository) + `/commits/([0-9a-f]+)/pulls$`)
 )
 
 // The ID of the watched run's first look; its nth is one more for each look
@@ -149,6 +170,15 @@ func (g *fakeGitHub) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	}
 	if req.URL.Path == "/repos/"+fakeRepository {
 		g.writeRepository(rw, req)
+		return
+	}
+	if m := pullsPath.FindStringSubmatch(req.URL.Path); m != nil && g.pulls != nil {
+		listed := g.pulls[m[1]]
+		if listed == nil {
+			listed = []fakePull{}
+		}
+		rw.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(rw).Encode(listed)
 		return
 	}
 	m := runsPath.FindStringSubmatch(req.URL.Path)
