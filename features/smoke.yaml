@@ -180,6 +180,10 @@
   scenarios:
     - id: "@ID-PUSHLEDGER-01"
       why: a task's close that edits the ledger beside the registry going from main to main under pr, the file's point
+- file: push-mode-main-tasks.feature
+  scenarios:
+    - id: "@ID-MAINTASK-01"
+      why: itos commit naming a task only the remote's main holds, on an item's branch under pr, the file's point
 - file: push-mode-title.feature
   scenarios:
     - id: "@ID-PRTITLE-01"

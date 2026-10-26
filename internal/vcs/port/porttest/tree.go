@@ -136,6 +136,11 @@ func (v VCS) refsOf(refs map[string]string, keep func(string) bool) map[string]s
 	return found
 }
 
+func (v VCS) Symref(_ context.Context, ref string) (string, bool) {
+	target, ok := v.Symbolic[ref]
+	return target, ok
+}
+
 func (v VCS) Refs(_ context.Context, prefix string) (map[string]string, error) {
 	return v.refsOf(v.Named, func(ref string) bool { return strings.HasPrefix(ref, prefix) && ref != "HEAD" }), nil
 }

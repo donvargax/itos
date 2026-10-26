@@ -45,7 +45,8 @@ type Commit struct {
 // Tags are annotated tags' objects, each the commit it names; a ref may
 // name one. Remote are the remotes by name, and Tracking each branch's
 // upstream as its config sets it, its remote and the remote's ref. Ignored
-// are the paths the work tree ignores.
+// are the paths the work tree ignores. Symbolic are the symbolic refs by
+// full name, each the full name of the ref it names.
 //
 // The zero VCS is a folder in no repository. The commands that change the
 // repository (committing, the remote's, Init) change its fields, so a test
@@ -68,6 +69,8 @@ type VCS struct {
 
 	Remote   map[string]*Remote
 	Tracking map[string][2]string
+
+	Symbolic map[string]string
 }
 
 // Remote is a remote of the fake: its address and its refs, each naming a
