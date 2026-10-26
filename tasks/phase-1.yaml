@@ -4818,3 +4818,17 @@
     (T-290) wrote its three; an exception whose proof does not hold is a test instead. No production
     change unless a survivor shows a real bug, which is reported, not fixed here. The next nightly
     is the acceptance.
+
+- id: T-313
+  type: build
+  title: This repository waits for Codex's verdict before auto-merge (push.pr.review_by)
+  why: >
+    The person, 2026-10-26: Copilot's review quota is gone and Codex reviews pull requests
+    (automatic, on open: it skips drafts and reviews when one is marked ready). Once slice-187
+    lands, set push.pr.review_by in itos.yaml from [copilot-pull-request-reviewer] to
+    [chatgpt-codex-connector], so itos push --ready waits for Codex's review-state comment (both
+    reviews completed) instead of a Copilot review that never comes, and reword the comment above
+    push: to name Codex. A build commit on slice-187's pull request (#160), so the slice's own
+    --ready is its first live run.
+  done_when:
+    - run: "true"
