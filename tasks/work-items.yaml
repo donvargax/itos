@@ -55,7 +55,6 @@ phases:
   3: donvargax
 
 queue:
-  - T-314
   - slice-188
   - slice-153
   - p1-ci-e2e-workflow
