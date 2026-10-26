@@ -5,6 +5,11 @@
 // names the task, so a ledger edit in a range naming none is judged by what the prose steps run,
 // itos config check. The original config still validates itself in those steps.
 //
+// A range that is a merged pull request's commits, whose head's CI run passed, takes the same route
+// when prtrust.Judge (slice 188, the rule itos ci plan and ci run apply) trusts it: this
+// repository's main runs pick their route here rather than through itos ci run. GitHub is asked
+// only for a range the paths above would run in full, as ci.range's github provider is asked.
+//
 // Run from the repository root: go run ./tools/bin/ci-repo scope|plan|run|tests FROM TO.
 // Verification remains the workflow's preceding `tools/bin/itos verify FROM TO` command.
 package main
@@ -18,9 +23,11 @@ import (
 
 	"github.com/donvargax/itos/v8/internal/ci"
 	"github.com/donvargax/itos/v8/internal/config"
+	"github.com/donvargax/itos/v8/internal/engine/prtrust"
 	"github.com/donvargax/itos/v8/internal/ledger"
 	"github.com/donvargax/itos/v8/internal/out"
 	"github.com/donvargax/itos/v8/internal/plan"
+	"github.com/donvargax/itos/v8/internal/providers"
 	"github.com/donvargax/itos/v8/internal/store/tree/adapter"
 	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
 )
@@ -97,6 +104,15 @@ func run(args []string) (int, error) {
 	if err != nil {
 		return 2, err
 	}
+	var verdict prtrust.Result
+	if s.Full {
+		if look, ok := providers.MergedPullsProvider(cfg, os.Getenv); ok {
+			verdict = prtrust.Judge(context.Background(), cfg, look, from, to)
+		}
+		if verdict.Trust != nil {
+			s = scope{Full: false, Reason: verdict.Trust.Line}
+		}
+	}
 	if args[0] == "scope" {
 		return 0, json.NewEncoder(os.Stdout).Encode(s)
 	}
@@ -110,7 +126,15 @@ func run(args []string) (int, error) {
 	if err != nil {
 		return 2, err
 	}
-	p, err := plan.For(cfg, from, to, d)
+	var p *plan.Plan
+	if verdict.Trust != nil {
+		p, err = plan.ForTrusted(cfg, from, to, d, verdict.Trust)
+	} else {
+		p, err = plan.For(cfg, from, to, d)
+		if p != nil {
+			p.Note = verdict.Note
+		}
+	}
 	if err != nil {
 		return 2, err
 	}
