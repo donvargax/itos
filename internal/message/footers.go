@@ -353,10 +353,11 @@ func CheckFooter(cfg *config.Loaded, key, typ, message string, r Reading) (strin
 	}
 	var unknown, pending []string
 	none := false
+	onMain := &mainLedger{cfg: cfg, f: f, r: r}
 	for _, id := range ids {
 		if !k.all[id] && isLedger(f) && strings.EqualFold(id, "none") {
 			none = true
-		} else if !k.all[id] {
+		} else if !k.all[id] && !onMain.has(id) {
 			unknown = append(unknown, id)
 		} else if f.Live() && k.notLive[id] {
 			pending = append(pending, id)

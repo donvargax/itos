@@ -86,7 +86,7 @@ Feature: Under push.mode pr, a commit not yet on main may name a task main's led
   # the item's branch was cut, and the clone has fetched main since. Fails
   # before the work at the exit code: today the hook reads only the staged
   # ledger and refuses, "unknown tasks: T-002", exit 1.
-  @ID-MAINTASK-01 @slice-189 @wip
+  @ID-MAINTASK-01 @slice-189
   Scenario: Under pr, on an item's branch, itos commit names a task added on main since the branch was cut
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -108,7 +108,7 @@ Feature: Under push.mode pr, a commit not yet on main may name a task main's led
   # push rebases onto origin/T-001, which lacks T-002, not onto main. Fails
   # before the work at the exit code: today the pre-push hook refuses the
   # commit, "unknown tasks: T-002", and the push exits 1.
-  @ID-MAINTASK-02 @slice-189 @wip
+  @ID-MAINTASK-02 @slice-189
   Scenario: Under pr, itos push sends an item's branch whose commit names a task only the remote's main holds
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -132,7 +132,7 @@ Feature: Under push.mode pr, a commit not yet on main may name a task main's led
   # no remote: before the fetch, the task is unknown, in today's words. A
   # guard: it passes before the work and must after it; a hook that fetches
   # or asks the remote fails it.
-  @ID-MAINTASK-03 @slice-189 @wip @guard
+  @ID-MAINTASK-03 @slice-189 @guard
   Scenario: Under pr, a clone that has not fetched since main gained the task is still told it is unknown
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -154,7 +154,7 @@ Feature: Under push.mode pr, a commit not yet on main may name a task main's led
   # own ledger lacks. Here the task was added to main after the commit that
   # names it. A guard: it passes before the work and must after it; a build
   # that reads main's ledger for every commit fails it.
-  @ID-MAINTASK-04 @slice-189 @wip @guard
+  @ID-MAINTASK-04 @slice-189 @guard
   Scenario: Under pr, verify still refuses a commit on main that names a task only a later commit of main adds
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -174,7 +174,7 @@ Feature: Under push.mode pr, a commit not yet on main may name a task main's led
   # its ledger without the task, so trunk keeps today's rule. A guard: it
   # passes before the work and must after it; a build that drops the
   # push.mode pr condition fails it.
-  @ID-MAINTASK-05 @slice-189 @wip @guard
+  @ID-MAINTASK-05 @slice-189 @guard
   Scenario: Under trunk, a commit naming a task only the remote's main holds is still refused
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """

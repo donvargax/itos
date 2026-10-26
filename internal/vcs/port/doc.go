@@ -15,7 +15,7 @@
 // and the work tree's state (Changes, PathStatus, Tracked, Conflicted,
 // Rebasing, MergeHeads, Branch, NotIgnored); the files at a tree (File,
 // Files, Texts, Index the index's), a commit's patch (Patch, Shown) and the
-// refs (Ref, Refs); the remote (Upstream, Remotes, RemoteURL, RemoteRefs,
+// refs (Ref, Refs, Symref); the remote (Upstream, Remotes, RemoteURL, RemoteRefs,
 // Fetch, Push, Rebase), whose failures are a Failed with its Failure; and
 // committing (Commit, Add, Unstage, Untrack, Restore, Note, and CommitFile,
 // a commit outside every branch, as the ID counter makes one). A command

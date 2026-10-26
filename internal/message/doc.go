@@ -37,6 +37,12 @@
 // to the footer that stands in for it in the commit's type and the flag that
 // writes that; its other IDs are checked as ever, in a problem after it.
 //
+// A ledger footer read at the commit, under push.mode pr, also takes a task
+// the ledger at the remote's main holds (mainTasks, slice 189): the commit
+// reaches main by the pull request's rebase-merge, whose commits all have it.
+// Main is what the clone's refs/remotes/<remote>/HEAD names, as last
+// fetched, and a commit already on it is judged by its own ledger.
+//
 // A footer whose source is text carries no IDs: `<Key>: <text>`, each line
 // one footer, the text whatever a consumer of the project must do, or the
 // word none (None is the one reading of it). Its rule is only that it is

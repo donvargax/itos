@@ -265,6 +265,11 @@ type VCS interface {
 	// an annotated tag its ref with ^{} too, its commit; none when it holds
 	// none.
 	Refs(ctx context.Context, prefix string) (map[string]string, error)
+	// Symref is the full name of the ref a symbolic ref names (a clone's
+	// refs/remotes/origin/HEAD names refs/remotes/origin/main), asked of
+	// the repository alone; not ok when the ref is no symbolic ref or does
+	// not exist.
+	Symref(ctx context.Context, ref string) (target string, ok bool)
 
 	// The remote.
 

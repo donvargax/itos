@@ -238,6 +238,7 @@ func laidOut(t *testing.T, l porttest.Layout) (port.VCS, string) {
 		t.Setenv("NO_PROXY", "itos.invalid")
 		t.Setenv("no_proxy", "itos.invalid")
 		gitIn(t, repo, "", "remote", "add", "down", "https://itos.invalid/x.git")
+		gitIn(t, repo, "", "symbolic-ref", "refs/remotes/origin/HEAD", "refs/remotes/origin/main")
 		gitIn(t, repo, "", "config", "branch.main.remote", "origin")
 		gitIn(t, repo, "", "config", "branch.main.merge", "refs/heads/main")
 	}

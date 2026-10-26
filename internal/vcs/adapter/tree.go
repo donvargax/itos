@@ -155,6 +155,13 @@ func (g Git) Refs(_ context.Context, prefix string) (map[string]string, error) {
 	return refs, nil
 }
 
+// Symref is git symbolic-ref of the ref, quiet.
+func (g Git) Symref(_ context.Context, ref string) (string, bool) {
+	out, err := g.git().Output("symbolic-ref", "--quiet", ref)
+	target := strings.TrimSpace(out)
+	return target, err == nil && target != ""
+}
+
 // missing is whether git's words say a tree lacks a path: "path '…' does
 // not exist in '…'", or "exists on disk, but not in '…'".
 func missing(words string) bool {

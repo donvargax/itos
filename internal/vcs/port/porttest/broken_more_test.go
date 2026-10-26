@@ -111,6 +111,21 @@ func (b broken) Ref(ctx context.Context, ref string) (string, error) {
 	return sha, err
 }
 
+func (b broken) Symref(ctx context.Context, ref string) (string, bool) {
+	target, ok := b.VCS.Symref(ctx, ref)
+	switch {
+	case b.fault == "symref never":
+		return "", false
+	case b.fault == "symref plain" && !ok && ref == "refs/heads/main":
+		return ref, true
+	case b.fault == "symref short" && ok:
+		return strings.TrimPrefix(target, "refs/remotes/"), true
+	case b.fault == "symref of nothing" && !ok && ref != "refs/heads/main":
+		return ref, true
+	}
+	return target, ok
+}
+
 func (b broken) Refs(ctx context.Context, prefix string) (map[string]string, error) {
 	refs, err := b.VCS.Refs(ctx, prefix)
 	switch b.fault {

@@ -31,6 +31,15 @@ func remoteContract[C T[C]](t C, open func(t C, l Layout) (port.VCS, string)) {
 		if remote, ref, set := v.Upstream(ctx, "theirs"); remote != "origin" || ref != "refs/heads/theirs" || set {
 			t.Errorf("Upstream(theirs), which tracks nothing, is %s %s %v", remote, ref, set)
 		}
+		if got, ok := v.Symref(ctx, "refs/remotes/origin/HEAD"); got != "refs/remotes/origin/main" || !ok {
+			t.Errorf("Symref(refs/remotes/origin/HEAD) is %q, %v; want refs/remotes/origin/main", got, ok)
+		}
+		if got, ok := v.Symref(ctx, "refs/heads/main"); got != "" || ok {
+			t.Errorf("Symref(refs/heads/main), no symbolic ref, is %q, %v", got, ok)
+		}
+		if got, ok := v.Symref(ctx, "refs/remotes/nowhere/HEAD"); got != "" || ok {
+			t.Errorf("Symref of no ref is %q, %v", got, ok)
+		}
 		if got, err := v.Remotes(ctx); !slices.Equal(got, []string{"down", "origin"}) || err != nil {
 			t.Errorf("Remotes are %q, %v; want down and origin", got, err)
 		}
