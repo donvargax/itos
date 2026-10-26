@@ -14467,7 +14467,7 @@ items:
   - id: T-313
     title: This repository waits for Codex's verdict before auto-merge (push.pr.review_by)
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
