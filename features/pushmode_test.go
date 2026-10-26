@@ -51,6 +51,11 @@ func initializePushModeSteps(sc *godog.ScenarioContext, w *world) {
 	})
 	sc.Step(`^the recording gh's "([^"]*)" call has a --title of (\d+) characters ending with "([^"]*)"$`, w.ghCallTitle)
 	sc.Step(`^the recording gh answers that the pull request has a review by "([^"]*)"$`, w.ghAnswersReview)
+	sc.Step(`^the recording gh answers that the pull request has a review by "([^"]*)" whose body is "([^"]*)"$`, w.ghAnswersReviewBody)
+	sc.Step(`^the recording gh answers that the pull request has a comment by "([^"]*)" holding Codex's review state, its code review "([^"]*)" and its security review "([^"]*)"$`,
+		w.ghAnswersCodexState)
+	sc.Step(`^the recording gh answers that the pull request has a comment by "([^"]*)" holding Codex's review state, its code review "([^"]*)" and its security review "([^"]*)" for its first (\d+) api graphql calls, then both "([^"]*)"$`,
+		w.ghAnswersCodexStateThen)
 	sc.Step(`^the recording gh answers that the pull request has an unresolved review thread on "([^"]*)" line (\d+), its first comment the lines "([^"]*)" and "([^"]*)"$`,
 		func(path string, line int, first, second string) error {
 			return w.ghAnswersThread(false, path, line, first, second)
@@ -152,6 +157,13 @@ func (w *world) ghRebaseDir() string { return filepath.Join(w.support, "gh-rebas
 // threads, each a JSON object, comma-separated (slice 179).
 func (w *world) ghReviews() string { return filepath.Join(w.support, "gh-reviews") }
 func (w *world) ghThreads() string { return filepath.Join(w.support, "gh-threads") }
+
+// The nodes api graphql answers for the pull request's comments, those it
+// answers instead for its first calls, and how many calls are left of them
+// (slice 187).
+func (w *world) ghComments() string      { return filepath.Join(w.support, "gh-comments") }
+func (w *world) ghCommentsEarly() string { return filepath.Join(w.support, "gh-comments-early") }
+func (w *world) ghCommentsLeft() string  { return filepath.Join(w.support, "gh-comments-left") }
 
 // recordingGh is a gh first on the PATH that stands in for GitHub: it records
 // each call on a line, a line break inside an argument written as a backslash
@@ -258,9 +270,18 @@ case "$verb" in
 "api graphql")
   reviews=
   threads=
+  comments=
   if [ -f %[12]s ]; then reviews=$(cat %[12]s); fi
   if [ -f %[13]s ]; then threads=$(cat %[13]s); fi
-  printf '{"data":{"repository":{"pullRequest":{"reviews":{"nodes":[%%s]},"reviewThreads":{"nodes":[%%s]}}}}}\n' "$reviews" "$threads"
+  if [ -f %[15]s ]; then comments=$(cat %[15]s); fi
+  if [ -f %[17]s ]; then
+    left=$(cat %[17]s)
+    if [ "$left" -gt 0 ]; then
+      echo $((left - 1)) > %[17]s
+      comments=$(cat %[16]s)
+    fi
+  fi
+  printf '{"data":{"repository":{"pullRequest":{"reviews":{"nodes":[%%s]},"comments":{"nodes":[%%s]},"reviewThreads":{"nodes":[%%s]}}}}}\n' "$reviews" "$comments" "$threads"
   ;;
 "pr view")
   oid=$(%[4]s --git-dir=%[5]s rev-parse "refs/heads/$3") || exit 1
@@ -286,7 +307,8 @@ esac
 `, calls, pulls, quote(address), quote(filepath.ToSlash(git.Bin(runtime.GOOS))), quote(filepath.ToSlash(w.remote())),
 		quote(filepath.ToSlash(w.ghKeeps())), quote(filepath.ToSlash(w.ghStale())), quote(filepath.ToSlash(w.ghStaleLeft())),
 		quote(filepath.ToSlash(w.ghPrevious(""))), quote(filepath.ToSlash(w.ghRebaseDir())), quote(filepath.ToSlash(w.ghFailure())),
-		quote(filepath.ToSlash(w.ghReviews())), quote(filepath.ToSlash(w.ghThreads())), quote(filepath.ToSlash(w.ghPulls()+".new")))
+		quote(filepath.ToSlash(w.ghReviews())), quote(filepath.ToSlash(w.ghThreads())), quote(filepath.ToSlash(w.ghPulls()+".new")),
+		quote(filepath.ToSlash(w.ghComments())), quote(filepath.ToSlash(w.ghCommentsEarly())), quote(filepath.ToSlash(w.ghCommentsLeft())))
 	if err := w.writeProgram(filepath.Join(bin, "gh"), script); err != nil {
 		return err
 	}
@@ -333,7 +355,42 @@ func (w *world) ghHasPullRequestIn(address, branch, state string, draft bool, ti
 // The recording gh's api graphql answers that the pull request has a review
 // whose author's login is the one given.
 func (w *world) ghAnswersReview(login string) error {
-	return w.ghAddNode(w.ghReviews(), map[string]any{"author": map[string]any{"login": login}})
+	return w.ghAnswersReviewBody(login, "")
+}
+
+// The same, whose body is the one given.
+func (w *world) ghAnswersReviewBody(login, body string) error {
+	return w.ghAddNode(w.ghReviews(), map[string]any{"author": map[string]any{"login": login}, "body": body})
+}
+
+// The comment of Codex's as #159 has it: its summary marker, its state line
+// with the two statuses, and its heading.
+func codexComment(login, code, security string) map[string]any {
+	review := func(status string) string {
+		return fmt.Sprintf(`{"commit_sha":"5c0371232f4363fb659e7879756ceee014c009cf","has_any_findings":false,"has_unresolved_findings":false,"status":%q}`, status)
+	}
+	body := "<!-- codex-pull-request-review-summary -->\n" +
+		`<!-- codex-review-state:v1 {"code_review":` + review(code) + `,"security_review":` + review(security) + "} -->\n" +
+		"## Codex Review Summary"
+	return map[string]any{"author": map[string]any{"login": login}, "body": body}
+}
+
+// The recording gh's api graphql answers that the pull request has a comment
+// by the login holding Codex's review state with the two statuses.
+func (w *world) ghAnswersCodexState(login, code, security string) error {
+	return w.ghAddNode(w.ghComments(), codexComment(login, code, security))
+}
+
+// The same, with those statuses in the answers to the first n calls, and
+// both the status given in every later one.
+func (w *world) ghAnswersCodexStateThen(login, code, security string, n int, then string) error {
+	if err := w.ghAddNode(w.ghCommentsEarly(), codexComment(login, code, security)); err != nil {
+		return err
+	}
+	if err := w.ghAddNode(w.ghComments(), codexComment(login, then, then)); err != nil {
+		return err
+	}
+	return os.WriteFile(w.ghCommentsLeft(), fmt.Appendf(nil, "%d\n", n), 0o644)
 }
 
 // The recording gh's api graphql answers that the pull request has a review
