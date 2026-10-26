@@ -14556,3 +14556,17 @@ items:
       because of it, and nothing warned. A step asserting a hook's refusal or rule could fail when
       the stand-in is in place.
     tags: [tests]
+
+  - id: p1-features-failing-step-name
+    title: A failing feature scenario names the step that failed, not "after scenario hook failed"
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Seen 2026-10-26 implementing slice-188: the features runner reports a step failure as "after
+      scenario hook failed", hiding the failing step's name in the summary, so the red-first check
+      (which step fails) needs the verbose log. Red first depends on reading the failing step at a
+      glance.
+    tags: [tests]
