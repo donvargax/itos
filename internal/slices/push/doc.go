@@ -197,7 +197,8 @@
 // request's comments and the review threads are one
 // gh api graphql question (ask, reviewQuery on one line, since the recording
 // gh of the scenarios keeps a call to one line); an answer without that shape
-// is a gh call that fails. A thread not resolved refuses the merge (exit 1,
+// is a gh call that fails, except for the comments, which an answer without is
+// read as having none (v8.22.2's recorded answers carry none). A thread not resolved refuses the merge (exit 1,
 // review-threads-unresolved), named by its file, line and the first line of
 // its first comment; only then gh pr merge --auto --rebase, so auto-merge
 // comes after the checks and the reviews, never before.
