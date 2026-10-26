@@ -28,9 +28,7 @@ import (
 func initializeWorkDonePRSteps(sc *godog.ScenarioContext, w *world) {
 	sc.Step(`^the remote's branch "([^"]*)" has the item "([^"]*)"'s commit touching "([^"]*)", which the clone's main lacks$`, w.remoteBranchHasItemCommit)
 	sc.Step(`^the remote's main has gained the item "([^"]*)"'s commit touching "([^"]*)", which the clone lacks$`, w.remoteGainsItemCommit)
-	sc.Step(`^the clone fast-forwards its main to the branch "([^"]*)"$`, func(branch string) error {
-		return w.git("merge", "-q", "--ff-only", "origin/"+branch)
-	})
+	sc.Step(`^the clone fast-forwards its main to the branch "([^"]*)"$`, w.cloneFastForwards)
 	sc.Step(`^GitHub rebase-merges the remote's branch "([^"]*)" onto the remote's main$`, func(branch string) error {
 		return w.githubRebaseMerges(branch, false)
 	})
@@ -42,6 +40,25 @@ func initializeWorkDonePRSteps(sc *godog.ScenarioContext, w *world) {
 	sc.Step(`^the clone switches to its branch "([^"]*)"$`, func(branch string) error {
 		return w.git("checkout", "-q", branch)
 	})
+}
+
+// The clone's main moved to the remote's branch by a fast-forward, the full
+// SHAs of main before and after kept for the steps that plan over what it
+// brought (citrust_test.go).
+func (w *world) cloneFastForwards(branch string) error {
+	before, err := w.head()
+	if err != nil {
+		return err
+	}
+	if err := w.git("merge", "-q", "--ff-only", "origin/"+branch); err != nil {
+		return err
+	}
+	after, err := w.head()
+	if err != nil {
+		return err
+	}
+	w.ffBefore, w.ffAfter = before, after
+	return nil
 }
 
 // itemFooterOn turns the config's registry footer on, committed and pushed,
@@ -58,6 +75,12 @@ func (w *world) itemFooterOn() error {
 // item's commit touching the file; the clone is left on its main, without the
 // branch, which its remote-tracking ref still names.
 func (w *world) remoteBranchHasItemCommit(branch, id, path string) error {
+	return w.remoteBranchHasItemCommitNaming(branch, id, "", path)
+}
+
+// remoteBranchHasItemCommit's commit with a Task: footer beside its Item:
+// one when task is not "".
+func (w *world) remoteBranchHasItemCommitNaming(branch, id, task, path string) error {
 	if err := w.itemFooterOn(); err != nil {
 		return err
 	}
@@ -73,9 +96,13 @@ func (w *world) remoteBranchHasItemCommit(branch, id, path string) error {
 	if err := writeLine(w.dir, path, subject); err != nil {
 		return err
 	}
+	footers := "Item: " + id + "\n"
+	if task != "" {
+		footers += "Task: " + task + "\n"
+	}
 	for _, args := range [][]string{
 		{"add", "--", path},
-		{"commit", "-q", "--no-verify", "-m", subject + "\n\nItem: " + id + "\n"},
+		{"commit", "-q", "--no-verify", "-m", subject + "\n\n" + footers},
 		{"push", "-q", "--no-verify", "origin", branch},
 		{"checkout", "-q", current},
 		{"branch", "-q", "-D", branch},
