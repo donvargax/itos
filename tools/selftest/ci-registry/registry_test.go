@@ -4,10 +4,14 @@ package registry
 
 import (
 	"encoding/json"
+	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"slices"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/donvargax/itos/v8/internal/config"
@@ -28,7 +32,34 @@ func TestSelftest(t *testing.T) {
 		t.Fatal(err)
 	}
 	it := filepath.Join(root, ".tools/bin/itos")
-	invoke := func(args ...string) scratch.Result { return scratch.Run(r.Dir, r.Env, "", helper, args...) }
+	// GitHub is a local fake that knows nothing but what a case tells it, so no case reaches the
+	// real one from CI's environment (GITHUB_REPOSITORY, a token); a pull request or a run is
+	// listed with listing.
+	var (
+		mu     sync.Mutex
+		answer = map[string]string{}
+	)
+	github := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		mu.Lock()
+		defer mu.Unlock()
+		body, ok := answer[req.URL.Path+"?"+req.URL.Query().Get("head_sha")]
+		if !ok {
+			http.NotFound(w, req)
+			return
+		}
+		fmt.Fprint(w, body)
+	}))
+	t.Cleanup(github.Close)
+	listing := func(landed, head, conclusion string) {
+		mu.Lock()
+		defer mu.Unlock()
+		clear(answer)
+		answer["/repos/o/r/commits/"+landed+"/pulls?"] = fmt.Sprintf(`[{"number":7,"html_url":"https://github.com/o/r/pull/7","merged_at":"2026-10-26T10:00:00Z","merge_commit_sha":%q,"head":{"sha":%q}}]`, landed, head)
+		answer["/repos/o/r/actions/workflows/ci.yml/runs?"+head] = fmt.Sprintf(`{"workflow_runs":[{"id":101,"html_url":"https://github.com/o/r/actions/runs/101","status":"completed","conclusion":%q,"created_at":"2026-10-26T09:00:00Z","head_sha":%q,"head_branch":"T-1"}]}`, conclusion, head)
+		answer["/repos/o/r/actions/runs/101/jobs?"] = fmt.Sprintf(`{"jobs":[{"id":1,"name":"ci","status":"completed","conclusion":%q}]}`, conclusion)
+	}
+	helperEnv := scratch.With(r.Env, "GITHUB_REPOSITORY=o/r", "GITHUB_API_URL="+github.URL, "GITHUB_TOKEN=token", "GH_TOKEN=")
+	invoke := func(args ...string) scratch.Result { return scratch.Run(r.Dir, helperEnv, "", helper, args...) }
 	readPlan := func(from, to string) scratch.Plan {
 		t.Helper()
 		result := invoke("plan", from, to)
@@ -197,6 +228,114 @@ func TestSelftest(t *testing.T) {
 		to := git("", "commit-tree", git("", "write-tree"), "-p", base, "-m", "docs: move code")
 		if readPlan(base, to).Prose {
 			t.Fatal("code renamed into prose was reduced")
+		}
+	})
+	// A push to main that is a merged pull request's commits, rebased, takes the metadata route
+	// when the head's CI run passed (slice 188's rule, through prtrust.Judge), and is run in
+	// full otherwise. Main gained a registry commit since the head's base, so the trees differ
+	// in the registry alone.
+	t.Run("a merged pull request", func(t *testing.T) {
+		const message = "fix: a code change"
+		code := map[string]string{"internal/cli/ci.go": "package cli\n"}
+		head := onto(base, message, code)
+		main := onto(base, "docs: take an item", map[string]string{"tasks/work-items.yaml": registryAt(base)})
+		landed := onto(main, message, code)
+		differs := onto(main, message, map[string]string{"internal/cli/ci.go": "package cli\n", "cmd/itos/main.go": "package main\n"})
+		type verdict struct {
+			Prose   bool     `json:"prose"`
+			Steps   []string `json:"steps"`
+			Trusted *struct {
+				PullRequest string `json:"pull_request"`
+				Head        string `json:"head"`
+				Run         string `json:"run"`
+			} `json:"trusted"`
+		}
+		for _, c := range []struct {
+			name       string
+			to         string
+			conclusion string
+			listed     bool
+			trusted    bool
+		}{
+			{"the head's run passed", landed, "success", true, true},
+			{"the head's run failed", landed, "failure", true, false},
+			{"the commits differ from the head's in code", differs, "success", true, false},
+			{"no pull request is listed", landed, "success", false, false},
+		} {
+			t.Run(c.name, func(t *testing.T) {
+				listing(c.to, head, c.conclusion)
+				if !c.listed {
+					listing(head, head, c.conclusion)
+				}
+				x := invoke("plan", base, c.to)
+				var p verdict
+				if x.Code != 0 || json.Unmarshal([]byte(x.Stdout), &p) != nil {
+					t.Fatalf("plan: %s", x.Output())
+				}
+				var s struct {
+					Full   bool
+					Reason string
+				}
+				y := invoke("scope", base, c.to)
+				if y.Code != 0 || json.Unmarshal([]byte(y.Stdout), &s) != nil {
+					t.Fatalf("scope: %s", y.Output())
+				}
+				if !c.trusted {
+					if p.Prose || p.Trusted != nil || !slices.Contains(p.Steps, "go test ./cmd/... ./internal/...") || !s.Full {
+						t.Fatalf("a range no run trusted was reduced: %+v, scope %+v", p, s)
+					}
+					return
+				}
+				if !p.Prose || !slices.Equal(p.Steps, cfg.CI.Prose.Steps) || p.Trusted == nil ||
+					p.Trusted.PullRequest != "https://github.com/o/r/pull/7" || p.Trusted.Head != head || p.Trusted.Run != "https://github.com/o/r/actions/runs/101" {
+					t.Fatalf("a trusted range did not take the prose route: %+v", p)
+				}
+				if s.Full || !strings.HasPrefix(s.Reason, "Trusted: the pull request https://github.com/o/r/pull/7 merged its head ") || !strings.Contains(s.Reason, "https://github.com/o/r/actions/runs/101") {
+					t.Fatalf("scope does not say the trust: %+v", s)
+				}
+			})
+		}
+		// The log of a run says it, with a config of cheap steps in place of this repository's.
+		policy := `version: 1
+ledger: {files: "tasks/phase-{group}.yaml", id: '^T-[0-9]+$'}
+push: {mode: pr}
+commits:
+  footers:
+    Task: {source: ledger}
+ci:
+  steps: ['echo full-step; exit 41']
+  prose: {paths: ['**/*.md'], steps: ['echo prose-step']}
+  range:
+    provider: github
+    github: { workflow: ci.yml, repository_env: GITHUB_REPOSITORY, token_env: [GITHUB_TOKEN, GH_TOKEN] }
+`
+		scratch.WriteFiles(t, r.Dir, map[string]string{"fixture.yaml": policy})
+		defer os.Remove(filepath.Join(r.Dir, "fixture.yaml"))
+		fixture := scratch.With(helperEnv, "ITOS_CONFIG=fixture.yaml")
+		for _, c := range []struct {
+			name       string
+			conclusion string
+			want       []string
+			code       bool
+		}{
+			{"trusted", "success", []string{"Trusted: the pull request https://github.com/o/r/pull/7 merged its head ", "actions/runs/101", "prose-step"}, true},
+			{"not trusted", "failure", []string{"Not trusted: the pull request https://github.com/o/r/pull/7 merged its head ", "the head's CI run https://github.com/o/r/actions/runs/101 has not passed", "full-step"}, false},
+		} {
+			t.Run("run "+c.name, func(t *testing.T) {
+				listing(landed, head, c.conclusion)
+				x := scratch.Run(r.Dir, fixture, "", helper, "run", base, landed)
+				if (x.Code == 0) != c.code {
+					t.Fatalf("exit %d: %s", x.Code, x.Output())
+				}
+				for _, want := range c.want {
+					if !strings.Contains(x.Output(), want) {
+						t.Fatalf("the log lacks %q: %s", want, x.Output())
+					}
+				}
+				if c.code && strings.Contains(x.Output(), "full-step") {
+					t.Fatalf("a trusted range ran the full steps: %s", x.Output())
+				}
+			})
 		}
 	})
 	t.Run("named late check still runs", func(t *testing.T) {

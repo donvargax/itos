@@ -8,7 +8,8 @@ on:
 
 permissions:
   contents: read
-  actions: read # the last green run, where a push's range starts
+  actions: read # the last green run, where a push's range starts, and a merged pull request's head's run
+  pull-requests: read # the pull request a push to main merged, for the trust ci-repo gives its green head
 
 # On main a newer push replaces only a run still waiting; a running one finishes, and the
 # newest run checks every commit since the last green one. On a pull request a newer head
@@ -67,6 +68,8 @@ jobs:
           echo "FROM=$from" >> "$GITHUB_ENV"
       - name: Scope
         id: scope
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           out=$(go run ./tools/bin/ci-repo scope "$FROM" "$TO")
           echo "$out"
@@ -74,7 +77,7 @@ jobs:
           echo "full=$full" >> "$GITHUB_OUTPUT"
       - name: Validation-only range
         if: ${{ steps.scope.outputs.full == 'false' }}
-        run: echo 'This range needs metadata validation only; scope proved no task or scenario requirements.'
+        run: echo 'This range needs metadata validation only; the scope above says why.'
       # The commit-msg hook's rules again, for commits made without hooks.
       - run: tools/bin/itos verify "$FROM" "$TO"
       # actionlint, for the step of the plan that lints the workflows: the
@@ -169,6 +172,8 @@ jobs:
       # Scope is computed independently on each runner: code jobs stay concurrent with Linux.
       - name: Scope
         id: scope
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           out=$(go run ./tools/bin/ci-repo scope "$FROM" "$TO")
           echo "$out"
@@ -176,7 +181,7 @@ jobs:
           echo "full=$full" >> "$GITHUB_OUTPUT"
       - name: Validation-only range
         if: ${{ steps.scope.outputs.full == 'false' }}
-        run: echo 'This range needs metadata validation only; scope proved no task or scenario requirements.'
+        run: echo 'This range needs metadata validation only; the scope above says why.'
       - name: Unit tests
         if: ${{ steps.scope.outputs.full == 'true' }}
         run: go test ./cmd/... ./internal/...
@@ -188,6 +193,8 @@ jobs:
       # run hands on to go test with the rest of the job's environment.
       - name: Named tests
         if: ${{ !cancelled() && steps.scope.outputs.full == 'true' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: go run ./tools/bin/ci-repo tests "$FROM" "$TO"
       # The global itos as a consumer's CI gets it, from this repository's own action (T-093),
       # proved on every platform by every full push, and cached per release by it (T-127), so a push
