@@ -57,6 +57,7 @@ phases:
 queue:
   - p1-ci-cancel-superseded-pr-runs
   - p1-ci-trust-same-tree
+  - slice-153
   - p1-github-registry-spike
   - p1-agent-test-runs-once
   - p1-mutation-results-committed
