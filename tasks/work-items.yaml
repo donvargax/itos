@@ -8631,6 +8631,14 @@ items:
       change.
     tags: [push, v8]
     refs: [features/watch-registration.feature, internal/cli/push.go, internal/cli/watch.go, internal/providers/watch.go]
+    deferred: >
+      Spec review round 1 (2026-10-26, .git/itos/review/slice-153-plan-r1.txt, CHANGES_REQUESTED,
+      $0.84): the 2026-10-15 spec predates push.mode pr and --ready; under pr the addition base
+      would be the empty tree (a ci.yml on main for months looks added), and --ready and the rebased
+      head are not covered; plus a malformed-JSON row that contradicts its own rule and an
+      unbuildable unreadable-tree row. It saves one rerun of --ready per newly added workflow, a
+      one-off; a respec for pr mode plus the build costs more. Revisit if p1-ci-e2e-workflow (#84)
+      adds a workflow and the first --ready actually meets the 404.
 
   - id: slice-151
     title: Explain CI step forms and range inputs in CLI help and defaults examples
