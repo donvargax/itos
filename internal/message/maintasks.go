@@ -54,9 +54,7 @@ func mainTasks(cfg *config.Loaded, f config.Footer, r Reading) map[string]bool {
 	if err != nil || r.At != "" && cfg.VCS.IsAncestor(ctx, r.At, tip) {
 		return nil
 	}
-	ids, err := ledger.IDs(cfg, main)
-	if err != nil {
-		return nil
-	}
+	// The layout is the one the commit's own ledger was just read by.
+	ids, _ := ledger.IDs(cfg, main)
 	return ids
 }
