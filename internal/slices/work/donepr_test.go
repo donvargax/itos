@@ -134,6 +134,20 @@ func TestDonePRRefuses(t *testing.T) {
 	}
 }
 
+// The remote is asked for its HEAD without a prompt, so a remote that wants
+// credentials fails the question instead of git waiting on a terminal.
+func TestDonePRAsksTheRemoteWithoutPrompting(t *testing.T) {
+	p, _, _ := prDone(t, mergedPull)
+	talks := &[]vcsport.Talk{}
+	p.pr.headTalks = talks
+	if code, _, stderr, err := run(t, p, "done", "T-1"); err != nil {
+		t.Fatalf("work done T-1 = %d, %v, %q", code, err, stderr)
+	}
+	if len(*talks) != 1 || !(*talks)[0].NoPrompt {
+		t.Errorf("the remote's HEAD was asked with %+v, want one question with NoPrompt", *talks)
+	}
+}
+
 // A remote that cannot be asked gives git's words on stderr, trimmed, or the
 // error when git did not run.
 func TestDonePRSaysGitsWords(t *testing.T) {
