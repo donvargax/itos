@@ -14540,3 +14540,20 @@ items:
     status: doing
     depends_on: []
     kind: task
+
+  - id: p1-push-drops-main-copies
+    title: itos push under pr never keeps copies of main's commits on an item branch
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Seen 2026-10-26 on slice-187 (#160): an item branch rebased onto origin/main, then itos push,
+      which rebases onto origin/<item>, kept rebased copies of three of main's registry commits on
+      the branch; GitHub's update-branch then failed (RebaseConflictError) and only a force-push the
+      person ran by hand cleared it. A local git rebase onto main drops such copies (patch-id or
+      empty), GitHub's does not. itos push could refuse a branch carrying commits whose patch is
+      already on the remote main, naming them, or drop them. slice-189 removes the reason to rebase
+      onto main, not the trap.
+    tags: [push]
