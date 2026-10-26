@@ -57,6 +57,8 @@ func initializePushSteps(sc *godog.ScenarioContext, w *world) {
 		return w.git("fetch", "-q", "origin")
 	})
 	sc.Step(`^the clone has the commit "([^"]*)" touching "([^"]*)"$`, w.cloneCommits)
+	sc.Step(`^the clone has the commit "([^"]*)" naming the task "([^"]*)" and touching "([^"]*)"$`, w.cloneCommitsNaming)
+	sc.Step(`^the remote has gained the commit "([^"]*)" naming the task "([^"]*)" and touching "([^"]*)"$`, w.remoteGainsCommitNaming)
 	sc.Step(`^the clone has the annotated tag "([^"]*)" on its HEAD$`, func(tag string) error {
 		return w.git("tag", "-a", "-m", "Release "+tag+".", tag, "HEAD")
 	})
@@ -288,6 +290,16 @@ func (w *world) cloneOfRemote() error {
 // A commit made in another clone of the remote and pushed to its main, the
 // file written as the commit's own line.
 func (w *world) remoteGainsCommit(subject, path string) error {
+	return w.remoteGains(path, subject)
+}
+
+// The same commit, with the footer Task: of the id, past the hooks.
+func (w *world) remoteGainsCommitNaming(subject, id, path string) error {
+	return w.remoteGains(path, subject, "Task: "+id)
+}
+
+// The commit's message is the subject, then each paragraph after it.
+func (w *world) remoteGains(path, subject string, paragraphs ...string) error {
 	other := filepath.Join(w.support, "other")
 	if _, err := os.Stat(other); err != nil {
 		if err := w.gitIn(w.support, "clone", "-q", w.remote(), other); err != nil {
@@ -300,10 +312,19 @@ func (w *world) remoteGainsCommit(subject, path string) error {
 	if err := w.gitIn(other, "add", "--", path); err != nil {
 		return err
 	}
-	if err := w.gitIn(other, "commit", "-q", "--no-verify", "-m", subject); err != nil {
+	if err := w.gitIn(other, append([]string{"commit", "-q", "--no-verify", "-m", subject}, messageArgs(paragraphs)...)...); err != nil {
 		return err
 	}
 	return w.gitIn(other, "push", "-q", "--no-verify", "origin", "HEAD:refs/heads/main")
+}
+
+// Each paragraph as a -m of its own.
+func messageArgs(paragraphs []string) []string {
+	var args []string
+	for _, p := range paragraphs {
+		args = append(args, "-m", p)
+	}
+	return args
 }
 
 // The full SHA of the commit with the header on the remote's main.
@@ -325,13 +346,24 @@ func (w *world) remoteCommit(header string) (string, error) {
 
 // A commit in the clone of that one file, written as the commit's own line.
 func (w *world) cloneCommits(subject, path string) error {
+	return w.cloneCommitsWith(subject, path)
+}
+
+// The same commit, with the footer Task: of the id, past the hooks.
+func (w *world) cloneCommitsNaming(subject, id, path string) error {
+	return w.cloneCommitsWith(subject, path, "Task: "+id)
+}
+
+// The commit's message is the subject, then each paragraph after it.
+func (w *world) cloneCommitsWith(subject, path string, paragraphs ...string) error {
 	if err := writeLine(w.dir, path, subject); err != nil {
 		return err
 	}
 	if err := w.git("add", "--", path); err != nil {
 		return err
 	}
-	return w.git("commit", "-q", "--no-verify", "-m", subject, "--", path)
+	args := append([]string{"commit", "-q", "--no-verify", "-m", subject}, messageArgs(paragraphs)...)
+	return w.git(append(args, "--", path)...)
 }
 
 // A branch of the clone made at its HEAD with one commit of that one file,
