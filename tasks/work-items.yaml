@@ -14613,3 +14613,11 @@ items:
       step retries), upload with --clobber so a rerun completes, and have schema-contract say the
       release is a draft to publish instead of a bare 404.
     tags: [ci]
+
+  - id: T-316
+    title: The release publishes through a GitHub 5xx and a rerun completes a half-made release (bug-143)
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task

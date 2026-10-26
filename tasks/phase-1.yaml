@@ -4859,3 +4859,17 @@
     tree equals the head's.
   done_when:
     - run: "true"
+
+- id: T-316
+  type: ci
+  title: The release publishes through a GitHub 5xx and a rerun completes a half-made release (bug-143)
+  why: >
+    bug-143's fix, in release.yml and its self-test (tools/selftest/go-release or wherever
+    release.yml's shape is tested): retry gh release edit --draft=false on a 5xx, as the attestation
+    verify step retries; upload upgrading.json with --clobber so a rerun of a job that failed after
+    the upload completes; and make tools/bin/schema-contract say a release that is a draft must be
+    published, instead of a bare 404. Seen 2026-10-26 (run 40418143221, v8.25.0 left a draft with
+    its tag made; main red until the person published it by hand). Its own merge is also T-315's
+    proof: main's run of it should log the Trusted line.
+  done_when:
+    - run: "true"
