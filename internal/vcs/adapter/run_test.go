@@ -1,6 +1,8 @@
 package adapter
 
 import (
+	"bytes"
+	"context"
 	"errors"
 	"strings"
 	"testing"
@@ -48,5 +50,19 @@ func TestFailedSaysItAll(t *testing.T) {
 	var failed *port.Failed
 	if !errors.As(err, &failed) || !strings.Contains(failed.Words, "refused") {
 		t.Errorf("errors.As: %v", failed)
+	}
+}
+
+// A talk whose one writer takes both streams still lets output read git's
+// stdout; the streams share a pipe only for a run with no out to fill.
+func TestOutputIsKeptBesideASharedWriter(t *testing.T) {
+	var shared bytes.Buffer
+	talk := port.Talk{Stdout: &shared, Stderr: &shared}
+	got, err := Git{}.output(context.Background(), talk, false, "--version")
+	if err != nil || !strings.HasPrefix(got, "git version") {
+		t.Fatalf("output = %q, %v", got, err)
+	}
+	if shared.String() != got {
+		t.Errorf("the shared writer got %q, want %q", shared.String(), got)
 	}
 }
