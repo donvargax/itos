@@ -14560,3 +14560,34 @@ items:
       (which step fails) needs the verbose log. Red first depends on reading the failing step at a
       glance.
     tags: [tests]
+
+  - id: p1-reviewer-replay-benchmark
+    title: "Choose the diff and spec reviewer by replaying known bugs: Fable high (subscription), Codex with Code Review Rules, the local Opus reviewer"
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The person, 2026-10-26: Copilot (about $1 a review, quota gone) found 11 valid problems in 20
+      reviews, mostly on diffs, some the model reviewer missed; Codex has found nothing in 5 reviews
+      (#159-#163, ~0.2% of the Pro week each, one stuck 29 min on a draft) while the red-first run
+      and CI's proof caught slice-189's bugs; the local spec reviewer (~$0.67 a round, API credits)
+      missed MAINTASK-02. Pick a replacement by recall on known answers, not by impression. Seed
+      set, each at its pre-fix head: Copilot's valid findings (#137 trust.go:128 late check; #143 -F
+      with --amend --no-edit, BREAKING CHANGE vs BREAKING-CHANGE; #149 run.whole rule; #150 runtime
+      overclaim, duplicate YAML keys; #151 shard counting in-process, GIT_* leaking into unit tests;
+      #153 merge commits by second-parent history; #156 rapid.checks flag stuck after FlagSet.Set;
+      .git/itos/copilot-reviews.md), the spec bugs of 2026-10-26 (#162 at 591288a7: the fake run
+      step pushes itos.yaml after the branch; #163 at 2cb1c736: MAINTASK-02 rebases onto main so
+      passes today), and CI-caught ones (#163 at 3a5c5180: uncovered error branch). Candidates: (1)
+      Fable 5.1 at high effort through anthropics/claude-code-action@v1 on the person's subscription
+      (secret CLAUDE_CODE_OAUTH_TOKEN, claude_args --model claude-fable-5-1 --effort high, the
+      code-review plugin or the local reviewer's prompt); (2) Codex via @codex review with a ## Code
+      Review Rules section in AGENTS.md (its model is not documented or selectable in the GitHub
+      integration; openai/codex-action would give control); (3) the local Opus reviewer CLI. Replay:
+      a throwaway branch and draft PR per seed head (or the reviewer's local diff mode), never
+      merged; score per candidate: known bugs found, valid new ones, noise, minutes, cost
+      (subscription % or $). Then decide which reviews specs and which reviews diffs at ready, and
+      whether the local reviewer stays. Results in .git/itos/codex-reviews.md beside the trial log.
+    tags: [review]
