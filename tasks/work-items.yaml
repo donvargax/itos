@@ -55,7 +55,7 @@ phases:
   3: donvargax
 
 queue:
-  - p1-ci-cancel-superseded-pr-runs
+  - T-314
   - p1-ci-trust-same-tree
   - slice-153
   - p1-ci-e2e-workflow
@@ -14497,28 +14497,13 @@ items:
       judged range must be the same too. No v9 redesign needed: a ci plan rule.
     tags: [ci]
 
-  - id: p1-ci-cancel-superseded-pr-runs
+  - id: T-314
     title: A pull request's CI run is cancelled once a newer head of the same pull request starts
     phase: 1
     owner: null
     status: todo
     depends_on: []
-    kind: idea
-    why: >
-      Seen 2026-10-26 on #160: the pushed head 0539fda6 ran the full CI (7.5 min) although GitHub
-      rebased it at once (itos push --ready asks for update-branch when main moved) and b2a7c35d ran
-      it again; nothing waited on the first. ci.yml's concurrency is group ci-<ref>,
-      cancel-in-progress false for every event; for pull_request events it can be true (main keeps
-      false, every commit there is judged). A ci commit beside a check that a superseded PR run is
-      cancelled.
-
-      Main stays as it is, deliberately: ci.yml already replaces a run still pending on main (run
-      cf2a6bd5 was cancelled so on 2026-10-26) and never one running, and the newest run checks
-      every commit since the last green one. itos-cc learned why (its T-201, cd.yml): cancelling in
-      progress on main let each push of a burst cancel the run before it, so no run finished.
-      itos-cc cancels in progress only in its fast Linux gate (ci.yml test job, T-123, every ref);
-      its full multi-OS suite and release (cd.yml) queue. For pull requests only the head matters,
-      so cancel-in-progress true for pull_request events.
+    kind: task
     tags: [ci]
 
   - id: p1-keep-done-checks
