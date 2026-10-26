@@ -14486,4 +14486,11 @@ items:
       ledger (one git show, no fetch needed if the ref is current), the problem could say so and its
       fix name the rebase onto main; else as today. Under push.mode pr every turn-on task added
       mid-item meets it.
+
+      Worse than the message (2026-10-26): the coordinator's workaround, rebasing the item branch
+      onto main, made itos push rebase that onto origin/<item>, which kept copies of main's registry
+      commits on the branch; GitHub's gh pr update-branch (rebase) then failed with
+      RebaseConflictError, though a local git rebase skips them; it took a force-push the person
+      authorised. Fix both: the hint, and a supported way to bring a ledger entry from main onto an
+      item branch (or a build commit naming a task only main holds) that needs no force.
     tags: [commit]
