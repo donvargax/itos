@@ -55,7 +55,6 @@ phases:
   3: donvargax
 
 queue:
-  - bug-42
   - slice-153
   - p1-ci-e2e-workflow
   - p1-reviewer-replay-benchmark
@@ -65,6 +64,7 @@ queue:
   - p1-text-from-file
   - p3-commit-long-text-footer
   - bug-38
+  - bug-42
   - p1-problem-fields
   - p1-tools-bin-shared
   - p1-agent-git-ci-contract
