@@ -232,6 +232,24 @@ func TestSelftest(t *testing.T) {
 			t.Fatal(err)
 		}
 	})
+	t.Run("a newer head cancels a pull request's run and never main's", func(t *testing.T) {
+		data, err := os.ReadFile(filepath.Join(scratch.Root(t), ".github/workflows/ci.yml"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		var w struct {
+			Concurrency struct {
+				Group            string
+				CancelInProgress string `yaml:"cancel-in-progress"`
+			}
+		}
+		if err := yaml.Unmarshal(data, &w); err != nil {
+			t.Fatal(err)
+		}
+		if w.Concurrency.Group != "ci-${{ github.ref }}" || w.Concurrency.CancelInProgress != "${{ github.event_name == 'pull_request' }}" {
+			t.Fatalf("concurrency is %+v", w.Concurrency)
+		}
+	})
 	t.Run("the main plan runs core units and named tests", func(t *testing.T) {
 		plan := scratch.CIPlan(t, scratch.Root(t), "", "HEAD")
 		units, named := 0, 0
