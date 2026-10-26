@@ -126,12 +126,15 @@ commit its head lacks (gh pr update-branch --rebase); with ci.watch's provider,
 waits for the run of its head, passing over a run all of whose jobs were skipped
 (a draft's), which exits as above and, when it did not succeed, turns on no
 auto-merge; with push.pr.review_by, waits, each ci.watch.interval within
-ci.watch.timeout, for a review by each login (a "[bot]" suffix is dropped from
-both sides, since GraphQL names a bot without it), exit 75 when one is missing;
+ci.watch.timeout, for a verdict by each login (a "[bot]" suffix is dropped from
+both sides, since GraphQL names a bot without it): a review that is not
+Copilot's refusal to review, or, from a login that wrote a Codex review-state
+comment, that comment with both reviews completed; exit 75 when one is missing,
+and at once, outcome review-refused, when a login's only reviews are refusals;
 refuses, exit 1, a pull request with an unresolved review thread, naming each
 by its file, line and the first line of its first comment; and only then turns
 on auto-merge by rebase. Auto-merge thus comes after the checks and the
-reviews. The reviews and threads are one gh api graphql question. --ready
+reviews. The reviews, comments and threads are one gh api graphql question. --ready
 --no-wait stops once the pull request is ready, with no run, review or
 auto-merge, since auto-merge unwatched would merge before the review; itos
 push --ready again finishes it. --ready is refused, exit 1, outside push.mode
@@ -182,8 +185,8 @@ read from git's message; git's own exit code is never itos's.
         HEAD too), no-default-branch, rebase-stopped, rebase-failed,
         push-failed, and under push.mode pr work-on-main, not-item-branch,
         no-github-repository, pull-request-failed, and for --ready
-        review-timeout, review-threads-unresolved, ready-without-draft and
-        ready-on-main;
+        review-timeout, review-refused, review-threads-unresolved,
+        ready-without-draft and ready-on-main;
         ci, run and superseded as itos ci watch's, when it waited`,
 	},
 	Spec: declare.Spec{Unread: true},

@@ -187,9 +187,14 @@
 // were all skipped; a run that does not succeed ends it, auto-merge off.
 // With push.pr.review_by, awaitReviews asks GitHub at once and each
 // ci.watch.interval, never faster than reviewPoll, until each login has a
-// review, matched with a trailing "[bot]" dropped from both sides since
+// verdict, matched with a trailing "[bot]" dropped from both sides since
 // GraphQL names a bot without it; ci.watch.timeout from the first ask ends it,
-// exit 75, outcome review-timeout. The reviews and the review threads are one
+// exit 75, outcome review-timeout. A verdict is the login's review-state
+// comment with both reviews completed (Codex posts no review on a clean pass),
+// or, for a login that wrote none, a review that is not a refusal (Copilot's
+// "was unable to review this pull request"); a login with only refusals ends
+// the wait at once, exit 75, outcome review-refused. The reviews, the pull
+// request's comments and the review threads are one
 // gh api graphql question (ask, reviewQuery on one line, since the recording
 // gh of the scenarios keeps a call to one line); an answer without that shape
 // is a gh call that fails. A thread not resolved refuses the merge (exit 1,

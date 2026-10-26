@@ -701,7 +701,7 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   # writes the login as REST does, the comment's author is GraphQL's. Fails
   # before the work at the exit code: today only a review counts, so --ready
   # waits out ci.watch.timeout, exit 75.
-  @ID-PUSHDRAFT-17 @slice-187 @wip
+  @ID-PUSHDRAFT-17 @slice-187
   Scenario: Under push.pr.draft, push --ready counts Codex's review-state comment with both reviews completed as its verdict and turns on auto-merge
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -732,7 +732,7 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   # it passes before the work (no review at all) and must after it, where
   # it holds that a state comment counts only once both reviews are
   # completed.
-  @ID-PUSHDRAFT-18 @slice-187 @guard @wip
+  @ID-PUSHDRAFT-18 @slice-187 @guard
   Scenario Outline: Under push.pr.draft, push --ready while either of Codex's reviews is still running waits out ci.watch.timeout and exits 75, turning on no auto-merge
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -767,7 +767,7 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   # long enough for a few looks on a slow runner. Fails before the work at
   # the exit code: today no review by the login ever comes, so the wait ends
   # at ci.watch.timeout, exit 75.
-  @ID-PUSHDRAFT-19 @slice-187 @wip
+  @ID-PUSHDRAFT-19 @slice-187
   Scenario: Under push.pr.draft, push --ready keeps waiting while Codex's reviews run and turns on auto-merge once its review-state comment says both completed
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -798,7 +798,7 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   # fails at the outcome rather than by hanging. Fails before the work at
   # the exit code: today the refusal counts as the review and auto-merge
   # goes on, exit 0.
-  @ID-PUSHDRAFT-20 @slice-187 @wip
+  @ID-PUSHDRAFT-20 @slice-187
   Scenario: Under push.pr.draft, push --ready stops at a review_by login's refusal to review, exit 75, quoting it and turning on no auto-merge
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -832,7 +832,7 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   # Copilot's overview marker, as every real one here does. A guard: it
   # passes before the work (any review counts) and must after it, where it
   # holds that a refusal stops the wait only for a login with no verdict.
-  @ID-PUSHDRAFT-21 @slice-187 @guard @wip
+  @ID-PUSHDRAFT-21 @slice-187 @guard
   Scenario: Under push.pr.draft, push --ready counts a login's review given after its refusal and turns on auto-merge
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -862,7 +862,7 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   # turn auto-merge on before the security findings land. Fails before the
   # work at the exit code: today any review by the login counts, so
   # auto-merge goes on, exit 0.
-  @ID-PUSHDRAFT-22 @slice-187 @wip
+  @ID-PUSHDRAFT-22 @slice-187
   Scenario: Under push.pr.draft, push --ready does not count a review by a login whose review-state comment says a review is still running, and exits 75
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -894,7 +894,7 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   # where no comment is read at all, and is kept since the work makes
   # comments count, and a build that counts any author's would pass every
   # other scenario.
-  @ID-PUSHDRAFT-23 @slice-187 @guard @wip
+  @ID-PUSHDRAFT-23 @slice-187 @guard
   Scenario: Under push.pr.draft, push --ready does not count a review-state comment written by a login not in review_by, and exits 75
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """

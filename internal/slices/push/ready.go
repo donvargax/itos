@@ -16,20 +16,34 @@ import (
 // answers.
 const reviewPoll = 50 * time.Millisecond
 
-// reviewQuery is the one question the reviews and the review threads are read
-// with (gh api graphql, since gh pr view has no threads), on a single line.
+// reviewQuery is the one question the reviews, the comments and the review
+// threads are read with (gh api graphql, since gh pr view has no threads), on a
+// single line.
 var reviewQuery = strings.Join(strings.Fields(`
 	query($owner: String!, $name: String!, $number: Int!) {
 	repository(owner: $owner, name: $name) { pullRequest(number: $number) {
-	reviews(first: 100) { nodes { author { login } } }
+	reviews(first: 100) { nodes { author { login } body } }
+	comments(first: 100) { nodes { author { login } body } }
 	reviewThreads(first: 100) { nodes { isResolved path line
 	comments(first: 1) { nodes { body } } } } } } }`), " ")
 
-// pullState is what GitHub says of the pull request's reviews and threads: the
-// logins that reviewed it, as GraphQL gives them, and the threads still open.
+// pullState is what GitHub says of the pull request: its reviews and comments,
+// by the logins GraphQL gives, and the threads still open.
 type pullState struct {
-	reviewers  []string
+	reviews    []authored
+	comments   []authored
 	unresolved []openThread
+}
+
+// authored is a review or a comment: who wrote it and its body.
+type authored struct {
+	login, body string
+}
+
+// refusal is a review_by login with no verdict whose reviews are all refusals:
+// the first line of the last.
+type refusal struct {
+	login, line string
 }
 
 // openThread is a review thread that is not resolved: where it is (line 0 for
@@ -92,11 +106,12 @@ func (r *pushRun) finish(ctx context.Context, repository, outcome, line string) 
 	return r.report(0, outcome, fmt.Sprintf("Auto-merge is on: GitHub merges %s by rebase once its required checks pass.", r.pr.URL))
 }
 
-// awaitReviews asks GitHub for the pull request's reviews at once and each
-// ci.watch.interval until each login has one, or ci.watch.timeout, counted
-// from the first ask, has passed: done, with the exit reported (75, outcome
-// review-timeout, naming the logins that have none), or the failure of gh api
-// graphql. The last answer is the state.
+// awaitReviews asks GitHub for the pull request at once and each
+// ci.watch.interval until each login has a verdict, or ci.watch.timeout,
+// counted from the first ask, has passed: done, with the exit reported (75,
+// outcome review-timeout, naming the logins that have none; or at once 75,
+// review-refused, for a login whose reviews are all refusals), or the failure
+// of gh api graphql. The last answer is the state.
 func (r *pushRun) awaitReviews(ctx context.Context, repository string, logins []string) (pullState, Answer, bool) {
 	watch := r.cfg.CI.Watch
 	interval := time.Duration(*watch.Interval * float64(time.Second))
@@ -107,9 +122,16 @@ func (r *pushRun) awaitReviews(ctx context.Context, repository string, logins []
 		if failed {
 			return pullState{}, a, true
 		}
-		missing := state.without(logins)
+		missing, refused := state.verdicts(logins)
 		if len(missing) == 0 {
 			return state, Answer{}, false
+		}
+		if len(refused) > 0 {
+			for _, f := range refused {
+				fmt.Fprintf(r.o.Stderr, "itos: %s gave no verdict on %s: \"%s\"; auto-merge is not turned on: request its review again, then itos push --ready again.\n",
+					f.login, r.pr.URL, f.line)
+			}
+			return state, r.report(temporary, "review-refused"), true
 		}
 		left := deadline.Sub(now())
 		if left <= 0 {
@@ -121,27 +143,91 @@ func (r *pushRun) awaitReviews(ctx context.Context, repository string, logins []
 	}
 }
 
-// without are the logins that no review is by, as the config wrote them. A
-// login matches an author when the two are equal once a trailing "[bot]" is
-// dropped from each, GraphQL naming a bot without it and the REST API with it.
-func (s pullState) without(logins []string) []string {
-	var missing []string
+// sameLogin is whether two logins are equal once a trailing "[bot]" is dropped
+// from each, GraphQL naming a bot without it and the REST API with it.
+func sameLogin(a, b string) bool {
+	return strings.TrimSuffix(a, "[bot]") == strings.TrimSuffix(b, "[bot]")
+}
+
+// verdicts splits the logins, as the config wrote them, that have no verdict
+// (missing) from those among them whose reviews are all refusals (refused, in
+// the config's order). A login that wrote a review-state comment has the verdict
+// that comment gives and no other; else any review of its that is not a refusal
+// is one.
+func (s pullState) verdicts(logins []string) (missing []string, refused []refusal) {
 	for _, login := range logins {
-		had := false
-		for _, who := range s.reviewers {
-			had = had || strings.TrimSuffix(who, "[bot]") == strings.TrimSuffix(login, "[bot]")
+		if completed, stated := s.stateOf(login); stated {
+			if !completed {
+				missing = append(missing, login)
+			}
+			continue
 		}
-		if !had {
-			missing = append(missing, login)
+		gave, last := false, ""
+		for _, rv := range s.reviews {
+			if !sameLogin(rv.login, login) {
+				continue
+			}
+			if line, refuses := refusalLine(rv.body); refuses {
+				last = line
+			} else {
+				gave = true
+			}
+		}
+		if gave {
+			continue
+		}
+		missing = append(missing, login)
+		if last != "" {
+			refused = append(refused, refusal{login, last})
 		}
 	}
-	return missing
+	return missing, refused
+}
+
+// refusalLine is the first line of a review body and whether it is Copilot's
+// refusal to review: it begins "Copilot" and says it was unable to review the
+// pull request.
+func refusalLine(body string) (string, bool) {
+	first, _, _ := strings.Cut(body, "\n")
+	first = strings.TrimSpace(first)
+	return first, strings.HasPrefix(first, "Copilot") && strings.Contains(first, "was unable to review this pull request")
+}
+
+// stateOf reads the login's review-state comment, the last it wrote with a
+// "<!-- codex-review-state:v1 {json} -->" line: stated whether it wrote one,
+// completed whether both of its reviews are.
+func (s pullState) stateOf(login string) (completed, stated bool) {
+	for _, c := range s.comments {
+		if !sameLogin(c.login, login) {
+			continue
+		}
+		for _, line := range strings.Split(c.body, "\n") {
+			text, ok := strings.CutPrefix(strings.TrimSpace(line), "<!-- codex-review-state:v1 ")
+			text, ok2 := strings.CutSuffix(text, " -->")
+			if !ok || !ok2 {
+				continue
+			}
+			var state struct {
+				CodeReview struct {
+					Status string `json:"status"`
+				} `json:"code_review"`
+				SecurityReview struct {
+					Status string `json:"status"`
+				} `json:"security_review"`
+			}
+			stated = true
+			completed = json.Unmarshal([]byte(text), &state) == nil &&
+				state.CodeReview.Status == "completed" && state.SecurityReview.Status == "completed"
+		}
+	}
+	return completed, stated
 }
 
 // ask puts reviewQuery to GitHub (gh api graphql, which takes no --repo, so
 // the repository is its owner and name) about the pull request: failed, with
 // pull-request-failed reported, when gh does or its answer has not the
-// reviews and the review threads.
+// reviews and the review threads (comments, which an answer from before slice
+// 187 lacks, are none then).
 func (r *pushRun) ask(ctx context.Context, repository string) (pullState, Answer, bool) {
 	owner, name, _ := strings.Cut(repository, "/")
 	answered, a, failed := r.gh(ctx, "api", "graphql", "-f", "query="+reviewQuery, "-f", "owner="+owner, "-f", "name="+name,
@@ -153,13 +239,8 @@ func (r *pushRun) ask(ctx context.Context, repository string) (pullState, Answer
 		Data struct {
 			Repository struct {
 				PullRequest *struct {
-					Reviews *struct {
-						Nodes []struct {
-							Author *struct {
-								Login string `json:"login"`
-							} `json:"author"`
-						} `json:"nodes"`
-					} `json:"reviews"`
+					Reviews       *authoredNodes `json:"reviews"`
+					Comments      *authoredNodes `json:"comments"`
 					ReviewThreads *struct {
 						Nodes []struct {
 							IsResolved bool   `json:"isResolved"`
@@ -182,11 +263,7 @@ func (r *pushRun) ask(ctx context.Context, repository string) (pullState, Answer
 		return pullState{}, r.ghFailed("gh api graphql", "its answer is not a pull request's reviews and review threads"), true
 	}
 	var state pullState
-	for _, n := range pull.Reviews.Nodes {
-		if n.Author != nil {
-			state.reviewers = append(state.reviewers, n.Author.Login)
-		}
-	}
+	state.reviews, state.comments = pull.Reviews.authored(), pull.Comments.authored()
 	for _, t := range pull.ReviewThreads.Nodes {
 		if t.IsResolved {
 			continue
@@ -202,4 +279,28 @@ func (r *pushRun) ask(ctx context.Context, repository string) (pullState, Answer
 		state.unresolved = append(state.unresolved, open)
 	}
 	return state, Answer{}, false
+}
+
+// authoredNodes are GraphQL's reviews or comments; a node whose author is gone
+// is no one's.
+type authoredNodes struct {
+	Nodes []struct {
+		Author *struct {
+			Login string `json:"login"`
+		} `json:"author"`
+		Body string `json:"body"`
+	} `json:"nodes"`
+}
+
+func (a *authoredNodes) authored() []authored {
+	var out []authored
+	if a == nil {
+		return out
+	}
+	for _, n := range a.Nodes {
+		if n.Author != nil {
+			out = append(out, authored{n.Author.Login, n.Body})
+		}
+	}
+	return out
 }
