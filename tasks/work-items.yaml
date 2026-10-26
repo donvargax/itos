@@ -14557,3 +14557,18 @@ items:
       already on the remote main, naming them, or drop them. slice-189 removes the reason to rebase
       onto main, not the trap.
     tags: [push]
+
+  - id: p1-features-hook-scenarios-need-install
+    title: A clone scenario that judges a hook says so when the hook is the fixture's exit-0 stand-in
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Seen 2026-10-26 drafting slice-189: the scenario fixture's declared hooks are exit-0
+      stand-ins, so a clone scenario needs "the commit-msg hook is installed" or "the pre-push hook
+      is installed" to judge anything; the drafter's first MAINTASK-01 passed against today's code
+      because of it, and nothing warned. A step asserting a hook's refusal or rule could fail when
+      the stand-in is in place.
+    tags: [tests]
