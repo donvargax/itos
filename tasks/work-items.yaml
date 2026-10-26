@@ -14471,3 +14471,19 @@ items:
     status: doing
     depends_on: []
     kind: task
+
+  - id: p1-commit-task-on-main-hint
+    title: itos commit names a task added on main since the branch was cut, instead of only "unknown tasks"
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Seen 2026-10-26 on slice-187 (#160): the coordinator added T-313 (the build turn-on) on main
+      after the item branch was cut; itos commit --task T-313 on the branch said only "unknown
+      tasks: T-313 [task-footer]", reading the branch's ledger. When the id is in the remote main's
+      ledger (one git show, no fetch needed if the ref is current), the problem could say so and its
+      fix name the rebase onto main; else as today. Under push.mode pr every turn-on task added
+      mid-item meets it.
+    tags: [commit]
