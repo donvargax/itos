@@ -113,7 +113,7 @@ func TestUnreadableCapsExits2(t *testing.T) {
 // TestIndexJudgesTheStagedFiles stages the caps and the files in a scratch
 // repository, then changes the working tree: -index judges what is staged.
 func TestIndexJudgesTheStagedFiles(t *testing.T) {
-	for _, name := range []string{"GIT_DIR", "GIT_INDEX_FILE", "GIT_WORK_TREE"} {
+	for _, name := range []string{"GIT_DIR", "GIT_INDEX_FILE", "GIT_WORK_TREE", "GIT_CONFIG_COUNT", "GIT_CONFIG_PARAMETERS"} {
 		t.Setenv(name, "")
 		os.Unsetenv(name)
 	}
