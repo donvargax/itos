@@ -64,20 +64,10 @@ and the nightly run, `tools/bin/itos ci plan <from> <to>` and `ci plan
 --nightly`. Beside those:
 
 - **pre-commit** is not itos's: `tools/bin/pre-commit`, declared in the git
-  config beside itos's hooks (its header says how, once per clone; worktrees
-  share it). It formats the staged Markdown and YAML with dprint
-  (`dprint.json`) and the staged Go with `gofmt`, re-staging them (a file with
-  unstaged changes is only checked), runs `go vet` when Go is staged,
-  `go run ./tools/bin/assemble -check` (the command table is current) when a
-  non-test Go file under `internal/cli` or `internal/slices` is, and the
-  doc budget (`tools/bin/doc-budget`, staged sizes) when a file it caps is; then,
-  when `go.mod` or `go.sum` is staged, `go run ./tools/bin/deps-check` (no Go
-  module younger than 7 days unless `deps-check.json` excepts it, then
-  govulncheck; needs the network) and the unit tests the change reaches
-  (`tools/bin/go-unit-tests --cached`), both skipped when every staged file is
-  Markdown, under `docs/**` or `tasks/**`, or a feature file. staticcheck is
-  not pre-commit's: pre-push runs it over the Go packages a push changes
-  (`tools/bin/staticcheck-changed`), after golangci-lint.
+  config beside itos's hooks (its header says how, once per clone, and what it
+  runs). It formats and re-stages what is staged and runs the checks the staged
+  files reach. pre-push runs golangci-lint, then staticcheck over the Go
+  packages a push changes (`tools/bin/staticcheck-changed`).
 - Every gate that calls itos runs `tools/bin/itos`; a Go tree that does not
   build stops it with exit 3 and a line naming the build.
 - **CI** (`.github/workflows/ci.yml`, every push to `main`) re-checks every
@@ -169,3 +159,18 @@ written only where the code is ambiguous or serves a purpose it doesn't show
 Stage only your own files, by explicit path: untracked files you did not make are someone else's work in progress.
 
 <!-- itos:end -->
+
+## Review guidelines
+
+- Read what the change must do first: the `@wip` scenarios in `features/`, the task's `why` and
+  `done_when` in `tasks/`, the plan or decision it names. Report what it leaves out or adds.
+- A pull request that changes only feature files, `tasks/` or `docs/` is a spec: report a
+  scenario that would pass before the work, or fail after a correct one, reading the steps it
+  uses in `features/*_test.go` and what each Given leaves in the clone and its remote.
+- Report as P1 a test that cannot fail without the change, passes for the wrong reason, or
+  depends on the environment it runs in instead of setting it up.
+- Report as P1 an error check no run can reach: CI refuses a changed line no test covers.
+- Report as P2 help, a `doc.go` or a feature's description that says more or less than the code.
+- Check what the author could not run: Windows (renames over existing files, file locks, CRLF,
+  path separators), macOS (`/var` behind `/private/var`), and the commit once pushed or in CI.
+- Do not report formatting, naming, or wording no contract fixes; the linters judge those.

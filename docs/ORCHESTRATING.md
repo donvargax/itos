@@ -101,8 +101,9 @@ handoff line below replaces the template's "wait for CI … close the item":
   golangci-lint or staticcheck: pre-push runs the linters, CI the rest; run a
   diagnostic only when it is the work. The agent finishes as AGENTS.md's
   Finishing says: it hands back the draft; the coordinator's reviewer posts
-  on a spec, a diff only on ADR-0061's list; the agent addresses the
-  threads and alone runs `itos push --ready`; the coordinator closes it on
+  on a spec, Codex at ready on every diff (ADR-0061); the agent fixes
+  the threads and alone runs `itos push --ready`; a Codex review still
+  running after 30 minutes gets one new `@codex review` comment; the coordinator closes it on
   main after the merge (T-303, slice-179).
 - **What the push proof flags:** an error check after a call that already
   returns that error is a dead branch, an uncovered line (T-281, T-282). A
@@ -121,8 +122,7 @@ handoff line below replaces the template's "wait for CI … close the item":
 q-41: independent work goes on while CI is pending; a red repair first.
 Under pr (T-303) an item has one pull request, a draft its spec opens;
 every commit of the item goes on it, only the implementer marks it
-ready. After the merge the coordinator deletes its local `<item>`. A
-docs commit off `features/` goes from `main` by `itos push` (T-311).
+ready. After the merge the coordinator deletes its local `<item>`.
 Agents use isolation worktrees.
 
 ## Lessons from this repository
