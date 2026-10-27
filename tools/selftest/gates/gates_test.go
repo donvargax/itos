@@ -6,6 +6,8 @@
 //
 //   - CI runs the whole unit suite and the features, which the hooks leave to it;
 //   - pre-commit formats a root .yml file, as it must format action.yml (T-127);
+//   - itos commit <path> leaves no stale copy of a file the pre-commit hook formatted in the index
+//     (bug-145, T-319): the real hook and dprint, the real itos commit;
 //   - pre-commit refuses a staged file over its doc budget, judging the staged size, and runs
 //     doc-budget only when a file it caps is staged (T-167);
 //   - pre-commit refuses a command table a staged declaration in internal/cli or a slice leaves
@@ -33,6 +35,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -85,6 +88,42 @@ func TestSelftest(t *testing.T) {
 		}
 		if got, _ := os.ReadFile(yml); string(got) != "name: itos\n" {
 			t.Errorf("pre-commit left a root .yml file unformatted: %q", got)
+		}
+	})
+
+	// git commit <path> commits from a temporary index and keeps the real one as it read it before
+	// the hook ran, so a file the hook formats and stages is committed formatted but left staged
+	// unformatted (git status MM, bug-145); itos commit sets the index of what it committed to
+	// the commit. The hooks are itos's, declared as itos hook install declares them, and the
+	// pre-commit hook under the name the checkout's own git config gives it, which the scratch
+	// worktree shares where it has one.
+	t.Run("itos commit leaves no stale copy of a file pre-commit formatted staged", func(t *testing.T) {
+		reset(base)
+		const md = "docs/selftest-by-path.md"
+		if err := os.WriteFile(filepath.Join(repo.Dir, md), []byte("# Title\n* a\n* b\n\n\n\nText   \n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		repo.Git("add", md)
+		repo.HookRun("commit-msg", nil, nil) // declares itos's hooks in the worktree's git config
+		declared, n := repo.Env, 0
+		defer func() { repo.Env = declared }()
+		for _, kv := range repo.Env {
+			if count, ok := strings.CutPrefix(kv, "GIT_CONFIG_COUNT="); ok {
+				n, _ = strconv.Atoi(count)
+			}
+		}
+		repo.Env = scratch.With(repo.Env, "GIT_CONFIG_COUNT="+strconv.Itoa(n+2),
+			"GIT_CONFIG_KEY_"+strconv.Itoa(n)+"=hook.repo-pre-commit.event", "GIT_CONFIG_VALUE_"+strconv.Itoa(n)+"=pre-commit",
+			"GIT_CONFIG_KEY_"+strconv.Itoa(n+1)+"=hook.repo-pre-commit.command", "GIT_CONFIG_VALUE_"+strconv.Itoa(n+1)+"=sh tools/bin/pre-commit")
+		name, argv := scratch.Program(filepath.Join(repo.Dir, "tools", "bin", "itos"), "commit", "-m", "docs: by path", "--", md)
+		if r := scratch.Run(repo.Dir, repo.Env, "", name, argv...); r.Code != 0 {
+			t.Fatalf("itos commit by path failed:\n%s", r.Output())
+		}
+		if status := repo.Git("status", "--porcelain", "--", md); status != "" {
+			t.Errorf("itos commit left %q in git status", status)
+		}
+		if committed, want := repo.Git("show", "HEAD:"+md), "# Title\n\n- a\n- b\n\nText"; committed != want {
+			t.Errorf("the commit holds %q, want it formatted: %q", committed, want)
 		}
 	})
 
