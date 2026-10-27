@@ -288,6 +288,12 @@ ci:
         run: "ITOS_SELFTEST=1 go test -count=1 -run '^TestSelftest$' ./tools/selftest/nightly-properties",
         cost: late,
       }
+    # The nightly's fuzz step: each target found run alone and bounded, a failure going on to the
+    # other targets and printing its input, and that the nightly's plan runs it (T-328).
+    - {
+        run: "ITOS_SELFTEST=1 go test -count=1 -run '^TestSelftest$' ./tools/selftest/nightly-fuzz",
+        cost: late,
+      }
     # The one merged run; late, as no pattern matches it. Against the Go
     # binary, tools/bin/itos, the features' default ITOS_BIN. ci.yml's platform
     # jobs run it alone, on each platform, with ci run --tests (T-163).
@@ -348,6 +354,12 @@ ci:
       # for the night and printed, and a thousand checks. A push runs the same tests with the seed
       # internal/proptest pins; a failure here becomes a fail file committed as a regression.
       - tools/bin/nightly-properties
+      # The fuzz targets (T-328, ADR-0051), explored: every Fuzz function under cmd and internal,
+      # each for 60 seconds, so the step lasts a minute and a compile for each target (one today,
+      # FuzzTrailersMatchGit). A push runs only their seeds, in the unit tests; a failing input is
+      # printed in the log, which the Nightly red issue names, and becomes a seed committed under
+      # the package's testdata/fuzz.
+      - tools/bin/nightly-fuzz
       # What a push's features step selects, read back from go test -json (T-005's and T-016's
       # checks, kept as a step in T-125): this repository's scenario kind and the harness's
       # -scenarios selection. The corpus proves the plan's command, never what go test then runs.
