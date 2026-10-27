@@ -14704,6 +14704,14 @@ items:
       map, or measure only reaching scenarios), #74 (progress lines for the silent phases), #75
       (emit itos_proof so the green log says what was judged). Left for itos: lever 3,
       previous-release running only the old scenarios a range can affect (75 s).
+
+      Windows side done 2026-10-27 (T-317, T-318): the windows job 354 s -> 282 s, its unit tests
+      step 250 s -> 171 s (cli 123 s, idcounter 112 s, vcs/adapter 70 s: T-318 missed its 90 s/120 s
+      target). On a pull request changing Go, Linux's ci job (~390 s, the code proof) now outlasts
+      Windows, so further Windows work saves nothing there. What remains on Windows is product git
+      starts per run() (hook probe ~290, rev-parse --show-toplevel ~210 per cli suite) and the
+      concurrency property test (~73 git starts per rapid check): a product or test-strength
+      decision, not taken.
     tags: [ci]
 
   - id: T-318
