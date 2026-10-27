@@ -14835,3 +14835,18 @@ items:
       cleaned one, so a message with CRLF line endings and a folded text footer is refused with exit
       1 though the hook would accept it. Reproduce with a CRLF message (-F file) first.
     tags: [commit]
+
+  - id: bug-149
+    title: push.pr.direct admits a commit type commits.types lacks when the built-in header lint is off
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: bug
+    why: >
+      Found 2026-10-27 in the reviewer replay (s153, slice-186) by Astra and Codex's security
+      review, scorer-checked: commit types are only checked by the built-in header lint (type-enum,
+      internal/message/header.go:313); without it, direct() sends a commit whose type commits.types
+      does not list (e.g. custom:) straight to main past the hooks. direct() should require
+      message.Typed (the type is one commits.types lists) before treating a commit as a direct type.
+    tags: [push]
