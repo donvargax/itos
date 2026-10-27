@@ -515,7 +515,7 @@ Feature: itos commit, a commit whose footers itos writes
   # not the flag's, so settle refuses the commit: it fails at itos exits
   # with code 0 (it exits 1). After it the footer is the same, no line of it
   # is written, and HEAD has it once, unfolded as git reads it.
-  @ID-COMMITCMD-42 @bug-148 @wip
+  @ID-COMMITCMD-45 @bug-148 @wip
   Scenario: A folded free-text footer in a CRLF message, the flag's text, is one footer
     Given the config requires an "Upgrading" footer of free text for "chore"
     And the scratch file "msg.txt" contains "chore: tidy the readme\r\n\r\nTask: T-001\r\nUpgrading: run itos upgrade,\r\n  then commit\r\n", its backslash escapes read as Go's
@@ -528,7 +528,7 @@ Feature: itos commit, a commit whose footers itos writes
   # Before the fix it is refused too, exit 1, but the message's text in the
   # line holds the CR, "run itos upgrade,\r then commit": it fails at its
   # output says the line with both texts.
-  @ID-COMMITCMD-43 @bug-148 @wip
+  @ID-COMMITCMD-46 @bug-148 @wip
   Scenario: A folded free-text footer in a CRLF message with another text than the flag's is refused, named as the hook reads it
     Given the config requires an "Upgrading" footer of free text for "chore"
     And the scratch file "msg.txt" contains "chore: tidy the readme\r\n\r\nTask: T-001\r\nUpgrading: run itos upgrade,\r\n  then commit\r\n", its backslash escapes read as Go's
@@ -543,7 +543,7 @@ Feature: itos commit, a commit whose footers itos writes
   # finds no type, lacking finds nothing, git runs and the hook refuses in
   # its own words, 'chore commits need a "Task: T-..." footer': it fails at
   # its output says "chore commits need --task".
-  @ID-COMMITCMD-44 @bug-148 @wip
+  @ID-COMMITCMD-47 @bug-148 @wip
   Scenario: A message whose first line is a comment is checked for its required footers before git runs
     Given the scratch file "msg.txt" contains exactly:
       """
