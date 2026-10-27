@@ -43,6 +43,9 @@ type Options struct {
 	Nightly        bool
 	Stdout, Stderr io.Writer
 	Evidence       *evidence.Engine
+	// Annotate prints one GitHub Actions error command on Stderr for each
+	// failure the run reports, up to 10 (slice 198).
+	Annotate bool
 }
 
 // driver is one run: the config, its streams, its check runner and the
@@ -55,6 +58,9 @@ type driver struct {
 	evidence *evidence.Engine
 	ends     plan.Ends
 	proofRun *ProofRun
+	// ann prints the failures as workflow commands: nil unless the run
+	// annotates.
+	ann *annotator
 }
 
 // ProofRun is the code proof of a run that was executed, as --json's proof
@@ -83,6 +89,9 @@ func Run(cfg *config.Loaded, p *plan.Plan, o Options) (int, error) {
 		}
 	}
 	d := &driver{cfg: cfg, log: o.Stdout, stderr: o.Stderr, evidence: o.Evidence, ends: p.Ends}
+	if o.Annotate {
+		d.ann = newAnnotator(cfg, o.Stderr)
+	}
 	if o.JSON {
 		d.log = o.Stderr
 	}
@@ -164,6 +173,9 @@ func (d *driver) preamble(p *plan.Plan) (*Failure, error) {
 			fmt.Fprintf(d.stderr, "No task %s in %s/, though a footer names it\n", id, layout.Dir)
 		}
 		fmt.Fprintf(d.stderr, "\nCI failed at the tasks named: %s\n", strings.Join(p.Unknown, ", "))
+		if d.ann != nil {
+			d.ann.emit("", 0, fmt.Sprintf("the tasks named failed: no task %s in %s/", strings.Join(p.Unknown, ", "), layout.Dir))
+		}
 		return &Failure{Unknown: p.Unknown, Code: 1}, nil
 	}
 	for _, id := range p.NotStarted {
@@ -213,11 +225,15 @@ func (d *driver) step(s *plan.Step, lead string) *Failure {
 	fmt.Fprintf(d.log, "\n$ %s\n", command)
 	var ok bool
 	var code int
+	stdout, stderr := d.log, d.stderr
+	if d.ann != nil {
+		stdout, stderr = d.ann.watch(stdout, stderr)
+	}
 	if s.Evidence != nil && d.evidence != nil {
-		o := d.evidence.Run(context.Background(), evidence.Request{Command: command, Decl: *s.Evidence, Verbose: true, Log: d.log})
+		o := d.evidence.Run(context.Background(), evidence.Request{Command: command, Decl: *s.Evidence, Verbose: true, Log: stdout})
 		ok, code = o.OK, o.Code
 	} else {
-		r := shell.Run(d.cfg, command, shell.Options{Stdin: os.Stdin, Stdout: d.log, Stderr: d.stderr})
+		r := shell.Run(d.cfg, command, shell.Options{Stdin: os.Stdin, Stdout: stdout, Stderr: stderr})
 		ok, code = r.OK(), r.Code
 	}
 	if ok {
@@ -225,9 +241,11 @@ func (d *driver) step(s *plan.Step, lead string) *Failure {
 	}
 	if code <= 0 {
 		fmt.Fprintf(d.stderr, "\n%s: %s (it gave no exit code)\n", lead, command)
+		d.annotate(command, "it gave no exit code")
 		return &Failure{Step: &command, Code: 1}
 	}
 	fmt.Fprintf(d.stderr, "\n%s: %s (it exited %d)\n", lead, command, code)
+	d.annotate(command, fmt.Sprintf("it exited %d", code))
 	return &Failure{Step: &command, Code: code}
 }
 
@@ -250,24 +268,24 @@ func (d *driver) proof(s *plan.Step, lead string) *Failure {
 	fmt.Fprintf(d.log, "\nCode proof\n$ %s\n", s.Command)
 	v := proof.Run(d.cfg, s.Command, d.stderr)
 	d.proofRun = &ProofRun{Command: s.Command, From: d.ends.From, To: d.ends.To, Outcome: v.Outcome.String(), Summary: v.Summary}
-	problems := proofProblems(v.Problems)
+	problems, places := proofProblems(v.Problems)
 	switch {
 	case v.Outcome == proof.Passed:
 		fmt.Fprintln(d.log, v.Summary.Line())
 		return nil
 	case v.Invalid != nil:
-		problems = []out.Problem{{
+		problems, places = []out.Problem{{
 			Rule:    "ci-code-proof-summary",
 			Message: "the code proof's summary breaks its contract: " + v.Invalid.Message(),
 			Fix:     "make proof.code.check print a valid itos_proof envelope (README.md, Proof of done), or none, and push the range again",
-		}}
+		}}, nil
 	case v.NoWork():
 		fmt.Fprintln(d.log, v.Summary.Line())
-		problems = []out.Problem{{
+		problems, places = []out.Problem{{
 			Rule:    "ci-code-proof-empty",
 			Message: "the code proof reported that it judged no work (judged 0), so it proves nothing for this range",
 			Fix:     "make proof.code.check judge the changed code: widen its scope or correct the base it is given, and push the range again",
-		}}
+		}}, nil
 	case v.Outcome == proof.CannotRun:
 		problems = append([]out.Problem{{
 			Rule: "ci-code-proof",
@@ -275,6 +293,7 @@ func (d *driver) proof(s *plan.Step, lead string) *Failure {
 				s.Command, v.Why),
 			Fix: "make proof.code.check run (its command, its tools) and push the range again; nothing is proved until it answers",
 		}}, problems...)
+		places = append([]place{{}}, places...)
 	}
 	fmt.Fprintf(d.stderr, "\n%s the code proof: %s\n", lead, s.Command)
 	if len(problems) == 0 {
@@ -284,24 +303,40 @@ func (d *driver) proof(s *plan.Step, lead string) *Failure {
 			Fix:     "run proof.code.check by hand to see what it found",
 		}}
 	}
-	for _, p := range problems {
+	for i, p := range problems {
 		fmt.Fprintf(d.stderr, "%s: %s\n", p.Rule, p.Message)
 		if p.Fix != "" {
 			fmt.Fprintf(d.stderr, "  fix: %s\n", p.Fix)
+		}
+		if d.ann != nil {
+			var at place
+			if i < len(places) {
+				at = places[i]
+			}
+			d.ann.emit(at.file, at.line, "the code proof failed: "+p.Rule+": "+p.Message)
 		}
 	}
 	return &Failure{Step: &s.Command, Problems: problems, Code: 1}
 }
 
+// place is where a problem's subject is: a file and line, or neither.
+type place struct {
+	file string
+	line int
+}
+
 // proofProblems are a provider's problems as the run's, each naming the
 // check's own rule and message and keeping its fix: what it found is the
-// provider's to say, and an agent fixes it from the rule.
-func proofProblems(found []proof.Problem) []out.Problem {
+// provider's to say, and an agent fixes it from the rule. The places are the
+// files and lines their subjects name, one for each problem.
+func proofProblems(found []proof.Problem) ([]out.Problem, []place) {
 	problems := make([]out.Problem, 0, len(found))
+	places := make([]place, 0, len(found))
 	for _, p := range found {
 		problems = append(problems, out.Problem{Rule: p.Rule, Message: p.Message, Fix: p.Fix})
+		places = append(places, place{file: p.File, line: p.Line})
 	}
-	return problems
+	return problems, places
 }
 
 // check is one task check: logged as merged, covered, left out or pending,
@@ -319,6 +354,10 @@ func (d *driver) check(c *plan.Check, lead string) *Failure {
 	case plan.Pending:
 		fmt.Fprintf(d.log, "  - %s   (pending: runs after the push)\n", command)
 	default:
+		if d.ann != nil {
+			d.runner.Stdout, d.runner.Stderr = d.ann.watch(d.log, d.stderr)
+			d.runner.ToStderr = false
+		}
 		if d.runner.Run(c.Check) != check.Fail {
 			return nil
 		}
@@ -327,7 +366,16 @@ func (d *driver) check(c *plan.Check, lead string) *Failure {
 			title = " (" + c.Task.Title + ")"
 		}
 		fmt.Fprintf(d.stderr, "\n%s %s%s, its check: %s\n", lead, c.Task.ID, title, command)
+		d.annotate(c.Task.ID+title, "its check "+command)
 		return &Failure{Task: c.Task.ID, Title: c.Task.Title, Command: command, Code: 1}
 	}
 	return nil
+}
+
+// annotate prints the failure of the step or check just run, when the run
+// annotates.
+func (d *driver) annotate(what, reason string) {
+	if d.ann != nil {
+		d.ann.run(what, reason)
+	}
 }

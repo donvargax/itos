@@ -17,7 +17,8 @@
 // work; exit 1 with the --json object
 // {"schema":1,"ok":false,"problems":[{"rule","message","fix",…}]}
 // refuses, its problems kept (the keys besides rule, message and fix are the
-// problem's subject, read by no one here); anything else cannot run: a
+// problem's subject, read by no one here, but file and line, which a problem
+// keeps when they are a string and a positive whole number: slice 198); anything else cannot run: a
 // command that did not start or was stopped, an exit 1 whose stdout is no
 // such object, and every other code, 2 (usage or config), 3 (environment),
 // 70 (internal) and 75 (temporary) among them. A check that cannot run is

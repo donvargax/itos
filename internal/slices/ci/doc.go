@@ -14,7 +14,8 @@
 // pull request's green head for it (slice 188), GitHub asked through
 // providers.MergedPullsProvider with the Env port. ci run makes the same
 // plan, cut to its run of named tests under --tests, and carries it out
-// through the RunPlan port. ci range reads the config first, so a broken
+// through the RunPlan port, annotating its failures when the Env port says
+// GITHUB_ACTIONS is "true" (slice 198). ci range reads the config first, so a broken
 // ci.range is a config error even with --base, then asks
 // providers.RangeStart, its provider reading the Env port. ci watch waits
 // for a commit's run through ciwatch.Watch, with the provider the Watcher

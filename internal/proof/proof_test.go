@@ -71,3 +71,37 @@ func TestRead(t *testing.T) {
 		}
 	}
 }
+
+// A problem keeps its subject's file and line when it has both, a string and a
+// positive whole number; any other shape leaves it without a place and does not
+// make the answer unreadable.
+func TestAProblemKeepsItsFileAndLine(t *testing.T) {
+	for _, c := range []struct {
+		subject string
+		file    string
+		line    int
+	}{
+		{`"file":"src/a.go","line":7`, "src/a.go", 7},
+		{`"file":"src/a.go","line":7,"column":2,"function":"a.F"`, "src/a.go", 7},
+		{`"line":7`, "", 0},
+		{`"file":"src/a.go"`, "", 0},
+		{`"file":"","line":7`, "", 0},
+		{`"file":"src/a.go","line":0`, "", 0},
+		{`"file":"src/a.go","line":-3`, "", 0},
+		{`"file":"src/a.go","line":"7"`, "", 0},
+		{`"file":"src/a.go","line":7.5`, "", 0},
+		{`"file":"src/a.go","line":null`, "", 0},
+		{`"file":4,"line":7`, "", 0},
+		{`"file":null,"line":7`, "", 0},
+	} {
+		stdout := `{"schema":1,"ok":false,"problems":[{"rule":"r","message":"m","fix":"f",` + c.subject + `}]}`
+		v := Read(1, []byte(stdout))
+		want := Problem{Rule: "r", Message: "m", Fix: "f", File: c.file, Line: c.line}
+		if v.Outcome != Refused || !slices.Equal(v.Problems, []Problem{want}) {
+			t.Errorf("%s: got %+v", c.subject, v)
+		}
+	}
+	if v := Read(1, []byte(`{"schema":1,"ok":false,"problems":[{"rule":3}]}`)); v.Outcome != CannotRun {
+		t.Errorf("a problem whose rule is no string: got %+v", v)
+	}
+}

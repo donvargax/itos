@@ -37,6 +37,19 @@
 //     the setting says: it runs once a day to report, and a failure that
 //     stops it hides every step after it for a day (slice 133).
 //
+// With Options.Annotate (itos ci run sets it when GITHUB_ACTIONS is "true",
+// slice 198) each failure the run reports is also an error annotation, a
+// workflow command on stderr beside its lines, at most 10 a run (the first
+// in run order; GitHub keeps no more in a step): "::error file=<path>,line=<n>::"
+// when the failure names a file and line, else "::error::", then "<what>
+// failed: <reason>". A step's or task check's file and line is the first line
+// of its stdout, else of its stderr (an evidence run's merged output is
+// stdout), that begins with a relative <path>:<line>: naming a file of the
+// folder the commands run in, the path written from the repository's top
+// level; a code proof problem's are its subject's file and line, as given.
+// Annotating reads those streams as the command writes them, so the command
+// no longer gets itos's own files.
+//
 // A step that is a mapping with run: and an evidence declaration, and a task
 // check with one, are looked up by the index tree through Options.Evidence
 // (internal/engine/evidence) and run, on a miss, in a checkout of it; --json then

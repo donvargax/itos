@@ -510,7 +510,7 @@ Feature: ci run's log names a merged check by the kind of named tests it ran in
   # where the rule answers line=3. On stdout the rejected ones come first: an
   # indented line, a path to no file, then the accepted one and a later one.
   # The stderr line is read only when stdout names none (@ID-CI-74).
-  @ID-CI-67 @slice-198 @wip
+  @ID-CI-67 @slice-198
   Scenario: Under GitHub Actions a failing step whose output names a file and line is annotated at that line
     Given GITHUB_ACTIONS is "true"
     And "src/app.go" is in the first commit
@@ -531,7 +531,7 @@ Feature: ci run's log names a merged check by the kind of named tests it ran in
     And stderr contains the complete line "::error file=src/app.go,line=3::sh lint.sh failed: Total is never negative (SA4003)" exactly once
     And stderr has exactly 1 line starting with "::error"
 
-  @ID-CI-68 @slice-198 @wip
+  @ID-CI-68 @slice-198
   Scenario: Under GitHub Actions a failing step that names no file is a plain error naming it, on stderr under --json too
     Given GITHUB_ACTIONS is "true"
     And the CI steps are "exit 3"
@@ -544,7 +544,7 @@ Feature: ci run's log names a merged check by the kind of named tests it ran in
     And stderr contains the complete line "::error::exit 3 failed: it exited 3" exactly once
     And stdout contains neither "::error" nor "CI failed at"
 
-  @ID-CI-69 @slice-198 @wip
+  @ID-CI-69 @slice-198
   Scenario: Under GitHub Actions a failing task check that names no file is a plain error naming its task
     Given GITHUB_ACTIONS is "true"
     And the task "T-001" has the check "exit 4"
@@ -555,7 +555,7 @@ Feature: ci run's log names a merged check by the kind of named tests it ran in
 
   # A task check runs through check.Runner, not the driver's shell.Run, and
   # names its file on stderr alone, so stderr is read when stdout names none.
-  @ID-CI-74 @slice-198 @wip
+  @ID-CI-74 @slice-198
   Scenario: Under GitHub Actions a failing task check whose stderr names a file and line is annotated at that line
     Given GITHUB_ACTIONS is "true"
     And "src/app.go" is in the first commit
@@ -574,7 +574,7 @@ Feature: ci run's log names a merged check by the kind of named tests it ran in
 
   # One failure, so one command naming both tasks, in the footer's order,
   # not sorted.
-  @ID-CI-75 @slice-198 @wip
+  @ID-CI-75 @slice-198
   Scenario: Under GitHub Actions the tasks a footer names that no file has are one plain error naming each
     Given GITHUB_ACTIONS is "true"
     And the CI steps are "exit 0"
@@ -588,7 +588,7 @@ Feature: ci run's log names a merged check by the kind of named tests it ran in
   # does for an uncovered line: rule mutation.uncovered-statement, message
   # "src/app.go:7 in app.Total has an uncovered executable Go coverage
   # block", subject keys file, function and line.
-  @ID-CI-70 @slice-198 @wip
+  @ID-CI-70 @slice-198
   Scenario: Under GitHub Actions the code proof's uncovered line is annotated at that line
     Given GITHUB_ACTIONS is "true"
     And the config's proof.code covers "src/**" and checks with a provider that finds line 7 of "src/app.go" uncovered in "app.Total"
@@ -601,7 +601,7 @@ Feature: ci run's log names a merged check by the kind of named tests it ran in
   # The provider's file is taken as given, so it need not exist; the comma
   # and the colon are escaped in the property, the percent sign, the CR and
   # the LF in the message, which goes whole in the plain form too.
-  @ID-CI-71 @slice-198 @wip
+  @ID-CI-71 @slice-198
   Scenario: Under GitHub Actions an annotation's message and file are escaped as workflow commands require
     Given GITHUB_ACTIONS is "true"
     And the config's proof.code covers "src/**" and checks with a provider that refuses with the problems:
@@ -618,7 +618,7 @@ Feature: ci run's log names a merged check by the kind of named tests it ran in
 
   # Eleven failures of two kinds, run as written: the step's first, then the
   # proof's ten problems, of which the tenth is the run's eleventh.
-  @ID-CI-72 @slice-198 @wip
+  @ID-CI-72 @slice-198
   Scenario: Under GitHub Actions a run annotates its first 10 failures and no more
     Given GITHUB_ACTIONS is "true"
     And the CI steps are "exit 3"
@@ -649,7 +649,7 @@ Feature: ci run's log names a merged check by the kind of named tests it ran in
 
   # A guard: it passes before the work and must after it. The scenario
   # harness drops every GITHUB_* variable from itos's environment.
-  @ID-CI-73 @slice-198 @guard @wip
+  @ID-CI-73 @slice-198 @guard
   Scenario: Outside GitHub Actions a failing run prints no workflow command
     Given the CI steps are "exit 3"
     And ci.stop_at_first_failure is false

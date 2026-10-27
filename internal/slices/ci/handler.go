@@ -188,7 +188,10 @@ func (h Handler) run(ctx context.Context, q Query, o Out) (Answer, error) {
 			fmt.Fprintln(log, "ci run --tests: no named tests to run (no tests: step, or nothing selected), so nothing ran.")
 		}
 	}
-	code, err := h.ports.RunPlan(ctx, cfg, p, cirun.Options{JSON: o.JSON, Nightly: q.Nightly, Stdout: o.Stdout, Stderr: o.Stderr})
+	code, err := h.ports.RunPlan(ctx, cfg, p, cirun.Options{
+		JSON: o.JSON, Nightly: q.Nightly, Stdout: o.Stdout, Stderr: o.Stderr,
+		Annotate: h.ports.Env(ctx, "GITHUB_ACTIONS") == "true",
+	})
 	return Answer{Code: code}, err
 }
 
