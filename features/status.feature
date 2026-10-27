@@ -134,8 +134,10 @@ Feature: itos status, where the work stands
   # fetch does not move, so after a fetch that worked status counts the
   # commits of the fetched remote branch HEAD lacks and, when there are
   # any, says "<branch> is <n> commit(s) behind <remote>/<branch>: git pull
-  # before reading the work below." ("HEAD is" from a detached HEAD) before
-  # the items; --json gains "behind", that count, 0 when not behind and
+  # before reading the work below." before the items; from a detached HEAD,
+  # where git refuses a pull, "HEAD is <n> commit(s) behind
+  # <remote>/<branch>: switch to a branch and pull before reading the work
+  # below."; --json gains "behind", that count, 0 when not behind and
   # absent when no fetch worked. The help's "never writes or fetches" says
   # it fetches that one ref. It lands as a fix, not a feat: a status naming
   # a stale head the coordinator then acts on is the defect; the fix names
@@ -164,6 +166,7 @@ Feature: itos status, where the work stands
     Then itos exits with code 0
     And its output says "Unreleased since v1.2.0"
     And its output does not say "may be behind"
+    And the repository has no ref "refs/tags/v1.2.0"
 
   @ID-STATUS-30 @wip @slice-196
   Scenario: itos go's status fetches the remote branch first
@@ -208,7 +211,7 @@ Feature: itos status, where the work stands
 
   # Holds before the work: it keeps a fetch, or its failure's line, out of a
   # clone with no remote.
-  @ID-STATUS-33 @wip @slice-196
+  @ID-STATUS-33 @wip @slice-196 @guard
   Scenario: With no remote, status fetches nothing and says so as before
     Given the watched run's jobs "ci" and "platform" succeed
     And the clone has no remote
@@ -219,7 +222,7 @@ Feature: itos status, where the work stands
 
   # Holds before the work: a stealth config leaves the project's clone as it
   # found it, its remote-tracking refs included.
-  @ID-STATUS-34 @wip @slice-196
+  @ID-STATUS-34 @wip @slice-196 @guard
   Scenario: Under a stealth config, status fetches nothing
     Given itos's config is kept in the git folder
     And the remote has gained the commit "feat: add the archive" touching "a.txt"
@@ -257,7 +260,7 @@ Feature: itos status, where the work stands
     And the output's JSON field "behind" is "1"
 
   # Holds before the work: it keeps the line from being printed always.
-  @ID-STATUS-38 @wip @slice-196
+  @ID-STATUS-38 @wip @slice-196 @guard
   Scenario: A clone up to date with the remote branch it fetched is told nothing of pulling
     Given the watched run's jobs "ci" and "platform" succeed
     When itos runs "status --as someone"
@@ -295,10 +298,11 @@ Feature: itos status, where the work stands
     Then itos exits with code 0
     And its output says "feat: add the archive"
     And its output says "HEAD is 1 commit behind"
+    And its output says "switch to a branch and pull before reading the work below."
 
   # Holds before the work: ls-remote, asked first, finds no such branch, so
   # nothing is fetched and no failure is said beside today's line.
-  @ID-STATUS-42 @wip @slice-196
+  @ID-STATUS-42 @wip @slice-196 @guard
   Scenario: On a branch the remote lacks, status fetches nothing and says no fetch failed
     Given the watched run's jobs "ci" and "platform" succeed
     And the clone is on the new branch "topic", which the remote does not have
