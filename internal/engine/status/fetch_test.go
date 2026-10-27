@@ -205,3 +205,34 @@ func TestPullLineAndBehindField(t *testing.T) {
 		}
 	}
 }
+
+// staleAsk answers the head the remote had before it moved on, as
+// ls-remote may when the remote advances before the fetch.
+type staleAsk struct {
+	*vcsfake.VCS
+	was string
+}
+
+func (s staleAsk) RemoteRefs(ctx context.Context, remote string, refs []string, talk vcsport.Talk) (map[string]string, error) {
+	found, err := s.VCS.RemoteRefs(ctx, remote, refs, talk)
+	if err == nil && len(refs) == 1 {
+		found = map[string]string{refs[0]: s.was}
+	}
+	return found, err
+}
+
+// The head, and how far HEAD is behind it, are the commit the fetch brought,
+// not the one the remote named a moment before.
+func TestReadsTheFetchedTip(t *testing.T) {
+	v := world()
+	v.Named["HEAD"] = c2
+	delete(v.Named, "refs/remotes/origin/main")
+	cfg := configOf(t, v, configText, nil)
+	cfg.VCS = staleAsk{VCS: v, was: c2}
+	st := &Standing{}
+	st.readBranch(t.Context(), cfg, "origin", "refs/heads/main", "main", inOf(v, nil))
+	if st.Head == nil || st.Head.Commit != c3 || st.Behind == nil || *st.Behind != 1 ||
+		st.pull != "main is 1 commit behind origin/main: git pull before reading the work below." {
+		t.Errorf("head %+v, behind %v, told %q", st.Head, st.Behind, st.pull)
+	}
+}
