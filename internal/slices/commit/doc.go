@@ -29,7 +29,10 @@
 // --no-verify as git abbreviates it (gitrun.NoVerify). refuseCommitArgs
 // refuses it before anything else, as it does a core.hooksPath git -c sets
 // (hooks.PathSet: the shim's GIT_CONFIG_KEY_<n>, or git's
-// GIT_CONFIG_PARAMETERS), a usage error, exit 2. lacking refuses up front
+// GIT_CONFIG_PARAMETERS), a usage error, exit 2. The message itos can read,
+// whichever source gives it, is cleaned once as the hook cleans it
+// (message.Cleaned with the config's comment character, bug 148), and
+// lacking and settle both read that text. lacking refuses up front
 // what the hook would: from the message itos can read (-m, -F <file>, or
 // the named commit's for -C <commit>, or -c <commit> with --no-edit, read as
 // HEAD's is, HEAD's for --amend --no-edit; nothing for the editor's or -F -), its
