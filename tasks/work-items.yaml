@@ -14597,6 +14597,12 @@ items:
       merged; score per candidate: known bugs found, valid new ones, noise, minutes, cost
       (subscription % or $). Then decide which reviews specs and which reviews diffs at ready, and
       whether the local reviewer stays. Results in .git/itos/codex-reviews.md beside the trial log.
+
+      T-321 (2026-10-27) built the dispatched Fable workflow only: the plan's ## Code Review Rules
+      section would put AGENTS.md 323 bytes over its 11000 cap, and the replay passes the rules in
+      the @codex review comment anyway. Whether Codex's everyday reviews get the rules in AGENTS.md
+      (cutting text or raising the cap) is decided after the replay, only if Codex stays. The
+      section's text: docs/plans/reviewer-replay.md, Code Review Rules.
     tags: [review]
 
   - id: bug-143
