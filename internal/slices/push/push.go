@@ -37,6 +37,7 @@ type pushRun struct {
 	ontoName       string           // what the branch is rebased onto, when it is not the upstream (pr.go)
 	pr             *PullRequest     // the pull request of the item's branch, once found or opened (pr.go)
 	rebased        *rebased         // the rebase GitHub was asked for, once it was (pr.go)
+	waiting        *waiting         // what --ready waits on, while its run is watched (waiting.go)
 	noUpstream     string           // the local branch, when it has no upstream and goes to the remote's default branch (trunkDefault)
 }
 
@@ -427,6 +428,10 @@ func (r *pushRun) watchRun(ctx context.Context, cfg *config.Loaded, wr providers
 		}
 		sha = head
 		r.say(fmt.Sprintf("GitHub rebased the pull request onto %s: watching the run of %s, its new head.", r.rebased.ontoName, short(sha)))
+	}
+	if r.waiting != nil {
+		r.waiting.head = sha
+		r.waiting.show()
 	}
 	var w ciwatch.Watched
 	if r.markReady {

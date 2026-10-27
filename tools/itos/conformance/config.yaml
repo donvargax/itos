@@ -1053,6 +1053,7 @@ cases:
           pr:
             draft: false
             review_by: []
+            review_stall: 0
             direct:
               types: []
               except: []
@@ -1098,6 +1099,19 @@ cases:
     argv: [config, check, --json]
     files:
       itos.yaml: "version: 1\npush: { pr: { review_by: copilot } }\n"
+    exit: 2
+    json_has:
+      valid: false
+  - name: config get prints push.pr.review_stall's default, 0, when the config leaves it out
+    argv: [config, get, push.pr.review_stall]
+    exit: 0
+    stdout_contract: true
+    stdout: |
+      0
+  - name: config check refuses a push.pr.review_stall that is not a number
+    argv: [config, check, --json]
+    files:
+      itos.yaml: "version: 1\npush: { pr: { review_stall: soon } }\n"
     exit: 2
     json_has:
       valid: false

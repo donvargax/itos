@@ -31,18 +31,24 @@ func TestPushMode(t *testing.T) {
 
 // push.pr (slice 179) is off by default: draft false and review_by empty; a
 // file's values are read, a draft that is not a bool and a review_by that is
-// not a list of strings are refused, and both keys are in the schema.
+// not a list of strings are refused, and both keys are in the schema; review_stall
+// (slice 190) is 0 by default, a number of seconds when set, and refused when
+// it is not a number.
 func TestPushPR(t *testing.T) {
 	c, err := load(t, "version: 1\n")
-	if err != nil || c.Push.PR.Draft || len(c.Push.PR.ReviewBy) != 0 {
+	if err != nil || c.Push.PR.Draft || len(c.Push.PR.ReviewBy) != 0 || c.Push.PR.ReviewStall != 0 {
 		t.Errorf("by default: %+v, %v", c.Push.PR, err)
 	}
 	c, err = load(t, "version: 1\npush: { mode: pr, pr: { draft: true, review_by: [copilot-pull-request-reviewer, bo] } }\n")
 	if err != nil || !c.Push.PR.Draft || !slices.Equal(c.Push.PR.ReviewBy, []string{"copilot-pull-request-reviewer", "bo"}) {
 		t.Errorf("set: %+v, %v", c.Push.PR, err)
 	}
+	if c, err = load(t, "version: 1\npush: { mode: pr, pr: { review_stall: 1800.5 } }\n"); err != nil || c.Push.PR.ReviewStall != 1800.5 {
+		t.Errorf("review_stall: %+v, %v", c.Push.PR, err)
+	}
 	for text, want := range map[string]string{
 		"version: 1\npush: { pr: { draft: yes please } }\n":  "push.pr.draft should be a boolean",
+		"version: 1\npush: { pr: { review_stall: soon } }\n": "push.pr.review_stall should be a number",
 		"version: 1\npush: { pr: { review_by: copilot } }\n": "push.pr.review_by should be a list",
 		"version: 1\npush: { pr: { review_by: [1] } }\n":     "push.pr.review_by should be a list of strings",
 		"version: 1\npush: { pr: { squash: true } }\n":       "unknown key push.pr.squash",
@@ -52,7 +58,7 @@ func TestPushPR(t *testing.T) {
 			t.Errorf("%q: got %q, want %q", text, got, want)
 		}
 	}
-	for _, key := range []string{"push.pr", "push.pr.draft", "push.pr.review_by"} {
+	for _, key := range []string{"push.pr", "push.pr.draft", "push.pr.review_by", "push.pr.review_stall"} {
 		if ok, _ := KnownKey(key); !ok {
 			t.Errorf("%s is no key of the schema", key)
 		}

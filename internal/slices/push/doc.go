@@ -243,6 +243,23 @@
 // its first comment; only then gh pr merge --auto --rebase, so auto-merge
 // comes after the checks and the reviews, never before.
 //
+// While --ready waits (waiting.go, slice 190) it says what on, where the
+// watch's progress goes: "Waiting on <address> at <head>: run <state>, <login>
+// <state>." when the wait starts and after each look that changes a part, never
+// otherwise (waiting.show). The run is waiting, then succeeded; a login is not
+// asked until the first ask, then waiting, running (its review-state comment
+// with a review not completed) or completed (its verdict). The head is the one
+// whose run is watched, the head GitHub made when it rebased the pull request
+// included (watchRun). With push.pr.review_stall above 0, stalled posts one gh pr
+// comment for a login whose review has read running that many seconds since
+// the first look of this --ready that read it so: "@codex review", an empty
+// line and "<!-- itos-review-request:v1 <login> <head> -->", once per head
+// ever (pullState.requested: any comment with that line for the login and the
+// head is an earlier request). A review still running review_stall seconds
+// after the request this --ready posted, or after its first look that read
+// it running when an earlier request was posted, ends the wait: exit 75,
+// outcome review-stalled. ci.watch.timeout still bounds the whole wait.
+//
 // # push threads and push thread
 //
 // push threads lists the open review threads of an item's pull request and

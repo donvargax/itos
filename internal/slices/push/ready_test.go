@@ -228,8 +228,11 @@ func TestPushReadyMarksTheDraftReadyThenTurnsOnAutoMerge(t *testing.T) {
 	p.open, p.draft, p.reviews = open7, true, []string{login}
 	code, stdout, stderr, _ := call(t, f, "--ready")
 	address := open7
-	want := pushedLine(f, t, address) + "CI run: https://ci/1\n  ci: success\nCI passed: https://ci/1\n" +
+	waiting := "Waiting on " + address + " at " + short(f.head(t)) + ": "
+	want := pushedLine(f, t, address) + waiting + "run waiting, copilot-pull-request-reviewer[bot] not asked.\n" +
+		"CI run: https://ci/1\n  ci: success\nCI passed: https://ci/1\n" +
 		"Waiting for reviews by copilot-pull-request-reviewer[bot] on " + address + ".\n" +
+		waiting + "run succeeded, copilot-pull-request-reviewer[bot] completed.\n" +
 		"Auto-merge is on: GitHub merges " + address + " by rebase once its required checks pass.\n"
 	if code != 0 || stderr != "" || stdout != want {
 		t.Fatalf("exit %d\n%s%s\nwant\n%s", code, stdout, stderr, want)
@@ -305,7 +308,9 @@ func TestPushReadyWithNothingToPush(t *testing.T) {
 	}
 	f.ghCalls = nil
 	code, stdout, _, _ = call(t, f, "--ready")
-	want := "Nothing to push: slice-9 is at origin/slice-9. Pull request: " + open7 + "\nCI run: https://ci/1\n  ci: success\nCI passed: https://ci/1\n" +
+	waiting := "Waiting on " + open7 + " at " + short(f.head(t)) + ": "
+	want := "Nothing to push: slice-9 is at origin/slice-9. Pull request: " + open7 + "\n" + waiting + "run waiting.\n" +
+		"CI run: https://ci/1\n  ci: success\nCI passed: https://ci/1\n" + waiting + "run succeeded.\n" +
 		"Auto-merge is on: GitHub merges " + open7 + " by rebase once its required checks pass.\n"
 	if code != 0 || stdout != want {
 		t.Errorf("exit %d\n%s", code, stdout)
