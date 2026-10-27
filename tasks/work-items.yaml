@@ -14645,8 +14645,8 @@ items:
   - id: bug-145
     title: After a commit through itos commit, tools/bin/pre-commit leaves a stale copy of a formatted file staged (git status MM)
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: bug
     why: >
