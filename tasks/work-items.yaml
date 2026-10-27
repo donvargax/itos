@@ -14884,3 +14884,18 @@ items:
       several phases and the id names none, as work add --help does.
     refs: [internal/guide]
     tags: [docs, work, v8]
+
+  - id: p1-action-cache-node24
+    title: The itos action pins actions/cache v4.3.0, which runs on deprecated Node 20 (#188)
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Consumer report #188: action.yml lines 65 and 77 pin actions/cache/restore and save at
+      0057852b (v4.3.0); every consumer run carries GitHub's Node 20 deprecation annotation, and
+      this repository's nightly shows it too. Pin a Node 24 release (v5 or later) by SHA, old enough
+      for deps policy, and check actions/checkout@v4 in our own workflows the same way.
+    refs: [action.yml]
+    tags: [ci, v8]
