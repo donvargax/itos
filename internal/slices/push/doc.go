@@ -205,6 +205,29 @@
 // its first comment; only then gh pr merge --auto --rebase, so auto-merge
 // comes after the checks and the reviews, never before.
 //
+// # push threads and push thread
+//
+// push threads lists the open review threads of an item's pull request and
+// push thread <id> --reply <text> [--resolve] answers one (slice 191), so no
+// implementer writes a gh api graphql mutation naming a thread's node id.
+// Parse (readThreadArgs) takes them only as the first argument, with their own
+// flags and no other; anything else stays a usage error. Handle gives them to
+// reviewThreads (threads.go) right after the repository is found: no hook
+// check, no fetch, no rebase, no push. They are refused, exit 1 and before any
+// gh call, outside push.mode pr (threads-without-pr-mode, a config that cannot
+// be read included), on a detached HEAD and on main (threads-on-main, found as
+// pr finds it); no GitHub repository exits 3. gh pr list (openPulls) then
+// finds the open pull request, else no-pull-request, and ask the threads,
+// which now carry each node id and the first comment's author. push threads
+// ends there (threads-listed, in GitHub's order, ThreadInfo for --json). push
+// thread refuses an id that is none of the pull request's threads, resolved or
+// not (no-such-thread), before anything is posted; else it posts the reply
+// (replyMutation) and then, with --resolve, resolves the thread
+// (resolveMutation), two gh calls, the reply first, so a reply that fails leaves
+// the thread open (thread-answered). A gh that fails exits 3, pull-request-failed,
+// in words that say nothing of a push (pushRun.threads); under --json the lines
+// of a failure also go to stderr, since --json's stdout is one object.
+//
 // Handle reaches the world through Ports, which the slice owns and
 // internal/cli binds: the repository (the VCS port, git behind it), its git
 // config and hooks folder (hooks.Ports and gitrun.Config), whether a config

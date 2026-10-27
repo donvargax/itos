@@ -33,6 +33,9 @@ func Parse(args []string, json, quiet bool, origin string) (CLI, error) {
 // nothing else, and an argument that would force the push says why it is
 // refused. A name is a tag's or a branch's, not a refspec.
 func readPushArgs(args []string) (Query, error) {
+	if len(args) > 0 && (args[0] == "threads" || args[0] == "thread") {
+		return readThreadArgs(args[0], args[1:])
+	}
 	var a Query
 	var rest []string
 	for i := 0; i < len(args); i++ {
@@ -67,6 +70,48 @@ func readPushArgs(args []string) (Query, error) {
 		return a, out.Usage("push --ready pushes an item's branch; it takes no --tag or --ref")
 	}
 	return a, refusePushArgs(rest)
+}
+
+// readThreadArgs reads what follows push threads, which takes nothing, or push
+// thread: a thread's id and --reply <text> (as --reply=<text> too), --resolve,
+// or both (slice 191). Every other argument is a usage error.
+func readThreadArgs(word string, args []string) (Query, error) {
+	if word == "threads" {
+		if len(args) > 0 {
+			return Query{}, out.Usage("push threads takes no arguments (%s): it lists the open review threads of the branch's pull request", args[0])
+		}
+		return Query{Threads: true}, nil
+	}
+	var q Query
+	for i := 0; i < len(args); i++ {
+		flag, text, inline := strings.Cut(args[i], "=")
+		switch {
+		case args[i] == "--resolve":
+			q.Resolve = true
+		case flag == "--reply":
+			if !inline && i+1 < len(args) {
+				i++
+				text = args[i]
+			}
+			if text == "" {
+				return Query{}, out.Usage("push thread --reply needs the reply's text")
+			}
+			q.Reply = text
+		case strings.HasPrefix(args[i], "-"):
+			return Query{}, out.Usage("push thread takes a thread's id, --reply <text> and --resolve, not %s", args[i])
+		case q.Thread != "":
+			return Query{}, out.Usage("push thread answers one thread, and %s is a second: %s", args[i], q.Thread)
+		default:
+			q.Thread = args[i]
+		}
+	}
+	switch {
+	case q.Thread == "":
+		return Query{}, out.Usage("push thread needs a thread's id: itos push threads lists them")
+	case q.Reply == "" && !q.Resolve:
+		return Query{}, out.Usage("push thread %s needs --reply <text>, --resolve or both", q.Thread)
+	}
+	return q, nil
 }
 
 // pushName refuses what --tag or --ref is given when it is no name: nothing,

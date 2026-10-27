@@ -200,6 +200,10 @@
   scenarios:
     - id: "@ID-PUSH-01"
       why: the local commits rebased onto the remote's and pushed, whatever pull.rebase says, the file's point
+- file: push-threads.feature
+  scenarios:
+    - id: "@ID-PUSHTHREAD-04"
+      why: a thread replied to, then resolved, in that order, the file's point
 - file: shim.feature
   scenarios:
     - id: "@ID-SHIM-01"
