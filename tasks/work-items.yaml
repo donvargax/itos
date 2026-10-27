@@ -65,6 +65,7 @@ queue:
   - p1-commit-item-takes-task
   - p1-status-fetches-first
   - p1-ci-affected-jobs
+  - p2-feature-command-apostrophe
   - bug-146
   - p1-ci-slow-linux-runs
   - slice-153
