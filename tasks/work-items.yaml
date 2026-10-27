@@ -15367,7 +15367,7 @@ items:
   - id: T-333
     title: The nightly shard self-test runs with the env nightly.yml binds (bug-146's gate commit)
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
