@@ -14403,14 +14403,9 @@ items:
     title: depguard keeps internal/proptest and rapid out of non-test code
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: []
     kind: idea
-    why: >
-      From T-310 (#156): internal/proptest is non-test code (a refactor commit, under the push
-      proof) so that every package's properties share one seed policy, and rapid is a direct
-      requirement; nothing stops production code importing either. A depguard rule with an
-      architecture fixture, as the idcounter-internals rule does.
     refs: [internal/proptest]
     tags: [architecture, tests, v8]
 
