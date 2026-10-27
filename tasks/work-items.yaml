@@ -5438,30 +5438,9 @@ items:
     title: A red CI run's log is readable inside the devcontainer
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: slice
-    why: >
-      Was p1-devcontainer-actions-logs.
-      Found building T-108 (2026-10-07): AGENTS.md has a session read a red run with gh run view
-      --log-failed, but GitHub answers a job's log with a redirect to Azure blob storage
-      (productionresultssa<n>.blob.core.windows.net), which the devcontainer's allowlist leaves out,
-      so an unattended agent in it cannot read why CI failed. Allowing blob.core.windows.net opens
-      all of Azure storage; the choice is between naming the productionresultssa hosts, or itos ci
-      watch printing the failed steps' annotations and log tail through api.github.com, which the
-      allowlist has.
-
-      2026-10-24 grooming: still open, not absorbed. slice-172 (was p1-ci-watch-failed-step) reads a
-      failed job's output through /repos/<repo>/actions/jobs/<id>/logs
-      (internal/providers/watch.go:420), which answers with the same redirect to Azure blob storage,
-      so inside the devcontainer the watch still cannot show why CI failed. The choice left: allow
-      the productionresultssa hosts, or fall back to the failed steps' annotations, which
-      api.github.com serves itself.
-
-      Met again 2026-10-27 on slice-191 (#208): the Plan step failed on an uncovered changed line,
-      itos said its log could not be read (the agents' sandbox refuses the blob host too), and the
-      implementer reproduced the push proof locally with itos-cc to find the line. The person,
-      2026-10-27: friction is fixed before v9, so v8.
     tags: [ci, v8]
 
   - id: p1-devcontainer-nightly-build
