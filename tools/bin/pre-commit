@@ -14,13 +14,6 @@
 # prose or itos's own data, the dependency check when go.mod or go.sum is staged and the unit
 # tests the change reaches. staticcheck is CI's (T-148).
 #
-# A commit by path (git commit <path>, which itos commit passes on) is made from a temporary index,
-# next-index-<pid>.lock, while git writes the real index with the working copies it read before
-# any hook ran, and keeps it. A file formatted and staged into the temporary index is then
-# committed formatted but left staged unformatted in the real one (git status MM, bug-145), which
-# the hook cannot stage into, git holding its lock. So there it formats the working copy and
-# refuses the commit, and the same command, run again, commits it.
-#
 # git hands a hook the index it commits from (GIT_INDEX_FILE) and, in a linked worktree,
 # GIT_DIR. The git commands here read and write that index on purpose; tools/bin/go-unit-tests
 # drops them before any test runs, as a test's scratch repository would otherwise be this one.
@@ -41,14 +34,7 @@ gofmt_check() {
 	}
 }
 
-# Whether this is a commit by path (the header says why it matters).
-by_path() {
-	case ${GIT_INDEX_FILE:-} in
-	*next-index-*.lock) return 0 ;;
-	esac
-	return 1
-}
-
+# A commit by path stages into a temporary index and leaves the real one stale; itos commit resets it (bug-145).
 # Formats the given files with $1 and stages them again; a file with unstaged changes is checked
 # with $2 instead. Each command takes the file names last.
 format() {
@@ -61,18 +47,8 @@ format() {
 	if [ -n "$whole" ]; then
 		# shellcheck disable=SC2086 # the commands and the file lists are words: no tracked path holds a space
 		$fix $whole
-		if by_path; then
-			# shellcheck disable=SC2086
-			changed=$(git diff --name-only -- $whole)
-			[ -z "$changed" ] || {
-				printf '%s\n' "$changed" >&2
-				echo "pre-commit: formatted the files above in the working tree, which a commit by path cannot stage; commit again" >&2
-				exit 1
-			}
-		else
-			# shellcheck disable=SC2086
-			git add -- $whole
-		fi
+		# shellcheck disable=SC2086
+		git add -- $whole
 	fi
 	if [ -n "$partial" ]; then
 		# shellcheck disable=SC2086
