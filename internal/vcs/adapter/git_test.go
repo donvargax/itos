@@ -99,30 +99,46 @@ func history(t *testing.T, dir string) {
 }
 
 var (
-	templateOnce  sync.Once
-	templateDir   string
-	templateReady bool
+	sharedOnce sync.Once
+	sharedRoot string
+	sharedErr  error
 )
 
-// historyTemplate is a repository holding history's commits, made once for
-// the package under the first caller's git settings (alone's, the same for
-// every caller) and removed by TestMain: git starts are what the tests
-// spend, and history alone is thirty of them.
+// shared is a folder for what the package's tests make once and read, removed
+// by TestMain.
+func shared(t *testing.T) string {
+	t.Helper()
+	sharedOnce.Do(func() { sharedRoot, sharedErr = os.MkdirTemp("", "itos-adapter-") })
+	if sharedErr != nil {
+		t.Fatal(sharedErr)
+	}
+	return sharedRoot
+}
+
+// madeOnce makes what the package's tests share under name, with build in a
+// folder of its own, once: under the first caller's git settings (alone's,
+// the same for every caller). git starts are what the tests spend, and the
+// history alone is thirty of them. It is the folder holding what build wrote.
+func madeOnce(t *testing.T, name string, build func(t *testing.T, dir string)) string {
+	t.Helper()
+	dir := filepath.Join(shared(t), name)
+	if _, err := os.Stat(filepath.Join(dir, ".made")); err == nil {
+		return dir
+	}
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	build(t, dir)
+	write(t, dir, ".made", name)
+	return dir
+}
+
+// historyTemplate is a repository holding history's commits.
 func historyTemplate(t *testing.T) string {
 	t.Helper()
-	templateOnce.Do(func() {
-		dir, err := os.MkdirTemp("", "itos-adapter-history-")
-		if err != nil {
-			t.Fatal(err)
-		}
-		templateDir = dir
+	return filepath.Join(madeOnce(t, "history", func(t *testing.T, dir string) {
 		history(t, filepath.Join(dir, "repo"))
-		templateReady = true
-	})
-	if !templateReady {
-		t.Fatal("the history template was not made")
-	}
-	return filepath.Join(templateDir, "repo")
+	}), "repo")
 }
 
 // copyTree copies the folder from to a new folder to, files and folders

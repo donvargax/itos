@@ -17,7 +17,23 @@ import (
 // own, and local config a snapshot leaves behind.
 func contextRepo(t *testing.T) (Git, string) {
 	t.Helper()
+	template := madeOnce(t, "context", func(t *testing.T, root string) {
+		makeContextRepo(t, filepath.Join(root, "repo"), filepath.Join(root, "remote.git"))
+	})
 	dir := alone(t)
+	copyTree(t, filepath.Join(template, "repo"), dir)
+	remote := filepath.Join(alone(t), "remote.git")
+	copyTree(t, filepath.Join(template, "remote.git"), remote)
+	gitIn(t, dir, "", "config", "remote.origin.url", remote)
+	return Git{Dir: dir}, dir
+}
+
+// makeContextRepo makes contextRepo's repository at dir, its remote at remote.
+func makeContextRepo(t *testing.T, dir, remote string) {
+	t.Helper()
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
 	gitIn(t, dir, "", "init", "-q", "-b", "main")
 	write(t, dir, "a", "one")
 	gitIn(t, dir, "", "add", "a")
@@ -27,7 +43,6 @@ func contextRepo(t *testing.T) (Git, string) {
 	gitIn(t, dir, "", "tag", "light")
 	gitIn(t, dir, "", "tag", "-a", "-m", "annotated", "v1")
 	gitIn(t, dir, "", "notes", "add", "-m", "a note")
-	remote := filepath.Join(alone(t), "remote.git")
 	gitIn(t, "", "", "init", "-q", "--bare", "-b", "main", remote)
 	gitIn(t, dir, "", "remote", "add", "origin", remote)
 	gitIn(t, dir, "", "config", "--add", "remote.origin.fetch", "+refs/tags/*:refs/tags/*")
@@ -56,7 +71,6 @@ func contextRepo(t *testing.T) (Git, string) {
 	}
 	write(t, dir, "b", "staged")
 	gitIn(t, dir, "", "add", "b")
-	return Git{Dir: dir}, dir
 }
 
 // out is a git command's output, trimmed, run in the folder itos runs in.
