@@ -15185,16 +15185,9 @@ items:
     title: itos push replies to and resolves a review thread, so an implementer does not hand-write gh api graphql with a thread id
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: slice
-    why: >
-      Was p1-push-thread-reply-resolve.
-      T-328 (2026-10-27, #196): addressing Codex's P1 thread meant a reply and a resolve through
-      hand-written gh api graphql calls with the thread's node id, the step AGENTS.md's Finishing
-      asks of every implementer for every thread. A subcommand (itos push thread <id> --reply <text>
-      [--resolve], and a list of the open threads with their ids) would make it one command and keep
-      --ready's unresolved-thread refusal pointing at it.
     refs: [internal/slices/push]
     tags: [push, review, v8]
 
