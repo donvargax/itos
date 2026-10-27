@@ -5148,3 +5148,22 @@
   done_when:
     - run: "go test ./internal/vcs/adapter -count=1 -run '^TestPropertyTouched' -v 2>&1 | grep -q -- '--- PASS: TestPropertyTouched'"
       timeout: 600
+
+- id: T-332
+  type: build
+  title: Move tools/bin/pinned's itos-cc from 0.38.0 to the newest release, for mutation run --site
+  why: >
+    T-324 (2026-10-27) reproduced each nightly survivor by judging its whole file, minutes a file,
+    because the pinned itos-cc 0.38.0 cannot judge one site; itos-cc's slice-63 (issue
+    donvargax/itos-cc#68, closed 2026-10-27) added mutation run --site <file:line:column or
+    identity>, in a release after 0.38.0 (v0.46.1 is the newest today). Move the pin to the newest
+    release in one build commit: its version and all four platform hashes from the release's
+    checksums, as tools/bin/pinned's header says. Eight minor releases may change what itos-cc
+    judges: read each release's notes, and say in the commit body which change can turn the push
+    proof, the nightly mutation steps or tools/selftest red; a change that needs itos-cc.yaml edits
+    makes them in the same build commit. Run the gates' self-tests that call itos-cc
+    (tools/selftest) before pushing. Then itos guide work or AGENTS.md need not change: the
+    nightly's survivor lines print the identity --site takes.
+  done_when:
+    - run: tools/bin/pinned itos-cc mutation run --help 2>&1 | grep -q -- '--site'
+      timeout: 300
