@@ -295,17 +295,19 @@ func TestRunJSONWorkflowLines(t *testing.T) {
 	if got := compact(t, printed); !strings.HasSuffix(got, `"action_uses":[],"action_scan_problems":[]}`) {
 		t.Errorf("stealth:\n%s", got)
 	}
+	p = project(t, pinOf("9.1.0"), nil)
+	writeWorkflow(t, "ci.yml", launches)
 	p.stealth = true
-	p.file = filepath.Join(filepath.Dir(p.file), "itos.yaml")
 	p.latest = "9.1.0"
-	_, printed, _ = upgradeRun(p, true)
-	if got := compact(t, printed); !strings.HasSuffix(got, `"action_uses":[],"action_scan_problems":[]}`) {
-		t.Errorf("stealth, already:\n%s", got)
+	code, printed, _ := upgradeRun(p, true)
+	if got := compact(t, printed); code != 0 || !strings.Contains(got, `"action":"already"`) ||
+		!strings.HasSuffix(got, `"action_uses":[],"action_scan_problems":[]}`) {
+		t.Errorf("stealth, already: %d %s", code, got)
 	}
 
 	p = project(t, "version: 1\n", nil)
 	writeWorkflow(t, "ci.yml", launches)
-	code, printed, _ := upgradeRun(p, true)
+	code, printed, _ = upgradeRun(p, true)
 	if got := compact(t, printed); code != policy || !strings.HasSuffix(got, `"action_uses":[],"action_scan_problems":[]}`) {
 		t.Errorf("a refusal: %d %s", code, got)
 	}
