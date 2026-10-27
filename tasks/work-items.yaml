@@ -15281,16 +15281,9 @@ items:
     title: itos status fetches the remote before reading where things stand
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: slice
-    why: >
-      Was p1-status-fetches-first.
-      Seen 2026-10-27: itos go's status read origin/main unfetched ('not fetched here') and listed
-      bug-146, bug-152 and bug-153 in progress and bug-148 next, all four already merged; the
-      coordinator acted on that before fetching. status (and so itos go) could fetch the main
-      branch's remote once, quietly, falling back to the unfetched view with the existing warning
-      when the fetch fails or is off.
     tags: [status, v8]
 
   - id: p3-review-threads-paging
