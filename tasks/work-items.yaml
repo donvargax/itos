@@ -4350,6 +4350,11 @@ items:
       --why/--title/--add-check/--drop-check would write and commit it as task add does (writing
       only under stealth); changing a done task's checks asks a reason for the commit body, since it
       changes the evidence (T-008 and T-092's checks were changed by hand on 2026-10-05).
+
+      Consumer report #168 (2026-10-27): an implementing agent stopped a task at a feasibility gate
+      its why named and could not record the reason on it (work edit --note refuses tasks); the
+      coordinator hand-edited the ledger. A --note on a task, appended to its ledger why, would
+      close #168.
     tags: [work, v9]
 
   - id: p3-stealth-ledger-portability
