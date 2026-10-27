@@ -15311,3 +15311,21 @@ items:
       idcounter_strict_yaml_fuzz_test.go.txt), with their failing inputs as seeds.
     refs: [internal/idcounter/counter.go, internal/adr/adr.go]
     tags: [work, records, v8]
+
+  - id: p1-id-footer-split-git-space
+    title: "ID footers split on JavaScript's whitespace, so Task: T-001 with a trailing no-break space reads as T-001 where git's value keeps it"
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      bug-151's drafter (2026-10-27): rawIDs splits Task:, Item: and Scenarios: values on
+      value.SpaceChars (String.trim's set), so a no-break space or form feed beside an ID separates
+      it, while git's trailer value keeps them and an ID with one attached is no ID of the ledger.
+      bug-151 settles only the free-text footers' trim (unfolded); decide whether ID footers split
+      on git's isspace too (then 'T-001' plus U+00A0 is refused as an unknown id) or keep the
+      lenient split on purpose, and say so in the footer's doc. FuzzTrailersMatchGit compares
+      unfolded values only, so it cannot see this.
+    refs: [internal/message]
+    tags: [message, v8]
