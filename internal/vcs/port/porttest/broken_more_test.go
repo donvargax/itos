@@ -217,7 +217,9 @@ func (b broken) Fetch(ctx context.Context, remote, refspec string, talk port.Tal
 
 func (b broken) Push(ctx context.Context, remote string, specs []string, p port.Pushing, talk port.Talk) error {
 	switch {
-	case b.fault == "push forced":
+	case b.fault == "push lease ignored":
+		p.Lease = nil
+	case b.fault == "push forced" || b.fault == "push lease forces" && p.Lease != nil:
 		r, ok := b.Remote[remote]
 		if !ok {
 			break

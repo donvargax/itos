@@ -49,7 +49,8 @@ slice|task|bug` mints a numbered item instead.
   work in progress. Read `git status --short` before you commit.
 - Bypass a hook (`--no-verify` or anything that turns hooks off). CI
   re-checks every pushed commit anyway.
-- Force-push, in any form, or rewrite what is already on the remote.
+- Force-push, in any form, or rewrite what is already on the remote, except
+  with `itos push --onto-main`, which brings an item's own branch up to main.
 - Weaken a gate to get green: a threshold lowered, a check skipped, a
   scenario set `@wip` or reworded. If the gate itself is wrong, stop and say
   so.

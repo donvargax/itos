@@ -30,6 +30,7 @@ type pushRun struct {
 	sha            string           // the commit pushed, resolved once before the push
 	noWait         bool             // --no-wait: push and return, whatever ci.watch says
 	markReady      bool             // --ready: mark a draft pull request ready, wait for it, then turn on auto-merge (ready.go)
+	ontoMain       bool             // --onto-main: bring the item's branch up to main, pushing it with a lease when that rewrites it (pr.go)
 	threads        bool             // push threads or push thread: nothing is pushed (threads.go)
 	watched        *ciwatch.Watched // the CI run waited for after the push, if one was
 	cfg            *config.Loaded   // the config, when push.mode is pr (prMode)
@@ -48,6 +49,17 @@ func (r pushRun) report(code int, outcome string, lines ...string) Answer {
 
 // upstream is the upstream's name as people write it: origin/main.
 func (r pushRun) upstream() string { return r.remote + "/" + r.branch }
+
+// again is what the report tells the person to run once they have fixed what
+// stopped the push: itos push, or itos push --onto-main when that is what
+// stopped, since a plain itos push would rebase the branch onto the remote's
+// old head instead of main's.
+func (r pushRun) again() string {
+	if r.ontoMain {
+		return "itos push --onto-main again"
+	}
+	return "itos push again"
+}
 
 // noUpstreamNote is the report's line for a branch with no upstream that went
 // to the remote's default branch: that it has none, and how to push it to
@@ -105,10 +117,10 @@ func (r pushRun) ready(ctx context.Context) (Answer, bool) {
 	if v.Rebasing(ctx) || len(v.Conflicted(ctx)) > 0 {
 		return r.report(policy, "rebase-in-progress",
 			"itos push: a rebase is in progress or a conflict is left; nothing was pulled or pushed.",
-			"Resolve it and run git rebase --continue, or run git rebase --abort, then itos push again."), true
+			"Resolve it and run git rebase --continue, or run git rebase --abort, then "+r.again()+"."), true
 	}
 	if changed := v.Changes(ctx); len(changed) > 0 {
-		lines := []string{"itos push: tracked files have uncommitted changes; commit or stash them first, then run itos push again:"}
+		lines := []string{"itos push: tracked files have uncommitted changes; commit or stash them first, then run " + r.again() + ":"}
 		for _, l := range changed {
 			lines = append(lines, "  "+l)
 		}
@@ -194,12 +206,12 @@ func (r pushRun) remoteLines(what string, failure kind.Kind) []string {
 	case kind.Temporary:
 		return []string{
 			fmt.Sprintf("itos push: %s: %s cannot be reached (git's message above); nothing was pushed.", what, r.remote),
-			"Check the network, then run itos push again.",
+			"Check the network, then run " + r.again() + ".",
 		}
 	case kind.Missing:
 		return []string{
 			fmt.Sprintf("itos push: %s: %s is no repository git can find (git's message above); nothing was pushed.", what, r.remote),
-			fmt.Sprintf("Check the remote's URL (git remote get-url %s), then run itos push again.", r.remote),
+			fmt.Sprintf("Check the remote's URL (git remote get-url %s), then run %s.", r.remote, r.again()),
 		}
 	}
 	return []string{fmt.Sprintf("itos push: %s (git's message above); nothing was pushed", what)}
@@ -224,7 +236,7 @@ func (r pushRun) rebase(ctx context.Context, onto string) (Answer, bool) {
 	if v.Rebasing(ctx) || len(v.Conflicted(ctx)) > 0 {
 		lines := []string{
 			fmt.Sprintf("itos push: the rebase onto %s stopped; nothing was pushed.", r.base()),
-			"Resolve the conflicts, git add the files and run git rebase --continue, then itos push again;",
+			"Resolve the conflicts, git add the files and run git rebase --continue, then " + r.again() + ";",
 			"or run git rebase --abort to go back to where the branch was.",
 		}
 		return r.report(policy, "rebase-stopped", append(lines, r.registryConflict(ctx)...)...), true
@@ -272,7 +284,7 @@ func (r pushRun) registryConflict(ctx context.Context) []string {
 	if len(clashes) == 0 {
 		return []string{"", fmt.Sprintf("The conflict is in the work registry, %s: a commit on %s and yours added or", registry, r.base()),
 			"changed different items, so nothing was taken twice. Keep both sides' items in the file, git add it",
-			"and run git rebase --continue, then itos push again; or run git rebase --abort to leave it."}
+			"and run git rebase --continue, then " + r.again() + "; or run git rebase --abort to leave it."}
 	}
 	lines := []string{"", fmt.Sprintf("The conflict is in the work registry, %s: a commit on %s changed", registry, r.base()),
 		"the same item as yours, so it was taken, or changed, there first, and the remote keeps that."}
@@ -285,9 +297,8 @@ func (r pushRun) registryConflict(ctx context.Context) []string {
 		}
 	}
 	return append(lines,
-		"To leave it to them, run git rebase --skip, which drops your commit of the registry, then itos",
-		"push again and itos work for another item; or agree with them who keeps it, and resolve the",
-		"conflict as above.")
+		"To leave it to them, run git rebase --skip, which drops your commit of the registry, then "+r.again(),
+		"and itos work for another item; or agree with them who keeps it, and resolve the conflict as above.")
 }
 
 // push pushes the commit resolved before it, r.sha, to the upstream's
@@ -297,7 +308,7 @@ func (r pushRun) registryConflict(ctx context.Context) []string {
 // when the push makes the branch. HEAD is not read again: a commit made
 // while the hook ran is not the one pushed.
 func (r pushRun) push(ctx context.Context, remote, ref, onto string) Answer {
-	if a, failed := r.send(ctx, []string{r.sha + ":" + ref}, false); failed {
+	if a, failed := r.send(ctx, []string{r.sha + ":" + ref}, false, nil); failed {
 		return a
 	}
 	pushed := r.pushedLine(ctx, "")
@@ -307,10 +318,12 @@ func (r pushRun) push(ctx context.Context, remote, ref, onto string) Answer {
 	return r.wait(ctx, remote, onto, pushed)
 }
 
-// send pushes the refspecs, in one atomic push when atomic is set: failed,
-// with the outcome reported, when git or the pre-push hook refuses it.
-func (r pushRun) send(ctx context.Context, specs []string, atomic bool) (Answer, bool) {
-	outcome := r.ports.Push(ctx, r.remote, specs, vcsport.Pushing{Atomic: atomic, Quiet: r.o.Quiet}, r.talk(r.o.Stderr))
+// send pushes the refspecs, in one atomic push when atomic is set, and with
+// the lease, when there is one, the only ref it forces: failed, with the
+// outcome reported, when git or the pre-push hook refuses it, a lease that no
+// longer holds included.
+func (r pushRun) send(ctx context.Context, specs []string, atomic bool, lease *vcsport.Lease) (Answer, bool) {
+	outcome := r.ports.Push(ctx, r.remote, specs, vcsport.Pushing{Atomic: atomic, Quiet: r.o.Quiet, Lease: lease}, r.talk(r.o.Stderr))
 	code, err := gitrun.ExitOf(outcome)
 	if err != nil {
 		fmt.Fprintf(r.o.Stderr, "itos: cannot run git: %s\n", err)
@@ -320,9 +333,14 @@ func (r pushRun) send(ctx context.Context, specs []string, atomic bool) (Answer,
 		if failure := remoteKind(outcome); failure != kind.Unknown {
 			return r.report(remoteExit(failure), "push-failed", r.remoteLines("the push to "+r.upstream()+" failed", failure)...), true
 		}
+		if lease != nil {
+			return r.report(refusalExit(outcome), "push-failed",
+				fmt.Sprintf("itos push: the push to %s failed (git's message above); %s was not overwritten.", r.upstream(), lease.Ref),
+				"If the remote moved after the fetch, run "+r.again()+" to bring the branch up to main again; if a hook refused it, fix what it reported first."), true
+		}
 		return r.report(refusalExit(outcome), "push-failed",
 			fmt.Sprintf("itos push: the push to %s failed (git's message above); nothing was forced.", r.upstream()),
-			"If the remote moved, run itos push again to rebase onto it; if a hook refused it, fix what it reported first."), true
+			"If the remote moved, run "+r.again()+" to rebase onto it; if a hook refused it, fix what it reported first."), true
 	}
 	return Answer{}, false
 }

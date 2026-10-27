@@ -117,6 +117,28 @@ func remoteContract[C T[C]](t C, open func(t C, l Layout) (port.VCS, string)) {
 		if f, ok := failureOf(err); !ok || f != port.Refused || mainOf() != m {
 			t.Errorf("Push(a to main), back from m: %v, main at %s; want refused, at m", err, mainOf())
 		}
+		b, theirs := sha(t, v, "b"), sha(t, v, "t")
+		for _, lease := range []struct {
+			name string
+			port.Lease
+		}{
+			{"a stale lease", port.Lease{Ref: "refs/heads/main", Expect: b}},
+			{"a lease on theirs", port.Lease{Ref: "refs/heads/theirs", Expect: theirs}},
+		} {
+			err = v.Push(ctx, "origin", []string{a + ":refs/heads/main"}, port.Pushing{Lease: &lease.Lease}, port.Talk{})
+			if f, ok := failureOf(err); !ok || f != port.Refused || mainOf() != m {
+				t.Errorf("Push(a to main) with %s: %v, main at %s; want refused, at m", lease.name, err, mainOf())
+			}
+		}
+		err = v.Push(ctx, "origin", []string{a + ":refs/heads/main"}, port.Pushing{Lease: &port.Lease{Ref: "refs/heads/main", Expect: m}}, port.Talk{})
+		if err != nil || mainOf() != a {
+			t.Errorf("Push(a to main) with its lease: %v, main at %s; want a %s", err, mainOf(), a)
+		}
+		err = v.Push(ctx, "origin", []string{m + ":refs/heads/main", a + ":refs/heads/theirs"},
+			port.Pushing{Atomic: true, Lease: &port.Lease{Ref: "refs/heads/main", Expect: a}}, port.Talk{})
+		if f, ok := failureOf(err); !ok || f != port.Refused || mainOf() != a {
+			t.Errorf("Push(m to main, a to theirs) with a lease on main: %v, main at %s; want refused, at a", err, mainOf())
+		}
 		err = v.Push(ctx, "origin", []string{m + ":refs/heads/new", a + ":refs/heads/theirs"}, port.Pushing{Atomic: true}, port.Talk{})
 		refs, _ := v.RemoteRefs(ctx, "origin", []string{"refs/heads/new"}, port.Talk{})
 		if f, ok := failureOf(err); !ok || f != port.Refused || refs["refs/heads/new"] != "" {

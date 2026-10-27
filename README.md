@@ -71,7 +71,9 @@ it, and the instructions then point to the check instead of restating it.
   files have uncommitted changes, leaves a rebase that stops for you to finish
   (`git rebase --continue`, then `itos push` again, or `git rebase --abort`)
   with nothing pushed, and never forces: a push the remote refuses is
-  reported, not retried.
+  reported, not retried. The one rewrite is `itos push --onto-main`, under
+  `push.mode: pr`: it brings an item's branch up to main, pushing that branch
+  alone with a lease on the remote head it fetched.
 - **The git shim**: linked as `git` before the real git on your `PATH`, itos
   makes a hand-typed, scripted or editor's `git commit` and `git push` in a
   repository it manages run as `itos commit` and `itos push`, and passes

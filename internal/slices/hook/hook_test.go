@@ -60,6 +60,14 @@ type ports struct {
 	shows     int
 	engine    *evidence.Engine
 	workEnv   []string
+	// head is the branch the remote's HEAD names, headErr why it cannot be asked.
+	head    string
+	headErr error
+}
+
+// RemoteHead is the test's, whatever the remote is asked.
+func (p *ports) RemoteHead(context.Context, string, vcsport.Talk) (string, error) {
+	return p.head, p.headErr
 }
 
 // Show is the repository's, refused once shows, when set, runs out.
@@ -262,8 +270,11 @@ func TestParse(t *testing.T) {
 	if _, err := Parse([]string{"commit-msg"}, false, "", nil); !isUsage(err, "hook commit-msg needs <file>") {
 		t.Errorf("no file: %v", err)
 	}
-	if c, err := Parse([]string{"pre-push", "origin", "url"}, false, "", nil); err != nil || c.Sub != "pre-push" {
+	if c, err := Parse([]string{"pre-push", "origin", "url"}, false, "", nil); err != nil || c.Sub != "pre-push" || c.Remote != "origin" {
 		t.Errorf("pre-push: %+v, %v", c, err)
+	}
+	if c, err := Parse([]string{"pre-push"}, false, "", nil); err != nil || c.Remote != "" {
+		t.Errorf("pre-push with no remote: %+v, %v", c, err)
 	}
 	c, err = Parse([]string{"install", "--force", "--print"}, true, "", nil)
 	if err != nil || !c.Print || !c.Force || !c.JSON {

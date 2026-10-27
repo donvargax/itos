@@ -17,11 +17,12 @@ import (
 )
 
 // Query is what hook asks: Sub, commit-msg, pre-push or install;
-// commit-msg's File, the message git wrote (from the top); install's Print
-// and Force.
+// commit-msg's File, the message git wrote (from the top); pre-push's Remote,
+// the remote git pushes to, a name or an address; install's Print and Force.
 type Query struct {
 	Sub          string
 	File         string
+	Remote       string
 	Print, Force bool
 }
 
@@ -38,6 +39,9 @@ type Ports interface {
 	hooks.Ports
 	Trees(ctx context.Context) treeport.Trees
 	LoadConfig(ctx context.Context) (*config.Loaded, error)
+	// RemoteHead is the branch the remote's HEAD names, asked of the remote
+	// (git ls-remote --symref); "" when it names none.
+	RemoteHead(ctx context.Context, remote string, talk vcsport.Talk) (string, error)
 	Read(ctx context.Context, path string) (string, error)
 	TaskFlags(ctx context.Context) []string
 	Shell(ctx context.Context, cfg *config.Loaded, command string, o shell.Options) shell.Result
@@ -100,7 +104,7 @@ func (h Handler) Handle(ctx context.Context, q Query, o Out) (Answer, error) {
 	case "commit-msg":
 		return h.commitMsg(ctx, q.File, o)
 	case "pre-push":
-		return h.prePush(ctx, o)
+		return h.prePush(ctx, q.Remote, o)
 	}
 	return h.install(ctx, q, o)
 }

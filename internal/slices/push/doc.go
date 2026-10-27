@@ -2,15 +2,18 @@
 // session finished with by hand, as one command (slice 39,
 // features/push.feature). Commit first, then pull the branch's upstream
 // with a rebase, check that no rebase stopped and no conflict is left, then
-// push in a separate step, never forced. Its CLI and Run are the command
-// line, its Query and Handler the application.
+// push in a separate step, never forced: the one rewrite is --onto-main's, of
+// an item's own branch, with a lease of itos's own (below). Its CLI and Run are
+// the command line, its Query and Handler the application.
 //
 // Command (command.go) declares its name, help and flag spec. Parse refuses
-// every argument but --no-wait, --tag <tag> and --ref <branch>
-// (readPushArgs, pushName: a name, not an option or a refspec): a force
-// flag or a + refspec as push never forces, --no-verify (gitrun.NoVerify)
-// as it skips the pre-push hook (slice 128), anything else as push takes no
-// arguments, all usage errors. Handle refuses a core.hooksPath git -c sets
+// every argument but --no-wait, --ready, --onto-main, --tag <tag> and
+// --ref <branch> (readPushArgs, pushName: a name, not an option or a
+// refspec): a force flag or a + refspec as push never forces, the lease
+// being the one itos takes itself on --onto-main, --no-verify
+// (gitrun.NoVerify) as it skips the pre-push hook (slice 128), --onto-main
+// beside --tag or --ref as it rebases an item's branch, anything else as push
+// takes no arguments, all usage errors. Handle refuses a core.hooksPath git -c sets
 // (hooks.PathSet) as one too, before anything else. Outside a repository it
 // exits 3. Where itos is set up (a config file is there), a push git would
 // make without itos's pre-push hook is refused before anything is fetched,
@@ -165,6 +168,41 @@
 // view that fails is a gh call that fails. sleep and now are the wait's clock,
 // which a test replaces. --no-wait, or no ci.watch provider, calls no gh pr
 // view.
+//
+// # --onto-main
+//
+// itos push --onto-main (slice-193; Query.OntoMain, pushRun.ontoMain) is the
+// one sanctioned rewrite of an item's own branch: GitHub cannot rebase a pull
+// request whose pushed commits conflict with main's, and gh pr update-branch,
+// which brings one main left behind up to date, is refused to agents as
+// destructive. Handle refuses it once the config is read and before anything
+// is fetched or pushed outside push.mode pr (a missing or unreadable config
+// included, onto-main-without-pr), and from main, once main is known
+// (onto-main-on-main), both exit 1 as --ready's refusals are; Parse refuses it
+// beside --tag or --ref, exit 2, and no force flag, + refspec or lease of the
+// caller's opens beside it.
+//
+// pushItem hands the rebase to bringOntoMain after the fetches. It takes the
+// remote's item head first, rebasing onto it, only when unseen: that head has
+// a commit main lacks of which HEAD's commits main lacks hold no counterpart
+// (internal/engine/rewrite.Dropped, the pre-push hook's rule: the same author,
+// author date and message, which a rebase keeps and a resolved conflict does
+// not change, where a patch-id would). So a commit someone pushed to the
+// item's branch is kept, and a branch already rebased onto main, as one the
+// person finished after a stopped --onto-main is, is never replayed onto the
+// remote's old head. Then it rebases onto main's head unless HEAD has it. Each
+// rebase that stops is left in progress, exit 1, outcome rebase-stopped, and
+// again names what to run: itos push --onto-main again, since itos push
+// would rebase the rebased branch onto the remote's old head. lease takes
+// vcsport.Lease{Ref: refs/heads/<item>, Expect: <the head fetched>} when that
+// head is no ancestor of the commit pushed (a fast-forward, a first push and a
+// push without --onto-main take none), so git forces that ref alone, and only
+// while the remote still has it where the push fetched it; the registry's
+// commits directly above main still go to main in the same atomic push, and
+// the pre-push hook judges both. A lease the remote moved from, or a hook's
+// refusal, is push-failed, exit 1, the remote left as it was. After the push
+// all is a push's: the pull request found or opened, auto-merge, no
+// update-branch since the head pushed has main's, and the wait.
 //
 // # push.pr.draft and --ready
 //

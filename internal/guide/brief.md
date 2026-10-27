@@ -68,7 +68,8 @@ item teaches you to the repository's own notes, as a lesson
 > one command to another, the scenarios of both commands>.
 >
 > Others push to main while you work: commit with `itos commit`, push with
-> `itos push`, never force. Do the work yourself; start no agents. Each
+> `itos push`, never force (a branch main moved past is brought up with `itos
+> push --onto-main`). Do the work yourself; start no agents. Each
 > commit's body says why, and its footers stand alone in its last
 > paragraph, the one place git reads them. Prefix your scratch files with <item>: sessions share
 > the folder. Push, wait for CI with `itos push` in the

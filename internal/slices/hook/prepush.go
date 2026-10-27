@@ -6,10 +6,12 @@ import (
 	"io"
 	"os"
 	"regexp"
+	"slices"
 	"strings"
 
 	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/engine/judge"
+	"github.com/donvargax/itos/v8/internal/engine/rewrite"
 	"github.com/donvargax/itos/v8/internal/shell"
 	vcsport "github.com/donvargax/itos/v8/internal/vcs/port"
 )
@@ -18,8 +20,11 @@ import (
 // deleted ref's local side.
 var zeros = regexp.MustCompile(`^0+$`)
 
-// tags is where a tag's ref is on the remote.
-const tags = "refs/tags/"
+// tags and heads are where a tag's and a branch's ref are on the remote.
+const (
+	tags  = "refs/tags/"
+	heads = "refs/heads/"
+)
 
 // pushLine is one of git's `<local ref> <local sha> <remote ref> <remote
 // sha>` lines, the fields it has: what is pushed, to which ref of the remote
@@ -116,24 +121,74 @@ func hasCommit(ctx context.Context, v vcsport.VCS, rev string) bool {
 	return err == nil
 }
 
-// rewrites is the first pushed ref that would replace a remote commit the
-// commit pushed does not build on (slice 128): one this clone lacks, or one
-// that is not an ancestor of the commit pushed; false when every ref is a
-// new branch or adds to the remote's commit. Such a push rewrites what
-// others may have built on, which only a forced push does.
-func (h Handler) rewrites(ctx context.Context, refs []pushedRef) (pushedRef, bool) {
-	for _, r := range refs {
-		if r.remote != "" && (r.base == "" || !h.ports.IsAncestor(ctx, r.base, r.local)) {
-			return r, true
+// rewrites judges the refs that would replace a remote commit the commit
+// pushed does not build on (slice 128): one this clone lacks, or one that is
+// not an ancestor of the commit pushed. Such a push rewrites what others may
+// have built on, which only a forced push does, so the first is refused,
+// unless it is a branch's own rewrite (ownRewrite, slice-193); an accepted one
+// is returned as a new branch, to be judged as one is: by the commits no
+// remote-tracking branch has, and the remote commits those grow from. Every
+// ref that is a new branch or adds to the remote's commit is returned as it
+// was.
+func (h Handler) rewrites(ctx context.Context, remote string, refs []pushedRef) ([]pushedRef, Answer, bool) {
+	judged := slices.Clone(refs)
+	for i, r := range refs {
+		if r.remote == "" || r.base != "" && h.ports.IsAncestor(ctx, r.base, r.local) {
+			continue
 		}
+		dropped, ok := h.ownRewrite(ctx, remote, r)
+		if !ok {
+			return nil, refuseRewrite(r, dropped), true
+		}
+		judged[i] = pushedRef{local: r.local, ref: r.ref}
 	}
-	return pushedRef{}, false
+	return judged, Answer{}, false
+}
+
+// ownRewrite is whether a rewrite is a branch's own, which drops no work
+// (slice-193): the clone has the remote commit it replaces, the ref is a
+// branch other than main, the branch the remote's HEAD names (asked of the
+// remote, which must have it), and every commit of the remote commit that
+// main lacks has a counterpart among the commit pushed's that main lacks
+// (internal/engine/rewrite). Main is the clone's remote-tracking branch of it,
+// all of a head's commits counting with none. The commits that would be
+// dropped are returned when they are what refuses it.
+func (h Handler) ownRewrite(ctx context.Context, remote string, r pushedRef) ([]vcsport.Entry, bool) {
+	if r.base == "" || remote == "" || !strings.HasPrefix(r.ref, heads) {
+		return nil, false
+	}
+	main, ok := h.mainBranch(ctx, remote)
+	if !ok || r.ref == heads+main {
+		return nil, false
+	}
+	tracking := "refs/remotes/" + remote + "/" + main
+	if !hasCommit(ctx, h.ports, tracking) {
+		tracking = ""
+	}
+	dropped, err := rewrite.Dropped(ctx, h.ports, tracking, r.base, r.local)
+	return dropped, err == nil && len(dropped) == 0
+}
+
+// mainBranch is the branch the remote's HEAD names, asked of the remote
+// itself as itos push asks it (git ls-remote --symref), when the remote has
+// it; not ok when the remote cannot be asked or names no branch it has.
+func (h Handler) mainBranch(ctx context.Context, remote string) (string, bool) {
+	talk := vcsport.Talk{NoPrompt: true}
+	main, err := h.ports.RemoteHead(ctx, remote, talk)
+	if err != nil || main == "" {
+		return "", false
+	}
+	has, err := h.ports.RemoteRefs(ctx, remote, []string{heads + main}, talk)
+	_, found := has[heads+main]
+	return main, err == nil && found
 }
 
 // refuseRewrite is the hook's refusal of a push that rewrites the remote's
-// ref: it names the ref and its commit, and itos push, which rebases onto the
-// remote's commits and never forces.
-func refuseRewrite(r pushedRef) Answer {
+// ref: it names the ref and its commit, each commit the rewrite would drop
+// when that is why, and itos push, which rebases onto the remote's commits and
+// never forces, and itos push --onto-main, which brings an item's branch up to
+// main.
+func refuseRewrite(r pushedRef, dropped []vcsport.Entry) Answer {
 	why := "a commit that does not build on it"
 	if r.base == "" {
 		why = "one that cannot build on it, since this clone lacks it"
@@ -142,7 +197,15 @@ func refuseRewrite(r pushedRef) Answer {
 	fmt.Fprintf(&said, "itos: the push would replace %s's commit %s on the remote with %s, rewriting what "+
 		"others may have built on; it is refused, and hooks.pre_push's commands did not run.\n", r.ref, short(r.remote),
 		why)
-	fmt.Fprintln(&said, "Run itos push instead: it fetches the remote's commits and rebases yours onto them, and never forces.")
+	if len(dropped) > 0 {
+		fmt.Fprintln(&said, "It would drop these commits of the remote's branch, which main lacks and the commit pushed "+
+			"has no counterpart of (the same author, author date and message):")
+		for _, e := range dropped {
+			fmt.Fprintf(&said, "  %s %s\n", e.Short, e.Subject)
+		}
+	}
+	fmt.Fprintln(&said, "Run itos push instead: it fetches the remote's commits and rebases yours onto them, and never forces. "+
+		"On an item's branch, itos push --onto-main brings it up to main, rewriting it only that far.")
 	return Answer{Code: policy, Said: said.String()}
 }
 
@@ -291,12 +354,13 @@ func prePushInput() (string, error) {
 // prePush is `hook pre-push <remote> <url>` (pre-push.ts's prePush, and
 // slice 46): a push that would move or delete a tag the remote has refused
 // first (slice 182, movedTag), then one that would rewrite a remote ref
-// (slice 128, rewrites), then verify over what each pushed ref adds, then,
+// (slice 128, rewrites; a branch's own rewrite, slice-193, is judged as a new
+// branch), then verify over what each pushed ref adds, then,
 // when every commit passes, the commands of hooks.pre_push, per_base once
 // per remote base with {base} filled in, else whole, each printed and run
 // with the hook's streams; without hooks.pre_push (or a hooks section), the verify alone,
 // where it was an error before. 0 when all pass, 1 when not.
-func (h Handler) prePush(ctx context.Context, o Out) (Answer, error) {
+func (h Handler) prePush(ctx context.Context, remote string, o Out) (Answer, error) {
 	input, err := prePushInput()
 	if err != nil {
 		return Answer{}, err
@@ -305,9 +369,9 @@ func (h Handler) prePush(ctx context.Context, o Out) (Answer, error) {
 	if l, ok := movedTag(lines); ok {
 		return refuseTag(l), nil
 	}
-	refs := h.pushedRefs(ctx, lines)
-	if r, ok := h.rewrites(ctx, refs); ok {
-		return refuseRewrite(r), nil
+	refs, refusal, refused := h.rewrites(ctx, remote, h.pushedRefs(ctx, lines))
+	if refused {
+		return refusal, nil
 	}
 	cfg, err := h.ports.LoadConfig(ctx)
 	if err != nil {

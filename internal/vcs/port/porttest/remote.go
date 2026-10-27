@@ -106,9 +106,10 @@ func (v *VCS) Fetch(_ context.Context, remote, refspec string, _ port.Talk) (str
 }
 
 // Push sets each refspec's destination on the remote to its source's
-// object, a branch only forward and a tag only where it has none: a
-// refusal, as git words it, fails the push, and the refs it set stay
-// unless it is atomic.
+// object, a branch only forward and a tag only where it has none, except
+// the ref a lease names, which also may go where it is at the commit the
+// lease expects: a refusal, as git words it, fails the push, and the refs it
+// set stay unless it is atomic.
 func (v *VCS) Push(_ context.Context, remote string, specs []string, p port.Pushing, _ port.Talk) error {
 	command := "git push " + remote + " " + strings.Join(specs, " ")
 	r, err := v.reachRemote(command, remote)
@@ -129,6 +130,7 @@ func (v *VCS) Push(_ context.Context, remote string, specs []string, p port.Push
 		}
 		at, there := refs[dst]
 		forward := !there || at == object || !strings.HasPrefix(dst, "refs/tags/") && v.IsAncestor(context.Background(), at, object)
+		forward = forward || p.Lease != nil && p.Lease.Ref == dst && p.Lease.Expect == at
 		if !forward {
 			refused = append(refused, dst)
 			continue
