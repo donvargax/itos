@@ -185,8 +185,9 @@ Feature: Under push.mode pr, CI trusts the green run of a merged pull request's 
   ci run: ci-repo's scope, plan, run and tests must apply the same rule
   through the same code (its scope "full" false, so the platform jobs and
   the launcher steps skip), and ci.yml must grant the pull-requests: read
-  permission the look needs. That is T-315, a gate's change and so ci's;
-  until it lands, main's runs here run everything as today.
+  permission the look needs. That was T-315, a gate's change and so ci's;
+  T-315 wired it here on 2026-10-26, when main's run took the trusted
+  route.
 
   No switch turns the trust off (the person's call, 2026-10-26). A
   consumer whose ci.steps do work only main's run should do (a deploy,
