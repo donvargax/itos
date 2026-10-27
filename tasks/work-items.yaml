@@ -15039,8 +15039,8 @@ items:
   - id: T-330
     title: A stateful property holds work done's trust of a merged pull request's run to a model of what main gained since
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
 
