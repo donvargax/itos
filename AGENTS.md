@@ -166,9 +166,10 @@ Stage only your own files, by explicit path: untracked files you did not make ar
 - Read what the change must do first: the `@wip` scenarios in `features/`, the task's `why` and
   `done_when` in `tasks/`, the plan or decision it names. Report what it leaves out or adds.
 - A pull request that changes only feature files, `tasks/` or `docs/` is a spec: report a
-  scenario that would pass before the work, or fail after a correct one, reading the steps it
+  scenario that would pass before the work (not a `@guard`), or fail after a correct one, reading the steps it
   uses in `features/*_test.go` and what each Given leaves in the clone and its remote.
-- Report as P1 a test that cannot fail without the change, passes for the wrong reason, or
+- Report as P1 a test that cannot fail without the change (a `@guard` scenario passes before on
+  purpose), passes for the wrong reason, or
   depends on the environment it runs in instead of setting it up.
 - Report as P1 an error check no run can reach: CI refuses a changed line no test covers.
 - Report as P2 help, a `doc.go` or a feature's description that says more or less than the code.
