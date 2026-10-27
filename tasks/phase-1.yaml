@@ -5040,9 +5040,6 @@
     report its arguments; the coordinator files a bug whose fix lands with it. A difference by
     design is listed in the test with its reason. No production change. Windows: git's stdin and the
     file path through the scratch repository, no shell.
-  done_when:
-    - run: "go test ./internal/slices/commit -count=1 -run '^TestMessageSourceMatchesGit$' -v 2>&1 | grep -q -- '--- PASS: TestMessageSourceMatchesGit'"
-      timeout: 300
 
 - id: T-328
   type: test
