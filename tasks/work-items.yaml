@@ -15233,3 +15233,21 @@ items:
       --ready's unresolved-thread refusal pointing at it.
     refs: [internal/slices/push]
     tags: [push, review, v8]
+
+  - id: p1-history-properties-more
+    title: "Grow T-331's history property: CommitPaths, OwnPaths and Diff on the same model, ranges drawn at the end for faster shrinking, and real git merge"
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      T-331 (2026-10-27, PR #197) holds Touched to a first-parent model over drawn histories built
+      with git fast-import. Its implementer's follow-ups: CommitPaths, OwnPaths and Diff share
+      Touched's merge and first-parent semantics that push relies on, so the same model can hold
+      them; drawing the ranges inside every step's invariant made shrinking take 67 s, so draw them
+      only at the end (or fewer); and the test controls every merge's resolution, so nothing checks
+      real git merge's own first-parent diff, which a second property using git merge with a
+      resolving strategy would.
+    refs: [internal/vcs/adapter/touched_property_test.go, internal/vcs/adapter/paths.go]
+    tags: [tests, v8]
