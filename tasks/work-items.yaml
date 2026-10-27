@@ -15267,8 +15267,8 @@ items:
   - id: slice-193
     title: itos push has no path for an item branch whose pushed commits conflict with main
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: slice
     why: >
