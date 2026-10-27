@@ -14959,3 +14959,22 @@ items:
     status: todo
     depends_on: []
     kind: task
+
+  - id: p1-unit-tests-under-hook-git-env
+    title: The unit tests also run under a git hook's environment, so a test that inherits GIT_DIR or GIT_INDEX_FILE fails deterministically
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The reviewer replay (2026-10-27): K151b (gitForTest passed inherited GIT_DIR, GIT_WORK_TREE
+      and GIT_INDEX_FILE, so a test could write the caller's repository) and K170 (a shared fixture
+      built before alone(t) cleared inherited git settings) were found only by reviewers, though one
+      run settles both: the unit tests run with GIT_DIR, GIT_INDEX_FILE, GIT_WORK_TREE and
+      core.hooksPath pointing at a scratch repository that must stay untouched, as a pre-commit hook
+      runs them (go-unit-tests drops the variables there, so this run proves the tests do not need
+      that). The nightly, beside the features under hostile PATHs; red names the test that touched
+      the scratch repository.
+    refs: [tools/bin/go-unit-tests, .github/workflows/nightly.yml]
+    tags: [tests, gates, v8]
