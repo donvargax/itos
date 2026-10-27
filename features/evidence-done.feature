@@ -304,7 +304,7 @@ Feature: work done runs a task's static checks through the evidence engine and n
     And the registry's item "T-001" has the status "done" and the owner "someone"
 
   # Bug 144: "is late: left to CI" read as a warning, though late is a cost class and CI's run, judged just below, runs the check. Fails before the work at the output step: the line says only "is late: left to CI".
-  @ID-EVID-57 @bug-144 @wip
+  @ID-EVID-57 @bug-144
   Scenario: work done says a late check is left to CI because it is late, and that the CI run below judges it
     Given the committed file "tasks/phase-1.yaml" holding the lines:
       """

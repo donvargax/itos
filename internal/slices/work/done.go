@@ -419,7 +419,7 @@ func (r taskRun) say(id string, o Out) {
 		return
 	}
 	for _, c := range r.late {
-		fmt.Fprintf(w, "%s's check `%s` is late: left to CI\n", id, c.Command)
+		fmt.Fprintf(w, "%s's check `%s` is left to CI: it is late (ci.cost), so work done does not run it, and the CI run below judges it\n", id, c.Command)
 	}
 }
 

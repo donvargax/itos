@@ -706,13 +706,13 @@ func TestDoneNamesTheLateChecksLeftToCI(t *testing.T) {
 	late.files[ledgerFile] = ledgerText
 
 	code, stdout, _, err := run(t, over(t, late), "done", "T-1")
-	if code != 0 || err != nil || !strings.HasPrefix(stdout, "T-1's check `true` is late: left to CI\nT-1 is done: committed ") {
+	if code != 0 || err != nil || !strings.HasPrefix(stdout, "T-1's check `true` is left to CI: it is late (ci.cost), so work done does not run it, and the CI run below judges it\nT-1 is done: committed ") {
 		t.Errorf("work done T-1 = %d, %v, %q", code, err, stdout)
 	}
 	code, stdout, stderr, err := run(t, over(t, late), "--json", "done", "T-1")
 	o := object(t, stdout)
 	left, _ := json.Marshal(o["left_to_ci"])
-	if code != 0 || err != nil || string(left) != `[{"command":"true","task":"T-1"}]` || !strings.Contains(stderr, "T-1's check `true` is late: left to CI\n") {
+	if code != 0 || err != nil || string(left) != `[{"command":"true","task":"T-1"}]` || !strings.Contains(stderr, "T-1's check `true` is left to CI: it is late (ci.cost), so work done does not run it, and the CI run below judges it\n") {
 		t.Errorf("work --json done T-1 = %d, %v, %v, %q", code, err, o, stderr)
 	}
 	if code, stdout, stderr, err := run(t, over(t, late), "-q", "done", "T-1"); code != 0 || err != nil || stdout != "" || strings.Contains(stderr, "left to CI") {
