@@ -10,6 +10,7 @@ import (
 
 	"github.com/donvargax/itos/v8/internal/out"
 	"github.com/donvargax/itos/v8/internal/providers"
+	vcsport "github.com/donvargax/itos/v8/internal/vcs/port"
 )
 
 // A review thread as GraphQL gives it, with its node id and the login of its
@@ -212,6 +213,29 @@ func TestPushThreadsRefusalsAskGhNothing(t *testing.T) {
 				}
 			})
 		}
+	}
+}
+
+// Main is found as push finds it: a remote that cannot be asked exits by the
+// kind of the failure, and one whose HEAD names no branch it has exits 3,
+// before gh is asked.
+func TestPushThreadsWhereMainCannotBeFound(t *testing.T) {
+	for name, c := range map[string]struct {
+		set     func(*fake)
+		code    int
+		outcome string
+	}{
+		"unreachable": {func(f *fake) { f.headErr = &vcsport.Failed{Failure: vcsport.Unreachable} }, temporary, "fetch-failed"},
+		"no default":  {func(f *fake) { f.remoteHead = "" }, missing, "no-default-branch"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			f, _ := threadsRepo(t)
+			c.set(f)
+			code, stdout, _, _ := call(t, f, "--json", "threads")
+			if got := reportedThreads(t, stdout); code != c.code || got["outcome"] != c.outcome || len(f.ghCalls) != 0 {
+				t.Errorf("exit %d, %d gh calls\n%s", code, len(f.ghCalls), stdout)
+			}
+		})
 	}
 }
 
