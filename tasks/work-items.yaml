@@ -14682,4 +14682,17 @@ items:
       step timings (gh run view --json jobs, steps' started/completed) against a median run: the
       code proof (mutation draw and coverage over a larger range), the named tests a range selects,
       go build cache misses, or the runner. Report which step and why before any change.
+
+      Measured 2026-10-26 (bug-144 #167, run 40426050564, ci job 393 s, Plan 361 s): recent green PR
+      runs top out at ~6.5 min (the 10-12 min ones are older); Plan is ~1.5 min on a range with no
+      Go, ~6 on one with Go. Its parts on a Go range: the code proof (itos-cc mutation run --count 1
+      --fail-uncovered=lines) 167 s = unit coverage 4 s + the whole features suite for coverage 62 s
+      + judging the one mutant ~88 s; previous-release 75 s; static checks ~51 s (architecture-check
+      21 s); go test cmd/internal ~25 s; conformance 20 s; self-tests and named tests ~20 s. Not
+      cache misses. Levers, in order: (1) the mutant's judgement runs ~88 s: run only the tests
+      covering its line (mutation.tests ids from the coverage run), likely itos-cc's side; (2) the
+      coverage pass runs every feature (62 s) where only the changed lines' coverage is judged:
+      features touching the changed packages, or reuse a run CI already makes; (3) previous-release
+      could run only the old scenarios the range can affect (as the named tests are selected). Each
+      is a gate change; measure the saving on a run before choosing.
     tags: [ci]
