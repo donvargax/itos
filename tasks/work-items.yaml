@@ -7945,6 +7945,12 @@ items:
       item's task on main after its head's run); the evidence store (record, lookup, quarantine,
       under concurrency); the config editor (rename and remove keep every other byte). Concurrency
       through linearizability checks on the real code, not TLA+.
+
+      The reviewer replay (2026-10-27): two known bugs are sequences this programme's models would
+      generate: K137 (bug-137, a done_when check added on main after the head's run, skipped by the
+      trust) and K153 (push's Touched(parent..commit) followed a merge's second parent; a history
+      generator with merge commits against a first-parent model). Each is a regression seed for its
+      domain's model.
     refs: [internal/work, internal/value]
     tags: [tests]
 
