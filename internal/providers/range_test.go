@@ -46,7 +46,7 @@ func walkRepository(t *testing.T) map[string]string {
 	t.Helper()
 	// Away from the repository a hook runs the tests in: the walk's git
 	// reads the environment too.
-	for _, name := range []string{"GIT_DIR", "GIT_INDEX_FILE", "GIT_WORK_TREE", "GIT_COMMON_DIR"} {
+	for _, name := range []string{"GIT_DIR", "GIT_INDEX_FILE", "GIT_WORK_TREE", "GIT_COMMON_DIR", "GIT_CONFIG_COUNT", "GIT_CONFIG_PARAMETERS"} {
 		t.Setenv(name, "")
 		os.Unsetenv(name)
 	}
