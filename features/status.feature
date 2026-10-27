@@ -92,6 +92,10 @@ Feature: itos status, where the work stands
     And its output says "no release yet"
     And its output says "slice-9"
 
+  # Slice 196 fetches the head first, so this setup no longer leaves it
+  # unfetched: the feat that turns slice 196's scenarios live gives this one
+  # the Given of ID-STATUS-32, a fetch that fails while the remote still
+  # answers, and names it in Changes:.
   @ID-STATUS-08 @slice-70
   Scenario: Where the remote's head is not fetched here, status says its unreleased commits may be behind
     Given the watched run's jobs "ci" and "platform" succeed
@@ -101,6 +105,118 @@ Feature: itos status, where the work stands
     Then itos exits with code 0
     And its output says "v1.2.0"
     And its output says "may be behind"
+
+  # Slice 196 (p1-status-fetches-first, 2026-10-27). itos go's status read
+  # origin/main unfetched ("origin/main (public): ff05074 (not fetched
+  # here)") and listed as in progress and next four items that had all
+  # merged; the coordinator acted on it before fetching. status, and so itos
+  # go, fetches the branch it reads before reading it, once: the branch's
+  # upstream (origin and the branch's own name when none is set) into its
+  # remote-tracking ref, git fetch --quiet --no-tags of that one ref, never
+  # prompting, its output not shown, within 20 s as the head's ls-remote and
+  # itos ci watch's quiet fetch are; from a detached HEAD, where origin's HEAD
+  # is read, the remote's own refspecs, as ci watch's quiet fetch. Then it
+  # reads as before, now with the head fetched. A fetch that fails (offline,
+  # a remote that is no repository, auth, out of time) adds one line,
+  # "<remote>/<branch> cannot be fetched: " and git's first line of why ("no
+  # answer within 20 s" for the time), and status reads what it has, as
+  # today: the remote's head asked of it, "(not fetched here)" when the clone
+  # lacks it, else as last fetched; exit unchanged. No remote is today's line
+  # and no fetch; a stealth config fetches nothing either, as it writes
+  # nothing in the project's clone, and reads as today. No flag skips the
+  # fetch: every scenario's remote is a local scratch one, so none needs one.
+  # --json gains no field: the head and release read as fetched, and the
+  # fetch's line is one of "unread". status still reads the items from the
+  # working tree, which the fetch does not move. The help's "never writes or
+  # fetches" says it fetches that one ref.
+  @ID-STATUS-28 @wip @slice-196
+  Scenario: status fetches the remote branch first and names its new head, quietly
+    Given the watched run's jobs "ci" and "platform" succeed
+    And the remote has gained the commit "feat: add the archive" touching "a.txt"
+    When itos runs "status --as someone"
+    Then itos exits with code 0
+    And its output says "feat: add the archive"
+    And its output does not say "not fetched here"
+    And its output does not say "-> origin/main"
+
+  @ID-STATUS-29 @wip @slice-196
+  Scenario: status lists the unreleased commits the fetch brought, and says nothing of them being behind
+    Given the watched run's jobs "ci" and "platform" succeed
+    And the remote's head is tagged "v1.2.0"
+    And the remote has gained the commit "feat: add the archive" touching "a.txt"
+    When itos runs "status --as someone"
+    Then itos exits with code 0
+    And its output says "Unreleased since v1.2.0"
+    And its output does not say "may be behind"
+
+  @ID-STATUS-30 @wip @slice-196
+  Scenario: itos go's status fetches the remote branch first
+    Given the watched run's jobs "ci" and "platform" succeed
+    And the remote has gained the commit "feat: add the archive" touching "a.txt"
+    When itos runs "go"
+    Then itos exits with code 0
+    And its output says "feat: add the archive"
+    And its output does not say "not fetched here"
+
+  # The remote is a path that does not exist, so ls-remote fails as the
+  # fetch does: the head is as last fetched, as today, beside the new line.
+  @ID-STATUS-31 @wip @slice-196
+  Scenario: A fetch that fails is said in a line with git's reason, and status reads what it has
+    Given the watched run's jobs "ci" and "platform" succeed
+    And the work registry has the item "slice-9" owned by "someone" with the status "doing"
+    And the remote cannot be reached
+    When itos runs "status --as someone"
+    Then itos exits with code 0
+    And its output says "origin/main cannot be fetched"
+    And its output says "does not appear to be a git repository"
+    And its output says "as last fetched"
+    And its output says "slice-9"
+
+  # The remote names a commit it cannot send (made in the bare remote over a
+  # tree naming a blob it lacks, git mktree --missing then commit-tree, so
+  # upload-pack fails while ls-remote answers), the case of a fetch cut off
+  # by its time while the ls-remote is quick: the head line keeps today's
+  # "(not fetched here)".
+  @ID-STATUS-32 @wip @slice-196
+  Scenario: Where the fetch fails and the remote still answers, status names the head as not fetched here
+    Given the watched run's jobs "ci" and "platform" succeed
+    And the remote's head is tagged "v1.2.0"
+    And the remote's main has gained a commit whose objects the remote cannot send
+    When itos runs "status --as someone"
+    Then itos exits with code 0
+    And its output says "origin/main cannot be fetched"
+    And its output says "(not fetched here)"
+    And its output says "may be behind"
+
+  # Holds before the work: it keeps a fetch, or its failure's line, out of a
+  # clone with no remote.
+  @ID-STATUS-33 @wip @slice-196
+  Scenario: With no remote, status fetches nothing and says so as before
+    Given the watched run's jobs "ci" and "platform" succeed
+    And the clone has no remote
+    When itos runs "status --as someone"
+    Then itos exits with code 0
+    And its output says "No remote origin"
+    And its output does not say "cannot be fetched"
+
+  # Holds before the work: a stealth config leaves the project's clone as it
+  # found it, its remote-tracking refs included.
+  @ID-STATUS-34 @wip @slice-196
+  Scenario: Under a stealth config, status fetches nothing
+    Given itos's config is kept in the git folder
+    And the remote has gained the commit "feat: add the archive" touching "a.txt"
+    When itos runs "status"
+    Then itos exits with code 0
+    And its output says "(not fetched here)"
+    And its output does not say "feat: add the archive"
+
+  @ID-STATUS-35 @wip @slice-196
+  Scenario: With --json, a fetch that fails is one of the lines unread
+    Given the watched run's jobs "ci" and "platform" succeed
+    And the remote cannot be reached
+    When itos runs "status --as someone --json"
+    Then itos exits with code 0
+    And its output says "origin/main cannot be fetched"
 
   # A red nightly is a coordinator's first item, yet status read only the
   # head's own run, so a session found the nightly red by hand (2026-10-04,
