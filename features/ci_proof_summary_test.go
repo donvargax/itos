@@ -35,6 +35,13 @@ func initializeProofSummarySteps(sc *godog.ScenarioContext, w *world) {
 		return w.write(path, text.Content)
 	})
 	sc.Step(`^the scratch file "([^"]*)" contains "([^"]*)"$`, w.write)
+	sc.Step(`^the scratch file "([^"]*)" contains `+goQuoted+`, its backslash escapes read as Go's$`, func(path, text string) error {
+		text, err := goEscapes(text)
+		if err != nil {
+			return err
+		}
+		return w.write(path, text)
+	})
 	sc.Step(`^the scratch files "([^"]*)" and "([^"]*)" each contain "([^"]*)"$`, func(a, b, text string) error {
 		return errors.Join(w.write(a, text), w.write(b, text))
 	})

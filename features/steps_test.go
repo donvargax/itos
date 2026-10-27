@@ -283,6 +283,14 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	sc.Step(`^the commit "([^"]*)" naming the task "([^"]*)" with the footer "([^"]*)"$`, func(message, task, footer string) error {
 		return w.commitOnTop(message + "\n\nTask: " + task + "\n" + footer + "\n")
 	})
+	sc.Step(`^the commit "([^"]*)" naming the task "([^"]*)" with the footer `+goQuoted+`, its backslash escapes read as Go's$`,
+		func(message, task, footer string) error {
+			footer, err := goEscapes(footer)
+			if err != nil {
+				return err
+			}
+			return w.commitOnTop(message + "\n\nTask: " + task + "\n" + footer + "\n")
+		})
 	sc.Step(`^the config requires an? "([^"]*)" footer of free text for "([^"]*)"$`, w.requiresTextFooter)
 	sc.Step(`^the config has an Item footer of registry items, taken in place of Task for test, docs and chore$`, func() error {
 		w.config.itemFooter = true
@@ -568,6 +576,13 @@ func initializeScenario(sc *godog.ScenarioContext) {
 
 	sc.Step(`^itos exits with code (\d+)$`, w.exitsWith)
 	sc.Step(`^its output says "([^"]*)"$`, w.outputSays)
+	sc.Step(`^its output says `+goQuoted+`, its backslash escapes read as Go's$`, func(text string) error {
+		text, err := goEscapes(text)
+		if err != nil {
+			return err
+		}
+		return w.outputSays(text)
+	})
 	sc.Step(`^its output says "([^"]*)", whatever its line breaks$`, w.outputSaysFolded)
 	sc.Step(`^its output does not say "([^"]*)", whatever its line breaks$`, w.outputDoesNotSayFolded)
 	// The range's start as a CI step is given it (slice 83).
@@ -2636,6 +2651,19 @@ func (w *world) exitsWith(code int) error {
 		return fmt.Errorf("itos exited %d, not %d\n%s", w.exit, code, w.report())
 	}
 	return nil
+}
+
+// goQuoted is a quoted text whose backslash escapes a step reads as Go's (goEscapes), so a feature
+// file holds a form feed or a no-break space as \f or \u00a0 where an editor would not keep it.
+const goQuoted = `"((?:[^"\\]|\\.)*)"`
+
+// goEscapes is the body of a quoted text read as the body of a Go string literal.
+func goEscapes(body string) (string, error) {
+	text, err := strconv.Unquote(`"` + body + `"`)
+	if err != nil {
+		return "", fmt.Errorf("the text %q is no Go string literal's body: %w", body, err)
+	}
+	return text, nil
 }
 
 func (w *world) outputSays(text string) error {

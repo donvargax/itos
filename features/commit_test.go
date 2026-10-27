@@ -38,6 +38,17 @@ func initializeCommitSteps(sc *godog.ScenarioContext, w *world) {
 		return w.itos(append([]string{"commit"}, args...)...)
 	})
 
+	sc.Step(`^itos commits with the arguments `+goQuoted+`, its backslash escapes read as Go's$`, func(line string) error {
+		line, err := goEscapes(line)
+		if err != nil {
+			return err
+		}
+		args, err := shellWords(line)
+		if err != nil {
+			return err
+		}
+		return w.itos(append([]string{"commit"}, args...)...)
+	})
 	sc.Step(`^itos has committed with the arguments "([^"]*)"$`, w.itosHasCommitted)
 	sc.Step(`^git commits with the message "([^"]*)"$`, func(message string) error {
 		return w.run(w.dir, git.Bin(runtime.GOOS), "commit", "-m", message)
