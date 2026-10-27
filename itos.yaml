@@ -383,6 +383,13 @@ ci:
       # runner has the shim.
       - run: >-
           sh -c 'd=$(mktemp -d) && ln -s "$PWD/.tools/bin/itos" "$d/git" && PATH="$d:$PATH" go test ./tools/bin/... -count=1'
+      # The unit tests under the git environment a hook hands its children (T-326, ADR-0051's
+      # tiers): GIT_DIR, GIT_WORK_TREE and GIT_INDEX_FILE at a scratch repository, and a
+      # core.hooksPath of failing hooks. A test that inherits them and writes through them, or makes
+      # a repository whose git commands meet the failing hooks, is red; the hooks themselves drop the
+      # variables, so a push never sees one. Beside the other hostile-environment runs above; the
+      # packages are CI's unit step and the gate programs'.
+      - "go run ./tools/bin/go-unit-tests -hook-env ./cmd/... ./internal/... ./tools/..."
       # internal/cli's help tests do not depend on what itos-* extensions the PATH holds (T-077's
       # check, kept as a step in T-125), and neither does the corpus's help listings above all
       # (T-080's): each with an extension of its own planted on the PATH, as a maintainer's machine

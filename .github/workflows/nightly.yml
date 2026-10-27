@@ -6,8 +6,9 @@ name: Nightly
 # (workflow_dispatch), in the platform jobs (T-163). Beside them the nightly
 # job runs the gates self-test, which a push's CI leaves to the nightly, and
 # the steps ci.nightly holds that a push does not (itos.yaml's `ci.nightly`):
-# the hostile-PATH runs, the two coverage runs, the plugin's own Claude Code
-# checks. When they are done, the report job reads how each ended: a red job
+# the hostile-PATH runs, the unit tests under a git hook's environment
+# (go-unit-tests -hook-env, T-326), the two coverage runs, the plugin's own
+# Claude Code checks. When they are done, the report job reads how each ended: a red job
 # opens one issue, "Nightly red", or comments on the open one; a night whose
 # every job is green closes it. A push's CI opens nothing.
 on:
