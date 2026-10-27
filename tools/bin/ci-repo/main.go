@@ -148,7 +148,7 @@ func run(args []string) (int, error) {
 	if err := os.Setenv("FROM", from); err != nil {
 		return 2, err
 	}
-	return ci.Run(cfg, p, ci.Options{Stdout: os.Stdout, Stderr: os.Stderr})
+	return ci.Run(cfg, p, ci.Options{Stdout: os.Stdout, Stderr: os.Stderr, Annotate: os.Getenv("GITHUB_ACTIONS") == "true"})
 }
 
 func main() {
