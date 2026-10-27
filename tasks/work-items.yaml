@@ -58,6 +58,7 @@ queue:
   - slice-190
   - slice-191
   - slice-192
+  - slice-193
   - bug-146
   - p1-ci-slow-linux-runs
   - slice-153
