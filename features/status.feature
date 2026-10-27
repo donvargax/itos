@@ -115,11 +115,15 @@ Feature: itos status, where the work stands
   # remote-tracking ref, git fetch --quiet --no-tags of that one ref, never
   # prompting, its output not shown, within 20 s as the head's ls-remote and
   # itos ci watch's quiet fetch are; from a detached HEAD, where origin's HEAD
-  # is read, the remote's own refspecs, as ci watch's quiet fetch. Then it
-  # reads as before, now with the head fetched. A fetch that fails (offline,
-  # a remote that is no repository, auth, out of time) adds one line,
-  # "<remote>/<branch> cannot be fetched: " and git's first line of why ("no
-  # answer within 20 s" for the time), and status reads what it has, as
+  # is read, the remote's own refspecs, as ci watch's quiet fetch. The head
+  # is asked of the remote with ls-remote first, as today: a remote that
+  # answers without the branch gets today's "has no branch" line and no
+  # fetch, nor any failure line. Then it reads as before, now with the head
+  # fetched. A fetch that fails (offline, a remote that is no repository,
+  # auth, out of time) adds one line, "<remote>/<branch> cannot be fetched:
+  # " and git's first line of why as git writes it, "fatal: " included ("no
+  # answer within 20 s" for the time), git's own output never shown, and
+  # status reads what it has, as
   # today: the remote's head asked of it, "(not fetched here)" when the clone
   # lacks it, else as last fetched; exit unchanged. No remote is today's line
   # and no fetch; a stealth config fetches nothing either, as it writes
@@ -135,7 +139,12 @@ Feature: itos status, where the work stands
   # absent when no fetch worked. The help's "never writes or fetches" says
   # it fetches that one ref. It lands as a fix, not a feat: a status naming
   # a stale head the coordinator then acts on is the defect; the fix names
-  # ID-STATUS-08 in Changes:, no BREAKING-CHANGE.
+  # ID-STATUS-08 in Changes:, no BREAKING-CHANGE. For the implementer, beyond
+  # the scenarios: the 20 s bound is pinned by a unit test over a fake VCS;
+  # the conformance case at tools/itos/conformance/status.yaml:725 would
+  # pass after the fetch for the wrong reason (unreleased: [] is a subset of
+  # any list), so its setup becomes the remote that cannot send its commit,
+  # as ID-STATUS-32's; and status --help's --json shape gains "behind".
   @ID-STATUS-28 @wip @slice-196
   Scenario: status fetches the remote branch first and names its new head, quietly
     Given the watched run's jobs "ci" and "platform" succeed
@@ -167,6 +176,8 @@ Feature: itos status, where the work stands
 
   # The remote is a path that does not exist, so ls-remote fails as the
   # fetch does: the head is as last fetched, as today, beside the new line.
+  # The reason is on status's own line, and git's second line, which only
+  # its leaked stderr or a reason of more than one line would carry, is not.
   @ID-STATUS-31 @wip @slice-196
   Scenario: A fetch that fails is said in a line with git's reason, and status reads what it has
     Given the watched run's jobs "ci" and "platform" succeed
@@ -174,8 +185,8 @@ Feature: itos status, where the work stands
     And the remote cannot be reached
     When itos runs "status --as someone"
     Then itos exits with code 0
-    And its output says "origin/main cannot be fetched"
-    And its output says "does not appear to be a git repository"
+    And its output says "origin/main cannot be fetched: fatal: '"
+    And its output does not say "Could not read from remote repository"
     And its output says "as last fetched"
     And its output says "slice-9"
 
@@ -223,7 +234,7 @@ Feature: itos status, where the work stands
     And the remote cannot be reached
     When itos runs "status --as someone --json"
     Then itos exits with code 0
-    And its output says "origin/main cannot be fetched"
+    And its JSON's "unread" has a line saying "origin/main cannot be fetched"
     And its JSON has no "behind"
 
   # The Background's clone tracks the remote's main and has not pulled the
@@ -253,6 +264,48 @@ Feature: itos status, where the work stands
     Then itos exits with code 0
     And its output does not say "behind origin/main"
     And its output does not say "git pull"
+
+  @ID-STATUS-39 @wip @slice-196
+  Scenario: With --json, a clone up to date with the remote branch it fetched is 0 commits behind
+    Given the watched run's jobs "ci" and "platform" succeed
+    When itos runs "status --as someone --json"
+    Then itos exits with code 0
+    And the output's JSON field "behind" is "0"
+
+  # One ref, not the remote's every branch: ci watch's quiet fetch would
+  # also bring the remote's other branch.
+  @ID-STATUS-40 @wip @slice-196
+  Scenario: status fetches the branch it reads and no other
+    Given the watched run's jobs "ci" and "platform" succeed
+    And the remote has gained the branch "other" with the commit "feat: elsewhere" touching "o.txt"
+    And the remote has gained the commit "feat: add the archive" touching "a.txt"
+    When itos runs "status --as someone"
+    Then itos exits with code 0
+    And the clone's ref "refs/remotes/origin/main" names the remote's main
+    And the repository has no ref "refs/remotes/origin/other"
+
+  # From a detached HEAD status reads origin's HEAD, the remote's main here,
+  # and fetches with the remote's own refspecs.
+  @ID-STATUS-41 @wip @slice-196
+  Scenario: From a detached HEAD, status fetches and says how far HEAD is behind
+    Given the watched run's jobs "ci" and "platform" succeed
+    And the clone's HEAD is detached at its commit
+    And the remote has gained the commit "feat: add the archive" touching "a.txt"
+    When itos runs "status --as someone"
+    Then itos exits with code 0
+    And its output says "feat: add the archive"
+    And its output says "HEAD is 1 commit behind"
+
+  # Holds before the work: ls-remote, asked first, finds no such branch, so
+  # nothing is fetched and no failure is said beside today's line.
+  @ID-STATUS-42 @wip @slice-196
+  Scenario: On a branch the remote lacks, status fetches nothing and says no fetch failed
+    Given the watched run's jobs "ci" and "platform" succeed
+    And the clone is on the new branch "topic", which the remote does not have
+    When itos runs "status --as someone"
+    Then itos exits with code 0
+    And its output says "origin has no branch topic"
+    And its output does not say "cannot be fetched"
 
   # A red nightly is a coordinator's first item, yet status read only the
   # head's own run, so a session found the nightly red by hand (2026-10-04,
