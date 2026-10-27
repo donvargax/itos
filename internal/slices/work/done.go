@@ -56,11 +56,11 @@ func (h Handler) done(ctx context.Context, id string, o Out) (Answer, error) {
 		a.Release()
 		a.Release = func() {}
 	}
-	var remote, main string
+	var remote, main, tip string
 	var merged *mergedHead
 	if cfg.Push.Mode == "pr" {
 		var stop *refusedPR
-		if remote, main, stop = prMain(ctx, h.ports, cfg, id, o); stop != nil {
+		if remote, main, tip, stop = prMain(ctx, h.ports, cfg, id, o); stop != nil {
 			a.Refused, a.Code = stop.found, stop.code
 			return a, nil
 		}
@@ -74,12 +74,12 @@ func (h Handler) done(ctx context.Context, id string, o Out) (Answer, error) {
 	switch {
 	case cfg.Push.Mode == "pr":
 		if len(found) == 0 {
-			m, stop := prLanded(ctx, h.ports, cfg, id, remote, main, landing)
+			m, judged, stop := prLanded(ctx, h.ports, cfg, id, remote, main, tip, landing)
 			if stop != nil {
 				a.Refused, a.Code = stop.found, stop.code
 				return a, nil
 			}
-			merged = headOf(m, remote, main)
+			landing, merged = judged, headOf(m, remote, main)
 		}
 	case landing.sha == "":
 		landing = judgedCommit(ctx, cfg.VCS, cfg.Work.Registry)

@@ -105,7 +105,13 @@
 //     only when <remote>/<main>, as last fetched, has it, and is judged as
 //     above (its run is main's, unless the merged pull request's head's
 //     judges it, below), else the kind of the pull request (merged, closed
-//     without merging, none) is the refusal. The judged commit is never
+//     without merging, none) is the refusal. The merged pull request's
+//     commits are the item's own (slice 195): gh also gives its mergeCommit,
+//     the commit it merged as, which withMergeCommit makes the newest own
+//     commit when HEAD has it and no commit of the item's footers is after
+//     it, so a pull request that carried only a gate task's commits closes
+//     its item. The merged refusal advises git pull only when HEAD or
+//     <remote>/<main> lacks the commit prMain found <remote>'s main at (tip). The judged commit is never
 //     HEAD's under pr. With ci.watch, gh also gives the merged pull
 //     request's head (headRefOid), and trustedRun (trust.go, slice 181)
 //     asks, before main's run is looked for, whether that head's run may
