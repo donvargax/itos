@@ -388,3 +388,38 @@ func TestACIRunFailuresLinesLoseOnlyTheIndentationTheyShare(t *testing.T) {
 		t.Fatalf("%q, not %q", failures[0].Lines, want)
 	}
 }
+
+func TestReadAnnotationsKeepsFailuresInTheOrderListed(t *testing.T) {
+	failures, more := readAnnotations([]providers.Annotation{
+		{Path: "a_test.go", Line: 7, Level: "failure", Message: "one\r\ntwo\n"},
+		{Path: ".github", Line: 1, Level: "warning", Message: "deprecated"},
+		{Path: "x", Line: 2, Level: "notice", Message: "fyi"},
+		{Path: ".github", Line: 1, Level: "failure", Message: ""},
+	})
+	want := []providers.Failure{
+		{Kind: "annotation", Name: "a_test.go:7", Level: "failure", Lines: []string{"one", "two"}},
+		{Kind: "annotation", Name: ".github:1", Level: "failure", Lines: []string{}},
+	}
+	if more != 0 || !reflect.DeepEqual(failures, want) {
+		t.Fatalf("%+v, more %d", failures, more)
+	}
+	if failures, more := readAnnotations(nil); failures != nil || more != 0 {
+		t.Fatalf("no annotations: %+v, %d", failures, more)
+	}
+}
+
+func TestReadAnnotationsBoundsThemAsALogsFailuresAre(t *testing.T) {
+	var annotations []providers.Annotation
+	for n := 1; n <= 23; n++ {
+		annotations = append(annotations,
+			providers.Annotation{Path: "p", Line: n, Level: "failure", Message: strings.Repeat("l\n", 12)},
+			providers.Annotation{Path: "p", Line: n, Level: "warning", Message: "w"})
+	}
+	failures, more := readAnnotations(annotations)
+	if len(failures) != 20 || more != 3 {
+		t.Fatalf("%d failures, more %d", len(failures), more)
+	}
+	if f := failures[19]; f.Name != "p:20" || len(f.Lines) != 10 || f.MoreLines != 2 {
+		t.Fatalf("%+v", f)
+	}
+}

@@ -387,7 +387,7 @@ Feature: A failed CI run names the step each failed job failed at and what faile
   # warning between them, an action's deprecation, is left out: only
   # failure-level annotations, in the API's order. Through itos push's wait,
   # as itos ci watch's.
-  @wip @slice-197 @ID-WATCH-48
+  @slice-197 @ID-WATCH-48
   Scenario: A failed job whose log is on a host itos cannot reach is named by its check run's annotations
     Given the watched run's job "ci" fails at its step "Run the unit tests", its log:
       """
@@ -430,7 +430,7 @@ Feature: A failed CI run names the step each failed job failed at and what faile
   # 10 lines each, what is left out counted and said. 35 is more than
   # GitHub's page of 30 unless per_page asks for more, so a request that
   # does not ask counts 10 left out, not 15.
-  @wip @slice-197 @ID-WATCH-49
+  @slice-197 @ID-WATCH-49
   Scenario: A job with more annotations and message lines than the limits names what it left out
     Given the watched run's job "ci" fails at its step "Run the unit tests", its log:
       """
@@ -448,7 +448,7 @@ Feature: A failed CI run names the step each failed job failed at and what faile
   # A guard, which holds before the work and must after it: a log that is
   # read is read as before, its failures the log's alone, and no annotation
   # is asked for.
-  @wip @slice-197 @ID-WATCH-50 @guard
+  @slice-197 @ID-WATCH-50 @guard
   Scenario: A failed job whose log is read asks for no annotation
     Given the watched run's job "ci" fails at its step "Run the unit tests", its log:
       """

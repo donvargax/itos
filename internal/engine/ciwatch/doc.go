@@ -53,7 +53,12 @@
 // one of its own), godog's failed scenarios (merged with their go test
 // subtest), itos ci run's failed steps and, when none has lines of its own, a
 // tail; a failure keeps 10 lines, a job 20 failures, a tail 20 lines, the
-// rest counted. An unreadable log is said, and never changes the exit code.
+// rest counted. An unreadable log is said, and never changes the exit code;
+// its job's failures are then the annotations of its check run
+// (providers.Watcher.Annotations, slice 197, asked once, none for a log that
+// was read): those of level failure, each of kind annotation named
+// path:line, bounded as a log's. Annotations that cannot be read, or none of
+// level failure, leave the job with its step alone.
 //
 // The outcome is a Watched (the exit code, success, failure, cancelled,
 // timeout or error, the run as last seen, the cancelled run's address when a

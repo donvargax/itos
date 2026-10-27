@@ -66,8 +66,14 @@
 // Log, github's JobLog, is a failed job's log (slice 172): GitHub redirects the
 // request to a short-lived address serving the text, which the client follows
 // (and drops the token for off GitHub's host); anything but the text is an
-// error, a log past LogLimit too, and the caller never retries. A Job also
-// carries its ID and the Steps the jobs API lists, which --json leaves out.
+// error, a log past LogLimit too, and the caller never retries. Annotations,
+// github's JobAnnotations (slice 197), is what the caller turns to when the
+// log cannot be read, most often because the host GitHub redirects it to is
+// one a sandbox refuses: the annotations of the job's check run (an Actions
+// job's ID being its check run's), api.github.com's own, asked once with
+// per_page=100 and never retried; a failed request is an error through get's
+// rules. A Job also carries its ID and the Steps the jobs API lists, which
+// --json leaves out.
 //
 // # Who a session works for, and the people
 //

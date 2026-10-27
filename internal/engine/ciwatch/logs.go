@@ -64,6 +64,13 @@ func readLog(text string) (failures []providers.Failure, more int) {
 			failures = append(failures, tail)
 		}
 	}
+	return bound(failures)
+}
+
+// bound is the failures a job keeps, at most maxFailures with the rest
+// counted, each of a kind but the tail with at most maxLines lines and the
+// rest counted.
+func bound(failures []providers.Failure) (kept []providers.Failure, more int) {
 	if len(failures) > maxFailures {
 		more, failures = len(failures)-maxFailures, failures[:maxFailures]
 	}
@@ -73,6 +80,25 @@ func readLog(text string) (failures []providers.Failure, more int) {
 		}
 	}
 	return failures, more
+}
+
+// readAnnotations are the failures a check run's annotations name, for a job
+// whose log cannot be read (slice 197): those of level failure, in the order
+// listed, each named path:line with its message's lines, bounded as a log's.
+func readAnnotations(annotations []providers.Annotation) (failures []providers.Failure, more int) {
+	for _, a := range annotations {
+		if a.Level != "failure" {
+			continue
+		}
+		lines := []string{}
+		if a.Message != "" {
+			for _, l := range strings.Split(strings.TrimSuffix(a.Message, "\n"), "\n") {
+				lines = append(lines, strings.TrimSuffix(l, "\r"))
+			}
+		}
+		failures = append(failures, providers.Failure{Kind: "annotation", Name: a.Path + ":" + strconv.Itoa(a.Line), Level: a.Level, Lines: lines})
+	}
+	return bound(failures)
 }
 
 // failuresIn are the failures the lines name, in order, their lines whole.

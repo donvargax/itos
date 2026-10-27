@@ -72,13 +72,16 @@ type Step struct {
 	Conclusion string
 }
 
-// Failure is something a failed job's log names (slice 172): its Kind
-// (go-test, scenario, ci-run or tail), its Name when it has one, the Package
-// of a Go test, its first Lines and how many more it left out.
+// Failure is something a failed job's log names (slice 172), or its check
+// run's annotations when the log cannot be read (slice 197): its Kind
+// (go-test, scenario, ci-run, tail or annotation), its Name when it has one,
+// the Package of a Go test, the Level of an annotation, its first Lines and
+// how many more it left out.
 type Failure struct {
 	Kind      string   `json:"kind"`
 	Name      string   `json:"name,omitempty"`
 	Package   string   `json:"package,omitempty"`
+	Level     string   `json:"level,omitempty"`
 	Lines     []string `json:"lines"`
 	MoreLines int      `json:"more_lines,omitempty"`
 }
@@ -129,14 +132,30 @@ type Visibility func() (string, error)
 // never retried: an error when it cannot be read.
 type JobLog func(id int64) (string, error)
 
+// Annotation is one annotation of a check run: where it points (Path and the
+// line it starts at), its Level (notice, warning or failure) and its Message.
+type Annotation struct {
+	Path    string
+	Line    int
+	Level   string
+	Message string
+}
+
+// JobAnnotations is the annotations of the check run of the job with the ID,
+// in the order the provider lists them, asked for once and never retried
+// (slice 197): an error when they cannot be read.
+type JobAnnotations func(id int64) ([]Annotation, error)
+
 // Watcher is ci.watch's provider: Look at a commit's run, the Runs on a
 // branch, the repository's Visibility, nil for a provider that cannot tell
-// it, and the JobLog of a failed job, nil for one that keeps none.
+// it, the JobLog of a failed job, nil for one that keeps none, and its
+// Annotations, nil for one that lists none.
 type Watcher struct {
-	Look       Watch
-	Runs       Runs
-	Visibility Visibility
-	Log        JobLog
+	Look        Watch
+	Runs        Runs
+	Visibility  Visibility
+	Log         JobLog
+	Annotations JobAnnotations
 }
 
 // WatchSetup is what the github provider needs from outside the config: the
@@ -161,7 +180,8 @@ func WatchProvider(cfg *config.Loaded, s WatchSetup) (watch Watcher, ok bool, er
 		return Watcher{}, false, err
 	}
 	g.Workflow = w.GitHub.Workflow
-	return Watcher{Look: g.RunOf, Runs: g.RunsOn, Visibility: g.Visibility, Log: g.JobLog}, true, nil
+	return Watcher{Look: g.RunOf, Runs: g.RunsOn, Visibility: g.Visibility, Log: g.JobLog,
+		Annotations: g.JobAnnotations}, true, nil
 }
 
 // Nightly looks once at the last nightly's run: found is false when there
@@ -435,6 +455,27 @@ func (g GitHub) JobLog(id int64) (string, error) {
 		return "", fmt.Errorf("the log %s names is more than %d bytes", path, LogLimit)
 	}
 	return string(text), nil
+}
+
+// JobAnnotations is the annotations of the check run of the job with the ID,
+// which an Actions job's ID is (slice 197): the one page GitHub lists when
+// asked for 100, more than the 50 it keeps for a check run, read once like
+// the log and never retried.
+func (g GitHub) JobAnnotations(id int64) ([]Annotation, error) {
+	var listed []struct {
+		Path      string `json:"path"`
+		StartLine int    `json:"start_line"`
+		Level     string `json:"annotation_level"`
+		Message   string `json:"message"`
+	}
+	if err := g.get(fmt.Sprintf("/repos/%s/check-runs/%d/annotations?per_page=100", g.Repository, id), &listed); err != nil {
+		return nil, err
+	}
+	annotations := make([]Annotation, 0, len(listed))
+	for _, a := range listed {
+		annotations = append(annotations, Annotation{Path: a.Path, Line: a.StartLine, Level: a.Level, Message: a.Message})
+	}
+	return annotations, nil
 }
 
 // RateLimited is a request GitHub refused for its rate limit (bug 40), and

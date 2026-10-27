@@ -117,6 +117,50 @@ func TestDetailReadsTheLogOfEachFailedJobOnce(t *testing.T) {
 	}
 }
 
+func TestDetailFallsBackToAnnotationsForALogThatCannotBeRead(t *testing.T) {
+	var asked []int64
+	wr := providers.Watcher{
+		Log: func(id int64) (string, error) {
+			if id == 11 || id == 16 {
+				return "", errors.New("refused")
+			}
+			return "", nil
+		},
+		Annotations: func(id int64) ([]providers.Annotation, error) {
+			asked = append(asked, id)
+			if id == 16 {
+				return nil, errors.New("down")
+			}
+			return []providers.Annotation{
+				{Path: ".github", Line: 1, Level: "warning", Message: "w"},
+				{Path: ".github", Line: 1, Level: "failure", Message: "Process completed with exit code 1."},
+			}, nil
+		},
+	}
+	got := Detail(context.Background(), wr, &remoteTags{}, "origin", failedRun())
+	if !reflect.DeepEqual(asked, []int64{11, 16}) {
+		t.Fatalf("asked for the annotations of %v", asked)
+	}
+	ci, platform := got.Jobs[0], got.Jobs[5]
+	want := []providers.Failure{{Kind: "annotation", Name: ".github:1", Level: "failure", Lines: []string{"Process completed with exit code 1."}}}
+	if ci.Step != "Run the unit tests" || ci.Log != "unreadable" || !reflect.DeepEqual(ci.Failures, want) {
+		t.Errorf("the job whose annotations were read: %+v", ci)
+	}
+	if platform.Log != "unreadable" || platform.Failures != nil || platform.MoreFailures != 0 {
+		t.Errorf("the job whose annotations could not be: %+v", platform)
+	}
+}
+
+func TestDetailAsksNoAnnotationOfALogThatIsRead(t *testing.T) {
+	wr := providers.Watcher{
+		Log:         func(int64) (string, error) { return log("--- FAIL: TestA (0.00s)", "    a_test.go:1: m"), nil },
+		Annotations: func(int64) ([]providers.Annotation, error) { t.Error("annotations were asked for"); return nil, nil },
+	}
+	if got := Detail(context.Background(), wr, &remoteTags{}, "origin", failedRun()); got.Jobs[0].Log != "read" {
+		t.Fatalf("%+v", got.Jobs[0])
+	}
+}
+
 func TestDetailAsksNoLogOfARunThatSucceeded(t *testing.T) {
 	wr := providers.Watcher{Log: func(int64) (string, error) { t.Error("a log was asked for"); return "", nil }}
 	run := failedRun()

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -468,7 +469,40 @@ func TestTheGitHubWatcherReadsJobLogs(t *testing.T) {
 		return map[string]string{"GITHUB_TOKEN": "t", "GITHUB_REPOSITORY": "o/n"}[name]
 	}
 	watcher, ok, err := WatchProvider(githubWatchConfig(), WatchSetup{Env: env})
-	if !ok || err != nil || watcher.Log == nil {
-		t.Fatalf("ok %v, err %v, log %v", ok, err, watcher.Log)
+	if !ok || err != nil || watcher.Log == nil || watcher.Annotations == nil {
+		t.Fatalf("ok %v, err %v, log %v, annotations %v", ok, err, watcher.Log, watcher.Annotations)
+	}
+}
+
+func TestJobAnnotationsAsksOnePageOf100AndKeepsWhatItNeeds(t *testing.T) {
+	var asked []string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		asked = append(asked, r.URL.RequestURI()+" "+r.Header.Get("Authorization"))
+		w.Write([]byte(`[{"path":"a_test.go","start_line":7,"end_line":9,"annotation_level":"failure","title":"t","message":"one\ntwo"},
+			{"path":".github","start_line":1,"annotation_level":"warning","message":null}]`))
+	}))
+	t.Cleanup(server.Close)
+	got, err := (GitHub{Repository: "o/n", Token: "t", API: server.URL}).JobAnnotations(9)
+	want := []Annotation{{Path: "a_test.go", Line: 7, Level: "failure", Message: "one\ntwo"}, {Path: ".github", Line: 1, Level: "warning"}}
+	if err != nil || !reflect.DeepEqual(got, want) {
+		t.Fatalf("read %+v, err %v", got, err)
+	}
+	if !reflect.DeepEqual(asked, []string{"/repos/o/n/check-runs/9/annotations?per_page=100 Bearer t"}) {
+		t.Fatalf("asked %q", asked)
+	}
+}
+
+func TestJobAnnotationsIsAnErrorForAnythingButTheList(t *testing.T) {
+	for name, serve := range map[string]http.HandlerFunc{
+		"a refusal":      func(w http.ResponseWriter, r *http.Request) { http.NotFound(w, r) },
+		"not a list":     func(w http.ResponseWriter, _ *http.Request) { w.Write([]byte(`{"message":"x"}`)) },
+		"a server error": func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusBadGateway) },
+	} {
+		server := httptest.NewServer(serve)
+		got, err := (GitHub{Repository: "o/n", API: server.URL}).JobAnnotations(9)
+		server.Close()
+		if err == nil || got != nil {
+			t.Errorf("%s: read %+v, err %v", name, got, err)
+		}
 	}
 }
