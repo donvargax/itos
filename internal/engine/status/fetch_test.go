@@ -120,17 +120,21 @@ func TestWhyNot(t *testing.T) {
 	expired, cancel := context.WithDeadline(t.Context(), time.Now().Add(-time.Second))
 	defer cancel()
 	for _, c := range []struct {
-		name string
-		ctx  context.Context
-		err  error
-		want string
+		name    string
+		expired bool
+		err     error
+		want    string
 	}{
-		{"git's first line", t.Context(), &vcsport.Failed{Command: "git fetch", Code: 128, Words: "\nfatal: no\nhint: more\n"}, "fatal: no"},
-		{"no words", t.Context(), &vcsport.Failed{Command: "git fetch o", Code: 1}, "git fetch o: exit status 1:"},
-		{"not git's", t.Context(), errors.New("first\nsecond"), "first"},
-		{"out of time", expired, errors.New("killed"), "no answer within 20 s"},
+		{"git's first line", false, &vcsport.Failed{Command: "git fetch", Code: 128, Words: "\nfatal: no\nhint: more\n"}, "fatal: no"},
+		{"no words", false, &vcsport.Failed{Command: "git fetch o", Code: 1}, "git fetch o: exit status 1:"},
+		{"not git's", false, errors.New("first\nsecond"), "first"},
+		{"out of time", true, errors.New("killed"), "no answer within 20 s"},
 	} {
-		if got := whyNot(c.ctx, c.err); got != c.want {
+		ctx := t.Context()
+		if c.expired {
+			ctx = expired
+		}
+		if got := whyNot(ctx, c.err); got != c.want {
 			t.Errorf("%s: %q, not %q", c.name, got, c.want)
 		}
 	}
