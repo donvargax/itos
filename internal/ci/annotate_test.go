@@ -312,27 +312,31 @@ func TestAStepThatOptsInIsAnnotatedFromItsMergedOutput(t *testing.T) {
 
 // within is a path relative to a folder, with slashes, when it is inside it.
 func TestWithin(t *testing.T) {
-	top := t.TempDir()
-	file := filepath.Join(top, "a", "b.go")
-	if err := os.MkdirAll(filepath.Dir(file), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(file, nil, 0o644); err != nil {
-		t.Fatal(err)
+	// Every file exists: a path is made relative once its links, and the short
+	// names some systems give a temporary folder, are resolved.
+	top, other := t.TempDir(), t.TempDir()
+	touch := func(dir string, names ...string) string {
+		file := filepath.Join(append([]string{dir}, names...)...)
+		if err := os.MkdirAll(filepath.Dir(file), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(file, nil, 0o644); err != nil {
+			t.Fatal(err)
+		}
+		return file
 	}
 	for _, c := range []struct {
 		top, file string
 		want      string
 		ok        bool
 	}{
-		{top, file, "a/b.go", true},
-		{top, filepath.Join(top, "missing", "c.go"), "missing/c.go", true},
+		{top, touch(top, "a", "b.go"), "a/b.go", true},
 		{top, top, ".", true},
-		{top, filepath.Join(top, "..x"), "..x", true},
-		{filepath.Join(top, "a"), filepath.Join(top, "x.go"), "", false},
+		{top, touch(top, "..x"), "..x", true},
+		{filepath.Join(top, "a"), touch(top, "x.go"), "", false},
 		{filepath.Join(top, "a"), top, "", false},
-		{top, filepath.Join(filepath.Dir(top), "..x"), "", false},
-		{"", file, "", false},
+		{top, touch(other, "x.go"), "", false},
+		{"", touch(top, "c.go"), "", false},
 		{top, "", "", false},
 	} {
 		if got, ok := within(c.top, c.file); got != c.want || ok != c.ok {
