@@ -303,6 +303,27 @@ Feature: work done runs a task's static checks through the evidence engine and n
     And its output says "left to CI"
     And the registry's item "T-001" has the status "done" and the owner "someone"
 
+  # Bug 144: "is late: left to CI" read as a warning, though late is a cost class and CI's run, judged just below, runs the check. Fails before the work at the output step: the line says only "is late: left to CI".
+  @ID-EVID-57 @bug-144 @wip
+  Scenario: work done says a late check is left to CI because it is late, and that the CI run below judges it
+    Given the committed file "tasks/phase-1.yaml" holding the lines:
+      """
+      - id: T-001
+        type: chore
+        title: Tidy
+        done_when:
+          - run: evidence-probe 0 input.txt
+            cost: late
+      """
+    And the committed file "input.txt" holding "one"
+    And the work registry has the item "T-001" owned by "someone" with the status "doing"
+    And ci.watch asks a fake GitHub, which reports the run "https://ci.example/runs/1"
+    And the watched run's jobs "ci" and "platform" succeed
+    When itos runs "work done T-001"
+    Then itos exits with code 0
+    And its output says "T-001's check `evidence-probe 0 input.txt` is left to CI: it is late (ci.cost), so work done does not run it, and the CI run below judges it"
+    And the registry's item "T-001" has the status "done" and the owner "someone"
+
   # A gitlink in HEAD's tree leaves no checkout to make, so the check runs where a hand run would.
   @ID-EVID-56 @slice-173
   Scenario Outline: A checkout of HEAD's tree that cannot be made runs the check uncached in the working folder, its exit its own
