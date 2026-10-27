@@ -15299,8 +15299,8 @@ items:
   - id: slice-196
     title: itos status fetches the remote before reading where things stand
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: slice
     why: >
