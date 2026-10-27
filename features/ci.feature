@@ -448,37 +448,64 @@ Feature: ci run's log names a merged check by the kind of named tests it ran in
   # #212). Slice 197's itos ci watch and itos push read a failed job's
   # failure-level check-run annotations when its log's host is refused, but
   # no ci run emitted any, so the fallback could only show GitHub's "Process
-  # completed with exit code N." Under GITHUB_ACTIONS=true, exactly as Actions
-  # sets it, ci run (push, --tests and --nightly alike) prints one workflow
-  # command per failure it reports, on stderr beside that failure's lines:
-  # GitHub reads commands from both streams, and stderr keeps --json's stdout
-  # one object.
+  # completed with exit code N."
+  #
+  # The switch is internal/ci's Options.Annotate: itos ci run sets it when
+  # GITHUB_ACTIONS is exactly "true", read through the handler's Env port;
+  # tools/bin/ci-repo, which this repository's ci.yml runs and which calls
+  # ci.Run itself, sets it from os.Getenv in a ci commit of this slice; unit
+  # tests set it explicitly, whatever their environment. With it, ci run
+  # (push, --tests and --nightly alike) prints one workflow command per
+  # failure it reports, on stderr beside that failure's lines (GitHub reads
+  # commands from both streams; stderr keeps --json's stdout one object):
   #   ::error file=<path>,line=<n>::<what> failed: <reason>
   # when the failure names a file and line, else
-  #   ::error::<what> failed: <the first line of its reason>
+  #   ::error::<what> failed: <reason>
   # <what> is a step's command, a task check's "<ID> (<title>)" ("<ID>"
-  # without a title), "the code proof", or "the tasks named". A failing
-  # step's or task check's file and line are those of the first line of its
-  # output, stdout or stderr, that begins with <path>:<line>: (a <column>:
-  # may follow), <path> relative, holding no white space and naming a file
-  # in the folder ci run runs in; the reason is the rest of that line,
-  # trimmed. Without one, a step's reason is "it exited <n>" ("it gave no
-  # exit code"), a task check's "its check <command>". The code proof's
-  # failure is its problems, one command each: at the file and line the
-  # provider's problem names as its subject (itos-cc's file and line keys, a
-  # string and a positive whole number), taken as given, its reason
-  # "<rule>: <message>", the whole message; a problem without both, itos's
-  # own among them, is plain. A footer naming a task no file has is plain,
-  # its reason itos's "No task <ID> in <dir>/, though a footer names it".
+  # without a title), "the code proof", or "the tasks named".
+  #
+  # A failing step's or task check's file and line: the first line of its
+  # stdout, else of its stderr, that begins with <path>:<line>: (a <column>:
+  # may follow), <path> relative and holding no white space, and names a
+  # file once joined to the folder ci run runs its commands in. A backslash
+  # in <path> is a separator on Windows alone, turned into a slash before
+  # that check; elsewhere src\app.go is a file name. The written path is that
+  # folder joined with <path>, relative to the repository's top level, with
+  # forward slashes, as GitHub resolves file= against the repository root.
+  # The reason is the rest of that line, trimmed; without such a line, a
+  # step's reason is "it exited <n>" ("it gave no exit code"), a task
+  # check's "its check <command>". A step's or check's reason is one line.
+  #
+  # The code proof's failure is its problems, one command each: at the file
+  # and line the provider's problem names as its subject (itos-cc's file and
+  # line keys, a string and a positive whole number), the file taken as
+  # given; a problem without both, itos's own among them, is plain. Either
+  # way its reason is "<rule>: <message>" with the whole message, escaped.
+  # The tasks a footer names that no task file has are one failure and one
+  # command naming every one: "the tasks named failed: no task <IDs> in
+  # <dir>/", the IDs in the footers' order, joined by ", ".
+  #
   # The message escapes % as %25, CR as %0D and LF as %0A; a property those
-  # and : as %3A and , as %2C; the path is written with forward slashes.
-  # At most 10 a run, the first in run order: one ci run is one workflow
-  # step, and GitHub keeps 10 error annotations a step (50 a job) and drops
-  # the rest; the log still names every failure. Outside GitHub Actions
-  # nothing changes. Not in this slice: go test's failures inside a step's
-  # output, which it prints indented and relative to their package, so no
-  # line of them begins with a path from the root; a problem matcher for
-  # them is an idea of its own.
+  # and : as %3A and , as %2C. At most 10 a run, the first in run order: one
+  # ci run is one workflow step, and GitHub keeps 10 error annotations a
+  # step (50 a job) and drops the rest; the log still names every failure.
+  # Outside GitHub Actions nothing changes.
+  #
+  # The scenarios' own runs: a failing step of the feature harness quotes
+  # itos's output in its error (world.report and every step that prints a
+  # stream), which this repository's CI log shows, and GitHub reads a
+  # workflow command anywhere in it. So the harness wraps each quoted stream
+  # between "::stop-commands::<random token>" and "::<token>::", and a
+  # failing scenario issues no annotation of its own.
+  #
+  # Not in this slice: go test's failures inside a step's output, which it
+  # prints indented and relative to their package, so no line of them begins
+  # with a path from the root; a problem matcher for them is an idea of its
+  # own.
+  #
+  # Every candidate is on stdout, the rejected ones first: an indented line,
+  # a path to no file, then the accepted one and a later one. The stderr
+  # line is read only when stdout names none (@ID-CI-74).
   @ID-CI-67 @slice-198 @wip
   Scenario: Under GitHub Actions a failing step whose output names a file and line is annotated at that line
     Given GITHUB_ACTIONS is "true"
@@ -488,8 +515,9 @@ Feature: ci run's log names a merged check by the kind of named tests it ran in
       printf '%s\n' 'checking src/app.go'
       printf '%s\n' '    src/app.go:1: indented, as go test prints its failures'
       printf '%s\n' 'nowhere.go:2:1: no such file in the working folder'
-      printf '%s\n' 'src/app.go:3:9: Total is never negative (SA4003)' >&2
-      printf '%s\n' 'src/app.go:5:1: a second finding' >&2
+      printf '%s\n' 'src/app.go:3:9: Total is never negative (SA4003)'
+      printf '%s\n' 'src/app.go:5:1: a second finding'
+      printf '%s\n' 'src/app.go:6: on stderr, read only when stdout names no file' >&2
       exit 1
       """
     And the CI steps are "sh lint.sh"
@@ -521,6 +549,36 @@ Feature: ci run's log names a merged check by the kind of named tests it ran in
     Then itos exits with code 1
     And stderr contains the complete line "::error::T-001 (Tidy) failed: its check exit 4" exactly once
 
+  # A task check runs through check.Runner, not the driver's shell.Run, and
+  # names its file on stderr alone, so stderr is read when stdout names none.
+  @ID-CI-74 @slice-198 @wip
+  Scenario: Under GitHub Actions a failing task check whose stderr names a file and line is annotated at that line
+    Given GITHUB_ACTIONS is "true"
+    And "src/app.go" is in the first commit
+    And the scratch file "check.sh" contains exactly:
+      """
+      printf '%s\n' 'checking the tax'
+      printf '%s\n' 'src/app.go:2: Total skips the tax' >&2
+      exit 1
+      """
+    And the task "T-001" has the check "sh check.sh"
+    And the commit "chore: tidy the readme" naming the task "T-001" on top of it
+    When itos runs CI over the commits after the first
+    Then itos exits with code 1
+    And stderr contains the complete line "::error file=src/app.go,line=2::T-001 (Tidy) failed: Total skips the tax" exactly once
+    And stderr has exactly 1 line starting with "::error"
+
+  # One failure, so one command naming both tasks, in the footer's order.
+  @ID-CI-75 @slice-198 @wip
+  Scenario: Under GitHub Actions the tasks a footer names that no file has are one plain error naming each
+    Given GITHUB_ACTIONS is "true"
+    And the CI steps are "exit 0"
+    And the commit "chore: tidy the readme" naming the task "T-008, T-009" on top of it
+    When itos runs CI over the commits after the first
+    Then itos exits with code 1
+    And stderr contains the complete line "::error::the tasks named failed: no task T-008, T-009 in tasks/" exactly once
+    And stderr has exactly 1 line starting with "::error"
+
   # The Given's provider answers as itos-cc's mutation check --fail-uncovered
   # does for an uncovered line: rule mutation.uncovered-statement, message
   # "src/app.go:7 in app.Total has an uncovered executable Go coverage
@@ -537,23 +595,30 @@ Feature: ci run's log names a merged check by the kind of named tests it ran in
 
   # The provider's file is taken as given, so it need not exist; the comma
   # and the colon are escaped in the property, the percent sign, the CR and
-  # the LF in the message.
+  # the LF in the message, which goes whole in the plain form too.
   @ID-CI-71 @slice-198 @wip
   Scenario: Under GitHub Actions an annotation's message and file are escaped as workflow commands require
     Given GITHUB_ACTIONS is "true"
     And the config's proof.code covers "src/**" and checks with a provider that refuses with the problems:
       """
-      [{"rule": "mutation.survived", "message": "100% of app.Total\r\nsurvived", "fix": "test app.Total", "file": "src/odd,name:1.go", "line": 4}]
+      [{"rule": "mutation.survived", "message": "100% of app.Total\r\nsurvived", "fix": "test app.Total", "file": "src/odd,name:1.go", "line": 4},
+       {"rule": "mutation.coverage-missing", "message": "no coverage\nfor app.Total", "fix": "record it"}]
       """
     And the commit "chore: change the app" touching only "src/app.go" on top of it
     When itos runs CI over the commits after the first
     Then itos exits with code 1
     And stderr contains the complete line "::error file=src/odd%2Cname%3A1.go,line=4::the code proof failed: mutation.survived: 100%25 of app.Total%0D%0Asurvived" exactly once
-    And stderr has exactly 1 line starting with "::error"
+    And stderr contains the complete line "::error::the code proof failed: mutation.coverage-missing: no coverage%0Afor app.Total" exactly once
+    And stderr has exactly 2 lines starting with "::error"
 
+  # Eleven failures of two kinds, run as written: the step's first, then the
+  # proof's ten problems, of which the tenth is the run's eleventh.
   @ID-CI-72 @slice-198 @wip
   Scenario: Under GitHub Actions a run annotates its first 10 failures and no more
     Given GITHUB_ACTIONS is "true"
+    And the CI steps are "exit 3"
+    And ci.keep_step_order is true
+    And ci.stop_at_first_failure is false
     And the config's proof.code covers "src/**" and checks with a provider that refuses with the problems:
       """
       [{"rule": "mutation.survived", "message": "one", "fix": "test it", "file": "src/app.go", "line": 1},
@@ -565,16 +630,17 @@ Feature: ci run's log names a merged check by the kind of named tests it ran in
        {"rule": "mutation.survived", "message": "seven", "fix": "test it", "file": "src/app.go", "line": 7},
        {"rule": "mutation.survived", "message": "eight", "fix": "test it", "file": "src/app.go", "line": 8},
        {"rule": "mutation.survived", "message": "nine", "fix": "test it", "file": "src/app.go", "line": 9},
-       {"rule": "mutation.survived", "message": "ten", "fix": "test it", "file": "src/app.go", "line": 10},
-       {"rule": "mutation.survived", "message": "eleven", "fix": "test it", "file": "src/app.go", "line": 11}]
+       {"rule": "mutation.survived", "message": "ten", "fix": "test it", "file": "src/app.go", "line": 10}]
       """
     And the commit "chore: change the app" touching only "src/app.go" on top of it
     When itos runs CI over the commits after the first
     Then itos exits with code 1
-    And its output says "mutation.survived: eleven"
+    And its output says "failed at: exit 3"
+    And its output says "mutation.survived: ten"
     And stderr has exactly 10 lines starting with "::error"
-    And stderr has exactly 1 line starting with "::error file=src/app.go,line=10::"
-    And stderr has exactly 0 lines starting with "::error file=src/app.go,line=11::"
+    And stderr contains the complete line "::error::exit 3 failed: it exited 3" exactly once
+    And stderr has exactly 1 line starting with "::error file=src/app.go,line=9::"
+    And stderr has exactly 0 lines starting with "::error file=src/app.go,line=10::"
 
   # A guard: it passes before the work and must after it. The scenario
   # harness drops every GITHUB_* variable from itos's environment.
