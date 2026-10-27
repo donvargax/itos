@@ -170,6 +170,10 @@ func stealthOver(t *testing.T, repo *vcsfake.VCS, text string) *fake {
 // loaded is over, the config the stealth one when stealth.
 func loaded(t *testing.T, repo *vcsfake.VCS, text string, stealth bool) *fake {
 	t.Helper()
+	// What a hook, or a git -c, hands the process: a core.hooksPath among it is refused as a
+	// commit's, whatever the test commits.
+	t.Setenv("GIT_CONFIG_COUNT", "")
+	t.Setenv("GIT_CONFIG_PARAMETERS", "")
 	f := &fake{VCS: repo, files: map[string]string{}, git: map[string][]string{
 		"hook.itos-commit-msg.command": {"itos hook commit-msg"},
 		"hook.itos-commit-msg.event":   {"commit-msg"},
