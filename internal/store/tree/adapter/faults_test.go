@@ -32,6 +32,22 @@ func TestNodeError(t *testing.T) {
 	}
 }
 
+// A folder git locates with no top, inside the git folder, holds no tree
+// but the working tree's: the index and a commit are read outside a
+// repository.
+func TestTreesInsideTheGitFolderHoldNoCommit(t *testing.T) {
+	dir := t.TempDir()
+	v := &vcsfake.VCS{Root: dir, Located: map[string]vcsport.Location{"": {GitDir: dir, Common: dir}}}
+	for _, tree := range []string{"index", "HEAD"} {
+		if got, err := (Trees{VCS: v}).At(t.Context(), tree); err == nil || err.Error() != tree+" cannot be read outside a git repository" {
+			t.Errorf("%s: %v, %v", tree, got, err)
+		}
+	}
+	if _, err := (Trees{VCS: v}).At(t.Context(), "worktree"); err != nil {
+		t.Errorf("worktree: %v", err)
+	}
+}
+
 // failingTexts is the VCS fake whose Texts fails.
 type failingTexts struct{ *vcsfake.VCS }
 
