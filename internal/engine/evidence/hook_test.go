@@ -208,6 +208,25 @@ func TestAProcessACheckLeavesRunningDoesNotHoldTheRun(t *testing.T) {
 	}
 }
 
+// An output of exactly the tail's size is kept whole, and one byte more is
+// cut by that byte, whichever way the capture holds it.
+func TestACaptureIsCutByTheByteBeyondItsTail(t *testing.T) {
+	var log strings.Builder
+	for name, req := range map[string]Request{"file": {}, "memory": {Verbose: true, Log: &log}} {
+		for extra, want := range map[int]bool{0: false, 1: true} {
+			c := newCapture(req)
+			text := strings.Repeat("x", OutputTail+extra-1) + "y"
+			if _, err := c.w.Write([]byte(text)); err != nil {
+				t.Fatal(err)
+			}
+			got, cut := c.text()
+			if cut != want || len(got) != OutputTail || !strings.HasSuffix(got, "y") {
+				t.Errorf("%s, %d bytes beyond the tail: %d bytes kept, cut %v; want cut %v", name, extra, len(got), cut, want)
+			}
+		}
+	}
+}
+
 // A quiet run's output is a file, whose end is kept, and which is gone with
 // the run; a verbose run's, or one with no file to be had, goes through
 // memory.
