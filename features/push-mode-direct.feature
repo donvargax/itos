@@ -260,7 +260,7 @@ Feature: Under push.mode pr, the commit types push.pr.direct names go from main 
   # push.pr.direct.types, which lists custom, so addsWork finds no work, the
   # pre-push hook passes the commit (no scope names custom, no footer is
   # required for it), and the push sends it to main, exit 0.
-  @ID-PUSHDIRECT-11 @bug-149 @wip
+  @ID-PUSHDIRECT-11 @bug-149
   Scenario: Under pr with the header lint off, a commit pushed from main whose type push.pr.direct names but commits.types lacks is refused, naming the commit and push.pr.direct
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -291,7 +291,7 @@ Feature: Under push.mode pr, the commit types push.pr.direct names go from main 
   # header with no word to read (message.Type "") is no commit type and is
   # never admitted. Before the fix it fails at "itos exits with code 1", as
   # ID-PUSHDIRECT-11 does: direct() admits custom, and the push exits 0.
-  @ID-PUSHDIRECT-12 @bug-149 @wip
+  @ID-PUSHDIRECT-12 @bug-149
   Scenario: Under pr with the header lint off, a commit pushed from main with no conventional header, whose first word is a type commits.types lacks, is refused
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
