@@ -5101,3 +5101,28 @@
   done_when:
     - run: "n=$(go test ./internal/idcounter ./internal/draft ./internal/slices/followup/domain ./internal/slices/upgrade ./internal/value ./internal/config -count=1 -run '^FuzzStrictYAML' -v 2>&1 | grep -c -- '--- PASS: FuzzStrictYAML'); test \"$n\" -ge 6"
       timeout: 300
+
+- id: T-330
+  type: test
+  title: A stateful property holds work done's trust of a merged pull request's run to a model of what main gained since
+  why: >
+    The reviewer replay (2026-10-27): K137 (bug-137: a done_when check added on main to the item's
+    own task after the head's run was skipped by the trust) was found by one review of five, and
+    only by Codex's security review; the stateful-property programme (p2-stateful-pbt-registry)
+    names work done's trust as a domain. TestPropertyWorkDoneTrust in internal/slices/work, through
+    internal/proptest's Check: a scratch repository with a registry, a ledger holding the item's
+    task and another task, and a merged head; rapid draws a sequence of commits main gains after the
+    merge, each one of: a registry-only edit, an edit to the other task's checks, an edit to the
+    item's task's checks (add, remove, change a command or a timeout), an edit of the item's task's
+    why only, a code file; after each, trustedRun (internal/slices/work/trust.go) with a fake
+    watcher whose head run passed must trust the head's run exactly when the model says: no path
+    outside the registry and the ledger changed since the head, and the item's task's checks
+    (command, timeout, order) are the head's. The model is that rule over the drawn operations,
+    never a second diff. Real git, so Checks sets a small default count; the nightly raises
+    RAPID_CHECKS. A disagreement that is a bug: stop on it and report its shrunk sequence; the
+    coordinator files a bug whose fix commits the fail file. No production change. Windows and
+    macOS: files through t.TempDir(), git through the test helpers that clear inherited GIT_*
+    variables.
+  done_when:
+    - run: "go test ./internal/slices/work -count=1 -run '^TestPropertyWorkDoneTrust' -v 2>&1 | grep -q -- '--- PASS: TestPropertyWorkDoneTrust'"
+      timeout: 600
