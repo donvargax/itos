@@ -15270,8 +15270,8 @@ items:
   - id: bug-152
     title: "The drafts, follow-ups and questions files read what value.Parse refuses: yaml.v3 skips an entry with a null key, unchecked"
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: bug
     why: >
