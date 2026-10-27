@@ -4950,8 +4950,6 @@
     not verify (whether this action release takes --effort and the model id, runs on a dispatch with
     github_token and no id-token, and where the final message lands): the first dispatched run
     proves them, by the coordinator.
-  done_when:
-    - run: test -f .github/workflows/replay-review.yml
 
 - id: T-322
   type: test
