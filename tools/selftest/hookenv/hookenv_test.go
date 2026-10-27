@@ -22,7 +22,7 @@ import (
 )
 
 // The variables a hook's environment may carry that point git at a repository or its index.
-var pointers = []string{"GIT_DIR", "GIT_INDEX_FILE", "GIT_WORK_TREE", "GIT_COMMON_DIR", "GIT_OBJECT_DIRECTORY"}
+var pointers = []string{"GIT_DIR", "GIT_INDEX_FILE", "GIT_WORK_TREE", "GIT_COMMON_DIR", "GIT_OBJECT_DIRECTORY", "GIT_CONFIG_COUNT", "GIT_CONFIG_PARAMETERS"}
 
 // program is tools/bin/go-unit-tests built, by its absolute path.
 func program(t *testing.T) string {
