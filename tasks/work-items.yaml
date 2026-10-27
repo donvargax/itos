@@ -14913,7 +14913,7 @@ items:
       expected'; agents read it as an error and report it. itos push could add one line after it
       saying the bypass is the account's allowed one and CI now judges the pushed head, or the
       guides could name it.
-    refs: [internal/engine/push]
+    refs: [internal/slices/push]
     tags: [push, v8]
 
   - id: p1-task-failing-check-named
