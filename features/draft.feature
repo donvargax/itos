@@ -1034,3 +1034,105 @@ Feature: itos draft, the coordinator's pending changes kept until no work is goi
     When itos runs "draft promote later --json"
     Then itos refuses draft selection naming "first"
     And the draft store and repository match the saved state
+
+  # Bug 152, found by T-329's FuzzStrictYAML oracle: the drafts file, as the
+  # follow-ups and questions files (ID-FOLLOW-16 in follow.feature, ID-ASK-43
+  # in ask.feature), was read by decoding it with yaml.v3 into structs,
+  # KnownFields on, and yaml.v3 skips a mapping entry whose key is null (~
+  # or null) without decoding its value: a key written twice under it, which
+  # value.Parse refuses (Map keys must be unique), was read, and the null
+  # key itself was never reported as the unknown key it is ("drafts: []"
+  # beside "~: 1" read as no drafts). yaml.v3 drops a null list item too,
+  # from a list of drafts or of strings ("command: [~, status]" read as
+  # "itos status"). The next command that changes the list saves what it
+  # read whole, so the skipped entry is lost, and promote runs the misread
+  # command.
+  #
+  # Each reader now reads its text through value.Parse first, as upgrade's
+  # workflow reader does since K150b, and refuses what Parse refuses: a key
+  # written twice in one mapping at any depth (under a null key too), a
+  # syntax error, an alias inside its own anchor or one expanding past
+  # Parse's bound (bug 39), a second document. The refusal is the one each
+  # reader gives a file it cannot read today: an error naming the file,
+  # "<path>: <Parse's error>" as yaml.v3's errors are given now (here
+  # "<drafts.yaml's path>: Map keys must be unique at line 3, column 3"),
+  # exit 2 (kind.Usage; followup's domain.Invalid, which the command line
+  # gives kind.Usage), the file left as it is. What a reader refused before
+  # keeps its own message: an empty file, a second document ("holds more
+  # than one YAML document, and itos writes one ..."), an unknown key, the
+  # schema's checks; Parse's ErrMultipleDocuments does not replace the
+  # reader's words. Every command that reads these files inherits the
+  # refusal: itos status, work show and work promote, and config check's
+  # asks-invalid (exit 1) for the questions file.
+  #
+  # Beyond what Parse refuses, two things itos never writes are refused,
+  # since yaml.v3 drops them and the next save loses them: a null key at any
+  # depth, an unknown key like any other ("<path>: line 2, column 1 has a
+  # null key, which no file itos writes has"); and a null list item at any
+  # depth, in the list of drafts, threads, notes or questions or in a list
+  # of strings ("<path>: line 3, column 15 has a null list item, which no
+  # file itos writes has"). A null item is refused rather than kept as Parse
+  # reads it: kept, it would be a draft, thread or question with nothing in
+  # it, or an argument "" no one wrote, a value made up where the file holds
+  # none. So the tolerance T-329's held targets gave a dropped null item
+  # (their present()) goes: where Parse's value holds a null key (a key "")
+  # or a null list item anywhere, the reader refuses. A null written as a
+  # field's value (message: ~, notes: ~) is still read as the field's empty
+  # value, as now: Parse's null and an omitted field are the same nothing,
+  # and nothing is lost on save.
+  #
+  # Kept by design: a number or a boolean written where a string goes is
+  # read as its text (id: 017 is "017", where Parse reads 17), which is what
+  # was written and what Save writes back quoted, as the held targets say;
+  # and a merge key (<<) stays yaml.v3's to merge, which they do not compare.
+  #
+  # The fix commit lands T-329's held targets, which that task moved here:
+  # FuzzStrictYAMLDraft in internal/draft, FuzzStrictYAMLFollow in
+  # internal/slices/followup/domain and FuzzStrictYAMLAsk in internal/ask,
+  # each a strict_yaml_fuzz_test.go with its seeds under testdata/fuzz,
+  # less present() and the null-key exclusion (nullKey), plus the failing
+  # inputs as seeds in each target, with its own file's key: a key twice
+  # under a null key ("~:\n  b: 1\n  b: 2\n"), a null key beside the list
+  # ("drafts: []\n~: 1\n"), a null item in the list ("drafts:\n  -\n"), and
+  # one in a list of strings (command: [~, a]; a thread's docs). No
+  # scenario or corpus case of v8.25.2 writes a null key or a null list
+  # item, and previous-release keeps every promise of v8.25.2 on this
+  # spec's tree, so the fix needs no Changes: footer; previous-release says
+  # so again with it.
+  #
+  # Before the fix it fails at "itos exits with code 2": draft.parse decodes
+  # the text into File, skipping the ~ entry, so it reads no drafts; draft
+  # add appends queue-t1 and Save writes the list whole, the ~ entry gone,
+  # exit 0.
+  @ID-DRAFT-63 @bug-152 @wip
+  Scenario: A drafts file with a key written twice under a null key is refused, and left as it was
+    Given the scratch file ".git/itos/drafts/drafts.yaml" contains exactly:
+      """
+      ~:
+        b: 1
+        b: 2
+      """
+    When itos runs the command line "draft add queue-t1 -- work add p1-thing --title 'A thing' --why 'Because.'"
+    Then itos exits with code 2
+    And its output says "drafts.yaml"
+    And its output says "keys must be unique"
+    And the file ".git/itos/drafts/drafts.yaml" says "b: 2"
+
+  # Bug 152, as ID-DRAFT-63 says: a null list item, which yaml.v3 drops
+  # from a list of strings, so the command draft [~, status] read as "itos
+  # status", and draft promote would have run that. Refused, exit 2, naming
+  # the file and the null list item. Before the fix it fails at "itos exits
+  # with code 2": draft.parse reads the command [status] and itos draft
+  # lists it, exit 0.
+  @ID-DRAFT-64 @bug-152 @wip
+  Scenario: A drafts file with a null list item is refused, not read without it
+    Given the scratch file ".git/itos/drafts/drafts.yaml" contains exactly:
+      """
+      drafts:
+        - id: say-status
+          command: [~, status]
+      """
+    When itos runs "draft"
+    Then itos exits with code 2
+    And its output says "drafts.yaml"
+    And its output says "null list item"

@@ -316,3 +316,31 @@ Feature: itos decision, the decisions waiting on the person a repository's work 
     And the file "docs/decisions/README.md" says "Triage issues on a board"
     And the file "docs/decisions/README.md" does not say "Triage issues with Projects"
     And the file "docs/decisions/README.md" does not say "Triage issues with labels"
+
+  # Bug 152 (draft.feature's ID-DRAFT-63 holds the decisions): ask.parse
+  # decoded the questions file with yaml.v3, which skips an entry whose key
+  # is null at any depth, here inside q-1, so the key b written twice under
+  # it, which value.Parse refuses, was read. Now the file is refused naming
+  # it ("tasks/asks.yaml: Map keys must be unique at line 6, column 7"),
+  # exit 2, nothing written or committed; itos config check reports it as
+  # asks-invalid, as any file ask.Parse refuses. Before the fix it fails at
+  # "itos exits with code 2": parse reads q-1 alone, decision add appends
+  # q-2, writes the file whole without the ~ entry and commits it as "docs:
+  # ask q-2", exit 0.
+  @ID-ASK-43 @bug-152 @wip
+  Scenario: A questions file with a key written twice under a null key is refused, and nothing is committed
+    Given the committed file "tasks/asks.yaml" holding the lines:
+      """
+      questions:
+        - id: q-1
+          question: "Which way?"
+          ~:
+            b: 1
+            b: 2
+      """
+    When itos runs the command line "decision add 'Labels or Projects?'"
+    Then itos exits with code 2
+    And its output says "tasks/asks.yaml"
+    And its output says "keys must be unique"
+    And the file "tasks/asks.yaml" has the same contents as its committed version
+    And no commit was made
