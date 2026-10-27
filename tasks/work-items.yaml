@@ -56,7 +56,6 @@ phases:
 
 queue:
   - bug-146
-  - bug-147
   - bug-148
   - bug-149
   - p1-ci-slow-linux-runs
