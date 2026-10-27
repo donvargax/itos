@@ -15,6 +15,9 @@
 // of it lacks a text. Slice 184's give its pull requests a title, check the
 // length of a call's --title in Unicode code points, and record a line break
 // inside an argument as a backslash and an n, so a call stays one line.
+// Slice 191's give a review thread an id and its first comment's author, answer
+// the two mutations that reply to a thread and resolve it, and check the order
+// of two calls.
 package features
 
 import (
@@ -64,7 +67,16 @@ func initializePushModeSteps(sc *godog.ScenarioContext, w *world) {
 		func(path string, line int, first, second string) error {
 			return w.ghAnswersThread(true, path, line, first, second)
 		})
+	sc.Step(`^the recording gh answers that the pull request has an unresolved review thread "([^"]*)" on "([^"]*)" line (\d+) by "([^"]*)", its first comment the lines "([^"]*)" and "([^"]*)"$`,
+		func(id, path string, line int, login, first, second string) error {
+			return w.ghAnswersThreadBy(false, id, path, line, login, first, second)
+		})
+	sc.Step(`^the recording gh answers that the pull request has a resolved review thread "([^"]*)" on "([^"]*)" line (\d+) by "([^"]*)", its first comment the lines "([^"]*)" and "([^"]*)"$`,
+		func(id, path string, line int, login, first, second string) error {
+			return w.ghAnswersThreadBy(true, id, path, line, login, first, second)
+		})
 	sc.Step(`^the recording gh's "([^"]*)" call does not have "([^"]*)"$`, w.ghCallLacks)
+	sc.Step(`^the recording gh's call with "([^"]*)" comes before its call with "([^"]*)"$`, w.ghCallOrder)
 	sc.Step(`^the recording gh's pr update-branch leaves the branch as it is$`, func() error {
 		return os.WriteFile(w.ghKeeps(), nil, 0o644)
 	})
@@ -268,6 +280,14 @@ case "$verb" in
   mv %[14]s %[2]s
   ;;
 "api graphql")
+  case "$rec" in
+  *addPullRequestReviewThreadReply*)
+    printf '%%s\n' '{"data":{"addPullRequestReviewThreadReply":{"comment":{"url":"https://github.example/o/r/pull/7#discussion_r1"}}}}'
+    exit 0 ;;
+  *resolveReviewThread*)
+    printf '%%s\n' '{"data":{"resolveReviewThread":{"thread":{"isResolved":true}}}}'
+    exit 0 ;;
+  esac
   reviews=
   threads=
   comments=
@@ -399,6 +419,12 @@ func (w *world) ghAnswersCodexStateThen(login, code, security string, n int, the
 func (w *world) ghAnswersThread(resolved bool, path string, line int, first, second string) error {
 	return w.ghAddNode(w.ghThreads(), map[string]any{"isResolved": resolved, "path": path, "line": line,
 		"comments": map[string]any{"nodes": []any{map[string]any{"body": first + "\n" + second}}}})
+}
+
+// The same, a thread with an id whose first comment's author has the login.
+func (w *world) ghAnswersThreadBy(resolved bool, id, path string, line int, login, first, second string) error {
+	return w.ghAddNode(w.ghThreads(), map[string]any{"id": id, "isResolved": resolved, "path": path, "line": line,
+		"comments": map[string]any{"nodes": []any{map[string]any{"author": map[string]any{"login": login}, "body": first + "\n" + second}}}})
 }
 
 // The node, as JSON, joins those the file holds.
@@ -539,6 +565,24 @@ func (w *world) ghCallLacks(command, text string) error {
 		if strings.Contains(call, text) {
 			return fmt.Errorf("a %q call of the recording gh has %q: %s\n%s", command, text, call, w.report())
 		}
+	}
+	return nil
+}
+
+// Some call of the recording gh has each text, and the first with the first
+// text comes before the first with the second.
+func (w *world) ghCallOrder(first, second string) error {
+	calls, err := w.ghCallLines()
+	if err != nil {
+		return err
+	}
+	at := func(text string) int {
+		return slices.IndexFunc(calls, func(call string) bool { return strings.Contains(call, text) })
+	}
+	a, b := at(first), at(second)
+	if a < 0 || b < 0 || b < a {
+		return fmt.Errorf("the recording gh's first call with %q (%d) does not come before its first call with %q (%d); its calls:\n%s\n%s",
+			first, a, second, b, strings.Join(calls, "\n"), w.report())
 	}
 	return nil
 }
