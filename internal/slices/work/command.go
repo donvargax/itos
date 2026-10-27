@@ -171,10 +171,12 @@ done runs on main, refuses while the pull request is open, and judges the
 newest of the item's own commits once <remote>/<main>, as last fetched, has it.
 The commits its merged pull request merged are its own too, whatever their
 footers name (gh's mergeCommit, the last of them for a rebase merge): an item
-whose pull request carried only its gate task's commits closes. A merged pull
-request whose commit HEAD or <remote>/<main> lacks is refused: with git pull
-when <remote>'s main has moved past the clone, else as not merged into main,
-with itos push to open a new pull request.
+whose pull request carried only its gate task's commits closes. A merge commit
+HEAD lacks adds nothing: the newest commit of the item's footers is judged as
+before, and with none that <remote>/<main> has the merged pull request is
+refused, with git pull when HEAD or <remote>/<main> lacks the commit <remote>'s
+main is at, else as not merged into main, with itos push to open a new pull
+request.
 With ci.watch, the merged pull request's head may judge it before main's run
 is looked for: when the commit's tree differs from the head's only in the work
 registry and the ledger files (a head the clone lacks is fetched once from
