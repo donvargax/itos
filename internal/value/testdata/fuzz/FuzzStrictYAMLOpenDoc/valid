@@ -1,0 +1,2 @@
+go test fuzz v1
+string("phases: { 1: a }\nitems:\n  - id: T-001\n    type: task\n    title: A task\n    why: >\n      Because.\n    status: queued\n  - id: p1-idea\n    title: An idea\n")

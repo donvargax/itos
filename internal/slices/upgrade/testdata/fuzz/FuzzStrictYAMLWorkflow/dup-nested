@@ -1,0 +1,2 @@
+go test fuzz v1
+string("jobs:\n  a:\n    steps:\n      - uses: donvargax/itos@v1\n        with:\n          version: 1\n          version: 2\n")

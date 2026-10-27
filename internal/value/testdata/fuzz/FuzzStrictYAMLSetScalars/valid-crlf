@@ -1,0 +1,2 @@
+go test fuzz v1
+string("version: 1\r\npin:\r\n  version: \"9.0.0\"\r\n  checksums: 'abc'\r\n# a comment\r\nwork:\r\n  registry: tasks/work-items.yaml\r\n")

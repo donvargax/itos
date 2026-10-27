@@ -1,0 +1,2 @@
+go test fuzz v1
+string("# K150b: a step's uses written twice, and a second document with another job.\nname: release\non: push\njobs:\n  build:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: donvargax/itos@v9.1.0\n        uses: donvargax/itos@v1\n        with:\n          version: 9.1.0\n---\njobs:\n  other:\n    steps:\n      - uses: donvargax/itos@v2\n")
