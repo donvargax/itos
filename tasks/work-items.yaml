@@ -15066,3 +15066,24 @@ items:
     status: todo
     depends_on: []
     kind: task
+
+  - id: p1-survivors-t324-neighbours
+    title: Settle the survivors T-324 saw beside its six, in the same files
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      T-324 (2026-10-27) ran itos-cc over each file of the six nightly survivors and saw about 25
+      more surviving before and after its tests: range.go 234:74 (FirstGreen) and 182:10
+      (GreenRunOf); watch.go 149:11, 160:20, 178:21, 218:11, 253:27, 257:62/89/108, 260:22/59,
+      289:57, 330:14 (short); tree.go 80:50 and 126:16 (inRepo); evidence/store.go 67:31, 104:10,
+      107:10 (104 and 107 are the same unobservable placed as 111, killed only by calling write
+      directly); engine.go 456:70 (likely equivalent, ReadAll ends at EOF), 413:38/54, 213:17. Also:
+      TestARecordThatCannotBeWrittenLeavesNothing skips as root and on Windows for its chmod case
+      and so hides its mkdirTemp case, which runs everywhere; split them. A test task like T-312 and
+      T-324, cheaper once mutation run --site is pinned. The nightly will draw these one at a time
+      otherwise.
+    refs: [internal/engine/evidence/store.go, internal/engine/ciwatch/watch.go, internal/providers/range.go, internal/store/tree/adapter/tree.go]
+    tags: [tests, proof, v8]
