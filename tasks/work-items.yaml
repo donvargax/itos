@@ -14663,8 +14663,8 @@ items:
   - id: T-317
     title: internal/vcs/adapter's unit tests take well under a minute on Windows
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
 
