@@ -4897,3 +4897,20 @@
     (shared fixtures built once, fewer processes), never dropping a test, taking one off Windows or
     raising a timeout. Acceptance, read from a PR run's windows job log (ok lines): no package over
     90 s, and the Unit tests step under 120 s.
+
+- id: T-319
+  type: ci
+  title: tools/bin/pre-commit leaves no stale copy of a file it formats staged after the commit (bug-145)
+  why: >
+    bug-145's fix: after a commit through itos commit, a file the pre-commit hook formatted (dprint
+    for Markdown/YAML, gofmt for Go) is committed formatted and the working tree equals it, yet the
+    index holds another version (git status MM), seen twice on 2026-10-26 (config_test.go,
+    docs/plans/ci-workflows.md). Reproduce it first in a scratch repository with the hook installed
+    (an unformatted file, itos commit <path>), find which write leaves the index behind (the hook's
+    re-stage, or itos commit's staging around the hook: itos commit may stage the path, run git
+    commit with its own index or pathspec, and the hook re-stages into the real index), fix it at
+    the cause, and add the case to the hook's self-test. If the cause is in itos commit (internal/),
+    the fix is a fix commit with a @bug-145 scenario instead, and this task's ci part is the
+    self-test only.
+  done_when:
+    - run: "true"
