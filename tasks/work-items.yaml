@@ -61,6 +61,7 @@ queue:
   - slice-193
   - p1-ready-clean-merges
   - p1-ready-review-for-head
+  - p1-done-item-through-gate-task
   - bug-146
   - p1-ci-slow-linux-runs
   - slice-153
