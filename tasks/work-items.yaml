@@ -15174,6 +15174,10 @@ items:
       git accepts unique prefixes) is not in gitValued, so its value reads as a bare argument and
       sets byPath, running bug 145's unstageCommitted; looks harmless, unconfirmed. The enumeration
       should include prefixes. -C and -c are now bug-150's.
+
+      bug-150 (2026-10-27, PR #198) read -C and -c --no-edit, and its Codex round added
+      --no-reuse-message and --no-reedit-message clearing the reuse. Left: abbreviated long options
+      (--reuse, --no-reuse, --mess); itos reads only full forms.
     refs: [internal/slices/commit/git.go, internal/slices/commit/message_source_test.go]
     tags: [tests, commit, v8]
 
