@@ -4884,3 +4884,20 @@
     job's log, with internal/vcs/adapter under 60 s.
   done_when:
     - run: "true"
+
+- id: T-318
+  type: test
+  title: internal/idcounter's and internal/cli's unit tests stop setting the Windows unit-tests step's length
+  why: >
+    After T-317 (2026-10-26/27, PR #170): Windows' unit tests step went 250 s -> 181 s;
+    internal/vcs/adapter 158 s -> 83 s (T-317's 60 s target missed: the rest is the adapter's own
+    git starts and the fake-git forwarding). go test runs packages in parallel, so the step lasts as
+    long as its slowest package, now internal/idcounter (155 s on Windows, ~9 s on Linux) and
+    internal/cli (142 s, ~10 s on Linux): Windows pays ~15x for them, as for the adapter's process
+    starts. Measure each (go test -json per-test Elapsed; git or process starts per test; sleeps,
+    lock retries or property-test iterations in idcounter), then make them cheaper as T-317 did
+    (shared fixtures built once, fewer processes), never dropping a test, taking one off Windows or
+    raising a timeout. Acceptance, read from a PR run's windows job log (ok lines): no package over
+    90 s, and the Unit tests step under 120 s.
+  done_when:
+    - run: "true"
