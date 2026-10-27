@@ -15410,7 +15410,7 @@ items:
   - id: T-334
     title: "build and ci commits, and a comment-only refactor, may name their item in Item: in place of Task"
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
