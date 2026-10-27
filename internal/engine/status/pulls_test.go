@@ -144,8 +144,13 @@ func TestPrintMarksTheMergedItem(t *testing.T) {
 	cfg := configOf(t, v, prText, map[string]string{"people.yaml": "- a\n",
 		"work-items.yaml": items(nil, "{ id: d1, title: One, phase: 1, owner: a, status: doing, depends_on: [] }",
 			"{ id: d2, title: Two, phase: 1, owner: a, status: doing, depends_on: [] }")})
-	in := inOf(v, map[string]string{"GITHUB_REPOSITORY": "o/n"})
-	in.Gh = func(context.Context, ...string) (string, error) { return pullsAnswer, nil }
+	in := inOf(v, nil)
+	in.Gh = func(_ context.Context, args ...string) (string, error) {
+		if args[5] != "owner=o" {
+			t.Errorf("gh was put %q: the repository is the head's remote's", args)
+		}
+		return pullsAnswer, nil
+	}
 	st, _, _, err := Of(t.Context(), cfg, "a", in)
 	if err != nil {
 		t.Fatal(err)
