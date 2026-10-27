@@ -56,6 +56,7 @@ phases:
 
 queue:
   - T-325
+  - T-326
   - p1-ci-slow-linux-runs
   - slice-153
   - p1-ci-e2e-workflow
