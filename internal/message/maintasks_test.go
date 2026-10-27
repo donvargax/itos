@@ -1,11 +1,24 @@
 package message
 
 import (
+	"context"
 	"testing"
 
 	"github.com/donvargax/itos/v8/internal/store/tree/port/porttest"
 	vcstest "github.com/donvargax/itos/v8/internal/vcs/port/porttest"
 )
+
+// symrefCounter is a VCS that counts the times it is asked which branch the
+// remote's HEAD names, which main's ledger is found by.
+type symrefCounter struct {
+	*vcstest.VCS
+	asked int
+}
+
+func (c *symrefCounter) Symref(ctx context.Context, ref string) (string, bool) {
+	c.asked++
+	return c.VCS.Symref(ctx, ref)
+}
 
 func ledgerOf(ids ...string) map[string]string {
 	text := ""
@@ -123,5 +136,29 @@ func TestLedgerFooterNamesATaskOfTheRemotesMain(t *testing.T) {
 		if err != nil || got != "unknown tasks: T-2" {
 			t.Errorf("%s: %q, %v; want T-2 unknown", c.name, got, err)
 		}
+	}
+}
+
+// Main's ledger is read once for a footer, however many of its tasks the
+// commit's own ledger lacks.
+func TestMainsLedgerIsReadOnceForAFooterNamingSeveralTasks(t *testing.T) {
+	cfg := load(t, "version: 1\ncommits:\n  footers:\n    Task: { source: ledger, read_at: commit, validate_for: [chore] }\n"+
+		"ledger: { files: \"tasks/phase-{group}.yaml\", id: \"T-\\\\d+\" }\npush: { mode: pr }\n")
+	v := &symrefCounter{VCS: &vcstest.VCS{
+		OnBranch: "item",
+		History:  []vcstest.Commit{{Name: "c-item"}},
+		Named:    map[string]string{"HEAD": "c-item", "refs/remotes/origin/main": "c-tip"},
+		Symbolic: map[string]string{"refs/remotes/origin/HEAD": "refs/remotes/origin/main"},
+	}}
+	cfg.VCS, cfg.Trees = v, porttest.Trees{Common: ".git", Files: map[string]map[string]string{
+		"index":                    ledgerOf("T-1"),
+		"refs/remotes/origin/main": ledgerOf("T-1", "T-2", "T-3", "T-4"),
+	}}
+	got, err := CheckFooter(cfg, "Task", "chore", "chore: x\n\nTask: T-2, T-3, T-4, T-5\n", Reading{})
+	if err != nil || got != "unknown tasks: T-5" {
+		t.Fatalf("%q, %v", got, err)
+	}
+	if v.asked != 1 {
+		t.Errorf("main's HEAD was asked for %d times, want once", v.asked)
 	}
 }
