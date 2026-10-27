@@ -5078,3 +5078,26 @@
     - run: "go test ./internal/message -count=1 -run '^FuzzTrailersMatchGit$' -v 2>&1 | grep -q -- '--- PASS: FuzzTrailersMatchGit'"
       timeout: 300
     - run: grep -q -- '-fuzz' .github/workflows/nightly.yml itos.yaml
+
+- id: T-329
+  type: test
+  title: "The YAML readers are fuzzed against value.Parse: none reads what Parse refuses"
+  why: >
+    The reviewer replay (2026-10-27): K150b (upgrade's workflow reader decoded into yaml.Node, so
+    duplicate keys and every document after the first were read silently) was found by no reviewer.
+    value.Parse (internal/value/value.go) is itos's strict reading and the oracle: a fuzz target per
+    reader that decodes YAML itself, named FuzzStrictYAML<Reader>, requires that reader to refuse
+    every input value.Parse refuses (a key written twice at any depth, a second document, an alias
+    where Parse refuses one), and to read what Parse accepts as Parse reads it. The readers today:
+    internal/idcounter/counter.go (yaml.Unmarshal), internal/draft/draft.go and
+    internal/slices/followup/domain/follow.go (yaml.NewDecoder),
+    internal/slices/upgrade/workflows.go (after value.Parse), internal/value/edit.go and
+    internal/config/types.go; any other found by grep for yaml.Unmarshal, yaml.NewDecoder or a
+    yaml.Node decode outside tests gets one too. Seeds under each package's testdata/fuzz, from the
+    conformance corpus and K150b's workflow; go test runs only the seeds, the nightly fuzz step
+    (T-328) the rest. A reader that accepts more by design is listed in its target with the reason.
+    A reader that misreads is a bug: stop on it, report its input; the coordinator files a bug whose
+    fix commits the seed. No production change.
+  done_when:
+    - run: "n=$(go test ./internal/idcounter ./internal/draft ./internal/slices/followup/domain ./internal/slices/upgrade ./internal/value ./internal/config -count=1 -run '^FuzzStrictYAML' -v 2>&1 | grep -c -- '--- PASS: FuzzStrictYAML'); test \"$n\" -ge 6"
+      timeout: 300
