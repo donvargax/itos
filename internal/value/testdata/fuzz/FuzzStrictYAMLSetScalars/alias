@@ -1,0 +1,2 @@
+go test fuzz v1
+string("x: &p {version: a}\npin: *p\n")

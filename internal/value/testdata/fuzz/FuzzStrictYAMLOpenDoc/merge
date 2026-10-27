@@ -1,0 +1,2 @@
+go test fuzz v1
+string("base: &b {id: a}\nitems:\n  - <<: *b\n")

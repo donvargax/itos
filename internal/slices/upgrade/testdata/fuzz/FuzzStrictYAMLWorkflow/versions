@@ -1,0 +1,2 @@
+go test fuzz v1
+string("jobs:\n  a:\n    steps:\n      - {uses: donvargax/itos@v1, with: {version: 9.10}}\n      - {uses: donvargax/itos@v2, with: {version: [9.1]}}\n      - {uses: donvargax/itos@v3, with: {version: }}\n")

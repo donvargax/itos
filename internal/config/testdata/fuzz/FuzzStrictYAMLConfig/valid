@@ -1,0 +1,2 @@
+go test fuzz v1
+string("version: 1\npin:\n  version: 9.1.0\n  checksums: 0123abcdef\ncommits:\n  path_sets:\n    docs: [\"**/*.md\", \"docs/**\"]\n  scopes:\n    docs: [$docs]\npush:\n  mode: pr\n  pr:\n    draft: true\n    review_by: [codex]\n")

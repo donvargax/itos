@@ -1,0 +1,2 @@
+go test fuzz v1
+string("pin:\n  version: 017\n  checksums: 1_000\n")

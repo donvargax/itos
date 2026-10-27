@@ -1,0 +1,2 @@
+go test fuzz v1
+string("name: ci\r\non: [push]\r\njobs:\r\n  one:\r\n    runs-on: ubuntu-latest\r\n    steps:\r\n      - uses: actions/checkout@v4\r\n      - uses: donvargax/itos@2222222222222222222222222222222222222222 # v9.1.0\r\n        with:\r\n          version: ${{ vars.ITOS_VERSION }}\r\n      - &shared\r\n        uses: donvargax/itos@v3\r\n        with: { version: 9.1 }\r\n  two:\r\n    steps:\r\n      - *shared\r\n")

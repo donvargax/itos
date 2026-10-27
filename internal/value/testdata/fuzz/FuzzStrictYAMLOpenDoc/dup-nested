@@ -1,0 +1,2 @@
+go test fuzz v1
+string("items:\n  - id: a\n    id: b\n")
