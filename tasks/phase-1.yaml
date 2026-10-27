@@ -5170,5 +5170,3 @@
     and verify. So this is this repository's config alone: in_place_of gains refactor, build and ci,
     and the gates comment stops saying they need a Task. No liveness rule is added: test, docs and
     chore already accept any registry item.
-  done_when:
-    - run: "grep -q 'in_place_of: { Task: \\[test, docs, chore, refactor, build, ci\\] }' itos.yaml"

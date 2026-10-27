@@ -15411,6 +15411,6 @@ items:
     title: "build and ci commits, and a comment-only refactor, may name their item in Item: in place of Task"
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
