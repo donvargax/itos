@@ -17,7 +17,7 @@ Feature: A failed CI run names the step each failed job failed at and what faile
   as the end line's failed jobs) gains "step", the name of its first step
   that concluded neither success nor skipped, left out when the jobs API
   lists none; "log", "read" or "unreadable"; "failures", in the log's order,
-  each {"kind","name"?,"package"?,"lines","more_lines"?}; and
+  each {"kind","name"?,"package"?,"level"?,"lines","more_lines"?}; and
   "more_failures" when some were left out. run gains "tags", the remote's
   tags at the run's head commit, left out when there is none. A job that
   succeeded gains nothing, and a run that succeeded asks for no log. The
@@ -25,7 +25,8 @@ Feature: A failed CI run names the step each failed job failed at and what faile
   line), says the same in words that may change: scenarios read it by loose
   substrings.
 
-  A failure's kind is go-test, scenario, ci-run or tail. go-test is go
+  A failure's kind is go-test, scenario, ci-run or tail, read from the log,
+  or annotation, for a log that cannot be read (below). go-test is go
   test's "--- FAIL: <name>" line of a test with no failed subtest. Its lines
   are those indented deeper than that line, up to the first indented no
   deeper (a sibling's "--- FAIL:", "FAIL", the "FAIL", tab, package line,
@@ -66,6 +67,36 @@ Feature: A failed CI run names the step each failed job failed at and what faile
   completed, and never retried: one that cannot be read leaves its job's
   step and says so, and never changes the watch's exit.
 
+  A log that cannot be read is most often not GitHub's refusal but the host
+  it redirects to (slice 197): the text is on Azure blob storage
+  (productionresultssa<n>.blob.core.windows.net), which a sandboxed agent's
+  proxy and the devcontainer's allowlist refuse (2026-10-07, 2026-10-27).
+  Such a job then falls back to what api.github.com serves itself: its step
+  stays the jobs API's, and its check run's annotations
+  (/repos/<repository>/check-runs/<job id>/annotations, an Actions job's id
+  being its check run's), asked for once and never retried, become its
+  failures, in the order the API lists them. Each is of kind annotation, its
+  name the annotation's path and start line as <path>:<line>, its "level"
+  GitHub's annotation_level (notice, warning or failure, every level kept),
+  its lines the message's, split as a log's; its title is left out. The
+  limits are the log's: 10 lines an annotation and 20 annotations a job, the
+  rest counted in more_lines and more_failures. "log" stays "unreadable",
+  and the text still says the log could not be read. A check run that lists
+  no annotation, or whose annotations cannot be read either, leaves the job
+  as before: its step and the line saying its log could not be read. A log
+  that is read is read as before, and no annotation is asked for.
+
+  An annotation is what a run's steps emit: a ::error or ::warning workflow
+  command, a problem matcher's match, and GitHub's own "Process completed
+  with exit code <n>." for a failed step, at .github line 1. This
+  repository's CI emits none of its own (2026-10-27): no step prints
+  ::error, and its pinned toolchain action, unlike setup-go, registers no
+  problem matcher, so go test's failures, itos ci run's "CI failed at" lines
+  and the code proof's mutation lines (an uncovered changed line among them)
+  reach the annotations only as that exit-code line. Here the fallback says
+  which step failed and with what exit code; what failed in it needs those
+  lines emitted as annotations, which this slice does not do.
+
   The tags are read from the remote the commit was pushed to, where GitHub
   creates a release's tag when the release job publishes it, so no job need
   be named a release job and no config key is added; an annotated tag counts
@@ -77,7 +108,10 @@ Feature: A failed CI run names the step each failed job failed at and what faile
   text on itself, as GitHub redirects to a short-lived download address,
   each line stamped with a timestamp as GitHub stamps it. A job that fails
   at a step is listed with "Set up job" succeeded, that step failed and
-  "Complete job" succeeded. The tags are the scenario's remote's.
+  "Complete job" succeeded. It lists a job's check run's annotations, none
+  unless a step lists some, and a step can have it redirect a job's log to a
+  host that refuses it, as a sandbox's proxy refuses the blob host. The tags
+  are the scenario's remote's.
 
   The why's command provider went in v5.0.0 (slice 85), so no provider has
   optional keys to grow; what it stood for, a provider giving less, is
@@ -322,7 +356,8 @@ Feature: A failed CI run names the step each failed job failed at and what faile
   # leads nowhere or an answer cut short is the same. The nightly's report
   # once showed a reader refusing a log for its terminal escape sequences:
   # itos strips them (@ID-WATCH-37), so that is no reason here. The run's
-  # verdict stands: exit 1, never 3 or 75 for a log.
+  # verdict stands: exit 1, never 3 or 75 for a log. Its check run lists no
+  # annotation, so nothing takes the log's place (slice 197).
   @ID-WATCH-41 @slice-172
   Scenario: A failed job whose log cannot be read keeps its step, says so, and the watch still exits 1
     Given the watched run's job "ci" fails at its step "Run the unit tests", its log:
@@ -337,6 +372,86 @@ Feature: A failed CI run names the step each failed job failed at and what faile
     And its JSON's job "ci" has "log" "unreadable"
     And its JSON's job "ci" has no "failures"
     And its stderr says "could not be read"
+
+  # The log is where GitHub redirects it, a host a sandbox refuses; the
+  # annotations come from api.github.com. The first is what a problem matcher
+  # would make of the Go test's error line. GitHub's own line for the step's
+  # exit is one too, at .github line 1, and a warning is kept with its level:
+  # every annotation, in the API's order. Through itos push's wait, as
+  # itos ci watch's.
+  @wip @slice-197 @ID-WATCH-48
+  Scenario: A failed job whose log is on a host itos cannot reach is named by its check run's annotations
+    Given the watched run's job "ci" fails at its step "Run the unit tests", its log:
+      """
+      --- FAIL: TestRunnerLooksUpTheChecksThatOptIn (0.00s)
+          evidence_test.go:101: the runner looked up 0 checks, want 2
+      FAIL	github.com/donvargax/itos/v8/internal/check	0.012s
+      ##[error]Process completed with exit code 1.
+      """
+    And the fake GitHub redirects the log of the job "ci" to a host that refuses it
+    And the fake GitHub lists these annotations for the check run of the job "ci":
+      | path                            | line | level   | message                               |
+      | internal/check/evidence_test.go | 101  | failure | the runner looked up 0 checks, want 2 |
+      | .github                         | 1    | warning | Node.js 20 actions are deprecated.    |
+      | .github                         | 1    | failure | Process completed with exit code 1.   |
+    And the clone has the commit "chore: tidy the readme" touching "README.md"
+    When itos runs "push --json"
+    Then itos exits with code 1
+    And its JSON's job "ci" has "step" "Run the unit tests"
+    And its JSON's job "ci" has "log" "unreadable"
+    And its JSON's job "ci" lists these failures:
+      | kind       | name                                |
+      | annotation | internal/check/evidence_test.go:101 |
+      | annotation | .github:1                           |
+      | annotation | .github:1                           |
+    And its JSON's job "ci"'s failure "internal/check/evidence_test.go:101" has "level" "failure"
+    And its JSON's job "ci"'s failure "internal/check/evidence_test.go:101" has the lines:
+      """
+      the runner looked up 0 checks, want 2
+      """
+    And its stderr says "could not be read"
+    And its stderr says "internal/check/evidence_test.go:101"
+    And its stderr says "the runner looked up 0 checks, want 2"
+    And its stderr says "Process completed with exit code 1."
+
+  # Proposal: an annotation is a failure under the log's limits, 20 a job and
+  # 10 lines each, what is left out counted and said.
+  @wip @slice-197 @ID-WATCH-49
+  Scenario: A job with more annotations and message lines than the limits names what it left out
+    Given the watched run's job "ci" fails at its step "Run the unit tests", its log:
+      """
+      ##[error]Process completed with exit code 1.
+      """
+    And the fake GitHub redirects the log of the job "ci" to a host that refuses it
+    And the fake GitHub lists 25 annotations for the check run of the job "ci", each a failure of 12 message lines
+    When itos runs "ci watch --json"
+    Then itos exits with code 1
+    And its JSON's job "ci" has 20 failures, each a "annotation" with 10 lines and "more_lines" 2
+    And its JSON's job "ci" has "more_failures" 5
+    And its stderr says "more failures"
+    And its stderr says "more lines"
+
+  # A guard, which holds before the work and must after it: a log that is
+  # read is read as before, its failures the log's alone, and no annotation
+  # is asked for.
+  @wip @slice-197 @ID-WATCH-50 @guard
+  Scenario: A failed job whose log is read asks for no annotation
+    Given the watched run's job "ci" fails at its step "Run the unit tests", its log:
+      """
+      --- FAIL: TestPlanOrdersTheSteps (0.00s)
+          plan_test.go:40: the steps are out of order
+      FAIL	github.com/donvargax/itos/v8/internal/plan	0.010s
+      """
+    And the fake GitHub lists these annotations for the check run of the job "ci":
+      | path    | line | level   | message                             |
+      | .github | 1    | failure | Process completed with exit code 1. |
+    When itos runs "ci watch --json"
+    Then itos exits with code 1
+    And its JSON's job "ci" has "log" "read"
+    And its JSON's job "ci" lists these failures:
+      | kind    | name                   |
+      | go-test | TestPlanOrdersTheSteps |
+    And the fake GitHub was never asked for a check run's annotations
 
   # GitHub creates the tag when the release job publishes the release, while
   # the run is still going, so it is on the remote by the time the run
