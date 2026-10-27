@@ -14694,6 +14694,16 @@ items:
       features touching the changed packages, or reuse a run CI already makes; (3) previous-release
       could run only the old scenarios the range can affect (as the named tests are selected). Each
       is a gate change; measure the saving on a run before choosing.
+
+      Investigated 2026-10-27 (itos-cc v0.38.0 source; v0.40.1 changes none of it): itos-cc already
+      judges a mutant with only its file's unit tests, then only the listed scenarios covering its
+      line (ADR 0012), so no itos config change helps. The cost is the listed-tests coverage pass:
+      whole features 62 s, then ~1000 per-ID covdata conversions with no -pkg (most of the silent
+      ~88 s, inferred from source), measured afresh every counted run, failing closed so it cannot
+      be scoped from itos. Filed on itos-cc: #73 (scope conversions with -pkg, or cache the reach
+      map, or measure only reaching scenarios), #74 (progress lines for the silent phases), #75
+      (emit itos_proof so the green log says what was judged). Left for itos: lever 3,
+      previous-release running only the old scenarios a range can affect (75 s).
     tags: [ci]
 
   - id: T-318
