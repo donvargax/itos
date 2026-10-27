@@ -14899,3 +14899,19 @@ items:
       for deps policy, and check actions/checkout@v4 in our own workflows the same way.
     refs: [action.yml]
     tags: [ci, v8]
+
+  - id: p2-push-bypass-message
+    title: itos push explains git's 'Bypassed rule violations' line on an admin push (#189)
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Consumer report #189: an admin push to a branch whose ruleset requires a status check prints
+      git's remote 'Bypassed rule violations for refs/heads/main: Required status check … is
+      expected'; agents read it as an error and report it. itos push could add one line after it
+      saying the bypass is the account's allowed one and CI now judges the pushed head, or the
+      guides could name it.
+    refs: [internal/engine/push]
+    tags: [push, v8]
