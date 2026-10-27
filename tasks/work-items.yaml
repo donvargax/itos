@@ -61,7 +61,6 @@ queue:
   - p1-ready-clean-merges
   - p1-ready-review-for-head
   - slice-195
-  - slice-194
   - slice-196
   - p1-status-merged-awaiting-close
   - slice-197
@@ -10469,48 +10468,9 @@ items:
     title: itos commit --item <task> commits a build or ci change as --task <task> does
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: [p3-guard-replacement]
     kind: slice
-    why: >
-      Was p1-commit-item-takes-task.
-      T-190's agent (2026-10-21) followed the brief template's 'itos commit --item <item>' for a
-      build commit and was refused with 'build commits need --task <id>', though T-190 is a ledger
-      task the registry lists. Either commit --item accepts a ledger task and writes the Task
-      footer, or the brief template in itos guide brief says --task for a task. The first removes
-      the trap for every agent; the second only for the briefed ones.
-
-      Seen again 2026-10-23: a review fix to slice-172's doc.go (a refactor) could not name
-      slice-172; the coordinator added T-296 for one comment. An implementing agent earlier borrowed
-      an old done task (T-228) for the same reason.
-
-      2026-10-24 grooming (the user's call): merged in p1-gate-edit-without-task, found 2026-10-11:
-      removing three lines from itos.yaml's config set (p1-drop-vite-hooks-path, an idea) was
-      refused, 'ci commits need --task <id>', and --item was not accepted in its place; doing it by
-      the rules takes a promote, a ledger entry and a task check for a change whose proof is the
-      gate that runs it (it was folded into T-143). One design settles both: which link footer a
-      build or ci commit may carry. Options: --item <task> writes Task:; a build or ci commit may
-      carry Item: <idea> (commits.footers in_place_of), its done judged by the commit landing green;
-      or the policy names which types may name an idea. The question to settle with the person:
-      weigh that against keeping every gate change behind a task with a check.
-
-      Seen again 2026-10-24: bug-132's diff review asked for comment-only changes to non-test Go
-      files; chore and docs may not touch them, refactor needs --task, test covers only _test.go, so
-      the only commit open to the item was a fix with Scenarios:, which publishes a release for
-      comments.
-
-      Seen again 2026-10-25: slice-184's diff review asked to reword one sentence of
-      internal/slices/push/doc.go after the feat; docs, chore and test refuse the path and refactor
-      needs a Task:, so the rewording was dropped ("cut by cut to 255 code points" still reads
-      awkwardly there).
-
-      The person, 2026-10-27: moved to v8 with the other friction. Related:
-      p1-done-item-through-gate-task (bug-146's ci commits could only name T-333).
-
-      The person, 2026-10-27 (decided): a build or ci commit (and so a comment-only Go change) may
-      carry Item: <id> naming any open item, bug, slice, task or idea, as test, docs and chore
-      already may; its done is judged by the commit landing green. A gate change no longer needs a
-      ledger task with a check of its own.
     tags: [commit, v8]
 
   - id: p1-fix-deps-releases
