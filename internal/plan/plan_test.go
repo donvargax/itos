@@ -415,7 +415,7 @@ proof:
 // the range from the first to the second, which touches internal/x.go.
 func gitRange(t *testing.T) (from, to string) {
 	t.Helper()
-	for _, name := range []string{"GIT_DIR", "GIT_INDEX_FILE", "GIT_WORK_TREE", "GIT_COMMON_DIR"} {
+	for _, name := range []string{"GIT_DIR", "GIT_INDEX_FILE", "GIT_WORK_TREE", "GIT_COMMON_DIR", "GIT_CONFIG_COUNT", "GIT_CONFIG_PARAMETERS"} {
 		t.Setenv(name, "")
 		os.Unsetenv(name)
 	}
