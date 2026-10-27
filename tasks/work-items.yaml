@@ -15252,20 +15252,9 @@ items:
     title: "The id counter and a decision record's status read YAML with yaml.Unmarshal: the first document only, YAML 1.1 numbers, and what value.Parse refuses"
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: bug
-    why: >
-      Found 2026-10-27 by T-329's FuzzStrictYAML oracle. idcounter's readCounters (counter.go) reads
-      only the first document ("counters:\n T: 1\n---\ncounters:\n T: 9\n" reads T=1; a broken
-      second document is ignored), reads YAML 1.1 numbers (T: 017 is 15 where value.Parse reads 17;
-      1_000 and 0b11 are numbers where Parse reads strings; key 0x10 is "0x10" where Parse reads
-      "16"), and misses an alias loop under a key it does not read. adr's Record.Status (adr.go,
-      yaml.Unmarshal into a map) reads status: rejected from frontmatter Parse refuses (a null key
-      holding duplicate keys) and reads status: 1_000, 0b11 or a date as empty. The fix reads both
-      through value.Parse, as upgrade's workflow reader does since K150b. Its fix lands T-329's held
-      targets for these readers (the coordinator's scratchpad, T-329-held/adr and
-      idcounter_strict_yaml_fuzz_test.go.txt), with their failing inputs as seeds.
     refs: [internal/idcounter/counter.go, internal/adr/adr.go]
     tags: [work, records, v8]
 
