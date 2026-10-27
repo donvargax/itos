@@ -14762,17 +14762,9 @@ items:
     title: The nightly shard self-test sets SHARD itself, so it passes without nightly.yml's env binding
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: bug
-    why: >
-      Found 2026-10-27 by all three reviewers in the reviewer replay (s151, T-308's shards),
-      scorer-checked; the coordinator confirmed:
-      tools/selftest/ci-platform/nightly_shards_test.go:79 passes "SHARD="+e.Shard in the step's
-      environment, and the parsed step type has no Env, so removing `env: SHARD: ${{ matrix.shard
-      }}` from .github/workflows/nightly.yml:137 would leave the self-test green while every shard
-      ran the whole suite. The self-test should read the step's env from the workflow, not supply
-      it.
     tags: [ci]
 
   - id: bug-147
