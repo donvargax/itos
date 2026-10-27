@@ -105,6 +105,16 @@ Feature: A footer that says what a consumer changes
   #   message's (bug 138): a message's text with a trailing no-break space
   #   is no longer the flag's text without it, so the commit is refused,
   #   naming both (ID-COMMITCMD-40, commit-command.feature).
+  # - readCommitFlags (internal/slices/commit/git.go), the flag's side:
+  #   it trims each --breaking and --<text footer> value with
+  #   strings.TrimSpace, Go's Unicode set (U+0085 and U+00A0 among it).
+  #   A flag's value becomes a trailer git reads, so it is trimmed with
+  #   git's set too (space, tab, line feed, carriage return), and both sides
+  #   of Written.Against trim alike: the same text ending in a no-break
+  #   space, in the flag and in the message, is one footer (ID-COMMITCMD-41).
+  #   A --upgrading or --breaking of only a no-break space is a value, not
+  #   refused as empty, and is written as git would read it; a value empty
+  #   after git's trim stays the usage error it is.
   # - typedFooter, the stealth mode's refusal, only counts the footers, and
   #   does not change. The footers of IDs are split by rawIDs on
   #   value.SpaceChars and commas, never through unfolded, and do not change.
@@ -126,7 +136,7 @@ Feature: A footer that says what a consumer changes
   # footer <footer>, its backslash escapes read as Go's" is the existing one
   # (commitOnTop: the header, a blank line, Task: <id>, the footer) with the
   # footer read as the body of a Go string literal (strconv.Unquote of it in
-  # double quotes: \t, \f and   are those characters, \" a quote). git
+  # double quotes: \t, \f and \u00a0 are those characters, \" a quote). git
   # commit's cleanup trims a line's end of git's isspace alone, so the form
   # feed and the no-break space reach the commit. The new Then "its output
   # says <text>, its backslash escapes read as Go's" is "its output says"
@@ -144,13 +154,13 @@ Feature: A footer that says what a consumer changes
 
   # itos commit footers prints a line "<short sha> <text>" a footer. Before
   # the fix the text loses its no-break space and the line ends "lint\n": it
-  # fails at its output says "rename commits.lint \n".
+  # fails at its output says "rename commits.lint\u00a0\n".
   @ID-UPGRADE-07 @bug-151 @wip
   Scenario: A free-text footer keeps a trailing no-break space, as git keeps it
-    Given the commit "chore: rename the key" naming the task "T-001" with the footer "Upgrading: rename commits.lint ", its backslash escapes read as Go's
+    Given the commit "chore: rename the key" naming the task "T-001" with the footer "Upgrading: rename commits.lint\u00a0", its backslash escapes read as Go's
     When itos lists the "Upgrading" footers of the commits after the first
     Then itos exits with code 0
-    And its output says "rename commits.lint \n", its backslash escapes read as Go's
+    And its output says "rename commits.lint\u00a0\n", its backslash escapes read as Go's
 
   # verify reads each commit after the first through the footer rules,
   # Upgrading required for chore. Before the fix the footer's text is "", so
@@ -158,6 +168,6 @@ Feature: A footer that says what a consumer changes
   # itos exits with code 0 (it exits 1).
   @ID-UPGRADE-08 @bug-151 @wip
   Scenario: A free-text footer whose value is only a no-break space satisfies the type that requires it
-    Given the commit "chore: tidy the readme" naming the task "T-001" with the footer "Upgrading:  ", its backslash escapes read as Go's
+    Given the commit "chore: tidy the readme" naming the task "T-001" with the footer "Upgrading: \u00a0", its backslash escapes read as Go's
     When itos verifies the commits after the first
     Then itos exits with code 0
