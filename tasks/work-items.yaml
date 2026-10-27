@@ -15329,8 +15329,8 @@ items:
   - id: slice-199
     title: itos status names an item in progress whose pull request has merged, with the work done that closes it
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: slice
     why: >
