@@ -15291,8 +15291,8 @@ items:
   - id: bug-153
     title: "The id counter and a decision record's status read YAML with yaml.Unmarshal: the first document only, YAML 1.1 numbers, and what value.Parse refuses"
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: bug
     why: >
