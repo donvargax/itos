@@ -230,7 +230,7 @@ func stopped(t *testing.T, dir string, args ...string) {
 // from outside and no repository above it.
 func alone(t *testing.T) string {
 	t.Helper()
-	for _, name := range []string{"GIT_DIR", "GIT_INDEX_FILE", "GIT_WORK_TREE", "GIT_COMMON_DIR",
+	for _, name := range []string{"GIT_DIR", "GIT_INDEX_FILE", "GIT_WORK_TREE", "GIT_COMMON_DIR", "GIT_CONFIG_COUNT", "GIT_CONFIG_PARAMETERS",
 		"GIT_AUTHOR_NAME", "GIT_AUTHOR_EMAIL", "GIT_AUTHOR_DATE", "GIT_COMMITTER_NAME", "GIT_COMMITTER_EMAIL", "GIT_COMMITTER_DATE"} {
 		t.Setenv(name, "")
 		os.Unsetenv(name)
@@ -483,6 +483,7 @@ func TestFindRefusesAnUnreadableGitFile(t *testing.T) {
 // first ask is not seen until the run asks from another folder. A relative
 // folder with no Dir is asked every time, as the process may stand anywhere.
 func TestLocateAsksOncePerFolder(t *testing.T) {
+	alone(t)
 	dir, err := filepath.EvalSymlinks(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
