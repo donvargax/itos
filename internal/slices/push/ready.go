@@ -24,14 +24,16 @@ var reviewQuery = strings.Join(strings.Fields(`
 	repository(owner: $owner, name: $name) { pullRequest(number: $number) {
 	reviews(first: 100) { nodes { author { login } body } }
 	comments(first: 100) { nodes { author { login } body } }
-	reviewThreads(first: 100) { nodes { isResolved path line
-	comments(first: 1) { nodes { body } } } } } } }`), " ")
+	reviewThreads(first: 100) { nodes { id isResolved path line
+	comments(first: 1) { nodes { author { login } body } } } } } } }`), " ")
 
 // pullState is what GitHub says of the pull request: its reviews and comments,
-// by the logins GraphQL gives, and the threads still open.
+// by the logins GraphQL gives, the node ids of all its review threads and the
+// threads still open.
 type pullState struct {
 	reviews    []authored
 	comments   []authored
+	ids        []string
 	unresolved []openThread
 }
 
@@ -46,13 +48,15 @@ type refusal struct {
 	login, line string
 }
 
-// openThread is a review thread that is not resolved: where it is (line 0 for
-// an outdated one, which GitHub gives none) and the first line of its first
-// comment.
+// openThread is a review thread that is not resolved: its node id, where it is
+// (line 0 for an outdated one, which GitHub gives none), the login of its first
+// comment's author and the first line of that comment.
 type openThread struct {
-	path  string
-	line  int
-	first string
+	id     string
+	path   string
+	line   int
+	author string
+	first  string
 }
 
 // finish is --ready's end under push.pr.draft, once the pull request is ready
@@ -82,7 +86,7 @@ func (r *pushRun) finish(ctx context.Context, repository, outcome, line string) 
 	if logins := cfg.Push.PR.ReviewBy; len(logins) > 0 {
 		state, a, done = r.awaitReviews(ctx, repository, logins)
 	} else {
-		state, a, done = r.ask(ctx, repository)
+		state, a, done = r.ask(ctx, repository, r.pr.Number)
 	}
 	if done {
 		return a
@@ -97,6 +101,7 @@ func (r *pushRun) finish(ctx context.Context, repository, outcome, line string) 
 			fmt.Fprintf(r.o.Stderr, "  %s\n", strings.TrimSpace(where+" "+t.first))
 		}
 		fmt.Fprintln(r.o.Stderr, "Address each (fix it and push, or reply on the pull request), resolve it, then itos push --ready again.")
+		fmt.Fprintln(r.o.Stderr, "itos push threads lists them with their ids, and itos push thread <id> --reply <text> --resolve answers one.")
 		return r.report(policy, "review-threads-unresolved")
 	}
 	if _, a, failed := r.gh(ctx, "pr", "merge", r.branch, "--repo", repository, "--auto", "--rebase"); failed {
@@ -118,7 +123,7 @@ func (r *pushRun) awaitReviews(ctx context.Context, repository string, logins []
 	deadline := now().Add(time.Duration(*watch.Timeout * float64(time.Second)))
 	r.say(fmt.Sprintf("Waiting for reviews by %s on %s.", strings.Join(logins, ", "), r.pr.URL))
 	for {
-		state, a, failed := r.ask(ctx, repository)
+		state, a, failed := r.ask(ctx, repository, r.pr.Number)
 		if failed {
 			return pullState{}, a, true
 		}
@@ -228,10 +233,10 @@ func (s pullState) stateOf(login string) (completed, stated bool) {
 // pull-request-failed reported, when gh does or its answer has not the
 // reviews and the review threads (comments, which an answer from before slice
 // 187 lacks, are none then).
-func (r *pushRun) ask(ctx context.Context, repository string) (pullState, Answer, bool) {
+func (r *pushRun) ask(ctx context.Context, repository string, number int) (pullState, Answer, bool) {
 	owner, name, _ := strings.Cut(repository, "/")
 	answered, a, failed := r.gh(ctx, "api", "graphql", "-f", "query="+reviewQuery, "-f", "owner="+owner, "-f", "name="+name,
-		"-F", "number="+strconv.Itoa(r.pr.Number))
+		"-F", "number="+strconv.Itoa(number))
 	if failed {
 		return pullState{}, a, true
 	}
@@ -243,11 +248,15 @@ func (r *pushRun) ask(ctx context.Context, repository string) (pullState, Answer
 					Comments      *authoredNodes `json:"comments"`
 					ReviewThreads *struct {
 						Nodes []struct {
+							ID         string `json:"id"`
 							IsResolved bool   `json:"isResolved"`
 							Path       string `json:"path"`
 							Line       *int   `json:"line"`
 							Comments   struct {
 								Nodes []struct {
+									Author *struct {
+										Login string `json:"login"`
+									} `json:"author"`
 									Body string `json:"body"`
 								} `json:"nodes"`
 							} `json:"comments"`
@@ -265,16 +274,21 @@ func (r *pushRun) ask(ctx context.Context, repository string) (pullState, Answer
 	var state pullState
 	state.reviews, state.comments = pull.Reviews.authored(), pull.Comments.authored()
 	for _, t := range pull.ReviewThreads.Nodes {
+		state.ids = append(state.ids, t.ID)
 		if t.IsResolved {
 			continue
 		}
-		open := openThread{path: t.Path}
+		open := openThread{id: t.ID, path: t.Path}
 		if t.Line != nil {
 			open.line = *t.Line
 		}
 		if len(t.Comments.Nodes) > 0 {
-			first, _, _ := strings.Cut(t.Comments.Nodes[0].Body, "\n")
+			c := t.Comments.Nodes[0]
+			first, _, _ := strings.Cut(c.Body, "\n")
 			open.first = strings.TrimSpace(first)
+			if c.Author != nil {
+				open.author = c.Author.Login
+			}
 		}
 		state.unresolved = append(state.unresolved, open)
 	}

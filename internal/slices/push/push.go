@@ -30,6 +30,7 @@ type pushRun struct {
 	sha            string           // the commit pushed, resolved once before the push
 	noWait         bool             // --no-wait: push and return, whatever ci.watch says
 	markReady      bool             // --ready: mark a draft pull request ready, wait for it, then turn on auto-merge (ready.go)
+	threads        bool             // push threads or push thread: nothing is pushed (threads.go)
 	watched        *ciwatch.Watched // the CI run waited for after the push, if one was
 	cfg            *config.Loaded   // the config, when push.mode is pr (prMode)
 	ontoName       string           // what the branch is rebased onto, when it is not the upstream (pr.go)

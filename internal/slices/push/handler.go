@@ -17,13 +17,19 @@ import (
 
 // Query is what push asks: NoWait, --no-wait; Ready, --ready, which marks a
 // draft pull request ready and waits for it (slice 179); Tags and Refs, what --tag and
-// --ref named, in the order given (slice 131); and Origin, the folder the
-// person stood in, relative to the repository's top, where git runs; ""
-// when itos runs where it was started.
+// --ref named, in the order given (slice 131); Threads, push threads, which
+// lists the open review threads of the branch's pull request; Thread, Reply
+// and Resolve, push thread <id> --reply <text> --resolve, which answers one
+// (slice 191); and Origin, the folder the person stood in, relative to the
+// repository's top, where git runs; "" when itos runs where it was started.
 type Query struct {
 	NoWait     bool
 	Ready      bool
 	Tags, Refs []string
+	Threads    bool
+	Thread     string
+	Reply      string
+	Resolve    bool
 	Origin     string
 }
 
@@ -73,8 +79,9 @@ type Out struct {
 // it, "" when nothing is left to report; Lines, what it says, on stdout
 // for a success, else on stderr; Remote and Branch, the upstream's; Tags
 // and Refs, what --tag and --ref named; Commit, the commit pushed;
-// PullRequest, the pull request of an item's branch under push.mode pr; and
-// Watched, the CI run waited for after the push, if one was.
+// PullRequest, the pull request of an item's branch under push.mode pr; Pull,
+// Threads and Thread, what push threads and push thread report (threads.go);
+// and Watched, the CI run waited for after the push, if one was.
 type Answer struct {
 	Code           int
 	Outcome        string
@@ -83,6 +90,9 @@ type Answer struct {
 	Tags, Refs     []string
 	Commit         string
 	PullRequest    *PullRequest
+	Pull           *PullRef
+	Threads        []ThreadInfo
+	Thread         *ThreadResult
 	Watched        *ciwatch.Watched
 }
 
@@ -101,6 +111,15 @@ func (h Handler) Handle(ctx context.Context, q Query, o Out) (Answer, error) {
 	if _, err := v.Locate(ctx, ""); err != nil {
 		fmt.Fprintln(o.Stderr, "itos: push runs in a git repository, and this is none")
 		return Answer{Code: missing}, nil
+	}
+	if q.Threads || q.Thread != "" {
+		a := r.reviewThreads(ctx, q)
+		if o.JSON && a.Code != 0 {
+			for _, l := range a.Lines {
+				fmt.Fprintln(o.Stderr, l)
+			}
+		}
+		return a, nil
 	}
 	// Where itos is set up, a push git would make without itos's pre-push
 	// hook is refused before anything is fetched (slice 91).

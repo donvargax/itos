@@ -551,7 +551,8 @@ func TestPushReadyRefusesUnresolvedReviewThreads(t *testing.T) {
 	code, stdout, stderr, _ := call(t, f, "--ready")
 	want := "itos push: auto-merge is not turned on: " + open7 + " has unresolved review threads:\n" +
 		"  widget.md:3 Rename this.\n  old.md Outdated one.\n  bare.md:2\n" +
-		"Address each (fix it and push, or reply on the pull request), resolve it, then itos push --ready again.\n"
+		"Address each (fix it and push, or reply on the pull request), resolve it, then itos push --ready again.\n" +
+		"itos push threads lists them with their ids, and itos push thread <id> --reply <text> --resolve answers one.\n"
 	if code != policy || stderr != want || !strings.HasPrefix(stdout, "Pushed ") || strings.Contains(strings.Join(f.calls(), "\n"), "pr merge") {
 		t.Errorf("exit %d\n%s%s", code, stdout, stderr)
 	}

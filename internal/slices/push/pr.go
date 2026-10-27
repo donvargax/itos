@@ -332,18 +332,9 @@ func (r *pushRun) pushRegistry(ctx context.Context, main, onto string) Answer {
 func (r *pushRun) pullRequest(ctx context.Context, repository, main, theirMain, first string, pushed, behind bool) Answer {
 	item := r.branch
 	draft := r.cfg.Push.PR.Draft
-	listed, a, failed := r.gh(ctx, "pr", "list", "--repo", repository, "--head", item, "--state", "open", "--json", "number,url,isDraft,title")
+	open, a, failed := r.openPulls(ctx, repository, item)
 	if failed {
 		return a
-	}
-	var open []struct {
-		Number  int    `json:"number"`
-		URL     string `json:"url"`
-		IsDraft bool   `json:"isDraft"`
-		Title   string `json:"title"`
-	}
-	if err := json.Unmarshal([]byte(listed), &open); err != nil {
-		return r.ghFailed("gh pr list", "its answer is not a list of pull requests: "+err.Error())
 	}
 	if len(open) > 0 {
 		r.pr = &PullRequest{URL: open[0].URL, Number: open[0].Number, Draft: open[0].IsDraft}
@@ -404,6 +395,28 @@ func (r *pushRun) pullRequest(ctx context.Context, repository, main, theirMain, 
 		return r.report(0, outcome, line)
 	}
 	return r.wait(ctx, r.remote, "", line)
+}
+
+// openPull is an open pull request as gh pr list gives it.
+type openPull struct {
+	Number  int    `json:"number"`
+	URL     string `json:"url"`
+	IsDraft bool   `json:"isDraft"`
+	Title   string `json:"title"`
+}
+
+// openPulls are the open pull requests of the branch: failed, with
+// pull-request-failed reported, when gh pr list fails or its answer is no list.
+func (r pushRun) openPulls(ctx context.Context, repository, branch string) ([]openPull, Answer, bool) {
+	listed, a, failed := r.gh(ctx, "pr", "list", "--repo", repository, "--head", branch, "--state", "open", "--json", "number,url,isDraft,title")
+	if failed {
+		return nil, a, true
+	}
+	var open []openPull
+	if err := json.Unmarshal([]byte(listed), &open); err != nil {
+		return nil, r.ghFailed("gh pr list", "its answer is not a list of pull requests: "+err.Error()), true
+	}
+	return open, Answer{}, false
 }
 
 // draftNote is what a plain push under push.pr.draft says of the pull request,
@@ -507,8 +520,12 @@ func (r pushRun) gh(ctx context.Context, args ...string) (string, Answer, bool) 
 }
 
 // ghFailed is the pull-request-failed outcome (exit 3): the command that
-// failed and why, and that itos push again finishes the pull request.
+// failed and why, and that itos push again finishes the pull request. The
+// threads commands push nothing, so theirs says no more than the failure.
 func (r pushRun) ghFailed(command, reason string) Answer {
+	if r.threads {
+		return r.report(missing, "pull-request-failed", fmt.Sprintf("itos push: %s failed: %s", command, reason))
+	}
 	again := "Fix that, then itos push again: it opens the pull request (gh pr create) and turns on auto-merge (gh pr merge --auto --rebase)."
 	switch {
 	case r.markReady:
