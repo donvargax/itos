@@ -74,8 +74,11 @@ Feature: A failed CI run names the step each failed job failed at and what faile
   Such a job then falls back to what api.github.com serves itself: its step
   stays the jobs API's, and its check run's annotations
   (/repos/<repository>/check-runs/<job id>/annotations, an Actions job's id
-  being its check run's), asked for once and never retried, become its
-  failures, in the order the API lists them: those whose annotation_level
+  being its check run's), asked for once with per_page=100 and never
+  retried (GitHub lists 30 a page unless asked for more, at most 100, and
+  keeps at most 50 for a job, so the one page holds them all and none is
+  dropped uncounted), become its failures, in the order the API lists
+  them: those whose annotation_level
   is failure, GitHub's exit-code line among them, for a notice or a warning
   (an action's deprecation, say) is not why a job failed. Each is of kind
   annotation, its name the annotation's path and start line as
@@ -112,7 +115,8 @@ Feature: A failed CI run names the step each failed job failed at and what faile
   each line stamped with a timestamp as GitHub stamps it. A job that fails
   at a step is listed with "Set up job" succeeded, that step failed and
   "Complete job" succeeded. It lists a job's check run's annotations, none
-  unless a step lists some, and a step can have it redirect a job's log to a
+  unless a step lists some, paged as GitHub pages them: 30 unless per_page
+  asks for more, at most 100. A step can have it redirect a job's log to a
   host that refuses it, as a sandbox's proxy refuses the blob host. The tags
   are the scenario's remote's.
 
@@ -423,7 +427,9 @@ Feature: A failed CI run names the step each failed job failed at and what faile
     And its stderr does not say "Node.js 20 actions are deprecated."
 
   # Proposal: an annotation is a failure under the log's limits, 20 a job and
-  # 10 lines each, what is left out counted and said.
+  # 10 lines each, what is left out counted and said. 35 is more than
+  # GitHub's page of 30 unless per_page asks for more, so a request that
+  # does not ask counts 10 left out, not 15.
   @wip @slice-197 @ID-WATCH-49
   Scenario: A job with more annotations and message lines than the limits names what it left out
     Given the watched run's job "ci" fails at its step "Run the unit tests", its log:
@@ -431,11 +437,11 @@ Feature: A failed CI run names the step each failed job failed at and what faile
       ##[error]Process completed with exit code 1.
       """
     And the fake GitHub redirects the log of the job "ci" to a host that refuses it
-    And the fake GitHub lists 25 annotations for the check run of the job "ci", each a failure of 12 message lines
+    And the fake GitHub lists 35 annotations for the check run of the job "ci", each a failure of 12 message lines
     When itos runs "ci watch --json"
     Then itos exits with code 1
     And its JSON's job "ci" has 20 failures, each a "annotation" with 10 lines and "more_lines" 2
-    And its JSON's job "ci" has "more_failures" 5
+    And its JSON's job "ci" has "more_failures" 15
     And its stderr says "more failures"
     And its stderr says "more lines"
 
