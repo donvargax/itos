@@ -15269,14 +15269,15 @@ items:
     refs: [internal/message]
     tags: [message, v8]
 
-  - id: p1-push-item-branch-conflict
+  - id: slice-193
     title: itos push has no path for an item branch whose pushed commits conflict with main
     phase: 1
     owner: null
     status: todo
     depends_on: []
-    kind: idea
+    kind: slice
     why: >
+      Was p1-push-item-branch-conflict.
       Seen 2026-10-27 on bug-151 (PR #201): bug-150 merged first, both appending scenarios at the
       end of features/commit-command.feature, so bug-151's pushed spec commit no longer rebased onto
       main and GitHub showed the pull request CONFLICTING. itos push rebases an item branch only
