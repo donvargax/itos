@@ -4990,3 +4990,17 @@
     acceptance.
   done_when:
     - run: "true"
+
+- id: T-325
+  type: ci
+  title: Remove the reviewer replay's workflow and prompts
+  why: >
+    The person decided on the reviewer replay on 2026-10-27 (ADR-0061 amended): Fable is not
+    adopted, so .github/workflows/replay-review.yml and the prompts it copied into
+    .github/replay-review/ have no user. Remove both in one ci commit, with whatever names them
+    among the gates (tools/selftest, a workflow list, actionlint config);
+    docs/plans/reviewer-replay.md keeps describing what was run and stays. The replay PRs and refs
+    are the person's to clean up.
+  done_when:
+    - run: test ! -e .github/workflows/replay-review.yml
+    - run: test ! -e .github/replay-review

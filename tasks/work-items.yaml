@@ -14995,3 +14995,11 @@ items:
       where it reviews on demand (both stalls seen were on-demand reviews). Method and scripts as
       the replay's (codex-comment.md, astra-replay.sh).
     tags: [review, v8]
+
+  - id: T-325
+    title: Remove the reviewer replay's workflow and prompts
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task
