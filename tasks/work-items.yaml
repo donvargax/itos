@@ -60,7 +60,7 @@ queue:
   - slice-192
   - p1-ready-clean-merges
   - p1-ready-review-for-head
-  - p1-done-item-through-gate-task
+  - slice-195
   - slice-194
   - p1-status-fetches-first
   - p1-devcontainer-actions-logs
@@ -15325,14 +15325,15 @@ items:
     depends_on: []
     kind: task
 
-  - id: p1-done-item-through-gate-task
+  - id: slice-195
     title: work done closes an item whose merged pull request's commits all name its gate task
     phase: 1
     owner: null
     status: todo
     depends_on: []
-    kind: idea
+    kind: slice
     why: >
+      Was p1-done-item-through-gate-task.
       Seen 2026-10-27 on bug-146 (PR #205): its fix was two ci commits, which need --task, so both
       name T-333 (its gate task) and none names bug-146. T-333 closed; work done bug-146 refuses on
       main at the pushed head, exit 1: 'PR #205 has merged, but HEAD has no commit of bug-146 that
