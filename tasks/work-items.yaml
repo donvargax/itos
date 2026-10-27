@@ -15185,8 +15185,8 @@ items:
   - id: slice-191
     title: itos push replies to and resolves a review thread, so an implementer does not hand-write gh api graphql with a thread id
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: slice
     why: >
