@@ -124,11 +124,25 @@ func TestMain(m *testing.M) {
 	if os.Getenv(wrappedGitEnv) != "" {
 		os.Exit(wrappedGit(os.Args[1:]))
 	}
+	dropInheritedGit()
 	code := m.Run()
 	if sharedRoot != "" {
 		os.RemoveAll(sharedRoot)
 	}
 	os.Exit(code)
+}
+
+// A hook hands its children the git environment of the repository it runs in, and go-unit-tests
+// -hook-env hands every test binary one with failing hooks: every scratch repository a test makes,
+// and each fixture the package builds once before a test isolates itself, would inherit it
+// (T-326). A test that needs one of these variables sets it itself.
+func dropInheritedGit() {
+	for _, name := range []string{
+		"GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_COMMON_DIR", "GIT_PREFIX", "GIT_OBJECT_DIRECTORY",
+		"GIT_ALTERNATE_OBJECT_DIRECTORIES", "GIT_CONFIG_COUNT", "GIT_CONFIG_PARAMETERS",
+	} {
+		os.Unsetenv(name)
+	}
 }
 
 func useFailingGit(t *testing.T) {
