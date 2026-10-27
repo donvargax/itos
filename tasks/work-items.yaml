@@ -5438,8 +5438,8 @@ items:
   - id: slice-197
     title: A red CI run's log is readable inside the devcontainer
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: slice
     why: >
