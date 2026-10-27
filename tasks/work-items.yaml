@@ -10487,7 +10487,10 @@ items:
       internal/slices/push/doc.go after the feat; docs, chore and test refuse the path and refactor
       needs a Task:, so the rewording was dropped ("cut by cut to 255 code points" still reads
       awkwardly there).
-    tags: [commit, v9]
+
+      The person, 2026-10-27: moved to v8 with the other friction. Related:
+      p1-done-item-through-gate-task (bug-146's ci commits could only name T-333).
+    tags: [commit, v8]
 
   - id: p1-fix-deps-releases
     title: A fix(deps) commit that bumps what the binary links releases a patch without code or scenarios
