@@ -75,14 +75,17 @@ Feature: A failed CI run names the step each failed job failed at and what faile
   stays the jobs API's, and its check run's annotations
   (/repos/<repository>/check-runs/<job id>/annotations, an Actions job's id
   being its check run's), asked for once and never retried, become its
-  failures, in the order the API lists them. Each is of kind annotation, its
-  name the annotation's path and start line as <path>:<line>, its "level"
-  GitHub's annotation_level (notice, warning or failure, every level kept),
-  its lines the message's, split as a log's; its title is left out. The
+  failures, in the order the API lists them: those whose annotation_level
+  is failure, GitHub's exit-code line among them, for a notice or a warning
+  (an action's deprecation, say) is not why a job failed. Each is of kind
+  annotation, its name the annotation's path and start line as
+  <path>:<line>, its "level" GitHub's annotation_level, its lines the
+  message's, split as a log's; its title is left out. The
   limits are the log's: 10 lines an annotation and 20 annotations a job, the
-  rest counted in more_lines and more_failures. "log" stays "unreadable",
-  and the text still says the log could not be read. A check run that lists
-  no annotation, or whose annotations cannot be read either, leaves the job
+  rest counted in more_lines and more_failures, which counts failure-level
+  annotations only. "log" stays "unreadable", and the text still says the
+  log could not be read. A check run that lists no failure-level
+  annotation, or whose annotations cannot be read either, leaves the job
   as before: its step and the line saying its log could not be read. A log
   that is read is read as before, and no annotation is asked for.
 
@@ -376,9 +379,10 @@ Feature: A failed CI run names the step each failed job failed at and what faile
   # The log is where GitHub redirects it, a host a sandbox refuses; the
   # annotations come from api.github.com. The first is what a problem matcher
   # would make of the Go test's error line. GitHub's own line for the step's
-  # exit is one too, at .github line 1, and a warning is kept with its level:
-  # every annotation, in the API's order. Through itos push's wait, as
-  # itos ci watch's.
+  # exit is one too, at .github line 1, kept for its level, failure. The
+  # warning between them, an action's deprecation, is left out: only
+  # failure-level annotations, in the API's order. Through itos push's wait,
+  # as itos ci watch's.
   @wip @slice-197 @ID-WATCH-48
   Scenario: A failed job whose log is on a host itos cannot reach is named by its check run's annotations
     Given the watched run's job "ci" fails at its step "Run the unit tests", its log:
@@ -403,8 +407,11 @@ Feature: A failed CI run names the step each failed job failed at and what faile
       | kind       | name                                |
       | annotation | internal/check/evidence_test.go:101 |
       | annotation | .github:1                           |
-      | annotation | .github:1                           |
     And its JSON's job "ci"'s failure "internal/check/evidence_test.go:101" has "level" "failure"
+    And its JSON's job "ci"'s failure ".github:1" has the lines:
+      """
+      Process completed with exit code 1.
+      """
     And its JSON's job "ci"'s failure "internal/check/evidence_test.go:101" has the lines:
       """
       the runner looked up 0 checks, want 2
@@ -413,6 +420,7 @@ Feature: A failed CI run names the step each failed job failed at and what faile
     And its stderr says "internal/check/evidence_test.go:101"
     And its stderr says "the runner looked up 0 checks, want 2"
     And its stderr says "Process completed with exit code 1."
+    And its stderr does not say "Node.js 20 actions are deprecated."
 
   # Proposal: an annotation is a failure under the log's limits, 20 a job and
   # 10 lines each, what is left out counted and said.
