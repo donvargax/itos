@@ -15378,7 +15378,7 @@ items:
       commit lets --ready turn on auto-merge after a new push no reviewer has read. Compare
       commit_sha (code_review and security_review) with the head; ID-PUSHDRAFT-17's fixed commit_sha
       would then name the head.
-    tags: [push, review]
+    tags: [push, review, v8]
 
   - id: p1-status-fetches-first
     title: itos status fetches the remote before reading where things stand
