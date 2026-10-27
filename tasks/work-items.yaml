@@ -10399,6 +10399,11 @@ items:
       reverse-dependency behavior. T-173 filled the missing coverage with one explicitly authorized
       CLI package run, which passed; do not treat this gate exit zero as unit-test evidence until
       repaired.
+
+      Possibly fixed by T-326 (2026-10-27, PR #194): tools/bin/go-unit-tests is now a Go program
+      that compares package folders as slash paths; unverified on native Windows. Check there (go
+      run ./tools/bin/go-unit-tests --cached with a staged test file selects its package), then
+      close it naming #194's commit a487172d.
     refs: [tools/bin/go-unit-tests]
     tags: [gates, v8]
 
