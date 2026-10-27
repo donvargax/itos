@@ -133,12 +133,23 @@ func madeOnce(t *testing.T, name string, build func(t *testing.T, dir string)) s
 	return dir
 }
 
-// historyTemplate is a repository holding history's commits.
+// historyTemplate is a folder holding a repository of history's commits and
+// its detached linked work tree wt.
 func historyTemplate(t *testing.T) string {
 	t.Helper()
-	return filepath.Join(madeOnce(t, "history", func(t *testing.T, dir string) {
+	return madeOnce(t, "history", func(t *testing.T, dir string) {
 		history(t, filepath.Join(dir, "repo"))
-	}), "repo")
+		gitIn(t, filepath.Join(dir, "repo"), "", "worktree", "add", "-q", "--detach", filepath.Join(dir, "wt"))
+	})
+}
+
+// copyWorktree puts the template's linked work tree at wt, of the copy of its
+// repository at repo, naming each to the other as git does.
+func copyWorktree(t *testing.T, template, repo, wt string) {
+	t.Helper()
+	copyTree(t, filepath.Join(template, "wt"), wt)
+	write(t, filepath.Join(repo, ".git", "worktrees", "wt"), "gitdir", filepath.ToSlash(filepath.Join(wt, ".git")))
+	write(t, wt, ".git", "gitdir: "+filepath.ToSlash(filepath.Join(repo, ".git", "worktrees", "wt")))
 }
 
 // copyTree copies the folder from to a new folder to, files and folders
@@ -299,7 +310,8 @@ func laidOut(t *testing.T, l porttest.Layout) (port.VCS, string) {
 		}
 		return Git{Dir: repo}, repo
 	}
-	copyTree(t, historyTemplate(t), repo)
+	template := historyTemplate(t)
+	copyTree(t, filepath.Join(template, "repo"), repo)
 	if l.Origin {
 		origin := filepath.Join(base, "origin.git")
 		gitIn(t, base, "", "init", "-q", "--bare", "-b", "main", origin)
@@ -335,7 +347,7 @@ func laidOut(t *testing.T, l porttest.Layout) (port.VCS, string) {
 			t.Fatal(err)
 		}
 	}
-	gitIn(t, repo, "", "worktree", "add", "-q", "--detach", filepath.Join(base, "wt"))
+	copyWorktree(t, template, repo, filepath.Join(base, "wt"))
 	leave(t, repo, l)
 	return Git{Dir: repo}, repo
 }
