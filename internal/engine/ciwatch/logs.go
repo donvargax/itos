@@ -84,7 +84,8 @@ func bound(failures []providers.Failure) (kept []providers.Failure, more int) {
 
 // readAnnotations are the failures a check run's annotations name, for a job
 // whose log cannot be read (slice 197): those of level failure, in the order
-// listed, each named path:line with its message's lines, bounded as a log's.
+// listed, each named path:line with its message's lines, less their carriage
+// returns and terminal escape sequences, bounded as a log's.
 func readAnnotations(annotations []providers.Annotation) (failures []providers.Failure, more int) {
 	for _, a := range annotations {
 		if a.Level != "failure" {
@@ -93,7 +94,7 @@ func readAnnotations(annotations []providers.Annotation) (failures []providers.F
 		lines := []string{}
 		if a.Message != "" {
 			for _, l := range strings.Split(strings.TrimSuffix(a.Message, "\n"), "\n") {
-				lines = append(lines, strings.TrimSuffix(l, "\r"))
+				lines = append(lines, escape.ReplaceAllString(strings.TrimSuffix(l, "\r"), ""))
 			}
 		}
 		failures = append(failures, providers.Failure{Kind: "annotation", Name: a.Path + ":" + strconv.Itoa(a.Line), Level: a.Level, Lines: lines})
