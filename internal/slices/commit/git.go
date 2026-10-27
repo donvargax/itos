@@ -94,7 +94,7 @@ func readCommitFlags(args []string, texts map[string]string) (commitFlags, error
 				i++
 				value, given = args[i], true
 			}
-			text := strings.TrimSpace(value)
+			text := message.GitTrim(value)
 			if text == "" {
 				what := "<text|none>"
 				if name == "--breaking" {

@@ -17,7 +17,6 @@ import (
 	"strings"
 
 	"github.com/donvargax/itos/v8/internal/config"
-	"github.com/donvargax/itos/v8/internal/value"
 )
 
 // trailer is one footer: its key and its value, both trimmed, a
@@ -33,6 +32,12 @@ const breakingKey = "BREAKING CHANGE"
 
 // gitSpace is whether a byte is a space as git's isspace reads it.
 func gitSpace(c byte) bool { return c == ' ' || c == '\t' || c == '\n' || c == '\r' }
+
+// GitTrim is a text trimmed as git trims a trailer's key and value: of its
+// isspace alone, the space, tab, line feed and carriage return, never of the
+// form feed, the vertical tab or a character above 127 that value.Trim,
+// String.trim's set, drops.
+func GitTrim(s string) string { return strings.Trim(s, " \t\n\r") }
 
 func blankLine(l string) bool { return strings.TrimLeft(l, " \t\n\r") == "" }
 
@@ -160,11 +165,11 @@ func parseTrailers(block []string, comment string) []trailer {
 		if commentLine(l, comment) || at < 1 {
 			continue
 		}
-		found = append(found, trailer{key: strings.Trim(l[:at], " \t\n\r"), value: l[at+1:]})
+		found = append(found, trailer{key: GitTrim(l[:at]), value: l[at+1:]})
 		last = len(found) - 1
 	}
 	for i := range found {
-		found[i].value = strings.Trim(found[i].value, " \t\n\r")
+		found[i].value = GitTrim(found[i].value)
 	}
 	return found
 }
@@ -188,11 +193,11 @@ func linked(cfg *config.Loaded, links string) []trailer {
 }
 
 // unfolded is a trailer's value on one line, each line break and the indent
-// after it one space, as git's unfold reads it.
+// after it one space, as git's unfold reads it, trimmed as git trims it.
 func unfolded(v string) string {
 	parts := strings.Split(v, "\n")
 	for i := 1; i < len(parts); i++ {
 		parts[i] = strings.TrimLeft(parts[i], " \t\r")
 	}
-	return value.Trim(strings.Join(parts, " "))
+	return GitTrim(strings.Join(parts, " "))
 }

@@ -677,7 +677,7 @@ Feature: itos commit, a commit whose footers itos writes
   # scratch file <path> contains exactly:" does. Before the fix both texts
   # are "run itos upgrade", nothing is written, the hook passes and the
   # commit is made: it fails at itos exits with code 1 (it exits 0).
-  @ID-COMMITCMD-40 @bug-151 @wip
+  @ID-COMMITCMD-40 @bug-151
   Scenario: A free-text footer the message gives with a trailing no-break space is not its flag's text without one
     Given the config requires an "Upgrading" footer of free text for "chore"
     And the scratch file "msg.txt" contains "chore: tidy the readme\n\nTask: T-001\nUpgrading: run itos upgrade\u00a0\n", its backslash escapes read as Go's
@@ -701,7 +701,7 @@ Feature: itos commit, a commit whose footers itos writes
   # and the footer is Same. It guards a fix of the message's side alone,
   # which reads "run itos upgrade\u00a0" against the flag's "run itos
   # upgrade", Differs, and fails at itos exits with code 0 (it exits 1).
-  @ID-COMMITCMD-41 @bug-151 @wip
+  @ID-COMMITCMD-41 @bug-151
   Scenario: A free-text footer the message gives with the flag's text, a trailing no-break space and all, is one footer
     Given the config requires an "Upgrading" footer of free text for "chore"
     And the scratch file "msg.txt" contains "chore: tidy the readme\n\nTask: T-001\nUpgrading: run itos upgrade\u00a0\n", its backslash escapes read as Go's

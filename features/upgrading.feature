@@ -145,7 +145,7 @@ Feature: A footer that says what a consumer changes
   # The fuzzer's value, its key Upgrading. Before the fix Texts reads it as
   # "" and Gathered leaves the footer out, so itos prints nothing: it fails
   # at its output says "\f".
-  @ID-UPGRADE-06 @bug-151 @wip
+  @ID-UPGRADE-06 @bug-151
   Scenario: A free-text footer whose value is only a form feed is listed, as git reads one
     Given the commit "chore: keep the feed" naming the task "T-001" with the footer "Upgrading:\t\f", its backslash escapes read as Go's
     When itos lists the "Upgrading" footers of the commits after the first
@@ -155,7 +155,7 @@ Feature: A footer that says what a consumer changes
   # itos commit footers prints a line "<short sha> <text>" a footer. Before
   # the fix the text loses its no-break space and the line ends "lint\n": it
   # fails at its output says "rename commits.lint\u00a0\n".
-  @ID-UPGRADE-07 @bug-151 @wip
+  @ID-UPGRADE-07 @bug-151
   Scenario: A free-text footer keeps a trailing no-break space, as git keeps it
     Given the commit "chore: rename the key" naming the task "T-001" with the footer "Upgrading: rename commits.lint\u00a0", its backslash escapes read as Go's
     When itos lists the "Upgrading" footers of the commits after the first
@@ -166,7 +166,7 @@ Feature: A footer that says what a consumer changes
   # Upgrading required for chore. Before the fix the footer's text is "", so
   # checkText says "chore commits need an Upgrading footer": it fails at
   # itos exits with code 0 (it exits 1).
-  @ID-UPGRADE-08 @bug-151 @wip
+  @ID-UPGRADE-08 @bug-151
   Scenario: A free-text footer whose value is only a no-break space satisfies the type that requires it
     Given the commit "chore: tidy the readme" naming the task "T-001" with the footer "Upgrading: \u00a0", its backslash escapes read as Go's
     When itos verifies the commits after the first
