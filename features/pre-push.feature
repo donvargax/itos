@@ -20,12 +20,24 @@ Feature: The pre-push hook verifies the commits it pushes
   on is accepted when the ref is a branch other than main, the branch the
   remote's HEAD names (asked of the remote, git ls-remote --symref, as itos
   push asks it), and every commit the remote's old head has that main lacks
-  has a commit of the same patch-id in the new head's history (git cherry
-  <new> <old> <main>, main as the clone's remote-tracking branch of it has
-  it; with none, every commit of the old head the new one's history lacks),
-  so a rewrite drops no work. itos push --onto-main makes such a rewrite
-  (push-mode.feature), and a plain git push --force-with-lease of a branch
-  rebased onto main passes too, since the rule is the hook's. Every other
+  has a counterpart among the new head's commits that main lacks, so a
+  rewrite drops no work. Main is as the clone's remote-tracking branch of
+  it has it; with none, each head's commits are all counted.
+
+  A counterpart of a commit is a commit with the same author (name and
+  email), the same author date and the same message: git rebase keeps all
+  three, and neither a resolved conflict nor a change main made to the
+  lines around the commit's own (context drift) changes any of them. Not a
+  patch-id (git cherry), which hashes the diff with its context lines: the
+  commit a resolved conflict rebases, bug-151's case, has another one, and
+  so does a commit main changed lines near. So a squash or a reword during
+  the rewrite leaves the old commit with no counterpart, and the rewrite is
+  refused as one that drops it. itos push --onto-main uses the same rule
+  (push-mode.feature).
+
+  itos push --onto-main makes such a rewrite, and a plain git push
+  --force-with-lease of a branch rebased onto main passes too, since the
+  rule is the hook's. Every other
   rewrite is refused as before: main's, a ref that is no branch, one whose
   remote commit the clone lacks, any when the remote's HEAD cannot be asked
   or names no branch it has, and one that would drop a commit, whose
@@ -128,13 +140,30 @@ Feature: The pre-push hook verifies the commits it pushes
     And the remote has the branch "topic" with "docs: add the guide"
     And the remote's branch "topic" does not have "docs: add the index"
 
-  # Main is never rewritten, even by a rewrite that drops no change: here a
-  # reworded head, whose patch-id is the old one's. The patch-id rule alone
-  # would accept it, since main lacks none of its own commits; the branch's
-  # being main is what refuses it. A guard: refused today (slice 128) and
-  # must stay refused.
+  # A reword keeps the change but not the message, so the old commit has no
+  # counterpart and the rewrite is refused as one that drops it: a squash or
+  # a reword is not the rebase the exception is for. A patch-id rule would
+  # accept it, the diff being the same. Fails before the work at the
+  # commit's subject: today the hook refuses it too, but names only the ref
+  # and the SHAs.
+  @ID-PREPUSH-10 @slice-193 @wip
+  Scenario: A forced push of a branch whose commit was reworded is refused as one that drops the commit
+    Given the clone is on the new branch "topic"
+    And the clone has the commit "docs: add the guide" touching "guide.md"
+    And git pushes HEAD to the remote's new branch "topic"
+    And git amends HEAD with the message "docs: write the guide"
+    When the real git runs "push --force-with-lease origin HEAD:topic"
+    Then the real git exits with code 1
+    And its output says "docs: add the guide"
+    And the remote's branch "topic" does not have "docs: write the guide"
+
+  # Main is never rewritten: here its head reworded. The counterpart rule
+  # alone would accept that, since main, as the clone's remote-tracking
+  # branch has it, holds the old head and so lacks none of its commits;
+  # the branch's being main is what refuses it, which this scenario guards.
+  # Refused today (slice 128) and must stay refused.
   @ID-PREPUSH-09 @slice-193 @guard @wip
-  Scenario: A forced push that rewrites main is refused though it drops no change
+  Scenario: A forced push that rewrites main is refused, though no commit main lacks is dropped
     Given the remote has gained the commit "docs: someone else's work" touching "OTHER.md"
     And the clone has fetched the remote
     And the clone has reset its branch to the remote's main
