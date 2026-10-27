@@ -17,10 +17,10 @@ import (
 // own, and local config a snapshot leaves behind.
 func contextRepo(t *testing.T) (Git, string) {
 	t.Helper()
+	dir := alone(t)
 	template := madeOnce(t, "context", func(t *testing.T, root string) {
 		makeContextRepo(t, filepath.Join(root, "repo"), filepath.Join(root, "remote.git"))
 	})
-	dir := alone(t)
 	copyTree(t, filepath.Join(template, "repo"), dir)
 	remote := filepath.Join(alone(t), "remote.git")
 	copyTree(t, filepath.Join(template, "remote.git"), remote)
