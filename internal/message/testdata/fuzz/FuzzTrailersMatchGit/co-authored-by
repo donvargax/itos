@@ -1,0 +1,6 @@
+go test fuzz v1
+string("feat: x")
+string("body")
+string("A B <a@b.c>\nC <c@d.e>\n")
+[]byte("\t\x0f\b\x0f")
+uint8(0)

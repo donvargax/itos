@@ -1,0 +1,6 @@
+go test fuzz v1
+string("chore: drop node")
+string("")
+string("install the binary\ndrop Node\n")
+[]byte("\x03\x0f\x03\x0f")
+uint8(0)

@@ -1,0 +1,6 @@
+go test fuzz v1
+string("docs: x")
+string("Task: T-1")
+string("closing prose\n")
+[]byte("\x0e\x0f")
+uint8(0)

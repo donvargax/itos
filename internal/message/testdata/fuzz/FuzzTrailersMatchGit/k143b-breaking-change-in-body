@@ -1,0 +1,6 @@
+go test fuzz v1
+string("feat: x")
+string("BREAKING CHANGE: prose here")
+string("T-1\n")
+[]byte("\x00\x0f")
+uint8(0)

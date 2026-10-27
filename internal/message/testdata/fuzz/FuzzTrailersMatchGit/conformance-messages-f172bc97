@@ -1,0 +1,6 @@
+go test fuzz v1
+string("chore: start")
+string("")
+string("before the range\n")
+[]byte("\x03\x0f")
+uint8(0)

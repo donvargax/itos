@@ -1,0 +1,6 @@
+go test fuzz v1
+string("feat: x")
+string("")
+string("a\nT-1\n")
+[]byte("\x06\x0f\x00\x0f")
+uint8(1)

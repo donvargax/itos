@@ -1,0 +1,6 @@
+go test fuzz v1
+string("feat: name a scenario")
+string("")
+string("@ID-TWO-01\n")
+[]byte("\x01\x0f")
+uint8(0)

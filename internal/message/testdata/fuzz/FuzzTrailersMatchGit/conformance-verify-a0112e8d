@@ -1,0 +1,6 @@
+go test fuzz v1
+string("docs: set the scenario back to @wip")
+string("")
+string("T-001\n")
+[]byte("\x00\x0f")
+uint8(0)

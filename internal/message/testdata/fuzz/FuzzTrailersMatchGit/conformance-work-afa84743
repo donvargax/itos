@@ -1,0 +1,6 @@
+go test fuzz v1
+string("feat: add x")
+string("")
+string("@ID-X-01\n")
+[]byte("\x01\x0f")
+uint8(0)

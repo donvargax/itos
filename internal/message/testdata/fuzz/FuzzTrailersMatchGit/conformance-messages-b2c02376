@@ -1,0 +1,6 @@
+go test fuzz v1
+string("chore: tidy")
+string("")
+string("none\n")
+[]byte("\x03\x0f")
+uint8(0)

@@ -1,0 +1,6 @@
+go test fuzz v1
+string("test: describe what closing does")
+string("")
+string("T-001\n@ID-A-02\n")
+[]byte("\x00\x0f\x01\x0f")
+uint8(0)

@@ -1,0 +1,6 @@
+go test fuzz v1
+string("chore: tidy")
+string("Task: T-001")
+string("The readme said it twice.\n")
+[]byte("\x0e\x0f")
+uint8(0)

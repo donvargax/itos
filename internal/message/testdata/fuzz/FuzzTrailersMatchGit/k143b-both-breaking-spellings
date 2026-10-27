@@ -1,0 +1,6 @@
+go test fuzz v1
+string("feat: drop the flag")
+string("")
+string("the flag is gone\nso is the other\n@ID-X-01\n")
+[]byte("\a\x0f\x06\x0f\x01\x0f")
+uint8(0)

@@ -1,0 +1,6 @@
+go test fuzz v1
+string("(delete) 0000000000000000000000000000000000000000 refs/heads/old {{sha.base}}")
+string("")
+string("")
+[]byte("")
+uint8(0)

@@ -1,0 +1,6 @@
+go test fuzz v1
+string("fix: x")
+string("")
+string("T-1\n; ------------------------ >8 ------------------------\ndiff --git a b\n")
+[]byte("\x00\x0f\x0e\x0f\x0e\x0f")
+uint8(4)

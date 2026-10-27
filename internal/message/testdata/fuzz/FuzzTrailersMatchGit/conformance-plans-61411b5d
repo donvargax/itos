@@ -1,0 +1,6 @@
+go test fuzz v1
+string("ci: every kind of check")
+string("")
+string("T-099\n")
+[]byte("\x00\x0f")
+uint8(0)

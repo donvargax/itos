@@ -1,0 +1,6 @@
+go test fuzz v1
+string("chore: x")
+string("")
+string("Task:\n\n \n")
+[]byte("\x0e\x0f\x01\x0f\x05\x0f")
+uint8(0)

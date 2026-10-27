@@ -1,0 +1,6 @@
+go test fuzz v1
+string("chore: Tidy\nthe readme")
+string("")
+string("")
+[]byte("")
+uint8(0)
