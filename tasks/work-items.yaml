@@ -15292,8 +15292,8 @@ items:
   - id: slice-195
     title: work done closes an item whose merged pull request's commits all name its gate task
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: slice
     why: >
