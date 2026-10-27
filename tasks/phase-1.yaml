@@ -4935,15 +4935,17 @@
 
 - id: T-321
   type: ci
-  title: A dispatched workflow reviews a replay pull request with Fable on the person's subscription, and AGENTS.md holds Codex's review rules
+  title: A dispatched workflow reviews a replay pull request with Fable on the person's subscription
   why: >
     The build step of docs/plans/reviewer-replay.md (p1-reviewer-replay-benchmark, settled by the
     person 2026-10-27): .github/workflows/replay-review.yml (workflow_dispatch with a pull request
     number and a stage, spec or diff; anthropics/claude-code-action pinned by commit SHA;
     claude_code_oauth_token from the CLAUDE_CODE_OAUTH_TOKEN secret; claude_args --model
     claude-fable-5-1 --effort high; read-only tools; prints its judgement to the run log and posts
-    nothing; least permissions), the local reviewer's prompt under .github/replay-review/ verbatim,
-    and a ## Code Review Rules section in AGENTS.md (the plan's text) as its own docs commit. The
+    nothing; least permissions), and the local reviewer's prompt under .github/replay-review/
+    verbatim. The plan's ## Code Review Rules section for AGENTS.md is deferred (2026-10-27: it would
+    put AGENTS.md 323 bytes over its cap, and the replay passes the rules in the @codex review
+    comment; decided after the replay, only if Codex stays). The
     plan's build step section holds the YAML and the rules; follow it, and flag anything it could
     not verify (whether this action release takes --effort and the model id, runs on a dispatch with
     github_token and no id-token, and where the final message lands): the first dispatched run
