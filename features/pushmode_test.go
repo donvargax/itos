@@ -87,6 +87,16 @@ func initializePushModeSteps(sc *godog.ScenarioContext, w *world) {
 	sc.Step(`^the recording gh has the pull request "([^"]*)" merged for the branch "([^"]*)"$`, func(address, branch string) error {
 		return w.ghHasPullRequestIn(address, branch, "MERGED", false, "")
 	})
+	sc.Step(`^the recording gh has the pull request "([^"]*)" merged for the branch "([^"]*)", its merge commit the head of the remote's branch "([^"]*)"$`, func(address, branch, merge string) error {
+		if err := w.ghHasPullRequestIn(address, branch, "MERGED", false, ""); err != nil {
+			return err
+		}
+		head, err := w.remoteBranchHead(merge)
+		if err != nil {
+			return err
+		}
+		return os.WriteFile(w.ghMergeCommit(branch), []byte(head+"\n"), 0o644)
+	})
 	sc.Step(`^the recording gh has the pull request "([^"]*)" closed without merging for the branch "([^"]*)"$`, func(address, branch string) error {
 		return w.ghHasPullRequestIn(address, branch, "CLOSED", false, "")
 	})
@@ -165,6 +175,12 @@ func (w *world) ghPrevious(branch string) string {
 }
 func (w *world) ghRebaseDir() string { return filepath.Join(w.support, "gh-rebase") }
 
+// The commit a merged pull request was merged as, by its branch's name
+// (slice 195): the file holds its full SHA.
+func (w *world) ghMergeCommit(branch string) string {
+	return filepath.Join(w.support, "gh-merge-commit-"+branch)
+}
+
 // The nodes api graphql answers for the pull request's reviews and review
 // threads, each a JSON object, comma-separated (slice 179).
 func (w *world) ghReviews() string { return filepath.Join(w.support, "gh-reviews") }
@@ -181,7 +197,9 @@ func (w *world) ghCommentsLeft() string  { return filepath.Join(w.support, "gh-c
 // each call on a line, a line break inside an argument written as a backslash
 // and an n (slice 184); answers pr list with the pull requests of its --head
 // branch that its --state names (open, gh's default, merged, closed or all) as
-// gh does ([] for none), each with its isDraft and its title, and answers pr
+// gh does ([] for none), each with its isDraft and its title, and with
+// mergeCommit, when --json asks for it, as {"oid": <sha>} for a merged pull
+// request a step gave its merge commit and null otherwise (slice 195), and answers pr
 // create with the address given, holding that pull request open from then on,
 // a draft when the call has --draft (slice 179), with the --title=<value> it
 // was given; pr edit <branch> --title=<value> gives that branch's open pull
@@ -241,6 +259,10 @@ case "$verb" in
         if [ "$kind" = MERGED ]; then merged='"2026-10-24T10:00:00Z"'; fi
         oid=
         case "$json" in *headRefOid*) if [ -f %[9]s"$branch" ]; then oid=",\"headRefOid\":\"$(cat %[9]s"$branch")\""; fi ;; esac
+        case "$json" in *mergeCommit*)
+          oid="$oid,\"mergeCommit\":null"
+          if [ "$kind" = MERGED ] && [ -f %[18]s"$branch" ]; then oid="$oid,\"mergeCommit\":{\"oid\":\"$(cat %[18]s"$branch")\"}"; fi ;;
+        esac
         if [ -n "$found" ]; then found="$found,"; fi
         json "$title"
         found="$found{\"number\":${url##*/},\"url\":\"$url\",\"title\":\"$REPLY\",\"state\":\"$kind\",\"isDraft\":${draft:-false},\"mergedAt\":$merged$oid}"
@@ -328,7 +350,8 @@ esac
 		quote(filepath.ToSlash(w.ghKeeps())), quote(filepath.ToSlash(w.ghStale())), quote(filepath.ToSlash(w.ghStaleLeft())),
 		quote(filepath.ToSlash(w.ghPrevious(""))), quote(filepath.ToSlash(w.ghRebaseDir())), quote(filepath.ToSlash(w.ghFailure())),
 		quote(filepath.ToSlash(w.ghReviews())), quote(filepath.ToSlash(w.ghThreads())), quote(filepath.ToSlash(w.ghPulls()+".new")),
-		quote(filepath.ToSlash(w.ghComments())), quote(filepath.ToSlash(w.ghCommentsEarly())), quote(filepath.ToSlash(w.ghCommentsLeft())))
+		quote(filepath.ToSlash(w.ghComments())), quote(filepath.ToSlash(w.ghCommentsEarly())), quote(filepath.ToSlash(w.ghCommentsLeft())),
+		quote(filepath.ToSlash(w.ghMergeCommit(""))))
 	if err := w.writeProgram(filepath.Join(bin, "gh"), script); err != nil {
 		return err
 	}
