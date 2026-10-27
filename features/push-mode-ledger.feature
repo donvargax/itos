@@ -44,10 +44,7 @@ Feature: Under push.mode pr, the ledger edits itos makes beside the registry go 
   without the commits sent to main, at the head pushed to the item's
   branch; the clone's main need not move. When every commit sent is the
   registry's, they go to main alone, as a branch of them does: the item's
-  branch is not pushed and no gh is called. A push that sends a commit to
-  main leaves the pull request behind main, so outside a plain draft push
-  it asks GitHub to rebase it (gh pr update-branch), as when main moved.
-  A registry commit that does not apply onto main's head (a take of an
+  branch is not pushed and no gh is called. A registry commit that does not apply onto main's head (a take of an
   item taken there first) is refused as the rebase onto main refuses one
   (ID-PUSH-05): exit 1, nothing pushed to either branch, no gh called, the
   work registry named and the item said to be taken, by its owner on
@@ -244,10 +241,10 @@ Feature: Under push.mode pr, the ledger edits itos makes beside the registry go 
   # Wherever it sits: an idea added mid-work, between two commits of the
   # work, on a branch the remote does not have yet. The idea goes to main,
   # the work to the item's branch without it, in its order. The pull
-  # request is then behind main by the idea, so the push asks GitHub to
-  # rebase it; the recording gh leaves the branch as itos pushed it, so the
-  # steps after see that push. Fails before the work at the main step:
-  # today the idea rides the pull request.
+  # request is then behind main by the idea; the push does not ask GitHub
+  # to rebase it, since the ruleset does not require it up to date and
+  # bringing an item's branch up to main is slice-193's. Fails before the
+  # work at the main step: today the idea rides the pull request.
   @ID-PUSHLEDGER-10 @slice-192 @wip
   Scenario: Under pr, a registry commit between two commits of the work goes to main and the work to the item's branch
     Given the work registry has the item "slice-9" owned by nobody with the status "todo"
@@ -257,7 +254,6 @@ Feature: Under push.mode pr, the ledger edits itos makes beside the registry go 
         mode: pr
       """
     And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
-    And the recording gh's pr update-branch leaves the branch as it is
     And the clone is on the new branch "slice-9"
     And the clone has the commit "feat: add the widget" touching "widget.md"
     And the clone has the commit "docs: add p1-gadget" adding the idea "p1-gadget" to the registry
@@ -270,7 +266,7 @@ Feature: Under push.mode pr, the ledger edits itos makes beside the registry go 
     And the remote's branch "slice-9" ends with "feat: add the widget" then "test: cover the widget", with no merge commit
     And the remote's branch "slice-9" does not have "docs: add p1-gadget"
     And the clone's HEAD is the head of the remote's branch "slice-9"
-    And the recording gh's "pr update-branch" call has "slice-9"
+    And the recording gh was never called as "pr update-branch"
 
   # A take that does not apply onto main's head, the item taken there first
   # by ana, is refused as the rebase onto main refuses one (ID-PUSH-05):
