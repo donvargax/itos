@@ -32,7 +32,8 @@ const rules = "version: 1\ncommits:\n  types: [docs, feat]\n  header_lint: { use
 // git config, an addition to it refused with addErr, and an old git that
 // runs no hook its config declares. A commit is recorded in made, with how
 // git talks, and fails with failure, else moves HEAD to a new commit when
-// moves.
+// moves, its tree being tree. Unstage records its paths in unstaged, and
+// fails with unstageErr.
 type fake struct {
 	*vcsfake.VCS
 	cfg       *config.Loaded
@@ -48,6 +49,15 @@ type fake struct {
 	moves     bool
 	made      []vcsport.Commit
 	talks     []vcsport.Talk
+
+	tree       map[string]string
+	unstaged   [][]string
+	unstageErr error
+}
+
+func (f *fake) Unstage(_ context.Context, paths []string) error {
+	f.unstaged = append(f.unstaged, paths)
+	return f.unstageErr
 }
 
 func (f *fake) Stealth(context.Context) bool { return f.stealth }
@@ -114,7 +124,7 @@ func (f *fake) Commit(_ context.Context, c vcsport.Commit, talk vcsport.Talk) er
 	}
 	if f.moves {
 		head, _ := f.VCS.Resolve(context.Background(), "HEAD")
-		f.VCS.History = append(f.VCS.History, vcsfake.Commit{Name: "made", Parents: []string{head}, Message: "made\n"})
+		f.VCS.History = append(f.VCS.History, vcsfake.Commit{Name: "made", Parents: []string{head}, Message: "made\n", Tree: f.tree})
 		f.VCS.Named["HEAD"] = "made"
 	}
 	return nil
@@ -772,5 +782,53 @@ func TestCommitDoesNotReadHeadForAStdinMessage(t *testing.T) {
 	if code, _, _, err := run(t, f, "", false, "--amend", "--no-edit", "-F", "-", "--upgrading", "x"); code != 0 || err != nil ||
 		len(f.made) != 1 || !slices.Contains(f.made[0].Args, "Upgrading: x") {
 		t.Errorf("exit %d, %v, %+v", code, err, f.made)
+	}
+}
+
+// A commit given paths is made from a temporary index, so once git made a
+// commit the real index's entries of the paths it changed are set to HEAD's,
+// by their absolute names from the repository's top, whatever folder itos
+// stood in; no other path is named (bug 145). A commit given no path, one
+// git refused and one that moved nothing (--dry-run) change no index, and a
+// root commit's paths are all it holds.
+func TestCommitByPathUnstagesWhatItCommitted(t *testing.T) {
+	for _, c := range []struct {
+		name    string
+		args    []string
+		moves   bool
+		failure error
+		want    [][]string
+	}{
+		{"after --", []string{"-m", "docs: x", "--", "a.md"}, true, nil, [][]string{{"/r/a.md"}}},
+		{"a bare path", []string{"-m", "docs: x", "a.md"}, true, nil, [][]string{{"/r/a.md"}}},
+		{"a pathspec file", []string{"-m", "docs: x", "--pathspec-from-file=list"}, true, nil, [][]string{{"/r/a.md"}}},
+		{"no path", []string{"-m", "docs: x"}, true, nil, nil},
+		{"a value is no path", []string{"-m", "docs: x", "-F", "msg", "--author", "me", "--"}, true, nil, nil},
+		{"git refused", []string{"-m", "docs: x", "a.md"}, true, &vcsport.Failed{Command: "git commit", Code: 1}, nil},
+		{"HEAD did not move", []string{"-m", "docs: x", "a.md"}, false, nil, nil},
+	} {
+		f := over(t, repository(true), "")
+		f.moves, f.failure, f.tree = c.moves, c.failure, map[string]string{"a.md": "formatted"}
+		if code, _, _, err := run(t, f, "", false, c.args...); err != nil || (code != 0) != (c.failure != nil) {
+			t.Errorf("%s: exit %d, %v", c.name, code, err)
+		}
+		if !slices.EqualFunc(f.unstaged, c.want, slices.Equal) {
+			t.Errorf("%s: unstaged %q, want %q", c.name, f.unstaged, c.want)
+		}
+	}
+
+	f := over(t, repository(true), "")
+	f.moves, f.tree, f.unstageErr = true, map[string]string{"a.md": "formatted"}, errors.New("no index")
+	code, _, stderr, err := run(t, f, "", false, "-m", "docs: x", "a.md")
+	if code != refused || err != nil || !strings.Contains(stderr, "the commit is made, but git's index of its paths cannot be set to it: no index") {
+		t.Errorf("an index that cannot be set: exit %d, %v, %q", code, err, stderr)
+	}
+
+	f = over(t, repository(true), "")
+	f.moves, f.tree = true, map[string]string{"a.md": "formatted"}
+	f.VCS.History, f.VCS.Named = nil, map[string]string{}
+	if code, _, _, err := run(t, f, "", false, "-m", "docs: x", "a.md"); err != nil || code != 0 ||
+		!slices.EqualFunc(f.unstaged, [][]string{{"/r/a.md"}}, slices.Equal) {
+		t.Errorf("a root commit: exit %d, %v, unstaged %q", code, err, f.unstaged)
 	}
 }

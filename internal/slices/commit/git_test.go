@@ -155,3 +155,25 @@ func TestAmends(t *testing.T) {
 		}
 	}
 }
+
+// A commit is given paths by a bare argument or after "--", or by a
+// pathspec file; never by a value of an option, nor by an empty "--".
+func TestReadGitArgsByPath(t *testing.T) {
+	for args, want := range map[string]bool{
+		"-m x":                        false,
+		"-m x a.md":                   true,
+		"a.md -m x":                   true,
+		"-m x -- a.md":                true,
+		"-m x --":                     false,
+		"-m x --pathspec-from-file=l": true,
+		"--pathspec-from-file l -m x": true,
+		"-m x --author me":            false,
+		"-F msg --amend --no-edit":    false,
+		"-am x":                       false,
+		"-S -q":                       false,
+	} {
+		if got := readGitArgs(strings.Fields(args)).byPath; got != want {
+			t.Errorf("readGitArgs(%q).byPath = %v, want %v", args, got, want)
+		}
+	}
+}
