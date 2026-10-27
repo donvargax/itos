@@ -4980,6 +4980,11 @@ items:
       does). The 2026-10-15 audit's caution stands: reconcile with p1-agent-git-ci-contract before
       building.
     tags: [ci, v8]
+    deferred: >
+      Designed 2026-10-26 (docs/plans/ci-workflows.md) and shelved by the person on its numbers: ~2
+      min saved per pull request against every macOS/Windows-only break landing on main after the
+      merge and releases ~10 min slower. Cheaper fix first (Windows' internal/vcs/adapter tests,
+      slow Linux runs). Revisit only if the PR wait is still too long after it.
 
   - id: bug-47
     title: ci watch and push judge a run cancelled by a newer push by the newer run (#17)
