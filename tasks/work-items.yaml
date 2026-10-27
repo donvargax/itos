@@ -14786,3 +14786,11 @@ items:
       docs/CLI.md's decision-41 line still says the plugin calls it. The gate passes (register.ts
       still supplies calls). A ci commit (tools/bin is on ADR-0061's list) and a docs line.
     tags: [plugin]
+
+  - id: T-323
+    title: The replay-review workflow takes the model and the effort as inputs
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task

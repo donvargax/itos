@@ -4963,3 +4963,17 @@
     auto gc off (git config maintenance.auto false and gc.auto 0 in the template, or -c on the
     commands that build it), and make copyTree skip *.lock files and entries that vanish between the
     walk and the copy (fs.ErrNotExist). Never weaken an assertion.
+
+- id: T-323
+  type: ci
+  title: The replay-review workflow takes the model and the effort as inputs
+  why: >
+    The person, 2026-10-27: rerun Fable at --effort max on the replay seeds it missed at high, to
+    tell whether the misses are the effort's or the model's. replay-review.yml hard-codes --model
+    claude-fable-5-1 --effort high; add workflow_dispatch inputs model (default claude-fable-5-1)
+    and effort (choice low|medium|high|xhigh|max, default high), passed into claude_args from the
+    inputs through env (never interpolated into the shell). Raise --max-turns to 80, the local
+    reviewer's budget (the high runs finished at up to 55 turns past the 40 the workflow set, and
+    the action marked them failed though each logged its verdict).
+  done_when:
+    - run: grep -q "effort" .github/workflows/replay-review.yml
