@@ -444,6 +444,113 @@ Feature: itos commit, a commit whose footers itos writes
     Then itos exits with code 0
     And the message of HEAD has the footer "Scenarios: @ID-A-01"
 
+  # Bug 148 (found 2026-10-27 in the reviewer replay of bug 138's code, and
+  # by Codex's review apart): bug 138's comparison of a flag's footer with
+  # the message's (settle, Written.Against) read the message as
+  # gitArgs.message gives it, the -F file's bytes as they are, while the
+  # commit-msg hook reads it cleaned (message.Cleaned: its lines split as
+  # /\r?\n/ splits them, so a CRLF line end is a line end, the comment lines
+  # and git's scissors line and all below it left out, and the blank lines
+  # at either end). In a CRLF message a folded free-text footer kept the CR
+  # before each of its line breaks: unfolded splits a trailer's value on
+  # "\n" alone and trims the indent after it, and the whole value is
+  # trimmed at its ends alone, so "Upgrading: run itos upgrade,\r\n  then
+  # commit\r\n" read "run itos upgrade,\r then commit", never the flag's
+  # "run itos upgrade, then commit". The commit was refused, exit 1, its
+  # line naming two texts that print alike, where git's cleanup trims each
+  # line's end of git's isspace, CR among it, and the hook reads the footer
+  # unfolded as the flag's text: the same message without the flag is
+  # committed. Reproduced 2026-10-27 on main at ede5bd0b with exactly the
+  # scenarios below; the message's one-line footers (Task: T-001, an
+  # unfolded Upgrading:) read alike either way, as parseTrailers trims a
+  # value's ends of the CR.
+  #
+  # The rule: itos commit reads the message once, cleaned as the hook
+  # cleans it (message.Cleaned with the config's comment character), before
+  # the checks that read it, and both read that text:
+  # - settle, the comparison, so a footer's IDs and texts are the hook's;
+  # - lacking, the required-footer check, which read the raw message too.
+  #   On a CRLF message it already found what the hook finds (the type word,
+  #   IDs split on whitespace, CR among it, and whether a text says
+  #   anything do not see the CR), so it changes only where the cleaning
+  #   drops lines: a first line that is a comment or blank hid the type from
+  #   it (message.Type reads the first line), so a commit missing a
+  #   required footer went to git and was refused by the hook after git ran,
+  #   in the hook's words naming the footer, not the flag. Read cleaned, it
+  #   is refused before git runs, naming the flag, as for any other message
+  #   (the reading bug 36 gave the hook).
+  # Every source itos reads is cleaned alike (-m, -F <file>, the commit -C
+  # or -c names, HEAD's for --amend --no-edit); the editor's message and
+  # -F - stay unread. --breaking's footer is read through Texts as
+  # --upgrading's is, so a folded BREAKING-CHANGE in a CRLF message is one
+  # footer the same way (reproduced alike), and a footer of IDs, split on
+  # whitespace, never differed. wrapBody, which rewrites what git is handed
+  # and checks nothing, still reads the message as given; git's cleanup and
+  # the hook's reading do not change. Bug 151's trim of a footer's value
+  # with git's set (space, tab, line feed and carriage return, at its ends
+  # alone) leaves the CR inside an unfolded value, so the bug and the rule
+  # hold after it too.
+  #
+  # The last release's promises: no scenario or corpus case of v8.25.3
+  # hands itos commit a message holding a CR, or one whose first line is a
+  # comment or blank (go run ./tools/bin/previous-release keeps all of its
+  # 1201 scenarios and 921 cases), so no case changes and the fix carries
+  # no Changes: footer. itos commit --help already says a footer is read as
+  # the hook reads it, which the fix makes true, and does not change; the
+  # package's doc.go says lacking and settle read the message cleaned as the
+  # hook reads it (message.Cleaned).
+  #
+  # Steps: a message file with CRLF line ends is written by bug 151's "the
+  # scratch file <path> contains <text>, its backslash escapes read as Go's"
+  # (the text read as the body of a Go string literal, strconv.Unquote of it
+  # in double quotes, so \r\n is a CRLF line end, written exactly in the
+  # repository's root), and a refusal naming quoted texts is read by its
+  # "its output says <text>, its backslash escapes read as Go's".
+  #
+  # Before the fix the message's text is "run itos upgrade,\r then commit",
+  # not the flag's, so settle refuses the commit: it fails at itos exits
+  # with code 0 (it exits 1). After it the footer is the same, no line of it
+  # is written, and HEAD has it once, unfolded as git reads it.
+  @ID-COMMITCMD-42 @bug-148 @wip
+  Scenario: A folded free-text footer in a CRLF message, the flag's text, is one footer
+    Given the config requires an "Upgrading" footer of free text for "chore"
+    And the scratch file "msg.txt" contains "chore: tidy the readme\r\n\r\nTask: T-001\r\nUpgrading: run itos upgrade,\r\n  then commit\r\n", its backslash escapes read as Go's
+    When itos commits with the arguments "--upgrading 'run itos upgrade, then commit' -F msg.txt"
+    Then itos exits with code 0
+    And the message of HEAD has the footer "Upgrading: run itos upgrade, then commit" once
+
+  # A folded text in a CRLF message that is not the flag's is still
+  # refused, and its line names the message's text as the hook reads it.
+  # Before the fix it is refused too, exit 1, but the message's text in the
+  # line holds the CR, "run itos upgrade,\r then commit": it fails at its
+  # output says the line with both texts.
+  @ID-COMMITCMD-43 @bug-148 @wip
+  Scenario: A folded free-text footer in a CRLF message with another text than the flag's is refused, named as the hook reads it
+    Given the config requires an "Upgrading" footer of free text for "chore"
+    And the scratch file "msg.txt" contains "chore: tidy the readme\r\n\r\nTask: T-001\r\nUpgrading: run itos upgrade,\r\n  then commit\r\n", its backslash escapes read as Go's
+    When itos commits with the arguments "--upgrading 'run itos upgrade' -F msg.txt"
+    Then itos exits with code 1
+    And its output says "Upgrading: the message gives \"run itos upgrade, then commit\", --upgrading gives \"run itos upgrade\"", its backslash escapes read as Go's
+    And no commit was made
+
+  # lacking reads the cleaned message too. git's cleanup for -F is
+  # whitespace, which keeps a comment line; the hook drops it and judges
+  # the header below. Before the fix message.Type reads "# a note" and
+  # finds no type, lacking finds nothing, git runs and the hook refuses in
+  # its own words, 'chore commits need a "Task: T-..." footer': it fails at
+  # its output says "chore commits need --task".
+  @ID-COMMITCMD-44 @bug-148 @wip
+  Scenario: A message whose first line is a comment is checked for its required footers before git runs
+    Given the scratch file "msg.txt" contains exactly:
+      """
+      # a note
+      chore: tidy the readme
+      """
+    When itos commits with the arguments "-F msg.txt"
+    Then itos exits with code 1
+    And its output says "chore commits need --task"
+    And no commit was made
+
   # Bug 139 (issue #133): `itos commit --task none` was told "unknown tasks:
   # none". The rule and its words are written above ID-CMSG-16 in
   # commit-msg.feature: itos commit makes no ID check of its own, so what it
