@@ -522,3 +522,144 @@ Feature: itos commit, a commit whose footers itos writes
     Then itos exits with code 0
     And git reports no change to the working tree or the index
     And the file "README.md" has the same contents as its committed version
+
+  # Bug 150 (found by T-327's oracle review, the person's call 2026-10-27):
+  # gitArgs.message reads -m, -F <file> and HEAD's message for --amend
+  # --no-edit, but not the message -C <commit> reuses, nor -c <commit>'s with
+  # --no-edit, though git takes either with no editor and itos could read it
+  # as it reads HEAD's for an amend. So a reused message missing a footer its
+  # type requires was refused only by the commit-msg hook after git ran, its
+  # words naming the footer and not the flag, and one giving a footer with
+  # another value than its flag's got a second line where ID-COMMITCMD-28
+  # refuses up front.
+  #
+  # Which arguments are read, before any "--", as readGitArgs reads git's:
+  # -C <commit>, -C<commit> (and at the end of a cluster), --reuse-message
+  # <commit> and --reuse-message=<commit>, unless the last of --edit, -e and
+  # --no-edit is --edit or -e, which opens the editor; -c <commit> and its
+  # --reedit-message forms only when the last of them is --no-edit, since
+  # without it git opens the editor. readGitArgs keeps only whether --no-edit
+  # won (noEdit), so a --edit given must now be told from none. The message
+  # is that commit's, read as HEAD's is for an amend (v.Show on the commit as
+  # given, which resolves it as git does). A commit that does not resolve
+  # leaves the message unread: git refuses it ("could not lookup commit") and
+  # its exit code is itos's, no refusal of itos's own. --fixup and --squash
+  # stay unread: beside -C or -c git refuses --fixup, and builds a "squash!"
+  # message for --squash, so with --squash among the arguments -C and -c are
+  # not read. Abbreviated long forms (--reuse) are not read, as --message's
+  # are not today.
+  #
+  # Precedence, only where git accepts the arguments: git refuses -m or -F
+  # beside -C or -c, and -C beside -c, so the reading order stays -m, -F
+  # <file>, then the last of -C/--reuse-message (or of -c/--reedit-message),
+  # then HEAD's for --amend --no-edit. -C or -c beside --amend reads the
+  # named commit, not HEAD: git amends with that commit's message, so
+  # --amend --no-edit -C <commit>, which itos reads as HEAD's today, now
+  # reads <commit>'s.
+  #
+  # What then holds, exactly as for --amend --no-edit: the required-footer
+  # check (lacking) refuses before git runs, exit 1, naming the flag; settle
+  # drops a footer the reused message gives with the flag's value, so it is
+  # not written again, and refuses one it gives with another value before
+  # git runs, naming both. Under a stealth config as for any message itos
+  # reads: the content is compared and required from it and the flags, the
+  # links are the flags' (or HEAD's note for an amend that gives none); git
+  # does not carry the -C commit's note, so it is not read.
+  #
+  # T-327's oracle (internal/slices/commit/message_source_test.go) holds the
+  # reading to git over every sequence of up to three tokens. Its "-C HEAD"
+  # sequences claim nothing today and claim a message after the fix, compared
+  # with git's; its tokens gain "-c HEAD" and "--reuse-message=HEAD", and its
+  # claims one: where itos reads a message, git started no editor. Its editor
+  # leaves the text as it is, so without that claim a -C HEAD --edit or a
+  # -c HEAD read by mistake would agree with git. Its stand-in Show
+  # (earlierCommit) gives the earlier text for any revision, so the reading
+  # of the named commit rather than HEAD is held by ID-COMMITCMD-36 here.
+  #
+  # itos commit --help's "Where itos reads the message (-m, -F <file>, HEAD's
+  # for --amend --no-edit)" and "the type is read from -m, from -F <file>, or
+  # for --amend --no-edit from HEAD's message" gain "the commit's for -C
+  # <commit>, or -c <commit> with --no-edit", and the messages left to the
+  # hooks name -c without --no-edit and -C with --edit beside the editor's
+  # and -F -. The package's doc.go (readGitArgs's list, lacking's sources)
+  # and git.go's comments on gitArgs and message say the same.
+  #
+  # No case of v8.25.2's scenarios or corpus changes, so no Changes: footer:
+  # none of them runs itos commit with -C, -c, --reuse-message or
+  # --reedit-message (their -C and -c are git's global -C <dir> and -c
+  # <key>=<value>, in the guard's and the shim's cases), and previous-release
+  # passes all 1197 scenarios and 921 cases on this tree. The help text is
+  # not a contract case.
+  #
+  # The steps exist. Each scenario makes its earlier commits through itos
+  # ("itos has committed with the arguments"), which the commit-msg hook the
+  # Background installs judges, and the config's required Upgrading: footer
+  # is set after the commit that lacks it.
+  #
+  # -C names HEAD~1, the commit lacking Upgrading:, under a HEAD that gives
+  # it, so a reading of HEAD's message would not refuse it. Before the fix
+  # itos reads nothing, git runs, and the hook refuses the commit, exit 1, in
+  # its own words ('chore commits need a "Upgrading: <what a consumer must
+  # do, or none>" footer'), which name no flag: the scenario fails at its
+  # output says "--upgrading".
+  @ID-COMMITCMD-36 @bug-150 @wip
+  Scenario: A commit -C reuses whose message lacks a footer its type requires is refused before git runs, naming the flag
+    Given itos has committed with the arguments "--task T-001 -m 'chore: tidy the readme'"
+    And the config requires an "Upgrading" footer of free text for "chore"
+    And a change to "notes.md" is staged
+    And itos has committed with the arguments "--task T-001 --upgrading none -m 'chore: add the notes'"
+    And a change to "todo.md" is staged
+    When itos commits with the arguments "-C HEAD~1"
+    Then itos exits with code 1
+    And its output says "chore commits need --upgrading"
+    And no commit was made
+
+  # Before the fix itos reads nothing, git adds "Scenarios: @ID-A-02" beside
+  # the reused "Scenarios: @ID-A-01", both live, and the hook takes them: the
+  # scenario fails at the exit code (0).
+  @ID-COMMITCMD-37 @bug-150 @wip
+  Scenario: A footer the message -C reuses gives with other IDs than its flag's is refused before git runs, naming both
+    Given a feature file "a.feature" with the live scenario "@ID-A-01"
+    And a feature file "b.feature" with the live scenario "@ID-A-02"
+    And itos has committed with the arguments "--scenarios @ID-A-01 -m 'feat: greet'"
+    And a change to "notes.md" is staged
+    When itos commits with the arguments "--scenarios @ID-A-02 -C HEAD"
+    Then itos exits with code 1
+    And its output says "the message gives @ID-A-01"
+    And its output says "--scenarios gives @ID-A-02"
+    And no commit was made
+
+  # -c with --no-edit opens no editor, so its message is read as -C's. Before
+  # the fix readCluster skips -c's value and records nothing, git runs with
+  # no editor, and the hook refuses in its own words: the scenario fails at
+  # its output says "--upgrading".
+  @ID-COMMITCMD-38 @bug-150 @wip
+  Scenario: A commit -c reuses with --no-edit whose message lacks a footer its type requires is refused before git runs, naming the flag
+    Given itos has committed with the arguments "--task T-001 -m 'chore: tidy the readme'"
+    And the config requires an "Upgrading" footer of free text for "chore"
+    And a change to "notes.md" is staged
+    When itos commits with the arguments "-c HEAD --no-edit"
+    Then itos exits with code 1
+    And its output says "chore commits need --upgrading"
+    And no commit was made
+
+  # The long form, and a footer the reused message gives with the flag's IDs
+  # on other lines, as ID-COMMITCMD-27 for -F. Before the fix git adds
+  # "Scenarios: @ID-A-01 @ID-A-02", no line of the message's, so each ID is
+  # named twice: the scenario fails at the last step.
+  @ID-COMMITCMD-39 @bug-150 @wip
+  Scenario: A footer the message --reuse-message reuses already gives with the same IDs is not written again
+    Given a feature file "a.feature" with the live scenario "@ID-A-01"
+    And a feature file "b.feature" with the live scenario "@ID-A-02"
+    And the scratch file "msg.txt" contains exactly:
+      """
+      feat: greet
+
+      Scenarios: @ID-A-01
+      Scenarios: @ID-A-02
+      """
+    And itos has committed with the arguments "-F msg.txt"
+    And a change to "notes.md" is staged
+    When itos commits with the arguments "--scenarios @ID-A-01,@ID-A-02 --reuse-message HEAD"
+    Then itos exits with code 0
+    And HEAD's "Scenarios" footers name exactly "@ID-A-01, @ID-A-02", each once
