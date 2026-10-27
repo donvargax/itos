@@ -61,7 +61,7 @@ queue:
   - p1-ready-clean-merges
   - p1-ready-review-for-head
   - p1-done-item-through-gate-task
-  - p1-commit-item-takes-task
+  - slice-194
   - p1-status-fetches-first
   - p1-devcontainer-actions-logs
   - p1-ci-affected-jobs
@@ -10462,14 +10462,15 @@ items:
     depends_on: []
     kind: task
 
-  - id: p1-commit-item-takes-task
+  - id: slice-194
     title: itos commit --item <task> commits a build or ci change as --task <task> does
     phase: 1
     owner: null
     status: todo
     depends_on: [p3-guard-replacement]
-    kind: idea
+    kind: slice
     why: >
+      Was p1-commit-item-takes-task.
       T-190's agent (2026-10-21) followed the brief template's 'itos commit --item <item>' for a
       build commit and was refused with 'build commits need --task <id>', though T-190 is a ledger
       task the registry lists. Either commit --item accepts a ledger task and writes the Task
