@@ -14868,8 +14868,8 @@ items:
   - id: bug-149
     title: push.pr.direct admits a commit type commits.types lacks when the built-in header lint is off
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: bug
     why: >
