@@ -14699,7 +14699,7 @@ items:
   - id: T-318
     title: internal/idcounter's and internal/cli's unit tests stop setting the Windows unit-tests step's length
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
