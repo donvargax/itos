@@ -5052,3 +5052,29 @@
   done_when:
     - run: "go test ./internal/slices/commit -count=1 -run '^TestMessageSourceMatchesGit$' -v 2>&1 | grep -q -- '--- PASS: TestMessageSourceMatchesGit'"
       timeout: 300
+
+- id: T-328
+  type: test
+  title: The trailer reader is fuzzed against git interpret-trailers, and the nightly runs the repository's fuzz targets
+  why: >
+    The reviewer replay (2026-10-27): K143b (BREAKING CHANGE taken as BREAKING-CHANGE dropped a
+    required trailer) was found by no reviewer; git interpret-trailers is the oracle for what a
+    message's trailers are, and an input-level property is a fuzz target (internal/proptest's doc:
+    stateful properties there, input-level ones are fuzzing; idea p2-fuzz-parsers).
+    FuzzTrailersMatchGit in internal/message builds a message from the fuzzer's input (a subject, a
+    body, then a block of key: value lines drawn from the configured footers and BREAKING CHANGE,
+    BREAKING-CHANGE, Signed-off-by, with folded continuation lines, CRLF, comment lines, blank lines
+    and a (cherry picked from …) line) and requires internal/message's trailers(message, comment)
+    (trailers.go) to give the keys and unfolded values, in order, that git interpret-trailers
+    --parse gives for the same text. Its seed corpus is under testdata/fuzz/FuzzTrailersMatchGit,
+    from the conformance corpus's messages and K143b's; go test runs only the seeds, so each push is
+    deterministic. A difference by design (itos reading a footer git does not) is listed in the
+    target with its reason. This task also adds the nightly's fuzz step, a ci commit: every Fuzz*
+    target go test -list finds under cmd and internal, each with a bounded -fuzztime (60 s), its new
+    failing inputs printed and kept as an artifact so a find becomes a committed seed. A
+    disagreement that is a bug: stop on it and report its input; the coordinator files a bug whose
+    fix commits the seed. No production change.
+  done_when:
+    - run: "go test ./internal/message -count=1 -run '^FuzzTrailersMatchGit$' -v 2>&1 | grep -q -- '--- PASS: FuzzTrailersMatchGit'"
+      timeout: 300
+    - run: grep -q -- '-fuzz' .github/workflows/nightly.yml itos.yaml
