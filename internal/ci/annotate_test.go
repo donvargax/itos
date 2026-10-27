@@ -303,10 +303,14 @@ func TestAStepThatOptsInIsAnnotatedFromItsMergedOutput(t *testing.T) {
 	command := printing("f.go:6: bad") + "exit 5"
 	opted := &plan.Plan{Order: []plan.Item{{Step: &plan.Step{Command: command, Evidence: &config.Evidence{}}}}}
 	store := t.TempDir()
-	for range 2 {
+	for i := range 2 {
 		engine := &evidence.Engine{Cfg: load(t), Git: fakeGit{}, Store: fakeStore{store}, Binding: evidence.ThisBinary(), Mode: "ci", CIEnv: map[string]string{}}
-		_, _, got := annotated(t, cfg, opted, Options{Evidence: engine})
+		_, stdout, got := annotated(t, cfg, opted, Options{Evidence: engine, JSON: true})
 		wantCommands(t, got, "::error file=app/f.go,line=6::"+command+" failed: bad")
+		var report struct{ Evidence []struct{ Hit bool } }
+		if err := json.Unmarshal([]byte(stdout), &report); err != nil || len(report.Evidence) != 1 || report.Evidence[0].Hit != (i == 1) {
+			t.Errorf("run %d: want a record %v: %q, %v", i+1, map[bool]string{false: "recorded", true: "answered"}[i == 1], stdout, err)
+		}
 	}
 }
 
