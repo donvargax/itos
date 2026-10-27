@@ -1,6 +1,8 @@
 package adapter
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -311,6 +313,22 @@ func laidOut(t *testing.T, l porttest.Layout) (port.VCS, string) {
 		return Git{Dir: repo}, repo
 	}
 	template := historyTemplate(t)
+	if !l.Origin && !l.Shallow {
+		// The layouts that name no path of their own are made once.
+		sum := sha256.Sum256([]byte(fmt.Sprintf("%#v", l)))
+		shaped := madeOnce(t, "layout-"+hex.EncodeToString(sum[:6]), func(t *testing.T, dir string) {
+			copyTree(t, filepath.Join(template, "repo"), filepath.Join(dir, "repo"))
+			shape(t, filepath.Join(dir, "repo"), l)
+		})
+		copyTree(t, filepath.Join(shaped, "repo"), repo)
+		for _, dir := range []string{filepath.Join(repo, "sub"), filepath.Join(base, "outside")} {
+			if err := os.MkdirAll(dir, 0o755); err != nil {
+				t.Fatal(err)
+			}
+		}
+		copyWorktree(t, template, repo, filepath.Join(base, "wt"))
+		return Git{Dir: repo}, repo
+	}
 	copyTree(t, filepath.Join(template, "repo"), repo)
 	if l.Origin {
 		origin := filepath.Join(base, "origin.git")
@@ -331,6 +349,20 @@ func laidOut(t *testing.T, l porttest.Layout) (port.VCS, string) {
 		gitIn(t, base, "", "clone", "-q", "--depth", "1", "file://"+filepath.ToSlash(repo), clone)
 		return Git{Dir: clone}, clone
 	}
+	shape(t, repo, l)
+	for _, dir := range []string{filepath.Join(repo, "sub"), filepath.Join(base, "outside")} {
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	copyWorktree(t, template, repo, filepath.Join(base, "wt"))
+	return Git{Dir: repo}, repo
+}
+
+// shape sets the remote branches and the work tree's state l asks, in the
+// repository at repo.
+func shape(t *testing.T, repo string, l porttest.Layout) {
+	t.Helper()
 	if len(l.Remotes) > 0 {
 		var refs strings.Builder
 		for _, tag := range l.Remotes {
@@ -342,14 +374,7 @@ func laidOut(t *testing.T, l porttest.Layout) (port.VCS, string) {
 			t.Fatalf("git update-ref --stdin: %s", out)
 		}
 	}
-	for _, dir := range []string{filepath.Join(repo, "sub"), filepath.Join(base, "outside")} {
-		if err := os.MkdirAll(dir, 0o755); err != nil {
-			t.Fatal(err)
-		}
-	}
-	copyWorktree(t, template, repo, filepath.Join(base, "wt"))
 	leave(t, repo, l)
-	return Git{Dir: repo}, repo
 }
 
 // git answers as the fake does.
