@@ -12,6 +12,7 @@ import (
 	"github.com/donvargax/itos/v8/internal/out"
 	"github.com/donvargax/itos/v8/internal/slices/followup/domain"
 	"github.com/donvargax/itos/v8/internal/store/private/port"
+	"github.com/donvargax/itos/v8/internal/value"
 	vcsport "github.com/donvargax/itos/v8/internal/vcs/port"
 )
 
@@ -198,6 +199,18 @@ func (h Handler) load(ctx context.Context, path string) (domain.File, error) {
 	text, ok, err := h.ports.Read(ctx, domain.FileName)
 	if err != nil || !ok {
 		return domain.File{}, err
+	}
+	return read(path, text)
+}
+
+// read is the threads' file's text as domain.Parse reads it, after it has
+// been through value.CheckWritten (bug 152): what value.Parse refuses and a
+// null key or null list item, which yaml/v3 skips when it decodes into
+// structs. The domain imports nothing of ours (ADR-0053), so the slice asks.
+// A second document keeps the domain's own words.
+func read(path string, text []byte) (domain.File, error) {
+	if err := value.CheckWritten(string(text)); err != nil && !errors.Is(err, value.ErrMultipleDocuments) {
+		return domain.File{}, &domain.Invalid{Err: fmt.Errorf("%s: %w", path, err)}
 	}
 	return domain.Parse(path, text)
 }

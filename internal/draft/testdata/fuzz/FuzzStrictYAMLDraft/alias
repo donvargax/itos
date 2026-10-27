@@ -1,0 +1,2 @@
+go test fuzz v1
+string("drafts:\n  - id: a\n    command: &c [work]\n  - id: b\n    command: *c\n")

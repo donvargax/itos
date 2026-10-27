@@ -1,0 +1,2 @@
+go test fuzz v1
+string("# The questions to the person the work is for, written by itos decision (itos help decision).\r\nquestions:\r\n  - id: q-1\r\n    item: T-001\r\n    question: \"Which way?\"\r\n    answer: \"This way.\"\r\n    decision: none\r\n  - id: q-2\r\n    item: p1-gone\r\n    question: \"Which other?\"\r\n")

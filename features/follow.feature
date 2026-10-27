@@ -163,7 +163,7 @@ Feature: itos followup, private threads with people
   # (domain.Invalid), the file left as it is. Before the fix it fails at
   # "itos exits with code 2": parse reads no threads, followup add opens
   # sync-ana, and the file is written whole without "~: 1", exit 0.
-  @ID-FOLLOW-16 @bug-152 @wip
+  @ID-FOLLOW-16 @bug-152
   Scenario: A threads file with a null key is refused, and left as it was
     Given the scratch file ".git/itos/follow-ups.yaml" contains exactly:
       """

@@ -1,0 +1,2 @@
+go test fuzz v1
+string("threads:\n  - {id: 017, with: 1_0, title: 1.50, status: open, notes: []}\n")

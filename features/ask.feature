@@ -327,7 +327,7 @@ Feature: itos decision, the decisions waiting on the person a repository's work 
   # "itos exits with code 2": parse reads q-1 alone, decision add appends
   # q-2, writes the file whole without the ~ entry and commits it as "docs:
   # ask q-2", exit 0.
-  @ID-ASK-43 @bug-152 @wip
+  @ID-ASK-43 @bug-152
   Scenario: A questions file with a key written twice under a null key is refused, and nothing is committed
     Given the committed file "tasks/asks.yaml" holding the lines:
       """

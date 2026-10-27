@@ -15,6 +15,7 @@ import (
 	"go.yaml.in/yaml/v3"
 
 	"github.com/donvargax/itos/v8/internal/kind"
+	"github.com/donvargax/itos/v8/internal/value"
 )
 
 // Folder is the drafts' folder in itos's folder of the git common dir.
@@ -118,7 +119,9 @@ func Copy(path, id, name string) string {
 // is not as itos writes it is an error naming it, kind.Usage (exit 2),
 // since saving what was read would drop the rest: an unknown key, a draft
 // with no id or two with one id, one that is neither a change with its
-// message and paths nor a command, a second YAML document, or none at all.
+// message and paths nor a command, a second YAML document, or none at all;
+// and what value.CheckWritten refuses (bug 152), which yaml.v3 skips: a key
+// written twice under a null key, a null key, a null list item.
 func Load(path string) (File, error) {
 	text, err := os.ReadFile(path)
 	if errors.Is(err, fs.ErrNotExist) {
@@ -132,6 +135,9 @@ func Load(path string) (File, error) {
 }
 
 func parse(path string, text []byte) (File, error) {
+	if err := value.CheckWritten(string(text)); err != nil && !errors.Is(err, value.ErrMultipleDocuments) {
+		return File{}, fmt.Errorf("%s: %w", path, err)
+	}
 	var f File
 	dec := yaml.NewDecoder(bytes.NewReader(text))
 	dec.KnownFields(true)
