@@ -48,6 +48,25 @@ func initializeProofSteps(sc *godog.ScenarioContext, w *world) {
 			"replacement": ">=",
 		}}})
 	})
+	sc.Step(`^the config's proof\.code covers "([^"]*)" and checks with a provider that finds line (\d+) of "([^"]*)" uncovered in "([^"]*)"$`,
+		func(paths string, line int, file, function string) error {
+			return w.proofProvider(paths, 1, map[string]any{"schema": 1, "ok": false, "problems": []map[string]any{{
+				"rule":     "mutation.uncovered-statement",
+				"message":  fmt.Sprintf("%s:%d in %s has an uncovered executable Go coverage block", file, line, function),
+				"fix":      "add a test that runs " + function,
+				"file":     file,
+				"line":     line,
+				"function": function,
+			}}})
+		})
+	sc.Step(`^the config's proof\.code covers "([^"]*)" and checks with a provider that refuses with the problems:$`,
+		func(paths string, problems *godog.DocString) error {
+			var found []any
+			if err := json.Unmarshal([]byte(problems.Content), &found); err != nil {
+				return fmt.Errorf("the problems are no JSON array: %w", err)
+			}
+			return w.proofProvider(paths, 1, map[string]any{"schema": 1, "ok": false, "problems": found})
+		})
 	sc.Step(`^the config's proof\.code covers "([^"]*)" and checks with a command that does not exist$`, func(paths string) error {
 		w.config.proof = &proofConfig{paths: []string{paths}, check: "itos-no-such-provider mutation check --since {base} --fail-uncovered --json"}
 		return w.proveCode()

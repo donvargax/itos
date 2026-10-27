@@ -11,6 +11,8 @@ package features
 
 import (
 	"bytes"
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -133,6 +135,9 @@ func initializeProofSummarySteps(sc *godog.ScenarioContext, w *world) {
 
 	sc.Step(`^(stdout|stderr) contains the complete line "([^"]*)" exactly once$`, func(stream, line string) error {
 		return w.lineOnce(stream, line)
+	})
+	sc.Step(`^(stdout|stderr) has exactly (\d+) lines? starting with "([^"]*)"$`, func(stream string, n int, prefix string) error {
+		return w.linesStarting(stream, n, prefix)
 	})
 	sc.Step(`^that summary line follows the proof command and precedes "CI passed"$`, w.summaryBetweenCommandAndPassed)
 	sc.Step(`^the summary line contains neither "([^"]*)" nor "([^"]*)" nor "([^"]*)" nor "([^"]*)"$`, func(a, b, c, d string) error {
@@ -619,6 +624,35 @@ func (w *world) planHasProofOnce() error {
 	}
 	if before < 0 || proof <= before || tests <= proof {
 		return fmt.Errorf("the steps before (%d), the proof (%d) and the tests (%d) are not in that order: %s", before, proof, tests, r["order"])
+	}
+	return nil
+}
+
+// quotedStream is a stream between "::stop-commands::<token>" and "::<token>::",
+// the token random, each on a line of its own: GitHub Actions reads no workflow
+// command between them.
+func quotedStream(text string) string {
+	raw := make([]byte, 16)
+	if _, err := rand.Read(raw); err != nil {
+		panic(err)
+	}
+	token := hex.EncodeToString(raw)
+	if text != "" && !strings.HasSuffix(text, "\n") {
+		text += "\n"
+	}
+	return "::stop-commands::" + token + "\n" + text + "::" + token + "::\n"
+}
+
+// The stream has exactly n lines that start with the prefix.
+func (w *world) linesStarting(stream string, n int, prefix string) error {
+	count := 0
+	for _, l := range w.streamLines(stream) {
+		if strings.HasPrefix(l, prefix) {
+			count++
+		}
+	}
+	if count != n {
+		return fmt.Errorf("%s has %d lines starting with %q, not %d\n%s", stream, count, prefix, n, w.report())
 	}
 	return nil
 }
