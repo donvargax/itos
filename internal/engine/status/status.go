@@ -2,6 +2,7 @@ package status
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"strings"
@@ -50,6 +51,10 @@ var newestItosTimeout = 5 * time.Second
 // head, before reading it as last fetched.
 var lsRemoteTimeout = 20 * time.Second
 
+// fetchTimeout is how long the status waits for the fetch of the branch it
+// reads, before reading what it has.
+var fetchTimeout = 20 * time.Second
+
 // In is what the status reads beside the config: Identity, who the session
 // works for when --as does not say and the people cannot (work.Whoami);
 // Stderr, where it is said when that is not among the people; Git, the
@@ -82,6 +87,10 @@ type Standing struct {
 	// nightly, it has no run yet, or it cannot be read.
 	Nightly *providers.Run `json:"nightly"`
 	Release *Release       `json:"release"`
+	// Behind is how many commits of the head HEAD lacks, after a fetch that
+	// worked; nil when none did, the head is not read, or they cannot be
+	// counted.
+	Behind *int `json:"behind,omitempty"`
 	// Unreleased are the headers of the commits since the release the next
 	// one would carry, oldest first; nil when there is no release or they
 	// cannot be listed.
@@ -103,6 +112,7 @@ type Standing struct {
 	unowned  map[any]bool  // the next items nobody owns
 	drafts   []draft.Draft // the drafts waiting, as the list prints them
 	start    []string      // the lines of the head and CI, in order
+	pull     string        // the line telling to pull before reading the work, when HEAD is behind
 	released []string      // the lines of the release section, in order
 }
 
@@ -272,18 +282,19 @@ func (st *Standing) readBranch(ctx context.Context, cfg *config.Loaded, remote, 
 	}
 	head := &Head{Remote: remote, Branch: branch}
 	sha, reached := lsRemote(ctx, cfg.VCS, remote, ref)
-	switch {
-	case reached && sha == "":
+	if reached && sha == "" {
 		st.unread(fmt.Sprintf("%s has no branch %s yet, so there is no CI run to read.", remote, branch))
 		return
-	case !reached:
-		fetched, err := cfg.VCS.Resolve(ctx, "refs/remotes/"+remote+"/"+branch)
+	}
+	fetched := !cfg.Stealth && st.fetch(ctx, cfg.VCS, remote, ref, branch)
+	if !reached {
+		tracked, err := cfg.VCS.Resolve(ctx, "refs/remotes/"+remote+"/"+branch)
 		if err != nil {
 			st.unread(fmt.Sprintf("%s cannot be reached and %s/%s was never fetched, so neither its head nor its CI run is read.",
 				remote, remote, branch))
 			return
 		}
-		sha = fetched
+		sha = tracked
 		head.LastFetched = true
 		st.unread(fmt.Sprintf("%s cannot be reached, so its %s is as last fetched.", remote, branch))
 	}
@@ -309,7 +320,70 @@ func (st *Standing) readBranch(ctx context.Context, cfg *config.Loaded, remote, 
 	if st.CI != nil && st.CI.Result != "success" {
 		st.readLastGreen(ctx, cfg, remote, branch, in)
 	}
+	if fetched {
+		st.readBehind(ctx, cfg.VCS, remote, ref, branch, sha)
+	}
 	st.readRelease(ctx, in.Git, remote, branch, head)
+}
+
+// fetch fetches the one remote branch the status reads into its
+// remote-tracking ref, quietly, never prompting for credentials, within
+// fetchTimeout, and from a detached HEAD (ref HEAD) the remote's own
+// refspecs; it is whether that worked, a fetch that failed said in a line
+// naming why.
+func (st *Standing) fetch(ctx context.Context, v vcsport.VCS, remote, ref, branch string) bool {
+	ctx, cancel := context.WithTimeout(ctx, fetchTimeout)
+	defer cancel()
+	refspec := ""
+	if ref != "HEAD" {
+		refspec = "+" + ref + ":refs/remotes/" + remote + "/" + branch
+	}
+	_, err := v.Fetch(ctx, remote, refspec, vcsport.Talk{NoPrompt: true})
+	if err == nil {
+		return true
+	}
+	st.unread(fmt.Sprintf("%s/%s cannot be fetched: %s", remote, branch, whyNot(ctx, err)))
+	return false
+}
+
+// whyNot is why a fetch failed: git's first line as git writes it, or that
+// there was no answer within the time.
+func whyNot(ctx context.Context, err error) string {
+	if ctx.Err() != nil {
+		return fmt.Sprintf("no answer within %d s", int(fetchTimeout/time.Second))
+	}
+	words := err.Error()
+	var failed *vcsport.Failed
+	if errors.As(err, &failed) && strings.TrimSpace(failed.Words) != "" {
+		words = failed.Words
+	}
+	first, _, _ := strings.Cut(strings.TrimSpace(words), "\n")
+	return strings.TrimSpace(first)
+}
+
+// readBehind counts the commits of the head that HEAD lacks, the items
+// being read from the working tree, which the fetch did not move; the line
+// telling to pull is set when there are any, a detached HEAD, where git
+// refuses a pull, told to switch to a branch first.
+func (st *Standing) readBehind(ctx context.Context, v vcsport.VCS, remote, ref, branch, head string) {
+	commits, err := v.Commits(ctx, vcsport.Range{From: "HEAD", To: head})
+	if err != nil {
+		return
+	}
+	behind := len(commits)
+	st.Behind = &behind
+	if behind == 0 {
+		return
+	}
+	count := fmt.Sprintf("%d commits", behind)
+	if behind == 1 {
+		count = "1 commit"
+	}
+	if ref == "HEAD" {
+		st.pull = fmt.Sprintf("HEAD is %s behind %s/%s: switch to a branch and pull before reading the work below.", count, remote, branch)
+		return
+	}
+	st.pull = fmt.Sprintf("%s is %s behind %s/%s: git pull before reading the work below.", v.Branch(ctx), count, remote, branch)
 }
 
 // hasRemote is whether the repository has the remote.
@@ -637,8 +711,11 @@ func (st *Standing) Fields() []out.Field {
 	if st.Every {
 		fields = append(fields, out.Field{Key: "every_item", Value: true})
 	}
+	fields = append(fields, out.Field{Key: "head", Value: st.Head})
+	if st.Behind != nil {
+		fields = append(fields, out.Field{Key: "behind", Value: *st.Behind})
+	}
 	return append(fields, []out.Field{
-		{Key: "head", Value: st.Head},
 		{Key: "ci", Value: st.CI},
 		{Key: "last_green", Value: st.LastGreen},
 		{Key: "nightly", Value: st.Nightly},
@@ -694,6 +771,9 @@ func (st *Standing) Print(w io.Writer) {
 		return s
 	}
 	fmt.Fprintln(w)
+	if st.pull != "" {
+		fmt.Fprintf(w, "%s\n\n", st.pull)
+	}
 	if st.Person == nil && !st.Every {
 		fmt.Fprintln(w, "Working for nobody: only the unowned items are listed.")
 	} else if len(st.Doing) == 0 {

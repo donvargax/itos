@@ -92,15 +92,13 @@ Feature: itos status, where the work stands
     And its output says "no release yet"
     And its output says "slice-9"
 
-  # Slice 196 fetches the head first, so this setup no longer leaves it
-  # unfetched: the fix that turns slice 196's scenarios live gives this one
-  # the Given of ID-STATUS-32, a fetch that fails while the remote still
-  # answers, and names it in Changes: (a fix, so no BREAKING-CHANGE).
+  # Slice 196 fetches the head first, so the head is left unfetched here by
+  # a remote that cannot send its commit, as ID-STATUS-32 does.
   @ID-STATUS-08 @slice-70
   Scenario: Where the remote's head is not fetched here, status says its unreleased commits may be behind
     Given the watched run's jobs "ci" and "platform" succeed
     And the remote's head is tagged "v1.2.0"
-    And the remote has gained the commit "feat: add the archive" touching "a.txt"
+    And the remote's main has gained a commit whose objects the remote cannot send
     When itos runs "status --as someone"
     Then itos exits with code 0
     And its output says "v1.2.0"
@@ -147,7 +145,7 @@ Feature: itos status, where the work stands
   # pass after the fetch for the wrong reason (unreleased: [] is a subset of
   # any list), so its setup becomes the remote that cannot send its commit,
   # as ID-STATUS-32's; and status --help's --json shape gains "behind".
-  @ID-STATUS-28 @wip @slice-196
+  @ID-STATUS-28 @slice-196
   Scenario: status fetches the remote branch first and names its new head, quietly
     Given the watched run's jobs "ci" and "platform" succeed
     And the remote has gained the commit "feat: add the archive" touching "a.txt"
@@ -157,7 +155,7 @@ Feature: itos status, where the work stands
     And its output does not say "not fetched here"
     And its output does not say "-> origin/main"
 
-  @ID-STATUS-29 @wip @slice-196
+  @ID-STATUS-29 @slice-196
   Scenario: status lists the unreleased commits the fetch brought, and says nothing of them being behind
     Given the watched run's jobs "ci" and "platform" succeed
     And the remote's head is tagged "v1.2.0"
@@ -168,7 +166,7 @@ Feature: itos status, where the work stands
     And its output does not say "may be behind"
     And the repository has no ref "refs/tags/v1.2.0"
 
-  @ID-STATUS-30 @wip @slice-196
+  @ID-STATUS-30 @slice-196
   Scenario: itos go's status fetches the remote branch first
     Given the watched run's jobs "ci" and "platform" succeed
     And the remote has gained the commit "feat: add the archive" touching "a.txt"
@@ -181,7 +179,7 @@ Feature: itos status, where the work stands
   # fetch does: the head is as last fetched, as today, beside the new line.
   # The reason is on status's own line, and git's second line, which only
   # its leaked stderr or a reason of more than one line would carry, is not.
-  @ID-STATUS-31 @wip @slice-196
+  @ID-STATUS-31 @slice-196
   Scenario: A fetch that fails is said in a line with git's reason, and status reads what it has
     Given the watched run's jobs "ci" and "platform" succeed
     And the work registry has the item "slice-9" owned by "someone" with the status "doing"
@@ -198,7 +196,7 @@ Feature: itos status, where the work stands
   # upload-pack fails while ls-remote answers), the case of a fetch cut off
   # by its time while the ls-remote is quick: the head line keeps today's
   # "(not fetched here)".
-  @ID-STATUS-32 @wip @slice-196
+  @ID-STATUS-32 @slice-196
   Scenario: Where the fetch fails and the remote still answers, status names the head as not fetched here
     Given the watched run's jobs "ci" and "platform" succeed
     And the remote's head is tagged "v1.2.0"
@@ -211,7 +209,7 @@ Feature: itos status, where the work stands
 
   # Holds before the work: it keeps a fetch, or its failure's line, out of a
   # clone with no remote.
-  @ID-STATUS-33 @wip @slice-196 @guard
+  @ID-STATUS-33 @slice-196 @guard
   Scenario: With no remote, status fetches nothing and says so as before
     Given the watched run's jobs "ci" and "platform" succeed
     And the clone has no remote
@@ -222,7 +220,7 @@ Feature: itos status, where the work stands
 
   # Holds before the work: a stealth config leaves the project's clone as it
   # found it, its remote-tracking refs included.
-  @ID-STATUS-34 @wip @slice-196 @guard
+  @ID-STATUS-34 @slice-196 @guard
   Scenario: Under a stealth config, status fetches nothing
     Given itos's config is kept in the git folder
     And the remote has gained the commit "feat: add the archive" touching "a.txt"
@@ -231,7 +229,7 @@ Feature: itos status, where the work stands
     And its output says "(not fetched here)"
     And its output does not say "feat: add the archive"
 
-  @ID-STATUS-35 @wip @slice-196
+  @ID-STATUS-35 @slice-196
   Scenario: With --json, a fetch that fails is one of the lines unread
     Given the watched run's jobs "ci" and "platform" succeed
     And the remote cannot be reached
@@ -242,7 +240,7 @@ Feature: itos status, where the work stands
 
   # The Background's clone tracks the remote's main and has not pulled the
   # commit the remote gained.
-  @ID-STATUS-36 @wip @slice-196
+  @ID-STATUS-36 @slice-196
   Scenario: A clone behind the remote branch it fetched is told to pull before reading the work
     Given the watched run's jobs "ci" and "platform" succeed
     And the work registry has the item "slice-9" owned by "someone" with the status "doing"
@@ -251,7 +249,7 @@ Feature: itos status, where the work stands
     Then itos exits with code 0
     And its output says "main is 1 commit behind origin/main: git pull" before "slice-9"
 
-  @ID-STATUS-37 @wip @slice-196
+  @ID-STATUS-37 @slice-196
   Scenario: With --json, status gives how many commits the clone is behind the remote branch it fetched
     Given the watched run's jobs "ci" and "platform" succeed
     And the remote has gained the commit "feat: add the archive" touching "a.txt"
@@ -260,7 +258,7 @@ Feature: itos status, where the work stands
     And the output's JSON field "behind" is "1"
 
   # Holds before the work: it keeps the line from being printed always.
-  @ID-STATUS-38 @wip @slice-196 @guard
+  @ID-STATUS-38 @slice-196 @guard
   Scenario: A clone up to date with the remote branch it fetched is told nothing of pulling
     Given the watched run's jobs "ci" and "platform" succeed
     When itos runs "status --as someone"
@@ -268,7 +266,7 @@ Feature: itos status, where the work stands
     And its output does not say "behind origin/main"
     And its output does not say "git pull"
 
-  @ID-STATUS-39 @wip @slice-196
+  @ID-STATUS-39 @slice-196
   Scenario: With --json, a clone up to date with the remote branch it fetched is 0 commits behind
     Given the watched run's jobs "ci" and "platform" succeed
     When itos runs "status --as someone --json"
@@ -277,7 +275,7 @@ Feature: itos status, where the work stands
 
   # One ref, not the remote's every branch: ci watch's quiet fetch would
   # also bring the remote's other branch.
-  @ID-STATUS-40 @wip @slice-196
+  @ID-STATUS-40 @slice-196
   Scenario: status fetches the branch it reads and no other
     Given the watched run's jobs "ci" and "platform" succeed
     And the remote has gained the branch "other" with the commit "feat: elsewhere" touching "o.txt"
@@ -289,7 +287,7 @@ Feature: itos status, where the work stands
 
   # From a detached HEAD status reads origin's HEAD, the remote's main here,
   # and fetches with the remote's own refspecs.
-  @ID-STATUS-41 @wip @slice-196
+  @ID-STATUS-41 @slice-196
   Scenario: From a detached HEAD, status fetches and says how far HEAD is behind
     Given the watched run's jobs "ci" and "platform" succeed
     And the clone's HEAD is detached at its commit
@@ -302,7 +300,7 @@ Feature: itos status, where the work stands
 
   # Holds before the work: ls-remote, asked first, finds no such branch, so
   # nothing is fetched and no failure is said beside today's line.
-  @ID-STATUS-42 @wip @slice-196 @guard
+  @ID-STATUS-42 @slice-196 @guard
   Scenario: On a branch the remote lacks, status fetches nothing and says no fetch failed
     Given the watched run's jobs "ci" and "platform" succeed
     And the clone is on the new branch "topic", which the remote does not have

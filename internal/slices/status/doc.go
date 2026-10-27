@@ -16,8 +16,9 @@
 // repository for the release, the rules and the drafts' file, the
 // providers' setup, the questions read through the config's tracker
 // (ask.Load) and the drafts from the git common dir (draft.Path), none
-// outside a repository, called once each in that order. It reads, never
-// writes. What cannot be reached is one line naming it, and the rest still
+// outside a repository, called once each in that order. It reads, and
+// writes nothing but the remote-tracking ref of the one branch it fetches
+// first. What cannot be reached is one line naming it, and the rest still
 // prints, exit 0; a registry that is not there or not sound is its
 // problems, exit 1, --as not among the people exit 3, and a config that
 // cannot be read an error. itos go prints it after its guides (Standing),

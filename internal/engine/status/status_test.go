@@ -388,10 +388,17 @@ func TestOfDetachedReadsOriginsHead(t *testing.T) {
 }
 
 // failing is the fake VCS but where it is told to fail: listing the
-// remote's tags (all its refs), the tags as fetched, or the log.
+// remote's tags (all its refs), the tags as fetched, the log or the fetch.
 type failing struct {
 	*vcsfake.VCS
-	tags, refs, log bool
+	tags, refs, log, fetch bool
+}
+
+func (f failing) Fetch(ctx context.Context, remote, refspec string, talk vcsport.Talk) (string, error) {
+	if f.fetch {
+		return "", &vcsport.Failed{Command: "git fetch " + remote, Code: 128, Words: "fatal: boom\nsecond line\n"}
+	}
+	return f.VCS.Fetch(ctx, remote, refspec, talk)
 }
 
 func (f failing) RemoteRefs(ctx context.Context, remote string, refs []string, talk vcsport.Talk) (map[string]string, error) {
@@ -415,6 +422,9 @@ func (f failing) Log(ctx context.Context, r vcsport.Range) ([]vcsport.Entry, err
 	return f.VCS.Log(ctx, r)
 }
 
+// unreachable is the line of a fetch from the world's remote when it is down.
+const unreachable = "origin/main cannot be fetched: fatal: unable to access 'https://github.com/o/n.git': Could not resolve host"
+
 // readBranch's lines and the release section's, each case's world changed
 // from world(), ci.watch's provider none.
 func TestReadBranch(t *testing.T) {
@@ -429,19 +439,28 @@ func TestReadBranch(t *testing.T) {
 		{"no branch yet", func(v *vcsfake.VCS) vcsport.VCS { delete(v.Remote["origin"].Refs, "refs/heads/main"); return v },
 			[]string{"origin has no branch main yet, so there is no CI run to read."}, nil},
 		{"unreached, as fetched", func(v *vcsfake.VCS) vcsport.VCS { v.Remote["origin"].Down = true; return v },
-			[]string{"origin cannot be reached, so its main is as last fetched.", "origin/main: 3333333 chore: three",
+			[]string{unreachable, "origin cannot be reached, so its main is as last fetched.", "origin/main: 3333333 chore: three",
 				"CI is not read: ci.watch.provider is none."},
 			[]string{"Newest release: v1.0.0 (as last fetched)", "Unreleased since v1.0.0, oldest first:", "  fix: two"}},
 		{"unreached, never fetched", func(v *vcsfake.VCS) vcsport.VCS {
 			v.Remote["origin"].Down = true
 			delete(v.Named, "refs/remotes/origin/main")
 			return v
-		}, []string{"origin cannot be reached and origin/main was never fetched, so neither its head nor its CI run is read."}, nil},
-		{"the head not fetched here", func(v *vcsfake.VCS) vcsport.VCS { v.Remote["origin"].Refs["refs/heads/main"] = c4; return v },
-			[]string{"origin/main: 4444444 (not fetched here)", "CI is not read: ci.watch.provider is none."},
+		}, []string{unreachable, "origin cannot be reached and origin/main was never fetched, so neither its head nor its CI run is read."}, nil},
+		{"the head not fetched here", func(v *vcsfake.VCS) vcsport.VCS {
+			v.Remote["origin"].Refs["refs/heads/main"] = c4
+			return failing{VCS: v, fetch: true}
+		},
+			[]string{"origin/main cannot be fetched: fatal: boom", "origin/main: 4444444 (not fetched here)",
+				"CI is not read: ci.watch.provider is none."},
 			[]string{"Newest release: v1.0.0",
 				"origin/main is not fetched here up to its head, so the commits since v1.0.0 may be behind.",
 				"Unreleased since v1.0.0, as fetched here, oldest first:", "  fix: two"}},
+		{"the head fetched, its commit not in the log", func(v *vcsfake.VCS) vcsport.VCS {
+			v.Remote["origin"].Refs["refs/heads/main"] = c4
+			return v
+		}, []string{"origin/main: 4444444 (not fetched here)", "CI is not read: ci.watch.provider is none."},
+			[]string{"Newest release: v1.0.0", "origin/main is not fetched here, so the commits since v1.0.0 are not listed."}},
 		{"nothing fetched here", func(v *vcsfake.VCS) vcsport.VCS {
 			v.Remote["origin"].Refs["refs/heads/main"] = c4
 			delete(v.Named, "refs/remotes/origin/main")
@@ -492,7 +511,7 @@ func TestReadBranchAsLastFetched(t *testing.T) {
 	st := &Standing{}
 	st.readBranch(t.Context(), cfg, "origin", "refs/heads/main", "main", inOf(v, nil))
 	if h := st.Head; h == nil || *h != (Head{Remote: "origin", Branch: "main", Commit: c3, Header: "chore: three", LastFetched: true}) ||
-		st.Release == nil || !st.Release.LastFetched || len(st.Unread) != 2 {
+		st.Release == nil || !st.Release.LastFetched || len(st.Unread) != 3 {
 		t.Errorf("last fetched: head %+v, release %+v, unread %q", st.Head, st.Release, st.Unread)
 	}
 }
