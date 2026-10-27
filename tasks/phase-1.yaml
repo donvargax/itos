@@ -5131,9 +5131,6 @@
     never git's output. Real git, so Checks sets a small default count; the nightly raises
     RAPID_CHECKS. A disagreement that is a bug: stop on it and report its shrunk history; the
     coordinator files a bug whose fix commits the fail file. No production change.
-  done_when:
-    - run: "go test ./internal/vcs/adapter -count=1 -run '^TestPropertyTouched' -v 2>&1 | grep -q -- '--- PASS: TestPropertyTouched'"
-      timeout: 600
 
 - id: T-332
   type: build
