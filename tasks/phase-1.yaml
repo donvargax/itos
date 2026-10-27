@@ -4882,8 +4882,6 @@
     t.Parallel where safe) or move the slow ones to their own shard; never drop a test or take one
     off Windows, never raise a timeout. Acceptance: a PR run's Windows unit tests step, from that
     job's log, with internal/vcs/adapter under 60 s.
-  done_when:
-    - run: "true"
 
 - id: T-318
   type: test
