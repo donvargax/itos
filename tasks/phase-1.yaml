@@ -4963,5 +4963,3 @@
     auto gc off (git config maintenance.auto false and gc.auto 0 in the template, or -c on the
     commands that build it), and make copyTree skip *.lock files and entries that vanish between the
     walk and the copy (fs.ErrNotExist). Never weaken an assertion.
-  done_when:
-    - run: "true"
