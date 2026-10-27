@@ -15363,7 +15363,7 @@ items:
       command line, so an argument such as --reply 'it's fixed' breaks the scenario; the drafter
       reworded the text. Either shellWords takes a double-quoted argument with an apostrophe (and
       the README says how), or a step passes one argument from a doc string.
-    tags: [tests]
+    tags: [tests, v8]
 
   - id: p1-ready-review-for-head
     title: push --ready counts a review-state comment only for the pull request's head
