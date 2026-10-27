@@ -15016,8 +15016,8 @@ items:
   - id: T-327
     title: itos commit's reading of git commit's message arguments is checked against git, over every short combination
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
 
