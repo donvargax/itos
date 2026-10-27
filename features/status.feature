@@ -93,9 +93,9 @@ Feature: itos status, where the work stands
     And its output says "slice-9"
 
   # Slice 196 fetches the head first, so this setup no longer leaves it
-  # unfetched: the feat that turns slice 196's scenarios live gives this one
+  # unfetched: the fix that turns slice 196's scenarios live gives this one
   # the Given of ID-STATUS-32, a fetch that fails while the remote still
-  # answers, and names it in Changes:.
+  # answers, and names it in Changes: (a fix, so no BREAKING-CHANGE).
   @ID-STATUS-08 @slice-70
   Scenario: Where the remote's head is not fetched here, status says its unreleased commits may be behind
     Given the watched run's jobs "ci" and "platform" succeed
@@ -125,10 +125,17 @@ Feature: itos status, where the work stands
   # and no fetch; a stealth config fetches nothing either, as it writes
   # nothing in the project's clone, and reads as today. No flag skips the
   # fetch: every scenario's remote is a local scratch one, so none needs one.
-  # --json gains no field: the head and release read as fetched, and the
-  # fetch's line is one of "unread". status still reads the items from the
-  # working tree, which the fetch does not move. The help's "never writes or
-  # fetches" says it fetches that one ref.
+  # The head and release read as fetched, and the fetch's line is one of
+  # --json's "unread". The items are read from the working tree, which the
+  # fetch does not move, so after a fetch that worked status counts the
+  # commits of the fetched remote branch HEAD lacks and, when there are
+  # any, says "<branch> is <n> commit(s) behind <remote>/<branch>: git pull
+  # before reading the work below." ("HEAD is" from a detached HEAD) before
+  # the items; --json gains "behind", that count, 0 when not behind and
+  # absent when no fetch worked. The help's "never writes or fetches" says
+  # it fetches that one ref. It lands as a fix, not a feat: a status naming
+  # a stale head the coordinator then acts on is the defect; the fix names
+  # ID-STATUS-08 in Changes:, no BREAKING-CHANGE.
   @ID-STATUS-28 @wip @slice-196
   Scenario: status fetches the remote branch first and names its new head, quietly
     Given the watched run's jobs "ci" and "platform" succeed
@@ -217,6 +224,35 @@ Feature: itos status, where the work stands
     When itos runs "status --as someone --json"
     Then itos exits with code 0
     And its output says "origin/main cannot be fetched"
+    And its JSON has no "behind"
+
+  # The Background's clone tracks the remote's main and has not pulled the
+  # commit the remote gained.
+  @ID-STATUS-36 @wip @slice-196
+  Scenario: A clone behind the remote branch it fetched is told to pull before reading the work
+    Given the watched run's jobs "ci" and "platform" succeed
+    And the work registry has the item "slice-9" owned by "someone" with the status "doing"
+    And the remote has gained the commit "feat: add the archive" touching "a.txt"
+    When itos runs "status --as someone"
+    Then itos exits with code 0
+    And its output says "main is 1 commit behind origin/main: git pull" before "slice-9"
+
+  @ID-STATUS-37 @wip @slice-196
+  Scenario: With --json, status gives how many commits the clone is behind the remote branch it fetched
+    Given the watched run's jobs "ci" and "platform" succeed
+    And the remote has gained the commit "feat: add the archive" touching "a.txt"
+    When itos runs "status --as someone --json"
+    Then itos exits with code 0
+    And the output's JSON field "behind" is "1"
+
+  # Holds before the work: it keeps the line from being printed always.
+  @ID-STATUS-38 @wip @slice-196
+  Scenario: A clone up to date with the remote branch it fetched is told nothing of pulling
+    Given the watched run's jobs "ci" and "platform" succeed
+    When itos runs "status --as someone"
+    Then itos exits with code 0
+    And its output does not say "behind origin/main"
+    And its output does not say "git pull"
 
   # A red nightly is a coordinator's first item, yet status read only the
   # head's own run, so a session found the nightly red by hand (2026-10-04,
