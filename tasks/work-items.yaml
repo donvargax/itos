@@ -15311,19 +15311,9 @@ items:
     title: This repository's CI steps emit their failures as annotations, so a red job says what failed without its log
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: slice
-    why: >
-      Was p1-ci-steps-annotate-failures.
-      Found 2026-10-27 specifying slice-197 (#212): slice-197 falls back to a failed job's check-run
-      annotations when the job log's host is refused, but no step of ci.yml emits any: itos ci run's
-      'CI failed at' lines, go test failures (no problem matcher; .github/actions/go-toolchain
-      replaces setup-go) and itos-cc's push-proof problem lines (mutation.uncovered-statement,
-      slice-191's case) print to the log alone, so the fallback can only show GitHub's 'Process
-      completed with exit code N.'. Wanted: itos ci run prints ::error file=,line=:: for each failed
-      check and proof problem under GITHUB_ACTIONS, and a go test problem matcher (or the test
-      runner's own ::error lines); itos-cc's side, if needed, is an issue on its repository.
     tags: [ci, v8]
 
   - id: slice-199
