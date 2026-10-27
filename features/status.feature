@@ -416,38 +416,46 @@ Feature: itos status, where the work stands
   # done, so the coordinator looked them up by hand. Under push.mode pr
   # only, an item's work reaches main through the pull request of the branch
   # named for it, so status asks gh once, whatever the number of items in
-  # progress, and only when there is one: gh pr list --repo <repository>
-  # --state all --json number,headRefName,state,mergedAt --limit 100, the
-  # repository named as work done names it (ci.range.github's
-  # repository_env variable, else the remote's URL), with no --head and no
-  # --search: its newest hundred pull requests, one page of GitHub's,
-  # filtered to the branches of the items in progress. A branch's pull
-  # requests rank as work done ranks them (slice 176): an open one first,
-  # then a merged one (mergedAt set), the first gh lists of a kind its
-  # newest. An item whose branch has a merged pull request and no open one
+  # progress, and only when there is one: gh api graphql, a query of
+  # repository(owner, name), the repository named as work done names it
+  # (ci.range.github's repository_env variable, else the remote's URL), with
+  # an alias per branch of an item in progress, each
+  # pullRequests(headRefName: <branch>, states: [OPEN, MERGED], first: 20,
+  # orderBy: {field: CREATED_AT, direction: DESC}) { nodes { number state
+  # mergedAt } }: work done's --head filter, exact, with no window of the
+  # newest pull requests, which a close forgotten for days would fall out
+  # of (gh pr list --search's head: is a prefix match, and indexed late).
+  # A branch's pull requests rank as work done ranks them (slice 176): an
+  # open one first, then a merged one (mergedAt set), the newest of a kind
+  # first. An item whose branch has a merged pull request and no open one
   # gets, at the end of its line, "merged (#<n>): itos work done <id>", the
   # number that pull request's; with an open one, closed unmerged ones
   # alone, or none, its line is as today, since work done would refuse it.
+  # Only the lines of items in progress are marked, never those under Next.
   # --json gains, on each "doing" entry so marked, "merged_pull_request":
-  # <n>, absent on the others. A pull request older than the newest hundred
-  # is not seen, and its item's line is as today: the mark is a hint, the
-  # judgement stays work done's.
+  # <n>, absent on the others. The mark is a hint; the judgement stays work
+  # done's.
   # Under trunk (or no push.mode), under a stealth config, with nothing in
   # progress, or with no GitHub repository to name, gh is not asked; with
-  # no gh on the PATH, status prints as today and says nothing of it. A gh
-  # that is there and fails (signed out, offline), or answers no list of
-  # pull requests, adds one line to what is printed and to --json's
+  # no gh on the PATH, status prints as today and says nothing of it. The
+  # call gets 5 s (providers' GhTimeout, as identity's gh since bug 46),
+  # since status runs at every itos go. A gh that is there and fails
+  # (signed out, offline), answers nothing the query asked, or gives no
+  # answer in time adds one line to what is printed and to --json's
   # "unread", in the words of the other parts that cannot be read: "The pull
-  # requests cannot be read: gh pr list failed: " and gh's reason as work
-  # done gives it (or "its answer is not a list of pull requests: ..."),
-  # and the rest prints, exit 0. It lands as a feat: no scenario of the last
-  # release changes. For the implementer, beyond the scenarios: the
-  # recording gh (pushmode_test.go) answers pr list only for a --head
-  # branch, so it gains, for a pr list with no --head, every pull request
-  # of the --state, each entry giving its branch as headRefName; status
-  # --help and its --json shape name the mark and the key.
+  # requests cannot be read: gh api graphql failed: " and gh's reason as
+  # work done gives it, or "The pull requests cannot be read: gh gave no
+  # answer within 5 s."; the rest prints, exit 0. It lands as a feat: no
+  # scenario of the last release changes. For the implementer, beyond the
+  # scenarios: the recording gh (pushmode_test.go) answers every api
+  # graphql with the review shape today, so it gains an answer to this
+  # aliased query, from its pull-requests file: under each alias, the OPEN
+  # and MERGED pull requests of the branch its headRefName names, the last
+  # given first, each with number, state and mergedAt; status --help and its
+  # --json shape name the mark and the key.
   #
-  # Two items merged, so the one call is pinned: one pr list, none per item.
+  # Two items merged, so the one call is pinned: one api graphql, none per
+  # item, and no pr list.
   @ID-STATUS-43 @wip @slice-199
   Scenario: Under pr, status marks each item in progress whose pull request has merged with the work done that closes it, asking gh once
     Given the watched run's jobs "ci" and "platform" succeed
@@ -465,10 +473,11 @@ Feature: itos status, where the work stands
     Then itos exits with code 0
     And its output says "slice-8  merged (#6): itos work done slice-8"
     And its output says "slice-9  merged (#7): itos work done slice-9"
-    And the recording gh was called once as "pr list"
-    And the recording gh's "pr list" call has "--state all"
-    And the recording gh's "pr list" call does not have "--head"
-    And every call of the recording gh has "--repo owner/scratch"
+    And the recording gh was called once as "api graphql"
+    And the recording gh was never called as "pr list"
+    And the recording gh's "api graphql" call has "scratch"
+    And the recording gh's "api graphql" call has "slice-8"
+    And the recording gh's "api graphql" call has "slice-9"
 
   # The merged slice-9 makes the call, so slice-8's plain line is not that
   # of a gh never asked.
@@ -507,6 +516,47 @@ Feature: itos status, where the work stands
     Then itos exits with code 0
     And its output says "merged (#7): itos work done slice-9"
     And its output does not say "itos work done slice-8"
+
+  # A pull request closed without merging is neither open nor merged: work
+  # done refuses it (work-done-pr-closed), so status names no work done.
+  @ID-STATUS-52 @wip @slice-199
+  Scenario: Under pr, status does not mark an item in progress whose only pull request was closed without merging
+    Given the watched run's jobs "ci" and "platform" succeed
+    And the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+      """
+    And the work registry has the item "slice-7" owned by "someone" with the status "doing"
+    And the work registry has the item "slice-9" owned by "someone" with the status "doing"
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the recording gh has the pull request "https://github.example/o/r/pull/5" closed without merging for the branch "slice-7"
+    And the recording gh has the pull request "https://github.example/o/r/pull/7" merged for the branch "slice-9"
+    When itos runs "status --as someone"
+    Then itos exits with code 0
+    And its output says "merged (#7): itos work done slice-9"
+    And its output does not say "itos work done slice-7"
+    And its output does not say "(#5)"
+
+  # Holds before the work: slice-9 waits under Next, not in progress, so
+  # nothing is in progress, gh is not asked, and no line under Next is
+  # marked.
+  @ID-STATUS-53 @wip @slice-199 @guard
+  Scenario: Under pr, with nothing in progress, status asks gh nothing and marks no item under Next
+    Given the watched run's jobs "ci" and "platform" succeed
+    And the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+      """
+    And the work registry has the item "slice-9" owned by "someone" with the status "todo"
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the recording gh has the pull request "https://github.example/o/r/pull/7" merged for the branch "slice-9"
+    When itos runs "status --as someone"
+    Then itos exits with code 0
+    And its output says "slice-9"
+    And its output does not say "merged (#7)"
+    And the recording gh was never called
 
   # An item whose earlier work merged and whose more work is in an open pull
   # request is refused by work done (ID-PRDONE-02), so status names no work
@@ -592,9 +642,26 @@ Feature: itos status, where the work stands
     And the recording gh fails every call, saying "HTTP 401: Bad credentials"
     When itos runs "status --as someone"
     Then itos exits with code 0
-    And its output says "The pull requests cannot be read: gh pr list failed: HTTP 401: Bad credentials"
+    And its output says "The pull requests cannot be read: gh api graphql failed: HTTP 401: Bad credentials"
     And its output says "slice-9"
     And its output does not say "itos work done slice-9"
+
+  # A gh waiting on a keychain prompt, a sign-in or a proxy: status, which
+  # runs at every itos go, gives up on it after 5 s, as identity's gh.
+  @ID-STATUS-54 @wip @slice-199
+  Scenario: Under pr, a gh that gives no answer is given up on in a line, and status prints the rest unmarked
+    Given the watched run's jobs "ci" and "platform" succeed
+    And the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+      """
+    And the work registry has the item "slice-9" owned by "someone" with the status "doing"
+    And a gh on the PATH that never answers
+    When itos runs "status --as someone"
+    Then itos exits with code 0
+    And its output says "The pull requests cannot be read: gh gave no answer within 5 s."
+    And its output says "slice-9"
 
   # Holds before the work: with no gh, status says nothing of pull requests.
   @ID-STATUS-51 @wip @slice-199 @guard
