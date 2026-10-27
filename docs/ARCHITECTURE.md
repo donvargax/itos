@@ -153,9 +153,9 @@ its notes [ADR-0026]'s.
 ## The Claude Code plugin
 
 `integrations/claude-code/`, the one plugin of this repository's marketplace
-([ADR-0027]): the titles (`hooks/register.ts`) and the guard
-(`hooks/guard.sh`, [ADR-0028]). Both run only the `itos` on the `PATH`, never
-what a cloned repository ships, as their comments say. It has no skill:
+([ADR-0027]): the titles (`hooks/register.ts`), which run only
+the `itos` on the `PATH`, never what a cloned repository ships, as its comment
+says. It no longer guards Bash (T-320; [ADR-0028]). It has no skill:
 itos's guides say how to work with itos ([ADR-0033]). `tools/bin/inbox` reads
 consumers' issues, its `main.go` saying whose it trusts.
 

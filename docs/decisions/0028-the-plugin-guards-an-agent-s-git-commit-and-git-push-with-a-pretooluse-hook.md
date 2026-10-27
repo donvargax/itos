@@ -21,3 +21,5 @@ The plugin's `PreToolUse` hook (`itos hook pre-tool-use`, slice 42), in a reposi
 ### Consequences
 
 The commit-msg hook stays the gate; the guard is a guardrail, not a fortress.
+
+Amended 2026-10-27 (the person): T-320 removed the plugin's `PreToolUse` hook and `guard.sh`; `itos guard claude-code` stays until v9 removes it.

@@ -396,9 +396,9 @@ of its own, raised only when the plugin changes, not with each itos release. `it
 It runs the `itos` on your `PATH` (v2.3.0 or later) in every repository you
 open, and does something only where itos manages the repository. It never
 runs a program the repository ships, neither its `hooks.bin` nor a
-`tools/bin/itos` at its top, since the guard runs before every Bash command
-and the titles on every reply, and a repository you cloned would otherwise run
-its own program just by being opened. A global install, above, is the
+`tools/bin/itos` at its top, since the titles run on every reply, and a
+repository you cloned would otherwise run its own program just by being
+opened. A global install, above, is the
 launcher, which lets each repository's pin pick the version from itos's
 releases; to have a build of your own answer, put it first on your `PATH`.
 
@@ -410,33 +410,12 @@ releases; to have a build of your own answer, put it first on your `PATH`.
   which refuses `--all`) and `itos task list --json`, asked at the start of
   the session and of each turn; with no itos that answers, from
   `tasks/work-items.yaml`.
-- **A guard.** A `PreToolUse` hook on Bash runs `itos guard claude-code`, which
-  denies an agent's `git commit` or `git push`, its reason naming
-  `itos commit --task <id>` (or `--scenarios <ids>`) or `itos push`, so the
-  agent commits with the footers and pushes without forcing. Everything else
-  gets no answer, so your own permission rules still decide. It reads the
-  command as bash does, so `git -C . commit` and `make && git push` are
-  caught; `sh -c '…'`, `eval` and scripts are not looked into, and the hooks
-  stay the gates. Under a pin older than v6.0.0 the launcher answers for the
-  guard with nothing; with no itos on the `PATH` the plugin answers nothing.
 
 How to work with itos is not the plugin's: it is itos's own guides, versioned
 with the binary, `itos go` for the session you talk to and `itos guide work` for
 an agent it starts (above), so no flow needs the plugin. Try it in a repository
 itos manages: start a session with `! itos go` (the IDs in Claude's answers
-carry their titles), or ask Claude to commit with `git commit`, which the guard
-turns into `itos commit`. To wire
-only the guard, without the plugin, put the hook in `.claude/settings.json`:
-
-```json
-{
-	"hooks": {
-		"PreToolUse": [
-			{ "matcher": "Bash", "hooks": [{ "type": "command", "command": "itos guard claude-code" }] }
-		]
-	}
-}
-```
+carry their titles).
 
 **The schema, for editors.** An editor with a YAML language server checks an
 `itos.yaml` as it is written, completes its keys and shows each one's

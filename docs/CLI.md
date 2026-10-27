@@ -112,7 +112,7 @@ These codes follow grep and diff (0 yes, 1 no, 2 trouble) and the BSD `sysexits.
 
 ### Entry points for other programs
 
-Some commands are not for people. Another program calls them: git calls the hook commands, Claude Code calls the guard, and the shim runs when a program calls `git`. The commands the itos plugin for Claude Code calls are part of the contract with the plugin and are never renamed or removed, even in a major release (decision 41): `guard claude-code`, and `work list --all` and `task list` with `--json` for its titles. CI checks that the built itos answers every one of them.
+Some commands are not for people. Another program calls them: git calls the hook commands, and the shim runs when a program calls `git`. The commands the itos plugin for Claude Code calls are part of the contract with the plugin and are never renamed or removed, even in a major release (decision 41): `work list --all` and `task list` with `--json` for its titles. CI checks that the built itos answers every one of them.
 
 39. An entry point uses the protocol of the program that calls it. It does not use the itos contract when the two do not agree. For example, Claude Code reads exit 2 as "block", so the guard never exits 2.
 40. An entry point for one program does not share a group with entry points for a different program. Name its group for its function and the program that it serves. (CLIG `#subcommands`.) itos follows this rule (slice-89): Claude Code's guard is `itos guard claude-code`, and `itos hook` holds git's two hooks and `hook install`, which declares them in the git config (slice-91).
