@@ -12,7 +12,6 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/donvargax/itos/v8/internal/git"
 	vcsport "github.com/donvargax/itos/v8/internal/vcs/port"
 )
 
@@ -146,9 +145,18 @@ func newScratch(t *testing.T) *scratch {
 	return s
 }
 
+// realGit is the git the oracle runs: the one itos exports as ITOS_GIT, which
+// is never itos linked as git, else the PATH's.
+func realGit() string {
+	if p := os.Getenv("ITOS_GIT"); p != "" {
+		return p
+	}
+	return "git"
+}
+
 // run runs git in the repository with stdin as its stdin.
 func (s *scratch) run(stdin string, args ...string) (string, error) {
-	cmd := exec.Command(git.Bin(runtime.GOOS), args...)
+	cmd := exec.Command(realGit(), args...)
 	cmd.Dir, cmd.Env, cmd.Stdin = s.dir, s.env, strings.NewReader(stdin)
 	out, err := cmd.CombinedOutput()
 	return string(out), err
