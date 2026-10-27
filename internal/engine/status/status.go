@@ -1,6 +1,7 @@
 package status
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
@@ -286,7 +287,12 @@ func (st *Standing) readBranch(ctx context.Context, cfg *config.Loaded, remote, 
 		st.unread(fmt.Sprintf("%s has no branch %s yet, so there is no CI run to read.", remote, branch))
 		return
 	}
-	fetched := !cfg.Stealth && st.fetch(ctx, cfg.VCS, remote, ref, branch)
+	fetched := false
+	if !cfg.Stealth {
+		var tip string
+		tip, fetched = st.fetch(ctx, cfg.VCS, remote, ref, branch)
+		sha = cmp.Or(tip, sha)
+	}
 	if !reached {
 		tracked, err := cfg.VCS.Resolve(ctx, "refs/remotes/"+remote+"/"+branch)
 		if err != nil {
@@ -329,21 +335,22 @@ func (st *Standing) readBranch(ctx context.Context, cfg *config.Loaded, remote, 
 // fetch fetches the one remote branch the status reads into its
 // remote-tracking ref, quietly, never prompting for credentials, within
 // fetchTimeout, and from a detached HEAD (ref HEAD) the remote's own
-// refspecs; it is whether that worked, a fetch that failed said in a line
-// naming why.
-func (st *Standing) fetch(ctx context.Context, v vcsport.VCS, remote, ref, branch string) bool {
+// refspecs; it is the commit the branch was fetched at ("" from a detached
+// HEAD) and whether that worked, a fetch that failed said in a line naming
+// why.
+func (st *Standing) fetch(ctx context.Context, v vcsport.VCS, remote, ref, branch string) (tip string, worked bool) {
 	ctx, cancel := context.WithTimeout(ctx, fetchTimeout)
 	defer cancel()
 	refspec := ""
 	if ref != "HEAD" {
 		refspec = "+" + ref + ":refs/remotes/" + remote + "/" + branch
 	}
-	_, err := v.Fetch(ctx, remote, refspec, vcsport.Talk{NoPrompt: true})
+	tip, err := v.Fetch(ctx, remote, refspec, vcsport.Talk{NoPrompt: true})
 	if err == nil {
-		return true
+		return tip, true
 	}
 	st.unread(fmt.Sprintf("%s/%s cannot be fetched: %s", remote, branch, whyNot(ctx, err)))
-	return false
+	return "", false
 }
 
 // whyNot is why a fetch failed: git's first line as git writes it, or that
