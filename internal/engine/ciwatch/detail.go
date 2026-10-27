@@ -26,22 +26,28 @@ func Detail(ctx context.Context, wr providers.Watcher, v vcsport.VCS, remote str
 	run.Jobs = slices.Clone(run.Jobs)
 	for i, j := range run.Jobs {
 		if failedJob(j) {
-			run.Jobs[i] = explain(wr.Log, j)
+			run.Jobs[i] = explain(wr, j)
 		}
 	}
 	return run
 }
 
-// explain is the failed job with its step and, when log gives it, what the
-// log names.
-func explain(log providers.JobLog, j providers.Job) providers.Job {
+// explain is the failed job with its step and, when the log gives it, what
+// the log names; a log that cannot be read leaves what the job's check run
+// annotates as failures instead (slice 197).
+func explain(wr providers.Watcher, j providers.Job) providers.Job {
 	j.Step = j.FailedStep()
-	if log == nil {
+	if wr.Log == nil {
 		return j
 	}
-	text, err := log(j.ID)
+	text, err := wr.Log(j.ID)
 	if err != nil {
 		j.Log = providers.LogUnreadable
+		if wr.Annotations != nil {
+			if annotations, err := wr.Annotations(j.ID); err == nil {
+				j.Failures, j.MoreFailures = readAnnotations(annotations)
+			}
+		}
 		return j
 	}
 	j.Log = providers.LogRead
