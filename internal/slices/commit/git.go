@@ -236,7 +236,8 @@ type gitArgs struct {
 	messagesAt []valueAt
 	file       string
 	fileAt     valueAt
-	// reuse and reedit are the commits -C and -c name, "" when none.
+	// reuse and reedit are the commits -C and -c name, "" when none or
+	// --no-reuse-message and --no-reedit-message cleared it.
 	reuse, reedit string
 	amend         bool
 	noEdit, edit  bool
@@ -288,6 +289,10 @@ func readGitArgs(args []string) gitArgs {
 			g.amend = arg == "--amend"
 		case arg == "--no-edit", arg == "--edit":
 			g.noEdit, g.edit = arg == "--no-edit", arg == "--edit"
+		case arg == "--no-reuse-message":
+			g.reuse = ""
+		case arg == "--no-reedit-message":
+			g.reedit = ""
 		case gitrun.NoVerify(arg), arg == "--all":
 			g.refuse(arg)
 		case strings.HasPrefix(arg, "--") && slices.Contains(gitValued, name):
