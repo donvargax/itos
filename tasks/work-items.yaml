@@ -15096,3 +15096,27 @@ items:
       rerun.
     refs: [tools/bin/nightly-report]
     tags: [proof, ci, v8]
+
+  - id: p1-domain-generators
+    title: Generators for the domain types, and a round-trip property for each form they are stored or printed in
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The person, 2026-10-27 (ADR-0051 amended): domain types reach every layer with no mapper, so
+      one rapid generator per domain type drives properties at each: writing a value and reading it
+      back gives the same value, for each stored or printed form (the work registry's items, the
+      ledger's tasks, the config's keys, commit footers, drafts, follow-ups, each --json output),
+      and the domain's invariants hold over generated values. The generators live beside
+      internal/proptest (test-only) so every package draws the same values; deterministic per push
+      under proptest's fixed seed, and runnable as fuzz targets through rapid.MakeFuzz for the
+      nightly fuzz step (T-328). First task: the registry Item, the ledger Task and the message
+      footers, with internal/proptest's doc rewritten for typed input properties (it still says
+      input-level properties are fuzzing), a refactor commit. A round-trip a byte-exact writer
+      cannot keep (comments, key order) states what is kept instead. Then one task per stored form.
+      Found while the replay's misses were mapped to deterministic catchers: K143b and K150b are the
+      round-trip kind.
+    refs: [internal/proptest, docs/decisions/0051-each-check-runs-at-the-cheapest-tier-that-catches-what-it-catches.md]
+    tags: [tests, v8]
