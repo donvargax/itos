@@ -507,3 +507,18 @@ Feature: itos commit, a commit whose footers itos writes
     And its JSON's "ok" is false
     And its JSON's problem "task-footer"'s "message" says "has no none"
     And its JSON's problem "task-footer"'s "fix" says "name the task the commit belongs to by an id"
+
+  # git commit <path> commits from a temporary index, so a pre-commit hook
+  # that rewrites the file and stages it again (a formatter) puts its version
+  # in the commit and the working tree, while git keeps the real index as it
+  # read it before the hook ran: git status says MM and the next commit may
+  # sweep the stale copy in (found 2026-10-26, recording slice 187 and a
+  # plan). Before the fix the scenario fails at the step that git reports no
+  # change. The hook stands in for dprint, which the features cannot run.
+  @ID-COMMITCMD-35 @bug-145 @wip
+  Scenario: A commit by path leaves the index as the commit has the file when a pre-commit hook rewrites it
+    Given a pre-commit hook that appends a line to each staged Markdown file and stages it again
+    When itos commits with the arguments "--task T-001 -m 'chore: tidy the readme' -- README.md"
+    Then itos exits with code 0
+    And git reports no change to the working tree or the index
+    And the file "README.md" has the same contents as its committed version
