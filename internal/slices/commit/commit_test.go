@@ -787,11 +787,12 @@ func TestCommitDoesNotReadHeadForAStdinMessage(t *testing.T) {
 
 // A commit given paths is made from a temporary index, so once git made a
 // commit the real index's entries of the paths it changed are set to HEAD's,
-// by their absolute names from the repository's top, whatever folder itos
-// stood in; no other path is named (bug 145). A commit given no path, one
-// git refused and one that moved nothing (--dry-run) change no index, and a
-// root commit's paths are all it holds.
+// by their absolute names from the repository's top; no other path is named
+// (bug 145). A commit given no path, one git refused and one that moved
+// nothing (--dry-run) change no index, and a root commit's paths are all it
+// holds.
 func TestCommitByPathUnstagesWhatItCommitted(t *testing.T) {
+	a := [][]string{{filepath.Join("/r", "a.md")}}
 	for _, c := range []struct {
 		name    string
 		args    []string
@@ -799,9 +800,9 @@ func TestCommitByPathUnstagesWhatItCommitted(t *testing.T) {
 		failure error
 		want    [][]string
 	}{
-		{"after --", []string{"-m", "docs: x", "--", "a.md"}, true, nil, [][]string{{"/r/a.md"}}},
-		{"a bare path", []string{"-m", "docs: x", "a.md"}, true, nil, [][]string{{"/r/a.md"}}},
-		{"a pathspec file", []string{"-m", "docs: x", "--pathspec-from-file=list"}, true, nil, [][]string{{"/r/a.md"}}},
+		{"after --", []string{"-m", "docs: x", "--", "a.md"}, true, nil, a},
+		{"a bare path", []string{"-m", "docs: x", "a.md"}, true, nil, a},
+		{"a pathspec file", []string{"-m", "docs: x", "--pathspec-from-file=list"}, true, nil, a},
 		{"no path", []string{"-m", "docs: x"}, true, nil, nil},
 		{"a value is no path", []string{"-m", "docs: x", "-F", "msg", "--author", "me", "--"}, true, nil, nil},
 		{"git refused", []string{"-m", "docs: x", "a.md"}, true, &vcsport.Failed{Command: "git commit", Code: 1}, nil},
@@ -828,7 +829,7 @@ func TestCommitByPathUnstagesWhatItCommitted(t *testing.T) {
 	f.moves, f.tree = true, map[string]string{"a.md": "formatted"}
 	f.VCS.History, f.VCS.Named = nil, map[string]string{}
 	if code, _, _, err := run(t, f, "", false, "-m", "docs: x", "a.md"); err != nil || code != 0 ||
-		!slices.EqualFunc(f.unstaged, [][]string{{"/r/a.md"}}, slices.Equal) {
+		!slices.EqualFunc(f.unstaged, a, slices.Equal) {
 		t.Errorf("a root commit: exit %d, %v, unstaged %q", code, err, f.unstaged)
 	}
 }
