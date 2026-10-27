@@ -15043,3 +15043,11 @@ items:
     status: todo
     depends_on: []
     kind: task
+
+  - id: T-331
+    title: A stateful property holds the paths Touched gives over merge histories to a first-parent model
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task

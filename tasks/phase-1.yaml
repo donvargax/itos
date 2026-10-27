@@ -5126,3 +5126,25 @@
   done_when:
     - run: "go test ./internal/slices/work -count=1 -run '^TestPropertyWorkDoneTrust' -v 2>&1 | grep -q -- '--- PASS: TestPropertyWorkDoneTrust'"
       timeout: 600
+
+- id: T-331
+  type: test
+  title: A stateful property holds the paths Touched gives over merge histories to a first-parent model
+  why: >
+    The reviewer replay (2026-10-27): K153 (push's registryCommit judged a merge commit by its
+    second parent's history, so a merge of code read as a registry commit) was found by no reviewer
+    of five; push (internal/slices/push/pr.go registryCommit and push.go) decides what goes to main
+    on Git.Touched (internal/vcs/adapter/paths.go). TestPropertyTouched in internal/vcs/adapter,
+    through internal/proptest's Check: rapid draws a history operation by operation (a commit on the
+    current branch adding, changing, renaming or deleting files; a new branch; a merge of one branch
+    into another, clean or resolving a conflict by either side or by a new text), applied to a plain
+    in-memory DAG of file states and to a scratch git repository; after each operation, for ranges
+    drawn between its commits, Touched(r, true) must give the paths the model says changed, a merge
+    counting only against its first parent, and Touched(r, false) what git log --name-only gives
+    without merges in the model's terms. The model is file states per commit and their parents,
+    never git's output. Real git, so Checks sets a small default count; the nightly raises
+    RAPID_CHECKS. A disagreement that is a bug: stop on it and report its shrunk history; the
+    coordinator files a bug whose fix commits the fail file. No production change.
+  done_when:
+    - run: "go test ./internal/vcs/adapter -count=1 -run '^TestPropertyTouched' -v 2>&1 | grep -q -- '--- PASS: TestPropertyTouched'"
+      timeout: 600
