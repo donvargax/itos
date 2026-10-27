@@ -8602,6 +8602,15 @@ items:
       commits, configs and registries written by hand or by agents; a fuzz target per parser finds
       the crash or the silent misread a scenario never thought of. Seeds from the conformance
       corpus; a bounded -fuzztime run in the nightly, the found inputs kept as regression seeds.
+
+      The reviewer replay (2026-10-27, docs/plans/reviewer-replay.md): fuzzing finds a silent
+      misread only with an oracle, and git is one. Differential properties against git would have
+      caught two bugs no reviewer found: K143b (BREAKING CHANGE read as BREAKING-CHANGE drops a
+      trailer; oracle: git interpret-trailers --parse on the same message) and K143a (itos commit
+      --amend --no-edit -F - read HEAD's message; oracle: the message git itself records for the
+      same arguments, over generated combinations of -m, -F file, -F -, --amend, --no-edit). K150b
+      (duplicate keys and several documents read silently) has a strict-parse oracle: every YAML
+      reader refuses what value.Parse refuses.
     tags: [tests]
 
   - id: slice-134
