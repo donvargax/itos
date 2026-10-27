@@ -14853,7 +14853,7 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: []
+    depends_on: [bug-151]
     kind: bug
     why: >
       Found 2026-10-27 by Astra (gpt-6-astra) in the reviewer replay (s143, bug-138's code), judged
