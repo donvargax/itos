@@ -15223,3 +15223,19 @@ items:
       internal/message/testdata/fuzz/FuzzTrailersMatchGit.
     refs: [internal/message/trailers.go, internal/message/footers.go, internal/message/written.go]
     tags: [message, v8]
+
+  - id: p1-push-thread-reply-resolve
+    title: itos push replies to and resolves a review thread, so an implementer does not hand-write gh api graphql with a thread id
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      T-328 (2026-10-27, #196): addressing Codex's P1 thread meant a reply and a resolve through
+      hand-written gh api graphql calls with the thread's node id, the step AGENTS.md's Finishing
+      asks of every implementer for every thread. A subcommand (itos push thread <id> --reply <text>
+      [--resolve], and a list of the open threads with their ids) would make it one command and keep
+      --ready's unresolved-thread refusal pointing at it.
+    refs: [internal/slices/push]
+    tags: [push, review, v8]
