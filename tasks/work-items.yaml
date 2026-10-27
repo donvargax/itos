@@ -15087,3 +15087,21 @@ items:
       otherwise.
     refs: [internal/engine/evidence/store.go, internal/engine/ciwatch/watch.go, internal/providers/range.go, internal/store/tree/adapter/tree.go]
     tags: [tests, proof, v8]
+
+  - id: p1-nightly-survivor-reason
+    title: "The Nightly red issue says why each survivor survived: which tests ran it, or none reached it, and a skip that hid one"
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Nightly 40499023980 reported internal/engine/evidence/store.go:111 as survived with no test
+      reaching it, though locally TestARecordThatCannotBeWrittenLeavesNothing reaches it; the test
+      skips as root, which a CI runner may be (T-324, 2026-10-27). The issue lists a survivor's
+      position and mutation only; itos-cc's JSON has which tests ran it and whether any covered the
+      line. The report should print, per survivor, its tests (own, then listed) or that none reached
+      it, and the identity mutation run --site takes, so the next task starts from the reason, not a
+      rerun.
+    refs: [tools/bin/nightly-report]
+    tags: [proof, ci, v8]
