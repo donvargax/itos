@@ -15344,3 +15344,17 @@ items:
       item's merged pull request (its branch is named for it) as its own, or the commits naming a
       task whose item depends on it; and the refusal should not advise a pull that changes nothing.
     tags: [work, push]
+
+  - id: p2-feature-command-apostrophe
+    title: A scenario's itos command line cannot hold an apostrophe in a quoted argument
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Met 2026-10-27 drafting slice-191: features/README.md's shellWords quoting splits a step's
+      command line, so an argument such as --reply 'it's fixed' breaks the scenario; the drafter
+      reworded the text. Either shellWords takes a double-quoted argument with an apostrophe (and
+      the README says how), or a step passes one argument from a doc string.
+    tags: [tests]
