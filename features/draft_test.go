@@ -17,6 +17,9 @@ func initializeDraftSteps(sc *godog.ScenarioContext, w *world) {
 	sc.Step(`^the file "([^"]*)" is changed to hold "([^"]*)"$`, func(path, text string) error {
 		return w.write(path, text+"\n")
 	})
+	sc.Step(`^the file "([^"]*)" holds the lines:$`, func(path string, lines *godog.DocString) error {
+		return w.write(path, lines.Content+"\n")
+	})
 	sc.Step(`^the commit before the last has the header "([^"]*)"$`, w.headerBeforeLastIs)
 	sc.Step(`^a merge is in progress, with no change to commit$`, w.mergeInProgress)
 	sc.Step(`^the draft "([^"]*)"'s copy of "([^"]*)" says "([^"]*)"$`, w.draftCopySays)
