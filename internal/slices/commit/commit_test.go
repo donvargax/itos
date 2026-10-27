@@ -53,6 +53,14 @@ type fake struct {
 	tree       map[string]string
 	unstaged   [][]string
 	unstageErr error
+	diffErr    error
+}
+
+func (f *fake) Diff(ctx context.Context, from, to string) ([]string, error) {
+	if f.diffErr != nil {
+		return nil, f.diffErr
+	}
+	return f.VCS.Diff(ctx, from, to)
 }
 
 func (f *fake) Unstage(_ context.Context, paths []string) error {
@@ -790,7 +798,8 @@ func TestCommitDoesNotReadHeadForAStdinMessage(t *testing.T) {
 // by their absolute names from the repository's top; no other path is named
 // (bug 145). A commit given no path, one git refused and one that moved
 // nothing (--dry-run) change no index, and a root commit's paths are all it
-// holds.
+// holds. Paths that cannot be listed or placed under the repository's top are
+// an index itos could not set, said after the commit.
 func TestCommitByPathUnstagesWhatItCommitted(t *testing.T) {
 	a := [][]string{{filepath.Join("/r", "a.md")}}
 	for _, c := range []struct {
@@ -823,6 +832,27 @@ func TestCommitByPathUnstagesWhatItCommitted(t *testing.T) {
 	code, _, stderr, err := run(t, f, "", false, "-m", "docs: x", "a.md")
 	if code != refused || err != nil || !strings.Contains(stderr, "the commit is made, but git's index of its paths cannot be set to it: no index") {
 		t.Errorf("an index that cannot be set: exit %d, %v, %q", code, err, stderr)
+	}
+
+	f = over(t, repository(true), "")
+	f.moves = true
+	if code, _, _, err := run(t, f, "", false, "-m", "docs: x", "a.md"); err != nil || code != 0 || f.unstaged != nil {
+		t.Errorf("a commit that changed no path: exit %d, %v, unstaged %q", code, err, f.unstaged)
+	}
+
+	for name, f := range map[string]*fake{
+		"paths that cannot be listed": func() *fake {
+			f := over(t, repository(true), "")
+			f.diffErr = errors.New("no diff")
+			return f
+		}(),
+		"a repository that cannot be located": over(t, repository(false), ""),
+	} {
+		f.moves, f.tree = true, map[string]string{"a.md": "formatted"}
+		code, _, stderr, err := run(t, f, "", false, "-m", "docs: x", "a.md")
+		if code != refused || err != nil || !strings.Contains(stderr, "the commit is made, but git's index of its paths cannot be set to it") || f.unstaged != nil {
+			t.Errorf("%s: exit %d, %v, %q, unstaged %q", name, code, err, stderr, f.unstaged)
+		}
 	}
 
 	f = over(t, repository(true), "")
