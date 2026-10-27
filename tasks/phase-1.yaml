@@ -5082,8 +5082,13 @@
     (T-328) the rest. A reader that accepts more by design is listed in its target with the reason.
     A reader that misreads is a bug: stop on it, report its input; the coordinator files a bug whose
     fix commits the seed. No production change.
+
+    2026-10-27 (the coordinator, on T-329's findings): the readers of drafts, follow-ups and questions
+    (bug-152) and the id counter and a decision record's status (bug-153) read what value.Parse
+    refuses, so their targets land with those fixes, not here; T-329 lands the four that hold
+    (config, upgrade's workflow, value's SetScalars and OpenDoc), and its check counts four.
   done_when:
-    - run: "n=$(go test ./internal/idcounter ./internal/draft ./internal/slices/followup/domain ./internal/slices/upgrade ./internal/value ./internal/config -count=1 -run '^FuzzStrictYAML' -v 2>&1 | grep -c -- '--- PASS: FuzzStrictYAML'); test \"$n\" -ge 6"
+    - run: "n=$(go test ./internal/idcounter ./internal/draft ./internal/slices/followup/domain ./internal/slices/upgrade ./internal/value ./internal/config -count=1 -run '^FuzzStrictYAML' -v 2>&1 | grep -c -- '--- PASS: FuzzStrictYAML'); test \"$n\" -ge 4"
       timeout: 300
 
 - id: T-330
