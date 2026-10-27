@@ -5156,3 +5156,19 @@
     enough for ci, issue #132), so this task carries it. The self-test reads the step's env from the
     workflow and resolves ${{ matrix.shard }}; with the binding removed it fails. The check holds
     only once the self-test no longer supplies SHARD.
+
+- id: T-334
+  type: build
+  title: "build and ci commits, and a comment-only refactor, may name their item in Item: in place of Task"
+  why: >
+    The person, 2026-10-27 (p1-commit-item-takes-task, then slice-194): a build or ci commit may
+    carry Item: naming any item, as test, docs and chore already may, so a gate change no longer
+    needs a ledger task of its own (bug-146's ci commits could only name T-333, so work done could
+    not close it; T-296 was added for one doc.go comment; an agent borrowed the done T-228).
+    slice-194's spec (#215) found the behaviour already exists: the Item footer's in_place_of
+    decides which types it stands in for, read generically by itos commit, the hook, check-message
+    and verify. So this is this repository's config alone: in_place_of gains refactor, build and ci,
+    and the gates comment stops saying they need a Task. No liveness rule is added: test, docs and
+    chore already accept any registry item.
+  done_when:
+    - run: "grep -q 'in_place_of: { Task: \\[test, docs, chore, refactor, build, ci\\] }' itos.yaml"

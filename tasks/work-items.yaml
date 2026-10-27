@@ -15445,3 +15445,11 @@ items:
       merged pull request of each in-progress item's branch and print 'merged (#n): itos work done
       <id>' beside it; offline or without gh, as today.
     tags: [status, v8]
+
+  - id: T-334
+    title: "build and ci commits, and a comment-only refactor, may name their item in Item: in place of Task"
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task
