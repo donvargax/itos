@@ -75,8 +75,12 @@ func testNightlyShards(t *testing.T) {
 		if err := os.Chmod(filepath.Join(dir, "go"), 0o755); err != nil {
 			t.Fatal(err)
 		}
-		env := scratch.With(scratch.OutsideEnv(), "PATH="+dir+string(os.PathListSeparator)+os.Getenv("PATH"),
-			"LOG="+filepath.Join(dir, "log"), "RUNNER_TEMP="+dir, "SHARD="+e.Shard)
+		set := []string{"PATH=" + dir + string(os.PathListSeparator) + os.Getenv("PATH"),
+			"LOG=" + filepath.Join(dir, "log"), "RUNNER_TEMP=" + dir}
+		for name, value := range features.Env {
+			set = append(set, name+"="+matrixValue(t, value, e))
+		}
+		env := scratch.With(scratch.OutsideEnv(), set...)
 		if r := scratch.Run(dir, env, "", "bash", "-eo", "pipefail", "-c", features.Run); r.Code != 0 {
 			t.Fatalf("%v: the Features step exited %d\n%s", e, r.Code, r.Output())
 		}
@@ -108,6 +112,17 @@ func testNightlyShards(t *testing.T) {
 			t.Errorf("%s runs the unit tests %d times, want once", name, ran)
 		}
 	}
+}
+
+// matrixValue is an env value of the Features step with its matrix expression bound to the entry's,
+// so the step runs with what the workflow binds and nothing the test supplies.
+func matrixValue(t *testing.T, value string, e nightlyEntry) string {
+	t.Helper()
+	value = strings.ReplaceAll(value, "${{ matrix.shard }}", e.Shard)
+	if strings.Contains(value, "${{") {
+		t.Fatalf("the Features step binds %q, an expression this test does not evaluate", value)
+	}
+	return value
 }
 
 // completeShards is whether the shards of one platform are all absent (one job runs every

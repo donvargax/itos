@@ -18,7 +18,10 @@ import (
 	"go.yaml.in/yaml/v3"
 )
 
-type step struct{ Name, ID, Uses, Run, If string }
+type step struct {
+	Name, ID, Uses, Run, If string
+	Env                     map[string]string
+}
 type job struct {
 	Name, If string
 	RunsOn   string `yaml:"runs-on"`
