@@ -24,12 +24,14 @@ import (
 // The variables a hook's environment may carry that point git at a repository or its index.
 var pointers = []string{"GIT_DIR", "GIT_INDEX_FILE", "GIT_WORK_TREE", "GIT_COMMON_DIR", "GIT_OBJECT_DIRECTORY"}
 
-// script is tools/bin/go-unit-tests, by its absolute path.
-func script(t *testing.T) string {
+// program is tools/bin/go-unit-tests built, by its absolute path.
+func program(t *testing.T) string {
 	t.Helper()
-	path, err := filepath.Abs(filepath.Join("..", "..", "bin", "go-unit-tests"))
-	if err != nil {
-		t.Fatal(err)
+	path := filepath.Join(t.TempDir(), "go-unit-tests")
+	build := exec.Command("go", "build", "-o", path, "github.com/donvargax/itos/v8/tools/bin/go-unit-tests")
+	build.Env = clean()
+	if out, err := build.CombinedOutput(); err != nil {
+		t.Fatalf("go build go-unit-tests: %v\n%s", err, out)
 	}
 	return path
 }
@@ -85,7 +87,7 @@ func clean() []string {
 // commits from, and go test runs with neither that index nor the git folder in its environment.
 func TestGoUnitTestsDropTheHooksGitEnvironment(t *testing.T) {
 	if runtime.GOOS == "windows" {
-		t.Skip("tools/bin/go-unit-tests is a shell script")
+		t.Skip("the fake go and git are shell scripts")
 	}
 	dir := t.TempDir()
 	gitIn(t, dir, nil, "init", "-q")
@@ -103,7 +105,7 @@ func TestGoUnitTestsDropTheHooksGitEnvironment(t *testing.T) {
 	gitIn(t, dir, hook, "add", "internal/x/x.go")
 
 	record := filepath.Join(t.TempDir(), "env")
-	cmd := exec.Command(script(t), "--cached")
+	cmd := exec.Command(program(t), "--cached")
 	cmd.Dir = dir
 	cmd.Env = append(clean(), append(hook, "PATH="+fakeBin(t, record)+string(os.PathListSeparator)+os.Getenv("PATH"))...)
 	out, err := cmd.CombinedOutput()

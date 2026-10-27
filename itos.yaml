@@ -544,8 +544,8 @@ hooks:
   # packages it changes (T-269), then the unit tests the push reaches, itos's Go packages'
   # (tools/bin/go-unit-tests, which pre-commit runs too).
   pre_push:
-    per_base: "tools/bin/golangci-lint-changed {base} && tools/bin/staticcheck-changed {base} && tools/bin/go-unit-tests {base}"
-    whole: "tools/bin/golangci-lint-changed --all && tools/bin/staticcheck-changed --all && tools/bin/go-unit-tests --all"
+    per_base: "tools/bin/golangci-lint-changed {base} && tools/bin/staticcheck-changed {base} && go run ./tools/bin/go-unit-tests {base}"
+    whole: "tools/bin/golangci-lint-changed --all && tools/bin/staticcheck-changed --all && go run ./tools/bin/go-unit-tests --all"
 
 proof:
   code:

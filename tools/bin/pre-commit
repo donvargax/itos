@@ -98,4 +98,4 @@ fi
 # those that import them (tools/bin/go-unit-tests, which pre-push runs too, through itos.yaml's
 # hooks.pre_push). Nothing when no file under cmd/ or internal/, nor go.mod or go.sum, is
 # staged. The whole suite is CI's.
-tools/bin/go-unit-tests --cached
+go run ./tools/bin/go-unit-tests --cached
