@@ -5004,3 +5004,27 @@
   done_when:
     - run: test ! -e .github/workflows/replay-review.yml
     - run: test ! -e .github/replay-review
+
+- id: T-326
+  type: ci
+  title: The nightly runs the unit tests under a git hook's environment, so a test that inherits GIT_DIR or GIT_INDEX_FILE fails
+  why: >
+    The reviewer replay (2026-10-27): K151b (gitForTest passed inherited GIT_DIR, GIT_WORK_TREE and
+    GIT_INDEX_FILE, so a test could write the caller's repository) and K170 (a shared fixture built
+    before alone(t) cleared inherited git settings) were found only by reviewers; one deterministic
+    run catches the class. tools/bin/go-unit-tests gains a -hook-env mode: it makes a scratch
+    repository with one commit, runs go test over the packages it is given with GIT_DIR,
+    GIT_WORK_TREE and GIT_INDEX_FILE pointing at that repository and GIT_CONFIG_PARAMETERS setting
+    core.hooksPath to a folder whose hooks fail, then fails, naming the packages that ran, when the
+    scratch repository's HEAD, refs, index or config changed, or when a test failed; without
+    -hook-env it behaves as today (the pre-commit hook still drops the variables). Its self-tests,
+    named TestHookEnv*, show that a test package writing through an inherited GIT_INDEX_FILE makes
+    it fail and a clean one passes. The nightly runs it over ./... beside the features under hostile
+    PATHs (a ci commit to nightly.yml, through ci.nightly in itos.yaml if that is where the
+    nightly's steps live). A test the mode turns red is a test-isolation bug: fix it in a test
+    commit here (no production change), as alone(t) and world.env() isolate today; a production
+    change it calls for is reported, not made. Replaces the idea p1-unit-tests-under-hook-git-env.
+  done_when:
+    - run: "go test ./tools/bin/go-unit-tests -count=1 -run '^TestHookEnv' -v 2>&1 | grep -q -- '--- PASS: TestHookEnv'"
+      timeout: 300
+    - run: grep -q -- '-hook-env' .github/workflows/nightly.yml
