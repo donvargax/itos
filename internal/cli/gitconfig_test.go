@@ -15,9 +15,9 @@ import (
 	"github.com/donvargax/itos/v8/internal/kind"
 )
 
-// A scratch repository with a config, as the current folder, away from the
-// repository a hook runs the tests in and from the user's git config.
-func gitConfigRepo(t *testing.T, config string) string {
+// scratchEnv points git away from the repository a hook runs the tests in and
+// from the user's git config.
+func scratchEnv(t *testing.T) {
 	t.Helper()
 	disableScratchMaintenance(t)
 	for _, name := range []string{"GIT_DIR", "GIT_INDEX_FILE", "GIT_WORK_TREE", "GIT_COMMON_DIR"} {
@@ -27,13 +27,40 @@ func gitConfigRepo(t *testing.T, config string) string {
 	t.Setenv("GIT_CONFIG_GLOBAL", os.DevNull)
 	t.Setenv("GIT_CONFIG_NOSYSTEM", "1")
 	t.Setenv("ITOS_CONFIG", "")
-	dir := t.TempDir()
-	if out, err := exec.Command(git.Bin(runtime.GOOS), "init", "-q", dir).CombinedOutput(); err != nil {
-		t.Fatalf("git init: %s", out)
-	}
+}
+
+// A scratch repository with a config, as the current folder, away from the
+// repository a hook runs the tests in and from the user's git config. The
+// repository git init makes is made once for the package and copied.
+func gitConfigRepo(t *testing.T, config string) string {
+	t.Helper()
+	return gitConfigRepoIn(t, t.TempDir(), config)
+}
+
+// gitConfigRepoIn is gitConfigRepo in the folder dir.
+func gitConfigRepoIn(t *testing.T, dir, config string) string {
+	t.Helper()
+	scratchEnv(t)
+	fresh := madeOnce(t, "git-init", func(t *testing.T, fresh string) {
+		if out, err := exec.Command(git.Bin(runtime.GOOS), "init", "-q", fresh).CombinedOutput(); err != nil {
+			t.Fatalf("git init: %s", out)
+		}
+	})
+	copyTree(t, fresh, dir)
 	if err := os.WriteFile(filepath.Join(dir, "itos.yaml"), []byte(config), 0o644); err != nil {
 		t.Fatal(err)
 	}
+	t.Chdir(dir)
+	return dir
+}
+
+// scratchCopy is a copy of the folder template, made once by an earlier
+// madeOnce, as the current folder under gitConfigRepo's environment.
+func scratchCopy(t *testing.T, template string) string {
+	t.Helper()
+	scratchEnv(t)
+	dir := t.TempDir()
+	copyTree(t, template, dir)
 	t.Chdir(dir)
 	return dir
 }

@@ -13,26 +13,36 @@ import (
 )
 
 // A scratch repository with one commit and no config, as the current
-// folder, away from the user's git config; its git folder is returned.
+// folder, away from the user's git config; its git folder is returned. The
+// repository is made once for the package and copied.
 func notesRepo(t *testing.T) (dir, gitDir string) {
 	t.Helper()
-	disableScratchMaintenance(t)
-	for _, name := range []string{"GIT_DIR", "GIT_INDEX_FILE", "GIT_WORK_TREE", "GIT_COMMON_DIR"} {
-		t.Setenv(name, "")
-		os.Unsetenv(name)
-	}
-	t.Setenv("GIT_CONFIG_GLOBAL", os.DevNull)
-	t.Setenv("GIT_CONFIG_NOSYSTEM", "1")
-	t.Setenv("ITOS_CONFIG", "")
-	dir = t.TempDir()
-	for _, args := range [][]string{
-		{"init", "-q", dir},
-		{"-C", dir, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "--allow-empty", "-m", "docs: start"},
-	} {
-		if out, err := exec.Command(git.Bin(runtime.GOOS), args...).CombinedOutput(); err != nil {
-			t.Fatalf("git %s: %s", strings.Join(args, " "), out)
+	scratchEnv(t)
+	return notesRepoCopy(t, notesTemplate(t))
+}
+
+// notesTemplate is the folder holding the repository notesRepo copies, made
+// once under the scratch environment.
+func notesTemplate(t *testing.T) string {
+	t.Helper()
+	return madeOnce(t, "notes", func(t *testing.T, dir string) {
+		for _, args := range [][]string{
+			{"init", "-q", dir},
+			{"-C", dir, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "--allow-empty", "-m", "docs: start"},
+		} {
+			if out, err := exec.Command(git.Bin(runtime.GOOS), args...).CombinedOutput(); err != nil {
+				t.Fatalf("git %s: %s", strings.Join(args, " "), out)
+			}
 		}
-	}
+	})
+}
+
+// notesRepoCopy is a copy of the repository template holds, with itos's
+// folder in its git folder, as the current folder.
+func notesRepoCopy(t *testing.T, template string) (dir, gitDir string) {
+	t.Helper()
+	dir = t.TempDir()
+	copyTree(t, template, dir)
 	gitDir = filepath.Join(dir, ".git")
 	if err := os.MkdirAll(filepath.Join(gitDir, "itos"), 0o755); err != nil {
 		t.Fatal(err)
