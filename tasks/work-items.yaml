@@ -55,6 +55,7 @@ phases:
   3: donvargax
 
 queue:
+  - bug-146
   - p1-ci-slow-linux-runs
   - slice-153
   - p1-ci-e2e-workflow
