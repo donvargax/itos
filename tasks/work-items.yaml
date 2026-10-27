@@ -14839,17 +14839,9 @@ items:
     title: itos commit's footer preflight compares a CRLF message's folded text footer without normalising it, refusing what the hook accepts
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [bug-151]
     kind: bug
-    why: >
-      Found 2026-10-27 by Astra (gpt-6-astra) in the reviewer replay (s143, bug-138's code), judged
-      valid by the scorer, not yet checked by the coordinator: the preflight that compares a flag's
-      footer with the message's (bug-138) reads the raw message, while the commit-msg hook reads the
-      cleaned one, so a message with CRLF line endings and a folded text footer is refused with exit
-      1 though the hook would accept it. Reproduce with a CRLF message (-F file) first.
-
-      Codex's code review found the same defect independently (2026-10-27, s143).
     tags: [commit]
 
   - id: bug-149
