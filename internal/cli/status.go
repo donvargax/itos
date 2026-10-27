@@ -42,6 +42,11 @@ func (p statusPorts) Setup(context.Context) providers.WatchSetup {
 	return providers.WatchSetup{Env: os.Getenv, GhToken: ghToken(p.o.Dir)}
 }
 
+// Gh is providers.GhBounded in the folder itos runs in.
+func (p statusPorts) Gh(ctx context.Context, args ...string) (string, error) {
+	return providers.GhBounded(ctx, p.o.Dir, args...)
+}
+
 // Tracker is tracker.
 func (p statusPorts) Tracker(_ context.Context, cfg *config.Loaded) trackerport.Tracker {
 	return tracker(cfg, p.o.OS)

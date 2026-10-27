@@ -1,12 +1,14 @@
 package providers
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
 	"testing"
+	"time"
 
 	"github.com/donvargax/itos/v8/internal/config"
 )
@@ -45,6 +47,32 @@ func TestGh(t *testing.T) {
 	t.Setenv("PATH", t.TempDir())
 	if out, err := Gh(t.Context(), dir, "pr", "list"); out != "" || !errors.Is(err, ErrNoGh) {
 		t.Errorf("Gh with no gh = %q, %v", out, err)
+	}
+}
+
+// GhBounded is Gh within GhTimeout: it gives gh's stdout and its failures as
+// Gh does, and a gh given up on, killed for taking too long, is
+// ErrGhNoAnswer, not a failure of gh's.
+func TestGhBounded(t *testing.T) {
+	onPath(t, "printf '%s' \"$*\"\nif [ \"$1\" = fail ]; then echo refused >&2; exit 4; fi\n")
+	if out, err := GhBounded(t.Context(), t.TempDir(), "pr", "list"); out != "pr list" || err != nil {
+		t.Errorf("GhBounded = %q, %v", out, err)
+	}
+	var failed *GhFailed
+	if out, err := GhBounded(t.Context(), t.TempDir(), "fail"); out != "fail" || !errors.As(err, &failed) || failed.TimedOut || failed.Words != "refused\n" {
+		t.Errorf("GhBounded of a gh that fails = %q, %v", out, err)
+	}
+	late, cancel := context.WithDeadline(t.Context(), time.Now().Add(-time.Second))
+	defer cancel()
+	if out, err := GhBounded(late, t.TempDir(), "pr", "list"); out != "" || !errors.Is(err, ErrGhNoAnswer) {
+		t.Errorf("GhBounded out of time = %q, %v, want ErrGhNoAnswer", out, err)
+	}
+	if _, err := Gh(late, t.TempDir(), "pr", "list"); !errors.As(err, &failed) || !failed.TimedOut || errors.Is(err, ErrGhNoAnswer) {
+		t.Errorf("Gh out of time = %v, want a GhFailed that timed out", err)
+	}
+	t.Setenv("PATH", t.TempDir())
+	if out, err := GhBounded(t.Context(), t.TempDir(), "pr", "list"); out != "" || !errors.Is(err, ErrNoGh) {
+		t.Errorf("GhBounded with no gh = %q, %v", out, err)
 	}
 }
 

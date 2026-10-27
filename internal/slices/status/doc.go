@@ -14,7 +14,9 @@
 // items, the open questions of itos decision and the drafts waiting for
 // itos draft promote); the slice binds its In: the identity provider, the
 // repository for the release, the rules and the drafts' file, the
-// providers' setup, the questions read through the config's tracker
+// providers' setup, gh within providers.GhTimeout (Ports.Gh, which the
+// pull requests of the items in progress are asked through under push.mode
+// pr, slice 199), the questions read through the config's tracker
 // (ask.Load) and the drafts from the git common dir (draft.Path), none
 // outside a repository, called once each in that order. It reads, and
 // writes nothing but the remote-tracking ref of the one branch it fetches

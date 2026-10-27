@@ -25,13 +25,16 @@ type Query struct {
 // for agents and the drafts' file are read (the head is read through the
 // config's VCS); Config, the config every command finds; Identity,
 // work.identity's provider, asked who the session works for; Setup, what
-// ci.watch's and ci.range's providers read; and Tracker, the tracker store
-// the questions are in.
+// ci.watch's and ci.range's providers read; Gh, gh within providers.GhTimeout
+// (providers.ErrGhNoAnswer past it), which the pull requests of the items in
+// progress are asked through; and Tracker, the tracker store the questions
+// are in.
 type Ports interface {
 	vcsport.VCS
 	Config(ctx context.Context) (*config.Loaded, error)
 	Identity(ctx context.Context, cfg *config.Loaded) providers.Identity
 	Setup(ctx context.Context) providers.WatchSetup
+	Gh(ctx context.Context, args ...string) (string, error)
 	Tracker(ctx context.Context, cfg *config.Loaded) trackerport.Tracker
 }
 
@@ -82,6 +85,7 @@ func (h Handler) Standing(ctx context.Context, cfg *config.Loaded, as string, o 
 		Stderr:   o.Stderr,
 		Git:      h.ports,
 		Setup:    h.ports.Setup(ctx),
+		Gh:       h.ports.Gh,
 		Questions: func() (ask.File, error) {
 			asks, _, _, err := ask.Load(ctx, h.ports.Tracker(ctx, cfg), cfg.Work.Asks)
 			return asks, err

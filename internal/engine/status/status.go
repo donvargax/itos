@@ -64,12 +64,15 @@ var fetchTimeout = 20 * time.Second
 // ci.range's providers read, the remote's address set here; Questions, the
 // questions of itos decision; and Drafts, the drafts waiting, there false
 // outside a repository, where none are listed. Questions and Drafts are
-// called once each, in that order, after the items.
+// called once each, in that order, after the items. Gh is the gh the pull
+// requests of the items in progress are asked through, within
+// providers.GhTimeout.
 type In struct {
 	Identity  providers.Identity
 	Stderr    io.Writer
 	Git       vcsport.VCS
 	Setup     providers.WatchSetup
+	Gh        func(ctx context.Context, args ...string) (string, error)
 	Questions func() (ask.File, error)
 	Drafts    func() (drafts draft.File, there bool, err error)
 }
@@ -111,6 +114,8 @@ type Standing struct {
 	Drafts   []draft.Entry `json:"drafts"`
 	Unread   []string      `json:"unread"`
 	unowned  map[any]bool  // the next items nobody owns
+	merged   map[any]int   // the items in progress whose pull request merged, each its number
+	remote   string        // the remote the head is read from
 	drafts   []draft.Draft // the drafts waiting, as the list prints them
 	start    []string      // the lines of the head and CI, in order
 	pull     string        // the line telling to pull before reading the work, when HEAD is behind
@@ -214,7 +219,7 @@ func Of(ctx context.Context, cfg *config.Loaded, as string, in In) (st *Standing
 		proposal = work.Propose(registry, who.Handle)
 	}
 	st = &Standing{Every: proposal.Every, Doing: []any{}, Next: []any{}, Questions: []ask.Entry{}, Unread: []string{},
-		unowned: map[any]bool{}}
+		unowned: map[any]bool{}, merged: map[any]int{}}
 	if proposal.Person != "" {
 		st.Person = proposal.Person
 	}
@@ -224,6 +229,7 @@ func Of(ctx context.Context, cfg *config.Loaded, as string, in In) (st *Standing
 	for _, item := range proposal.Doing {
 		st.Doing = append(st.Doing, item)
 	}
+	st.readPulls(ctx, cfg, proposal.Doing, in)
 	for _, item := range proposal.Unowned {
 		st.unowned[item] = true
 	}
@@ -254,6 +260,61 @@ func Of(ctx context.Context, cfg *config.Loaded, as string, in In) (st *Standing
 	return st, nil, false, nil
 }
 
+// readPulls asks GitHub once (providers.BranchPulls through in.Gh) for the
+// pull requests of the branch of each item in progress, the branch being the
+// item's id, and marks those with a merged pull request and no open one, as
+// itos work done reads them (slice 199): st.merged for the text, and
+// "merged_pull_request" on the item for --json. Nothing is asked under
+// trunk, a stealth config, with nothing in progress or with no repository to
+// name, and a gh that is not there says nothing; one that fails or does not
+// answer in time is a line.
+func (st *Standing) readPulls(ctx context.Context, cfg *config.Loaded, doing []*value.Map, in In) {
+	if cfg.Push.Mode != "pr" || cfg.Stealth || len(doing) == 0 {
+		return
+	}
+	remoteURL, _ := cfg.VCS.RemoteURL(ctx, st.remote)
+	repository := providers.Repository(cfg, in.Setup.Env, remoteURL)
+	if repository == "" {
+		return
+	}
+	branches := make([]string, len(doing))
+	for i, item := range doing {
+		branches[i] = value.String(item.At("id"))
+	}
+	pulls, err := providers.BranchPulls(ctx, in.Gh, repository, branches)
+	switch {
+	case errors.Is(err, providers.ErrNoGh):
+		return
+	case errors.Is(err, providers.ErrGhNoAnswer):
+		st.unread(fmt.Sprintf("The pull requests cannot be read: gh gave no answer within %d s.", int(providers.GhTimeout/time.Second)))
+		return
+	case err != nil:
+		st.unread("The pull requests cannot be read: " + err.Error())
+		return
+	}
+	for i, item := range doing {
+		if n := mergedPull(pulls[branches[i]]); n > 0 {
+			st.merged[item] = n
+			item.Set("merged_pull_request", float64(n))
+		}
+	}
+}
+
+// mergedPull is the number of the newest merged pull request of those given,
+// newest first, 0 when none merged or any is open, which work done refuses.
+func mergedPull(pulls []providers.BranchPull) int {
+	merged := 0
+	for _, p := range pulls {
+		if p.Open {
+			return 0
+		}
+		if p.Merged && merged == 0 {
+			merged = p.Number
+		}
+	}
+	return merged
+}
+
 // unread records what could not be reached, as a line of its own.
 func (st *Standing) unread(line string) {
 	st.Unread = append(st.Unread, line)
@@ -270,6 +331,7 @@ func (st *Standing) readHead(ctx context.Context, cfg *config.Loaded, in In) {
 		remote, ref, _ = cfg.VCS.Upstream(ctx, branch)
 	}
 	branch := strings.TrimPrefix(ref, "refs/heads/")
+	st.remote = remote
 	st.readBranch(ctx, cfg, remote, ref, branch, in)
 	st.readNightly(ctx, cfg, remote, branch, in)
 }
@@ -774,6 +836,9 @@ func (st *Standing) Print(w io.Writer) {
 		s := "  " + work.TaggedID(item) + "  " + value.String(item.At("title"))
 		if st.unowned[v] {
 			s += "  (unowned)"
+		}
+		if n, ok := st.merged[v]; ok {
+			s += fmt.Sprintf("  merged (#%d): itos work done %s", n, value.String(item.At("id")))
 		}
 		return s
 	}

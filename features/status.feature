@@ -463,7 +463,7 @@ Feature: itos status, where the work stands
   #
   # Two items merged, so the one call is pinned: one api graphql, none per
   # item, and no pr list.
-  @ID-STATUS-43 @wip @slice-199
+  @ID-STATUS-43 @slice-199
   Scenario: Under pr, status marks each item in progress whose pull request has merged with the work done that closes it, asking gh once
     Given the watched run's jobs "ci" and "platform" succeed
     And the config, committed and pushed to the remote's main, adds the YAML:
@@ -488,7 +488,7 @@ Feature: itos status, where the work stands
 
   # The merged slice-9 makes the call, so slice-8's plain line is not that
   # of a gh never asked.
-  @ID-STATUS-44 @wip @slice-199
+  @ID-STATUS-44 @slice-199
   Scenario: Under pr, status does not mark an item in progress whose pull request is open
     Given the watched run's jobs "ci" and "platform" succeed
     And the config, committed and pushed to the remote's main, adds the YAML:
@@ -507,7 +507,7 @@ Feature: itos status, where the work stands
     And its output does not say "itos work done slice-8"
     And its output does not say "(#8)"
 
-  @ID-STATUS-45 @wip @slice-199
+  @ID-STATUS-45 @slice-199
   Scenario: Under pr, status does not mark an item in progress with no pull request
     Given the watched run's jobs "ci" and "platform" succeed
     And the config, committed and pushed to the remote's main, adds the YAML:
@@ -526,7 +526,7 @@ Feature: itos status, where the work stands
 
   # A pull request closed without merging is neither open nor merged: work
   # done refuses it (work-done-pr-closed), so status names no work done.
-  @ID-STATUS-52 @wip @slice-199
+  @ID-STATUS-52 @slice-199
   Scenario: Under pr, status does not mark an item in progress whose only pull request was closed without merging
     Given the watched run's jobs "ci" and "platform" succeed
     And the config, committed and pushed to the remote's main, adds the YAML:
@@ -548,7 +548,7 @@ Feature: itos status, where the work stands
   # Holds before the work: slice-9 waits under Next, not in progress, so
   # nothing is in progress, gh is not asked, and no line under Next is
   # marked.
-  @ID-STATUS-53 @wip @slice-199 @guard
+  @ID-STATUS-53 @slice-199 @guard
   Scenario: Under pr, with nothing in progress, status asks gh nothing and marks no item under Next
     Given the watched run's jobs "ci" and "platform" succeed
     And the config, committed and pushed to the remote's main, adds the YAML:
@@ -568,7 +568,7 @@ Feature: itos status, where the work stands
   # An item whose earlier work merged and whose more work is in an open pull
   # request is refused by work done (ID-PRDONE-02), so status names no work
   # done for it.
-  @ID-STATUS-46 @wip @slice-199
+  @ID-STATUS-46 @slice-199
   Scenario: Under pr, status does not mark an item in progress whose earlier pull request merged and whose newer one is open
     Given the watched run's jobs "ci" and "platform" succeed
     And the config, committed and pushed to the remote's main, adds the YAML:
@@ -588,7 +588,7 @@ Feature: itos status, where the work stands
     And its output does not say "itos work done slice-8"
     And its output does not say "(#5)"
 
-  @ID-STATUS-47 @wip @slice-199
+  @ID-STATUS-47 @slice-199
   Scenario: With --json, under pr, each item in progress whose pull request has merged gives its number, and the others none
     Given the watched run's jobs "ci" and "platform" succeed
     And the config, committed and pushed to the remote's main, adds the YAML:
@@ -606,7 +606,7 @@ Feature: itos status, where the work stands
     And its JSON's "doing" entry whose "id" is "slice-8" has no "merged_pull_request"
 
   # The case seen: itos go's status, which a session starts from.
-  @ID-STATUS-48 @wip @slice-199
+  @ID-STATUS-48 @slice-199
   Scenario: Under pr, itos go's status marks an item in progress whose pull request has merged
     Given the watched run's jobs "ci" and "platform" succeed
     And the config, committed and pushed to the remote's main, adds the YAML:
@@ -623,7 +623,7 @@ Feature: itos status, where the work stands
 
   # Holds before the work: under trunk, the default, status asks gh nothing,
   # whatever it holds.
-  @ID-STATUS-49 @wip @slice-199 @guard
+  @ID-STATUS-49 @slice-199 @guard
   Scenario: Without push.mode, status asks gh nothing and marks no item in progress
     Given the watched run's jobs "ci" and "platform" succeed
     And the work registry has the item "slice-9" owned by "someone" with the status "doing"
@@ -636,7 +636,7 @@ Feature: itos status, where the work stands
     And the recording gh was never called
 
   # A gh signed out: its words on a line of their own, the items as today.
-  @ID-STATUS-50 @wip @slice-199
+  @ID-STATUS-50 @slice-199
   Scenario: Under pr, a gh that fails is said in a line, and status prints the rest unmarked
     Given the watched run's jobs "ci" and "platform" succeed
     And the config, committed and pushed to the remote's main, adds the YAML:
@@ -655,7 +655,7 @@ Feature: itos status, where the work stands
 
   # A gh waiting on a keychain prompt, a sign-in or a proxy: status, which
   # runs at every itos go, gives up on it after 5 s, as identity's gh.
-  @ID-STATUS-54 @wip @slice-199
+  @ID-STATUS-54 @slice-199
   Scenario: Under pr, a gh that gives no answer is given up on in a line, and status prints the rest unmarked
     Given the watched run's jobs "ci" and "platform" succeed
     And the config, committed and pushed to the remote's main, adds the YAML:
@@ -671,7 +671,7 @@ Feature: itos status, where the work stands
     And its output says "slice-9"
 
   # Holds before the work: with no gh, status says nothing of pull requests.
-  @ID-STATUS-51 @wip @slice-199 @guard
+  @ID-STATUS-51 @slice-199 @guard
   Scenario: Under pr, with no gh on the PATH, status prints as before and says nothing of pull requests
     Given the watched run's jobs "ci" and "platform" succeed
     And the config, committed and pushed to the remote's main, adds the YAML:
