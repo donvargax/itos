@@ -2644,8 +2644,12 @@ func (w *world) commitMsgHook(message string) error {
 
 func (w *world) output() string { return w.stdout + w.stderr }
 
+// report is what a failing step quotes of the last run, each stream between
+// the workflow commands that stop GitHub reading commands and resume it, so
+// an annotation itos printed in a failing scenario is not issued by this
+// repository's CI (slice 198).
 func (w *world) report() string {
-	return fmt.Sprintf("exit %d\n--- stdout\n%s--- stderr\n%s", w.exit, w.stdout, w.stderr)
+	return fmt.Sprintf("exit %d\n--- stdout\n%s--- stderr\n%s", w.exit, quotedStream(w.stdout), quotedStream(w.stderr))
 }
 
 func (w *world) exitsWith(code int) error {
