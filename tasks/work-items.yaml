@@ -61,7 +61,7 @@ queue:
   - p1-ready-review-for-head
   - p1-ready-fits-foreground
   - p2-push-thread-show
-  - p1-status-merged-awaiting-close
+  - slice-199
   - slice-198
   - p1-ci-affected-jobs
   - p2-feature-command-apostrophe
@@ -15326,14 +15326,15 @@ items:
       runner's own ::error lines); itos-cc's side, if needed, is an issue on its repository.
     tags: [ci, v8]
 
-  - id: p1-status-merged-awaiting-close
+  - id: slice-199
     title: itos status names an item in progress whose pull request has merged, with the work done that closes it
     phase: 1
     owner: null
     status: todo
     depends_on: []
-    kind: idea
+    kind: slice
     why: >
+      Was p1-status-merged-awaiting-close.
       Seen 2026-10-27: itos go listed bug-146, bug-152 and bug-153 in progress though their pull
       requests (#205, #202, #203) had merged; nothing said they only waited for work done, so the
       coordinator looked them up by hand. Under push.mode pr, status could ask gh once for the
