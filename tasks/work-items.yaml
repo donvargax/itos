@@ -15203,3 +15203,23 @@ items:
       derive their message, stay unread.
     refs: [internal/slices/commit/git.go, features/commit-command.feature]
     tags: [commit, v8]
+
+  - id: bug-151
+    title: A footer's value is trimmed of JavaScript's whitespace (form feed, no-break space, U+2000 to U+200A, BOM), where git trims only spaces, tabs and line ends
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: bug
+    why: >
+      Found 2026-10-27 by T-328's FuzzTrailersMatchGit within seconds: internal/message's unfolded
+      (trailers.go) trims a footer's value with value.Trim, String.trim's set, while trailer.c trims
+      only git's isspace (space, tab, line feed, carriage return). Input: the message
+      "0\n\nChanges:\t\f\n" with comment character #: git reads [{Changes "\f"}], itos [{Changes
+      ""}]. trailers.go's contract is 'the footers as git reads a message's trailers (bug 110)', so
+      the fix trims as git does (gitSpace). It reaches the text footers (footers.go Texts) and
+      written.go's comparison. The nightly's fuzz step finds it every night until fixed: its fix
+      commits the fuzzer's input as a seed under
+      internal/message/testdata/fuzz/FuzzTrailersMatchGit.
+    refs: [internal/message/trailers.go, internal/message/footers.go, internal/message/written.go]
+    tags: [message, v8]
