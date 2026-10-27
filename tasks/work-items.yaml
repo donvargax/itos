@@ -14732,7 +14732,7 @@ items:
     title: tools/bin/pre-commit leaves no stale copy of a file it formats staged after the commit (bug-145)
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
 

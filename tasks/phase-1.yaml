@@ -4912,8 +4912,6 @@
     the cause, and add the case to the hook's self-test. If the cause is in itos commit (internal/),
     the fix is a fix commit with a @bug-145 scenario instead, and this task's ci part is the
     self-test only.
-  done_when:
-    - run: "true"
 
 - id: T-320
   type: chore
