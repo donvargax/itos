@@ -22,7 +22,11 @@ func TestMain(m *testing.M) {
 		fmt.Println(line)
 		os.Exit(0)
 	}
-	os.Exit(m.Run())
+	code := m.Run()
+	if templateDir != "" {
+		os.RemoveAll(templateDir)
+	}
+	os.Exit(code)
 }
 
 // useFakeGit makes git a copy of this test binary answering line to every

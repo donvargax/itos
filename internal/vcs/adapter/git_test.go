@@ -3,12 +3,14 @@ package adapter
 import (
 	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
 	"slices"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/donvargax/itos/v8/internal/git"
@@ -92,6 +94,60 @@ func history(t *testing.T, dir string) {
 	gitIn(t, dir, "", "checkout", "-q", "main")
 	gitIn(t, dir, at(8), "tag", "-a", "r", "-m", "release", "c")
 	if err := os.WriteFile(filepath.Join(dir, ".git", "info", "exclude"), []byte("debug.log\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+}
+
+var (
+	templateOnce  sync.Once
+	templateDir   string
+	templateReady bool
+)
+
+// historyTemplate is a repository holding history's commits, made once for
+// the package under the first caller's git settings (alone's, the same for
+// every caller) and removed by TestMain: git starts are what the tests
+// spend, and history alone is thirty of them.
+func historyTemplate(t *testing.T) string {
+	t.Helper()
+	templateOnce.Do(func() {
+		dir, err := os.MkdirTemp("", "itos-adapter-history-")
+		if err != nil {
+			t.Fatal(err)
+		}
+		templateDir = dir
+		history(t, filepath.Join(dir, "repo"))
+		templateReady = true
+	})
+	if !templateReady {
+		t.Fatal("the history template was not made")
+	}
+	return filepath.Join(templateDir, "repo")
+}
+
+// copyTree copies the folder from to a new folder to, files and folders
+// alone.
+func copyTree(t *testing.T, from, to string) {
+	t.Helper()
+	err := filepath.WalkDir(from, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		rel, err := filepath.Rel(from, path)
+		if err != nil {
+			return err
+		}
+		dst := filepath.Join(to, rel)
+		if d.IsDir() {
+			return os.MkdirAll(dst, 0o755)
+		}
+		text, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		return os.WriteFile(dst, text, 0o644)
+	})
+	if err != nil {
 		t.Fatal(err)
 	}
 }
@@ -227,7 +283,7 @@ func laidOut(t *testing.T, l porttest.Layout) (port.VCS, string) {
 		}
 		return Git{Dir: repo}, repo
 	}
-	history(t, repo)
+	copyTree(t, historyTemplate(t), repo)
 	if l.Origin {
 		origin := filepath.Join(base, "origin.git")
 		gitIn(t, base, "", "init", "-q", "--bare", "-b", "main", origin)
@@ -247,8 +303,16 @@ func laidOut(t *testing.T, l porttest.Layout) (port.VCS, string) {
 		gitIn(t, base, "", "clone", "-q", "--depth", "1", "file://"+filepath.ToSlash(repo), clone)
 		return Git{Dir: clone}, clone
 	}
-	for _, tag := range l.Remotes {
-		gitIn(t, repo, "", "update-ref", "refs/remotes/origin/"+tag, tag)
+	if len(l.Remotes) > 0 {
+		var refs strings.Builder
+		for _, tag := range l.Remotes {
+			fmt.Fprintf(&refs, "update refs/remotes/origin/%s %s\n", tag, tag)
+		}
+		cmd := gitCmd(repo, "", "update-ref", "--stdin")
+		cmd.Stdin = strings.NewReader(refs.String())
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git update-ref --stdin: %s", out)
+		}
 	}
 	for _, dir := range []string{filepath.Join(repo, "sub"), filepath.Join(base, "outside")} {
 		if err := os.MkdirAll(dir, 0o755); err != nil {
