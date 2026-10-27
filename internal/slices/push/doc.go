@@ -112,7 +112,9 @@
 // beside the registry. With no ledger section no path is one. A commit is
 // direct (slice 186), judged by itself against its first parent (Diff, renames
 // off, so a merge counts what it brings in, not the history it merges), when its
-// type (message.Type) is one of push.pr.direct.types and no path it touches
+// type (message.Type) is one of push.pr.direct.types and one of the commit
+// types (message.Typed: commits.types, which the optional header lint may not
+// enforce), and no path it touches
 // matches a push.pr.direct.except glob (internal/glob; one it cannot read
 // matches); the registry's commits and these may sit in any order, and a
 // range with any other commit is refused whole. With types set the refusal
