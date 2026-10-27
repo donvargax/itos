@@ -77,6 +77,9 @@ linters:
             - github.com/donvargax/itos/v8/internal/value$
             - github.com/donvargax/itos/v8/internal/version$
             - github.com/donvargax/itos/v8/internal/work$
+            # The property tier's shared part, for a slice's tests alone:
+            # proptest-tests-only refuses it, and rapid, in any code.
+            - github.com/donvargax/itos/v8/internal/proptest$
             # Debt, not the design: these do I/O a slice should reach
             # through its Ports (the idea p1-slice-io-behind-ports).
             - github.com/donvargax/itos/v8/internal/providers$
@@ -321,6 +324,19 @@ linters:
           deny:
             - pkg: github.com/donvargax/itos/v8
               desc: "an adapter imports nothing of ours but its slice's domain and the libraries its rule allows (ADR-0053); extend the rule, with a fixture, never loosen it"
+        # The property tier (internal/proptest, ADR-0051) and rapid are for
+        # tests: no package's code imports them but internal/proptest, which
+        # wraps rapid (p1-proptest-depguard).
+        proptest-tests-only:
+          files:
+            - $all
+            - "!$test"
+            - "!**/internal/proptest/**"
+          deny:
+            - pkg: github.com/donvargax/itos/v8/internal/proptest$
+              desc: "the property tier is for tests (ADR-0051): internal/proptest enters only through _test.go files"
+            - pkg: pgregory.net/rapid
+              desc: "rapid is for tests (ADR-0051): only internal/proptest, which wraps it, and _test.go files import it"
         mocks:
           files:
             - $all
