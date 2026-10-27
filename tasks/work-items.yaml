@@ -14955,8 +14955,8 @@ items:
   - id: T-324
     title: Settle the six survivors of Nightly 40499023980
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
 
