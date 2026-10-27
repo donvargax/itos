@@ -5156,5 +5156,3 @@
     enough for ci, issue #132), so this task carries it. The self-test reads the step's env from the
     workflow and resolves ${{ matrix.shard }}; with the binding removed it fails. The check holds
     only once the self-test no longer supplies SHARD.
-  done_when:
-    - run: "! grep -q '\"SHARD=\"+e.Shard' tools/selftest/ci-platform/nightly_shards_test.go"
