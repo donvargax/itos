@@ -35,6 +35,7 @@ var stubs = append([]string{
 	"internal/out",
 	"internal/shim",
 	"internal/outline",
+	"internal/proptest",
 	"internal/slices/alpha",
 	"internal/slices/alpha/domain",
 	"internal/slices/alpha/domain/port",
@@ -77,6 +78,10 @@ var domains = []string{
 var stores = []string{"internal/store/private", "internal/store/tree", "internal/store/tracker", "internal/vcs"}
 
 var mocks = []string{"github.com/golang/mock/gomock", "go.uber.org/mock/gomock", "github.com/stretchr/testify/mock", "github.com/vektra/mockery/v2", "github.com/maxbrunsfeld/counterfeiter/v6"}
+
+// rapid is the property library internal/proptest wraps, a local module of one
+// constant in the fixtures like the mocking libraries.
+const rapid = "pgregory.net/rapid"
 
 // fixture is one package importing one other: in layer/name, from its code
 // or its test, refused by the depguard rule named, or by none.
@@ -193,6 +198,18 @@ func fixtures(module string) []fixture {
 				add(layer, "strings", "ToLower", "", test)
 			}
 		}
+		// The property tier, internal/proptest, and rapid are for tests: a
+		// slice may import internal/proptest in its tests (slice-packages
+		// allows it) but no package's code imports either, but
+		// internal/proptest, which wraps rapid.
+		for _, layer := range []string{"internal/slices/alpha", "internal/engine/alpha", "internal/git", "cmd/probe"} {
+			tests := ""
+			if !test {
+				tests = "proptest-tests-only"
+			}
+			add(layer, ours("internal/proptest"), "Value", tests, test)
+			add(layer, rapid, "Value", tests, test)
+		}
 		// Mocking libraries, nowhere: a slice's domain, an adapter, an
 		// engine, the internals and cmd alike.
 		for _, layer := range []string{"internal/slices/alpha/domain", "internal/slices/alpha/adapters/disk", "internal/engine/alpha", "internal/git", "cmd/probe"} {
@@ -201,6 +218,8 @@ func fixtures(module string) []fixture {
 			}
 		}
 	}
+	// internal/proptest wraps rapid, which only it and tests import.
+	add("internal/proptest", rapid, "Value", "", false)
 	// A slice's domain does no I/O in its code; its tests may read fixtures.
 	for _, io := range []struct{ pkg, symbol string }{{"os", "ReadFile"}, {"os/exec", "Command"}, {"net", "Dial"}, {"net/http", "Get"}} {
 		add("internal/slices/alpha/domain", io.pkg, io.symbol, "slice-domain-io", false)
@@ -310,7 +329,7 @@ func TestArchitecture(t *testing.T) {
 	// Each mocking library a local module of one constant, so the fixtures
 	// compile with no network and no new dependency.
 	mod := "module " + module + "\n\ngo 1.27\n"
-	for i, path := range mocks {
+	for i, path := range append(slices.Clone(mocks), rapid) {
 		stub := fmt.Sprintf("stubs/library%d", i)
 		version := "v0.0.0"
 		for _, major := range []string{"/v2", "/v6"} {
