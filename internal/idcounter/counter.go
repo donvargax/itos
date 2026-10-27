@@ -14,6 +14,7 @@ import (
 
 	"github.com/donvargax/itos/v8/internal/kind"
 	"github.com/donvargax/itos/v8/internal/lock"
+	"github.com/donvargax/itos/v8/internal/value"
 	vcs "github.com/donvargax/itos/v8/internal/vcs/port"
 	"go.yaml.in/yaml/v3"
 )
@@ -101,6 +102,15 @@ func mintLocal(store Store, category string, highest, count int) (int, error) {
 	return first, nil
 }
 
+// maxCounter is the largest counter read: the largest whole number
+// value.Parse's numbers hold exactly, or the largest int where that is smaller.
+var maxCounter = min(float64(1<<53-1), float64(math.MaxInt))
+
+// readCounters is the counters in the file, read through value.Parse as every
+// other YAML file itos reads is. A file Parse refuses, a top or counters that
+// is no mapping, or a counter that is no whole number from 0 to maxCounter is
+// refused: a counter read lower than it was written would mint a number
+// already handed out.
 func readCounters(file string) (map[string]int, error) {
 	data, err := os.ReadFile(file)
 	if errors.Is(err, os.ErrNotExist) {
@@ -109,16 +119,39 @@ func readCounters(file string) (map[string]int, error) {
 	if err != nil {
 		return nil, err
 	}
-	var doc struct {
-		Counters map[string]int `yaml:"counters"`
+	counters, err := parseCounters(string(data))
+	if err != nil {
+		return nil, kind.Wrap(kind.Usage, fmt.Errorf("read id counter %s: %w", file, err))
 	}
-	if err := yaml.Unmarshal(data, &doc); err != nil {
-		return nil, fmt.Errorf("read id counter %s: %w", file, err)
+	return counters, nil
+}
+
+func parseCounters(text string) (map[string]int, error) {
+	counters := map[string]int{}
+	parsed, err := value.Parse(text)
+	if err != nil || parsed == nil {
+		return counters, err
 	}
-	if doc.Counters == nil {
-		doc.Counters = map[string]int{}
+	top, ok := parsed.(*value.Map)
+	if !ok {
+		return nil, fmt.Errorf("the top is %s, not a mapping", value.TypeOf(parsed))
 	}
-	return doc.Counters, nil
+	section := top.At("counters")
+	if section == nil || section == value.Undefined {
+		return counters, nil
+	}
+	m, ok := section.(*value.Map)
+	if !ok {
+		return nil, fmt.Errorf("counters is %s, not a mapping", value.TypeOf(section))
+	}
+	for _, category := range m.Keys() {
+		n, ok := m.At(category).(float64)
+		if !ok || n != math.Trunc(n) || n < 0 || n > maxCounter {
+			return nil, fmt.Errorf("the counter %s is %s, not a whole number from 0 to %s", category, value.JSON(m.At(category)), value.Number(maxCounter))
+		}
+		counters[category] = int(n)
+	}
+	return counters, nil
 }
 
 func writeCounters(file string, counters map[string]int) error {

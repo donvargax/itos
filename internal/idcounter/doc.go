@@ -14,7 +14,10 @@
 // In stealth mode, or when there is no remote, counters live in a file under
 // the git common directory's itos folder. The file lock and atomic replacement
 // make that fallback coherent across linked worktrees. Reservations are never
-// returned, so a later validation or write failure may leave a gap.
+// returned, so a later validation or write failure may leave a gap. The file
+// is read as every YAML file itos reads is (value.Parse), and a hand-edited one
+// that Parse refuses or whose counter is no whole number from 0 to 2^53 - 1 is
+// refused, never read lower than written.
 //
 // It is the tracker store's adapter's internals: the tracker port's Reserve
 // (internal/store/tracker/adapter) claims through it, and depguard's

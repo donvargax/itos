@@ -1,0 +1,2 @@
+go test fuzz v1
+string("counters: {0x10: 0x10, e: 1e3}")
