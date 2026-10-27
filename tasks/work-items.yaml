@@ -15429,3 +15429,18 @@ items:
       check and proof problem under GITHUB_ACTIONS, and a go test problem matcher (or the test
       runner's own ::error lines); itos-cc's side, if needed, is an issue on its repository.
     tags: [ci, v8]
+
+  - id: p1-status-merged-awaiting-close
+    title: itos status names an item in progress whose pull request has merged, with the work done that closes it
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Seen 2026-10-27: itos go listed bug-146, bug-152 and bug-153 in progress though their pull
+      requests (#205, #202, #203) had merged; nothing said they only waited for work done, so the
+      coordinator looked them up by hand. Under push.mode pr, status could ask gh once for the
+      merged pull request of each in-progress item's branch and print 'merged (#n): itos work done
+      <id>' beside it; offline or without gh, as today.
+    tags: [status, v8]
