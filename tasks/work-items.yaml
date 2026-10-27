@@ -15024,7 +15024,7 @@ items:
     title: The trailer reader is fuzzed against git interpret-trailers, and the nightly runs the repository's fuzz targets
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
 

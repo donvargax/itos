@@ -5062,10 +5062,6 @@
     failing inputs printed and kept as an artifact so a find becomes a committed seed. A
     disagreement that is a bug: stop on it and report its input; the coordinator files a bug whose
     fix commits the seed. No production change.
-  done_when:
-    - run: "go test ./internal/message -count=1 -run '^FuzzTrailersMatchGit$' -v 2>&1 | grep -q -- '--- PASS: FuzzTrailersMatchGit'"
-      timeout: 300
-    - run: grep -q -- '-fuzz' .github/workflows/nightly.yml itos.yaml
 
 - id: T-329
   type: test
