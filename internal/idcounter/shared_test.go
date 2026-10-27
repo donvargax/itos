@@ -1,9 +1,11 @@
 package idcounter
 
 import (
+	"errors"
 	"io/fs"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"testing"
 )
@@ -45,12 +47,20 @@ func madeOnce(t *testing.T, name string, build func(t *testing.T, dir string)) s
 }
 
 // copyTree copies the folder from to a new folder to, files and folders
-// alone.
+// alone. A lock file is not copied, and an entry git removes between the walk
+// and its copy is gone, not an error: git's background maintenance makes and
+// removes locks in a repository a command has just touched.
 func copyTree(t *testing.T, from, to string) {
 	t.Helper()
 	err := filepath.WalkDir(from, func(path string, d fs.DirEntry, err error) error {
+		if errors.Is(err, fs.ErrNotExist) {
+			return nil
+		}
 		if err != nil {
 			return err
+		}
+		if !d.IsDir() && strings.HasSuffix(d.Name(), ".lock") {
+			return nil
 		}
 		rel, err := filepath.Rel(from, path)
 		if err != nil {
@@ -61,6 +71,9 @@ func copyTree(t *testing.T, from, to string) {
 			return os.MkdirAll(dst, 0o755)
 		}
 		text, err := os.ReadFile(path)
+		if errors.Is(err, fs.ErrNotExist) {
+			return nil
+		}
 		if err != nil {
 			return err
 		}

@@ -28,8 +28,8 @@ func namedPushRepo(t *testing.T) (dir string, sh func(string)) {
 	dir = scratchCopy(t, madeOnce(t, "named-push", func(t *testing.T, template string) {
 		gitConfigRepoIn(t, template, "version: 1\n")
 		standInHooks(t)
-		shIn(t, template, `git checkout -q -b main && echo start > README.md && git add README.md && git commit -q -m 'chore: start' &&
-		git init -q --bare .git/origin.git && git remote add origin .git/origin.git && git push -q -u origin main &&
+		shIn(t, template, noMaintenance+`git checkout -q -b main && echo start > README.md && git add README.md && git commit -q -m 'chore: start' &&
+		git init -q --bare .git/origin.git && git -C .git/origin.git config maintenance.auto false && git remote add origin .git/origin.git && git push -q -u origin main &&
 		git tag -a -m v1 v1 && git checkout -q -b b && echo b > b.md && git add b.md && git commit -q -m 'docs: b' &&
 		git checkout -q main`)
 	}))

@@ -44,6 +44,8 @@ func makeContextRepo(t *testing.T, dir, remote string) {
 	gitIn(t, dir, "", "tag", "-a", "-m", "annotated", "v1")
 	gitIn(t, dir, "", "notes", "add", "-m", "a note")
 	gitIn(t, "", "", "init", "-q", "--bare", "-b", "main", remote)
+	// A push runs git's maintenance in the remote, which -c does not reach.
+	gitIn(t, remote, "", "config", "maintenance.auto", "false")
 	gitIn(t, dir, "", "remote", "add", "origin", remote)
 	gitIn(t, dir, "", "config", "--add", "remote.origin.fetch", "+refs/tags/*:refs/tags/*")
 	gitIn(t, dir, "", "push", "-q", "origin", "main")

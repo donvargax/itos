@@ -35,8 +35,8 @@ func lateCommitRepo(t *testing.T) string {
 	return scratchCopy(t, madeOnce(t, "late-commit", func(t *testing.T, dir string) {
 		gitConfigRepoIn(t, dir, "version: 1\n")
 		standInHooks(t)
-		shIn(t, dir, `git checkout -q -b main && echo start > README.md && git add README.md && git commit -q -m 'chore: start' &&
-		git init -q --bare .git/origin.git && git remote add origin .git/origin.git && git push -q -u origin main &&
+		shIn(t, dir, noMaintenance+`git checkout -q -b main && echo start > README.md && git add README.md && git commit -q -m 'chore: start' &&
+		git init -q --bare .git/origin.git && git -C .git/origin.git config maintenance.auto false && git remote add origin .git/origin.git && git push -q -u origin main &&
 		echo mine > mine.md && git add mine.md && git commit -q -m 'docs: mine'`)
 		hook := "#!/bin/sh\necho late > late.md && git add late.md && git commit -q -m 'docs: late' -- late.md\n"
 		if err := os.WriteFile(filepath.Join(dir, ".git", "hooks", "pre-push"), []byte(hook), 0o755); err != nil {

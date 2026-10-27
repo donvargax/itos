@@ -305,6 +305,7 @@ func counterRemote(t *testing.T, sliceValue string) (root, remote string) {
 		remote := filepath.Join(dir, "remote.git")
 		root := filepath.Join(dir, "repo")
 		gitRun(t, dir, "init", "-q", "--bare", remote)
+		gitRun(t, remote, "config", "maintenance.auto", "false")
 		gitRun(t, dir, "init", "-q", "-b", "main", root)
 		gitIdentity(t, root)
 		if err := os.WriteFile(filepath.Join(root, "README.md"), []byte("base\n"), 0o644); err != nil {
@@ -359,6 +360,7 @@ func clonedStores(t *testing.T, n int) (stores []Store, remote string) {
 	template := madeOnce(t, "clones", func(t *testing.T, dir string) {
 		remote := filepath.Join(dir, "origin.git")
 		gitRun(t, dir, "init", "-q", "--bare", remote)
+		gitRun(t, remote, "config", "maintenance.auto", "false")
 		gitRun(t, remote, "symbolic-ref", "HEAD", "refs/heads/main")
 		seed := filepath.Join(dir, "seed")
 		gitRun(t, dir, "init", "-q", "-b", "main", seed)
@@ -432,7 +434,9 @@ func TestMintRemoteRetriesConcurrentFastForward(t *testing.T) {
 
 func gitRun(t *testing.T, dir string, args ...string) {
 	t.Helper()
-	cmd := exec.Command(git.Bin(runtime.GOOS), args...)
+	// No background maintenance behind a command: it would make and remove
+	// locks in a repository a template copy walks.
+	cmd := exec.Command(git.Bin(runtime.GOOS), append([]string{"-c", "maintenance.auto=false", "-c", "gc.auto=0"}, args...)...)
 	cmd.Dir = dir
 	cmd.Env = withoutGitIdentity(os.Environ())
 	cmd.Env = append(cmd.Env, "GIT_CONFIG_GLOBAL="+os.DevNull, "GIT_CONFIG_NOSYSTEM=1")
