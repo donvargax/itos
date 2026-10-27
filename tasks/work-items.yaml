@@ -14768,7 +14768,7 @@ items:
   - id: T-322
     title: The shared test fixtures copy a repository git maintenance is touching without failing
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
