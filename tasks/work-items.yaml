@@ -15328,3 +15328,22 @@ items:
       unfolded values only, so it cannot see this.
     refs: [internal/message]
     tags: [message, v8]
+
+  - id: p1-push-item-branch-conflict
+    title: itos push has no path for an item branch whose pushed commits conflict with main
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Seen 2026-10-27 on bug-151 (PR #201): bug-150 merged first, both appending scenarios at the
+      end of features/commit-command.feature, so bug-151's pushed spec commit no longer rebased onto
+      main and GitHub showed the pull request CONFLICTING. itos push rebases an item branch only
+      onto its own remote branch, never forces, and the pre-push hook refuses the rewrite, so the
+      only ways were a force-push past the hook or deleting and recreating the remote branch (the
+      person's hand either way). A sanctioned path: itos push --rebase-onto-main on an item branch,
+      rewriting only the item's own branch with a lease on its remote head, the pre-push gate still
+      run; or a spec-time warning when two open pull requests change the same feature file's tail.
+    refs: [internal/slices/push]
+    tags: [push, v8]
