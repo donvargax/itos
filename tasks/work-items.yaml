@@ -61,6 +61,7 @@ queue:
   - p1-ready-clean-merges
   - p1-ready-review-for-head
   - p1-ready-fits-foreground
+  - p2-push-thread-show
   - slice-195
   - slice-196
   - p1-status-merged-awaiting-close
