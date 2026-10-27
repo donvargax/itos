@@ -15331,6 +15331,14 @@ items:
       person's hand either way). A sanctioned path: itos push --rebase-onto-main on an item branch,
       rewriting only the item's own branch with a lease on its remote head, the pre-push gate still
       run; or a spec-time warning when two open pull requests change the same feature file's tail.
+
+      Met again 2026-10-27 on bug-148 (PR #207): no conflict this time, but the branch was 13
+      commits behind main and lacked bug-151's steps and its ID-COMMITCMD-42, which bug-148's spec
+      also minted; the implementer cannot run red until the branch holds main. gh pr update-branch
+      --rebase is refused to agents as destructive. So the need is wider than conflicts: itos push
+      (or a work subcommand) brings an item branch up to main by rebasing it, with a lease on its
+      remote head and the pre-push gate run, as the person's one sanctioned rewrite of the item's
+      own branch.
     refs: [internal/slices/push]
     tags: [push, v8]
 
