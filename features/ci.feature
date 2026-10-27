@@ -475,6 +475,8 @@ Feature: ci run's log names a merged check by the kind of named tests it ran in
   # The reason is the rest of that line, trimmed; without such a line, a
   # step's reason is "it exited <n>" ("it gave no exit code"), a task
   # check's "its check <command>". A step's or check's reason is one line.
+  # A step or task check that opts in to evidence runs through evidence.Run,
+  # whose output is one merged stream; it is read as stdout.
   #
   # The code proof's failure is its problems, one command each: at the file
   # and line the provider's problem names as its subject (itos-cc's file and
@@ -503,21 +505,23 @@ Feature: ci run's log names a merged check by the kind of named tests it ran in
   # with a path from the root; a problem matcher for them is an idea of its
   # own.
   #
-  # Every candidate is on stdout, the rejected ones first: an indented line,
-  # a path to no file, then the accepted one and a later one. The stderr
-  # line is read only when stdout names none (@ID-CI-74).
+  # Every stdout candidate comes after the stderr one, which the script
+  # prints first, so a scanner taking lines as they arrive answers line=6
+  # where the rule answers line=3. On stdout the rejected ones come first: an
+  # indented line, a path to no file, then the accepted one and a later one.
+  # The stderr line is read only when stdout names none (@ID-CI-74).
   @ID-CI-67 @slice-198 @wip
   Scenario: Under GitHub Actions a failing step whose output names a file and line is annotated at that line
     Given GITHUB_ACTIONS is "true"
     And "src/app.go" is in the first commit
     And the scratch file "lint.sh" contains exactly:
       """
+      printf '%s\n' 'src/app.go:6: on stderr, read only when stdout names no file' >&2
       printf '%s\n' 'checking src/app.go'
       printf '%s\n' '    src/app.go:1: indented, as go test prints its failures'
       printf '%s\n' 'nowhere.go:2:1: no such file in the working folder'
       printf '%s\n' 'src/app.go:3:9: Total is never negative (SA4003)'
       printf '%s\n' 'src/app.go:5:1: a second finding'
-      printf '%s\n' 'src/app.go:6: on stderr, read only when stdout names no file' >&2
       exit 1
       """
     And the CI steps are "sh lint.sh"
@@ -568,15 +572,16 @@ Feature: ci run's log names a merged check by the kind of named tests it ran in
     And stderr contains the complete line "::error file=src/app.go,line=2::T-001 (Tidy) failed: Total skips the tax" exactly once
     And stderr has exactly 1 line starting with "::error"
 
-  # One failure, so one command naming both tasks, in the footer's order.
+  # One failure, so one command naming both tasks, in the footer's order,
+  # not sorted.
   @ID-CI-75 @slice-198 @wip
   Scenario: Under GitHub Actions the tasks a footer names that no file has are one plain error naming each
     Given GITHUB_ACTIONS is "true"
     And the CI steps are "exit 0"
-    And the commit "chore: tidy the readme" naming the task "T-008, T-009" on top of it
+    And the commit "chore: tidy the readme" naming the task "T-009, T-008" on top of it
     When itos runs CI over the commits after the first
     Then itos exits with code 1
-    And stderr contains the complete line "::error::the tasks named failed: no task T-008, T-009 in tasks/" exactly once
+    And stderr contains the complete line "::error::the tasks named failed: no task T-009, T-008 in tasks/" exactly once
     And stderr has exactly 1 line starting with "::error"
 
   # The Given's provider answers as itos-cc's mutation check --fail-uncovered
