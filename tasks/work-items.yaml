@@ -14630,20 +14630,8 @@ items:
     title: "work done says a late check \"is late: left to CI\" in words that read as a warning, though CI runs it and its run is judged right below (#166)"
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: bug
-    why: >
-      Issue #166 (a consumer, itos 8.19.1 and 8.23.0): three agents in one session stopped at
-      "T-214's check `itos version` is late: left to CI" printed just above "CI passed" for the same
-      head; one reported it as possibly wrong after running the check itself. Late is a cost class
-      (ci.cost: a check slower than the static budget, or written below a late one under
-      keep_written_order), which work done never runs and leaves to CI; the line names the class
-      without saying what it means or that the run below judges it. Decided wording (coordinator,
-      2026-10-26), keeping the "left to CI" phrase the features assert: "<id>'s check `<cmd>` is
-      left to CI: it is late (ci.cost), so work done does not run it, and the CI run below judges
-      it". Under --json and -q as today. Fold in features/ci-trust.feature's stale "Not in this
-      slice" line saying main's runs here run everything until T-315 lands (T-315 landed
-      2026-10-26).
     refs: [internal/slices/work/done.go]
     tags: [work]
