@@ -1,0 +1,2 @@
+go test fuzz v1
+string("questions:\n  - id: q-1\n    question: &t Why?\n  - id: q-2\n    question: *t\n")

@@ -23,6 +23,11 @@
 // AliasError naming the alias (bug 39), never followed until the stack or
 // the memory runs out.
 //
+// CheckWritten (nulls.go) is what the readers of the files itos writes whole
+// (drafts, follow-ups, questions) ask first: Parse's refusals, and a null key
+// or null list item, which yaml/v3 drops when it decodes into structs (bug
+// 152).
+//
 // # Editing a person's YAML in place
 //
 // itos writes into files people also edit (the config's pin, the registry,

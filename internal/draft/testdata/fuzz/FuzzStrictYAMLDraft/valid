@@ -1,0 +1,2 @@
+go test fuzz v1
+string("# itos draft's pending changes: this clone's own, never committed (itos help draft).\ndrafts:\n  - id: say-new\n    message: |-\n      docs: say new\n\n      Why it is new.\n    paths:\n      - notes.md\n  - id: say-more\n    message: \"docs: say more\"\n    paths: [notes.md]\n    base: 0123abc\n  - id: add-thing\n    command: [work, add, p1-thing, --title, A thing, --why, Because.]\n  - id: add-slice\n    command: [work, add, --kind, slice]\n    minted: slice-2\n")

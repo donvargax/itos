@@ -1,0 +1,2 @@
+go test fuzz v1
+string("drafts:\n  - {id: 017, command: [0b1, 1_0, yes, 1.50]}\n")

@@ -1104,7 +1104,7 @@ Feature: itos draft, the coordinator's pending changes kept until no work is goi
   # the text into File, skipping the ~ entry, so it reads no drafts; draft
   # add appends queue-t1 and Save writes the list whole, the ~ entry gone,
   # exit 0.
-  @ID-DRAFT-63 @bug-152 @wip
+  @ID-DRAFT-63 @bug-152
   Scenario: A drafts file with a key written twice under a null key is refused, and left as it was
     Given the scratch file ".git/itos/drafts/drafts.yaml" contains exactly:
       """
@@ -1124,7 +1124,7 @@ Feature: itos draft, the coordinator's pending changes kept until no work is goi
   # the file and the null list item. Before the fix it fails at "itos exits
   # with code 2": draft.parse reads the command [status] and itos draft
   # lists it, exit 0.
-  @ID-DRAFT-64 @bug-152 @wip
+  @ID-DRAFT-64 @bug-152
   Scenario: A drafts file with a null list item is refused, not read without it
     Given the scratch file ".git/itos/drafts/drafts.yaml" contains exactly:
       """

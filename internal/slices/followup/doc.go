@@ -19,5 +19,6 @@
 // and warns when the store says git add could commit it; doc - prints the
 // Markdown and writes nothing. A refusal is a problem, exit 1. A file the
 // domain refuses is domain.Invalid, which internal/cli reports as a usage
-// error's exit 2.
+// error's exit 2; the slice reads the file through value.CheckWritten before
+// the domain parses it, so a null key or list item is refused too (bug 152).
 package followup

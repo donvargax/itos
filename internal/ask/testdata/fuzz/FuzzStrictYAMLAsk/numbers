@@ -1,0 +1,2 @@
+go test fuzz v1
+string("questions:\n  - {id: q-1, question: 1.50, answer: yes, decision: 017}\n")

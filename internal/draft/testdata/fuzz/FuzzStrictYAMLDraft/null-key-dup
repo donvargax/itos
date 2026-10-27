@@ -1,0 +1,2 @@
+go test fuzz v1
+string("~:\n  b: 1\n  b: 2\n")
