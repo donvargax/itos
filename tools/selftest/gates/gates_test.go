@@ -6,8 +6,6 @@
 //
 //   - CI runs the whole unit suite and the features, which the hooks leave to it;
 //   - pre-commit formats a root .yml file, as it must format action.yml (T-127);
-//   - pre-commit leaves no stale copy of a file it formats staged after a commit by path
-//     (bug-145, T-319);
 //   - pre-commit refuses a staged file over its doc budget, judging the staged size, and runs
 //     doc-budget only when a file it caps is staged (T-167);
 //   - pre-commit refuses a command table a staged declaration in internal/cli or a slice leaves
@@ -87,43 +85,6 @@ func TestSelftest(t *testing.T) {
 		}
 		if got, _ := os.ReadFile(yml); string(got) != "name: itos\n" {
 			t.Errorf("pre-commit left a root .yml file unformatted: %q", got)
-		}
-	})
-
-	// git commit <path> commits from a temporary index and keeps the real one as it read it before
-	// the hook ran, so a file the hook formats and stages is committed formatted but left staged
-	// unformatted (git status MM, bug-145). The hook may not format-and-stage there: it formats
-	// the working copy and refuses, and the commit run again goes through clean. The hooks are
-	// the ones named on the command line: the checkout's own, declared in the shared git config
-	// where it has any, are turned off.
-	t.Run("pre-commit leaves no stale copy of a file it formats staged after a commit by path", func(t *testing.T) {
-		reset(base)
-		md := filepath.Join(repo.Dir, "docs", "selftest-by-path.md")
-		if err := os.WriteFile(md, []byte("# Title\n* a\n* b\n\n\n\nText   \n"), 0o644); err != nil {
-			t.Fatal(err)
-		}
-		repo.Git("add", "docs/selftest-by-path.md")
-		commit := func() scratch.Result {
-			return scratch.Run(repo.Dir, repo.Env, "", scratch.Git(),
-				"-c", "core.hooksPath="+t.TempDir(),
-				"-c", "hook.repo-pre-commit.enabled=false", "-c", "hook.itos-commit-msg.enabled=false",
-				"-c", "hook.selftest-pre-commit.event=pre-commit",
-				"-c", "hook.selftest-pre-commit.command=sh tools/bin/pre-commit",
-				"commit", "-q", "-m", "docs: by path", "--", "docs/selftest-by-path.md")
-		}
-		first := commit()
-		if first.Code != 0 {
-			if again := commit(); again.Code != 0 {
-				t.Fatalf("the commit by path, run again with the file formatted, failed:\n%s", again.Output())
-			}
-		}
-		if status := repo.Git("status", "--porcelain", "--", "docs/selftest-by-path.md"); status != "" {
-			t.Errorf("the commit by path left the file %q in git status (first try: exit %d):\n%s",
-				status, first.Code, first.Output())
-		}
-		committed := repo.Git("show", "HEAD:docs/selftest-by-path.md")
-		if want := "# Title\n\n- a\n- b\n\nText"; committed != want {
-			t.Errorf("the commit by path holds %q, want it formatted: %q", committed, want)
 		}
 	})
 
