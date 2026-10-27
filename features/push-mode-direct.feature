@@ -227,6 +227,88 @@ Feature: Under push.mode pr, the commit types push.pr.direct names go from main 
     And the remote's branch does not have "feat: add the widget"
     And the recording gh was never called
 
+  # Bug 149: the description above promises that a type commits.types does
+  # not list "admits nothing", since no commit the hooks pass has it. Only
+  # the built-in header lint judges a type against commits.types (its rule
+  # type-enum), and it is optional: a config that leaves
+  # commits.header_lint out, as the scratch config does, turns it off, the
+  # commit-msg hook and the pre-push hook's commit rules then running the
+  # footer rules alone (message.Check, LintFile), which read no type against
+  # the list. So with push.pr.direct.types naming custom, which
+  # commits.types lacks, direct() admits a custom: commit, and a push from
+  # main sends it to main past the pull request, its checks and its review
+  # (found by Astra and Codex's security review in the reviewer replay).
+  # A type no scope names has no path limit, so such a commit can carry
+  # code, as here: widget.go reaches main unreviewed.
+  #
+  # The fix: direct() admits a commit only when its type is also one of the
+  # commit types (message.Typed: commits.types, or config-conventional's
+  # own when the config lists none, as the header lint takes them), so the
+  # type check is the push's own and not left to a lint the config may turn
+  # off. Such a commit is then judged from main as any commit that is
+  # neither the registry's nor admitted: the push is refused whole, exit 1,
+  # outcome work-on-main, nothing pushed, in the words that name the oldest
+  # such commit and push.pr.direct, with the hint to carry it to its item's
+  # branch. No new words: they are the ones the description promised for
+  # this case, the commit is named, and main has no pull request for it to
+  # stay on. On an item's branch nothing changes (registryPrefix reads no
+  # push.pr.direct): it rides the pull request as any commit but the
+  # registry's does (ID-PUSHDIRECT-07). config check still accepts a type
+  # commits.types lacks, as the description settles: it admits nothing.
+  #
+  # Before the fix it fails at "itos exits with code 1": direct() reads only
+  # push.pr.direct.types, which lists custom, so addsWork finds no work, the
+  # pre-push hook passes the commit (no scope names custom, no footer is
+  # required for it), and the push sends it to main, exit 0.
+  @ID-PUSHDIRECT-11 @bug-149 @wip
+  Scenario: Under pr with the header lint off, a commit pushed from main whose type push.pr.direct names but commits.types lacks is refused, naming the commit and push.pr.direct
+    Given the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+        pr:
+          direct:
+            types: [docs, custom]
+      """
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the clone has the commit "custom: tune the widget" touching "widget.go"
+    When itos runs "push"
+    Then itos exits with code 1
+    And its output says "custom: tune the widget to origin/main, which is neither the registry's nor a commit push.pr.direct sends straight to main"
+    And its output says "git switch -c"
+    And the remote's branch does not have "custom: tune the widget"
+    And the recording gh was never called
+
+  # A header with no conventional form is judged by the same type: the one
+  # every rule reads (message.Type, the header's first word), not the
+  # header's form. With the header lint off nothing refuses "custom the
+  # widget", and its type is custom, so it is refused as ID-PUSHDIRECT-11's
+  # commit is. Likewise "docs the widget" is a docs commit here, as it is to
+  # the footer rules and to commits.scopes, which the pre-push hook applies
+  # to it, and goes to main as "docs: the widget" would: requiring a
+  # conventional header would make the push stricter than the commit rules
+  # beside it, and the type, not the colon, is what push.pr.direct names. A
+  # header with no word to read (message.Type "") is no commit type and is
+  # never admitted. Before the fix it fails at "itos exits with code 1", as
+  # ID-PUSHDIRECT-11 does: direct() admits custom, and the push exits 0.
+  @ID-PUSHDIRECT-12 @bug-149 @wip
+  Scenario: Under pr with the header lint off, a commit pushed from main with no conventional header, whose first word is a type commits.types lacks, is refused
+    Given the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+        pr:
+          direct:
+            types: [docs, custom]
+      """
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the clone has the commit "custom the widget" touching "widget.go"
+    When itos runs "push"
+    Then itos exits with code 1
+    And its output says "custom the widget to origin/main, which is neither the registry's nor a commit push.pr.direct sends straight to main"
+    And the remote's branch does not have "custom the widget"
+    And the recording gh was never called
+
   # push.pr.direct admits a commit past itos push's own refusal, not past
   # main's pre-push hook: the push is the routine's, so the hook's commit
   # rules judge it as they judge a trunk push, and the scratch config's
