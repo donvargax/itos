@@ -4871,5 +4871,3 @@
     published, instead of a bare 404. Seen 2026-10-26 (run 40418143221, v8.25.0 left a draft with
     its tag made; main red until the person published it by hand). Its own merge is also T-315's
     proof: main's run of it should log the Trusted line.
-  done_when:
-    - run: "true"
