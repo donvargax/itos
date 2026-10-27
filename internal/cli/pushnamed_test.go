@@ -19,26 +19,34 @@ import (
 // itos's own hooks are stand-ins. sh runs a script in it.
 func namedPushRepo(t *testing.T) (dir string, sh func(string)) {
 	t.Helper()
-	dir = gitConfigRepo(t, "version: 1\n")
-	standInHooks(t)
 	for _, kv := range [][2]string{{"GIT_AUTHOR_NAME", "itos"}, {"GIT_COMMITTER_NAME", "itos"},
 		{"GIT_AUTHOR_EMAIL", "itos@example.com"}, {"GIT_COMMITTER_EMAIL", "itos@example.com"}} {
 		t.Setenv(kv[0], kv[1])
 	}
 	t.Setenv(git.EnvGit, git.Bin(runtime.GOOS))
-	sh = func(script string) {
-		t.Helper()
-		cmd := exec.Command("sh", "-c", script)
-		cmd.Dir = dir
-		if out, err := cmd.CombinedOutput(); err != nil {
-			t.Fatalf("%s: %s", script, out)
-		}
-	}
-	sh(`git checkout -q -b main && echo start > README.md && git add README.md && git commit -q -m 'chore: start' &&
+	// Made once for the package and copied: its history is twenty git starts.
+	dir = scratchCopy(t, madeOnce(t, "named-push", func(t *testing.T, template string) {
+		gitConfigRepoIn(t, template, "version: 1\n")
+		standInHooks(t)
+		shIn(t, template, `git checkout -q -b main && echo start > README.md && git add README.md && git commit -q -m 'chore: start' &&
 		git init -q --bare .git/origin.git && git remote add origin .git/origin.git && git push -q -u origin main &&
 		git tag -a -m v1 v1 && git checkout -q -b b && echo b > b.md && git add b.md && git commit -q -m 'docs: b' &&
 		git checkout -q main`)
-	return dir, sh
+	}))
+	return dir, func(script string) {
+		t.Helper()
+		shIn(t, dir, script)
+	}
+}
+
+// shIn runs the script with sh in the folder dir.
+func shIn(t *testing.T, dir, script string) {
+	t.Helper()
+	cmd := exec.Command("sh", "-c", script)
+	cmd.Dir = dir
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("%s: %s", script, out)
+	}
 }
 
 // What the ref names in the bare origin, "" for nothing.

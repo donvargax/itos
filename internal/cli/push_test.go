@@ -20,8 +20,6 @@ import (
 // itos's own hooks are stand-ins (standInHooks).
 func lateCommitRepo(t *testing.T) string {
 	t.Helper()
-	dir := gitConfigRepo(t, "version: 1\n")
-	standInHooks(t)
 	for _, name := range []string{"GIT_AUTHOR_NAME", "GIT_COMMITTER_NAME"} {
 		t.Setenv(name, "itos")
 	}
@@ -32,22 +30,19 @@ func lateCommitRepo(t *testing.T) string {
 	// run hands it to what it starts (git.Export): an itos linked as git
 	// would run git push here as itos push (T-104).
 	t.Setenv(git.EnvGit, git.Bin(runtime.GOOS))
-	sh := func(script string) {
-		t.Helper()
-		cmd := exec.Command("sh", "-c", script)
-		cmd.Dir = dir
-		if out, err := cmd.CombinedOutput(); err != nil {
-			t.Fatalf("%s: %s", script, out)
-		}
-	}
-	sh(`git checkout -q -b main && echo start > README.md && git add README.md && git commit -q -m 'chore: start' &&
+	// Made once for the package and copied: its commits and its origin are
+	// twenty git starts.
+	return scratchCopy(t, madeOnce(t, "late-commit", func(t *testing.T, dir string) {
+		gitConfigRepoIn(t, dir, "version: 1\n")
+		standInHooks(t)
+		shIn(t, dir, `git checkout -q -b main && echo start > README.md && git add README.md && git commit -q -m 'chore: start' &&
 		git init -q --bare .git/origin.git && git remote add origin .git/origin.git && git push -q -u origin main &&
 		echo mine > mine.md && git add mine.md && git commit -q -m 'docs: mine'`)
-	hook := "#!/bin/sh\necho late > late.md && git add late.md && git commit -q -m 'docs: late' -- late.md\n"
-	if err := os.WriteFile(filepath.Join(dir, ".git", "hooks", "pre-push"), []byte(hook), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	return dir
+		hook := "#!/bin/sh\necho late > late.md && git add late.md && git commit -q -m 'docs: late' -- late.md\n"
+		if err := os.WriteFile(filepath.Join(dir, ".git", "hooks", "pre-push"), []byte(hook), 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}))
 }
 
 // What git prints for the arguments in the current folder, trimmed.

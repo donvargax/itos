@@ -87,14 +87,21 @@ func TestAnEditDraftsRemovedCopyDeletesItsFile(t *testing.T) {
 // changed to "New." in the work tree: the list's file and itos's folder.
 func changedNotes(t *testing.T) (file, itosDir string) {
 	t.Helper()
-	dir, gitDir := notesRepo(t)
-	committer(t)
-	writeFile(t, filepath.Join(dir, "notes.md"), "Old.\n")
-	for _, args := range [][]string{{"add", "notes.md"}, {"commit", "-q", "--no-verify", "-m", "docs: add notes"}} {
-		if out, err := exec.Command(git.Bin(runtime.GOOS), append([]string{"-C", dir}, args...)...).CombinedOutput(); err != nil {
-			t.Fatalf("git %s: %s", strings.Join(args, " "), out)
+	scratchEnv(t)
+	// The repository with notes.md committed is made once for the package.
+	template := madeOnce(t, "committed-notes", func(t *testing.T, dir string) {
+		copyTree(t, notesTemplate(t), dir)
+		t.Chdir(dir)
+		committer(t)
+		writeFile(t, filepath.Join(dir, "notes.md"), "Old.\n")
+		for _, args := range [][]string{{"add", "notes.md"}, {"commit", "-q", "--no-verify", "-m", "docs: add notes"}} {
+			if out, err := exec.Command(git.Bin(runtime.GOOS), append([]string{"-C", dir}, args...)...).CombinedOutput(); err != nil {
+				t.Fatalf("git %s: %s", strings.Join(args, " "), out)
+			}
 		}
-	}
+	})
+	dir, gitDir := notesRepoCopy(t, template)
+	committer(t)
 	writeFile(t, filepath.Join(dir, "notes.md"), "New.\n")
 	itosDir = filepath.Join(gitDir, "itos")
 	return filepath.Join(itosDir, draft.Folder, draft.FileName), itosDir
