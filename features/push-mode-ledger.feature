@@ -28,6 +28,42 @@ Feature: Under push.mode pr, the ledger edits itos makes beside the registry go 
   added on an item's branch directly above main goes to main as a take made
   there does.
 
+  Slice-192: the registry's commits go to main wherever they sit in what an
+  item's branch pushes, not only directly above main. Seen on bug-150 (pull
+  request 198): the implementer branched from the remote's item branch,
+  which holds the spec commit, took the item there, and the take rode the
+  pull request, so main showed the item untaken until the merge. Under pr,
+  on an item's branch, the commits a push sends are those the remote's item
+  branch lacks (with no such branch, those main lacks). Each of them that
+  is the registry's, by the rule above, goes to main, put onto main's head
+  as the push fetched it, in their order; the rest go to the item's branch,
+  put onto the remote's item branch (or main), in theirs. A commit the
+  remote's item branch has already stays there: pushed history is never
+  rewritten and nothing is forced. Main and the item's branch still go in
+  one git push --atomic, so both land or neither. Locally the branch ends
+  without the commits sent to main, at the head pushed to the item's
+  branch; the clone's main need not move. When every commit sent is the
+  registry's, they go to main alone, as a branch of them does: the item's
+  branch is not pushed and no gh is called. A push that sends a commit to
+  main leaves the pull request behind main, so outside a plain draft push
+  it asks GitHub to rebase it (gh pr update-branch), as when main moved.
+  A registry commit that does not apply onto main's head (a take of an
+  item taken there first) is refused as the rebase onto main refuses one
+  (ID-PUSH-05): exit 1, nothing pushed to either branch, no gh called, the
+  work registry named and the item said to be taken, by its owner on
+  <remote>/<main>; no rebase is left in progress and the clone's branch is
+  as it was, so the push does not advise git rebase --skip but how to drop
+  the commit from the branch. The report has a line for each commit sent,
+  oldest first, main's first, "Sent <short> <subject> to <remote>/<branch>.",
+  before the "Pushed ..." line, which is unchanged; -q drops them as any
+  report line, and --json gains no key for them in this slice. A push that
+  sends nothing to main reports as before. The registry's commits directly
+  above main go to main as before: ID-PUSHLEDGER-03 here, ID-PUSHMODE-03
+  and ID-PUSHMODE-18 in push-mode.feature. The implementing commit rewords
+  this description's first paragraph, push-mode.feature's ("those directly
+  above main's head that are the registry's") and the push package's
+  doc.go (registryPrefix) where they say directly above main.
+
   Why paths and the registry, not the ledger's content. The ledger is not
   claims, but these three edits are bookkeeping that must not wait on a pull
   request: the close finishes a claim, and a task must be on main before it
@@ -65,6 +101,14 @@ Feature: Under push.mode pr, the ledger edits itos makes beside the registry go 
   the commit <subject> adding the idea <id> to the registry and touching
   <path>" is the idea step's registry edit and the touching step's line in
   <path>, in one commit, past the hooks.
+
+  Slice-192 needs three new steps. "the remote's branch <name> does
+  not have <subject>" is "the remote has the branch <name> with <subject>"
+  turned round, the remote having the branch. "the clone's HEAD is the head
+  of the remote's branch <name>" compares the two full SHAs. "the clone's
+  HEAD is the commit <subject>, with no rebase in progress" reads HEAD's
+  subject and finds neither rebase-merge nor rebase-apply in the clone's git
+  folder.
 
   Background:
     Given a repository whose ledger has the task "T-001"
@@ -128,6 +172,167 @@ Feature: Under push.mode pr, the ledger edits itos makes beside the registry go 
     And the remote's branch has "docs: add T-002"
     And the remote's branch does not have "feat: add the widget"
     And the remote has the branch "T-001" with "feat: add the widget"
+
+  # Slice-192's point, bug-150's case: the implementer branches from the
+  # remote's item branch, which holds the spec commit and the draft pull
+  # request, takes the item there and commits the work. The take is not
+  # directly above main, yet it is the registry's and the remote's item
+  # branch lacks it, so it goes to main and the work to the item's branch,
+  # in one atomic push; the clone's branch ends at the item branch's new
+  # head, without the take. Fails before the work at the first main step:
+  # today the take rides the pull request with the work, main lacking it.
+  @ID-PUSHLEDGER-08 @slice-192 @wip
+  Scenario: Under pr, a take above the item's pushed spec commit goes to main and the work to the item's branch
+    Given the work registry has the item "slice-9" owned by nobody with the status "todo"
+    And the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+        pr:
+          draft: true
+      """
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the clone is on the new branch "slice-9"
+    And the clone has the commit "docs: specify slice-9" touching "spec.md"
+    And git pushes HEAD to the remote's new branch "slice-9"
+    And the recording gh has the draft pull request "https://github.example/o/r/pull/7" open for the branch "slice-9"
+    And the clone has the commit "docs: take slice-9" making "bo" the owner of "slice-9"
+    And the clone has the commit "feat: add the widget" touching "widget.md"
+    When itos runs "push"
+    Then itos exits with code 0
+    And the remote's branch has "docs: take slice-9"
+    And the remote's branch does not have "docs: specify slice-9"
+    And the remote's branch does not have "feat: add the widget"
+    And the remote's branch "slice-9" ends with "docs: specify slice-9" then "feat: add the widget", with no merge commit
+    And the remote's branch "slice-9" does not have "docs: take slice-9"
+    And the clone's HEAD is the head of the remote's branch "slice-9"
+    And its output says "docs: take slice-9 to origin/main."
+    And its output says "feat: add the widget to origin/slice-9."
+    And its output does not say "docs: specify slice-9 to"
+
+  # The implementer's first push after taking the item on its branch, the
+  # take alone: every commit the remote's item branch lacks is the
+  # registry's, so they go to main alone, as a branch of registry commits
+  # does (ID-PUSHMODE-18): the item's branch is not pushed and no gh is
+  # called, its pull request open already. Fails before the work at the
+  # main step: today the take goes to the item's branch.
+  @ID-PUSHLEDGER-09 @slice-192 @wip
+  Scenario: Under pr, a take alone above the item's pushed spec commit goes to main, the item's branch left as it is
+    Given the work registry has the item "slice-9" owned by nobody with the status "todo"
+    And the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+        pr:
+          draft: true
+      """
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the clone is on the new branch "slice-9"
+    And the clone has the commit "docs: specify slice-9" touching "spec.md"
+    And git pushes HEAD to the remote's new branch "slice-9"
+    And the recording gh has the draft pull request "https://github.example/o/r/pull/7" open for the branch "slice-9"
+    And the clone has the commit "docs: take slice-9" making "bo" the owner of "slice-9"
+    When itos runs "push"
+    Then itos exits with code 0
+    And the remote's branch has "docs: take slice-9"
+    And the remote's branch does not have "docs: specify slice-9"
+    And the remote's branch "slice-9" does not have "docs: take slice-9"
+    And the clone's HEAD is the head of the remote's branch "slice-9"
+    And its output says "docs: take slice-9 to origin/main."
+    And the recording gh was never called
+
+  # Wherever it sits: an idea added mid-work, between two commits of the
+  # work, on a branch the remote does not have yet. The idea goes to main,
+  # the work to the item's branch without it, in its order. The pull
+  # request is then behind main by the idea, so the push asks GitHub to
+  # rebase it; the recording gh leaves the branch as itos pushed it, so the
+  # steps after see that push. Fails before the work at the main step:
+  # today the idea rides the pull request.
+  @ID-PUSHLEDGER-10 @slice-192 @wip
+  Scenario: Under pr, a registry commit between two commits of the work goes to main and the work to the item's branch
+    Given the work registry has the item "slice-9" owned by nobody with the status "todo"
+    And the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+      """
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the recording gh's pr update-branch leaves the branch as it is
+    And the clone is on the new branch "slice-9"
+    And the clone has the commit "feat: add the widget" touching "widget.md"
+    And the clone has the commit "docs: add p1-gadget" adding the idea "p1-gadget" to the registry
+    And the clone has the commit "test: cover the widget" touching "widget-test.md"
+    When itos runs "push"
+    Then itos exits with code 0
+    And the remote's branch has "docs: add p1-gadget"
+    And the remote's branch does not have "feat: add the widget"
+    And the remote's branch does not have "test: cover the widget"
+    And the remote's branch "slice-9" ends with "feat: add the widget" then "test: cover the widget", with no merge commit
+    And the remote's branch "slice-9" does not have "docs: add p1-gadget"
+    And the clone's HEAD is the head of the remote's branch "slice-9"
+    And the recording gh's "pr update-branch" call has "slice-9"
+
+  # A take that does not apply onto main's head, the item taken there first
+  # by ana, is refused as the rebase onto main refuses one (ID-PUSH-05):
+  # nothing pushed to either branch, the registry named and the item said
+  # to be taken by its owner on origin/main. No rebase is left in progress
+  # and the clone's branch is as it was, so git rebase --skip is no advice.
+  # Fails before the work at the exit code: today the take and the work go
+  # to the item's branch, exit 0.
+  @ID-PUSHLEDGER-11 @slice-192 @wip
+  Scenario: Under pr, a take above the item's pushed spec commit that meets a take on main is refused, nothing pushed
+    Given the work registry has the item "slice-9" owned by nobody with the status "todo"
+    And the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+        pr:
+          draft: true
+      """
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the remote has gained the commit "docs: ana takes slice-9" making "ana" the owner of "slice-9"
+    And the clone is on the new branch "slice-9"
+    And the clone has the commit "docs: specify slice-9" touching "spec.md"
+    And git pushes HEAD to the remote's new branch "slice-9"
+    And the recording gh has the draft pull request "https://github.example/o/r/pull/7" open for the branch "slice-9"
+    And the clone has the commit "docs: take slice-9" making "bo" the owner of "slice-9"
+    And the clone has the commit "feat: add the widget" touching "widget.md"
+    When itos runs "push"
+    Then itos exits with code 1
+    And its output says "tasks/work-items.yaml"
+    And its output says "slice-9 is taken: a commit on origin/main made ana its owner first."
+    And its output does not say "rebase --skip"
+    And the remote's registry gives "slice-9" the owner "ana"
+    And the remote's branch does not have "docs: take slice-9"
+    And the remote's branch "slice-9" does not have "feat: add the widget"
+    And the recording gh was never called
+    And the clone's HEAD is the commit "feat: add the widget", with no rebase in progress
+
+  # Only commits the remote's item branch lacks move: a take pushed there
+  # already, as bug-150's push left it, stays on the item's branch, since
+  # sending it to main would rewrite pushed history; it reaches main with
+  # the merge. A guard: it passes before the work and must after it.
+  @ID-PUSHLEDGER-12 @slice-192 @guard @wip
+  Scenario: Under pr, a take the remote's item branch has already stays there and is not sent to main
+    Given the work registry has the item "slice-9" owned by nobody with the status "todo"
+    And the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+        pr:
+          draft: true
+      """
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the clone is on the new branch "slice-9"
+    And the clone has the commit "docs: specify slice-9" touching "spec.md"
+    And the clone has the commit "docs: take slice-9" making "bo" the owner of "slice-9"
+    And git pushes HEAD to the remote's new branch "slice-9"
+    And the recording gh has the draft pull request "https://github.example/o/r/pull/7" open for the branch "slice-9"
+    And the clone has the commit "feat: add the widget" touching "widget.md"
+    When itos runs "push"
+    Then itos exits with code 0
+    And the remote's branch does not have "docs: take slice-9"
+    And the remote's branch "slice-9" ends with "docs: take slice-9" then "feat: add the widget", with no merge commit
 
   # A hand edit of a task's checks touches the ledger alone: no registry
   # bookkeeping, so it still goes through a pull request: main still ends
