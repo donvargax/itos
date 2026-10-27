@@ -4,6 +4,7 @@
 // builds on (that commit against the working tree), or --all when there is none.
 //
 //	go run ./tools/bin/go-unit-tests --cached | <base> | --all
+//	go run ./tools/bin/go-unit-tests -hook-env <package>...
 //
 // A changed file belongs to the package whose folder holds it, the deepest one, so a package's
 // testdata/ and embedded files count as the package. The run is those packages and every package
@@ -21,10 +22,17 @@
 // repository's commands would read and write this repository instead, its index and its hooks
 // included (p1-hook-env-unset-tracked; tools/selftest/hookenv, T-142).
 //
-// It was a shell script until T-326, which needs a Go test package beside it; the selection is
+// -hook-env is the nightly's (T-326, ADR-0051's tiers): it runs go test over the packages it is
+// given with the git environment a hook hands, in the worst case a test can meet it (hookenv.go),
+// so a test that writes through GIT_DIR or GIT_INDEX_FILE, or whose own repository inherits a
+// failing hook, is red every time and not when a reviewer happens to think of it. The hooks never
+// pass it; they drop the variables above.
+//
+// It was a shell script until T-326, which needed a Go test package beside it; the selection is
 // the script's, folders compared as slash paths so a native Windows run selects too.
 //
-// Exit status: 0 the tests passed or none was reached, 1 a test failed, 2 a usage error or a
+// Exit status: 0 the tests passed or none was reached, 1 a test failed (with -hook-env, or the
+// scratch repository changed), 2 a usage error or a
 // command this could not run.
 package main
 
@@ -53,7 +61,7 @@ var handed = []string{
 	"GIT_CONFIG_COUNT", "GIT_CONFIG_KEY_0", "GIT_CONFIG_VALUE_0", "GIT_CONFIG_PARAMETERS", "ITOS_GIT",
 }
 
-const usage = "usage: go run ./tools/bin/go-unit-tests --cached | <base> | --all"
+const usage = "usage: go run ./tools/bin/go-unit-tests --cached | <base> | --all | -hook-env <package>..."
 
 func main() {
 	os.Exit(run(os.Args[1:], ".", os.Stdout, os.Stderr))
@@ -61,6 +69,9 @@ func main() {
 
 // run is the program in dir, which every command it starts runs in.
 func run(args []string, dir string, stdout, stderr io.Writer) int {
+	if len(args) > 0 && args[0] == "-hook-env" {
+		return hookEnv(args[1:], dir, stdout, stderr)
+	}
 	if len(args) != 1 || args[0] == "" || (strings.HasPrefix(args[0], "-") && args[0] != "--all" && args[0] != "--cached") {
 		fmt.Fprintln(stderr, usage)
 		return 2
