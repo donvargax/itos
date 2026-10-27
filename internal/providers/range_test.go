@@ -304,3 +304,30 @@ func TestTheLastGreenProviderIsCIRanges(t *testing.T) {
 		t.Fatalf("provider none: ok %v, err %v", ok, err)
 	}
 }
+
+// A commit's SHA is percent-encoded as JavaScript's encodeURIComponent does:
+// the letters, digits and -_.!~*'() as they are, every other byte, those of
+// a character beyond ASCII included, as %XX. The bytes at the edges of each
+// class are the ones a comparison can get wrong.
+func TestEncodeURIComponentKeepsTheUnreservedBytesAndEscapesTheRest(t *testing.T) {
+	for _, c := range []struct{ in, want string }{
+		{"abcdef0123456789", "abcdef0123456789"},
+		{"azAZ09", "azAZ09"},
+		{"-_.!~*'()", "-_.!~*'()"},
+		{"", ""},
+		{" ", "%20"},
+		{"/", "%2F"},
+		{":", "%3A"},
+		{"@", "%40"},
+		{"[", "%5B"},
+		{"`", "%60"},
+		{"{", "%7B"},
+		{"a b&c=d", "a%20b%26c%3Dd"},
+		{"\x00\x7f", "%00%7F"},
+		{"é", "%C3%A9"},
+	} {
+		if got := encodeURIComponent(c.in); got != c.want {
+			t.Errorf("encodeURIComponent(%q) = %q, want %q", c.in, got, c.want)
+		}
+	}
+}
