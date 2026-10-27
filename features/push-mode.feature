@@ -126,6 +126,46 @@ Feature: push.mode pr, an item's work on its own branch merged by rebase, claims
   with neither ci nor run) the change breaks: it deletes both and names
   them in Changes:.
 
+  itos push --onto-main (slice-193) brings an item's branch up to main
+  itself: the one sanctioned rewrite of an item's own branch. GitHub cannot
+  rebase a pull request whose pushed commits conflict with main's (bug-151,
+  PR #201: two specs appending to one feature file's end), and gh pr
+  update-branch, which brings one main left behind up to date (bug-148, PR
+  #207, whose implementer could not run red without main's steps), is
+  refused to agents as destructive; both needed the person's force-push.
+  Under push.mode pr, on an item's branch, it fetches main and the item's
+  branch as a push does; rebases onto the remote's item branch first when
+  the clone lacks its head, as a push does, so a commit pushed there is
+  kept; then rebases the commits main lacks onto the remote's main; and
+  pushes the item's branch with git push
+  --force-with-lease=refs/heads/<item>:<the item's head it fetched>, the
+  registry's commits directly above main going to main in the same atomic
+  push as ever, the pre-push hook judging both (pre-push.feature accepts a
+  rewrite of a branch that is not main and drops no commit, slice-193). An
+  item's branch the remote moved after the fetch fails the lease: the
+  remote is left as it was, exit 1, outcome push-failed, saying to run
+  itos push --onto-main again. A rebase that stops is left in progress for
+  the person as itos push leaves one, nothing pushed, exit 1, outcome
+  rebase-stopped, its advice naming itos push --onto-main again rather than
+  itos push, which would rebase the rebased branch onto the remote's old
+  head. A branch that has main's head already needs no rewrite and is
+  pushed as itos push pushes it, and one the remote does not have yet is a
+  first push, rebased onto main as ever. After the push all is a push's:
+  the pull request found or opened, auto-merge, no update-branch since the
+  head pushed has main's, the wait for its run, and --no-wait and --ready
+  with it as without.
+
+  Outside push.mode pr (trunk, no config, a config that cannot be read)
+  --onto-main is refused once the config is read, before anything is
+  fetched or pushed, exit 1, outcome onto-main-without-pr; on main, once
+  main is known, exit 1, outcome onto-main-on-main. Exit 1, as --ready's
+  refusals are (push-mode-draft.feature): the arguments are well formed,
+  and only the repository makes them pointless. With --tag or --ref it is a
+  usage error, exit 2: "push --onto-main rebases an item's branch onto
+  main; it takes no --tag or --ref". No other force path opens: --force,
+  -f, --force-with-lease and a + refspec stay usage errors beside it, the
+  lease being itos's own, on the head it fetched.
+
   Without push.pr.draft the wait is a report, not a gate: auto-merge is
   turned on before it, so what stops a red merge is the repository's required
   checks, which itos init does not set yet (a later item). With push.pr.draft
@@ -137,14 +177,15 @@ Feature: push.mode pr, an item's work on its own branch merged by rebase, claims
   push from an item's branch, created saying whether it opened the pull
   request, updated whether it asked GitHub to rebase it (slice 179 adds
   draft and auto_merge), beside ci and run when it waited; outcome gains work-on-main, not-item-branch,
-  no-default-branch, no-github-repository and pull-request-failed.
+  no-default-branch, no-github-repository and pull-request-failed, and
+  slice-193 adds onto-main-without-pr and onto-main-on-main.
 
   Not in this slice: work done under pr, which closes an item only once its
   pull request has merged (rebase-merge keeps each commit's footers, so a
   main holding the merged commits is how it finds them; slice-176,
   work-done-pr.feature); itos init offering the repository's settings; main's run after the merge; a
   pull request main leaves behind after the last push, or GitHub cannot
-  rebase; a registry commit made on the branch above the work, which rides
+  rebase, unless someone runs itos push --onto-main (slice-193); a registry commit made on the branch above the work, which rides
   the pull request.
 
   The recording gh stands in for GitHub: first on the PATH, with
@@ -283,6 +324,236 @@ Feature: push.mode pr, an item's work on its own branch merged by rebase, claims
     And the recording gh's "pr update-branch" call has "slice-9"
     And the recording gh's "pr update-branch" call has "--rebase"
     And every call of the recording gh has "--repo owner/scratch"
+
+  # The slice's point (bug-151's PR #201, bug-148's PR #207): itos itself
+  # brings an item's branch main has moved past up to main, with a lease on
+  # the head it fetched, and the real pre-push hook, installed here, accepts
+  # the rewrite since it drops no commit. Main's "chore: tidy the docs" has no
+  # Task footer, which the commit rules want of a chore: the hook judges an
+  # accepted rewrite as it judges a new branch, by the commits on no
+  # remote-tracking branch (ID-PREPUSH-07), so main's commits, on the remote
+  # already, are not the pusher's, and judging them would refuse this push.
+  # The head pushed has main's, so GitHub is asked for no rebase. Fails
+  # before the work at the exit code: today --onto-main is a usage error,
+  # exit 2.
+  @ID-PUSHMODE-28 @slice-193 @wip
+  Scenario: Under pr, push --onto-main rebases an item's branch main has moved past onto main and pushes it, the pre-push hook accepting the rewrite
+    Given the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+      """
+    And the pre-push hook is installed
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the clone is on the new branch "slice-9"
+    And the clone has the commit "feat: add the widget" touching "widget.md"
+    And git pushes HEAD to the remote's new branch "slice-9"
+    And the recording gh has the pull request "https://github.example/o/r/pull/7" open for the branch "slice-9"
+    And the remote has gained the commit "chore: tidy the docs" touching "docs.md"
+    When itos runs "push --onto-main"
+    Then itos exits with code 0
+    And the remote's branch "slice-9" ends with "chore: tidy the docs" then "feat: add the widget", with no merge commit
+    And its output says "https://github.example/o/r/pull/7"
+    And the recording gh was never called as "pr update-branch"
+
+  # A commit pushed to the item's branch since the clone last had it (the
+  # coordinator's fix to the spec, say) is the item's work too: --onto-main
+  # takes it first, as itos push rebases onto the remote's item branch, then
+  # rebases the whole onto main, so the rewrite drops nothing. The pre-push
+  # hook is the scenarios' stand-in, which passes anything, so the remote
+  # shows what itos itself pushed. Fails before the work at the exit code:
+  # today --onto-main is a usage error, exit 2.
+  @ID-PUSHMODE-29 @slice-193 @wip
+  Scenario: Under pr, push --onto-main keeps a commit the remote's item branch has that the clone lacks
+    Given the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+      """
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the clone is on the new branch "slice-9"
+    And the clone has the commit "feat: add the widget" touching "widget.md"
+    And git pushes HEAD to the remote's new branch "slice-9"
+    And the recording gh has the pull request "https://github.example/o/r/pull/7" open for the branch "slice-9"
+    And the remote's branch "slice-9" has gained the commit "fix: mend the widget" touching "mend.md"
+    And the remote has gained the commit "chore: tidy the docs" touching "docs.md"
+    When itos runs "push --onto-main"
+    Then itos exits with code 0
+    And the remote's branch "slice-9" ends with "feat: add the widget" then "fix: mend the widget", with no merge commit
+    And the remote has the branch "slice-9" with "chore: tidy the docs"
+
+  # bug-151's case (PR #201): the item's pushed spec and a spec merged to
+  # main first both write one feature file, so the rebase onto main stops.
+  # It is left in progress for the person, nothing pushed and no gh called,
+  # and the advice names itos push --onto-main again: a plain itos push
+  # would rebase the rebased branch onto the remote's old head. Fails before
+  # the work at the exit code: today --onto-main is a usage error, exit 2.
+  @ID-PUSHMODE-30 @slice-193 @wip
+  Scenario: Under pr, push --onto-main whose rebase stops on a conflict with main leaves the rebase in progress and pushes nothing
+    Given the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+      """
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the clone is on the new branch "slice-9"
+    And the clone has the commit "docs: specify slice-9" touching "features/widget.feature"
+    And git pushes HEAD to the remote's new branch "slice-9"
+    And the recording gh has the pull request "https://github.example/o/r/pull/7" open for the branch "slice-9"
+    And the remote has gained the commit "docs: specify slice-8" touching "features/widget.feature"
+    When itos runs "push --onto-main"
+    Then itos exits with code 1
+    And its output says "git rebase --continue"
+    And its output says "itos push --onto-main again"
+    And the clone has a rebase in progress
+    And the remote's branch "slice-9" does not have "docs: specify slice-8"
+    And the recording gh was never called
+
+  # The lease: another clone pushes the item's branch after itos fetched it
+  # (while itos rebases, between its fetch and its push), so the head itos
+  # would replace is not the one it rebased from. git refuses the push and
+  # the remote keeps the other clone's commit, which a plain force would
+  # have dropped; nothing else changes. Fails before the work at the exit
+  # code: today --onto-main is a usage error, exit 2.
+  @ID-PUSHMODE-31 @slice-193 @wip
+  Scenario: Under pr, push --onto-main whose lease no longer holds is refused, the remote's item branch left as it was
+    Given the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+      """
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the clone is on the new branch "slice-9"
+    And the clone has the commit "feat: add the widget" touching "widget.md"
+    And git pushes HEAD to the remote's new branch "slice-9"
+    And the recording gh has the pull request "https://github.example/o/r/pull/7" open for the branch "slice-9"
+    And the remote has gained the commit "chore: tidy the docs" touching "docs.md"
+    And another clone pushes the commit "fix: mend the widget" touching "mend.md" to the remote's branch "slice-9" while itos rebases
+    When itos runs "push --onto-main"
+    Then itos exits with code 1
+    And its output says "itos push --onto-main again"
+    And the remote has the branch "slice-9" with "fix: mend the widget"
+    And the remote's branch "slice-9" does not have "chore: tidy the docs"
+    And the recording gh was never called
+
+  # After the push all is a push's: with ci.watch it waits for the run of
+  # the head it pushed, which has main's head, so GitHub is asked for no
+  # rebase and gh pr view for no other head. Fails before the work at the
+  # exit code: today --onto-main is a usage error, exit 2.
+  @ID-PUSHMODE-32 @slice-193 @wip
+  Scenario: Under pr with ci.watch, push --onto-main waits for the run of the head it pushed and exits 1 when it fails
+    Given the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+      """
+    And ci.watch asks a fake GitHub, which reports the run "https://ci.example/runs/1"
+    And the watched run's job "ci" fails and its job "platform" succeeds
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the clone is on the new branch "slice-9"
+    And the clone has the commit "feat: add the widget" touching "widget.md"
+    And git pushes HEAD to the remote's new branch "slice-9"
+    And the recording gh has the pull request "https://github.example/o/r/pull/7" open for the branch "slice-9"
+    And the remote has gained the commit "chore: tidy the docs" touching "docs.md"
+    When itos runs "push --onto-main"
+    Then itos exits with code 1
+    And its output says "ci: failure"
+    And the fake GitHub was asked for the run of the head of the remote's branch "slice-9"
+    And the recording gh was never called as "pr update-branch"
+    And the recording gh was never called as "pr view"
+
+  # --onto-main combines with --no-wait, which returns once the branch is
+  # pushed and its pull request asked for. Fails before the work at the
+  # exit code: today --onto-main is a usage error, exit 2.
+  @ID-PUSHMODE-33 @slice-193 @wip
+  Scenario: Under pr with ci.watch, push --onto-main --no-wait pushes the rebased branch and waits for no run
+    Given the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+      """
+    And ci.watch asks a fake GitHub, which reports the run "https://ci.example/runs/1"
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the clone is on the new branch "slice-9"
+    And the clone has the commit "feat: add the widget" touching "widget.md"
+    And git pushes HEAD to the remote's new branch "slice-9"
+    And the recording gh has the pull request "https://github.example/o/r/pull/7" open for the branch "slice-9"
+    And the remote has gained the commit "chore: tidy the docs" touching "docs.md"
+    When itos runs "push --onto-main --no-wait"
+    Then itos exits with code 0
+    And the remote's branch "slice-9" ends with "chore: tidy the docs" then "feat: add the widget", with no merge commit
+    And the fake GitHub was never asked about a run
+
+  # Only pr has items' branches to rewrite: elsewhere --onto-main is
+  # refused before anything is fetched or pushed, exit 1 as --ready's
+  # refusals are, since the arguments are well formed. No push.mode here, so
+  # trunk. Fails before the work at the exit code: today exit 2.
+  @ID-PUSHMODE-34 @slice-193 @wip
+  Scenario: Outside push.mode pr, push --onto-main is refused, exit 1, nothing pushed
+    Given a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the clone is on the new branch "slice-9"
+    And the clone has the commit "feat: add the widget" touching "widget.md"
+    When itos runs "push --onto-main --json"
+    Then itos exits with code 1
+    And its JSON's "outcome" is "onto-main-without-pr"
+    And the remote has no branch "slice-9"
+    And the remote's branch does not have "feat: add the widget"
+    And the recording gh was never called
+
+  # Main is no item's branch and is never rewritten: --onto-main from main
+  # is refused once main is known, even for a take that a plain push sends.
+  # Fails before the work at the exit code: today exit 2.
+  @ID-PUSHMODE-35 @slice-193 @wip
+  Scenario: Under pr, push --onto-main from main is refused, exit 1, nothing pushed
+    Given the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+      """
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the clone has the commit "docs: take slice-9" making "bo" the owner of "slice-9"
+    When itos runs "push --onto-main --json"
+    Then itos exits with code 1
+    And its JSON's "outcome" is "onto-main-on-main"
+    And the remote's branch does not have "docs: take slice-9"
+    And the recording gh was never called
+
+  # --onto-main pushes an item's branch, so --tag and --ref, which push what
+  # they name, have no place beside it. Fails before the work at the
+  # output: today it is a usage error too, but one that names no --tag or
+  # --ref.
+  @ID-PUSHMODE-36 @slice-193 @wip
+  Scenario Outline: push --onto-main with <named> is a usage error
+    Given the clone is on the new branch "slice-9"
+    And the clone has the commit "feat: add the widget" touching "widget.md"
+    When itos runs "push --onto-main <named>"
+    Then itos exits with code 2
+    And its output says "push --onto-main rebases an item's branch onto main; it takes no --tag or --ref"
+    And the remote has no branch "slice-9"
+
+    Examples:
+      | named         |
+      | --tag v1.0.0  |
+      | --ref slice-9 |
+
+  # No other force path opens beside --onto-main: its lease is itos's own,
+  # on the head it fetched, never one passed in. A guard: each is refused
+  # today, --onto-main with it, and must stay refused.
+  @ID-PUSHMODE-37 @slice-193 @guard @wip
+  Scenario Outline: push --onto-main with <force> is a usage error, never forcing
+    Given the clone is on the new branch "slice-9"
+    And the clone has the commit "feat: add the widget" touching "widget.md"
+    When itos runs "push --onto-main <force>"
+    Then itos exits with code 2
+    And its output says "push never forces"
+    And the remote has no branch "slice-9"
+
+    Examples:
+      | force              |
+      | --force            |
+      | -f                 |
+      | --force-with-lease |
+      | +slice-9           |
 
   # itos push again is how a push whose pull request was not opened (gh
   # missing or failing, as in @ID-PUSHMODE-11) is finished: with nothing to
