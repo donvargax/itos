@@ -46,6 +46,8 @@ var messageTokens = []token{
 	{"--no-edit", []string{"--no-edit"}},
 	{"--edit", []string{"--edit"}},
 	{"-C HEAD", []string{"-C", "HEAD"}},
+	{"-c HEAD", []string{"-c", "HEAD"}},
+	{"--reuse-message=HEAD", []string{"--reuse-message=HEAD"}},
 	{"--message=three", []string{"--message=three"}},
 	{"-mfour", []string{"-mfour"}},
 }
@@ -225,8 +227,13 @@ func (s *scratch) disagreement(t *testing.T, seq []token) (wrong string, refused
 	if g.noEdit && done.edited {
 		found = append(found, "noEdit is true, git started the editor")
 	}
-	if text, ok := g.message(context.Background(), earlierCommit{}); ok && cleanup(text) != cleanup(done.message) {
-		found = append(found, fmt.Sprintf("message is %q, git recorded %q", text, done.message))
+	if text, ok := g.message(context.Background(), earlierCommit{}); ok {
+		if cleanup(text) != cleanup(done.message) {
+			found = append(found, fmt.Sprintf("message is %q, git recorded %q", text, done.message))
+		}
+		if len(g.messages) == 0 && g.file == "" && done.edited {
+			found = append(found, "the message is a commit's, git started the editor")
+		}
 	}
 	return strings.Join(found, "; "), false
 }
@@ -238,8 +245,12 @@ func (s *scratch) disagreement(t *testing.T, seq []token) (wrong string, refused
 // file fileText, an editor that leaves the message) and through itos's reading.
 // Wherever itos gives a message, git's recorded one must be it, both after
 // git's default cleanup; amend must be whether git amended, and noEdit true
-// only where git started no editor. A sequence git refuses claims nothing,
-// nor does a message itos cannot read.
+// only where git started no editor; and where the message is a commit's, -C
+// or -c with --no-edit, or HEAD's for an amend (no -m, no -F), git started no
+// editor either. A sequence git refuses claims nothing, nor does a message
+// itos cannot read. The stand-in Show gives the earlier text for any
+// revision, so that the commit named is the one read is not held here
+// (ID-COMMITCMD-36).
 func TestMessageSourceMatchesGit(t *testing.T) {
 	pool := make(chan *scratch, min(runtime.NumCPU(), 8))
 	for range cap(pool) {

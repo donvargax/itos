@@ -224,17 +224,23 @@ var (
 
 // gitArgs are what itos reads of git commit's arguments, before any "--":
 // the messages -m gives and the file -F gives, each with where it sits among
-// the arguments, whether the commit amends HEAD (the last of --amend and
-// --no-amend winning), whether --no-edit keeps the message it starts with,
-// and the first option itos commit refuses (slice 128), "" when none:
+// the arguments, the commit -C (--reuse-message) or -c (--reedit-message)
+// names, whether the commit amends HEAD (the last of --amend and --no-amend
+// winning), which of --no-edit (noEdit) and --edit or -e (edit) came last,
+// whether --fixup or --squash is among them (derived), whose message git
+// makes, and the first option itos commit refuses (slice 128), "" when none:
 // --no-verify or -n, which skip the hooks, or -a or --all, which stage every
 // change to a tracked file.
 type gitArgs struct {
-	messages      []string
-	messagesAt    []valueAt
-	file          string
-	fileAt        valueAt
-	amend, noEdit bool
+	messages   []string
+	messagesAt []valueAt
+	file       string
+	fileAt     valueAt
+	// reuse and reedit are the commits -C and -c name, "" when none.
+	reuse, reedit string
+	amend         bool
+	noEdit, edit  bool
+	derived       bool
 	refused       string
 	// origin is where -F's file is read from: the query's Origin, from the
 	// folder itos runs in.
@@ -281,7 +287,7 @@ func readGitArgs(args []string) gitArgs {
 		case arg == "--amend", arg == "--no-amend":
 			g.amend = arg == "--amend"
 		case arg == "--no-edit", arg == "--edit":
-			g.noEdit = arg == "--no-edit"
+			g.noEdit, g.edit = arg == "--no-edit", arg == "--edit"
 		case gitrun.NoVerify(arg), arg == "--all":
 			g.refuse(arg)
 		case strings.HasPrefix(arg, "--") && slices.Contains(gitValued, name):
@@ -294,6 +300,12 @@ func readGitArgs(args []string) gitArgs {
 				g.messages, g.messagesAt = append(g.messages, value), append(g.messagesAt, at)
 			case "--file":
 				g.file, g.fileAt = value, at
+			case "--reuse-message":
+				g.reuse = value
+			case "--reedit-message":
+				g.reedit = value
+			case "--fixup", "--squash":
+				g.derived = true
 			case "--pathspec-from-file":
 				g.byPath = true
 			}
@@ -314,7 +326,7 @@ func (g *gitArgs) readCluster(cluster string, index int, next func() (string, va
 		c := cluster[j]
 		switch {
 		case c == 'e':
-			g.noEdit = false
+			g.noEdit, g.edit = false, true
 		case c == 'a' || c == 'n':
 			g.refuse("-" + string(c))
 		case c == 'u' || c == 'S':
@@ -330,16 +342,38 @@ func (g *gitArgs) readCluster(cluster string, index int, next func() (string, va
 				g.messages, g.messagesAt = append(g.messages, value), append(g.messagesAt, at)
 			case 'F':
 				g.file, g.fileAt = value, at
+			case 'C':
+				g.reuse = value
+			case 'c':
+				g.reedit = value
 			}
 			return
 		}
 	}
 }
 
+// reused is the commit whose message git takes without an editor, as git
+// refuses the arguments that name two sources: -C (--reuse-message) unless
+// --edit or -e came last, or -c (--reedit-message) only when --no-edit did,
+// and neither beside --fixup or --squash, which make a message of their own;
+// "" when there is none. A value that is an option is no commit, and git
+// refuses it.
+func (g gitArgs) reused() string {
+	commit, reads := g.reuse, !g.edit
+	if commit == "" {
+		commit, reads = g.reedit, g.noEdit
+	}
+	if !reads || g.derived || strings.HasPrefix(commit, "-") {
+		return ""
+	}
+	return commit
+}
+
 // message is the commit's message as far as itos can read it before git
-// runs: the -m ones joined as git joins them, the -F file, or, for an amend
-// with --no-edit and no -F, HEAD's in v; false when it comes from the editor
-// or stdin (-F -, whose text replaces HEAD's).
+// runs: the -m ones joined as git joins them, the -F file, the commit -C or
+// -c without an editor names, or, for an amend with --no-edit and no -F, HEAD's,
+// in v; false when it comes from the editor or stdin (-F -, whose text
+// replaces HEAD's), or the commit named does not resolve, which git refuses.
 func (g gitArgs) message(ctx context.Context, v vcsport.VCS) (string, bool) {
 	switch {
 	case len(g.messages) > 0:
@@ -349,6 +383,13 @@ func (g gitArgs) message(ctx context.Context, v vcsport.VCS) (string, bool) {
 	case g.file != "":
 		text, err := os.ReadFile(typed(g.origin, g.file))
 		return string(text), err == nil
+	case g.reuse != "" || g.reedit != "":
+		commit := g.reused()
+		if commit == "" {
+			return "", false
+		}
+		named, err := v.Show(ctx, commit)
+		return named.Message, err == nil
 	case g.amend && g.noEdit:
 		head, err := v.Show(ctx, "HEAD")
 		return head.Message, err == nil

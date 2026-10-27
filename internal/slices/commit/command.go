@@ -38,7 +38,8 @@ has a flag of its name in lower case (--upgrading for Upgrading:), unless
 --task, --item, --scenarios or --breaking has that name, and --breaking
 writes BREAKING-CHANGE:, the form git reads as a trailer; their value is the
 next argument, whatever it is. Every flag may repeat. Where itos reads the
-message (-m, -F <file>, HEAD's for --amend --no-edit), a footer it already
+message (-m, -F <file>, the commit's for -C <commit>, or -c <commit> with
+--no-edit, HEAD's for --amend --no-edit), a footer it already
 gives with the same value, read as the hook reads it, is not written again, so
 an amend keeps one, and one it gives with another value is refused, naming the
 footer and both values, nothing committed; a message it does not read (the
@@ -47,8 +48,10 @@ addIfDifferent).
 
 Before git runs, a commit whose type requires a footer that neither the flags
 nor the message give is refused, naming the flag, and nothing is committed;
-the type is read from -m, from -F <file>, or for --amend --no-edit from HEAD's
-message. A message from the editor, or -F -, is left to the hooks, which judge
+the type is read from -m, from -F <file>, from the commit's message for -C
+<commit>, or -c <commit> with --no-edit, or for --amend --no-edit from HEAD's
+message. A message from the editor (-c without --no-edit, -C with --edit), or
+-F -, is left to the hooks, which judge
 the commit as any other, so a commit they refuse is not made; ITOS_AMEND tells
 them whether --amend is among git's arguments, so they know an amend rather
 than guess one. Under a stealth config (<git common dir>/itos/itos.yaml) the

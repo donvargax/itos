@@ -21,8 +21,9 @@
 // lines within the header lint's 100 characters, and the content, the texts
 // of each footer in the config's order, then BREAKING-CHANGE. readGitArgs reads git's own
 // arguments as git reads them (a valued option's value skipped, so -m
-// --amend is a message): the -m messages, the -F file, --amend and
-// --no-edit, and the first option itos commit refuses (slice 128):
+// --amend is a message): the -m messages, the -F file, the commit -C or -c
+// names, --amend, which of --no-edit and --edit or -e came last, whether
+// --fixup or --squash is given (their message is git's own), and the first option itos commit refuses (slice 128):
 // --no-verify or -n, which skip the hooks, or -a or --all, which stage
 // every change to a tracked file, each in a cluster too (-am) and
 // --no-verify as git abbreviates it (gitrun.NoVerify). refuseCommitArgs
@@ -30,7 +31,8 @@
 // (hooks.PathSet: the shim's GIT_CONFIG_KEY_<n>, or git's
 // GIT_CONFIG_PARAMETERS), a usage error, exit 2. lacking refuses up front
 // what the hook would: from the message itos can read (-m, -F <file>, or
-// HEAD's for --amend --no-edit; nothing for the editor's or -F -), its
+// the named commit's for -C <commit>, or -c <commit> with --no-edit, read as
+// HEAD's is, HEAD's for --amend --no-edit; nothing for the editor's or -F -), its
 // type's required footers that neither it nor the flags give
 // (message.Missing), each named by its flag; Run reports them as a
 // rejection, exit 1, before git runs. settle compares, where itos reads the

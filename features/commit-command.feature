@@ -602,7 +602,7 @@ Feature: itos commit, a commit whose footers itos writes
   # its own words ('chore commits need a "Upgrading: <what a consumer must
   # do, or none>" footer'), which name no flag: the scenario fails at its
   # output says "--upgrading".
-  @ID-COMMITCMD-36 @bug-150 @wip
+  @ID-COMMITCMD-36 @bug-150
   Scenario: A commit -C reuses whose message lacks a footer its type requires is refused before git runs, naming the flag
     Given itos has committed with the arguments "--task T-001 -m 'chore: tidy the readme'"
     And the config requires an "Upgrading" footer of free text for "chore"
@@ -617,7 +617,7 @@ Feature: itos commit, a commit whose footers itos writes
   # Before the fix itos reads nothing, git adds "Scenarios: @ID-A-02" beside
   # the reused "Scenarios: @ID-A-01", both live, and the hook takes them: the
   # scenario fails at the exit code (0).
-  @ID-COMMITCMD-37 @bug-150 @wip
+  @ID-COMMITCMD-37 @bug-150
   Scenario: A footer the message -C reuses gives with other IDs than its flag's is refused before git runs, naming both
     Given a feature file "a.feature" with the live scenario "@ID-A-01"
     And a feature file "b.feature" with the live scenario "@ID-A-02"
@@ -633,7 +633,7 @@ Feature: itos commit, a commit whose footers itos writes
   # the fix readCluster skips -c's value and records nothing, git runs with
   # no editor, and the hook refuses in its own words: the scenario fails at
   # its output says "--upgrading".
-  @ID-COMMITCMD-38 @bug-150 @wip
+  @ID-COMMITCMD-38 @bug-150
   Scenario: A commit -c reuses with --no-edit whose message lacks a footer its type requires is refused before git runs, naming the flag
     Given itos has committed with the arguments "--task T-001 -m 'chore: tidy the readme'"
     And the config requires an "Upgrading" footer of free text for "chore"
@@ -647,7 +647,7 @@ Feature: itos commit, a commit whose footers itos writes
   # on other lines, as ID-COMMITCMD-27 for -F. Before the fix git adds
   # "Scenarios: @ID-A-01 @ID-A-02", no line of the message's, so each ID is
   # named twice: the scenario fails at the last step.
-  @ID-COMMITCMD-39 @bug-150 @wip
+  @ID-COMMITCMD-39 @bug-150
   Scenario: A footer the message --reuse-message reuses already gives with the same IDs is not written again
     Given a feature file "a.feature" with the live scenario "@ID-A-01"
     And a feature file "b.feature" with the live scenario "@ID-A-02"

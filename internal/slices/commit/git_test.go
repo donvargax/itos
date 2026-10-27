@@ -1,6 +1,7 @@
 package commit
 
 import (
+	"context"
 	"errors"
 	"os"
 	"path/filepath"
@@ -9,7 +10,63 @@ import (
 	"testing"
 
 	"github.com/donvargax/itos/v8/internal/out"
+	vcsport "github.com/donvargax/itos/v8/internal/vcs/port"
 )
+
+// shown answers Show with a message named after the revision, an error for
+// "missing".
+type shown struct{ vcsport.VCS }
+
+func (shown) Show(_ context.Context, rev string) (vcsport.Entry, error) {
+	if rev == "missing" {
+		return vcsport.Entry{}, errors.New("no such commit")
+	}
+	return vcsport.Entry{Message: "message of " + rev}, nil
+}
+
+// The message is the named commit's where -C names one and --edit or -e did
+// not come last, or -c names one and --no-edit did; HEAD's only for --amend
+// --no-edit with neither, never beside --fixup or --squash, and unread for a
+// commit that does not resolve or is an option.
+func TestMessageOfReusedCommit(t *testing.T) {
+	for args, want := range map[string]string{
+		"-C HEAD~2":                         "message of HEAD~2",
+		"-CHEAD~2":                          "message of HEAD~2",
+		"-qC HEAD~2":                        "message of HEAD~2",
+		"--reuse-message HEAD~2":            "message of HEAD~2",
+		"--reuse-message=HEAD~2":            "message of HEAD~2",
+		"-C a -C b":                         "message of b",
+		"-C HEAD~2 --no-edit":               "message of HEAD~2",
+		"-C HEAD~2 --edit":                  "",
+		"-C HEAD~2 -e":                      "",
+		"-C HEAD~2 --edit --no-edit":        "message of HEAD~2",
+		"-C HEAD~2 --no-edit --edit":        "",
+		"-c HEAD~2":                         "",
+		"-c HEAD~2 --edit":                  "",
+		"-c HEAD~2 --no-edit":               "message of HEAD~2",
+		"--reedit-message=HEAD~2 --no-edit": "message of HEAD~2",
+		"--no-edit -c HEAD~2 -e":            "",
+		"--amend --no-edit -C HEAD~2":       "message of HEAD~2",
+		"--amend --no-edit -c HEAD~2":       "message of HEAD~2",
+		"--amend -C HEAD~2":                 "message of HEAD~2",
+		"--amend --no-edit":                 "message of HEAD",
+		"--amend -C HEAD~2 --edit":          "",
+		"-C HEAD --squash HEAD":             "",
+		"-C HEAD --fixup=HEAD":              "",
+		"--no-edit -c HEAD --squash=HEAD":   "",
+		"-C missing":                        "",
+		"-C --output=x":                     "",
+		"-C":                                "",
+		"-m one -C HEAD":                    "one",
+		"-F - -C HEAD":                      "",
+		"-C HEAD -- --edit":                 "message of HEAD",
+	} {
+		got, ok := readGitArgs(strings.Fields(args)).message(context.Background(), shown{})
+		if got != want || ok != (want != "") {
+			t.Errorf("message of %q = %q, %v; want %q", args, got, ok, want)
+		}
+	}
+}
 
 // isUsage is whether err is a usage error, exit 2, whose words have text.
 func isUsage(err error, text string) bool {
