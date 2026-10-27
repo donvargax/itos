@@ -65,7 +65,6 @@ queue:
   - p1-commit-item-takes-task
   - p1-status-fetches-first
   - p1-devcontainer-actions-logs
-  - p1-ci-watch-prints-failed-log
   - p1-ci-affected-jobs
   - p2-feature-command-apostrophe
   - bug-146
@@ -15406,15 +15405,7 @@ items:
     title: itos ci watch and push print a failed step's log lines themselves, so a sandboxed agent need not fetch the log
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: []
     kind: idea
-    why: >
-      Seen 2026-10-27 on slice-191 (#208): the Plan step failed on an uncovered changed line; the
-      run's step log lives behind *.blob.core.windows.net, which the agents' sandbox refuses, and
-      itos said its log could not be read, so the implementer reproduced the push proof locally with
-      itos-cc to find the line (the coordinator reads logs for agents otherwise). ci watch could
-      read the failed job's log through the API host it already reaches (the jobs/<id>/logs redirect
-      is the blob host; check whether gh run view --log-failed or the check run's annotations/output
-      give the failing lines without it) and print the failing step's last lines.
     tags: [ci, v8]
