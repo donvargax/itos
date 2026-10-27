@@ -19,8 +19,8 @@ async function run($: EngineInterface, root: string, argv: string[]) {
 	}
 }
 
-// The only itos the titles run is the one on the PATH (T-097), as hooks/guard.sh
-// runs for the guard: never the repository's hooks.bin, nor a tools/bin/itos at
+// The only itos the titles run is the one on the PATH (T-097): never the
+// repository's hooks.bin, nor a tools/bin/itos at
 // its top, since the titles are asked for in every repository the plugin is
 // enabled for and a program a cloned repository ships would run just by opening
 // Claude Code there. A global install is the launcher, which fetches the version
