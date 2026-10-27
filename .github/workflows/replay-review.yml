@@ -15,6 +15,17 @@ on:
         required: true
         type: choice
         options: [diff, spec]
+      model:
+        description: The reviewer's model
+        required: false
+        default: claude-fable-5-1
+        type: string
+      effort:
+        description: The reviewer's effort
+        required: false
+        default: high
+        type: choice
+        options: [low, medium, high, xhigh, max]
 
 permissions:
   contents: read
@@ -29,6 +40,18 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
+      - name: Reviewer options
+        id: opts
+        env:
+          MODEL: ${{ inputs.model }}
+          EFFORT: ${{ inputs.effort }}
+        run: |
+          [[ "$MODEL" =~ ^[a-z0-9][a-z0-9.-]{0,63}$ ]] || { echo "::error::model is not a model name"; exit 1; }
+          case "$EFFORT" in
+            low | medium | high | xhigh | max) ;;
+            *) echo "::error::effort is not low, medium, high, xhigh or max"; exit 1 ;;
+          esac
+          printf 'model=%s\neffort=%s\n' "$MODEL" "$EFFORT" >> "$GITHUB_OUTPUT"
       - name: Pull request
         id: pr
         env:
@@ -89,7 +112,7 @@ jobs:
           github_token: ${{ github.token }}
           prompt: ${{ steps.input.outputs.prompt }}
           claude_args: >-
-            --model claude-fable-5-1 --effort high --max-turns 40
+            --model ${{ steps.opts.outputs.model }} --effort ${{ steps.opts.outputs.effort }} --max-turns 80
             --allowedTools Read,Grep,Glob
             --disallowedTools Bash,Write,Edit,MultiEdit,NotebookEdit,WebFetch,WebSearch,Task,Agent,TodoWrite
             --add-dir ${{ runner.temp }}/review
@@ -97,5 +120,8 @@ jobs:
         if: always() && steps.review.outputs.execution_file != ''
         env:
           EXEC: ${{ steps.review.outputs.execution_file }}
+          MODEL: ${{ steps.opts.outputs.model }}
+          EFFORT: ${{ steps.opts.outputs.effort }}
         run: |
+          echo "model=$MODEL effort=$EFFORT"
           jq -r '.[] | select(.type == "result") | "turns=\(.num_turns) ms=\(.duration_ms) usage=\(.usage | tojson)", .result' "$EXEC"
