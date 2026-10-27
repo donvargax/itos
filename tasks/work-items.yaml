@@ -15008,7 +15008,7 @@ items:
     title: Remove the reviewer replay's workflow and prompts
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
 

@@ -4999,9 +4999,6 @@
     among the gates (tools/selftest, a workflow list, actionlint config);
     docs/plans/reviewer-replay.md keeps describing what was run and stays. The replay PRs and refs
     are the person's to clean up.
-  done_when:
-    - run: test ! -e .github/workflows/replay-review.yml
-    - run: test ! -e .github/replay-review
 
 - id: T-326
   type: ci
