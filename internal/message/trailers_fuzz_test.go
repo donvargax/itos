@@ -157,7 +157,7 @@ const breakingSpaced = breakingKey + ":"
 // trailer (its key has a space), which itos reads as one by design (trailers.go): git is
 // given the message with that key spelled BREAKING-CHANGE, the one it is read as, so
 // every other difference between the readers is a difference.
-func gitTrailers(t *testing.T, dir string, env []string, message, comment string) []trailer {
+func gitTrailers(t testing.TB, dir string, env []string, message, comment string) []trailer {
 	t.Helper()
 	lines := strings.Split(message, "\n")
 	for i, l := range lines {
@@ -211,13 +211,20 @@ func itosTrailers(message, comment string) []trailer {
 // Two differences are by design and no disagreement. BREAKING CHANGE is a footer for itos
 // and none for git (trailers.go's header), so git reads the message with that key
 // spelled BREAKING-CHANGE (gitTrailers). A message with a NUL is not one git commit takes,
-// and git reads it to the NUL.
+// and git reads it to the NUL. The git that runs may differ too: see oldGit.
 func FuzzTrailersMatchGit(f *testing.F) {
 	dir, env := gitSetup(f)
+	// Newer git reads no line that begins with a URL as a trailer, as itos does (separatorAt);
+	// an older one reads "Link://x" as the trailer Link, so with that git a message holding "://"
+	// is not compared.
+	oldGit := len(gitTrailers(f, dir, env, "x\n\nLink://x\n", "#")) > 0
 	f.Fuzz(func(t *testing.T, subject, body, text string, ops []byte, style uint8) {
 		message, comment := fuzzMessage(subject, body, text, ops, style)
 		if strings.Contains(message, "\x00") {
 			t.Skip("git reads a message as a C string, to its first NUL, and commit refuses one that holds a NUL")
+		}
+		if oldGit && strings.Contains(message, "://") {
+			t.Skip("this git reads a line beginning with a URL as a trailer")
 		}
 		want := gitTrailers(t, dir, env, message, comment)
 		// A known disagreement, not a difference by design: unfolded trims a value with
