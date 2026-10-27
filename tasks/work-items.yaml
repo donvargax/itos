@@ -15144,3 +15144,21 @@ items:
       ends with its own exit and message.
     refs: [internal/slices/push]
     tags: [push, review, v8]
+
+  - id: p1-shared-git-isolation
+    title: One isolation rule for unit tests that run git, so a new helper cannot drop GIT_CONFIG_PARAMETERS again
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      T-326 (2026-10-27) found 14 packages red under a git hook's environment, almost all for one
+      cause: each package keeps its own list of git variables its helpers clear (alone, laidOut,
+      loaded, notHooked and the like), and every list lacked GIT_CONFIG_COUNT and
+      GIT_CONFIG_PARAMETERS; internal/cli's madeOnce fixtures ran before any helper cleared anything
+      (K170's class). The lists will drift again. Options: one test-only package every git-running
+      test imports (the variables named once, a TestMain helper), or an architecture check refusing
+      a test package that runs git without it. The nightly's -hook-env run catches a drift a day
+      late; this would stop it at the commit.
+    tags: [tests, v8]
