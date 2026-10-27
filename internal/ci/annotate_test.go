@@ -345,6 +345,14 @@ func TestWithin(t *testing.T) {
 	}
 }
 
+// A path that does not exist is related as written.
+func TestResolvedKeepsWhatDoesNotExist(t *testing.T) {
+	missing := filepath.Join(t.TempDir(), "missing")
+	if got := resolved(missing); got != missing {
+		t.Errorf("resolved(%q) = %q", missing, got)
+	}
+}
+
 // A finder keeps the first line that begins with a path of a file of its
 // folder, a line and a colon, whatever way the text is cut into writes.
 func TestFinder(t *testing.T) {
