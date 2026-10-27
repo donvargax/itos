@@ -10502,6 +10502,11 @@ items:
 
       The person, 2026-10-27: moved to v8 with the other friction. Related:
       p1-done-item-through-gate-task (bug-146's ci commits could only name T-333).
+
+      The person, 2026-10-27 (decided): a build or ci commit (and so a comment-only Go change) may
+      carry Item: <id> naming any open item, bug, slice, task or idea, as test, docs and chore
+      already may; its done is judged by the commit landing green. A gate change no longer needs a
+      ledger task with a check of its own.
     tags: [commit, v8]
 
   - id: p1-fix-deps-releases
