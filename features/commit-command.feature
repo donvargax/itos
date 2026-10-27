@@ -663,3 +663,25 @@ Feature: itos commit, a commit whose footers itos writes
     When itos commits with the arguments "--scenarios @ID-A-01,@ID-A-02 --reuse-message HEAD"
     Then itos exits with code 0
     And HEAD's "Scenarios" footers name exactly "@ID-A-01, @ID-A-02", each once
+
+  # Bug 151: a footer's value is trimmed as git trims it, of the tab, line
+  # feed, carriage return and space alone (the decisions are above
+  # ID-UPGRADE-06 in upgrading.feature). Written.Against reads the message's
+  # texts through Texts, so the message's "run itos upgrade" and a no-break
+  # space, which git reads with its no-break space, is no longer the flag's
+  # "run itos upgrade": the sets differ, and the commit is refused before git
+  # runs, naming both, as bug 138 refuses any other text. The new Given "the
+  # scratch file <path> contains <text>, its backslash escapes read as Go's"
+  # writes the text, read as the body of a Go string literal (strconv.Unquote
+  # of it in double quotes), exactly, in the repository's root, as "the
+  # scratch file <path> contains exactly:" does. Before the fix both texts
+  # are "run itos upgrade", nothing is written, the hook passes and the
+  # commit is made: it fails at itos exits with code 1 (it exits 0).
+  @ID-COMMITCMD-40 @bug-151 @wip
+  Scenario: A free-text footer the message gives with a trailing no-break space is not its flag's text without one
+    Given the config requires an "Upgrading" footer of free text for "chore"
+    And the scratch file "msg.txt" contains "chore: tidy the readme\n\nTask: T-001\nUpgrading: run itos upgrade \n", its backslash escapes read as Go's
+    When itos commits with the arguments "--upgrading 'run itos upgrade' -F msg.txt"
+    Then itos exits with code 1
+    And its output says "Upgrading: the message gives"
+    And no commit was made
