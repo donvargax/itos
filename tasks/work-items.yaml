@@ -14869,3 +14869,18 @@ items:
       pinSeed overwrites a named seed of 0 (Codex security review, s156); (3) docs/rule-ids.md lacks
       the <key>-footer-differs rule family bug-138 added (Fable max, s143). Each a small fix with a
       test; take them together.
+
+  - id: p1-guide-work-add-phase
+    title: itos guide work's work add example shows --phase, which a registry of several phases requires (#169)
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Consumer report #169: two agents ran guide work's 'itos work add <idea-id> --title … --why …'
+      in a registry with three phases and unprefixed idea ids; both were refused for --phase and
+      retried. The example should show --phase <phase>, or say it is needed when the registry has
+      several phases and the id names none, as work add --help does.
+    refs: [internal/guide]
+    tags: [docs, work, v8]
