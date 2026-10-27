@@ -200,6 +200,55 @@ Feature: itos decision, the decisions waiting on the person a repository's work 
     And the file "docs/decisions/README.md" says "Use Go"
     And the file "docs/decisions/README.md" says "Triage issues with labels"
 
+  # Bug 153 (found 2026-10-27 by T-329's FuzzStrictYAML oracle): a record's
+  # status was read with yaml.Unmarshal into a map, not value.Parse, which
+  # reads every other YAML file itos reads. Under a null key (null:, ~: or
+  # a bare ?) yaml/v3 lets a key written twice through, so frontmatter Parse
+  # refuses gave the status it holds: rejected here, so the record left the
+  # index. It is the one such shape the fuzzer found: a key written twice
+  # anywhere else, or an alias that never ends, yaml/v3 refuses too, and that
+  # frontmatter has read as none since bug 19.
+  #
+  # Decided (the coordinator, 2026-10-27): Record.Status reads the
+  # frontmatter through value.Parse. Frontmatter Parse refuses is no
+  # frontmatter, as frontmatter that is not YAML always was (MADR makes it
+  # optional, bug 19): no status, so the record is live and the index lists
+  # it. Frontmatter Parse reads gives the status Parse reads, trimmed, none
+  # when it is no string.
+  # So a date is its text (Parse has no timestamps; yaml/v3 read a time, so
+  # no status), 1_000 and 0b11 their text (yaml/v3 read numbers), 017 and
+  # 1e3 numbers and so no status, as before. None of those starts with
+  # superseded, deprecated or rejected, so each record stays live and
+  # listed, as it was: no command shows the difference. A status merged in
+  # with << is no status, since Parse reads << as a key like any other, as
+  # itos reads every YAML file; a record whose only status was merged in is
+  # live. The fix lands T-329's held FuzzStrictYAMLStatus in internal/adr,
+  # with its seeds and this frontmatter's; its exclusion of merge keys can
+  # go, since Status then reads what Parse reads.
+  #
+  # Before the fix Status reads "rejected", the record is not live and the
+  # index leaves it out, so it fails at the file "docs/decisions/README.md"
+  # says "Use Go".
+  @ID-ASK-44 @bug-153 @wip
+  Scenario: A record whose frontmatter has a key written twice under a null key has no status, and is listed in the index as live
+    Given the committed file "docs/decisions/0001-use-go.md" holding the lines:
+      """
+      ---
+      status: rejected
+      null:
+        owner: a
+        owner: b
+      ---
+
+      # Use Go
+      """
+    And itos has run the command line "decision add 'Labels or Projects?'"
+    And itos has run the command line "decision answer q-1 'Labels.'"
+    When itos runs the command line "decision record q-1 --title 'Triage issues with labels'"
+    Then itos exits with code 0
+    And the file "docs/decisions/README.md" says "Use Go"
+    And the file "docs/decisions/README.md" says "Triage issues with labels"
+
   # Bug 22 (found 2026-10-04 recording q-12): ask record's commit body names
   # the record's file, docs/decisions/<nnnn>-<slug>.md, on one line, so a
   # title of about 120 characters made that line longer than the header

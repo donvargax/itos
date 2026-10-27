@@ -225,3 +225,113 @@ Feature: The id counter, so an id itos mints is minted once
     And its output says "refs/itos/ids is frozen here"
     And the registry has no item "slice-10"
     And the remote has no ref "refs/itos/ids"
+
+  # Bug 153 (found 2026-10-27 by T-329's FuzzStrictYAML oracle): the counter
+  # file (.git/itos/ids.yaml, the counter under a stealth config or with no
+  # remote) was read with yaml.Unmarshal, not value.Parse, which reads every
+  # other YAML file itos reads. So it read the first document alone, a second
+  # one, broken or not, ignored; it missed a key written twice and an alias
+  # that never ends under any key but counters; and it read YAML 1.1's
+  # numbers: 017 as 15 (octal), 1_000 as 1000 and 0b11 as 3, where Parse
+  # reads 17 and two strings, and 1.5 as 1.
+  #
+  # Decided (the coordinator, 2026-10-27): the counter file is read through
+  # value.Parse, as upgrade's workflow reader does since K150b, and Parse's
+  # value is held to the file's shape. Refused, writing nothing:
+  # - whatever Parse refuses, anywhere in the file: a syntax error, a second
+  #   document, a key written twice at any depth, an alias inside its own
+  #   anchor or expanding past the bound Parse reads through (bug 39);
+  # - a top that is no mapping, and a counters that is no mapping (an empty
+  #   file, a file without counters and an empty counters are no counters,
+  #   as before);
+  # - a counter that, as Parse reads it, is no whole number from 0 to
+  #   9007199254740991 (2^53 - 1, the largest whole number Parse's numbers,
+  #   JavaScript's, hold exactly): 1_000 and 0b11, strings to Parse, a quoted
+  #   number, null, 1.5, -3. Such a counter is refused rather than read as
+  #   none, since the counter exists so that no number is minted twice, and
+  #   one read lower than it was written would mint a number handed out.
+  # A number is read as Parse reads it: 017 is 17, 0x10 16, 1e3 1000, and
+  # the key 0x10 is the category "16". Keys beside counters are read by
+  # Parse, and otherwise left alone, as before.
+  #
+  # A refusal is a data file itos refuses: exit 2 (kind.Usage, ADR-0036).
+  # The key written twice that yaml/v3 refused too exited 70, the code of an
+  # error that is itos's to fix, which a hand edit is not. The message keeps
+  # its form, "read id counter <file>: <why>", the why Parse's error or the
+  # counter's category and value, checked loosely (ADR-0052).
+  #
+  # itos writes the file with yaml.Marshal of a map of category to int: one
+  # document, a block mapping, every counter a plain decimal and every
+  # category letters, digits and dashes, quoted where YAML would read it as
+  # something else. So no file itos wrote reads otherwise, and the change
+  # reaches a hand-edited one alone (and a counter past 2^53 - 1, which only
+  # nine quadrillion claims reach: refused, so no number is minted twice).
+  # The remote's counter, one file of digits a category, read with
+  # strconv.Atoi, is not this reader's and does not change. The fix lands
+  # T-329's held FuzzStrictYAMLCounter in internal/idcounter, with seeds of
+  # each form above and the one T-329 held, "&0,", a top Parse reads as a
+  # string.
+  #
+  # Each scenario writes the counter file by hand, uncommitted, into a
+  # repository with no remote, where the counter is that file.
+  #
+  # A second document: the first counters say task 1, the second task 20.
+  # Before the fix the reader takes the first, task add mints T-002 and exits
+  # 0, so it fails at "itos exits with code 2". The Given is new: it writes
+  # the doc string to the file, as "the file ... is changed to hold" writes
+  # one line (draft_test.go).
+  @ID-IDS-12 @bug-153 @wip
+  Scenario: A counter file with a second document is refused with exit 2, and nothing is minted
+    Given a repository whose ledger has the task "T-001"
+    And the work registry has the item "T-001" owned by nobody with the status "done"
+    And the file ".git/itos/ids.yaml" holds the lines:
+      """
+      counters:
+        task: 1
+      ---
+      counters:
+        task: 20
+      """
+    When itos runs the command line "task add --group 1 --type chore --title 'Tidy the readme' --why 'It drifted.' --check 'true'"
+    Then itos exits with code 2
+    And its output says "more than one document"
+    And the registry has no item "T-002"
+    And the registry has no item "T-021"
+    And the file ".git/itos/ids.yaml" says "task: 20"
+
+  # 017 is 17, as Parse reads it, not YAML 1.1's octal 15. The area's files
+  # hold @ID-A-01, so the counter alone sets the number. Before the fix the
+  # reader reads 15 and tests next-id prints @ID-A-16, so it fails at its
+  # output says "@ID-A-18".
+  @ID-IDS-13 @bug-153 @wip
+  Scenario: A counter written 017 is read as 17, as itos reads every other YAML file
+    Given a repository whose ledger has the task "T-001"
+    And a feature file "a.feature" with the live scenario "@ID-A-01"
+    And the file ".git/itos/ids.yaml" is changed to hold "counters: {ID-A: 017}"
+    When itos runs "tests next-id scenario ID-A"
+    Then itos exits with code 0
+    And its output says "@ID-A-18"
+    And the file ".git/itos/ids.yaml" says "ID-A: 18"
+
+  # The one-line forms, in flow style. Before the fix the key written twice
+  # exits 70 and every other form mints (slice-10, or slice-1001 from 1_000)
+  # and exits 0, so each fails at "itos exits with code 2".
+  @ID-IDS-14 @bug-153 @wip
+  Scenario Outline: A counter file Parse refuses, or a counter that is no whole number, is refused with exit 2, and nothing is minted
+    Given a repository whose ledger has the task "T-001"
+    And the work registry has the item "slice-9" owned by nobody with the status "todo"
+    And the file ".git/itos/ids.yaml" is changed to hold "<file>"
+    When itos runs the command line "work add --kind slice --title 'Do the thing' --why 'Because.'"
+    Then itos exits with code 2
+    And its output says "id counter"
+    And the registry has no item "slice-10"
+    And the file ".git/itos/ids.yaml" says "<file>"
+
+    Examples:
+      | form                                       | file                                   |
+      | a key written twice                        | counters: {slice: 1, slice: 20}        |
+      | an alias that never ends, beside counters  | {counters: {slice: 1}, notes: &n [*n]} |
+      | 1_000, a string to Parse                   | counters: {slice: 1_000}               |
+      | 0b11, a string to Parse                    | counters: {slice: 0b11}                |
+      | 1.5, no whole number                       | counters: {slice: 1.5}                 |
+      | a number below 0                           | counters: {slice: -3}                  |
