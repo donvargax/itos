@@ -14827,8 +14827,8 @@ items:
   - id: bug-147
     title: TestRunJSONWorkflowLines' "stealth, already" case may pass on a refusal's empty JSON, not the already-current path
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: bug
     why: >
