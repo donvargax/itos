@@ -39,13 +39,14 @@ commits:
       read_at: commit
     # The work registry item a commit belongs to, for the commits no other footer ties to it: a
     # spec in a docs commit, a slice's steps committed red first in a test commit, a chore it
-    # needs (slice 63, T-083). Taken in place of Task for those types, since a slice has no task;
-    # every other type still needs its Task. itos commit --item <id> writes it.
+    # needs (slice 63, T-083), a gate change or a comment-only Go change made for an item (T-334).
+    # Taken in place of Task for those types; every other type still needs its Task. itos commit
+    # --item <id> writes it.
     Item:
       source: registry
       validate_for: all
       read_at: commit # a commit is judged against the registry it carried
-      in_place_of: { Task: [test, docs, chore] }
+      in_place_of: { Task: [test, docs, chore, refactor, build, ci] }
     # What a consumer of itos must change for the commit, or none: feat and fix are
     # what a consumer can feel. itos commit footers gathers them into a release's
     # Upgrading section, and release-notes' self-test holds the asset to them. since: the commit
@@ -83,8 +84,8 @@ commits:
       - "{cmd,internal}/**/*.go"
     # The gates themselves: the config, the workflows, the hooks (tools/bin/pre-commit beside
     # itos's), their Go code and self-tests, the dependency check's exceptions and the formatter's
-    # config. Only build and ci, which need a Task, may touch them (T-098); every other type that
-    # could has them in never.
+    # config. Only build and ci may touch them (T-098); every other type that could has them in
+    # never.
     gates:
       - itos.yaml
       - ".github/**"
