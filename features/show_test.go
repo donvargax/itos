@@ -23,6 +23,7 @@ func initializeShowSteps(sc *godog.ScenarioContext, w *world) {
 	})
 	sc.Step(`^its output says "([^"]*)" before "([^"]*)"$`, w.outputSaysBefore)
 	sc.Step(`^its JSON's "([^"]*)" has one entry whose "([^"]*)" is "([^"]*)"$`, w.jsonListHasOne)
+	sc.Step(`^its JSON's "([^"]*)" entry whose "([^"]*)" is "([^"]*)" has no "([^"]*)"$`, w.jsonListEntryLacks)
 }
 
 // A feature file at the path, from the repository's top, of one live
@@ -50,6 +51,25 @@ func (w *world) outputSaysBefore(text, later string) error {
 	}
 	if !strings.Contains(output[at+len(text):], later) {
 		return fmt.Errorf("the output does not say %q after %q\n%s", later, text, w.report())
+	}
+	return nil
+}
+
+// Standard output is one JSON object whose list under the key has one entry,
+// and one only, whose field is the value, and that entry has no key absent
+// (slice 199).
+func (w *world) jsonListEntryLacks(key, field, want, absent string) error {
+	if err := w.jsonListHasOne(key, field, want); err != nil {
+		return err
+	}
+	var object map[string][]map[string]any
+	if err := json.Unmarshal([]byte(w.stdout), &object); err != nil {
+		return fmt.Errorf("the output is not JSON: %v\n%s", err, w.report())
+	}
+	for _, entry := range object[key] {
+		if _, has := entry[absent]; has && fmt.Sprint(entry[field]) == want {
+			return fmt.Errorf("the JSON's %q entry whose %q is %q has %q\n%s", key, field, want, absent, w.report())
+		}
 	}
 	return nil
 }
