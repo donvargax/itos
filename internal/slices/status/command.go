@@ -44,15 +44,25 @@ this itos writes (none for no block, or a file it cannot read); the person's
 items in progress; the next items they can start, theirs and the unowned, in the queue's order and the unqueued
 after, five at most, each its id, its tags in brackets when it carries any, and
 its title; the open questions (itos decision); and the drafts waiting
-for itos draft promote, when there are any. It reads, never writes
-or fetches. What cannot be reached (no remote, ci.watch.provider none, a
+for itos draft promote, when there are any. It reads, and writes nothing
+but the remote-tracking ref of the one branch it reads, which it fetches
+first, quietly, never prompting, within 20 seconds (git fetch --quiet
+--no-tags of that ref; from a detached HEAD the remote's own refspecs): not
+with no remote, under a stealth config, or when the remote answers without
+the branch. After a fetch that worked, a clone whose HEAD lacks commits of that
+branch is told so before the work lists, "<branch> is <n> commits behind
+<remote>/<branch>: git pull before reading the work below." (from a detached
+HEAD, "switch to a branch and pull" instead), the items being read from the
+working tree. A fetch that fails is a line, "<remote>/<branch> cannot be
+fetched: " and git's first line of why, and the rest is read as last fetched.
+What cannot be reached (no remote, ci.watch.provider none, a
 provider that fails, for the head or the nightly, a ci.range provider that
 fails) is one line naming it, and the rest still prints, exit 0.
 Exit 1 when the work registry is not there or not sound, 3 when --as is not
 among the people. itos go prints it last.
 
 --json: {"schema":1,"person","every_item"?,"head":{"remote","branch","commit",
-"header","last_fetched","visibility"?}|null,"ci":{"result","run"?}|null,"last_green":
+"header","last_fetched","visibility"?}|null,"behind"?,"ci":{"result","run"?}|null,"last_green":
 {"commit","header"}|null,"nightly":{"url","status","conclusion"?,"jobs"}|null,
 "release":{"tag","commit","last_fetched"}|null,"unreleased":["<header>"]|null,
 "itos":{"runs","newest","new_major"}|null,"agent_rules":{"stale":["<path>"]}|null,
@@ -64,7 +74,9 @@ ci.range's provider is none, it names no commit or it cannot be read, header ""
 when not fetched; nightly null when no nightly is named, it has no run yet or it
 cannot be read; unreleased null with no release or when they cannot be listed;
 itos null when its line is left out; agent_rules the files holding a stale
-block, null with none; unread the lines of what could not be reached`,
+block, null with none; behind how many commits of the fetched branch HEAD lacks,
+0 when it is up to date, left out when no fetch worked; unread the lines of what
+could not be reached`,
 	},
 	Spec: declare.Spec{Flags: []declare.Flag{declare.Value("--as")}},
 }

@@ -727,12 +727,12 @@ cases:
     git:
       - commit: "chore: first"
         files: { README.md: "first\n" }
-      - run: 'git tag v1.2.0 && git init -q --bare -b main .git/origin.git && git remote add origin .git/origin.git && git push -q --tags origin main && git fetch -q origin && git clone -q .git/origin.git .git/other && git -C .git/other commit -q --allow-empty -m "feat: add the archive" && git -C .git/other push -q origin main && rm -rf .git/other'
+      - run: 'git tag v1.2.0 && git init -q --bare -b main .git/origin.git && git remote add origin .git/origin.git && git push -q --tags origin main && git fetch -q origin && t=$(printf "100644 blob 0123456789abcdef0123456789abcdef01234567\tlost.txt\n" | git -C .git/origin.git mktree --missing) && c=$(git -C .git/origin.git commit-tree -p main -m "feat: add the archive" $t) && git -C .git/origin.git update-ref refs/heads/main $c'
     exit: 0
     json_has:
       release: { tag: v1.2.0, last_fetched: false }
       unreleased: []
-    stdout_has: origin/main
+    stdout_has: origin/main cannot be fetched
   - name: status --json gives the newest release and the headers of the commits since it
     argv: [status, --json]
     git:
