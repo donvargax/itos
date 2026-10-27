@@ -55,7 +55,6 @@ phases:
   3: donvargax
 
 queue:
-  - slice-193
   - slice-190
   - slice-192
   - p1-ready-clean-merges
