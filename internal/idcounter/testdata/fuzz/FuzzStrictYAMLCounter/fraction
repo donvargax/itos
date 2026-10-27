@@ -1,0 +1,2 @@
+go test fuzz v1
+string("counters: {slice: 1.5}")

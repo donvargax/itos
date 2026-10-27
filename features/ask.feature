@@ -229,7 +229,7 @@ Feature: itos decision, the decisions waiting on the person a repository's work 
   # Before the fix Status reads "rejected", the record is not live and the
   # index leaves it out, so it fails at the file "docs/decisions/README.md"
   # says "Use Go".
-  @ID-ASK-44 @bug-153 @wip
+  @ID-ASK-44 @bug-153
   Scenario: A record whose frontmatter has a key written twice under a null key has no status, and is listed in the index as live
     Given the committed file "docs/decisions/0001-use-go.md" holding the lines:
       """

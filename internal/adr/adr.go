@@ -12,10 +12,9 @@ import (
 	"strings"
 	"unicode"
 
-	"go.yaml.in/yaml/v3"
-
 	"github.com/donvargax/itos/v8/internal/out"
 	"github.com/donvargax/itos/v8/internal/store/tree/port"
+	"github.com/donvargax/itos/v8/internal/value"
 )
 
 // IndexName is the index's file in the records' folder.
@@ -60,17 +59,18 @@ func frontmatter(lines []string) (yamlLines []string, body int, ok bool) {
 }
 
 // Status is the record's status as its frontmatter gives it, trimmed; ""
-// when it has no frontmatter, no status or frontmatter that is not YAML.
+// when it has no frontmatter, no status, no string status or frontmatter that
+// value.Parse refuses, as itos reads every YAML file.
 func (r Record) Status() string {
 	front, _, ok := frontmatter(strings.Split(r.Text, "\n"))
 	if !ok {
 		return ""
 	}
-	var meta map[string]any
-	if yaml.Unmarshal([]byte(strings.Join(front, "\n")), &meta) != nil {
+	meta, err := value.Parse(strings.Join(front, "\n"))
+	if err != nil {
 		return ""
 	}
-	status, _ := meta["status"].(string)
+	status, _ := value.Prop(meta, "status").(string)
 	return strings.TrimSpace(status)
 }
 

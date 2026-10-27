@@ -1,0 +1,2 @@
+go test fuzz v1
+string("status: accepted\ndate: 2026-10-12\n")

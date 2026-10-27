@@ -280,7 +280,7 @@ Feature: The id counter, so an id itos mints is minted once
   # 0, so it fails at "itos exits with code 2". The Given is new: it writes
   # the doc string to the file, as "the file ... is changed to hold" writes
   # one line (draft_test.go).
-  @ID-IDS-12 @bug-153 @wip
+  @ID-IDS-12 @bug-153
   Scenario: A counter file with a second document is refused with exit 2, and nothing is minted
     Given a repository whose ledger has the task "T-001"
     And the work registry has the item "T-001" owned by nobody with the status "done"
@@ -303,7 +303,7 @@ Feature: The id counter, so an id itos mints is minted once
   # hold @ID-A-01, so the counter alone sets the number. Before the fix the
   # reader reads 15 and tests next-id prints @ID-A-16, so it fails at its
   # output says "@ID-A-18".
-  @ID-IDS-13 @bug-153 @wip
+  @ID-IDS-13 @bug-153
   Scenario: A counter written 017 is read as 17, as itos reads every other YAML file
     Given a repository whose ledger has the task "T-001"
     And a feature file "a.feature" with the live scenario "@ID-A-01"
@@ -316,7 +316,7 @@ Feature: The id counter, so an id itos mints is minted once
   # The one-line forms, in flow style. Before the fix the key written twice
   # exits 70 and every other form mints (slice-10, or slice-1001 from 1_000)
   # and exits 0, so each fails at "itos exits with code 2".
-  @ID-IDS-14 @bug-153 @wip
+  @ID-IDS-14 @bug-153
   Scenario Outline: A counter file Parse refuses, or a counter that is no whole number, is refused with exit 2, and nothing is minted
     Given a repository whose ledger has the task "T-001"
     And the work registry has the item "slice-9" owned by nobody with the status "todo"

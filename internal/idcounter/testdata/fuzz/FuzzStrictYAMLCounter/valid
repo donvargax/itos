@@ -1,0 +1,2 @@
+go test fuzz v1
+string("counters:\n  ID-A: 18\n  slice: 9\n")

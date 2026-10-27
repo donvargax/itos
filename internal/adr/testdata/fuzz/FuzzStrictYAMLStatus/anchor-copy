@@ -1,0 +1,2 @@
+go test fuzz v1
+string("status: &s accepted\nalso: *s\n")
