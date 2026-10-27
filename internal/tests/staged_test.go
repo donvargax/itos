@@ -47,7 +47,7 @@ func TestStagesTestFileGherkin(t *testing.T) {
 // at the commit before; a listing that fails names none.
 func TestStagesTestFileCommand(t *testing.T) {
 	dir := t.TempDir()
-	for _, name := range []string{"GIT_DIR", "GIT_INDEX_FILE", "GIT_WORK_TREE", "GIT_COMMON_DIR"} {
+	for _, name := range []string{"GIT_DIR", "GIT_INDEX_FILE", "GIT_WORK_TREE", "GIT_COMMON_DIR", "GIT_CONFIG_COUNT", "GIT_CONFIG_PARAMETERS"} {
 		t.Setenv(name, "")
 		os.Unsetenv(name)
 	}
