@@ -82,7 +82,8 @@ func (g Git) Fetch(ctx context.Context, remote, refspec string, talk port.Talk) 
 	return strings.TrimSpace(sha), err
 }
 
-// Push is git push --no-follow-tags.
+// Push is git push --no-follow-tags, with --force-with-lease=<ref>:<expect>
+// for a lease: git forces no ref a lease does not name.
 func (g Git) Push(ctx context.Context, remote string, specs []string, p port.Pushing, talk port.Talk) error {
 	args := []string{"push"}
 	if p.Atomic {
@@ -94,6 +95,9 @@ func (g Git) Push(ctx context.Context, remote string, specs []string, p port.Pus
 	}
 	if p.NoVerify {
 		args = append(args, "--no-verify")
+	}
+	if p.Lease != nil {
+		args = append(args, "--force-with-lease="+p.Lease.Ref+":"+p.Lease.Expect)
 	}
 	return g.run(ctx, talk, nil, true, append(append(args, remote), specs...)...)
 }

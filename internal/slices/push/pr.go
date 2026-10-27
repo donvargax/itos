@@ -16,6 +16,7 @@ import (
 
 	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/engine/gitrun"
+	"github.com/donvargax/itos/v8/internal/engine/rewrite"
 	"github.com/donvargax/itos/v8/internal/glob"
 	"github.com/donvargax/itos/v8/internal/ledger"
 	"github.com/donvargax/itos/v8/internal/message"
@@ -243,12 +244,18 @@ func (r *pushRun) pushItem(ctx context.Context, item, main string) Answer {
 	}
 	onto := theirMain
 	r.ontoName = r.remote + "/" + main
-	if exists {
-		onto, r.ontoName = tip, r.upstream()
-	}
-	if !v.IsAncestor(ctx, onto, "HEAD") {
-		if a, done := r.rebase(ctx, onto); done {
+	if r.ontoMain {
+		if a, done := r.bringOntoMain(ctx, theirMain, tip, exists); done {
 			return a
+		}
+	} else {
+		if exists {
+			onto, r.ontoName = tip, r.upstream()
+		}
+		if !v.IsAncestor(ctx, onto, "HEAD") {
+			if a, done := r.rebase(ctx, onto); done {
+				return a
+			}
 		}
 	}
 	if a, failed := r.resolveHead(ctx); failed {
@@ -278,11 +285,53 @@ func (r *pushRun) pushItem(ctx context.Context, item, main string) Answer {
 		if toMain > 0 {
 			specs = append([]string{ahead[toMain-1] + ":refs/heads/" + main}, specs...)
 		}
-		if a, failed := r.send(ctx, specs, true); failed {
+		if a, failed := r.send(ctx, specs, true, r.lease(ctx, item, tip, exists)); failed {
 			return a
 		}
 	}
 	return r.pullRequest(ctx, repository, main, theirMain, ahead[toMain], pushing, !v.IsAncestor(ctx, theirMain, r.sha))
+}
+
+// bringOntoMain brings HEAD up to main, as itos push --onto-main does
+// (slice-193): first onto the remote's item head, when that head has a commit
+// main lacks that HEAD has no counterpart of (internal/engine/rewrite), so a
+// commit someone pushed there is kept and a branch already rebased onto main,
+// as one the person finished after a stop is, is never replayed onto the
+// remote's old head; then onto main's head, unless HEAD has it. done, with the
+// stop reported, when a rebase stops; its advice names itos push --onto-main
+// again, which a plain itos push would not do.
+func (r *pushRun) bringOntoMain(ctx context.Context, theirMain, tip string, exists bool) (Answer, bool) {
+	if exists && r.unseen(ctx, theirMain, tip) {
+		main := r.ontoName
+		r.ontoName = r.upstream()
+		if a, done := r.rebase(ctx, tip); done {
+			return a, true
+		}
+		r.ontoName = main
+	}
+	if !r.ports.IsAncestor(ctx, theirMain, "HEAD") {
+		return r.rebase(ctx, theirMain)
+	}
+	return Answer{}, false
+}
+
+// unseen is whether the remote's item head has a commit main lacks of which
+// HEAD's commits main lacks hold no counterpart; a range git cannot read is
+// none.
+func (r pushRun) unseen(ctx context.Context, theirMain, tip string) bool {
+	dropped, err := rewrite.Dropped(ctx, r.ports, theirMain, tip, "HEAD")
+	return err == nil && len(dropped) > 0
+}
+
+// lease is the lease the push of an item's branch under --onto-main takes on
+// the remote's item head it fetched, when pushing rewrites that branch: the
+// head is no ancestor of the commit pushed. A fast-forward, a first push and a
+// push without --onto-main take none.
+func (r pushRun) lease(ctx context.Context, item, tip string, exists bool) *vcsport.Lease {
+	if !r.ontoMain || !exists || r.ports.IsAncestor(ctx, tip, r.sha) {
+		return nil
+	}
+	return &vcsport.Lease{Ref: "refs/heads/" + item, Expect: tip}
 }
 
 // registryPrefix is how many of the commits above main, oldest first, go to
@@ -309,7 +358,7 @@ func (r pushRun) registryPrefix(ctx context.Context, main string, ahead []string
 // run waited for, as for registry commits pushed from main.
 func (r *pushRun) pushRegistry(ctx context.Context, main, onto string) Answer {
 	r.branch = main
-	if a, failed := r.send(ctx, []string{r.sha + ":refs/heads/" + main}, true); failed {
+	if a, failed := r.send(ctx, []string{r.sha + ":refs/heads/" + main}, true, nil); failed {
 		return a
 	}
 	pushed := r.pushedLine(ctx, "")

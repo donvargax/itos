@@ -12,11 +12,13 @@ var Command = declare.Command{
 	Name: "push",
 	Rank: 100,
 	Lines: `  push [--no-wait] [--ready]       pull with a rebase, push HEAD; with ci.watch, wait for CI
+  push --onto-main [--no-wait]     bring an item's branch up to main, pushing it with a lease
   push [--tag <tag>]… [--ref <branch>]…
                                    push the tags and branches named, alone and atomically
 `,
 	Help: map[string]string{
 		"": `Usage: itos push [--no-wait] [--ready]
+       itos push --onto-main [--no-wait] [--ready]
        itos push [--tag <tag>]… [--ref <branch>]…
        itos push threads
        itos push thread <id> --reply <text> [--resolve]
@@ -39,11 +41,13 @@ item a commit on the upstream changed too, its owner there when it took it
 first, which the remote keeps, and git rebase --skip to give it up. Only HEAD
 goes, to that branch, whatever the config's push refspecs say, so the stealth
 mode's refs/notes/itos stays local; under a stealth config notes.rewriteRef is
-set first, as itos commit sets it, so the rebase carries the notes. It never
-forces: --force, -f, --force-with-lease or a + refspec is a usage error, as are
---no-verify, which skips the pre-push hook, a core.hooksPath set by git -c,
-which moves the hooks, and any other argument but --no-wait, --ready, --tag
-and --ref, and a push the remote or the hook refuses is reported, not retried. No
+set first, as itos commit sets it, so the rebase carries the notes. It forces
+nothing you pass: --force, -f, --force-with-lease or a + refspec is a usage
+error, as are --no-verify, which skips the pre-push hook, a core.hooksPath set
+by git -c, which moves the hooks, and any other argument but --no-wait,
+--ready, --onto-main, --tag and --ref, and a push the remote or the hook
+refuses is reported, not retried. The one rewrite is --onto-main's, of an
+item's own branch, below. No
 tag goes with HEAD, whatever push.followTags says: tags go with --tag alone.
 Nothing to push is success. -q is git's --quiet and leaves out the success
 lines.
@@ -116,6 +120,36 @@ it asks gh pr view for the head GitHub made (the first that has main's head
 as an ancestor), says so and waits for that head's run; none within
 ci.watch.timeout of the request exits 75 and watches no run.
 
+itos push --onto-main (push.mode pr, from an item's branch) brings the branch up
+to main itself, as the one rewrite of an item's own branch itos makes: where
+GitHub cannot rebase a pull request (its pushed commits conflict with main's),
+or main left it behind (it lacks what main gained), and gh pr update-branch,
+which does the second, is refused to agents as destructive. It fetches main and
+the item's branch as a push does. Then it takes the remote's item head first,
+rebasing onto it, only when that head has a commit main lacks of which HEAD's
+commits main lacks hold no counterpart (the same author, author date and
+message, which a rebase keeps and a resolved conflict does not change; a
+patch-id is none of that), so a commit someone pushed there is kept and a
+branch already rebased onto main, as one you finished after a stopped
+--onto-main is, is never replayed onto the remote's old head. Then it rebases
+the commits main lacks onto the remote's main, unless HEAD has main's head
+already, and pushes the item's branch with git push
+--force-with-lease=refs/heads/<item>:<the item's head it fetched> when that
+head is no ancestor of HEAD, as a push does when it is, the pre-push hook
+judging it: it accepts such a rewrite of a branch that is not main when no
+commit of the remote's head that main lacks is dropped, for any git push. A
+branch the remote moved after the fetch fails the lease and is left as it was:
+exit 1, outcome push-failed, saying to run itos push --onto-main again. A
+rebase that stops is left in progress for you, nothing pushed, exit 1, its
+advice naming itos push --onto-main again, since itos push would rebase the
+rebased branch onto the remote's old head. A branch the remote lacks is a first
+push, rebased onto main. After the push all is a push's: the pull request found
+or opened, auto-merge, the wait for its run, and --no-wait and --ready with
+it as without. It is refused, exit 1, outside push.mode pr (config unreadable
+or absent included, outcome onto-main-without-pr) before anything is fetched or
+pushed, and from main (onto-main-on-main), which is never rewritten; with --tag
+or --ref it is a usage error, exit 2.
+
 push.pr.draft (false by default, under push.mode pr) makes the pull request a
 draft: a push opens it as one (gh pr create --draft) and turns on no
 auto-merge, asks GitHub for no rebase and waits for no run, ci.watch or not,
@@ -173,13 +207,14 @@ the pre-push hook, which runs as for any push, judging the commits each tag
 and branch adds.
 
 Exit: 0 pushed, or nothing to push; 1 refused before the pull, the rebase
-stopped, the remote or the pre-push hook refused the push, a tag or a branch
+stopped, the remote or the pre-push hook refused the push (a lease the remote
+moved from included), --onto-main outside push.mode pr or from main, a tag or a branch
 named that the clone does not have, a tag the remote has as another object,
 the CI run waited for failed, or, under push.mode pr, work pushed to main or
 a branch that names no item, and for --ready, an unresolved review thread or
 --ready where it has nothing to do, and for push threads and push thread,
-where they have nothing to do or a thread that is none of the pull request's; 2 an argument, or a core.hooksPath set by
-git -c; 3 no git repository, itos's pre-push hook that would not run, no
+where they have nothing to do or a thread that is none of the pull request's; 2 an argument (--onto-main beside --tag
+or --ref among them), or a core.hooksPath set by git -c; 3 no git repository, itos's pre-push hook that would not run, no
 upstream and no remote origin, a remote that is no repository or that git
 cannot find, a CI run not to be looked at, a remote whose HEAD
 names no branch it has (for a branch with no upstream, or under push.mode pr),
@@ -203,7 +238,8 @@ read from git's message; git's own exit code is never itos's.
         no-such-ref, tag-exists, fetch-failed (reading the remote's tags or
         HEAD too), no-default-branch, rebase-stopped, rebase-failed,
         push-failed, and under push.mode pr work-on-main, not-item-branch,
-        no-github-repository, pull-request-failed, and for --ready
+        no-github-repository, pull-request-failed, for --onto-main
+        onto-main-without-pr and onto-main-on-main, and for --ready
         review-timeout, review-refused, review-threads-unresolved,
         ready-without-draft and ready-on-main;
         push threads gives {"schema":1,"ok","outcome","pull_request"?,"threads"?},

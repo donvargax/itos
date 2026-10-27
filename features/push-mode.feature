@@ -341,7 +341,7 @@ Feature: push.mode pr, an item's work on its own branch merged by rebase, claims
   # The head pushed has main's, so GitHub is asked for no rebase. Fails
   # before the work at the exit code: today --onto-main is a usage error,
   # exit 2.
-  @ID-PUSHMODE-28 @slice-193 @wip
+  @ID-PUSHMODE-28 @slice-193
   Scenario: Under pr, push --onto-main rebases an item's branch main has moved past onto main and pushes it, the pre-push hook accepting the rewrite
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -369,7 +369,7 @@ Feature: push.mode pr, an item's work on its own branch merged by rebase, claims
   # hook is the scenarios' stand-in, which passes anything, so the remote
   # shows what itos itself pushed. Fails before the work at the exit code:
   # today --onto-main is a usage error, exit 2.
-  @ID-PUSHMODE-29 @slice-193 @wip
+  @ID-PUSHMODE-29 @slice-193
   Scenario: Under pr, push --onto-main keeps a commit the remote's item branch has that the clone lacks
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -394,7 +394,7 @@ Feature: push.mode pr, an item's work on its own branch merged by rebase, claims
   # and the advice names itos push --onto-main again: a plain itos push
   # would rebase the rebased branch onto the remote's old head. Fails before
   # the work at the exit code: today --onto-main is a usage error, exit 2.
-  @ID-PUSHMODE-30 @slice-193 @wip
+  @ID-PUSHMODE-30 @slice-193
   Scenario: Under pr, push --onto-main whose rebase stops on a conflict with main leaves the rebase in progress and pushes nothing
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -425,7 +425,7 @@ Feature: push.mode pr, an item's work on its own branch merged by rebase, claims
   # adds a line after main's); a patch-id rule would refuse it as dropping
   # the spec. Fails before the work at the Given that runs the first
   # --onto-main: today it is a usage error, exit 2, where the step wants 1.
-  @ID-PUSHMODE-38 @slice-193 @wip
+  @ID-PUSHMODE-38 @slice-193
   Scenario: Under pr, push --onto-main again after the person resolves its stopped rebase pushes main's commit then the item's resolved one
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -452,7 +452,7 @@ Feature: push.mode pr, an item's work on its own branch merged by rebase, claims
   # the remote keeps the other clone's commit, which a plain force would
   # have dropped; nothing else changes. Fails before the work at the exit
   # code: today --onto-main is a usage error, exit 2.
-  @ID-PUSHMODE-31 @slice-193 @wip
+  @ID-PUSHMODE-31 @slice-193
   Scenario: Under pr, push --onto-main whose lease no longer holds is refused, the remote's item branch left as it was
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -477,7 +477,7 @@ Feature: push.mode pr, an item's work on its own branch merged by rebase, claims
   # the head it pushed, which has main's head, so GitHub is asked for no
   # rebase and gh pr view for no other head. Fails before the work at the
   # exit code: today --onto-main is a usage error, exit 2.
-  @ID-PUSHMODE-32 @slice-193 @wip
+  @ID-PUSHMODE-32 @slice-193
   Scenario: Under pr with ci.watch, push --onto-main waits for the run of the head it pushed and exits 1 when it fails
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -502,7 +502,7 @@ Feature: push.mode pr, an item's work on its own branch merged by rebase, claims
   # --onto-main combines with --no-wait, which returns once the branch is
   # pushed and its pull request asked for. Fails before the work at the
   # exit code: today --onto-main is a usage error, exit 2.
-  @ID-PUSHMODE-33 @slice-193 @wip
+  @ID-PUSHMODE-33 @slice-193
   Scenario: Under pr with ci.watch, push --onto-main --no-wait pushes the rebased branch and waits for no run
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -525,7 +525,7 @@ Feature: push.mode pr, an item's work on its own branch merged by rebase, claims
   # refused before anything is fetched or pushed, exit 1 as --ready's
   # refusals are, since the arguments are well formed. No push.mode here, so
   # trunk. Fails before the work at the exit code: today exit 2.
-  @ID-PUSHMODE-34 @slice-193 @wip
+  @ID-PUSHMODE-34 @slice-193
   Scenario: Outside push.mode pr, push --onto-main is refused, exit 1, nothing pushed
     Given a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
     And the clone is on the new branch "slice-9"
@@ -540,7 +540,7 @@ Feature: push.mode pr, an item's work on its own branch merged by rebase, claims
   # Main is no item's branch and is never rewritten: --onto-main from main
   # is refused once main is known, even for a take that a plain push sends.
   # Fails before the work at the exit code: today exit 2.
-  @ID-PUSHMODE-35 @slice-193 @wip
+  @ID-PUSHMODE-35 @slice-193
   Scenario: Under pr, push --onto-main from main is refused, exit 1, nothing pushed
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -559,7 +559,7 @@ Feature: push.mode pr, an item's work on its own branch merged by rebase, claims
   # they name, have no place beside it. Fails before the work at the
   # output: today it is a usage error too, but one that names no --tag or
   # --ref.
-  @ID-PUSHMODE-36 @slice-193 @wip
+  @ID-PUSHMODE-36 @slice-193
   Scenario Outline: push --onto-main with <named> is a usage error
     Given the clone is on the new branch "slice-9"
     And the clone has the commit "feat: add the widget" touching "widget.md"
@@ -576,7 +576,7 @@ Feature: push.mode pr, an item's work on its own branch merged by rebase, claims
   # No other force path opens beside --onto-main: its lease is itos's own,
   # on the head it fetched, never one passed in. A guard: each is refused
   # today, --onto-main with it, and must stay refused.
-  @ID-PUSHMODE-37 @slice-193 @guard @wip
+  @ID-PUSHMODE-37 @slice-193 @guard
   Scenario Outline: push --onto-main with <force> is a usage error, never forcing
     Given the clone is on the new branch "slice-9"
     And the clone has the commit "feat: add the widget" touching "widget.md"

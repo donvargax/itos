@@ -17,6 +17,14 @@ Read before you push.
   pushes in a separate step, and it never forces. If the rebase stops,
   resolve it, check that `git rebase --continue` succeeded, then `itos push`
   again.
+- An item's branch that main has moved past (a conflict GitHub cannot rebase,
+  or a branch missing what main gained) is brought up with `itos push
+  --onto-main`, under `push.mode: pr`: the one rewrite, of that branch alone.
+  It keeps any commit the remote's branch has that yours lacks, rebases onto
+  main and pushes with a lease on the head it fetched, so a push someone made
+  meanwhile is left as it is. If its rebase stops, resolve it, check that
+  `git rebase --continue` succeeded, then `itos push --onto-main` again, not
+  `itos push`.
 - Where the config watches CI, `itos push` waits for the run of the commit it
   pushed and exits 0 when it passed, 1 when it failed. Run it in the
   background and watch its output; don't poll it. `itos ci watch [<sha>]`

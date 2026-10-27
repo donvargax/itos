@@ -63,17 +63,31 @@ it refuses a push that would replace another remote ref's commit with one
 that does not build on it, as a forced push does: the remote's commit is not
 an ancestor of the commit pushed, or this clone lacks it. It names the ref
 and itos push, which rebases onto the remote's commits instead, runs nothing
-more and exits 1; a new ref is not refused. Then it verifies the commits each
+more and exits 1; a new ref is not refused. The one rewrite it accepts is a
+branch's own: a ref that is a branch other than main (the branch the remote's
+HEAD names, asked of the remote with git ls-remote --symref, which must have
+it; main as the clone's remote-tracking branch of it has it) and whose remote
+commit, which the clone has, has no commit that main lacks without a
+counterpart among the commit pushed's that main lacks, a counterpart being a
+commit with the same author, author date and message (not a patch-id: a
+conflict resolved in a rebase changes that). That is itos push --onto-main's
+rewrite, and a plain git push --force-with-lease of a branch rebased onto main
+passes too. A rewrite that would drop a commit is refused naming each by its
+short SHA and subject, and a squash or a reword is such a drop. Then it
+verifies the commits each
 pushed ref adds, as itos verify does (messages, paths, range checks,
 commits.since left out): the ones after the remote's commit it replaces,
-else (a new ref) the ones on no remote-tracking branch. It prints nothing for
+else (a new ref, or an accepted rewrite, which is judged as a new branch is)
+the ones on no remote-tracking branch. It prints nothing for
 commits that pass. A failure prints verify's report and how to fix the
 commits (git commit --amend for the last one, git rebase -i for an earlier
 one), runs nothing more and exits 1. Then it runs hooks.pre_push.per_base once
 per remote commit the push builds on: an existing ref's remote commit, and for
 a new branch or tag the remote commits its commits grow from (the boundary of
 git rev-list <commit> --not --remotes, less any that is an ancestor of
-another), each of them once however many refs share it. A new ref that adds no
+another), each of them once however many refs share it (an accepted rewrite's
+are those of a new branch, so main's commits the rebased branch now holds are
+not the pusher's to fix). A new ref that adds no
 commit brings none and runs nothing; one that adds commits and grows from no
 remote commit (no remote-tracking ref, or unrelated history) asks for
 hooks.pre_push.whole, which then runs alone. The remote-tracking refs are

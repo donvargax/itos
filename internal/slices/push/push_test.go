@@ -70,6 +70,7 @@ type fake struct {
 	showErr    error            // the error showing a commit
 	fetchErrs  map[string]error // by refspec, a fetch that fails whatever fetchErr says
 	atomic     []bool           // whether each push was atomic
+	leases     []*vcsport.Lease // the lease each push took, nil for none
 	// The quiet fetches (no prompt) by refspec, and what runs when one is made:
 	// a head the clone lacked arriving.
 	quiet   []string
@@ -190,7 +191,7 @@ func (f *fake) Rebase(ctx context.Context, onto string, quiet bool, talk vcsport
 }
 
 func (f *fake) Push(ctx context.Context, remote string, specs []string, p vcsport.Pushing, talk vcsport.Talk) error {
-	f.pushed, f.talk, f.atomic = append(f.pushed, specs), talk, append(f.atomic, p.Atomic)
+	f.pushed, f.talk, f.atomic, f.leases = append(f.pushed, specs), talk, append(f.atomic, p.Atomic), append(f.leases, p.Lease)
 	if f.pushErr != nil {
 		return f.pushErr
 	}
@@ -330,7 +331,7 @@ func TestParse(t *testing.T) {
 		"--ref --no-wait":       "push --ref needs a branch's name",
 		"--ref +main":           "push never forces: +main is a forcing refspec; push --ref takes a branch's name",
 		"--tag v1:v2":           "push --tag takes a tag's name, not a refspec (v1:v2): it pushes to the remote's of the same name",
-		"--tag v1 origin":       "push takes no arguments but --no-wait, --ready, --tag <tag> and --ref <branch>: it pushes HEAD to the branch's upstream (origin)",
+		"--tag v1 origin":       "push takes no arguments but --no-wait, --ready, --onto-main, --tag <tag> and --ref <branch>: it pushes HEAD to the branch's upstream (origin)",
 		"--ref=b --force":       "push never forces: --force would overwrite the remote's commits; itos push rebases onto them instead",
 		"--tag v1 --tag -":      "push --tag needs a tag's name",
 		"--no-verify":           "push refuses --no-verify: it skips the pre-push hook, and the checks it runs; push without it, and fix what the hook reports",
@@ -341,7 +342,7 @@ func TestParse(t *testing.T) {
 		"+main":                 "push never forces: +main is a forcing refspec; itos push rebases onto the remote's commits instead",
 		"--follow-tags":         "push takes no arguments",
 		"-n":                    "push takes no arguments",
-		"--no-wait --no-wait x": "push takes no arguments but --no-wait, --ready, --tag <tag> and --ref <branch>: it pushes HEAD to the branch's upstream (x)",
+		"--no-wait --no-wait x": "push takes no arguments but --no-wait, --ready, --onto-main, --tag <tag> and --ref <branch>: it pushes HEAD to the branch's upstream (x)",
 	} {
 		_, err := Parse(strings.Fields(args), false, false, "")
 		var u out.UsageError
@@ -651,9 +652,8 @@ func TestPushRebaseStopsOnTheRegistry(t *testing.T) {
 			"\nThe conflict is in the work registry, tasks/work-items.yaml: a commit on origin/main changed\n" +
 				"the same item as yours, so it was taken, or changed, there first, and the remote keeps that.\n" +
 				"  slice-9 is taken: a commit on origin/main made ana its owner first.\n" +
-				"To leave it to them, run git rebase --skip, which drops your commit of the registry, then itos\n" +
-				"push again and itos work for another item; or agree with them who keeps it, and resolve the\n" +
-				"conflict as above.\n"},
+				"To leave it to them, run git rebase --skip, which drops your commit of the registry, then itos push again\n" +
+				"and itos work for another item; or agree with them who keeps it, and resolve the conflict as above.\n"},
 		"taken by nobody": {head + item("slice-9", "nine", "null", "doing"), head + item("slice-9", "nine", "bo", "doing"),
 			"  slice-9 was changed on origin/main too.\n"},
 		"changed": {head + item("slice-9", "ana's", "null", "todo"), head + item("slice-9", "bo's", "null", "todo"),

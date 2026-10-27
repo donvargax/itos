@@ -107,9 +107,19 @@ type Talk struct {
 }
 
 // Pushing is how a push goes: Atomic, every ref or none; Quiet, without
-// progress; NoVerify, without the pre-push hook.
+// progress; NoVerify, without the pre-push hook; Lease, when set, the one
+// ref the push may replace with a commit that does not build on the remote's.
 type Pushing struct {
 	Atomic, Quiet, NoVerify bool
+	Lease                   *Lease
+}
+
+// Lease lets a push replace the remote's ref (a full name, refs/heads/…) when
+// the remote has it at Expect, and refuses the ref otherwise, as
+// git push --force-with-lease=<ref>:<expect> does. Every other ref of the
+// push still has to be a fast-forward.
+type Lease struct {
+	Ref, Expect string
 }
 
 // Commit is a commit to make, of the index unless Only names paths, whose
@@ -291,8 +301,9 @@ type VCS interface {
 	// default refspecs, and nothing given, when refspec is "". A Failed
 	// error when the fetch fails.
 	Fetch(ctx context.Context, remote, refspec string, talk Talk) (string, error)
-	// Push pushes the refspecs (<commit or ref>:<ref>) to the remote, never
-	// forcing; a Failed error when it fails.
+	// Push pushes the refspecs (<commit or ref>:<ref>) to the remote, forcing
+	// none but the ref a Lease names, and that only while the remote has it at
+	// the commit the lease expects; a Failed error when it fails.
 	Push(ctx context.Context, remote string, specs []string, p Pushing, talk Talk) error
 	// Rebase replays HEAD's commits onto onto; a Failed error when it
 	// stops on a conflict, left in progress (Rebasing, Conflicted), or does

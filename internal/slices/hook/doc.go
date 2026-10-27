@@ -74,7 +74,8 @@
 //
 // hook pre-push (prepush.go) reads git's ref lines, or under pre-commit or
 // prek the line their environment gives, as pushLines, a line's carriage
-// return dropped. First it refuses a push that would move or delete a tag
+// return dropped; Query.Remote is its first argument, the remote git pushes
+// to. First it refuses a push that would move or delete a tag
 // the remote has (slice 182, movedTag): a line whose remote ref is under
 // refs/tags/ and whose remote SHA is not zeros, a deleted ref's line
 // included, whatever the new commit builds on and whether or not this clone
@@ -87,7 +88,28 @@
 // that rewrites the remote (slice 128, rewrites): a ref whose remote commit
 // this clone lacks, or that is not an ancestor of the commit pushed, as only
 // a forced push replaces; refuseRewrite names the ref and itos push, exit 1,
-// before the config is read and with no command run. It verifies next
+// before the config is read and with no command run.
+//
+// The one exception is a branch's own rewrite (slice-193, ownRewrite): a
+// branch ref other than main, the branch the remote's HEAD names (mainBranch,
+// asked of the remote with Ports.RemoteHead and RemoteRefs, which must have
+// it; a remote that cannot be asked, names none or lacks it refuses), whose
+// remote commit the clone has and which drops no work. internal/engine/rewrite
+// says what is dropped, the commits of the remote commit that main lacks (the
+// clone's remote-tracking branch of it, every commit counting with none) of
+// which the commit pushed's that main lacks hold no counterpart: the same
+// author, author date and message, which a rebase keeps and a resolved
+// conflict does not change, where a patch-id would. refuseRewrite then names
+// each dropped commit by its short SHA and subject; a squash or a reword
+// drops one. An accepted rewrite is returned by rewrites as a new branch
+// (no remote commit), so verify judges the commits on no remote-tracking
+// branch and pushBases runs hooks.pre_push's per_base once per remote commit
+// they grow from: main's commits the rebased branch now holds, on the remote
+// already, are not the pusher's to fix. Main is never rewritten, a ref that is
+// no branch or whose remote commit the clone lacks is refused as before, and
+// so is any when the remote cannot be asked: itos push --onto-main makes the
+// rewrite, and a plain git push --force-with-lease of a rebased branch passes
+// as it does. It verifies next
 // (verifyPush): judge.Over on each distinct pushedRange, <remote sha>..<local
 // sha>, or the unpushed commits up to the local one when there is no remote
 // commit to compare with, each run's report written to a buffer, so a push

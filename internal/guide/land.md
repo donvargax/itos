@@ -6,7 +6,11 @@ loop's steps 4 and 5 in `itos go`).
 ## Pushing and waiting
 
 - Push with `itos push`, never a pull chained to a push, and never force: it
-  rebases first and pushes only when no rebase stopped.
+  rebases first and pushes only when no rebase stopped. The one rewrite is
+  `itos push --onto-main` (under `push.mode: pr`, from an item's branch),
+  which brings that branch up to main and pushes it with a lease on the head
+  it fetched; a pull request GitHub cannot rebase, or one main left behind,
+  needs it, and it needs no one's force-push.
 - Agents often hand back before their CI finishes: watch the pushed head's
   run yourself (`itos ci watch <sha>`, in the background), and stop a
   finished agent that keeps waking.

@@ -39,6 +39,24 @@ cases:
     argv: [push, --ready, --tag, v1]
     exit: 2
     stderr_has: [--ready, --tag, --ref]
+  - name: push --onto-main takes no --tag or --ref
+    argv: [push, --onto-main, --tag, v1]
+    exit: 2
+    stderr_has: [--onto-main, --tag, --ref]
+  - name: push --onto-main with a forcing argument is a usage error naming why
+    argv: [push, --onto-main, --force-with-lease=main]
+    exit: 2
+    stderr_has: --force-with-lease=main
+  - name: push --onto-main outside push.mode pr is refused before anything is fetched
+    argv: [push, --onto-main, --json]
+    git:
+      - commit: "chore: start"
+        files: { README.md: "scratch\n" }
+    exit: 1
+    json:
+      schema: 1
+      ok: false
+      outcome: onto-main-without-pr
   - name: push --tag needs a tag's name
     argv: [push, --tag]
     exit: 2

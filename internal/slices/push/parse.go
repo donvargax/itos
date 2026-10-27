@@ -27,11 +27,13 @@ func Parse(args []string, json, quiet bool, origin string) (CLI, error) {
 	return CLI{Query: q, JSON: json, Quiet: quiet}, nil
 }
 
-// readPushArgs refuses every argument but --no-wait, --ready, --tag <tag> and
-// --ref <branch> (each as --tag=<tag> too, and as often as wanted), which it
-// gives, --ready with no --tag or --ref (slice 179): a plain itos push pushes HEAD to the branch's upstream and takes
-// nothing else, and an argument that would force the push says why it is
-// refused. A name is a tag's or a branch's, not a refspec.
+// readPushArgs refuses every argument but --no-wait, --ready, --onto-main,
+// --tag <tag> and --ref <branch> (each as --tag=<tag> too, and as often as
+// wanted), which it gives, --ready and --onto-main with no --tag or --ref
+// (slices 179 and 193): a plain itos push pushes HEAD to the branch's upstream
+// and takes nothing else, and an argument that would force the push says why
+// it is refused, --onto-main's lease being itos's own. A name is a tag's or a
+// branch's, not a refspec.
 func readPushArgs(args []string) (Query, error) {
 	if len(args) > 0 && (args[0] == "threads" || args[0] == "thread") {
 		return readThreadArgs(args[0], args[1:])
@@ -46,6 +48,10 @@ func readPushArgs(args []string) (Query, error) {
 		}
 		if arg == "--ready" {
 			a.Ready = true
+			continue
+		}
+		if arg == "--onto-main" {
+			a.OntoMain = true
 			continue
 		}
 		flag, name, inline := strings.Cut(arg, "=")
@@ -65,6 +71,9 @@ func readPushArgs(args []string) (Query, error) {
 		} else {
 			a.Refs = append(a.Refs, name)
 		}
+	}
+	if a.OntoMain && len(a.Tags)+len(a.Refs) > 0 {
+		return a, out.Usage("push --onto-main rebases an item's branch onto main; it takes no --tag or --ref")
 	}
 	if a.Ready && len(a.Tags)+len(a.Refs) > 0 {
 		return a, out.Usage("push --ready pushes an item's branch; it takes no --tag or --ref")
@@ -145,7 +154,7 @@ func refusePushArgs(args []string) error {
 		}
 	}
 	if len(args) > 0 {
-		return out.Usage("push takes no arguments but --no-wait, --ready, --tag <tag> and --ref <branch>: it pushes HEAD to the "+
+		return out.Usage("push takes no arguments but --no-wait, --ready, --onto-main, --tag <tag> and --ref <branch>: it pushes HEAD to the "+
 			"branch's upstream (%s)", args[0])
 	}
 	return nil

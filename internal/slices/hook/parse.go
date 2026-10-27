@@ -33,6 +33,9 @@ func Parse(args []string, json bool, origin string, warnings *tests.Warnings) (C
 		}
 		c.File = typed(origin, rest[0])
 	case "pre-push":
+		if len(rest) > 0 {
+			c.Remote = rest[0]
+		}
 	case "install":
 		c.Print, c.Force = slices.Contains(rest, "--print"), slices.Contains(rest, "--force")
 	default:

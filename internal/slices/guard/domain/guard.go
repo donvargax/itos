@@ -68,7 +68,8 @@ var Guarded = []struct{ Name, Reason string }{
 		"--scenarios <ids>, with the same arguments, so the commit carries the footers it needs " +
 		"(itos commit --help)."},
 	{"push", "git push is itos push in this repository: run itos push, with no arguments; it pulls the " +
-		"upstream with a rebase, then pushes HEAD to it, never forced (itos push --help)."},
+		"upstream with a rebase, then pushes HEAD to it, never forced; an item's branch main has moved past is " +
+		"brought up with itos push --onto-main (itos push --help)."},
 }
 
 // Reason is the deny's reason for the input, run from the folder here (the

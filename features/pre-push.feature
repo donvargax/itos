@@ -111,7 +111,7 @@ Feature: The pre-push hook verifies the commits it pushes
   # once fetched, so only the rebased "docs: add the guide" is judged.
   # Fails before the work at the exit code: today the hook refuses every
   # rewrite (slice 128), exit 1.
-  @ID-PREPUSH-07 @slice-193 @wip
+  @ID-PREPUSH-07 @slice-193
   Scenario: A forced push of a branch rebased onto main, dropping none of its commits, is accepted
     Given the clone is on the new branch "topic"
     And the clone has the commit "docs: add the guide" touching "guide.md"
@@ -127,7 +127,7 @@ Feature: The pre-push hook verifies the commits it pushes
   # main lacks loses work, lease or not, so it stays refused, naming the
   # commit it would drop. Fails before the work at the commit's subject:
   # today the hook refuses it too, but names only the ref and the SHAs.
-  @ID-PREPUSH-08 @slice-193 @wip
+  @ID-PREPUSH-08 @slice-193
   Scenario: A forced push of a branch that would drop one of its remote commits is refused, naming the commit
     Given the clone is on the new branch "topic"
     And the clone has the commit "docs: add the guide" touching "guide.md"
@@ -146,7 +146,7 @@ Feature: The pre-push hook verifies the commits it pushes
   # accept it, the diff being the same. Fails before the work at the
   # commit's subject: today the hook refuses it too, but names only the ref
   # and the SHAs.
-  @ID-PREPUSH-10 @slice-193 @wip
+  @ID-PREPUSH-10 @slice-193
   Scenario: A forced push of a branch whose commit was reworded is refused as one that drops the commit
     Given the clone is on the new branch "topic"
     And the clone has the commit "docs: add the guide" touching "guide.md"
@@ -162,7 +162,7 @@ Feature: The pre-push hook verifies the commits it pushes
   # branch has it, holds the old head and so lacks none of its commits;
   # the branch's being main is what refuses it, which this scenario guards.
   # Refused today (slice 128) and must stay refused.
-  @ID-PREPUSH-09 @slice-193 @guard @wip
+  @ID-PREPUSH-09 @slice-193 @guard
   Scenario: A forced push that rewrites main is refused, though no commit main lacks is dropped
     Given the remote has gained the commit "docs: someone else's work" touching "OTHER.md"
     And the clone has fetched the remote

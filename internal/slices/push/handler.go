@@ -16,7 +16,9 @@ import (
 )
 
 // Query is what push asks: NoWait, --no-wait; Ready, --ready, which marks a
-// draft pull request ready and waits for it (slice 179); Tags and Refs, what --tag and
+// draft pull request ready and waits for it (slice 179); OntoMain,
+// --onto-main, which brings an item's branch up to main (slice-193); Tags and
+// Refs, what --tag and
 // --ref named, in the order given (slice 131); Threads, push threads, which
 // lists the open review threads of the branch's pull request; Thread, Reply
 // and Resolve, push thread <id> --reply <text> --resolve, which answers one
@@ -25,6 +27,7 @@ import (
 type Query struct {
 	NoWait     bool
 	Ready      bool
+	OntoMain   bool
 	Tags, Refs []string
 	Threads    bool
 	Thread     string
@@ -103,7 +106,7 @@ func (h Handler) Handle(ctx context.Context, q Query, o Out) (Answer, error) {
 		return Answer{}, out.Usage("push refuses core.hooksPath set by git -c: it moves the hooks git runs, skipping the " +
 			"repository's own; push without it")
 	}
-	r := pushRun{ports: h.ports, o: o, origin: q.Origin, git: o.Stdout, noWait: q.NoWait, markReady: q.Ready}
+	r := pushRun{ports: h.ports, o: o, origin: q.Origin, git: o.Stdout, noWait: q.NoWait, markReady: q.Ready, ontoMain: q.OntoMain}
 	if o.JSON {
 		r.git = o.Stderr
 	}
@@ -132,6 +135,11 @@ func (h Handler) Handle(ctx context.Context, q Query, o Out) (Answer, error) {
 		}
 	}
 	pr := r.prMode(ctx)
+	if q.OntoMain && !pr {
+		return r.report(policy, "onto-main-without-pr",
+			"itos push: --onto-main brings an item's branch up to main, and push.mode is not pr in this config; nothing was fetched or pushed.",
+			"Push without --onto-main, or set push.mode: pr."), nil
+	}
 	if q.Ready && !(pr && r.cfg.Push.PR.Draft) {
 		return r.report(policy, "ready-without-draft",
 			"itos push: --ready is for push.mode pr with push.pr.draft true, which this config does not set; nothing was fetched or pushed.",
@@ -168,6 +176,11 @@ func (h Handler) Handle(ctx context.Context, q Query, o Out) (Answer, error) {
 		}
 		if branch != main {
 			return r.pushItem(ctx, branch, main), nil
+		}
+		if q.OntoMain {
+			return r.report(policy, "onto-main-on-main",
+				fmt.Sprintf("itos push: --onto-main brings an item's branch up to main, and HEAD is on %s, which is never rewritten; nothing was fetched or pushed.", main),
+				"Run itos push --onto-main from the item's branch."), nil
 		}
 		if q.Ready {
 			return r.report(policy, "ready-on-main",

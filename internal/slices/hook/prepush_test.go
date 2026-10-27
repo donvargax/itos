@@ -229,9 +229,10 @@ func TestRewrites(t *testing.T) {
 		line(b, a) + line(b, gone):     gone,
 		"(delete) " + zero + " x " + a: "",
 	} {
-		r, ok := h.rewrites(t.Context(), refsOf(h, input))
-		if ok != (want != "") || r.remote != want {
-			t.Errorf("rewrites(%q) = %+v, %v; want %q", input, r, ok, want)
+		refs, answer, refused := h.rewrites(t.Context(), "origin", refsOf(h, input))
+		if refused != (want != "") || refused && !strings.Contains(answer.Said, "commit "+short(want)+" on the remote") ||
+			!refused && len(refs) != len(refsOf(h, input)) {
+			t.Errorf("rewrites(%q) = %+v, %q, %v; want %q", input, refs, answer.Said, refused, want)
 		}
 	}
 	p := pushing(t, "version: 1\n", line(c, b))
@@ -244,6 +245,118 @@ func TestRewrites(t *testing.T) {
 	p = pushing(t, "version: 1\n", line(c, gone))
 	if code, _, stderr, _ := hook(t, p, "pre-push", "origin", "url"); code != policy || !strings.Contains(stderr, "since this clone lacks it") {
 		t.Errorf("over a commit the clone lacks = %d:\n%s", code, stderr)
+	}
+}
+
+// A branch's own rewrite: a topic branch whose commit "docs: b" was rebased
+// from a (b1) onto main's new head (m1) as bm, or reworded there as rw.
+const (
+	m1 = "m0000000"
+	b1 = "b0000000"
+	bm = "bm000000"
+	rw = "rw000000"
+	x1 = "x0000000"
+)
+
+// rewriting is a repository of a, main's new head m1 on it, the topic's old
+// head b1 on a, its rebase bm onto m1, its reword rw and unrelated work x1 on
+// a, the clone's origin/main at m1 and the remote's HEAD naming main, which it
+// has.
+func rewriting(t *testing.T, text string) *ports {
+	t.Helper()
+	p := pushing(t, text, "")
+	commit := func(name, message, author string, parents ...string) vcsfake.Commit {
+		return vcsfake.Commit{Name: name, Parents: parents, Message: message, Author: author, Email: author + "@x", Date: "10 +0000",
+			Tree: map[string]string{"a.md": "a\n", name + ".md": name + "\n"}}
+	}
+	p.VCS.History = []vcsfake.Commit{
+		{Name: a, Message: "docs: a\n", Tree: map[string]string{"a.md": "a\n"}},
+		commit(m1, "docs: m\n", "m", a),
+		commit(b1, "docs: b\n", "u", a),
+		commit(bm, "docs: b\n", "u", m1),
+		commit(rw, "docs: write b\n", "u", m1),
+		commit(x1, "docs: x\n", "u", a),
+	}
+	p.VCS.Named = map[string]string{"HEAD": bm, "refs/remotes/origin/main": m1}
+	p.VCS.Remote = map[string]*vcsfake.Remote{"origin": {URL: "origin.git", Refs: map[string]string{"refs/heads/main": m1}}}
+	p.head = "main"
+	return p
+}
+
+// topic is the ref line for a push of local over the remote's topic branch at
+// remote.
+func topic(local, remote string) string {
+	return "HEAD " + local + " refs/heads/topic " + remote + "\n"
+}
+
+// A rewrite of a branch that is not main is accepted when each commit of the
+// remote's old head that main lacks has a counterpart in the new head's, and
+// returned as a new branch: the same author, author date and message, kept
+// by a rebase, is one; a reword is none, and is refused naming the commit.
+// Every other rewrite stays refused: main's, a ref that is no branch, a
+// remote commit the clone lacks, any when the remote's HEAD cannot be asked
+// or names no branch it has, and one over a remote this hook is not told.
+func TestOwnRewrites(t *testing.T) {
+	for _, c := range []struct {
+		name   string
+		input  string
+		remote string
+		set    func(*ports)
+		want   string // "" when accepted, else what the refusal says
+	}{
+		{"a rebase", topic(bm, b1), "origin", nil, ""},
+		{"a rebase, main's remote-tracking branch gone", topic(bm, b1), "origin", func(p *ports) {
+			delete(p.VCS.Named, "refs/remotes/origin/main")
+		}, ""},
+		{"a branch main has all of", topic(x1, m1), "origin", nil, ""},
+		{"a branch main has all of, main's remote-tracking branch gone", topic(x1, m1), "origin", func(p *ports) {
+			delete(p.VCS.Named, "refs/remotes/origin/main")
+		}, "  m000000 docs: m"},
+		{"a reword", topic(rw, b1), "origin", nil, "  b000000 docs: b\n"},
+		{"main's", "HEAD " + bm + " refs/heads/main " + b1 + "\n", "origin", nil, "refs/heads/main's commit b000000"},
+		{"a ref that is no branch", "HEAD " + bm + " refs/notes/x " + b1 + "\n", "origin", nil, "refs/notes/x's commit b000000"},
+		{"a remote commit the clone lacks", topic(bm, gone), "origin", nil, "since this clone lacks it"},
+		{"the remote's HEAD naming none", topic(bm, b1), "origin", func(p *ports) { p.head = "" }, "refs/heads/topic's commit b000000"},
+		{"the remote's HEAD that cannot be asked", topic(bm, b1), "origin", func(p *ports) { p.headErr = os.ErrDeadlineExceeded }, "refs/heads/topic's commit b000000"},
+		{"the remote's HEAD naming a branch it lacks", topic(bm, b1), "origin", func(p *ports) { p.head = "trunk" }, "refs/heads/topic's commit b000000"},
+		{"a remote that cannot be asked", topic(bm, b1), "origin", func(p *ports) { delete(p.VCS.Remote, "origin") }, "refs/heads/topic's commit b000000"},
+		{"a remote the hook is not told", topic(bm, b1), "", nil, "refs/heads/topic's commit b000000"},
+		{"a commit pushed that cannot be read", topic("nope", b1), "origin", nil, "refs/heads/topic's commit b000000"},
+	} {
+		p := rewriting(t, "version: 1\n")
+		if c.set != nil {
+			c.set(p)
+		}
+		h := NewHandler(p)
+		refs, answer, refused := h.rewrites(t.Context(), c.remote, refsOf(h, c.input))
+		switch {
+		case c.want == "" && (refused || len(refs) != 1 || refs[0].remote != "" || refs[0].base != "" || refs[0].ref == "" || refs[0].local == ""):
+			t.Errorf("%s: rewrites = %+v, %q, %v; want accepted as a new branch", c.name, refs, answer.Said, refused)
+		case c.want != "" && (!refused || !strings.Contains(answer.Said, c.want) || answer.Code != policy):
+			t.Errorf("%s: rewrites = %+v, %d, %q, %v; want refused saying %q", c.name, refs, answer.Code, answer.Said, refused, c.want)
+		case c.want != "" && c.name == "main's" && strings.Contains(answer.Said, "It would drop"):
+			t.Errorf("%s: refused for dropping commits:\n%s", c.name, answer.Said)
+		}
+	}
+}
+
+// An accepted rewrite is judged as a new branch is: hooks.pre_push's per_base
+// runs once from the remote commit the commits on no remote-tracking branch
+// grow from, main's head, not from the old head the push replaces; a
+// refused one runs nothing and says what it drops, and itos push --onto-main.
+func TestOwnRewriteIsJudgedAsANewBranch(t *testing.T) {
+	p := rewriting(t, pushRules)
+	stdin(t, topic(bm, b1))
+	code, stdout, stderr, err := hook(t, p, "pre-push", "origin", "url")
+	if code != 0 || err != nil || stdout != "$ test "+m1+"\n" || stderr != "" || !slices.Equal(p.ran, []string{"test " + m1}) {
+		t.Errorf("an accepted rewrite: exit %d, %v\n%s%s\nran %q", code, err, stdout, stderr, p.ran)
+	}
+	p = rewriting(t, pushRules)
+	stdin(t, topic(rw, b1))
+	code, stdout, stderr, err = hook(t, p, "pre-push", "origin", "url")
+	if code != policy || err != nil || stdout != "" || len(p.ran) != 0 ||
+		!strings.Contains(stderr, "  b000000 docs: b\n") || !strings.Contains(stderr, "itos push --onto-main") {
+		t.Errorf("a reword: exit %d, %v\n%s%s\nran %q", code, err, stdout, stderr, p.ran)
 	}
 }
 
