@@ -153,3 +153,25 @@ Feature: itos followup, private threads with people
     When itos runs "followup show sync-ana" with TZ "Asia/Tokyo" and the Go toolchain's zone database
     Then itos exits with code 0
     And its output says "14:02"
+
+  # Bug 152 (draft.feature's ID-DRAFT-63 holds the decisions): domain.parse
+  # decoded the threads file with yaml.v3, which skips an entry whose key is
+  # null, so "~: 1" beside the threads was never reported as the unknown key
+  # it is, and the next save dropped it. value.Parse reads this file (a key
+  # "" holding 1), so refusing what Parse refuses is not enough here: the
+  # null key is refused since itos writes none, naming the file, exit 2
+  # (domain.Invalid), the file left as it is. Before the fix it fails at
+  # "itos exits with code 2": parse reads no threads, followup add opens
+  # sync-ana, and the file is written whole without "~: 1", exit 0.
+  @ID-FOLLOW-16 @bug-152 @wip
+  Scenario: A threads file with a null key is refused, and left as it was
+    Given the scratch file ".git/itos/follow-ups.yaml" contains exactly:
+      """
+      threads: []
+      ~: 1
+      """
+    When itos runs the command line "followup add sync-ana --with ana --title 'The sync design' --note 'Started.'"
+    Then itos exits with code 2
+    And its output says "follow-ups.yaml"
+    And its output says "null key"
+    And the file ".git/itos/follow-ups.yaml" says "~: 1"
