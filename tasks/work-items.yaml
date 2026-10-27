@@ -15381,3 +15381,16 @@ items:
       branch's remote once, quietly, falling back to the unfetched view with the existing warning
       when the fetch fails or is off.
     tags: [status, v8]
+
+  - id: p3-review-threads-paging
+    title: --ready, push threads and push thread read every page of a pull request's review threads
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Codex on #208 (slice-191, 2026-10-27): all three read reviewThreads(first: 100), so a pull
+      request with more than 100 threads lists, validates and refuses on the first page only. Out of
+      slice-191 by its spec; one query change serves all three.
+    tags: [push]
