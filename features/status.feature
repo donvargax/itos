@@ -439,20 +439,27 @@ Feature: itos status, where the work stands
   # progress, or with no GitHub repository to name, gh is not asked; with
   # no gh on the PATH, status prints as today and says nothing of it. The
   # call gets 5 s (providers' GhTimeout, as identity's gh since bug 46),
-  # since status runs at every itos go. A gh that is there and fails
-  # (signed out, offline), answers nothing the query asked, or gives no
-  # answer in time adds one line to what is printed and to --json's
-  # "unread", in the words of the other parts that cannot be read: "The pull
-  # requests cannot be read: gh api graphql failed: " and gh's reason as
-  # work done gives it, or "The pull requests cannot be read: gh gave no
-  # answer within 5 s."; the rest prints, exit 0. It lands as a feat: no
-  # scenario of the last release changes. For the implementer, beyond the
-  # scenarios: the recording gh (pushmode_test.go) answers every api
+  # since status runs at every itos go. A gh that is there but fails
+  # (signed out, offline), answers wrongly or gives no answer in time adds
+  # one line to what is printed and to --json's "unread", in the words of
+  # the other parts that cannot be read, and the rest prints, exit 0. The
+  # line is one of three: "The pull requests cannot be read: gh api graphql
+  # failed: " and gh's reason as work done gives it, for a gh that exits
+  # non-zero; "The pull requests cannot be read: gh api graphql gave no pull
+  # requests: " and why, for an answer that exits 0 but is not JSON, or
+  # lacks the repository or an alias the query asked for; "The pull requests
+  # cannot be read: gh gave no answer within 5 s.", for one out of time.
+  # It lands as a feat: no scenario of the last release changes. For the
+  # implementer, beyond the scenarios: the recording gh (pushmode_test.go) answers every api
   # graphql with the review shape today, so it gains an answer to this
-  # aliased query, from its pull-requests file: under each alias, the OPEN
-  # and MERGED pull requests of the branch its headRefName names, the last
-  # given first, each with number, state and mergedAt; status --help and its
-  # --json shape name the mark and the key.
+  # aliased query, from its pull-requests file. As GitHub does, it honours
+  # the query's states: under each alias, the pull requests of the branch
+  # its headRefName names whose state the query's states name, every state
+  # when it names none, the last given first, each with number, state and
+  # mergedAt (a CLOSED one with mergedAt null). So ID-STATUS-52 fails a
+  # build that drops the states and takes any pull request not OPEN for a
+  # merged one. status --help and its --json shape name the mark and the
+  # key.
   #
   # Two items merged, so the one call is pinned: one api graphql, none per
   # item, and no pr list.
