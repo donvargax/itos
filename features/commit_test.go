@@ -59,6 +59,13 @@ func initializeCommitSteps(sc *godog.ScenarioContext, w *world) {
 	sc.Step(`^the message of HEAD has the footer "([^"]*)" once$`, w.headHasFooterOnce)
 	sc.Step(`^HEAD's "([^"]*)" footers name exactly "([^"]*)", each once$`, w.headFootersNameExactly)
 	sc.Step(`^the message of HEAD says "([^"]*)"$`, w.headMessageSays)
+	sc.Step(`^the message of HEAD says `+goQuoted+`, its backslash escapes read as Go's$`, func(text string) error {
+		text, err := goEscapes(text)
+		if err != nil {
+			return err
+		}
+		return w.headMessageSays(text)
+	})
 	sc.Step(`^the message of HEAD does not say "([^"]*)"$`, w.headMessageDoesNotSay)
 	sc.Step(`^the itos note on HEAD says "([^"]*)"$`, w.headNoteSays)
 	sc.Step(`^no commit was made$`, w.noCommitMade)

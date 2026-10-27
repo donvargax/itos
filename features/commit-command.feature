@@ -708,3 +708,23 @@ Feature: itos commit, a commit whose footers itos writes
     When itos commits with the arguments "--upgrading 'run itos upgrade\u00a0' -F msg.txt", its backslash escapes read as Go's
     Then itos exits with code 0
     And its output does not say "the message gives"
+
+  # Codex's review of the pull request found that ID-COMMITCMD-41 passes with
+  # both of the fix's changes reverted: readCommitFlags drops the flag's
+  # no-break space, unfolded the message's, and Written.Against reads two
+  # equal texts. It guards a fix of one side alone, but nothing shows that the
+  # flag's own text keeps its no-break space. With no Upgrading footer in the
+  # message, the flag writes the footer as given (itos commit's --trailer),
+  # and the message of HEAD says the text with its no-break space, as git
+  # keeps it; before the change of readCommitFlags the flag was trimmed of it
+  # and the message says "Upgrading: run itos upgrade\n": it fails at the
+  # message of HEAD says "Upgrading: run itos upgrade\u00a0\n". The new Then
+  # "the message of HEAD says <text>, its backslash escapes read as Go's" is
+  # "the message of HEAD says" with the text read as the other new steps read
+  # theirs.
+  @ID-COMMITCMD-42 @bug-151 @wip
+  Scenario: A free-text footer a flag gives keeps its trailing no-break space, as git keeps it
+    Given the config requires an "Upgrading" footer of free text for "chore"
+    When itos commits with the arguments "--task T-001 --upgrading 'run itos upgrade\u00a0' -m 'chore: tidy the readme'", its backslash escapes read as Go's
+    Then itos exits with code 0
+    And the message of HEAD says "Upgrading: run itos upgrade\u00a0\n", its backslash escapes read as Go's
