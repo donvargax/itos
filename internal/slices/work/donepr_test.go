@@ -86,7 +86,19 @@ func TestDonePRRefuses(t *testing.T) {
 			p.ghOut = strings.Replace(mergedPull, "]", ",", 1) + openPull[1:]
 		}, 1, "work-done-pr-open", "is open", ""},
 		{"a merged pull request the clone has not pulled", "slice-2", func(p *ports) { p.ghOut = mergedPull }, 1, "work-done-pr-merged",
-			"slice-2's pull request " + pull + " has merged, but HEAD has no commit of slice-2 that origin/main has",
+			"slice-2's pull request " + pull + " has merged, but HEAD has no commit of slice-2 that origin/main has, and origin's main has moved since this clone last pulled it",
+			"bring main up to date with git pull, then run itos work done slice-2 again"},
+		{"a merged pull request and a main the clone has pulled", "slice-2", func(p *ports) {
+			p.ghOut = mergedPull
+			vcsOf(*p).Remote["origin"].Refs["refs/heads/main"] = "c-1a"
+		}, 1, "work-done-pr-merged",
+			"slice-2's pull request " + pull + " has merged, but HEAD has no commit of slice-2 that origin/main has, though this clone has pulled origin's main as it is now, so the pull request did not merge into main",
+			"push its work again from the branch slice-2 with itos push, which opens a new pull request, then run itos work done slice-2 again"},
+		{"a merged pull request and a HEAD behind main", "slice-2", func(p *ports) {
+			p.ghOut = mergedPull
+			vcsOf(*p).Named["HEAD"] = "c-3a"
+			vcsOf(*p).Named["refs/remotes/origin/main"] = "c-4a"
+		}, 1, "work-done-pr-merged", "and origin's main has moved since this clone last pulled it",
 			"bring main up to date with git pull, then run itos work done slice-2 again"},
 		{"a merged pull request and a commit on main here alone", "T-1", func(p *ports) {
 			p.ghOut = mergedPull
@@ -178,7 +190,7 @@ func TestDonePRCloses(t *testing.T) {
 		if code != 0 || err != nil || !strings.HasPrefix(stdout, "T-1 is done: committed ") || strings.Contains(stderr, "no remote has") {
 			t.Errorf("work done T-1 with %s = %d, %v, %q, %q", pulls, code, err, stdout, stderr)
 		}
-		want := [][]string{{"pr", "list", "--repo", "owner/scratch", "--head", "T-1", "--state", "all", "--json", "state,mergedAt,number,url,headRefOid"}}
+		want := [][]string{{"pr", "list", "--repo", "owner/scratch", "--head", "T-1", "--state", "all", "--json", "state,mergedAt,number,url,headRefOid,mergeCommit"}}
 		if len(*calls) != 1 || !slices.Equal((*calls)[0], want[0]) || !slices.Equal(*heads, []string{"upstream"}) {
 			t.Errorf("work done T-1 asked gh %q and the remote %q, want %q and upstream", *calls, *heads, want)
 		}
@@ -197,5 +209,57 @@ func TestDoneTrunkAsksNoGh(t *testing.T) {
 	p.pr = pr{ghCalls: calls, headCalls: heads}
 	if code, _, _, err := run(t, p, "done", "slice-2"); code != 0 || err != nil || len(*calls)+len(*heads) != 0 {
 		t.Errorf("work done slice-2 = %d, %v, gh %q, remote %q", code, err, *calls, *heads)
+	}
+}
+
+// A merged pull request's merge commit is the item's newest own commit when
+// HEAD has it and the item's own commits do not come after it (slice 195);
+// else the commit the item's footers name, if any, is judged as before.
+func TestWithMergeCommit(t *testing.T) {
+	p, _, _ := prDone(t, "[]")
+	v := vcsOf(p)
+	own := doneCommit{sha: "c-1a", run: "The CI run of c-1, the newest commit of slice-2,", what: "c-1, the newest commit of slice-2", own: true}
+	newest := doneCommit{sha: "c-4a", run: "The CI run of c-4a, the newest commit of slice-2,", what: "c-4a, the newest commit of slice-2", own: true}
+	merged := func(oid string) *pull {
+		m := &pull{MergeCommit: &struct {
+			Oid string `json:"oid"`
+		}{oid}}
+		return m
+	}
+	for _, c := range []struct {
+		name    string
+		pull    *pull
+		landing doneCommit
+		want    doneCommit
+	}{
+		{"no pull request", nil, own, own},
+		{"no merge commit", &pull{}, own, own},
+		{"an empty merge commit", merged(""), own, own},
+		{"a merge commit HEAD lacks", merged("x-9z"), own, own},
+		{"a merge commit and no own commit", merged("c-4a"), doneCommit{}, newest},
+		{"a merge commit after the own commit", merged("c-4a"), own, newest},
+		{"the own commit as the merge commit", merged("c-1a"), own, doneCommit{sha: "c-1a", run: "The CI run of c-1a, the newest commit of slice-2,", what: "c-1a, the newest commit of slice-2", own: true}},
+		{"an own commit after the merge commit", merged("c-2a"), doneCommit{sha: "c-3a", own: true}, doneCommit{sha: "c-3a", own: true}},
+	} {
+		if got := withMergeCommit(t.Context(), v, "slice-2", c.pull, c.landing); got != c.want {
+			t.Errorf("%s: %+v, want %+v", c.name, got, c.want)
+		}
+	}
+}
+
+// An item with no commit of its own is done by its merged pull request's merge
+// commit once origin/main has it, and not before.
+func TestDonePRClosesByTheMergeCommit(t *testing.T) {
+	const pulls = `[{"state":"MERGED","mergedAt":"2026-10-24T10:00:00Z","number":7,"url":"https://github.example/o/r/pull/7","mergeCommit":{"oid":"c-4a"}}]`
+	p, _, _ := prDone(t, pulls)
+	vcsOf(p).Named["refs/remotes/origin/main"] = "c-4a"
+	code, stdout, stderr, err := run(t, p, "done", "slice-2")
+	if code != 0 || err != nil || !strings.HasPrefix(stdout, "slice-2 is done: committed ") {
+		t.Errorf("work done slice-2 = %d, %v, %q, %q", code, err, stdout, stderr)
+	}
+	p, _, _ = prDone(t, pulls)
+	code, _, stderr, err = run(t, p, "done", "slice-2")
+	if code != 1 || err != nil || !strings.Contains(stderr, "has merged, but HEAD has no commit of slice-2 that origin/main has") {
+		t.Errorf("work done slice-2 with origin/main behind = %d, %v, %q", code, err, stderr)
 	}
 }

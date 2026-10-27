@@ -218,7 +218,7 @@ Feature: Under push.mode pr, work done closes an item only once its pull request
   # main's head, a commit naming only a task, which slice 195 would count.
   # A guard: it passes before the work, since the open pull request refuses
   # whatever main holds, and must after it.
-  @ID-PRDONE-13 @slice-195 @guard @wip
+  @ID-PRDONE-13 @slice-195 @guard
   Scenario: Under pr, work done refuses an item with an open pull request though an earlier one merged as main's head
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -260,7 +260,7 @@ Feature: Under push.mode pr, work done closes an item only once its pull request
   # remote's main gained and this clone has not pulled: a pull brings it,
   # so git pull is advised, saying why. Fails before the work at the step
   # on why: today's words name the pull and not that main has moved.
-  @ID-PRDONE-15 @slice-195 @wip
+  @ID-PRDONE-15 @slice-195
   Scenario: Under pr, work done refuses an item whose pull request merged into a main the clone has not pulled, saying main has moved
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -283,7 +283,7 @@ Feature: Under push.mode pr, work done closes an item only once its pull request
   # new pull request. Fails before the work at the message, which today
   # says nothing of the pull, and its fix is "bring main up to date with
   # git pull".
-  @ID-PRDONE-16 @slice-195 @wip
+  @ID-PRDONE-16 @slice-195
   Scenario: Under pr, work done --json refuses an item whose pull request merged outside an up-to-date main without advising git pull
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -359,7 +359,7 @@ Feature: Under push.mode pr, work done closes an item only once its pull request
   # main's newest commit naming only a task, pulled here, is not the item's
   # without one, so the item with no pull request is refused as before. A
   # guard: it passes before the work and must after it.
-  @ID-PRDONE-14 @slice-195 @guard @wip
+  @ID-PRDONE-14 @slice-195 @guard
   Scenario: Under pr, work done --json refuses an item with no pull request though main has a commit naming only a task
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -405,7 +405,7 @@ Feature: Under push.mode pr, work done closes an item only once its pull request
   # names no head and slice 181's trust does not come in. Fails before the
   # work at the exit code: today no commit of slice-9 is found and the
   # merged pull request is refused, work-done-pr-merged, exit 1.
-  @ID-PRDONE-12 @slice-195 @wip
+  @ID-PRDONE-12 @slice-195
   Scenario: Under pr with ci.watch, work done closes an item whose merged pull request's commits name only a task, judging its merge commit
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """

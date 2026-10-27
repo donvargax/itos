@@ -27,11 +27,11 @@ func prRefusal(rule, message, fix, id string, code int) *refusedPR {
 
 // prMain is where work done stands under push.mode pr: the remote (HEAD's
 // branch's upstream's, else origin) and main, the branch its HEAD names, asked
-// of the remote as itos push asks it. Refused when the remote cannot be asked
+// of the remote as itos push asks it, and the commit main is at there (tip). Refused when the remote cannot be asked
 // (75 when git cannot reach it, else 3, git's words on stderr), when its HEAD
 // names no branch it has (3), and when HEAD is not on main (1): the close is a
 // registry commit, which goes straight to main, and the checks judge HEAD.
-func prMain(ctx context.Context, ports Ports, cfg *config.Loaded, id string, o Out) (remote, main string, stop *refusedPR) {
+func prMain(ctx context.Context, ports Ports, cfg *config.Loaded, id string, o Out) (remote, main, tip string, stop *refusedPR) {
 	v := cfg.VCS
 	branch := v.Branch(ctx)
 	remote = "origin"
@@ -45,10 +45,11 @@ func prMain(ctx context.Context, ports Ports, cfg *config.Loaded, id string, o O
 		refs, err = v.RemoteRefs(ctx, remote, []string{"refs/heads/" + main}, talk)
 	}
 	if err != nil {
-		return "", "", remoteFailed(err, remote, id, o)
+		return "", "", "", remoteFailed(err, remote, id, o)
 	}
-	if refs["refs/heads/"+main] == "" {
-		return "", "", prRefusal("work-done-no-main",
+	tip = refs["refs/heads/"+main]
+	if tip == "" {
+		return "", "", "", prRefusal("work-done-no-main",
 			fmt.Sprintf("push.mode is pr, so work done runs on main, and %s's HEAD names no branch %s has", remote, remote),
 			"set the remote's default branch", id, missing)
 	}
@@ -57,11 +58,11 @@ func prMain(ctx context.Context, ports Ports, cfg *config.Loaded, id string, o O
 		if branch != "" {
 			on = branch
 		}
-		return "", "", prRefusal("work-done-not-main",
+		return "", "", "", prRefusal("work-done-not-main",
 			"push.mode is pr, so work done runs on main, where its close goes, and HEAD is on "+on,
 			"switch to main with git switch "+main+", bring it up to date with git pull", id, refused)
 	}
-	return remote, main, nil
+	return remote, main, tip, nil
 }
 
 // remoteFailed is the refusal of a question put to the remote that failed:
@@ -88,6 +89,11 @@ type pull struct {
 	Number     int     `json:"number"`
 	URL        string  `json:"url"`
 	HeadRefOid string  `json:"headRefOid"`
+	// MergeCommit is the commit the pull request merged as, nil when gh gave
+	// none (slice 195).
+	MergeCommit *struct {
+		Oid string `json:"oid"`
+	} `json:"mergeCommit"`
 }
 
 // pullRequests are the item's pull requests, each kind's first as gh lists
@@ -101,7 +107,7 @@ func pullRequests(ctx context.Context, ports Ports, cfg *config.Loaded, id, remo
 			fmt.Sprintf("push.mode is pr, so work done asks for %s's pull request, and %s names no GitHub repository to ask in", id, remote),
 			"set "+cfg.CI.Range.GitHub.RepositoryEnv+" to owner/name, or point the remote at a GitHub repository", id, missing)
 	}
-	listed, err := ports.Gh(ctx, "pr", "list", "--repo", repository, "--head", id, "--state", "all", "--json", "state,mergedAt,number,url,headRefOid")
+	listed, err := ports.Gh(ctx, "pr", "list", "--repo", repository, "--head", id, "--state", "all", "--json", "state,mergedAt,number,url,headRefOid,mergeCommit")
 	reason := ""
 	var list []pull
 	if err != nil {
@@ -131,38 +137,65 @@ func pullRequests(ctx context.Context, ports Ports, cfg *config.Loaded, id, remo
 	return open, merged, closed, nil
 }
 
-// prLanded is the merged pull request, nil when there is none, when the
-// item's pull requests let work done go on: none is open (whatever main
-// holds, since more of its work can be in a pull request still), and the
-// newest of its own commits (landing) is on <remote>/<main> as the clone last
-// fetched it. Under pr work reaches main only through a pull request, so a
-// commit merged into main here alone has not landed. Else the refusal, by the
-// kind of the pull request there is.
-func prLanded(ctx context.Context, ports Ports, cfg *config.Loaded, id, remote, main string, landing doneCommit) (*pull, *refusedPR) {
+// prLanded is the merged pull request, nil when there is none, and the commit
+// whose landing is judged, when the item's pull requests let work done go on:
+// none is open (whatever main holds, since more of its work can be in a pull
+// request still), and the newest of its own commits (landing) is on
+// <remote>/<main> as the clone last fetched it. Under pr work reaches main
+// only through a pull request, so a commit merged into main here alone has
+// not landed. The merged pull request's merge commit, when HEAD has it and
+// the item's own commits do not come after it, is the newest of them (slice
+// 195). Else the refusal, by the kind of the pull request there is; tip is
+// the commit <remote>'s main is at.
+func prLanded(ctx context.Context, ports Ports, cfg *config.Loaded, id, remote, main, tip string, landing doneCommit) (*pull, doneCommit, *refusedPR) {
 	open, merged, closed, stop := pullRequests(ctx, ports, cfg, id, remote)
 	if stop != nil {
-		return nil, stop
+		return nil, landing, stop
 	}
+	v := cfg.VCS
 	on := remote + "/" + main
 	if open != nil {
-		return nil, prRefusal("work-done-pr-open",
+		return nil, landing, prRefusal("work-done-pr-open",
 			fmt.Sprintf("%s's pull request %s is open, so its work is not on %s and %s is not done", id, open.URL, on, id),
 			"wait for it to merge", id, refused)
 	}
-	if landing.sha != "" && cfg.VCS.IsAncestor(ctx, landing.sha, "refs/remotes/"+on) {
-		return merged, nil
+	landing = withMergeCommit(ctx, v, id, merged, landing)
+	if landing.sha != "" && v.IsAncestor(ctx, landing.sha, "refs/remotes/"+on) {
+		return merged, landing, nil
 	}
 	switch {
 	case merged != nil:
-		return nil, prRefusal("work-done-pr-merged",
-			fmt.Sprintf("%s's pull request %s has merged, but HEAD has no commit of %s that %s has", id, merged.URL, id, on),
-			"bring main up to date with git pull", id, refused)
+		message := fmt.Sprintf("%s's pull request %s has merged, but HEAD has no commit of %s that %s has", id, merged.URL, id, on)
+		if !v.IsAncestor(ctx, tip, "HEAD") || !v.IsAncestor(ctx, tip, "refs/remotes/"+on) {
+			return nil, landing, prRefusal("work-done-pr-merged",
+				fmt.Sprintf("%s, and %s's %s has moved since this clone last pulled it", message, remote, main),
+				"bring main up to date with git pull", id, refused)
+		}
+		return nil, landing, prRefusal("work-done-pr-merged",
+			fmt.Sprintf("%s, though this clone has pulled %s's %s as it is now, so the pull request did not merge into %s", message, remote, main, main),
+			"push its work again from the branch "+id+" with itos push, which opens a new pull request", id, refused)
 	case closed != nil:
-		return nil, prRefusal("work-done-pr-closed",
+		return nil, landing, prRefusal("work-done-pr-closed",
 			fmt.Sprintf("%s's pull request %s was closed without merging, so its work is not on %s and %s is not done", id, closed.URL, on, id),
 			"push its work again from the branch "+id+" with itos push, which opens a new pull request", id, refused)
 	}
-	return nil, prRefusal("work-done-no-pull-request",
+	return nil, landing, prRefusal("work-done-no-pull-request",
 		fmt.Sprintf("%s has no commit of %s and %s has no pull request, so its work has not landed", on, id, id),
 		"push its work from the branch "+id+" with itos push, which opens its pull request", id, refused)
+}
+
+// withMergeCommit is the commit the merged pull request merged as (slice
+// 195), for a rebase merge the last of the pull request's commits made anew,
+// when it stands for the item's own commits: HEAD's history has it, and the
+// newest of them (landing) is not after it. Else landing, as it is.
+func withMergeCommit(ctx context.Context, v vcsport.VCS, id string, merged *pull, landing doneCommit) doneCommit {
+	if merged == nil || merged.MergeCommit == nil || merged.MergeCommit.Oid == "" {
+		return landing
+	}
+	sha := merged.MergeCommit.Oid
+	if !v.IsAncestor(ctx, sha, "HEAD") || landing.sha != "" && !v.IsAncestor(ctx, landing.sha, sha) {
+		return landing
+	}
+	what := short(sha) + ", the newest commit of " + id
+	return doneCommit{sha: sha, run: "The CI run of " + what + ",", what: what, own: true}
 }

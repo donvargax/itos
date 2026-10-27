@@ -15,7 +15,8 @@ Feature: Under push.mode pr, work done trusts the merged pull request's green ru
 
   Where it applies. Under pr with ci.watch, once slice 176's rules let the
   close go on (no open pull request; the item's newest own commit, here
-  <landing>, on <remote>/<main> as last fetched), and once the unpushed
+  <landing>, which slice 195 makes the merged pull request's merge commit
+  when HEAD has it, on <remote>/<main> as last fetched), and once the unpushed
   check and a task's checks have passed, work done asks whether the
   merged pull request's head may judge <landing> before it looks for
   main's run. Without ci.watch nothing changes: CI is not checked, said on
@@ -24,9 +25,9 @@ Feature: Under push.mode pr, work done trusts the merged pull request's green ru
 
   The head. The one gh call slice 176 makes gains headRefOid in its --json:
   gh pr list --repo <repository> --head <id> --state all --json
-  state,mergedAt,number,url,headRefOid, the same call whatever ci.watch
-  says. The pull request that counts is the merged one slice 176 picks
-  (mergedAt set, the first gh lists, its newest), and its head is its
+  state,mergedAt,number,url,headRefOid (slice 195 adds mergeCommit,
+  work-done-pr.feature), the same call whatever ci.watch says. The pull
+  request that counts is the merged one slice 176 picks (mergedAt set, the first gh lists, its newest), and its head is its
   headRefOid: for a merged pull request, the last head GitHub had when it
   merged, the head itos push --ready waited for, one GitHub made by
   update-branch included. That head is never on main, since the rebase
