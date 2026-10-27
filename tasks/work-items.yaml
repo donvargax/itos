@@ -15416,3 +15416,18 @@ items:
       hook is called differently and the remote is in PRE_COMMIT_REMOTE_NAME, so a legitimate
       rewrite is refused there.
     tags: [hooks]
+
+  - id: p3-ready-rebased-head-unwatched
+    title: push --ready finds the head GitHub made when no CI run is watched, so a review re-request names it
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Codex on #210 (slice-190, 2026-10-27): with ci.watch.provider none, a positive
+      push.pr.review_stall and main ahead of the item branch, --ready asks GitHub to rebase but
+      never reads the rebased head, so the itos-review-request marker names the pre-rebase SHA and a
+      later --ready can ask again for the same real head. Out of slice-190's spec (slice-175: no
+      provider, no gh pr view). A gh pr view for headRefOid when no run is watched would close it.
+    tags: [push]
