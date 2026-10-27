@@ -14304,8 +14304,11 @@ items:
       not touch is skipped and reads as success for the required check, so a docs range runs the
       docs checks alone. Design for v9 beside p1-pr-registry-to-main and slice-186 (docs to main
       without a pull request).
+
+      The person, 2026-10-27: every friction found is fixed before v9 design starts, the pilot's
+      slowness log included; moved from v9 to v8.
     refs: [itos.yaml, .github/workflows/ci.yml, internal/plan]
-    tags: [ci, v9]
+    tags: [ci, v8]
 
   - id: p1-push-thread-commands
     title: itos replies to and resolves a pull request's review threads
