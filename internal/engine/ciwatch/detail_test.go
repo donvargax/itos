@@ -228,3 +228,21 @@ func TestAWatchOfAFailedRunDetailsItsJobsAndTheTagsAtItsHead(t *testing.T) {
 		}
 	}
 }
+
+// A run that failed names no failed jobs when none of its jobs finished and
+// did not succeed: its line ends at its address.
+func TestEndedNamesNoFailedJobsForARunWithNone(t *testing.T) {
+	cancelled := failedRun()
+	cancelled.Conclusion = "cancelled"
+	cancelled.Jobs = cancelled.Jobs[1:5]
+	noJobs := failedRun()
+	noJobs.Jobs = nil
+	for name, run := range map[string]providers.Run{"jobs that did not fail": cancelled, "no jobs": noJobs} {
+		var stderr strings.Builder
+		w := Ended(run, Out{Stderr: &stderr}, &stderr)
+		want := "CI " + run.Conclusion + ": u\n"
+		if w.Code != 1 || stderr.String() != want {
+			t.Errorf("%s: code %d, %q; want %q", name, w.Code, stderr.String(), want)
+		}
+	}
+}
