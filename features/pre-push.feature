@@ -32,8 +32,11 @@ Feature: The pre-push hook verifies the commits it pushes
   commit a resolved conflict rebases, bug-151's case, has another one, and
   so does a commit main changed lines near. So a squash or a reword during
   the rewrite leaves the old commit with no counterpart, and the rewrite is
-  refused as one that drops it. itos push --onto-main uses the same rule
-  (push-mode.feature).
+  refused as one that drops it. A commit of the new head is the counterpart
+  of one old commit alone, so two commits made alike (the same message in
+  the same second) need two; and a merge commit is none to drop, since a
+  rebase leaves it out and the commits it brought in are matched. itos push
+  --onto-main uses the same rule (push-mode.feature).
 
   itos push --onto-main makes such a rewrite, and a plain git push
   --force-with-lease of a branch rebased onto main passes too, since the

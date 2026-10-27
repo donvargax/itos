@@ -12,6 +12,10 @@
 // the old commit has no counterpart and the rewrite is one that drops it.
 //
 // Dropped are the commits of the old head that main lacks and the new head's
-// commits that main lacks hold no counterpart of. Main is a revision the
-// caller resolved, "" to count each head's commits as all of its history.
+// commits that main lacks hold no counterpart of. Each commit of the new head
+// is the counterpart of one old commit alone: two commits made alike (the same
+// message in the same second) need two. A merge commit is set aside in both
+// heads, having no work of its own: a rebase leaves it out, and the commits it
+// brought in are matched. Main is a revision the caller resolved, "" to count
+// each head's commits as all of its history.
 package rewrite

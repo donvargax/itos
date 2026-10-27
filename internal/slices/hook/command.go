@@ -70,7 +70,8 @@ it; main as the clone's remote-tracking branch of it has it) and whose remote
 commit, which the clone has, has no commit that main lacks without a
 counterpart among the commit pushed's that main lacks, a counterpart being a
 commit with the same author, author date and message (not a patch-id: a
-conflict resolved in a rebase changes that). That is itos push --onto-main's
+conflict resolved in a rebase changes that), serving one commit alone, merge
+commits left out of the count. That is itos push --onto-main's
 rewrite, and a plain git push --force-with-lease of a branch rebased onto main
 passes too. A rewrite that would drop a commit is refused naming each by its
 short SHA and subject, and a squash or a reword is such a drop. Then it
