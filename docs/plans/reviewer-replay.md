@@ -321,3 +321,33 @@ The person decides, recorded as an amendment to ADR-0061.
 - The local reviewer's own earlier spec finds (#149 `features/ci-help.feature:104`, #150
   `features/upgrade-command.feature:427`) are added as spec seeds, scored apart from the
   independent ones so their bias shows.
+
+## Results (2026-10-27)
+
+Every leg ran on the eleven replay pull requests (#176 to #186), scored seed by seed against the
+known findings (the full scoring, per seed, was kept with the run's artifacts). The two own-catch
+spec seeds tested nothing: the replayed heads already held their fixes.
+
+| reviewer                                       | known diff / 12                      | spec / 2 | valid new | noise a review                      | cost a review            |
+| ---------------------------------------------- | ------------------------------------ | -------- | --------- | ----------------------------------- | ------------------------ |
+| local (Opus, reviewer CLI)                     | 1                                    | 2        | 1         | 0                                   | $0.69 (API credits)      |
+| Fable 5.1, high                                | 3 (+2 partial, as notes)             | 2        | 2         | 0                                   | ~0.3% of the Claude week |
+| Fable 5.1, max (its 7 misses)                  | 0 of 7                               | -        | 1         | 0                                   | ~0.6% of the Claude week |
+| Astra (gpt-6-astra, high, CLI)                 | 5 (6 counting the spec stage)        | 2        | 7         | 0.23                                | Codex allowance (shared) |
+| Codex at ready (with the rules in the comment) | 7 (6 code review, 1 security review) | 2        | 4         | 0 code review, 0.55 security review | Codex allowance (shared) |
+
+Astra and Codex together drew 5% of the Codex week across 26 reviews (~0.2% each). No reviewer
+found K143b, K150b or K153; only Codex's security review found K137. More effort did not help
+Fable: it checks a change against its spec and takes the spec's view of the code; Astra and
+Codex checked what the code does. Codex's code review stalled twice (#162, #177: still running after
+30 and 60 minutes), which blocks `--ready`.
+
+Found on main by the replay and filed: bug-146 (the shard self-test supplies SHARD), bug-147 (an
+upgrade test passes on a refusal), bug-148 (CRLF footer preflight), bug-149 (direct() admits a type
+commits.types lacks), p1-replay-minor-findings.
+
+Recommendation, for the person's decision (ADR-0061 records it): Codex stays the reviewer at ready,
+with the Code Review Rules in AGENTS.md (the replay gave them in the comment; without them it is
+untested) and a stall's recovery documented (one new `@codex review` after 30 minutes); the local
+reviewer's diff stage ends; specs stay with the local reviewer until spec seeds that test something
+(two is too few to rank five reviewers); Fable is not adopted.
