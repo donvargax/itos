@@ -20,7 +20,8 @@
 // of two calls.
 // Slice 190's give it a comment that asks a login to review a head again, a
 // Codex review state that changes once a pr comment call has been made, and
-// check the calls it was made as.
+// check the calls it was made as. Slice 199's give the recording gh an answer
+// to the aliased pullRequests query of itos status.
 package features
 
 import (
@@ -118,6 +119,7 @@ func initializePushModeSteps(sc *godog.ScenarioContext, w *world) {
 	sc.Step(`^every call of the recording gh has "([^"]*)"$`, w.ghEveryCallHas)
 	sc.Step(`^the recording gh was never called$`, func() error { return w.ghNeverCalled("") })
 	sc.Step(`^the recording gh was never called as "([^"]*)"$`, w.ghNeverCalled)
+	sc.Step(`^the recording gh was called once as "([^"]*)"$`, w.ghCalledOnce) // slice 190's check, worded as slice 199's scenarios do
 	sc.Step(`^the clone has the commit "([^"]*)" closing the task "([^"]*)" and taking out its checks$`, w.cloneClosesTask)
 	sc.Step(`^the clone has the commit "([^"]*)" adding the idea "([^"]*)" to the registry and touching "([^"]*)"$`, w.cloneAddsIdeaTouching)
 	sc.Step(`^the clone is on the new branch "([^"]*)"$`, func(branch string) error {
@@ -223,7 +225,12 @@ func (w *world) ghCommentedMarker() string { return filepath.Join(w.support, "gh
 // was given; pr edit <branch> --title=<value> gives that branch's open pull
 // request the title; pr ready <branch> makes that branch's pull requests
 // ready, and api graphql answers the reviews and the review threads
-// the steps gave it, the same for every call; pr view answers the head of the remote's branch it
+// the steps gave it, the same for every call, except for a query of
+// pullRequests(headRefName:, states:) under aliases (slice 199), which it
+// answers as GitHub does: under each alias, the pull requests of the branch
+// its headRefName names whose state the query's states name (every state when
+// it names none), the last given first, each with number, state and mergedAt
+// (null for a CLOSED one); pr view answers the head of the remote's branch it
 // names as {"headRefOid": <sha>}, and pr update-branch rebases that branch onto
 // the remote's main, as GitHub does, in a clone of its own that it pushes back
 // (a step can have it leave the branch as it is); any other call succeeds
@@ -326,6 +333,38 @@ case "$verb" in
     exit 0 ;;
   *resolveReviewThread*)
     printf '%%s\n' '{"data":{"resolveReviewThread":{"thread":{"isResolved":true}}}}'
+    exit 0 ;;
+  *"pullRequests("*)
+    q=$rec
+    answer=
+    sep=
+    while :; do
+      case $q in *"pullRequests("*) ;; *) break ;; esac
+      before=${q%%%%"pullRequests("*}
+      q=${q#*"pullRequests("}
+      before=${before%% }
+      before=${before%%:}
+      alias=${before##* }
+      args=${q%%%%")"*}
+      t=${args#*headRefName: \"}
+      branch=${t%%%%\"*}
+      states=
+      case $args in *"states: ["*) t=${args#*"states: ["}; states=${t%%%%]*} ;; esac
+      nodes=
+      if [ -f %[2]s ]; then
+        while read -r b url kind draft title; do
+          if [ "$b" != "$branch" ]; then continue; fi
+          case "$states/$kind" in /*|*"$kind"*/*) ;; *) continue ;; esac
+          merged=null
+          if [ "$kind" = MERGED ]; then merged='"2026-10-24T10:00:00Z"'; fi
+          node="{\"number\":${url##*/},\"state\":\"$kind\",\"mergedAt\":$merged}"
+          if [ -n "$nodes" ]; then nodes="$node,$nodes"; else nodes=$node; fi
+        done < %[2]s
+      fi
+      answer="$answer$sep\"$alias\":{\"nodes\":[$nodes]}"
+      sep=,
+    done
+    printf '{"data":{"repository":{%%s}}}\n' "$answer"
     exit 0 ;;
   esac
   reviews=
