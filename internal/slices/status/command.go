@@ -55,9 +55,17 @@ branch is told so before the work lists, "<branch> is <n> commits behind
 HEAD, "switch to a branch and pull" instead), the items being read from the
 working tree. A fetch that fails is a line, "<remote>/<branch> cannot be
 fetched: " and git's first line of why, and the rest is read as last fetched.
+Under push.mode pr, an item in progress whose branch (named for it) has a
+merged pull request and no open one ends its line with "merged (#<n>): itos
+work done <id>", n the newest merged pull request: the work is on main and only
+the close is left. One gh api graphql call asks for every item in progress,
+within 5 seconds, unless nothing is in progress, push.mode is trunk, the config
+is the stealth one or the remote names no GitHub repository (ci.range.github's
+repository_env variable, else its URL); with no gh on the PATH nothing is said.
 What cannot be reached (no remote, ci.watch.provider none, a
 provider that fails, for the head or the nightly, a ci.range provider that
-fails) is one line naming it, and the rest still prints, exit 0.
+fails, a gh that fails, answers wrongly or gives no answer within 5 seconds, for
+the pull requests) is one line naming it, and the rest still prints, exit 0.
 Exit 1 when the work registry is not there or not sound, 3 when --as is not
 among the people. itos go prints it last.
 
@@ -66,7 +74,7 @@ among the people. itos go prints it last.
 {"commit","header"}|null,"nightly":{"url","status","conclusion"?,"jobs"}|null,
 "release":{"tag","commit","last_fetched"}|null,"unreleased":["<header>"]|null,
 "itos":{"runs","newest","new_major"}|null,"agent_rules":{"stale":["<path>"]}|null,
-"doing","next","more","questions":
+"doing":[<item>, plus "merged_pull_request":<n> on one marked as above],"next","more","questions":
 [{"id","item"?,"question","status"}],
 "drafts":[{"id","kind","header"?,"paths"?,"command"?}],"unread"}, result success, failure (or another conclusion), going, or none for
 no run yet; last_green null when the head's run passed or was not read,

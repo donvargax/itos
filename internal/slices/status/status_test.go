@@ -44,6 +44,8 @@ func (ports) Setup(context.Context) providers.WatchSetup {
 	}}
 }
 
+func (ports) Gh(context.Context, ...string) (string, error) { return "", providers.ErrNoGh }
+
 func (p ports) Tracker(context.Context, *config.Loaded) trackerport.Tracker { return p.tracker }
 
 // configText names the registry and the people; ci.watch's provider is

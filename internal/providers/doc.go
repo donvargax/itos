@@ -86,6 +86,16 @@
 // output, and the answer is a problem naming --as. work.Whoami asks it only
 // among several people.
 //
+// GhBounded (slice 199) is Gh for the commands that run at every itos go: the
+// same call within GhTimeout, a gh past it killed as above and the error
+// ErrGhNoAnswer. BranchPulls is what itos status asks of GitHub through it
+// under push.mode pr: in one gh api graphql call, an alias per branch under
+// repository(owner, name), each its pullRequests by headRefName (exact), OPEN
+// and MERGED, newest first, 20 at most, giving each pull request's number,
+// whether it is open and whether it merged. A gh that fails is told as gh api
+// graphql failed with its reason; an answer that is not JSON or lacks the
+// repository or a branch's pull requests as one that gave none, with why.
+//
 // People reads work.people: an All Contributors table in Markdown
 // (AllContributorsMd, CONTRIBUTORS.md here), an .all-contributorsrc
 // (AllContributorsRc) or a YAML list (YAMLLogins). A people file that is missing or cannot be read is

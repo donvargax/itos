@@ -1,10 +1,12 @@
 package cli
 
 import (
+	"errors"
 	"runtime"
 	"strings"
 	"testing"
 
+	"github.com/donvargax/itos/v8/internal/providers"
 	"github.com/donvargax/itos/v8/internal/store/tracker/adapter"
 )
 
@@ -42,5 +44,9 @@ func TestStatusPortsBindTheRealCode(t *testing.T) {
 	}
 	if code, err := runStatus([]string{"x"}, Out{}); code != 0 || err == nil || err.Error() != "status takes no arguments: x" {
 		t.Errorf("runStatus x = %d, %v, want the usage error alone", code, err)
+	}
+	t.Setenv("PATH", t.TempDir())
+	if out, err := p.Gh(t.Context(), "api", "graphql"); out != "" || !errors.Is(err, providers.ErrNoGh) {
+		t.Errorf("Gh with no gh = %q, %v, want providers.ErrNoGh", out, err)
 	}
 }

@@ -62,11 +62,11 @@ func (w *world) jsonListEntryLacks(key, field, want, absent string) error {
 	if err := w.jsonListHasOne(key, field, want); err != nil {
 		return err
 	}
-	var object map[string][]map[string]any
-	if err := json.Unmarshal([]byte(w.stdout), &object); err != nil {
-		return fmt.Errorf("the output is not JSON: %v\n%s", err, w.report())
+	entries, err := w.jsonList(key)
+	if err != nil {
+		return err
 	}
-	for _, entry := range object[key] {
+	for _, entry := range entries {
 		if _, has := entry[absent]; has && fmt.Sprint(entry[field]) == want {
 			return fmt.Errorf("the JSON's %q entry whose %q is %q has %q\n%s", key, field, want, absent, w.report())
 		}
@@ -74,16 +74,25 @@ func (w *world) jsonListEntryLacks(key, field, want, absent string) error {
 	return nil
 }
 
-// Standard output is one JSON object whose list under the key has one
-// entry, and one only, whose field is the value.
-func (w *world) jsonListHasOne(key, field, want string) error {
+// The list of objects under the key of standard output's one JSON object.
+func (w *world) jsonList(key string) ([]map[string]any, error) {
 	var object map[string]json.RawMessage
 	if err := json.Unmarshal([]byte(w.stdout), &object); err != nil {
-		return fmt.Errorf("the output is not JSON: %v\n%s", err, w.report())
+		return nil, fmt.Errorf("the output is not JSON: %v\n%s", err, w.report())
 	}
 	var entries []map[string]any
 	if err := json.Unmarshal(object[key], &entries); err != nil {
-		return fmt.Errorf("the JSON's %q is not a list of objects: %v\n%s", key, err, w.report())
+		return nil, fmt.Errorf("the JSON's %q is not a list of objects: %v\n%s", key, err, w.report())
+	}
+	return entries, nil
+}
+
+// Standard output is one JSON object whose list under the key has one
+// entry, and one only, whose field is the value.
+func (w *world) jsonListHasOne(key, field, want string) error {
+	entries, err := w.jsonList(key)
+	if err != nil {
+		return err
 	}
 	found := 0
 	for _, entry := range entries {

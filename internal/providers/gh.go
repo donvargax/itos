@@ -20,10 +20,12 @@ var ErrNoGh = errors.New("gh is not on the PATH")
 const GhCallTimeout = 2 * time.Minute
 
 // GhFailed is a gh that ran and failed, or that was given up on: Words is
-// what it said on stderr, Err how it ended.
+// what it said on stderr, Err how it ended, TimedOut whether it was killed
+// for taking longer than it was given.
 type GhFailed struct {
-	Words string
-	Err   error
+	Words    string
+	Err      error
+	TimedOut bool
 }
 
 func (e *GhFailed) Error() string { return e.Err.Error() }
@@ -36,7 +38,24 @@ func (e *GhFailed) Unwrap() error { return e.Err }
 // (killTree). The error is ErrNoGh for a gh that is not on the PATH, else a
 // GhFailed.
 func Gh(ctx context.Context, dir string, args ...string) (string, error) {
-	ctx, cancel := context.WithTimeout(ctx, GhCallTimeout)
+	return ghWithin(ctx, GhCallTimeout, dir, args)
+}
+
+// GhBounded is Gh for a command that runs at every itos go, bounded by
+// GhTimeout as identity's gh is (bug 46): the error is ErrGhNoAnswer for a
+// gh that did not answer in time, killed as Gh's is.
+func GhBounded(ctx context.Context, dir string, args ...string) (string, error) {
+	out, err := ghWithin(ctx, GhTimeout, dir, args)
+	var failed *GhFailed
+	if errors.As(err, &failed) && failed.TimedOut {
+		return "", ErrGhNoAnswer
+	}
+	return out, err
+}
+
+// ghWithin is Gh with the time gh is given.
+func ghWithin(ctx context.Context, timeout time.Duration, dir string, args []string) (string, error) {
+	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 	var stdout, stderr bytes.Buffer
 	cmd := exec.CommandContext(ctx, "gh", args...)
@@ -48,7 +67,7 @@ func Gh(ctx context.Context, dir string, args ...string) (string, error) {
 	case errors.Is(err, exec.ErrNotFound):
 		return "", ErrNoGh
 	case err != nil:
-		return stdout.String(), &GhFailed{Words: stderr.String(), Err: err}
+		return stdout.String(), &GhFailed{Words: stderr.String(), Err: err, TimedOut: errors.Is(ctx.Err(), context.DeadlineExceeded)}
 	}
 	return stdout.String(), nil
 }

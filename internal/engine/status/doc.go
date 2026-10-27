@@ -43,7 +43,18 @@
 // names itos upgrade. Beside it, the line of internal/engine/agentrules when
 // a block of the rules for agents is stale. The items are work.Propose's: in
 // progress, then work.Startable, cut to five; then In.Questions' open ones
-// and In.Drafts' drafts, each called once in that order. Each part that
+// and In.Drafts' drafts, each called once in that order.
+//
+// Under push.mode pr, the items in progress are marked when their work only
+// waits for itos work done (slice 199): one providers.BranchPulls call through
+// In.Gh, within providers.GhTimeout, asks the repository (providers.Repository,
+// the remote's the head was read from) for the open and merged pull requests
+// of the branch named for each item. An item whose branch has a merged pull
+// request and no open one, as work done reads them, gets "merged (#<n>): itos
+// work done <id>" at the end of its line and "merged_pull_request" on its
+// --json entry, n the newest merged one. Nothing is asked under trunk, the
+// stealth config, with nothing in progress or no repository to name; a gh not
+// on the PATH says nothing. Each part that
 // cannot be reached adds a line to Standing.Unread and to what is printed,
 // and the rest goes on. Print writes it as text, Fields as --json's keys.
 package status
