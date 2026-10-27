@@ -21,7 +21,7 @@ describes:
   `./cmd/itos` from the tree and runs it.
 - `tools/bin/<name>/`: the gates, the release's programs and the inbox, each
   `go run ./tools/bin/<name>`; beside them the shell scripts (`pre-commit`,
-  `go-unit-tests`, `pinned`, `dev-version`, …). `tools/selftest/`: the gates'
+  `pinned`, `dev-version`, …). `tools/selftest/`: the gates'
   self-tests that test no one program.
 - `itos.yaml`: this repository's policy. `tasks/`: the ledger
   (`phase-<n>.yaml`), the work registry (`work-items.yaml`), the questions
