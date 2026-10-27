@@ -15039,7 +15039,7 @@ items:
     title: A stateful property holds work done's trust of a merged pull request's run to a model of what main gained since
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
 

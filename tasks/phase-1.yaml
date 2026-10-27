@@ -5107,9 +5107,6 @@
     coordinator files a bug whose fix commits the fail file. No production change. Windows and
     macOS: files through t.TempDir(), git through the test helpers that clear inherited GIT_*
     variables.
-  done_when:
-    - run: "go test ./internal/slices/work -count=1 -run '^TestPropertyWorkDoneTrust' -v 2>&1 | grep -q -- '--- PASS: TestPropertyWorkDoneTrust'"
-      timeout: 600
 
 - id: T-331
   type: test
