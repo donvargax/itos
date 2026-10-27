@@ -35,15 +35,23 @@ func write(t *testing.T, path, text string) {
 	}
 }
 
+// notHooked clears what a hook hands the tests it runs: the repository, the index and the
+// settings that every git command a test makes, and the adapter's own, would use in place of the
+// test's folder.
+func notHooked(t *testing.T) {
+	t.Helper()
+	for _, name := range []string{"GIT_DIR", "GIT_INDEX_FILE", "GIT_WORK_TREE", "GIT_COMMON_DIR", "GIT_CONFIG_COUNT", "GIT_CONFIG_PARAMETERS"} {
+		t.Setenv(name, "")
+		os.Unsetenv(name)
+	}
+}
+
 // laidOut stands the test in a new folder laid out as
 // porttest.TreesContract asks, a repository when repository, with no git
 // setting from outside and no repository above it.
 func laidOut(t *testing.T, repository bool) port.Trees {
 	t.Helper()
-	for _, name := range []string{"GIT_DIR", "GIT_INDEX_FILE", "GIT_WORK_TREE", "GIT_COMMON_DIR"} {
-		t.Setenv(name, "")
-		os.Unsetenv(name)
-	}
+	notHooked(t)
 	t.Setenv("GIT_CONFIG_GLOBAL", os.DevNull)
 	t.Setenv("GIT_CONFIG_NOSYSTEM", "1")
 	dir, err := filepath.EvalSymlinks(t.TempDir())
@@ -80,6 +88,7 @@ func TestTreesKeepTheContract(t *testing.T) {
 // be handed, are read from the index and from a commit. The names are staged
 // in the index alone, so no file of the work tree needs them.
 func TestTextsOfNamesGitQuotes(t *testing.T) {
+	notHooked(t)
 	dir := t.TempDir()
 	gitIn(t, dir, "init", "-q")
 	write(t, filepath.Join(dir, "blob"), "text\n")
@@ -117,6 +126,7 @@ func TestTextsOfNamesGitQuotes(t *testing.T) {
 // it is whatever the source: the stealth mode's config and data, from the
 // folder itos runs in, wherever the process stands.
 func TestGitFolderIsReadWhereItIs(t *testing.T) {
+	notHooked(t)
 	dir := t.TempDir()
 	gitIn(t, dir, "init", "-q")
 	write(t, filepath.Join(dir, ".git/itos/tasks/phase-1.yaml"), "aside\n")
