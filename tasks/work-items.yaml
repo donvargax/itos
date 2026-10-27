@@ -15178,6 +15178,11 @@ items:
       footers are never preflighted and only the hook judges them; intended or not. And slice tests
       have no depguard-allowed way to reach the real git (T-327's oracle reads ITOS_GIT, else the
       PATH's git); an exported test helper in an allowed package would serve every such oracle.
+
+      bug-150's drafter (2026-10-27): an abbreviated valued long option (--reuse HEAD, --mess foo;
+      git accepts unique prefixes) is not in gitValued, so its value reads as a bare argument and
+      sets byPath, running bug 145's unstageCommitted; looks harmless, unconfirmed. The enumeration
+      should include prefixes. -C and -c are now bug-150's.
     refs: [internal/slices/commit/git.go, internal/slices/commit/message_source_test.go]
     tags: [tests, commit, v8]
 
