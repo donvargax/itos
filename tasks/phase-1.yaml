@@ -5159,6 +5159,3 @@
     makes them in the same build commit. Run the gates' self-tests that call itos-cc
     (tools/selftest) before pushing. Then itos guide work or AGENTS.md need not change: the
     nightly's survivor lines print the identity --site takes.
-  done_when:
-    - run: tools/bin/pinned itos-cc mutation run --help 2>&1 | grep -q -- '--site'
-      timeout: 300

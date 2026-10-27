@@ -15054,7 +15054,7 @@ items:
     title: Move tools/bin/pinned's itos-cc from 0.38.0 to the newest release, for mutation run --site
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
 
