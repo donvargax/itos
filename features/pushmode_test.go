@@ -18,6 +18,9 @@
 // Slice 191's give a review thread an id and its first comment's author, answer
 // the two mutations that reply to a thread and resolve it, and check the order
 // of two calls.
+// Slice 190's give it a comment that asks a login to review a head again, a
+// Codex review state that changes once a pr comment call has been made, and
+// check the calls it was made as.
 package features
 
 import (
@@ -59,6 +62,14 @@ func initializePushModeSteps(sc *godog.ScenarioContext, w *world) {
 		w.ghAnswersCodexState)
 	sc.Step(`^the recording gh answers that the pull request has a comment by "([^"]*)" holding Codex's review state, its code review "([^"]*)" and its security review "([^"]*)" for its first (\d+) api graphql calls, then both "([^"]*)"$`,
 		w.ghAnswersCodexStateThen)
+	sc.Step(`^the recording gh answers that the pull request has a comment by "([^"]*)" holding Codex's review state, its code review "([^"]*)" and its security review "([^"]*)" until a pr comment call, then both "([^"]*)"$`,
+		w.ghAnswersCodexStateUntilComment)
+	sc.Step(`^the recording gh answers that the pull request has a comment by "([^"]*)" asking "([^"]*)" to review the clone's HEAD again$`,
+		w.ghAnswersReviewRequestForHead)
+	sc.Step(`^the recording gh answers that the pull request has a comment by "([^"]*)" asking "([^"]*)" to review the commit "([^"]*)" again$`,
+		w.ghAnswersReviewRequest)
+	sc.Step(`^the recording gh's "([^"]*)" call has the full SHA of the clone's HEAD$`, w.ghCallHasHead)
+	sc.Step(`^the recording gh was called as "([^"]*)" once$`, w.ghCalledOnce)
 	sc.Step(`^the recording gh answers that the pull request has an unresolved review thread on "([^"]*)" line (\d+), its first comment the lines "([^"]*)" and "([^"]*)"$`,
 		func(path string, line int, first, second string) error {
 			return w.ghAnswersThread(false, path, line, first, second)
@@ -193,6 +204,13 @@ func (w *world) ghComments() string      { return filepath.Join(w.support, "gh-c
 func (w *world) ghCommentsEarly() string { return filepath.Join(w.support, "gh-comments-early") }
 func (w *world) ghCommentsLeft() string  { return filepath.Join(w.support, "gh-comments-left") }
 
+// The comments api graphql answers beside those above while no pr comment call
+// has been made and after the first one, and the file the first pr comment call
+// leaves (slice 190).
+func (w *world) ghCommentsBefore() string  { return filepath.Join(w.support, "gh-comments-before") }
+func (w *world) ghCommentsAfter() string   { return filepath.Join(w.support, "gh-comments-after") }
+func (w *world) ghCommentedMarker() string { return filepath.Join(w.support, "gh-commented") }
+
 // recordingGh is a gh first on the PATH that stands in for GitHub: it records
 // each call on a line, a line break inside an argument written as a backslash
 // and an n (slice 184); answers pr list with the pull requests of its --head
@@ -323,7 +341,15 @@ case "$verb" in
       comments=$(cat %[16]s)
     fi
   fi
+  if [ -f %[19]s ]; then
+    extra=$(cat %[19]s)
+    if [ -f %[21]s ]; then extra=$(cat %[20]s); fi
+    if [ -n "$comments" ]; then comments="$comments,$extra"; else comments=$extra; fi
+  fi
   printf '{"data":{"repository":{"pullRequest":{"reviews":{"nodes":[%%s]},"comments":{"nodes":[%%s]},"reviewThreads":{"nodes":[%%s]}}}}}\n' "$reviews" "$comments" "$threads"
+  ;;
+"pr comment")
+  : > %[21]s
   ;;
 "pr view")
   oid=$(%[4]s --git-dir=%[5]s rev-parse "refs/heads/$3") || exit 1
@@ -351,7 +377,8 @@ esac
 		quote(filepath.ToSlash(w.ghPrevious(""))), quote(filepath.ToSlash(w.ghRebaseDir())), quote(filepath.ToSlash(w.ghFailure())),
 		quote(filepath.ToSlash(w.ghReviews())), quote(filepath.ToSlash(w.ghThreads())), quote(filepath.ToSlash(w.ghPulls()+".new")),
 		quote(filepath.ToSlash(w.ghComments())), quote(filepath.ToSlash(w.ghCommentsEarly())), quote(filepath.ToSlash(w.ghCommentsLeft())),
-		quote(filepath.ToSlash(w.ghMergeCommit(""))))
+		quote(filepath.ToSlash(w.ghMergeCommit(""))),
+		quote(filepath.ToSlash(w.ghCommentsBefore())), quote(filepath.ToSlash(w.ghCommentsAfter())), quote(filepath.ToSlash(w.ghCommentedMarker())))
 	if err := w.writeProgram(filepath.Join(bin, "gh"), script); err != nil {
 		return err
 	}
@@ -434,6 +461,63 @@ func (w *world) ghAnswersCodexStateThen(login, code, security string, n int, the
 		return err
 	}
 	return os.WriteFile(w.ghCommentsLeft(), fmt.Appendf(nil, "%d\n", n), 0o644)
+}
+
+// The same, with those statuses in every answer until the recording gh has
+// been called as pr comment, and both the status given in every one after it
+// (slice 190), the comments the other steps gave it in both.
+func (w *world) ghAnswersCodexStateUntilComment(login, code, security, then string) error {
+	if err := w.ghAddNode(w.ghCommentsBefore(), codexComment(login, code, security)); err != nil {
+		return err
+	}
+	return w.ghAddNode(w.ghCommentsAfter(), codexComment(login, then, then))
+}
+
+// The recording gh's api graphql answers that the pull request has a comment
+// by the author asking the login to review the clone's HEAD, as it is now,
+// again.
+func (w *world) ghAnswersReviewRequestForHead(author, login string) error {
+	sha, err := w.head()
+	if err != nil {
+		return err
+	}
+	return w.ghAnswersReviewRequest(author, login, sha)
+}
+
+// The same, asking for the commit given: "@codex review", an empty line, then
+// the marker line itos writes.
+func (w *world) ghAnswersReviewRequest(author, login, sha string) error {
+	body := "@codex review\n\n<!-- itos-review-request:v1 " + login + " " + sha + " -->"
+	return w.ghAddNode(w.ghComments(), map[string]any{"author": map[string]any{"login": author}, "body": body})
+}
+
+// Some call of the recording gh starts with the words of the command, and has
+// the full SHA of the clone's HEAD.
+func (w *world) ghCallHasHead(command string) error {
+	sha, err := w.head()
+	if err != nil {
+		return err
+	}
+	return w.ghCallHas(command, sha)
+}
+
+// The recording gh was called as the command once: never, or more than once,
+// fails.
+func (w *world) ghCalledOnce(command string) error {
+	calls, err := w.ghCallLines()
+	if err != nil {
+		return err
+	}
+	var named []string
+	for _, call := range calls {
+		if strings.HasPrefix(call, command+" ") || call == command {
+			named = append(named, call)
+		}
+	}
+	if len(named) != 1 {
+		return fmt.Errorf("the recording gh was called as %q %d times, not once:\n%s\n%s", command, len(named), strings.Join(named, "\n"), w.report())
+	}
+	return nil
 }
 
 // The recording gh's api graphql answers that the pull request has a review
