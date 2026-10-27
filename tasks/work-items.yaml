@@ -15182,8 +15182,8 @@ items:
   - id: bug-150
     title: itos commit does not read the message -C <commit> (or -c <commit> --no-edit) reuses, so its footers are not checked before git runs
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: bug
     why: >
