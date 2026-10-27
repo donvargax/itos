@@ -14764,3 +14764,11 @@ items:
     status: doing
     depends_on: []
     kind: task
+
+  - id: T-322
+    title: The shared test fixtures copy a repository git maintenance is touching without failing
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task

@@ -4952,3 +4952,20 @@
     proves them, by the coordinator.
   done_when:
     - run: test -f .github/workflows/replay-review.yml
+
+- id: T-322
+  type: test
+  title: The shared test fixtures copy a repository git maintenance is touching without failing
+  why: >
+    Main red on 2026-10-27 (run 40440915389, macOS; and #174's run 40440965163):
+    internal/idcounter's TestMintRemoteReturnsNoNumberWhenGitFails/fetch and
+    TestMintRemoteReadsOnlyNonNegativeIntegerCounters/not-an-integer failed with "open
+    .../remote.git/objects/maintenance.lock: no such file or directory": T-318's copyTree walks the
+    shared template while git's background maintenance creates and removes maintenance.lock in it.
+    The same copyTree pattern is in internal/vcs/adapter/git_test.go (T-317) and
+    internal/cli/shared_test.go (T-318). Fix all three: build each template with maintenance and
+    auto gc off (git config maintenance.auto false and gc.auto 0 in the template, or -c on the
+    commands that build it), and make copyTree skip *.lock files and entries that vanish between the
+    walk and the copy (fs.ErrNotExist). Never weaken an assertion.
+  done_when:
+    - run: "true"
