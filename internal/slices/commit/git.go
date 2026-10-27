@@ -37,6 +37,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 
@@ -238,6 +239,10 @@ type gitArgs struct {
 	// origin is where -F's file is read from: the query's Origin, from the
 	// folder itos runs in.
 	origin string
+	// byPath is whether the commit is given paths (after "--", a bare
+	// argument, or --pathspec-from-file), which git commits from a
+	// temporary index (bug 145).
+	byPath bool
 }
 
 // refuse keeps the option as the first refused, when none is yet.
@@ -271,6 +276,7 @@ func readGitArgs(args []string) gitArgs {
 		name, value, given := strings.Cut(arg, "=")
 		switch {
 		case arg == "--":
+			g.byPath = g.byPath || i+1 < len(args)
 			return g
 		case arg == "--amend", arg == "--no-amend":
 			g.amend = arg == "--amend"
@@ -288,9 +294,13 @@ func readGitArgs(args []string) gitArgs {
 				g.messages, g.messagesAt = append(g.messages, value), append(g.messagesAt, at)
 			case "--file":
 				g.file, g.fileAt = value, at
+			case "--pathspec-from-file":
+				g.byPath = true
 			}
 		case strings.HasPrefix(arg, "-") && !strings.HasPrefix(arg, "--"):
 			g.readCluster(arg[1:], i, next)
+		case !strings.HasPrefix(arg, "-"):
+			g.byPath = true
 		}
 	}
 	return g
@@ -520,6 +530,9 @@ func (h Handler) commit(ctx context.Context, q Query, o Out) (Answer, error) {
 	}
 	env = append(env, message.AmendEnv+"="+amend)
 	before := ""
+	if stealth || g.byPath {
+		before, _ = v.Resolve(ctx, "HEAD")
+	}
 	var trailed []string
 	if stealth {
 		if err := gitrun.RewriteNotes(ctx, v); err != nil {
@@ -528,7 +541,6 @@ func (h Handler) commit(ctx context.Context, q Query, o Out) (Answer, error) {
 		if len(links) > 0 {
 			env = append(env, message.FootersEnv+"="+strings.Join(links, "\n"))
 		}
-		before, _ = v.Resolve(ctx, "HEAD")
 		trailed = trailers(content)
 	} else {
 		trailed = trailers(slices.Concat(links, content))
@@ -561,6 +573,11 @@ func (h Handler) commit(ctx context.Context, q Query, o Out) (Answer, error) {
 			return Answer{Code: refused, Said: fmt.Sprintf("itos: the commit is made, but its note is not: %s\n", err)}, nil
 		}
 	}
+	if code == 0 && g.byPath {
+		if err := unstageCommitted(ctx, v, before); err != nil {
+			return Answer{Code: refused, Said: fmt.Sprintf("itos: the commit is made, but git's index of its paths cannot be set to it: %s\n", err)}, nil
+		}
+	}
 	a := Answer{Code: code}
 	if o.JSON && code == 0 {
 		if sha, err := v.Resolve(ctx, "HEAD"); err == nil {
@@ -568,4 +585,35 @@ func (h Handler) commit(ctx context.Context, q Query, o Out) (Answer, error) {
 		}
 	}
 	return a, nil
+}
+
+// unstageCommitted sets the real index's entries of the paths a commit by
+// path changed (the paths between before, HEAD's commit before it, and
+// HEAD) to HEAD's. git commits those paths from a temporary index and keeps
+// the real one as it read it before the hooks ran, so a hook that rewrites a
+// file and stages it again leaves the copy it started from staged (bug 145).
+// The commit takes each path's whole working tree content, so HEAD's is
+// always the right entry, and no other path's is touched. Nothing when HEAD
+// did not move (--dry-run).
+func unstageCommitted(ctx context.Context, v vcsport.VCS, before string) error {
+	after, err := v.Resolve(ctx, "HEAD")
+	if err != nil || after == before {
+		return err
+	}
+	from := before
+	if from == "" {
+		from = vcsport.EmptyTree
+	}
+	paths, err := v.Diff(ctx, from, after)
+	if err != nil || len(paths) == 0 {
+		return err
+	}
+	l, err := v.Locate(ctx, "")
+	if err != nil {
+		return err
+	}
+	for i, p := range paths {
+		paths[i] = filepath.Join(l.Top, p)
+	}
+	return v.Unstage(ctx, paths)
 }

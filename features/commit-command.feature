@@ -515,7 +515,7 @@ Feature: itos commit, a commit whose footers itos writes
   # sweep the stale copy in (found 2026-10-26, recording slice 187 and a
   # plan). Before the fix the scenario fails at the step that git reports no
   # change. The hook stands in for dprint, which the features cannot run.
-  @ID-COMMITCMD-35 @bug-145 @wip
+  @ID-COMMITCMD-35 @bug-145
   Scenario: A commit by path leaves the index as the commit has the file when a pre-commit hook rewrites it
     Given a pre-commit hook that appends a line to each staged Markdown file and stages it again
     When itos commits with the arguments "--task T-001 -m 'chore: tidy the readme' -- README.md"

@@ -66,6 +66,14 @@
 // has {"schema":1,"ok","commit"?}. With no config the comment character the
 // message is wrapped around is git's (bug 120).
 //
+// A commit given paths (readGitArgs's byPath: a bare argument, one after --,
+// or --pathspec-from-file) is made by git from a temporary index, and the
+// real one is kept as git read it before the hooks ran. So a hook that
+// rewrites a file and stages it again, a formatter, leaves the copy it started
+// from staged (git status MM, bug 145). Once git made a commit by path,
+// unstageCommitted sets the real index's entries of the paths the commit
+// changed to HEAD's, which a commit by path takes whole from the work tree.
+//
 // check-message runs one message through message.Check, its --at ref
 // checked first (internal/engine/refs); check-paths the path rules alone
 // (internal/scope); footers a range's footers of free text
