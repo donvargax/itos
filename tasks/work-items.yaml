@@ -64,6 +64,7 @@ queue:
   - slice-194
   - slice-196
   - slice-197
+  - p1-ci-steps-annotate-failures
   - p1-ci-affected-jobs
   - p2-feature-command-apostrophe
   - bug-146
