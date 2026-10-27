@@ -131,7 +131,7 @@ func TestReadCommitFlags(t *testing.T) {
 		!slices.Equal(f.git, []string{"notes.md", "-m", "x"}) {
 		t.Errorf("readCommitFlags = %+v, %v", f, err)
 	}
-	for _, args := range [][]string{{"--task"}, {"-m", "x", "--item"}, {"--scenarios", "-m", "x"}} {
+	for _, args := range [][]string{{"--task"}, {"-m", "x", "--item"}, {"--scenarios", "-m", "x"}, {"--task="}, {"--item= ,"}} {
 		if _, err := readCommitFlags(args, nil); !isUsage(err, "needs <") {
 			t.Errorf("readCommitFlags(%q) = %v, not a usage error", args, err)
 		}
