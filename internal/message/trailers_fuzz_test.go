@@ -6,8 +6,6 @@ import (
 	"slices"
 	"strings"
 	"testing"
-
-	"github.com/donvargax/itos/v8/internal/value"
 )
 
 // fuzzKeys are the footers' keys a fuzzed message draws: the repository's configured footers,
@@ -227,13 +225,6 @@ func FuzzTrailersMatchGit(f *testing.F) {
 			t.Skip("this git reads a line beginning with a URL as a trailer")
 		}
 		want := gitTrailers(t, dir, env, message, comment)
-		// A known disagreement, not a difference by design: unfolded trims a value with
-		// JavaScript's space (value.Trim), git with its own four (" \t\n\r"), so a value that
-		// ends in a form feed, a no-break space or the like is another value. Both are trimmed
-		// so here until unfolded reads as git does.
-		for i := range want {
-			want[i].value = value.Trim(want[i].value)
-		}
 		got := itosTrailers(message, comment)
 		if !slices.Equal(got, want) {
 			t.Errorf("message %q, comment character %q:\n git reads %q\nitos reads %q", message, comment, want, got)
