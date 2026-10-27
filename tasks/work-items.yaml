@@ -14629,8 +14629,8 @@ items:
   - id: bug-144
     title: "work done says a late check \"is late: left to CI\" in words that read as a warning, though CI runs it and its run is judged right below (#166)"
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: bug
     why: >
