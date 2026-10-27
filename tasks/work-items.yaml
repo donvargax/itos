@@ -14737,3 +14737,16 @@ items:
     status: todo
     depends_on: []
     kind: task
+
+  - id: p1-remove-guard-command
+    title: itos guard claude-code is removed, since the plugin no longer calls it
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      T-320 (2026-10-27) took the guard out of the Claude Code plugin; the command stays in v8
+      because removing one is a breaking change. Remove it, its scenarios and its config keys in v9,
+      with the CLI redesign.
+    tags: [v9]
