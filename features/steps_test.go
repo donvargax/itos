@@ -459,6 +459,7 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	initializeCommitSteps(sc, w)
 	initializeOldGitSteps(sc, w)
 	initializePushSteps(sc, w)
+	initializeStatusFetchSteps(sc, w)
 	initializePrePushRefSteps(sc, w)
 	initializePushModeSteps(sc, w)
 	initializeOntoMainSteps(sc, w)
