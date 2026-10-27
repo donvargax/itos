@@ -680,8 +680,31 @@ Feature: itos commit, a commit whose footers itos writes
   @ID-COMMITCMD-40 @bug-151 @wip
   Scenario: A free-text footer the message gives with a trailing no-break space is not its flag's text without one
     Given the config requires an "Upgrading" footer of free text for "chore"
-    And the scratch file "msg.txt" contains "chore: tidy the readme\n\nTask: T-001\nUpgrading: run itos upgrade \n", its backslash escapes read as Go's
+    And the scratch file "msg.txt" contains "chore: tidy the readme\n\nTask: T-001\nUpgrading: run itos upgrade\u00a0\n", its backslash escapes read as Go's
     When itos commits with the arguments "--upgrading 'run itos upgrade' -F msg.txt"
     Then itos exits with code 1
     And its output says "Upgrading: the message gives"
     And no commit was made
+
+  # The flag's side is trimmed as git trims too (the decision above
+  # ID-UPGRADE-06): readCommitFlags trims a --upgrading value of git's space,
+  # tab, line feed and carriage return alone, so the flag's text keeps its
+  # no-break space, as the message's does, and Written.Against reads one
+  # footer: Same, nothing written, the hook passes, exit 0. The new When
+  # "itos commits with the arguments <line>, its backslash escapes read as
+  # Go's" is "itos commits with the arguments" with the line read as the
+  # body of a Go string literal (strconv.Unquote of it in double quotes)
+  # before it is split into words; a no-break space splits no word.
+  #
+  # It passes before the fix: strings.TrimSpace drops the flag's no-break
+  # space and value.Trim the message's, both texts are "run itos upgrade",
+  # and the footer is Same. It guards a fix of the message's side alone,
+  # which reads "run itos upgrade\u00a0" against the flag's "run itos
+  # upgrade", Differs, and fails at itos exits with code 0 (it exits 1).
+  @ID-COMMITCMD-41 @bug-151 @wip
+  Scenario: A free-text footer the message gives with the flag's text, a trailing no-break space and all, is one footer
+    Given the config requires an "Upgrading" footer of free text for "chore"
+    And the scratch file "msg.txt" contains "chore: tidy the readme\n\nTask: T-001\nUpgrading: run itos upgrade\u00a0\n", its backslash escapes read as Go's
+    When itos commits with the arguments "--upgrading 'run itos upgrade\u00a0' -F msg.txt", its backslash escapes read as Go's
+    Then itos exits with code 0
+    And its output does not say "the message gives"
