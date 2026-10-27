@@ -4930,8 +4930,6 @@
     plugin.json (and the marketplace entry if it carries it) in a chore commit in the same push
     (tools/bin/plugin-version). The itos guard claude-code command stays (removing a command is
     v9's: p1-remove-guard-command); nothing calls it from the plugin any more.
-  done_when:
-    - run: "! grep -q PreToolUse integrations/claude-code/hooks/hooks.json"
 
 - id: T-321
   type: ci

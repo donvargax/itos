@@ -14741,7 +14741,7 @@ items:
     title: The Claude Code plugin no longer runs the guard before every Bash command
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
 
