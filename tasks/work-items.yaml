@@ -15182,18 +15182,9 @@ items:
     title: itos commit does not read the message -C <commit> (or -c <commit> --no-edit) reuses, so its footers are not checked before git runs
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: bug
-    why: >
-      Found 2026-10-27 by T-327's oracle review: gitArgs.message reads -m, -F <file> and HEAD's
-      message for --amend --no-edit, but -C/--reuse-message <commit>, and -c/--reedit-message
-      <commit> with --no-edit, reuse a commit's message with no editor, which itos could read as it
-      reads HEAD's for an amend. Today it returns 'cannot read', so a missing required footer is
-      refused only by the commit-msg hook after git runs, and a footer the reused message gives with
-      another value than its flag's gets a second line instead of the up-front refusal
-      ID-COMMITCMD-28 gives. The person chose to fix it (2026-10-27); --fixup and --squash, which
-      derive their message, stay unread.
     refs: [internal/slices/commit/git.go, features/commit-command.feature]
     tags: [commit, v8]
 
