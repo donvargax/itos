@@ -64,27 +64,47 @@ func wrappedGit(args []string) int {
 	return code
 }
 
-// useWrappedGit makes git a copy of this test binary that runs the real
-// git except as fails, after and then say (wrappedGitFails, wrappedGitAfter,
-// wrappedGitThen).
-func useWrappedGit(t *testing.T, fails, after, then string) {
+// testBinaryAsGit is a copy of this test binary, made once for the package,
+// that TestMain runs as git; the environment says what it does. It is the
+// path of the copy.
+func testBinaryAsGit(t *testing.T) string {
 	t.Helper()
-	real := git.Bin(runtime.GOOS)
-	bin, err := os.Executable()
-	if err != nil {
-		t.Fatal(err)
-	}
-	text, err := os.ReadFile(bin)
-	if err != nil {
-		t.Fatal(err)
-	}
-	name := "wrapped-git"
+	name := "test-binary-as-git"
 	if runtime.GOOS == "windows" {
 		name += ".exe"
 	}
-	bin = filepath.Join(t.TempDir(), name)
-	if err := os.WriteFile(bin, text, 0o755); err != nil {
-		t.Fatal(err)
+	return filepath.Join(madeOnce(t, "test-binary-as-git", func(t *testing.T, dir string) {
+		self, err := os.Executable()
+		if err != nil {
+			t.Fatal(err)
+		}
+		text, err := os.ReadFile(self)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(dir, name), text, 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}), name)
+}
+
+// useWrappedGit makes git a copy of this test binary that runs the real
+// git except as fails, after and then say (wrappedGitFails, wrappedGitAfter,
+// wrappedGitThen). The copy is the package's, except where it removes itself
+// ("gone"): that test has a copy of its own.
+func useWrappedGit(t *testing.T, fails, after, then string) {
+	t.Helper()
+	real := git.Bin(runtime.GOOS)
+	bin := testBinaryAsGit(t)
+	if then == "gone" {
+		text, err := os.ReadFile(bin)
+		if err != nil {
+			t.Fatal(err)
+		}
+		bin = filepath.Join(t.TempDir(), filepath.Base(bin))
+		if err := os.WriteFile(bin, text, 0o755); err != nil {
+			t.Fatal(err)
+		}
 	}
 	t.Setenv(wrappedGitEnv, real)
 	t.Setenv(wrappedGitFails, fails)
@@ -104,27 +124,16 @@ func TestMain(m *testing.M) {
 	if os.Getenv(wrappedGitEnv) != "" {
 		os.Exit(wrappedGit(os.Args[1:]))
 	}
-	os.Exit(m.Run())
+	code := m.Run()
+	if sharedRoot != "" {
+		os.RemoveAll(sharedRoot)
+	}
+	os.Exit(code)
 }
 
 func useFailingGit(t *testing.T) {
 	t.Helper()
-	bin, err := os.Executable()
-	if err != nil {
-		t.Fatal(err)
-	}
-	text, err := os.ReadFile(bin)
-	if err != nil {
-		t.Fatal(err)
-	}
-	name := "fake-git"
-	if runtime.GOOS == "windows" {
-		name += ".exe"
-	}
-	bin = filepath.Join(t.TempDir(), name)
-	if err := os.WriteFile(bin, text, 0o755); err != nil {
-		t.Fatal(err)
-	}
+	bin := testBinaryAsGit(t)
 	t.Setenv("ITOS_GIT", bin)
 	t.Setenv(fakeGitFailureEnv, "1")
 }
