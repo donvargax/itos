@@ -15349,7 +15349,7 @@ items:
       its own under push.mode pr has no path to done. work done could count the commits of the
       item's merged pull request (its branch is named for it) as its own, or the commits naming a
       task whose item depends on it; and the refusal should not advise a pull that changes nothing.
-    tags: [work, push]
+    tags: [work, push, v8]
 
   - id: p2-feature-command-apostrophe
     title: A scenario's itos command line cannot hold an apostrophe in a quoted argument
