@@ -14936,3 +14936,11 @@ items:
       check's tail.
     refs: [internal/slices/task]
     tags: [work, evidence, v8]
+
+  - id: T-324
+    title: Settle the six survivors of Nightly 40499023980
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task

@@ -4973,3 +4973,20 @@
     inputs through env (never interpolated into the shell). Raise --max-turns to 80, the local
     reviewer's budget (the high runs finished at up to 55 turns past the 40 the workflow set, and
     the action marked them failed though each logged its verdict).
+
+- id: T-324
+  type: test
+  title: Settle the six survivors of Nightly 40499023980
+  why: >
+    Nightly 40499023980 (issue #29) left six survivors. Random run:
+    internal/providers/range.go:247:15 encodeURIComponent (&& to ||). Changed-site run:
+    internal/engine/ciwatch/watch.go:314:17 Ended (> to >=), internal/message/maintasks.go:24:12
+    mainLedger#has (true to false), internal/engine/evidence/store.go:111:10 Engine#write (false to
+    true; no test reached it), internal/store/tree/adapter/tree.go:75:16 Trees#At (|| to &&) and
+    internal/engine/evidence/engine.go:457:31 capture#text (0 to 1). Kill each with a test, or
+    except it in itos-cc.yaml with a proof that holds, as 4ce7fb54 (T-312) and 418ebdde (T-290)
+    wrote theirs; an exception whose proof does not hold is a test instead. No production change
+    unless a survivor shows a real bug, which is reported, not fixed here. The next nightly is the
+    acceptance.
+  done_when:
+    - run: "true"
