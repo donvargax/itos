@@ -34,32 +34,51 @@ Feature: Under push.mode pr, the ledger edits itos makes beside the registry go 
   which holds the spec commit, took the item there, and the take rode the
   pull request, so main showed the item untaken until the merge. Under pr,
   on an item's branch, the commits a push sends are those the remote's item
-  branch lacks (with no such branch, those main lacks). Each of them that
-  is the registry's, by the rule above, goes to main, put onto main's head
-  as the push fetched it, in their order; the rest go to the item's branch,
-  put onto the remote's item branch (or main), in theirs. A commit the
-  remote's item branch has already stays there: pushed history is never
-  rewritten and nothing is forced. Main and the item's branch still go in
-  one git push --atomic, so both land or neither. Locally the branch ends
-  without the commits sent to main, at the head pushed to the item's
-  branch; the clone's main need not move. When every commit sent is the
-  registry's, they go to main alone, as a branch of them does: the item's
-  branch is not pushed and no gh is called. A registry commit that does not apply onto main's head (a take of an
-  item taken there first) is refused as the rebase onto main refuses one
-  (ID-PUSH-05): exit 1, nothing pushed to either branch, no gh called, the
-  work registry named and the item said to be taken, by its owner on
-  <remote>/<main>; no rebase is left in progress and the clone's branch is
-  as it was, so the push does not advise git rebase --skip but how to drop
-  the commit from the branch. The report has a line for each commit sent,
-  oldest first, main's first, "Sent <short> <subject> to <remote>/<branch>.",
-  before the "Pushed ..." line, which is unchanged; -q drops them as any
-  report line, and --json gains no key for them in this slice. A push that
-  sends nothing to main reports as before. The registry's commits directly
-  above main go to main as before: ID-PUSHLEDGER-03 here, ID-PUSHMODE-03
-  and ID-PUSHMODE-18 in push-mode.feature. The implementing commit rewords
-  this description's first paragraph, push-mode.feature's ("those directly
-  above main's head that are the registry's") and the push package's
-  doc.go (registryPrefix) where they say directly above main.
+  branch lacks (with no such branch, those main lacks). Of them, the
+  registry's commits directly above main's head (today's prefix,
+  registryPrefix) are built exactly as today: they go to main and the
+  item's branch keeps them, under the same SHAs, the work on top of them
+  unchanged. Every other commit of them that is the registry's, by the rule
+  above, goes to main too, put onto main's head as the push fetched it
+  (after the prefix), in their order, and is taken out of the item's
+  branch; the rest are put onto the remote's item branch (or onto the
+  prefix, or main), in theirs. A commit the remote's item branch has
+  already stays there: pushed history is never rewritten and nothing is
+  forced. Main and the item's branch still go in one git push --atomic, so
+  both land or neither. Locally the branch ends at the head pushed to the
+  item's branch, without the commits taken out of it; the clone's main
+  need not move. When every commit sent is the registry's, they go to main
+  alone, as a branch of them does: the item's branch is not pushed and no
+  gh is called.
+
+  What the push refuses, each before anything is pushed: exit 1, nothing
+  pushed to either branch, no gh called, no rebase left in progress and the
+  clone's branch exactly as it was. A registry commit that does not apply
+  onto main's head (a take of an item taken there first) is refused as the
+  rebase onto main refuses one (ID-PUSH-05): the work registry named and
+  the item said to be taken, by its owner on <remote>/<main>; since no
+  rebase is in progress the push does not advise git rebase --skip but how
+  to drop the commit from the branch. A commit that is not the registry's
+  and does not apply onto the remote's item branch (or the prefix, or
+  main) once the registry's commits are taken out from under it (a hand
+  edit of the checks of a task added on the branch) is refused, outcome
+  needs-registry-commit: the push names that commit and the registry
+  commit it needs, each by its seven-character SHA and subject, and says
+  to make the registry commit on main instead (git switch main, make it
+  again there, itos push) or to fold the two into one commit.
+
+  The report has a line for each commit sent, oldest first, main's first,
+  "Sent <short> <subject> to <remote>/<branch>.", before the "Pushed ..."
+  line, which is unchanged; -q drops them as any report line, and --json
+  gains no key for them in this slice. A push that sends nothing to main
+  reports as before. The registry's commits directly above main go to main
+  and stay on the item's branch as before: ID-PUSHLEDGER-03 here and
+  ID-PUSHMODE-03 and ID-PUSHMODE-18 in push-mode.feature cover the first,
+  ID-PUSHLEDGER-14 pins the second beside a registry commit that leaves the
+  branch. The implementing commit rewords this description's first
+  paragraph, push-mode.feature's ("those directly above main's head that
+  are the registry's") and the push package's doc.go (registryPrefix)
+  where they say directly above main.
 
   Why paths and the registry, not the ledger's content. The ledger is not
   claims, but these three edits are bookkeeping that must not wait on a pull
@@ -99,7 +118,15 @@ Feature: Under push.mode pr, the ledger edits itos makes beside the registry go 
   <path>" is the idea step's registry edit and the touching step's line in
   <path>, in one commit, past the hooks.
 
-  Slice-192 needs three new steps. "the remote's branch <name> does
+  Slice-192 needs five new steps. "the remote's branch <name> has the
+  remote main's commit <subject>" finds the commit with that subject in
+  the remote main's history and requires it to be an ancestor of the
+  branch's head, the same SHA on both. "the clone has the commit <subject>
+  giving the ledger's task <id> the check <command>" edits that task's
+  entry in the clone's ledger file as it stands, whatever command wrote it
+  (task add, say), so that its done_when is that one check, and commits the
+  ledger alone, past the hooks; the step that writes the scenario's ledger
+  from its own tasks would drop a task task add wrote. "the remote's branch <name> does
   not have <subject>" is "the remote has the branch <name> with <subject>"
   turned round, the remote having the branch. "the clone's HEAD is the head
   of the remote's branch <name>" compares the two full SHAs. "the clone's
@@ -151,7 +178,9 @@ Feature: Under push.mode pr, the ledger edits itos makes beside the registry go 
 
   # The second judgement uses the same rule: on an item's branch, a task
   # added directly above main (a follow-up found mid-work) goes to main,
-  # the work above it to the item's branch. Fails before the work at the
+  # the work above it to the item's branch. Slice-192 keeps this build: the
+  # item's branch keeps the task's commit under main's SHA, which
+  # ID-PUSHLEDGER-14 pins (a docs commit may not change this live one). Fails before the work at the
   # main step: today the task's commit rides the pull request with the work.
   @ID-PUSHLEDGER-03 @slice-177
   Scenario: Under pr, a task added on an item's branch directly above main goes to main and the work to the branch
@@ -329,6 +358,71 @@ Feature: Under push.mode pr, the ledger edits itos makes beside the registry go 
     Then itos exits with code 0
     And the remote's branch does not have "docs: take slice-9"
     And the remote's branch "slice-9" ends with "docs: take slice-9" then "feat: add the widget", with no merge commit
+
+  # Both builds in one push, on a branch the remote does not have yet: the
+  # take directly above main is today's prefix, so it goes to main and the
+  # item's branch keeps it under the same SHA, the work on top of it; the
+  # idea between two commits of the work goes to main and is taken out of
+  # the item's branch. Fails before the work at the idea's main step: today
+  # the prefix ends at the first commit of the work, so the idea rides the
+  # pull request.
+  @ID-PUSHLEDGER-14 @slice-192 @wip
+  Scenario: Under pr, a take directly above main stays on the item's branch while a registry commit above the work leaves it
+    Given the work registry has the item "slice-9" owned by nobody with the status "todo"
+    And the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+      """
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the clone is on the new branch "slice-9"
+    And the clone has the commit "docs: take slice-9" making "bo" the owner of "slice-9"
+    And the clone has the commit "feat: add the widget" touching "widget.md"
+    And the clone has the commit "docs: add p1-gadget" adding the idea "p1-gadget" to the registry
+    And the clone has the commit "test: cover the widget" touching "widget-test.md"
+    When itos runs "push"
+    Then itos exits with code 0
+    And the remote's branch has "docs: take slice-9"
+    And the remote's branch has "docs: add p1-gadget"
+    And the remote's branch "slice-9" has the remote main's commit "docs: take slice-9"
+    And the remote's branch "slice-9" ends with "feat: add the widget" then "test: cover the widget", with no merge commit
+    And the remote's branch "slice-9" does not have "docs: add p1-gadget"
+    And the clone's HEAD is the head of the remote's branch "slice-9"
+
+  # A task added above the pushed spec commit goes to main, but a hand edit
+  # of that task's checks above it touches the ledger alone, so it stays on
+  # the item's branch, where it does not apply once the task's commit is
+  # taken out from under it. The push is refused before anything is pushed,
+  # naming both commits and saying to make the task on main instead or to
+  # fold the two. Fails before the work at the exit code: today both
+  # commits ride the pull request, exit 0.
+  @ID-PUSHLEDGER-13 @slice-192 @wip
+  Scenario: Under pr, a ledger edit that needs a registry commit going to main is refused, nothing pushed
+    Given the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+        pr:
+          draft: true
+      """
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the clone is on the new branch "T-001"
+    And the clone has the commit "docs: specify T-001" touching "spec.md"
+    And git pushes HEAD to the remote's new branch "T-001"
+    And the recording gh has the draft pull request "https://github.example/o/r/pull/7" open for the branch "T-001"
+    And itos has run the command line "task add --group 1 --type chore --title 'Sweep the docs' --why 'They drifted.' --check 'true'"
+    And the clone has the commit "docs: make the T-002 check fail" giving the ledger's task "T-002" the check "false"
+    When itos runs "push --json"
+    Then itos exits with code 1
+    And its JSON's "outcome" is "needs-registry-commit"
+    And its output says "docs: make the T-002 check fail"
+    And its output says "docs: add T-002"
+    And its output says "git switch main"
+    And the remote's branch does not have "docs: add T-002"
+    And the remote's branch "T-001" does not have "docs: make the T-002 check fail"
+    And the remote's branch "T-001" does not have "docs: add T-002"
+    And the recording gh was never called
+    And the clone's HEAD is the commit "docs: make the T-002 check fail", with no rebase in progress
 
   # A hand edit of a task's checks touches the ledger alone: no registry
   # bookkeeping, so it still goes through a pull request: main still ends
