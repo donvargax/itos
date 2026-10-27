@@ -5144,3 +5144,17 @@
     makes them in the same build commit. Run the gates' self-tests that call itos-cc
     (tools/selftest) before pushing. Then itos guide work or AGENTS.md need not change: the
     nightly's survivor lines print the identity --site takes.
+
+- id: T-333
+  type: ci
+  title: The nightly shard self-test runs with the env nightly.yml binds (bug-146's gate commit)
+  why: >
+    bug-146 (found 2026-10-27 in the reviewer replay):
+    tools/selftest/ci-platform/nightly_shards_test.go supplied SHARD itself, so removing
+    nightly.yml's env: SHARD: ${{ matrix.shard }} left it green while every shard ran the whole
+    suite. Its fix is a gate self-test change, a ci commit, which needs Task: (an item footer is not
+    enough for ci, issue #132), so this task carries it. The self-test reads the step's env from the
+    workflow and resolves ${{ matrix.shard }}; with the binding removed it fails. The check holds
+    only once the self-test no longer supplies SHARD.
+  done_when:
+    - run: "! grep -q '\"SHARD=\"+e.Shard' tools/selftest/ci-platform/nightly_shards_test.go"
