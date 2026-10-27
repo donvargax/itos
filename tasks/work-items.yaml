@@ -14750,3 +14750,11 @@ items:
       because removing one is a breaking change. Remove it, its scenarios and its config keys in v9,
       with the CLI redesign.
     tags: [v9]
+
+  - id: T-321
+    title: A dispatched workflow reviews a replay pull request with Fable on the person's subscription, and AGENTS.md holds Codex's review rules
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task
