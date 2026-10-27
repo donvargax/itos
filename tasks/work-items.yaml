@@ -14773,3 +14773,17 @@ items:
     status: doing
     depends_on: []
     kind: task
+
+  - id: p1-plugin-calls-no-guard
+    title: tools/bin/plugin-calls and its fixtures stop naming the plugin's removed guard
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      T-320 (2026-10-27) removed the plugin's PreToolUse guard; tools/bin/plugin-calls/main.go's
+      header comment and its test fixtures still name itos guard claude-code as a plugin call, and
+      docs/CLI.md's decision-41 line still says the plugin calls it. The gate passes (register.ts
+      still supplies calls). A ci commit (tools/bin is on ADR-0061's list) and a docs line.
+    tags: [plugin]
