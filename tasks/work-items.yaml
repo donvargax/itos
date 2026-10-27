@@ -15403,3 +15403,17 @@ items:
       matcher for go test output in the toolchain action, or the test runner printing its own
       ::error lines, would let slice-197's fallback show which test failed.
     tags: [ci]
+
+  - id: p3-prepush-precommit-remote
+    title: The pre-push hook reads the remote from PRE_COMMIT_REMOTE_NAME under pre-commit and prek
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Noted by slice-193's implementer (2026-10-27): the hook's accepted rewrite of an item branch
+      (--onto-main) reads the remote from the hook's first argument; under pre-commit or prek the
+      hook is called differently and the remote is in PRE_COMMIT_REMOTE_NAME, so a legitimate
+      rewrite is refused there.
+    tags: [hooks]
