@@ -64,6 +64,7 @@ queue:
   - p1-done-item-through-gate-task
   - p1-commit-item-takes-task
   - p1-status-fetches-first
+  - p1-ci-watch-prints-failed-log
   - p1-ci-affected-jobs
   - p2-feature-command-apostrophe
   - bug-146
