@@ -15391,3 +15391,21 @@ items:
     status: done
     depends_on: []
     kind: task
+
+  - id: p1-ready-fits-foreground
+    title: itos push --ready returns before a harness's 600 s foreground cap, with an outcome saying to run it again
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Seen 2026-10-27 on slice-191, slice-195 and slice-197: every --ready ran past the agents'
+      600000 ms foreground cap waiting for the platform jobs and Codex's review, was moved to the
+      background, and the implementer then ran itos ci watch and --ready again by hand (the brief's
+      recovery). --ready could take a wait bound (push.pr.ready_wait, or under ci.watch.timeout) and
+      end at it with exit 75 and an outcome such as ready-still-waiting naming what it waits on
+      (slice-190's waiting lines), so a rerun continues where it stopped and no call is ever cut
+      off. The earlier p1-push-fits-foreground was dropped for briefs alone (push --no-wait);
+      --ready has no such escape.
+    tags: [push, v8]
