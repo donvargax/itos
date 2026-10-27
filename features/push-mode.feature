@@ -134,23 +134,28 @@ Feature: push.mode pr, an item's work on its own branch merged by rebase, claims
   #207, whose implementer could not run red without main's steps), is
   refused to agents as destructive; both needed the person's force-push.
   Under push.mode pr, on an item's branch, it fetches main and the item's
-  branch as a push does; rebases onto the remote's item branch first when
-  the clone lacks its head, as a push does, so a commit pushed there is
-  kept; then rebases the commits main lacks onto the remote's main; and
-  pushes the item's branch with git push
-  --force-with-lease=refs/heads/<item>:<the item's head it fetched>, the
-  registry's commits directly above main going to main in the same atomic
-  push as ever, the pre-push hook judging both (pre-push.feature accepts a
-  rewrite of a branch that is not main and drops no commit, slice-193). An
-  item's branch the remote moved after the fetch fails the lease: the
-  remote is left as it was, exit 1, outcome push-failed, saying to run
-  itos push --onto-main again. A rebase that stops is left in progress for
-  the person as itos push leaves one, nothing pushed, exit 1, outcome
-  rebase-stopped, its advice naming itos push --onto-main again rather than
-  itos push, which would rebase the rebased branch onto the remote's old
-  head. A branch that has main's head already needs no rewrite and is
-  pushed as itos push pushes it, and one the remote does not have yet is a
-  first push, rebased onto main as ever. After the push all is a push's:
+  branch as a push does. Then it takes the remote's item head first,
+  rebasing onto it, only when that head has a commit main lacks of which
+  HEAD's commits main lacks hold no counterpart, by the counterpart rule of
+  the pre-push hook (pre-push.feature: the same author, author date and
+  message, not a patch-id, which a resolved conflict changes); so a commit
+  someone pushed there is kept, and a branch already rebased onto main, as
+  one the person finished after a stopped --onto-main is, is never replayed
+  onto the remote's old head. Then it rebases the commits main lacks onto
+  the remote's main, unless HEAD has main's head already, and pushes the
+  item's branch with git push --force-with-lease=refs/heads/<item>:<the
+  item's head it fetched> when that head is no ancestor of HEAD, as a push
+  does when it is, the registry's commits directly above main going to
+  main in the same atomic push as ever, the pre-push hook judging both
+  (pre-push.feature accepts a rewrite of a branch that is not main and
+  drops no commit, slice-193). An item's branch the remote moved after the
+  fetch fails the lease: the remote is left as it was, exit 1, outcome
+  push-failed, saying to run itos push --onto-main again. A rebase that
+  stops is left in progress for the person as itos push leaves one,
+  nothing pushed, exit 1, outcome rebase-stopped, its advice naming itos
+  push --onto-main again rather than itos push, which would rebase the
+  rebased branch onto the remote's old head. A branch the remote does not
+  have yet is a first push, rebased onto main as ever. After the push all is a push's:
   the pull request found or opened, auto-merge, no update-branch since the
   head pushed has main's, the wait for its run, and --no-wait and --ready
   with it as without.
@@ -357,9 +362,10 @@ Feature: push.mode pr, an item's work on its own branch merged by rebase, claims
     And the recording gh was never called as "pr update-branch"
 
   # A commit pushed to the item's branch since the clone last had it (the
-  # coordinator's fix to the spec, say) is the item's work too: --onto-main
-  # takes it first, as itos push rebases onto the remote's item branch, then
-  # rebases the whole onto main, so the rewrite drops nothing. The pre-push
+  # coordinator's fix to the spec, say) is the item's work too: it is a
+  # commit main lacks with no counterpart among HEAD's, so --onto-main takes
+  # the remote's item head first, then rebases the whole onto main, and the
+  # rewrite drops nothing. The pre-push
   # hook is the scenarios' stand-in, which passes anything, so the remote
   # shows what itos itself pushed. Fails before the work at the exit code:
   # today --onto-main is a usage error, exit 2.
@@ -408,6 +414,37 @@ Feature: push.mode pr, an item's work on its own branch merged by rebase, claims
     And the clone has a rebase in progress
     And the remote's branch "slice-9" does not have "docs: specify slice-8"
     And the recording gh was never called
+
+  # bug-151's case to its end: the person resolves the conflict
+  # @ID-PUSHMODE-30 stops on and continues the rebase, and --onto-main again
+  # pushes. The remote's item head, the old spec, has its counterpart in
+  # HEAD's resolved spec (same author, author date and message), so it is
+  # not taken first: replaying the rebased branch onto it would conflict
+  # again. The real pre-push hook accepts the rewrite by the same rule,
+  # though the resolved commit's patch-id is not the old one's (its diff now
+  # adds a line after main's); a patch-id rule would refuse it as dropping
+  # the spec. Fails before the work at the Given that runs the first
+  # --onto-main: today it is a usage error, exit 2, where the step wants 1.
+  @ID-PUSHMODE-38 @slice-193 @wip
+  Scenario: Under pr, push --onto-main again after the person resolves its stopped rebase pushes main's commit then the item's resolved one
+    Given the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+      """
+    And the pre-push hook is installed
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the clone is on the new branch "slice-9"
+    And the clone has the commit "docs: specify slice-9" touching "features/widget.feature"
+    And git pushes HEAD to the remote's new branch "slice-9"
+    And the recording gh has the pull request "https://github.example/o/r/pull/7" open for the branch "slice-9"
+    And the remote has gained the commit "docs: specify slice-8" touching "features/widget.feature"
+    And itos has run "push --onto-main", exiting with code 1
+    And the clone resolves the conflict in "features/widget.feature", keeping both sides, and continues the rebase
+    When itos runs "push --onto-main"
+    Then itos exits with code 0
+    And the remote's branch "slice-9" ends with "docs: specify slice-8" then "docs: specify slice-9", with no merge commit
+    And its output says "https://github.example/o/r/pull/7"
 
   # The lease: another clone pushes the item's branch after itos fetched it
   # (while itos rebases, between its fetch and its push), so the head itos
