@@ -552,6 +552,7 @@ func (h Handler) commit(ctx context.Context, q Query, o Out) (Answer, error) {
 	stealth := h.ports.Stealth(ctx)
 	if cfg != nil {
 		text, ok := g.message(ctx, h.ports)
+		text = message.Cleaned(text, cfg.CommentChar())
 		found := lacking(ctx, cfg, text, ok, g, lines(linked), lines(texted), stealth)
 		if ok {
 			var differing []out.Problem
