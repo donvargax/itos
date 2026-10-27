@@ -1,0 +1,6 @@
+go test fuzz v1
+string("docs: tidy the readme so that every paragraph says one thing and nothing in it repeats another one again")
+string("")
+string("")
+[]byte("")
+uint8(0)

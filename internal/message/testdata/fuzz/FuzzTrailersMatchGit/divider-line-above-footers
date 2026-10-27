@@ -1,0 +1,6 @@
+go test fuzz v1
+string("fix: x")
+string("")
+string("body\n---\nT-1\n")
+[]byte("\x0e\x0f\x0e\x0f\x00\x0f")
+uint8(0)

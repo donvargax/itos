@@ -1,0 +1,6 @@
+go test fuzz v1
+string("docs: x")
+string("")
+string("T-044\n")
+[]byte("\x00\x0f")
+uint8(0)

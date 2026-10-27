@@ -1,0 +1,6 @@
+go test fuzz v1
+string("docs: a note")
+string("")
+string("")
+[]byte("")
+uint8(0)

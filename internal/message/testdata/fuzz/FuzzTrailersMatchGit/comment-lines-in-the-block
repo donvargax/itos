@@ -1,0 +1,6 @@
+go test fuzz v1
+string("feat: x")
+string("")
+string("T-1\n# a comment\ns\n# another\n")
+[]byte("\x00\x0f\x0e\x0f\x01\x0f\x0e\x0f")
+uint8(0)

@@ -1,0 +1,6 @@
+go test fuzz v1
+string("build: name a task that is gone")
+string("")
+string("T-002\n")
+[]byte("\x00\x0f")
+uint8(0)

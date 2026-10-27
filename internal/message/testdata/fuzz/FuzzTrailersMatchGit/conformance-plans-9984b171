@@ -1,0 +1,6 @@
+go test fuzz v1
+string("test: selections")
+string("")
+string("T-060\n@ID-LIST-02, ID-LIST-02, @ID-TWO-02\n")
+[]byte("\x00\x0f\x01\x0f")
+uint8(0)

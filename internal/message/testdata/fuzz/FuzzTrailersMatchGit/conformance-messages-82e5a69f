@@ -1,0 +1,6 @@
+go test fuzz v1
+string("chore: tidy")
+string("Name the work in the footers, with\nTask: or Item: as the config asks.")
+string("T-001\n")
+[]byte("\x00\x0f")
+uint8(0)

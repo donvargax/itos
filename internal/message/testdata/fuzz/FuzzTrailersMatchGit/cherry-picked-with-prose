@@ -1,0 +1,6 @@
+go test fuzz v1
+string("fix: x")
+string("body")
+string("some prose\n(cherry picked from commit 0123abc)\nT-1\n")
+[]byte("\x0e\x0f\x0e\x0f\x00\x0f")
+uint8(0)

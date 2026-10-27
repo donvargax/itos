@@ -1,0 +1,6 @@
+go test fuzz v1
+string("test: the smoke run")
+string("")
+string("T-062\n")
+[]byte("\x00\x0f")
+uint8(0)

@@ -1,0 +1,6 @@
+go test fuzz v1
+string("fix: x")
+string("")
+string("prose one\nprose two\nprose three\nprose four\na\n")
+[]byte("\x0e\x0f\x0e\x0f\x0e\x0f\x0e\x0f\b\x0f")
+uint8(0)

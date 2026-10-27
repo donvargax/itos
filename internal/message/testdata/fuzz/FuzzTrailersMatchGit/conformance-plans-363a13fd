@@ -1,0 +1,6 @@
+go test fuzz v1
+string("feat: code changes")
+string("")
+string("")
+[]byte("")
+uint8(0)

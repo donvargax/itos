@@ -1,0 +1,6 @@
+go test fuzz v1
+string("feat: x")
+string("")
+string("Fixture: F-001, F-003\n")
+[]byte("\x0e\x0f")
+uint8(0)

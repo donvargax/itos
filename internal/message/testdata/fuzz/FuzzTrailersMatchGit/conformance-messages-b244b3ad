@@ -1,0 +1,6 @@
+go test fuzz v1
+string("Merge branch 'topic' into main")
+string("")
+string("")
+[]byte("")
+uint8(0)

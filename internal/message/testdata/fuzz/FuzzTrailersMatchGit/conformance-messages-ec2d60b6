@@ -1,0 +1,6 @@
+go test fuzz v1
+string("chore: x")
+string("")
+string("Upgrading:\n")
+[]byte("\x0e\x0f")
+uint8(0)

@@ -1,0 +1,6 @@
+go test fuzz v1
+string("build: static above late")
+string("")
+string("T-047\n")
+[]byte("\x00\x0f")
+uint8(0)

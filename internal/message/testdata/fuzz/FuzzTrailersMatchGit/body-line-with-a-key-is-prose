@@ -1,0 +1,6 @@
+go test fuzz v1
+string("docs: x")
+string("Task: T-1 in the body\nmore prose")
+string("T-2\n")
+[]byte("\x00\x0f")
+uint8(0)

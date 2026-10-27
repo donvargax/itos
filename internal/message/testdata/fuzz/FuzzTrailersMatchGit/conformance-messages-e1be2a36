@@ -1,0 +1,6 @@
+go test fuzz v1
+string("docs: a page")
+string("")
+string("The page said it twice, and the wrapped\nscenarios: line below reads as a footer.\n")
+[]byte("\x0e\x0f\x0e\x0f")
+uint8(0)

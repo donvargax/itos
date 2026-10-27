@@ -1,0 +1,6 @@
+go test fuzz v1
+string("fixup! docs: a page")
+string("")
+string("")
+[]byte("")
+uint8(0)

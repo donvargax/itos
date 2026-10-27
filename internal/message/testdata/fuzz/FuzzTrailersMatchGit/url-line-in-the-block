@@ -1,0 +1,6 @@
+go test fuzz v1
+string("chore: x")
+string("")
+string("T-1\nLink://example.com\ns\n")
+[]byte("\x00\x0f\x0e\x0f\x01\x0f")
+uint8(0)

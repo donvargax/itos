@@ -1,0 +1,6 @@
+go test fuzz v1
+string("chore: x")
+string("")
+string("rename commits.lint to commits.header_lint\n")
+[]byte("\x03\x0f")
+uint8(0)

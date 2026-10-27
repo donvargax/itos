@@ -1,0 +1,6 @@
+go test fuzz v1
+string("test: the whole suite")
+string("")
+string("T-061, T-060\n")
+[]byte("\x00\x0f")
+uint8(0)
