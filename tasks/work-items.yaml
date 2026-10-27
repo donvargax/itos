@@ -15365,6 +15365,12 @@ items:
       (slice-190's waiting lines), so a rerun continues where it stopped and no call is ever cut
       off. The earlier p1-push-fits-foreground was dropped for briefs alone (push --no-wait);
       --ready has no such escape.
+
+      Met again 2026-10-27 on slice-196 (#213): --ready outlived the cap twice, and the documented
+      fallback, itos ci watch <sha> on the pushed head, reported 'cancelled' because GitHub had
+      rebased the pull request; the head to watch was gh pr view's headRefOid. --ready should print
+      the head it waits on (GitHub's rebased one) as soon as it knows it, or ci watch follow a pull
+      request's head.
     tags: [push, v8]
 
   - id: p2-push-thread-show
