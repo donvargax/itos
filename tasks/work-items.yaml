@@ -15251,3 +15251,21 @@ items:
       resolving strategy would.
     refs: [internal/vcs/adapter/touched_property_test.go, internal/vcs/adapter/paths.go]
     tags: [tests, v8]
+
+  - id: p1-tests-real-git-env
+    title: Unit tests that need the real git find it the same way under a hook, in CI and in a shell where git is the itos shim
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      T-327's oracle and T-330's first draft (2026-10-27) run the real git as ITOS_GIT names it,
+      else git from the PATH; in a clone where the PATH's git is the itos git shim, a bare go test
+      of a test that runs git add -A fails (the shim refuses it), while the hooks export ITOS_GIT
+      and CI has no shim. One test-only helper resolving the real git (ITOS_GIT, else the shim's own
+      resolution, else the PATH), which slices may import under depguard (T-327 could not import
+      internal/git), would make such tests pass the same everywhere; go-unit-tests could also export
+      ITOS_GIT.
+    refs: [tools/bin/go-unit-tests]
+    tags: [tests, gates, v8]
