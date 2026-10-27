@@ -15341,3 +15341,21 @@ items:
       run; or a spec-time warning when two open pull requests change the same feature file's tail.
     refs: [internal/slices/push]
     tags: [push, v8]
+
+  - id: p1-take-on-item-branch-to-main
+    title: A take made on an item's branch after its spec commit stays on the pull request instead of going to main
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Seen 2026-10-27 on bug-150 (PR #198): the implementer branched from origin/bug-150 (the spec
+      commit), ran itos work take there, and itos push sent the take with the pull request rather
+      than to main (push.pr.direct), so main showed bug-150 untaken until the merge. With
+      T-324..T-332, branched from main, the take went to main by itself. push.pr.direct likely sends
+      only registry commits at the bottom of the range; a take above the spec commit is not. Either
+      send any registry-only commit of the range to main (rebasing the rest), or have guide work say
+      to take the item on main before switching to its branch.
+    refs: [internal/slices/push]
+    tags: [push, v8]
