@@ -170,7 +170,17 @@ and at once, outcome review-refused, when a login's only reviews are refusals;
 refuses, exit 1, a pull request with an unresolved review thread, naming each
 by its file, line and the first line of its first comment; and only then turns
 on auto-merge by rebase. Auto-merge thus comes after the checks and the
-reviews. The reviews, comments and threads are one gh api graphql question. --ready
+reviews. The reviews, comments and threads are one gh api graphql question.
+While it waits it prints, when the wait starts and after each look that changes
+something, "Waiting on <address> at <head>: run <state>, <login> <state>.", the
+run waiting or succeeded and each push.pr.review_by login not asked, waiting,
+running (its review-state comment reads a review not completed) or completed.
+push.pr.review_stall (seconds, 0 by default: never) makes it ask a login whose
+review has read running that long for it again, once per head: a gh pr comment
+holding "@codex review" and a hidden itos-review-request line with the login and
+the head's full SHA, a comment with that line meaning it was asked already; a
+review still running review_stall seconds after the request ends --ready, exit
+75, outcome review-stalled, auto-merge not turned on. --ready
 --no-wait stops once the pull request is ready, with no run, review or
 auto-merge, since auto-merge unwatched would merge before the review; itos
 push --ready again finishes it. --ready is refused, exit 1, outside push.mode
@@ -223,7 +233,8 @@ opened, or a gh that failed for push threads or push thread; 75 a remote that ca
 reached (a connection refused or timed out, a host that does not resolve), a
 CI run not finished, a CI run cancelled with no newer run to follow,
 GitHub's API failing, or --ready's wait for a review not answered within
-ci.watch.timeout; 70 a fetch, a read of the remote's tags or a push that
+ci.watch.timeout or a review still running push.pr.review_stall seconds after
+it was asked again; 70 a fetch, a read of the remote's tags or a push that
 failed for another reason. The kind of a failed fetch or push is
 read from git's message; git's own exit code is never itos's.
 
@@ -240,7 +251,7 @@ read from git's message; git's own exit code is never itos's.
         push-failed, and under push.mode pr work-on-main, not-item-branch,
         no-github-repository, pull-request-failed, for --onto-main
         onto-main-without-pr and onto-main-on-main, and for --ready
-        review-timeout, review-refused, review-threads-unresolved,
+        review-timeout, review-refused, review-stalled, review-threads-unresolved,
         ready-without-draft and ready-on-main;
         push threads gives {"schema":1,"ok","outcome","pull_request"?,"threads"?},
         pull_request {"url","number"}, threads a list of {"id","path","line"?,

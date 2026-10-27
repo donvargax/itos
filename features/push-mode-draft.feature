@@ -431,7 +431,7 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   # Off by default: --ready asks no review again unless the config says when.
   # Fails before the work at the exit code: today config get refuses the
   # unknown key push.pr.review_stall, exit 2.
-  @ID-PUSHDRAFT-24 @slice-190 @wip
+  @ID-PUSHDRAFT-24 @slice-190
   Scenario: config get prints push.pr.review_stall's default, 0, when the config leaves it out
     When itos runs "config get push.pr.review_stall"
     Then itos exits with code 0
@@ -905,7 +905,7 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   # with the first ask's states, never beside a login not asked. Fails
   # before the work at the "Waiting on" output step: today --ready prints
   # only "Waiting for reviews by ...".
-  @ID-PUSHDRAFT-25 @slice-190 @wip
+  @ID-PUSHDRAFT-25 @slice-190
   Scenario: Under push.pr.draft, push --ready says what it waits on when it starts and at each change of state, and nothing while nothing changes
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -943,7 +943,7 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   # unknown key, so the config cannot be read and --ready is refused, exit
   # 1, ready-without-draft (and with the key known, nothing asks again and
   # ci.watch.timeout ends the wait, exit 75).
-  @ID-PUSHDRAFT-26 @slice-190 @wip
+  @ID-PUSHDRAFT-26 @slice-190
   Scenario: Under push.pr.draft, push --ready asks once again for a Codex review still running past push.pr.review_stall, and turns on auto-merge once it completes
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -981,7 +981,7 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   # for it again. ci.watch.timeout is 2, so a build that asks again after a
   # default of a second or so fails here. A guard: it passes before the work
   # and must after it.
-  @ID-PUSHDRAFT-27 @slice-190 @guard @wip
+  @ID-PUSHDRAFT-27 @slice-190 @guard
   Scenario: Under push.pr.draft, push --ready without push.pr.review_stall never asks for a running review again and exits 75 at ci.watch.timeout
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -1013,7 +1013,7 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   # an unknown key, so the config cannot be read and --ready is refused,
   # exit 1 (and with the key known, the wait runs to ci.watch.timeout,
   # outcome review-timeout).
-  @ID-PUSHDRAFT-28 @slice-190 @wip
+  @ID-PUSHDRAFT-28 @slice-190
   Scenario: Under push.pr.draft, push --ready posts no second request for a head already asked again, and stops at the stall, exit 75
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -1049,7 +1049,7 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   # work at the exit code: today push.pr.review_stall is an unknown key, so
   # the config cannot be read and --ready is refused, exit 1 (and with the
   # key known, the wait runs to ci.watch.timeout, outcome review-timeout).
-  @ID-PUSHDRAFT-29 @slice-190 @wip
+  @ID-PUSHDRAFT-29 @slice-190
   Scenario: Under push.pr.draft, push --ready stops, exit 75, when a review it asked for again still runs push.pr.review_stall later, having asked once
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """

@@ -43,11 +43,13 @@ type Push struct {
 // PushPR is push.pr: Draft, whether itos push opens and updates an item's
 // pull request as a draft, which itos push --ready marks ready; ReviewBy, the
 // GitHub logins whose review --ready waits for before it turns on auto-merge;
-// Direct, the commits a push from main sends straight to main (slice 186).
+// ReviewStall, the seconds a login's review may read running before --ready
+// asks for it again, 0 for never (slice 190); Direct, the commits a push from main sends straight to main (slice 186).
 type PushPR struct {
-	Draft    bool       `json:"draft"`
-	ReviewBy []string   `json:"review_by"`
-	Direct   PushDirect `json:"direct"`
+	Draft       bool       `json:"draft"`
+	ReviewBy    []string   `json:"review_by"`
+	ReviewStall float64    `json:"review_stall"`
+	Direct      PushDirect `json:"direct"`
 }
 
 // PushDirect is push.pr.direct: Types, the commit types a push from main sends

@@ -70,8 +70,12 @@ type openThread struct {
 func (r *pushRun) finish(ctx context.Context, repository, outcome, line string) Answer {
 	cfg := r.cfg
 	r.announce(line)
+	w := newWaiting(r, cfg.Push.PR.ReviewBy)
 	wr, ok, err := r.ports.Watcher(ctx, cfg, r.remote)
 	if ok || err != nil {
+		if ok && err == nil {
+			w.run, r.waiting = "waiting", w
+		}
 		if a, failed := r.watchRun(ctx, cfg, wr, err, r.remote, r.sha); failed {
 			return a
 		}
@@ -79,12 +83,18 @@ func (r *pushRun) finish(ctx context.Context, repository, outcome, line string) 
 			fmt.Fprintln(r.o.Stderr, "itos: auto-merge is not turned on: the run did not succeed. Fix what failed and push, or wait for the run, then itos push --ready again.")
 			return r.report(r.watched.Code, outcome)
 		}
+		if w.run != "" {
+			w.run = "succeeded"
+			if len(w.logins) == 0 {
+				w.show()
+			}
+		}
 	}
 	var state pullState
 	var a Answer
 	var done bool
 	if logins := cfg.Push.PR.ReviewBy; len(logins) > 0 {
-		state, a, done = r.awaitReviews(ctx, repository, logins)
+		state, a, done = r.awaitReviews(ctx, repository, w)
 	} else {
 		state, a, done = r.ask(ctx, repository, r.pr.Number)
 	}
@@ -115,19 +125,30 @@ func (r *pushRun) finish(ctx context.Context, repository, outcome, line string) 
 // ci.watch.interval until each login has a verdict, or ci.watch.timeout,
 // counted from the first ask, has passed: done, with the exit reported (75,
 // outcome review-timeout, naming the logins that have none; or at once 75,
-// review-refused, for a login whose reviews are all refusals), or the failure
-// of gh api graphql. The last answer is the state.
-func (r *pushRun) awaitReviews(ctx context.Context, repository string, logins []string) (pullState, Answer, bool) {
+// review-refused, for a login whose reviews are all refusals; or 75,
+// review-stalled, see stalled), or the failure of gh api graphql. The last
+// answer is the state. w says what is waited on, at the start and at each
+// look that changes it.
+func (r *pushRun) awaitReviews(ctx context.Context, repository string, w *waiting) (pullState, Answer, bool) {
+	logins := w.logins
 	watch := r.cfg.CI.Watch
 	interval := time.Duration(*watch.Interval * float64(time.Second))
 	deadline := now().Add(time.Duration(*watch.Timeout * float64(time.Second)))
 	r.say(fmt.Sprintf("Waiting for reviews by %s on %s.", strings.Join(logins, ", "), r.pr.URL))
+	if w.run == "" {
+		w.show()
+	}
+	var st *stalls
+	if seconds := r.cfg.Push.PR.ReviewStall; seconds > 0 {
+		st = &stalls{seconds: seconds, since: map[string]time.Time{}, asked: map[string]time.Time{}}
+	}
 	for {
 		state, a, failed := r.ask(ctx, repository, r.pr.Number)
 		if failed {
 			return pullState{}, a, true
 		}
 		missing, refused := state.verdicts(logins)
+		w.look(state, missing)
 		if len(missing) == 0 {
 			return state, Answer{}, false
 		}
@@ -143,6 +164,11 @@ func (r *pushRun) awaitReviews(ctx context.Context, repository string, logins []
 			fmt.Fprintf(r.o.Stderr, "itos: no review by %s on %s after %s seconds (ci.watch.timeout), so auto-merge is not turned on; itos push --ready again waits again.\n",
 				strings.Join(missing, ", "), r.pr.URL, value.Number(*watch.Timeout))
 			return state, r.report(temporary, "review-timeout"), true
+		}
+		if st != nil {
+			if a, done := r.stalled(ctx, repository, w, st, state, missing); done {
+				return state, a, true
+			}
 		}
 		sleep(min(max(interval, reviewPoll), left))
 	}
