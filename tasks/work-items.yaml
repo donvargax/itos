@@ -14665,3 +14665,19 @@ items:
     status: todo
     depends_on: []
     kind: task
+
+  - id: p1-ci-slow-linux-runs
+    title: Find why some Linux CI runs of a pull request take 10 to 12 minutes against a median of 4.9
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      docs/plans/ci-workflows.md (2026-10-26): of the 14 newest green PR runs, three ran 12 minutes
+      and were slow on Linux itself (its ci job ended at 10.3 to 12.1 min) while the median Linux
+      job ended at 4.9; that tail costs more than the shelved split would save. Read those runs'
+      step timings (gh run view --json jobs, steps' started/completed) against a median run: the
+      code proof (mutation draw and coverage over a larger range), the named tests a range selects,
+      go build cache misses, or the runner. Report which step and why before any change.
+    tags: [ci]
