@@ -14837,6 +14837,8 @@ items:
       footer with the message's (bug-138) reads the raw message, while the commit-msg hook reads the
       cleaned one, so a message with CRLF line endings and a folded text footer is refused with exit
       1 though the hook would accept it. Reproduce with a CRLF message (-F file) first.
+
+      Codex's code review found the same defect independently (2026-10-27, s143).
     tags: [commit]
 
   - id: bug-149
