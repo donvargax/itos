@@ -391,7 +391,7 @@ func TestACIRunFailuresLinesLoseOnlyTheIndentationTheyShare(t *testing.T) {
 
 func TestReadAnnotationsKeepsFailuresInTheOrderListed(t *testing.T) {
 	failures, more := readAnnotations([]providers.Annotation{
-		{Path: "a_test.go", Line: 7, Level: "failure", Message: "one\r\ntwo\n"},
+		{Path: "a_test.go", Line: 7, Level: "failure", Message: "\x1b[31mone\x1b[0m\r\ntwo\x1b]0;title\x07\n"},
 		{Path: ".github", Line: 1, Level: "warning", Message: "deprecated"},
 		{Path: "x", Line: 2, Level: "notice", Message: "fyi"},
 		{Path: ".github", Line: 1, Level: "failure", Message: ""},
