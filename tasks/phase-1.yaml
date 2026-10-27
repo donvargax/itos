@@ -4869,3 +4869,18 @@
     published, instead of a bare 404. Seen 2026-10-26 (run 40418143221, v8.25.0 left a draft with
     its tag made; main red until the person published it by hand). Its own merge is also T-315's
     proof: main's run of it should log the Trusted line.
+
+- id: T-317
+  type: test
+  title: internal/vcs/adapter's unit tests take well under a minute on Windows
+  why: >
+    docs/plans/ci-workflows.md (2026-10-26, shelved for this cheaper fix): Windows ends a PR run a
+    median ~2 min after Linux, and its unit tests take 325 s, of which internal/vcs/adapter alone
+    takes 221 s. Find where they spend it (go test -v -json timings from a Windows run's platform
+    job log; git starts per test, as p1-features-fewer-git-starts measured for the features), then
+    make them cheaper (shared repository fixtures built once per package, fewer git processes,
+    t.Parallel where safe) or move the slow ones to their own shard; never drop a test or take one
+    off Windows, never raise a timeout. Acceptance: a PR run's Windows unit tests step, from that
+    job's log, with internal/vcs/adapter under 60 s.
+  done_when:
+    - run: "true"

@@ -14657,3 +14657,11 @@ items:
       something (its re-stage, or itos commit's own staging around the hook) writes the index after
       the commit is made.
     tags: [commit]
+
+  - id: T-317
+    title: internal/vcs/adapter's unit tests take well under a minute on Windows
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task
