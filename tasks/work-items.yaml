@@ -62,7 +62,6 @@ queue:
   - p1-ready-fits-foreground
   - p2-push-thread-show
   - slice-199
-  - slice-198
   - p1-ci-affected-jobs
   - p2-feature-command-apostrophe
   - p1-ci-slow-linux-runs
