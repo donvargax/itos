@@ -14754,7 +14754,7 @@ items:
   - id: T-321
     title: A dispatched workflow reviews a replay pull request with Fable on the person's subscription, and AGENTS.md holds Codex's review rules
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
