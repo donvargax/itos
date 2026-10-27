@@ -15090,14 +15090,15 @@ items:
     refs: [internal/proptest, docs/decisions/0051-each-check-runs-at-the-cheapest-tier-that-catches-what-it-catches.md]
     tags: [tests, v8]
 
-  - id: p1-ready-codex-stall
+  - id: slice-190
     title: itos push --ready says what it waits on, and re-requests a review still running past a limit once
     phase: 1
     owner: null
     status: todo
     depends_on: []
-    kind: idea
+    kind: slice
     why: >
+      Was p1-ready-codex-stall.
       Seen 2026-10-27 on T-332 (#193): Codex's code review read running for 30 minutes while its
       security review completed in minutes; every --ready call ran to the caller's 600000 ms cap
       with no line saying it was waiting on chatgpt-codex-connector's review of the head, so the
