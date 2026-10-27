@@ -14710,6 +14710,6 @@ items:
     title: internal/idcounter's and internal/cli's unit tests stop setting the Windows unit-tests step's length
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task

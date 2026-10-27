@@ -4897,5 +4897,3 @@
     (shared fixtures built once, fewer processes), never dropping a test, taking one off Windows or
     raising a timeout. Acceptance, read from a PR run's windows job log (ok lines): no package over
     90 s, and the Unit tests step under 120 s.
-  done_when:
-    - run: "true"
