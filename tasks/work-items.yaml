@@ -14640,3 +14640,20 @@ items:
     kind: bug
     refs: [internal/slices/work/done.go]
     tags: [work]
+
+  - id: bug-145
+    title: After a commit through itos commit, tools/bin/pre-commit leaves a stale copy of a formatted file staged (git status MM)
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: bug
+    why: >
+      Seen twice on 2026-10-26: slice-187's implementer (config_test.go after gofmt) and the
+      coordinator (docs/plans/ci-workflows.md after dprint): the commit holds the formatted file and
+      the working tree equals it, but the index holds another version (git diff --cached shows
+      changes against HEAD), so git status says MM and the next itos commit or push may sweep it in
+      or refuse. Cleared by git restore --staged. tools/bin/pre-commit re-stages a file it formats;
+      something (its re-stage, or itos commit's own staging around the hook) writes the index after
+      the commit is made.
+    tags: [commit]
