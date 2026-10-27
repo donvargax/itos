@@ -34,7 +34,6 @@ gofmt_check() {
 	}
 }
 
-# A commit by path stages into a temporary index and leaves the real one stale; itos commit resets it (bug-145).
 # Formats the given files with $1 and stages them again; a file with unstaged changes is checked
 # with $2 instead. Each command takes the file names last.
 format() {
@@ -47,6 +46,7 @@ format() {
 	if [ -n "$whole" ]; then
 		# shellcheck disable=SC2086 # the commands and the file lists are words: no tracked path holds a space
 		$fix $whole
+		# A commit by path stages into a temporary index and leaves the real one stale; itos commit resets it (bug-145).
 		# shellcheck disable=SC2086
 		git add -- $whole
 	fi
