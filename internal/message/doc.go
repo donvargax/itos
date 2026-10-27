@@ -48,7 +48,8 @@
 // word none (None is the one reading of it). Its rule is only that it is
 // there (required_for) and not empty (validate_for); Texts reads it, each
 // footer on one line, its continuation lines joined as git unfolds them,
-// trimmed. CI's plan reads no text footer; Gathered gives a range's
+// trimmed as git trims (GitTrim: space, tab, line feed and carriage return,
+// never a form feed or a no-break space). CI's plan reads no text footer; Gathered gives a range's
 // texts with their commits (git log --no-merges --reverse over from..to),
 // which itos commit footers prints for a release's notes.
 //
