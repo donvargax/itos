@@ -4975,5 +4975,3 @@
     inputs through env (never interpolated into the shell). Raise --max-turns to 80, the local
     reviewer's budget (the high runs finished at up to 55 turns past the 40 the workflow set, and
     the action marked them failed though each logged its verdict).
-  done_when:
-    - run: grep -q "effort" .github/workflows/replay-review.yml
