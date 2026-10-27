@@ -28,6 +28,9 @@ import (
 func initializeWorkDonePRSteps(sc *godog.ScenarioContext, w *world) {
 	sc.Step(`^the remote's branch "([^"]*)" has the item "([^"]*)"'s commit touching "([^"]*)", which the clone's main lacks$`, w.remoteBranchHasItemCommit)
 	sc.Step(`^the remote's main has gained the item "([^"]*)"'s commit touching "([^"]*)", which the clone lacks$`, w.remoteGainsItemCommit)
+	sc.Step(`^the remote's branch "([^"]*)" has the commit "([^"]*)" naming the task "([^"]*)" and touching "([^"]*)", which the clone's main lacks$`, func(branch, subject, task, path string) error {
+		return w.remoteBranchHasCommit(branch, subject, "Task: "+task+"\n", path)
+	})
 	sc.Step(`^the clone fast-forwards its main to the branch "([^"]*)"$`, w.cloneFastForwards)
 	sc.Step(`^GitHub rebase-merges the remote's branch "([^"]*)" onto the remote's main$`, func(branch string) error {
 		return w.githubRebaseMerges(branch, false)
@@ -84,6 +87,17 @@ func (w *world) remoteBranchHasItemCommitNaming(branch, id, task, path string) e
 	if err := w.itemFooterOn(); err != nil {
 		return err
 	}
+	footers := "Item: " + id + "\n"
+	if task != "" {
+		footers += "Task: " + task + "\n"
+	}
+	return w.remoteBranchHasCommit(branch, "chore: build "+id, footers, path)
+}
+
+// The remote has the branch, one commit above the clone's main, the commit
+// with the subject and the footers, touching the file; the clone is left on
+// its main, without the branch, which its remote-tracking ref still names.
+func (w *world) remoteBranchHasCommit(branch, subject, footers, path string) error {
 	current, err := w.gitOutput("rev-parse", "--abbrev-ref", "HEAD")
 	if err != nil {
 		return err
@@ -92,13 +106,8 @@ func (w *world) remoteBranchHasItemCommitNaming(branch, id, task, path string) e
 	if err := w.git("checkout", "-q", "-b", branch); err != nil {
 		return err
 	}
-	subject := "chore: build " + id
 	if err := writeLine(w.dir, path, subject); err != nil {
 		return err
-	}
-	footers := "Item: " + id + "\n"
-	if task != "" {
-		footers += "Task: " + task + "\n"
 	}
 	for _, args := range [][]string{
 		{"add", "--", path},
