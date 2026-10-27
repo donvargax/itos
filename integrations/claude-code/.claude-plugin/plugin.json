@@ -1,7 +1,7 @@
 {
 	"name": "itos",
-	"version": "4.1.0",
-	"description": "Works in a repository itos manages: titles each itos ID in Claude's replies, and answers an agent's git commit or git push with the itos command to use instead.",
+	"version": "4.2.0",
+	"description": "Works in a repository itos manages: titles each itos ID in Claude's replies.",
 	"author": { "name": "Jorge Vargas", "url": "https://github.com/donvargax" },
 	"homepage": "https://github.com/donvargax/itos",
 	"repository": "https://github.com/donvargax/itos",
