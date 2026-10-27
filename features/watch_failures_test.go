@@ -54,6 +54,45 @@ func initializeWatchFailureSteps(sc *godog.ScenarioContext, w *world) {
 	sc.Step(`^the fake GitHub serves the log of the job "([^"]*)" with CRLF line ends$`, func(name string) error {
 		return w.logSetting(name, func(g *fakeGitHub) *map[string]bool { return &g.logCRLF })
 	})
+	sc.Step(`^the fake GitHub redirects the log of the job "([^"]*)" to a host that refuses it$`, func(name string) error {
+		return w.logSetting(name, func(g *fakeGitHub) *map[string]bool { return &g.logRefused })
+	})
+	sc.Step(`^the fake GitHub lists these annotations for the check run of the job "([^"]*)":$`, func(name string, table *godog.Table) error {
+		var listed []fakeAnnotation
+		for _, row := range table.Rows[1:] {
+			line, err := strconv.Atoi(row.Cells[1].Value)
+			if err != nil {
+				return fmt.Errorf("the line %q is no number", row.Cells[1].Value)
+			}
+			listed = append(listed, fakeAnnotation{Path: row.Cells[0].Value, StartLine: line, EndLine: line,
+				AnnotationLevel: row.Cells[2].Value, Message: row.Cells[3].Value})
+		}
+		return w.annotate(name, listed)
+	})
+	sc.Step(`^the fake GitHub lists (\d+) annotations for the check run of the job "([^"]*)", each a failure of (\d+) message lines$`,
+		func(n int, name string, lines int) error {
+			var listed []fakeAnnotation
+			for a := 1; a <= n; a++ {
+				var message []string
+				for l := 1; l <= lines; l++ {
+					message = append(message, fmt.Sprintf("message line %d of annotation %d", l, a))
+				}
+				listed = append(listed, fakeAnnotation{Path: "annotated_test.go", StartLine: a, EndLine: a,
+					AnnotationLevel: "failure", Message: strings.Join(message, "\n")})
+			}
+			return w.annotate(name, listed)
+		})
+	sc.Step(`^the fake GitHub was never asked for a check run's annotations$`, func() error {
+		if w.github == nil {
+			return errors.New("no fake GitHub: start one first")
+		}
+		for _, asked := range w.github.requests() {
+			if strings.Contains(asked, "/check-runs/") {
+				return fmt.Errorf("the fake GitHub was asked for a check run's annotations: %s\n%s", asked, w.report())
+			}
+		}
+		return nil
+	})
 	sc.Step(`^the watched run's jobs "([^"]*)" and "([^"]*)" succeed, and once itos has pushed, the remote's head is given the annotated tag "([^"]*)"$`,
 		w.watchedRunTagged)
 	sc.Step(`^the fake GitHub was never asked for a job's log$`, func() error {
@@ -167,6 +206,20 @@ func initializeWatchFailureSteps(sc *godog.ScenarioContext, w *world) {
 // it, which succeeded.
 func failedAt(step string) []watchedStep {
 	return []watchedStep{{"Set up job", "success"}, {step, "failure"}, {"Complete job", "success"}}
+}
+
+// The fake GitHub lists these annotations for the check run of the job.
+func (w *world) annotate(name string, listed []fakeAnnotation) error {
+	if w.github == nil {
+		return errors.New("no fake GitHub: start one first")
+	}
+	w.github.mu.Lock()
+	defer w.github.mu.Unlock()
+	if w.github.annotations == nil {
+		w.github.annotations = map[string][]fakeAnnotation{}
+	}
+	w.github.annotations[name] = listed
+	return nil
 }
 
 // The watched run, finished, has the failed job: the one of its name replaced,

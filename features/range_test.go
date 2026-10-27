@@ -84,10 +84,25 @@ type fakeGitHub struct {
 	// for it, as GitHub does past its retention, and whether it serves it with
 	// CRLF line ends, as a Windows runner's output has.
 	logGone, logCRLF map[string]bool
+	// Also by the job's name (slice 197): whether the fake redirects the log
+	// to a host that refuses it, as a sandbox's proxy refuses the blob host,
+	// and the annotations of the job's check run, whose ID is the job's.
+	logRefused  map[string]bool
+	annotations map[string][]fakeAnnotation
 	// The pull requests it lists for a commit, by the commit's full SHA (slice
 	// 188); nil answers every commit's pulls 404, and once a step lists one,
 	// a commit it lists none for gets an empty list.
 	pulls map[string][]fakePull
+}
+
+// An annotation as the fake GitHub's check run annotations list it.
+type fakeAnnotation struct {
+	Path            string `json:"path"`
+	StartLine       int    `json:"start_line"`
+	EndLine         int    `json:"end_line"`
+	AnnotationLevel string `json:"annotation_level"`
+	Title           string `json:"title"`
+	Message         string `json:"message"`
 }
 
 // A pull request as the fake GitHub's commits/<sha>/pulls lists it.
@@ -113,6 +128,8 @@ var (
 	jobsPath     = regexp.MustCompile(`^/repos/` + regexp.QuoteMeta(fakeRepository) + `/actions/runs/(\d+)/jobs$`)
 	logPath      = regexp.MustCompile(`^/repos/` + regexp.QuoteMeta(fakeRepository) + `/actions/jobs/(\d+)/logs$`)
 	downloadPath = regexp.MustCompile(`^/log-downloads/(\d+)$`)
+	refusedPath  = regexp.MustCompile(`^/refused-downloads/(\d+)$`)
+	annotatePath = regexp.MustCompile(`^/repos/` + regexp.QuoteMeta(fakeRepository) + `/check-runs/(\d+)/annotations$`)
 	pullsPath    = regexp.MustCompile(`^/repos/` + regexp.QuoteMeta(fakeRepository) + `/commits/([0-9a-f]+)/pulls$`)
 )
 
@@ -150,17 +167,33 @@ func (g *fakeGitHub) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		g.writeLog(rw, req, id)
 		return
 	}
+	// A host the sandbox refuses answers as its proxy does, 403: a closed port
+	// would be retried by Windows.
+	if refusedPath.MatchString(req.URL.Path) {
+		http.Error(rw, "Forbidden: the host is not on the allowlist", http.StatusForbidden)
+		return
+	}
 	if req.Method != http.MethodGet || req.Header.Get("Authorization") != "Bearer "+fakeToken {
 		http.NotFound(rw, req)
 		return
 	}
 	if m := logPath.FindStringSubmatch(req.URL.Path); m != nil {
 		id, _ := strconv.Atoi(m[1])
-		if _, ok := g.jobWithID(id); !ok {
+		j, ok := g.jobWithID(id)
+		if !ok {
 			http.NotFound(rw, req)
 			return
 		}
-		http.Redirect(rw, req, fmt.Sprintf("%s/log-downloads/%d", g.server.URL, id), http.StatusFound)
+		download := "log-downloads"
+		if g.logRefused[j.Name] {
+			download = "refused-downloads"
+		}
+		http.Redirect(rw, req, fmt.Sprintf("%s/%s/%d", g.server.URL, download, id), http.StatusFound)
+		return
+	}
+	if m := annotatePath.FindStringSubmatch(req.URL.Path); m != nil {
+		id, _ := strconv.Atoi(m[1])
+		g.writeAnnotations(rw, req, id)
 		return
 	}
 	if m := jobsPath.FindStringSubmatch(req.URL.Path); m != nil {
@@ -339,6 +372,28 @@ func (g *fakeGitHub) writeLog(rw http.ResponseWriter, req *http.Request, id int)
 	}
 	rw.Header().Set("Content-Type", "text/plain")
 	_, _ = rw.Write([]byte(text.String()))
+}
+
+// The annotations of the check run of the job with the ID, as GitHub pages
+// them: 30 a page unless per_page asks for more, at most 100.
+func (g *fakeGitHub) writeAnnotations(rw http.ResponseWriter, req *http.Request, id int) {
+	j, ok := g.jobWithID(id)
+	if !ok {
+		http.NotFound(rw, req)
+		return
+	}
+	size, page := 30, 1
+	if n, err := strconv.Atoi(req.URL.Query().Get("per_page")); err == nil && n > 0 {
+		size = min(n, 100)
+	}
+	if n, err := strconv.Atoi(req.URL.Query().Get("page")); err == nil && n > 0 {
+		page = n
+	}
+	all := g.annotations[j.Name]
+	from := min((page-1)*size, len(all))
+	listed := append([]fakeAnnotation{}, all[from:min(from+size, len(all))]...)
+	rw.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(rw).Encode(listed)
 }
 
 // The repository as GitHub's endpoint gives it: its name, its visibility and
