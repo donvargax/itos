@@ -1,6 +1,7 @@
 package idcounter
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -19,7 +20,11 @@ func TestMain(m *testing.M) {
 		os.Exit(runFailingGit(failing))
 	}
 	clearGitEnvironment()
-	os.Exit(m.Run())
+	code := m.Run()
+	if sharedRoot != "" {
+		os.RemoveAll(sharedRoot)
+	}
+	os.Exit(code)
 }
 
 func clearGitEnvironment() {
@@ -290,31 +295,38 @@ func TestMintRemoteReturnsNoNumberWhenTheRemoteCannotBeAskedAfterAFailedPush(t *
 	}
 }
 
+// counterRemote is a repository whose origin, a bare repository beside it,
+// holds the counter of the slice category at sliceValue (none for ""). Each
+// value is made once, in a folder of the package's, and copied: the
+// repository's remote is the relative ../remote.git, so the copy needs no git.
 func counterRemote(t *testing.T, sliceValue string) (root, remote string) {
 	t.Helper()
+	template := madeOnce(t, fmt.Sprintf("counter-%x", sliceValue), func(t *testing.T, dir string) {
+		remote := filepath.Join(dir, "remote.git")
+		root := filepath.Join(dir, "repo")
+		gitRun(t, dir, "init", "-q", "--bare", remote)
+		gitRun(t, dir, "init", "-q", "-b", "main", root)
+		gitIdentity(t, root)
+		if err := os.WriteFile(filepath.Join(root, "README.md"), []byte("base\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		gitRun(t, root, "add", "--", "README.md")
+		if sliceValue != "" {
+			if err := os.MkdirAll(filepath.Join(root, "counters"), 0o755); err != nil {
+				t.Fatal(err)
+			}
+			if err := os.WriteFile(filepath.Join(root, "counters", "slice"), []byte(sliceValue), 0o644); err != nil {
+				t.Fatal(err)
+			}
+			gitRun(t, root, "add", "--", "counters/slice")
+		}
+		gitRun(t, root, "commit", "-q", "-m", "base")
+		gitRun(t, root, "remote", "add", "origin", "../remote.git")
+		gitRun(t, root, "push", "-q", "origin", "HEAD:refs/itos/ids")
+	})
 	base := t.TempDir()
-	remote = filepath.Join(base, "remote.git")
-	root = filepath.Join(base, "repo")
-	gitRun(t, base, "init", "-q", "--bare", remote)
-	gitRun(t, base, "init", "-q", "-b", "main", root)
-	gitIdentity(t, root)
-	if err := os.WriteFile(filepath.Join(root, "README.md"), []byte("base\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	gitRun(t, root, "add", "--", "README.md")
-	if sliceValue != "" {
-		if err := os.MkdirAll(filepath.Join(root, "counters"), 0o755); err != nil {
-			t.Fatal(err)
-		}
-		if err := os.WriteFile(filepath.Join(root, "counters", "slice"), []byte(sliceValue), 0o644); err != nil {
-			t.Fatal(err)
-		}
-		gitRun(t, root, "add", "--", "counters/slice")
-	}
-	gitRun(t, root, "commit", "-q", "-m", "base")
-	gitRun(t, root, "remote", "add", "origin", remote)
-	gitRun(t, root, "push", "-q", "origin", "HEAD:refs/itos/ids")
-	return root, remote
+	copyTree(t, template, base)
+	return filepath.Join(base, "repo"), filepath.Join(base, "remote.git")
 }
 
 func gitAt(t *testing.T, dir string, args ...string) string {
@@ -330,8 +342,10 @@ func gitAt(t *testing.T, dir string, args ...string) string {
 	return string(out)
 }
 
-// clonedStores are n clones of one bare remote that holds a main branch and
-// no counter, each a Store on its own repository, and the remote's folder.
+// clonedStores are n clones (at most clonesMade) of one bare remote that holds
+// a main branch and no counter, each a Store on its own repository, and the
+// remote's folder. The clones are made once and copied: their remote is the
+// relative ../origin.git, so a copy needs no git.
 func clonedStores(t *testing.T, n int) (stores []Store, remote string) {
 	t.Helper()
 	t.Setenv("GIT_CONFIG_GLOBAL", os.DevNull)
@@ -342,29 +356,39 @@ func clonedStores(t *testing.T, n int) (stores []Store, remote string) {
 	t.Setenv("GIT_COMMITTER_EMAIL", "")
 	t.Setenv("GIT_AUTHOR_DATE", "2000-01-01T00:00:00Z")
 	t.Setenv("GIT_COMMITTER_DATE", "2000-01-01T00:00:00Z")
+	template := madeOnce(t, "clones", func(t *testing.T, dir string) {
+		remote := filepath.Join(dir, "origin.git")
+		gitRun(t, dir, "init", "-q", "--bare", remote)
+		gitRun(t, remote, "symbolic-ref", "HEAD", "refs/heads/main")
+		seed := filepath.Join(dir, "seed")
+		gitRun(t, dir, "init", "-q", "-b", "main", seed)
+		gitIdentity(t, seed)
+		if err := os.WriteFile(filepath.Join(seed, "README.md"), []byte("base\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		gitRun(t, seed, "add", "README.md")
+		gitRun(t, seed, "commit", "-q", "-m", "base")
+		gitRun(t, seed, "remote", "add", "origin", remote)
+		gitRun(t, seed, "push", "-q", "origin", "HEAD:refs/heads/main")
+		for i := range clonesMade {
+			root := filepath.Join(dir, "clone-"+strconv.Itoa(i))
+			gitRun(t, dir, "clone", "-q", remote, root)
+			gitRun(t, root, "remote", "set-url", "origin", "../origin.git")
+			gitIdentity(t, root)
+		}
+	})
 	base := t.TempDir()
-	remote = filepath.Join(base, "origin.git")
-	gitRun(t, base, "init", "-q", "--bare", remote)
-	gitRun(t, remote, "symbolic-ref", "HEAD", "refs/heads/main")
-	seed := filepath.Join(base, "seed")
-	gitRun(t, base, "init", "-q", "-b", "main", seed)
-	gitIdentity(t, seed)
-	if err := os.WriteFile(filepath.Join(seed, "README.md"), []byte("base\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	gitRun(t, seed, "add", "README.md")
-	gitRun(t, seed, "commit", "-q", "-m", "base")
-	gitRun(t, seed, "remote", "add", "origin", remote)
-	gitRun(t, seed, "push", "-q", "origin", "HEAD:refs/heads/main")
+	copyTree(t, template, base)
 	stores = make([]Store, n)
 	for i := range stores {
 		root := filepath.Join(base, "clone-"+strconv.Itoa(i))
-		gitRun(t, base, "clone", "-q", remote, root)
-		gitIdentity(t, root)
 		stores[i] = Store{Root: root, VCS: vcs.Git{Platform: runtime.GOOS, Dir: root}, CommonDir: filepath.Join(root, ".git"), Remote: "origin"}
 	}
-	return stores, remote
+	return stores, filepath.Join(base, "origin.git")
 }
+
+// clonesMade is how many clones the template holds: the most a test asks for.
+const clonesMade = 3
 
 func TestMintRemoteRetriesConcurrentFastForward(t *testing.T) {
 	stores, remote := clonedStores(t, 2)
