@@ -14814,8 +14814,8 @@ items:
   - id: bug-146
     title: The nightly shard self-test sets SHARD itself, so it passes without nightly.yml's env binding
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: bug
     why: >
