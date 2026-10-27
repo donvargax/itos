@@ -15242,20 +15242,9 @@ items:
     title: "The drafts, follow-ups and questions files read what value.Parse refuses: yaml.v3 skips an entry with a null key, unchecked"
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: bug
-    why: >
-      Found 2026-10-27 by T-329's FuzzStrictYAML oracle: draft.parse, follow.parse and ask.parse
-      decode with yaml.v3 into structs (KnownFields on), and yaml.v3 skips a mapping entry whose key
-      is null, so nothing under it is checked: "~:\n b: 1\n b: 2\n", which value.Parse refuses (map
-      keys must be unique), reads as no drafts, threads or questions, and "drafts: []\n~: 1\n" drops
-      the unknown key silently. Also: null items in a list of structs or strings are dropped
-      (drafts:\n - reads none; command: [~, a] reads [a]). The fix reads the text through
-      value.Parse first, as upgrade's workflow reader does since K150b, so each refuses what Parse
-      refuses. Its fix lands T-329's held FuzzStrictYAML targets for these three readers (drafts
-      kept in the coordinator's scratchpad, T-329-held/{draft,follow,ask}), with their failing
-      inputs as seeds.
     refs: [internal/draft/draft.go, internal/slices/followup/domain/follow.go, internal/ask/ask.go]
     tags: [draft, followup, ask, v8]
 
