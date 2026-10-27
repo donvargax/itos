@@ -99,6 +99,15 @@ on its own platform what the ci job judges, the ci job running the rest. Its
 exit code is that run's; with no run of named tests (no tests: step, or
 nothing selected) it runs nothing, says so, and exits 0. With --nightly it is
 the nightly's tests: step alone, and with no range, every test.
+With GITHUB_ACTIONS=true, each failure the run reports is also an error
+annotation, a workflow command on stderr (up to 10 a run, the first in run
+order; GitHub keeps no more): "::error file=<path>,line=<n>::<what> failed:
+<reason>" when a failing step's or task check's stdout, else its stderr,
+has a line that begins with <path>:<line>: naming a file of the folder (the
+path written from the repository's top level), when a code proof problem
+names a file and line, else "::error::<what> failed: <reason>". <what> is the
+step's command, the task check's "<ID> (<title>)", "the code proof" or "the
+tasks named".
 A task check, or a run: step, that opts in with an evidence mapping (evidence:
 {}, or the inputs, env and tools it declares) runs on the index tree, as itos
 task runs it: a record of the same tree, command, timeout, declaration, config

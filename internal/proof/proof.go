@@ -26,10 +26,39 @@ const (
 
 // Problem is one problem of the check's --json: its stable rule, and the
 // sentences it gives, which are for people.
+//
+// File and Line are the subject keys of the same names (itos-cc's file and
+// line), when the problem has both, a string and a positive whole number;
+// otherwise both are zero.
 type Problem struct {
 	Rule    string `json:"rule"`
 	Message string `json:"message"`
 	Fix     string `json:"fix"`
+	File    string `json:"-"`
+	Line    int    `json:"-"`
+}
+
+// UnmarshalJSON reads the problem as the struct's tags say, and its file and
+// line when both are as the contract has them: a subject key of another
+// shape leaves the problem without a place, never unreadable.
+func (p *Problem) UnmarshalJSON(data []byte) error {
+	var a struct {
+		Rule    string          `json:"rule"`
+		Message string          `json:"message"`
+		Fix     string          `json:"fix"`
+		File    json.RawMessage `json:"file"`
+		Line    json.RawMessage `json:"line"`
+	}
+	if err := json.Unmarshal(data, &a); err != nil {
+		return err
+	}
+	*p = Problem{Rule: a.Rule, Message: a.Message, Fix: a.Fix}
+	var file string
+	var line int
+	if json.Unmarshal(a.File, &file) == nil && json.Unmarshal(a.Line, &line) == nil && file != "" && line > 0 {
+		p.File, p.Line = file, line
+	}
+	return nil
 }
 
 // String is the outcome as ci run --json gives it.
