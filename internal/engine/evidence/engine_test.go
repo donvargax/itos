@@ -794,6 +794,23 @@ func TestARecordThatCannotBeWrittenLeavesNothing(t *testing.T) {
 	}
 }
 
+// A write that cannot make its temporary folder places nothing and keeps no
+// record, said as an error. No file mode comes into it, so it holds wherever
+// the other test is skipped.
+func TestAWriteWithNoTemporaryFolderPlacesNothing(t *testing.T) {
+	r := newRig(t)
+	cleanup := mkdirTemp
+	t.Cleanup(func() { mkdirTemp = cleanup })
+	mkdirTemp = func(string, string) (string, error) { return "", errors.New("no temporary folder") }
+	placed, kept, err := r.write(t.Context(), "key", bound{}, Result{})
+	if placed || kept.stored.Key != "" || kept.result.Ended != "" || err == nil || err.Error() != "no temporary folder" {
+		t.Errorf("placed %v, kept %+v, err %v", placed, kept, err)
+	}
+	if records := r.records(t); len(records) != 0 {
+		t.Errorf("records %v", records)
+	}
+}
+
 // A declaration that reads HEAD is keyed by HEAD's commit beside the tree,
 // and its record's manifest names it; one that does not is keyed by the tree
 // alone and never asks for HEAD, so a record made at one commit answers at
