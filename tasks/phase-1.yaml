@@ -4914,3 +4914,21 @@
     self-test only.
   done_when:
     - run: "true"
+
+- id: T-320
+  type: chore
+  title: The Claude Code plugin no longer runs the guard before every Bash command
+  why: >
+    The person, 2026-10-27: the plugin's PreToolUse hook (integrations/claude-code/hooks/hooks.json,
+    guard.sh, running itos guard claude-code before every Bash command) was defence in depth, since
+    agents already commit and push through itos or the git shim, and it blocks too broadly: it
+    refused any command whose text holds "git commit", even /usr/bin/git in a scratch repository,
+    which stopped bug-145's reproduction on 2026-10-26 (the guard rails from evidence rule: a rail
+    only for a mistake agents were seen making, narrow). Remove the PreToolUse entry and guard.sh,
+    and the docs and guides that describe the plugin's guard (grep for guard in
+    integrations/claude-code, docs, AGENTS.md, the guides); raise the plugin's version in
+    plugin.json (and the marketplace entry if it carries it) in a chore commit in the same push
+    (tools/bin/plugin-version). The itos guard claude-code command stays (removing a command is
+    v9's: p1-remove-guard-command); nothing calls it from the plugin any more.
+  done_when:
+    - run: "! grep -q PreToolUse integrations/claude-code/hooks/hooks.json"

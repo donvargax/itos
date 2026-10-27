@@ -14729,3 +14729,11 @@ items:
     status: doing
     depends_on: []
     kind: task
+
+  - id: T-320
+    title: The Claude Code plugin no longer runs the guard before every Bash command
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task
