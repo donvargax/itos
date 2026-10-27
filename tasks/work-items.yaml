@@ -14512,7 +14512,7 @@ items:
     title: "This repository's main runs take slice-188's trust: ci-repo applies it and ci.yml may ask which pull request merged a commit"
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
 

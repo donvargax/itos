@@ -4857,8 +4857,6 @@
     GET commits/<sha>/pulls. A pull request of its own from main once slice-188 has merged (a ci commit on slice-188's branch cannot name T-315, added on main after that branch was cut, until slice-189 is in the branch's own build), proved on its own merge:
     main's run of the merge commit takes the trusted route (its log names the trusted run) when the
     tree equals the head's.
-  done_when:
-    - run: "true"
 
 - id: T-316
   type: ci
