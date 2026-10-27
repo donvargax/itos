@@ -5028,3 +5028,27 @@
     - run: "go test ./tools/bin/go-unit-tests -count=1 -run '^TestHookEnv' -v 2>&1 | grep -q -- '--- PASS: TestHookEnv'"
       timeout: 300
     - run: grep -q -- '-hook-env' .github/workflows/nightly.yml
+
+- id: T-327
+  type: test
+  title: itos commit's reading of git commit's message arguments is checked against git, over every short combination
+  why: >
+    The reviewer replay (2026-10-27): K143a (itos commit --amend --no-edit -F - read HEAD's message,
+    though git reads stdin) was found by one reviewer of five; git itself is the oracle, and the
+    space is small enough to enumerate, which beats drawing it at random.
+    TestMessageSourceMatchesGit in internal/slices/commit enumerates every sequence of up to three
+    tokens from: -m one, -m two, -F <file>, -F -, --amend, --no-amend, --no-edit, --edit, -C HEAD,
+    --message=three, -mfour, and runs each through readGitArgs and gitArgs.message
+    (internal/slices/commit/git.go) and through real git commit in a scratch repository with one
+    earlier commit (stdin giving its own text, GIT_EDITOR=true, the case reset between runs).
+    Wherever message returns (text, true), the message git records must be that text after git's
+    default cleanup; wherever git refuses the arguments, no claim; ("", false) claims nothing. amend
+    and noEdit must match whether git amended and kept the message. If three tokens take over 30 s
+    on Linux, enumerate two per push and add FuzzMessageSource for longer sequences, which the
+    nightly fuzz step (the trailers task) runs. A disagreement that is a bug in itos: stop on it and
+    report its arguments; the coordinator files a bug whose fix lands with it. A difference by
+    design is listed in the test with its reason. No production change. Windows: git's stdin and the
+    file path through the scratch repository, no shell.
+  done_when:
+    - run: "go test ./internal/slices/commit -count=1 -run '^TestMessageSourceMatchesGit$' -v 2>&1 | grep -q -- '--- PASS: TestMessageSourceMatchesGit'"
+      timeout: 300
