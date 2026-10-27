@@ -15120,3 +15120,24 @@ items:
       round-trip kind.
     refs: [internal/proptest, docs/decisions/0051-each-check-runs-at-the-cheapest-tier-that-catches-what-it-catches.md]
     tags: [tests, v8]
+
+  - id: p1-ready-codex-stall
+    title: itos push --ready says what it waits on, and re-requests a review still running past a limit once
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Seen 2026-10-27 on T-332 (#193): Codex's code review read running for 30 minutes while its
+      security review completed in minutes; every --ready call ran to the caller's 600000 ms cap
+      with no line saying it was waiting on chatgpt-codex-connector's review of the head, so the
+      agent could not tell a stall from a slow CI. Codex stalled on 3 of about 16 reviews so far
+      (#162, #177 in the replay, #193). The recovery ADR-0061 documents (one new @codex review
+      comment after 30 minutes) is a step the coordinator does by hand. --ready could print, when it
+      starts waiting and at each change, what it waits on (the run, each review_by login and its
+      state for the head), and, for a review state comment still running past a configured limit
+      (push.pr.review_stall, say 30m), post the re-request once itself and say so; a second stall
+      ends with its own exit and message.
+    refs: [internal/slices/push]
+    tags: [push, review, v8]
