@@ -106,6 +106,7 @@ commits:
         # which judges every commit after commits.since by these rules.
         - "**/*.test.ts"
         - "{cmd,internal}/**/*_test.go" # itos's unit tests, the Go packages'
+        - "{cmd,internal}/**/testdata/fuzz/**" # a fuzz target's seeds, go test's inputs for it (T-328)
         - "tools/itos/conformance/**"
         - "tools/itos/fixtures/**"
     # The devcontainer (T-108): its Dockerfile, firewall script, post-install script and the
