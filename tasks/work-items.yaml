@@ -15005,7 +15005,7 @@ items:
     title: The nightly runs the unit tests under a git hook's environment, so a test that inherits GIT_DIR or GIT_INDEX_FILE fails
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
 

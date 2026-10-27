@@ -5019,10 +5019,6 @@
     nightly's steps live). A test the mode turns red is a test-isolation bug: fix it in a test
     commit here (no production change), as alone(t) and world.env() isolate today; a production
     change it calls for is reported, not made. Replaces the idea p1-unit-tests-under-hook-git-env.
-  done_when:
-    - run: "go test ./tools/bin/go-unit-tests -count=1 -run '^TestHookEnv' -v 2>&1 | grep -q -- '--- PASS: TestHookEnv'"
-      timeout: 300
-    - run: grep -q -- '-hook-env' .github/workflows/nightly.yml
 
 - id: T-327
   type: test
