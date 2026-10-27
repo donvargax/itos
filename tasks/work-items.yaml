@@ -15161,3 +15161,22 @@ items:
       a test package that runs git without it. The nightly's -hook-env run catches a drift a day
       late; this would stop it at the commit.
     tags: [tests, v8]
+
+  - id: p1-commit-args-oracle-more
+    title: Extend T-327's enumerate-against-git oracle to the rest of what itos commit reads from git's arguments
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      T-327 (2026-10-27, PR #195) holds gitArgs.message to real git over every sequence of up to
+      three of eleven tokens (1464 cases, 1.3 s) and found no disagreement. The same oracle fits
+      what else readGitArgs decides: byPath (bare arguments, --, --pathspec-from-file: whether git
+      commits from a temporary index, bug 145) and the -n/-a refusals inside short-option clusters.
+      Also decide: -C HEAD and -c give a message itos cannot read (message returns false), so their
+      footers are never preflighted and only the hook judges them; intended or not. And slice tests
+      have no depguard-allowed way to reach the real git (T-327's oracle reads ITOS_GIT, else the
+      PATH's git); an exported test helper in an allowed package would serve every such oracle.
+    refs: [internal/slices/commit/git.go, internal/slices/commit/message_source_test.go]
+    tags: [tests, commit, v8]
