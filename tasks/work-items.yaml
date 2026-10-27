@@ -15198,8 +15198,8 @@ items:
   - id: bug-151
     title: A footer's value is trimmed of JavaScript's whitespace (form feed, no-break space, U+2000 to U+200A, BOM), where git trims only spaces, tabs and line ends
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: bug
     why: >
