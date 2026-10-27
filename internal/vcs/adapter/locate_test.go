@@ -23,8 +23,8 @@ func TestMain(m *testing.M) {
 		os.Exit(0)
 	}
 	code := m.Run()
-	if templateDir != "" {
-		os.RemoveAll(templateDir)
+	if sharedRoot != "" {
+		os.RemoveAll(sharedRoot)
 	}
 	os.Exit(code)
 }
@@ -33,22 +33,23 @@ func TestMain(m *testing.M) {
 // command.
 func useFakeGit(t *testing.T, line string) {
 	t.Helper()
-	self, err := os.Executable()
-	if err != nil {
-		t.Fatal(err)
-	}
-	text, err := os.ReadFile(self)
-	if err != nil {
-		t.Fatal(err)
-	}
 	name := "fake-git"
 	if runtime.GOOS == "windows" {
 		name += ".exe"
 	}
-	bin := filepath.Join(t.TempDir(), name)
-	if err := os.WriteFile(bin, text, 0o755); err != nil {
-		t.Fatal(err)
-	}
+	bin := filepath.Join(madeOnce(t, "fake-git", func(t *testing.T, dir string) {
+		self, err := os.Executable()
+		if err != nil {
+			t.Fatal(err)
+		}
+		text, err := os.ReadFile(self)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(dir, name), text, 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}), name)
 	t.Setenv("ITOS_GIT", bin)
 	t.Setenv(fakeGitSays, line)
 }
