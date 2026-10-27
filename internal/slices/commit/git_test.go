@@ -60,6 +60,12 @@ func TestMessageOfReusedCommit(t *testing.T) {
 		"-m one -C HEAD":                    "one",
 		"-F - -C HEAD":                      "",
 		"-C HEAD -- --edit":                 "message of HEAD",
+		"-C HEAD~1 --no-reuse-message --amend --no-edit":  "message of HEAD",
+		"-C HEAD~1 --no-reuse-message":                    "",
+		"-c HEAD~1 --no-reedit-message --amend --no-edit": "message of HEAD",
+		"-c HEAD~1 --no-edit --no-reedit-message":         "",
+		"-C HEAD~1 --no-reuse-message -C HEAD~2":          "message of HEAD~2",
+		"--no-reuse-message -C HEAD~1":                    "message of HEAD~1",
 	} {
 		got, ok := readGitArgs(strings.Fields(args)).message(context.Background(), shown{})
 		if got != want || ok != (want != "") {

@@ -48,6 +48,8 @@ var messageTokens = []token{
 	{"-C HEAD", []string{"-C", "HEAD"}},
 	{"-c HEAD", []string{"-c", "HEAD"}},
 	{"--reuse-message=HEAD", []string{"--reuse-message=HEAD"}},
+	{"--no-reuse-message", []string{"--no-reuse-message"}},
+	{"--no-reedit-message", []string{"--no-reedit-message"}},
 	{"--message=three", []string{"--message=three"}},
 	{"-mfour", []string{"-mfour"}},
 }
