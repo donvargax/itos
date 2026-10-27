@@ -41,18 +41,11 @@ func runFailingGit(failing string) int {
 }
 
 // failGit makes every git the package runs fail its subcommand and run the
-// real git for the rest.
+// real git for the rest. The copy of the test binary that is git is made once
+// for the package; the subcommand it fails is the environment's.
 func failGit(t *testing.T, subcommand string) {
 	t.Helper()
 	realGit, err := git.Real(runtime.GOOS)
-	if err != nil {
-		t.Fatal(err)
-	}
-	self, err := os.Executable()
-	if err != nil {
-		t.Fatal(err)
-	}
-	text, err := os.ReadFile(self)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -60,10 +53,19 @@ func failGit(t *testing.T, subcommand string) {
 	if runtime.GOOS == "windows" {
 		name += ".exe"
 	}
-	bin := filepath.Join(t.TempDir(), name)
-	if err := os.WriteFile(bin, text, 0o755); err != nil {
-		t.Fatal(err)
-	}
+	bin := filepath.Join(madeOnce(t, "failing-git", func(t *testing.T, dir string) {
+		self, err := os.Executable()
+		if err != nil {
+			t.Fatal(err)
+		}
+		text, err := os.ReadFile(self)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(dir, name), text, 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}), name)
 	t.Setenv(realGitEnv, realGit)
 	t.Setenv(failingGitEnv, subcommand)
 	t.Setenv("ITOS_GIT", bin)
