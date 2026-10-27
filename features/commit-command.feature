@@ -722,7 +722,7 @@ Feature: itos commit, a commit whose footers itos writes
   # "the message of HEAD says <text>, its backslash escapes read as Go's" is
   # "the message of HEAD says" with the text read as the other new steps read
   # theirs.
-  @ID-COMMITCMD-42 @bug-151 @wip
+  @ID-COMMITCMD-42 @bug-151
   Scenario: A free-text footer a flag gives keeps its trailing no-break space, as git keeps it
     Given the config requires an "Upgrading" footer of free text for "chore"
     When itos commits with the arguments "--task T-001 --upgrading 'run itos upgrade\u00a0' -m 'chore: tidy the readme'", its backslash escapes read as Go's
