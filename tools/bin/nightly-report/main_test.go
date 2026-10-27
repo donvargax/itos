@@ -144,6 +144,33 @@ func TestFailingScenarios(t *testing.T) {
 	}
 }
 
+// The fuzz step's failing inputs (tools/bin/nightly-fuzz): each path named in the order the step
+// printed it, the bytes after a path left in the log; the step's failure beside them.
+func TestFailingFuzzInputs(t *testing.T) {
+	a := read(log(
+		"",
+		"$ tools/bin/nightly-fuzz",
+		"fuzz: example.com/m/internal/message FuzzTrailersMatchGit for 60s",
+		"    Failing input written to testdata/fuzz/FuzzTrailersMatchGit/0a1757c4b4fc9a9c",
+		"fuzz input: internal/message/testdata/fuzz/FuzzTrailersMatchGit/0a1757c4b4fc9a9c",
+		"go test fuzz v1",
+		`string("0000")`,
+		"fuzz: example.com/m/internal/other FuzzOther for 60s",
+		"fuzz input: internal/other/testdata/fuzz/FuzzOther/77",
+		"go test fuzz v1",
+		"",
+		"CI failed at: tools/bin/nightly-fuzz (it exited 1)",
+	))
+	want := "Failed at:\n\n- `tools/bin/nightly-fuzz`: it exited 1.\n\n" +
+		"Failing fuzz inputs, their bytes in the log; keep each as a seed at its path:\n\n" +
+		"- `internal/message/testdata/fuzz/FuzzTrailersMatchGit/0a1757c4b4fc9a9c`\n" +
+		"- `internal/other/testdata/fuzz/FuzzOther/77`\n\n" +
+		"No failing scenario in its log.\n"
+	if got := a.render(); got != want {
+		t.Errorf("the body says:\n%s\nwant:\n%s", got, want)
+	}
+}
+
 // A step whose command spans lines: itos ci run names its first line after the lead and its exit
 // code at the end of its last.
 func TestAStepOfSeveralLinesFailed(t *testing.T) {

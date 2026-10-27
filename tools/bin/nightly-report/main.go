@@ -11,6 +11,8 @@
 //
 //   - the failing scenarios: go test's `--- FAIL: TestFeatures/…` lines, which the step scripts
 //     GitHub echoes into the log never start with;
+//   - the failing fuzz inputs: the `fuzz input: <path>` lines tools/bin/nightly-fuzz prints, each
+//     before the input's bytes, which stay in the log (the nightly keeps no artifacts);
 //   - each failed step of the plan, from itos ci run's "CI failed at" and "also failed at" lines,
 //     with its exit code, and a command of several lines by its first; for one that runs itos-cc
 //     mutation run, each site the --json report it printed names with rule mutation.survived,
@@ -142,6 +144,7 @@ var (
 	escape    = regexp.MustCompile(`\x1b(?:\[[0-?]*[ -/]*[@-~]|[\]PX^_][^\x07\x1b]*(?:\x07|\x1b\\)?|[ -/]*[0-~])?`)
 	timestamp = regexp.MustCompile(`^[0-9][0-9TZ:.-]* `)
 	scenario  = regexp.MustCompile(`^\s*--- FAIL: TestFeatures/`)
+	fuzzInput = regexp.MustCompile(`^fuzz input: (.+)$`)
 	failedAt  = regexp.MustCompile(`^(CI failed at|also failed at)(.*)$`)
 	exited    = regexp.MustCompile(`^(.*) \(it exited (\d+)\)$`)
 	noCode    = regexp.MustCompile(`^(.*) \(it gave no exit code\)$`)
@@ -205,6 +208,7 @@ type stepAt struct {
 // analysis is what one job's log says.
 type analysis struct {
 	scenarios []string
+	fuzz      []string // the paths of the failing fuzz inputs
 	failures  []*failure
 	stopped   string // what stopped the job from outside, or empty
 	last      string // the last step that started, when it was stopped
@@ -225,6 +229,8 @@ func read(text string) analysis {
 		switch {
 		case scenario.MatchString(l):
 			a.scenarios = append(a.scenarios, l)
+		case fuzzInput.MatchString(l):
+			a.fuzz = append(a.fuzz, fuzzInput.FindStringSubmatch(l)[1])
 		case strings.HasPrefix(l, "$ ") && (i == 0 || lines[i-1] == "" || i-1 == failureEnd):
 			steps = append(steps, stepAt{command: l[2:], line: i})
 		case failedAt.MatchString(l):
@@ -411,6 +417,13 @@ func (a analysis) render() string {
 			}
 			b.WriteString("\n")
 		}
+	}
+	if len(a.fuzz) > 0 {
+		b.WriteString("Failing fuzz inputs, their bytes in the log; keep each as a seed at its path:\n\n")
+		for _, path := range a.fuzz {
+			fmt.Fprintf(&b, "- %s\n", code(path, false))
+		}
+		b.WriteString("\n")
 	}
 	switch {
 	case len(a.scenarios) > 0:

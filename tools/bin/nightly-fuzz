@@ -1,0 +1,48 @@
+#!/bin/sh
+# The nightly's fuzz targets (T-328, ADR-0051): every Fuzz* function go test -list finds under cmd
+# and internal, each run alone for a bounded time (-fuzztime, 60s unless the first argument says
+# otherwise), so the step lasts the number of targets times that, and compiling. go test only
+# replays a target's seeds; this is where the fuzzer explores. A target that fails does not stop
+# the others: each failing input is printed in the log, since the nightly keeps no artifacts, as
+# "fuzz input: <path>" (from the repository's top folder, which tools/bin/nightly-report names in
+# the Nightly red issue) and its bytes, and the step exits 1 once every target has run. To keep
+# a find as a regression, put that file at its path and commit it; go test replays it in every
+# tier.
+#
+#   tools/bin/nightly-fuzz [fuzztime]
+set -eu
+
+fuzztime=${1:-60s}
+module=$(awk '$1 == "module" { print $2; exit }' go.mod)
+
+# "<package> <target>" for each target: go test -list prints a package's targets, then its "ok" line.
+list=$(go test -list '^Fuzz' ./cmd/... ./internal/...) || {
+	printf '%s\n' "$list"
+	exit 1
+}
+targets=$(printf '%s\n' "$list" | awk '/^Fuzz/ { t[n++] = $1 } /^ok[ \t]/ { for (i = 0; i < n; i++) print $2, t[i]; n = 0 }')
+if [ -z "$targets" ]; then
+	echo "fuzz: no Fuzz target under cmd or internal"
+	exit 0
+fi
+
+failed=0
+while read -r pkg target; do
+	echo "fuzz: $pkg $target for $fuzztime"
+	log=$(mktemp)
+	if go test "$pkg" -run '^$' -fuzz "^$target\$" -fuzztime "$fuzztime" >"$log" 2>&1; then
+		cat "$log"
+	else
+		failed=1
+		cat "$log"
+		dir=${pkg#"$module"/}
+		sed -n 's/^[[:space:]]*Failing input written to //p' "$log" | while read -r path; do
+			echo "fuzz input: $dir/$path"
+			cat "$dir/$path" || true
+		done
+	fi
+	rm -f "$log"
+done <<EOF
+$targets
+EOF
+exit $failed
