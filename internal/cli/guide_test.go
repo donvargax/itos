@@ -28,7 +28,7 @@ func notesTemplate(t *testing.T) string {
 	return madeOnce(t, "notes", func(t *testing.T, dir string) {
 		for _, args := range [][]string{
 			{"init", "-q", dir},
-			{"-C", dir, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "--allow-empty", "-m", "docs: start"},
+			{"-C", dir, "-c", "user.name=t", "-c", "user.email=t@t", "-c", "maintenance.auto=false", "-c", "gc.auto=0", "commit", "-q", "--allow-empty", "-m", "docs: start"},
 		} {
 			if out, err := exec.Command(git.Bin(runtime.GOOS), args...).CombinedOutput(); err != nil {
 				t.Fatalf("git %s: %s", strings.Join(args, " "), out)

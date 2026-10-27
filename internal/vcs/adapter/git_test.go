@@ -28,9 +28,11 @@ func gitIn(t *testing.T, dir, date string, args ...string) {
 	}
 }
 
-// gitCmd is git run in dir as gitIn runs it.
+// gitCmd is git run in dir as gitIn runs it, with no background maintenance
+// started behind a command: it would make and remove locks in a repository a
+// template copy walks.
 func gitCmd(dir, date string, args ...string) *exec.Cmd {
-	cmd := exec.Command(git.Bin(runtime.GOOS), append([]string{"-c", "user.name=t", "-c", "user.email=t@t", "-c", "commit.gpgsign=false", "-c", "tag.gpgsign=false"}, args...)...)
+	cmd := exec.Command(git.Bin(runtime.GOOS), append([]string{"-c", "user.name=t", "-c", "user.email=t@t", "-c", "commit.gpgsign=false", "-c", "tag.gpgsign=false", "-c", "maintenance.auto=false", "-c", "gc.auto=0"}, args...)...)
 	cmd.Dir = dir
 	if date != "" {
 		cmd.Env = append(os.Environ(), "GIT_AUTHOR_DATE="+date, "GIT_COMMITTER_DATE="+date)
@@ -155,12 +157,20 @@ func copyWorktree(t *testing.T, template, repo, wt string) {
 }
 
 // copyTree copies the folder from to a new folder to, files and folders
-// alone.
+// alone. A lock file is not copied, and an entry git removes between the walk
+// and its copy is gone, not an error: git's background maintenance makes and
+// removes locks in a repository a command has just touched.
 func copyTree(t *testing.T, from, to string) {
 	t.Helper()
 	err := filepath.WalkDir(from, func(path string, d fs.DirEntry, err error) error {
+		if errors.Is(err, fs.ErrNotExist) {
+			return nil
+		}
 		if err != nil {
 			return err
+		}
+		if !d.IsDir() && strings.HasSuffix(d.Name(), ".lock") {
+			return nil
 		}
 		rel, err := filepath.Rel(from, path)
 		if err != nil {
@@ -171,6 +181,9 @@ func copyTree(t *testing.T, from, to string) {
 			return os.MkdirAll(dst, 0o755)
 		}
 		text, err := os.ReadFile(path)
+		if errors.Is(err, fs.ErrNotExist) {
+			return nil
+		}
 		if err != nil {
 			return err
 		}

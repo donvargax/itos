@@ -94,7 +94,7 @@ func changedNotes(t *testing.T) (file, itosDir string) {
 		t.Chdir(dir)
 		committer(t)
 		writeFile(t, filepath.Join(dir, "notes.md"), "Old.\n")
-		for _, args := range [][]string{{"add", "notes.md"}, {"commit", "-q", "--no-verify", "-m", "docs: add notes"}} {
+		for _, args := range [][]string{{"add", "notes.md"}, {"-c", "maintenance.auto=false", "-c", "gc.auto=0", "commit", "-q", "--no-verify", "-m", "docs: add notes"}} {
 			if out, err := exec.Command(git.Bin(runtime.GOOS), append([]string{"-C", dir}, args...)...).CombinedOutput(); err != nil {
 				t.Fatalf("git %s: %s", strings.Join(args, " "), out)
 			}
