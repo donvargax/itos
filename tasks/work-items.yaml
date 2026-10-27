@@ -14598,20 +14598,9 @@ items:
     title: A release whose publish step gets a GitHub 5xx is left a draft with its tag made, and main stays red until someone publishes it by hand
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: bug
-    why: >
-      Seen 2026-10-26: main's run 40418143221 (c1af1cc7, slice-188's feat) got HTTP 500 from gh
-      release edit --draft=false (release.yml step 6), after GitHub had made the tag v8.25.0; the
-      release stayed a draft with every asset uploaded. Every later main run then failed
-      schema-contract (v8.25.0's itos.schema.json answered 404, a draft is not public), so
-      slice-188's trust had no green base and T-315's proof could not run. release.yml's note says a
-      failed run leaves only a draft the next run replaces; with the tag made, the next run computes
-      from v8.25.0 and nothing replaces it, and a rerun of the job stops at gh release upload of the
-      upgrading.json already there. Fix: retry the publish step on a 5xx (as the attestation verify
-      step retries), upload with --clobber so a rerun completes, and have schema-contract say the
-      release is a draft to publish instead of a bare 404.
     tags: [ci]
 
   - id: T-316
