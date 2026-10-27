@@ -14819,6 +14819,9 @@ items:
       internal/slices/upgrade/handler.go:125, which also prints [], so the case passes for the wrong
       reason. Confirm which branch the case takes (assert the outcome, not only the suffix), then
       fix the test.
+
+      Fable 5.1 at max effort found the same defect independently (2026-10-27, s150): the stealth
+      guard at handler.go:134 is untested because the case takes the refusal path.
     tags: [upgrade]
 
   - id: bug-148
