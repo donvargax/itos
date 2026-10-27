@@ -15358,3 +15358,18 @@ items:
       reworded the text. Either shellWords takes a double-quoted argument with an apostrophe (and
       the README says how), or a step passes one argument from a doc string.
     tags: [tests]
+
+  - id: p1-ready-review-for-head
+    title: push --ready counts a review-state comment only for the pull request's head
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Noted 2026-10-27 drafting slice-190: since slice-187, --ready reads Codex's codex-review-state
+      comment without comparing its commit_sha with the head, so a completed review of an earlier
+      commit lets --ready turn on auto-merge after a new push no reviewer has read. Compare
+      commit_sha (code_review and security_review) with the head; ID-PUSHDRAFT-17's fixed commit_sha
+      would then name the head.
+    tags: [push, review]
