@@ -505,7 +505,11 @@ Feature: itos commit, a commit whose footers itos writes
   # (the text read as the body of a Go string literal, strconv.Unquote of it
   # in double quotes, so \r\n is a CRLF line end, written exactly in the
   # repository's root), and a refusal naming quoted texts is read by its
-  # "its output says <text>, its backslash escapes read as Go's".
+  # "its output says <text>, its backslash escapes read as Go's". Both
+  # steps are bug 151's (PR #201), not this bug's: bug 148 depends on bug
+  # 151 (depends_on in the registry, the coordinator's call 2026-10-27), so
+  # its fix starts once PR #201 has merged, rebased onto it, and adds no
+  # steps of its own.
   #
   # Before the fix the message's text is "run itos upgrade,\r then commit",
   # not the flag's, so settle refuses the commit: it fails at itos exits
