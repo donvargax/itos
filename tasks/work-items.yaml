@@ -14978,3 +14978,20 @@ items:
       the scratch repository.
     refs: [tools/bin/go-unit-tests, .github/workflows/nightly.yml]
     tags: [tests, gates, v8]
+
+  - id: p2-spec-seed-rerun
+    title: Rerun the local reviewer's two own-catch spec seeds at their real spec heads, Codex on demand, to see whether it can take specs
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The reviewer replay (2026-10-27) could not test the local reviewer's own spec catches: the
+      replayed heads held their fixes. The real heads are 7becc0e155 (PR #149,
+      features/ci-help.feature:108, scenario 65's negative check) and 74e4f2f931 (PR #150,
+      features/upgrade-command.feature:441, ID-UPGRADECMD-22's uses: key). The person skipped it for
+      now, 2026-10-27: it only matters if Codex is to replace the local reviewer at the spec stage,
+      where it reviews on demand (both stalls seen were on-demand reviews). Method and scripts as
+      the replay's (codex-comment.md, astra-replay.sh).
+    tags: [review, v8]
