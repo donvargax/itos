@@ -173,4 +173,7 @@ Stage only your own files, by explicit path: untracked files you did not make ar
 - Report as P2 help, a `doc.go` or a feature's description that says more or less than the code.
 - Check what the author could not run: Windows (renames over existing files, file locks, CRLF,
   path separators), macOS (`/var` behind `/private/var`), and the commit once pushed or in CI.
+- Do not take the spec, a commit message or a comment's word for what the code does: for each
+  changed function, try the inputs the spec does not name (flag combinations, merge commits,
+  CRLF, duplicate keys, several YAML documents, an environment override).
 - Do not report formatting, naming, or wording no contract fixes; the linters judge those.
