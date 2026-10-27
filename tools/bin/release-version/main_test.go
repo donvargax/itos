@@ -20,7 +20,7 @@ import (
 // on the PATH, which would otherwise take its git commit for itos commit under
 // its own policy, passes straight to that git.
 func TestMain(m *testing.M) {
-	for _, name := range []string{"GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_COMMON_DIR", "GIT_OBJECT_DIRECTORY", "GIT_PREFIX"} {
+	for _, name := range []string{"GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_COMMON_DIR", "GIT_OBJECT_DIRECTORY", "GIT_PREFIX", "GIT_CONFIG_COUNT", "GIT_CONFIG_PARAMETERS"} {
 		os.Unsetenv(name)
 	}
 	git.Export(runtime.GOOS)
