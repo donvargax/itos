@@ -14915,3 +14915,19 @@ items:
       guides could name it.
     refs: [internal/engine/push]
     tags: [push, v8]
+
+  - id: p1-task-failing-check-named
+    title: itos task marks which check failed, with its exit code and last output lines (#190)
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Consumer report #190 (on 8.7.1): a task with three to six run: checks reported failing with
+      every check listed alike, so agents re-ran each by hand to find the red one. One task's run is
+      verbose today (each command and its output); check first whether 8.25 already marks each
+      check's result, then print pass, fail with exit code, or timed out per check, and the failing
+      check's tail.
+    refs: [internal/slices/task]
+    tags: [work, evidence, v8]
