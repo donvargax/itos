@@ -410,6 +410,210 @@ Feature: itos status, where the work stands
     Then itos exits with code 0
     And its output says "slice-9" before "plugin"
 
+  # Slice 199 (p1-status-merged-awaiting-close, 2026-10-27). itos go listed
+  # bug-146, bug-152 and bug-153 in progress though their pull requests
+  # (#205, #202, #203) had merged; nothing said they only waited for work
+  # done, so the coordinator looked them up by hand. Under push.mode pr
+  # only, an item's work reaches main through the pull request of the branch
+  # named for it, so status asks gh once, whatever the number of items in
+  # progress, and only when there is one: gh pr list --repo <repository>
+  # --state all --json number,headRefName,state,mergedAt --limit 100, the
+  # repository named as work done names it (ci.range.github's
+  # repository_env variable, else the remote's URL), with no --head and no
+  # --search: its newest hundred pull requests, one page of GitHub's,
+  # filtered to the branches of the items in progress. A branch's pull
+  # requests rank as work done ranks them (slice 176): an open one first,
+  # then a merged one (mergedAt set), the first gh lists of a kind its
+  # newest. An item whose branch has a merged pull request and no open one
+  # gets, at the end of its line, "merged (#<n>): itos work done <id>", the
+  # number that pull request's; with an open one, closed unmerged ones
+  # alone, or none, its line is as today, since work done would refuse it.
+  # --json gains, on each "doing" entry so marked, "merged_pull_request":
+  # <n>, absent on the others. A pull request older than the newest hundred
+  # is not seen, and its item's line is as today: the mark is a hint, the
+  # judgement stays work done's.
+  # Under trunk (or no push.mode), under a stealth config, with nothing in
+  # progress, or with no GitHub repository to name, gh is not asked; with
+  # no gh on the PATH, status prints as today and says nothing of it. A gh
+  # that is there and fails (signed out, offline), or answers no list of
+  # pull requests, adds one line to what is printed and to --json's
+  # "unread", in the words of the other parts that cannot be read: "The pull
+  # requests cannot be read: gh pr list failed: " and gh's reason as work
+  # done gives it (or "its answer is not a list of pull requests: ..."),
+  # and the rest prints, exit 0. It lands as a feat: no scenario of the last
+  # release changes. For the implementer, beyond the scenarios: the
+  # recording gh (pushmode_test.go) answers pr list only for a --head
+  # branch, so it gains, for a pr list with no --head, every pull request
+  # of the --state, each entry giving its branch as headRefName; status
+  # --help and its --json shape name the mark and the key.
+  #
+  # Two items merged, so the one call is pinned: one pr list, none per item.
+  @ID-STATUS-43 @wip @slice-199
+  Scenario: Under pr, status marks each item in progress whose pull request has merged with the work done that closes it, asking gh once
+    Given the watched run's jobs "ci" and "platform" succeed
+    And the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+      """
+    And the work registry has the item "slice-8" owned by "someone" with the status "doing"
+    And the work registry has the item "slice-9" owned by "someone" with the status "doing"
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the recording gh has the pull request "https://github.example/o/r/pull/6" merged for the branch "slice-8"
+    And the recording gh has the pull request "https://github.example/o/r/pull/7" merged for the branch "slice-9"
+    When itos runs "status --as someone"
+    Then itos exits with code 0
+    And its output says "slice-8  merged (#6): itos work done slice-8"
+    And its output says "slice-9  merged (#7): itos work done slice-9"
+    And the recording gh was called once as "pr list"
+    And the recording gh's "pr list" call has "--state all"
+    And the recording gh's "pr list" call does not have "--head"
+    And every call of the recording gh has "--repo owner/scratch"
+
+  # The merged slice-9 makes the call, so slice-8's plain line is not that
+  # of a gh never asked.
+  @ID-STATUS-44 @wip @slice-199
+  Scenario: Under pr, status does not mark an item in progress whose pull request is open
+    Given the watched run's jobs "ci" and "platform" succeed
+    And the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+      """
+    And the work registry has the item "slice-8" owned by "someone" with the status "doing"
+    And the work registry has the item "slice-9" owned by "someone" with the status "doing"
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the recording gh has the pull request "https://github.example/o/r/pull/8" open for the branch "slice-8"
+    And the recording gh has the pull request "https://github.example/o/r/pull/7" merged for the branch "slice-9"
+    When itos runs "status --as someone"
+    Then itos exits with code 0
+    And its output says "merged (#7): itos work done slice-9"
+    And its output does not say "itos work done slice-8"
+    And its output does not say "(#8)"
+
+  @ID-STATUS-45 @wip @slice-199
+  Scenario: Under pr, status does not mark an item in progress with no pull request
+    Given the watched run's jobs "ci" and "platform" succeed
+    And the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+      """
+    And the work registry has the item "slice-8" owned by "someone" with the status "doing"
+    And the work registry has the item "slice-9" owned by "someone" with the status "doing"
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the recording gh has the pull request "https://github.example/o/r/pull/7" merged for the branch "slice-9"
+    When itos runs "status --as someone"
+    Then itos exits with code 0
+    And its output says "merged (#7): itos work done slice-9"
+    And its output does not say "itos work done slice-8"
+
+  # An item whose earlier work merged and whose more work is in an open pull
+  # request is refused by work done (ID-PRDONE-02), so status names no work
+  # done for it.
+  @ID-STATUS-46 @wip @slice-199
+  Scenario: Under pr, status does not mark an item in progress whose earlier pull request merged and whose newer one is open
+    Given the watched run's jobs "ci" and "platform" succeed
+    And the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+      """
+    And the work registry has the item "slice-8" owned by "someone" with the status "doing"
+    And the work registry has the item "slice-9" owned by "someone" with the status "doing"
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the recording gh has the pull request "https://github.example/o/r/pull/5" merged for the branch "slice-8"
+    And the recording gh has the pull request "https://github.example/o/r/pull/8" open for the branch "slice-8"
+    And the recording gh has the pull request "https://github.example/o/r/pull/7" merged for the branch "slice-9"
+    When itos runs "status --as someone"
+    Then itos exits with code 0
+    And its output says "merged (#7): itos work done slice-9"
+    And its output does not say "itos work done slice-8"
+    And its output does not say "(#5)"
+
+  @ID-STATUS-47 @wip @slice-199
+  Scenario: With --json, under pr, each item in progress whose pull request has merged gives its number, and the others none
+    Given the watched run's jobs "ci" and "platform" succeed
+    And the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+      """
+    And the work registry has the item "slice-8" owned by "someone" with the status "doing"
+    And the work registry has the item "slice-9" owned by "someone" with the status "doing"
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the recording gh has the pull request "https://github.example/o/r/pull/7" merged for the branch "slice-9"
+    When itos runs "status --as someone --json"
+    Then itos exits with code 0
+    And its JSON's "doing" has one entry whose "merged_pull_request" is "7"
+    And its JSON's "doing" entry whose "id" is "slice-8" has no "merged_pull_request"
+
+  # The case seen: itos go's status, which a session starts from.
+  @ID-STATUS-48 @wip @slice-199
+  Scenario: Under pr, itos go's status marks an item in progress whose pull request has merged
+    Given the watched run's jobs "ci" and "platform" succeed
+    And the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+      """
+    And the work registry has the item "slice-9" owned by "someone" with the status "doing"
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the recording gh has the pull request "https://github.example/o/r/pull/7" merged for the branch "slice-9"
+    When itos runs "go"
+    Then itos exits with code 0
+    And its output says "# Where things stand" before "merged (#7): itos work done slice-9"
+
+  # Holds before the work: under trunk, the default, status asks gh nothing,
+  # whatever it holds.
+  @ID-STATUS-49 @wip @slice-199 @guard
+  Scenario: Without push.mode, status asks gh nothing and marks no item in progress
+    Given the watched run's jobs "ci" and "platform" succeed
+    And the work registry has the item "slice-9" owned by "someone" with the status "doing"
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the recording gh has the pull request "https://github.example/o/r/pull/7" merged for the branch "slice-9"
+    When itos runs "status --as someone"
+    Then itos exits with code 0
+    And its output says "slice-9"
+    And its output does not say "merged (#7)"
+    And the recording gh was never called
+
+  # A gh signed out: its words on a line of their own, the items as today.
+  @ID-STATUS-50 @wip @slice-199
+  Scenario: Under pr, a gh that fails is said in a line, and status prints the rest unmarked
+    Given the watched run's jobs "ci" and "platform" succeed
+    And the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+      """
+    And the work registry has the item "slice-9" owned by "someone" with the status "doing"
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the recording gh fails every call, saying "HTTP 401: Bad credentials"
+    When itos runs "status --as someone"
+    Then itos exits with code 0
+    And its output says "The pull requests cannot be read: gh pr list failed: HTTP 401: Bad credentials"
+    And its output says "slice-9"
+    And its output does not say "itos work done slice-9"
+
+  # Holds before the work: with no gh, status says nothing of pull requests.
+  @ID-STATUS-51 @wip @slice-199 @guard
+  Scenario: Under pr, with no gh on the PATH, status prints as before and says nothing of pull requests
+    Given the watched run's jobs "ci" and "platform" succeed
+    And the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+      """
+    And the work registry has the item "slice-9" owned by "someone" with the status "doing"
+    And no gh on the PATH
+    And the GitHub repository in the environment is "owner/scratch"
+    When itos runs "status --as someone"
+    Then itos exits with code 0
+    And its output says "slice-9"
+    And its output does not say "pull requests cannot be read"
+    And its output does not say "gh is not on the PATH"
+
   # Slice 116 (p1-upgrade-on-major, the user's calls of 2026-10-04 and
   # 2026-10-10). Upgrading on every release makes no sense at itos's pace, so
   # only a new major is something to act on. status gains a line naming the
