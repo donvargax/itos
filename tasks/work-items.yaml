@@ -55,7 +55,6 @@ phases:
   3: donvargax
 
 queue:
-  - slice-192
   - slice-200
   - slice-201
   - p1-ci-slow-linux-runs
