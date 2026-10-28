@@ -15293,20 +15293,9 @@ items:
     title: itos push thread shows a thread in full and answers threads of any pull request from any branch
     phase: 2
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: slice
-    why: >
-      Was p2-push-thread-show.
-      Seen 2026-10-27 on slice-195 (#214): itos push threads lists a thread's first comment line
-      only, so the implementer read Codex's full finding with gh api graphql before replying. A show
-      form (itos push thread <id> with no --reply or --resolve) printing every comment, author and
-      body, closes the loop slice-191 opened.
-
-      Also seen 2026-10-27 (the coordinator on #210): itos push thread refuses on main ('HEAD is on
-      main, which has no pull request'), so the coordinator, who rules on threads an implementer
-      leaves open, cannot use it and falls back to gh api graphql. A --pr <n> (or the thread id
-      alone, whose pull request GitHub knows) would let it answer from any branch.
     tags: [push, v8]
 
   - id: p2-go-test-annotations
