@@ -5170,3 +5170,14 @@
     and verify. So this is this repository's config alone: in_place_of gains refactor, build and ci,
     and the gates comment stops saying they need a Task. No liveness rule is added: test, docs and
     chore already accept any registry item.
+
+- id: T-335
+  type: test
+  title: A scenario's command line can quote an argument holding an apostrophe
+  why: >
+    p2-feature-command-apostrophe (2026-10-27, slice-191's drafter): features/README.md's shellWords
+    splits a step's command line, so an argument such as --reply "it's fixed" breaks a scenario.
+    shellWords takes a double-quoted argument holding an apostrophe (and a single-quoted one holding
+    a double quote), the README says how, and a unit test pins it.
+  done_when:
+    - run: go test ./features -run 'TestShellWords' -count=1

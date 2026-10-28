@@ -15386,3 +15386,11 @@ items:
     depends_on: []
     kind: idea
     tags: [push]
+
+  - id: T-335
+    title: A scenario's command line can quote an argument holding an apostrophe
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task
