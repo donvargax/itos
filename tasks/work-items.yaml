@@ -57,7 +57,6 @@ phases:
 queue:
   - p1-v9-design-from-friction
   - slice-200
-  - slice-201
   - p1-ci-slow-linux-runs
   - slice-153
   - p1-ci-e2e-workflow
