@@ -57,8 +57,6 @@ phases:
 queue:
   - slice-192
   - slice-200
-  - p1-ready-review-for-head
-  - p1-ready-fits-foreground
   - slice-201
   - slice-199
   - slice-202
@@ -15253,15 +15251,9 @@ items:
     title: push --ready counts a review-state comment only for the pull request's head
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: []
     kind: idea
-    why: >
-      Noted 2026-10-27 drafting slice-190: since slice-187, --ready reads Codex's codex-review-state
-      comment without comparing its commit_sha with the head, so a completed review of an earlier
-      commit lets --ready turn on auto-merge after a new push no reviewer has read. Compare
-      commit_sha (code_review and security_review) with the head; ID-PUSHDRAFT-17's fixed commit_sha
-      would then name the head.
     tags: [push, review, v8]
 
   - id: slice-196
@@ -15332,24 +15324,9 @@ items:
     title: itos push --ready returns before a harness's 600 s foreground cap, with an outcome saying to run it again
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: []
     kind: idea
-    why: >
-      Seen 2026-10-27 on slice-191, slice-195 and slice-197: every --ready ran past the agents'
-      600000 ms foreground cap waiting for the platform jobs and Codex's review, was moved to the
-      background, and the implementer then ran itos ci watch and --ready again by hand (the brief's
-      recovery). --ready could take a wait bound (push.pr.ready_wait, or under ci.watch.timeout) and
-      end at it with exit 75 and an outcome such as ready-still-waiting naming what it waits on
-      (slice-190's waiting lines), so a rerun continues where it stopped and no call is ever cut
-      off. The earlier p1-push-fits-foreground was dropped for briefs alone (push --no-wait);
-      --ready has no such escape.
-
-      Met again 2026-10-27 on slice-196 (#213): --ready outlived the cap twice, and the documented
-      fallback, itos ci watch <sha> on the pushed head, reported 'cancelled' because GitHub had
-      rebased the pull request; the head to watch was gh pr view's headRefOid. --ready should print
-      the head it waits on (GitHub's rebased one) as soon as it knows it, or ci watch follow a pull
-      request's head.
     tags: [push, v8]
 
   - id: slice-201
@@ -15405,13 +15382,7 @@ items:
     title: push --ready finds the head GitHub made when no CI run is watched, so a review re-request names it
     phase: 3
     owner: null
-    status: todo
+    status: dropped
     depends_on: []
     kind: idea
-    why: >
-      Codex on #210 (slice-190, 2026-10-27): with ci.watch.provider none, a positive
-      push.pr.review_stall and main ahead of the item branch, --ready asks GitHub to rebase but
-      never reads the rebased head, so the itos-review-request marker names the pre-rebase SHA and a
-      later --ready can ask again for the same real head. Out of slice-190's spec (slice-175: no
-      provider, no gh pr view). A gh pr view for headRefOid when no run is watched would close it.
     tags: [push]
