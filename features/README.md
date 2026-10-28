@@ -215,7 +215,10 @@ The `gh` that `a recording gh on the PATH` puts first on the PATH answers from
 one small shell file per case in `features/testdata/gh/`, which the steps
 write into the scenario's folder, so a new answer is a new file and no line of
 a shared script changes. `dispatch.sh` records the call and runs
-`<command>-<subcommand>.sh` (`pr-list.sh` for `gh pr list`); in it `$S` is the
+`<command>-<subcommand>.sh` (`pr-list.sh` for `gh pr list`; the subcommand is
+the second word up to its first `/` or `?`, so `gh api repos/o/r/activity?…` is
+`api-repos.sh`), after sourcing each file of `before/`, which can answer a call
+and exit before its handler runs; in it `$S` is the
 folder the steps keep the answers in (`world.support`), `$GIT` and `$REMOTE`
 the git binary and the fake remote, `$ADDRESS` the pull request address the
 step was given, and `$rec`, `$head`, `$state` and `$json` the call and the
