@@ -58,7 +58,6 @@ queue:
   - slice-192
   - slice-200
   - slice-201
-  - slice-202
   - p1-ci-slow-linux-runs
   - slice-153
   - p1-ci-e2e-workflow
