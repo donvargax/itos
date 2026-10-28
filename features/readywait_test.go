@@ -26,6 +26,9 @@ func initializeReadyWaitSteps(sc *godog.ScenarioContext, w *world) {
 	sc.Step(`^the recording gh's pr merge with --auto merges the pull request at once, as gh does when it reads it clean$`, func() error {
 		return w.ghWrite(w.ghMergesAtOnce(), nil)
 	})
+	sc.Step(`^the recording gh's pull request for the branch "([^"]*)" is merged already$`, func(branch string) error {
+		return w.ghWrite(filepath.Join(w.support, "gh-merged-"+branch), []byte(secondsAgo(1)+"\n"))
+	})
 	sc.Step(`^the recording gh's "([^"]*)" call has the full SHA of the head of the remote's branch "([^"]*)"$`, func(command, branch string) error {
 		return w.ghCallWithHasHead(command, "", branch)
 	})
