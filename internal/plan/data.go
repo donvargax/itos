@@ -79,6 +79,10 @@ func forRange(cfg *config.Loaded, from, to string, d Data, trusted *Trust) (*Pla
 		return nil, err
 	}
 	prose = prose || trusted != nil
+	jobs, err := jobsOf(cfg, config.NewBranch(from) || readErr != nil, changed)
+	if err != nil {
+		return nil, err
+	}
 	known := Readable(cfg.VCS, from, to)
 	kind, err := TestsKind(cfg)
 	if err != nil {
@@ -111,7 +115,7 @@ func forRange(cfg *config.Loaded, from, to string, d Data, trusted *Trust) (*Pla
 			p.NotStarted = append(p.NotStarted, id)
 		}
 	}
-	p.ProofOmitted, p.Trusted = omitted, trusted
+	p.ProofOmitted, p.Trusted, p.Jobs = omitted, trusted, jobs
 	p.fill(ends)
 	return p, nil
 }

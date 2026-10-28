@@ -107,6 +107,10 @@ type Plan struct {
 	// Note is the line that says a merged pull request's head was not
 	// trusted, and why; "" when none counted or it was trusted.
 	Note string
+	// Jobs are the jobs of the CI workflow ci.jobs declares, each with
+	// whether the plan's range runs it (slice 202); none when it declares
+	// none.
+	Jobs []JobRun
 }
 
 // stepOf is a CI step as the run takes it (ci-scope.ts's stepOf): a command
@@ -520,5 +524,6 @@ func nightlyPlan(cfg *config.Loaded) *Plan {
 func ForNightly(cfg *config.Loaded) *Plan {
 	p := nightlyPlan(cfg)
 	p.fill(EndsOf(cfg, "", "HEAD"))
+	p.Jobs, _ = jobsOf(cfg, true, nil)
 	return p
 }

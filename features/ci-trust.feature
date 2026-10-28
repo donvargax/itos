@@ -289,7 +289,7 @@ Feature: Under push.mode pr, CI trusts the green run of a merged pull request's 
   # the clone's working tree before the branch, so no merged tree differs
   # from the head's in itos.yaml. Fails before the work at the exit code:
   # ci.jobs is an unknown key today.
-  @ID-CITRUST-10 @slice-202 @wip
+  @ID-CITRUST-10 @slice-202
   Scenario: Under pr, a trusted range's jobs are answered by their paths
     Given the config sets "ci.jobs" to the YAML "{platform: {paths: [src/**]}, docs: {paths: [docs/**]}}"
     And the remote's branch "slice-9" has the item "slice-9"'s commit touching "src/app.go", which the clone's main lacks

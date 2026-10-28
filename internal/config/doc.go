@@ -1,7 +1,8 @@
 // Package config finds, reads and validates itos.yaml, the one policy file:
 // the ledger's layout (ledger), the commit types, footers, path sets and
 // scopes (commits), the named tests and their adapters (tests), CI's steps,
-// costs, prose shortcut, nightly and range (ci), the work registry and the
+// costs, prose shortcut, the jobs a range must touch paths of to run (ci.jobs,
+// slice 202), nightly and range (ci), the work registry and the
 // people (work), the hooks (hooks), how itos push lands work (push.mode:
 // trunk, the default, or pr, slice 174; push.pr's draft and review_by, slice
 // 179, review_stall, slice 190, and direct, slice 186), the pin (pin), the proof of done work

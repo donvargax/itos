@@ -55,9 +55,20 @@ prose-only one (the prose steps, the named tasks' static and prose: true
 checks, no code proof), and the last line says "Trusted: ...". A merged pull
 request that is not trusted says why in a "Not trusted: ..." line. A head the
 clone lacks is fetched once from refs/pull/<n>/head. ci scope asks nothing.
+ci.jobs names, per job of the CI workflow, the globs of the paths (paths) a
+range must touch for the job to run; --json gives, under "jobs", each declared
+job's answer for the range, the first reason that holds: no-paths (it declares
+none: it runs), whole (the range as typed has an empty or all-zeros start, the
+changes cannot be read, or the plan is --whole or --nightly: it runs), config
+(the range touches the config file itos read, its path from the repository's
+top level: it runs), workflow (the range touches a file under .github/workflows/:
+it runs), touched (the range touches one of its paths: it runs) or untouched
+(it does not run). A trusted range's jobs are answered by their paths too. A job
+ci.jobs does not declare is not in "jobs".
 
 --json: the plan contract, keys only ever added
-        {"schema":1,"range","prose","steps","order","tasks","left_out","unknown","not_started","trusted"?},
+        {"schema":1,"range","prose","steps","order","tasks","left_out","unknown","not_started","jobs","trusted"?},
+        jobs, {"<job>":{"runs","reason"}} for each job ci.jobs declares, {} for none,
         trusted, only for a trusted range, {"pull_request","head","run"}`,
 
 		"run": `Usage: itos ci run [<from> <to>] | --nightly [--tests]

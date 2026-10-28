@@ -53,6 +53,17 @@
 //     compared), its changes could not be read (ChangedErr, whose error
 //     Changed drops), or it changes no path in proof.code.paths. ci plan
 //     prints the line last; none for the nightly or NamedTests.
+//   - The plan also answers which jobs of the CI workflow run (slice 202,
+//     jobs.go): Jobs holds, for each job ci.jobs declares and in its order,
+//     whether the range runs it and the first reason that holds: it declares
+//     no paths, the range is whole (a start that is empty or all zeros, as
+//     typed, changes that could not be read, --whole, --nightly), the range
+//     touches the config file itos read (its path from the repository's top
+//     level, symlinks resolved; one outside the working tree never counts)
+//     or a file under .github/workflows/, else whether it touches one of the
+//     job's paths. The answer is of the paths alone: a prose range or a
+//     trusted one changes what the ci job runs, never which jobs run. ci
+//     plan --json gives it as "jobs", the workflow's planner job reading it.
 //
 // The Plan is a value the driver (internal/ci) walks: Order is every Item in
 // the order the run takes it, a Step (its command, its cost, and Tests, the
