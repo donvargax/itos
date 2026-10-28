@@ -275,7 +275,9 @@
 // only refusals ends the wait at once, exit 75, outcome review-refused. The
 // reviews, the pull request's comments and the review threads are one
 // gh api graphql question (ask, reviewQuery on one line, since the recording
-// gh of the scenarios keeps a call to one line); an answer without that shape
+// gh of the scenarios keeps a call to one line, asked again for each further
+// page of a hundred comments, up to commentPages, so that a request or a review
+// state past the first hundred is seen); an answer without that shape
 // is a gh call that fails, except for the comments and the times, which an
 // answer without is read as having none (v8.22.2's recorded answers carry
 // none). A thread not resolved refuses the merge (exit 1,

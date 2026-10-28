@@ -18,15 +18,15 @@ import (
 const reviewPoll = 50 * time.Millisecond
 
 // reviewQuery is the one question the reviews, the comments (with the times
-// they were made and last edited), the time the pull request was last marked
-// ready and the review threads are read with (gh api graphql, since gh pr view
-// has no threads), on a single line.
+// they were made and last edited, a page of them after the cursor), the time
+// the pull request was last marked ready and the review threads are read with
+// (gh api graphql, since gh pr view has no threads), on a single line.
 var reviewQuery = strings.Join(strings.Fields(`
-	query($owner: String!, $name: String!, $number: Int!) {
+	query($owner: String!, $name: String!, $number: Int!, $cursor: String) {
 	repository(owner: $owner, name: $name) { pullRequest(number: $number) {
 	timelineItems(last: 1, itemTypes: [READY_FOR_REVIEW_EVENT]) { nodes { ... on ReadyForReviewEvent { createdAt } } }
 	reviews(first: 100) { nodes { author { login } body } }
-	comments(first: 100) { nodes { author { login } body createdAt updatedAt } }
+	comments(first: 100, after: $cursor) { pageInfo { hasNextPage endCursor } nodes { author { login } body createdAt updatedAt } }
 	reviewThreads(first: 100) { nodes { id isResolved path line
 	comments(first: 1) { nodes { author { login } body } } } } } } }`), " ")
 
@@ -384,18 +384,51 @@ func (r *pushRun) pushedAt(ctx context.Context, repository, head string) (time.T
 	return at, err == nil
 }
 
+// commentPages is how many pages of a hundred comments ask reads at most.
+const commentPages = 20
+
 // ask puts reviewQuery to GitHub (gh api graphql, which takes no --repo, so
 // the repository is its owner and name) about the pull request: failed, with
 // pull-request-failed reported, when gh does or its answer has not the
 // reviews and the review threads (comments, which an answer from before slice
-// 187 lacks, are none then, and the times from before slice 200 are none).
+// 187 lacks, are none then, and the times from before slice 200 are none). The
+// reviews and the threads are those of the first answer; the comments are all
+// the pages of them, a hundred each, up to commentPages, since a request or a
+// review state that sits past the first hundred is read as none (slice 200).
 func (r *pushRun) ask(ctx context.Context, repository string, number int) (pullState, Answer, bool) {
 	owner, name, _ := strings.Cut(repository, "/")
-	answered, a, failed := r.gh(ctx, "api", "graphql", "-f", "query="+reviewQuery, "-f", "owner="+owner, "-f", "name="+name,
-		"-F", "number="+strconv.Itoa(number))
-	if failed {
-		return pullState{}, a, true
+	var state pullState
+	cursor := ""
+	for page := 0; ; page++ {
+		args := []string{"api", "graphql", "-f", "query=" + reviewQuery, "-f", "owner=" + owner, "-f", "name=" + name,
+			"-F", "number=" + strconv.Itoa(number)}
+		if cursor != "" {
+			args = append(args, "-f", "cursor="+cursor)
+		}
+		answered, a, failed := r.gh(ctx, args...)
+		if failed {
+			return pullState{}, a, true
+		}
+		got, next, ok := askedPage(answered)
+		if !ok {
+			return pullState{}, r.ghFailed("gh api graphql", "its answer is not a pull request's reviews and review threads"), true
+		}
+		if page == 0 {
+			state = got
+		} else {
+			state.comments = append(state.comments, got.comments...)
+		}
+		if next == "" || page+1 >= commentPages {
+			return state, Answer{}, false
+		}
+		cursor = next
 	}
+}
+
+// askedPage reads one answer to reviewQuery: the state it gives, the cursor of
+// the next page of comments ("" for none), and whether it has the reviews and
+// the review threads.
+func askedPage(answered string) (state pullState, next string, ok bool) {
 	var got struct {
 		Data struct {
 			Repository struct {
@@ -430,9 +463,8 @@ func (r *pushRun) ask(ctx context.Context, repository string, number int) (pullS
 	err := json.Unmarshal([]byte(answered), &got)
 	pull := got.Data.Repository.PullRequest
 	if err != nil || pull == nil || pull.Reviews == nil || pull.ReviewThreads == nil {
-		return pullState{}, r.ghFailed("gh api graphql", "its answer is not a pull request's reviews and review threads"), true
+		return pullState{}, "", false
 	}
-	var state pullState
 	state.reviews, state.comments = pull.Reviews.authored(), pull.Comments.authored()
 	if pull.TimelineItems != nil && len(pull.TimelineItems.Nodes) > 0 {
 		state.readyAt = githubTime(pull.TimelineItems.Nodes[0].CreatedAt)
@@ -456,7 +488,7 @@ func (r *pushRun) ask(ctx context.Context, repository string, number int) (pullS
 		}
 		state.unresolved = append(state.unresolved, open)
 	}
-	return state, Answer{}, false
+	return state, pull.Comments.next(), true
 }
 
 // githubTime is a time as GitHub writes it; zero for none or one that cannot be
@@ -469,6 +501,10 @@ func githubTime(text string) time.Time {
 // authoredNodes are GraphQL's reviews or comments; a node whose author is gone
 // is no one's.
 type authoredNodes struct {
+	PageInfo *struct {
+		HasNextPage bool   `json:"hasNextPage"`
+		EndCursor   string `json:"endCursor"`
+	} `json:"pageInfo"`
 	Nodes []struct {
 		Author *struct {
 			Login string `json:"login"`
@@ -477,6 +513,15 @@ type authoredNodes struct {
 		CreatedAt string `json:"createdAt"`
 		UpdatedAt string `json:"updatedAt"`
 	} `json:"nodes"`
+}
+
+// next is the cursor of the page of comments after this one, "" when this is
+// the last.
+func (a *authoredNodes) next() string {
+	if a == nil || a.PageInfo == nil || !a.PageInfo.HasNextPage {
+		return ""
+	}
+	return a.PageInfo.EndCursor
 }
 
 func (a *authoredNodes) authored() []authored {

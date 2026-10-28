@@ -566,6 +566,59 @@ func TestPushReadyStallsAfterTheRequestForTheHead(t *testing.T) {
 	}
 }
 
+// pagedAnswer is the pull request's answer whose comments are one page, with
+// the cursor of the next, none when empty.
+func pagedAnswer(reviews, comments []string, next string) string {
+	pages := `"pageInfo":{"hasNextPage":false,"endCursor":"end"},`
+	if next != "" {
+		pages = fmt.Sprintf(`"pageInfo":{"hasNextPage":true,"endCursor":%q},`, next)
+	}
+	return fmt.Sprintf(`{"data":{"repository":{"pullRequest":{"reviews":{"nodes":[%s]},"comments":{%s"nodes":[%s]},"reviewThreads":{"nodes":[]}}}}}`,
+		strings.Join(reviews, ","), pages, strings.Join(comments, ","))
+}
+
+// The comments are read to the last page, each asked for after the cursor of the
+// one before: a request for the head that sits past the first hundred is seen,
+// and posted again by no run. The reviews and the threads are the first page's,
+// a page that has no next stops it, and so does one whose next has no cursor,
+// and so, at the 20th, does one that always has.
+func TestPushReadyReadsEveryPageOfComments(t *testing.T) {
+	stateFor := codexFor("a", "completed", otherSHA, "completed", otherSHA)
+	f, p, _ := askingFor(t, "", func(int, *clock, string, bool) string { return "" })
+	p.graph = func(ask int) string {
+		if ask%2 == 1 {
+			return pagedAnswer([]string{node("b", "")}, []string{stateFor}, "c1")
+		}
+		return pagedAnswer(nil, []string{askedBy("someone", "a", "@head")}, "")
+	}
+	code, stdout, stderr, _ := call(t, f, "--json", "--ready")
+	calls := f.calls()
+	if r := reported(t, stdout); code != temporary || r.Outcome != "review-timeout" || len(comments(f)) != 0 || p.asks != 22 ||
+		strings.Contains(calls[2], "cursor=") || !strings.HasSuffix(calls[3], " -f cursor=c1") {
+		t.Errorf("exit %d, %s, %d comments, %d asks\n%s%s\n%s", code, r.Outcome, len(comments(f)), p.asks, stdout, stderr, strings.Join(calls[:5], "\n"))
+	}
+
+	// A next page with no cursor, or none to follow, is not asked for.
+	for name, answer := range map[string]string{
+		"no cursor": `{"data":{"repository":{"pullRequest":{"reviews":{"nodes":[]},"comments":{"pageInfo":{"hasNextPage":true,"endCursor":""},"nodes":[]},"reviewThreads":{"nodes":[]}}}}}`,
+		"no page":   answerOf(nil, nil),
+	} {
+		f, p, _ = askingFor(t, "", func(int, *clock, string, bool) string { return answer })
+		if call(t, f, "--ready"); p.asks != 11 {
+			t.Errorf("%s: %d asks, want one a look", name, p.asks)
+		}
+	}
+
+	// A pull request with no end to its pages is read 20 pages deep at a look (two looks here).
+	f, p = draftRepo(t, "draft: true, review_by: [a]", "ci: { watch: { interval: 10, timeout: 1 } }\n")
+	p.open, p.draft = open7, true
+	p.graph = func(ask int) string { return pagedAnswer(nil, nil, fmt.Sprintf("c%d", ask)) }
+	clocked(t)
+	if code, _, _, _ := call(t, f, "--ready"); code != temporary || p.asks != 40 {
+		t.Errorf("no end: exit %d, %d asks, want 20 a look", code, p.asks)
+	}
+}
+
 // A request that cannot be posted ends the wait as any gh call that fails.
 func TestPushReadyWhereTheRequestForTheHeadFails(t *testing.T) {
 	f, p, _ := askingFor(t, "", func(int, *clock, string, bool) string {
