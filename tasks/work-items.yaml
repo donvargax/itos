@@ -61,7 +61,7 @@ queue:
   - p1-ready-fits-foreground
   - slice-201
   - slice-199
-  - p1-ci-affected-jobs
+  - slice-202
   - p2-feature-command-apostrophe
   - p1-ci-slow-linux-runs
   - slice-153
@@ -14224,14 +14224,15 @@ items:
     refs: [internal/slices/push/pr.go]
     tags: [push, v8]
 
-  - id: p1-ci-affected-jobs
+  - id: slice-202
     title: "CI runs only the jobs a range can affect: a docs-only range runs no platform job"
     phase: 1
     owner: null
     status: todo
     depends_on: []
-    kind: idea
+    kind: slice
     why: >
+      Was p1-ci-affected-jobs.
       The person, 2026-10-25: v10 keeps every feature with minimal ceremony and tests only what a
       change needs, when it needs it; one docs commit should not trigger many automated tests. Seen
       the same day: #152, decision record, ORCHESTRATING.md and the registry only, ran ci (ubuntu,
