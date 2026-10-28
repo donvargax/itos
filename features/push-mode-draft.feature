@@ -1596,7 +1596,7 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   # waits, and push.pr.ready_wait ends it, ready-still-waiting. Fails before
   # the work at the outcome step: today the clock is the call's, so the
   # call ends at push.pr.ready_wait, exit 75 too.
-  @ID-PUSHDRAFT-45 @slice-200 @wip
+  @ID-PUSHDRAFT-45 @slice-200
   Scenario: Under push.pr.draft, push --ready counts ci.watch.timeout from the watched run's creation when it has no start, so a rerun reaches the run's timeout
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """

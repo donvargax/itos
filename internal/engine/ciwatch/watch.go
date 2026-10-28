@@ -112,7 +112,8 @@ type Ready struct {
 // each ci.watch.interval within ci.watch.timeout, until the run the marking
 // starts on the same head shows. The timeout counts from the start of the
 // run's latest attempt (providers.Run.Started) when GitHub gives it (slice
-// 200), so that a rerun of --ready continues it, else from the watch's start.
+// 200), so that a rerun of --ready continues it, else from the run's creation,
+// else from the watch's start.
 func WatchReady(ctx context.Context, cfg *config.Loaded, wr providers.Watcher, v vcsport.VCS, sha, remote string, o Out, ready Ready) Watched {
 	return watch(ctx, cfg, wr, v, sha, remote, "", o, &ready)
 }
@@ -259,10 +260,14 @@ func watch(ctx context.Context, cfg *config.Loaded, wr providers.Watcher, v vcsp
 	}
 }
 
-// startOf is when the run's latest attempt started, as GitHub writes it; none
-// for a run that has no start or one that cannot be read.
+// startOf is when the run's latest attempt started, as GitHub writes it, else
+// when the run was created; none for a run with neither, or neither that can be
+// read.
 func startOf(run providers.Run) (time.Time, bool) {
 	t, err := time.Parse(time.RFC3339, run.Started)
+	if err != nil {
+		t, err = time.Parse(time.RFC3339, run.Created)
+	}
 	return t, err == nil
 }
 
