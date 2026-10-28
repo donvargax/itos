@@ -149,6 +149,12 @@ func initializePushModeSteps(sc *godog.ScenarioContext, w *world) {
 	sc.Step(`^the remote's branch "([^"]*)" ends with "([^"]*)" then "([^"]*)", with no merge commit$`, w.remoteBranchEndsWith)
 	sc.Step(`^the remote's branch "([^"]*)" has the remote main's commit "([^"]*)"$`, w.remoteBranchHasMainsCommit)
 	sc.Step(`^the clone has the commit "([^"]*)" giving the ledger's task "([^"]*)" the check "([^"]*)"$`, w.cloneGivesTaskCheck)
+	sc.Step(`^the clone is back on its branch "([^"]*)"$`, func(branch string) error {
+		return w.git("checkout", "-q", branch)
+	})
+	sc.Step(`^the clone has merged its branch "([^"]*)" with the merge commit "([^"]*)"$`, func(branch, subject string) error {
+		return w.git("merge", "-q", "--no-ff", "--no-verify", "-m", subject, branch)
+	})
 	sc.Step(`^the clone's HEAD is the head of the remote's branch "([^"]*)"$`, w.cloneHeadIsRemoteHead)
 	sc.Step(`^the clone's HEAD is the commit "([^"]*)", with no rebase in progress$`, w.cloneHeadIsCommitNotRebasing)
 }
