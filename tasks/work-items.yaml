@@ -15386,7 +15386,7 @@ items:
   - id: T-336
     title: go test failures in CI become annotations
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
