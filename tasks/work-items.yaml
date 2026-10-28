@@ -15200,8 +15200,8 @@ items:
   - id: slice-192
     title: A take made on an item's branch after its spec commit stays on the pull request instead of going to main
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: slice
     why: >
