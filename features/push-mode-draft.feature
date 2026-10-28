@@ -517,6 +517,14 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   Only a login with a review-state comment is asked: one with none waits as
   before.
 
+  Every page of the comments. The pull request's comments are read to their
+  last page, each page of a hundred asked for with the cursor the one before
+  gave (gh api graphql again, -f cursor=<endCursor>), up to 20 pages, since a
+  request for the head or a review state past the first hundred would
+  otherwise be read as none, and a request posted again at every run once the
+  pull request has that many. The reviews and the review threads are those
+  of the first page.
+
   The wait's bound. push.pr.ready_wait is a number of seconds, 540 by
   default (Claude Code's 600 s foreground cap less a minute for the push
   before the wait), read under push.mode pr alone, as review_by is; 0 means
@@ -666,7 +674,11 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   timestamp that long before the step ran; slice 187's Codex-state step ending ", last edited <n>
   seconds ago", the comment's createdAt and updatedAt that long before the
   step ran; and slice 190's "asking <login> to review the clone's HEAD
-  again" ending ", posted <n> seconds ago", likewise. For the refusal
+  again" ending ", posted <n> seconds ago", likewise; "the recording gh
+  answers that the pull request has, on a second page of comments, a comment
+  by <author> asking <login> to review the clone's HEAD again", which makes
+  its answers give the comments the other steps gave as a first page whose
+  pageInfo has a next page, cursor page2, and that comment as the second. For the refusal
   after a merge: "the recording gh's pull request for the branch <branch> is
   merged already", which makes its pr view answer state MERGED and a mergedAt
   for that branch, as if an auto-merge had merged it, whatever the merge
@@ -1620,6 +1632,39 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
     And its JSON's "outcome" is "nothing-to-push"
     And its output says "(ci.watch.timeout)"
     And its output does not say "(push.pr.ready_wait)"
+    And the recording gh was never called as "pr merge"
+
+  # A pull request with more than a hundred comments: the request for the
+  # head sits on the second page, and the review state, for an older commit,
+  # on the first. Read to the last page the request is seen, and nothing is
+  # posted; read to the first alone it would be posted at every run. Fails
+  # before the work at the step that checks no pr comment was made: today
+  # only the first page is read.
+  @ID-PUSHDRAFT-46 @slice-200 @wip
+  Scenario: Under push.pr.draft, push --ready reads every page of the pull request's comments, so a request for the head on the second is not posted again
+    Given the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+        pr:
+          draft: true
+          review_by: [chatgpt-codex-connector]
+      """
+    And ci.watch asks a fake GitHub, which reports the run "https://ci.example/runs/1"
+    And ci.watch.timeout is 1
+    And the watched run's jobs "ci" and "platform" succeed
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the clone is on the new branch "slice-9"
+    And the clone has the commit "feat: add the widget" touching "widget.md"
+    And git pushes HEAD to the remote's new branch "slice-9"
+    And the recording gh has the draft pull request "https://github.example/o/r/pull/7" open for the branch "slice-9"
+    And the recording gh answers that the pull request has a comment by "chatgpt-codex-connector" holding Codex's review state, its code review "completed" of the commit "0123456789abcdef0123456789abcdef01234567" and its security review "completed" of the commit "0123456789abcdef0123456789abcdef01234567"
+    And the recording gh answers that the pull request has, on a second page of comments, a comment by "someone" asking "chatgpt-codex-connector" to review the clone's HEAD again
+    When itos runs "push --ready --json"
+    Then itos exits with code 75
+    And its JSON's "outcome" is "review-timeout"
+    And the recording gh's "api graphql" call has "cursor=page2"
+    And the recording gh was never called as "pr comment"
     And the recording gh was never called as "pr merge"
 
   # Codex's code review stalls (#193): read running past
