@@ -23,9 +23,10 @@ by cause. Each item's commits and pull request hold its detail (`itos work show 
 | T-336     | go problem matcher in the CI toolchain action                                                                         | #219 |
 | T-337     | the feature tests' recording gh is one handler file per case                                                          | #224 |
 
-In flight at the hand-off: slice-200 (#223: --ready merges a clean pull request itself, pinned to
+Also landed at the end: slice-200 (#223: --ready merges a clean pull request itself, pinned to
 the judged head; reviews count only for the head; push.pr.ready_wait; clocks from GitHub's own
-times) and slice-201 (#222: thread show, threads from any branch).
+times; it merged its own pull request) and slice-201 (#222: thread show, threads from any branch;
+its ci commit taught previous-release an outline's later rows).
 
 ## The four causes
 
