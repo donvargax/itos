@@ -55,7 +55,6 @@ phases:
   3: donvargax
 
 queue:
-  - p1-recording-gh-composable
   - slice-192
   - slice-200
   - slice-201
@@ -15410,16 +15409,9 @@ items:
     title: The feature tests' recording gh is built from one handler per command, so parallel slices stop conflicting in one Sprintf
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: []
     kind: idea
-    why: >
-      Seen 2026-10-27: slice-190 and slice-199 both extended features/pushmode_test.go's recording
-      gh, one shell script built by a single Sprintf with numbered %[n] arguments; whichever merged
-      second conflicted (#210 needed --onto-main after slice-191/195/196, #218 after slice-190), and
-      only the person can run --onto-main. slice-200 and slice-201 extend it again. One small
-      handler (or answer file) per gh subcommand and GraphQL query, registered by the steps that
-      need it, would let parallel items add answers without touching shared lines.
     tags: [tests, v8]
 
   - id: p2-onto-main-rebuilt-commit
