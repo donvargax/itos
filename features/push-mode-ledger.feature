@@ -65,7 +65,11 @@ Feature: Under push.mode pr, the ledger edits itos makes beside the registry go 
   needs-registry-commit: the push names that commit and the registry
   commit it needs, each by its seven-character SHA and subject, and says
   to make the registry commit on main instead (git switch main, make it
-  again there, itos push) or to fold the two into one commit.
+  again there, itos push) or to fold the two into one commit. Commits
+  that hold a merge and a registry commit are refused the same way
+  (outcome merge-in-history): the commits above a registry commit taken
+  out are made again on their first parents, which would drop what a
+  merge brings in, so the person makes the history linear first.
 
   The report has a line for each commit sent, oldest first, main's first,
   "Sent <short> <subject> to <remote>/<branch>.", before the "Pushed ..."
@@ -421,6 +425,36 @@ Feature: Under push.mode pr, the ledger edits itos makes beside the registry go 
     And the remote's branch "T-001" does not have "docs: add T-002"
     And the recording gh was never called
     And the clone's HEAD is the commit "docs: make the T-002 check fail", with no rebase in progress
+
+  # Taking a registry commit out of a push makes the commits above it again
+  # on their first parents, which would drop what a merge among them brings
+  # in (Codex, on pull request 209), so commits that hold a merge and a
+  # registry commit are refused, nothing pushed. Fails before the work at the
+  # exit code: today the take rides the pull request with the merge, exit 0.
+  @ID-PUSHLEDGER-15 @slice-192 @wip
+  Scenario: Under pr, commits that hold a merge and a registry commit are refused, nothing pushed
+    Given the work registry has the item "slice-9" owned by nobody with the status "todo"
+    And the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+      """
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the clone is on the new branch "side"
+    And the clone has the commit "feat: add the second widget" touching "second.md"
+    And the clone has the commit "docs: take slice-9" making "bo" the owner of "slice-9"
+    And the clone is back on its branch "main"
+    And the clone is on the new branch "slice-9"
+    And the clone has the commit "feat: add the first widget" touching "first.md"
+    And the clone has merged its branch "side" with the merge commit "chore: merge the side"
+    When itos runs "push --json"
+    Then itos exits with code 1
+    And its JSON's "outcome" is "merge-in-history"
+    And its output says "docs: take slice-9"
+    And its output says "chore: merge the side"
+    And the remote's branch does not have "docs: take slice-9"
+    And the recording gh was never called
+    And the clone's HEAD is the commit "chore: merge the side", with no rebase in progress
 
   # A hand edit of a task's checks touches the ledger alone: no registry
   # bookkeeping, so it still goes through a pull request: main still ends
