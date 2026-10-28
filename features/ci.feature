@@ -409,6 +409,90 @@ Feature: ci run's log names a merged check by the kind of named tests it ran in
     And its output says "no named tests"
     And its output does not say "exit 3"
 
+  # Slice 202 (was p1-ci-affected-jobs; the person, 2026-10-25: test only
+  # what a change can affect, a docs commit runs almost nothing). A docs-only
+  # push here (#152) ran the ci job on Linux and the platform jobs on macOS
+  # and Windows, about 10 runner-minutes judging no code. ci.jobs names, per
+  # job of the CI workflow, the paths a range must touch for it to run:
+  #   ci: { jobs: { platform: { paths: [cmd/**, internal/**, go.mod] } } }
+  # and ci plan --json gives, under "jobs", each declared job's answer for the
+  # range, { "runs": <bool>, "reason": <code> }. The workflow's first job reads
+  # it and the jobs carry a job-level if: on it, and GitHub reads a job skipped
+  # by its if: as a success for a required check. The reason is the first that
+  # holds:
+  #   no-paths   the job declares no paths, or an empty list: it always runs,
+  #              as every job did before
+  #   whole      the plan has no readable range (an empty start, changes that
+  #              cannot be read, --nightly, --whole): every job runs, as every
+  #              test does
+  #   config     the range touches the config file itos read: every job runs
+  #   workflow   the range touches a file under .github/workflows/, where
+  #              each job is defined: every job runs
+  #   touched    the range touches one of the job's paths: it runs
+  #   untouched  it touches none: it does not run
+  # A job ci.jobs does not declare is not in "jobs" and the workflow runs it;
+  # with no ci.jobs, "jobs" is {}. The paths are globs as ci.prose.paths' are,
+  # matched against the range's changed paths as the prose shortcut reads them
+  # (both paths of a rename, bug 32). The paths alone decide: a prose range or
+  # a trusted one (slice 188) changes what the ci job runs, never which jobs
+  # run. ci run, ci run --tests and the text plan are as before.
+  @ID-CI-76 @slice-202 @wip
+  Scenario: A docs-only range skips a job whose paths it does not touch, and runs a job that declares none
+    Given the CI steps are "exit 0"
+    And the config sets "ci.jobs" to the YAML "{platform: {paths: [src/**, go.mod]}, lint: {}}"
+    And the commit "docs: write the readme" touching only "README.md" on top of it
+    When itos plans CI over the commits after the first with --json
+    Then itos exits with code 0
+    And its JSON's "jobs" is {"platform": {"runs": false, "reason": "untouched"}, "lint": {"runs": true, "reason": "no-paths"}}
+
+  @ID-CI-77 @slice-202 @wip
+  Scenario: A range that touches one of a job's paths runs the job
+    Given the CI steps are "exit 0"
+    And the config sets "ci.jobs" to the YAML "{platform: {paths: [src/**, go.mod]}}"
+    And the commit "fix: correct the total" touching only "src/app.go" on top of it
+    When itos plans CI over the commits after the first with --json
+    Then itos exits with code 0
+    And its JSON's "jobs.platform" is {"runs": true, "reason": "touched"}
+
+  # The workflow runs a job "jobs" does not name, so a config without ci.jobs
+  # runs every job, as before.
+  @ID-CI-78 @slice-202 @wip
+  Scenario: A plan whose config declares no jobs names none
+    Given the CI steps are "exit 0"
+    And the commit "docs: write the readme" touching only "README.md" on top of it
+    When itos plans CI over the commits after the first with --json
+    Then itos exits with code 0
+    And its JSON's "jobs" is {}
+
+  @ID-CI-79 @slice-202 @wip
+  Scenario: A range that touches the config runs every job, whatever its paths
+    Given the CI steps are "exit 0"
+    And the config sets "ci.jobs" to the YAML "{platform: {paths: [src/**]}}"
+    And the commit "ci: retune the config" touching only the config on top of it
+    When itos plans CI over the commits after the first with --json
+    Then itos exits with code 0
+    And its JSON's "jobs.platform" is {"runs": true, "reason": "config"}
+
+  @ID-CI-80 @slice-202 @wip
+  Scenario: A range that touches a workflow runs every job, whatever its paths
+    Given the CI steps are "exit 0"
+    And the config sets "ci.jobs" to the YAML "{platform: {paths: [src/**]}}"
+    And the commit "ci: cache the modules" touching only ".github/workflows/ci.yml" on top of it
+    When itos plans CI over the commits after the first with --json
+    Then itos exits with code 0
+    And its JSON's "jobs.platform" is {"runs": true, "reason": "workflow"}
+
+  # A first push, or a provider that gave no start, runs every job, as it runs
+  # every test.
+  @ID-CI-81 @slice-202 @wip
+  Scenario: A range with an empty start runs every job
+    Given the CI steps are "exit 0"
+    And the config sets "ci.jobs" to the YAML "{platform: {paths: [src/**]}}"
+    And the commit "docs: write the readme" touching only "README.md" on top of it
+    When itos plans CI over every commit up to HEAD with --json
+    Then itos exits with code 0
+    And its JSON's "jobs.platform" is {"runs": true, "reason": "whole"}
+
   # Slice 133 (p1-nightly-past-first-failure; the user's call, 2026-10-12,
   # rapid feedback). ci.stop_at_first_failure was one setting for pushes and
   # the nightly, so the nightly stopped at its first failure: on 2026-10-12 a
