@@ -15429,7 +15429,7 @@ items:
       keeps the author date of the commit being redone (an --author-date-of <commit> or reading
       ORIG_HEAD), or the counterpart rule also accepts a commit naming the same item with the same
       subject.
-    tags: [push]
+    tags: [push, v9]
 
   - id: T-337
     title: The feature tests' recording gh is built from one handler per gh command and GraphQL query
