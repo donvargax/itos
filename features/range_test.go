@@ -50,24 +50,27 @@ type gitHubRun struct {
 	Status     string  `json:"status"`
 	Conclusion *string `json:"conclusion"`
 	CreatedAt  string  `json:"created_at"`
-	HTMLURL    string  `json:"html_url"`
-	workflow   string  // the workflow it is a run of
-	jobs       []watchedJob
+	// The start of the run's latest attempt, when a step gave one (slice 200).
+	RunStartedAt string `json:"run_started_at,omitempty"`
+	HTMLURL      string `json:"html_url"`
+	workflow     string // the workflow it is a run of
+	jobs         []watchedJob
 }
 
 // The fake GitHub and what it was asked.
 type fakeGitHub struct {
-	server   *httptest.Server
-	workflow string // the workflow ci.range asks about, whose runs run and runOn make
-	branch   string
-	mu       sync.Mutex
-	runs     []gitHubRun  // every run, oldest first
-	list     []gitHubRun  // what the branch's list names, when a step set it; every run when nil
-	asked    []string     // each request, its path and query
-	watched  []watchedRun // the watched run's looks, when ci.watch asks
-	looks    int          // how many looks at the watched run were given
-	given    []string     // the commits a look at the watched run was given
-	alone    string       // the one commit the watched run is of, when a step says so (bug 49)
+	server    *httptest.Server
+	workflow  string // the workflow ci.range asks about, whose runs run and runOn make
+	branch    string
+	mu        sync.Mutex
+	runs      []gitHubRun  // every run, oldest first
+	list      []gitHubRun  // what the branch's list names, when a step set it; every run when nil
+	asked     []string     // each request, its path and query
+	watched   []watchedRun // the watched run's looks, when ci.watch asks
+	looks     int          // how many looks at the watched run were given
+	given     []string     // the commits a look at the watched run was given
+	alone     string       // the one commit the watched run is of, when a step says so (bug 49)
+	startedAt string       // the watched run's run_started_at, when a step gives one (slice 200)
 	// The repository's visibility, public, private or internal; "" answers
 	// its endpoint 404, a repository the token cannot see.
 	visibility string
@@ -277,7 +280,7 @@ func (g *fakeGitHub) peek(sha string) gitHubRun {
 	n := min(g.looks, len(g.watched)-1)
 	w := g.watched[n]
 	r := gitHubRun{ID: watchedID + n, HeadSHA: sha, HeadBranch: g.branch, Status: w.Status,
-		CreatedAt: "2026-10-05T13:00:00Z", HTMLURL: w.URL, workflow: watchedWorkflow, jobs: w.Jobs}
+		CreatedAt: "2026-10-05T13:00:00Z", RunStartedAt: g.startedAt, HTMLURL: w.URL, workflow: watchedWorkflow, jobs: w.Jobs}
 	if w.Conclusion != "" {
 		conclusion := w.Conclusion
 		r.Conclusion = &conclusion

@@ -447,30 +447,44 @@ func (w *world) ghAnswersReviewBody(login, body string) error {
 }
 
 // The comment of Codex's as #159 has it: its summary marker, its state line
-// with the two statuses, and its heading.
-func codexComment(login, code, security string) map[string]any {
-	review := func(status string) string {
-		return fmt.Sprintf(`{"commit_sha":"5c0371232f4363fb659e7879756ceee014c009cf","has_any_findings":false,"has_unresolved_findings":false,"status":%q}`, status)
+// with the two reviews, each a status of a commit, and its heading. times, when
+// it has two, are the comment's createdAt and updatedAt (slice 200).
+func codexComment(login, codeStatus, codeSHA, securityStatus, securitySHA string, times ...string) map[string]any {
+	review := func(status, sha string) string {
+		return fmt.Sprintf(`{"commit_sha":%q,"has_any_findings":false,"has_unresolved_findings":false,"status":%q}`, sha, status)
 	}
 	body := "<!-- codex-pull-request-review-summary -->\n" +
-		`<!-- codex-review-state:v1 {"code_review":` + review(code) + `,"security_review":` + review(security) + "} -->\n" +
+		`<!-- codex-review-state:v1 {"code_review":` + review(codeStatus, codeSHA) + `,"security_review":` + review(securityStatus, securitySHA) + "} -->\n" +
 		"## Codex Review Summary"
-	return map[string]any{"author": map[string]any{"login": login}, "body": body}
+	comment := map[string]any{"author": map[string]any{"login": login}, "body": body}
+	if len(times) == 2 {
+		comment["createdAt"], comment["updatedAt"] = times[0], times[1]
+	}
+	return comment
 }
 
 // The recording gh's api graphql answers that the pull request has a comment
-// by the login holding Codex's review state with the two statuses.
+// by the login holding Codex's review state with the two statuses, both of
+// the clone's HEAD as it is now (slice 200).
 func (w *world) ghAnswersCodexState(login, code, security string) error {
-	return w.ghAddNode(w.ghComments(), codexComment(login, code, security))
+	sha, err := w.head()
+	if err != nil {
+		return err
+	}
+	return w.ghAddNode(w.ghComments(), codexComment(login, code, sha, security, sha))
 }
 
 // The same, with those statuses in the answers to the first n calls, and
 // both the status given in every later one.
 func (w *world) ghAnswersCodexStateThen(login, code, security string, n int, then string) error {
-	if err := w.ghAddNode(w.ghCommentsEarly(), codexComment(login, code, security)); err != nil {
+	sha, err := w.head()
+	if err != nil {
 		return err
 	}
-	if err := w.ghAddNode(w.ghComments(), codexComment(login, then, then)); err != nil {
+	if err := w.ghAddNode(w.ghCommentsEarly(), codexComment(login, code, sha, security, sha)); err != nil {
+		return err
+	}
+	if err := w.ghAddNode(w.ghComments(), codexComment(login, then, sha, then, sha)); err != nil {
 		return err
 	}
 	return os.WriteFile(w.ghCommentsLeft(), fmt.Appendf(nil, "%d\n", n), 0o644)
@@ -480,10 +494,14 @@ func (w *world) ghAnswersCodexStateThen(login, code, security string, n int, the
 // been called as pr comment, and both the status given in every one after it
 // (slice 190), the comments the other steps gave it in both.
 func (w *world) ghAnswersCodexStateUntilComment(login, code, security, then string) error {
-	if err := w.ghAddNode(w.ghCommentsBefore(), codexComment(login, code, security)); err != nil {
+	sha, err := w.head()
+	if err != nil {
 		return err
 	}
-	return w.ghAddNode(w.ghCommentsAfter(), codexComment(login, then, then))
+	if err := w.ghAddNode(w.ghCommentsBefore(), codexComment(login, code, sha, security, sha)); err != nil {
+		return err
+	}
+	return w.ghAddNode(w.ghCommentsAfter(), codexComment(login, then, sha, then, sha))
 }
 
 // The recording gh's api graphql answers that the pull request has a comment

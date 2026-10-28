@@ -16,6 +16,7 @@ sep=
 for a in "$@"; do rep "$a" "$nl" '\n'; rec=$rec$sep$REPLY; sep=' '; done
 printf '%s\n' "$rec" >> "$S/gh-calls"
 if [ -f "$S/gh-failure" ]; then cat "$S/gh-failure" >&2; exit 1; fi
+for f in "$H"/before/*.sh; do . "$f"; done
 head=
 state=open
 json=
@@ -26,4 +27,4 @@ for a in "$@"; do
   if [ "$prev" = --json ]; then json=$a; fi
   prev=$a
 done
-if [ -f "$H/$1-$2.sh" ]; then . "$H/$1-$2.sh"; fi
+if [ -f "$H/$1-${2%%[/?]*}.sh" ]; then . "$H/$1-${2%%[/?]*}.sh"; fi

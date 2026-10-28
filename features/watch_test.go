@@ -32,6 +32,7 @@ import (
 type watchConfig struct {
 	provider string // ci.watch.provider
 	timeout  int    // ci.watch.timeout, when above 0
+	interval int    // ci.watch.interval, 0 by default (slice 200)
 	// ci.watch.github.nightly_workflow, when set
 	nightlyWorkflow string
 }
@@ -78,11 +79,11 @@ func initializeWatchSteps(sc *godog.ScenarioContext, w *world) {
 				w.finished(job(failing, "failure"), job(succeeding, "success")))
 		})
 	sc.Step(`^ci\.watch\.timeout is (\d+)$`, func(seconds int) error {
-		w.config.watch.timeout = seconds
+		w.watchConfigured().timeout = seconds
 		return w.pushConfig("chore: wait less for CI")
 	})
 	sc.Step(`^ci\.watch's provider is "([^"]*)"$`, func(provider string) error {
-		w.config.watch.provider = provider
+		w.watchConfigured().provider = provider
 		return w.pushConfig("chore: watch CI another way")
 	})
 	sc.Step(`^no gh on the PATH$`, func() error {
@@ -496,7 +497,7 @@ func (w *world) watchSection() string {
 		return ""
 	}
 	var b strings.Builder
-	fmt.Fprintf(&b, "  watch:\n    provider: %s\n    interval: 0\n    github:\n      workflow: %s\n", c.provider, watchedWorkflow)
+	fmt.Fprintf(&b, "  watch:\n    provider: %s\n    interval: %d\n    github:\n      workflow: %s\n", c.provider, c.interval, watchedWorkflow)
 	if c.nightlyWorkflow != "" {
 		fmt.Fprintf(&b, "      nightly_workflow: %s\n", c.nightlyWorkflow)
 	}
@@ -504,6 +505,15 @@ func (w *world) watchSection() string {
 		fmt.Fprintf(&b, "    timeout: %d\n", c.timeout)
 	}
 	return b.String()
+}
+
+// The scenario's ci.watch, which a step gives one of its own, github with no
+// interval, when none was set up (slice 200).
+func (w *world) watchConfigured() *watchConfig {
+	if w.config.watch == nil {
+		w.config.watch = &watchConfig{provider: "github"}
+	}
+	return w.config.watch
 }
 
 func (w *world) outputSaysOnceBefore(text, later string) error {
