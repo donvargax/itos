@@ -306,6 +306,11 @@ ci:
       - tools/bin/itos config check
       - 'go run ./tools/bin/plugin-version -range-from "${FROM-}"' # the plugin's skill is Markdown
       - go run ./tools/bin/doc-budget # the docs' byte budget: docs-only pushes are where they grow
+  # The jobs of ci.yml a range must touch these paths to run (slice 202): ci plan --json gives the
+  # answer, which ci.yml's plan job reads. The ci job is not declared, so it always runs.
+  jobs:
+    platform:
+      paths: [cmd/**, internal/**, features/**, tools/**, go.mod, go.sum, .github/**, action.yml]
   cost:
     # Checks with no `cost:` of their own: static if a pattern matches, else
     # late. Only commands static by what they are: `sh -c` wraps anything, so a
@@ -447,8 +452,10 @@ ci:
       - go run ./tools/bin/verify-release -repo donvargax/itos -manifest checksums.txt
       # The newest completed CI run on main passed on Linux, macOS and Windows (T-072): a push's own
       # run is still going when its plan runs, so the nightly reads the one before it. A metadata
-      # run proves its reduced scope explicitly on all three jobs; otherwise each test owner and
-      # launcher must have run successfully. Missing, mixed or failed coverage never passes. The
+      # run proves its reduced scope explicitly on every job that ran; otherwise each test owner and
+      # launcher must have run successfully. A platform job ci.jobs skipped (slice 202) counts only
+      # when that run's plan job succeeded, since only a successful plan skips it. Missing, mixed
+      # or failed coverage never passes. The
       # run is picked from ci.yml's newest 100 runs, unfiltered (T-277): asked with --branch and
       # --status, the list came back empty for a nightly of 2026-10-22 while main had a completed
       # run. A run cancelled while it waited (ci.yml's concurrency) ran no job and is passed over,
@@ -460,9 +467,12 @@ ci:
         echo "The newest completed CI run on main is $id." &&
         gh run view "$id" --json jobs --jq
         '.jobs as $jobs | ["ci (ubuntu-latest)", "platform (macos-latest)", "platform (windows-latest)"] as $names |
+        ([$jobs[] | select(.name == "plan")] | length == 1 and all(.conclusion == "success")) as $planned |
         def passed($name): any(.steps[]?; .name == $name and .conclusion == "success");
-        ($names | all(. as $name | [$jobs[] | select(.name == $name)] | length == 1 and all(.conclusion == "success"))) and
-        ([$jobs[] | select(.name as $name | $names | index($name))] |
+        def accepted($name): [$jobs[] | select(.name == $name)] | length == 1 and
+          all(.conclusion == "success" or ($planned and $name != "ci (ubuntu-latest)" and .conclusion == "skipped"));
+        ($names | all(. as $name | accepted($name))) and
+        ([$jobs[] | select(.conclusion == "success" and (.name as $name | $names | index($name)))] |
           (all(passed("Validation-only range")) or
            all((passed("Validation-only range") | not) and passed("Install the launcher") and passed("The launcher") and
              (if .name == "ci (ubuntu-latest)" then passed("Plan") else passed("Unit tests") and passed("Named tests") end))))' | grep -qx true

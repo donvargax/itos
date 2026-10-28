@@ -26,7 +26,7 @@ type job struct {
 	Name, If string
 	RunsOn   string `yaml:"runs-on"`
 	Needs    []string
-	Strategy struct{ Matrix struct{ OS []string } }
+	Outputs  map[string]string
 	Steps    []step
 }
 type workflow struct{ Jobs map[string]job }
@@ -66,6 +66,7 @@ esac
 case "$*" in
   'ci run base head') printf 'unit\nnamed\n' >> "$LOG";;
   'ci run base head --tests') echo named >> "$LOG";;
+  'ci plan base head --json') printf '%s\n' "$PLAN_JSON";;
   'version --json') printf '{"version":"%s"}\n' "${LAUNCHER_VERSION-8.0.0}";;
   *) exit 92;;
 esac
@@ -96,131 +97,232 @@ esac
 		"ITOS_BIN="+filepath.Join(dir, "tools/bin/itos"), "LOG="+filepath.Join(dir, "events"), "FROM=base", "TO=head", "GH_FAIL=")
 }
 
-// This checks the two test owners, not arbitrary Actions expressions. Unsupported conditions
-// on their jobs fail closed; each selected command must actually invoke the expected program.
+// notDraft is the condition the plan and ci jobs carry alone, and the platform jobs carry beside
+// the planner's: a draft pull request's run skips them, and marking it ready runs them (slice 179).
+const (
+	notDraftExpr = "github.event_name != 'pull_request' || !github.event.pull_request.draft"
+	notDraft     = "${{ " + notDraftExpr + " }}"
+	// A platform job runs unless the planner succeeded and said it has nothing to judge: the
+	// range touches no platform path (ci plan --json's jobs.platform.runs) or needs metadata
+	// validation only (ci-repo scope's full). A planner that fails or is skipped never skips it.
+	plannerSaysRun = "needs.plan.result != 'success' || (needs.plan.outputs.platform != 'false' && needs.plan.outputs.full != 'false')"
+	platformIf     = "${{ !cancelled() && (" + notDraftExpr + ") && (" + plannerSaysRun + ") }}"
+	// The release follows a push to main whose jobs did not fail, a skipped platform job among
+	// them: a fix to the plugin's Markdown touches no platform path and still releases.
+	releaseIf = "${{ !failure() && !cancelled() && github.event_name == 'push' && github.ref == 'refs/heads/main' }}"
+	// The shared setup of the platform jobs, whose first step selects the pinned Go.
+	platformBuild = "./.github/actions/platform-build"
+	goToolchain   = "./.github/actions/go-toolchain"
+)
+
+// A job of ci.yml that runs a test owner: its id, the name of its check, and its runner.
+type owner struct{ id, name, runner string }
+
+var (
+	linuxOwner     = owner{"ci", "ci (ubuntu-latest)", "ubuntu-latest"}
+	platformOwners = []owner{
+		{"platform-macos", "platform (macos-latest)", "macos-latest"},
+		{"platform-windows", "platform (windows-latest)", "windows-latest"},
+	}
+)
+
+// This checks the planner, the test owners and the release, not arbitrary Actions expressions.
+// Unsupported conditions on their jobs fail closed (each if: is compared whole); each selected
+// command must actually invoke the expected program.
 func contract(t *testing.T, w workflow) error {
 	t.Helper()
+	if err := plannerContract(t, w); err != nil {
+		return err
+	}
 	for _, full := range []bool{true, false} {
 		if err := scopedContract(t, w, full); err != nil {
 			return err
 		}
 	}
+	for _, id := range []string{"ci", "platform-macos", "platform-windows"} {
+		if !slices.Contains(w.Jobs["release"].Needs, id) {
+			return fmt.Errorf("release does not wait for %s", id)
+		}
+	}
+	if w.Jobs["release"].If != releaseIf {
+		return fmt.Errorf("release condition is %q", w.Jobs["release"].If)
+	}
 	return nil
 }
 
-// notDraft is the only condition the ci and platform jobs carry: a draft pull request's run
-// skips both, and marking it ready runs them (slice 179).
-const notDraft = "${{ github.event_name != 'pull_request' || !github.event.pull_request.draft }}"
+// The planner answers once, for both platform jobs, whether the range touches a platform path
+// and whether it has more than metadata to validate. It runs for every run the ci job does,
+// builds itos to ask it, and reads jobs.platform.runs as true when ci.jobs does not declare the
+// job. Its Scope and Jobs steps run as the workflow writes them, against fake programs.
+func plannerContract(t *testing.T, w workflow) error {
+	t.Helper()
+	j, ok := w.Jobs["plan"]
+	if !ok || j.If != notDraft || len(j.Needs) != 0 || j.RunsOn != "ubuntu-latest" {
+		return fmt.Errorf("missing, conditional or misplaced plan job")
+	}
+	if j.Outputs["platform"] != "${{ steps.jobs.outputs.platform }}" || j.Outputs["full"] != "${{ steps.scope.outputs.full }}" {
+		return fmt.Errorf("plan outputs are %v", j.Outputs)
+	}
+	built := false
+	for _, s := range j.Steps {
+		if s.Run == "tools/bin/itos version" {
+			built = true
+		}
+	}
+	if !built {
+		return fmt.Errorf("plan does not build itos")
+	}
+	for _, tc := range []struct {
+		full       bool
+		plan, want string
+	}{
+		{true, `{"jobs":{"platform":{"runs":true,"reason":"touched"}}}`, "true"},
+		{true, `{"jobs":{"platform":{"runs":false,"reason":"untouched"}}}`, "false"},
+		{false, `{"jobs":{"platform":{"runs":true,"reason":"whole"}}}`, "true"},
+		{false, `{"jobs":{"platform":{"runs":false,"reason":"untouched"},"ci":{"runs":true,"reason":"no-paths"}}}`, "false"},
+		// A job ci.jobs does not declare is absent, and the workflow runs it.
+		{true, `{"jobs":{}}`, "true"},
+		{true, `{"jobs":{"other":{"runs":false,"reason":"untouched"}}}`, "true"},
+	} {
+		dir, env := fakeEnv(t)
+		env = scratch.With(env, fmt.Sprintf("FULL=%t", tc.full), "PLAN_JSON="+tc.plan, "GITHUB_OUTPUT="+filepath.Join(dir, "output"))
+		scoped, planned := false, false
+		for _, s := range j.Steps {
+			switch s.Name {
+			case "Scope":
+				if s.ID != "scope" || s.If != "" || planned {
+					return fmt.Errorf("plan scope must run unconditionally, first")
+				}
+				scoped = true
+			case "Jobs":
+				if s.ID != "jobs" || s.If != "" || !scoped {
+					return fmt.Errorf("plan jobs must run unconditionally, after scope")
+				}
+				planned = true
+			default:
+				continue
+			}
+			if r := scratch.Run(dir, env, "", "bash", "-eo", "pipefail", "-c", s.Run); r.Code != 0 {
+				return fmt.Errorf("plan %s: %s", s.Name, r.Output())
+			}
+		}
+		output, _ := os.ReadFile(filepath.Join(dir, "output"))
+		if want := fmt.Sprintf("full=%t\nplatform=%s\n", tc.full, tc.want); string(output) != want {
+			return fmt.Errorf("plan outputs for %s: %q, want %q", tc.plan, output, want)
+		}
+	}
+	return nil
+}
 
 func scopedContract(t *testing.T, w workflow, full bool) error {
 	t.Helper()
 	counts := map[string]int{}
-	for _, id := range []string{"ci", "platform"} {
-		j, ok := w.Jobs[id]
-		if !ok || j.If != notDraft || len(j.Needs) != 0 {
-			return fmt.Errorf("missing or conditional %s job", id)
+	for _, o := range append([]owner{linuxOwner}, platformOwners...) {
+		j, ok := w.Jobs[o.id]
+		wantIf, wantNeeds := notDraft, []string(nil)
+		if o.id != linuxOwner.id {
+			wantIf, wantNeeds = platformIf, []string{"plan"}
 		}
-		oses := []string{j.RunsOn}
-		if id == "platform" {
-			if j.RunsOn != "${{ matrix.os }}" {
-				return fmt.Errorf("platform does not use its OS matrix")
+		if !ok || j.Name != o.name || j.If != wantIf || !slices.Equal(j.Needs, wantNeeds) {
+			return fmt.Errorf("missing, renamed or conditional %s job", o.id)
+		}
+		if j.RunsOn != o.runner {
+			return fmt.Errorf("%s runs on %s, not %s", o.id, j.RunsOn, o.runner)
+		}
+		runner := j.RunsOn
+		counts[runner]++
+		dir, env := fakeEnv(t)
+		env = scratch.With(env, fmt.Sprintf("FULL=%t", full), "GITHUB_OUTPUT="+filepath.Join(dir, "output"))
+		shared, scoped, marked := false, false, false
+		installed, checked := false, false
+		for i, s := range j.Steps {
+			if s.Uses == platformBuild {
+				if o.id == linuxOwner.id || i != 1 || s.If != "" {
+					return fmt.Errorf("%s shared setup moved", o.id)
+				}
+				shared = true
 			}
-			oses = j.Strategy.Matrix.OS
-		}
-		for _, runner := range oses {
-			counts[runner]++
-			dir, env := fakeEnv(t)
-			env = scratch.With(env, fmt.Sprintf("FULL=%t", full), "GITHUB_OUTPUT="+filepath.Join(dir, "output"))
-			scoped, marked := false, false
-			installed, checked := false, false
-			for _, s := range j.Steps {
-				if s.Name == "Scope" {
-					if s.ID != "scope" || s.If != "" {
-						return fmt.Errorf("scope must run unconditionally")
-					}
-					result := scratch.Run(dir, env, "", "bash", "-eo", "pipefail", "-c", s.Run)
-					output, _ := os.ReadFile(filepath.Join(dir, "output"))
-					if result.Code != 0 || string(output) != fmt.Sprintf("full=%t\n", full) {
-						return fmt.Errorf("scope output: %s %s", result.Output(), output)
-					}
-					scoped = true
+			if s.Name == "Scope" {
+				if s.ID != "scope" || s.If != "" || (o.id != linuxOwner.id && !shared) {
+					return fmt.Errorf("scope must run unconditionally, after the shared setup")
 				}
-				if s.Name == "Validation-only range" {
-					if !scoped || s.If != "${{ steps.scope.outputs.full == 'false' }}" {
-						return fmt.Errorf("metadata marker is not scope guarded")
-					}
-					marked = true
+				result := scratch.Run(dir, env, "", "bash", "-eo", "pipefail", "-c", s.Run)
+				output, _ := os.ReadFile(filepath.Join(dir, "output"))
+				if result.Code != 0 || string(output) != fmt.Sprintf("full=%t\n", full) {
+					return fmt.Errorf("scope output: %s %s", result.Output(), output)
 				}
-				if s.Uses == "./" {
-					if s.ID != "launcher" || !scoped || s.If != "${{ !cancelled() && steps.scope.outputs.full == 'true' }}" {
-						return fmt.Errorf("%s launcher install guard changed", runner)
-					}
-					installed = true
+				scoped = true
+			}
+			if s.Name == "Validation-only range" {
+				if !scoped || s.If != "${{ steps.scope.outputs.full == 'false' }}" {
+					return fmt.Errorf("metadata marker is not scope guarded")
 				}
-				selected := s.Name == "Unit tests" || s.Name == "Named tests" || s.Name == "The launcher" || s.Name == "Plan"
-				if !selected {
+				marked = true
+			}
+			if s.Uses == "./" {
+				if s.ID != "launcher" || !scoped || s.If != "${{ !cancelled() && steps.scope.outputs.full == 'true' }}" {
+					return fmt.Errorf("%s launcher install guard changed", runner)
+				}
+				installed = true
+			}
+			selected := s.Name == "Unit tests" || s.Name == "Named tests" || s.Name == "The launcher" || s.Name == "Plan"
+			if !selected {
+				continue
+			}
+			if !scoped {
+				return fmt.Errorf("%s tests run before scope", runner)
+			}
+			if s.Name == "Unit tests" && s.If != "${{ steps.scope.outputs.full == 'true' }}" {
+				return fmt.Errorf("%s unit tests lack scope guard", runner)
+			}
+			if s.Name == "Named tests" && s.If != "${{ !cancelled() && steps.scope.outputs.full == 'true' }}" {
+				return fmt.Errorf("%s named-test guard changed", runner)
+			}
+			if o.id == linuxOwner.id && s.Name != "The launcher" && s.If != "" {
+				return fmt.Errorf("Linux plan is conditional")
+			}
+			if s.Name == "The launcher" {
+				if !installed || s.If != "${{ !cancelled() && steps.scope.outputs.full == 'true' && steps.launcher.outcome == 'success' }}" {
+					return fmt.Errorf("%s launcher check has no successful install", runner)
+				}
+				checked = true
+				if !full {
 					continue
 				}
-				if !scoped {
-					return fmt.Errorf("%s tests run before scope", runner)
-				}
-				if s.Name == "Unit tests" && s.If != "${{ steps.scope.outputs.full == 'true' }}" {
-					return fmt.Errorf("%s unit tests lack scope guard", runner)
-				}
-				if s.Name == "Named tests" && s.If != "${{ !cancelled() && steps.scope.outputs.full == 'true' }}" {
-					return fmt.Errorf("%s named-test guard changed", runner)
-				}
-				if id == "ci" && s.Name != "The launcher" && s.If != "" {
-					return fmt.Errorf("Linux plan is conditional")
-				}
-				if s.Name == "The launcher" {
-					if !installed || s.If != "${{ !cancelled() && steps.scope.outputs.full == 'true' && steps.launcher.outcome == 'success' }}" {
-						return fmt.Errorf("%s launcher check has no successful install", runner)
-					}
-					checked = true
-					if !full {
-						continue
-					}
-					bad := scratch.Run(dir, scratch.With(env, "LAUNCHER_VERSION=invalid"), "", "bash", "-eo", "pipefail", "-c", s.Run)
-					if bad.Code == 0 {
-						return fmt.Errorf("%s launcher check accepts an invalid version", runner)
-					}
-				}
-				if !full && s.Name != "Plan" {
-					continue
-				}
-				r := scratch.Run(dir, env, "", "bash", "-eo", "pipefail", "-c", s.Run)
-				if r.Code != 0 {
-					return fmt.Errorf("%s %s: %s", runner, s.Name, r.Output())
+				bad := scratch.Run(dir, scratch.With(env, "LAUNCHER_VERSION=invalid"), "", "bash", "-eo", "pipefail", "-c", s.Run)
+				if bad.Code == 0 {
+					return fmt.Errorf("%s launcher check accepts an invalid version", runner)
 				}
 			}
-			events, err := os.ReadFile(filepath.Join(dir, "events"))
-			if err != nil {
-				return err
+			if !full && s.Name != "Plan" {
+				continue
 			}
-			want := "unit\nnamed\n"
-			if !full {
-				want = ""
-				if id == "ci" {
-					want = "validation\n"
-				}
+			r := scratch.Run(dir, env, "", "bash", "-eo", "pipefail", "-c", s.Run)
+			if r.Code != 0 {
+				return fmt.Errorf("%s %s: %s", runner, s.Name, r.Output())
 			}
-			if string(events) != want {
-				return fmt.Errorf("%s test invocations: %q", runner, events)
+		}
+		events, err := os.ReadFile(filepath.Join(dir, "events"))
+		if err != nil {
+			return err
+		}
+		want := "unit\nnamed\n"
+		if !full {
+			want = ""
+			if o.id == linuxOwner.id {
+				want = "validation\n"
 			}
-			if !checked || !marked {
-				return fmt.Errorf("%s missing launcher check", runner)
-			}
+		}
+		if string(events) != want {
+			return fmt.Errorf("%s test invocations: %q", runner, events)
+		}
+		if !checked || !marked || (o.id != linuxOwner.id && !shared) {
+			return fmt.Errorf("%s missing launcher check", runner)
 		}
 	}
 	for _, runner := range []string{"ubuntu-latest", "macos-latest", "windows-latest"} {
 		if counts[runner] != 1 {
 			return fmt.Errorf("%s has %d test owners, want one", runner, counts[runner])
-		}
-	}
-	for _, need := range []string{"ci", "platform"} {
-		if !slices.Contains(w.Jobs["release"].Needs, need) {
-			return fmt.Errorf("release does not wait for %s", need)
 		}
 	}
 	return nil
@@ -272,12 +374,14 @@ func TestSelftest(t *testing.T) {
 	for _, remove := range []string{"ubuntu-latest", "macos-latest", "windows-latest", "launcher", "launcher version", "Linux launcher", "Linux launcher version", "unit", "named", "release", "duplicate Linux", "no draft condition", "another condition"} {
 		t.Run("reject missing coverage "+remove, func(t *testing.T) {
 			w := readWorkflow(t)
-			j := w.Jobs["platform"]
+			j := w.Jobs["platform-macos"]
 			switch remove {
 			case "ubuntu-latest":
 				delete(w.Jobs, "ci")
-			case "macos-latest", "windows-latest":
-				j.Strategy.Matrix.OS = slices.DeleteFunc(j.Strategy.Matrix.OS, func(s string) bool { return s == remove })
+			case "macos-latest":
+				delete(w.Jobs, "platform-macos")
+			case "windows-latest":
+				delete(w.Jobs, "platform-windows")
 			case "launcher":
 				j.Steps = slices.DeleteFunc(j.Steps, func(s step) bool { return s.Uses == "./" })
 			case "launcher version":
@@ -295,7 +399,7 @@ func TestSelftest(t *testing.T) {
 			case "release":
 				delete(w.Jobs, "release")
 			case "duplicate Linux":
-				j.Strategy.Matrix.OS = append(j.Strategy.Matrix.OS, "ubuntu-latest")
+				j.RunsOn = "ubuntu-latest"
 			case "no draft condition":
 				j.If = ""
 			case "another condition":
@@ -303,12 +407,146 @@ func TestSelftest(t *testing.T) {
 				linux.If = "${{ github.event_name != 'pull_request' }}"
 				w.Jobs["ci"] = linux
 			}
-			w.Jobs["platform"] = j
+			if remove != "macos-latest" {
+				w.Jobs["platform-macos"] = j
+			}
 			if err := contract(t, w); err == nil {
 				t.Fatal("coverage loss accepted")
 			}
 		})
 	}
+	// The planner, the skip and the release (slice 202): each change below would skip a platform
+	// job a failed planner left unjudged, run the planner for a draft, lose what it answers, or
+	// stop a release for a platform job it skipped.
+	for _, tc := range []struct {
+		name   string
+		change func(w workflow)
+	}{
+		{"planner removed", func(w workflow) { delete(w.Jobs, "plan") }},
+		{"planner without the draft condition", func(w workflow) {
+			j := w.Jobs["plan"]
+			j.If = ""
+			w.Jobs["plan"] = j
+		}},
+		{"planner with another condition", func(w workflow) {
+			j := w.Jobs["plan"]
+			j.If = "${{ github.event_name != 'pull_request' }}"
+			w.Jobs["plan"] = j
+		}},
+		{"planner without its platform output", func(w workflow) {
+			j := w.Jobs["plan"]
+			delete(j.Outputs, "platform")
+			w.Jobs["plan"] = j
+		}},
+		{"planner reads another job", func(w workflow) {
+			j := w.Jobs["plan"]
+			j.Steps = slices.Clone(j.Steps)
+			for i, s := range j.Steps {
+				if s.Name == "Jobs" {
+					j.Steps[i].Run = strings.ReplaceAll(s.Run, ".jobs.platform", ".jobs.ci")
+				}
+			}
+			w.Jobs["plan"] = j
+		}},
+		{"planner answers false for an absent job", func(w workflow) {
+			j := w.Jobs["plan"]
+			j.Steps = slices.Clone(j.Steps)
+			for i, s := range j.Steps {
+				if s.Name == "Jobs" {
+					j.Steps[i].Run = strings.ReplaceAll(s.Run, "else true", "else false")
+				}
+			}
+			w.Jobs["plan"] = j
+		}},
+		{"planner whose runs: false reads as true", func(w workflow) {
+			j := w.Jobs["plan"]
+			j.Steps = slices.Clone(j.Steps)
+			for i, s := range j.Steps {
+				if s.Name == "Jobs" {
+					j.Steps[i].Run = strings.ReplaceAll(s.Run, "if .jobs.platform then .jobs.platform.runs else true end", ".jobs.platform.runs // true")
+				}
+			}
+			w.Jobs["plan"] = j
+		}},
+		{"platform skips on a failed planner", func(w workflow) {
+			for _, id := range []string{"platform-macos", "platform-windows"} {
+				j := w.Jobs[id]
+				j.If = "${{ (" + notDraftExpr + ") && (" + plannerSaysRun + ") }}"
+				w.Jobs[id] = j
+			}
+		}},
+		{"platform requires the planner to succeed", func(w workflow) {
+			j := w.Jobs["platform-windows"]
+			j.If = "${{ !cancelled() && (" + notDraftExpr + ") && needs.plan.result == 'success' && needs.plan.outputs.platform != 'false' }}"
+			w.Jobs["platform-windows"] = j
+		}},
+		{"platform ignores the planner", func(w workflow) {
+			j := w.Jobs["platform-macos"]
+			j.If = notDraft
+			w.Jobs["platform-macos"] = j
+		}},
+		{"platform without the planner in needs", func(w workflow) {
+			j := w.Jobs["platform-windows"]
+			j.Needs = nil
+			w.Jobs["platform-windows"] = j
+		}},
+		{"platform renamed", func(w workflow) {
+			j := w.Jobs["platform-macos"]
+			j.Name = "platform (${{ matrix.os }})"
+			w.Jobs["platform-macos"] = j
+		}},
+		{"platform without the shared setup", func(w workflow) {
+			j := w.Jobs["platform-windows"]
+			j.Steps = slices.DeleteFunc(slices.Clone(j.Steps), func(s step) bool { return s.Uses == platformBuild })
+			w.Jobs["platform-windows"] = j
+		}},
+		{"release without the push-to-main condition", func(w workflow) {
+			j := w.Jobs["release"]
+			j.If = "${{ !failure() && !cancelled() }}"
+			w.Jobs["release"] = j
+		}},
+		{"release skipped with a skipped platform job", func(w workflow) {
+			j := w.Jobs["release"]
+			j.If = "${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}"
+			w.Jobs["release"] = j
+		}},
+		{"release that ignores a failed job", func(w workflow) {
+			j := w.Jobs["release"]
+			j.If = "${{ always() && github.event_name == 'push' && github.ref == 'refs/heads/main' }}"
+			w.Jobs["release"] = j
+		}},
+		{"release without a platform job in needs", func(w workflow) {
+			j := w.Jobs["release"]
+			j.Needs = []string{"ci", "platform-macos"}
+			w.Jobs["release"] = j
+		}},
+	} {
+		t.Run("reject "+tc.name, func(t *testing.T) {
+			w := readWorkflow(t)
+			tc.change(w)
+			if err := contract(t, w); err == nil {
+				t.Fatal("change accepted")
+			}
+		})
+	}
+	t.Run("the shared setup selects the pinned Go first, then builds itos and reads the range", func(t *testing.T) {
+		data, err := os.ReadFile(filepath.Join(scratch.Root(t), platformBuild, "action.yml"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		var action struct{ Runs struct{ Steps []step } }
+		if err := yaml.Unmarshal(data, &action); err != nil {
+			t.Fatal(err)
+		}
+		var names []string
+		for _, s := range action.Runs.Steps {
+			names = append(names, s.Name)
+		}
+		steps := action.Runs.Steps
+		if len(steps) != 3 || steps[0].Uses != goToolchain || steps[0].If != "" || !slices.Equal(names[1:], []string{"Build itos", "Range"}) || steps[1].ID != "build" {
+			t.Fatalf("the shared setup's steps: %+v", steps)
+		}
+	})
 	t.Run("nightly requires a successful job for each platform", func(t *testing.T) {
 		plan := scratch.CIPlan(t, scratch.Root(t), "--nightly")
 		var command string
@@ -321,7 +559,8 @@ func TestSelftest(t *testing.T) {
 			t.Fatal("nightly has no latest CI job check")
 		}
 		w := readWorkflow(t)
-		names := []string{w.Jobs["ci"].Name, "platform (macos-latest)", "platform (windows-latest)"}
+		names := []string{w.Jobs["ci"].Name, w.Jobs["platform-macos"].Name, w.Jobs["platform-windows"].Name}
+		planner := w.Jobs["plan"].Name
 		// ci.yml's newest runs when the nightly of 2026-10-22 (run 39773321788) read them, newest
 		// first, under a pull request's run: one still going, two cancelled while they waited, then
 		// the run to judge (T-277).
@@ -333,45 +572,86 @@ func TestSelftest(t *testing.T) {
 			`{"databaseId": 39772979146, "headBranch": "main", "event": "push", "status": "completed", "conclusion": "success"}`,
 		}
 		const none = "No completed CI run on main among the newest 100 runs of ci.yml, so its platform jobs cannot be judged."
-		for _, mode := range []string{"green", "missing Linux", "missing macOS", "missing Windows", "failed", "skipped", "duplicate macOS", "API failure", "metadata", "mixed metadata", "missing named tests", "missing launcher", "no completed run", "no run"} {
-			t.Run(mode, func(t *testing.T) {
+		type fake struct {
+			name, conclusion string
+			steps            []string
+		}
+		launcher := []string{"Install the launcher", "The launcher"}
+		// A full run when the planner has just succeeded: the ci job's plan, each platform's unit and
+		// named tests. A metadata run replaces each job's steps by the marker.
+		green := func() []*fake {
+			return []*fake{
+				{names[0], "success", append(slices.Clone(launcher), "Plan")},
+				{names[1], "success", append(slices.Clone(launcher), "Unit tests", "Named tests")},
+				{names[2], "success", append(slices.Clone(launcher), "Unit tests", "Named tests")},
+				{planner, "success", nil},
+			}
+		}
+		metadata := func(jobs []*fake, which ...int) {
+			for _, i := range which {
+				jobs[i].steps = []string{"Validation-only range", "Plan"}
+			}
+		}
+		// A platform job its planner skipped has no step and the conclusion skipped.
+		skipPlatforms := func(jobs []*fake) {
+			for _, i := range []int{1, 2} {
+				jobs[i].conclusion, jobs[i].steps = "skipped", nil
+			}
+		}
+		without := func(jobs []*fake, i int) []*fake { return slices.Delete(jobs, i, i+1) }
+		withoutStep := func(job *fake, name string) {
+			job.steps = slices.DeleteFunc(job.steps, func(s string) bool { return s == name })
+		}
+		for _, tc := range []struct {
+			mode   string
+			change func(jobs []*fake) []*fake
+			ok     bool
+		}{
+			{"green", func(j []*fake) []*fake { return j }, true},
+			{"missing Linux", func(j []*fake) []*fake { return without(j, 0) }, false},
+			{"missing macOS", func(j []*fake) []*fake { return without(j, 1) }, false},
+			{"missing Windows", func(j []*fake) []*fake { return without(j, 2) }, false},
+			{"failed", func(j []*fake) []*fake { j[0].conclusion = "failed"; return j }, false},
+			{"skipped", func(j []*fake) []*fake { j[0].conclusion = "skipped"; return j }, false},
+			{"duplicate macOS", func(j []*fake) []*fake { j[2].name = names[1]; return j }, false},
+			{"API failure", func(j []*fake) []*fake { return j }, false},
+			{"metadata", func(j []*fake) []*fake { metadata(j, 0, 1, 2); return j }, true},
+			{"mixed metadata", func(j []*fake) []*fake { metadata(j, 0); return j }, false},
+			{"missing named tests", func(j []*fake) []*fake { withoutStep(j[1], "Named tests"); return j }, false},
+			{"missing launcher", func(j []*fake) []*fake { withoutStep(j[2], "Install the launcher"); return j }, false},
+			{"no completed run", func(j []*fake) []*fake { return j }, false},
+			{"no run", func(j []*fake) []*fake { return j }, false},
+			// A run from before the planner has none, and its platform jobs ran.
+			{"before the planner", func(j []*fake) []*fake { return without(j, 3) }, true},
+			// The planner skips the platform jobs of a range that touches no platform path (slice 202).
+			{"platform skipped", func(j []*fake) []*fake { skipPlatforms(j); return j }, true},
+			{"one platform skipped", func(j []*fake) []*fake { j[1].conclusion, j[1].steps = "skipped", nil; return j }, true},
+			{"platform skipped, metadata", func(j []*fake) []*fake { skipPlatforms(j); metadata(j, 0); return j }, true},
+			{"platform skipped, planner failed", func(j []*fake) []*fake { skipPlatforms(j); j[3].conclusion = "failure"; return j }, false},
+			{"platform skipped, planner skipped", func(j []*fake) []*fake { skipPlatforms(j); j[3].conclusion = "skipped"; return j }, false},
+			{"platform skipped, no planner", func(j []*fake) []*fake { skipPlatforms(j); return without(j, 3) }, false},
+			{"platform skipped, Linux missing its launcher", func(j []*fake) []*fake {
+				skipPlatforms(j)
+				withoutStep(j[0], "The launcher")
+				return j
+			}, false},
+			{"platform skipped, Linux skipped", func(j []*fake) []*fake { skipPlatforms(j); j[0].conclusion, j[0].steps = "skipped", nil; return j }, false},
+			{"platform cancelled", func(j []*fake) []*fake { j[1].conclusion, j[1].steps = "cancelled", nil; return j }, false},
+			{"platform failed after the planner", func(j []*fake) []*fake { j[2].conclusion = "failure"; return j }, false},
+		} {
+			t.Run(tc.mode, func(t *testing.T) {
 				dir, env := fakeEnv(t)
 				var jobs []map[string]any
-				for i, name := range names {
-					if mode == []string{"missing Linux", "missing macOS", "missing Windows"}[i] {
-						continue
-					}
-					conclusion := "success"
-					if i == 0 && (mode == "failed" || mode == "skipped") {
-						conclusion = mode
-					}
-					if i == 2 && mode == "duplicate macOS" {
-						name = names[1]
-					}
-					stepNames := []string{"Install the launcher", "The launcher"}
-					if i == 0 {
-						stepNames = append(stepNames, "Plan")
-					} else {
-						stepNames = append(stepNames, "Unit tests", "Named tests")
-					}
-					if mode == "metadata" || (mode == "mixed metadata" && i == 0) {
-						stepNames = []string{"Validation-only range", "Plan"}
-					}
+				for _, f := range tc.change(green()) {
 					var steps []map[string]string
-					for _, stepName := range stepNames {
-						if mode == "missing named tests" && i == 1 && stepName == "Named tests" {
-							continue
-						}
-						if mode == "missing launcher" && i == 2 && stepName == "Install the launcher" {
-							continue
-						}
-						steps = append(steps, map[string]string{"name": stepName, "conclusion": "success"})
+					for _, name := range f.steps {
+						steps = append(steps, map[string]string{"name": name, "conclusion": "success"})
 					}
-					jobs = append(jobs, map[string]any{"name": name, "conclusion": conclusion, "steps": steps})
+					jobs = append(jobs, map[string]any{"name": f.name, "conclusion": f.conclusion, "steps": steps})
 				}
 				data, _ := json.Marshal(map[string]any{"jobs": jobs})
 				list := runs
-				switch mode {
+				switch tc.mode {
 				case "no completed run": // none on main both completed and run
 					list = runs[:4]
 				case "no run": // the empty list the nightly of 2026-10-22 (run 39817143873) was given
@@ -379,15 +659,15 @@ func TestSelftest(t *testing.T) {
 				}
 				scratch.WriteFiles(t, dir, map[string]string{"jobs.json": string(data), "runs.json": "[" + strings.Join(list, ",") + "]"})
 				env = scratch.With(env, "JOBS="+filepath.Join(dir, "jobs.json"), "RUNS="+filepath.Join(dir, "runs.json"), "WANT_RUN=39772979146")
-				if mode == "API failure" {
+				if tc.mode == "API failure" {
 					env = scratch.With(env, "GH_FAIL=1")
 				}
 				r := scratch.Run(dir, env, "", "sh", "-c", command)
-				if (r.Code == 0) != (mode == "green" || mode == "metadata") {
-					t.Fatalf("%s: exit %d\n%s", mode, r.Code, r.Output())
+				if (r.Code == 0) != tc.ok {
+					t.Fatalf("%s: exit %d\n%s", tc.mode, r.Code, r.Output())
 				}
-				if said := strings.Contains(r.Output(), none); said != (mode == "no completed run" || mode == "no run") || (said && r.Code != 1) {
-					t.Fatalf("%s: exit %d\n%s", mode, r.Code, r.Output())
+				if said := strings.Contains(r.Output(), none); said != (tc.mode == "no completed run" || tc.mode == "no run") || (said && r.Code != 1) {
+					t.Fatalf("%s: exit %d\n%s", tc.mode, r.Code, r.Output())
 				}
 			})
 		}
@@ -399,7 +679,7 @@ func TestSelftest(t *testing.T) {
 func testToolchain(t *testing.T) {
 	const actionPath = "./.github/actions/go-toolchain"
 	for file, ids := range map[string][]string{
-		"ci.yml":      {"ci", "platform"},
+		"ci.yml":      {"ci", "plan", "platform-macos", "platform-windows"},
 		"nightly.yml": {"nightly", "platform", "report"},
 		"release.yml": {"release"},
 	} {
@@ -413,7 +693,9 @@ func testToolchain(t *testing.T) {
 				if strings.HasPrefix(s.Uses, "actions/checkout@") {
 					checkedOut = true
 				}
-				if s.Uses == actionPath {
+				// The platform jobs set Go up in their shared action, whose first step is the pinned
+				// toolchain, checked below.
+				if s.Uses == actionPath || s.Uses == platformBuild {
 					if !checkedOut || s.If != "" {
 						t.Fatalf("%s %s must set up Go unconditionally after checkout", file, id)
 					}

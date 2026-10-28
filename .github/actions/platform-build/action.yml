@@ -1,0 +1,39 @@
+name: Platform build
+description: Select the pinned Go toolchain, build itos natively where the features find it, and read where the push's range starts.
+# What ci.yml's two platform jobs share. They check the repository out first, since a local action
+# is read from the tree, and keep the steps the nightly reads by name at job level, since a
+# composite action's own steps are not in the job's step list.
+runs:
+  using: composite
+  steps:
+    - uses: ./.github/actions/go-toolchain
+    # The build tools/bin/itos makes, stamped with tools/bin/dev-version's version, but written
+    # where the features find it on every platform: ITOS_BIN, itos.exe on windows, since Go runs
+    # no shell script there and tools/bin/itos is one. The steps after call it as ITOS_BIN too,
+    # on every platform alike: the itos under test reads the range and runs its tests, where
+    # tools/bin/itos, a shell script, would build a second binary of its own.
+    - name: Build itos
+      id: build
+      shell: bash
+      run: |
+        exe=""
+        [ "$RUNNER_OS" != Windows ] || exe=.exe
+        bin="$RUNNER_TEMP/itos/itos$exe"
+        CGO_ENABLED=0 go build -trimpath \
+          -ldflags "-s -w -X github.com/donvargax/itos/v8/internal/version.stamp=$(tools/bin/dev-version)" \
+          -o "$bin" ./cmd/itos
+        "$bin" version
+        echo "ITOS_BIN=$bin" >> "$GITHUB_ENV"
+    # Where the range starts, read as the ci job reads it (its Range step says how), so both
+    # judge the same commits.
+    - name: Range
+      if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+      shell: bash
+      env:
+        BASE: ${{ github.event.pull_request.base.sha }}
+        GITHUB_TOKEN: ${{ github.token }}
+      run: |
+        out=$("$ITOS_BIN" ci range --json --head "$TO" --base "$BASE")
+        from=$(jq -er '.from | strings' <<<"$out" | tr -d '\r') # jq.exe ends its lines with CRLF
+        echo "FROM=$from"
+        echo "FROM=$from" >> "$GITHUB_ENV"

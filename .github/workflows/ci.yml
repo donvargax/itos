@@ -114,6 +114,56 @@ jobs:
           echo "$out"
           jq -e '.version | test("^[0-9]+\\.[0-9]+\\.[0-9]+")' <<<"$out"
 
+  # What the platform jobs below run is decided once, here, from itos.yaml's ci.jobs (slice 202): a
+  # range that touches none of the paths the platform jobs judge (a registry or ledger commit, a
+  # plugin script) skips them, and they report as skipped, which GitHub reads as a success for a
+  # required check. Its if: is the ci job's, so a draft's run skips it with the rest. A planner
+  # that fails or is skipped never skips them: they run, as every push's did.
+  plan:
+    name: plan
+    if: ${{ github.event_name != 'pull_request' || !github.event.pull_request.draft }}
+    runs-on: ubuntu-latest
+    outputs:
+      platform: ${{ steps.jobs.outputs.platform }}
+      full: ${{ steps.scope.outputs.full }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # the range's commits, and the tags for the version itos is stamped with
+      - uses: ./.github/actions/go-toolchain
+      - name: Build itos
+        run: tools/bin/itos version
+      # Where the range starts, as the ci job's Range step reads it.
+      - name: Range
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          out=$(tools/bin/itos ci range --json --head "$TO" --base "$BASE")
+          from=$(jq -er '.from | strings' <<<"$out")
+          echo "FROM=$from"
+          echo "FROM=$from" >> "$GITHUB_ENV"
+      # Whether the range has more than metadata to validate, as the platform jobs' Scope step reads
+      # it: the platform jobs run nothing else on a range that needs validation only.
+      - name: Scope
+        id: scope
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          out=$(go run ./tools/bin/ci-repo scope "$FROM" "$TO")
+          echo "$out"
+          full=$(jq -er '.full | tostring' <<<"$out")
+          echo "full=$full" >> "$GITHUB_OUTPUT"
+      # Whether the range runs the platform jobs: ci plan --json's jobs.platform.runs, true when
+      # itos.yaml's ci.jobs does not declare the job.
+      - name: Jobs
+        id: jobs
+        run: |
+          out=$(tools/bin/itos ci plan "$FROM" "$TO" --json)
+          jq -c '.jobs' <<<"$out"
+          platform=$(jq -er 'if .jobs.platform then .jobs.platform.runs else true end | tostring' <<<"$out")
+          echo "platform=$platform" >> "$GITHUB_OUTPUT"
+
   # The unit tests and the range's named tests on macOS and Windows (T-072, T-163): itos
   # built natively on each runner and run as a person on that platform meets it, with that
   # platform's git, shell and paths. The release archives are cross-compiled on Linux (T-069); this
@@ -122,53 +172,29 @@ jobs:
   # (nightly.yml's platform jobs), so a push waits for the scenarios the ci job runs, not for the
   # whole suite on Windows. Linux runs these once in ci above, including the launcher check
   # (T-170); the nightly requires all three named jobs to succeed and proves their scope.
-  platform:
-    name: platform (${{ matrix.os }})
-    if: ${{ github.event_name != 'pull_request' || !github.event.pull_request.draft }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [macos-latest, windows-latest]
-    runs-on: ${{ matrix.os }}
+  #
+  # Two jobs and not one matrix, since a job-level if: is evaluated before the matrix is applied:
+  # a skipped matrix job reports one check named "platform (${{ matrix.os }})", never the required
+  # "platform (macos-latest)" and "platform (windows-latest)", which would stay pending. They skip
+  # when the planner succeeded and said the range touches no platform path or needs validation
+  # only (slice 202). Their steps differ in their runner alone; tools/selftest/ci-platform holds
+  # them to each other, and the steps the nightly reads by name (Validation-only range, Unit tests,
+  # Named tests, Install the launcher, The launcher) stay here and not in the shared action.
+  platform-macos:
+    name: platform (macos-latest)
+    needs: [plan]
+    if: ${{ !cancelled() && (github.event_name != 'pull_request' || !github.event.pull_request.draft) && (needs.plan.result != 'success' || (needs.plan.outputs.platform != 'false' && needs.plan.outputs.full != 'false')) }}
+    runs-on: macos-latest
     defaults:
       run:
-        shell: bash # Git for Windows' bash on windows
+        shell: bash
     steps:
       # Every action pinned to a commit, each release at least 7 days old when pinned (T-067's
       # rule), as release.yml pins them: actions/checkout v4.4.0.
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           fetch-depth: 0 # the tags, for the version the build is stamped with, and the range's commits
-      - uses: ./.github/actions/go-toolchain
-      # The build tools/bin/itos makes, stamped with tools/bin/dev-version's version, but written
-      # where the features find it on every platform: ITOS_BIN, itos.exe on windows, since Go runs
-      # no shell script there and tools/bin/itos is one. The steps below call it as ITOS_BIN too,
-      # on every platform alike: the itos under test reads the range and runs its tests, where
-      # tools/bin/itos, a shell script, would build a second binary of its own.
-      - name: Build itos
-        id: build
-        run: |
-          exe=""
-          [ "$RUNNER_OS" != Windows ] || exe=.exe
-          bin="$RUNNER_TEMP/itos/itos$exe"
-          CGO_ENABLED=0 go build -trimpath \
-            -ldflags "-s -w -X github.com/donvargax/itos/v8/internal/version.stamp=$(tools/bin/dev-version)" \
-            -o "$bin" ./cmd/itos
-          "$bin" version
-          echo "ITOS_BIN=$bin" >> "$GITHUB_ENV"
-      # Where the range starts, read as the ci job reads it (its Range step says how), so both
-      # judge the same commits.
-      - name: Range
-        id: range
-        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
-        env:
-          BASE: ${{ github.event.pull_request.base.sha }}
-          GITHUB_TOKEN: ${{ github.token }}
-        run: |
-          out=$("$ITOS_BIN" ci range --json --head "$TO" --base "$BASE")
-          from=$(jq -er '.from | strings' <<<"$out" | tr -d '\r') # jq.exe ends its lines with CRLF
-          echo "FROM=$from"
-          echo "FROM=$from" >> "$GITHUB_ENV"
+      - uses: ./.github/actions/platform-build
       # Scope is computed independently on each runner: code jobs stay concurrent with Linux.
       - name: Scope
         id: scope
@@ -213,12 +239,60 @@ jobs:
           echo "$out"
           jq -e '.version | test("^[0-9]+\\.[0-9]+\\.[0-9]+")' <<<"$out"
 
+  # platform-macos above, on Windows.
+  platform-windows:
+    name: platform (windows-latest)
+    needs: [plan]
+    if: ${{ !cancelled() && (github.event_name != 'pull_request' || !github.event.pull_request.draft) && (needs.plan.result != 'success' || (needs.plan.outputs.platform != 'false' && needs.plan.outputs.full != 'false')) }}
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash # Git for Windows' bash on windows
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0 # the tags, for the version the build is stamped with, and the range's commits
+      - uses: ./.github/actions/platform-build
+      - name: Scope
+        id: scope
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          out=$(go run ./tools/bin/ci-repo scope "$FROM" "$TO")
+          echo "$out"
+          full=$(jq -er '.full | tostring' <<<"$out" | tr -d '\r')
+          echo "full=$full" >> "$GITHUB_OUTPUT"
+      - name: Validation-only range
+        if: ${{ steps.scope.outputs.full == 'false' }}
+        run: echo 'This range needs metadata validation only; the scope above says why.'
+      - name: Unit tests
+        if: ${{ steps.scope.outputs.full == 'true' }}
+        run: go test ./cmd/... ./internal/...
+      - name: Named tests
+        if: ${{ !cancelled() && steps.scope.outputs.full == 'true' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: go run ./tools/bin/ci-repo tests "$FROM" "$TO"
+      - name: Install the launcher
+        id: launcher
+        if: ${{ !cancelled() && steps.scope.outputs.full == 'true' }}
+        uses: ./
+      - name: The launcher
+        if: ${{ !cancelled() && steps.scope.outputs.full == 'true' && steps.launcher.outcome == 'success' }}
+        run: |
+          command -v itos
+          out=$(itos version --json)
+          echo "$out"
+          jq -e '.version | test("^[0-9]+\\.[0-9]+\\.[0-9]+")' <<<"$out"
+
   # A push to main whose ci job and platform jobs are green cuts a release when its commits since
   # the last tag carry a feat, a fix or a breaking change (T-069; release.yml says how). The only
-  # job with write access, granted here and to nothing else; a pull request never releases.
+  # job with write access, granted here and to nothing else; a pull request never releases. A
+  # platform job the planner skipped does not skip it: a fix to the plugin's Markdown touches no
+  # platform path and still releases. A failed or cancelled job does.
   release:
-    needs: [ci, platform]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [ci, platform-macos, platform-windows]
+    if: ${{ !failure() && !cancelled() && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
     permissions:
       contents: write
       id-token: write
