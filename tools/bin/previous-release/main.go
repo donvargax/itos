@@ -451,7 +451,7 @@ func runFeatures(tree, bin string) suite {
 	}
 	var shown strings.Builder
 	for _, name := range failed {
-		id, ok := byName[name]
+		id, ok := idOf(byName, name)
 		if !ok {
 			s.output = all.String()
 			s.err = fmt.Errorf("the scenario %q failed, and no feature file names it with an ID", name)
@@ -517,6 +517,17 @@ var (
 	idTag    = regexp.MustCompile(`^@ID-[A-Z]+-\d+$`)
 	scenario = regexp.MustCompile(`^\s*Scenario(?: Outline)?:\s*(.+?)\s*$`)
 )
+
+// outlineRow is the suffix go test gives the subtest of a scenario outline's
+// second and later rows, which share the outline's name.
+var outlineRow = regexp.MustCompile(`#\d+$`)
+
+// idOf is the @ID- tag of the scenario a failed subtest ran, an outline's row
+// by the outline's.
+func idOf(byName map[string]string, name string) (string, bool) {
+	id, ok := byName[outlineRow.ReplaceAllString(name, "")]
+	return id, ok
+}
 
 // scenarioNames maps each scenario of the feature files under dir, by the
 // name go test gives its subtest (spaces as underscores), to its @ID- tag.

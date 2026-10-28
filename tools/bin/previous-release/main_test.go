@@ -371,3 +371,21 @@ func reported(t *testing.T, failures []failure, commits []commit) (status int, s
 	}
 	return status, string(o), string(e)
 }
+
+// A failed row of a scenario outline is named by the outline's tag: go test
+// calls its second and later rows after the outline with #01, #02, and so on.
+func TestIdOfNamesAnOutlinesRows(t *testing.T) {
+	byName := map[string]string{"A_outline": "@ID-X-01", "Plain": "@ID-X-02"}
+	for name, want := range map[string]string{
+		"A_outline": "@ID-X-01", "A_outline#01": "@ID-X-01", "A_outline#12": "@ID-X-01", "Plain": "@ID-X-02",
+	} {
+		if id, ok := idOf(byName, name); !ok || id != want {
+			t.Errorf("idOf(%q) = %q, %v; want %q", name, id, ok, want)
+		}
+	}
+	for _, name := range []string{"Other", "Other#01", "A_outline#x", "A_outline#01x", "#01"} {
+		if id, ok := idOf(byName, name); ok {
+			t.Errorf("idOf(%q) = %q; want none", name, id)
+		}
+	}
+}
