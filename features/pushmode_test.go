@@ -22,6 +22,10 @@
 // Codex review state that changes once a pr comment call has been made, and
 // check the calls it was made as. Slice 199's give the recording gh an answer
 // to the aliased pullRequests query of itos status.
+// Slice-192's say a remote's branch has the commit of the remote's main with a
+// subject, give a ledger task written as a block a single check, and compare
+// the clone's HEAD with a remote branch's head or with a commit when no rebase
+// is in progress.
 package features
 
 import (
@@ -143,6 +147,120 @@ func initializePushModeSteps(sc *godog.ScenarioContext, w *world) {
 		return w.gitIn(w.remote(), "symbolic-ref", "HEAD", "refs/heads/"+branch)
 	})
 	sc.Step(`^the remote's branch "([^"]*)" ends with "([^"]*)" then "([^"]*)", with no merge commit$`, w.remoteBranchEndsWith)
+	sc.Step(`^the remote's branch "([^"]*)" has the remote main's commit "([^"]*)"$`, w.remoteBranchHasMainsCommit)
+	sc.Step(`^the clone has the commit "([^"]*)" giving the ledger's task "([^"]*)" the check "([^"]*)"$`, w.cloneGivesTaskCheck)
+	sc.Step(`^the clone's HEAD is the head of the remote's branch "([^"]*)"$`, w.cloneHeadIsRemoteHead)
+	sc.Step(`^the clone's HEAD is the commit "([^"]*)", with no rebase in progress$`, w.cloneHeadIsCommitNotRebasing)
+}
+
+// The remote's branch of the name has the commit of the remote's main with the
+// subject (slice-192): that commit is an ancestor of the branch's head, so the
+// same SHA is on both.
+func (w *world) remoteBranchHasMainsCommit(branch, subject string) error {
+	cmd := exec.Command(git.Bin(runtime.GOOS), "log", "--format=%H %s", "refs/heads/main")
+	cmd.Dir = w.remote()
+	cmd.Env = w.env()
+	out, err := cmd.Output()
+	if err != nil {
+		return fmt.Errorf("git log in the remote: %w", err)
+	}
+	for _, line := range strings.Split(strings.TrimSpace(string(out)), "\n") {
+		sha, got, _ := strings.Cut(line, " ")
+		if got != subject {
+			continue
+		}
+		if err := w.gitIn(w.remote(), "merge-base", "--is-ancestor", sha, "refs/heads/"+branch); err != nil {
+			return fmt.Errorf("the remote's branch %q does not have the remote main's commit %q (%s): %w\n%s", branch, subject, sha, err, w.report())
+		}
+		return nil
+	}
+	return fmt.Errorf("the remote's main has no commit %q\n%s", subject, w.report())
+}
+
+// The ledger's task of the id as it stands in the clone, written as a block by
+// task add, with its done_when made the one check, and the ledger alone
+// committed, past the hooks.
+func (w *world) cloneGivesTaskCheck(subject, id, command string) error {
+	file := filepath.Join(w.dir, w.data(w.ledgerPath()))
+	text, err := os.ReadFile(file)
+	if err != nil {
+		return err
+	}
+	var kept []string
+	in, found, checks := false, false, false
+	closeTask := func() {
+		if in {
+			kept = append(kept, "  done_when:", fmt.Sprintf("    - run: %q", command))
+		}
+		in = false
+	}
+	for _, line := range strings.Split(strings.TrimSuffix(string(text), "\n"), "\n") {
+		if !strings.HasPrefix(line, " ") {
+			closeTask()
+			in = line == "- id: "+id
+			found = found || in
+			checks = false
+		}
+		switch {
+		case in && strings.HasPrefix(line, "  done_when:"):
+			checks = true
+		case in && checks && strings.HasPrefix(line, "   "):
+		default:
+			checks = false
+			kept = append(kept, line)
+		}
+	}
+	closeTask()
+	if !found {
+		return fmt.Errorf("the ledger has no task %s written as a block:\n%s", id, text)
+	}
+	if err := os.WriteFile(file, []byte(strings.Join(kept, "\n")+"\n"), 0o644); err != nil {
+		return err
+	}
+	return w.commitPaths(subject, w.data(w.ledgerPath()))
+}
+
+// The clone's HEAD is the head of the remote's branch of the name, by their
+// full SHAs.
+func (w *world) cloneHeadIsRemoteHead(branch string) error {
+	head, err := w.head()
+	if err != nil {
+		return err
+	}
+	theirs, err := w.remoteBranchHead(branch)
+	if err != nil {
+		return err
+	}
+	if head != theirs {
+		return fmt.Errorf("the clone's HEAD is %s, not the head of the remote's branch %q, %s\n%s", head, branch, theirs, w.report())
+	}
+	return nil
+}
+
+// The clone's HEAD commit has the subject, and no rebase is in progress: the
+// git folder has neither rebase-merge nor rebase-apply.
+func (w *world) cloneHeadIsCommitNotRebasing(subject string) error {
+	got, err := w.gitOutput("log", "-1", "--format=%s", "HEAD")
+	if err != nil {
+		return err
+	}
+	if strings.TrimSpace(got) != subject {
+		return fmt.Errorf("the clone's HEAD is %q, not %q\n%s", strings.TrimSpace(got), subject, w.report())
+	}
+	for _, name := range []string{"rebase-merge", "rebase-apply"} {
+		out, err := w.gitOutput("rev-parse", "--git-path", name)
+		if err != nil {
+			return err
+		}
+		dir := strings.TrimSpace(out)
+		if !filepath.IsAbs(dir) {
+			dir = filepath.Join(w.dir, dir)
+		}
+		if _, err := os.Stat(dir); err == nil {
+			return fmt.Errorf("the clone has a rebase in progress (%s)\n%s", dir, w.report())
+		}
+	}
+	return nil
 }
 
 // dropVar takes out of the variables the scenario sets those that start with
