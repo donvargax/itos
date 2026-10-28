@@ -15403,3 +15403,17 @@ items:
     status: done
     depends_on: []
     kind: task
+
+  - id: p1-v9-design-from-friction
+    title: Design v9 from the v8 close-out's friction (docs/plans/v9-friction.md)
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The person, 2026-10-28: after the specced v8 friction items land, design v9 from what the
+      friction showed, in a fresh session. docs/plans/v9-friction.md groups the evidence by cause
+      (the registry in git, the --ready ceremony, item branches plus never-force under Claude Code's
+      classifier, shared fixtures) and lists the questions to start from.
+    tags: [v9]
