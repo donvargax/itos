@@ -15390,3 +15390,17 @@ items:
     status: doing
     depends_on: []
     kind: task
+
+  - id: p2-ci-trusted-skips-platform
+    title: A trusted main run skips the platform jobs its pull request's head already passed
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Noted by slice-202's drafter (2026-10-27): slice-188 skips the per-push code proof on a
+      trusted main run (a merged pull request whose head's run passed on the same tree); the
+      platform jobs could be skipped the same way through slice-202's per-job answer, saving the
+      macOS and Windows re-run on every merge.
+    tags: [ci]
