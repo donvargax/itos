@@ -15403,7 +15403,7 @@ items:
       trusted main run (a merged pull request whose head's run passed on the same tree); the
       platform jobs could be skipped the same way through slice-202's per-job answer, saving the
       macOS and Windows re-run on every merge.
-    tags: [ci]
+    tags: [ci, v9]
 
   - id: p1-recording-gh-composable
     title: The feature tests' recording gh is built from one handler per command, so parallel slices stop conflicting in one Sprintf
