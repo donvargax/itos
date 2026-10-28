@@ -290,6 +290,12 @@ func TestPushReadyMergesAPullRequestGitHubRefusesAsClean(t *testing.T) {
 	if r := reported(t, stdout); code != missing || r.Outcome != "pull-request-failed" || strings.Count(stderr, "gh pr merge failed: HTTP 405") != 1 {
 		t.Errorf("--json: exit %d\n%s%s", code, stdout, stderr)
 	}
+	// A gh that did not run says no words, and is no clean status.
+	f, _ = mergeRepo(t, func([]string) error { return errors.New("killed") })
+	if code, _, stderr, _ = call(t, f, "--ready"); code != missing || !strings.Contains(stderr, "gh pr merge failed: killed") ||
+		strings.Count(strings.Join(f.calls(), "\n"), "pr merge") != 1 {
+		t.Errorf("a gh that did not run: exit %d\n%s", code, stderr)
+	}
 }
 
 // A merge call that fails because an auto-merge turned on earlier merged the
@@ -391,6 +397,18 @@ func TestPushReadyReadsTheMergeBack(t *testing.T) {
 				t.Errorf("exit %d\n%s%s", code, stdout, stderr)
 			}
 		})
+	}
+}
+
+// push.pr.ready_wait 0 is no bound: a run is watched to its end and the pull
+// request merged.
+func TestPushReadyWithNoBoundWatchesTheRun(t *testing.T) {
+	f, p := draftRepo(t, "draft: true, ready_wait: 0", github)
+	asked := watching(f, "success")
+	p.open, p.draft = open7, true
+	code, stdout, stderr, _ := call(t, f, "--json", "--ready")
+	if r := reported(t, stdout); code != 0 || r.PR == nil || !r.PR.AutoMerge || r.CI != "success" || !reflect.DeepEqual(*asked, []string{f.head(t)}) {
+		t.Errorf("exit %d\n%s%s", code, stdout, stderr)
 	}
 }
 
