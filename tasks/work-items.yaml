@@ -15410,6 +15410,6 @@ items:
     title: The feature tests' recording gh is built from one handler per gh command and GraphQL query
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task

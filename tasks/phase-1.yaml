@@ -5200,5 +5200,3 @@
     file) per gh subcommand and GraphQL query, registered by the steps that need it, so parallel
     items add answers without touching shared lines. Behaviour-preserving: every feature passes
     before and after, no scenario text changes.
-  done_when:
-    - run: test -f features/testdata/gh/dispatch.sh
