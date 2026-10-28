@@ -208,3 +208,20 @@ compared.
   reads it (slice 60's spec did); move a word so the line starts otherwise.
 - **Say why beside the scenario** when a setup would make a reader ask: a
   comment above the tag line, which the moving rule ignores.
+
+## The recording gh
+
+The `gh` that `a recording gh on the PATH` puts first on the PATH answers from
+one small shell file per case in `features/testdata/gh/`, which the steps
+write into the scenario's folder, so a new answer is a new file and no line of
+a shared script changes. `dispatch.sh` records the call and runs
+`<command>-<subcommand>.sh` (`pr-list.sh` for `gh pr list`); in it `$S` is the
+folder the steps keep the answers in (`world.support`), `$GIT` and `$REMOTE`
+the git binary and the fake remote, `$ADDRESS` the pull request address the
+step was given, and `$rec`, `$head`, `$state` and `$json` the call and the
+`--head`, `--state` and `--json` values. A step sets an answer by writing a
+file named `gh-<what>` in that folder and the handler reads it. An `api
+graphql` call goes through `graphql/*.sh`, one file per mutation or query, which answers and exits when `$rec` has its
+name, and then to `graphql-nodes.sh`, which joins one piece of the nodes answer from each
+file of `nodes/` in name order. Write a step's own helpers and its Go code in
+a file of its own.
