@@ -44,11 +44,14 @@ type Push struct {
 // pull request as a draft, which itos push --ready marks ready; ReviewBy, the
 // GitHub logins whose review --ready waits for before it turns on auto-merge;
 // ReviewStall, the seconds a login's review may read running before --ready
-// asks for it again, 0 for never (slice 190); Direct, the commits a push from main sends straight to main (slice 186).
+// asks for it again, 0 for never (slice 190); ReadyWait, the seconds one
+// itos push --ready may spend waiting before it stops with
+// ready-still-waiting, 0 for no bound (slice 200); Direct, the commits a push from main sends straight to main (slice 186).
 type PushPR struct {
 	Draft       bool       `json:"draft"`
 	ReviewBy    []string   `json:"review_by"`
 	ReviewStall float64    `json:"review_stall"`
+	ReadyWait   float64    `json:"ready_wait"`
 	Direct      PushDirect `json:"direct"`
 }
 

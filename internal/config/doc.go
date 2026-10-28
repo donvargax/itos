@@ -5,7 +5,7 @@
 // slice 202), nightly and range (ci), the work registry and the
 // people (work), the hooks (hooks), how itos push lands work (push.mode:
 // trunk, the default, or pr, slice 174; push.pr's draft and review_by, slice
-// 179, review_stall, slice 190, and direct, slice 186), the pin (pin), the proof of done work
+// 179, review_stall, slice 190, ready_wait, slice 200, and direct, slice 186), the pin (pin), the proof of done work
 // done requires (proof, slice 100) and where verification starts
 // (commits.since). A project changes its policy here, not in the
 // code, and every reader of the config goes through Load; none has a

@@ -245,7 +245,7 @@
 // missing one with gh pr create --draft and goes no further: no gh pr merge,
 // no gh pr update-branch even when main moved, no wait whatever ci.watch
 // says; it never changes a draft state, and says, by draftNote, which the
-// pull request is. PullRequest.Draft and AutoMerge are --json's.
+// pull request is. PullRequest.Draft, AutoMerge and Merged are --json's.
 //
 // --ready (Query.Ready, markReady) is refused before anything is fetched or
 // pushed outside push.mode pr with push.pr.draft true (outcome
@@ -256,24 +256,52 @@
 // takes over, whether or not anything was pushed: the run of the pull
 // request's head, the head GitHub made when it was asked to rebase, is
 // watched with ciwatch.WatchReady, which passes over the draft's run whose jobs
-// were all skipped; a run that does not succeed ends it, auto-merge off.
+// were all skipped; a run that does not succeed ends it, auto-merge off. With
+// no ci.watch provider unwatchedHead asks gh pr view once, with no wait: the
+// head it answers is the rebased one only when viewHead says so, else --ready
+// stops at once, rebase waiting (ready-still-waiting).
 // With push.pr.review_by, awaitReviews asks GitHub at once and each
 // ci.watch.interval, never faster than reviewPoll, until each login has a
 // verdict, matched with a trailing "[bot]" dropped from both sides since
-// GraphQL names a bot without it; ci.watch.timeout from the first ask ends it,
-// exit 75, outcome review-timeout. A verdict is the login's review-state
-// comment with both reviews completed (Codex posts no review on a clean pass),
-// or, for a login that wrote none, a review that is not a refusal (Copilot's
-// "was unable to review this pull request"); a login with only refusals ends
-// the wait at once, exit 75, outcome review-refused. The reviews, the pull
-// request's comments and the review threads are one
+// GraphQL names a bot without it; ci.watch.timeout ends it, exit 75, outcome
+// review-timeout, counted from when the pull request was last marked ready or
+// its head pushed, whichever is later, as GitHub says (reviewsFrom: the ready
+// event reviewQuery asks for, and the branch's activity, pushedAt), else from
+// the first ask, so a --ready run again continues the clock. A verdict is the
+// login's review-state comment with both reviews completed and both of the head
+// judged (Codex posts no review on a clean pass, and its state names the commit
+// of each review), or, for a login that wrote none, a review that is not a
+// refusal (Copilot's "was unable to review this pull request"); a login with
+// only refusals ends the wait at once, exit 75, outcome review-refused. The
+// reviews, the pull request's comments and the review threads are one
 // gh api graphql question (ask, reviewQuery on one line, since the recording
 // gh of the scenarios keeps a call to one line); an answer without that shape
-// is a gh call that fails, except for the comments, which an answer without is
-// read as having none (v8.22.2's recorded answers carry none). A thread not resolved refuses the merge (exit 1,
+// is a gh call that fails, except for the comments and the times, which an
+// answer without is read as having none (v8.22.2's recorded answers carry
+// none). A thread not resolved refuses the merge (exit 1,
 // review-threads-unresolved), named by its file, line and the first line of
-// its first comment; only then gh pr merge --auto --rebase, so auto-merge
-// comes after the checks and the reviews, never before.
+// its first comment; only then merge, so auto-merge comes after the checks and
+// the reviews, never before.
+//
+// push.pr.ready_wait (slice 200; 540 seconds by default, 0 for no bound) bounds
+// one --ready call, counted from its start (pushRun.began, bound): every wait of
+// it, for GitHub's rebase, the run and the reviews, ends at it having looked once
+// at least, whichever of it and ci.watch.timeout comes first deciding (limits).
+// At the bound --ready exits 75, outcome ready-still-waiting, saying what it
+// waits on and the full SHA of the head (stillWaiting), and itos push --ready
+// again goes on: the clocks of ci.watch.timeout are GitHub's, and nothing
+// posted is posted twice.
+//
+// merge (merge.go) is the last step. Every merge call carries --match-head-commit
+// with the head judged, so GitHub refuses a head that came in since: gh pr merge
+// --auto --rebase; when GitHub refuses that as "is in clean status", the pull
+// request being mergeable already, one direct gh pr merge --rebase; when a merge
+// call fails otherwise, gh pr view tells whether the pull request is merged at
+// the head judged already (an earlier auto-merge), which is then success. After
+// the call that succeeded, readBack reads the pull request once (gh pr view
+// --json state,mergedAt,autoMergeRequest): merged (PullRequest.Merged), auto-merge
+// on (AutoMerge), or neither, which is pull-request-failed; an answer without
+// state reads as the call asked.
 //
 // While --ready waits (waiting.go, slice 190) it says what on, where the
 // watch's progress goes: "Waiting on <address> at <head>: run <state>, <login>
@@ -282,14 +310,20 @@
 // asked until the first ask, then waiting, running (its review-state comment
 // with a review not completed) or completed (its verdict). The head is the one
 // whose run is watched, the head GitHub made when it rebased the pull request
-// included (watchRun). With push.pr.review_stall above 0, stalled posts one gh pr
-// comment for a login whose review has read running that many seconds since
-// the first look of this --ready that read it so: "@codex review", an empty
+// included (watchRun, unwatchedHead). A login whose review-state comment is for
+// another commit than the head, none of its reviews of the head under way, is
+// asked once for the head (askForHead) at the look that reads it, whether or not
+// review_stall is set, since Codex here reviews on ready_for_review alone. With
+// push.pr.review_stall above 0, stalled posts one gh pr
+// comment for a login whose review of the head has read running that many seconds,
+// from the last edit of its comment (GitHub's updatedAt) else the first look of
+// this --ready that read it so: "@codex review", an empty
 // line and "<!-- itos-review-request:v1 <login> <head> -->", once per head
 // ever (pullState.requested: any comment with that line for the login and the
 // head is an earlier request). A review still running review_stall seconds
-// after the request this --ready posted, or after its first look that read
-// it running when an earlier request was posted, ends the wait: exit 75,
+// after the request, counted from the request comment's createdAt, from when
+// this --ready posted it until GitHub lists it, or from its first look that read
+// it running when an earlier request has no time, ends the wait: exit 75,
 // outcome review-stalled. ci.watch.timeout still bounds the whole wait.
 //
 // # push threads and push thread

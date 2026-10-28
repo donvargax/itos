@@ -91,8 +91,10 @@ func defaults() *value.Map {
 		),
 		// Trunk, so a config without push.mode pushes as it always did
 		// (slice 174); pr opens ready pull requests unless asked for drafts
-		// (slice 179); push.pr.direct sends nothing straight to main (slice 186).
-		"push", m("mode", "trunk", "pr", m("draft", false, "review_by", l(), "review_stall", 0.0, "direct", m("types", l(), "except", l()))),
+		// (slice 179); push.pr.direct sends nothing straight to main (slice 186);
+		// --ready returns within 540 seconds, Claude Code's 600 s foreground cap
+		// less a minute for the push before its wait (slice 200).
+		"push", m("mode", "trunk", "pr", m("draft", false, "review_by", l(), "review_stall", 0.0, "ready_wait", 540.0, "direct", m("types", l(), "except", l()))),
 		// The repository's own notes, which itos go appends to the
 		// coordinator's guide (slice 64): beside its other docs.
 		"guide", m("orchestrating", "docs/ORCHESTRATING.md"),

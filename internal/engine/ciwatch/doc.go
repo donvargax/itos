@@ -39,7 +39,12 @@
 // ran CI with every job skipped, and GitHub may record that run as a success,
 // so a run all of whose jobs were skipped, or that lists none, is taken for no
 // run yet and looked for again each interval within the timeout, until the run
-// that marking the pull request ready starts shows.
+// that marking the pull request ready starts shows. Its timeout counts from
+// the start of the run's latest attempt (run_started_at, providers.Run.Started)
+// when GitHub gives it, so that a --ready run again continues the clock, else
+// from the watch's start (slice 200); and Ready.Left ends the watch, outcome
+// bound, exit 75, at the first look after push.pr.ready_wait has passed,
+// unless the timeout passed first.
 //
 // A run that completed with any conclusion but cancelled is given Detail
 // before its end is said (slice 172, features/watch-failures.feature); a

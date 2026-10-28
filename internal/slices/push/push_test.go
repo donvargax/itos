@@ -310,6 +310,7 @@ type report struct {
 		Updated   bool   `json:"updated"`
 		Draft     bool   `json:"draft"`
 		AutoMerge bool   `json:"auto_merge"`
+		Merged    *bool  `json:"merged"`
 	} `json:"pull_request"`
 	Run *struct {
 		URL string `json:"url"`

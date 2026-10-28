@@ -109,7 +109,7 @@ func (h Handler) Handle(ctx context.Context, q Query, o Out) (Answer, error) {
 		return Answer{}, out.Usage("push refuses core.hooksPath set by git -c: it moves the hooks git runs, skipping the " +
 			"repository's own; push without it")
 	}
-	r := pushRun{ports: h.ports, o: o, origin: q.Origin, git: o.Stdout, noWait: q.NoWait, markReady: q.Ready, ontoMain: q.OntoMain}
+	r := pushRun{ports: h.ports, o: o, origin: q.Origin, git: o.Stdout, noWait: q.NoWait, markReady: q.Ready, ontoMain: q.OntoMain, began: now()}
 	if o.JSON {
 		r.git = o.Stderr
 	}

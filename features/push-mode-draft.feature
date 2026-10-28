@@ -702,7 +702,7 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   # Bounded by default, inside Claude Code's 600 s foreground cap with a
   # minute left for the push. Fails before the work at the exit code: today
   # config get refuses the unknown key push.pr.ready_wait, exit 2.
-  @ID-PUSHDRAFT-30 @slice-200 @wip
+  @ID-PUSHDRAFT-30 @slice-200
   Scenario: config get prints push.pr.ready_wait's default, 540, when the config leaves it out
     When itos runs "config get push.pr.ready_wait"
     Then itos exits with code 0
@@ -830,7 +830,7 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   # request back and says it merged, not that auto-merge is on. Fails
   # before the work at the --match-head-commit step: today the --auto call
   # carries no head, and --ready reads nothing back.
-  @ID-PUSHDRAFT-31 @slice-200 @wip
+  @ID-PUSHDRAFT-31 @slice-200
   Scenario: Under push.pr.draft, push --ready pins its --auto merge to the head whose run it watched and says GitHub merged it at once
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -863,7 +863,7 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   # the head pushed; --json says it merged, auto-merge off. Fails before the
   # work at the exit code: today the refusal is any gh call failing, exit 3,
   # pull-request-failed.
-  @ID-PUSHDRAFT-32 @slice-200 @wip
+  @ID-PUSHDRAFT-32 @slice-200
   Scenario: Under push.pr.draft, push --ready whose --auto merge GitHub refuses as clean merges once itself at the head GitHub made, and --json says it merged
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -894,7 +894,7 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   # any other refusal of auto-merge (a repository that allows none, here)
   # is a gh call failing, as before, and nothing is merged. A guard: it
   # passes before the work and must after it.
-  @ID-PUSHDRAFT-33 @slice-200 @guard @wip
+  @ID-PUSHDRAFT-33 @slice-200 @guard
   Scenario: Under push.pr.draft, push --ready whose auto-merge GitHub refuses for another reason merges nothing and exits 3
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -923,7 +923,7 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   # work is done and --ready says so rather than failing. Fails before the
   # work at the exit code: today the refusal is any gh call failing, exit 3,
   # pull-request-failed.
-  @ID-PUSHDRAFT-44 @slice-200 @wip
+  @ID-PUSHDRAFT-44 @slice-200
   Scenario: Under push.pr.draft, push --ready whose merge call GitHub refuses because the pull request merged just before, at the head it judged, says it merged and exits 0
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -1307,7 +1307,7 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   # state never changes). Fails before the work at the exit code:
   # today commit_sha is not read, both reviews completed is the verdict and
   # auto-merge goes on, exit 0.
-  @ID-PUSHDRAFT-34 @slice-200 @wip
+  @ID-PUSHDRAFT-34 @slice-200
   Scenario Outline: Under push.pr.draft, push --ready does not count Codex's review state for a commit other than the head, asks once for the head, and exits 75
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -1347,7 +1347,7 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   # still for an older commit posts nothing more and waits. Fails before the
   # work at the exit code: today commit_sha is not read, both reviews
   # completed is the verdict and auto-merge goes on, exit 0.
-  @ID-PUSHDRAFT-38 @slice-200 @wip
+  @ID-PUSHDRAFT-38 @slice-200
   Scenario: Under push.pr.draft, push --ready asks no second time for a head already asked of a login whose review state is for an older commit
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -1416,7 +1416,7 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   # unknown key, so the config cannot be read and --ready is refused, exit
   # 1, ready-without-draft (and with the key known but not obeyed, the
   # watch runs to ci.watch.timeout, outcome nothing-to-push).
-  @ID-PUSHDRAFT-35 @slice-200 @wip
+  @ID-PUSHDRAFT-35 @slice-200
   Scenario: Under push.pr.draft, push --ready stops at push.pr.ready_wait while the run of the head GitHub made goes on, exit 75, naming that head
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -1450,7 +1450,7 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   # today push.pr.ready_wait is an unknown key, so --ready is refused, exit
   # 1 (and with the key known but not obeyed, the wait runs to
   # ci.watch.timeout, outcome review-timeout).
-  @ID-PUSHDRAFT-36 @slice-200 @wip
+  @ID-PUSHDRAFT-36 @slice-200
   Scenario: Under push.pr.draft with no ci.watch provider, push --ready stops at push.pr.ready_wait while a review_by login has not reviewed, exit 75
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -1487,7 +1487,7 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   # before the rebase wait would reach the bound. Fails before the work at the exit code:
   # today push.pr.ready_wait is an unknown key, so --ready is refused,
   # exit 1.
-  @ID-PUSHDRAFT-40 @slice-200 @wip
+  @ID-PUSHDRAFT-40 @slice-200
   Scenario: Under push.pr.draft, push --ready counts push.pr.ready_wait from its start, so time the wait for GitHub's rebase took is gone for the reviews
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -1526,7 +1526,7 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   # push.pr.ready_wait ends it, ready-still-waiting. Fails before the work
   # at the exit code: today push.pr.ready_wait is an unknown key, so --ready
   # is refused, exit 1.
-  @ID-PUSHDRAFT-42 @slice-200 @wip
+  @ID-PUSHDRAFT-42 @slice-200
   Scenario: Under push.pr.draft, push --ready counts the review wait from when GitHub says the pull request was marked ready, so a rerun reaches review-timeout
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -1559,7 +1559,7 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   # from the call's first look waits, and push.pr.ready_wait ends it,
   # ready-still-waiting. Fails before the work at the exit code: today
   # push.pr.ready_wait is an unknown key, so --ready is refused, exit 1.
-  @ID-PUSHDRAFT-43 @slice-200 @wip
+  @ID-PUSHDRAFT-43 @slice-200
   Scenario: Under push.pr.draft, push --ready counts ci.watch.timeout from the watched run's start, so a rerun reaches the run's timeout
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -1740,7 +1740,7 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   # provider gh pr view is never called, and the request names the clone's
   # HEAD (the exit code and the outcome pass today, the state's commit_sha
   # not being read).
-  @ID-PUSHDRAFT-37 @slice-200 @wip
+  @ID-PUSHDRAFT-37 @slice-200
   Scenario: Under push.pr.draft with no ci.watch provider, push --ready reads the head GitHub made once and asks again for a stalled review of it
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -1776,7 +1776,7 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   # with no provider gh pr view is never called, the state's commit_sha is
   # not read, both reviews completed is the verdict and auto-merge goes on,
   # exit 0.
-  @ID-PUSHDRAFT-39 @slice-200 @wip
+  @ID-PUSHDRAFT-39 @slice-200
   Scenario: Under push.pr.draft with no ci.watch provider, push --ready whose one gh pr view answers a head without main's stops, rebase waiting, exit 75
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -1816,7 +1816,7 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   # at the outcome step: today the stall counts from this call's first look
   # that read it running, so the wait ends at ci.watch.timeout,
   # review-timeout.
-  @ID-PUSHDRAFT-41 @slice-200 @wip
+  @ID-PUSHDRAFT-41 @slice-200
   Scenario: Under push.pr.draft, push --ready counts push.pr.review_stall from GitHub's times, so a rerun past it stops at the stall
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """

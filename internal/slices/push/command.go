@@ -167,18 +167,32 @@ which it is. itos push --ready, with push.mode pr and push.pr.draft true,
 pushes as above and then: opens the pull request ready when there is none, or
 marks the draft ready (gh pr ready); asks GitHub to rebase it when main has a
 commit its head lacks (gh pr update-branch --rebase); with ci.watch's provider,
-waits for the run of its head, passing over a run all of whose jobs were skipped
-(a draft's), which exits as above and, when it did not succeed, turns on no
-auto-merge; with push.pr.review_by, waits, each ci.watch.interval within
+waits for the run of the head GitHub made, passing over a run all of whose jobs
+were skipped (a draft's), which exits as above and, when it did not succeed,
+turns on no auto-merge (with none, it reads that head once with gh pr view, and
+stops at once, "rebase waiting", when GitHub has not rebased the pull request
+yet); with push.pr.review_by, waits, each ci.watch.interval within
 ci.watch.timeout, for a verdict by each login (a "[bot]" suffix is dropped from
 both sides, since GraphQL names a bot without it): a review that is not
 Copilot's refusal to review, or, from a login that wrote a Codex review-state
-comment, that comment with both reviews completed; exit 75 when one is missing,
-and at once, outcome review-refused, when a login's only reviews are refusals;
-refuses, exit 1, a pull request with an unresolved review thread, naming each
-by its file, line and the first line of its first comment; and only then turns
-on auto-merge by rebase. Auto-merge thus comes after the checks and the
-reviews. The reviews, comments and threads are one gh api graphql question.
+comment, that comment with both reviews completed and both of the head judged
+(a state for another commit is waited on, and the login is asked once for the
+head, "@codex review"); exit 75 when one is missing, and at once, outcome
+review-refused, when a login's only reviews are refusals; refuses, exit 1, a
+pull request with an unresolved review thread, naming each by its file, line and
+the first line of its first comment; and only then merges: gh pr merge --auto
+--rebase --match-head-commit <the head judged>, or, when GitHub refuses
+auto-merge as "is in clean status", the pull request being mergeable already,
+one gh pr merge --rebase --match-head-commit, and it says whether the pull
+request was merged or auto-merge is on (a pull request merged at the head
+already when a merge call fails is merged too). Auto-merge thus comes after the
+checks and the reviews. The reviews, comments and threads are one gh api graphql
+question. The clocks of ci.watch.timeout are GitHub's: the run's from its
+latest attempt's start, the reviews' from when the pull request was marked ready
+or its head pushed, whichever is later, so running --ready again continues them.
+push.pr.ready_wait (seconds, 540 by default, 0 for no bound) ends one --ready call
+that has waited that long, exit 75, outcome ready-still-waiting, saying what it
+waits on and the head's full SHA; itos push --ready again goes on.
 While it waits it prints, when the wait starts and after each look that changes
 something, "Waiting on <address> at <head>: run <state>, <login> <state>.", the
 run waiting or succeeded and each push.pr.review_by login not asked, waiting,
@@ -250,18 +264,19 @@ opened, or a gh that failed for push threads or push thread; 75 a remote that ca
 reached (a connection refused or timed out, a host that does not resolve), a
 CI run not finished, a CI run cancelled with no newer run to follow,
 GitHub's API failing, or --ready's wait for a review not answered within
-ci.watch.timeout or a review still running push.pr.review_stall seconds after
-it was asked again; 70 a fetch, a read of the remote's tags or a push that
+ci.watch.timeout, a review still running push.pr.review_stall seconds after
+it was asked again, or --ready's wait for GitHub, the run and the reviews at
+push.pr.ready_wait; 70 a fetch, a read of the remote's tags or a push that
 failed for another reason. The kind of a failed fetch or push is
 read from git's message; git's own exit code is never itos's.
 
 --json: git's output on stderr;
         {"schema":1,"ok","outcome","remote"?,"branch"?,"tags"?,"refs"?,"commit"?,"pull_request"?,"ci"?,"run"?},
         tags and refs what --tag and --ref named, pull_request
-        {"url","number","created","updated","draft","auto_merge"} after a push
+        {"url","number","created","updated","draft","auto_merge","merged"} after a push
         from an item's branch under push.mode pr (draft whether it is a draft
         once the push is done, auto_merge whether this push turned on
-        auto-merge), outcome one of pushed,
+        auto-merge, merged whether --ready found GitHub merged it), outcome one of pushed,
         nothing-to-push, uncommitted, rebase-in-progress, detached, no-remote,
         no-such-ref, tag-exists, fetch-failed (reading the remote's tags or
         HEAD too), no-default-branch, rebase-stopped, rebase-failed,
@@ -269,8 +284,8 @@ read from git's message; git's own exit code is never itos's.
         no-github-repository, pull-request-failed, registry-conflict,
         needs-registry-commit, merge-in-history, for --onto-main
         onto-main-without-pr and onto-main-on-main, and for --ready
-        review-timeout, review-refused, review-stalled, review-threads-unresolved,
-        ready-without-draft and ready-on-main;
+        review-timeout, review-refused, review-stalled, ready-still-waiting,
+        review-threads-unresolved, ready-without-draft and ready-on-main;
         push threads gives {"schema":1,"ok","outcome","pull_request"?,"threads"?},
         pull_request {"url","number"}, threads a list of {"id","path","line"?,
         "author","comment"} (line left out for an outdated thread, [] for none),

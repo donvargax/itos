@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/engine/ciwatch"
@@ -41,6 +42,8 @@ type pushRun struct {
 	waiting        *waiting         // what --ready waits on, while its run is watched (waiting.go)
 	noUpstream     string           // the local branch, when it has no upstream and goes to the remote's default branch (trunkDefault)
 	sent           []string         // the "Sent ..." lines of an item's push, before the "Pushed ..." line (registry.go)
+	began          time.Time        // when the call began, which push.pr.ready_wait counts from (slice 200)
+	bound          time.Time        // when push.pr.ready_wait ends the call, zero for no bound (ready.go)
 }
 
 // report ends the run: Run prints the outcome under --json, else the lines
@@ -420,9 +423,14 @@ func (r *pushRun) watchRun(ctx context.Context, cfg *config.Loaded, wr providers
 		return Answer{}, false
 	}
 	if r.rebased != nil {
-		head, lost, a, failed := r.rebasedHead(ctx, cfg)
+		head, lost, bounded, a, failed := r.rebasedHead(ctx, cfg)
 		if failed {
 			return a, true
+		}
+		if bounded {
+			r.waiting.rebasing = true
+			r.watched = &ciwatch.Watched{Code: temporary, Outcome: "bound"}
+			return Answer{}, false
 		}
 		if lost {
 			r.watched = &ciwatch.Watched{Code: temporary, Outcome: "timeout"}
@@ -437,7 +445,7 @@ func (r *pushRun) watchRun(ctx context.Context, cfg *config.Loaded, wr providers
 	}
 	var w ciwatch.Watched
 	if r.markReady {
-		w = ciwatch.WatchReady(ctx, cfg, wr, r.ports, sha, remote, ciwatch.Out(r.o))
+		w = ciwatch.WatchReady(ctx, cfg, wr, r.ports, sha, remote, ciwatch.Out(r.o), r.readyBound())
 	} else {
 		w = ciwatch.Watch(ctx, cfg, wr, r.ports, sha, remote, "", ciwatch.Out(r.o))
 	}
