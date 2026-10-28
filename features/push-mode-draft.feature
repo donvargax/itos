@@ -427,26 +427,43 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   push no reviewer read, and with no ci.watch provider the re-request's
   marker names the head from before GitHub's rebase.
 
-  The clean merge. When step 6's gh pr merge --auto fails with words that
-  have "is in clean status" (gh's whole line is "GraphQL: Pull request Pull
-  request is in clean status (enablePullRequestAutoMerge)"), --ready has met
-  every condition (the run, the reviews, the threads) and GitHub has
-  nothing left to wait for, so --ready merges the pull request itself: gh
-  pr merge <item> --repo <repository> --rebase --match-head-commit <the
-  head's full SHA>, the item named as the --auto call names it, and the head
-  the one --ready judged: the one whose run step 3 watched (the head GitHub
-  made when it rebased); with no ci.watch provider, the head it waited on
-  (read as below when it asked for a rebase). It never merges a head it did
-  not judge: GitHub refuses the merge when a push came in since, which is
-  any gh call that fails (exit 3, pull-request-failed). It says "Merged
-  <address> by rebase at <the head's first 7 characters>: GitHub calls it
-  clean, and turns on no auto-merge for a clean pull request." Exit 0,
-  outcome pushed or nothing-to-push; --json's pull_request gains "merged",
-  whether this --ready merged it, auto_merge staying false then. Any other
-  failure of gh pr merge --auto is pull-request-failed, exit 3, as before,
-  and nothing is merged. --ready asks for auto-merge first and reads no
-  merge state of GitHub's before it: the refusal is GitHub's word that the
-  pull request is clean.
+  The merge, pinned and read back. gh pr merge --auto does not always turn
+  on auto-merge: when gh reads the pull request's merge state as CLEAN,
+  HAS_HOOKS or UNSTABLE it merges it at once (cli/cli's
+  pkg/cmd/pr/merge/merge.go, isImmediatelyMergeable), saying nothing off a
+  terminal, so --ready's step 6 can merge the head unpinned. So every merge
+  call --ready makes carries --match-head-commit <the judged head's full
+  SHA>, step 6's included: gh pr merge <item> --repo <repository> --auto
+  --rebase --match-head-commit <sha>. The judged head is the one whose run
+  step 3 watched (the head GitHub made when it rebased); with no ci.watch
+  provider, the head it waited on (read as below when it asked for a
+  rebase). It never merges a head it did not judge: GitHub refuses the
+  merge when a push came in since, which is any gh call that fails (exit
+  3, pull-request-failed). After the merge call that succeeded, --ready
+  reads the pull request once, gh pr view <item> --repo <repository>
+  --json state,mergedAt,autoMergeRequest, and says what happened: merged
+  (state MERGED or a mergedAt), "Merged <address> by rebase at <the head's
+  first 7 characters>: its checks and reviews had passed, and GitHub
+  merged it at once." with --json's pull_request "merged" true (a new
+  field) and auto_merge false; auto-merge on (an autoMergeRequest), "Auto-merge is on: ..." as
+  before, merged false and auto_merge true; neither, pull-request-failed,
+  exit 3, naming gh pr view: "the pull request is neither merged nor set
+  to merge". An answer without state reads as the call asked (auto-merge
+  on after --auto, merged after a direct merge), since v8.31.0's recorded
+  pr view answers carry only headRefOid (as slice 187 reads an answer
+  without comments). Exit 0 either way, outcome pushed or nothing-to-push.
+
+  The clean-status refusal is a race: gh read a state that let it ask for
+  auto-merge, and GitHub, by then, found the pull request clean. When
+  step 6's call fails with words that have "is in clean status" (gh's whole
+  line is "GraphQL: Pull request Pull request is in clean status
+  (enablePullRequestAutoMerge)"), --ready has met every condition (the
+  run, the reviews, the threads), so it merges once itself: gh pr merge
+  <item> --repo <repository> --rebase --match-head-commit <sha>, then reads
+  it back as above. If that refuses too, pull-request-failed, exit 3, as
+  any gh call that fails. Any other failure of the --auto call is
+  pull-request-failed, exit 3, as before, and nothing more is merged or
+  asked.
 
   The head's review. A review_by login's review-state comment (step 4b)
   counts for the head --ready judges alone: its code_review.commit_sha and
@@ -469,7 +486,9 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   <repository> --body=<"@codex review", an empty line, "<!--
   itos-review-request:v1 <login> <the head's full SHA> -->">, and it says,
   where its progress goes, "Asked <login> to review <the head's first 7
-  characters> on <address>: its review state is for another commit." Then
+  characters> on <address>: its review state is for another commit." It
+  posts it at that look before the look judges ci.watch.timeout or
+  push.pr.ready_wait, so a wait already past its bound still asks. Then
   it waits as before, up to ci.watch.timeout (and push.pr.ready_wait). It
   does so whether or not push.pr.review_stall is set: asking for a head
   never reviewed is no stall. Once per head, as slice 190's: a comment on
@@ -491,12 +510,14 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   seconds one itos push --ready may spend, counted from its start, before
   it stops waiting for GitHub's rebase, the run and the reviews with the
   outcome ready-still-waiting, so that it returns within its caller's time
-  limit; itos push --ready again goes on. 0, no bound." It bounds the whole
-  call: every wait inside it (for GitHub's rebase, step 3's run, step 4's
-  reviews, slice 190's stall) ends at it, each having looked once at least,
-  so a --ready whose run and reviews are there already never stops for it.
-  ci.watch.timeout still bounds the run's and the reviews' waits as
-  before: whichever comes first decides the outcome. At ready_wait --ready
+  limit; itos push --ready again goes on. 0, no bound." It is one bound per
+  call, counted from the call's start and never restarted by a wait: the
+  waits inside it (for GitHub's rebase, step 3's run, step 4's reviews,
+  slice 190's stall) share it, so time an earlier one took is gone for the
+  later ones, and each ends at it having looked once at least, so a
+  --ready whose run and reviews are there already never stops for it.
+  ci.watch.timeout still bounds the run's and the reviews' waits, by the
+  clocks below: whichever comes first decides the outcome. At ready_wait --ready
   stops: exit 75, outcome ready-still-waiting, auto-merge not turned on,
   the watch's own timeout line not printed, and stderr (under --json too)
   "itos: still waiting after <n> seconds (push.pr.ready_wait) on <address>
@@ -512,19 +533,47 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   while main has not moved), and slice 190's request is once per head.
   --json: outcome gains ready-still-waiting.
 
+  The clocks, kept by GitHub. ready_wait ends each call, so a clock counted
+  from a call's own looks would restart at every rerun, and an agent
+  running --ready again and again would never reach review-timeout or a
+  stall. So under --ready the other clocks count from times GitHub keeps,
+  read at the looks, and a rerun continues them: ci.watch.timeout for the
+  run from the watched run's created_at; ci.watch.timeout for the reviews
+  from when the pull request was marked ready or its head was pushed,
+  whichever is later, read once at the first ask (the last
+  ReadyForReviewEvent's createdAt; the head commit's committedDate, which
+  GitHub's own rebase sets, as the push's, GitHub's API giving no push
+  time); review_stall, before a request, from the review-state comment's
+  updatedAt while it reads running (Codex edits it in place as its status
+  changes), and after one from the request comment's createdAt (a request
+  this --ready posted counting from when it posted it, until GitHub lists
+  it). reviewQuery asks for each comment's createdAt and updatedAt and for
+  those two times. A time GitHub does not give, or that cannot be read,
+  counts from the first look of this call that read the thing, as before
+  slice 200, so v8.31.0's recorded answers, which carry none, wait as they
+  did. Outside --ready (a plain push's watch, itos ci watch) nothing
+  changes.
+
   The head GitHub made, unwatched. With no ci.watch provider, once it has
   asked GitHub to rebase (step 2), --ready asks gh pr view <item> --repo
-  <repository> --json headRefOid once, with no wait for the rebase, and
-  takes the head it answers as the one it judges and waits on: the waiting
-  line names it, slice 190's re-request marker names it, the review state
-  is compared with it, and the clean merge pins it. A gh pr view that fails
-  is any gh call that fails. With a provider the head GitHub made is found
+  <repository> --json headRefOid once, with no wait for the rebase. The
+  head it answers counts only when it has the head of main the push
+  fetched as an ancestor, as slice 175's rebasedHead judges one: then it is
+  the head --ready judges and waits on (the waiting line names it, slice
+  190's request marker names it, the review state is compared with it,
+  the merge pins it). Else GitHub has not rebased yet, and --ready stops
+  at once: exit 75, outcome ready-still-waiting, nothing merged, no review
+  asked of GitHub and no request posted, stderr (under --json too) "itos:
+  still waiting on <address> at <the head pushed's full SHA>: rebase
+  waiting; GitHub has not rebased it onto <remote>/<main> yet, so
+  auto-merge is not turned on. itos push --ready again goes on waiting." A
+  gh pr view that fails is any gh call that fails. With a provider the head GitHub made is found
   as slice 175 finds it and printed as soon as it is ("GitHub rebased the
   pull request onto <main>: watching the run of <short>, its new head.",
   then the waiting line), as now.
 
   The implementing push changes command.go's help, doc.go and the schema
-  for the five rules, and in a docs commit of its own AGENTS.md's
+  for the rules above, and in a docs commit of its own AGENTS.md's
   Finishing: on ready-still-waiting, itos push --ready again, the ci watch
   fallback for a call cut off going.
 
@@ -565,7 +614,33 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   review state of the head of the remote's branch <branch> at each call,
   its code review <status> and its security review <status>", both
   commit_sha the SHA that branch has in the remote when api graphql is
-  called, so after the recording gh's pr update-branch the head it made.
+  called, so after the recording gh's pr update-branch the head it made,
+  and the same step ending "for its first <n> api graphql calls, then both
+  <status>", as slice 187's.
+
+  The read-back and the clocks need the fakes to know more. The recording
+  gh keeps what its pr merge calls did: one that succeeds without --auto
+  merges the branch's pull request (MERGED, mergedAt the call's time); one
+  with --auto sets its auto-merge request, unless a step says it merges at
+  once. Its pr view answers the fields its --json asks: headRefOid as
+  before, and state, mergedAt (null unless merged) and autoMergeRequest
+  (null, or {"mergeMethod":"REBASE"}) from that. Its api graphql answer
+  gives a comment a createdAt and an updatedAt, and the pull request its
+  ready time and its head's committedDate, only when a step gave them, in
+  the shape the query asks. More new steps: "the recording gh's pr merge
+  with --auto merges the pull request at once, as gh does when it reads it
+  clean"; "the recording gh's <command> call with <text> has the full SHA
+  of the clone's HEAD" (or "of the head of the remote's branch <branch>"),
+  a call of the command that has both; "ci.watch.interval is <n>", as
+  "ci.watch.timeout is <n>" is; "the watched run was created <n> seconds
+  ago", the fake GitHub's run then carrying created_at, that long before
+  the step ran (none otherwise); "the recording gh answers that the pull
+  request was marked ready <n> seconds ago, after its head was pushed", the
+  ready time that long before the step ran and the head's committedDate a
+  second before it; slice 187's Codex-state step ending ", last edited <n>
+  seconds ago", the comment's createdAt and updatedAt that long before the
+  step ran; and slice 190's "asking <login> to review the clone's HEAD
+  again" ending ", posted <n> seconds ago", likewise.
 
   Background:
     Given a repository whose ledger has the task "T-001"
@@ -721,14 +796,15 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
     And the recording gh's "pr merge" call has "--rebase"
     And its output says "Auto-merge is on"
 
-  # GitHub refuses auto-merge on a pull request that is clean already, the
-  # very state --ready waits for (#146, #149, #156): with the run green, no
-  # review asked and no thread open, --ready merges it itself, only once
-  # auto-merge was refused, pinned to the head whose run it watched. Fails
-  # before the work at the exit code: today the refusal is any gh call
-  # failing, exit 3, pull-request-failed.
+  # gh pr merge --auto merges at once when gh reads the pull request clean
+  # (cli/cli's isImmediatelyMergeable), saying nothing off a terminal: the
+  # very state --ready waits for (#146, #149, #156). So the --auto call is
+  # pinned to the head whose run --ready watched, and --ready reads the pull
+  # request back and says it merged, not that auto-merge is on. Fails
+  # before the work at the --match-head-commit step: today the --auto call
+  # carries no head, and --ready reads nothing back.
   @ID-PUSHDRAFT-31 @slice-200 @wip
-  Scenario: Under push.pr.draft, push --ready merges a pull request GitHub calls clean itself, pinned to the head whose run it watched
+  Scenario: Under push.pr.draft, push --ready pins its --auto merge to the head whose run it watched and says GitHub merged it at once
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
       push:
@@ -743,21 +819,25 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
     And the clone has the commit "feat: add the widget" touching "widget.md"
     And git pushes HEAD to the remote's new branch "slice-9"
     And the recording gh has the draft pull request "https://github.example/o/r/pull/7" open for the branch "slice-9"
-    And the recording gh's "pr merge" calls with "--auto" fail, saying "GraphQL: Pull request Pull request is in clean status (enablePullRequestAutoMerge)"
+    And the recording gh's pr merge with --auto merges the pull request at once, as gh does when it reads it clean
     When itos runs "push --ready"
     Then itos exits with code 0
-    And the recording gh's call with "--auto" comes before its call with "--match-head-commit"
-    And the recording gh's "pr merge" call has "--match-head-commit"
-    And the recording gh's "pr merge" call has the full SHA of the clone's HEAD
+    And the recording gh's "pr merge" call with "--match-head-commit" has the full SHA of the clone's HEAD
+    And the recording gh's "pr merge" call has "--auto"
+    And the recording gh was called as "pr merge" once
+    And the recording gh's "pr view" call has "autoMergeRequest"
     And its output says "Merged https://github.example/o/r/pull/7 by rebase at "
     And its output does not say "Auto-merge is on"
 
-  # The head --ready judged is the one GitHub made when it rebased the pull
-  # request onto main, whose run it watched, never the head pushed; --json
-  # says it merged, auto-merge off. Fails before the work at the exit code:
-  # today exit 3, pull-request-failed.
+  # The race: gh read a state that let it ask for auto-merge, and GitHub by
+  # then found the pull request clean, refusing it. --ready merges once
+  # itself, both calls pinned to the head it judged, the one GitHub made
+  # when it rebased the pull request onto main, whose run it watched, never
+  # the head pushed; --json says it merged, auto-merge off. Fails before the
+  # work at the exit code: today the refusal is any gh call failing, exit 3,
+  # pull-request-failed.
   @ID-PUSHDRAFT-32 @slice-200 @wip
-  Scenario: Under push.pr.draft, push --ready merges a clean pull request GitHub rebased at the head GitHub made, and --json says it merged
+  Scenario: Under push.pr.draft, push --ready whose --auto merge GitHub refuses as clean merges once itself at the head GitHub made, and --json says it merged
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
       push:
@@ -779,7 +859,9 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
     And its JSON's "pull_request.merged" is true
     And its JSON's "pull_request.auto_merge" is false
     And the fake GitHub was asked for the run of the head of the remote's branch "slice-9"
-    And the recording gh's "pr merge" call has the full SHA of the head of the remote's branch "slice-9"
+    And the recording gh's "pr merge" call with "--auto" has the full SHA of the head of the remote's branch "slice-9"
+    And the recording gh's "pr merge" call has "--repo owner/scratch --rebase --match-head-commit"
+    And the recording gh's call with "--repo owner/scratch --auto" comes before its call with "--repo owner/scratch --rebase"
 
   # Only GitHub's word that the pull request is clean lets --ready merge it:
   # any other refusal of auto-merge (a repository that allows none, here)
@@ -1162,8 +1244,9 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   # only one fails a row, and one with both earlier. Such a state reads as
   # waiting, and since Codex here reviews on ready_for_review alone, nothing
   # would review the head: --ready asks for it once, with no
-  # push.pr.review_stall, then waits out ci.watch.timeout (the recording
-  # gh's state never changes). Fails before the work at the exit code:
+  # push.pr.review_stall, at the look that reads the state, before that
+  # look judges ci.watch.timeout, then waits it out (the recording gh's
+  # state never changes). Fails before the work at the exit code:
   # today commit_sha is not read, both reviews completed is the verdict and
   # auto-merge goes on, exit 0.
   @ID-PUSHDRAFT-34 @slice-200 @wip
@@ -1332,6 +1415,111 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
     And its JSON's "outcome" is "ready-still-waiting"
     And its output says "(push.pr.ready_wait) on https://github.example/o/r/pull/7 at "
     And its output says "copilot-pull-request-reviewer[bot] waiting; auto-merge is not turned on."
+    And the recording gh was never called as "pr merge"
+
+  # ready_wait is one bound per call, counted from its start: the wait for
+  # GitHub's rebase (gh pr view answering the old head twice, a
+  # ci.watch.interval apart) uses two of its five seconds, so the reviews
+  # get about three, and Codex's review, running at four asks a second
+  # apart and completed at the fifth, is still running when it ends. A build
+  # that gives each wait its own five seconds reaches the fifth ask and
+  # turns on auto-merge, exit 0. Fails before the work at the exit code:
+  # today push.pr.ready_wait is an unknown key, so --ready is refused,
+  # exit 1.
+  @ID-PUSHDRAFT-40 @slice-200 @wip
+  Scenario: Under push.pr.draft, push --ready counts push.pr.ready_wait from its start, so time the wait for GitHub's rebase took is gone for the reviews
+    Given the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+        pr:
+          draft: true
+          review_by: [chatgpt-codex-connector]
+          ready_wait: 5
+      """
+    And ci.watch asks a fake GitHub, which reports the run "https://ci.example/runs/1"
+    And ci.watch.interval is 1
+    And ci.watch.timeout is 30
+    And the watched run's jobs "ci" and "platform" succeed
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the clone is on the new branch "slice-9"
+    And the clone has the commit "feat: add the widget" touching "widget.md"
+    And git pushes HEAD to the remote's new branch "slice-9"
+    And the recording gh has the draft pull request "https://github.example/o/r/pull/7" open for the branch "slice-9"
+    And the remote has gained the commit "chore: tidy the docs" touching "docs.md"
+    And the recording gh's pr view answers the pull request's previous head for its first 2 calls after pr update-branch
+    And the recording gh answers that the pull request has a comment by "chatgpt-codex-connector" holding Codex's review state of the head of the remote's branch "slice-9" at each call, its code review "running" and its security review "running" for its first 4 api graphql calls, then both "completed"
+    When itos runs "push --ready --json"
+    Then itos exits with code 75
+    And its JSON's "outcome" is "ready-still-waiting"
+    And its output says "(push.pr.ready_wait) on https://github.example/o/r/pull/7 at " with the full SHA of the head of the remote's branch "slice-9"
+    And its output says "chatgpt-codex-connector running; auto-merge is not turned on."
+    And the recording gh was never called as "pr merge"
+
+  # The review wait's clock is GitHub's, not the call's: the pull request
+  # was marked ready two minutes ago, past ci.watch.timeout, so a fresh
+  # --ready with no review by Copilot ends at its first look with
+  # review-timeout, and an agent running --ready again and again reaches
+  # it. A build that counts from the call's first look waits, and
+  # push.pr.ready_wait ends it, ready-still-waiting. Fails before the work
+  # at the exit code: today push.pr.ready_wait is an unknown key, so --ready
+  # is refused, exit 1.
+  @ID-PUSHDRAFT-42 @slice-200 @wip
+  Scenario: Under push.pr.draft, push --ready counts the review wait from when GitHub says the pull request was marked ready, so a rerun reaches review-timeout
+    Given the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+        pr:
+          draft: true
+          review_by: ["copilot-pull-request-reviewer[bot]"]
+          ready_wait: 1
+      """
+    And ci.watch asks a fake GitHub, which reports the run "https://ci.example/runs/1"
+    And ci.watch.timeout is 60
+    And the watched run's jobs "ci" and "platform" succeed
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the clone is on the new branch "slice-9"
+    And the clone has the commit "feat: add the widget" touching "widget.md"
+    And git pushes HEAD to the remote's new branch "slice-9"
+    And the recording gh has the pull request "https://github.example/o/r/pull/7" open for the branch "slice-9"
+    And the recording gh answers that the pull request was marked ready 120 seconds ago, after its head was pushed
+    When itos runs "push --ready --json"
+    Then itos exits with code 75
+    And its JSON's "outcome" is "review-timeout"
+    And its output says "no review by copilot-pull-request-reviewer[bot]"
+    And the recording gh was never called as "pr merge"
+
+  # The run's clock is GitHub's too: the watched run was created two
+  # minutes ago, past ci.watch.timeout, so a fresh --ready ends the watch
+  # at its first look with the watch's own timeout. A build that counts
+  # from the call's first look waits, and push.pr.ready_wait ends it,
+  # ready-still-waiting. Fails before the work at the exit code: today
+  # push.pr.ready_wait is an unknown key, so --ready is refused, exit 1.
+  @ID-PUSHDRAFT-43 @slice-200 @wip
+  Scenario: Under push.pr.draft, push --ready counts ci.watch.timeout from the watched run's created_at, so a rerun reaches the run's timeout
+    Given the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+        pr:
+          draft: true
+          ready_wait: 1
+      """
+    And ci.watch asks a fake GitHub, which reports the run "https://ci.example/runs/1"
+    And ci.watch.timeout is 60
+    And the watched run never finishes
+    And the watched run was created 120 seconds ago
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the clone is on the new branch "slice-9"
+    And the clone has the commit "feat: add the widget" touching "widget.md"
+    And git pushes HEAD to the remote's new branch "slice-9"
+    And the recording gh has the draft pull request "https://github.example/o/r/pull/7" open for the branch "slice-9"
+    When itos runs "push --ready --json"
+    Then itos exits with code 75
+    And its JSON's "outcome" is "nothing-to-push"
+    And its output says "(ci.watch.timeout)"
+    And its output does not say "(push.pr.ready_wait)"
     And the recording gh was never called as "pr merge"
 
   # Codex's code review stalls (#193): read running past
@@ -1515,6 +1703,80 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
     And the recording gh was called as "pr view" once
     And the recording gh's "pr view" call has "--json headRefOid"
     And the recording gh's "pr comment" call has the full SHA of the head of the remote's branch "slice-9"
+
+  # The one gh pr view after the rebase may answer the head from before it
+  # (GitHub not caught up), which lacks main's head: --ready judges no head
+  # it cannot trust, so it stops at once, ready-still-waiting with "rebase
+  # waiting", asks GitHub nothing more, posts no request (Codex's state,
+  # for an older commit, would ask for the head) and merges nothing; a rerun
+  # finds the rebased head. Fails before the work at the exit code: today
+  # with no provider gh pr view is never called, the state's commit_sha is
+  # not read, both reviews completed is the verdict and auto-merge goes on,
+  # exit 0.
+  @ID-PUSHDRAFT-39 @slice-200 @wip
+  Scenario: Under push.pr.draft with no ci.watch provider, push --ready whose one gh pr view answers a head without main's stops, rebase waiting, exit 75
+    Given the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+        pr:
+          draft: true
+          review_by: [chatgpt-codex-connector]
+      """
+    And ci.watch's provider is "none"
+    And ci.watch.timeout is 10
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the clone is on the new branch "slice-9"
+    And the clone has the commit "feat: add the widget" touching "widget.md"
+    And git pushes HEAD to the remote's new branch "slice-9"
+    And the recording gh has the draft pull request "https://github.example/o/r/pull/7" open for the branch "slice-9"
+    And the remote has gained the commit "chore: tidy the docs" touching "docs.md"
+    And the recording gh's pr view answers the pull request's previous head for its first 1 calls after pr update-branch
+    And the recording gh answers that the pull request has a comment by "chatgpt-codex-connector" holding Codex's review state, its code review "completed" of the commit "0123456789abcdef0123456789abcdef01234567" and its security review "completed" of the commit "0123456789abcdef0123456789abcdef01234567"
+    When itos runs "push --ready --json"
+    Then itos exits with code 75
+    And its JSON's "outcome" is "ready-still-waiting"
+    And its output says "rebase waiting"
+    And the recording gh was called as "pr view" once
+    And the recording gh was never called as "api graphql"
+    And the recording gh was never called as "pr comment"
+    And the recording gh was never called as "pr merge"
+
+  # The stall's clock is GitHub's: Codex's state was last edited, reading
+  # running for the head, two minutes ago, and the request for this head
+  # was posted two minutes ago, both past push.pr.review_stall, so a fresh
+  # --ready stops at its first look with the stall, posting nothing. A
+  # build that counts from the call's first look never reaches 60 seconds
+  # within ci.watch.timeout and ends review-timeout. Fails before the work
+  # at the outcome step: today the stall counts from this call's first look
+  # that read it running, so the wait ends at ci.watch.timeout,
+  # review-timeout.
+  @ID-PUSHDRAFT-41 @slice-200 @wip
+  Scenario: Under push.pr.draft, push --ready counts push.pr.review_stall from GitHub's times, so a rerun past it stops at the stall
+    Given the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+        pr:
+          draft: true
+          review_by: [chatgpt-codex-connector]
+          review_stall: 60
+      """
+    And ci.watch asks a fake GitHub, which reports the run "https://ci.example/runs/1"
+    And ci.watch.timeout is 10
+    And the watched run's jobs "ci" and "platform" succeed
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the clone is on the new branch "slice-9"
+    And the clone has the commit "feat: add the widget" touching "widget.md"
+    And git pushes HEAD to the remote's new branch "slice-9"
+    And the recording gh has the draft pull request "https://github.example/o/r/pull/7" open for the branch "slice-9"
+    And the recording gh answers that the pull request has a comment by "someone" asking "chatgpt-codex-connector" to review the clone's HEAD again, posted 120 seconds ago
+    And the recording gh answers that the pull request has a comment by "chatgpt-codex-connector" holding Codex's review state, its code review "running" and its security review "completed", last edited 120 seconds ago
+    When itos runs "push --ready --json"
+    Then itos exits with code 75
+    And its JSON's "outcome" is "review-stalled"
+    And the recording gh was never called as "pr comment"
+    And the recording gh was never called as "pr merge"
 
   # Copilot out of quota posts a review that is a refusal, and #158 merged
   # on it unreviewed. A refusal is no verdict, and waiting cannot bring a
