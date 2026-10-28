@@ -71,6 +71,7 @@ type fakeGitHub struct {
 	given     []string     // the commits a look at the watched run was given
 	alone     string       // the one commit the watched run is of, when a step says so (bug 49)
 	startedAt string       // the watched run's run_started_at, when a step gives one (slice 200)
+	createdAt string       // the watched run's created_at, when a step gives one; the time of the look otherwise
 	// The repository's visibility, public, private or internal; "" answers
 	// its endpoint 404, a repository the token cannot see.
 	visibility string
@@ -279,8 +280,12 @@ func (g *fakeGitHub) look(sha string) gitHubRun {
 func (g *fakeGitHub) peek(sha string) gitHubRun {
 	n := min(g.looks, len(g.watched)-1)
 	w := g.watched[n]
+	created := g.createdAt
+	if created == "" {
+		created = time.Now().UTC().Format(time.RFC3339)
+	}
 	r := gitHubRun{ID: watchedID + n, HeadSHA: sha, HeadBranch: g.branch, Status: w.Status,
-		CreatedAt: "2026-10-05T13:00:00Z", RunStartedAt: g.startedAt, HTMLURL: w.URL, workflow: watchedWorkflow, jobs: w.Jobs}
+		CreatedAt: created, RunStartedAt: g.startedAt, HTMLURL: w.URL, workflow: watchedWorkflow, jobs: w.Jobs}
 	if w.Conclusion != "" {
 		conclusion := w.Conclusion
 		r.Conclusion = &conclusion
