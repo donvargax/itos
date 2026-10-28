@@ -15421,3 +15421,20 @@ items:
       handler (or answer file) per gh subcommand and GraphQL query, registered by the steps that
       need it, would let parallel items add answers without touching shared lines.
     tags: [tests, v8]
+
+  - id: p2-onto-main-rebuilt-commit
+    title: A commit rebuilt while resolving a rebase keeps its author date, so --onto-main still counts it kept
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Seen 2026-10-27 on slice-199 (#218): resolving a semantic conflict needed the test commit
+      rebuilt (the commit hook refuses --amend, so reset --soft plus itos commit), which gave it a
+      new author date; slice-193's counterpart rule (same author, author date, message) then counts
+      the old commit as dropped and the pre-push hook would refuse --onto-main. Either itos commit
+      keeps the author date of the commit being redone (an --author-date-of <commit> or reading
+      ORIG_HEAD), or the counterpart rule also accepts a commit naming the same item with the same
+      subject.
+    tags: [push]
