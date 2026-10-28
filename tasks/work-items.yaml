@@ -14224,25 +14224,9 @@ items:
     title: "CI runs only the jobs a range can affect: a docs-only range runs no platform job"
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: slice
-    why: >
-      Was p1-ci-affected-jobs.
-      The person, 2026-10-25: v10 keeps every feature with minimal ceremony and tests only what a
-      change needs, when it needs it; one docs commit should not trigger many automated tests. Seen
-      the same day: #152, decision record, ORCHESTRATING.md and the registry only, ran ci (ubuntu,
-      143 s), platform macos (146 s) and platform windows (341 s), about 10 runner-minutes judging
-      no code. T-171 narrowed registry-only pushes and p1-push-skips-ignored-paths covers a workflow
-      that starts no run; neither picks jobs by what a range touches. Wanted: ci plan names, per
-      job, the paths it can be affected by (the platform jobs: Go code, the features, go.mod, the
-      workflows; the doc budget and dprint: Markdown and YAML), and a job whose paths the range does
-      not touch is skipped and reads as success for the required check, so a docs range runs the
-      docs checks alone. Design for v9 beside p1-pr-registry-to-main and slice-186 (docs to main
-      without a pull request).
-
-      The person, 2026-10-27: every friction found is fixed before v9 design starts, the pilot's
-      slowness log included; moved from v9 to v8.
     refs: [itos.yaml, .github/workflows/ci.yml, internal/plan]
     tags: [ci, v8]
 
