@@ -15383,6 +15383,12 @@ items:
       keeps the author date of the commit being redone (an --author-date-of <commit> or reading
       ORIG_HEAD), or the counterpart rule also accepts a commit naming the same item with the same
       subject.
+
+      Seen again 2026-10-28 on slice-200 (#223): git rebase --continue after a conflict strips a
+      commit message's lines that begin with # (commit cleanup), so the fix commit's message changed
+      and the counterpart rule (same author, date, message) saw the old commit as dropped; the
+      implementer restored the exact message by hand. Any message with a #-led line is exposed
+      (itos's own bodies cite '#149'-style refs at line starts).
     tags: [push, v9]
 
   - id: T-337
