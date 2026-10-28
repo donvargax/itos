@@ -59,7 +59,7 @@ queue:
   - slice-200
   - p1-ready-review-for-head
   - p1-ready-fits-foreground
-  - p2-push-thread-show
+  - slice-201
   - slice-199
   - p1-ci-affected-jobs
   - p2-feature-command-apostrophe
@@ -15351,14 +15351,15 @@ items:
       request's head.
     tags: [push, v8]
 
-  - id: p2-push-thread-show
-    title: itos push thread <id> shows a thread's comments in full before answering it
+  - id: slice-201
+    title: itos push thread shows a thread in full and answers threads of any pull request from any branch
     phase: 2
     owner: null
     status: todo
     depends_on: []
-    kind: idea
+    kind: slice
     why: >
+      Was p2-push-thread-show.
       Seen 2026-10-27 on slice-195 (#214): itos push threads lists a thread's first comment line
       only, so the implementer read Codex's full finding with gh api graphql before replying. A show
       form (itos push thread <id> with no --reply or --resolve) printing every comment, author and
