@@ -56,7 +56,7 @@ phases:
 
 queue:
   - slice-192
-  - p1-ready-clean-merges
+  - slice-200
   - p1-ready-review-for-head
   - p1-ready-fits-foreground
   - p2-push-thread-show
@@ -14124,14 +14124,15 @@ items:
     refs: [internal/slices/push/pr.go, AGENTS.md]
     tags: [push, work, v8]
 
-  - id: p1-ready-clean-merges
-    title: itos push --ready merges a pull request GitHub already calls clean instead of failing to turn on auto-merge
+  - id: slice-200
+    title: "itos push --ready finishes on its own: merges a clean pull request, counts only the head's review, and returns before a harness's foreground cap"
     phase: 1
     owner: null
     status: todo
     depends_on: []
-    kind: idea
+    kind: slice
     why: >
+      Was p1-ready-clean-merges.
       Seen 2026-10-25 on #146 (T-307): the first itos push --ready waited through green checks and
       Copilot's review, then gh pr merge --auto failed with "Pull request is in clean status
       (enablePullRequestAutoMerge)": GitHub refuses auto-merge on a pull request that is already
