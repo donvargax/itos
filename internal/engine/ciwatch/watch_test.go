@@ -388,25 +388,29 @@ func TestWatchReadyCountsTheTimeoutFromTheRunsStart(t *testing.T) {
 				Jobs: []providers.Job{{Name: "a", Status: "in_progress"}}}, true, nil
 		}
 	}
-	ago := func(d time.Duration) string { return time.Now().UTC().Add(-d).Format(time.RFC3339) }
+	// The times are read when the row runs, since the rows before it take time.
+	ago := func(d time.Duration) func() string {
+		return func() string { return time.Now().UTC().Add(-d).Format(time.RFC3339) }
+	}
+	text := func(s string) func() string { return func() string { return s } }
 	for name, c := range map[string]struct {
-		started, created string
+		started, created func() string
 		timeout          float64
 		quick            bool
 	}{
-		"started past the timeout ago":   {ago(time.Hour), "", 60, true},
-		"started within the timeout":     {ago(2 * time.Second), "", 3, true},
-		"created past the timeout ago":   {"", ago(time.Hour), 60, true},
-		"a start that cannot be read":    {"yesterday", ago(time.Hour), 60, true},
+		"started past the timeout ago":   {ago(time.Hour), text(""), 60, true},
+		"started within the timeout":     {ago(2 * time.Second), text(""), 3, true},
+		"created past the timeout ago":   {text(""), ago(time.Hour), 60, true},
+		"a start that cannot be read":    {text("yesterday"), ago(time.Hour), 60, true},
 		"a start beats a creation":       {ago(0), ago(time.Hour), 1.5, false},
-		"no start, no creation":          {"", "", 0.3, false},
-		"neither can be read":            {"yesterday", "last week", 0.3, false},
-		"a creation that cannot be read": {"", "last week", 0.3, false},
+		"no start, no creation":          {text(""), text(""), 0.3, false},
+		"neither can be read":            {text("yesterday"), text("last week"), 0.3, false},
+		"a creation that cannot be read": {text(""), text("last week"), 0.3, false},
 	} {
 		t.Run(name, func(t *testing.T) {
 			var stdout, stderr strings.Builder
 			began := time.Now()
-			w := WatchReady(context.Background(), watchConfig(0, c.timeout), providers.Watcher{Look: going(c.started, c.created)}, &porttest.VCS{}, "abc", "", Out{Stdout: &stdout, Stderr: &stderr}, Ready{})
+			w := WatchReady(context.Background(), watchConfig(0, c.timeout), providers.Watcher{Look: going(c.started(), c.created())}, &porttest.VCS{}, "abc", "", Out{Stdout: &stdout, Stderr: &stderr}, Ready{})
 			took := time.Since(began)
 			if w.Code != exitTemporary || w.Outcome != "timeout" || !strings.Contains(stderr.String(), "(ci.watch.timeout)") {
 				t.Fatalf("code %d, outcome %s\n%s%s", w.Code, w.Outcome, stdout.String(), stderr.String())
@@ -419,7 +423,7 @@ func TestWatchReadyCountsTheTimeoutFromTheRunsStart(t *testing.T) {
 	t.Run("Watch counts from its first look", func(t *testing.T) {
 		var stdout, stderr strings.Builder
 		began := time.Now()
-		w := watchRun(watchConfig(0, 0.3), providers.Watcher{Look: going(ago(time.Hour), ago(time.Hour))}, "abc", "", Out{Stdout: &stdout, Stderr: &stderr})
+		w := watchRun(watchConfig(0, 0.3), providers.Watcher{Look: going(ago(time.Hour)(), ago(time.Hour)())}, "abc", "", Out{Stdout: &stdout, Stderr: &stderr})
 		if w.Outcome != "timeout" || time.Since(began) < 200*time.Millisecond {
 			t.Errorf("outcome %s after %s\n%s%s", w.Outcome, time.Since(began), stdout.String(), stderr.String())
 		}
