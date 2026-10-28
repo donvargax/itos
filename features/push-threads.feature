@@ -83,14 +83,20 @@ Feature: Under push.mode pr, itos push threads lists an item's open review threa
   GitHub for the node itself, one gh api graphql call (-f query=<one line>
   -f id=<id>) giving, on a PullRequestReviewThread, its id, isResolved,
   path and line, its repository's nameWithOwner, its pull request's number
-  and url, and its first 100 comments, each author's login and body. A node
-  that is none, or no review thread, or a thread of another repository than
-  the one push names (compared regardless of case, as GitHub's names are),
-  is refused, exit 1, outcome no-such-thread, "itos push: <id> is not a
-  review thread of <repository>; itos push threads lists a pull request's
-  open ones. Nothing was posted.", with nothing posted; else the reply and
-  the resolve go as before, naming the node's pull request. No gh pr list
-  is asked for it.
+  and url, and its first 100 comments, each author's login and body. An id
+  GitHub has no node for fails gh (exit 1, "gh: Could not resolve to a node
+  with the global id of '<id>'"), its stdout still the body
+  {"data":{"node":null},"errors":[{"type":"NOT_FOUND","path":["node"],
+  ...}]}: a node question gh fails on whose stdout, which providers.Gh
+  returns beside its error, has an errors entry of type NOT_FOUND on the
+  path node is such an id; every other gh failure stays exit 3,
+  pull-request-failed. Such an id, a node that is no review thread, or a
+  thread of another repository than the one push names (compared
+  regardless of case, as GitHub's names are), is refused, exit 1, outcome
+  no-such-thread, "itos push: <id> is not a review thread of <repository>;
+  itos push threads lists a pull request's open ones. Nothing was
+  posted.", with nothing posted; else the reply and the resolve go as
+  before, naming the node's pull request. No gh pr list is asked for it.
 
   With neither --reply nor --resolve, itos push thread <id> shows the
   thread, resolved or not, posting nothing: "<id> <path>:<line> on
@@ -101,7 +107,8 @@ Feature: Under push.mode pr, itos push threads lists an item's open review threa
   author GitHub no longer has shown as ghost. Exit 0, outcome thread-shown.
   --json: {"schema":1,"ok","outcome","pull_request"?,"thread"?}, thread
   {"id","path","line"?,"resolved","comments"}, comments a list of
-  {"author","body"}, each body whole as GitHub gives it.
+  {"author","body"}, each body whole as GitHub gives it, an author GitHub
+  no longer has "ghost" here too.
 
   itos push threads --pr <n> (--pr=<n> too) lists the open threads of the
   repository's pull request n, from any branch or a detached HEAD, asking
@@ -122,7 +129,12 @@ Feature: Under push.mode pr, itos push threads lists an item's open review threa
   goes; ID-PUSHTHREAD-08 and ID-PUSHTHREAD-10 lose their push thread rows
   (push thread is not refused on main and asks for no branch's pull
   request); ID-PUSHTHREAD-14 loses its row "push thread PRRT_1", the show
-  form now. The commit that changes them names each in Changes:.
+  form now. The commit that changes them names each in Changes:, and
+  rewrites slice 191's paragraphs above that slice 201 overrides: push
+  thread's (its id checked against the branch's pull request's threads),
+  the one on going through gh (gh pr list first), the refusals' (on main
+  and on a detached HEAD) and the words' (thread with neither --reply nor
+  --resolve a usage error).
 
   --ready's refusal on unresolved threads (push-mode-draft.feature, step 5)
   keeps naming each thread and its "Address each ..." line, and adds after
@@ -157,12 +169,17 @@ Feature: Under push.mode pr, itos push threads lists an item's open review threa
   thread a step gave with that id, its node as the pull request's list has
   it, with "pullRequest" {"number","url"} of the pull request the steps gave
   the recording gh last before that thread, and "repository"
-  {"nameWithOwner":"owner/scratch"}, the fake's; for any other id, null. Its
-  answer to the pull request's question gains that pull request's "number"
-  and "url" when it holds one whose address ends with the number asked.
-  New steps: "the recording gh answers that the review thread <id> has a
-  reply by <login> saying <text>", which adds a comment with that author and
-  body after the thread's others, in both answers; and "the recording gh
+  {"nameWithOwner":"owner/scratch"}, the fake's. For any other id it
+  answers as GitHub and gh do: stdout {"data":{"node":null},"errors":
+  [{"type":"NOT_FOUND","path":["node"],"message":"Could not resolve to a
+  node with the global id of '<id>'"}]}, stderr "gh: Could not resolve to
+  a node with the global id of '<id>'", exit 1. Its answer to the pull
+  request's question gains that pull request's "number" and "url" when it
+  holds one whose number (its address after the last /) is the number
+  asked. New steps: "the recording gh answers that the review thread <id>
+  has a reply by <login> saying <text>", which adds a comment with that
+  author and body after the thread's others in the node answer only (the
+  pull request's list asks comments(first: 1)); and "the recording gh
   answers, asked for the node <id>, an unresolved review thread of the pull
   request <address> in the repository <owner/name> on <path> line <n> by
   <login>, its first comment the lines <first> and <second>", a node the
@@ -311,7 +328,34 @@ Feature: Under push.mode pr, itos push threads lists an item's open review threa
     And its JSON's "outcome" is "thread-shown"
     And its JSON's "pull_request" is {"url":"https://github.example/o/r/pull/7","number":7}
     And its JSON's "thread" is {"id":"PRRT_2","path":"gadget.md","line":1,"resolved":true,"comments":[{"author":"copilot-pull-request-reviewer","body":"Fine now.\nThanks."},{"author":"someone","body":"Agreed."}]}
+    And the recording gh's "api graphql" call has "PRRT_2"
     And the recording gh's "api graphql" call does not have "mutation"
+    And the recording gh was never called as "pr list"
+
+  # Neither the node question nor --pr needs a branch, so a detached HEAD
+  # is no refusal for either. Fails before the work at the exit code: today
+  # both rows are usage errors, exit 2.
+  @ID-PUSHTHREAD-24 @wip @slice-201
+  Scenario Outline: Under push.mode pr, push thread <id> and push threads --pr <n> work on a detached HEAD
+    Given the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+      """
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the clone's HEAD is detached at its commit
+    And the recording gh has the pull request "https://github.example/o/r/pull/7" open for the branch "slice-9"
+    And the recording gh answers that the pull request has an unresolved review thread "PRRT_1" on "widget.md" line 3 by "copilot-pull-request-reviewer", its first comment the lines "Rename this." and "It clashes with the gadget."
+    When itos runs "<command> --json"
+    Then itos exits with code 0
+    And its JSON's "outcome" is "<outcome>"
+    And its JSON's "pull_request.url" is "https://github.example/o/r/pull/7"
+    And the recording gh was never called as "pr list"
+
+    Examples:
+      | command               | outcome        |
+      | push thread PRRT_1    | thread-shown   |
+      | push threads --pr 7   | threads-listed |
 
   # The slice's other point: one command replies and resolves, the reply
   # first, so a reply that fails leaves the thread open. Fails before the
@@ -444,6 +488,7 @@ Feature: Under push.mode pr, itos push threads lists an item's open review threa
     And its output says "PRRT_9 is not a review thread of owner/scratch"
     And the recording gh's "api graphql" call has "PRRT_9"
     And the recording gh's "api graphql" call does not have "mutation"
+    And the recording gh was never called as "pr list"
 
   # A thread id is GitHub's across repositories: one copied from another
   # repository's pull request would post where nobody here looks, so the
@@ -465,6 +510,24 @@ Feature: Under push.mode pr, itos push threads lists an item's open review threa
     And its JSON's "outcome" is "no-such-thread"
     And its output says "PRRT_7 is not a review thread of owner/scratch"
     And the recording gh's "api graphql" call does not have "mutation"
+
+  # GitHub's owner and repository names ignore case, so a node whose
+  # repository GitHub spells otherwise than push names it is still this
+  # repository's. Fails before the work at the exit code: today push thread
+  # on main is refused, exit 1, outcome threads-on-main.
+  @ID-PUSHTHREAD-25 @wip @slice-201
+  Scenario: Under push.mode pr, push thread answers a thread whose repository differs from the one push names only in case
+    Given the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+      """
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the recording gh answers, asked for the node "PRRT_5", an unresolved review thread of the pull request "https://github.example/o/r/pull/7" in the repository "Owner/Scratch" on "widget.md" line 3 by "copilot-pull-request-reviewer", its first comment the lines "Rename this." and "It clashes with the gadget."
+    When itos runs "push thread PRRT_5 --resolve"
+    Then itos exits with code 0
+    And the recording gh's "api graphql" call has "resolveReviewThread"
+    And its output says "Resolved PRRT_5 on https://github.example/o/r/pull/7."
 
   # Main has no pull request, so neither word has a thread to read or
   # answer; refused before gh is asked anything. Fails before the work at
