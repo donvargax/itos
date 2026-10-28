@@ -60,6 +60,7 @@ type world struct {
 	evidenceStore     *evidenceFixture     // what the fixture holds of the evidence store (evidence_store_test.go)
 	proofSummary      *proofSummaryFixture // how itos is invoked in the proof summary feature (ci_proof_summary_test.go)
 	ffBefore, ffAfter string               // the clone's main before and after its last fast-forward (workdonepr_test.go)
+	configAt          string               // where the scratch config is written instead of the root's itos.yaml, when ITOS_CONFIG names it (ci_jobs_test.go)
 
 	exit           int
 	stdout, stderr string
@@ -465,6 +466,7 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	initializeOntoMainSteps(sc, w)
 	initializeWorkDonePRSteps(sc, w)
 	initializeCITrustSteps(sc, w)
+	initializeCIJobsSteps(sc, w)
 	initializeWatchSteps(sc, w)
 	initializeWatchFailureSteps(sc, w)
 	initializeShimSteps(sc, w)
@@ -553,11 +555,15 @@ func initializeScenario(sc *godog.ScenarioContext) {
 		}
 		return w.itos("ci", "run", w.commits[0], "HEAD", "--tests")
 	})
-	sc.Step(`^itos plans CI over the commits after the first$`, func() error {
+	sc.Step(`^itos plans CI over the commits after the first( with --json)?$`, func(withJSON string) error {
 		if len(w.commits) == 0 {
 			return errors.New("the repository has no commit yet")
 		}
-		return w.itos("ci", "plan", w.commits[0], "HEAD")
+		args := []string{"ci", "plan", w.commits[0], "HEAD"}
+		if withJSON != "" {
+			args = append(args, "--json")
+		}
+		return w.itos(args...)
 	})
 	sc.Step(`^itos prints the help of "([^"]*)"$`, func(command string) error {
 		return w.itos(append(strings.Fields(command), "--help")...)
@@ -1124,7 +1130,7 @@ func (w *world) writeConfig() error {
 	for _, text := range w.config.extraYAML {
 		b.WriteString(text)
 	}
-	return w.write(w.data("itos.yaml"), b.String())
+	return w.write(w.configFile(), b.String())
 }
 
 // writeWork writes the config's work section: the registry, groups key,
