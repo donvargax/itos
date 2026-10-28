@@ -1638,9 +1638,9 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   # head sits on the second page, and the review state, for an older commit,
   # on the first. Read to the last page the request is seen, and nothing is
   # posted; read to the first alone it would be posted at every run. Fails
-  # before the work at the step that checks no pr comment was made: today
-  # only the first page is read.
-  @ID-PUSHDRAFT-46 @slice-200 @wip
+  # before the work at the cursor step: today only the first page is read, so
+  # no call asks for the second (and the request is posted).
+  @ID-PUSHDRAFT-46 @slice-200
   Scenario: Under push.pr.draft, push --ready reads every page of the pull request's comments, so a request for the head on the second is not posted again
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
