@@ -15425,3 +15425,18 @@ items:
       reviewer's backend to the Codex CLI with Astra, same prompt and the same pr mode, would give
       back a reviewer outside the coordinator's session. An idea for now (the person).
     tags: [review, v9]
+
+  - id: p3-ready-merge-queue
+    title: --ready counts a pull request enrolled in a merge queue as handed off
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Codex on #223 (slice-200, 2026-10-28): in a repository with a merge queue, a merge call can
+      enrol the pull request (mergeQueueEntry) rather than merge it or turn auto-merge on, and
+      slice-200's read-back would call that neither, exit 3. Out of slice-200's spec (this
+      repository has no queue). Belongs with v9's question of whether itos waits for a merge at all
+      or hands it to the forge.
+    tags: [push, v9]
