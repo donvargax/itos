@@ -2,10 +2,12 @@ package adapter
 
 import (
 	"bufio"
+	"errors"
 	"os"
 	"path/filepath"
 	"runtime"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -32,16 +34,84 @@ func committed(t *testing.T, files ...string) string {
 // real git for the rest.
 func failing(t *testing.T, subcommand string) {
 	t.Helper()
+	failingWith(t, subcommand, "injected", 1)
+}
+
+// failingWith is failing, the subcommand saying the words and exiting with the
+// code.
+func failingWith(t *testing.T, subcommand, words string, code int) {
+	t.Helper()
 	if runtime.GOOS == "windows" {
 		t.Skip("the failing git is a shell script")
 	}
 	script := filepath.Join(t.TempDir(), "git")
-	text := "#!/bin/sh\nif [ \"$1\" = " + subcommand + " ]; then echo injected >&2; exit 1; fi\nexec \"" +
+	text := "#!/bin/sh\nif [ \"$1\" = " + subcommand + " ]; then echo '" + words + "' >&2; exit " + strconv.Itoa(code) + "; fi\nexec \"" +
 		git.Bin(runtime.GOOS) + "\" \"$@\"\n"
 	if err := os.WriteFile(script, []byte(text), 0o755); err != nil {
 		t.Fatal(err)
 	}
 	t.Setenv(EnvGit, script)
+}
+
+// A change that does not apply onto the commit is a conflict naming the path,
+// worded by its paths, and makes no commit.
+func TestCherryPickConflictNamesItsPaths(t *testing.T) {
+	dir := committed(t, "a.txt")
+	g := Git{}
+	first, _ := g.Resolve(t.Context(), "HEAD")
+	write(t, dir, "a.txt", "ours")
+	gitIn(t, dir, "", "commit", "-q", "-a", "-m", "ours")
+	ours, _ := g.Resolve(t.Context(), "HEAD")
+	gitIn(t, dir, "", "checkout", "-q", "-b", "side", first)
+	write(t, dir, "a.txt", "theirs")
+	gitIn(t, dir, "", "commit", "-q", "-a", "-m", "theirs")
+	theirs, _ := g.Resolve(t.Context(), "HEAD")
+	made, err := g.CherryPick(t.Context(), theirs, ours)
+	var conflicts *port.Conflicts
+	if !errors.As(err, &conflicts) || made != "" || !slices.Equal(conflicts.Paths, []string{"a.txt"}) ||
+		err.Error() != "the change conflicts in a.txt" {
+		t.Errorf("CherryPick = %q, %v; want a conflict in a.txt", made, err)
+	}
+}
+
+// A change carried to another commit, and a branch set to a commit, fail with
+// git's words, and git saying a network failed in them (a fetch's or a push's
+// words) is no remote failure for these, which reach for none; a merge git
+// stops with an exit other than its conflicts' is no conflict.
+func TestCherryPickAndResetFailWithGitsWords(t *testing.T) {
+	const words = "fatal: unable to access 'https://x/': Could not resolve host: x"
+	for _, c := range []struct {
+		subcommand string
+		code       int
+		run        func(g Git, first, second string) error
+	}{
+		{"reset", 128, func(g Git, first, _ string) error { return g.Reset(t.Context(), first) }},
+		{"merge-tree", 128, func(g Git, first, second string) error {
+			_, err := g.CherryPick(t.Context(), second, first)
+			return err
+		}},
+		{"commit-tree", 128, func(g Git, first, second string) error {
+			_, err := g.CherryPick(t.Context(), second, first)
+			return err
+		}},
+	} {
+		t.Run(c.subcommand, func(t *testing.T) {
+			dir := committed(t, "a.txt")
+			write(t, dir, "b.txt", "b")
+			gitIn(t, dir, "", "add", "--", "b.txt")
+			gitIn(t, dir, "", "commit", "-q", "-m", "second")
+			g := Git{}
+			second, _ := g.Resolve(t.Context(), "HEAD")
+			first, _ := g.Resolve(t.Context(), "HEAD~")
+			failingWith(t, c.subcommand, words, c.code)
+			err := c.run(g, first, second)
+			var failed *port.Failed
+			var conflicts *port.Conflicts
+			if !errors.As(err, &failed) || failed.Failure != port.Other || !strings.Contains(failed.Words, "Could not resolve host") || errors.As(err, &conflicts) {
+				t.Errorf("a failing %s is %v; want git's failure of no kind", c.subcommand, err)
+			}
+		})
+	}
 }
 
 // A commit outside every branch stops where git fails to make its index's
