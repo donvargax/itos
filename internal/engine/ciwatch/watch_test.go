@@ -317,7 +317,7 @@ func TestWatchReadyPassesOverADraftsRun(t *testing.T) {
 				return real, true, nil
 			}
 			var stdout, stderr strings.Builder
-			w := WatchReady(context.Background(), watchConfig(0, 60), providers.Watcher{Look: look}, &porttest.VCS{}, "abc", "", Out{Stdout: &stdout, Stderr: &stderr})
+			w := WatchReady(context.Background(), watchConfig(0, 60), providers.Watcher{Look: look}, &porttest.VCS{}, "abc", "", Out{Stdout: &stdout, Stderr: &stderr}, Ready{})
 			if w.Code != exitPolicy || w.Outcome != "failure" || w.Run == nil || w.Run.URL != "real" || looks != 2 ||
 				strings.Contains(stdout.String()+stderr.String(), "draft") {
 				t.Errorf("code %d, outcome %s, looks %d\n%s%s", w.Code, w.Outcome, looks, stdout.String(), stderr.String())
@@ -335,7 +335,7 @@ func TestWatchReadyPassesOverADraftsRun(t *testing.T) {
 				return first, true, nil
 			}
 			var stdout, stderr strings.Builder
-			w := WatchReady(context.Background(), watchConfig(0, 60), providers.Watcher{Look: look}, &porttest.VCS{}, "abc", "", Out{Stdout: &stdout, Stderr: &stderr})
+			w := WatchReady(context.Background(), watchConfig(0, 60), providers.Watcher{Look: look}, &porttest.VCS{}, "abc", "", Out{Stdout: &stdout, Stderr: &stderr}, Ready{})
 			if w.Run == nil || w.Run.URL != "draft" || looks != 1 {
 				t.Errorf("code %d, outcome %s, looks %d\n%s%s", w.Code, w.Outcome, looks, stdout.String(), stderr.String())
 			}
@@ -350,7 +350,7 @@ func TestWatchReadyPassesOverADraftsRun(t *testing.T) {
 			return providers.Run{URL: "going", Status: "completed", Conclusion: "success", Jobs: jobs("skipped", "success")}, true, nil
 		}
 		var stdout, stderr strings.Builder
-		w := WatchReady(context.Background(), watchConfig(0, 60), providers.Watcher{Look: look}, &porttest.VCS{}, "abc", "", Out{Stdout: &stdout, Stderr: &stderr})
+		w := WatchReady(context.Background(), watchConfig(0, 60), providers.Watcher{Look: look}, &porttest.VCS{}, "abc", "", Out{Stdout: &stdout, Stderr: &stderr}, Ready{})
 		if w.Code != 0 || looks != 2 || !strings.Contains(stdout.String(), "CI run: going") {
 			t.Errorf("code %d, looks %d\n%s%s", w.Code, looks, stdout.String(), stderr.String())
 		}
@@ -358,7 +358,7 @@ func TestWatchReadyPassesOverADraftsRun(t *testing.T) {
 	t.Run("no other run comes", func(t *testing.T) {
 		look := func(string) (providers.Run, bool, error) { return draft(jobs("skipped")), true, nil }
 		var stdout, stderr strings.Builder
-		w := WatchReady(context.Background(), watchConfig(0, 0.05), providers.Watcher{Look: look}, &porttest.VCS{}, "abc", "", Out{Stdout: &stdout, Stderr: &stderr})
+		w := WatchReady(context.Background(), watchConfig(0, 0.05), providers.Watcher{Look: look}, &porttest.VCS{}, "abc", "", Out{Stdout: &stdout, Stderr: &stderr}, Ready{})
 		if w.Code != exitTemporary || w.Outcome != "timeout" || w.Run != nil || !strings.Contains(stderr.String(), "has not appeared") ||
 			strings.Contains(stdout.String(), "draft") {
 			t.Errorf("code %d, outcome %s\n%s%s", w.Code, w.Outcome, stdout.String(), stderr.String())
@@ -372,4 +372,101 @@ func TestWatchReadyPassesOverADraftsRun(t *testing.T) {
 			t.Errorf("code %d, outcome %s\n%s%s", w.Code, w.Outcome, stdout.String(), stderr.String())
 		}
 	})
+}
+
+// WatchReady counts ci.watch.timeout from the start of the run's latest attempt
+// when GitHub gives it (slice 200): a run started past the timeout ago ends the
+// watch at its first look, one that started a moment ago waits, and a start
+// that cannot be read, or none, counts from the watch's first look. Plain Watch
+// counts from its first look whatever the run says.
+func TestWatchReadyCountsTheTimeoutFromTheRunsStart(t *testing.T) {
+	noSleep(t)
+	going := func(started string) func(string) (providers.Run, bool, error) {
+		return func(string) (providers.Run, bool, error) {
+			return providers.Run{URL: "going", Status: "in_progress", Started: started,
+				Jobs: []providers.Job{{Name: "a", Status: "in_progress"}}}, true, nil
+		}
+	}
+	ago := func(d time.Duration) string { return time.Now().UTC().Add(-d).Format(time.RFC3339) }
+	for name, c := range map[string]struct {
+		started string
+		timeout float64
+		quick   bool
+	}{
+		"started past the timeout ago": {ago(time.Hour), 60, true},
+		"started within the timeout":   {ago(2 * time.Second), 3, true},
+		"no start":                     {"", 0.3, false},
+		"a start that cannot be read":  {"yesterday", 0.3, false},
+	} {
+		t.Run(name, func(t *testing.T) {
+			var stdout, stderr strings.Builder
+			began := time.Now()
+			w := WatchReady(context.Background(), watchConfig(0, c.timeout), providers.Watcher{Look: going(c.started)}, &porttest.VCS{}, "abc", "", Out{Stdout: &stdout, Stderr: &stderr}, Ready{})
+			took := time.Since(began)
+			if w.Code != exitTemporary || w.Outcome != "timeout" || !strings.Contains(stderr.String(), "(ci.watch.timeout)") {
+				t.Fatalf("code %d, outcome %s\n%s%s", w.Code, w.Outcome, stdout.String(), stderr.String())
+			}
+			if c.quick && took > 2*time.Second || !c.quick && took < 200*time.Millisecond {
+				t.Errorf("the watch took %s", took)
+			}
+		})
+	}
+	t.Run("Watch counts from its first look", func(t *testing.T) {
+		var stdout, stderr strings.Builder
+		began := time.Now()
+		w := watchRun(watchConfig(0, 0.3), providers.Watcher{Look: going(ago(time.Hour))}, "abc", "", Out{Stdout: &stdout, Stderr: &stderr})
+		if w.Outcome != "timeout" || time.Since(began) < 200*time.Millisecond {
+			t.Errorf("outcome %s after %s\n%s%s", w.Outcome, time.Since(began), stdout.String(), stderr.String())
+		}
+	})
+}
+
+// Ready.Left ends the watch, exit 75, outcome bound and no word of the watch's
+// own timeout, at the first look after it has passed, having looked once at
+// least, while ci.watch.timeout passing first, or at the same time, is the
+// timeout's. A bound still ahead shortens the wait between two looks.
+func TestWatchReadyEndsAtItsBound(t *testing.T) {
+	noSleep(t)
+	looks := 0
+	look := func(string) (providers.Run, bool, error) {
+		looks++
+		return providers.Run{URL: "going", Status: "in_progress", Jobs: []providers.Job{{Name: "a", Status: "in_progress"}}}, true, nil
+	}
+	left := func(d time.Duration) Ready { return Ready{Left: func() time.Duration { return d }} }
+	for name, c := range map[string]struct {
+		timeout float64
+		started string
+		ready   Ready
+		outcome string
+	}{
+		"the bound passed":                     {60, "", left(-time.Second), "bound"},
+		"the bound passed before the timeout":  {0.05, "", left(-time.Hour), "bound"},
+		"the timeout passed before the bound":  {60, time.Now().UTC().Add(-time.Hour).Format(time.RFC3339), left(-time.Millisecond), "timeout"},
+		"both passed at once":                  {0, "", left(0), "timeout"},
+		"a bound ahead is left to the timeout": {0.05, "", left(time.Hour), "timeout"},
+		"a bound nearer than the interval":     {60, "", Ready{Left: boundIn(100 * time.Millisecond)}, "bound"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			looks = 0
+			var stdout, stderr strings.Builder
+			stamped := func(sha string) (providers.Run, bool, error) {
+				run, found, err := look(sha)
+				run.Started = c.started
+				return run, found, err
+			}
+			w := WatchReady(context.Background(), watchConfig(30, c.timeout), providers.Watcher{Look: stamped}, &porttest.VCS{}, "abc", "", Out{Stdout: &stdout, Stderr: &stderr}, c.ready)
+			if w.Outcome != c.outcome || w.Code != exitTemporary || looks == 0 || w.Run == nil {
+				t.Fatalf("code %d, outcome %s, looks %d\n%s%s", w.Code, w.Outcome, looks, stdout.String(), stderr.String())
+			}
+			if bound := c.outcome == "bound"; bound == strings.Contains(stderr.String(), "ci.watch.timeout") {
+				t.Errorf("stderr: %s", stderr.String())
+			}
+		})
+	}
+}
+
+// boundIn is a Left that counts down from the duration by the clock.
+func boundIn(d time.Duration) func() time.Duration {
+	until := time.Now().Add(d)
+	return func() time.Duration { return time.Until(until) }
 }

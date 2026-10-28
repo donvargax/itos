@@ -29,7 +29,9 @@ import (
 // PullRequest is the pull request of an item's branch under push.mode pr, as
 // --json gives it: its address and number, whether this push opened it,
 // whether it asked GitHub to rebase it, whether it is a draft once the push is
-// done and whether this push turned on auto-merge (slice 179).
+// done, whether this push turned on auto-merge (slice 179) and whether GitHub
+// merged it, which --ready finds when the pull request was mergeable already
+// (slice 200).
 type PullRequest struct {
 	URL       string `json:"url"`
 	Number    int    `json:"number"`
@@ -37,6 +39,7 @@ type PullRequest struct {
 	Updated   bool   `json:"updated"`
 	Draft     bool   `json:"draft"`
 	AutoMerge bool   `json:"auto_merge"`
+	Merged    bool   `json:"merged"`
 }
 
 // prMode is whether the config says push.mode pr, keeping the config for the
@@ -527,35 +530,71 @@ const fetchTimeout = 20 * time.Second
 // and taking the first that has main's head as an ancestor: until GitHub has
 // rebased, gh pr view answers the head pushed or the previous push's, neither
 // of which has it. lost is whether ci.watch.timeout passed first, counted from
-// the request, with the outcome left to the caller; failed, with the outcome
-// reported, when gh pr view does.
-func (r *pushRun) rebasedHead(ctx context.Context, cfg *config.Loaded) (head string, lost bool, a Answer, failed bool) {
+// the request, with the outcome left to the caller; bounded, whether
+// push.pr.ready_wait did (slice 200); failed, with the outcome reported, when
+// gh pr view does.
+func (r *pushRun) rebasedHead(ctx context.Context, cfg *config.Loaded) (head string, lost, bounded bool, a Answer, failed bool) {
 	rb := r.rebased
 	interval := time.Duration(*cfg.CI.Watch.Interval * float64(time.Second))
 	timeout := *cfg.CI.Watch.Timeout
 	deadline := rb.since.Add(time.Duration(timeout * float64(time.Second)))
 	for {
-		viewed, ended, bad := r.gh(ctx, "pr", "view", r.branch, "--repo", rb.repository, "--json", "headRefOid")
+		head, seen, ended, bad := r.viewHead(ctx)
 		if bad {
-			return "", false, ended, true
+			return "", false, false, ended, true
 		}
-		var view struct {
-			HeadRefOid string `json:"headRefOid"`
+		if seen {
+			return head, false, false, Answer{}, false
 		}
-		if err := json.Unmarshal([]byte(viewed), &view); err != nil {
-			return "", false, r.ghFailed("gh pr view", "its answer is not a pull request's head: "+err.Error()), true
-		}
-		if r.hasCommit(ctx, view.HeadRefOid) && r.ports.IsAncestor(ctx, rb.onto, view.HeadRefOid) {
-			return view.HeadRefOid, false, Answer{}, false
-		}
-		left := deadline.Sub(now())
-		if left <= 0 {
+		timedOut, bound, left := r.limits(deadline)
+		if timedOut {
 			fmt.Fprintf(r.o.Stderr, "itos: GitHub has not rebased the pull request onto %s after %s seconds (ci.watch.timeout), so no CI run was watched; its checks are at %s.\n",
 				rb.ontoName, value.Number(timeout), r.pr.URL)
-			return "", true, Answer{}, false
+			return "", true, false, Answer{}, false
+		}
+		if bound {
+			return "", false, true, Answer{}, false
 		}
 		sleep(min(interval, left))
 	}
+}
+
+// viewHead asks gh pr view for the item's head once: seen whether it is the
+// head GitHub made when it rebased the pull request, one the clone has that has
+// main's head, as the push fetched it, as an ancestor; failed, with the outcome
+// reported, when gh pr view does.
+func (r *pushRun) viewHead(ctx context.Context) (head string, seen bool, a Answer, failed bool) {
+	rb := r.rebased
+	viewed, ended, bad := r.gh(ctx, "pr", "view", r.branch, "--repo", rb.repository, "--json", "headRefOid")
+	if bad {
+		return "", false, ended, true
+	}
+	var view struct {
+		HeadRefOid string `json:"headRefOid"`
+	}
+	if err := json.Unmarshal([]byte(viewed), &view); err != nil {
+		return "", false, r.ghFailed("gh pr view", "its answer is not a pull request's head: "+err.Error()), true
+	}
+	return view.HeadRefOid, r.hasCommit(ctx, view.HeadRefOid) && r.ports.IsAncestor(ctx, rb.onto, view.HeadRefOid), Answer{}, false
+}
+
+// unwatchedHead is the head GitHub made when it rebased the pull request, for
+// a --ready with no ci.watch provider (slice 200): gh pr view is asked once,
+// with no wait for the rebase, and the head it answers counts only when
+// viewHead says it is the rebased one. Otherwise GitHub has not rebased yet,
+// and --ready stops at once: done, exit 75, outcome ready-still-waiting, having
+// merged, asked and posted nothing.
+func (r *pushRun) unwatchedHead(ctx context.Context) (head string, a Answer, done bool) {
+	head, seen, a, failed := r.viewHead(ctx)
+	if failed {
+		return "", a, true
+	}
+	if !seen {
+		fmt.Fprintf(r.o.Stderr, "itos: still waiting on %s at %s: rebase waiting; GitHub has not rebased it onto %s yet, so auto-merge is not turned on. itos push --ready again goes on waiting.\n",
+			r.pr.URL, r.sha, r.rebased.ontoName)
+		return "", r.report(temporary, "ready-still-waiting"), true
+	}
+	return head, Answer{}, false
 }
 
 // hasCommit is whether the clone has the commit rev names, after one quiet
@@ -584,16 +623,22 @@ func (r pushRun) gh(ctx context.Context, args ...string) (string, Answer, bool) 
 	if err == nil {
 		return stdout, Answer{}, false
 	}
+	return stdout, r.ghError(args, err), true
+}
+
+// ghError is the pull-request-failed outcome of the gh call with the arguments
+// that failed with err.
+func (r pushRun) ghError(args []string, err error) Answer {
 	command := "gh " + strings.Join(args[:2], " ")
 	if errors.Is(err, providers.ErrNoGh) {
-		return "", r.ghFailed(command, "gh is not on the PATH"), true
+		return r.ghFailed(command, "gh is not on the PATH")
 	}
 	reason := err.Error()
 	var failed *providers.GhFailed
 	if errors.As(err, &failed) && strings.TrimSpace(failed.Words) != "" {
 		reason = strings.TrimSpace(failed.Words)
 	}
-	return stdout, r.ghFailed(command, reason), true
+	return r.ghFailed(command, reason)
 }
 
 // ghFailed is the pull-request-failed outcome (exit 3): the command that
@@ -610,8 +655,14 @@ func (r pushRun) ghFailed(command, reason string) Answer {
 	case r.cfg != nil && r.cfg.Push.PR.Draft:
 		again = "Fix that, then itos push again: it opens the pull request as a draft (gh pr create --draft)."
 	}
-	return r.report(missing, "pull-request-failed",
+	a := r.report(missing, "pull-request-failed",
 		fmt.Sprintf("itos push: %s is pushed, but %s failed: %s", r.upstream(), command, reason), again)
+	if r.o.JSON {
+		for _, l := range a.Lines {
+			fmt.Fprintln(r.o.Stderr, l)
+		}
+	}
+	return a
 }
 
 // lastLine is the last line of the text that is not empty.

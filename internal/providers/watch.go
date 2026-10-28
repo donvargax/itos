@@ -36,7 +36,9 @@ import (
 // in_progress or completed), its conclusion once completed (success,
 // failure, cancelled…), and its jobs, each the same. Its ID, the commit it
 // ran on, its branch and when it was made say which run it is, for finding
-// the run that superseded a cancelled one; --json leaves them out.
+// the run that superseded a cancelled one; Started is when its latest attempt
+// started (slice 200), the clock of itos push --ready's wait; --json leaves
+// them out.
 type Run struct {
 	URL        string   `json:"url"`
 	Status     string   `json:"status"`
@@ -47,6 +49,7 @@ type Run struct {
 	HeadSHA    string   `json:"-"`
 	Branch     string   `json:"-"`
 	Created    string   `json:"-"`
+	Started    string   `json:"-"`
 }
 
 // Job is one job of a run, as Run is. A job that did not succeed gains, once
@@ -322,6 +325,7 @@ func (g GitHub) list(path string) ([]Run, error) {
 			Status     string  `json:"status"`
 			Conclusion *string `json:"conclusion"`
 			CreatedAt  string  `json:"created_at"`
+			StartedAt  string  `json:"run_started_at"`
 			HeadSHA    string  `json:"head_sha"`
 			HeadBranch string  `json:"head_branch"`
 		} `json:"workflow_runs"`
@@ -334,7 +338,7 @@ func (g GitHub) list(path string) ([]Run, error) {
 	listed := make([]Run, 0, len(found))
 	for _, r := range found {
 		listed = append(listed, Run{URL: r.HTMLURL, Status: r.Status, Conclusion: deref(r.Conclusion),
-			ID: r.ID, HeadSHA: r.HeadSHA, Branch: r.HeadBranch, Created: r.CreatedAt})
+			ID: r.ID, HeadSHA: r.HeadSHA, Branch: r.HeadBranch, Created: r.CreatedAt, Started: r.StartedAt})
 	}
 	return listed, nil
 }

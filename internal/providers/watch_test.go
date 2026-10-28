@@ -68,7 +68,7 @@ func TestRunOfReadsTheNewestRunAndItsJobs(t *testing.T) {
 		case strings.Contains(r.URL.Path, "/workflows/"):
 			w.Write([]byte(`{"workflow_runs":[
 				{"id":1,"html_url":"old","status":"completed","conclusion":"failure","created_at":"2026-10-03T10:00:00Z"},
-				{"id":2,"html_url":"new","status":"in_progress","conclusion":null,"created_at":"2026-10-03T11:00:00Z"}]}`))
+				{"id":2,"html_url":"new","status":"in_progress","conclusion":null,"created_at":"2026-10-03T11:00:00Z","run_started_at":"2026-10-03T11:05:00Z"}]}`))
 		case strings.HasSuffix(r.URL.Path, "/runs/2/jobs"):
 			w.Write([]byte(`{"jobs":[{"name":"ci","status":"completed","conclusion":"success"},{"name":"platform","status":"in_progress","conclusion":null}]}`))
 		default:
@@ -83,6 +83,9 @@ func TestRunOfReadsTheNewestRunAndItsJobs(t *testing.T) {
 	run, found, err := GitHub{Repository: "o/n", Token: "t", Workflow: "ci.yml"}.RunOf("abc")
 	if err != nil || !found {
 		t.Fatalf("found %v, err %v", found, err)
+	}
+	if run.Started != "2026-10-03T11:05:00Z" || run.Created != "2026-10-03T11:00:00Z" {
+		t.Fatalf("the run's times: %+v", run)
 	}
 	if run.URL != "new" || run.Done() || len(run.Jobs) != 2 || !run.Jobs[0].Done() || run.Jobs[1].Done() {
 		t.Fatalf("read %+v", run)

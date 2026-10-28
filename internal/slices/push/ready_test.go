@@ -19,7 +19,10 @@ import (
 // request, a draft or not, opens pull requests at created, answers pr view
 // with the heads in turn, the last for good, and api graphql with the reviews
 // and review threads it was given, or with what graph makes of the number of
-// the ask; a command in fail fails with its error.
+// the ask; a command in fail fails with its error. The head a review state
+// is of, in the answers, is written "@head" and is the head --ready judges:
+// the last of the heads pr view answers when it answers some, else the clone's
+// HEAD, as current gives it.
 type pulls struct {
 	open, created string
 	title         string // the open pull request's title
@@ -30,9 +33,23 @@ type pulls struct {
 	graph         func(ask int) string
 	fail          map[string]error
 	asks, viewed  int
+	current       func() string
+	view          string // the answer to a pr view that asks for the pull request's state, "{}" without
+	activity      string // the answer to the branch's activity, "" for none
+}
+
+// judged is the head the answers' "@head" stands for.
+func (p *pulls) judged() string {
+	if len(p.heads) > 0 {
+		return p.heads[len(p.heads)-1]
+	}
+	return p.current()
 }
 
 func (p *pulls) gh(args []string) (string, error) {
+	if args[0] == "api" && strings.HasPrefix(args[1], "repos/") {
+		return strings.ReplaceAll(p.activity, "@head", p.judged()), p.fail["api repos"]
+	}
 	command := strings.Join(args[:2], " ")
 	if err := p.fail[command]; err != nil {
 		return "", err
@@ -46,13 +63,19 @@ func (p *pulls) gh(args []string) (string, error) {
 	case "pr create":
 		return "Creating the pull request\n" + p.created + "\n", nil
 	case "pr view":
+		if len(args) > 0 && strings.Contains(args[len(args)-1], "state") {
+			if p.view != "" {
+				return strings.ReplaceAll(p.view, "@head", p.judged()) + "\n", nil
+			}
+			return "{}\n", nil
+		}
 		head := p.heads[min(p.viewed, len(p.heads)-1)]
 		p.viewed++
 		return fmt.Sprintf(`{"headRefOid":%q}`+"\n", head), nil
 	case "api graphql":
 		p.asks++
 		if p.graph != nil {
-			return p.graph(p.asks), nil
+			return strings.ReplaceAll(p.graph(p.asks), "@head", p.judged()), nil
 		}
 		var reviews []string
 		for _, login := range p.reviews {
@@ -93,7 +116,7 @@ func draftRepo(t *testing.T, pr string, more ...string) (*fake, *pulls) {
 	f := prRepo(t)
 	f.cfg = loadedWith(t, "version: 1\npush: { mode: pr, pr: { "+pr+" } }\n"+strings.Join(more, ""),
 		map[string]string{registryFile: "items:\n  - { id: " + item + " }\n"})
-	p := &pulls{created: opened}
+	p := &pulls{created: opened, current: func() string { return f.head(t) }}
 	f.gh = p.gh
 	return f, p
 }
@@ -131,11 +154,18 @@ func pushedLine(f *fake, t *testing.T, address string) string {
 
 const (
 	list     = "pr list --repo owner/name --head slice-9 --state open --json number,url,isDraft,title"
-	merge    = "pr merge slice-9 --repo owner/name --auto --rebase"
+	activity = "api repos/owner/name/activity?ref=refs/heads/slice-9&per_page=1"
+	readBack = "pr view slice-9 --repo owner/name --json state,mergedAt,autoMergeRequest"
 	ready    = "pr ready slice-9 --repo owner/name"
 	sayDraft = "The pull request is a draft: nothing judges or merges it until itos push --ready marks it ready.\n"
 	sayReady = "The pull request is ready: itos push --ready waits for its checks and reviews, then turns on auto-merge.\n"
 )
+
+// merged are the calls --ready ends with when auto-merge goes on: the merge,
+// pinned to the head judged, and the read of the pull request that follows.
+func merged(head string) []string {
+	return []string{"pr merge slice-9 --repo owner/name --auto --rebase --match-head-commit " + head, readBack}
+}
 
 // graphql is the gh api graphql call for the pull request, the query one
 // line and the repository its owner and name.
@@ -237,7 +267,7 @@ func TestPushReadyMarksTheDraftReadyThenTurnsOnAutoMerge(t *testing.T) {
 	if code != 0 || stderr != "" || stdout != want {
 		t.Fatalf("exit %d\n%s%s\nwant\n%s", code, stdout, stderr, want)
 	}
-	if got, want := f.calls(), []string{list, ready, graphql(7), merge}; !reflect.DeepEqual(got, want) {
+	if got, want := f.calls(), append([]string{list, ready, graphql(7), activity}, merged(f.head(t))...); !reflect.DeepEqual(got, want) {
 		t.Errorf("gh was called\n%s\nwant\n%s", strings.Join(got, "\n"), strings.Join(want, "\n"))
 	}
 	if strings.ContainsAny(reviewQuery, "\n\t") || strings.Contains(reviewQuery, "  ") || !strings.HasPrefix(reviewQuery, "query($owner: String!, ") {
@@ -274,7 +304,7 @@ func TestPushReadyOpensOrKeepsTheReadyPullRequest(t *testing.T) {
 		t.Errorf("exit %d\n%s", code, stdout)
 	}
 	create := "pr create --repo owner/name --base main --head slice-9 --title=slice-9 --body=slice-9"
-	if got, want := f.calls(), []string{list, create, graphql(1), merge}; !reflect.DeepEqual(got, want) || p.asks != 1 {
+	if got, want := f.calls(), append([]string{list, create, graphql(1)}, merged(f.head(t))...); !reflect.DeepEqual(got, want) || p.asks != 1 {
 		t.Errorf("gh was called\n%s", strings.Join(got, "\n"))
 	}
 	f, p = draftRepo(t, "draft: true")
@@ -283,7 +313,7 @@ func TestPushReadyOpensOrKeepsTheReadyPullRequest(t *testing.T) {
 	if want := pushedLine(f, t, open7) + "Auto-merge is on: GitHub merges " + open7 + " by rebase once its required checks pass.\n"; code != 0 || stdout != want {
 		t.Errorf("exit %d\n%s", code, stdout)
 	}
-	if got, want := f.calls(), []string{list, graphql(7), merge}; !reflect.DeepEqual(got, want) {
+	if got, want := f.calls(), append([]string{list, graphql(7)}, merged(f.head(t))...); !reflect.DeepEqual(got, want) {
 		t.Errorf("gh was called\n%s", strings.Join(got, "\n"))
 	}
 }
@@ -303,7 +333,7 @@ func TestPushReadyWithNothingToPush(t *testing.T) {
 	if code != 0 || r.Outcome != "nothing-to-push" || r.PR == nil || !r.PR.AutoMerge || r.PR.Draft || r.CI != "success" {
 		t.Fatalf("exit %d\n%s%s", code, stdout, stderr)
 	}
-	if got, want := f.calls(), []string{list, ready, graphql(7), merge}; !reflect.DeepEqual(got, want) || !reflect.DeepEqual(*asked, []string{f.head(t)}) {
+	if got, want := f.calls(), append([]string{list, ready, graphql(7)}, merged(f.head(t))...); !reflect.DeepEqual(got, want) || !reflect.DeepEqual(*asked, []string{f.head(t)}) {
 		t.Errorf("gh was called\n%s\nruns asked for %v", strings.Join(got, "\n"), *asked)
 	}
 	f.ghCalls = nil
@@ -411,7 +441,7 @@ func TestPushReadyWhereGitHubRebases(t *testing.T) {
 		!reflect.DeepEqual(*asked, []string{"rb000"}) {
 		t.Fatalf("exit %d\n%s%s\nruns asked for %v", code, stdout, stderr, *asked)
 	}
-	if got, want := f.calls(), []string{list, ready, update, view, graphql(7), merge}; !reflect.DeepEqual(got, want) {
+	if got, want := f.calls(), append([]string{list, ready, update, view, graphql(7)}, merged("rb000")...); !reflect.DeepEqual(got, want) {
 		t.Errorf("gh was called\n%s", strings.Join(got, "\n"))
 	}
 
@@ -708,10 +738,15 @@ func TestParseReady(t *testing.T) {
 }
 
 // codexState is the comment Codex edits in place, with a state line holding the
-// two statuses.
-func codexState(code, security string) string {
+// two statuses, both reviews of the head (@head); codexStateAt, of the commits.
+func codexState(code, security string) string { return codexStateAt(code, "@head", security, "@head") }
+
+// codexStateAt is a review-state comment whose code review has the status and
+// the commit given first and its security review the second pair.
+func codexStateAt(code, codeSHA, security, securitySHA string) string {
 	return "<!-- codex-pull-request-review-summary -->\n<!-- codex-review-state:v1 " +
-		fmt.Sprintf(`{"code_review":{"status":%q},"security_review":{"status":%q}}`, code, security) + " -->\n## Codex Review Summary"
+		fmt.Sprintf(`{"code_review":{"status":%q,"commit_sha":%q},"security_review":{"status":%q,"commit_sha":%q}}`, code, codeSHA, security, securitySHA) +
+		" -->\n## Codex Review Summary"
 }
 
 const (
@@ -724,7 +759,7 @@ const (
 // verdict; a login whose reviews are all refusals, and that wrote no state, is
 // refused with the first line of its last refusal.
 func TestVerdicts(t *testing.T) {
-	review := func(login, body string) authored { return authored{login, body} }
+	review := func(login, body string) authored { return authored{login: login, body: body} }
 	for name, c := range map[string]struct {
 		state   pullState
 		missing []string
@@ -743,30 +778,30 @@ func TestVerdicts(t *testing.T) {
 		"not on the first line":              {pullState{reviews: []authored{review("a", "hi\n"+quota)}}, nil, nil},
 		"indented first line":                {pullState{reviews: []authored{review("a", "  "+quota)}}, []string{"a"}, []refusal{{"a", quota}}},
 		"a refusal and a bystander":          {pullState{reviews: []authored{review("a", quota), review("b", "")}}, []string{"a"}, []refusal{{"a", quota}}},
-		"completed":                          {pullState{comments: []authored{{"a", codexState("completed", "completed")}}}, nil, nil},
-		"completed by a bot":                 {pullState{comments: []authored{{"a[bot]", codexState("completed", "completed")}}}, nil, nil},
-		"code running":                       {pullState{comments: []authored{{"a", codexState("running", "completed")}}}, []string{"a"}, nil},
-		"security running":                   {pullState{comments: []authored{{"a", codexState("completed", "running")}}}, []string{"a"}, nil},
-		"by another":                         {pullState{comments: []authored{{"b", codexState("completed", "completed")}}}, []string{"a"}, nil},
-		"state beats a review":               {pullState{reviews: []authored{review("a", "### Codex Review")}, comments: []authored{{"a", codexState("completed", "running")}}}, []string{"a"}, nil},
-		"state beats a refusal":              {pullState{reviews: []authored{review("a", quota)}, comments: []authored{{"a", codexState("completed", "running")}}}, []string{"a"}, nil},
-		"state, then a refusal":              {pullState{reviews: []authored{review("a", quota)}, comments: []authored{{"a", codexState("completed", "completed")}}}, nil, nil},
-		"the last state":                     {pullState{comments: []authored{{"a", codexState("running", "running")}, {"a", codexState("completed", "completed")}}}, nil, nil},
-		"carriage return":                    {pullState{comments: []authored{{"a", "x\r\n  " + strings.ReplaceAll(codexState("completed", "completed"), "\n", "\r\n") + "  "}}}, nil, nil},
-		"no security review":                 {pullState{comments: []authored{{"a", "<!-- codex-review-state:v1 {\"code_review\":{\"status\":\"completed\"}} -->"}}}, []string{"a"}, nil},
-		"not json":                           {pullState{comments: []authored{{"a", "<!-- codex-review-state:v1 {nope -->"}}}, []string{"a"}, nil},
-		"another comment":                    {pullState{comments: []authored{{"a", "all completed"}}}, []string{"a"}, nil},
-		"no closing":                         {pullState{comments: []authored{{"a", "<!-- codex-review-state:v1 {\"code_review\":{\"status\":\"completed\"},\"security_review\":{\"status\":\"completed\"}}"}}}, []string{"a"}, nil},
-		"no opening":                         {pullState{comments: []authored{{"a", "{\"code_review\":{\"status\":\"completed\"},\"security_review\":{\"status\":\"completed\"}} -->"}}}, []string{"a"}, nil},
+		"completed":                          {pullState{comments: []authored{{login: "a", body: codexState("completed", "completed")}}}, nil, nil},
+		"completed by a bot":                 {pullState{comments: []authored{{login: "a[bot]", body: codexState("completed", "completed")}}}, nil, nil},
+		"code running":                       {pullState{comments: []authored{{login: "a", body: codexState("running", "completed")}}}, []string{"a"}, nil},
+		"security running":                   {pullState{comments: []authored{{login: "a", body: codexState("completed", "running")}}}, []string{"a"}, nil},
+		"by another":                         {pullState{comments: []authored{{login: "b", body: codexState("completed", "completed")}}}, []string{"a"}, nil},
+		"state beats a review":               {pullState{reviews: []authored{review("a", "### Codex Review")}, comments: []authored{{login: "a", body: codexState("completed", "running")}}}, []string{"a"}, nil},
+		"state beats a refusal":              {pullState{reviews: []authored{review("a", quota)}, comments: []authored{{login: "a", body: codexState("completed", "running")}}}, []string{"a"}, nil},
+		"state, then a refusal":              {pullState{reviews: []authored{review("a", quota)}, comments: []authored{{login: "a", body: codexState("completed", "completed")}}}, nil, nil},
+		"the last state":                     {pullState{comments: []authored{{login: "a", body: codexState("running", "running")}, {login: "a", body: codexState("completed", "completed")}}}, nil, nil},
+		"carriage return":                    {pullState{comments: []authored{{login: "a", body: "x\r\n  " + strings.ReplaceAll(codexState("completed", "completed"), "\n", "\r\n") + "  "}}}, nil, nil},
+		"no security review":                 {pullState{comments: []authored{{login: "a", body: "<!-- codex-review-state:v1 {\"code_review\":{\"status\":\"completed\"}} -->"}}}, []string{"a"}, nil},
+		"not json":                           {pullState{comments: []authored{{login: "a", body: "<!-- codex-review-state:v1 {nope -->"}}}, []string{"a"}, nil},
+		"another comment":                    {pullState{comments: []authored{{login: "a", body: "all completed"}}}, []string{"a"}, nil},
+		"no closing":                         {pullState{comments: []authored{{login: "a", body: "<!-- codex-review-state:v1 {\"code_review\":{\"status\":\"completed\"},\"security_review\":{\"status\":\"completed\"}}"}}}, []string{"a"}, nil},
+		"no opening":                         {pullState{comments: []authored{{login: "a", body: "{\"code_review\":{\"status\":\"completed\"},\"security_review\":{\"status\":\"completed\"}} -->"}}}, []string{"a"}, nil},
 	} {
 		t.Run(name, func(t *testing.T) {
-			missing, refused := c.state.verdicts([]string{"a"})
+			missing, refused := c.state.verdicts([]string{"a"}, "@head")
 			if !reflect.DeepEqual(missing, c.missing) || !reflect.DeepEqual(refused, c.refused) {
 				t.Errorf("missing %v, refused %v; want %v, %v", missing, refused, c.missing, c.refused)
 			}
 		})
 	}
-	missing, refused := pullState{reviews: []authored{review("c", "")}}.verdicts([]string{"a", "b[bot]", "c"})
+	missing, refused := pullState{reviews: []authored{review("c", "")}}.verdicts([]string{"a", "b[bot]", "c"}, "@head")
 	if !reflect.DeepEqual(missing, []string{"a", "b[bot]"}) || refused != nil {
 		t.Errorf("missing %v, refused %v", missing, refused)
 	}

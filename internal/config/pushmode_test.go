@@ -36,7 +36,7 @@ func TestPushMode(t *testing.T) {
 // it is not a number.
 func TestPushPR(t *testing.T) {
 	c, err := load(t, "version: 1\n")
-	if err != nil || c.Push.PR.Draft || len(c.Push.PR.ReviewBy) != 0 || c.Push.PR.ReviewStall != 0 {
+	if err != nil || c.Push.PR.Draft || len(c.Push.PR.ReviewBy) != 0 || c.Push.PR.ReviewStall != 0 || c.Push.PR.ReadyWait != 540 {
 		t.Errorf("by default: %+v, %v", c.Push.PR, err)
 	}
 	c, err = load(t, "version: 1\npush: { mode: pr, pr: { draft: true, review_by: [copilot-pull-request-reviewer, bo] } }\n")
@@ -46,9 +46,16 @@ func TestPushPR(t *testing.T) {
 	if c, err = load(t, "version: 1\npush: { mode: pr, pr: { review_stall: 1800.5 } }\n"); err != nil || c.Push.PR.ReviewStall != 1800.5 {
 		t.Errorf("review_stall: %+v, %v", c.Push.PR, err)
 	}
+	if c, err = load(t, "version: 1\npush: { mode: pr, pr: { ready_wait: 0 } }\n"); err != nil || c.Push.PR.ReadyWait != 0 {
+		t.Errorf("ready_wait 0, no bound: %+v, %v", c.Push.PR, err)
+	}
+	if c, err = load(t, "version: 1\npush: { mode: pr, pr: { ready_wait: 90.5 } }\n"); err != nil || c.Push.PR.ReadyWait != 90.5 {
+		t.Errorf("ready_wait: %+v, %v", c.Push.PR, err)
+	}
 	for text, want := range map[string]string{
 		"version: 1\npush: { pr: { draft: yes please } }\n":  "push.pr.draft should be a boolean",
 		"version: 1\npush: { pr: { review_stall: soon } }\n": "push.pr.review_stall should be a number",
+		"version: 1\npush: { pr: { ready_wait: soon } }\n":   "push.pr.ready_wait should be a number",
 		"version: 1\npush: { pr: { review_by: copilot } }\n": "push.pr.review_by should be a list",
 		"version: 1\npush: { pr: { review_by: [1] } }\n":     "push.pr.review_by should be a list of strings",
 		"version: 1\npush: { pr: { squash: true } }\n":       "unknown key push.pr.squash",
@@ -58,7 +65,7 @@ func TestPushPR(t *testing.T) {
 			t.Errorf("%q: got %q, want %q", text, got, want)
 		}
 	}
-	for _, key := range []string{"push.pr", "push.pr.draft", "push.pr.review_by", "push.pr.review_stall"} {
+	for _, key := range []string{"push.pr", "push.pr.draft", "push.pr.review_by", "push.pr.review_stall", "push.pr.ready_wait"} {
 		if ok, _ := KnownKey(key); !ok {
 			t.Errorf("%s is no key of the schema", key)
 		}

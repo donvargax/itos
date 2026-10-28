@@ -329,6 +329,8 @@ var schema = about("itos's policy: the ledger, the commit rules, the named tests
 				"itos push --ready marks it ready (push.mode pr).", boo),
 			"review_by", about("The GitHub logins whose review itos push --ready waits for before it turns on auto-merge, as GitHub's GraphQL gives them (a bot's without \"[bot]\"); empty, it waits for none.", strs),
 			"review_stall", about("The seconds a push.pr.review_by login's review may read running in its review-state comment (Codex's) before itos push --ready asks for it again, once per head; 0, the default, never.", num),
+			"ready_wait", about("The seconds one itos push --ready may spend, counted from its start, before it stops waiting for GitHub's rebase, the run and the reviews "+
+				"with the outcome ready-still-waiting, so that it returns within its caller's time limit; itos push --ready again goes on. 0, no bound.", num),
 			"direct", about("The commits a push from main goes straight to main with, beside the registry's, under push.mode pr.", obj(nil,
 				"types", about("The commit types that a push from main, or itos push --ref main, sends straight to main beside the registry's commits under push.mode pr; empty, none.", strs),
 				"except", about("Globs of paths that keep a commit of those types off main, so it goes through its item's pull request: a commit touching any is refused on main.", strs),

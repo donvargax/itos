@@ -24,9 +24,10 @@ const (
 )
 
 // Watched is how a watch ended: its exit code, its outcome (success,
-// failure, cancelled, timeout or error), the run as last seen, nil when none
-// was, and the address of the commit's cancelled run when a newer run was
-// followed in its place.
+// failure, cancelled, timeout or error; bound for a WatchReady whose Ready
+// bound passed first), the run as last seen, nil when none was, and the
+// address of the commit's cancelled run when a newer run was followed in its
+// place.
 type Watched struct {
 	Code       int
 	Outcome    string
@@ -92,7 +93,16 @@ func Watcher(ctx context.Context, cfg *config.Loaded, v vcsport.VCS, remote stri
 // it whose head has the commit as an ancestor (Covering), followed as a
 // cancelled run's successor is.
 func Watch(ctx context.Context, cfg *config.Loaded, wr providers.Watcher, v vcsport.VCS, sha, remote, branch string, o Out) Watched {
-	return watch(ctx, cfg, wr, v, sha, remote, branch, o, false)
+	return watch(ctx, cfg, wr, v, sha, remote, branch, o, nil)
+}
+
+// Ready is what itos push --ready adds to a watch (slices 179 and 200): Left,
+// when set, is how long push.pr.ready_wait leaves the whole call, which ends
+// the watch with the outcome bound, code 75, at the first look after it has
+// passed (and none of the watch's own timeout line) unless ci.watch.timeout
+// passed before it.
+type Ready struct {
+	Left func() time.Duration
 }
 
 // WatchReady is Watch for itos push --ready (slice 179), which marks a draft
@@ -100,9 +110,11 @@ func Watch(ctx context.Context, cfg *config.Loaded, wr providers.Watcher, v vcsp
 // record that run as a success, so a look that finds a run all of whose jobs
 // were skipped, or that lists none, is taken for no run yet and made again
 // each ci.watch.interval within ci.watch.timeout, until the run the marking
-// starts on the same head shows.
-func WatchReady(ctx context.Context, cfg *config.Loaded, wr providers.Watcher, v vcsport.VCS, sha, remote string, o Out) Watched {
-	return watch(ctx, cfg, wr, v, sha, remote, "", o, true)
+// starts on the same head shows. The timeout counts from the start of the
+// run's latest attempt (providers.Run.Started) when GitHub gives it (slice
+// 200), so that a rerun of --ready continues it, else from the watch's start.
+func WatchReady(ctx context.Context, cfg *config.Loaded, wr providers.Watcher, v vcsport.VCS, sha, remote string, o Out, ready Ready) Watched {
+	return watch(ctx, cfg, wr, v, sha, remote, "", o, &ready)
 }
 
 // DraftsRun is whether a run is only a draft's: it lists no job, or every job
@@ -111,7 +123,7 @@ func DraftsRun(run providers.Run) bool {
 	return !slices.ContainsFunc(run.Jobs, func(j providers.Job) bool { return j.Conclusion != "skipped" })
 }
 
-func watch(ctx context.Context, cfg *config.Loaded, wr providers.Watcher, v vcsport.VCS, sha, remote, branch string, o Out, skipped bool) Watched {
+func watch(ctx context.Context, cfg *config.Loaded, wr providers.Watcher, v vcsport.VCS, sha, remote, branch string, o Out, ready *Ready) Watched {
 	progress, end := o.Stdout, o.Stdout
 	if o.JSON {
 		progress, end = o.Stderr, o.Stderr
@@ -148,7 +160,7 @@ func watch(ctx context.Context, cfg *config.Loaded, wr providers.Watcher, v vcsp
 	for {
 		pause = 0
 		run, found, err := wr.Look(target)
-		if skipped && found && DraftsRun(run) {
+		if ready != nil && found && DraftsRun(run) {
 			found = false
 		}
 		switch {
@@ -175,6 +187,9 @@ func watch(ctx context.Context, cfg *config.Loaded, wr providers.Watcher, v vcsp
 			failed = 0
 		default:
 			lastErr, failed = nil, 0
+			if started, ok := startOf(run); ready != nil && ok {
+				deadline = started.Add(timeout)
+			}
 			if run.URL != "" && run.URL != shown {
 				fmt.Fprintf(progress, "CI run: %s\n", run.URL)
 				shown = run.URL
@@ -215,6 +230,12 @@ func watch(ctx context.Context, cfg *config.Loaded, wr providers.Watcher, v vcsp
 			}
 		}
 		left := time.Until(deadline)
+		var bound time.Duration
+		if ready != nil && ready.Left != nil {
+			if bound = ready.Left(); bound <= 0 && (left > 0 || bound < left) {
+				return Watched{Code: exitTemporary, Outcome: "bound", Run: last}
+			}
+		}
 		if left <= 0 {
 			what := "has not finished"
 			if last == nil {
@@ -228,11 +249,21 @@ func watch(ctx context.Context, cfg *config.Loaded, wr providers.Watcher, v vcsp
 			return Watched{Code: exitTemporary, Outcome: "timeout", Run: last}
 		}
 		wait := min(max(interval, pause), left)
+		if ready != nil && ready.Left != nil {
+			wait = min(wait, bound)
+		}
 		if wait > interval {
 			fmt.Fprintf(progress, "GitHub's rate limit: looking again in %s\n", wait.Round(time.Second))
 		}
 		sleep(wait)
 	}
+}
+
+// startOf is when the run's latest attempt started, as GitHub writes it; none
+// for a run that has no start or one that cannot be read.
+func startOf(run providers.Run) (time.Time, bool) {
+	t, err := time.Parse(time.RFC3339, run.Started)
+	return t, err == nil
 }
 
 // Covering is the run that covers sha: the newest of the workflow's runs on
