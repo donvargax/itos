@@ -465,6 +465,22 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   pull-request-failed, exit 3, as before, and nothing more is merged or
   asked.
 
+  A refusal after a merge. An auto-merge an earlier --ready turned on may
+  merge the pull request just before this --ready's own merge call, which
+  GitHub then refuses ("GraphQL: Pull Request is not mergeable", seen on
+  #209). So when a merge call fails, whatever its words, --ready reads the
+  pull request once, gh pr view <item> --repo <repository> --json
+  state,mergedAt,headRefOid, before it reports the failure. If it is merged
+  (state MERGED or a mergedAt) and its headRefOid is the head --ready
+  judged, the work is done: "Merged <address> by rebase at <the head's first
+  7 characters>: GitHub had merged it already.", --json's pull_request
+  "merged" true and auto_merge false, exit 0, outcome pushed or
+  nothing-to-push. A pull request that is not merged, or is merged at
+  another head, or a gh pr view that fails or answers what cannot be read,
+  leaves the failure as it was, pull-request-failed, exit 3, with the merge
+  call's words. The clean-status refusal's one direct merge comes first; the
+  read is made when that fails too.
+
   The head's review. A review_by login's review-state comment (step 4b)
   counts for the head --ready judges alone: its code_review.commit_sha and
   its security_review.commit_sha must both be that head's full SHA (the
@@ -647,7 +663,11 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   timestamp that long before the step ran; slice 187's Codex-state step ending ", last edited <n>
   seconds ago", the comment's createdAt and updatedAt that long before the
   step ran; and slice 190's "asking <login> to review the clone's HEAD
-  again" ending ", posted <n> seconds ago", likewise.
+  again" ending ", posted <n> seconds ago", likewise. For the refusal
+  after a merge: "the recording gh's pull request for the branch <branch> is
+  merged already", which makes its pr view answer state MERGED and a mergedAt
+  for that branch, as if an auto-merge had merged it, whatever the merge
+  calls did; its headRefOid is the remote branch's head as before.
 
   Background:
     Given a repository whose ledger has the task "T-001"
@@ -895,6 +915,37 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
     Then itos exits with code 3
     And its JSON's "outcome" is "pull-request-failed"
     And its output says "Auto merge is not allowed for this repository"
+    And the recording gh was called as "pr merge" once
+
+  # An auto-merge an earlier --ready turned on merged the pull request just
+  # before this one's own merge call, which GitHub refused as not mergeable
+  # (#209). The pull request is merged at the head --ready judged, so the
+  # work is done and --ready says so rather than failing. Fails before the
+  # work at the exit code: today the refusal is any gh call failing, exit 3,
+  # pull-request-failed.
+  @ID-PUSHDRAFT-44 @slice-200 @wip
+  Scenario: Under push.pr.draft, push --ready whose merge call GitHub refuses because the pull request merged just before, at the head it judged, says it merged and exits 0
+    Given the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+        pr:
+          draft: true
+      """
+    And ci.watch asks a fake GitHub, which reports the run "https://ci.example/runs/1"
+    And the watched run's jobs "ci" and "platform" succeed
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the clone is on the new branch "slice-9"
+    And the clone has the commit "feat: add the widget" touching "widget.md"
+    And git pushes HEAD to the remote's new branch "slice-9"
+    And the recording gh has the draft pull request "https://github.example/o/r/pull/7" open for the branch "slice-9"
+    And the recording gh's "pr merge" calls with "--auto" fail, saying "GraphQL: Pull Request is not mergeable"
+    And the recording gh's pull request for the branch "slice-9" is merged already
+    When itos runs "push --ready --json"
+    Then itos exits with code 0
+    And its JSON's "pull_request.merged" is true
+    And its JSON's "pull_request.auto_merge" is false
+    And the recording gh's "pr view" call has "state,mergedAt,headRefOid"
     And the recording gh was called as "pr merge" once
 
   # Under --ready the wait is a gate: a red run leaves auto-merge off. With
