@@ -188,7 +188,7 @@ request was merged or auto-merge is on (a pull request merged at the head
 already when a merge call fails is merged too). Auto-merge thus comes after the
 checks and the reviews. The reviews, comments and threads are one gh api graphql
 question. The clocks of ci.watch.timeout are GitHub's: the run's from its
-latest attempt's start, the reviews' from when the pull request was marked ready
+latest attempt's start, else its creation, the reviews' from when the pull request was marked ready
 or its head pushed, whichever is later, so running --ready again continues them.
 push.pr.ready_wait (seconds, 540 by default, 0 for no bound) ends one --ready call
 that has waited that long, exit 75, outcome ready-still-waiting, saying what it

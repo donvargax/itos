@@ -42,7 +42,8 @@
 // that marking the pull request ready starts shows. Its timeout counts from
 // the start of the run's latest attempt (run_started_at, providers.Run.Started)
 // when GitHub gives it, so that a --ready run again continues the clock, else
-// from the watch's start (slice 200); and Ready.Left ends the watch, outcome
+// from the run's creation, else from the watch's start (slice 200); and
+// Ready.Left ends the watch, outcome
 // bound, exit 75, at the first look after push.pr.ready_wait has passed,
 // unless the timeout passed first.
 //
