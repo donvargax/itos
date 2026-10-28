@@ -222,6 +222,9 @@ func (w *world) ghCommentsAfter() string  { return filepath.Join(w.support, "gh-
 //go:embed testdata/gh
 var ghScript embed.FS
 
+//go:embed testdata/gh/dispatch.sh
+var ghDispatch string
+
 // recordingGh is a gh first on the PATH that stands in for GitHub: it records
 // each call on a line, a line break inside an argument written as a backslash
 // and an n (slice 184), fails every call when a step says so, and answers the
@@ -237,13 +240,9 @@ func (w *world) recordingGh(address string) error {
 	if err := w.writeGhHandlers(); err != nil {
 		return err
 	}
-	dispatch, err := ghScript.ReadFile("testdata/gh/dispatch.sh")
-	if err != nil {
-		return err
-	}
 	script := fmt.Sprintf("#!/bin/sh\nS=%s\nH=\"$S/gh-handlers\"\nGIT=%s\nREMOTE=%s\nADDRESS=%s\n%s",
 		quote(filepath.ToSlash(w.support)), quote(filepath.ToSlash(git.Bin(runtime.GOOS))),
-		quote(filepath.ToSlash(w.remote())), quote(address), lineFeeds(dispatch))
+		quote(filepath.ToSlash(w.remote())), quote(address), lineFeeds([]byte(ghDispatch)))
 	if err := w.writeProgram(filepath.Join(bin, "gh"), script); err != nil {
 		return err
 	}
