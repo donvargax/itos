@@ -422,20 +422,29 @@ Feature: ci run's log names a merged check by the kind of named tests it ran in
   # holds:
   #   no-paths   the job declares no paths, or an empty list: it always runs,
   #              as every job did before
-  #   whole      the plan has no readable range (an empty start, changes that
-  #              cannot be read, --nightly, --whole): every job runs, as every
-  #              test does
+  #   whole      the plan has no readable range: --nightly, --whole, or a start
+  #              that is empty or all zeros, judged on the range as typed (an
+  #              all-zeros start is whole even when commits.since gives range
+  #              checks a start, as the code proof's rule is, @ID-CI-61), or
+  #              changes that cannot be read, which never answer untouched:
+  #              every job runs, as every test does
   #   config     the range touches the config file itos read: every job runs
   #   workflow   the range touches a file under .github/workflows/, where
   #              each job is defined: every job runs
   #   touched    the range touches one of the job's paths: it runs
   #   untouched  it touches none: it does not run
+  # The config file is the one itos read, its path made relative to the
+  # repository's top level (symlinks resolved, forward slashes): itos.yaml,
+  # or what --config or ITOS_CONFIG names. A config outside the working tree
+  # (stealth's, in the git folder, or an ITOS_CONFIG outside the repository)
+  # is no path of a range and never counts.
   # A job ci.jobs does not declare is not in "jobs" and the workflow runs it;
   # with no ci.jobs, "jobs" is {}. The paths are globs as ci.prose.paths' are,
-  # matched against the range's changed paths as the prose shortcut reads them
-  # (both paths of a rename, bug 32). The paths alone decide: a prose range or
-  # a trusted one (slice 188) changes what the ci job runs, never which jobs
-  # run. ci run, ci run --tests and the text plan are as before.
+  # matched against every path the whole range changed, as the prose shortcut
+  # reads them (both paths of a rename, bug 32), not the last commit's. The
+  # paths alone decide: a prose range or a trusted one (slice 188,
+  # @ID-CITRUST-10) changes what the ci job runs, never which jobs run, and
+  # adds no reason. ci run, ci run --tests and the text plan are as before.
   @ID-CI-76 @slice-202 @wip
   Scenario: A docs-only range skips a job whose paths it does not touch, and runs a job that declares none
     Given the CI steps are "exit 0"
@@ -445,11 +454,14 @@ Feature: ci run's log names a merged check by the kind of named tests it ran in
     Then itos exits with code 0
     And its JSON's "jobs" is {"platform": {"runs": false, "reason": "untouched"}, "lint": {"runs": true, "reason": "no-paths"}}
 
+  # The path is touched by the range's first commit, not its last, so only a
+  # read of the whole range answers touched.
   @ID-CI-77 @slice-202 @wip
-  Scenario: A range that touches one of a job's paths runs the job
+  Scenario: A range that touches one of a job's paths runs the job, whichever of its commits touched it
     Given the CI steps are "exit 0"
     And the config sets "ci.jobs" to the YAML "{platform: {paths: [src/**, go.mod]}}"
     And the commit "fix: correct the total" touching only "src/app.go" on top of it
+    And the commit "docs: write the readme" touching only "README.md" on top of it
     When itos plans CI over the commits after the first with --json
     Then itos exits with code 0
     And its JSON's "jobs.platform" is {"runs": true, "reason": "touched"}
@@ -473,6 +485,18 @@ Feature: ci run's log names a merged check by the kind of named tests it ran in
     Then itos exits with code 0
     And its JSON's "jobs.platform" is {"runs": true, "reason": "config"}
 
+  # The config file is the one itos read, not a fixed itos.yaml: a range that
+  # touches only ci/itos.yaml, which ITOS_CONFIG names, is a config change.
+  @ID-CI-82 @slice-202 @wip
+  Scenario: A range that touches the config ITOS_CONFIG names runs every job
+    Given the CI steps are "exit 0"
+    And the config sets "ci.jobs" to the YAML "{platform: {paths: [src/**]}}"
+    And the config is at "ci/itos.yaml", which ITOS_CONFIG names
+    And the commit "ci: retune the config" touching only the config on top of it
+    When itos plans CI over the commits after the first with --json
+    Then itos exits with code 0
+    And its JSON's "jobs.platform" is {"runs": true, "reason": "config"}
+
   @ID-CI-80 @slice-202 @wip
   Scenario: A range that touches a workflow runs every job, whatever its paths
     Given the CI steps are "exit 0"
@@ -490,6 +514,38 @@ Feature: ci run's log names a merged check by the kind of named tests it ran in
     And the config sets "ci.jobs" to the YAML "{platform: {paths: [src/**]}}"
     And the commit "docs: write the readme" touching only "README.md" on top of it
     When itos plans CI over every commit up to HEAD with --json
+    Then itos exits with code 0
+    And its JSON's "jobs.platform" is {"runs": true, "reason": "whole"}
+
+  # whole is judged on the range as typed: commits.since gives range checks
+  # a start for the all-zeros one, yet its paths are never compared, as
+  # @ID-CI-61 says of the code proof. --whole and --nightly plan no range.
+  @ID-CI-83 @slice-202 @wip
+  Scenario Outline: A plan of no readable range runs every job, even when commits.since gives range checks a start
+    Given the CI steps are "exit 0"
+    And the config sets "ci.jobs" to the YAML "{platform: {paths: [src/**]}}"
+    And the commit "docs: write the readme" touching only "README.md" on top of it
+    And commits.since names the first commit
+    When I invoke itos with "<command>"
+    Then itos exits with code 0
+    And its JSON's "jobs.platform" is {"runs": true, "reason": "whole"}
+
+    Examples:
+      | command                                                      |
+      | ci plan 0000000000000000000000000000000000000000 HEAD --json |
+      | ci plan --whole --json                                       |
+      | ci plan --nightly --json                                     |
+
+  # Changes that cannot be read never answer untouched: git diff fails
+  # without the start's tree, as in @ID-CI-49, while the range is still
+  # walked, so the plan is made and every job runs.
+  @ID-CI-84 @slice-202 @wip
+  Scenario: A range whose changes cannot be read runs every job
+    Given the CI steps are "exit 0"
+    And the config sets "ci.jobs" to the YAML "{platform: {paths: [src/**]}}"
+    And the commit "docs: write the readme" touching only "README.md" on top of it
+    And the tree of the first commit is missing from the repository's objects
+    When itos plans CI over the commits after the first with --json
     Then itos exits with code 0
     And its JSON's "jobs.platform" is {"runs": true, "reason": "whole"}
 
