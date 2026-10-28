@@ -5192,3 +5192,18 @@
     registers a problem matcher for go test's file:line failures (::add-matcher), as setup-go does.
   done_when:
     - run: grep -q 'add-matcher' .github/actions/go-toolchain/action.yml
+
+- id: T-337
+  type: test
+  title: The feature tests' recording gh is built from one handler per gh command and GraphQL query
+  why: >
+    p1-recording-gh-composable (2026-10-27): features/pushmode_test.go's recording gh is one shell
+    script built by a single Sprintf with numbered %[n] arguments; slice-190 and slice-199 both
+    extended it and whichever merged second conflicted (#210, #218), and only the person can run
+    --onto-main. slice-200 and slice-201 extend it next. Split it into one small handler (or answer
+    file) per gh subcommand and GraphQL query, registered by the steps that need it, so parallel
+    items add answers without touching shared lines. Behaviour-preserving: every feature passes
+    before and after, no scenario text changes.
+  done_when:
+    - run: go test ./features -count=1
+      timeout: 900
