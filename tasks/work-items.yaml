@@ -15434,7 +15434,7 @@ items:
   - id: T-337
     title: The feature tests' recording gh is built from one handler per gh command and GraphQL query
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
