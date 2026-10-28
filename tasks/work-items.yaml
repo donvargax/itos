@@ -15394,3 +15394,11 @@ items:
     status: todo
     depends_on: []
     kind: task
+
+  - id: T-336
+    title: go test failures in CI become annotations
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task

@@ -5181,3 +5181,14 @@
     a double quote), the README says how, and a unit test pins it.
   done_when:
     - run: go test ./features -run 'TestShellWords' -count=1
+
+- id: T-336
+  type: ci
+  title: go test failures in CI become annotations
+  why: >
+    p2-go-test-annotations (2026-10-27, left out of slice-198): .github/actions/go-toolchain
+    replaces setup-go and registers no problem matcher, so a go test failure inside a CI step prints
+    to the log alone and slice-197's fallback shows only the exit code line. The toolchain action
+    registers a problem matcher for go test's file:line failures (::add-matcher), as setup-go does.
+  done_when:
+    - run: grep -q 'add-matcher' .github/actions/go-toolchain/action.yml
