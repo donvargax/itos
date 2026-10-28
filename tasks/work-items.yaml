@@ -14122,8 +14122,8 @@ items:
   - id: slice-200
     title: "itos push --ready finishes on its own: merges a clean pull request, counts only the head's review, and returns before a harness's foreground cap"
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: slice
     why: >
