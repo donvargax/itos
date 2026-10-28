@@ -33,6 +33,10 @@ run, so a git that is an itos (the shim `itos git-shim install` makes) is
 passed over by the steps as by itos itself, one rule rather than a copy of it
 (T-104).
 
+A step splits an itos command line as sh does for quotes: single or double
+quotes keep a word's spaces and the other quote kind is plain inside them
+(`--reply "it's fixed"`, `--reply 'say "hi"'`); a backslash is plain, never an escape.
+
 Commands run in a clean environment: no `GIT_*`, `ITOS_*`, `GITHUB_*` or
 `CI` variable of the caller's, no global or system git config, a fixed author,
 and none of the caller's claude, itos, itos extensions or git that is an itos

@@ -396,16 +396,21 @@ exec git "$@"
 }
 
 // A line split into words as sh splits it, for the quoting the scenarios
-// use: whitespace between words, and single quotes around a word's spaces.
+// use: whitespace between words, and single or double quotes around a word's
+// spaces, a quote of the other kind being a plain character inside them. A
+// backslash is a plain character everywhere, so a Windows path stays whole.
 func shellWords(line string) ([]string, error) {
 	var words []string
 	var word strings.Builder
-	inWord, quoted := false, false
+	inWord := false
+	var quote rune
 	for _, r := range line {
 		switch {
-		case r == '\'':
-			quoted, inWord = !quoted, true
-		case !quoted && (r == ' ' || r == '\t'):
+		case quote != 0 && r == quote:
+			quote = 0
+		case quote == 0 && (r == '\'' || r == '"'):
+			quote, inWord = r, true
+		case quote == 0 && (r == ' ' || r == '\t'):
 			if inWord {
 				words = append(words, word.String())
 				word.Reset()
@@ -416,7 +421,7 @@ func shellWords(line string) ([]string, error) {
 			inWord = true
 		}
 	}
-	if quoted {
+	if quote != 0 {
 		return nil, fmt.Errorf("an unclosed quote in %q", line)
 	}
 	if inWord {
