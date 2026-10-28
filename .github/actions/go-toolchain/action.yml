@@ -94,3 +94,6 @@ runs:
         }
         echo "$native_bin" >> "$GITHUB_PATH"
         go version
+    - name: Go problem matcher
+      shell: bash
+      run: echo "::add-matcher::$GITHUB_ACTION_PATH/go-matcher.json"
