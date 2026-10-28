@@ -560,3 +560,35 @@ func TestParseThreads(t *testing.T) {
 		}
 	}
 }
+
+// push threads on a branch where gh fails, or answers what was not asked for,
+// exits 3 naming the call and gh's words, with no word of a push.
+func TestPushThreadsOfTheBranchWhereGhFails(t *testing.T) {
+	for name, c := range map[string]struct {
+		gh    func(args []string) (string, error)
+		says  string
+		calls int
+	}{
+		"pr list fails": {func([]string) (string, error) {
+			return "", &providers.GhFailed{Words: "HTTP 401: Bad credentials\n", Err: errors.New("exit status 1")}
+		}, "itos push: gh pr list failed: HTTP 401: Bad credentials\n", 1},
+		"no gh": {func([]string) (string, error) { return "", providers.ErrNoGh }, "itos push: gh pr list failed: gh is not on the PATH\n", 1},
+		"not a list": {func([]string) (string, error) { return "no", nil },
+			"itos push: gh pr list failed: its answer is not a list of pull requests", 1},
+		"the threads fail": {func(args []string) (string, error) {
+			if args[1] == "graphql" {
+				return "", &providers.GhFailed{Words: "HTTP 502\n", Err: errors.New("exit status 1")}
+			}
+			return `[{"number":7,"url":"` + open7 + `"}]`, nil
+		}, "itos push: gh api graphql failed: HTTP 502\n", 2},
+	} {
+		t.Run(name, func(t *testing.T) {
+			f, _ := nodeRepo(t)
+			f.gh = c.gh
+			code, stdout, stderr, _ := call(t, f, "threads")
+			if code != missing || stdout != "" || !strings.HasPrefix(stderr, c.says) || len(f.ghCalls) != c.calls || strings.Contains(stderr, "pushed") {
+				t.Errorf("exit %d, %d gh calls\n%s%s", code, len(f.ghCalls), stdout, stderr)
+			}
+		})
+	}
+}
