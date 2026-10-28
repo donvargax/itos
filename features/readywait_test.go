@@ -88,6 +88,15 @@ func initializeReadyWaitSteps(sc *godog.ScenarioContext, w *world) {
 			then := secondsAgo(seconds)
 			return w.ghAddNode(w.ghComments(), map[string]any{"author": map[string]any{"login": author}, "body": body, "createdAt": then, "updatedAt": then})
 		})
+	sc.Step(`^the recording gh answers that the pull request has, on a second page of comments, a comment by "([^"]*)" asking "([^"]*)" to review the clone's HEAD again$`,
+		func(author, login string) error {
+			sha, err := w.head()
+			if err != nil {
+				return err
+			}
+			body := "@codex review\n\n<!-- itos-review-request:v1 " + login + " " + sha + " -->"
+			return w.ghAddNode(w.ghCommentsPage2(), map[string]any{"author": map[string]any{"login": author}, "body": body})
+		})
 	sc.Step(`^the recording gh answers that the pull request was marked ready (\d+) seconds ago and its head pushed (\d+) seconds ago$`,
 		func(ready, pushed int) error {
 			if err := w.ghWrite(w.ghReadyAt(), []byte(secondsAgo(ready)+"\n")); err != nil {
@@ -129,6 +138,10 @@ func (w *world) ghMergesAtOnce() string { return filepath.Join(w.support, "gh-me
 func (w *world) ghReadyAt() string      { return filepath.Join(w.support, "gh-ready-at") }
 func (w *world) ghActivity() string     { return filepath.Join(w.support, "gh-activity") }
 func (w *world) ghCommentHeads() string { return filepath.Join(w.support, "gh-comment-heads") }
+
+// The comments the recording gh gives as the second page, after the cursor
+// page2, when it has any.
+func (w *world) ghCommentsPage2() string { return filepath.Join(w.support, "gh-comments-page2") }
 
 // Writes the file of the recording gh's, which must be on the PATH already.
 func (w *world) ghWrite(file string, text []byte) error {
