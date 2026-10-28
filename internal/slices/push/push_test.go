@@ -66,11 +66,14 @@ type fake struct {
 	ghCalls    [][]string
 	repository string
 	commitsErr error
-	diffErr    error            // the error listing the paths two commits differ in
-	showErr    error            // the error showing a commit
-	fetchErrs  map[string]error // by refspec, a fetch that fails whatever fetchErr says
-	atomic     []bool           // whether each push was atomic
-	leases     []*vcsport.Lease // the lease each push took, nil for none
+	diffErr    error                                                       // the error listing the paths two commits differ in
+	showErr    error                                                       // the error showing a commit
+	fetchErrs  map[string]error                                            // by refspec, a fetch that fails whatever fetchErr says
+	pick       func(commit, onto string) (made string, ok bool, err error) // answers CherryPick when ok
+	resetErr   error                                                       // the error resetting the branch
+	noteErr    error                                                       // the error setting a commit's note
+	atomic     []bool                                                      // whether each push was atomic
+	leases     []*vcsport.Lease                                            // the lease each push took, nil for none
 	// The quiet fetches (no prompt) by refspec, and what runs when one is made:
 	// a head the clone lacked arriving.
 	quiet   []string
@@ -188,6 +191,30 @@ func (f *fake) Rebase(ctx context.Context, onto string, quiet bool, talk vcsport
 		return f.rebase()
 	}
 	return f.VCS.Rebase(ctx, onto, quiet, talk)
+}
+
+// CherryPick is the fake's unless pick answers for the commit and where it goes.
+func (f *fake) CherryPick(ctx context.Context, commit, onto string) (string, error) {
+	if f.pick != nil {
+		if made, ok, err := f.pick(commit, onto); ok {
+			return made, err
+		}
+	}
+	return f.VCS.CherryPick(ctx, commit, onto)
+}
+
+func (f *fake) Reset(ctx context.Context, rev string) error {
+	if f.resetErr != nil {
+		return f.resetErr
+	}
+	return f.VCS.Reset(ctx, rev)
+}
+
+func (f *fake) Note(ctx context.Context, rev, text string) error {
+	if f.noteErr != nil {
+		return f.noteErr
+	}
+	return f.VCS.Note(ctx, rev, text)
 }
 
 func (f *fake) Push(ctx context.Context, remote string, specs []string, p vcsport.Pushing, talk vcsport.Talk) error {

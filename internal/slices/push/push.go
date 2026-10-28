@@ -7,6 +7,7 @@ import (
 	"io"
 	"path"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/donvargax/itos/v8/internal/config"
@@ -39,6 +40,7 @@ type pushRun struct {
 	rebased        *rebased         // the rebase GitHub was asked for, once it was (pr.go)
 	waiting        *waiting         // what --ready waits on, while its run is watched (waiting.go)
 	noUpstream     string           // the local branch, when it has no upstream and goes to the remote's default branch (trunkDefault)
+	sent           []string         // the "Sent ..." lines of an item's push, before the "Pushed ..." line (registry.go)
 }
 
 // report ends the run: Run prints the outcome under --json, else the lines
@@ -354,7 +356,7 @@ func (r pushRun) pushedLine(ctx context.Context, address string) string {
 	if address != "" {
 		line += " Pull request: " + address
 	}
-	return line
+	return strings.Join(append(slices.Clone(r.sent), line), "\n")
 }
 
 // wait waits for the CI run of the commit pushed when ci.watch has a

@@ -2,6 +2,7 @@ package adapter
 
 import (
 	"context"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -61,6 +62,45 @@ func (g Git) Restore(ctx context.Context, paths []string) error {
 // Note is git notes add -f on the itos notes' ref.
 func (g Git) Note(ctx context.Context, rev, text string) error {
 	return g.run(ctx, port.Talk{}, nil, false, "notes", "--ref="+port.NotesRef, "add", "-f", "-m", text, rev)
+}
+
+// CherryPick merges the commit's change onto onto in memory (git merge-tree
+// --write-tree, the commit's first parent the merge base), then commits the
+// tree it wrote on onto with git commit-tree as the commit's author, at the
+// commit's author date, with its message: no ref, index or work tree is
+// touched. git merge-tree exits 1 for a merge with conflicts, and --name-only
+// prints the tree and then the conflicted paths up to a blank line.
+func (g Git) CherryPick(ctx context.Context, commit, onto string) (string, error) {
+	shown, err := g.Show(ctx, commit)
+	if err != nil {
+		return "", err
+	}
+	merged, err := g.output(ctx, port.Talk{}, false, "merge-tree", "--write-tree", "--name-only",
+		"--merge-base="+g.Parent(ctx, commit), onto, commit)
+	lines := strings.Split(merged, "\n")
+	var failed *port.Failed
+	if errors.As(err, &failed) && failed.Code == 1 {
+		conflicts := &port.Conflicts{}
+		for _, line := range lines[1:] {
+			if line == "" {
+				break
+			}
+			conflicts.Paths = append(conflicts.Paths, line)
+		}
+		return "", conflicts
+	}
+	if err != nil {
+		return "", err
+	}
+	as := port.Talk{Stdin: strings.NewReader(strings.TrimRight(shown.Message, "\n") + "\n"),
+		Env: append(os.Environ(), "GIT_AUTHOR_NAME="+shown.Author, "GIT_AUTHOR_EMAIL="+shown.Email, "GIT_AUTHOR_DATE="+shown.Date)}
+	made, err := g.output(ctx, as, false, "commit-tree", lines[0], "-p", onto, "-F", "-")
+	return strings.TrimSpace(made), err
+}
+
+// Reset is git reset --hard.
+func (g Git) Reset(ctx context.Context, rev string) error {
+	return g.run(ctx, port.Talk{}, nil, false, "reset", "--hard", "--quiet", rev)
 }
 
 // CommitFile builds the commit through an index of its own, in a folder of

@@ -176,13 +176,15 @@ func TestPushItemBranchSendsTakesToMain(t *testing.T) {
 	if f.origin() != took[0] || f.Remote["origin"].Refs["refs/heads/slice-9"] != head {
 		t.Errorf("origin has %v", f.Remote["origin"].Refs)
 	}
-	// Work first: none of it goes to main, and a take above the work stays
-	// with the work.
+	// Work first: none of it goes to main, and a take above the work goes to
+	// main too (slice-192), out from under the item's branch.
 	f = prRepo(t)
 	f.History = append(f.History, vcsfake.Commit{Name: "tk002", Parents: []string{mine}, Message: "docs: take\n",
 		Tree: map[string]string{"README.md": "start\n", "mine.md": "mine.md\n", registryFile: "taken\n"}})
 	f.on(item, "tk002")
-	if code, _, _, _ := call(t, f); code != 0 || len(f.pushed) != 1 || len(f.pushed[0]) != 1 {
+	code, _, _, _ = call(t, f)
+	if code != 0 || len(f.pushed) != 1 || len(f.pushed[0]) != 2 || !strings.HasSuffix(f.pushed[0][0], ":refs/heads/main") ||
+		f.head(t) != strings.TrimSuffix(f.pushed[0][1], ":refs/heads/slice-9") {
 		t.Errorf("work then a take: exit %d, pushed %v", code, f.pushed)
 	}
 	// A take already on the remote's item branch is not sent to main again.

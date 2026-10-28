@@ -1,6 +1,7 @@
 package porttest
 
 import (
+	"errors"
 	"slices"
 
 	"github.com/donvargax/itos/v8/internal/vcs/port"
@@ -126,6 +127,56 @@ func commitContract[C T[C]](t C, open func(t C, l Layout) (port.VCS, string)) {
 		}
 		if got, err := v.CommitFile(ctx, "nope", "f", "x\n", "m", "n", "e@x"); err == nil {
 			t.Errorf("CommitFile on no commit is %q", got)
+		}
+	})
+	t.Run("cherry pick", func(t C) {
+		v, _ := open(t, Layout{})
+		ctx := t.Context()
+		head, b := sha(t, v, "HEAD"), sha(t, v, "b")
+		picked, err := v.CherryPick(ctx, "s", "b")
+		if err != nil {
+			t.Fatalf("CherryPick(s onto b): %v", err)
+		}
+		was, _ := v.Show(ctx, "s")
+		shown, _ := v.Show(ctx, picked)
+		parents, _ := v.Parents(ctx, picked)
+		texts, _ := v.Texts(ctx, picked, []string{"a.txt", "b.txt", "s.txt"})
+		if picked == sha(t, v, "s") || !slices.Equal(parents, []string{b}) || shown.Message != was.Message || shown.Author != was.Author ||
+			shown.Email != was.Email || shown.Date != was.Date || texts["a.txt"] != "b\n" || texts["b.txt"] != "b\n" || texts["s.txt"] != "s\n" {
+			t.Errorf("CherryPick(s onto b): %s, parents %q, %+v, files %q", picked, parents, shown, texts)
+		}
+		if sha(t, v, "HEAD") != head || v.Branch(ctx) != "main" || sha(t, v, "main") != head {
+			t.Errorf("CherryPick(s onto b) moved HEAD or main")
+		}
+		picked, err = v.CherryPick(ctx, "c", "s")
+		shown, _ = v.Show(ctx, picked)
+		files, _ := v.Files(ctx, picked, "")
+		if err != nil || shown.Note != "" || !slices.Equal(files, []string{"a.txt", "c.txt", "s.txt"}) {
+			t.Errorf("CherryPick(c onto s): %v, note %q, files %q; want c's change on s, with no note", err, shown.Note, files)
+		}
+		var conflicts *port.Conflicts
+		if _, err := v.CherryPick(ctx, "t", "s"); !errors.As(err, &conflicts) || !slices.Equal(conflicts.Paths, []string{"a.txt"}) {
+			t.Errorf("CherryPick(t onto s), both changing a.txt: %v; want a conflict in a.txt", err)
+		}
+		for _, c := range [][2]string{{"nope", "b"}, {"s", "nope"}} {
+			if made, err := v.CherryPick(ctx, c[0], c[1]); err == nil || errors.As(err, &conflicts) {
+				t.Errorf("CherryPick(%s onto %s) is %q, %v; want an error that is no conflict", c[0], c[1], made, err)
+			}
+		}
+	})
+	t.Run("reset", func(t C) {
+		v, _ := open(t, dirty)
+		ctx := t.Context()
+		b := sha(t, v, "b")
+		if err := v.Reset(ctx, "b"); err != nil {
+			t.Fatalf("Reset(b): %v", err)
+		}
+		if sha(t, v, "HEAD") != b || sha(t, v, "main") != b || v.Branch(ctx) != "main" || len(v.Changes(ctx)) != 0 {
+			t.Errorf("Reset(b): HEAD at %s, main at %s, on %q, changes %q; want b %s, on main, clean",
+				sha(t, v, "HEAD"), sha(t, v, "main"), v.Branch(ctx), v.Changes(ctx), b)
+		}
+		if err := v.Reset(ctx, "nope"); err == nil {
+			t.Errorf("Reset of no commit: no error")
 		}
 	})
 	t.Run("init", func(t C) {

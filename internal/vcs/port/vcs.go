@@ -92,6 +92,16 @@ func (f *Failed) Error() string {
 	return f.Command + ": exit status " + strconv.Itoa(f.Code) + ": " + strings.TrimSpace(f.Words)
 }
 
+// Conflicts is why a change does not apply (CherryPick): the paths it
+// conflicts in, in byte order.
+type Conflicts struct {
+	Paths []string
+}
+
+func (c *Conflicts) Error() string {
+	return "the change conflicts in " + strings.Join(c.Paths, ", ")
+}
+
 // Talk is how a command that may talk to the person runs: in Dir, relative
 // to the folder itos runs in unless absolute, "" for that one; its input Stdin, none when nil; its output and
 // its own words to Stdout and Stderr, dropped when nil (Failed keeps the
@@ -309,6 +319,16 @@ type VCS interface {
 	// stops on a conflict, left in progress (Rebasing, Conflicted), or does
 	// not run.
 	Rebase(ctx context.Context, onto string, quiet bool, talk Talk) error
+	// CherryPick makes a commit on onto that carries the change commit makes
+	// against its first parent, as the VCS merges it: with commit's author,
+	// author date and message and no itos note, committed by the person
+	// running. No ref, index or work tree changes, and nothing is made when the
+	// change does not apply: a *Conflicts error then, a Failed one when it
+	// cannot run.
+	CherryPick(ctx context.Context, commit, onto string) (string, error)
+	// Reset sets HEAD, the branch it is on, the index and the work tree to the
+	// commit, discarding what they held; an error when rev names no commit.
+	Reset(ctx context.Context, rev string) error
 
 	// Committing.
 

@@ -166,24 +166,7 @@ func (v *VCS) Rebase(ctx context.Context, onto string, _ bool, _ port.Talk) erro
 	branch, at, tree := v.OnBranch, base.Name, base.Tree
 	for _, e := range replayed {
 		c, _ := v.commit(e.SHA)
-		parent, _ := v.tree(v.Parent(ctx, c.Name))
-		next := maps.Clone(tree)
-		var conflicts []string
-		for _, p := range differ(parent, c.Tree) {
-			mine, in := c.Tree[p]
-			now, there := tree[p]
-			was, had := parent[p]
-			switch {
-			case there == had && now == was, there == in && now == mine:
-				if in {
-					next[p] = mine
-				} else {
-					delete(next, p)
-				}
-			default:
-				conflicts = append(conflicts, p)
-			}
-		}
+		next, conflicts := v.carry(ctx, c, tree)
 		if len(conflicts) > 0 {
 			v.Named = maps.Clone(v.Named)
 			v.Named["HEAD"], v.OnBranch, v.InRebase, v.Unmerged = at, "", true, conflicts
@@ -196,6 +179,61 @@ func (v *VCS) Rebase(ctx context.Context, onto string, _ bool, _ port.Talk) erro
 		at, tree = made.Name, next
 	}
 	v.moveHead(branch, at)
+	v.Index, v.Work = nil, nil
+	return nil
+}
+
+// carry is the tree the change a commit makes against its first parent
+// makes of tree, and the paths it conflicts in: a path whose content the
+// commit changes where tree has moved it on.
+func (v VCS) carry(ctx context.Context, c Commit, tree map[string]string) (next map[string]string, conflicts []string) {
+	parent, _ := v.tree(v.Parent(ctx, c.Name))
+	next = maps.Clone(tree)
+	for _, p := range differ(parent, c.Tree) {
+		mine, in := c.Tree[p]
+		now, there := tree[p]
+		was, had := parent[p]
+		switch {
+		case there == had && now == was, there == in && now == mine:
+			if in {
+				next[p] = mine
+			} else {
+				delete(next, p)
+			}
+		default:
+			conflicts = append(conflicts, p)
+		}
+	}
+	return next, conflicts
+}
+
+// CherryPick makes a commit on onto with the commit's author, date and
+// message and the tree carry gives, without a note; a Conflicts error, and
+// nothing made, when it does not apply.
+func (v *VCS) CherryPick(ctx context.Context, commit, onto string) (string, error) {
+	c, ok := v.commit(commit)
+	base, found := v.commit(onto)
+	if !ok || !found {
+		return "", &port.Failed{Command: "git merge-tree " + commit + " " + onto, Code: 128, Words: "fatal: not a valid object name\n"}
+	}
+	next, conflicts := v.carry(ctx, c, base.Tree)
+	if len(conflicts) > 0 {
+		return "", &port.Conflicts{Paths: conflicts}
+	}
+	made := c
+	made.Name, made.Parents, made.Tree, made.Note = v.newName(), []string{base.Name}, next, ""
+	v.History = append(v.History, made)
+	return made.Name, nil
+}
+
+// Reset moves HEAD, and its branch, to the commit, and drops the index and
+// the work tree's changes.
+func (v *VCS) Reset(_ context.Context, rev string) error {
+	c, ok := v.commit(rev)
+	if !ok {
+		return &port.Failed{Command: "git reset --hard " + rev, Code: 128, Words: "fatal: ambiguous argument '" + rev + "'\n"}
+	}
+	v.moveHead(v.OnBranch, c.Name)
 	v.Index, v.Work = nil, nil
 	return nil
 }

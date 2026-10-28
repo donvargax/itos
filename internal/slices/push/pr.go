@@ -223,8 +223,9 @@ func (r pushRun) workOnMain(ctx context.Context, oldest string) Answer {
 // pushItem is a push from a branch other than main under pr (ADR-0039): the
 // branch is named for its item, which the registry must list; it is rebased
 // onto the remote's item branch when there is one, else onto main, and the
-// registry's commits directly above main go to main, the rest to the item's
-// branch, in one atomic push; then the pull request is found or opened.
+// registry's commits go to main wherever they sit, the rest to the item's
+// branch (divide), in one atomic push; then the pull request is found or
+// opened.
 func (r *pushRun) pushItem(ctx context.Context, item, main string) Answer {
 	v := r.ports
 	registry := r.cfg.Work.Registry
@@ -271,25 +272,42 @@ func (r *pushRun) pushItem(ctx context.Context, item, main string) Answer {
 	}
 	toMain := r.registryPrefix(ctx, theirMain, ahead, tip)
 	if toMain == len(ahead) {
-		return r.pushRegistry(ctx, main, theirMain)
+		sent := make([]string, len(ahead))
+		for i, c := range ahead {
+			sent[i] = r.sentLine(ctx, c, main)
+		}
+		return r.pushRegistry(ctx, main, theirMain, plan{main: r.sha, sent: sent})
 	}
+	p, a, done := r.divide(ctx, main, theirMain, tip, exists, ahead, toMain)
+	if done {
+		return a
+	}
+	if p.moved && p.bare {
+		return r.pushRegistry(ctx, main, theirMain, p)
+	}
+	pushing := !exists || tip != p.item
 	repository := v.GitHubRepository(ctx, r.cfg, r.remote)
 	if repository == "" {
 		return r.report(missing, "no-github-repository",
 			fmt.Sprintf("itos push: %s has work for a pull request, and %s names no GitHub repository to open it in; nothing was pushed.", item, r.remote),
 			"Set "+r.cfg.CI.Range.GitHub.RepositoryEnv+" to owner/name, or point the remote at a GitHub repository, then itos push again.")
 	}
-	pushing := !exists || tip != r.sha
+	r.sha, r.sent = p.item, p.sent
 	if pushing {
-		specs := []string{r.sha + ":refs/heads/" + item}
-		if toMain > 0 {
-			specs = append([]string{ahead[toMain-1] + ":refs/heads/" + main}, specs...)
+		specs := []string{p.item + ":refs/heads/" + item}
+		if p.main != "" {
+			specs = append([]string{p.main + ":refs/heads/" + main}, specs...)
 		}
 		if a, failed := r.send(ctx, specs, true, r.lease(ctx, item, tip, exists)); failed {
 			return a
 		}
+		if p.moved {
+			if a, failed := r.resetTo(ctx, p.item); failed {
+				return a
+			}
+		}
 	}
-	return r.pullRequest(ctx, repository, main, theirMain, ahead[toMain], pushing, !v.IsAncestor(ctx, theirMain, r.sha))
+	return r.pullRequest(ctx, repository, main, theirMain, p.first, pushing, !v.IsAncestor(ctx, theirMain, r.sha))
 }
 
 // bringOntoMain brings HEAD up to main, as itos push --onto-main does
@@ -335,9 +353,10 @@ func (r pushRun) lease(ctx context.Context, item, tip string, exists bool) *vcsp
 }
 
 // registryPrefix is how many of the commits above main, oldest first, go to
-// main: those that start at main's head, each directly on the one before,
-// are the registry's (registryCommit) and are not on the item's branch yet
-// (theirs, its tip, "" when the remote has none).
+// main under their own SHAs, which the item's branch keeps: those that start at
+// main's head, each directly on the one before, are the registry's
+// (registryCommit) and are not on the item's branch yet (theirs, its tip, ""
+// when the remote has none). The registry's other new commits are divide's.
 func (r pushRun) registryPrefix(ctx context.Context, main string, ahead []string, theirs string) int {
 	v := r.ports
 	parent := main
@@ -353,13 +372,20 @@ func (r pushRun) registryPrefix(ctx context.Context, main string, ahead []string
 	return len(ahead)
 }
 
-// pushRegistry sends a branch whose commits are all the registry's to main
-// alone: the item's branch is not pushed, no pull request is opened and no
-// run waited for, as for registry commits pushed from main.
-func (r *pushRun) pushRegistry(ctx context.Context, main, onto string) Answer {
-	r.branch = main
-	if a, failed := r.send(ctx, []string{r.sha + ":refs/heads/" + main}, true, nil); failed {
+// pushRegistry sends a branch whose commits are all the registry's, or whose
+// others the remote's item branch has already (slice-192), to main alone: the
+// item's branch is not pushed, no pull request is opened and no run waited for,
+// as for registry commits pushed from main. When registry commits left the
+// branch, it ends at the head the item's branch has.
+func (r *pushRun) pushRegistry(ctx context.Context, main, onto string, p plan) Answer {
+	r.branch, r.sha, r.sent = main, p.main, p.sent
+	if a, failed := r.send(ctx, []string{p.main + ":refs/heads/" + main}, true, nil); failed {
 		return a
+	}
+	if p.moved {
+		if a, failed := r.resetTo(ctx, p.item); failed {
+			return a
+		}
 	}
 	pushed := r.pushedLine(ctx, "")
 	if r.noWait {
