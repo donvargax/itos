@@ -25,29 +25,27 @@ Feature: Under push.mode pr, itos push threads lists an item's open review threa
   "author","comment"}, comment the first line as above, line left out for an
   outdated thread, [] for none.
 
-  itos push thread <id> --reply <text> [--resolve], from the same place,
-  answers one thread of that pull request: it asks the pull request's
-  threads first, and an id that is none of them, resolved or not, is
-  refused, exit 1, outcome no-such-thread, "itos push: <id> is not a review
-  thread of <address>; itos push threads lists its open ones.", nothing
-  posted. Otherwise it posts the reply (the addPullRequestReviewThreadReply
-  mutation, the thread's id and the text) and says "Replied to <id> on
-  <address>."; with --resolve it then resolves the thread (the
-  resolveReviewThread mutation) and says "Resolved <id> on <address>.". The
-  reply and the resolve are two calls, the reply first, so a reply that
-  fails leaves the thread open. --resolve without --reply resolves alone,
-  posting no reply. Exit 0, outcome thread-answered. --json: {"schema":1,
-  "ok","outcome","pull_request"?,"thread"?}, thread {"id","replied",
-  "resolved"}.
+  itos push thread <id> --reply <text> [--resolve], from any branch or a
+  detached HEAD (below), answers one review thread of the repository: it
+  posts the reply (the addPullRequestReviewThreadReply mutation, the
+  thread's id and the text) and says "Replied to <id> on <address>.", the
+  address being its pull request's; with --resolve it then resolves the
+  thread (the resolveReviewThread mutation) and says "Resolved <id> on
+  <address>.". The reply and the resolve are two calls, the reply first, so
+  a reply that fails leaves the thread open. --resolve without --reply
+  resolves alone, posting no reply. Exit 0, outcome thread-answered.
+  --json: {"schema":1,"ok","outcome","pull_request"?,"thread"?}, thread
+  {"id","replied","resolved"}.
 
-  Both go through gh as every other GitHub call of push's does: gh pr list
-  --repo <repository> --head <branch> --state open finds the pull request,
-  and gh api graphql (no --repo; -f owner=<owner> -f name=<name> -F
-  number=<number>, as --ready asks) its threads, with each thread's id and
-  its first comment's author beside what --ready reads, the query on one
-  line; the mutations are gh api graphql calls too, each on one line. A gh
-  that is missing or fails exits 3, outcome pull-request-failed, naming the
-  gh command and its words ("gh pr list failed: HTTP 401: Bad credentials"),
+  Both go through gh as every other GitHub call of push's does: push
+  threads asks gh pr list --repo <repository> --head <branch> --state open
+  for the pull request, and gh api graphql (no --repo; -f owner=<owner> -f
+  name=<name> -F number=<number>, as --ready asks) for its threads, with
+  each thread's id and its first comment's author beside what --ready
+  reads, the query on one line; push thread asks no pull request (below);
+  the mutations are gh api graphql calls too, each on one line. A gh that
+  is missing or fails exits 3, outcome pull-request-failed, naming the gh
+  command and its words ("gh pr list failed: HTTP 401: Bad credentials"),
   and never saying the branch is pushed, since nothing was. The repository
   is the one push names (ci.range.github.repository_env, else the remote's
   URL; none, exit 3, no-github-repository).
@@ -56,30 +54,31 @@ Feature: Under push.mode pr, itos push threads lists an item's open review threa
   outside push.mode pr (trunk, no config, or one that cannot be read),
   outcome threads-without-pr-mode, "itos push: review threads are an item's
   pull request's, and this config does not set push.mode: pr; nothing was
-  posted."; on main (the branch the remote's HEAD names, asked as push asks
-  it), outcome threads-on-main, "itos push: HEAD is on <main>, which has no
-  pull request; run it from the item's branch. Nothing was posted."; on a
-  detached HEAD, outcome detached, as push refuses one. With no open pull
-  request for the branch, once gh pr list says so, outcome no-pull-request,
-  "itos push: <branch> has no open pull request; itos push opens it.
-  Nothing was posted."
+  posted."; for push threads without --pr, on main (the branch the remote's
+  HEAD names, asked as push asks it), outcome threads-on-main, "itos push:
+  HEAD is on <main>, which has no pull request; run it from the item's
+  branch, or name the pull request with --pr <n>. Nothing was posted.", and
+  on a detached HEAD, outcome detached, as push refuses one. With no open
+  pull request for the branch, once gh pr list says so, push threads says
+  outcome no-pull-request, "itos push: <branch> has no open pull request;
+  itos push opens it. Nothing was posted."
 
   The words. push took no positional argument before this slice; threads
   and thread are its only two, each first among the arguments. Any other
-  positional stays a usage error, exit 2, and so is thread with no id, with
-  two, or with neither --reply nor --resolve, --reply with no text,
-  threads with an id, --reply or --resolve without thread, and either word
-  beside --no-wait, --ready, --tag or --ref. itos push --help gives both in
-  its usage, "itos push threads" and "itos push thread <id> --reply <text>
-  [--resolve]", and says what each does; command.go's help and doc.go say
-  it, and --json's outcomes gain the ones above.
+  positional stays a usage error, exit 2, and so is thread with no id or
+  with two, --reply with no text, threads with an id, --reply or --resolve
+  without thread, and either word beside --no-wait, --ready, --tag or
+  --ref. itos push --help gives both in its usage, "itos push threads" and
+  "itos push thread <id> --reply <text> [--resolve]", and says what each
+  does; command.go's help and doc.go say it, and --json's outcomes gain the
+  ones above.
 
   Slice 201 (was p2-push-thread-show). On #214 an implementer read Codex's
   whole finding with gh api graphql, since push threads gives a thread's
   first line only; on #210 the coordinator, on main, ruling on the threads
   an implementer left open, could use neither word there. A thread's node
-  id names its own pull request, so push thread no longer asks the
-  branch's: from any branch, main included, or a detached HEAD, it asks
+  id names its own pull request, so push thread never asks the branch's:
+  from any branch, main included, or a detached HEAD, it asks
   GitHub for the node itself, one gh api graphql call (-f query=<one line>
   -f id=<id>) giving, on a PullRequestReviewThread, its id, isResolved,
   path and line, its repository's nameWithOwner, its pull request's number
@@ -96,7 +95,7 @@ Feature: Under push.mode pr, itos push threads lists an item's open review threa
   no-such-thread, "itos push: <id> is not a review thread of <repository>;
   itos push threads lists a pull request's open ones. Nothing was
   posted.", with nothing posted; else the reply and the resolve go as
-  before, naming the node's pull request. No gh pr list is asked for it.
+  above, naming the node's pull request. No gh pr list is asked for it.
 
   With neither --reply nor --resolve, itos push thread <id> shows the
   thread, resolved or not, posting nothing: "<id> <path>:<line> on
@@ -123,24 +122,6 @@ Feature: Under push.mode pr, itos push threads lists an item's open review threa
   push thread, or given to push without threads, is a usage error, exit 2.
   The help's usage gains "itos push threads [--pr <n>]" and "itos push
   thread <id>", and says the show form shows the thread in full.
-
-  This changes what slice 191's scenarios promised: ID-PUSHTHREAD-07, which
-  ID-PUSHTHREAD-19 replaces since its words named the branch's pull request,
-  goes; ID-PUSHTHREAD-08 and ID-PUSHTHREAD-10 lose their push thread rows
-  (push thread is not refused on main and asks for no branch's pull
-  request); ID-PUSHTHREAD-14 loses its row "push thread PRRT_1", the show
-  form now. The commit that changes them names each in Changes:, and
-  rewrites slice 191's paragraphs above that slice 201 overrides: push
-  thread's (its id checked against the branch's pull request's threads),
-  the one on going through gh (gh pr list first), the refusals' (on main
-  and on a detached HEAD) and the words' (thread with neither --reply nor
-  --resolve a usage error).
-
-  --ready's refusal on unresolved threads (push-mode-draft.feature, step 5)
-  keeps naming each thread and its "Address each ..." line, and adds after
-  them "itos push threads lists them with their ids, and itos push thread
-  <id> --reply <text> --resolve answers one." The implementer rewrites
-  AGENTS.md's Finishing (step 3) to name the two commands, in a docs commit.
 
   Not in this slice: a pull request with more than 100 review threads, as
   --ready; editing or deleting a reply; unresolving a thread; replying to a
@@ -264,7 +245,7 @@ Feature: Under push.mode pr, itos push threads lists an item's open review threa
   # left open, it names the pull request; no branch's is looked for. Fails
   # before the work at the exit code: today threads takes no argument,
   # exit 2.
-  @ID-PUSHTHREAD-15 @wip @slice-201
+  @ID-PUSHTHREAD-15 @slice-201
   Scenario: Under push.mode pr, push threads --pr <n> on main lists that pull request's open review threads, asking no gh pr list
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -289,7 +270,7 @@ Feature: Under push.mode pr, itos push threads lists an item's open review threa
   # main, as the coordinator reads one. Fails before the work at the exit
   # code: today push thread with neither --reply nor --resolve is a usage
   # error, exit 2.
-  @ID-PUSHTHREAD-16 @wip @slice-201
+  @ID-PUSHTHREAD-16 @slice-201
   Scenario: Under push.mode pr, push thread <id> with neither --reply nor --resolve shows the thread in full on main, posting nothing
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -311,7 +292,7 @@ Feature: Under push.mode pr, itos push threads lists an item's open review threa
   # --json is what an agent reads: each comment whole, and a resolved
   # thread shown as one. Fails before the work at the exit code: today push
   # thread with neither --reply nor --resolve is a usage error, exit 2.
-  @ID-PUSHTHREAD-17 @wip @slice-201
+  @ID-PUSHTHREAD-17 @slice-201
   Scenario: Under push.mode pr, push thread <id> --json gives a resolved thread's place, state and every comment's author and body
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -335,7 +316,7 @@ Feature: Under push.mode pr, itos push threads lists an item's open review threa
   # Neither the node question nor --pr needs a branch, so a detached HEAD
   # is no refusal for either. Fails before the work at the exit code: today
   # both rows are usage errors, exit 2.
-  @ID-PUSHTHREAD-24 @wip @slice-201
+  @ID-PUSHTHREAD-24 @slice-201
   Scenario Outline: Under push.mode pr, push thread <id> and push threads --pr <n> work on a detached HEAD
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -427,7 +408,7 @@ Feature: Under push.mode pr, itos push threads lists an item's open review threa
   # the thread's node names its pull request, so no branch's is looked for.
   # Fails before the work at the exit code: today push thread on main is
   # refused, exit 1, outcome threads-on-main.
-  @ID-PUSHTHREAD-18 @wip @slice-201
+  @ID-PUSHTHREAD-18 @slice-201
   Scenario: Under push.mode pr, push thread <id> --reply <text> --resolve on main replies to the thread's own pull request, then resolves it
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -445,33 +426,13 @@ Feature: Under push.mode pr, itos push threads lists an item's open review threa
     And its output says "Resolved PRRT_1 on https://github.example/o/r/pull/7."
     And the recording gh was never called as "pr list"
 
-  # An id copied from another pull request, or mistyped, would post where
-  # nobody looks: it is checked against this pull request's threads first.
-  # Fails before the work at the exit code: today push takes no argument,
-  # exit 2.
-  @ID-PUSHTHREAD-07 @slice-191
-  Scenario: Under push.mode pr, push thread with an id that is not a thread of the branch's pull request is refused, exit 1, posting nothing
-    Given the config, committed and pushed to the remote's main, adds the YAML:
-      """
-      push:
-        mode: pr
-      """
-    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
-    And the clone is on the new branch "slice-9"
-    And the recording gh has the pull request "https://github.example/o/r/pull/7" open for the branch "slice-9"
-    And the recording gh answers that the pull request has an unresolved review thread "PRRT_1" on "widget.md" line 3 by "copilot-pull-request-reviewer", its first comment the lines "Rename this." and "It clashes with the gadget."
-    When itos runs "push thread PRRT_9 --reply 'Done.' --resolve --json"
-    Then itos exits with code 1
-    And its JSON's "outcome" is "no-such-thread"
-    And its output says "PRRT_9 is not a review thread of https://github.example/o/r/pull/7"
-    And the recording gh's "api graphql" call does not have "mutation"
-
-  # ID-PUSHTHREAD-07's case once push thread asks GitHub for the node: an
-  # id GitHub has no thread for is refused before anything is posted, the
-  # words naming the repository, since no pull request was asked. Fails
-  # before the work at the output step: today the words name the branch's
-  # pull request.
-  @ID-PUSHTHREAD-19 @wip @slice-201
+  # An id copied from elsewhere, or mistyped, would post where nobody
+  # looks: GitHub is asked for the node first, and an id it has no thread
+  # for is refused before anything is posted, the words naming the
+  # repository, since no pull request was asked (ID-PUSHTHREAD-07, which
+  # this replaces, named the branch's). Fails before the work at the output
+  # step: today the words name the branch's pull request.
+  @ID-PUSHTHREAD-19 @slice-201
   Scenario: Under push.mode pr, push thread with an id that names no review thread is refused, exit 1, posting nothing
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -495,7 +456,7 @@ Feature: Under push.mode pr, itos push threads lists an item's open review threa
   # node's repository is checked first. From main, where the coordinator
   # works. Fails before the work at the "api graphql" step: today push
   # thread on main is refused before gh is asked.
-  @ID-PUSHTHREAD-20 @wip @slice-201
+  @ID-PUSHTHREAD-20 @slice-201
   Scenario: Under push.mode pr, push thread with the id of another repository's review thread is refused, exit 1, posting nothing
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -515,7 +476,7 @@ Feature: Under push.mode pr, itos push threads lists an item's open review threa
   # repository GitHub spells otherwise than push names it is still this
   # repository's. Fails before the work at the exit code: today push thread
   # on main is refused, exit 1, outcome threads-on-main.
-  @ID-PUSHTHREAD-25 @wip @slice-201
+  @ID-PUSHTHREAD-25 @slice-201
   Scenario: Under push.mode pr, push thread answers a thread whose repository differs from the one push names only in case
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -529,11 +490,11 @@ Feature: Under push.mode pr, itos push threads lists an item's open review threa
     And the recording gh's "api graphql" call has "resolveReviewThread"
     And its output says "Resolved PRRT_5 on https://github.example/o/r/pull/7."
 
-  # Main has no pull request, so neither word has a thread to read or
-  # answer; refused before gh is asked anything. Fails before the work at
+  # Main has no pull request, so push threads has none to list; refused
+  # before gh is asked anything. Fails before the work at
   # the exit code: today push takes no argument, exit 2.
   @ID-PUSHTHREAD-08 @slice-191
-  Scenario Outline: Under push.mode pr, push threads and push thread on main are refused, exit 1, asking gh nothing
+  Scenario Outline: Under push.mode pr, push threads on main is refused, exit 1, asking gh nothing
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
       push:
@@ -549,12 +510,11 @@ Feature: Under push.mode pr, itos push threads lists an item's open review threa
     Examples:
       | command                                         |
       | push threads                                    |
-      | push thread PRRT_1 --reply 'Renamed.' --resolve |
 
   # On main push threads still has no branch's pull request to read, and
   # its refusal names the flag that reads one anyway. Fails before the work
   # at the "--pr <n>" step: today the refusal names only the item's branch.
-  @ID-PUSHTHREAD-21 @wip @slice-201
+  @ID-PUSHTHREAD-21 @slice-201
   Scenario: Under push.mode pr, push threads on main without --pr is refused, exit 1, naming --pr and asking gh nothing
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -590,7 +550,7 @@ Feature: Under push.mode pr, itos push threads lists an item's open review threa
   # one, and no thread is asked or answered. Fails before the work at the
   # exit code: today push takes no argument, exit 2.
   @ID-PUSHTHREAD-10 @slice-191
-  Scenario Outline: Under push.mode pr, push threads and push thread with no open pull request for the branch are refused, exit 1, posting nothing
+  Scenario Outline: Under push.mode pr, push threads with no open pull request for the branch is refused, exit 1, posting nothing
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
       push:
@@ -609,7 +569,6 @@ Feature: Under push.mode pr, itos push threads lists an item's open review threa
     Examples:
       | command                                         |
       | push threads                                    |
-      | push thread PRRT_1 --reply 'Renamed.' --resolve |
 
   # A gh that fails is push's exit 3, naming the call and gh's words, but
   # nothing was pushed, so the words must not say the branch is. Fails
@@ -667,7 +626,7 @@ Feature: Under push.mode pr, itos push threads lists an item's open review threa
 
   # The help gives the two new forms. Fails before the work at the first
   # output step: today the usage has push threads with no --pr.
-  @ID-PUSHTHREAD-22 @wip @slice-201
+  @ID-PUSHTHREAD-22 @slice-201
   Scenario: push's help documents push threads --pr and push thread's show form
     When itos runs "help push"
     Then itos exits with code 0
@@ -678,7 +637,7 @@ Feature: Under push.mode pr, itos push threads lists an item's open review threa
   # other use of it is a usage error that asks gh nothing. A guard: every
   # row is a usage error before the work too (threads takes no argument,
   # thread and push take no --pr), and must stay one after it.
-  @ID-PUSHTHREAD-23 @wip @slice-201 @guard
+  @ID-PUSHTHREAD-23 @slice-201 @guard
   Scenario Outline: Under push.mode pr, --pr anywhere but once after push threads with a number above 0 is a usage error, exit 2
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -724,7 +683,6 @@ Feature: Under push.mode pr, itos push threads lists an item's open review threa
       | command                                     |
       | push widgets                                |
       | push thread                                 |
-      | push thread PRRT_1                          |
       | push thread PRRT_1 --reply                  |
       | push thread PRRT_1 PRRT_2 --resolve         |
       | push threads PRRT_1                         |

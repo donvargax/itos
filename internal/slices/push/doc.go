@@ -294,26 +294,45 @@
 //
 // # push threads and push thread
 //
-// push threads lists the open review threads of an item's pull request and
-// push thread <id> --reply <text> [--resolve] answers one (slice 191), so no
-// implementer writes a gh api graphql mutation naming a thread's node id.
-// Parse (readThreadArgs) takes them only as the first argument, with their own
-// flags and no other; anything else stays a usage error. Handle gives them to
-// reviewThreads (threads.go) right after the repository is found: no hook
+// push threads lists the open review threads of a pull request and
+// push thread <id> shows a review thread, or with --reply <text> and --resolve
+// answers it (slices 191 and 201), so no implementer writes a gh api graphql
+// query or mutation naming a thread's node id. Parse (readThreadArgs) takes
+// them only as the first argument, with their own flags and no other; anything
+// else stays a usage error. push threads takes --pr <n> (Query.PullNumber), a
+// whole number above 0, once; push thread takes a thread's id and --reply,
+// --resolve or neither. Handle gives them to reviewThreads (threads.go): no hook
 // check, no fetch, no rebase, no push. They are refused, exit 1 and before any
 // gh call, outside push.mode pr (threads-without-pr-mode, a config that cannot
-// be read included), on a detached HEAD and on main (threads-on-main, found as
-// pr finds it); no GitHub repository exits 3. gh pr list (openPulls) then
-// finds the open pull request, else no-pull-request, and ask the threads,
-// which now carry each node id and the first comment's author. push threads
-// ends there (threads-listed, in GitHub's order, ThreadInfo for --json). push
-// thread refuses an id that is none of the pull request's threads, resolved or
-// not (no-such-thread), before anything is posted; else it posts the reply
-// (replyMutation) and then, with --resolve, resolves the thread
-// (resolveMutation), two gh calls, the reply first, so a reply that fails leaves
-// the thread open (thread-answered). A gh that fails exits 3, pull-request-failed,
-// in words that say nothing of a push (pushRun.threads); under --json the lines
-// of a failure also go to stderr, since --json's stdout is one object.
+// be read included).
+//
+// A thread's node id names its own pull request, so push thread (threadByNode)
+// asks GitHub for the node by its id (nodeQuery, a gh api graphql call with an
+// id argument and no pull request's number), from any branch, main and a
+// detached HEAD included; no GitHub repository exits 3. gh fails for an id it
+// has no node for, its stdout still the body with an error of type NOT_FOUND on
+// the path node (askNode reads it from the stdout gh returns beside its error,
+// providers.Gh): that, a node that is no review thread and a thread of another
+// repository than the one push names, compared regardless of case, are refused
+// (no-such-thread, exit 1), before anything is posted. Any other gh failure
+// exits 3, pull-request-failed, in words that say nothing of a push
+// (pushRun.threads); under --json the lines of a failure also go to stderr,
+// since --json's stdout is one object. With neither --reply nor --resolve
+// showThread says the thread, resolved or not, and each comment oldest first
+// (thread-shown, ThreadView for --json, an author GitHub no longer has shown
+// as ghost); else it posts the reply (replyMutation) and then, with --resolve,
+// resolves the thread (resolveMutation), two gh calls, the reply first, so a
+// reply that fails leaves the thread open (thread-answered).
+//
+// push threads --pr <n> (pullByNumber) asks for the pull request by its number
+// (pullThreadsQuery, which also gives its number and address, so gh pr list is
+// not asked), from any branch or a detached HEAD. Without --pr (branchThreads)
+// it is the branch's: refused on a detached HEAD and on main (threads-on-main,
+// found as pr finds it, naming --pr), then gh pr list (openPulls) finds the
+// open pull request, else no-pull-request, and ask the threads, which carry
+// each node id and the first comment's author. Both end in listThreads
+// (threads-listed, in GitHub's order, ThreadInfo for --json). A pull request
+// GitHub does not have is a gh that fails, exit 3.
 //
 // Handle reaches the world through Ports, which the slice owns and
 // internal/cli binds: the repository (the VCS port, git behind it), its git

@@ -20,9 +20,10 @@ import (
 // --onto-main, which brings an item's branch up to main (slice-193); Tags and
 // Refs, what --tag and
 // --ref named, in the order given (slice 131); Threads, push threads, which
-// lists the open review threads of the branch's pull request; Thread, Reply
-// and Resolve, push thread <id> --reply <text> --resolve, which answers one
-// (slice 191); and Origin, the folder the person stood in, relative to the
+// lists the open review threads of the branch's pull request, or with
+// PullNumber (--pr) of that pull request (slice 201); Thread, Reply and
+// Resolve, push thread <id> --reply <text> --resolve, which answers one, or
+// shows it with neither Reply nor Resolve (slices 191 and 201); and Origin, the folder the person stood in, relative to the
 // repository's top, where git runs; "" when itos runs where it was started.
 type Query struct {
 	NoWait     bool
@@ -31,6 +32,7 @@ type Query struct {
 	Tags, Refs []string
 	Threads    bool
 	Thread     string
+	PullNumber int
 	Reply      string
 	Resolve    bool
 	Origin     string
@@ -83,7 +85,8 @@ type Out struct {
 // for a success, else on stderr; Remote and Branch, the upstream's; Tags
 // and Refs, what --tag and --ref named; Commit, the commit pushed;
 // PullRequest, the pull request of an item's branch under push.mode pr; Pull,
-// Threads and Thread, what push threads and push thread report (threads.go);
+// Threads and Thread, what push threads and push thread report (threads.go),
+// Thread a *ThreadResult for an answer or a *ThreadView for a shown thread;
 // and Watched, the CI run waited for after the push, if one was.
 type Answer struct {
 	Code           int
@@ -95,7 +98,7 @@ type Answer struct {
 	PullRequest    *PullRequest
 	Pull           *PullRef
 	Threads        []ThreadInfo
-	Thread         *ThreadResult
+	Thread         any
 	Watched        *ciwatch.Watched
 }
 
