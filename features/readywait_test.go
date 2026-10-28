@@ -99,6 +99,15 @@ func initializeReadyWaitSteps(sc *godog.ScenarioContext, w *world) {
 		w.watchConfigured().interval = seconds
 		return w.pushConfig("chore: look at CI less often")
 	})
+	sc.Step(`^the watched run was created (\d+) seconds ago$`, func(seconds int) error {
+		if w.github == nil {
+			return errors.New("no fake GitHub: start one first")
+		}
+		w.github.mu.Lock()
+		w.github.createdAt, w.github.startedAt = secondsAgo(seconds), ""
+		w.github.mu.Unlock()
+		return nil
+	})
 	sc.Step(`^the watched run was started (\d+) seconds ago$`, func(seconds int) error {
 		if w.github == nil {
 			return errors.New("no fake GitHub: start one first")
