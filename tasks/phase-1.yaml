@@ -5179,8 +5179,6 @@
     splits a step's command line, so an argument such as --reply "it's fixed" breaks a scenario.
     shellWords takes a double-quoted argument holding an apostrophe (and a single-quoted one holding
     a double quote), the README says how, and a unit test pins it.
-  done_when:
-    - run: go test ./features -run 'TestShellWords' -count=1
 
 - id: T-336
   type: ci

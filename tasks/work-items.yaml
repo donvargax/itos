@@ -15379,7 +15379,7 @@ items:
     title: A scenario's command line can quote an argument holding an apostrophe
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
 
