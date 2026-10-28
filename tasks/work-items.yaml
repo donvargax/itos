@@ -55,6 +55,7 @@ phases:
   3: donvargax
 
 queue:
+  - p1-recording-gh-composable
   - slice-192
   - slice-200
   - slice-201
