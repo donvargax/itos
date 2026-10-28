@@ -15301,8 +15301,8 @@ items:
   - id: slice-201
     title: itos push thread shows a thread in full and answers threads of any pull request from any branch
     phase: 2
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: slice
     why: >
