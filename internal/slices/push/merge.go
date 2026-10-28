@@ -61,9 +61,9 @@ func (r *pushRun) readBack(ctx context.Context, repository, head string, direct 
 		return a
 	}
 	var view struct {
-		State            *string         `json:"state"`
-		MergedAt         *string         `json:"mergedAt"`
-		AutoMergeRequest json.RawMessage `json:"autoMergeRequest"`
+		State            *string        `json:"state"`
+		MergedAt         *string        `json:"mergedAt"`
+		AutoMergeRequest map[string]any `json:"autoMergeRequest"`
 	}
 	if err := json.Unmarshal([]byte(viewed), &view); err != nil {
 		return r.ghFailed("gh pr view", "its answer is not a pull request's merge state: "+err.Error())
@@ -71,7 +71,7 @@ func (r *pushRun) readBack(ctx context.Context, repository, head string, direct 
 	merged, auto := direct, !direct
 	if view.State != nil {
 		merged = *view.State == "MERGED" || view.MergedAt != nil && *view.MergedAt != ""
-		auto = len(view.AutoMergeRequest) > 0 && string(view.AutoMergeRequest) != "null"
+		auto = view.AutoMergeRequest != nil
 	}
 	switch {
 	case merged:
