@@ -576,7 +576,9 @@ func (r *pushRun) hasCommit(ctx context.Context, rev string) bool {
 }
 
 // gh runs gh with the arguments: failed, with pull-request-failed reported,
-// when it is not installed or fails. The branch is pushed already.
+// when it is not installed or fails, its stdout still given (gh api graphql
+// prints a body with errors there before it fails). The branch is pushed
+// already.
 func (r pushRun) gh(ctx context.Context, args ...string) (string, Answer, bool) {
 	stdout, err := r.ports.Gh(ctx, args...)
 	if err == nil {
@@ -591,7 +593,7 @@ func (r pushRun) gh(ctx context.Context, args ...string) (string, Answer, bool) 
 	if errors.As(err, &failed) && strings.TrimSpace(failed.Words) != "" {
 		reason = strings.TrimSpace(failed.Words)
 	}
-	return "", r.ghFailed(command, reason), true
+	return stdout, r.ghFailed(command, reason), true
 }
 
 // ghFailed is the pull-request-failed outcome (exit 3): the command that

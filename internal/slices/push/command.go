@@ -20,7 +20,8 @@ var Command = declare.Command{
 		"": `Usage: itos push [--no-wait] [--ready]
        itos push --onto-main [--no-wait] [--ready]
        itos push [--tag <tag>]… [--ref <branch>]…
-       itos push threads
+       itos push threads [--pr <n>]
+       itos push thread <id>
        itos push thread <id> --reply <text> [--resolve]
 
 The routine that ends a piece of work, after its commits: fetches the branch's
@@ -198,17 +199,26 @@ itos push threads, from an item's branch under push.mode pr, lists the review
 threads of its open pull request that are not resolved, in GitHub's order, one
 line each: the thread's node id, its file and line, the login of its first
 comment's author and the first line of that comment; with none open it says
-so, exit 0. itos push thread <id> --reply <text> [--resolve] answers one of
-that pull request's threads, an id that is none of them being refused, exit 1,
-with nothing posted: it posts the reply, then with --resolve resolves the
-thread, two gh api graphql calls, the reply first, so a reply that fails
-leaves the thread open; --resolve alone resolves it and posts no reply. Both
-go through gh as the rest of push does, and fetch, rebase and push nothing.
-They are refused, exit 1, before gh is asked, outside push.mode pr, on main and
-on a detached HEAD, and, once gh pr list says so, with no open pull request for
+so, exit 0. With --pr <n> it lists those of the repository's pull request n
+instead, from any branch or a detached HEAD, asking no gh pr list: the same
+question gives the pull request's address. itos push thread <id> with neither
+--reply nor --resolve shows the thread in full, resolved or not: its file,
+line and pull request, then each comment, oldest first, its author's login and
+its whole body, exit 0. itos push thread <id> --reply <text> [--resolve]
+answers it: it posts the reply, then with --resolve resolves the thread, two
+gh api graphql calls, the reply first, so a reply that fails leaves the thread
+open; --resolve alone resolves it and posts no reply. A thread's id names its
+own pull request, so push thread asks GitHub for the node by its id, from any
+branch, main included, or a detached HEAD: an id that is no review thread of
+this repository (the one push names, compared regardless of case) is refused,
+exit 1, with nothing posted. Both go through gh as the rest of push does, and
+fetch, rebase and push nothing. They are refused, exit 1, before gh is asked,
+outside push.mode pr; push threads without --pr is refused on main and on a
+detached HEAD too, and, once gh pr list says so, with no open pull request for
 the branch; a gh that is missing or fails exits 3, outcome pull-request-failed,
 with no word of a push. threads and thread are push's only arguments besides
-its flags, each first, and take none of --no-wait, --ready, --tag or --ref.
+its flags, each first, and take none of --no-wait, --ready, --tag or --ref;
+--pr is for threads alone.
 
 --tag <tag> and --ref <branch>, each as often as wanted, push the tags and
 the local branches named, and nothing else, each to the remote's tag or
@@ -230,7 +240,7 @@ named that the clone does not have, a tag the remote has as another object,
 the CI run waited for failed, or, under push.mode pr, work pushed to main or
 a branch that names no item, and for --ready, an unresolved review thread or
 --ready where it has nothing to do, and for push threads and push thread,
-where they have nothing to do or a thread that is none of the pull request's; 2 an argument (--onto-main beside --tag
+where they have nothing to do or a thread that is none of the repository's; 2 an argument (--onto-main beside --tag
 or --ref among them), or a core.hooksPath set by git -c; 3 no git repository, itos's pre-push hook that would not run, no
 upstream and no remote origin, a remote that is no repository or that git
 cannot find, a CI run not to be looked at, a remote whose HEAD
@@ -265,10 +275,13 @@ read from git's message; git's own exit code is never itos's.
         pull_request {"url","number"}, threads a list of {"id","path","line"?,
         "author","comment"} (line left out for an outdated thread, [] for none),
         outcome threads-listed; push thread gives {"schema":1,"ok","outcome",
-        "pull_request"?,"thread"?}, thread {"id","replied","resolved"}, outcome
-        thread-answered; either also gives threads-without-pr-mode,
-        threads-on-main, detached, no-pull-request, no-github-repository,
-        pull-request-failed, and push thread no-such-thread;
+        "pull_request"?,"thread"?}, thread {"id","replied","resolved"} and
+        outcome thread-answered after an answer, thread {"id","path","line"?,
+        "resolved","comments"}, comments a list of {"author","body"} (ghost for
+        an author GitHub no longer has), and outcome thread-shown after a show;
+        either also gives threads-without-pr-mode, pull-request-failed and
+        no-github-repository, push threads without --pr threads-on-main,
+        detached and no-pull-request, and push thread no-such-thread;
         ci, run and superseded as itos ci watch's, when it waited`,
 	},
 	Spec: declare.Spec{Unread: true},

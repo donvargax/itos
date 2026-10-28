@@ -1,6 +1,7 @@
 package push
 
 import (
+	"strconv"
 	"strings"
 
 	"github.com/donvargax/itos/v8/internal/engine/gitrun"
@@ -81,15 +82,13 @@ func readPushArgs(args []string) (Query, error) {
 	return a, refusePushArgs(rest)
 }
 
-// readThreadArgs reads what follows push threads, which takes nothing, or push
-// thread: a thread's id and --reply <text> (as --reply=<text> too), --resolve,
-// or both (slice 191). Every other argument is a usage error.
+// readThreadArgs reads what follows push threads, which takes --pr <n> (as
+// --pr=<n> too) to name a pull request, or push thread: a thread's id and
+// --reply <text> (as --reply=<text> too), --resolve, both, or neither to show
+// the thread (slices 191 and 201). Every other argument is a usage error.
 func readThreadArgs(word string, args []string) (Query, error) {
 	if word == "threads" {
-		if len(args) > 0 {
-			return Query{}, out.Usage("push threads takes no arguments (%s): it lists the open review threads of the branch's pull request", args[0])
-		}
-		return Query{Threads: true}, nil
+		return readPullArg(args)
 	}
 	var q Query
 	for i := 0; i < len(args); i++ {
@@ -114,11 +113,33 @@ func readThreadArgs(word string, args []string) (Query, error) {
 			q.Thread = args[i]
 		}
 	}
-	switch {
-	case q.Thread == "":
+	if q.Thread == "" {
 		return Query{}, out.Usage("push thread needs a thread's id: itos push threads lists them")
-	case q.Reply == "" && !q.Resolve:
-		return Query{}, out.Usage("push thread %s needs --reply <text>, --resolve or both", q.Thread)
+	}
+	return q, nil
+}
+
+// readPullArg reads what follows push threads: nothing, or --pr <n> once, n a
+// whole number above 0.
+func readPullArg(args []string) (Query, error) {
+	q := Query{Threads: true}
+	for i := 0; i < len(args); i++ {
+		flag, text, inline := strings.Cut(args[i], "=")
+		if flag != "--pr" {
+			return Query{}, out.Usage("push threads takes --pr <n> and nothing else (%s): it lists the open review threads of a pull request", args[i])
+		}
+		if q.PullNumber != 0 {
+			return Query{}, out.Usage("push threads --pr names one pull request, and it is given twice")
+		}
+		if !inline && i+1 < len(args) {
+			i++
+			text = args[i]
+		}
+		n, err := strconv.Atoi(text)
+		if err != nil || n < 1 {
+			return Query{}, out.Usage("push threads --pr needs a pull request's number, a whole number above 0, not %q", text)
+		}
+		q.PullNumber = n
 	}
 	return q, nil
 }
