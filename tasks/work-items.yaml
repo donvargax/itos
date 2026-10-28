@@ -15364,7 +15364,7 @@ items:
       (--onto-main) reads the remote from the hook's first argument; under pre-commit or prek the
       hook is called differently and the remote is in PRE_COMMIT_REMOTE_NAME, so a legitimate
       rewrite is refused there.
-    tags: [hooks]
+    tags: [hooks, v9]
 
   - id: p3-ready-rebased-head-unwatched
     title: push --ready finds the head GitHub made when no CI run is watched, so a review re-request names it
