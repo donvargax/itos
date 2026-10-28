@@ -665,7 +665,16 @@ func (w *world) markRun() {
 
 // The config itos finds in the scratch repository: itos.yaml in the root, or
 // the stealth one in the git folder.
-func (w *world) configPath() string { return filepath.Join(w.dir, w.data("itos.yaml")) }
+func (w *world) configPath() string { return filepath.Join(w.dir, w.configFile()) }
+
+// The config's path in the scratch repository: where the scenario put it
+// (ci_jobs_test.go), else the root's itos.yaml or the stealth folder's.
+func (w *world) configFile() string {
+	if w.configAt != "" {
+		return w.configAt
+	}
+	return w.data("itos.yaml")
+}
 
 // The config pins the version, with the SHA-256 of the checksums.txt the
 // release server has for it, read back from the file as YAML.
