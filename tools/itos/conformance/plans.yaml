@@ -303,6 +303,7 @@ cases:
       left_out: []
       unknown: []
       not_started: []
+      jobs: {}
   - name: a whole run wins over every selection
     argv: [ci, plan, "{{sha.templates}}", "{{sha.whole}}", --json]
     exit: 0
@@ -388,6 +389,7 @@ cases:
       left_out: []
       unknown: []
       not_started: []
+      jobs: {}
   - name: T-045's pair keeps its written order, the sh -c late by default
     argv: [ci, plan, "{{sha.base}}", "{{sha.pair}}", --json]
     exit: 0
@@ -440,6 +442,7 @@ cases:
       left_out: []
       unknown: []
       not_started: []
+      jobs: {}
   - name: a check said static below a late one is late by order
     argv: [ci, plan, "{{sha.pair}}", "{{sha.static-pair}}", --json]
     exit: 0
@@ -492,6 +495,7 @@ cases:
       left_out: []
       unknown: []
       not_started: []
+      jobs: {}
   - name: a static check above a late one runs before the unit tests
     argv: [ci, plan, "{{sha.static-pair}}", "{{sha.static-above}}", --json]
     exit: 0
@@ -544,6 +548,7 @@ cases:
       left_out: []
       unknown: []
       not_started: []
+      jobs: {}
   - name: a code range plans every check of the task, its subset in the one run
     argv: [ci, plan, "{{sha.static-above}}", "{{sha.every}}", --json]
     exit: 0
@@ -656,6 +661,7 @@ cases:
       left_out: []
       unknown: []
       not_started: []
+      jobs: {}
   - name: a prose range runs vp check and the static and prose checks, and lists what it leaves out
     argv: [ci, plan, "{{sha.every}}", "{{sha.prose}}", --json]
     exit: 0
@@ -720,6 +726,7 @@ cases:
           command: vp run e2e --grep "@ID-LIST-02"
       unknown: []
       not_started: []
+      jobs: {}
   - name: subsets merge into one run, a step covers a check, the nightly's check waits
     argv: [ci, plan, "{{sha.prose}}", "{{sha.subsets}}", --json]
     exit: 0
@@ -805,6 +812,7 @@ cases:
       left_out: []
       unknown: []
       not_started: []
+      jobs: {}
   - name: a named scenario joins the smoke set in the run
     argv: [ci, plan, "{{sha.subsets}}", "{{sha.scenario}}", --json]
     exit: 0
@@ -842,6 +850,7 @@ cases:
       left_out: []
       unknown: []
       not_started: []
+      jobs: {}
   - name: a step that calls hooks.bin is read as itos by the patterns, one under another path as written
     argv: [ci, plan, "{{sha.subsets}}", "{{sha.scenario}}", --json]
     files:
@@ -894,6 +903,7 @@ cases:
       left_out: []
       unknown: []
       not_started: []
+      jobs: {}
   # Slice 20: ci.covers, ci.nightly_only and recognize read a check whose first
   # word is hooks.bin as itos, as the cost rule does; the same checks under
   # another path are matched as written, and run.
@@ -1014,6 +1024,7 @@ cases:
       left_out: []
       unknown: []
       not_started: []
+      jobs: {}
   - name: static checks first, the build's and the push's last
     argv: [ci, plan, "{{sha.scenario}}", "{{sha.cost}}", --json]
     exit: 0
@@ -1080,6 +1091,7 @@ cases:
       left_out: []
       unknown: []
       not_started: []
+      jobs: {}
   - name: a range that touches proof.code's paths plans the code proof, static and before the tests
     argv: [ci, plan, "{{sha.smoke}}", "{{sha.code}}", --json]
     files:
@@ -1138,6 +1150,7 @@ cases:
       left_out: []
       unknown: []
       not_started: []
+      jobs: {}
   - name: a range that touches none of proof.code's paths plans no code proof
     argv: [ci, plan, "{{sha.code}}", "{{sha.note}}", --json]
     files:
@@ -1191,6 +1204,7 @@ cases:
       left_out: []
       unknown: []
       not_started: []
+      jobs: {}
   - name: a task not started waits, an unknown one is listed
     argv: [ci, plan, "{{sha.cost}}", "{{sha.status}}", --json]
     exit: 0
@@ -1238,6 +1252,7 @@ cases:
         - T-044
       not_started:
         - T-040
+      jobs: {}
   - name: a plan with the ledger folder missing is one problem naming it, exit 2
     argv: [ci, plan, "{{sha.prose}}", "{{sha.subsets}}", --json]
     files: { tasks: null }
@@ -1334,6 +1349,7 @@ cases:
       left_out: []
       unknown: []
       not_started: []
+      jobs: {}
   - name: an empty smoke set and a range that names no test run no named tests
     argv: [ci, plan, "{{sha.pair}}", "{{sha.static-pair}}", --json]
     files: { e2e/smoke.yaml: "[]\n" }
@@ -1383,6 +1399,7 @@ cases:
       left_out: []
       unknown: []
       not_started: []
+      jobs: {}
   - name: an empty smoke set and no test named leave no run, so the smoke run's check runs as itself
     argv: [ci, plan, "{{sha.whole}}", "{{sha.smoke}}", --json]
     files: { e2e/smoke.yaml: "[]\n" }
@@ -1422,6 +1439,7 @@ cases:
       left_out: []
       unknown: []
       not_started: []
+      jobs: {}
   - name: the nightly runs every test, then its own steps, and no check
     argv: [ci, plan, --nightly, --json]
     exit: 0
@@ -1447,6 +1465,7 @@ cases:
       left_out: []
       unknown: []
       not_started: []
+      jobs: {}
   - name: the nightly's plan refuses a tasks step, which v8 removed, and plans nothing
     argv: [ci, plan, --nightly, --json]
     files:
@@ -1550,6 +1569,7 @@ cases:
       left_out: []
       unknown: []
       not_started: []
+      jobs: {}
   - name: a start the repository does not have is unread
     argv: [ci, plan, "1111111111111111111111111111111111111111", "{{sha.pair}}", --json]
     exit: 0
@@ -1587,6 +1607,7 @@ cases:
       left_out: []
       unknown: []
       not_started: []
+      jobs: {}
   - name: --whole plans every step with every test
     argv: [ci, plan, --whole, --json]
     exit: 0
@@ -1624,6 +1645,7 @@ cases:
       left_out: []
       unknown: []
       not_started: []
+      jobs: {}
   - name: --data-at reads the ledger, the registry and the smoke set at a commit
     argv: [ci, plan, "{{sha.static-above}}", "{{sha.every}}", --data-at, "{{sha.base}}", --json]
     files:
@@ -1738,6 +1760,7 @@ cases:
       left_out: []
       unknown: []
       not_started: []
+      jobs: {}
   - name: ci scope of a prose-only range
     argv: [ci, scope, "{{sha.every}}", "{{sha.prose}}"]
     exit: 0
@@ -1832,3 +1855,4 @@ cases:
       unknown:
         - T-044
       not_started: []
+      jobs: {}

@@ -278,6 +278,7 @@ type CI struct {
 		Paths []string `json:"paths"`
 		Steps []string `json:"steps"`
 	} `json:"prose"`
+	Jobs Ordered[Job] `json:"jobs"`
 	Cost struct {
 		Static           []string `json:"static"`
 		KeepWrittenOrder bool     `json:"keep_written_order"`
@@ -322,6 +323,12 @@ func (s *Step) UnmarshalJSON(data []byte) error {
 	*s = Step(p)
 	s.JSON = string(data)
 	return nil
+}
+
+// Job is a job of the CI workflow that runs only when a range touches one of
+// its Paths (slice 202); none, it always runs.
+type Job struct {
+	Paths []string `json:"paths"`
 }
 
 // Cover is a ci.covers rule: a check matching Matches is not run again after

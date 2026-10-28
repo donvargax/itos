@@ -111,6 +111,7 @@ func (p *Plan) Fields(r Range) []out.Field {
 		{Key: "left_out", Value: leftOut},
 		{Key: "unknown", Value: list(p.Unknown)},
 		{Key: "not_started", Value: list(p.NotStarted)},
+		{Key: "jobs", Value: jobsJSON(p.Jobs)},
 	}
 	if p.Trusted != nil {
 		fields = append(fields, out.Field{Key: "trusted", Value: p.Trusted})
