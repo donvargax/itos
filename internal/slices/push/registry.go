@@ -51,10 +51,14 @@ func (r *pushRun) divide(ctx context.Context, main, theirMain, tip string, exist
 		itemTip = ahead[kept-1]
 		p.first = ahead[0]
 	}
+	rest := ahead[max(prefix, kept):]
+	if a, refused := r.refuseMerge(ctx, rest); refused {
+		return p, a, true
+	}
 	mainNew, itemNew := slices.Clone(ahead[:prefix]), slices.Clone(ahead[:prefix])
 	var moved []string
 	left := 0
-	for _, c := range ahead[max(prefix, kept):] {
+	for _, c := range rest {
 		if r.registryCommit(ctx, c) {
 			made, conflicts, bad, failed := r.carry(ctx, c, mainTip)
 			if failed {
@@ -98,6 +102,27 @@ func (r *pushRun) divide(ctx context.Context, main, theirMain, tip string, exist
 		}
 	}
 	return p, Answer{}, false
+}
+
+// refuseMerge is the refusal (outcome merge-in-history, exit 1) of commits that
+// hold a merge and a registry commit: carrying the registry commit out of the
+// item's branch means making the commits above it again one after the other on
+// their first parents, which would drop what a merge brings in. Nothing is
+// pushed or changed; the person makes the history linear first.
+func (r pushRun) refuseMerge(ctx context.Context, commits []string) (Answer, bool) {
+	v := r.ports
+	registry := slices.IndexFunc(commits, func(c string) bool { return r.registryCommit(ctx, c) })
+	merge := slices.IndexFunc(commits, func(c string) bool {
+		parents, _ := v.Parents(ctx, c)
+		return len(parents) > 1
+	})
+	if registry < 0 || merge < 0 {
+		return Answer{}, false
+	}
+	return r.refuse("merge-in-history",
+		fmt.Sprintf("itos push: %s is the registry's and goes to main, and %s is a merge, which is not made again on the commits it would leave; nothing was pushed.",
+			r.named(ctx, commits[registry]), r.named(ctx, commits[merge])),
+		"Make the history linear first (git rebase "+r.base()+"), then itos push again."), true
 }
 
 // carry makes the commit again on onto (vcsport.VCS.CherryPick), with its itos

@@ -230,6 +230,44 @@ func TestPushItemBranchCarriesNotesAndFailures(t *testing.T) {
 	}
 }
 
+// Commits that hold a merge and a registry commit are refused, nothing pushed
+// or changed, since taking the registry commit out would make the commits above
+// it again on their first parents and drop what the merge brings in; with no
+// registry commit among them a merge is pushed as it always was.
+func TestPushItemBranchRefusesAMergeAboveARegistryCommit(t *testing.T) {
+	build := func(registry bool) *fake {
+		f := prRepo(t)
+		f.addOn("a1", up, "feat: first", map[string]string{"first.md": "first\n"})
+		f.addOn("c1", up, "feat: second", map[string]string{"second.md": "second\n"})
+		change := map[string]string{"third.md": "third\n"}
+		if registry {
+			change = map[string]string{registryFile: "taken\n"}
+		}
+		f.addOn("r1", "c1", "docs: take", change)
+		tree := map[string]string{}
+		for _, c := range f.History {
+			if c.Name == "a1" {
+				maps.Copy(tree, c.Tree)
+			}
+		}
+		tree["second.md"], tree["third.md"] = "second\n", "third\n"
+		f.History = append(f.History, vcsfake.Commit{Name: "mg", Parents: []string{"a1", "r1"}, Message: "chore: merge\n", Tree: tree})
+		f.on(item, "mg")
+		return f
+	}
+	f := build(true)
+	code, stdout, stderr, _ := call(t, f, "--json")
+	if code != policy || reported(t, stdout).Outcome != "merge-in-history" || len(f.pushed) != 0 || len(f.ghCalls) != 0 || f.head(t) != "mg" ||
+		!strings.Contains(stderr, "r1 docs: take is the registry's and goes to main, and mg chore: merge is a merge") ||
+		!strings.Contains(stderr, "Make the history linear first (git rebase origin/main), then itos push again.") {
+		t.Errorf("exit %d, pushed %v\n%s%s", code, f.pushed, stdout, stderr)
+	}
+	f = build(false)
+	if code, _, stderr, _ := call(t, f); code != 0 || pushedTo(f, "refs/heads/slice-9") != "mg" || pushedTo(f, "refs/heads/main") != "" {
+		t.Errorf("a merge and no registry commit: exit %d, pushed %v\n%s", code, f.pushed, stderr)
+	}
+}
+
 // A registry commit that does not apply onto main's head is refused as the
 // rebase onto main refuses one: the work registry named, each item both sides
 // changed with its owner on main, and how to drop the commit, never git rebase

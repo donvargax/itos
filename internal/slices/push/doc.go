@@ -153,8 +153,11 @@
 // nothing of the work left to send goes to main alone, as one of the registry's
 // commits does, and no gh is called. The push is atomic and nothing is forced;
 // only once it is done does resetTo set the clone's branch to the head pushed
-// to the item's branch (vcsport.VCS.Reset), without the commits taken out. Two
-// refusals come before anything is pushed or changed, exit 1: a registry commit
+// to the item's branch (vcsport.VCS.Reset), without the commits taken out. Three
+// refusals come before anything is pushed or changed, exit 1: commits that hold
+// a merge and a registry commit (merge-in-history, refuseMerge: the commits
+// above one taken out are made again on their first parents, which would drop
+// what a merge brings in); a registry commit
 // that does not apply onto main's head (registry-conflict, in the words of the
 // rebase onto main: the registry, each item both changed and its owner there,
 // and how to drop the commit from the branch, since no rebase is in progress);
