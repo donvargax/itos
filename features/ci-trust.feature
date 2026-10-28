@@ -282,6 +282,27 @@ Feature: Under push.mode pr, CI trusts the green run of a merged pull request's 
     And its JSON's "trusted.run" is "https://ci.example/runs/pr"
     And its JSON's "trusted.pull_request" is "https://github.example/o/r/pull/7"
 
+  # Slice 202: trust changes what the ci job runs, never which jobs run, so a
+  # trusted range's "jobs" is answered by ci.jobs' paths alone (ci.feature's
+  # slice 202 block). The workflow skips the platform jobs on a trusted
+  # range by ci-repo scope's verdict, not by this answer. ci.jobs is set in
+  # the clone's working tree before the branch, so no merged tree differs
+  # from the head's in itos.yaml. Fails before the work at the exit code:
+  # ci.jobs is an unknown key today.
+  @ID-CITRUST-10 @slice-202 @wip
+  Scenario: Under pr, a trusted range's jobs are answered by their paths
+    Given the config sets "ci.jobs" to the YAML "{platform: {paths: [src/**]}, docs: {paths: [docs/**]}}"
+    And the remote's branch "slice-9" has the item "slice-9"'s commit touching "src/app.go", which the clone's main lacks
+    And the fake GitHub's run of the head of the remote's branch "slice-9", "https://ci.example/runs/pr", succeeded
+    And GitHub rebase-merges the remote's branch "slice-9" onto the remote's main
+    And the fake GitHub lists the pull request "https://github.example/o/r/pull/7" as rebase-merged into the remote's main from the head of the remote's branch "slice-9"
+    And the clone has fetched the remote
+    And the clone fast-forwards its main to the branch "main"
+    When itos plans CI over the commits the fast-forward brought, with --json
+    Then itos exits with code 0
+    And its JSON's "trusted.run" is "https://ci.example/runs/pr"
+    And its JSON's "jobs" is {"platform": {"runs": true, "reason": "touched"}, "docs": {"runs": false, "reason": "untouched"}}
+
   # A ledger file differs and the registry does not. The range names no
   # task, so bug 137's comparison has nothing to compare. Fails before the
   # work at "echo prose plan".
