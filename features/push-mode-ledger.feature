@@ -431,7 +431,7 @@ Feature: Under push.mode pr, the ledger edits itos makes beside the registry go 
   # in (Codex, on pull request 209), so commits that hold a merge and a
   # registry commit are refused, nothing pushed. Fails before the work at the
   # exit code: today the take rides the pull request with the merge, exit 0.
-  @ID-PUSHLEDGER-15 @slice-192 @wip
+  @ID-PUSHLEDGER-15 @slice-192
   Scenario: Under pr, commits that hold a merge and a registry commit are refused, nothing pushed
     Given the work registry has the item "slice-9" owned by nobody with the status "todo"
     And the config, committed and pushed to the remote's main, adds the YAML:
