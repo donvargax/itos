@@ -15406,3 +15406,22 @@ items:
       (the registry in git, the --ready ceremony, item branches plus never-force under Claude Code's
       classifier, shared fixtures) and lists the questions to start from.
     tags: [v9]
+
+  - id: p1-reviewer-on-astra
+    title: The local spec reviewer runs on Astra through the Codex CLI, now that its Claude API credits are gone
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The person, 2026-10-28: the reviewer CLI (/home/yorch/tmp/llms-safe/claude-agent-sdk,
+      review_cli.py) ran out of Claude API credits on 2026-10-27 (#213: Credit balance is too low),
+      so it cannot review specs with Claude any more. Since then spec reviews have been a read-only
+      Opus subagent in the coordinator's session following the reviewer's own prompt
+      (profiles/itos/pr_persona.md, plan_prompt.md), with the coordinator posting a summary. Astra
+      (gpt-6-astra) through the Codex CLI scored 5 of 12 known diff findings and 2 of 2 spec seeds
+      in the reviewer replay (docs/plans/reviewer-replay.md), on the Codex allowance. Switching the
+      reviewer's backend to the Codex CLI with Astra, same prompt and the same pr mode, would give
+      back a reviewer outside the coordinator's session. An idea for now (the person).
+    tags: [review, v9]
