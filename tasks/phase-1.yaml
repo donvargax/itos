@@ -5190,8 +5190,6 @@
     replaces setup-go and registers no problem matcher, so a go test failure inside a CI step prints
     to the log alone and slice-197's fallback shows only the exit code line. The toolchain action
     registers a problem matcher for go test's file:line failures (::add-matcher), as setup-go does.
-  done_when:
-    - run: grep -q 'add-matcher' .github/actions/go-toolchain/action.yml
 
 - id: T-337
   type: test
