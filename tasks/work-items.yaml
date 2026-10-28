@@ -15378,8 +15378,8 @@ items:
   - id: T-335
     title: A scenario's command line can quote an argument holding an apostrophe
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
 
