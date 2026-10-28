@@ -126,13 +126,14 @@ spec as the pull request's first commit; every commit of the item goes on it.
    blocks the merge); hand back, and the coordinator decides.
 4. **Mark it ready** with `tools/bin/itos push --ready` in the foreground
    (600000 ms timeout): it marks the pull request ready, waits for its
-   checks (those of the head GitHub makes when it rebases the branch too)
-   and Copilot's review, refuses while a thread is unresolved, then turns on
-   auto-merge. A red run, or a thread Copilot opens, is yours: fix the cause,
-   never the check, address the thread as above, and `--ready` again. If the
-   call is cut off, run `tools/bin/itos ci watch <sha>` in the foreground
-   once more; never sleep, poll or loop. Read a rejection before diagnosing
-   it (`tools/bin/itos push --help` gives its outcomes).
+   checks and Copilot's review, refuses while a thread is unresolved, then
+   merges, or turns on auto-merge. On `ready-still-waiting` (exit 75, after
+   540 s) run it again. A red run, or a thread Copilot opens, is yours: fix
+   the cause, never the check, address the thread as above, and `--ready`
+   again. If the call is cut off, run
+   `tools/bin/itos ci watch <sha>` in the foreground once more; never sleep,
+   poll or loop. Read a rejection before diagnosing it (`itos push --help`
+   gives its outcomes).
 5. Report the pull request's address, the pushed SHA, the green run, your
    commits, the checks that ran and any remaining work, from a clean
    checkout. `work done` runs on `main` after the merge (slice-176), which a
