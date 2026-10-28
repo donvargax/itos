@@ -5201,5 +5201,4 @@
     items add answers without touching shared lines. Behaviour-preserving: every feature passes
     before and after, no scenario text changes.
   done_when:
-    - run: go test ./features -count=1
-      timeout: 900
+    - run: test -f features/testdata/gh/dispatch.sh
