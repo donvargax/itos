@@ -18,7 +18,9 @@
 // refs (Ref, Refs, Symref); the remote (Upstream, Remotes, RemoteURL, RemoteRefs,
 // Fetch, Push, Rebase), whose failures are a Failed with its Failure; and
 // committing (Commit, Add, Unstage, Untrack, Restore, Note, and CommitFile,
-// a commit outside every branch, as the ID counter makes one). A command
+// a commit outside every branch, as the ID counter makes one; CherryPick
+// makes one the same way from another's change, a *Conflicts error when it
+// does not apply, and Reset moves HEAD to a commit). A command
 // that may talk to the person runs as its Talk says. What is git's alone
 // (its config and the hooks it declares, a draft's patch plumbing, finding
 // the real git) is the adapter's, beside the port.

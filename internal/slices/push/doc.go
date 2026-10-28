@@ -129,15 +129,44 @@
 // registry (work.IDsAt), then it fetches main and the item's branch,
 // rebases onto the item's when the remote has it, else onto main
 // (ontoName names it in the rebase's messages), and pushes in one atomic
-// push the registry's commits directly above main (registryPrefix) to main
-// and the head to the item's branch; a branch of such commits alone goes to
-// main with no pull request (pushRegistry). Every gh call (Ports.Gh) names
+// push the registry's commits to main and the head to the item's branch
+// (divide, registry.go; below); a branch of such commits alone goes to main
+// with no pull request (pushRegistry). Every gh call (Ports.Gh) names
 // the repository (Ports.GitHubRepository, required once the branch is
 // rebased): pullRequest finds the open pull request or opens one, turns on
 // auto-merge by rebase and, when main has a commit the pushed head lacks,
 // asks GitHub to rebase it (update-branch) instead of forcing the branch.
 // A gh that is missing or fails exits 3, the branch pushed already
 // (pull-request-failed). Answer.PullRequest is --json's pull_request.
+//
+// The registry's commits go to main wherever they sit (slice-192, registry.go).
+// Of the commits the push sends, those the remote's item branch lacks (all of
+// main..HEAD with no such branch), registryPrefix counts the registry's that
+// start at main's head: they go to main under their own SHAs and the item's
+// branch keeps them, the work on top unchanged. divide goes through the rest in
+// order: a commit the remote's item branch has stays where it is; a registry
+// commit is made again on main's head after the prefix (vcsport.VCS.CherryPick,
+// no ref, index or work tree touched, its itos note copied) and taken out of the
+// item's branch; every other commit after the first one taken out is made again
+// on the item's branch, the remote's (or the prefix, or main), when its parent
+// is no longer where it sat, and kept as it is before that. A branch that has
+// nothing of the work left to send goes to main alone, as one of the registry's
+// commits does, and no gh is called. The push is atomic and nothing is forced;
+// only once it is done does resetTo set the clone's branch to the head pushed
+// to the item's branch (vcsport.VCS.Reset), without the commits taken out. Two
+// refusals come before anything is pushed or changed, exit 1: a registry commit
+// that does not apply onto main's head (registry-conflict, in the words of the
+// rebase onto main: the registry, each item both changed and its owner there,
+// and how to drop the commit from the branch, since no rebase is in progress);
+// and a commit that is not the registry's and does not apply once the registry
+// commits are out from under it (needs-registry-commit: it and the registry
+// commit it needs, by seven-character SHA and subject, saying to make that
+// commit on main or fold the two; under --json the lines go to stderr too).
+// pushedLine puts a "Sent <short> <subject> to <remote>/<branch>." line before
+// the "Pushed" one for each commit main and the item's branch gain, main's
+// first, oldest first, whenever something goes to main; -q drops them and
+// --json has no key for them. gh pr update-branch is asked only when main had a
+// commit the head lacks before the push, never for the commits it just got.
 //
 // The pull request is titled after the item and described by it (slice 184,
 // title.go), not by its first commit, which gh pr create --fill would give it
@@ -198,8 +227,8 @@
 // head is no ancestor of the commit pushed (a fast-forward, a first push and a
 // push without --onto-main take none), so git forces that ref alone, and only
 // while the remote still has it where the push fetched it; the registry's
-// commits directly above main still go to main in the same atomic push, and
-// the pre-push hook judges both. A lease the remote moved from, or a hook's
+// commits still go to main in the same atomic push, and the pre-push hook
+// judges both. A lease the remote moved from, or a hook's
 // refusal, is push-failed, exit 1, the remote left as it was. After the push
 // all is a push's: the pull request found or opened, auto-merge, no
 // update-branch since the head pushed has main's, and the wait.

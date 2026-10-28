@@ -51,12 +51,16 @@ Feature: push.mode pr, an item's work on its own branch merged by rebase, claims
   name, whatever its upstream says (a branch made from origin/main tracks
   main). It is rebased onto the remote's item branch when there is one, else
   onto main, so a first push starts up to date with main and a later one
-  never needs force. Of the commits it adds, those directly above main's head
-  that are the registry's (a take made on the branch; slice-177) go to main
-  and the rest to the item branch, in one git push --atomic: both land or neither,
-  the pre-push hook judging both. A branch whose commits are all such goes
-  to main alone: the item's branch is not pushed, no pull request is opened
-  and no run waited for, as for registry commits pushed from main.
+  never needs force. Of the commits it adds, those the remote's item branch
+  lacks, the registry's (a take made on the branch; slice-177) go to main,
+  wherever they sit among them (slice-192, push-mode-ledger.feature), and the
+  rest to the item branch, in one git push --atomic: both land or neither,
+  the pre-push hook judging both. The registry's commits directly above main's
+  head go to main under their own SHAs, which the item's branch keeps; the
+  others are made again on main's head and taken out of the item's branch.
+  A branch whose commits are all such goes to main alone: the item's branch
+  is not pushed, no pull request is opened and no run waited for, as for
+  registry commits pushed from main.
 
   Then, unless the branch adds nothing to main, its pull request. gh pr list
   --repo <repository> --head <item> --state open --json number,url finds the
@@ -145,8 +149,8 @@ Feature: push.mode pr, an item's work on its own branch merged by rebase, claims
   the remote's main, unless HEAD has main's head already, and pushes the
   item's branch with git push --force-with-lease=refs/heads/<item>:<the
   item's head it fetched> when that head is no ancestor of HEAD, as a push
-  does when it is, the registry's commits directly above main going to
-  main in the same atomic push as ever, the pre-push hook judging both
+  does when it is, the registry's commits going to main in the same
+  atomic push as ever, the pre-push hook judging both
   (pre-push.feature accepts a rewrite of a branch that is not main and
   drops no commit, slice-193). An item's branch the remote moved after the
   fetch fails the lease: the remote is left as it was, exit 1, outcome

@@ -95,8 +95,14 @@ commit that is neither), and so is --ref naming main. On
 any other branch, whose name must be an item of the registry (else exit 1,
 saying git branch -m <item>), the branch goes to the remote's branch of its
 own name, whatever its upstream says, rebased onto the remote's item branch
-when there is one, else onto main; the registry's commits directly above main
-go to main, in the same git push --atomic. Then gh --repo <repository>, the
+when there is one, else onto main; the registry's commits among those the
+remote's branch lacks go to main, wherever they sit (those directly above main
+as they are, the others made again on main's head and left out of the item's
+branch), in the same git push --atomic, and the report has a "Sent <short>
+<subject> to <remote>/<branch>." line for each commit sent; a registry commit
+that does not apply onto main, or a commit that needs one that left the
+branch, is refused (exit 1, outcomes registry-conflict and
+needs-registry-commit) with nothing pushed. Then gh --repo <repository>, the
 repository ci.range.github.repository_env names, else the remote's URL
 (none: exit 3, before anything is pushed), finds the open pull request or
 opens it (gh pr create), titled "<item>: <the item's title in the registry>"
@@ -249,7 +255,8 @@ read from git's message; git's own exit code is never itos's.
         no-such-ref, tag-exists, fetch-failed (reading the remote's tags or
         HEAD too), no-default-branch, rebase-stopped, rebase-failed,
         push-failed, and under push.mode pr work-on-main, not-item-branch,
-        no-github-repository, pull-request-failed, for --onto-main
+        no-github-repository, pull-request-failed, registry-conflict,
+        needs-registry-commit, for --onto-main
         onto-main-without-pr and onto-main-on-main, and for --ready
         review-timeout, review-refused, review-stalled, review-threads-unresolved,
         ready-without-draft and ready-on-main;

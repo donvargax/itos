@@ -389,3 +389,38 @@ func (b broken) NotIgnored(ctx context.Context, path string) bool {
 	}
 	return b.VCS.NotIgnored(ctx, path)
 }
+
+func (b broken) CherryPick(ctx context.Context, commit, onto string) (string, error) {
+	if b.fault == "cherry pick onto the head" {
+		onto = "HEAD"
+	}
+	made, err := b.VCS.CherryPick(ctx, commit, onto)
+	var conflicts *port.Conflicts
+	switch {
+	case b.fault == "cherry pick moves head" && err == nil:
+		b.moveHead(b.OnBranch, made)
+	case b.fault == "cherry pick keeps the note" && err == nil:
+		c, _ := b.commit(commit)
+		i, _ := b.where(made)
+		b.History[i].Note = c.Note
+	case b.fault == "cherry pick conflict is a failure" && errors.As(err, &conflicts):
+		return "", errBroken
+	case b.fault == "cherry pick of nothing conflicts" && err != nil && !errors.As(err, &conflicts):
+		return "", &port.Conflicts{Paths: []string{"a.txt"}}
+	}
+	return made, err
+}
+
+func (b broken) Reset(ctx context.Context, rev string) error {
+	index, work, main := b.Index, b.Work, b.Named["refs/heads/main"]
+	err := b.VCS.Reset(ctx, rev)
+	switch {
+	case b.fault == "reset of nothing fine" && err != nil:
+		return nil
+	case b.fault == "reset keeps changes" && err == nil:
+		b.Index, b.Work = index, work
+	case b.fault == "reset leaves the branch" && err == nil:
+		b.Named["refs/heads/main"] = main
+	}
+	return err
+}
