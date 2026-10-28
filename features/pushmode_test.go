@@ -25,9 +25,11 @@
 package features
 
 import (
+	"embed"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -171,18 +173,19 @@ func (w *world) remoteBranchEndsWith(branch, older, newer string) error {
 func (w *world) ghCalls() string { return filepath.Join(w.support, "gh-calls") }
 func (w *world) ghPulls() string { return filepath.Join(w.support, "gh-pull-requests") }
 
+// The folder the handlers of testdata/gh are written to.
+func (w *world) ghHandlers() string { return filepath.Join(w.support, "gh-handlers") }
+
 // What the recording gh says on stderr when it fails every call, if it does.
 func (w *world) ghFailure() string { return filepath.Join(w.support, "gh-failure") }
 
 // The files that steer pr view and pr update-branch: the first exists when the
 // branch is to be left as it is; the second holds the number of calls pr view
-// answers the previous head for after pr update-branch, the third how many are
-// left; the head a branch had when the recording gh was given its pull request
-// is in the fourth, by the branch's name; the fifth is where pr update-branch
-// rebases.
-func (w *world) ghKeeps() string     { return filepath.Join(w.support, "gh-update-keeps") }
-func (w *world) ghStale() string     { return filepath.Join(w.support, "gh-stale-calls") }
-func (w *world) ghStaleLeft() string { return filepath.Join(w.support, "gh-stale-left") }
+// answers the previous head for after pr update-branch; the head a branch had
+// when the recording gh was given its pull request is in the third, by the
+// branch's name; the fourth is where pr update-branch rebases.
+func (w *world) ghKeeps() string { return filepath.Join(w.support, "gh-update-keeps") }
+func (w *world) ghStale() string { return filepath.Join(w.support, "gh-stale-calls") }
 func (w *world) ghPrevious(branch string) string {
 	return filepath.Join(w.support, "gh-previous-"+branch)
 }
@@ -207,217 +210,40 @@ func (w *world) ghCommentsEarly() string { return filepath.Join(w.support, "gh-c
 func (w *world) ghCommentsLeft() string  { return filepath.Join(w.support, "gh-comments-left") }
 
 // The comments api graphql answers beside those above while no pr comment call
-// has been made and after the first one, and the file the first pr comment call
-// leaves (slice 190).
-func (w *world) ghCommentsBefore() string  { return filepath.Join(w.support, "gh-comments-before") }
-func (w *world) ghCommentsAfter() string   { return filepath.Join(w.support, "gh-comments-after") }
-func (w *world) ghCommentedMarker() string { return filepath.Join(w.support, "gh-commented") }
+// has been made and after the first one (slice 190).
+func (w *world) ghCommentsBefore() string { return filepath.Join(w.support, "gh-comments-before") }
+func (w *world) ghCommentsAfter() string  { return filepath.Join(w.support, "gh-comments-after") }
+
+// ghScript is the recording gh's answers: dispatch.sh, which records the call
+// and runs the handler testdata/gh/<command>-<subcommand>.sh for it; an api
+// graphql call goes to graphql/*.sh (one per mutation, the first whose name the
+// call has answers) and then to graphql-nodes.sh, which joins nodes/*.sh.
+//
+//go:embed testdata/gh
+var ghScript embed.FS
 
 // recordingGh is a gh first on the PATH that stands in for GitHub: it records
 // each call on a line, a line break inside an argument written as a backslash
-// and an n (slice 184); answers pr list with the pull requests of its --head
-// branch that its --state names (open, gh's default, merged, closed or all) as
-// gh does ([] for none), each with its isDraft and its title, and with
-// mergeCommit, when --json asks for it, as {"oid": <sha>} for a merged pull
-// request a step gave its merge commit and null otherwise (slice 195), and answers pr
-// create with the address given, holding that pull request open from then on,
-// a draft when the call has --draft (slice 179), with the --title=<value> it
-// was given; pr edit <branch> --title=<value> gives that branch's open pull
-// request the title; pr ready <branch> makes that branch's pull requests
-// ready, and api graphql answers the reviews and the review threads
-// the steps gave it, the same for every call, except for a query of
-// pullRequests(headRefName:, states:) under aliases (slice 199), which it
-// answers as GitHub does: under each alias, the pull requests of the branch
-// its headRefName names whose state the query's states name (every state when
-// it names none), the last given first, each with number, state and mergedAt
-// (null for a CLOSED one); pr view answers the head of the remote's branch it
-// names as {"headRefOid": <sha>}, and pr update-branch rebases that branch onto
-// the remote's main, as GitHub does, in a clone of its own that it pushes back
-// (a step can have it leave the branch as it is); any other call succeeds
-// silently. It fails every call when a step says so. The environment names
-// owner/scratch as the GitHub repository, as the fake GitHub does. A pull
-// request's number is the end of its address.
+// and an n (slice 184), fails every call when a step says so, and answers the
+// call as its handler in testdata/gh does (features/README.md says how to add
+// one). Any other call succeeds silently. A pull request's number is the end
+// of its address. The environment names owner/scratch as the GitHub
+// repository, as the fake GitHub does.
 func (w *world) recordingGh(address string) error {
 	bin, err := w.binOnPath()
 	if err != nil {
 		return err
 	}
-	calls, pulls := quote(filepath.ToSlash(w.ghCalls())), quote(filepath.ToSlash(w.ghPulls()))
-	script := fmt.Sprintf(`#!/bin/sh
-nl='
-'
-rep() {
-  s=$1 out=
-  while :; do
-    case $s in
-    *"$2"*) out=$out${s%%%%"$2"*}$3; s=${s#*"$2"} ;;
-    *) out=$out$s; break ;;
-    esac
-  done
-  REPLY=$out
-}
-json() { rep "$1" '\' '\\'; rep "$REPLY" '"' '\"'; }
-rec=
-sep=
-for a in "$@"; do rep "$a" "$nl" '\n'; rec=$rec$sep$REPLY; sep=' '; done
-printf '%%s\n' "$rec" >> %[1]s
-if [ -f %[11]s ]; then cat %[11]s >&2; exit 1; fi
-verb="$1 $2"
-head=
-state=open
-json=
-prev=
-for a in "$@"; do
-  if [ "$prev" = --head ]; then head=$a; fi
-  if [ "$prev" = --state ]; then state=$a; fi
-  if [ "$prev" = --json ]; then json=$a; fi
-  prev=$a
-done
-case "$verb" in
-"pr list")
-  found=
-  if [ -f %[2]s ]; then
-    while read -r branch url kind draft title; do
-      if [ "$branch" = "$head" ]; then
-        case "$state/$kind" in all/*|open/OPEN|merged/MERGED|closed/CLOSED) ;; *) continue ;; esac
-        merged=null
-        if [ "$kind" = MERGED ]; then merged='"2026-10-24T10:00:00Z"'; fi
-        oid=
-        case "$json" in *headRefOid*) if [ -f %[9]s"$branch" ]; then oid=",\"headRefOid\":\"$(cat %[9]s"$branch")\""; fi ;; esac
-        case "$json" in *mergeCommit*)
-          oid="$oid,\"mergeCommit\":null"
-          if [ "$kind" = MERGED ] && [ -f %[18]s"$branch" ]; then oid="$oid,\"mergeCommit\":{\"oid\":\"$(cat %[18]s"$branch")\"}"; fi ;;
-        esac
-        if [ -n "$found" ]; then found="$found,"; fi
-        json "$title"
-        found="$found{\"number\":${url##*/},\"url\":\"$url\",\"title\":\"$REPLY\",\"state\":\"$kind\",\"isDraft\":${draft:-false},\"mergedAt\":$merged$oid}"
-      fi
-    done < %[2]s
-  fi
-  printf '[%%s]\n' "$found"
-  ;;
-"pr create")
-  draft=false
-  title=
-  for a in "$@"; do
-    if [ "$a" = --draft ]; then draft=true; fi
-    case "$a" in --title=*) title=${a#--title=} ;; esac
-  done
-  printf '%%s %%s OPEN %%s %%s\n' "$head" %[3]s "$draft" "$title" >> %[2]s
-  printf '%%s\n' %[3]s
-  ;;
-"pr ready")
-  : > %[14]s
-  while read -r branch url kind draft title; do
-    if [ "$branch" = "$3" ]; then draft=false; fi
-    printf '%%s %%s %%s %%s %%s\n' "$branch" "$url" "$kind" "${draft:-false}" "$title" >> %[14]s
-  done < %[2]s
-  mv %[14]s %[2]s
-  ;;
-"pr edit")
-  title=
-  for a in "$@"; do
-    case "$a" in --title=*) title=${a#--title=} ;; esac
-  done
-  : > %[14]s
-  while read -r branch url kind draft old; do
-    if [ "$branch" = "$3" ] && [ "$kind" = OPEN ]; then old=$title; fi
-    printf '%%s %%s %%s %%s %%s\n' "$branch" "$url" "$kind" "${draft:-false}" "$old" >> %[14]s
-  done < %[2]s
-  mv %[14]s %[2]s
-  ;;
-"api graphql")
-  case "$rec" in
-  *addPullRequestReviewThreadReply*)
-    printf '%%s\n' '{"data":{"addPullRequestReviewThreadReply":{"comment":{"url":"https://github.example/o/r/pull/7#discussion_r1"}}}}'
-    exit 0 ;;
-  *resolveReviewThread*)
-    printf '%%s\n' '{"data":{"resolveReviewThread":{"thread":{"isResolved":true}}}}'
-    exit 0 ;;
-  *"pullRequests("*)
-    q=$rec
-    answer=
-    sep=
-    while :; do
-      case $q in *"pullRequests("*) ;; *) break ;; esac
-      before=${q%%%%"pullRequests("*}
-      q=${q#*"pullRequests("}
-      before=${before%% }
-      before=${before%%:}
-      alias=${before##* }
-      args=${q%%%%")"*}
-      t=${args#*headRefName: \"}
-      branch=${t%%%%\"*}
-      states=
-      case $args in *"states: ["*) t=${args#*"states: ["}; states=${t%%%%]*} ;; esac
-      nodes=
-      if [ -f %[2]s ]; then
-        while read -r b url kind draft title; do
-          if [ "$b" != "$branch" ]; then continue; fi
-          case "$states/$kind" in /*|*"$kind"*/*) ;; *) continue ;; esac
-          merged=null
-          if [ "$kind" = MERGED ]; then merged='"2026-10-24T10:00:00Z"'; fi
-          node="{\"number\":${url##*/},\"state\":\"$kind\",\"mergedAt\":$merged}"
-          if [ -n "$nodes" ]; then nodes="$node,$nodes"; else nodes=$node; fi
-        done < %[2]s
-      fi
-      answer="$answer$sep\"$alias\":{\"nodes\":[$nodes]}"
-      sep=,
-    done
-    printf '{"data":{"repository":{%%s}}}\n' "$answer"
-    exit 0 ;;
-  esac
-  reviews=
-  threads=
-  comments=
-  if [ -f %[12]s ]; then reviews=$(cat %[12]s); fi
-  if [ -f %[13]s ]; then threads=$(cat %[13]s); fi
-  if [ -f %[15]s ]; then comments=$(cat %[15]s); fi
-  if [ -f %[17]s ]; then
-    left=$(cat %[17]s)
-    if [ "$left" -gt 0 ]; then
-      echo $((left - 1)) > %[17]s
-      comments=$(cat %[16]s)
-    fi
-  fi
-  if [ -f %[19]s ]; then
-    extra=$(cat %[19]s)
-    if [ -f %[21]s ]; then extra=$(cat %[20]s); fi
-    if [ -n "$comments" ]; then comments="$comments,$extra"; else comments=$extra; fi
-  fi
-  printf '{"data":{"repository":{"pullRequest":{"reviews":{"nodes":[%%s]},"comments":{"nodes":[%%s]},"reviewThreads":{"nodes":[%%s]}}}}}\n' "$reviews" "$comments" "$threads"
-  ;;
-"pr comment")
-  : > %[21]s
-  ;;
-"pr view")
-  oid=$(%[4]s --git-dir=%[5]s rev-parse "refs/heads/$3") || exit 1
-  if [ -f %[8]s ]; then
-    left=$(cat %[8]s)
-    if [ "$left" -gt 0 ]; then
-      echo $((left - 1)) > %[8]s
-      oid=$(cat %[9]s"$3")
-    fi
-  fi
-  printf '{"headRefOid":"%%s"}\n' "$oid"
-  ;;
-"pr update-branch")
-  if [ ! -f %[6]s ]; then
-    rm -rf %[10]s
-    %[4]s clone -q --branch "$3" %[5]s %[10]s &&
-      %[4]s -C %[10]s rebase -q origin/main &&
-      %[4]s -C %[10]s push -q --no-verify --force origin "HEAD:refs/heads/$3" || exit 1
-  fi
-  if [ -f %[7]s ]; then cp %[7]s %[8]s; fi
-  ;;
-esac
-`, calls, pulls, quote(address), quote(filepath.ToSlash(git.Bin(runtime.GOOS))), quote(filepath.ToSlash(w.remote())),
-		quote(filepath.ToSlash(w.ghKeeps())), quote(filepath.ToSlash(w.ghStale())), quote(filepath.ToSlash(w.ghStaleLeft())),
-		quote(filepath.ToSlash(w.ghPrevious(""))), quote(filepath.ToSlash(w.ghRebaseDir())), quote(filepath.ToSlash(w.ghFailure())),
-		quote(filepath.ToSlash(w.ghReviews())), quote(filepath.ToSlash(w.ghThreads())), quote(filepath.ToSlash(w.ghPulls()+".new")),
-		quote(filepath.ToSlash(w.ghComments())), quote(filepath.ToSlash(w.ghCommentsEarly())), quote(filepath.ToSlash(w.ghCommentsLeft())),
-		quote(filepath.ToSlash(w.ghMergeCommit(""))),
-		quote(filepath.ToSlash(w.ghCommentsBefore())), quote(filepath.ToSlash(w.ghCommentsAfter())), quote(filepath.ToSlash(w.ghCommentedMarker())))
+	if err := w.writeGhHandlers(); err != nil {
+		return err
+	}
+	dispatch, err := ghScript.ReadFile("testdata/gh/dispatch.sh")
+	if err != nil {
+		return err
+	}
+	script := fmt.Sprintf("#!/bin/sh\nS=%s\nH=\"$S/gh-handlers\"\nGIT=%s\nREMOTE=%s\nADDRESS=%s\n%s",
+		quote(filepath.ToSlash(w.support)), quote(filepath.ToSlash(git.Bin(runtime.GOOS))),
+		quote(filepath.ToSlash(w.remote())), quote(address), lineFeeds(dispatch))
 	if err := w.writeProgram(filepath.Join(bin, "gh"), script); err != nil {
 		return err
 	}
@@ -426,6 +252,31 @@ esac
 	}
 	return nil
 }
+
+// writeGhHandlers writes the handlers other than the dispatcher under the
+// support folder, as the dispatcher finds them, with their line ends as sh
+// reads them.
+func (w *world) writeGhHandlers() error {
+	return fs.WalkDir(ghScript, "testdata/gh", func(path string, d fs.DirEntry, err error) error {
+		rel := strings.TrimPrefix(strings.TrimPrefix(path, "testdata/gh"), "/")
+		if err != nil || rel == "dispatch.sh" {
+			return err
+		}
+		to := filepath.Join(w.ghHandlers(), filepath.FromSlash(rel))
+		if d.IsDir() {
+			return os.MkdirAll(to, 0o755)
+		}
+		text, err := ghScript.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		return os.WriteFile(to, []byte(lineFeeds(text)), 0o644)
+	})
+}
+
+// lineFeeds is the text with its line ends as sh reads them: a checkout that
+// turns them into CRLF (Windows) would leave a carriage return in every word.
+func lineFeeds(text []byte) string { return strings.ReplaceAll(string(text), "\r\n", "\n") }
 
 // The recording gh holds the pull request open for the branch, untitled.
 func (w *world) ghHasPullRequest(address, branch string) error {
