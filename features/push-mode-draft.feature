@@ -657,7 +657,10 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   a call of the command that has both; "ci.watch.interval is <n>", as
   "ci.watch.timeout is <n>" is; "the watched run was started <n> seconds
   ago", the fake GitHub's run then carrying run_started_at, that long
-  before the step ran (none otherwise); "the recording gh answers that the
+  before the step ran (none otherwise); "the watched run was created <n>
+  seconds ago", its created_at that long before the step ran and no
+  run_started_at (the fake gives every other look a created_at of its
+  own time, as a run just made has); "the recording gh answers that the
   pull request was marked ready <n> seconds ago and its head pushed <m>
   seconds ago", the ready event's createdAt and the activity entry's
   timestamp that long before the step ran; slice 187's Codex-state step ending ", last edited <n>
@@ -1573,6 +1576,40 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
     And ci.watch.timeout is 60
     And the watched run never finishes
     And the watched run was started 120 seconds ago
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the clone is on the new branch "slice-9"
+    And the clone has the commit "feat: add the widget" touching "widget.md"
+    And git pushes HEAD to the remote's new branch "slice-9"
+    And the recording gh has the draft pull request "https://github.example/o/r/pull/7" open for the branch "slice-9"
+    When itos runs "push --ready --json"
+    Then itos exits with code 75
+    And its JSON's "outcome" is "nothing-to-push"
+    And its output says "(ci.watch.timeout)"
+    And its output does not say "(push.pr.ready_wait)"
+    And the recording gh was never called as "pr merge"
+
+  # The run's clock falls back to its creation when GitHub gives no start
+  # (the spec of slice 200, "else its created_at"): the watched run was made
+  # two minutes ago and has no run_started_at, past ci.watch.timeout, so a
+  # fresh --ready ends the watch at its first look with the watch's own
+  # timeout, as 43's does. A build that counts from the call's first look
+  # waits, and push.pr.ready_wait ends it, ready-still-waiting. Fails before
+  # the work at the outcome step: today the clock is the call's, so the
+  # call ends at push.pr.ready_wait, exit 75 too.
+  @ID-PUSHDRAFT-45 @slice-200 @wip
+  Scenario: Under push.pr.draft, push --ready counts ci.watch.timeout from the watched run's creation when it has no start, so a rerun reaches the run's timeout
+    Given the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+        pr:
+          draft: true
+          ready_wait: 1
+      """
+    And ci.watch asks a fake GitHub, which reports the run "https://ci.example/runs/1"
+    And ci.watch.timeout is 60
+    And the watched run never finishes
+    And the watched run was created 120 seconds ago
     And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
     And the clone is on the new branch "slice-9"
     And the clone has the commit "feat: add the widget" touching "widget.md"
