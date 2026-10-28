@@ -541,10 +541,14 @@ func (w *world) ghAnswersThread(resolved bool, path string, line int, first, sec
 		"comments": map[string]any{"nodes": []any{map[string]any{"body": first + "\n" + second}}}})
 }
 
-// The same, a thread with an id whose first comment's author has the login.
+// The same, a thread with an id whose first comment's author has the login;
+// its node is answered to a call that asks for the id (pushthread_test.go).
 func (w *world) ghAnswersThreadBy(resolved bool, id, path string, line int, login, first, second string) error {
-	return w.ghAddNode(w.ghThreads(), map[string]any{"id": id, "isResolved": resolved, "path": path, "line": line,
-		"comments": map[string]any{"nodes": []any{map[string]any{"author": map[string]any{"login": login}, "body": first + "\n" + second}}}})
+	if err := w.ghAddNode(w.ghThreads(), map[string]any{"id": id, "isResolved": resolved, "path": path, "line": line,
+		"comments": map[string]any{"nodes": []any{map[string]any{"author": map[string]any{"login": login}, "body": first + "\n" + second}}}}); err != nil {
+		return err
+	}
+	return w.ghNodeOfThread(id, resolved, path, line, login, first, second)
 }
 
 // The node, as JSON, joins those the file holds.
