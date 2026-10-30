@@ -15577,3 +15577,20 @@ items:
       concern). A commit is the cursor; one beyond reachable history says so rather than returning a
       partial list.
     tags: [status, v9]
+
+  - id: p2-json-contract-describe
+    title: One command lists the --json schemas and outcomes this build speaks, so a driver refuses output it cannot read
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      From the person's research reports of 2026-10-30 (kept outside the repository): the factory
+      blueprint, chapters 3 and 10; the Orchestra comparison, chapter 11. Every --json object
+      already carries schema: 1, but a program driving repositories pinned to several itos versions
+      cannot ask a binary which schemas, outcomes and exits it speaks before calling it, and exit 0
+      does not mean acceptance (task pending or in review, a draft push, an empty verify range).
+      Belongs with q-89, p1-json-gaps and ADR-0053's exits, which p1-cli-kong makes conditional:
+      reconcile those first.
+    tags: [cli, v9]
