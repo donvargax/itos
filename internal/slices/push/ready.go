@@ -358,7 +358,7 @@ func (s pullState) stateOf(login string) (state reviewState) {
 // ok is false when it says neither, and the clock counts from the first ask.
 func (r *pushRun) reviewsFrom(ctx context.Context, repository string, state pullState, head string) (time.Time, bool) {
 	from := state.readyAt
-	if pushed, ok := r.pushedAt(ctx, repository, head); ok && pushed.After(from) {
+	if pushed := r.pushedAt(ctx, repository, head); pushed.After(from) {
 		from = pushed
 	}
 	return from, !from.IsZero()
@@ -366,22 +366,26 @@ func (r *pushRun) reviewsFrom(ctx context.Context, repository string, state pull
 
 // pushedAt is when the head was pushed, from the first entry of the branch's
 // activity (gh api repos/<owner>/<name>/activity), when that entry's after is
-// the head: the time of the last push, which this is. An answer that fails or
-// cannot be read is no time, and no failure: it only sets a clock.
-func (r *pushRun) pushedAt(ctx context.Context, repository, head string) (time.Time, bool) {
+// the head: the time of the last push, which this is. An answer that fails,
+// cannot be read or is not the head's is the zero time, and no failure: it only
+// sets a clock.
+func (r *pushRun) pushedAt(ctx context.Context, repository, head string) time.Time {
 	answered, err := r.ports.Gh(ctx, "api", "repos/"+repository+"/activity?ref=refs/heads/"+r.branch+"&per_page=1")
 	if err != nil {
-		return time.Time{}, false
+		return time.Time{}
 	}
 	var activity []struct {
 		After     string `json:"after"`
 		Timestamp string `json:"timestamp"`
 	}
 	if json.Unmarshal([]byte(answered), &activity) != nil || len(activity) == 0 || activity[0].After != head {
-		return time.Time{}, false
+		return time.Time{}
 	}
 	at, err := time.Parse(time.RFC3339, activity[0].Timestamp)
-	return at, err == nil
+	if err != nil {
+		return time.Time{}
+	}
+	return at
 }
 
 // commentPages is how many pages of a hundred comments ask reads at most.
