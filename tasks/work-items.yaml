@@ -15616,19 +15616,9 @@ items:
     title: An answering agent settles the decision classes a project delegates, provisionally, and the person ratifies or overturns each
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: slice
-    why: >
-      Was p1-decision-delegated-classes.
-      From the person's research reports of 2026-10-30 (kept outside the repository): the factory
-      blueprint, chapters 1 and 9; the Orchestra comparison, chapter 2. The person's goal is
-      projects that run themselves, an answering agent first (p1-loop-driver-pilot, 2026-10-24);
-      today itos decision holds only the person's questions (ADR-0038) and p1-item-lifecycle plans
-      that only the person settles one. The config lists the delegated classes; sign-offs
-      (ADR-0055), gate and policy changes and breaking releases stay the person's. An agent's answer
-      carries its class and evidence, work proceeds on it, and the person ratifies or overturns it
-      in a daily or weekly pass. Needs a decision amending p1-item-lifecycle and extending ADR-0038.
     tags: [ask, v9]
 
   - id: p2-decision-default-on-expiry
