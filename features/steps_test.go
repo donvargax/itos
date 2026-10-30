@@ -354,6 +354,15 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	sc.Step(`^the task "([^"]*)" has the counting check as (run|fails)$`, func(task, mode string) error {
 		return w.stagedChecks(task, countingCheck(mode))
 	})
+	sc.Step(`^the task "([^"]*)" has the fails: check "([^"]*)"$`, func(task, check string) error {
+		return w.stagedChecks(task, fmt.Sprintf("{ fails: %q }", check))
+	})
+	sc.Step(`^the task "([^"]*)" has the fails: check "([^"]*)" with a timeout of (\d+) seconds?$`, func(task, check string, seconds int) error {
+		return w.stagedChecks(task, fmt.Sprintf("{ fails: %q, timeout: %d }", check, seconds))
+	})
+	sc.Step(`^the task "([^"]*)" has the static fails: check "([^"]*)"$`, func(task, check string) error {
+		return w.stagedChecks(task, fmt.Sprintf("{ fails: %q, cost: static }", check))
+	})
 	sc.Step(`^hooks\.commit_msg\.task_checks is (true|false)$`, w.taskChecksAre)
 	sc.Step(`^hooks\.commit_msg\.check_timeout is (\d+)$`, w.checkTimeoutIs)
 	sc.Step(`^work\.statuses is "([^"]*)"$`, w.statusesAre)
