@@ -1,0 +1,88 @@
+# itos brief (slice-204): the brief an agent of a role starts from, filled
+# from the item at HEAD, and with --json its request: the spec commit, the
+# reads with their blobs, what was left out and the digest another tool can
+# recompute. The brief's words are for people and no case pins them; the
+# refusals, each by its rule.
+files:
+  itos.yaml: |
+    version: 1
+    work:
+      registry: work-items.yaml
+    tests:
+      scenario: { root: features, id: "ID-[A-Z]+-\\d+" }
+git:
+  - commit: "test: a tagged scenario"
+    label: spec
+    files:
+      work-items.yaml: |
+        phases: { 1: null }
+        items:
+          - { id: slice-8, title: Earlier, phase: 1, owner: null, status: done, depends_on: [] }
+          - { id: slice-9, title: Say the next step, phase: 1, owner: null, status: todo, depends_on: [slice-8], refs: [internal/foo, docs/plan.md, internal/bar, docs/missing.md] }
+          - { id: slice-10, title: Unspecified, phase: 1, owner: null, status: todo, depends_on: [] }
+          - { id: p1-next, title: Later, phase: 1, owner: null, status: todo, kind: idea, depends_on: [], why: Later. }
+      AGENTS.md: "Stage only your own files.\n"
+      features/tagged.feature: "Feature: Tagged\n\n  @ID-A-01 @wip @slice-9\n  Scenario: one\n    When it runs\n"
+      internal/foo/doc.go: "// Package foo says the next step.\n"
+      docs/plan.md: "# The plan\n"
+      internal/bar/bar.go: "package bar\n"
+  - commit: "chore: tidy the readme"
+    files: { README.md: "# Scratch\n" }
+cases:
+  - name: brief --json is the request, the spec commit, the reads with their blobs and what was left out
+    argv: [brief, slice-9, --role, implementer, --json]
+    exit: 0
+    # The digest is pinned: sha256 over the LF lines slice-9, implementer, the
+    # spec commit, then each read's "<path> <blob>", so another tool recomputes
+    # it. The brief's words are not.
+    json_has:
+      schema: 1
+      ok: true
+      item: slice-9
+      role: implementer
+      request: sha256:a70b63a6502e066113aab9dbb8b1b904cf50c780cc7bc4a3012b814b799f6031
+      spec: { commit: "{{sha.spec}}" }
+      reads:
+        - { path: AGENTS.md, blob: 9a4c263ec55e9ce435baf2796c40c6012bf719fb, reason: the repository's agent rules, required: true }
+        - { path: features/tagged.feature, blob: bf0c9cfad5044cdbe3a8fdafbaa0163caa897746, reason: the item's scenarios, required: true }
+        - { path: internal/foo/doc.go, blob: a68c238c02eef2033a979a37881f8da388913967, reason: the item's ref internal/foo, required: false }
+        - { path: docs/plan.md, blob: 67085c7351706fb61bd82e6c540a10b631eb6f7b, reason: the item's ref docs/plan.md, required: false }
+      omitted:
+        - { path: internal/bar, reason: no doc.go at HEAD }
+        - { path: docs/missing.md, reason: not in the tree at HEAD }
+      brief: "<any>"
+  - name: brief prints the filled brief, exit 0
+    argv: [brief, slice-9, --role, implementer]
+    exit: 0
+    stdout_has: ["Implement slice-9 (a slice) of", "@ID-A-01 in features/tagged.feature, all `@wip`", "It depends on slice-8 (done)."]
+  - name: the drafter is briefed on an item nothing is tagged for, its spec commit null
+    argv: [brief, slice-10, --role, drafter, --json]
+    exit: 0
+    json_has:
+      schema: 1
+      ok: true
+      item: slice-10
+      role: drafter
+      spec: { commit: null }
+      reads: [{ path: AGENTS.md, required: true }]
+      omitted: []
+  - name: the implementer and the reviewer are refused an item nothing is tagged for
+    argv: [brief, slice-10, --role, reviewer, --json]
+    exit: 1
+    json: { schema: 1, ok: false, problems: [{ rule: brief-no-spec }] }
+  - name: brief refuses an id the registry does not have
+    argv: [brief, slice-7, --role, implementer, --json]
+    exit: 1
+    json: { schema: 1, ok: false, problems: [{ rule: work-unknown-item }] }
+  - name: brief refuses a role it does not know
+    argv: [brief, slice-9, --role, tester, --json]
+    exit: 1
+    json: { schema: 1, ok: false, problems: [{ rule: brief-unknown-role }] }
+  - name: brief refuses an idea
+    argv: [brief, p1-next, --role, drafter, --json]
+    exit: 1
+    json: { schema: 1, ok: false, problems: [{ rule: brief-idea }] }
+  - name: brief without --role is a usage error
+    argv: [brief, slice-9]
+    exit: 2
+    stderr_has: --role
