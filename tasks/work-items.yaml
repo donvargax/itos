@@ -12625,6 +12625,10 @@ items:
       ADR-0055). Its 'only the person settles a decision' meets p1-decision-delegated-classes:
       provisional agent answers the person ratifies. Orchestra counts an approved item as a
       satisfied dependency; itos counts only done.
+
+      2026-10-30: ADR-0062 (slice-205) amends this item's 'only the person settles a decision': a
+      project delegates decision classes to an answering agent whose answers stay provisional until
+      the person ratifies or overturns them.
     tags: [work, v9]
 
   - id: p1-snapshot-git-context
