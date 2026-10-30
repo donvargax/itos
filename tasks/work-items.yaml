@@ -15594,3 +15594,17 @@ items:
       Belongs with q-89, p1-json-gaps and ADR-0053's exits, which p1-cli-kong makes conditional:
       reconcile those first.
     tags: [cli, v9]
+
+  - id: p2-corpus-as-consumer-fixtures
+    title: Each release publishes its conformance corpus, so a consumer's parser is tested against that version's real outputs
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      From the person's research reports of 2026-10-30 (kept outside the repository): the factory
+      blueprint, chapter 10. An outside adapter must be tested on the outcomes that matter: pending
+      with exit 0, an empty range, a refusal, an unknown id. The corpus already pins those per
+      release (ADR-0052); a release asset makes them fixtures that move with each version.
+    tags: [release, v9]
