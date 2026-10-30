@@ -15774,13 +15774,9 @@ items:
     title: itos next <id> says an item's state and next step from the facts in the repository
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: slice
-    why: >
-      The first slice of the v9 deterministic coordinator's v8 pilot (docs/plans/v9-coordinator.md):
-      a read-only itos next <id> whose state and next step come from the facts in the repository
-      (registry, specs, ledger, decisions); what only the forge knows is a later slice's.
     tags: [work, v8]
 
   - id: slice-206
