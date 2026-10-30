@@ -15622,3 +15622,19 @@ items:
       in every project should also check the binary came from this repository's release workflow,
       not only that its bytes match a checksum published beside it.
     tags: [launcher, v9]
+
+  - id: p3-review-by-head-any-login
+    title: A review_by login with no review-state comment counts only a review of the head it judges, read across every page
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      From the person's research reports of 2026-10-30 (kept outside the repository): the Orchestra
+      comparison, chapters 4 and 14. slice-200 ties Codex's state comment to the head and pages
+      comments; for any other login, push/ready.go's verdicts accepts a non-refusal review of any
+      commit, and reviews(first: 100) is not paged. A consumer whose reviewer is a person or another
+      bot can merge on a review of an older head; GitHub gives each review's commit oid. Pairs with
+      p3-review-threads-paging.
+    tags: [push, v9]
