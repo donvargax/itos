@@ -60,6 +60,185 @@ Feature: itos decision, the decisions waiting on the person a repository's work 
     And its output says "slice-404"
     And the file "tasks/asks.yaml" does not exist
 
+  # Slice 205 (p1-decision-delegated-classes; docs/plans/v9-coordinator.md,
+  # open question 9): every question is the person's, so an answering agent
+  # could settle nothing and the person coordinated. A project lists the
+  # decision classes it delegates in work.delegated (a list of free names,
+  # none by default); decision add --class <class> gives a question its
+  # class, kept beside it and quoted as the item is; a question with no
+  # class, and sign-offs (ADR-0055), stay the person's, since no class
+  # delegates implicitly. decision answer <id> <text> --provisional --by
+  # <handle> answers a question whose class is delegated: the answer is
+  # kept, with provisional: true, its class and who answered (by), and work
+  # proceeds on it; refused, nothing written, exit 1, ask-not-delegated,
+  # for a question with no class or a class work.delegated does not list.
+  # Both flags go together: --provisional without --by, or --by without
+  # --provisional, is a usage error, exit 2. Whatever reads the open
+  # questions (decision's list, status) counts a provisional answer as
+  # answered. The person ratifies (decision ratify <id>, provisional
+  # cleared, class and by kept) or overturns (decision overturn <id>
+  # <text>, the person's text as the answer, the agent's kept beside it as
+  # overturned, by still naming who gave it); either is refused for a
+  # question with no provisional answer, ask-not-provisional, exit 1. A
+  # provisional answer is no decision yet: decision record refuses it,
+  # ask-provisional, and the nudge leaves it out until it is ratified. Each
+  # command commits the questions' file alone, "docs: ratify q-<n>" and
+  # "docs: overturn q-<n>" as add's and answer's headers are made, and under
+  # a stealth config nothing is committed. --json gives a question's
+  # "class"?, "provisional"? (true), "by"? and "overturned"? beside its other
+  # keys, and the list's "provisional" is those awaiting the person.
+  @wip @ID-ASK-45 @slice-205
+  Scenario: decision add --class keeps the question's class beside it, and commits the file alone
+    Given the work registry has the item "slice-9" owned by nobody with the status "todo"
+    When itos runs the command line "decision add 'Labels or Projects?' --item slice-9 --class spec"
+    Then itos exits with code 0
+    And the last commit's header is "docs: ask q-1"
+    And the last commit touches only "tasks/asks.yaml"
+    When itos runs the command line "decision show q-1 --json"
+    Then its JSON's "question" is {"id":"q-1","item":"slice-9","question":"Labels or Projects?","status":"open","class":"spec"}
+
+  @wip @ID-ASK-46 @slice-205
+  Scenario: decision answer --provisional --by answers a question of a delegated class, keeping its class and who answered
+    Given the config sets "work.delegated" to the YAML "[spec, review]"
+    And itos has run the command line "decision add 'Labels or Projects?' --class spec"
+    When itos runs the command line "decision answer q-1 'Labels.' --provisional --by agent-1"
+    Then itos exits with code 0
+    And the last commit's header is "docs: answer q-1"
+    And the last commit touches only "tasks/asks.yaml"
+    And the file "tasks/asks.yaml" has the line "    provisional: true"
+    When itos runs the command line "decision show q-1 --json"
+    Then its JSON's "question" is {"id":"q-1","question":"Labels or Projects?","status":"answered","answer":"Labels.","class":"spec","provisional":true,"by":"agent-1"}
+
+  # No class delegates implicitly: a question asked without one is the
+  # person's whatever work.delegated lists.
+  @wip @ID-ASK-47 @slice-205
+  Scenario: decision answer --provisional refuses a question with no class, writing nothing
+    Given the config sets "work.delegated" to the YAML "[spec]"
+    And itos has run the command line "decision add 'Labels or Projects?'"
+    When itos runs the command line "decision answer q-1 'Labels.' --provisional --by agent-1 --json"
+    Then itos exits with code 1
+    And its JSON's "problems" has one entry whose "rule" is "ask-not-delegated"
+    And its output says "q-1"
+    And the file "tasks/asks.yaml" has the same contents as its committed version
+    And the last commit's header is "docs: ask q-1"
+
+  @wip @ID-ASK-48 @slice-205
+  Scenario: decision answer --provisional refuses a class work.delegated does not list, naming it
+    Given the config sets "work.delegated" to the YAML "[spec]"
+    And itos has run the command line "decision add 'Labels or Projects?' --class review"
+    When itos runs the command line "decision answer q-1 'Labels.' --provisional --by agent-1 --json"
+    Then itos exits with code 1
+    And its JSON's "problems" has one entry whose "rule" is "ask-not-delegated"
+    And its output says "review"
+    And the last commit's header is "docs: ask q-1"
+    When itos runs "decision show q-1"
+    Then its output says "open"
+
+  # Work proceeds on a provisional answer, so nothing that lists the open
+  # questions holds it up: not decision's list, not status's open questions.
+  @wip @ID-ASK-49 @slice-205
+  Scenario: A provisionally answered question is answered, not open, to decision and to status
+    Given the config sets "work.delegated" to the YAML "[spec]"
+    And itos has run the command line "decision add 'Labels or Projects?' --class spec"
+    And itos has run the command line "decision answer q-1 'Labels.' --provisional --by agent-1"
+    When itos runs "decision"
+    Then itos exits with code 0
+    And its output says "No open questions."
+    When itos runs the command line "decision --json"
+    Then its JSON's "questions" is []
+    When itos runs the command line "status --as someone --json"
+    Then itos exits with code 0
+    And its JSON's "questions" is []
+
+  # The person's daily or weekly review. The file keeps no times, so oldest
+  # first is the order asked, the file's: q-2 is answered before q-1 here
+  # and q-1 is still listed first.
+  @wip @ID-ASK-50 @slice-205
+  Scenario: decision lists the provisional answers awaiting the person in a section of their own, oldest first, each with its class and who answered
+    Given the config sets "work.delegated" to the YAML "[spec, review]"
+    And itos has run the command line "decision add 'Labels or Projects?' --class spec"
+    And itos has run the command line "decision add 'Is the archive worth it?' --class review"
+    And itos has run the command line "decision add 'Which starter?'"
+    And itos has run the command line "decision answer q-2 'No.' --provisional --by agent-2"
+    And itos has run the command line "decision answer q-1 'Labels.' --provisional --by agent-1"
+    When itos runs "decision"
+    Then itos exits with code 0
+    And its output says "Provisional answers"
+    And its output says "q-1" before "q-2"
+    And its output says "spec, by agent-1"
+    And its output says "review, by agent-2"
+    And its output says "Which starter?"
+    When itos runs the command line "decision --json"
+    Then its JSON's "provisional" is [{"id":"q-1","question":"Labels or Projects?","status":"answered","answer":"Labels.","class":"spec","provisional":true,"by":"agent-1"},{"id":"q-2","question":"Is the archive worth it?","status":"answered","answer":"No.","class":"review","provisional":true,"by":"agent-2"}]
+
+  @wip @ID-ASK-51 @slice-205
+  Scenario: decision ratify clears provisional, keeping the class and who answered, and the answer is then a decision to record
+    Given the config sets "work.delegated" to the YAML "[spec]"
+    And itos has run the command line "decision add 'Labels or Projects?' --class spec"
+    And itos has run the command line "decision answer q-1 'Labels.' --provisional --by agent-1"
+    When itos runs "decision ratify q-1"
+    Then itos exits with code 0
+    And the last commit's header is "docs: ratify q-1"
+    And the last commit touches only "tasks/asks.yaml"
+    When itos runs the command line "decision show q-1 --json"
+    Then its JSON's "question" is {"id":"q-1","question":"Labels or Projects?","status":"answered","answer":"Labels.","class":"spec","by":"agent-1"}
+    When itos runs "decision"
+    Then its output does not say "Provisional answers"
+    And its output says "itos decision record q-1"
+
+  @wip @ID-ASK-52 @slice-205
+  Scenario: decision overturn replaces the answer with the person's, keeping the agent's beside it as overturned
+    Given the config sets "work.delegated" to the YAML "[spec]"
+    And itos has run the command line "decision add 'Labels or Projects?' --class spec"
+    And itos has run the command line "decision answer q-1 'Labels.' --provisional --by agent-1"
+    When itos runs the command line "decision overturn q-1 'Projects, with trust by who acted.'"
+    Then itos exits with code 0
+    And the last commit's header is "docs: overturn q-1"
+    And the last commit touches only "tasks/asks.yaml"
+    When itos runs the command line "decision show q-1 --json"
+    Then its JSON's "question" is {"id":"q-1","question":"Labels or Projects?","status":"answered","answer":"Projects, with trust by who acted.","class":"spec","by":"agent-1","overturned":"Labels."}
+    When itos runs the command line "decision --json"
+    Then its JSON's "provisional" is []
+
+  @wip @ID-ASK-53 @slice-205
+  Scenario: decision ratify and overturn refuse a question with no provisional answer, writing nothing
+    Given itos has run the command line "decision add 'Labels or Projects?'"
+    And itos has run the command line "decision answer q-1 'Labels.'"
+    And itos has run the command line "decision add 'Which starter?'"
+    When itos runs the command line "decision ratify q-1 --json"
+    Then itos exits with code 1
+    And its JSON's "problems" has one entry whose "rule" is "ask-not-provisional"
+    When itos runs the command line "decision overturn q-2 'The plain one.' --json"
+    Then itos exits with code 1
+    And its JSON's "problems" has one entry whose "rule" is "ask-not-provisional"
+    And the last commit's header is "docs: ask q-2"
+    And the file "tasks/asks.yaml" has the same contents as its committed version
+
+  @wip @ID-ASK-54 @slice-205
+  Scenario: Under a stealth config a provisional answer is written in the git folder, and nothing is committed
+    Given itos's config is kept in the git folder
+    And the config sets "work.delegated" to the YAML "[spec]"
+    And itos has run the command line "decision add 'Labels or Projects?' --class spec"
+    When itos runs the command line "decision answer q-1 'Labels.' --provisional --by agent-1"
+    Then itos exits with code 0
+    And the file ".git/itos/tasks/asks.yaml" has the line "    provisional: true"
+    And git status shows nothing to commit
+
+  # A provisional answer is the agent's until the person ratifies it, so it
+  # is no decision to write as a record, and the nudge does not name it.
+  @wip @ID-ASK-55 @slice-205
+  Scenario: decision record refuses a provisional answer, and the nudge leaves it out until it is ratified
+    Given the config sets "work.delegated" to the YAML "[spec]"
+    And itos has run the command line "decision add 'Labels or Projects?' --class spec"
+    And itos has run the command line "decision answer q-1 'Labels.' --provisional --by agent-1"
+    When itos runs "decision"
+    Then its output does not say "itos decision record q-1"
+    When itos runs the command line "decision record q-1 --title 'Triage issues with labels' --json"
+    Then itos exits with code 1
+    And its JSON's "problems" has one entry whose "rule" is "ask-provisional"
+    And the file "docs/decisions/README.md" does not exist
+    And the last commit's header is "docs: answer q-1"
+
   # An answered question is a decision, but read where it was asked it is lost
   # among the questions, and a person cannot read a registry's whys. itos decision
   # record writes one, on demand, as an architecture decision record in
