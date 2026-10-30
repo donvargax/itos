@@ -15841,7 +15841,7 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: []
+    depends_on: [slice-203]
     kind: slice
     why: >
       The v9 deterministic coordinator's v8 pilot (docs/plans/v9-coordinator.md, rerun safety;
