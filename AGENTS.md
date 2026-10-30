@@ -107,11 +107,11 @@ real: kill it with a test, or show the mutant equivalent and except it.
 
 This repository runs `push.mode: pr` with `push.pr.draft` (T-303,
 slice-179): an item's work reaches `main` through one pull request, a draft
-until you mark it ready, merged by rebase once its checks and Copilot's
-review pass; only registry and ledger bookkeeping (a take, a close, `task
-add`) and a docs commit touching nothing under `features/` go straight to
-`main`, from `main`, with `itos push` (T-311). The coordinator pushed the
-spec as the pull request's first commit; every commit of the item goes on it.
+until you mark it ready, merged by rebase once its checks and review pass;
+only registry and ledger bookkeeping (a take, a close, `task add`) and a
+docs commit touching nothing under `features/` go straight to `main`, from
+`main`, with `itos push` (T-311). The coordinator pushed the spec as the
+pull request's first commit; every commit of the item goes on it.
 
 1. **Work on the item's branch**: in a worktree,
    `git switch --no-track -c <item> origin/<item>`, which holds the spec.
@@ -126,11 +126,11 @@ spec as the pull request's first commit; every commit of the item goes on it.
    blocks the merge); hand back, and the coordinator decides.
 4. **Mark it ready** with `tools/bin/itos push --ready` in the foreground
    (600000 ms timeout): it marks the pull request ready, waits for its
-   checks and Copilot's review, refuses while a thread is unresolved, then
+   checks and Codex's review, refuses while a thread is unresolved, then
    merges, or turns on auto-merge. On `ready-still-waiting` (exit 75, after
-   540 s) run it again. A red run, or a thread Copilot opens, is yours: fix
-   the cause, never the check, address the thread as above, and `--ready`
-   again. If the call is cut off, run
+   540 s) run it again. A red run, or a thread Codex or Cursor's Bugbot
+   opens, is yours: fix the cause, never the check, address the thread as
+   above, and `--ready` again. If the call is cut off, run
    `tools/bin/itos ci watch <sha>` in the foreground once more; never sleep,
    poll or loop. Read a rejection before diagnosing it (`itos push --help`
    gives its outcomes).
