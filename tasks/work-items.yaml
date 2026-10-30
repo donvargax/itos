@@ -15721,6 +15721,12 @@ items:
       commit, and reviews(first: 100) is not paged. A consumer whose reviewer is a person or another
       bot can merge on a review of an older head; GitHub gives each review's commit oid. Pairs with
       p3-review-threads-paging.
+
+      The person, 2026-10-30: Cursor's Bugbot now reviews this repository's pull requests beside
+      Codex, so a second reviewer login must count only at the head it judged; the v9 coordinator's
+      merge gate (docs/plans/v9-coordinator.md, question 6) reads both. How Bugbot reports (reviews,
+      a check run, or comments) is to be read from its first pull request here before this is
+      specified.
     tags: [push, v9]
 
   - id: p2-docs-match-code
