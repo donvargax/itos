@@ -15462,3 +15462,19 @@ items:
     status: doing
     depends_on: []
     kind: task
+
+  - id: bug-155
+    title: "A fails: check passes only when its command ran and exited non-zero, never on a timeout, a spawn error or exit 127"
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: bug
+    why: >
+      From the person's research reports of 2026-10-30 (kept outside the repository), the Orchestra
+      comparison, chapter 5; confirmed by reading: internal/check/check.go runs a check as
+      shell.Run(...).OK(), which is false on a timeout, a command that cannot start (Err) or a
+      missing command (127), and MustFail inverts it to a pass. A negative check that never ran
+      counts as proof. The captured path (captured.go) refuses timeouts but still passes a 127.
+      Red-first evidence meets the same question.
+    tags: [proof, v8]
