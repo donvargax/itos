@@ -388,6 +388,31 @@ Feature: itos brief, the filled brief an agent starts from and its request
     And its JSON's "reads" entry whose "path" is "internal/foo/doc.go" has "reason" "the item's ref ./internal/foo/"
     And its JSON's "omitted" is []
 
+  # A ref naming a path outside the repository, which git refuses to list,
+  # is left out as not in the tree, and the brief is still written (the
+  # review of the build, round 3).
+  @ID-BRIEF-16 @wip @slice-204
+  Scenario: A ref outside the repository is left out, the brief still written
+    Given the committed file "tasks/work-items.yaml" holding the lines:
+      """
+      phases: { 1: null }
+      items:
+        - id: slice-9
+          title: Say the next step
+          phase: 1
+          owner: null
+          status: todo
+          depends_on: []
+          refs: [../notes.md, .., docs/plan.md]
+      """
+    And the committed file "docs/plan.md" holding "# The plan"
+    And a feature file with the scenario "@ID-A-01" tagged "@wip @slice-9"
+    When itos runs "brief slice-9 --role implementer --json"
+    Then itos exits with code 0
+    And the "path" of each entry of its JSON's "reads", in order, is "AGENTS.md, features/tagged.feature, docs/plan.md"
+    And the "path" of each entry of its JSON's "omitted", in order, is "../notes.md, .."
+    And its JSON's "omitted" entry whose "path" is "../notes.md" has "reason" "not in the tree at HEAD"
+
   # The saved state is every file of the clone, its git folder included,
   # so HEAD, the index and anything itos might keep in .git/itos are
   # compared. A gh on the PATH records any call, so asking the forge shows.
