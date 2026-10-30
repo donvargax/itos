@@ -64,29 +64,39 @@ Feature: itos decision, the decisions waiting on the person a repository's work 
   # open question 9): every question is the person's, so an answering agent
   # could settle nothing and the person coordinated. A project lists the
   # decision classes it delegates in work.delegated (a list of free names,
-  # none by default); decision add --class <class> gives a question its
-  # class, kept beside it and quoted as the item is; a question with no
-  # class, and sign-offs (ADR-0055), stay the person's, since no class
-  # delegates implicitly. decision answer <id> <text> --provisional --by
-  # <handle> answers a question whose class is delegated: the answer is
-  # kept, with provisional: true, its class and who answered (by), and work
-  # proceeds on it; refused, nothing written, exit 1, ask-not-delegated,
-  # for a question with no class or a class work.delegated does not list.
-  # Both flags go together: --provisional without --by, or --by without
-  # --provisional, is a usage error, exit 2. Whatever reads the open
+  # none by default, held to work.tags' rules: distinct and none empty,
+  # which config check reports as it reports work.tags'); decision add
+  # --class <class> gives a question its class, kept beside it and quoted
+  # as the item is; a question with no class, and sign-offs (ADR-0055),
+  # stay the person's, since no class delegates implicitly. decision answer
+  # <id> <text> --provisional --by <handle> answers a question whose class
+  # is delegated: the answer is kept, with provisional: true, its class and
+  # who answered (by), and work proceeds on it; refused, nothing written,
+  # exit 1, ask-not-delegated, for a question with no class or a class
+  # work.delegated does not list. Both flags go together: --provisional
+  # without --by, or --by without --provisional, is a usage error, exit 2,
+  # naming the flag missing; --class '' and --by '' are usage errors too,
+  # as every valued flag's empty value is. Whatever reads the open
   # questions (decision's list, status) counts a provisional answer as
-  # answered. The person ratifies (decision ratify <id>, provisional
+  # answered; a plain decision answer on it is refused as on any answered
+  # question, ask-answered, its fix naming decision ratify and decision
+  # overturn. The person ratifies (decision ratify <id>, provisional
   # cleared, class and by kept) or overturns (decision overturn <id>
   # <text>, the person's text as the answer, the agent's kept beside it as
-  # overturned, by still naming who gave it); either is refused for a
-  # question with no provisional answer, ask-not-provisional, exit 1. A
-  # provisional answer is no decision yet: decision record refuses it,
-  # ask-provisional, and the nudge leaves it out until it is ratified. Each
-  # command commits the questions' file alone, "docs: ratify q-<n>" and
-  # "docs: overturn q-<n>" as add's and answer's headers are made, and under
-  # a stealth config nothing is committed. --json gives a question's
-  # "class"?, "provisional"? (true), "by"? and "overturned"? beside its other
-  # keys, and the list's "provisional" is those awaiting the person.
+  # overturned); either is refused for a question with no provisional
+  # answer, ask-not-provisional, exit 1, a question the person answered
+  # included: no command replaces the person's own answer. A provisional
+  # answer is no decision yet: decision record refuses it, ask-provisional,
+  # and the nudge leaves it out until it is ratified. Each command commits
+  # the questions' file alone, "docs: ratify q-<n>" and "docs: overturn
+  # q-<n>" as add's and answer's headers are made, and under a stealth
+  # config nothing is committed. --json gives a question's "class"?,
+  # "provisional"? (true), "by"? and "overturned"? beside its other keys;
+  # by is who gave the provisional answer and stays so once it is ratified
+  # or overturned, the person being implicit. The list's "provisional" is
+  # those awaiting the person, and the list's other sections leave them
+  # out: with --all, the answered questions, in the text and in --json's
+  # "questions", are those answered for good.
   @wip @ID-ASK-45 @slice-205
   Scenario: decision add --class keeps the question's class beside it, and commits the file alone
     Given the work registry has the item "slice-9" owned by nobody with the status "todo"
@@ -133,6 +143,21 @@ Feature: itos decision, the decisions waiting on the person a repository's work 
     And the last commit's header is "docs: ask q-1"
     When itos runs "decision show q-1"
     Then its output says "open"
+
+  # The flags go together, so an answer never names who gave it without
+  # being provisional, nor is provisional without naming who gave it.
+  @wip @ID-ASK-56 @slice-205
+  Scenario: decision answer with --by alone, or --provisional alone, is a usage error naming the flag missing
+    Given the config sets "work.delegated" to the YAML "[spec]"
+    And itos has run the command line "decision add 'Labels or Projects?' --class spec"
+    When itos runs the command line "decision answer q-1 'Labels.' --by agent-1"
+    Then itos exits with code 2
+    And its output says "--provisional"
+    When itos runs the command line "decision answer q-1 'Labels.' --provisional"
+    Then itos exits with code 2
+    And its output says "--by"
+    And the last commit's header is "docs: ask q-1"
+    And the file "tasks/asks.yaml" has the same contents as its committed version
 
   # Work proceeds on a provisional answer, so nothing that lists the open
   # questions holds it up: not decision's list, not status's open questions.
@@ -200,6 +225,8 @@ Feature: itos decision, the decisions waiting on the person a repository's work 
     When itos runs the command line "decision --json"
     Then its JSON's "provisional" is []
 
+  # q-1 is the person's own answer: overturn must refuse it too, since
+  # nothing replaces what the person settled.
   @wip @ID-ASK-53 @slice-205
   Scenario: decision ratify and overturn refuse a question with no provisional answer, writing nothing
     Given itos has run the command line "decision add 'Labels or Projects?'"
@@ -208,11 +235,17 @@ Feature: itos decision, the decisions waiting on the person a repository's work 
     When itos runs the command line "decision ratify q-1 --json"
     Then itos exits with code 1
     And its JSON's "problems" has one entry whose "rule" is "ask-not-provisional"
+    When itos runs the command line "decision overturn q-1 'Projects.' --json"
+    Then itos exits with code 1
+    And its JSON's "problems" has one entry whose "rule" is "ask-not-provisional"
+    And the file "tasks/asks.yaml" has the same contents as its committed version
     When itos runs the command line "decision overturn q-2 'The plain one.' --json"
     Then itos exits with code 1
     And its JSON's "problems" has one entry whose "rule" is "ask-not-provisional"
     And the last commit's header is "docs: ask q-2"
     And the file "tasks/asks.yaml" has the same contents as its committed version
+    When itos runs "decision show q-1"
+    Then its output says "Labels."
 
   @wip @ID-ASK-54 @slice-205
   Scenario: Under a stealth config a provisional answer is written in the git folder, and nothing is committed
