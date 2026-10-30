@@ -15924,3 +15924,18 @@ items:
       (@ID-WORK-87); docs/ORCHESTRATING.md (around line 143) says to put release- or tag-dependent
       after: push checks late, though CI lists those checks as pending and never runs them.
     tags: [docs, v8]
+
+  - id: p3-guard-agent-final-answers
+    title: A guard refuses an agent session decision answer without --provisional, decision ratify and decision overturn
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Codex's security review of slice-205 (#230), 2026-10-30, asked for an authenticated person
+      before final answers; the coordinator resolved it: itos authenticates no one by design
+      (ADR-0055 keys only the sign-off). A narrow guard rule refusing these three to an agent
+      session is the additive rail, to build only once an agent is seen settling a decision as the
+      person (guard rails from evidence).
+    tags: [guard, v9]
