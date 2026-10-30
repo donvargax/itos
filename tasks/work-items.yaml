@@ -15562,3 +15562,18 @@ items:
       pass through, not only a coordinator's prompt. A freeze is a committed record with its scope
       and reason, shown by itos go and itos status; work in flight is left, only new mutations stop.
     tags: [work, v9]
+
+  - id: p2-changes-since-cursor
+    title: itos lists the registry, ledger and decision changes since a given commit, as structured events
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      From the person's research reports of 2026-10-30 (kept outside the repository): the factory
+      blueprint, chapters 3 and 9. A coordinator watching many repositories needs what changed since
+      it last looked, without rereading every item or calling GitHub (p1-status-local's rate-limit
+      concern). A commit is the cursor; one beyond reachable history says so rather than returning a
+      partial list.
+    tags: [status, v9]
