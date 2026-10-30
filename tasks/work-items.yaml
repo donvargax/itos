@@ -12581,6 +12581,13 @@ items:
       implementing session. An implementer never marks its own diff reviewed or closes its item, and
       only the person settles a decision, so a move by the wrong role is refused as an out-of-order
       one is.
+
+      The person's research reports, 2026-10-30 (kept outside the repository): --as selects a
+      handle, it does not authenticate one, so the role on each move needs a stated boundary (the
+      comparison recommends a guard, not authentication, with only the sign-off protected,
+      ADR-0055). Its 'only the person settles a decision' meets p1-decision-delegated-classes:
+      provisional agent answers the person ratifies. Orchestra counts an approved item as a
+      satisfied dependency; itos counts only done.
     tags: [work, v9]
 
   - id: p1-snapshot-git-context
