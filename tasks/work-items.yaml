@@ -15655,3 +15655,22 @@ items:
       the standard library alone (schema-contract imports internal/release); PHASES.md shows the Go
       port todo. Agents act on these files. Help text changes are a fix with its corpus case.
     tags: [docs, v8]
+
+  - id: p2-orchestra-pilot
+    title: Open Orchestra carries one item from take to close through itos commands alone, reading every outcome from --json
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      From the person's research reports of 2026-10-30 (kept outside the repository): the Orchestra
+      comparison, chapters 11 and 12. Open Orchestra (jterratsdev/open-orchestra) already wraps itos
+      but reads only exit codes, maps a pending task or a draft push to success, and refuses
+      tools/bin/itos. A read-only projection then a pilot over v8 commands (status, work show, task,
+      ci plan, push, work done) tests p2-cross-repo-contract's claim that itos's JSON is enough for
+      an upper coordinator, before v9 freezes exits and output. itos stays the sole writer of
+      eligibility, dependencies and acceptance; no Orchestra-specific code in itos; compose through
+      the CLI only (itos AGPL-3.0, Orchestra MIT). Contingent on the person's call on the
+      coordinator.
+    tags: [architecture, v9]
