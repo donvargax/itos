@@ -15606,14 +15606,15 @@ items:
       refusal (guardrails over hardening); first step of p3-gate-changes-visible.
     tags: [evidence, v9]
 
-  - id: p1-decision-delegated-classes
-    title: A project names the decision classes an answering agent may settle; each such answer is provisional until the person's periodic review
+  - id: slice-205
+    title: An answering agent settles the decision classes a project delegates, provisionally, and the person ratifies or overturns each
     phase: 1
     owner: null
     status: todo
     depends_on: []
-    kind: idea
+    kind: slice
     why: >
+      Was p1-decision-delegated-classes.
       From the person's research reports of 2026-10-30 (kept outside the repository): the factory
       blueprint, chapters 1 and 9; the Orchestra comparison, chapter 2. The person's goal is
       projects that run themselves, an answering agent first (p1-loop-driver-pilot, 2026-10-24);
