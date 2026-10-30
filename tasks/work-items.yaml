@@ -19,8 +19,10 @@
 # a gap with neither yet; bug: a fix, its scenarios tagged `@bug-<n>`, closed as
 # a slice is), optional `why` (an idea's short reason),
 # `deferred` (why it is put off; the item stays `todo`, is listed apart and
-# is never proposed as startable) and `blocked_by` (why, when blocked on
-# something outside this file).
+# is never proposed as startable) and `blocked_by`, on an item whose status
+# is `blocked`: a list of item ids, what it waits on, which `itos next` gives
+# as its `waits_on`, or prose saying why, when blocked on something outside
+# this file, which names nothing.
 #
 # This file is an index (decision 34, slice 76): a why is an idea's, since an
 # idea has no spec yet. A slice's or a bug's why lives in its feature file
