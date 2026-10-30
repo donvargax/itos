@@ -8094,6 +8094,11 @@ items:
       store) is the type's or the record's. Weigh with p2-itos-data-store, which the store behind it
       may need, and with the slices refactor's tracker-store port (ADR-0053), which should not
       freeze today's per-kind files into its interface.
+
+      The person's research reports, 2026-10-30 (kept outside the repository): an outside
+      coordinator joins on ids, and promotion renames an idea's id (p1-x becomes slice-n or T-n),
+      which breaks the join; typed items should keep a stable id, or the old one as an alias. 47
+      v9-tagged items depend on this one directly.
     tags: [records, v9]
 
   - id: p1-promote-renames-asks
