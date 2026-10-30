@@ -7399,8 +7399,8 @@ items:
   - id: slice-204
     title: itos brief <id> --role <role> prints the filled brief an agent starts from, and --json gives its request
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: [slice-119]
     kind: slice
     why: >
