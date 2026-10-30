@@ -26,11 +26,26 @@ data and commands.
   states a slice walks.
 - **The VCS and tracker seams** (p2-vcs-and-tracker-seams) say where its facts come from.
 
-The machine is defined over abstract facts: a change is _proposed_, _reviewed_, _accepted_,
-_landed_. Under push.mode pr on GitHub they are a pull request, its reviews and checks, and its
-merge. Under trunk (push.mode direct; Fossil later, with autosync to trunk and no rebase) landing
-is a commit on trunk and there is no pull request. The order of the work differs from the order of
-the design: the state machine is built first, over the git and GitHub adapters itos has.
+The machine is defined over abstract facts, each bound to a candidate revision C, so a new
+candidate makes every fact about the old one stale: `spec.proposed@S`, `spec.accepted@S`,
+`claimed`, `change.proposed@C`, `change.reviewed@C`, `checks@C`, `change.accepted@C` (every fact
+the item's kind requires holds at C), `landed@L` (C reachable from trunk's first parent),
+`trunk.verified@L`, `blocked` (decision, budget, no progress) and `parked` (deferred, dropped).
+`closed` is derived, never written: landed, verified and accepted for the latest candidate.
+
+Adapters turn forge and VCS objects into facts. Under push.mode pr on GitHub, C is the pull
+request's head and landing is its merge commit. Under push.mode trunk, C is a digest of the commits
+on trunk's first parent whose `Item:` footer names the item, and proposing is landing. Fossil
+(later) is trunk with autosync, which refuses a fork, so nothing is ever rebased. Only the gate
+policy orders the facts differently:
+
+- **pre-land** (pr): proposed, reviewed and checked, accepted, landed, verified, closed;
+- **post-land** (trunk, Fossil): proposed = landed, checked, reviewed, accepted, closed; landed
+  commits not yet reviewed are review debt, which gates the release or a feature flag, never the
+  landing (p2-trunk-review-and-release).
+
+The order of the work differs from the order of the design: the state machine is built first, in pr
+mode, over the git and GitHub adapters itos has.
 
 ## Where state lives
 
@@ -91,6 +106,32 @@ stateDiagram-v2
   done --> [*]
 ```
 
+### A path per kind
+
+R is required, C required only for the classes the config names (ADR-0061's high blast radius as
+data), – skipped. The paths are config, one row per type, read by `itos next`, so a typo fix does
+not walk seven states. Typing an idea keeps its id (p1-typed-items): an outside driver joins on ids.
+
+| Step                             | idea         | slice (feat)        | bug (fix)                    | task (other types)           |
+| -------------------------------- | ------------ | ------------------- | ---------------------------- | ---------------------------- |
+| spec                             | – (a why)    | `@wip` scenarios, R | one `@bug-n` scenario, R     | a ledger entry's checks, R   |
+| spec review                      | –            | R                   | C (R when it touches a gate) | C (R for gate, policy)       |
+| claim                            | –            | R                   | R                            | R                            |
+| red first (a test commit before) | –            | R                   | R                            | – (checks may pass before)   |
+| change review                    | –            | C                   | C                            | C; none for a typo-level doc |
+| checks                           | –            | scenarios and CI    | its scenario and CI          | its checks and CI            |
+| accept, land, verify             | –            | R                   | R                            | R                            |
+| exit                             | typed/parked | closed              | closed                       | closed; its checks retire    |
+
+### Landing under pr
+
+`itos push` on an item branch merges `origin/main` in whenever the branch lacks main's head, never a
+rebase; a conflict is an ordinary commit by the implementer. The pull request lands with
+`--merge --match-head-commit C` through auto-merge, its message written by itos (`<item>: <title>`
+and an `Item:` footer), so a first-parent reader never parses the branch for the item. `verify` and
+`ci range` walk first parents and judge each landing's second-parent side per commit. An item's
+change is `git show --diff-merges=first-parent <merge>`; its commits `git log <merge>^1..<merge>^2`.
+
 ### Rerun safety (p1-mutations-rerun-safe)
 
 Every mutating command takes `--expect <revision>`, the digest `itos next` returned: a stale one is
@@ -130,8 +171,12 @@ failure fingerprint (failed step and first error line) twice blocks the item.
 
 v8 builds only what v9 keeps. Additive, so on v8: `itos next`, `itos brief`, `itos attempt submit`,
 `itos review post`, `--expect` with `already` and `stale`, `decision answer --provisional`, and a
-hand-off mode of `--ready` beside the blocking one. The pilot driver is a Claude Code workflow
-script holding nothing but a switch on `next.actor`; a Go driver follows once `next` is stable.
+hand-off mode of `--ready` beside the blocking one, and the kind paths as config whose default is
+today's flow. In v8, `itos next` reads claimed and closed from the registry, and the pilot drives
+today's commands (take and close still commit, item branches still rebase: merge-in would contradict
+v8's released merge-in-history refusal). The pilot driver is a Claude Code workflow script holding
+nothing but a switch on `next.actor`; a Go driver follows once `next` is stable. v9 then swaps the
+effects underneath while `next`'s contract stays, so the driver does not change between the two.
 
 v9 removes or changes what is released: take and close as commits, the blocking `--ready`,
 `--onto-main` and pre-push's counterpart rule, rebasing an item branch (merge main in instead), the
@@ -175,3 +220,10 @@ Each with the coordinator's recommendation; the person decides.
    person's.
 10. **Who coordinates:** the pilot driver is a Claude Code workflow script; Open Orchestra is read for
     design only, and is never run outside a sandbox (p2-orchestra-pilot).
+11. **A candidate under trunk:** the digest of the item's `Item:` footer set, which needs no state
+    and carries over to Fossil's check-in comments.
+12. **What review debt gates under trunk:** the release, and the feature flag where there is one;
+    never the landing.
+13. **A bug's spec review:** skipped by default, required when it touches a gate path; its scenario
+    and red first are the evidence.
+14. **The landing commit's message:** itos's, `<item>: <title>` with an `Item:` footer.
