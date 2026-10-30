@@ -46,7 +46,10 @@ func TestBriefPortsBindTheRealCode(t *testing.T) {
 	if _, err := p.TreeEntries(t.Context(), "nosuchrev", []string{"AGENTS.md"}); err == nil {
 		t.Error("TreeEntries of a revision git lacks is no error")
 	}
-	if cfg, err := p.Config(t.Context()); err != nil || cfg.Work.Registry != "work-items.yaml" {
+	// The config is HEAD's: an uncommitted change to it, naming another
+	// registry, changes no brief.
+	writeFile(t, filepath.Join(dir, "itos.yaml"), "version: 1\nwork:\n  registry: other.yaml\n")
+	if cfg, err := p.Config(t.Context()); err != nil || cfg.Work.Registry != "work-items.yaml" || cfg.Source.Tree(t.Context()) != "HEAD" {
 		t.Errorf("Config = %v, %v", cfg, err)
 	}
 	code, stdout, stderr := run("brief", "slice-9", "--role", "implementer", "--json")
@@ -77,7 +80,7 @@ func TestBriefPortsBindTheRealCode(t *testing.T) {
 	if err := os.Remove(filepath.Join(dir, "itos.yaml")); err != nil {
 		t.Fatal(err)
 	}
-	if code, _, stderr := run("brief", "slice-9", "--role", "implementer"); code == 0 {
-		t.Errorf("brief with no config: exit %d, stderr %q", code, stderr)
+	if code, _, stderr := run("brief", "slice-9", "--role", "implementer"); code != 0 {
+		t.Errorf("brief with the config gone from the working tree, HEAD's kept: exit %d, stderr %q", code, stderr)
 	}
 }

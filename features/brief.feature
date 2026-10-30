@@ -353,7 +353,7 @@ Feature: itos brief, the filled brief an agent starts from and its request
   # The config is HEAD's too (the review of the build, round 1): the working
   # tree's itos.yaml, staged and no longer a config at all, changes no
   # brief, where a config read from the working tree would refuse the run.
-  @ID-BRIEF-13 @wip @slice-204
+  @ID-BRIEF-13 @slice-204
   Scenario: The brief is a function of HEAD, an uncommitted change to the config aside
     Given the work registry has the item "slice-9" owned by nobody with the status "todo"
     And a feature file with the scenario "@ID-A-01" tagged "@wip @slice-9"

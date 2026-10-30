@@ -38,11 +38,16 @@ type ports struct {
 	tweak      func(*config.Loaded)
 }
 
+// Config is the config and its data as HEAD has them, as the real port
+// reads them; a tree that cannot be read is a missing repository.
 func (p *ports) Config(ctx context.Context) (*config.Loaded, error) {
 	if p.configErr != nil {
 		return nil, p.configErr
 	}
-	src, _ := p.trees.At(ctx, "worktree")
+	src, err := p.trees.At(ctx, "HEAD")
+	if err != nil {
+		return nil, kind.Else(kind.Missing, err)
+	}
 	cfg, err := config.Load(p.VCS, p.trees, src, "itos.yaml")
 	if err == nil && p.tweak != nil {
 		p.tweak(cfg)
@@ -79,18 +84,20 @@ const itosYAML = "version: 1\nwork:\n  registry: work-items.yaml\ntests:\n  scen
 
 // over is the ports of a repository at top whose HEAD holds files, each
 // its path from the top to its text, its blob the file's name under
-// "blob:", and the config in the working tree.
+// "blob:", and the config unless given; the working tree's config names
+// another registry, which a brief read from HEAD never sees.
 func over(files map[string]string) *ports {
-	head := map[string]string{}
+	head := map[string]string{"itos.yaml": itosYAML}
 	entries := map[string]TreeEntry{}
 	for p, text := range files {
 		head[p] = text
 		entries[p] = TreeEntry{Kind: "blob", Object: "blob:" + p}
 	}
+	worktree := map[string]string{"itos.yaml": strings.Replace(itosYAML, "work-items.yaml", "other.yaml", 1)}
 	return &ports{
 		VCS: &vcsfake.VCS{Root: top, Located: map[string]vcsport.Location{"": {Top: top, GitDir: ".git", Common: ".git"}},
 			History: []vcsfake.Commit{{Name: "c1"}}, Named: map[string]string{"HEAD": "c1"}},
-		trees:   treefake.Trees{Common: ".git", Files: map[string]map[string]string{"worktree": {"itos.yaml": itosYAML}, "HEAD": head}},
+		trees:   treefake.Trees{Common: ".git", Files: map[string]map[string]string{"worktree": worktree, "HEAD": head}},
 		entries: entries,
 		last:    "spec-sha",
 	}
@@ -296,6 +303,17 @@ func TestTask(t *testing.T) {
 	}
 	if b = brief(t, p, "T-001", "drafter"); !strings.Contains(b.Text, ": Tidy. T-001 has no ledger entry yet. Your job") || b.Spec != "" {
 		t.Errorf("the drafter on a task with no entry: %q, %.250q", b.Spec, b.Text)
+	}
+	// Under ledger.group.numeric, phase-01.yaml's group is 1, as Tasks
+	// reads it: the file is still the task's.
+	p = over(map[string]string{
+		"work-items.yaml":     registry,
+		"AGENTS.md":           "Rules.\n",
+		"itos.yaml":           itosYAML + "  group: { pattern: \"\\\\d+\", numeric: true }\n",
+		"tasks/phase-01.yaml": "- id: T-001\n  type: chore\n  title: Tidy\n",
+	})
+	if b = brief(t, p, "T-001", "implementer"); len(b.Reads) != 2 || b.Reads[1].Path != "tasks/phase-01.yaml" || !slices.Equal(p.lastPaths, []string{"tasks/phase-01.yaml"}) {
+		t.Errorf("a numeric group's file: reads %+v, last touching %v", b.Reads, p.lastPaths)
 	}
 }
 

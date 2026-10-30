@@ -23,9 +23,9 @@ guide.orchestrating names (docs/ORCHESTRATING.md by default), follow as
 written. What a person must add stays a marked placeholder: the settled
 decisions, the neighbouring scenarios and checks, the item's own questions.
 The implementer's template is itos guide brief's; the drafter's and the
-reviewer's ship beside it. Everything is read from HEAD's tree, never the
-working tree or the index. It reads, writes nothing, commits nothing and asks
-no forge.
+reviewer's ship beside it. Everything is read from HEAD's tree, the config
+included, never the working tree or the index. It reads, writes nothing,
+commits nothing and asks no forge.
 
 Refused, exit 1: an id the registry does not have, a role it does not know,
 an idea (promote it first), and for the implementer and the reviewer an item

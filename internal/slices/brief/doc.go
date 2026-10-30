@@ -8,11 +8,12 @@
 // steps' contracts): the spec commit, the reads with their blobs, what was
 // left out, and a digest of them all. Its CLI and Run are the command
 // line, its Query and Handler the application, over the Ports it owns,
-// which internal/cli binds: the repository, the config, a commit's tree
-// entries and the last first-parent commit touching paths.
+// which internal/cli binds: the repository, the config at HEAD, a commit's
+// tree entries and the last first-parent commit touching paths.
 //
-// Everything is read from HEAD's tree, never the working tree or the index,
-// so the brief names what a commit holds: the registry (internal/work), the
+// Everything is read from HEAD's tree, the config included, never the
+// working tree or the index, so the brief is a function of one commit and
+// names what it holds: the registry (internal/work), the
 // scenarios tagged for the item (tests.TaggedFiles), a task's ledger entry
 // (internal/ledger), the "## What a brief adds here" section of the file
 // guide.orchestrating names, and the blobs of the reads. The reads are

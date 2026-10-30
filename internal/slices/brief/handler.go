@@ -26,8 +26,11 @@ import (
 )
 
 // Ports are what the brief command reaches the world through, which
-// internal/cli binds: the repository; Config, the config as the working
-// tree has it, whose data the handler reads at HEAD; TreeEntries, a
+// internal/cli binds: the repository; Config, the config and its data as
+// HEAD's tree has them, so that an uncommitted change to the policy
+// changes no brief and its Source is the tree the reads are made from
+// (ADR-0053's --data-at reads a commit's data by the working tree's
+// config; the brief is a function of one commit); TreeEntries, a
 // commit's entries at paths, each named from the top, a path the commit
 // lacks among them not at all; and LastTouching, the last commit on a
 // revision's first-parent history touching one of the paths, "" when none
@@ -97,18 +100,14 @@ func (h Handler) Handle(ctx context.Context, q Query) (Answer, error) {
 		return refused(out.Problem{Rule: "brief-unknown-role", Message: "no brief for the role " + q.Role,
 			Fix: "name one of the roles: drafter, implementer or reviewer"}), nil
 	}
-	cfg, err := h.ports.Config(ctx)
-	if err != nil {
-		return Answer{}, err
-	}
 	if _, err := h.ports.Resolve(ctx, head); err != nil {
 		return Answer{}, kind.Wrap(kind.Missing, errors.New("itos brief reads HEAD's tree, and the repository has no commit"))
 	}
-	src, err := cfg.Trees.At(ctx, head)
+	at, err := h.ports.Config(ctx)
 	if err != nil {
-		return Answer{}, kind.Else(kind.Missing, err)
+		return Answer{}, err
 	}
-	at := cfg.DataFrom(src)
+	src := at.Source
 	file := at.Work.Registry
 	if !src.Has(ctx, file) {
 		return refused(domain.Missing(file, false)), nil
@@ -245,9 +244,17 @@ func (h Handler) spec(_ context.Context, at *config.Loaded, f *facts) error {
 		if i < 0 {
 			return nil
 		}
+		// The task's file is the one of its group, read as Tasks reads a
+		// file's group: a number under ledger.group.numeric (phase-01's
+		// is 1), else the text.
 		for _, file := range files {
-			if file.Group == tasks[i].GroupText() {
+			var group any = file.Group
+			if at.Ledger.Group.Numeric {
+				group = value.ToNumber(file.Group)
+			}
+			if value.String(group) == tasks[i].GroupText() {
 				f.specFiles = []string{file.Path}
+				break
 			}
 		}
 		f.task = &tasks[i]
