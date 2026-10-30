@@ -14706,6 +14706,10 @@ items:
       T-320 (2026-10-27) took the guard out of the Claude Code plugin; the command stays in v8
       because removing one is a breaking change. Remove it, its scenarios and its config keys in v9,
       with the CLI redesign.
+
+      The person's research reports, 2026-10-30 (kept outside the repository) (the Orchestra
+      comparison): ADR-0041 still says plugin-called commands are never removed, even in a major;
+      amend it in the same change, since the plugin no longer calls guard.
     tags: [v9]
 
   - id: T-321
