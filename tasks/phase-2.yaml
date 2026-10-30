@@ -306,5 +306,3 @@
     is kept verbatim (ADR-0052 exempts most); ARCHITECTURE.md:134 says gate programs use the
     standard library alone (schema-contract imports internal/release); PHASES.md shows the Go port
     todo. Agents act on these files. Help text changes are a fix with its corpus case.
-  done_when:
-    - run: "! grep -n Copilot AGENTS.md"

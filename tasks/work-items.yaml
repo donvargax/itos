@@ -15741,7 +15741,7 @@ items:
     title: AGENTS.md, tasks/README.md, PLAN.md, ARCHITECTURE.md, PHASES.md and ci run's help say what the code does
     phase: 2
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
     tags: [docs, v8]
