@@ -5247,6 +5247,11 @@ items:
       2026-10-24 (the user's call): pilots and spikes run in v8, so this item, the spike that weighs
       kong, is v8; adopting kong is breaking (parse errors and exit codes are corpus cases), so the
       adoption itself, if the spike says go, is a v9 item of its own.
+
+      The person's research reports, 2026-10-30 (kept outside the repository) (the Orchestra
+      comparison): ADR-0053 commits Kong and the new exits (80/81/82/100/130) to v9, while this item
+      makes Kong conditional on a v8 spike. Reconcile before any outside client targets exit codes
+      (p2-json-contract-describe).
     tags: [cli, v8]
 
   - id: p1-bot-dependency-prs
