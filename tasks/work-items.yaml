@@ -15609,8 +15609,8 @@ items:
   - id: slice-205
     title: An answering agent settles the decision classes a project delegates, provisionally, and the person ratifies or overturns each
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: slice
     why: >
