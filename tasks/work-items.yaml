@@ -15429,3 +15429,16 @@ items:
       repository has no queue). Belongs with v9's question of whether itos waits for a merge at all
       or hands it to the forge.
     tags: [push, v9]
+
+  - id: p1-draft-add-validates
+    title: draft add validates a drafted work add's flags; promote prints the wrapped refusal
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Issue #225: itos draft add <id> -- work add … without --phase is accepted, then draft promote
+      refuses it with only 'exited 1', holding back every draft after it. Validate what can be
+      validated without the tree (required flags) when the draft is recorded, and have promote print
+      the wrapped command's own refusal. v9 input (drafts).
