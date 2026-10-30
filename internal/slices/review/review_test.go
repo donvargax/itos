@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
@@ -182,10 +183,14 @@ func TestParse(t *testing.T) {
 		t.Errorf("%+v, %v", c, err)
 	}
 	c, err = Parse([]string{"post", "slice-9", "--verdict", "changes", "--at", "HEAD", "--stage", "diff", "--body-file", "review.md"}, "sub", false, false)
-	if err != nil || c.Stage != "diff" || c.BodyFile != "sub/review.md" {
+	if err != nil || c.Stage != "diff" || c.BodyFile != filepath.Join("sub", "review.md") {
 		t.Errorf("%+v, %v", c, err)
 	}
-	if c, err := Parse([]string{"post", "slice-9", "--verdict", "changes", "--at", "HEAD", "--body-file", "/abs/review.md"}, "sub", false, false); err != nil || c.BodyFile != "/abs/review.md" {
+	abs, err := filepath.Abs(filepath.Join("elsewhere", "review.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c, err := Parse([]string{"post", "slice-9", "--verdict", "changes", "--at", "HEAD", "--body-file", abs}, "sub", false, false); err != nil || c.BodyFile != abs {
 		t.Errorf("an absolute body file: %+v, %v", c, err)
 	}
 	for name, args := range map[string][]string{
