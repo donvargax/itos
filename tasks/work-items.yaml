@@ -15768,3 +15768,21 @@ items:
       the CLI only (itos AGPL-3.0, Orchestra MIT). Contingent on the person's call on the
       coordinator.
     tags: [architecture, v9]
+
+  - id: p1-reviewer-on-subscription
+    title: The local reviewer CLI can run on the person's Claude Code subscription instead of API credits
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The person, 2026-10-30: the reviewer CLI (/home/yorch/tmp/llms-safe/claude-agent-sdk,
+      review_cli.py) stopped when its API credits ran out (p1-reviewer-on-astra); a mode running it
+      through the logged-in Claude Code CLI (claude -p, or the Agent SDK without an API key) gives
+      the reviewer back with Claude, same prompts and pr mode. Until then the coordinator's dynamic
+      workflow runs spec review inside the Claude Code session, as a read-only Opus agent on the
+      reviewer's own prompts (profiles/itos/pr_persona.md, plan_prompt.md) whose verdict the driver
+      checks and posts. Check Anthropic's terms for subscription use by an SDK-built tool before
+      building it.
+    tags: [review, v8]
