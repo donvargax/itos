@@ -15608,3 +15608,17 @@ items:
       with exit 0, an empty range, a refusal, an unknown id. The corpus already pins those per
       release (ADR-0052); a release asset makes them fixtures that move with each version.
     tags: [release, v9]
+
+  - id: p3-pin-verifies-attestation
+    title: itos pin checks a release archive's build attestation beside its checksum
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      From the person's research reports of 2026-10-30 (kept outside the repository): the factory
+      blueprint, chapter 6. Releases are already attested by CI (T-069); a template that pins itos
+      in every project should also check the binary came from this repository's release workflow,
+      not only that its bytes match a checksum published beside it.
+    tags: [launcher, v9]
