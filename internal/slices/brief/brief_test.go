@@ -262,6 +262,30 @@ func TestRefForms(t *testing.T) {
 	}
 }
 
+// A spec file HEAD's entries hold as a symbolic link, or lack (HEAD moved
+// between reading the scenarios and listing the entries), is left out and
+// said so, never recorded as a read.
+func TestSpecFileLeftOut(t *testing.T) {
+	p := over(map[string]string{
+		"work-items.yaml":         lean,
+		"AGENTS.md":               "Rules.\n",
+		"features/tagged.feature": tagged,
+		"features/b.feature":      "Feature: B\n\n  @ID-B-01 @slice-9\n  Scenario: three\n    When it runs\n",
+	})
+	p.entries["features/b.feature"] = TreeEntry{Kind: "blob", Mode: "120000", Object: "blob:features/b.feature"}
+	delete(p.entries, "features/tagged.feature")
+	b := brief(t, p, "slice-9", "implementer")
+	if !slices.Equal(b.Reads, []Read{{"AGENTS.md", "blob:AGENTS.md", "the repository's agent rules", true}}) {
+		t.Errorf("reads %+v", b.Reads)
+	}
+	if !slices.Equal(b.Omitted, []Omitted{{"features/b.feature", symlinked}, {"features/tagged.feature", notInTree}}) {
+		t.Errorf("omitted %+v", b.Omitted)
+	}
+	if !strings.Contains(b.Text, "and read AGENTS.md. Left out: features/b.feature is a symbolic link at HEAD; features/tagged.feature is not in the tree at HEAD.") {
+		t.Errorf("the text: %.500q", b.Text)
+	}
+}
+
 func TestSentences(t *testing.T) {
 	p := over(map[string]string{
 		"work-items.yaml":        "phases: { 1: null }\nitems:\n  - { id: bug-7, phase: 1, owner: a, status: doing, kind: bug, depends_on: [], refs: [AGENTS.md, features/fixes.feature] }\n  - { id: slice-9, title: Nine, phase: 1, owner: null, status: todo, depends_on: [] }\n",
