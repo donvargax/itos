@@ -62,6 +62,7 @@ type world struct {
 	ffBefore, ffAfter string               // the clone's main before and after its last fast-forward (workdonepr_test.go)
 	configAt          string               // where the scratch config is written instead of the root's itos.yaml, when ITOS_CONFIG names it (ci_jobs_test.go)
 	revisions         map[string]string    // the revisions itos next printed, saved by name (next_test.go)
+	briefSaved        map[string]string    // stdout, or one JSON value, saved under a name by the brief steps (brief_test.go)
 
 	exit           int
 	stdout, stderr string
@@ -489,6 +490,7 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	initializeWorkSteps(sc, w)
 	initializeShowSteps(sc, w)
 	initializeNextSteps(sc, w)
+	initializeBriefSteps(sc, w)
 	initializeQueueRemovalSteps(sc, w)
 	initializeQueueHistoryAssertion(sc, w)
 	initializeFollowSteps(sc, w)

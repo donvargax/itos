@@ -306,6 +306,7 @@ Feature: itos brief, the filled brief an agent starts from and its request
     And itos runs "brief slice-9 --role implementer --json"
     Then itos exits with code 0
     And its JSON's "spec.commit" names the commit "test: specify features/b.feature"
+    And its output says "The scenarios are @ID-A-01 in features/tagged.feature and @ID-B-01 in features/b.feature; @ID-B-01 is live."
     And its JSON's "request" differs from the one saved as "implementer"
     And the JSON's "request" is saved as "two files"
     When the committed file "AGENTS.md" holding "Stage only your own files, by path."
