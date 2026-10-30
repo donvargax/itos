@@ -15797,8 +15797,8 @@ items:
   - id: slice-206
     title: itos review post records a reviewer's verdict on an item's pull request, bound to the head it judged
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: slice
     why: >
