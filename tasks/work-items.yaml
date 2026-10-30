@@ -15939,3 +15939,18 @@ items:
       every Rule: literal in the code is listed; a static check in the pre-commit or CI tier keeps
       it true (automate over review).
     tags: [gates, v8]
+
+  - id: p2-check-not-run-json
+    title: "itos task --json says why a fails: check did not run, and a run that exited 127 is not recorded as evidence"
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      bug-155's implementer, 2026-10-30: since bug-155 a fails: check that did not run fails with
+      its reason (timed out, could not start, stopped, 126, 127), but only the verbose text and the
+      hook and work done messages carry the reason; --json has no not_run key. And the evidence
+      engine still records a run that exited 127 as conclusive; replay is judged right now, but
+      recording it at all is questionable.
+    tags: [verify, v8]
