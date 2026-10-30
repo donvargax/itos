@@ -22,6 +22,8 @@ func checkFailure(c ledger.Check, run check.Captured) string {
 		return fmt.Sprintf("%s ran past its timeout (%ss)", command, value.Number(run.Seconds))
 	case c.MustFail() && run.Code == 0:
 		return command + " passed, and must fail"
+	case c.MustFail() && run.NotRun != "":
+		return command + " did not run: " + run.NotRun
 	case run.Code < 0:
 		return command + " was stopped"
 	}

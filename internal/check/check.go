@@ -82,6 +82,9 @@ type Runner struct {
 	// infos is the evidence of each run kept in Runs, which a later check
 	// that reads its exit status reports as its own.
 	infos map[string]evidence.Info
+	// notRun is why each run kept in Runs did not run to completion, for a
+	// later fails: check that reads it; a run that did is not in it.
+	notRun map[string]string
 	// Verbose prints each check's command line and lets its output through;
 	// otherwise a check runs with its streams on /dev/null.
 	Verbose bool
@@ -136,7 +139,7 @@ func (r *Runner) RunInfo(c ledger.Check) (Result, *evidence.Info) {
 		}
 		fmt.Fprintf(log, "  $ %s%s%s\n", c.Command(), mode, note)
 	}
-	ok := reused
+	ok, notRun := reused, r.notRun[key]
 	var info *evidence.Info
 	switch {
 	case ran:
@@ -148,7 +151,7 @@ func (r *Runner) RunInfo(c ledger.Check) (Result, *evidence.Info) {
 		o := r.Evidence.Run(context.Background(), evidence.Request{
 			Command: c.Command(), Seconds: Timeout(r.Cfg, c), Decl: *c.Evidence, Verbose: r.Verbose, Log: log,
 		})
-		ok, info = o.OK, &o.Info
+		ok, notRun, info = o.OK, shell.NotRun(o.Code, o.TimedOut), &o.Info
 	default:
 		var o shell.Options
 		if r.Verbose {
@@ -158,7 +161,8 @@ func (r *Runner) RunInfo(c ledger.Check) (Result, *evidence.Info) {
 			}
 		}
 		o.Timeout = duration(Timeout(r.Cfg, c))
-		ok = shell.Run(r.Cfg, c.Command(), o).OK()
+		run := shell.Run(r.Cfg, c.Command(), o)
+		ok, notRun = run.OK(), run.NotRun()
 	}
 	if r.Runs != nil {
 		r.Runs[key] = ok
@@ -168,9 +172,29 @@ func (r *Runner) RunInfo(c ledger.Check) (Result, *evidence.Info) {
 			}
 			r.infos[key] = *info
 		}
+		if notRun != "" {
+			if r.notRun == nil {
+				r.notRun = map[string]string{}
+			}
+			r.notRun[key] = notRun
+		}
+	}
+	if r.Verbose && c.MustFail() && notRun != "" {
+		fmt.Fprintf(log, "  did not run: %s\n", notRun)
+	}
+	return verdict(c, ok, notRun), info
+}
+
+// verdict reads how a check's command ended by its run: or fails:: a run:
+// check passes when it exited 0 (ok); a fails: check when it did not and ran
+// to completion (notRun empty), since a command that never ran, or timed
+// out, is no proof of the failure it expects.
+func verdict(c ledger.Check, ok bool, notRun string) Result {
+	if c.MustFail() && notRun != "" {
+		return Fail
 	}
 	if ok != c.MustFail() {
-		return Pass, info
+		return Pass
 	}
-	return Fail, info
+	return Fail
 }

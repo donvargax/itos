@@ -85,7 +85,7 @@ Feature: The commit-msg hook runs the static checks of the tasks a commit names
   # Bug 155: the hook failed a check past its timeout, but passed a fails:
   # check whose command sh does not find (exit 127) as the failure it
   # expects. Fails today at the exit code: the commit goes through.
-  @wip @ID-CTASK-06 @bug-155
+  @ID-CTASK-06 @bug-155
   Scenario: A done task's static fails: check whose command is not found rejects the commit, saying it did not run
     Given the task "T-001" has the static fails: check "itos-bug-155-no-such-command"
     And the work registry at "tasks/work-items.yaml" has the item "T-001" with the status "done"

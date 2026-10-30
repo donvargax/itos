@@ -308,3 +308,26 @@ func TestRunnerRunsASnapshotFalseCheckWithoutEvidence(t *testing.T) {
 		t.Errorf("the run: %v %+v, engine used %v, %d checkouts", got, info, r.Evidence.Used(), git.checkouts)
 	}
 }
+
+// Through an engine, a fails: check that did not run to completion fails
+// too: one sh does not find, in a Runner and captured, and one past its
+// timeout.
+func TestEvidenceAFailsCheckThatDidNotRunFails(t *testing.T) {
+	cfg := load(t, "version: 1\n")
+	var log bytes.Buffer
+	r := NewRunner(cfg, &log, &log)
+	r.Evidence = &evidence.Engine{Cfg: cfg, Git: &fakeGit{}, Store: store{t.TempDir()}, Binding: evidence.ThisBinary(), Mode: "task"}
+	for _, c := range []ledger.Check{
+		{Fails: text(missing), Evidence: &config.Evidence{}},
+		{Fails: text(stalled), Evidence: &config.Evidence{}, Timeout: seconds(0.2)},
+	} {
+		if got, _ := r.RunInfo(c); got != Fail {
+			t.Errorf("%s: got %s", c.Command(), got)
+		}
+	}
+	at := Execution{Evidence: hookEngine(cfg, &fakeGit{}, t.TempDir()), Log: &bytes.Buffer{}}
+	run, err := RunCaptured(cfg, ledger.Check{Fails: text(missing), Evidence: &config.Evidence{}}, NoCap, nil, at)
+	if err != nil || run.Result != Fail || run.NotRun != "command not found (exit 127)" {
+		t.Errorf("captured: %+v, %v", run, err)
+	}
+}
