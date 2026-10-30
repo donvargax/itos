@@ -15910,3 +15910,17 @@ items:
       --ready stopped with exit 3; rerunning worked. A temporary forge failure is ADR-0036's exit 75
       (try again), or one retry inside the call.
     tags: [push, v8]
+
+  - id: p3-stale-proof-orchestrating-text
+    title: internal/proof/doc.go and docs/ORCHESTRATING.md say what work done and CI do today
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      T-339 (#232), 2026-10-30: internal/proof/doc.go still says the proof's {base} is the parent of
+      the item's first commit, which work done finds, though work done no longer runs the proof
+      (@ID-WORK-87); docs/ORCHESTRATING.md (around line 143) says to put release- or tag-dependent
+      after: push checks late, though CI lists those checks as pending and never runs them.
+    tags: [docs, v8]
