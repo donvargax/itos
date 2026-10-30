@@ -31,6 +31,7 @@ func TestCheckFailure(t *testing.T) {
 		"`go vet` exited 2":                                        {fails, check.Captured{Code: 2}},
 		"`go vet` did not run: command not found (exit 127)":       {fails, check.Captured{Code: 127, NotRun: "command not found (exit 127)"}},
 		"`go test` exited 127":                                     {run, check.Captured{Code: 127, NotRun: "command not found (exit 127)"}},
+		"`go test` exited 0":                                       {run, check.Captured{}},
 	} {
 		if got := checkFailure(c.check, c.run); got != want {
 			t.Errorf("got %q, want %q", got, want)
