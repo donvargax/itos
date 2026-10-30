@@ -15394,6 +15394,21 @@ items:
       friction showed, in a fresh session. docs/plans/v9-friction.md groups the evidence by cause
       (the registry in git, the --ready ceremony, item branches plus never-force under Claude Code's
       classifier, shared fixtures) and lists the questions to start from.
+
+      The person's research reports, 2026-10-30 (kept outside the repository): the itos and Open
+      Orchestra comparison and the autonomous software factory blueprint are design input beside
+      docs/plans/v9-friction.md. Both keep itos as the per-repository authority (eligibility,
+      checks, commit policy, CI selection, acceptance) driven by an outside coordinator through its
+      commands and --json, and need v8 alone to start. They answer friction question 2 the same way
+      (hand the merge to the forge, return the PR and its pinned head, observe later) and dissolve
+      question 3 if a program, not an agent, publishes. They add what the friction file lacks: the
+      JSON contract (q-89), rerun safety and uncertain effects (p1-mutations-rerun-safe), spec and
+      policy binding (p1-policy-and-spec-digests), delegated decisions
+      (p1-decision-delegated-classes) and the authority split with a coordinator
+      (p2-orchestra-pilot). The comparison's chapter 13 inventory of the v9 tag (108 entries now) is
+      the triage list: sort each against the four causes. Mislabels it found: slice-176 is done in
+      v8 yet tagged v9; slice-161 is tagged v9 though its spec asks for a nonbreaking first
+      delivery.
     tags: [v9]
 
   - id: p1-reviewer-on-astra
