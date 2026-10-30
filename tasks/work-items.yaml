@@ -3013,6 +3013,14 @@ items:
       being asked as they arise. Many questions repeat across repositories with the same answer, so
       answers are reused across them (a shared decision memory the answering agent consults). More
       to think through before a design.
+
+      The person's research reports, 2026-10-30 (kept outside the repository): Open Orchestra
+      (jterratsdev/open-orchestra) is a concrete candidate for the upper coordinator
+      (p2-orchestra-pilot), and the factory blueprint is this item at portfolio scale. The contract
+      must say exit 0 is not acceptance (task pending or in review, a draft push, an empty verify H
+      H), allow a pinned executable path, keep stable ids, and never let the coordinator hold its
+      own criteria or write registry status; an operation whose effect is uncertain is reconciled
+      before any retry (p1-mutations-rerun-safe).
     tags: [status, v9]
 
   - id: bug-15
