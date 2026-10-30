@@ -15970,3 +15970,18 @@ items:
       the verdict on the patch-id of the item's commits, rather than the head's SHA, would save a
       review round per rebase. Pairs with p1-ready-bookkeeping-rebase.
     tags: [push, v9]
+
+  - id: p2-review-marker-binding
+    title: A reviewer's verdict is bound to an identity a commenter cannot forge (a commit status or an App's check)
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Codex's security review of slice-206 (#234), 2026-10-30: verdict markers are plain comments
+      counted from the people's logins (every login with no people), so any listed person, the PR
+      owner included, can write one. Resolved as designed for the pilot; the stronger binding is
+      docs/plans/v9-coordinator.md question 3's open design (commit statuses for facts bound to a
+      head; check runs need a GitHub App).
+    tags: [review, v9]
