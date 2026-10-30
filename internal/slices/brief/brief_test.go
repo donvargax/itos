@@ -15,6 +15,7 @@ import (
 	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/kind"
 	"github.com/donvargax/itos/v8/internal/out"
+	treeport "github.com/donvargax/itos/v8/internal/store/tree/port"
 	treefake "github.com/donvargax/itos/v8/internal/store/tree/port/porttest"
 	"github.com/donvargax/itos/v8/internal/value"
 	vcsport "github.com/donvargax/itos/v8/internal/vcs/port"
@@ -363,6 +364,9 @@ func TestErrors(t *testing.T) {
 	p = specified()
 	fails("ledger folder", p, "T-001", kind.Unknown, "the ledger's folder tasks")
 	p = specified()
+	p.trees.Files["HEAD"]["tasks/phase-1.yaml"] = "- [\n"
+	fails("ledger file", p, "T-001", kind.Usage, "did not find expected")
+	p = specified()
 	p.entriesErr = errors.New("ls-tree failed")
 	fails("entries", p, "slice-9", kind.Unknown, "ls-tree failed")
 	p = specified()
@@ -424,7 +428,19 @@ func TestLines(t *testing.T) {
 		if got := lines(t.Context(), cfg, src); got != want {
 			t.Errorf("lines(%q) = %q, not %q", text, got, want)
 		}
+		if got := lines(t.Context(), cfg, unreadable{src}); got != "" {
+			t.Errorf("lines over a file that cannot be read = %q", got)
+		}
 	}
+}
+
+// unreadable is a source whose every file is there and cannot be read.
+type unreadable struct{ treeport.Source }
+
+func (unreadable) Has(context.Context, string) bool { return true }
+
+func (unreadable) Read(context.Context, string) (string, error) {
+	return "", errors.New("unreadable")
 }
 
 // list names items as prose does.
