@@ -4,13 +4,15 @@ import (
 	"context"
 
 	"github.com/donvargax/itos/v8/internal/config"
+	"github.com/donvargax/itos/v8/internal/kind"
 	briefslice "github.com/donvargax/itos/v8/internal/slices/brief"
+	trees "github.com/donvargax/itos/v8/internal/store/tree/adapter"
 	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
 )
 
 // runBrief is `brief`, the brief slice (internal/slices/brief) over its
-// ports bound to the real code: git, the config read from the working
-// tree, and git's tree entries and first-parent log.
+// ports bound to the real code: git, the config and its data read from
+// HEAD's tree, and git's tree entries and first-parent log.
 func runBrief(args []string, o Out) (int, error) {
 	c, err := briefslice.Parse(args, o.JSON)
 	if err != nil {
@@ -20,14 +22,24 @@ func runBrief(args []string, o Out) (int, error) {
 }
 
 // briefPorts are the brief slice's ports over the real code: the git
-// adapter, and loadConfig in o's folder.
+// adapter, and the config read from HEAD's tree in o's folder.
 type briefPorts struct {
 	vcs.Git
 	o Out
 }
 
-// Config is loadConfig.
-func (p briefPorts) Config(context.Context) (*config.Loaded, error) { return loadConfig(p.o.Dir) }
+// Config is the config at its path as HEAD's tree has it, it and its data
+// read from that tree (a stealth config, beside the git folder, is read
+// from there as ever): the brief is a function of the commit, not of an
+// uncommitted change to the policy.
+func (p briefPorts) Config(ctx context.Context) (*config.Loaded, error) {
+	t := trees.Trees{VCS: p.Git}
+	src, err := t.At(ctx, "HEAD")
+	if err != nil {
+		return nil, kind.Else(kind.Missing, err)
+	}
+	return config.Load(p.Git, t, src, config.Path(p.Git, src))
+}
 
 // TreeEntries is the git adapter's, each entry's kind and object.
 func (p briefPorts) TreeEntries(ctx context.Context, commit string, paths []string) (map[string]briefslice.TreeEntry, error) {
