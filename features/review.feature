@@ -161,7 +161,7 @@ Feature: itos review post records a reviewer's verdict on an item's pull request
   # plain issue comment, no GitHub review, no pr comment, nothing pushed.
   # Fails before the work at the exit code: today review is no command,
   # exit 2.
-  @ID-REVIEW-01 @wip @slice-206
+  @ID-REVIEW-01 @slice-206
   Scenario: Under push.mode pr, review post approve at the pull request's head posts the readable line and the marker as round 1
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -198,7 +198,7 @@ Feature: itos review post records a reviewer's verdict on an item's pull request
   # file's text sits between the line and the marker, its trailing line end
   # dropped. Fails before the work at the exit code: today review is no
   # command, exit 2.
-  @ID-REVIEW-02 @wip @slice-206
+  @ID-REVIEW-02 @slice-206
   Scenario: Under push.mode pr, review post --stage diff --body-file --json from main posts the file's text between the line and the marker
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -243,7 +243,7 @@ Feature: itos review post records a reviewer's verdict on an item's pull request
   # say already), the review-request marker, a marker that is not JSON (no
   # error) and ana's prose that says approve. Fails before the work at the
   # exit code: today review is no command, exit 2.
-  @ID-REVIEW-03 @wip @slice-206
+  @ID-REVIEW-03 @slice-206
   Scenario: Under push.mode pr, the round is one more than the people's verdict markers for the item and stage, markers of outsiders, other items, other stages and prose not counted
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -279,7 +279,7 @@ Feature: itos review post records a reviewer's verdict on an item's pull request
   # must not double the record. The marker is ana's, a person; the JSON has
   # no comment, since none was posted. Fails before the work at the exit
   # code: today review is no command, exit 2.
-  @ID-REVIEW-04 @wip @slice-206
+  @ID-REVIEW-04 @slice-206
   Scenario: Under push.mode pr, the same verdict for the same head and stage again posts nothing and reports already
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -310,7 +310,7 @@ Feature: itos review post records a reviewer's verdict on an item's pull request
   # append-only, so the new verdict is a new round and the later marker is
   # the one a reader takes. Fails before the work at the exit code: today
   # review is no command, exit 2.
-  @ID-REVIEW-05 @wip @slice-206
+  @ID-REVIEW-05 @slice-206
   Scenario: Under push.mode pr, a different verdict at the same head posts a new marker as the next round
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -339,7 +339,7 @@ Feature: itos review post records a reviewer's verdict on an item's pull request
   # verdict, round 3. A build that found the round 1 marker would say
   # already and post nothing. Fails before the work at the exit code: today
   # review is no command, exit 2.
-  @ID-REVIEW-13 @wip @slice-206
+  @ID-REVIEW-13 @slice-206
   Scenario: Under push.mode pr, a verdict an earlier marker records but the latest does not is posted as the next round
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -369,7 +369,7 @@ Feature: itos review post records a reviewer's verdict on an item's pull request
   # reads such a repository: the outsider's marker is the latest and
   # records this verdict at this head, so nothing is posted. Fails before
   # the work at the exit code: today review is no command, exit 2.
-  @ID-REVIEW-14 @wip @slice-206
+  @ID-REVIEW-14 @slice-206
   Scenario: With no people file, a marker by any login counts, so the same verdict at the head is already
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -393,7 +393,7 @@ Feature: itos review post records a reviewer's verdict on an item's pull request
   # the first page: they are read as --ready reads them, so the marker on
   # the second page is found and nothing is posted twice. Fails before the
   # work at the exit code: today review is no command, exit 2.
-  @ID-REVIEW-15 @wip @slice-206
+  @ID-REVIEW-15 @slice-206
   Scenario: Under push.mode pr, a marker on the second page of comments is read, so the same verdict there is already
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -422,7 +422,7 @@ Feature: itos review post records a reviewer's verdict on an item's pull request
   # opened at. A full SHA the clone has no commit for is taken as given
   # and judged the same way, not refused as unknown. Fails before the work
   # at the exit code: today review is no command, exit 2.
-  @ID-REVIEW-06 @wip @slice-206
+  @ID-REVIEW-06 @slice-206
   Scenario: Under push.mode pr, review post --at a commit that is no longer the pull request's head is refused, naming the new head
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -452,7 +452,7 @@ Feature: itos review post records a reviewer's verdict on an item's pull request
   # A branch not pushed yet has no pull request to mark; the words say what
   # opens one, and nothing is asked past gh pr list. Fails before the work
   # at the exit code: today review is no command, exit 2.
-  @ID-REVIEW-07 @wip @slice-206
+  @ID-REVIEW-07 @slice-206
   Scenario: Under push.mode pr, review post with no open pull request for the item is refused, posting nothing
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -474,7 +474,7 @@ Feature: itos review post records a reviewer's verdict on an item's pull request
   # A gh that fails is an environment failure, exit 3, naming the call and
   # gh's words; nothing was posted. Fails before the work at the exit code:
   # today review is no command, exit 2.
-  @ID-REVIEW-08 @wip @slice-206
+  @ID-REVIEW-08 @slice-206
   Scenario: Under push.mode pr, review post with a gh that fails exits 3, naming the call
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -495,7 +495,7 @@ Feature: itos review post records a reviewer's verdict on an item's pull request
   # lacks, a body file that cannot be read, a commit git cannot resolve.
   # Each names what it refused. Fails before the work at the exit code:
   # today review is no command, exit 2.
-  @ID-REVIEW-09 @wip @slice-206
+  @ID-REVIEW-09 @slice-206
   Scenario Outline: Under push.mode pr, review post with a bad verdict, an unknown item, an unreadable body file or an unknown commit is refused before gh is asked
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -522,7 +522,7 @@ Feature: itos review post records a reviewer's verdict on an item's pull request
   # review has one word, post, in one form; anything else is a usage error
   # that asks gh nothing. A guard: every row is exit 2 before the work too,
   # review being no command, and must stay one after it.
-  @ID-REVIEW-10 @wip @slice-206 @guard
+  @ID-REVIEW-10 @slice-206 @guard
   Scenario Outline: Under push.mode pr, review in any form but post with an item, --verdict and --at is a usage error, exit 2
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -551,7 +551,7 @@ Feature: itos review post records a reviewer's verdict on an item's pull request
   # Under trunk there is no pull request to mark: refused, gh never asked,
   # whatever branch the clone is on. Fails before the work at the exit
   # code: today review is no command, exit 2.
-  @ID-REVIEW-11 @wip @slice-206
+  @ID-REVIEW-11 @slice-206
   Scenario: Outside push.mode pr, review post is refused, exit 1, asking gh nothing
     Given a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
     And the clone is on the new branch "slice-9"
@@ -564,7 +564,7 @@ Feature: itos review post records a reviewer's verdict on an item's pull request
 
   # The help is where a reviewer looks first. Fails before the work at the
   # first output step: today itos --help has no review command.
-  @ID-REVIEW-12 @wip @slice-206
+  @ID-REVIEW-12 @slice-206
   Scenario: itos's help lists review post and help review documents its flags
     When itos runs "--help"
     Then itos exits with code 0
