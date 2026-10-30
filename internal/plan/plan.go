@@ -211,8 +211,8 @@ type Input struct {
 	// Proof is the range's code proof as a step, when the config has a
 	// proof.code and the range touches proof.code.paths (For); nil with no
 	// proof.code, a range that touches none of its paths, or a range with no
-	// start to judge from. The run reads recorded results and runs none of
-	// its own, so it is a static step, before the run of named tests.
+	// start to judge from. It is a static step, before the run of named
+	// tests.
 	Proof *Step
 }
 
@@ -464,8 +464,7 @@ func Make(cfg *config.Loaded, in Input) (*Plan, error) {
 		runs = append(runs, Step{Command: testsRun, Tests: kind})
 	}
 	// The code proof runs among the static steps, before the run of named
-	// tests: it reads the results the author recorded before the push and
-	// runs none of its own (slice 106, issue #28).
+	// tests (slice 106, issue #28).
 	if in.Proof != nil {
 		proof := *in.Proof
 		proof.own = string(check.Static)
