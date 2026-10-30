@@ -15897,3 +15897,16 @@ items:
       of v9 friction cause 1 (the registry in git); also: a coordinator should batch its registry
       pushes.
     tags: [push, v9]
+
+  - id: p2-gh-transient-exit-75
+    title: A transient GitHub error (502 Bad Gateway) during push --ready is exit 75 or retried once, not exit 3
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      T-339 (#232), 2026-10-30: posting the @codex review comment failed with Bad Gateway and
+      --ready stopped with exit 3; rerunning worked. A temporary forge failure is ADR-0036's exit 75
+      (try again), or one retry inside the call.
+    tags: [push, v8]
