@@ -15879,3 +15879,21 @@ items:
       slice-203's in-flight becomes the states only the forge and the attempt journal know, so a
       driver's next step is computed, never remembered.
     tags: [work, v8]
+
+  - id: p1-ready-bookkeeping-rebase
+    title: push --ready does not rebase a pull request whose head run is in progress when main gained only registry bookkeeping
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      T-339 (#232), 2026-10-30: with several sessions pushing takes and closes to main every few
+      minutes, each --ready asked GitHub to update the branch, which cancelled the head's
+      in-progress run; the Windows job (about 9 minutes) outlasts push.pr.ready_wait (540 s), so
+      four --ready calls in a row ended at exit 75 on a new head. What worked: ci watch <head> until
+      green, then --ready at once. Either do not rebase while the head's run is in progress, or
+      accept a green head when main gained only bookkeeping, as work done's prtrust does. A symptom
+      of v9 friction cause 1 (the registry in git); also: a coordinator should batch its registry
+      pushes.
+    tags: [push, v9]
