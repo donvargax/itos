@@ -152,6 +152,10 @@
   scenarios:
     - id: "@ID-NEXTID-01"
       why: the next tag past the highest of a stem, live and @wip scenarios both counted, the command's point
+- file: next.feature
+  scenarios:
+    - id: "@ID-NEXT-07"
+      why: a slice and a task needing a spec, the text line with its command and the JSON, the kind read from a task's id
 - file: old-git.feature
   scenarios:
     - id: "@ID-OLDGIT-02"

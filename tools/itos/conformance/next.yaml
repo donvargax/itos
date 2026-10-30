@@ -1,0 +1,232 @@
+# itos next (slice 203): an item's state and who acts next, from the facts
+# the repository holds: the registry entry and its dependencies' statuses
+# (the working tree), the open questions naming it (the working tree), a
+# slice's or a bug's tagged scenarios (HEAD, @wip ones included) and a task's
+# ledger checks. The first state that holds wins: done, parked, blocked (an
+# open question before the registry's status blocked), waiting, idea,
+# needs-spec, in-flight; each gives an actor, an action and, for needs-spec
+# alone, the itos command to run. The revision digests exactly the facts
+# read. An id the registry lacks is refused as work show refuses it, exit 1.
+#
+# The repository holds one commit, the feature file tagged for slice-1
+# (@wip) and the ledger; the registry and the questions are written after
+# it, in the working tree, where they are read.
+git:
+  - commit: "chore: start"
+    files:
+      features/a.feature: "Feature: A\n\n  @ID-A-01 @wip @slice-1\n  Scenario: One\n    When it runs\n"
+      tasks/phase-1.yaml: |
+        - { id: T-1, type: chore, title: Checked, done_when: [{ run: "true" }] }
+        - { id: T-2, type: chore, title: Unchecked }
+    label: base
+files:
+  itos.yaml: |
+    version: 1
+    ledger:
+      files: "tasks/phase-{group}.yaml"
+      id: "T-\\d+"
+    work:
+      registry: work-items.yaml
+      people: { source: yaml, file: people.yaml }
+    tests:
+      scenario:
+        adapter: gherkin
+        root: features
+        id: "ID-[A-Z]+-\\d+"
+        tag_prefix: "@"
+        wip_tag: "@wip"
+  people.yaml: "- a\n"
+  work-items.yaml: |
+    phases: { 1: null }
+    items:
+      - { id: slice-0, title: Done, phase: 1, owner: a, status: done, depends_on: [] }
+      - { id: slice-1, title: In flight, phase: 1, owner: a, status: doing, depends_on: [slice-0] }
+      - { id: slice-2, title: Needs a spec, phase: 1, owner: null, status: todo, depends_on: [] }
+      - { id: slice-3, title: Waits, phase: 1, owner: null, status: todo, depends_on: [slice-0, slice-1] }
+      - { id: slice-4, title: Asked, phase: 1, owner: null, status: todo, depends_on: [] }
+      - { id: slice-5, title: Blocked outside, phase: 1, owner: null, status: blocked, depends_on: [], blocked_by: [slice-1] }
+      - { id: slice-6, title: Blocked in words, phase: 1, owner: null, status: blocked, depends_on: [], blocked_by: waiting on the vendor }
+      - { id: slice-7, title: Put off, phase: 1, owner: null, status: todo, depends_on: [], deferred: later }
+      - { id: p1-gap, title: A gap, phase: 1, owner: null, status: todo, kind: idea, depends_on: [], why: a gap }
+      - { id: T-1, title: Checked, phase: 1, owner: null, status: todo, depends_on: [] }
+      - { id: T-2, title: Unchecked, phase: 1, owner: null, status: todo, depends_on: [] }
+      - { id: bug-1, title: A bug, phase: 1, owner: null, status: todo, depends_on: [] }
+  asks.yaml: |
+    questions:
+      - id: q-1
+        item: "slice-4"
+        question: "Which way?"
+      - id: q-2
+        item: "slice-0"
+        question: "Still open, the item done"
+cases:
+  - name: a done item, an open question naming it notwithstanding
+    argv: [next, slice-0, --json]
+    exit: 0
+    json:
+      schema: 1
+      ok: true
+      item: slice-0
+      kind: slice
+      state: done
+      owner: a
+      next: { actor: none, action: none }
+      revision: "sha256:52832199c7312e7d290e5292eadccce55b5d1853cf399bc5d1cf27418b2ea222"
+  - name: a slice with a wip scenario at HEAD is in flight
+    argv: [next, slice-1, --json]
+    exit: 0
+    json:
+      schema: 1
+      ok: true
+      item: slice-1
+      kind: slice
+      state: in-flight
+      owner: a
+      next: { actor: forge, action: observe }
+      revision: "sha256:3da41ee2d104b31cfa2aa798292c11c23b777581212a519863af94d668452ded"
+  - name: a slice with no scenario needs a spec, run as itos brief
+    argv: [next, slice-2]
+    exit: 0
+    stdout_has: "slice-2: needs-spec; next: drafter specify; run: itos brief slice-2 --role drafter"
+  - name: the same as --json, with the command's argv
+    argv: [next, slice-2, --json]
+    exit: 0
+    json:
+      schema: 1
+      ok: true
+      item: slice-2
+      kind: slice
+      state: needs-spec
+      owner: null
+      next: { actor: drafter, action: specify, argv: [itos, brief, slice-2, --role, drafter] }
+      revision: "sha256:4b5919627471104fc66df62f45db3500656bb7edb6fd3e3bb4ed624c354a3f65"
+  - name: an item waits on its dependencies not done
+    argv: [next, slice-3, --json]
+    exit: 0
+    json:
+      schema: 1
+      ok: true
+      item: slice-3
+      kind: slice
+      state: waiting
+      owner: null
+      next: { actor: none, action: wait }
+      waits_on: [slice-1]
+      revision: "sha256:c0d79ee9860bae668b9e07d8aaa72ba3482e43d3ac6f4efbc77a9d21c9e2876f"
+  - name: an open question blocks the item on the person
+    argv: [next, slice-4, --json]
+    exit: 0
+    json:
+      schema: 1
+      ok: true
+      item: slice-4
+      kind: slice
+      state: blocked
+      owner: null
+      next: { actor: person, action: answer }
+      waits_on: [q-1]
+      blocked_reason: decision
+      revision: "sha256:6594913b47ade241491bc50554ea07832052a2adee334fef495305f9238bc57b"
+  - name: the registry's status blocked, its blocked_by a list of ids
+    argv: [next, slice-5, --json]
+    exit: 0
+    json:
+      schema: 1
+      ok: true
+      item: slice-5
+      kind: slice
+      state: blocked
+      owner: null
+      next: { actor: person, action: answer }
+      waits_on: [slice-1]
+      blocked_reason: status
+      revision: "sha256:62c40c84431d1589e68a8306b8e099d3b93b220f0a3106d1081c44b85fa352f3"
+  - name: the registry's status blocked, its blocked_by prose
+    argv: [next, slice-6, --json]
+    exit: 0
+    json:
+      schema: 1
+      ok: true
+      item: slice-6
+      kind: slice
+      state: blocked
+      owner: null
+      next: { actor: person, action: answer }
+      blocked_reason: status
+      revision: "sha256:b8700eac00412605149f199d25cc4aabfc384bc7238c001b861d214dbb9a56d1"
+  - name: a deferred item is parked
+    argv: [next, slice-7]
+    exit: 0
+    stdout_has: "slice-7: parked; next: none none"
+  - name: an idea waits on the person
+    argv: [next, p1-gap, --json]
+    exit: 0
+    json:
+      schema: 1
+      ok: true
+      item: p1-gap
+      kind: idea
+      state: idea
+      owner: null
+      next: { actor: person, action: promote }
+      revision: "sha256:a3645a02025e74f91c3399a2a633c5b1a754fd54702fcd14920c2d3a6199316f"
+  - name: a task with a ledger check is in flight, its kind read from its id
+    argv: [next, T-1, --json]
+    exit: 0
+    json:
+      schema: 1
+      ok: true
+      item: T-1
+      kind: task
+      state: in-flight
+      owner: null
+      next: { actor: forge, action: observe }
+      revision: "sha256:ea0610c96819d876136531ce127c957c2e78ccc4d4bda8e115d53a3129726aa1"
+  - name: a task with no check needs a spec
+    argv: [next, T-2, --json]
+    exit: 0
+    json:
+      schema: 1
+      ok: true
+      item: T-2
+      kind: task
+      state: needs-spec
+      owner: null
+      next: { actor: drafter, action: specify, argv: [itos, brief, T-2, --role, drafter] }
+      revision: "sha256:7f58166821c55a6393b492fc26fdbf4fcdf53fa3d789641d0102a564a1be7b07"
+  - name: a bug with no scenario needs a spec, its kind read from its id
+    argv: [next, bug-1, --json]
+    exit: 0
+    json:
+      schema: 1
+      ok: true
+      item: bug-1
+      kind: bug
+      state: needs-spec
+      owner: null
+      next: { actor: drafter, action: specify, argv: [itos, brief, bug-1, --role, drafter] }
+      revision: "sha256:63109914159b5e91c8478c767a129f5177c0557f1695ca0ab8c810b407e64c93"
+  - name: an id the registry lacks is refused
+    argv: [next, slice-9, --json]
+    exit: 1
+    json:
+      schema: 1
+      ok: false
+      problems: [{ rule: work-unknown-item }]
+  - name: an id the registry lacks is refused, in text
+    argv: [next, slice-9]
+    exit: 1
+    stdout: ""
+    stderr_has: slice-9
+  - name: no registry where itos looks
+    argv: [next, slice-9, --json]
+    files: { work-items.yaml: null }
+    exit: 1
+    json:
+      schema: 1
+      ok: false
+      problems: [{ rule: work-registry-missing }]
+  - name: no id is a usage error
+    argv: [next]
+    exit: 2
+    stdout: ""

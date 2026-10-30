@@ -17,6 +17,7 @@ import (
 	guideslice "github.com/donvargax/itos/v8/internal/slices/guide"
 	hookslice "github.com/donvargax/itos/v8/internal/slices/hook"
 	initcmdslice "github.com/donvargax/itos/v8/internal/slices/initcmd"
+	nextslice "github.com/donvargax/itos/v8/internal/slices/next"
 	pinslice "github.com/donvargax/itos/v8/internal/slices/pin"
 	pushslice "github.com/donvargax/itos/v8/internal/slices/push"
 	statusslice "github.com/donvargax/itos/v8/internal/slices/status"
@@ -33,6 +34,7 @@ var declared = []declare.Command{
 	gocmdslice.Command,
 	guideslice.Command,
 	statusslice.Command,
+	nextslice.Command,
 	taskslice.Command,
 	workslice.Command,
 	decisionslice.Command,
@@ -63,6 +65,8 @@ func dispatch(name string) (command, bool) {
 		return runGuide, true
 	case "status":
 		return runStatus, true
+	case "next":
+		return runNext, true
 	case "task":
 		return runTask, true
 	case "work":

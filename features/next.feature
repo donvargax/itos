@@ -55,7 +55,7 @@ Feature: itos next, an item's state and next step from the facts in the reposito
   # The owner is a handle, so a build that printed null for every owner
   # fails; the item has no scenario and an open question names it, so a
   # build that judged needs-spec or blocked before done fails too.
-  @ID-NEXT-01 @wip @slice-203
+  @ID-NEXT-01 @slice-203
   Scenario: A done item needs no one
     Given the work registry has the item "slice-9" owned by "ana" with the status "done"
     And the committed file "tasks/asks.yaml" holding the lines:
@@ -78,7 +78,7 @@ Feature: itos next, an item's state and next step from the facts in the reposito
   # Both items lack a spec, an open question names the dropped one and the
   # deferred one depends on an item not done, so a build that judged
   # needs-spec, blocked or waiting before parked fails.
-  @ID-NEXT-02 @wip @slice-203
+  @ID-NEXT-02 @slice-203
   Scenario: A dropped item and a deferred one are parked
     Given the committed file "tasks/work-items.yaml" holding the lines:
       """
@@ -122,7 +122,7 @@ Feature: itos next, an item's state and next step from the facts in the reposito
 
   # q-1 names the item but is answered and q-2 is open but names another
   # item: only q-3 holds it up, so waits_on is exactly ["q-3"].
-  @ID-NEXT-03 @wip @slice-203
+  @ID-NEXT-03 @slice-203
   Scenario: An open question naming the item blocks it on the person
     Given the work registry has the item "slice-8" owned by nobody with the status "todo"
     And the work registry has the item "slice-9" owned by nobody with the status "todo"
@@ -149,7 +149,7 @@ Feature: itos next, an item's state and next step from the facts in the reposito
 
   # slice-7 is done and slice-8 is not: waits_on names slice-8 alone. The
   # item has no spec, so waiting is judged before needs-spec.
-  @ID-NEXT-04 @wip @slice-203
+  @ID-NEXT-04 @slice-203
   Scenario: An item whose dependency is not done waits for it
     Given the committed file "tasks/work-items.yaml" holding the lines:
       """
@@ -166,7 +166,7 @@ Feature: itos next, an item's state and next step from the facts in the reposito
     And its JSON's "waits_on" is ["slice-8"]
     And its JSON has no "blocked_reason"
 
-  @ID-NEXT-05 @wip @slice-203
+  @ID-NEXT-05 @slice-203
   Scenario: An item both waiting on a dependency and named by an open question is blocked
     Given the work registry has the item "slice-8" owned by nobody with the status "todo"
     And the work registry has the item "slice-9" owned by nobody with the status "todo", depending on "slice-8"
@@ -185,7 +185,7 @@ Feature: itos next, an item's state and next step from the facts in the reposito
 
   # Which kind an idea becomes is a judgement, so the step has no command:
   # no argv, and no "; run:" in the text.
-  @ID-NEXT-06 @wip @slice-203
+  @ID-NEXT-06 @slice-203
   Scenario: An idea waits on the person to promote it
     Given the work registry has the idea "p1-next" owned by nobody
     When itos runs "next p1-next"
@@ -202,7 +202,7 @@ Feature: itos next, an item's state and next step from the facts in the reposito
   # the tag by its prefix would find a spec for slice-9. T-001's ledger
   # entry, the Background's, has no done_when. slice-8 is doing and ana's:
   # a status says nothing of a spec, so it needs one too, its owner kept.
-  @ID-NEXT-07 @wip @slice-203
+  @ID-NEXT-07 @slice-203
   Scenario: A slice with no scenario, even one in progress, and a task with no checks need a spec
     Given the work registry has the item "slice-9" owned by nobody with the status "todo"
     And the work registry has the item "slice-8" owned by "ana" with the status "doing"
@@ -229,7 +229,7 @@ Feature: itos next, an item's state and next step from the facts in the reposito
   # A @wip scenario is a spec as much as a live one. slice-9 is doing and
   # someone's, T-001 todo and no one's: both are in flight, each with its
   # own owner.
-  @ID-NEXT-08 @wip @slice-203
+  @ID-NEXT-08 @slice-203
   Scenario: A slice with a scenario and a task with a check are in flight
     Given the work registry has the item "slice-9" owned by "ana" with the status "doing"
     And the work registry has the task "T-001" owned by nobody with the status "todo" and no why
@@ -250,7 +250,7 @@ Feature: itos next, an item's state and next step from the facts in the reposito
   # that other item, and a commit touches the README: none is a fact of
   # slice-9's, so a revision of HEAD, of the whole registry or of every
   # open question differs.
-  @ID-NEXT-09 @wip @slice-203
+  @ID-NEXT-09 @slice-203
   Scenario: The same facts give the same revision
     Given the work registry has the item "slice-8" owned by nobody with the status "todo"
     And the work registry has the item "slice-9" owned by nobody with the status "todo"
@@ -268,7 +268,7 @@ Feature: itos next, an item's state and next step from the facts in the reposito
 
   # Neither change moves the state, which stays in-flight: a revision of
   # the state alone gives the same one each time.
-  @ID-NEXT-10 @wip @slice-203
+  @ID-NEXT-10 @slice-203
   Scenario: A change to the item's registry entry or a new scenario tagged for it gives a new revision
     Given the work registry has the item "slice-9" owned by nobody with the status "todo"
     And a feature file with the scenario "@ID-A-01" tagged "@wip @slice-9"
@@ -287,7 +287,7 @@ Feature: itos next, an item's state and next step from the facts in the reposito
     And its JSON's "state" is "in-flight"
     And its JSON's revision differs from the one saved as "second"
 
-  @ID-NEXT-11 @wip @slice-203
+  @ID-NEXT-11 @slice-203
   Scenario: An id the registry does not have is refused
     Given the work registry has the item "slice-9" owned by nobody with the status "todo"
     When itos runs "next slice-7 --json"
@@ -303,7 +303,7 @@ Feature: itos next, an item's state and next step from the facts in the reposito
   # compared. A gh on the PATH records any call, so asking the forge shows.
   # git status refreshes the index file, so itos next reads git through
   # tree reads alone, never git status.
-  @ID-NEXT-12 @wip @slice-203
+  @ID-NEXT-12 @slice-203
   Scenario: itos next writes nothing, commits nothing and asks no forge
     Given the work registry has the item "slice-9" owned by nobody with the status "todo"
     And a feature file with the scenario "@ID-A-01" tagged "@wip @slice-9"
@@ -319,7 +319,7 @@ Feature: itos next, an item's state and next step from the facts in the reposito
 
   # bug-3 has no kind key, so its kind comes from its id. Until the
   # committed scenario, the config declares no scenario kind at all.
-  @ID-NEXT-13 @wip @slice-203
+  @ID-NEXT-13 @slice-203
   Scenario: A bug needs a spec until a scenario is tagged for it, then is in flight
     Given the work registry has the item "bug-3" owned by nobody with the status "todo"
     When itos runs "next bug-3 --json"
@@ -340,7 +340,7 @@ Feature: itos next, an item's state and next step from the facts in the reposito
   # prose, as the registry's header describes it, and names nothing.
   # slice-11 is both blocked and named by an open question: the question
   # wins, so its reason is decision and it waits on q-1, not on slice-7.
-  @ID-NEXT-14 @wip @slice-203
+  @ID-NEXT-14 @slice-203
   Scenario: The registry's status blocked blocks the item on the person, an open question first
     Given the committed file "tasks/work-items.yaml" holding the lines:
       """
@@ -415,7 +415,7 @@ Feature: itos next, an item's state and next step from the facts in the reposito
   # tagged scenarios are read, so neither the state nor the revision moves;
   # the uncommitted registry is the working tree's, where the registry is
   # read, so both move.
-  @ID-NEXT-15 @wip @slice-203
+  @ID-NEXT-15 @slice-203
   Scenario: An uncommitted registry edit counts and an uncommitted feature file does not
     Given the work registry has the item "slice-9" owned by nobody with the status "todo"
     And the committed feature file "features/a.feature" with the live scenario "@ID-A-01" tagged "@slice-90"
