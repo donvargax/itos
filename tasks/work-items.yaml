@@ -15534,3 +15534,17 @@ items:
       carries its class and evidence, work proceeds on it, and the person ratifies or overturns it
       in a daily or weekly pass. Needs a decision amending p1-item-lifecycle and extending ADR-0038.
     tags: [ask, v9]
+
+  - id: p2-decision-default-on-expiry
+    title: A delegated decision carries a recommended default and a deadline; past it the default applies, flagged for review
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      From the person's research reports of 2026-10-30 (kept outside the repository): the factory
+      blueprint, chapters 1 and 9. An unanswered question blocks its item indefinitely; an
+      unattended project needs a bounded wait. Items blocked by one decision group under it, so the
+      person sees one question. Protected classes (p1-decision-delegated-classes) keep waiting.
+    tags: [ask, v9]
