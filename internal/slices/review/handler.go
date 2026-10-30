@@ -144,7 +144,8 @@ func (h Handler) Handle(ctx context.Context, q Query) (Answer, error) {
 		}
 		text = strings.TrimRight(strings.ReplaceAll(string(body), "\r\n", "\n"), "\n")
 	}
-	head := q.At
+	// A full SHA is taken as given, in lower case as GitHub writes a head.
+	head := strings.ToLower(q.At)
 	if !fullSHA.MatchString(head) {
 		sha, err := h.ports.Resolve(ctx, q.At)
 		if err != nil {
@@ -270,15 +271,17 @@ func counted(r work.Registry, login string) bool {
 	return false
 }
 
-// readMarker reads a comment's verdict marker: the JSON between markerStart
-// and markerEnd, whose record is verdict. A body without one, with one that
-// is not JSON or with another record is prose, not ok.
+// readMarker reads a comment's verdict marker: the JSON between the last
+// markerStart and the markerEnd after it, whose record is verdict; the last,
+// since itos appends the marker after the review's text, which may quote
+// one. A body without one, with one that is not JSON or with another record
+// is prose, not ok.
 func readMarker(body string) (marker, bool) {
-	_, after, found := strings.Cut(body, markerStart)
-	if !found {
+	at := strings.LastIndex(body, markerStart)
+	if at < 0 {
 		return marker{}, false
 	}
-	text, _, found := strings.Cut(after, markerEnd)
+	text, _, found := strings.Cut(body[at+len(markerStart):], markerEnd)
 	if !found {
 		return marker{}, false
 	}
