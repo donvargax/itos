@@ -15883,6 +15883,12 @@ items:
       accept a green head when main gained only bookkeeping, as work done's prtrust does. A symptom
       of v9 friction cause 1 (the registry in git); also: a coordinator should batch its registry
       pushes.
+
+      bug-155 (#233), 2026-10-30: 11 --ready calls over about 90 minutes, each main move making
+      GitHub rebase the pull request and restart a 20-minute Windows run; Codex is asked only once
+      CI is green, so its review restarted too. slice-205 (#230) needed four. The pilot's hand-off
+      --ready (auto-merge pinned to the head, return) is the design's answer
+      (docs/plans/v9-coordinator.md).
     tags: [push, v9]
 
   - id: p2-gh-transient-exit-75
