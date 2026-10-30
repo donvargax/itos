@@ -49,7 +49,7 @@ Feature: The task runner runs each check once, and lists task status without run
   # command ran to completion and exited non-zero, not 126 or 127, and a
   # verbose run says why one did not. Each fails today at the line listing
   # T-001 as failing: it is done.
-  @wip @ID-TASK-19 @bug-155
+  @ID-TASK-19 @bug-155
   Scenario: A fails: check whose command is not found fails, saying it did not run
     Given the task "T-001" has the fails: check "itos-bug-155-no-such-command"
     When itos runs the task "T-001"
@@ -57,7 +57,7 @@ Feature: The task runner runs each check once, and lists task status without run
     And its output lists "T-001" as "failing"
     And its output says "did not run: command not found (exit 127)"
 
-  @wip @ID-TASK-20 @bug-155
+  @ID-TASK-20 @bug-155
   Scenario: A fails: check that outlasts its timeout fails, saying it did not run
     Given the task "T-001" has the fails: check "sleep 3" with a timeout of 1 second
     When itos runs the task "T-001"

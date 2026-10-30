@@ -180,3 +180,97 @@ func TestStaticAndLateChecks(t *testing.T) {
 		t.Errorf("kept in order: static %q, late %q", static, late)
 	}
 }
+
+// missing is a command sh does not find, exit 127.
+const missing = "itos-no-such-command-bug-155"
+
+// stalled outlasts its timeout and exits 3 on the SIGTERM that stops it, so
+// only its timeout says it did not run to completion (on Windows, where the
+// timeout kills it, its code is Kill's).
+const stalled = "trap 'exit 3' TERM; sleep 2 & wait"
+
+// A fails: check passes only on a command that ran to completion and exited
+// non-zero: one sh does not find, one past its timeout and one that cannot
+// start (a NUL byte in its argument) fail, a verbose run saying why, and a
+// later fails: check reading the kept run reads why too; a run: check is
+// told nothing.
+func TestRunnerAFailsCheckThatDidNotRunFails(t *testing.T) {
+	cfg := load(t, "version: 1\n")
+	var log bytes.Buffer
+	r := NewRunner(cfg, &log, &log)
+	r.Verbose = true
+	for name, c := range map[string]ledger.Check{
+		"missing":    {Fails: text(missing)},
+		"reused":     {Fails: text(missing)},
+		"run:":       {Run: text(missing)},
+		"timed out":  {Fails: text(stalled), Timeout: seconds(0.2)},
+		"no start":   {Fails: text("exit 3\x00")},
+		"ran, run:":  {Run: text("exit 3")},
+		"ran, fails": {Fails: text("exit 4")},
+	} {
+		want := Fail
+		if name == "ran, fails" {
+			want = Pass
+		}
+		if got := r.Run(c); got != want {
+			t.Errorf("%s: got %s, want %s", name, got, want)
+		}
+	}
+	for line, n := range map[string]int{
+		"  did not run: command not found (exit 127)\n": 2,
+		"  did not run: timed out\n":                    1,
+		"  did not run: could not start: ":              1,
+		"  did not run: ":                               4,
+	} {
+		if got := strings.Count(log.String(), line); got != n {
+			t.Errorf("%q printed %d times, want %d:\n%s", line, got, n, log.String())
+		}
+	}
+	var quiet bytes.Buffer
+	if got := NewRunner(cfg, &quiet, &quiet).Run(ledger.Check{Fails: text(missing)}); got != Fail || quiet.Len() != 0 {
+		t.Errorf("a quiet run: %s, printed %q", got, quiet.String())
+	}
+}
+
+// A run: check passes on exit 0 alone; a fails: check on a non-zero exit of
+// a command that ran to completion.
+func TestVerdict(t *testing.T) {
+	run, fails := ledger.Check{Run: text("x")}, ledger.Check{Fails: text("x")}
+	for _, c := range []struct {
+		check  ledger.Check
+		ok     bool
+		notRun string
+		want   Result
+	}{
+		{run, true, "", Pass},
+		{run, false, "", Fail},
+		{run, false, "timed out", Fail},
+		{run, true, "timed out", Pass},
+		{fails, false, "", Pass},
+		{fails, true, "", Fail},
+		{fails, false, "command not found (exit 127)", Fail},
+	} {
+		if got := verdict(c.check, c.ok, c.notRun); got != c.want {
+			t.Errorf("%s, ok %v, not run %q: got %s, want %s", c.check.Command(), c.ok, c.notRun, got, c.want)
+		}
+	}
+}
+
+// A captured fails: check that did not run to completion fails and says
+// why; one that exited non-zero passes and says nothing.
+func TestRunCapturedAFailsCheckThatDidNotRun(t *testing.T) {
+	cfg := load(t, "version: 1\n")
+	for command, want := range map[string]string{
+		missing:      "command not found (exit 127)",
+		"exit 3":     "",
+		"exit 3\x00": "could not start: ",
+	} {
+		run, err := RunCaptured(cfg, ledger.Check{Fails: text(command)}, NoCap, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if (run.Result == Pass) != (want == "") || !strings.HasPrefix(run.NotRun, want) || (want == "") != (run.NotRun == "") {
+			t.Errorf("%q: %+v, want not run %q", command, run, want)
+		}
+	}
+}
