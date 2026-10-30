@@ -15478,6 +15478,10 @@ items:
       status derived from the forge rather than committed, --ready hands off to the forge's
       auto-merge and returns, no rewrites (merge main in), message checks at push, the four friction
       causes lead the triage. Who coordinates is still open.
+
+      The person, 2026-10-30, on docs/plans/v9-coordinator.md: agrees with every recommendation but
+      question 3 (still asking), message checks at push included. Question 6 covers Cursor's Bugbot
+      too, added as a second reviewer.
     tags: [v9]
 
   - id: p1-reviewer-on-astra
