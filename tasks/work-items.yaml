@@ -15786,3 +15786,16 @@ items:
       checks and posts. Check Anthropic's terms for subscription use by an SDK-built tool before
       building it.
     tags: [review, v8]
+
+  - id: slice-203
+    title: itos next <id> says an item's state and next step from the facts in the repository
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: slice
+    why: >
+      The first slice of the v9 deterministic coordinator's v8 pilot (docs/plans/v9-coordinator.md):
+      a read-only itos next <id> whose state and next step come from the facts in the repository
+      (registry, specs, ledger, decisions); what only the forge knows is a later slice's.
+    tags: [work, v8]
