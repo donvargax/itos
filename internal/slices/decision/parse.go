@@ -11,7 +11,7 @@ import (
 )
 
 // askTakes is what ask takes, as a usage error names it.
-const askTakes = "it takes add, answer, record or show, else --all"
+const askTakes = "it takes add, answer, ratify, overturn, record or show, else --all"
 
 // CLI is the decision command's line: the Query it asks, and whether it
 // prints --json's one object, or under --quiet no line for a change.
@@ -22,8 +22,8 @@ type CLI struct {
 
 // Parse reads the arguments internal/cli's flag spec hands the decision
 // command, with the global flags: the list and its --all, or add, answer,
-// record or show and theirs. Every error is a usage error (out.Usage),
-// given before anything is read.
+// ratify, overturn, record or show and theirs. Every error is a usage error
+// (out.Usage), given before anything is read.
 func Parse(args []string, json, quiet bool) (CLI, error) {
 	c := CLI{JSON: json, Quiet: quiet}
 	sub, rest := argsengine.Split(args)
@@ -33,10 +33,12 @@ func Parse(args []string, json, quiet bool) (CLI, error) {
 		c.Query, err = parseAdd(rest)
 	case "answer":
 		c.Query, err = parseAnswer(rest)
+	case "ratify", "show":
+		c.Query, err = parseOne(sub, rest)
+	case "overturn":
+		c.Query, err = parseOverturn(rest)
 	case "record":
 		c.Query, err = parseRecord(rest)
-	case "show":
-		c.Query, err = parseShow(rest)
 	default:
 		c.Query, err = parseList(args)
 	}
@@ -55,9 +57,9 @@ func parseList(args []string) (Query, error) {
 	return Query{All: set["--all"]}, nil
 }
 
-// parseAdd is `decision add <text>… [--item <id>]`.
+// parseAdd is `decision add <text>… [--item <id>] [--class <class>]`.
 func parseAdd(args []string) (Query, error) {
-	pos, flags, _, err := argsengine.Sub("decision", "add", args, []string{"--item"}, nil)
+	pos, flags, _, err := argsengine.Sub("decision", "add", args, []string{"--item", "--class"}, nil)
 	if err != nil {
 		return Query{}, err
 	}
@@ -65,12 +67,14 @@ func parseAdd(args []string) (Query, error) {
 	if text == "" {
 		return Query{}, out.Usage("decision add needs <text>, the question")
 	}
-	return Query{Sub: "add", Text: text, Item: flags["--item"]}, nil
+	return Query{Sub: "add", Text: text, Item: flags["--item"], Class: flags["--class"]}, nil
 }
 
-// parseAnswer is `decision answer <id> <text>…`.
+// parseAnswer is `decision answer <id> <text>… [--provisional --by
+// <handle>]`: the two flags go together, so an answer never names who gave
+// it without being provisional, nor is provisional without naming who.
 func parseAnswer(args []string) (Query, error) {
-	pos, _, _, err := argsengine.Sub("decision", "answer", args, nil, nil)
+	pos, flags, set, err := argsengine.Sub("decision", "answer", args, []string{"--by"}, []string{"--provisional"})
 	if err != nil {
 		return Query{}, err
 	}
@@ -82,23 +86,47 @@ func parseAnswer(args []string) (Query, error) {
 	if text == "" {
 		return Query{}, out.Usage("decision answer needs <id> <text>, the answer")
 	}
-	return Query{Sub: "answer", ID: id, Text: text}, nil
+	by, provisional := flags["--by"], set["--provisional"]
+	switch {
+	case provisional && by == "":
+		return Query{}, out.Usage("decision answer --provisional needs --by <handle>, who answers in the person's place")
+	case by != "" && !provisional:
+		return Query{}, out.Usage("decision answer --by needs --provisional: an answer by someone else is provisional until the person ratifies it")
+	}
+	return Query{Sub: "answer", ID: id, Text: text, Provisional: provisional, By: by}, nil
 }
 
-// parseShow is `decision show <id>`.
-func parseShow(args []string) (Query, error) {
-	pos, _, _, err := argsengine.Sub("decision", "show", args, nil, nil)
+// parseOne is `decision <sub> <id>`, ratify's and show's.
+func parseOne(sub string, args []string) (Query, error) {
+	pos, _, _, err := argsengine.Sub("decision", sub, args, nil, nil)
 	if err != nil {
 		return Query{}, err
 	}
-	id, rest, err := askID("show", pos, "<id>")
+	id, rest, err := askID(sub, pos, "<id>")
 	if err != nil {
 		return Query{}, err
 	}
 	if len(rest) > 0 {
-		return Query{}, out.Usage("decision show takes one <id>, not %s", strings.Join(rest, " "))
+		return Query{}, out.Usage("decision %s takes one <id>, not %s", sub, strings.Join(rest, " "))
 	}
-	return Query{Sub: "show", ID: id}, nil
+	return Query{Sub: sub, ID: id}, nil
+}
+
+// parseOverturn is `decision overturn <id> <text>…`.
+func parseOverturn(args []string) (Query, error) {
+	pos, _, _, err := argsengine.Sub("decision", "overturn", args, nil, nil)
+	if err != nil {
+		return Query{}, err
+	}
+	id, rest, err := askID("overturn", pos, "<id> <text>")
+	if err != nil {
+		return Query{}, err
+	}
+	text := strings.TrimSpace(strings.Join(rest, " "))
+	if text == "" {
+		return Query{}, out.Usage("decision overturn needs <id> <text>, the person's answer")
+	}
+	return Query{Sub: "overturn", ID: id, Text: text}, nil
 }
 
 // parseRecord is `decision record <id> --title <title> [--option <text>]…
