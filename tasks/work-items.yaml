@@ -15548,3 +15548,17 @@ items:
       unattended project needs a bounded wait. Items blocked by one decision group under it, so the
       person sees one question. Protected classes (p1-decision-delegated-classes) keep waiting.
     tags: [ask, v9]
+
+  - id: p2-work-freeze
+    title: "The person can freeze a repository or an area: takes, pushes and closes refuse until it is lifted, whoever runs them"
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      From the person's research reports of 2026-10-30 (kept outside the repository): the factory
+      blueprint, chapters 2 and 9. Unattended agents need a stop switch every session's commands
+      pass through, not only a coordinator's prompt. A freeze is a committed record with its scope
+      and reason, shown by itos go and itos status; work in flight is left, only new mutations stop.
+    tags: [work, v9]
