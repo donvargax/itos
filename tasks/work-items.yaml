@@ -15783,13 +15783,9 @@ items:
     title: itos review post records a reviewer's verdict on an item's pull request, bound to the head it judged
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: slice
-    why: >
-      The v9 deterministic coordinator's v8 pilot (docs/plans/v9-coordinator.md, question 3 settled
-      2026-10-30): a reviewer agent's verdict becomes an append-only pull request marker from a
-      person's login, bound to the head, so itos next can derive spec review without trusting prose.
     tags: [review, v8]
 
   - id: p1-next-routes-delegated
