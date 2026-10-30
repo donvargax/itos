@@ -15848,3 +15848,19 @@ items:
       p1-mutations-rerun-safe): a driver passes the revision itos next returned, so a rerun after a
       lost answer is safe.
     tags: [work, v8]
+
+  - id: p1-next-registry-commit-landed
+    title: itos next and --expect's already say when an item's take or close commit has not reached the remote
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The spec review of slice-208 (#235), 2026-10-30: next plus --expect make a rerun safe in the
+      same checkout (already) and when the facts moved (stale), but not when the first run's take or
+      close commit exists locally and its push failed: the rerun answers already and nothing says
+      the commit is not on main, and a rerun from another clone takes again. The forge-aware next
+      slice should report whether the item's registry commit is on the remote's main, the plan's
+      effect-uncertain case for take and done.
+    tags: [work, v8]
