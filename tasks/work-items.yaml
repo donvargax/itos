@@ -15454,3 +15454,11 @@ items:
       Issue #226: an implementing agent ran itos work done as the guide's last step and handed back
       with the close and dequeue commits unpushed. Either work done pushes them as itos push does,
       or itos guide work names the push that follows. v9 input (the registry in git).
+
+  - id: T-338
+    title: push's pushedAt returns only a time, so no equivalent mutant hides in its unused bool
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task

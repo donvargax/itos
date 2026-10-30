@@ -5200,3 +5200,22 @@
     file) per gh subcommand and GraphQL query, registered by the steps that need it, so parallel
     items add answers without touching shared lines. Behaviour-preserving: every feature passes
     before and after, no scenario text changes.
+
+- id: T-338
+  type: refactor
+  title: push's pushedAt returns only a time, so no equivalent mutant hides in its unused bool
+  why: >
+    Nightly 41050340101 (2026-10-30, 4726f852) failed on one survivor:
+    internal/slices/push/ready.go:374:23, false to true in pushRun.pushedAt. The mutant is
+    equivalent: on a gh failure pushedAt returns time.Time{} and its only caller, reviewsFrom, reads
+    ok && pushed.After(from), and the zero time is never after a ready time (zero or real), so true
+    there changes nothing; the same holds for its other no-time returns, each giving the zero time.
+    The bool says nothing the zero time does not. Settled: pushedAt returns time.Time alone, the
+    zero time when the activity fails, cannot be read or is not the head's; reviewsFrom keeps from
+    unless pushed.After(from). Behaviour-preserving, a refactor commit; no scenario changes. Unit
+    tests of reviewsFrom/pushedAt cover each no-time path (gh fails, unreadable answer, empty
+    answer, another head, unparsable timestamp) and the later push winning, so CI's push proof
+    judges a killable mutant on every changed line. No itos-cc.yaml exception: the redundancy goes,
+    not the mutant's verdict.
+  done_when:
+    - run: go test ./internal/slices/push -count=1
