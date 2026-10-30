@@ -15806,3 +15806,19 @@ items:
       2026-10-30): a reviewer agent's verdict becomes an append-only pull request marker from a
       person's login, bound to the head, so itos next can derive spec review without trusting prose.
     tags: [review, v8]
+
+  - id: p1-next-routes-delegated
+    title: itos next routes an open question of a delegated class to the answering agent, not the person
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The spec review of slice-205 (#230), 2026-10-30: slice-203's itos next reads any open question
+      naming an item as blocked on the person, while slice-205 lets an answering agent settle
+      questions whose class work.delegated lists. next should report such a question with actor
+      answerer and action answer (argv itos decision answer <q> --provisional --by <handle>),
+      keeping the person for the rest. Belongs to the slice after 203 or a small one of its own once
+      both land.
+    tags: [work, v8]
