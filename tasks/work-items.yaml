@@ -15956,3 +15956,17 @@ items:
       engine still records a run that exited 127 as conclusive; replay is judged right now, but
       recording it at all is questionable.
     tags: [verify, v8]
+
+  - id: p2-review-verdict-by-patch-id
+    title: A reviewer's verdict for a head carries over a rebase that changes no patch
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      slice-203 (#229), 2026-10-30: GitHub rebased the pull request seven times as other items
+      landed, and itos asked Codex again for each rebased head though the diff was the same. Keying
+      the verdict on the patch-id of the item's commits, rather than the head's SHA, would save a
+      review round per rebase. Pairs with p1-ready-bookkeeping-rebase.
+    tags: [push, v9]
