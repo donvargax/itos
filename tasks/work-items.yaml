@@ -7419,6 +7419,12 @@ items:
       then the item (as work show does), so an implementing agent starts in one round trip instead
       of two; the brief side is itos guide brief <item> filled from the item. A loop driver needs
       both.
+
+      The person's research reports, 2026-10-30 (kept outside the repository) (the Orchestra
+      comparison): the filled brief names the spec commit it was made from
+      (p1-policy-and-spec-digests) and lists what it left out, after Orchestra's runtime context
+      manifest (each entry with its hash, reason and explicit omissions), which also suits
+      p1-session-handoff.
     tags: [agents, v8]
 
   - id: p1-guide-work-item
