@@ -35,7 +35,7 @@ Feature: itos next, an item's state and next step from the facts in the reposito
   --json: {"schema":1,"ok":true,"item","kind","state","owner","next":{"actor","action","argv"?},"waits_on"?,"blocked_reason"?,"revision"},
   owner the item's own owner as written, null when it is null, never its
   group's; argv only for a deterministic itos command (needs-spec's is itos
-  guide brief); waits_on only what its state waits on: the open questions'
+  brief <id> --role drafter); waits_on only what its state waits on: the open questions'
   ids for an item a question blocks, the ids blocked_by lists for one whose
   status is blocked, none when its blocked_by is prose (as the registry's
   header describes it) or absent, the undone dependencies' ids for a
@@ -210,21 +210,21 @@ Feature: itos next, an item's state and next step from the facts in the reposito
     And the committed feature file "features/a.feature" with the live scenario "@ID-A-01" tagged "@slice-90"
     When itos runs "next slice-9"
     Then itos exits with code 0
-    And stdout contains the complete line "slice-9: needs-spec; next: drafter specify; run: itos guide brief" exactly once
+    And stdout contains the complete line "slice-9: needs-spec; next: drafter specify; run: itos brief slice-9 --role drafter" exactly once
     When itos runs "next slice-9 --json"
     Then itos exits with code 0
     And its JSON's "state" is "needs-spec"
-    And its JSON's "next" is {"actor": "drafter", "action": "specify", "argv": ["itos", "guide", "brief"]}
+    And its JSON's "next" is {"actor": "drafter", "action": "specify", "argv": ["itos", "brief", "slice-9", "--role", "drafter"]}
     When itos runs "next slice-8 --json"
     Then itos exits with code 0
     And its JSON's "state" is "needs-spec"
     And its JSON's "owner" is "ana"
-    And its JSON's "next" is {"actor": "drafter", "action": "specify", "argv": ["itos", "guide", "brief"]}
+    And its JSON's "next" is {"actor": "drafter", "action": "specify", "argv": ["itos", "brief", "slice-8", "--role", "drafter"]}
     When itos runs "next T-001 --json"
     Then itos exits with code 0
     And its JSON's "kind" is "task"
     And its JSON's "state" is "needs-spec"
-    And its JSON's "next" is {"actor": "drafter", "action": "specify", "argv": ["itos", "guide", "brief"]}
+    And its JSON's "next" is {"actor": "drafter", "action": "specify", "argv": ["itos", "brief", "T-001", "--role", "drafter"]}
 
   # A @wip scenario is a spec as much as a live one. slice-9 is doing and
   # someone's, T-001 todo and no one's: both are in flight, each with its
@@ -326,7 +326,7 @@ Feature: itos next, an item's state and next step from the facts in the reposito
     Then itos exits with code 0
     And its JSON's "kind" is "bug"
     And its JSON's "state" is "needs-spec"
-    And its JSON's "next" is {"actor": "drafter", "action": "specify", "argv": ["itos", "guide", "brief"]}
+    And its JSON's "next" is {"actor": "drafter", "action": "specify", "argv": ["itos", "brief", "bug-3", "--role", "drafter"]}
     When the committed feature file "features/a.feature" with the live scenario "@ID-A-01" tagged "@bug-3"
     And itos runs "next bug-3 --json"
     Then itos exits with code 0
