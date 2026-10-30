@@ -15738,8 +15738,8 @@ items:
   - id: T-339
     title: AGENTS.md, tasks/README.md, PLAN.md, ARCHITECTURE.md, PHASES.md and ci run's help say what the code does
     phase: 2
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
     tags: [docs, v8]
