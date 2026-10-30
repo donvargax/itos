@@ -152,7 +152,7 @@ func readsSentence(reads []string, omitted []Omitted) string {
 // omittedWhy is an omission's reason as a sentence says it.
 func omittedWhy(reason string) string {
 	switch reason {
-	case notInTree:
+	case notInTree, symlinked:
 		return "is " + reason
 	default:
 		return "has " + reason

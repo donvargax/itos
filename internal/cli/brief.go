@@ -41,7 +41,7 @@ func (p briefPorts) Config(ctx context.Context) (*config.Loaded, error) {
 	return config.Load(p.Git, t, src, config.Path(p.Git, src))
 }
 
-// TreeEntries is the git adapter's, each entry's kind and object.
+// TreeEntries is the git adapter's, each entry's kind, mode and object.
 func (p briefPorts) TreeEntries(ctx context.Context, commit string, paths []string) (map[string]briefslice.TreeEntry, error) {
 	listed, err := p.Git.TreeEntries(ctx, commit, paths)
 	if err != nil {
@@ -49,7 +49,7 @@ func (p briefPorts) TreeEntries(ctx context.Context, commit string, paths []stri
 	}
 	entries := make(map[string]briefslice.TreeEntry, len(listed))
 	for name, e := range listed {
-		entries[name] = briefslice.TreeEntry{Kind: e.Kind, Object: e.Object}
+		entries[name] = briefslice.TreeEntry{Kind: e.Kind, Mode: e.Mode, Object: e.Object}
 	}
 	return entries, nil
 }

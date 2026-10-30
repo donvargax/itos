@@ -17,7 +17,8 @@ scenarios tagged for it and their feature files (a task's checks from its
 ledger entry), what it depends on with each status, and what the agent reads:
 AGENTS.md, the item's feature files (a task's ledger file), and for each of
 its refs the file it names or the doc.go of the folder it names; a ref naming
-neither is left out and said so, as is a missing AGENTS.md. The repository's
+neither, or a symbolic link, is left out and said so, as is a missing
+AGENTS.md. The repository's
 own brief lines, the "## What a brief adds here" section of the file
 guide.orchestrating names (docs/ORCHESTRATING.md by default), follow as
 written. What a person must add stays a marked placeholder: the settled

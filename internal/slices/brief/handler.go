@@ -42,9 +42,10 @@ type Ports interface {
 	LastTouching(ctx context.Context, rev string, paths []string) (string, error)
 }
 
-// TreeEntry is one entry of a commit's tree: its Kind, blob or tree, and
-// its Object, the blob's or the tree's id.
-type TreeEntry struct{ Kind, Object string }
+// TreeEntry is one entry of a commit's tree: its Kind, blob or tree, its
+// Mode as git lists it (a symbolic link is a blob of mode 120000), and its
+// Object, the blob's or the tree's id.
+type TreeEntry struct{ Kind, Mode, Object string }
 
 // Handler is the brief command's application, over its ports.
 type Handler struct {
@@ -275,26 +276,22 @@ func (h Handler) spec(_ context.Context, at *config.Loaded, f *facts) error {
 
 // reads fills b's Reads and Omitted, and f's paths read, from HEAD's
 // entries: AGENTS.md, the spec's files, then each ref, a file as it is, a
-// folder by its doc.go; what is not there is omitted with its reason. A
-// folder is asked for with its doc.go, which makes git list the folder's
-// entries rather than the folder itself, so a folder is known by an entry
-// under it.
+// folder by its doc.go; what is not there, or is a symbolic link (git's
+// mode 120000: the agent would read whatever the link points at in its
+// checkout, not the blob the request records), is omitted with its reason.
+// A ref is looked up by its clean path (./docs/plan.md is docs/plan.md,
+// internal/foo/ is internal/foo) and named as written. A folder is asked
+// for with its doc.go, which makes git list the folder's entries rather
+// than the folder itself, so a folder is known by an entry under it.
 func (h Handler) reads(ctx context.Context, b *Brief, f *facts, refs []string) error {
 	paths := append([]string{agentrules.AgentsFile}, f.specFiles...)
 	for _, ref := range refs {
-		p := strings.TrimSuffix(ref, "/")
+		p := path.Clean(ref)
 		paths = append(paths, p, path.Join(p, "doc.go"))
 	}
 	entries, err := h.ports.TreeEntries(ctx, head, paths)
 	if err != nil {
 		return err
-	}
-	blob := func(p string) (string, bool) {
-		e, ok := entries[p]
-		if !ok || e.Kind != "blob" {
-			return "", false
-		}
-		return e.Object, true
 	}
 	folder := func(p string) bool {
 		for name := range entries {
@@ -308,34 +305,46 @@ func (h Handler) reads(ctx context.Context, b *Brief, f *facts, refs []string) e
 		if slices.ContainsFunc(b.Reads, func(r Read) bool { return r.Path == p }) {
 			return true
 		}
-		id, ok := blob(p)
-		if ok {
-			b.Reads = append(b.Reads, Read{Path: p, Blob: id, Reason: reason, Required: required})
-			f.Reads = append(f.Reads, p)
+		e, ok := entries[p]
+		if !ok || e.Kind != "blob" || e.Mode == symlinkMode {
+			return false
 		}
-		return ok
+		b.Reads = append(b.Reads, Read{Path: p, Blob: e.Object, Reason: reason, Required: required})
+		f.Reads = append(f.Reads, p)
+		return true
+	}
+	// omit leaves written out: a symbolic link at p says so, else why.
+	omit := func(written, p, why string) {
+		if e, ok := entries[p]; ok && e.Mode == symlinkMode {
+			why = symlinked
+		}
+		b.Omitted = append(b.Omitted, Omitted{Path: written, Reason: why})
 	}
 	if !read(agentrules.AgentsFile, "the repository's agent rules", true) {
-		b.Omitted = append(b.Omitted, Omitted{Path: agentrules.AgentsFile, Reason: notInTree})
+		omit(agentrules.AgentsFile, agentrules.AgentsFile, notInTree)
 	}
 	for _, p := range f.specFiles {
 		reason := "the item's scenarios"
 		if f.task != nil {
 			reason = "the task's ledger entry"
 		}
-		read(p, reason, true)
+		if !read(p, reason, true) {
+			omit(p, p, notInTree)
+		}
 	}
 	for _, ref := range refs {
-		p := strings.TrimSuffix(ref, "/")
+		p := path.Clean(ref)
 		reason := "the item's ref " + ref
 		switch {
+		case p == "." || p == "/" || strings.HasPrefix(p, "../"):
+			omit(ref, p, notInTree)
 		case read(p, reason, false):
 		case folder(p):
-			if !read(path.Join(p, "doc.go"), reason, false) {
-				b.Omitted = append(b.Omitted, Omitted{Path: ref, Reason: "no doc.go at HEAD"})
+			if doc := path.Join(p, "doc.go"); !read(doc, reason, false) {
+				omit(ref, doc, "no doc.go at HEAD")
 			}
 		default:
-			b.Omitted = append(b.Omitted, Omitted{Path: ref, Reason: notInTree})
+			omit(ref, p, notInTree)
 		}
 	}
 	f.Omitted = b.Omitted
@@ -344,6 +353,13 @@ func (h Handler) reads(ctx context.Context, b *Brief, f *facts, refs []string) e
 
 // notInTree is why a path HEAD lacks is omitted.
 const notInTree = "not in the tree at HEAD"
+
+// symlinkMode is git's mode of a symbolic link, and symlinked why one is
+// omitted.
+const (
+	symlinkMode = "120000"
+	symlinked   = "a symbolic link at HEAD"
+)
 
 // briefHeading heads the section of the repository's notes that follows
 // the filled template.
