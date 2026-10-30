@@ -294,3 +294,17 @@
     pattern RE2 cannot compile. docs/releases/v1.1.0.md was started in slice
     24; this task finishes it, bumps the version and runs the release's
     proofs, and the tag waits for the user's review of the Upgrading section.
+
+- id: T-339
+  type: fix
+  title: AGENTS.md, tasks/README.md, PLAN.md, ARCHITECTURE.md, PHASES.md and ci run's help say what the code does
+  why: >
+    From the person's research reports of 2026-10-30 (kept outside the repository): the Orchestra
+    comparison, chapters 4, 5 and 14, checked against 4726f852: AGENTS.md names Copilot while
+    push.pr.review_by is Codex; tasks/README.md:232 says work done runs after: push checks, which it
+    skips; ci run's help says the code proof runs none of its own; PLAN.md:352 says corpus wording
+    is kept verbatim (ADR-0052 exempts most); ARCHITECTURE.md:134 says gate programs use the
+    standard library alone (schema-contract imports internal/release); PHASES.md shows the Go port
+    todo. Agents act on these files. Help text changes are a fix with its corpus case.
+  done_when:
+    - run: "! grep -n Copilot AGENTS.md"

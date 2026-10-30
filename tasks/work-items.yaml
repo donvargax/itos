@@ -15735,21 +15735,13 @@ items:
       specified.
     tags: [push, v9]
 
-  - id: p2-docs-match-code
+  - id: T-339
     title: AGENTS.md, tasks/README.md, PLAN.md, ARCHITECTURE.md, PHASES.md and ci run's help say what the code does
     phase: 2
     owner: null
     status: todo
     depends_on: []
-    kind: idea
-    why: >
-      From the person's research reports of 2026-10-30 (kept outside the repository): the Orchestra
-      comparison, chapters 4, 5 and 14, checked against 4726f852: AGENTS.md names Copilot while
-      push.pr.review_by is Codex; tasks/README.md:232 says work done runs after: push checks, which
-      it skips; ci run's help says the code proof runs none of its own; PLAN.md:352 says corpus
-      wording is kept verbatim (ADR-0052 exempts most); ARCHITECTURE.md:134 says gate programs use
-      the standard library alone (schema-contract imports internal/release); PHASES.md shows the Go
-      port todo. Agents act on these files. Help text changes are a fix with its corpus case.
+    kind: task
     tags: [docs, v8]
 
   - id: p2-orchestra-pilot
