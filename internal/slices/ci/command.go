@@ -83,8 +83,8 @@ order, stopping at the first failure; with ci.stop_at_first_failure false,
 every one runs and the first failure is the run's. A run that goes on says
 "CI failed at" for the first failure and "also failed at" for each later
 one, naming it the same way. A named task's after: push
-check is listed as pending, to run after the push (itos task, itos work done),
-and is neither run nor counted; one ci.nightly_only lists is left out. With no
+check is listed as pending, to run after the push (itos task), and is
+neither run nor counted; one ci.nightly_only lists is left out. With no
 range, every step and every test. A failing step exits 1, naming its code.
 --nightly runs ci.nightly.steps, in the order written, and no task's checks,
 going on past a failing step whatever ci.stop_at_first_failure says, and
@@ -93,8 +93,7 @@ With ci.keep_step_order true, a push's run takes ci.steps as written, then the
 named tasks' checks in ledger order.
 With the config's proof.code, a range that touches proof.code.paths runs the
 code proof as a step among the static ones, before the tests: proof.code.check
-with {base} the range's start, which reads the results recorded before the
-push and runs none of its own. A surviving mutant, an uncovered or a missing
+with {base} the range's start. A surviving mutant, an uncovered or a missing
 result fails the run, naming each problem its --json lists by its rule and
 message, and a check that cannot run fails it too, as does one exiting 0 with
 an invalid itos_proof envelope (ci-code-proof-summary) or an explicit judged 0
