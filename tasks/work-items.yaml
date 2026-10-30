@@ -14441,6 +14441,12 @@ items:
       them to a done record beside the entry; ADR-0043's guarantee (proof from the diff and type,
       never from a task's own checks) stays. Revisits ADR-0043 (b): a decision record. Not before
       v9.
+
+      The person's research reports, 2026-10-30 (kept outside the repository) (the Orchestra
+      comparison): this conflicts with ADR-0043(b) and with the @wip scenarios of slice-142 and
+      slice-158, which expect done_when removed at close. Settle it before slice-142 is built; the
+      blueprint wants a closed item's check manifest preserved (p1-work-show-closing-checks reads it
+      from history).
     tags: [v9]
 
   - id: T-315
