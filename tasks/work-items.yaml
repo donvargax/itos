@@ -15468,6 +15468,16 @@ items:
       the triage list: sort each against the four causes. Mislabels it found: slice-176 is done in
       v8 yet tagged v9; slice-161 is tagged v9 though its spec asks for a nonbreaking first
       delivery.
+
+      The person, 2026-10-30: v9's purpose is a deterministic coordinator workflow, so any agent (or
+      a program) can replace the Claude Code coordinator session and behave the same. The state
+      machine lives in itos; the pilot driver is a Claude Code dynamic workflow or a Go port of Open
+      Orchestra's deterministic orchestration (design pointers taken now; porting code needs its
+      license settled, the repository having no LICENSE file). Orchestra itself is never run outside
+      a sandbox (npm supply-chain risk). Agreed in the main with the coordinator's recommendations:
+      status derived from the forge rather than committed, --ready hands off to the forge's
+      auto-merge and returns, no rewrites (merge main in), message checks at push, the four friction
+      causes lead the triage. Who coordinates is still open.
     tags: [v9]
 
   - id: p1-reviewer-on-astra
