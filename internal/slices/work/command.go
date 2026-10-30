@@ -51,7 +51,9 @@ Exit 1 when the registry is not sound, 3 when --as is not among the people.
 With no people to read (a stealth config, or a people file missing or
 unreadable) any handle is taken, and nothing is said of them. Under a stealth
 config with no --as, no identity is looked up: every item is the session's,
-whatever owner it names (every_item: true in --json).
+whatever owner it names (every_item: true in --json). An item whose status
+is blocked may say what holds it in blocked_by: a list of ids, which itos
+next gives as its waits_on, or prose, why in words, which names nothing.
 
 --json: the proposal {"schema":1,"person","every_item"?,"doing","next","unowned","waiting","ideas","deferred"},
 each list in the queue's order, each item with its tags ([] for none)

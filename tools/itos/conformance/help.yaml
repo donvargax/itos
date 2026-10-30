@@ -10,6 +10,7 @@ cases:
     stdout_has:
       [
         status,
+        next,
         task list,
         work take,
         decision add,
@@ -150,6 +151,11 @@ cases:
     exit: 0
     stdout_nonempty: true
     stdout_has: itos status
+  - name: itos next --help
+    argv: [next, --help]
+    exit: 0
+    stdout_nonempty: true
+    stdout_has: itos next
   - name: a bare itos prints the help and exits 2
     argv: []
     exit: 2
