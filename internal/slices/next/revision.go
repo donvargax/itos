@@ -11,7 +11,9 @@ import (
 
 // Revision is "sha256:" and the hex digest of exactly the facts read, one
 // line each in a fixed order, each field JSON so no field holds a line
-// break: the item's entry as written, each dependency's id and status,
+// break: the item's entry as written, its kind as read (by its id and the
+// config's ledger.id when the entry gives none, so a config change that
+// moves the step moves the revision), each dependency's id and status,
 // each open question's id and text, each tagged scenario's id, file and
 // whether it is live, and each ledger check. A commit that touches none of
 // them leaves it as it was; a change to any gives a new one.
@@ -19,6 +21,7 @@ func Revision(f Facts) string {
 	var b strings.Builder
 	b.WriteString("itos next revision v1\n")
 	b.WriteString("item " + value.JSON(f.Item) + "\n")
+	b.WriteString("kind " + value.JSON(f.Kind) + "\n")
 	for _, d := range f.Dependencies {
 		b.WriteString("dependency " + value.JSON(d.ID) + " " + value.JSON(d.Status) + "\n")
 	}

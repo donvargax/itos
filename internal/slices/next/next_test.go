@@ -269,6 +269,7 @@ func TestRevision(t *testing.T) {
 	seen := map[string]string{"the same facts": first}
 	for name, change := range map[string]func(f *Facts){
 		"the entry":             func(f *Facts) { f.Item.Set("title", "Another") },
+		"the kind as read":      func(f *Facts) { f.Kind = "" },
 		"a dependency's status": func(f *Facts) { f.Dependencies[0].Status = "todo" },
 		"a question gone":       func(f *Facts) { f.Questions = nil },
 		"a question's id":       func(f *Facts) { f.Questions[0].ID = "q-2" },

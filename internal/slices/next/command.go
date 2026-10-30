@@ -57,8 +57,9 @@ the ids blocked_by lists for one whose status is blocked (none when it is
 prose or absent), the undone dependencies' ids for a waiting one;
 blocked_reason on a blocked item alone, "decision" for an open question and
 "status" for the registry's status blocked, the question winning when both
-hold; revision "sha256:" and the hex digest of exactly the facts read, so a
-commit that touches none of them leaves it as it was. Refused:
+hold; revision "sha256:" and the hex digest of exactly the facts read, the
+kind as read among them, so a commit that touches none of them leaves it as
+it was and a config change that moves the step moves it. Refused:
 {"schema":1,"ok":false,"problems":[{"rule","message","fix"}]}`,
 	},
 	Spec: declare.Spec{},
