@@ -15478,3 +15478,23 @@ items:
       counts as proof. The captured path (captured.go) refuses timeouts but still passes a 127.
       Red-first evidence meets the same question.
     tags: [proof, v8]
+
+  - id: p1-mutations-rerun-safe
+    title: A mutating command run again after an interruption finishes what the first run left, and says when an effect is uncertain
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      From the person's research reports of 2026-10-30 (kept outside the repository): the factory
+      blueprint, chapters 2, 6 and 10; the Orchestra comparison, chapters 6 and 12. A driver that
+      loses a command's answer (a harness's time cap, a crash) must run it again without a duplicate
+      take, close or push, and without a refusal hiding the first run's success. Each mutating
+      command (take, done, give-back, push, push --ready, decision answer) gets a rerun scenario, an
+      already-done outcome distinct from a refusal, and an effect-uncertain outcome naming what to
+      observe. Where an operation stays multi-step (push publishes then fails on the PR; work done's
+      close then dequeue), its --json names each effect made (commit, pushed sha, PR, the step left)
+      so a caller re-reads instead of parsing prose (absorbs p2-partial-effects-in-json). Related:
+      slice-142, slice-158, bug-38, p1-work-done-push. Shrinks if v9 moves the registry out of git.
+    tags: [work, v9]
