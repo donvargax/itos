@@ -43,6 +43,28 @@ Feature: The task runner runs each check once, and lists task status without run
     And its output lists "T-002" as "done"
     And the counting check ran once
 
+  # Bug 155: a fails: check passed when its command never ran to completion:
+  # a command sh does not find (exit 127) or one past its timeout counted as
+  # the failure the check expects. A fails: check passes only when its
+  # command ran to completion and exited non-zero, not 126 or 127, and a
+  # verbose run says why one did not. Each fails today at the line listing
+  # T-001 as failing: it is done.
+  @wip @ID-TASK-19 @bug-155
+  Scenario: A fails: check whose command is not found fails, saying it did not run
+    Given the task "T-001" has the fails: check "itos-bug-155-no-such-command"
+    When itos runs the task "T-001"
+    Then itos exits with code 1
+    And its output lists "T-001" as "failing"
+    And its output says "did not run: command not found (exit 127)"
+
+  @wip @ID-TASK-20 @bug-155
+  Scenario: A fails: check that outlasts its timeout fails, saying it did not run
+    Given the task "T-001" has the fails: check "sleep 3" with a timeout of 1 second
+    When itos runs the task "T-001"
+    Then itos exits with code 1
+    And its output lists "T-001" as "failing"
+    And its output says "did not run: timed out"
+
   @ID-TASK-04 @slice-9
   Scenario: task list prints each task's status from the work registry and runs no check
     Given the task "T-001" has a static check that records it ran
