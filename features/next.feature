@@ -7,17 +7,21 @@ Feature: itos next, an item's state and next step from the facts in the reposito
   feature files, @wip ones included), the ledger and the open questions of
   itos decision, and prints the item's state and who acts next. It writes no
   file, makes no commit, and asks no forge and no remote (no gh, no fetch).
+  Each fact is read where its existing reader reads it: the registry, the
+  ledger and the questions from the working tree, the tagged scenarios at
+  HEAD, as itos work done reads them.
 
   The states, the first that holds winning:
-  done (status done), parked (dropped, or deferred), blocked (an open
-  question names the item), waiting (an item in its depends_on is not done),
-  idea (kind idea), needs-spec (a slice or a bug no scenario is tagged for,
-  or a task whose ledger entry has no done_when check), in-flight (a spec
-  present, or status doing). An item with no kind is read by its id, as
-  itos work show reads it: slice-<n> a slice, bug-<n> a bug, an id ledger.id
-  matches a task. In-flight is this slice's stand-in: the next slice
-  replaces it with the states only the forge knows (spec review,
-  implementing, merging, merged).
+  done (status done), parked (dropped, or deferred), blocked (status
+  blocked, or an open question names the item), waiting (an item in its
+  depends_on is not done), idea (kind idea), needs-spec (a slice or a bug no
+  scenario is tagged for, or a task whose ledger entry has no done_when
+  check), in-flight (a spec present). A repository whose config declares no
+  scenario kind has no scenario for any item, so a slice or a bug there
+  needs a spec. An item with no kind is read by its id, by next's own rule:
+  slice-<n> a slice, bug-<n> a bug, an id ledger.id matches a task.
+  In-flight is this slice's stand-in: the next slice replaces it with the
+  states only the forge knows (spec review, implementing, merging, merged).
 
   The next step is an actor and an action. Actors: driver, drafter,
   reviewer, implementer, answerer, person, forge, none. Actions: promote,
@@ -29,10 +33,13 @@ Feature: itos next, an item's state and next step from the facts in the reposito
   Text: one line, "<id>: <state>; next: <actor> <action>", then
   "; run: <command>" when the step is a deterministic itos command.
   --json: {"schema":1,"ok":true,"item","kind","state","owner","next":{"actor","action","argv"?},"waits_on"?,"blocked_reason"?,"revision"},
-  owner a handle or null; argv only for a deterministic itos command
-  (needs-spec's is itos guide brief); waits_on the question ids a blocked
-  item waits on, or the item ids a waiting one does, only what its state
-  waits on; blocked_reason "decision" on a blocked item alone. revision is
+  owner the item's own owner as written, null when it is null, never its
+  group's; argv only for a deterministic itos command (needs-spec's is itos
+  guide brief); waits_on only what its state waits on: the ids blocked_by
+  lists for an item whose status is blocked, the open questions' ids for
+  one a question blocks, the undone dependencies' ids for a waiting one;
+  blocked_reason, on a blocked item alone, "status" for the registry's
+  status blocked and "decision" for an open question. revision is
   "sha256:" and the hex digest of exactly the facts read: the item's
   registry entry as written, its dependencies' statuses, the open questions
   naming it, its tagged scenarios and its ledger checks, so a commit that
@@ -44,11 +51,18 @@ Feature: itos next, an item's state and next step from the facts in the reposito
     Given a repository whose ledger has the task "T-001"
 
   # The owner is a handle, so a build that printed null for every owner
-  # fails; the item has no scenario, so a build that judged needs-spec
-  # before done fails too.
+  # fails; the item has no scenario and an open question names it, so a
+  # build that judged needs-spec or blocked before done fails too.
   @ID-NEXT-01 @wip @slice-203
   Scenario: A done item needs no one
     Given the work registry has the item "slice-9" owned by "ana" with the status "done"
+    And the committed file "tasks/asks.yaml" holding the lines:
+      """
+      questions:
+        - id: q-1
+          item: "slice-9"
+          question: "Which way?"
+      """
     When itos runs "next slice-9 --json"
     Then itos exits with code 0
     And its JSON's "ok" is true
@@ -59,14 +73,21 @@ Feature: itos next, an item's state and next step from the facts in the reposito
     And its JSON's "next" is {"actor": "none", "action": "none"}
     And its JSON has no "waits_on"
 
-  # Both items lack a spec, so a build that ignored dropped or deferred
-  # would say needs-spec.
+  # Both items lack a spec, an open question names the dropped one and the
+  # deferred one depends on an item not done, so a build that judged
+  # needs-spec, blocked or waiting before parked fails.
   @ID-NEXT-02 @wip @slice-203
   Scenario: A dropped item and a deferred one are parked
     Given the committed file "tasks/work-items.yaml" holding the lines:
       """
       phases: { 1: null }
       items:
+        - id: slice-7
+          title: Undone
+          phase: 1
+          owner: null
+          status: todo
+          depends_on: []
         - id: slice-8
           title: Dropped
           phase: 1
@@ -78,8 +99,15 @@ Feature: itos next, an item's state and next step from the facts in the reposito
           phase: 1
           owner: null
           status: todo
-          depends_on: []
+          depends_on: [slice-7]
           deferred: until the next major release
+      """
+    And the committed file "tasks/asks.yaml" holding the lines:
+      """
+      questions:
+        - id: q-1
+          item: "slice-8"
+          question: "Why drop it?"
       """
     When itos runs "next slice-8 --json"
     Then itos exits with code 0
@@ -170,10 +198,12 @@ Feature: itos next, an item's state and next step from the facts in the reposito
 
   # The scenario tagged @slice-90 is another item's: a build that matched
   # the tag by its prefix would find a spec for slice-9. T-001's ledger
-  # entry, the Background's, has no done_when.
+  # entry, the Background's, has no done_when. slice-8 is doing and ana's:
+  # a status says nothing of a spec, so it needs one too, its owner kept.
   @ID-NEXT-07 @wip @slice-203
-  Scenario: A slice with no scenario and a task with no checks need a spec
+  Scenario: A slice with no scenario, even one in progress, and a task with no checks need a spec
     Given the work registry has the item "slice-9" owned by nobody with the status "todo"
+    And the work registry has the item "slice-8" owned by "ana" with the status "doing"
     And the work registry has the task "T-001" owned by nobody with the status "todo" and no why
     And the committed feature file "features/a.feature" with the live scenario "@ID-A-01" tagged "@slice-90"
     When itos runs "next slice-9"
@@ -182,6 +212,11 @@ Feature: itos next, an item's state and next step from the facts in the reposito
     When itos runs "next slice-9 --json"
     Then itos exits with code 0
     And its JSON's "state" is "needs-spec"
+    And its JSON's "next" is {"actor": "drafter", "action": "specify", "argv": ["itos", "guide", "brief"]}
+    When itos runs "next slice-8 --json"
+    Then itos exits with code 0
+    And its JSON's "state" is "needs-spec"
+    And its JSON's "owner" is "ana"
     And its JSON's "next" is {"actor": "drafter", "action": "specify", "argv": ["itos", "guide", "brief"]}
     When itos runs "next T-001 --json"
     Then itos exits with code 0
@@ -209,17 +244,22 @@ Feature: itos next, an item's state and next step from the facts in the reposito
     And its JSON's "owner" is null
     And its JSON's "next" is {"actor": "forge", "action": "observe"}
 
-  # The commit between the runs touches the README alone, which is none of
-  # the item's facts: a revision of HEAD, or of the whole tree, differs.
+  # Between the runs, another item's title changes, an open question names
+  # that other item, and a commit touches the README: none is a fact of
+  # slice-9's, so a revision of HEAD, of the whole registry or of every
+  # open question differs.
   @ID-NEXT-09 @wip @slice-203
   Scenario: The same facts give the same revision
-    Given the work registry has the item "slice-9" owned by nobody with the status "todo"
+    Given the work registry has the item "slice-8" owned by nobody with the status "todo"
+    And the work registry has the item "slice-9" owned by nobody with the status "todo"
     And a feature file with the scenario "@ID-A-01" tagged "@wip @slice-9"
     When itos runs "next slice-9 --json"
     Then itos exits with code 0
     And its JSON's revision is "sha256:" and 64 lowercase hex digits
     And its JSON's revision is saved as "first"
-    When the commit "chore: tidy the readme" on top of it
+    When itos has run "work edit slice-8 --title 'Another title'"
+    And itos has run "decision add 'Which way?' --item slice-8"
+    And the commit "chore: tidy the readme" on top of it
     And itos runs "next slice-9 --json"
     Then itos exits with code 0
     And its JSON's revision is the one saved as "first"
@@ -259,6 +299,8 @@ Feature: itos next, an item's state and next step from the facts in the reposito
   # The saved state is every file of the clone, its git folder included,
   # so HEAD, the index and anything itos might keep in .git/itos are
   # compared. A gh on the PATH records any call, so asking the forge shows.
+  # git status refreshes the index file, so itos next reads git through
+  # tree reads alone, never git status.
   @ID-NEXT-12 @wip @slice-203
   Scenario: itos next writes nothing, commits nothing and asks no forge
     Given the work registry has the item "slice-9" owned by nobody with the status "todo"
@@ -272,3 +314,90 @@ Feature: itos next, an item's state and next step from the facts in the reposito
     And the repository files index and HEAD match the saved state
     And git reports no change to the working tree or the index
     And the recording gh was never called
+
+  # bug-3 has no kind key, so its kind comes from its id. Until the
+  # committed scenario, the config declares no scenario kind at all.
+  @ID-NEXT-13 @wip @slice-203
+  Scenario: A bug needs a spec until a scenario is tagged for it, then is in flight
+    Given the work registry has the item "bug-3" owned by nobody with the status "todo"
+    When itos runs "next bug-3 --json"
+    Then itos exits with code 0
+    And its JSON's "kind" is "bug"
+    And its JSON's "state" is "needs-spec"
+    And its JSON's "next" is {"actor": "drafter", "action": "specify", "argv": ["itos", "guide", "brief"]}
+    When the committed feature file "features/a.feature" with the live scenario "@ID-A-01" tagged "@bug-3"
+    And itos runs "next bug-3 --json"
+    Then itos exits with code 0
+    And its JSON's "kind" is "bug"
+    And its JSON's "state" is "in-flight"
+    And its JSON's "next" is {"actor": "forge", "action": "observe"}
+
+  # slice-7 is not done. slice-8 depends on it but lists no blocked_by: it
+  # is blocked, not waiting, and waits on nothing, since waits_on comes
+  # from blocked_by alone. slice-9's blocked_by names slice-7.
+  @ID-NEXT-14 @wip @slice-203
+  Scenario: The registry's status blocked blocks the item on the person
+    Given the committed file "tasks/work-items.yaml" holding the lines:
+      """
+      phases: { 1: null }
+      items:
+        - id: slice-7
+          title: Undone
+          phase: 1
+          owner: null
+          status: todo
+          depends_on: []
+        - id: slice-8
+          title: Blocked alone
+          phase: 1
+          owner: null
+          status: blocked
+          depends_on: [slice-7]
+        - id: slice-9
+          title: Blocked by another
+          phase: 1
+          owner: null
+          status: blocked
+          depends_on: []
+          blocked_by: [slice-7]
+      """
+    When itos runs "next slice-8 --json"
+    Then itos exits with code 0
+    And its JSON's "state" is "blocked"
+    And its JSON's "next" is {"actor": "person", "action": "answer"}
+    And its JSON's "blocked_reason" is "status"
+    And its JSON has no "waits_on"
+    When itos runs "next slice-9 --json"
+    Then itos exits with code 0
+    And its JSON's "state" is "blocked"
+    And its JSON's "blocked_reason" is "status"
+    And its JSON's "waits_on" is ["slice-7"]
+
+  # The scenario kind is declared by a committed feature file tagged for
+  # another item. The uncommitted feature file is not at HEAD, where the
+  # tagged scenarios are read, so neither the state nor the revision moves;
+  # the uncommitted registry is the working tree's, where the registry is
+  # read, so both move.
+  @ID-NEXT-15 @wip @slice-203
+  Scenario: An uncommitted registry edit counts and an uncommitted feature file does not
+    Given the work registry has the item "slice-9" owned by nobody with the status "todo"
+    And the committed feature file "features/a.feature" with the live scenario "@ID-A-01" tagged "@slice-90"
+    When itos runs "next slice-9 --json"
+    Then itos exits with code 0
+    And its JSON's "state" is "needs-spec"
+    And its JSON's revision is saved as "first"
+    When the feature file "features/c.feature" with the scenario "@ID-C-01 @slice-9"
+    And itos runs "next slice-9 --json"
+    Then itos exits with code 0
+    And its JSON's "state" is "needs-spec"
+    And its JSON's revision is the one saved as "first"
+    When the file "tasks/work-items.yaml" holds the lines:
+      """
+      phases: { 1: null }
+      items:
+        - { id: slice-9, title: slice-9, phase: 1, owner: null, status: done, depends_on: [] }
+      """
+    And itos runs "next slice-9 --json"
+    Then itos exits with code 0
+    And its JSON's "state" is "done"
+    And its JSON's revision differs from the one saved as "first"
