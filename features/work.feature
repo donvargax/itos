@@ -16,11 +16,15 @@ Feature: The work registry
   is not the item's current one is stale, exit 1, rule work-stale, nothing
   written, the message naming the current revision and the fix saying to ask
   itos next again; else the command runs as today, its own refusals judged
-  after. A revision not "sha256:" and 64 lowercase hex digits is a usage
-  error, exit 2, naming the form. --json gains outcome, taken or already for
-  take, done or already for done, with or without --expect; no key is
-  removed or renamed. A registry itos cannot read soundly, or with changes
-  no commit holds, is refused as today before any of this.
+  after. Both are judged once the person is known (take's --as, else the
+  identity as today, nobody or one the people do not list exiting 3), so
+  identity precedes already and stale. A revision not "sha256:" and 64
+  lowercase hex digits is a usage error, exit 2, naming the form. --json
+  gains outcome, taken or already for take, done or already for done, with
+  or without --expect; no key is removed or renamed. A registry itos cannot
+  read soundly is refused as today before any of this; changes no commit
+  holds are judged where they are today, at the write, which already and
+  stale never reach.
 
   Background:
     Given a repository whose ledger has the task "T-001"
@@ -232,8 +236,11 @@ Feature: The work registry
 
   # The edit of the item's title gives it a new revision (@ID-NEXT-10),
   # which the message names, so a driver can see what moved; the fix is
-  # the recovery, itos next again. The take is refused as a whole: the
-  # item stays todo and no one's, and no take commit is made.
+  # the recovery, itos next again. The step "names the revision saved as"
+  # holds the field to contain the full revision, "sha256:" and its 64
+  # digits, so a message printing a short prefix fails. The take is
+  # refused as a whole: the item stays todo and no one's, and no take
+  # commit is made.
   @ID-WORK-165 @wip @slice-208
   Scenario: A revision that is no longer the item's refuses the take as stale, naming the current one, and writes nothing
     Given the work registry has the item "slice-9" owned by nobody with the status "todo"

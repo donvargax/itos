@@ -446,6 +446,35 @@ Feature: Under push.mode pr, work done closes an item only once its pull request
     And the recording gh was never called
     And the registry's item "slice-9" has the status "doing" and the owner "someone"
 
+  # Slice 208 (work.feature's rerun safety): HEAD is on the item's branch,
+  # which work done refuses today before any other check (@ID-PRDONE-08,
+  # work-done-not-main). A build that asks the remote before judging the
+  # revision gives that refusal, not work-stale. The title edit, committed
+  # on the branch, moves the revision (@ID-NEXT-10). Nothing is written,
+  # and gh is never called.
+  @ID-PRDONE-17 @wip @slice-208
+  Scenario: Under pr, a stale revision refuses work done before HEAD's branch is judged
+    Given the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+      """
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the remote's branch "slice-9" has the item "slice-9"'s commit touching "widget.md", which the clone's main lacks
+    And the recording gh has the pull request "https://github.example/o/r/pull/7" open for the branch "slice-9"
+    And the clone switches to its branch "slice-9"
+    When itos runs "next slice-9 --json"
+    Then itos exits with code 0
+    And its JSON's revision is saved as "first"
+    When itos has run "work edit slice-9 --title 'Say the next step'"
+    And itos runs "work done slice-9 --json" with --expect the revision saved as "first"
+    Then itos exits with code 1
+    And stdout is one JSON report with schema 1 and ok false
+    And its JSON's problem "work-stale"'s "fix" says "itos next slice-9"
+    And its output does not say "git switch main"
+    And the recording gh was never called
+    And the registry's item "slice-9" has the status "doing" and the owner "someone"
+
   # Without gh the pull request cannot be looked for, so nothing is closed;
   # exit 3, as itos push's pull-request-failed. Fails before the work at the
   # exit code: today HEAD is judged and slice-9 closes, exit 0.
