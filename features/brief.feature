@@ -363,6 +363,31 @@ Feature: itos brief, the filled brief an agent starts from and its request
     And its JSON's "item" is "slice-9"
     And the "path" of each entry of its JSON's "reads", in order, is "AGENTS.md, features/tagged.feature"
 
+  # A ref written with a leading ./ or a trailing / names the same file or
+  # folder (the review of the build, round 2); the reason keeps its spelling.
+  @ID-BRIEF-14 @wip @slice-204
+  Scenario: A ref's leading ./ and trailing / name the same file or folder
+    Given the committed file "tasks/work-items.yaml" holding the lines:
+      """
+      phases: { 1: null }
+      items:
+        - id: slice-9
+          title: Say the next step
+          phase: 1
+          owner: null
+          status: todo
+          depends_on: []
+          refs: [./internal/foo/, ./docs/plan.md]
+      """
+    And the committed file "internal/foo/doc.go" holding "// Package foo says the next step."
+    And the committed file "docs/plan.md" holding "# The plan"
+    And a feature file with the scenario "@ID-A-01" tagged "@wip @slice-9"
+    When itos runs "brief slice-9 --role implementer --json"
+    Then itos exits with code 0
+    And the "path" of each entry of its JSON's "reads", in order, is "AGENTS.md, features/tagged.feature, internal/foo/doc.go, docs/plan.md"
+    And its JSON's "reads" entry whose "path" is "internal/foo/doc.go" has "reason" "the item's ref ./internal/foo/"
+    And its JSON's "omitted" is []
+
   # The saved state is every file of the clone, its git folder included,
   # so HEAD, the index and anything itos might keep in .git/itos are
   # compared. A gh on the PATH records any call, so asking the forge shows.
