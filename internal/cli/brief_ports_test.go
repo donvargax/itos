@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/donvargax/itos/v8/internal/git"
+	"github.com/donvargax/itos/v8/internal/kind"
 )
 
 // briefPorts bind the brief slice to the real code: git's tree entries, each
@@ -82,5 +83,12 @@ func TestBriefPortsBindTheRealCode(t *testing.T) {
 	}
 	if code, _, stderr := run("brief", "slice-9", "--role", "implementer"); code != 0 {
 		t.Errorf("brief with the config gone from the working tree, HEAD's kept: exit %d, stderr %q", code, stderr)
+	}
+	// Outside a repository there is no HEAD to read the config from: a
+	// missing environment.
+	outside := briefPorts{o: Out{Dir: t.TempDir()}}
+	outside.Git.Dir = outside.o.Dir
+	if cfg, err := outside.Config(t.Context()); err == nil || kind.Of(err) != kind.Missing {
+		t.Errorf("Config outside a repository = %v, %v, want a missing environment", cfg, err)
 	}
 }
