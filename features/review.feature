@@ -48,28 +48,34 @@ Feature: itos review post records a reviewer's verdict on an item's pull request
   paged past a hundred comments) and counts the verdict markers of the same
   item and stage whose comment's author is a login among the people the
   config names (work.people; compared regardless of case, as GitHub's
-  logins are): the new marker's round is one more than that count. A marker
-  by any other login, a marker of another stage or item, a marker whose
-  JSON does not parse or whose record is not verdict, itos's review-request
+  logins are, so a people file's Ana is GitHub's ana): the new marker's
+  round is one more than that count. A marker by any other login, a marker
+  of another stage or item, a comment whose marker is not JSON or whose
+  record is not verdict (no error: it is prose), itos's review-request
   marker ("<!-- itos-review-request:v1 ... -->") and any prose, whatever
-  words it holds, count for nothing. When a counted marker already records
-  the same verdict for the same head and stage, nothing is posted: "The
+  words it holds, count for nothing. The markers are append-only and the
+  latest counted one, in GitHub's order, is the verdict that stands: when
+  it records this verdict for this head and stage, nothing is posted, "The
   <stage> review of <item> at <the first 7 characters>: <verdict> already,
   round <its round>, on <address>; nothing was posted.", exit 0, outcome
-  already, --json's round that marker's and no comment member. A counted
-  marker with another verdict at the same head makes no already: the new
-  verdict is posted as the next round, and the later marker is the one a
-  reader takes. With no people (the config names none, or the file lists no
-  one) no marker counts, so every verdict is round 1 and never already.
-  Reading the markers back, for itos next, is a later slice.
+  already, --json's round that marker's and no comment member. Any other
+  latest marker, another verdict at this head or any verdict at another
+  head, makes no already: the verdict is posted as the next round, so
+  approve, then changes, then approve again at one head are rounds 1, 2
+  and 3, and a reader takes the last. With no people (a stealth config,
+  which names none, or a people file missing or unreadable) every login
+  counts, as the work registry reads such a repository (the person being
+  the only one). Reading the markers back, for itos next, is a later slice.
 
   The gh calls, each through the gh on the PATH and the repository push
   names (ci.range.github.repository_env, else the remote's URL): gh pr list
   --repo <repository> --head <item> --state open --json number,url for the
-  pull request, as push threads asks; one gh api graphql question (-f
-  owner=<owner> -f name=<name> -F number=<number>, as --ready asks) for the
-  pull request's headRefOid and its comments, each author's login and body,
-  asked again for each further page; then gh api
+  pull request, as push threads asks; --ready's one gh api graphql
+  question (-f owner=<owner> -f name=<name> -F number=<number>; reviewQuery
+  in internal/slices/push/ready.go, which gains the pull request's
+  headRefOid, so --ready and review post read one answer) for the head and
+  the comments, each author's login and body, asked again for each further
+  page; then gh api
   repos/<owner>/<name>/issues/<number>/comments -f body=<the body>, which
   posts the comment and answers it, its html_url the address --json gives.
   It fetches, rebases and pushes nothing, asks no identity provider (the
@@ -97,7 +103,11 @@ Feature: itos review post records a reviewer's verdict on an item's pull request
   exit 2, asking gh nothing: review alone or with another word, post with
   no item or two, without --verdict or without --at, --stage with a word
   that is neither spec nor diff, --body-file with no path, or any other
-  flag. itos --help lists "review post <item> --verdict approve|changes
+  flag. A bad --verdict is exit 1 with a problem, not exit 2, because a
+  driver computes the verdict from a reviewer's answer and reads the
+  problem JSON to say what came back; --stage is written by hand in the
+  driver's own command line, so a wrong one is a usage error as any flag's
+  value is. itos --help lists "review post <item> --verdict approve|changes
   --at <commit> [--stage spec|diff] [--body-file <path>]" and itos help
   review says what the marker is and what each refusal means.
 
@@ -110,25 +120,34 @@ Feature: itos review post records a reviewer's verdict on an item's pull request
   The steps. The recording gh is push-mode.feature's and learns: a before
   file answering an "api repos/<owner>/<name>/issues/<n>/comments -f
   body=..." call with {"id":1,"html_url":"<the address of the pull request
-  numbered n>#issuecomment-1"}, exit 0, before any handler runs; "the
-  recording gh answers that the pull request has a comment by <login>
-  recording the <stage> review of <item> at the head of the remote's branch
-  <branch> as round <n>: <verdict>", a comment node with that author and
-  the body itos writes, its full SHA "@HEAD:<branch>@" and its 7
-  characters "@SHORT:<branch>@", both replaced by the branch's head on the
-  remote at each call (the first as the comment heads of slice 200 are, the
-  second by a nodes file of its own before them); the same ending "at the
-  commit <sha> as round <n>: <verdict>", with that SHA and its first 7
-  characters written in; "the recording gh answers that the pull request
-  has a comment by <login> saying <text>", a comment node with that author
-  and body; "the recording gh's <command> call has the field "body" holding
-  these lines, @HEAD:<branch>@ the full SHA of the head of the remote's
-  branch <branch> and @SHORT:<branch>@ its first 7 characters:", a doc
-  string, which takes the first call starting with the command, the text
-  after its " -f body=", and fails unless it is the doc string's lines
-  joined by the two characters \n (as dispatch.sh records a line end), the
-  two placeholders replaced; and "its JSON's <key> is the full SHA of the
-  head of the remote's branch <branch>".
+  numbered n>#issuecomment-1"}, exit 0, before any handler runs; a nodes
+  file, nodes/06-head-ref-oid.sh, giving the pull request's "headRefOid":
+  it maps the number asked to its branch through gh-pull-requests, as
+  05-pull-request.sh does, and rev-parses refs/heads/<branch> in $REMOTE,
+  so the head is the remote's at each call; "the recording gh answers that
+  the pull request has a comment by <login> recording the <stage> review
+  of <item> at the head of the remote's branch <branch> as round <n>:
+  <verdict>", a comment node with that author and the body itos writes,
+  its full SHA "@HEAD:<branch>@" and its 7 characters "@SHORT:<branch>@",
+  both replaced by the branch's head on the remote at each call (the first
+  as the comment heads of slice 200 are, the second by a nodes file of its
+  own before them); the same ending "at the commit <sha> as round <n>:
+  <verdict>", with that SHA and its first 7 characters written in; the
+  same beginning "the recording gh answers that the pull request has, on a
+  second page of comments, a comment by <login> recording ...", the node
+  on the second page (gh-comments-page2, as slice 200's second-page step
+  puts one); "the recording gh answers that the pull request has a comment
+  by <login> saying <text>", a comment node with that author and body;
+  "the recording gh's <command> call has the field "body" holding these
+  lines, @HEAD:<branch>@ the full SHA of the head of the remote's branch
+  <branch> and @SHORT:<branch>@ its first 7 characters:", a doc string,
+  which takes the first call starting with the command, the text after
+  its " -f body=" to the end of the recorded line (so body must be the
+  call's last field, which the step's doc comment says), and fails unless
+  it is the doc string's lines joined by the two characters \n (as
+  dispatch.sh records a line end), the two placeholders replaced; and "its
+  JSON's <key> is the full SHA of the head of the remote's branch
+  <branch>".
 
   Background:
     Given a repository whose ledger has the task "T-001"
@@ -214,21 +233,23 @@ Feature: itos review post records a reviewer's verdict on an item's pull request
       """
 
   # The round counts the people's spec markers of this item alone: someone's
-  # at an earlier head and ana's at this one make two, so this is round 3.
-  # Not counted: someone's diff marker, the marker by a login the people
-  # file does not list (which also records approve at this head, so a build
-  # counting it would say already), the review-request marker, and ana's
-  # prose that says approve. Fails before the work at the exit code: today
-  # review is no command, exit 2.
+  # at an earlier head and ana's at this one make two, so this is round 3;
+  # the people file spells her Ana, as GitHub's logins ignore case. Not
+  # counted: someone's diff marker, someone's spec marker of slice-8, the
+  # marker by a login the people file does not list (which also records
+  # approve at this head, and is the latest, so a build counting it would
+  # say already), the review-request marker, a marker that is not JSON (no
+  # error) and ana's prose that says approve. Fails before the work at the
+  # exit code: today review is no command, exit 2.
   @ID-REVIEW-03 @wip @slice-206
-  Scenario: Under push.mode pr, the round is one more than the people's verdict markers for the stage, markers of outsiders, other stages and prose not counted
+  Scenario: Under push.mode pr, the round is one more than the people's verdict markers for the item and stage, markers of outsiders, other items, other stages and prose not counted
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
       push:
         mode: pr
       """
     And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
-    And the people file lists "ana" and "someone"
+    And the people file lists "Ana" and "someone"
     And the clone is on the new branch "slice-9"
     And the clone has the commit "docs: specify slice-9" touching "features/widget.feature"
     And git pushes HEAD to the remote's new branch "slice-9"
@@ -236,9 +257,11 @@ Feature: itos review post records a reviewer's verdict on an item's pull request
     And the recording gh answers that the pull request has a comment by "someone" recording the "spec" review of "slice-9" at the commit "0123456789abcdef0123456789abcdef01234567" as round 1: "changes"
     And the recording gh answers that the pull request has a comment by "ana" recording the "spec" review of "slice-9" at the head of the remote's branch "slice-9" as round 2: "changes"
     And the recording gh answers that the pull request has a comment by "someone" recording the "diff" review of "slice-9" at the head of the remote's branch "slice-9" as round 1: "approve"
-    And the recording gh answers that the pull request has a comment by "copilot-pull-request-reviewer" recording the "spec" review of "slice-9" at the head of the remote's branch "slice-9" as round 3: "approve"
+    And the recording gh answers that the pull request has a comment by "someone" recording the "spec" review of "slice-8" at the head of the remote's branch "slice-9" as round 1: "approve"
     And the recording gh answers that the pull request has a comment by "someone" asking "chatgpt-codex-connector" to review the clone's HEAD again
     And the recording gh answers that the pull request has a comment by "ana" saying "I approve of this spec; the second round reads well."
+    And the recording gh answers that the pull request has a comment by "ana" saying "<!-- itos:v1 not json -->"
+    And the recording gh answers that the pull request has a comment by "copilot-pull-request-reviewer" recording the "spec" review of "slice-9" at the head of the remote's branch "slice-9" as round 3: "approve"
     When itos runs "review post slice-9 --verdict approve --at HEAD --json"
     Then itos exits with code 0
     And its JSON's "outcome" is "posted"
@@ -309,12 +332,94 @@ Feature: itos review post records a reviewer's verdict on an item's pull request
       <!-- itos:v1 {"record":"verdict","item":"slice-9","stage":"spec","verdict":"changes","head":"@HEAD:slice-9@","round":2} -->
       """
 
+  # Already is the latest counted marker's, not any earlier one's: ana
+  # approved at this head, then asked for changes, so approve now is a new
+  # verdict, round 3. A build that found the round 1 marker would say
+  # already and post nothing. Fails before the work at the exit code: today
+  # review is no command, exit 2.
+  @ID-REVIEW-13 @wip @slice-206
+  Scenario: Under push.mode pr, a verdict an earlier marker records but the latest does not is posted as the next round
+    Given the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+      """
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the people file lists "ana" and "someone"
+    And the clone is on the new branch "slice-9"
+    And the clone has the commit "docs: specify slice-9" touching "features/widget.feature"
+    And git pushes HEAD to the remote's new branch "slice-9"
+    And the recording gh has the draft pull request "https://github.example/o/r/pull/7" open for the branch "slice-9"
+    And the recording gh answers that the pull request has a comment by "ana" recording the "spec" review of "slice-9" at the head of the remote's branch "slice-9" as round 1: "approve"
+    And the recording gh answers that the pull request has a comment by "ana" recording the "spec" review of "slice-9" at the head of the remote's branch "slice-9" as round 2: "changes"
+    When itos runs "review post slice-9 --verdict approve --at HEAD --json"
+    Then itos exits with code 0
+    And its JSON's "outcome" is "posted"
+    And its JSON's "round" is 3
+    And the recording gh's "api repos/owner/scratch/issues/7/comments" call has the field "body" holding these lines, @HEAD:slice-9@ the full SHA of the head of the remote's branch "slice-9" and @SHORT:slice-9@ its first 7 characters:
+      """
+      itos: spec review of slice-9 at @SHORT:slice-9@: approve
+
+      <!-- itos:v1 {"record":"verdict","item":"slice-9","stage":"spec","verdict":"approve","head":"@HEAD:slice-9@","round":3} -->
+      """
+
+  # With no people file every login is a person, as the work registry
+  # reads such a repository: the outsider's marker is the latest and
+  # records this verdict at this head, so nothing is posted. Fails before
+  # the work at the exit code: today review is no command, exit 2.
+  @ID-REVIEW-14 @wip @slice-206
+  Scenario: With no people file, a marker by any login counts, so the same verdict at the head is already
+    Given the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+      """
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the people file is missing
+    And the clone is on the new branch "slice-9"
+    And the clone has the commit "docs: specify slice-9" touching "features/widget.feature"
+    And git pushes HEAD to the remote's new branch "slice-9"
+    And the recording gh has the draft pull request "https://github.example/o/r/pull/7" open for the branch "slice-9"
+    And the recording gh answers that the pull request has a comment by "copilot-pull-request-reviewer" recording the "spec" review of "slice-9" at the head of the remote's branch "slice-9" as round 1: "approve"
+    When itos runs "review post slice-9 --verdict approve --at HEAD --json"
+    Then itos exits with code 0
+    And its JSON's "outcome" is "already"
+    And its JSON's "round" is 1
+    And the recording gh was never called as "api repos/owner/scratch/issues/7/comments"
+
+  # A pull request with more than a hundred comments has its markers past
+  # the first page: they are read as --ready reads them, so the marker on
+  # the second page is found and nothing is posted twice. Fails before the
+  # work at the exit code: today review is no command, exit 2.
+  @ID-REVIEW-15 @wip @slice-206
+  Scenario: Under push.mode pr, a marker on the second page of comments is read, so the same verdict there is already
+    Given the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+      """
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the people file lists "ana" and "someone"
+    And the clone is on the new branch "slice-9"
+    And the clone has the commit "docs: specify slice-9" touching "features/widget.feature"
+    And git pushes HEAD to the remote's new branch "slice-9"
+    And the recording gh has the draft pull request "https://github.example/o/r/pull/7" open for the branch "slice-9"
+    And the recording gh answers that the pull request has a comment by "someone" asking "chatgpt-codex-connector" to review the clone's HEAD again
+    And the recording gh answers that the pull request has, on a second page of comments, a comment by "ana" recording the "spec" review of "slice-9" at the head of the remote's branch "slice-9" as round 1: "approve"
+    When itos runs "review post slice-9 --verdict approve --at HEAD --json"
+    Then itos exits with code 0
+    And its JSON's "outcome" is "already"
+    And its JSON's "round" is 1
+    And the recording gh's "api graphql" call has "cursor=page2"
+    And the recording gh was never called as "api repos/owner/scratch/issues/7/comments"
+
   # The slice's other point: the branch was pushed again after the review,
   # so the commit judged is no longer the pull request's head; a verdict
   # for it would be read against a head nobody reviewed. The pull request's
   # head is the remote's, which gh gives, not the one the pull request was
-  # opened at. Fails before the work at the exit code: today review is no
-  # command, exit 2.
+  # opened at. A full SHA the clone has no commit for is taken as given
+  # and judged the same way, not refused as unknown. Fails before the work
+  # at the exit code: today review is no command, exit 2.
   @ID-REVIEW-06 @wip @slice-206
   Scenario: Under push.mode pr, review post --at a commit that is no longer the pull request's head is refused, naming the new head
     Given the config, committed and pushed to the remote's main, adds the YAML:
@@ -334,9 +439,13 @@ Feature: itos review post records a reviewer's verdict on an item's pull request
     And stdout is one JSON report with schema 1 and ok false
     And its JSON's problem "review-head-moved"'s "message" says "slice-9's pull request https://github.example/o/r/pull/7 is at "
     And its output says "is at " with the full SHA of the head of the remote's branch "slice-9"
-    And its JSON's problem "review-head-moved"'s "fix" says "--at "
+    And its output says "--at " with the full SHA of the head of the remote's branch "slice-9"
     And the recording gh was never called as "api repos/owner/scratch/issues/7/comments"
     And the recording gh was never called as "pr comment"
+    When itos runs "review post slice-9 --verdict approve --at 0123456789abcdef0123456789abcdef01234567 --json"
+    Then itos exits with code 1
+    And its JSON's problem "review-head-moved"'s "message" says "not 0123456789abcdef0123456789abcdef01234567"
+    And the recording gh was never called as "api repos/owner/scratch/issues/7/comments"
 
   # A branch not pushed yet has no pull request to mark; the words say what
   # opens one, and nothing is asked past gh pr list. Fails before the work
