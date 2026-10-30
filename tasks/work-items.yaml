@@ -15866,3 +15866,16 @@ items:
       slice should report whether the item's registry commit is on the remote's main, the plan's
       effect-uncertain case for take and done.
     tags: [work, v8]
+
+  - id: slice-209
+    title: "itos next derives an in-flight item's state from the forge under push.mode pr: spec review, implementing, merging, merged"
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [slice-203, slice-206, slice-207]
+    kind: slice
+    why: >
+      The v9 deterministic coordinator's v8 pilot (docs/plans/v9-coordinator.md, the machine):
+      slice-203's in-flight becomes the states only the forge and the attempt journal know, so a
+      driver's next step is computed, never remembered.
+    tags: [work, v8]
