@@ -71,11 +71,12 @@ Feature: itos review post records a reviewer's verdict on an item's pull request
   names (ci.range.github.repository_env, else the remote's URL): gh pr list
   --repo <repository> --head <item> --state open --json number,url for the
   pull request, as push threads asks; --ready's one gh api graphql
-  question (-f owner=<owner> -f name=<name> -F number=<number>; reviewQuery
-  in internal/slices/push/ready.go, which gains the pull request's
-  headRefOid, so --ready and review post read one answer) for the head and
-  the comments, each author's login and body, asked again for each further
-  page; then gh api
+  question (-f owner=<owner> -f name=<name> -F number=<number>; push's
+  reviewQuery, which gains the pull request's headRefOid and moves beside
+  providers.BranchPulls as the question both commands put, since a slice
+  imports no other slice, so --ready and review post read one answer) for
+  the head and the comments, each author's login and body, asked again for
+  each further page; then gh api
   repos/<owner>/<name>/issues/<number>/comments -f body=<the body>, which
   posts the comment and answers it, its html_url the address --json gives.
   It fetches, rebases and pushes nothing, asks no identity provider (the
@@ -146,8 +147,9 @@ Feature: itos review post records a reviewer's verdict on an item's pull request
   call's last field, which the step's doc comment says), and fails unless
   it is the doc string's lines joined by the two characters \n (as
   dispatch.sh records a line end), the two placeholders replaced; and "its
-  JSON's <key> is the full SHA of the head of the remote's branch
-  <branch>".
+  JSON's <key> holds the full SHA of the head of the remote's branch
+  <branch>" (holds, not is: "its JSON's <key> is <value>" is promote's step,
+  which godog would read this one as too).
 
   Background:
     Given a repository whose ledger has the task "T-001"
@@ -219,7 +221,7 @@ Feature: itos review post records a reviewer's verdict on an item's pull request
     And its JSON's "item" is "slice-9"
     And its JSON's "stage" is "diff"
     And its JSON's "verdict" is "changes"
-    And its JSON's "head" is the full SHA of the head of the remote's branch "slice-9"
+    And its JSON's "head" holds the full SHA of the head of the remote's branch "slice-9"
     And its JSON's "round" is 1
     And its JSON's "comment" is "https://github.example/o/r/pull/7#issuecomment-1"
     And the recording gh's "api repos/owner/scratch/issues/7/comments" call has the field "body" holding these lines, @HEAD:slice-9@ the full SHA of the head of the remote's branch "slice-9" and @SHORT:slice-9@ its first 7 characters:
