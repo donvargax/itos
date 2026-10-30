@@ -231,6 +231,12 @@ func refsOf(item *value.Map) []string {
 // files, each once, in the order found.
 func (h Handler) spec(_ context.Context, at *config.Loaded, f *facts) error {
 	if f.Kind == "task" {
+		// Files first: Tasks reads them too, so a folder that cannot be
+		// listed fails here and a file that is not YAML there.
+		files, err := ledger.Files(at)
+		if err != nil {
+			return err
+		}
 		tasks, err := ledger.Tasks(at)
 		if err != nil {
 			return err
@@ -238,10 +244,6 @@ func (h Handler) spec(_ context.Context, at *config.Loaded, f *facts) error {
 		i := slices.IndexFunc(tasks, func(t ledger.Task) bool { return t.ID == f.ID })
 		if i < 0 {
 			return nil
-		}
-		files, err := ledger.Files(at)
-		if err != nil {
-			return err
 		}
 		for _, file := range files {
 			if file.Group == tasks[i].GroupText() {

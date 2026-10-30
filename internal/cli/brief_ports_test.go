@@ -62,8 +62,14 @@ func TestBriefPortsBindTheRealCode(t *testing.T) {
 	if got.Spec.Commit != strings.TrimSpace(string(head)) || len(got.Reads) != 3 || got.Reads[2].Path != "internal/foo/doc.go" || got.Reads[2].Blob != entries["internal/foo/doc.go"].Object || len(got.Omitted) != 1 || got.Omitted[0].Path != "docs/missing.md" {
 		t.Errorf("brief --json: %+v", got)
 	}
-	if !strings.Contains(got.Brief, "in the repository at "+filepath.ToSlash(dir)+": Nine.") {
-		t.Errorf("the brief names the top as git prints it: %.200q", got.Brief)
+	// The top as git prints it: its links resolved (macOS's /var is
+	// /private/var), forward slashes on Windows.
+	top, err := filepath.EvalSymlinks(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(got.Brief, "in the repository at "+filepath.ToSlash(top)+": Nine.") {
+		t.Errorf("the brief names the top as git prints it, %s: %.200q", filepath.ToSlash(top), got.Brief)
 	}
 	if code, _, stderr := run("brief", "slice-9"); code != ExitUsage || !strings.Contains(stderr, "--role") {
 		t.Errorf("brief without --role: exit %d, stderr %q", code, stderr)
