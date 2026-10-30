@@ -71,7 +71,7 @@ cases:
       state: done
       owner: a
       next: { actor: none, action: none }
-      revision: "sha256:52832199c7312e7d290e5292eadccce55b5d1853cf399bc5d1cf27418b2ea222"
+      revision: "sha256:de052b91e81ef82fc95d6d72dacb81210aedd6496d0d44ef50fd62f3f48276b8"
   - name: a slice with a wip scenario at HEAD is in flight
     argv: [next, slice-1, --json]
     exit: 0
@@ -83,7 +83,7 @@ cases:
       state: in-flight
       owner: a
       next: { actor: forge, action: observe }
-      revision: "sha256:3da41ee2d104b31cfa2aa798292c11c23b777581212a519863af94d668452ded"
+      revision: "sha256:d5967076b8e344df6ffb76469d7610fcb1632339e1e913f2edfaa2b09c423b24"
   - name: a slice with no scenario needs a spec, run as itos brief
     argv: [next, slice-2]
     exit: 0
@@ -99,7 +99,7 @@ cases:
       state: needs-spec
       owner: null
       next: { actor: drafter, action: specify, argv: [itos, brief, slice-2, --role, drafter] }
-      revision: "sha256:4b5919627471104fc66df62f45db3500656bb7edb6fd3e3bb4ed624c354a3f65"
+      revision: "sha256:54c5f6505b293966df2de9243003e4f1aebdb2ffa3103d26f5aad2026bdf73df"
   - name: an item waits on its dependencies not done
     argv: [next, slice-3, --json]
     exit: 0
@@ -112,7 +112,7 @@ cases:
       owner: null
       next: { actor: none, action: wait }
       waits_on: [slice-1]
-      revision: "sha256:c0d79ee9860bae668b9e07d8aaa72ba3482e43d3ac6f4efbc77a9d21c9e2876f"
+      revision: "sha256:9b3a7c1cdd447c78d412a3a9f94003be54466def9ec66fa839a6128ebaa505d6"
   - name: an open question blocks the item on the person
     argv: [next, slice-4, --json]
     exit: 0
@@ -126,7 +126,7 @@ cases:
       next: { actor: person, action: answer }
       waits_on: [q-1]
       blocked_reason: decision
-      revision: "sha256:6594913b47ade241491bc50554ea07832052a2adee334fef495305f9238bc57b"
+      revision: "sha256:cbd2e4bf14a83bb7377c123a38705e3f3f19807d9b517f27bf38d7be87b2c2a6"
   - name: the registry's status blocked, its blocked_by a list of ids
     argv: [next, slice-5, --json]
     exit: 0
@@ -140,7 +140,7 @@ cases:
       next: { actor: person, action: answer }
       waits_on: [slice-1]
       blocked_reason: status
-      revision: "sha256:62c40c84431d1589e68a8306b8e099d3b93b220f0a3106d1081c44b85fa352f3"
+      revision: "sha256:f66ebddea6d28dc99c31fee8ba33b4edc6f04db3513c6c2b32afce8baecfd108"
   - name: the registry's status blocked, its blocked_by prose
     argv: [next, slice-6, --json]
     exit: 0
@@ -153,7 +153,7 @@ cases:
       owner: null
       next: { actor: person, action: answer }
       blocked_reason: status
-      revision: "sha256:b8700eac00412605149f199d25cc4aabfc384bc7238c001b861d214dbb9a56d1"
+      revision: "sha256:552b3ff43a1f147916d74e7820e42457ad01c192e3ed833028eb4d4abf9035ed"
   - name: a deferred item is parked
     argv: [next, slice-7]
     exit: 0
@@ -169,7 +169,7 @@ cases:
       state: idea
       owner: null
       next: { actor: person, action: promote }
-      revision: "sha256:a3645a02025e74f91c3399a2a633c5b1a754fd54702fcd14920c2d3a6199316f"
+      revision: "sha256:be41b0e61e5991467c11feecb323805cb57820e97aa1ec6447e5e71a1b5276af"
   - name: a task with a ledger check is in flight, its kind read from its id
     argv: [next, T-1, --json]
     exit: 0
@@ -181,7 +181,7 @@ cases:
       state: in-flight
       owner: null
       next: { actor: forge, action: observe }
-      revision: "sha256:ea0610c96819d876136531ce127c957c2e78ccc4d4bda8e115d53a3129726aa1"
+      revision: "sha256:9d61c37fabef3d66d73d303ce9cdc383ffb371d71e90f8d2e370aae43840595c"
   - name: a task with no check needs a spec
     argv: [next, T-2, --json]
     exit: 0
@@ -193,7 +193,7 @@ cases:
       state: needs-spec
       owner: null
       next: { actor: drafter, action: specify, argv: [itos, brief, T-2, --role, drafter] }
-      revision: "sha256:7f58166821c55a6393b492fc26fdbf4fcdf53fa3d789641d0102a564a1be7b07"
+      revision: "sha256:ee56c84ea0c76ab59e0a7d2aab36b8bb8bc9ace6bd750efa34a8e65264cb9d71"
   - name: a bug with no scenario needs a spec, its kind read from its id
     argv: [next, bug-1, --json]
     exit: 0
@@ -205,7 +205,7 @@ cases:
       state: needs-spec
       owner: null
       next: { actor: drafter, action: specify, argv: [itos, brief, bug-1, --role, drafter] }
-      revision: "sha256:63109914159b5e91c8478c767a129f5177c0557f1695ca0ab8c810b407e64c93"
+      revision: "sha256:b50fd0bee7a84eafe1cad6790499c27c363b7a19dacccf7eb058cb6987e1c9c2"
   - name: an id the registry lacks is refused
     argv: [next, slice-9, --json]
     exit: 1

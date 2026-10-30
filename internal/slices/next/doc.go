@@ -44,8 +44,10 @@
 // runs.
 //
 // The revision (revision.go) is sha256: and the hex digest of exactly the
-// facts read, one line each in a fixed order, so a commit that touches none
-// of them leaves it as it was and a change to any gives a new one; a driver
+// facts read, the kind as read among them, one line each in a fixed order,
+// so a commit that touches none of them leaves it as it was and a change to
+// any, a ledger.id that no longer makes an id a task's included, gives a
+// new one; a driver
 // hands it back to a mutating command as the state it acted on
 // (docs/plans/v9-coordinator.md, rerun safety).
 package next
