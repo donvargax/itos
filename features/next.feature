@@ -35,11 +35,13 @@ Feature: itos next, an item's state and next step from the facts in the reposito
   --json: {"schema":1,"ok":true,"item","kind","state","owner","next":{"actor","action","argv"?},"waits_on"?,"blocked_reason"?,"revision"},
   owner the item's own owner as written, null when it is null, never its
   group's; argv only for a deterministic itos command (needs-spec's is itos
-  guide brief); waits_on only what its state waits on: the ids blocked_by
-  lists for an item whose status is blocked, the open questions' ids for
-  one a question blocks, the undone dependencies' ids for a waiting one;
-  blocked_reason, on a blocked item alone, "status" for the registry's
-  status blocked and "decision" for an open question. revision is
+  guide brief); waits_on only what its state waits on: the open questions'
+  ids for an item a question blocks, the ids blocked_by lists for one whose
+  status is blocked, none when its blocked_by is prose (as the registry's
+  header describes it) or absent, the undone dependencies' ids for a
+  waiting one; blocked_reason, on a blocked item alone, "decision" for an
+  open question and "status" for the registry's status blocked, the open
+  question winning when both hold. revision is
   "sha256:" and the hex digest of exactly the facts read: the item's
   registry entry as written, its dependencies' statuses, the open questions
   naming it, its tagged scenarios and its ledger checks, so a commit that
@@ -334,9 +336,12 @@ Feature: itos next, an item's state and next step from the facts in the reposito
 
   # slice-7 is not done. slice-8 depends on it but lists no blocked_by: it
   # is blocked, not waiting, and waits on nothing, since waits_on comes
-  # from blocked_by alone. slice-9's blocked_by names slice-7.
+  # from blocked_by alone. slice-9's blocked_by names slice-7; slice-10's is
+  # prose, as the registry's header describes it, and names nothing.
+  # slice-11 is both blocked and named by an open question: the question
+  # wins, so its reason is decision and it waits on q-1, not on slice-7.
   @ID-NEXT-14 @wip @slice-203
-  Scenario: The registry's status blocked blocks the item on the person
+  Scenario: The registry's status blocked blocks the item on the person, an open question first
     Given the committed file "tasks/work-items.yaml" holding the lines:
       """
       phases: { 1: null }
@@ -360,6 +365,27 @@ Feature: itos next, an item's state and next step from the facts in the reposito
           status: blocked
           depends_on: []
           blocked_by: [slice-7]
+        - id: slice-10
+          title: Blocked outside
+          phase: 1
+          owner: null
+          status: blocked
+          depends_on: []
+          blocked_by: waiting on the vendor
+        - id: slice-11
+          title: Blocked twice
+          phase: 1
+          owner: null
+          status: blocked
+          depends_on: []
+          blocked_by: [slice-7]
+      """
+    And the committed file "tasks/asks.yaml" holding the lines:
+      """
+      questions:
+        - id: q-1
+          item: "slice-11"
+          question: "Which way?"
       """
     When itos runs "next slice-8 --json"
     Then itos exits with code 0
@@ -372,6 +398,17 @@ Feature: itos next, an item's state and next step from the facts in the reposito
     And its JSON's "state" is "blocked"
     And its JSON's "blocked_reason" is "status"
     And its JSON's "waits_on" is ["slice-7"]
+    When itos runs "next slice-10 --json"
+    Then itos exits with code 0
+    And its JSON's "state" is "blocked"
+    And its JSON's "blocked_reason" is "status"
+    And its JSON has no "waits_on"
+    When itos runs "next slice-11 --json"
+    Then itos exits with code 0
+    And its JSON's "state" is "blocked"
+    And its JSON's "next" is {"actor": "person", "action": "answer"}
+    And its JSON's "blocked_reason" is "decision"
+    And its JSON's "waits_on" is ["q-1"]
 
   # The scenario kind is declared by a committed feature file tagged for
   # another item. The uncommitted feature file is not at HEAD, where the
