@@ -350,6 +350,19 @@ Feature: itos brief, the filled brief an agent starts from and its request
     Then itos exits with code 1
     And its output says "itos work promote p1-next --kind slice"
 
+  # The config is HEAD's too (the review of the build, round 1): the working
+  # tree's itos.yaml, staged and no longer a config at all, changes no
+  # brief, where a config read from the working tree would refuse the run.
+  @ID-BRIEF-13 @wip @slice-204
+  Scenario: The brief is a function of HEAD, an uncommitted change to the config aside
+    Given the work registry has the item "slice-9" owned by nobody with the status "todo"
+    And a feature file with the scenario "@ID-A-01" tagged "@wip @slice-9"
+    And an unrelated change to "itos.yaml" is staged
+    When itos runs "brief slice-9 --role implementer --json"
+    Then itos exits with code 0
+    And its JSON's "item" is "slice-9"
+    And the "path" of each entry of its JSON's "reads", in order, is "AGENTS.md, features/tagged.feature"
+
   # The saved state is every file of the clone, its git folder included,
   # so HEAD, the index and anything itos might keep in .git/itos are
   # compared. A gh on the PATH records any call, so asking the forge shows.
