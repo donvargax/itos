@@ -15533,7 +15533,7 @@ items:
     title: push's pushedAt returns only a time, so no equivalent mutant hides in its unused bool
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
 

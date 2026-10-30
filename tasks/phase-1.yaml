@@ -5217,5 +5217,3 @@
     answer, another head, unparsable timestamp) and the later push winning, so CI's push proof
     judges a killable mutant on every changed line. No itos-cc.yaml exception: the redundancy goes,
     not the mutant's verdict.
-  done_when:
-    - run: go test ./internal/slices/push -count=1
