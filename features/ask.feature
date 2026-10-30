@@ -97,7 +97,7 @@ Feature: itos decision, the decisions waiting on the person a repository's work 
   # those awaiting the person, and the list's other sections leave them
   # out: with --all, the answered questions, in the text and in --json's
   # "questions", are those answered for good.
-  @wip @ID-ASK-45 @slice-205
+  @ID-ASK-45 @slice-205
   Scenario: decision add --class keeps the question's class beside it, and commits the file alone
     Given the work registry has the item "slice-9" owned by nobody with the status "todo"
     When itos runs the command line "decision add 'Labels or Projects?' --item slice-9 --class spec"
@@ -107,7 +107,7 @@ Feature: itos decision, the decisions waiting on the person a repository's work 
     When itos runs the command line "decision show q-1 --json"
     Then its JSON's "question" is {"id":"q-1","item":"slice-9","question":"Labels or Projects?","status":"open","class":"spec"}
 
-  @wip @ID-ASK-46 @slice-205
+  @ID-ASK-46 @slice-205
   Scenario: decision answer --provisional --by answers a question of a delegated class, keeping its class and who answered
     Given the config sets "work.delegated" to the YAML "[spec, review]"
     And itos has run the command line "decision add 'Labels or Projects?' --class spec"
@@ -121,7 +121,7 @@ Feature: itos decision, the decisions waiting on the person a repository's work 
 
   # No class delegates implicitly: a question asked without one is the
   # person's whatever work.delegated lists.
-  @wip @ID-ASK-47 @slice-205
+  @ID-ASK-47 @slice-205
   Scenario: decision answer --provisional refuses a question with no class, writing nothing
     Given the config sets "work.delegated" to the YAML "[spec]"
     And itos has run the command line "decision add 'Labels or Projects?'"
@@ -132,7 +132,7 @@ Feature: itos decision, the decisions waiting on the person a repository's work 
     And the file "tasks/asks.yaml" has the same contents as its committed version
     And the last commit's header is "docs: ask q-1"
 
-  @wip @ID-ASK-48 @slice-205
+  @ID-ASK-48 @slice-205
   Scenario: decision answer --provisional refuses a class work.delegated does not list, naming it
     Given the config sets "work.delegated" to the YAML "[spec]"
     And itos has run the command line "decision add 'Labels or Projects?' --class review"
@@ -146,7 +146,7 @@ Feature: itos decision, the decisions waiting on the person a repository's work 
 
   # The flags go together, so an answer never names who gave it without
   # being provisional, nor is provisional without naming who gave it.
-  @wip @ID-ASK-56 @slice-205
+  @ID-ASK-56 @slice-205
   Scenario: decision answer with --by alone, or --provisional alone, is a usage error naming the flag missing
     Given the config sets "work.delegated" to the YAML "[spec]"
     And itos has run the command line "decision add 'Labels or Projects?' --class spec"
@@ -161,7 +161,7 @@ Feature: itos decision, the decisions waiting on the person a repository's work 
 
   # Work proceeds on a provisional answer, so nothing that lists the open
   # questions holds it up: not decision's list, not status's open questions.
-  @wip @ID-ASK-49 @slice-205
+  @ID-ASK-49 @slice-205
   Scenario: A provisionally answered question is answered, not open, to decision and to status
     Given the config sets "work.delegated" to the YAML "[spec]"
     And itos has run the command line "decision add 'Labels or Projects?' --class spec"
@@ -178,7 +178,7 @@ Feature: itos decision, the decisions waiting on the person a repository's work 
   # The person's daily or weekly review. The file keeps no times, so oldest
   # first is the order asked, the file's: q-2 is answered before q-1 here
   # and q-1 is still listed first.
-  @wip @ID-ASK-50 @slice-205
+  @ID-ASK-50 @slice-205
   Scenario: decision lists the provisional answers awaiting the person in a section of their own, oldest first, each with its class and who answered
     Given the config sets "work.delegated" to the YAML "[spec, review]"
     And itos has run the command line "decision add 'Labels or Projects?' --class spec"
@@ -196,7 +196,7 @@ Feature: itos decision, the decisions waiting on the person a repository's work 
     When itos runs the command line "decision --json"
     Then its JSON's "provisional" is [{"id":"q-1","question":"Labels or Projects?","status":"answered","answer":"Labels.","class":"spec","provisional":true,"by":"agent-1"},{"id":"q-2","question":"Is the archive worth it?","status":"answered","answer":"No.","class":"review","provisional":true,"by":"agent-2"}]
 
-  @wip @ID-ASK-51 @slice-205
+  @ID-ASK-51 @slice-205
   Scenario: decision ratify clears provisional, keeping the class and who answered, and the answer is then a decision to record
     Given the config sets "work.delegated" to the YAML "[spec]"
     And itos has run the command line "decision add 'Labels or Projects?' --class spec"
@@ -211,7 +211,7 @@ Feature: itos decision, the decisions waiting on the person a repository's work 
     Then its output does not say "Provisional answers"
     And its output says "itos decision record q-1"
 
-  @wip @ID-ASK-52 @slice-205
+  @ID-ASK-52 @slice-205
   Scenario: decision overturn replaces the answer with the person's, keeping the agent's beside it as overturned
     Given the config sets "work.delegated" to the YAML "[spec]"
     And itos has run the command line "decision add 'Labels or Projects?' --class spec"
@@ -227,7 +227,7 @@ Feature: itos decision, the decisions waiting on the person a repository's work 
 
   # q-1 is the person's own answer: overturn must refuse it too, since
   # nothing replaces what the person settled.
-  @wip @ID-ASK-53 @slice-205
+  @ID-ASK-53 @slice-205
   Scenario: decision ratify and overturn refuse a question with no provisional answer, writing nothing
     Given itos has run the command line "decision add 'Labels or Projects?'"
     And itos has run the command line "decision answer q-1 'Labels.'"
@@ -247,7 +247,7 @@ Feature: itos decision, the decisions waiting on the person a repository's work 
     When itos runs "decision show q-1"
     Then its output says "Labels."
 
-  @wip @ID-ASK-54 @slice-205
+  @ID-ASK-54 @slice-205
   Scenario: Under a stealth config a provisional answer is written in the git folder, and nothing is committed
     Given itos's config is kept in the git folder
     And the config sets "work.delegated" to the YAML "[spec]"
@@ -259,7 +259,7 @@ Feature: itos decision, the decisions waiting on the person a repository's work 
 
   # A provisional answer is the agent's until the person ratifies it, so it
   # is no decision to write as a record, and the nudge does not name it.
-  @wip @ID-ASK-55 @slice-205
+  @ID-ASK-55 @slice-205
   Scenario: decision record refuses a provisional answer, and the nudge leaves it out until it is ratified
     Given the config sets "work.delegated" to the YAML "[spec]"
     And itos has run the command line "decision add 'Labels or Projects?' --class spec"

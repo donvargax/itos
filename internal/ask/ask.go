@@ -26,24 +26,33 @@ const (
 )
 
 // Question is one question: its id, the item it holds up ("" for none), its
-// text, its answer ("" while open) and its decision: the number of the
-// decision record its answer was written as, None when it was marked as
-// recorded nowhere, "" while it is neither.
+// text, its class ("" for none: the person's), its answer ("" while open)
+// and its decision: the number of the decision record its answer was
+// written as, None when it was marked as recorded nowhere, "" while it is
+// neither. An answering agent's answer (slice 205) is Provisional until the
+// person ratifies or overturns it, By naming who gave it, which stays once
+// it is settled; Overturned keeps the agent's answer once the person's
+// replaced it.
 type Question struct {
-	ID       string `yaml:"id"`
-	Item     string `yaml:"item,omitempty"`
-	Question string `yaml:"question"`
-	Answer   string `yaml:"answer,omitempty"`
-	Decision string `yaml:"decision,omitempty"`
+	ID          string `yaml:"id"`
+	Item        string `yaml:"item,omitempty"`
+	Question    string `yaml:"question"`
+	Class       string `yaml:"class,omitempty"`
+	Answer      string `yaml:"answer,omitempty"`
+	Provisional bool   `yaml:"provisional,omitempty"`
+	By          string `yaml:"by,omitempty"`
+	Overturned  string `yaml:"overturned,omitempty"`
+	Decision    string `yaml:"decision,omitempty"`
 }
 
 // None is the decision of an answer that concerned its item alone, so it is
 // recorded nowhere and itos decision stops naming it.
 const None = "none"
 
-// Unrecorded is whether the question is answered and its answer recorded
-// nowhere: no decision record, and not marked None.
-func (q Question) Unrecorded() bool { return q.Answer != "" && q.Decision == "" }
+// Unrecorded is whether the question is answered for good and its answer
+// recorded nowhere: no decision record, and not marked None. A provisional
+// answer is no decision yet, so it is not.
+func (q Question) Unrecorded() bool { return q.Answer != "" && !q.Provisional && q.Decision == "" }
 
 // Status is the question's status: open, or answered.
 func (q Question) Status() string {
@@ -76,6 +85,8 @@ func ValidID(id string) bool { return idPattern.MatchString(id) }
 // what was read would drop the rest: an unknown key, a question with no id
 // itos gives, two with one id or one with no text, a decision that is
 // neither a record's number nor none, or one on a question not answered, a
+// provisional answer with no answer, no by or a decision, a by or an
+// overturned answer with no answer, a
 // second YAML document, or no document at all (itos writes "questions: []"
 // for none), or what value.CheckWritten refuses, which yaml.v3 skips (bug
 // 152): a key written twice under a null key, a null key, a null list item.
@@ -114,6 +125,16 @@ func parse(path, text string) (File, error) {
 			return File{}, fmt.Errorf("%s: %s's decision is %q, neither a decision record's number nor none", path, q.ID, q.Decision)
 		case q.Decision != "" && q.Answer == "":
 			return File{}, fmt.Errorf("%s: %s has a decision and no answer", path, q.ID)
+		case q.Provisional && q.Answer == "":
+			return File{}, fmt.Errorf("%s: %s is provisional and has no answer", path, q.ID)
+		case q.Provisional && q.By == "":
+			return File{}, fmt.Errorf("%s: %s is provisional and names no one who answered (by)", path, q.ID)
+		case q.Provisional && q.Decision != "":
+			return File{}, fmt.Errorf("%s: %s is provisional and has a decision", path, q.ID)
+		case q.By != "" && q.Answer == "":
+			return File{}, fmt.Errorf("%s: %s names who answered (by) and has no answer", path, q.ID)
+		case q.Overturned != "" && q.Answer == "":
+			return File{}, fmt.Errorf("%s: %s has an overturned answer and no answer", path, q.ID)
 		}
 		seen[q.ID] = true
 	}
@@ -121,8 +142,8 @@ func parse(path, text string) (File, error) {
 }
 
 // Text is the file as itos writes it: its head comment, then each question
-// a block mapping, its texts double-quoted, its decision, a number or none,
-// plain.
+// a block mapping, its texts double-quoted, its provisional true and its
+// decision, a number or none, plain.
 func Text(f File) string {
 	var b strings.Builder
 	b.WriteString(head)
@@ -137,8 +158,20 @@ func Text(f File) string {
 			fmt.Fprintf(&b, "    item: %s\n", quoted(q.Item))
 		}
 		fmt.Fprintf(&b, "    question: %s\n", quoted(q.Question))
+		if q.Class != "" {
+			fmt.Fprintf(&b, "    class: %s\n", quoted(q.Class))
+		}
 		if q.Answer != "" {
 			fmt.Fprintf(&b, "    answer: %s\n", quoted(q.Answer))
+		}
+		if q.Provisional {
+			b.WriteString("    provisional: true\n")
+		}
+		if q.By != "" {
+			fmt.Fprintf(&b, "    by: %s\n", quoted(q.By))
+		}
+		if q.Overturned != "" {
+			fmt.Fprintf(&b, "    overturned: %s\n", quoted(q.Overturned))
 		}
 		if q.Decision != "" {
 			fmt.Fprintf(&b, "    decision: %s\n", q.Decision)
@@ -180,9 +213,10 @@ func (f *File) NextID() string {
 	return "q-" + strconv.Itoa(highest+1)
 }
 
-// Add asks a question, open, at the end of the file, with the next id.
-func (f *File) Add(text, item string) *Question {
-	f.Questions = append(f.Questions, Question{ID: f.NextID(), Item: item, Question: text})
+// Add asks a question, open, at the end of the file, with the next id, of
+// the class ("" for none).
+func (f *File) Add(text, item, class string) *Question {
+	f.Questions = append(f.Questions, Question{ID: f.NextID(), Item: item, Question: text, Class: class})
 	return &f.Questions[len(f.Questions)-1]
 }
 

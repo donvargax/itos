@@ -31,7 +31,7 @@ func TestDecisionPortsBindTheRealCode(t *testing.T) {
 		t.Errorf("runDecision = %d, %v, stdout %q", code, err, stdout.String())
 	}
 	if _, err := runDecision([]string{"nope"}, Out{}); err == nil ||
-		err.Error() != "decision has no subcommand nope: it takes add, answer, record or show, else --all" {
+		err.Error() != "decision has no subcommand nope: it takes add, answer, ratify, overturn, record or show, else --all" {
 		t.Errorf("runDecision nope = %v, want the usage error", err)
 	}
 }

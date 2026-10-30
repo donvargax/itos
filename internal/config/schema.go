@@ -303,6 +303,7 @@ var schema = about("itos's policy: the ledger, the commit rules, the named tests
 		"groups_key", about("The registry's key whose entries name each group's owner.", str),
 		"statuses", about("The statuses a work item may have; dropped, which itos work drop gives, is known whatever this lists.", strs),
 		"tags", about("The tags a work item may carry, distinct and none empty; left out, an item may carry none.", strs),
+		"delegated", about("The decision classes an answering agent may settle provisionally (itos decision answer --provisional), distinct and none empty; left out, every decision is the person's.", strs),
 		"people", about("Who may own work: the source and the file it reads.", obj([]string{"source", "file"},
 			"source", enum("all-contributors-md", "all-contributorsrc", "yaml"),
 			"file", str,

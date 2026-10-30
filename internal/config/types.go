@@ -377,9 +377,13 @@ type Work struct {
 	Statuses  []string `json:"statuses"`
 	// Tags are the tags an item may carry (slice 97), none when the config
 	// declares none, so a typo is refused rather than becoming a tag.
-	Tags     []string `json:"tags"`
-	People   People   `json:"people"`
-	Identity struct {
+	Tags []string `json:"tags"`
+	// Delegated are the decision classes an answering agent may settle
+	// provisionally (slice 205), none when the config declares none: a
+	// question of any other class, or of none, is the person's.
+	Delegated []string `json:"delegated"`
+	People    People   `json:"people"`
+	Identity  struct {
 		Provider string `json:"provider"`
 		Hint     string `json:"hint"`
 	} `json:"identity"`

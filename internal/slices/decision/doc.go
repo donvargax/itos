@@ -18,6 +18,19 @@
 // and the list read, never write; the list ends naming the answered
 // questions recorded nowhere, each as itos decision record would record it.
 //
+// Delegated classes (slice 205, ADR-0062): add --class gives a question its
+// class; answer --provisional --by, the two flags together, answers one
+// whose class work.delegated lists, in the person's place, refused
+// (ask-not-delegated) for a question with no class or of a class not
+// listed, since no class delegates implicitly and sign-offs stay the
+// person's. A provisional answer is answered to everything that reads the
+// open questions, so work proceeds on it; the list holds it in a section of
+// its own, oldest first, until the person settles it with ratify or
+// overturn (settle, "docs: ratify q-<n>", "docs: overturn q-<n>"), each
+// refused (ask-not-provisional) for a question with no provisional answer,
+// the person's own included. record refuses a provisional answer
+// (ask-provisional), and the nudge leaves it out (ask.Question.Unrecorded).
+//
 // record (slice 69) writes an answered question as the next architecture
 // decision record, in MADR 4's format since slice 71, in the folder
 // work.decisions names: Considered Options from --option, which repeated

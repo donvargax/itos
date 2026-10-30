@@ -59,7 +59,7 @@ cases:
     argv: [decision, --help]
     exit: 0
     stdout_nonempty: true
-    stdout_has: [itos decision add, itos decision answer, itos decision record, itos decision show]
+    stdout_has: [itos decision add, itos decision answer, itos decision ratify, itos decision overturn, itos decision record, itos decision show]
   - name: itos followup --help
     argv: [followup, --help]
     exit: 0
