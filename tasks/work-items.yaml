@@ -15824,8 +15824,8 @@ items:
   - id: slice-208
     title: "work take and work done take --expect <revision>: a stale one changes nothing, a target already reached is already"
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: [slice-203]
     kind: slice
     why: >
