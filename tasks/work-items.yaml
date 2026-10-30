@@ -15555,8 +15555,8 @@ items:
   - id: bug-155
     title: "A fails: check passes only when its command ran and exited non-zero, never on a timeout, a spawn error or exit 127"
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: bug
     why: >
