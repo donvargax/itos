@@ -12546,6 +12546,11 @@ items:
       work; the record could hold the failing step and its first error line, and red-first could
       refuse a scenario that failed at another step than the one its comment (or a tag) names. Until
       this item, red-first rests on the implementer's report alone, as pstack's does.
+
+      The person's research reports, 2026-10-30 (kept outside the repository): red first must tell
+      the intended Then failure from a setup or infrastructure failure, the same question as
+      bug-155's fails: checks; the blueprint labels evidence by trust class (narrative, local
+      record, CI record, sign-off).
     tags: [evidence, v8]
 
   - id: p1-evidence-pre-push
