@@ -204,13 +204,19 @@ Each with the coordinator's recommendation; the person decides.
    `git show --diff-merges=first-parent <merge>`). Recommended; trunk mode avoids it entirely.
 2. **Message checks at push (friction question 4).** Commits free locally, amend included; the
    range judged at `itos push` and in CI. Open: the person has a doubt not yet stated.
-3. **Attempt and verdict records:** pull request markers, a local journal only before the pull
-   request exists, never commits.
+3. **Attempt and verdict records:** settled for the pilot (the person, 2026-10-30): append-only
+   pull request markers (a readable line and hidden JSON, counted only from logins among the
+   people, every claim rechecked against git and the forge), a local journal only before the pull
+   request exists, never commits. Where they live for good stays a design question: commit
+   statuses suit the facts bound to a head (a verdict, acceptance), are shared, show in the pull
+   request and can be required checks, which would also answer question 6; git notes or custom
+   refs suit trunk mode.
 4. **Who runs `--ready`:** the driver, since it no longer judges or waits.
 5. **Trunk mode's status** has no pull request to derive from: pilot pr mode first; trunk keeps
    committed status until p1-github-registry-pilot decides where it lives.
-6. **Codex gating auto-merge:** a CI job reading the review state for the head posts a required
-   check, beside GitHub's conversation-resolution rule.
+6. **The reviewers gating auto-merge:** Codex and Cursor's Bugbot (added 2026-10-30); a CI job
+   reading both review states for the head posts a required check, beside GitHub's
+   conversation-resolution rule.
 7. **A task's checks once done is never committed:** they retire when the item is derived done;
    pruning the ledger is a periodic docs commit the person approves (ADR-0043's intent).
 8. **Budgets:** two attempts per role per state, three review rounds, the same failure twice blocks;
