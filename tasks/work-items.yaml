@@ -8180,6 +8180,11 @@ items:
 
       The user, 2026-10-24: the GitHub registry is left to v9, not a v8 pilot; pr mode's follow-ups
       are built for v8 without it.
+
+      The person's research reports, 2026-10-30 (kept outside the repository) (the Orchestra
+      comparison): keep scenarios and checks in git; an issue's text must never become an executable
+      check (Orchestra turns imported GitHub issue sections into command capabilities, the
+      counterexample).
     refs: [internal/work, internal/providers]
     tags: [work, providers, v9]
 
