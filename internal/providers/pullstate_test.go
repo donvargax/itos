@@ -30,7 +30,7 @@ func pageAnswer(comments string, more string) string {
 	if more != "" {
 		pageInfo = fmt.Sprintf(`"pageInfo":{"hasNextPage":true,"endCursor":%q},`, more)
 	}
-	return `{"data":{"repository":{"pullRequest":{` +
+	return `{"data":{"repository":{"pullRequest":{"headRefOid":"0123456789abcdef0123456789abcdef01234567",` +
 		`"timelineItems":{"nodes":[{"createdAt":"2026-10-24T10:00:00Z"}]},` +
 		`"reviews":{"nodes":[{"author":{"login":"codex"},"body":"LGTM"},{"author":null,"body":"gone"}]},` +
 		`"comments":{` + pageInfo + `"nodes":[` + comments + `]},` +
@@ -57,6 +57,7 @@ func TestAskPullStateReadsOneAnswer(t *testing.T) {
 	}
 	at := func(text string) time.Time { return githubTime(text) }
 	want := PullState{
+		Head:     "0123456789abcdef0123456789abcdef01234567",
 		Reviews:  []Authored{{Login: "codex", Body: "LGTM"}},
 		Comments: []Authored{{Login: "someone", Body: "hi", Created: at("2026-10-24T11:00:00Z"), Updated: at("2026-10-24T12:00:00Z")}},
 		ReadyAt:  at("2026-10-24T10:00:00Z"),
@@ -154,7 +155,7 @@ func TestAskPullStateErrors(t *testing.T) {
 		return `{"data":{"repository":{"pullRequest":{"reviews":{"nodes":[{"author":{"login":"x"},"body":""}]},"reviewThreads":{"nodes":[]}}}}}`, nil
 	}
 	got, err := AskPullState(context.Background(), bare, "owner/name", 7)
-	if err != nil || len(got.Comments) != 0 || !got.ReadyAt.IsZero() || len(got.Reviews) != 1 || len(got.Threads) != 0 {
+	if err != nil || got.Head != "" || len(got.Comments) != 0 || !got.ReadyAt.IsZero() || len(got.Reviews) != 1 || len(got.Threads) != 0 {
 		t.Errorf("an answer without comments or a timeline: %+v, %v", got, err)
 	}
 	if !githubTime("not a time").IsZero() {

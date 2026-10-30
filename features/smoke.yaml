@@ -208,6 +208,10 @@
   scenarios:
     - id: "@ID-PUSHTHREAD-04"
       why: a thread replied to, then resolved, in that order, the file's point
+- file: review.feature
+  scenarios:
+    - id: "@ID-REVIEW-01"
+      why: a verdict posted as one comment, its readable line and its marker bound to the head, round 1, the file's point
 - file: shim.feature
   scenarios:
     - id: "@ID-SHIM-01"

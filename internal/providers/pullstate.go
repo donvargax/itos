@@ -17,7 +17,7 @@ import (
 // call to one line.
 var PullStateQuery = strings.Join(strings.Fields(`
 	query($owner: String!, $name: String!, $number: Int!, $cursor: String) {
-	repository(owner: $owner, name: $name) { pullRequest(number: $number) {
+	repository(owner: $owner, name: $name) { pullRequest(number: $number) { headRefOid
 	timelineItems(last: 1, itemTypes: [READY_FOR_REVIEW_EVENT]) { nodes { ... on ReadyForReviewEvent { createdAt } } }
 	reviews(first: 100) { nodes { author { login } body } }
 	comments(first: 100, after: $cursor) { pageInfo { hasNextPage endCursor } nodes { author { login } body createdAt updatedAt } }
@@ -32,10 +32,13 @@ const CommentPages = 20
 // reviews and review threads.
 var ErrNoPullState = errors.New("its answer is not a pull request's reviews and review threads")
 
-// PullState is what GitHub says of a pull request: its reviews and comments,
-// by the logins GraphQL gives, when it was last marked ready (zero when it
-// does not say) and its review threads.
+// PullState is what GitHub says of a pull request: its Head, the full SHA
+// of its branch's head as GitHub has it (headRefOid, "" when the answer
+// gives none; slice-206), its reviews and comments, by the logins GraphQL
+// gives, when it was last marked ready (zero when it does not say) and its
+// review threads.
 type PullState struct {
+	Head     string
 	Reviews  []Authored
 	Comments []Authored
 	ReadyAt  time.Time
@@ -109,6 +112,7 @@ func pullStatePage(answered string) (state PullState, next string, ok bool) {
 		Data struct {
 			Repository struct {
 				PullRequest *struct {
+					HeadRefOid    string `json:"headRefOid"`
 					TimelineItems *struct {
 						Nodes []struct {
 							CreatedAt string `json:"createdAt"`
@@ -141,6 +145,7 @@ func pullStatePage(answered string) (state PullState, next string, ok bool) {
 	if err != nil || pull == nil || pull.Reviews == nil || pull.ReviewThreads == nil {
 		return PullState{}, "", false
 	}
+	state.Head = pull.HeadRefOid
 	state.Reviews, state.Comments = pull.Reviews.authored(), pull.Comments.authored()
 	if pull.TimelineItems != nil && len(pull.TimelineItems.Nodes) > 0 {
 		state.ReadyAt = githubTime(pull.TimelineItems.Nodes[0].CreatedAt)

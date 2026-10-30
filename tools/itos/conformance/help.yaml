@@ -18,6 +18,7 @@ cases:
         draft add,
         commit check-message,
         push,
+        review post,
         git-shim install,
         pin,
         upgrade,
@@ -81,6 +82,11 @@ cases:
     exit: 0
     stdout_nonempty: true
     stdout_has: itos push
+  - name: itos review --help
+    argv: [review, --help]
+    exit: 0
+    stdout_nonempty: true
+    stdout_has: [itos review post, "--stage spec|diff", "itos:v1"]
   - name: itos git-shim --help
     argv: [git-shim, --help]
     exit: 0

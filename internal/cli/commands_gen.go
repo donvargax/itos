@@ -20,6 +20,7 @@ import (
 	nextslice "github.com/donvargax/itos/v8/internal/slices/next"
 	pinslice "github.com/donvargax/itos/v8/internal/slices/pin"
 	pushslice "github.com/donvargax/itos/v8/internal/slices/push"
+	reviewslice "github.com/donvargax/itos/v8/internal/slices/review"
 	statusslice "github.com/donvargax/itos/v8/internal/slices/status"
 	taskslice "github.com/donvargax/itos/v8/internal/slices/task"
 	testsslice "github.com/donvargax/itos/v8/internal/slices/tests"
@@ -42,6 +43,7 @@ var declared = []declare.Command{
 	draftslice.Command,
 	commitslice.Command,
 	pushslice.Command,
+	reviewslice.Command,
 	gitshimslice.Command,
 	pinslice.Command,
 	upgradeslice.Command,
@@ -81,6 +83,8 @@ func dispatch(name string) (command, bool) {
 		return runCommit, true
 	case "push":
 		return runPush, true
+	case "review":
+		return runReview, true
 	case "git-shim":
 		return runGitShim, true
 	case "pin":
