@@ -15784,8 +15784,8 @@ items:
   - id: slice-203
     title: itos next <id> says an item's state and next step from the facts in the repository
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: slice
     why: >
