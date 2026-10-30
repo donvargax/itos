@@ -280,14 +280,16 @@ func (h Handler) spec(_ context.Context, at *config.Loaded, f *facts) error {
 // mode 120000: the agent would read whatever the link points at in its
 // checkout, not the blob the request records), is omitted with its reason.
 // A ref is looked up by its clean path (./docs/plan.md is docs/plan.md,
-// internal/foo/ is internal/foo) and named as written. A folder is asked
-// for with its doc.go, which makes git list the folder's entries rather
-// than the folder itself, so a folder is known by an entry under it.
+// internal/foo/ is internal/foo) and named as written; one inTop refuses is
+// not looked up. A folder is asked for with its doc.go, which makes git
+// list the folder's entries rather than the folder itself, so a folder is
+// known by an entry under it.
 func (h Handler) reads(ctx context.Context, b *Brief, f *facts, refs []string) error {
 	paths := append([]string{agentrules.AgentsFile}, f.specFiles...)
 	for _, ref := range refs {
-		p := path.Clean(ref)
-		paths = append(paths, p, path.Join(p, "doc.go"))
+		if p := path.Clean(ref); inTop(p) {
+			paths = append(paths, p, path.Join(p, "doc.go"))
+		}
 	}
 	entries, err := h.ports.TreeEntries(ctx, head, paths)
 	if err != nil {
@@ -336,7 +338,7 @@ func (h Handler) reads(ctx context.Context, b *Brief, f *facts, refs []string) e
 		p := path.Clean(ref)
 		reason := "the item's ref " + ref
 		switch {
-		case p == "." || p == "/" || strings.HasPrefix(p, "../"):
+		case !inTop(p):
 			omit(ref, p, notInTree)
 		case read(p, reason, false):
 		case folder(p):
@@ -349,6 +351,19 @@ func (h Handler) reads(ctx context.Context, b *Brief, f *facts, refs []string) e
 	}
 	f.Omitted = b.Omitted
 	return nil
+}
+
+// inTop is whether a ref's clean path p is one git ls-tree is asked for: a
+// path under the top, not the top, nor above it, nor absolute, a drive's
+// or one with a backslash (on Windows, git reads either as a path outside
+// the repository and refuses the whole listing), nor pathspec magic. Any
+// other is not in the tree, on every OS alike.
+func inTop(p string) bool {
+	if p == "." || p == ".." || strings.HasPrefix(p, "../") || strings.HasPrefix(p, "/") ||
+		strings.HasPrefix(p, ":") || strings.Contains(p, `\`) {
+		return false
+	}
+	return len(p) < 2 || p[1] != ':'
 }
 
 // notInTree is why a path HEAD lacks is omitted.

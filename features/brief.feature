@@ -391,7 +391,7 @@ Feature: itos brief, the filled brief an agent starts from and its request
   # A ref naming a path outside the repository, which git refuses to list,
   # is left out as not in the tree, and the brief is still written (the
   # review of the build, round 3).
-  @ID-BRIEF-16 @wip @slice-204
+  @ID-BRIEF-16 @slice-204
   Scenario: A ref outside the repository is left out, the brief still written
     Given the committed file "tasks/work-items.yaml" holding the lines:
       """

@@ -32,6 +32,7 @@ type ports struct {
 	configErr  error
 	entries    map[string]TreeEntry
 	entriesErr error
+	asked      []string
 	last       string
 	lastErr    error
 	lastPaths  []string
@@ -55,12 +56,18 @@ func (p *ports) Config(ctx context.Context) (*config.Loaded, error) {
 	return cfg, err
 }
 
-// TreeEntries answers as git ls-tree does for the paths asked: a path's
-// own entry, and the entries under a folder asked for with a path below
-// it.
+// TreeEntries answers as git ls-tree does for the paths asked, which it
+// keeps: a path's own entry, and the entries under a folder asked for with
+// a path below it; a path outside the top is refused, as git refuses it.
 func (p *ports) TreeEntries(_ context.Context, _ string, paths []string) (map[string]TreeEntry, error) {
+	p.asked = paths
 	if p.entriesErr != nil {
 		return nil, p.entriesErr
+	}
+	for _, asked := range paths {
+		if asked == ".." || strings.HasPrefix(asked, "../") || strings.HasPrefix(asked, "/") {
+			return nil, errors.New(asked + " is outside repository")
+		}
 	}
 	found := map[string]TreeEntry{}
 	for _, asked := range paths {
@@ -259,6 +266,28 @@ func TestRefForms(t *testing.T) {
 	p.entries["AGENTS.md"] = TreeEntry{Kind: "blob", Mode: "120000", Object: "blob:AGENTS.md"}
 	if b = brief(t, p, "slice-9", "drafter"); len(b.Reads) != 2 || b.Omitted[0] != (Omitted{"AGENTS.md", symlinked}) {
 		t.Errorf("AGENTS.md a link: reads %+v, omitted %+v", b.Reads, b.Omitted)
+	}
+}
+
+// A ref naming the top, above it, absolute, a drive's, with a backslash
+// or pathspec magic is never asked of git, which refuses the whole listing
+// for one (on Windows, the drive's and the backslash's too): each is left
+// out as not in the tree and the brief is still written.
+func TestRefOutside(t *testing.T) {
+	p := over(map[string]string{
+		"work-items.yaml": "phases: { 1: null }\nitems:\n  - { id: slice-9, title: Nine, phase: 1, owner: null, status: todo, depends_on: [], refs: [., '..', '../x', /etc/hosts, ':!x', 'C:/x', '..\\x', docs/plan.md] }\n",
+		"AGENTS.md":       "Rules.\n",
+		"docs/plan.md":    "# The plan\n",
+	})
+	b := brief(t, p, "slice-9", "drafter")
+	if !slices.Equal(p.asked, []string{"AGENTS.md", "docs/plan.md", "docs/plan.md/doc.go"}) {
+		t.Errorf("asked git for %q", p.asked)
+	}
+	if len(b.Reads) != 2 || b.Reads[1].Path != "docs/plan.md" {
+		t.Errorf("reads %+v", b.Reads)
+	}
+	if want := []Omitted{{".", notInTree}, {"..", notInTree}, {"../x", notInTree}, {"/etc/hosts", notInTree}, {":!x", notInTree}, {"C:/x", notInTree}, {`..\x`, notInTree}}; !slices.Equal(b.Omitted, want) {
+		t.Errorf("omitted %+v", b.Omitted)
 	}
 }
 
