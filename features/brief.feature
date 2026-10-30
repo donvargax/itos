@@ -79,7 +79,7 @@ Feature: itos brief, the filled brief an agent starts from and its request
   # build that printed the id for the title, or left the placeholders in,
   # fails. The repository has no docs/ORCHESTRATING.md, so nothing follows
   # the template.
-  @ID-BRIEF-01 @wip @slice-204
+  @ID-BRIEF-01 @slice-204
   Scenario: The implementer's brief is the template filled from the item
     Given the committed file "tasks/work-items.yaml" holding the lines:
       """
@@ -116,7 +116,7 @@ Feature: itos brief, the filled brief an agent starts from and its request
   # The sentence the gpt-6-luna agent needed (bug-111): an undefined step is
   # the test commit's work, not a reason to stop. The template's old line
   # alone does not say it.
-  @ID-BRIEF-02 @wip @slice-204
+  @ID-BRIEF-02 @slice-204
   Scenario: The red-first paragraph says the missing step definitions are the test commit's job
     Given the work registry has the item "slice-9" owned by nobody with the status "todo"
     And a feature file with the scenario "@ID-A-01" tagged "@wip @slice-9"
@@ -127,7 +127,7 @@ Feature: itos brief, the filled brief an agent starts from and its request
 
   # The checks are quoted so a build that listed the ledger entry's title or
   # why instead fails; the ledger file is the task's spec, so it is read.
-  @ID-BRIEF-03 @wip @slice-204
+  @ID-BRIEF-03 @slice-204
   Scenario: A task's brief names its ledger checks and reads its ledger file
     Given the work registry has the task "T-001" owned by nobody with the status "todo" and no why
     And the task "T-001" has the committed check "go vet ./..."
@@ -143,7 +143,7 @@ Feature: itos brief, the filled brief an agent starts from and its request
 
   # A bug's scenario is tagged @bug-<n>; one live scenario is said to be
   # live, not `@wip`.
-  @ID-BRIEF-04 @wip @slice-204
+  @ID-BRIEF-04 @slice-204
   Scenario: A bug's brief names the scenarios tagged for it
     Given the work registry has the bug "bug-7" owned by "someone" with the status "doing"
     And the committed feature file "features/fixes.feature" with the live scenario "@ID-F-01" tagged "@bug-7"
@@ -154,7 +154,7 @@ Feature: itos brief, the filled brief an agent starts from and its request
 
   # The section's body follows the filled template as written; the other
   # sections of the notes stay out, and the heading itself is not printed.
-  @ID-BRIEF-05 @wip @slice-204
+  @ID-BRIEF-05 @slice-204
   Scenario: The repository's own brief lines follow the template as written
     Given the work registry has the item "slice-9" owned by nobody with the status "todo"
     And a feature file with the scenario "@ID-A-01" tagged "@wip @slice-9"
@@ -188,7 +188,7 @@ Feature: itos brief, the filled brief an agent starts from and its request
   # with no scenario yet is the drafter's to specify, so its brief says so
   # and its spec commit is null; the implementer and the reviewer have
   # nothing to work from and are refused.
-  @ID-BRIEF-06 @wip @slice-204
+  @ID-BRIEF-06 @slice-204
   Scenario: Each role has its template, and only the drafter is briefed on an item with no spec
     Given the work registry has the item "slice-9" owned by nobody with the status "todo" and the title "Say the next step"
     When itos runs "brief slice-9 --role drafter"
@@ -224,7 +224,7 @@ Feature: itos brief, the filled brief an agent starts from and its request
   # is a file (docs/plan.md) is read as it is; only internal/foo has a
   # doc.go: internal/bar's other file does not stand in for one, and
   # docs/missing.md is no file at all.
-  @ID-BRIEF-07 @wip @slice-204
+  @ID-BRIEF-07 @slice-204
   Scenario: The request names the spec commit, the reads with their blobs and what was left out
     Given the committed file "tasks/work-items.yaml" holding the lines:
       """
@@ -275,7 +275,7 @@ Feature: itos brief, the filled brief an agent starts from and its request
 
   # The README commit changes HEAD and nothing the brief is made from: a
   # request of HEAD, or of the whole tree, differs.
-  @ID-BRIEF-08 @wip @slice-204
+  @ID-BRIEF-08 @slice-204
   Scenario: The same inputs give the same request
     Given the work registry has the item "slice-9" owned by nobody with the status "todo"
     And a feature file with the scenario "@ID-A-01" tagged "@wip @slice-9"
@@ -292,7 +292,7 @@ Feature: itos brief, the filled brief an agent starts from and its request
   # file tagged for the item, whose commit becomes the spec commit) and a
   # read's blob (AGENTS.md reworded). A request of the item and role alone,
   # or of the spec commit alone, passes one of them and fails another.
-  @ID-BRIEF-09 @wip @slice-204
+  @ID-BRIEF-09 @slice-204
   Scenario: A change to the role, the spec or a read gives a new request
     Given the work registry has the item "slice-9" owned by nobody with the status "todo"
     And a feature file with the scenario "@ID-A-01" tagged "@wip @slice-9"
@@ -306,7 +306,7 @@ Feature: itos brief, the filled brief an agent starts from and its request
     And itos runs "brief slice-9 --role implementer --json"
     Then itos exits with code 0
     And its JSON's "spec.commit" names the commit "test: specify features/b.feature"
-    And its output says "The scenarios are @ID-A-01 in features/tagged.feature and @ID-B-01 in features/b.feature; @ID-B-01 is live."
+    And its output says "The scenarios are @ID-B-01 in features/b.feature and @ID-A-01 in features/tagged.feature; @ID-B-01 is live."
     And its JSON's "request" differs from the one saved as "implementer"
     And the JSON's "request" is saved as "two files"
     When the committed file "AGENTS.md" holding "Stage only your own files, by path."
@@ -315,7 +315,7 @@ Feature: itos brief, the filled brief an agent starts from and its request
     And its JSON's "spec.commit" names the commit "test: specify features/b.feature"
     And its JSON's "request" differs from the one saved as "two files"
 
-  @ID-BRIEF-10 @wip @slice-204
+  @ID-BRIEF-10 @slice-204
   Scenario: An unknown id, an unknown role and a missing role are refused
     Given the work registry has the item "slice-9" owned by nobody with the status "todo"
     And a feature file with the scenario "@ID-A-01" tagged "@wip @slice-9"
@@ -338,7 +338,7 @@ Feature: itos brief, the filled brief an agent starts from and its request
 
   # An idea has no spec and no kind to brief for; what it becomes is the
   # person's call, so the fix names the promotion, not a role.
-  @ID-BRIEF-11 @wip @slice-204
+  @ID-BRIEF-11 @slice-204
   Scenario: An idea is refused, its fix naming the promotion
     Given the work registry has the idea "p1-next" owned by nobody
     When itos runs "brief p1-next --role drafter --json"
@@ -353,7 +353,7 @@ Feature: itos brief, the filled brief an agent starts from and its request
   # The saved state is every file of the clone, its git folder included,
   # so HEAD, the index and anything itos might keep in .git/itos are
   # compared. A gh on the PATH records any call, so asking the forge shows.
-  @ID-BRIEF-12 @wip @slice-204
+  @ID-BRIEF-12 @slice-204
   Scenario: itos brief writes nothing, commits nothing and asks no forge
     Given the work registry has the item "slice-9" owned by nobody with the status "todo"
     And a feature file with the scenario "@ID-A-01" tagged "@wip @slice-9"

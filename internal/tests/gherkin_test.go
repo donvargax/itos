@@ -39,6 +39,26 @@ func TestTagged(t *testing.T) {
 			t.Errorf("%d: %+v, not %+v", i, got[i], want[i])
 		}
 	}
+	// TaggedFiles is the same scenarios, each with its file from the top:
+	// the kind's root joined to its file, in slash form.
+	files, err := TaggedFiles(cfg, "@slice-9", "worktree")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(files) != len(want) {
+		t.Fatalf("%+v", files)
+	}
+	for i := range want {
+		if files[i].Test != want[i] || files[i].Path != filepath.ToSlash(filepath.Join(dir, want[i].File)) {
+			t.Errorf("%d: %+v, not %+v in %s", i, files[i], want[i], dir)
+		}
+	}
+	bad := `(`
+	k.ID = &bad
+	cfg.Tests.Values["scenario"] = k
+	if _, err := TaggedFiles(cfg, "@slice-9", "worktree"); err == nil {
+		t.Error("an ID pattern that does not compile is no error")
+	}
 }
 
 // TaggedExamples gives the Examples blocks tagged @wip under a live scenario
