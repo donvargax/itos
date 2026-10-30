@@ -19,26 +19,48 @@ Feature: itos brief, the filled brief an agent starts from and its request
   entry, its refs and its dependencies with their statuses, and the files
   the agent reads: AGENTS.md, the item's feature file (a task's ledger file),
   and for each ref the file it names, or the doc.go of the package folder it
-  names. A ref naming neither is left out, and said so. The repository's own
-  brief lines, the body of the "## What a brief adds here" section of the
-  file guide.orchestrating names (docs/ORCHESTRATING.md by default), follow
-  the filled template as written; no file or no section adds nothing. The
-  settled decisions stay a marked placeholder, <settled decisions, filled by
-  the coordinator>, never invented. The red-first paragraph says that writing
-  the missing step definitions is the test commit's job, and that the only
+  names. A ref naming neither is left out, and said so. A repository with no
+  AGENTS.md is briefed all the same, that read going to omitted with the
+  reason not in the tree at HEAD. Scenarios in several files, or live and
+  wip mixed, are one sentence listing each file's ids, then the live ones:
+  "The scenarios are @A-1 and @A-2 in a.feature and @B-1 in b.feature; @A-2
+  is live." (all of one kind: "all `@wip`", "all live"). The repository's
+  own brief lines, the body of the "## What a brief adds here" section of
+  the file guide.orchestrating names (docs/ORCHESTRATING.md by default),
+  follow the filled template as written; no file or no section adds nothing.
+  Today that section of this repository's docs/ORCHESTRATING.md speaks to
+  the coordinator who fills the brief; the slice includes a docs commit, the
+  implementer's on this item's pull request, that rewrites it to address the
+  agent and drops the line saying the handoff replaces the template's
+  wait-for-CI line. What a person must add stays a marked placeholder, never
+  invented: <settled decisions, filled by the coordinator>, <neighbouring
+  scenarios and checks, filled by the coordinator> and <the item's own
+  questions, filled by the coordinator>, in place of the template's own
+  angle-bracket placeholders. The red-first paragraph says that writing the
+  missing step definitions is the test commit's job, and that the only
   reasons to stop are a scenario that passes before the work and one that
-  fails in its setup where no step definition can fix it.
+  fails in its setup where no step definition can fix it. Each paragraph of
+  the filled brief prints as one line, so a sentence of it is one substring;
+  the new templates go through guide.Text's normalisation, CRLF to LF, as
+  the shipped guides do.
+
+  Everything is read from HEAD's tree: the registry, the tagged-scenario
+  scan, the ledger, the ORCHESTRATING section and the reads' blobs, never
+  the working tree or the index.
 
   --json gives the request:
   {"schema":1,"ok":true,"item","role","request","spec":{"commit"},"reads":[{"path","blob","reason","required"}],"omitted":[{"path","reason"}],"brief"},
-  brief the text output; spec.commit the last commit on HEAD's first-parent
-  history touching a feature file holding a scenario tagged for the item (a
-  task's ledger file), null when nothing is tagged yet; each read's blob the
-  file's git blob id at HEAD, required true for AGENTS.md and the spec's
-  file, false for a ref; request "sha256:" and the hex digest of the item,
-  the role, the spec commit and the reads' blobs in order, so the same inputs
-  give the same request and any change a new one. It reads, writes nothing,
-  commits nothing and asks no forge.
+  brief the text output, byte for byte; spec.commit the last commit on
+  HEAD's first-parent history touching a feature file holding a scenario
+  tagged for the item (a task's ledger file), null when nothing is tagged
+  yet; each read's blob the file's git blob id at HEAD, required true for
+  AGENTS.md and the spec's file, false for a ref; request "sha256:" and the
+  hex digest of these LF-terminated lines: the item, the role, the spec
+  commit's full SHA (or "-" when null), then one "<path> <blob>" line per
+  read, in the reads' order, so another tool can recompute it, the same
+  inputs give the same request and any change a new one. The attempt number
+  and the base revision are not in it: itos attempt submit binds them. It
+  reads, writes nothing, commits nothing and asks no forge.
 
   Refused, exit 1, {"schema":1,"ok":false,"problems":[{"rule","message","fix"}]}:
   an id the registry does not have (work-unknown-item, as work show), a role
@@ -82,10 +104,13 @@ Feature: itos brief, the filled brief an agent starts from and its request
     And its output says "itos work show slice-9"
     And its output says "read AGENTS.md, features/tagged.feature and internal/foo/doc.go"
     And its output says "<settled decisions, filled by the coordinator>"
+    And its output says "<neighbouring scenarios and checks, filled by the coordinator>"
+    And its output says "<the item's own questions, filled by the coordinator>"
     And its output says "itos commit --item slice-9"
     And its output does not say "## Specifying"
     And its output does not say "<item>"
     And its output does not say "<absolute path>"
+    And its output does not say "<the neighbouring scenarios and checks;"
     And its output does not say "What a brief adds here"
 
   # The sentence the gpt-6-luna agent needed (bug-111): an undefined step is
@@ -195,9 +220,10 @@ Feature: itos brief, the filled brief an agent starts from and its request
 
   # The README commit on top is none of the item's facts: the spec commit
   # stays the scenario's, not HEAD. The blob of each read is checked against
-  # git's, so a hash of the content under another scheme fails. Only
-  # internal/foo has a doc.go: internal/bar's other file does not stand in
-  # for one, and docs/missing.md is no file at all.
+  # git's, so a hash of the content under another scheme fails. A ref that
+  # is a file (docs/plan.md) is read as it is; only internal/foo has a
+  # doc.go: internal/bar's other file does not stand in for one, and
+  # docs/missing.md is no file at all.
   @ID-BRIEF-07 @wip @slice-204
   Scenario: The request names the spec commit, the reads with their blobs and what was left out
     Given the committed file "tasks/work-items.yaml" holding the lines:
@@ -210,15 +236,16 @@ Feature: itos brief, the filled brief an agent starts from and its request
           owner: null
           status: todo
           depends_on: []
-          refs: [internal/foo, internal/bar, docs/missing.md]
+          refs: [internal/foo, docs/plan.md, internal/bar, docs/missing.md]
       """
     And the committed file "internal/foo/doc.go" holding "// Package foo says the next step."
+    And the committed file "docs/plan.md" holding "# The plan"
     And the committed file "internal/bar/bar.go" holding "package bar"
     And a feature file with the scenario "@ID-A-01" tagged "@wip @slice-9"
     And the commit "chore: tidy the readme" on top of it
     When itos runs "brief slice-9 --role implementer"
     Then itos exits with code 0
-    And its output says "read AGENTS.md, features/tagged.feature and internal/foo/doc.go"
+    And its output says "read AGENTS.md, features/tagged.feature, internal/foo/doc.go and docs/plan.md"
     And its output says "internal/bar has no doc.go at HEAD"
     And its output says "docs/missing.md is not in the tree at HEAD"
     And stdout is saved as "text"
@@ -227,8 +254,8 @@ Feature: itos brief, the filled brief an agent starts from and its request
     And its JSON's "ok" is true
     And its JSON's "item" is "slice-9"
     And its JSON's "role" is "implementer"
-    And its JSON's "spec.commit" is the full SHA of the commit "test: a tagged scenario"
-    And the "path" of each entry of its JSON's "reads", in order, is "AGENTS.md, features/tagged.feature, internal/foo/doc.go"
+    And its JSON's "spec.commit" names the commit "test: a tagged scenario"
+    And the "path" of each entry of its JSON's "reads", in order, is "AGENTS.md, features/tagged.feature, internal/foo/doc.go, docs/plan.md"
     And its JSON's "reads" entry whose "path" is "AGENTS.md" has "blob" the git blob id of "AGENTS.md" at HEAD
     And its JSON's "reads" entry whose "path" is "AGENTS.md" has "reason" "the repository's agent rules"
     And its JSON's "reads" entry whose "path" is "AGENTS.md" has "required" true
@@ -238,10 +265,13 @@ Feature: itos brief, the filled brief an agent starts from and its request
     And its JSON's "reads" entry whose "path" is "internal/foo/doc.go" has "blob" the git blob id of "internal/foo/doc.go" at HEAD
     And its JSON's "reads" entry whose "path" is "internal/foo/doc.go" has "reason" "the item's ref internal/foo"
     And its JSON's "reads" entry whose "path" is "internal/foo/doc.go" has "required" false
+    And its JSON's "reads" entry whose "path" is "docs/plan.md" has "blob" the git blob id of "docs/plan.md" at HEAD
+    And its JSON's "reads" entry whose "path" is "docs/plan.md" has "reason" "the item's ref docs/plan.md"
+    And its JSON's "reads" entry whose "path" is "docs/plan.md" has "required" false
     And the "path" of each entry of its JSON's "omitted", in order, is "internal/bar, docs/missing.md"
     And its JSON's "omitted" entry whose "path" is "internal/bar" has "reason" "no doc.go at HEAD"
     And its JSON's "omitted" entry whose "path" is "docs/missing.md" has "reason" "not in the tree at HEAD"
-    And its JSON's "brief" is the stdout saved as "text"
+    And its JSON's "brief" equals the stdout saved as "text"
 
   # The README commit changes HEAD and nothing the brief is made from: a
   # request of HEAD, or of the whole tree, differs.
@@ -251,12 +281,12 @@ Feature: itos brief, the filled brief an agent starts from and its request
     And a feature file with the scenario "@ID-A-01" tagged "@wip @slice-9"
     When itos runs "brief slice-9 --role implementer --json"
     Then itos exits with code 0
-    And its JSON's "request" is "sha256:" and 64 lowercase hex digits
-    And its JSON's "request" is saved as "first"
+    And its JSON's "request" starts with "sha256:" followed by 64 lowercase hex digits
+    And the JSON's "request" is saved as "first"
     When the commit "chore: tidy the readme" on top of it
     And itos runs "brief slice-9 --role implementer --json"
     Then itos exits with code 0
-    And its JSON's "request" is the one saved as "first"
+    And its JSON's "request" matches the one saved as "first"
 
   # Three changes, each to one input: the role, the spec (a second feature
   # file tagged for the item, whose commit becomes the spec commit) and a
@@ -268,20 +298,20 @@ Feature: itos brief, the filled brief an agent starts from and its request
     And a feature file with the scenario "@ID-A-01" tagged "@wip @slice-9"
     When itos runs "brief slice-9 --role implementer --json"
     Then itos exits with code 0
-    And its JSON's "request" is saved as "implementer"
+    And the JSON's "request" is saved as "implementer"
     When itos runs "brief slice-9 --role reviewer --json"
     Then itos exits with code 0
     And its JSON's "request" differs from the one saved as "implementer"
     When the committed feature file "features/b.feature" with the live scenario "@ID-B-01" tagged "@slice-9"
     And itos runs "brief slice-9 --role implementer --json"
     Then itos exits with code 0
-    And its JSON's "spec.commit" is the full SHA of the commit "test: specify features/b.feature"
+    And its JSON's "spec.commit" names the commit "test: specify features/b.feature"
     And its JSON's "request" differs from the one saved as "implementer"
-    And its JSON's "request" is saved as "two files"
+    And the JSON's "request" is saved as "two files"
     When the committed file "AGENTS.md" holding "Stage only your own files, by path."
     And itos runs "brief slice-9 --role implementer --json"
     Then itos exits with code 0
-    And its JSON's "spec.commit" is the full SHA of the commit "test: specify features/b.feature"
+    And its JSON's "spec.commit" names the commit "test: specify features/b.feature"
     And its JSON's "request" differs from the one saved as "two files"
 
   @ID-BRIEF-10 @wip @slice-204
