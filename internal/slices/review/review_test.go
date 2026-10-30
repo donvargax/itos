@@ -251,12 +251,13 @@ func TestPostsRoundOne(t *testing.T) {
 
 // --stage diff with a body file puts the file's text between the line and
 // the marker, \r\n read as \n and the trailing line ends dropped; a full
-// SHA is taken as given, git not asked.
+// SHA is taken as given, git not asked, in lower case as GitHub writes the
+// head it is held to.
 func TestPostsTheBodyFile(t *testing.T) {
 	f := newFake()
 	f.files["review.md"] = "P2: the help says less.\r\nThe rest reads well.\r\n\r\n"
 	f.resolved = nil
-	code, _, stderr := run(t, f, false, "post", "slice-9", "--verdict", "changes", "--at", head, "--stage", "diff", "--body-file", "review.md")
+	code, _, stderr := run(t, f, false, "post", "slice-9", "--verdict", "changes", "--at", strings.ToUpper(head), "--stage", "diff", "--body-file", "review.md")
 	if code != 0 {
 		t.Fatalf("exit %d\n%s", code, stderr)
 	}
@@ -465,6 +466,11 @@ func TestMarkers(t *testing.T) {
 	m, ok := readMarker("itos: spec review of slice-9 at 0123456: approve\r\n\r\n" + written + "\r\n")
 	if !ok || m != (marker{Record: "verdict", Item: "slice-9", Stage: "spec", Verdict: "approve", Head: head, Round: 2}) {
 		t.Errorf("read %+v, %t", m, ok)
+	}
+	// The review's text quotes a marker: the one appended after it is read.
+	quoted := verdictMarker(Query{Item: "slice-9", Stage: "spec", Verdict: "changes"}, oldHead, 1)
+	if m, ok := readMarker("itos: spec review of slice-9 at 0123456: approve\n\nRound 1 ended with " + quoted + ", now fixed.\n\n" + written); !ok || m.Verdict != "approve" || m.Round != 2 {
+		t.Errorf("read the quoted marker: %+v, %t", m, ok)
 	}
 	for _, body := range []string{"", "prose", "<!-- itos:v1 -->", "<!-- itos:v1 {} -->", "<!-- itos:v1 {\"record\":\"verdict\"", "<!-- itos-review-request:v1 x " + head + " -->"} {
 		if _, ok := readMarker(body); ok {
