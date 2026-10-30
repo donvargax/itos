@@ -7396,14 +7396,15 @@ items:
     kind: idea
     tags: [cli]
 
-  - id: p1-guide-brief-filled
-    title: itos guide brief <item> fills the brief template from the item
+  - id: slice-204
+    title: itos brief <id> --role <role> prints the filled brief an agent starts from, and --json gives its request
     phase: 1
     owner: null
     status: todo
     depends_on: [slice-119]
-    kind: idea
+    kind: slice
     why: >
+      Was p1-guide-brief-filled.
       Cut from p1-guide-before-action (2026-10-10): the coordinator fills the same template for
       every brief by hand, from itos work show (the item, its title, its scenarios and their feature
       file, the repository's path). With an item, guide brief prints the template filled, leaving
@@ -12344,7 +12345,7 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: [p1-guide-brief-filled, p1-session-handoff]
+    depends_on: [slice-204, p1-session-handoff]
     kind: idea
     why: >
       The user, 2026-10-23: test whether a cheap model can coordinate, the coordinator becoming
