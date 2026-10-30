@@ -50,12 +50,21 @@ Feature: itos next reads an in-flight item's state from the forge under push.mod
   merging (the pull request is ready and nothing failed, its checks
   passed or still pending, every thread resolved): forge observe;
   blocked (the journal's latest implementer record, at any head, has the
-  outcome needs_decision or blocked): person answer, blocked_reason
-  "attempt", no waits_on; a driver never briefs an implementer again that
-  asked for a decision;
+  outcome needs_decision or blocked and is not spent): person answer,
+  blocked_reason "attempt", no waits_on and no argv, the person's step
+  being itos decision add <the question> --item <item>, then itos
+  decision answer. The k-th implementer record with either outcome, in
+  journal order, is spent by the k-th question naming the item, in
+  tasks/asks.yaml's order, once that question is answered; while it is
+  open the item is slice-203's blocked "decision", judged before. So an
+  answered question from before the record spent an earlier one and
+  cannot spend this one, and a driver never briefs an implementer again
+  that asked for a decision;
   spec-changes (the journal's latest implementer record has the outcome
-  spec_defect: the spec goes back to the drafter whatever the item's
-  status): drafter specify, itos brief <item> --role drafter;
+  spec_defect and no drafter record comes after it: the spec goes back to
+  the drafter whatever the item's status): drafter specify, itos brief
+  <item> --role drafter. A drafter record later in the journal, with any
+  outcome, spends it, and the states below apply again;
   handed-back (the pull request is a draft, the item is doing, and the
   journal's latest implementer record is accepted with the outcome done at
   the pull request's current head): driver land, itos push --ready;
@@ -204,6 +213,7 @@ Feature: itos next reads an in-flight item's state from the forge under push.mod
     And git pushes HEAD to the remote's new branch "slice-9"
     And the clone switches to its branch "main"
     And the recording gh has the draft pull request "https://github.example/o/r/pull/7" open for the branch "slice-9"
+    And the repository state is saved for comparison
     When itos runs "next slice-9"
     Then itos exits with code 0
     And stdout contains the complete line "slice-9: spec-review; next: reviewer review; run: itos brief slice-9 --role reviewer" exactly once
@@ -212,14 +222,17 @@ Feature: itos next reads an in-flight item's state from the forge under push.mod
     And its JSON's "state" is "spec-review"
     And its JSON's "observed.pr.head" holds the full SHA of the head of the remote's branch "slice-9"
     And its JSON's revision is saved as "first"
+    And the repository files index and HEAD match the saved state
     Given the clone switches to its branch "slice-9"
     And the committed feature file "features/b.feature" with the live scenario "@ID-B-01" tagged "@slice-9"
     And git pushes HEAD to the remote's new branch "slice-9"
     And the clone switches to its branch "main"
+    And the repository state is saved for comparison
     When itos runs "next slice-9 --json"
     Then itos exits with code 0
     And its JSON's "state" is "spec-review"
     And its JSON's revision differs from the one saved as "first"
+    And the repository files index and HEAD match the saved state
     And the recording gh was called as "pr list" 3 times
     And the recording gh was called as "api graphql" 3 times
 
@@ -347,13 +360,17 @@ Feature: itos next reads an in-flight item's state from the forge under push.mod
   # journal whose latest implementer record is accepted but at the spec
   # commit, no longer the head. Then the implementer's latest record asks
   # for a decision: the item is blocked on the person, never briefed
-  # again, and its reason is the attempt, not a question or a status. Last
-  # the implementer found the spec defective: it goes back to the drafter,
-  # the item still doing. The owner is ana's, as written. The journal
-  # lines are whole, as attempt submit writes them; the keys next does not
-  # read are filled with anything.
+  # again, and its reason is the attempt, not a question or a status.
+  # q-2, the first question naming slice-9 once answered, spends that
+  # record (q-1 names slice-8 and counts for nothing): implementing again.
+  # A third record, blocked, has no second question to spend it: blocked
+  # again, q-2 being spent. Then the implementer found the spec defective:
+  # it goes back to the drafter, the item still doing, until a drafter
+  # record follows it, when it is implementing again. The owner is ana's,
+  # as written. The journal lines are whole, as attempt submit writes
+  # them; the keys next does not read are filled with anything.
   @ID-NEXTFORGE-06 @wip @slice-209
-  Scenario: Under push.mode pr, a doing item with no accepted implementer result at the pull request's head is implementing, blocked on needs_decision, spec-changes on spec_defect
+  Scenario: Under push.mode pr, a doing item with no accepted implementer result at the pull request's head is implementing, blocked on an unspent needs_decision, spec-changes on an unspent spec_defect
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
       push:
@@ -410,15 +427,37 @@ Feature: itos next reads an in-flight item's state from the forge under push.mod
     And its JSON's "blocked_reason" is "attempt"
     And its JSON has no "waits_on"
     And its JSON's "observed.attempt" is {"role": "implementer", "attempt": 2, "verdict": "accepted", "outcome": "needs_decision", "head": null}
+    Given the committed file "tasks/asks.yaml" holding the lines:
+      """
+      questions:
+        - id: q-1
+          item: "slice-8"
+          question: "Which way?"
+          answer: "This way."
+        - id: q-2
+          item: "slice-9"
+          question: "Which footer?"
+          answer: "Item."
+      """
+    When itos runs "next slice-9 --json"
+    Then itos exits with code 0
+    And its JSON's "state" is "implementing"
+    And its JSON's "next" is {"actor": "implementer", "action": "implement", "argv": ["itos", "brief", "slice-9", "--role", "implementer"]}
+    And its JSON has no "blocked_reason"
+    And its JSON's "observed.attempt.outcome" is "needs_decision"
     Given the file ".git/itos/attempts/slice-9.jsonl" holds the lines, the saved values filled in:
       """
       {"schema":1,"role":"implementer","attempt":1,"request":"sha256:0000000000000000000000000000000000000000000000000000000000000000","base":"<spec>","outcome":"done","head":"<spec>","notes":null,"verdict":"accepted","sha256":"sha256:1111111111111111111111111111111111111111111111111111111111111111"}
-      {"schema":1,"role":"implementer","attempt":2,"request":"sha256:0000000000000000000000000000000000000000000000000000000000000000","base":"<spec>","outcome":"blocked","head":null,"notes":null,"verdict":"accepted","sha256":"sha256:2222222222222222222222222222222222222222222222222222222222222222"}
+      {"schema":1,"role":"implementer","attempt":2,"request":"sha256:0000000000000000000000000000000000000000000000000000000000000000","base":"<spec>","outcome":"needs_decision","head":null,"notes":"Which footer?","verdict":"accepted","sha256":"sha256:2222222222222222222222222222222222222222222222222222222222222222"}
+      {"schema":1,"role":"implementer","attempt":3,"request":"sha256:0000000000000000000000000000000000000000000000000000000000000000","base":"<spec>","outcome":"blocked","head":null,"notes":null,"verdict":"accepted","sha256":"sha256:3333333333333333333333333333333333333333333333333333333333333333"}
       """
     When itos runs "next slice-9 --json"
     Then itos exits with code 0
     And its JSON's "state" is "blocked"
+    And its JSON's "next" is {"actor": "person", "action": "answer"}
     And its JSON's "blocked_reason" is "attempt"
+    And its JSON has no "waits_on"
+    And its JSON's "observed.attempt.attempt" is 3
     And its JSON's "observed.attempt.outcome" is "blocked"
     Given the file ".git/itos/attempts/slice-9.jsonl" holds the lines, the saved values filled in:
       """
@@ -434,6 +473,17 @@ Feature: itos next reads an in-flight item's state from the forge under push.mod
     And its JSON's "owner" is "ana"
     And its JSON's "next" is {"actor": "drafter", "action": "specify", "argv": ["itos", "brief", "slice-9", "--role", "drafter"]}
     And its JSON has no "blocked_reason"
+    And its JSON's "observed.attempt.outcome" is "spec_defect"
+    Given the file ".git/itos/attempts/slice-9.jsonl" holds the lines, the saved values filled in:
+      """
+      {"schema":1,"role":"implementer","attempt":1,"request":"sha256:0000000000000000000000000000000000000000000000000000000000000000","base":"<spec>","outcome":"done","head":"<spec>","notes":null,"verdict":"accepted","sha256":"sha256:1111111111111111111111111111111111111111111111111111111111111111"}
+      {"schema":1,"role":"implementer","attempt":2,"request":"sha256:0000000000000000000000000000000000000000000000000000000000000000","base":"<spec>","outcome":"spec_defect","head":null,"notes":"@ID-A-01 asks the impossible.","verdict":"accepted","sha256":"sha256:2222222222222222222222222222222222222222222222222222222222222222"}
+      {"schema":1,"role":"drafter","attempt":1,"request":"sha256:0000000000000000000000000000000000000000000000000000000000000000","base":"<spec>","outcome":"done","head":"<spec>","notes":"The scenario is reworded.","verdict":"accepted","sha256":"sha256:4444444444444444444444444444444444444444444444444444444444444444"}
+      """
+    When itos runs "next slice-9 --json"
+    Then itos exits with code 0
+    And its JSON's "state" is "implementing"
+    And its JSON's "next" is {"actor": "implementer", "action": "implement", "argv": ["itos", "brief", "slice-9", "--role", "implementer"]}
     And its JSON's "observed.attempt.outcome" is "spec_defect"
 
   # The slice's other point: the implementer's accepted done at the pull
