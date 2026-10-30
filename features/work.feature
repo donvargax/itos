@@ -6,6 +6,22 @@ Feature: The work registry
   ledger.files names (tasks/work-items.yaml for the default ledger), leaving
   docs/ for prose; work.registry in itos.yaml puts it anywhere else.
 
+  Rerun safety (slice 208, docs/plans/v9-coordinator.md): a driver that lost
+  a command's answer runs it again with --expect <revision>, the revision
+  itos next <id> --json gave (next.feature), a digest of exactly the facts
+  next reads for the item, computed by next's own code so the two cannot
+  drift. work take and work done judge it in this order: a target already
+  reached (take: the item doing for the one taking it; done: the item done)
+  is already, exit 0, nothing written, whatever the revision; a revision that
+  is not the item's current one is stale, exit 1, rule work-stale, nothing
+  written, the message naming the current revision and the fix saying to ask
+  itos next again; else the command runs as today, its own refusals judged
+  after. A revision not "sha256:" and 64 lowercase hex digits is a usage
+  error, exit 2, naming the form. --json gains outcome, taken or already for
+  take, done or already for done, with or without --expect; no key is
+  removed or renamed. A registry itos cannot read soundly, or with changes
+  no commit holds, is refused as today before any of this.
+
   Background:
     Given a repository whose ledger has the task "T-001"
 
@@ -189,6 +205,133 @@ Feature: The work registry
     And the registry's item "slice-9" has the status "todo" and the owner "nobody"
     And the last commit's header is not "docs: take slice-9"
 
+  # Slice 208: the driver's rerun after a lost answer. The second take
+  # passes the revision of before the take, which the take itself made
+  # stale: the target holds, so it is already, not stale, and nothing is
+  # written or committed (the git folder is compared too).
+  @ID-WORK-164 @wip @slice-208
+  Scenario: work take --expect with the revision next gave takes the item, and a rerun with the same revision is already
+    Given the work registry has the item "slice-9" owned by nobody with the status "todo"
+    When itos runs "next slice-9 --json"
+    Then itos exits with code 0
+    And its JSON's revision is saved as "first"
+    When itos runs "work take slice-9 --as someone --json" with --expect the revision saved as "first"
+    Then itos exits with code 0
+    And its JSON's "ok" is true
+    And its JSON's "outcome" is "taken"
+    And its JSON's "item.status" is "doing"
+    And the registry's item "slice-9" has the status "doing" and the owner "someone"
+    And the last commit's header is "docs: take slice-9"
+    Given the repository state is saved for comparison
+    When itos runs "work take slice-9 --as someone --json" with --expect the revision saved as "first"
+    Then itos exits with code 0
+    And its JSON's "ok" is true
+    And its JSON's "outcome" is "already"
+    And its JSON's "commit" is null
+    And the repository files index and HEAD match the saved state
+
+  # The edit of the item's title gives it a new revision (@ID-NEXT-10),
+  # which the message names, so a driver can see what moved; the fix is
+  # the recovery, itos next again. The take is refused as a whole: the
+  # item stays todo and no one's, and no take commit is made.
+  @ID-WORK-165 @wip @slice-208
+  Scenario: A revision that is no longer the item's refuses the take as stale, naming the current one, and writes nothing
+    Given the work registry has the item "slice-9" owned by nobody with the status "todo"
+    When itos runs "next slice-9 --json"
+    Then itos exits with code 0
+    And its JSON's revision is saved as "first"
+    When itos has run "work edit slice-9 --title 'Say the next step'"
+    And itos runs "next slice-9 --json"
+    Then itos exits with code 0
+    And its JSON's revision differs from the one saved as "first"
+    And its JSON's revision is saved as "second"
+    When itos runs "work take slice-9 --as someone --json" with --expect the revision saved as "first"
+    Then itos exits with code 1
+    And stdout is one JSON report with schema 1 and ok false
+    And its JSON's problem "work-stale"'s "message" names the revision saved as "second"
+    And its JSON's problem "work-stale"'s "fix" says "itos next slice-9"
+    And the registry's item "slice-9" has the status "todo" and the owner "nobody"
+    And the last commit's header is not "docs: take slice-9"
+    When itos runs "work take slice-9 --as someone" with --expect the revision saved as "first"
+    Then itos exits with code 1
+    And its output says "itos next slice-9"
+    And the registry's item "slice-9" has the status "todo" and the owner "nobody"
+
+  # The item is another's, which the take refuses today (@ID-WORK-09): a
+  # build that judges the take's own refusals before the revision gives
+  # that refusal, not work-stale. Stale comes first, since the driver's
+  # answer to either is the same, itos next again, and only the revision
+  # says whether what it knew still holds.
+  @ID-WORK-166 @wip @slice-208
+  Scenario: A stale revision is judged before the take's own refusals
+    Given the work registry has the item "slice-9" owned by "another" with the status "todo"
+    When itos runs "next slice-9 --json"
+    Then itos exits with code 0
+    And its JSON's revision is saved as "first"
+    When itos has run "work edit slice-9 --title 'Say the next step'"
+    And itos runs "work take slice-9 --as someone --json" with --expect the revision saved as "first"
+    Then itos exits with code 1
+    And stdout is one JSON report with schema 1 and ok false
+    And its JSON's problem "work-stale"'s "fix" says "itos next slice-9"
+    And the registry's item "slice-9" has the status "todo" and the owner "another"
+
+  # The revision is well formed and no item's: a build that judged the
+  # revision before the target gives stale, exit 1. The line is today's
+  # (@ID-WORK-153's shape, with an owner).
+  @ID-WORK-167 @wip @slice-208
+  Scenario: An item already in progress for the person is already, whatever the revision
+    Given the work registry has the item "slice-9" owned by "someone" with the status "doing"
+    And the repository state is saved for comparison
+    When itos runs "work take slice-9 --as someone --json --expect sha256:0000000000000000000000000000000000000000000000000000000000000000"
+    Then itos exits with code 0
+    And its JSON's "ok" is true
+    And its JSON's "outcome" is "already"
+    And its JSON's "commit" is null
+    And the repository files index and HEAD match the saved state
+    When itos runs "work take slice-9 --as someone --expect sha256:0000000000000000000000000000000000000000000000000000000000000000"
+    Then itos exits with code 0
+    And its output says "slice-9 is already in progress for someone; nothing to change"
+    And the repository files index and HEAD match the saved state
+
+  # A driver reads the outcome whether or not it passed --expect, and
+  # today's keys stay: ok, item and commit, the commit null when nothing
+  # was committed, as before.
+  @ID-WORK-168 @wip @slice-208
+  Scenario: work take --json says its outcome without --expect, taken then already
+    Given the work registry has the item "slice-9" owned by nobody with the status "todo"
+    When itos runs "work take slice-9 --as someone --json"
+    Then itos exits with code 0
+    And its JSON's "ok" is true
+    And its JSON's "outcome" is "taken"
+    And its JSON's "item.status" is "doing"
+    And its JSON's "item.owner" is "someone"
+    And the last commit's header is "docs: take slice-9"
+    When itos runs "work take slice-9 --as someone --json"
+    Then itos exits with code 0
+    And its JSON's "ok" is true
+    And its JSON's "outcome" is "already"
+    And its JSON's "commit" is null
+
+  # Not a revision: a word, 63 digits, uppercase digits, another digest.
+  # The usage error names the form, "sha256:" and 64 lowercase hex digits,
+  # which today's "does not take --expect" does not. Judged before the
+  # registry is read, so nothing is written for take or for done.
+  @ID-WORK-169 @wip @slice-208
+  Scenario Outline: A malformed revision is a usage error, exit 2, naming the form, and nothing is written
+    Given the work registry has the item "slice-9" owned by "someone" with the status "<status>"
+    When itos runs "<line>"
+    Then itos exits with code 2
+    And its output says "--expect"
+    And its output says "sha256:"
+    And the registry is unchanged
+
+    Examples:
+      | status | line                                                                                                |
+      | todo   | work take slice-9 --as someone --expect abc                                                         |
+      | todo   | work take slice-9 --as someone --expect sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcde  |
+      | todo   | work take slice-9 --as someone --expect sha256:0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF |
+      | doing  | work done slice-9 --expect sha1:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef               |
+
   # Slice 53: done is the landing's check, run by the agent after its push.
   # A slice's scenarios are those tagged @slice-<n> for the item slice-<n>.
   @ID-WORK-15 @slice-53
@@ -229,6 +372,79 @@ Feature: The work registry
     Then itos exits with code 0
     And the registry's item "slice-9" has the status "done" and the owner "someone"
     And the last commit's header is "docs: close slice-9"
+
+  # Slice 208: @ID-WORK-18's landing with --expect, then the driver's rerun
+  # with the revision of before the close, which the close made stale: the
+  # item is done, so it is already, nothing committed, CI not asked again.
+  @ID-WORK-170 @wip @slice-208
+  Scenario: work done --expect with the revision next gave closes the item, and a rerun with the same revision is already
+    Given a clone of it, where itos runs
+    And the work registry has the item "slice-9" owned by "someone" with the status "doing"
+    And ci.watch asks a fake GitHub, which reports the run "https://ci.example/runs/1"
+    And the watched run's jobs "ci" and "platform" succeed
+    When itos runs "next slice-9 --json"
+    Then itos exits with code 0
+    And its JSON's revision is saved as "first"
+    When itos runs "work done slice-9 --json" with --expect the revision saved as "first"
+    Then itos exits with code 0
+    And its JSON's "ok" is true
+    And its JSON's "outcome" is "done"
+    And its JSON's "ci" is "success"
+    And the registry's item "slice-9" has the status "done" and the owner "someone"
+    And the last commit's header is "docs: close slice-9"
+    Given the repository state is saved for comparison
+    When itos runs "work done slice-9 --json" with --expect the revision saved as "first"
+    Then itos exits with code 0
+    And its JSON's "ok" is true
+    And its JSON's "outcome" is "already"
+    And its JSON's "commit" is null
+    And the repository files index and HEAD match the saved state
+
+  # The @wip scenario would refuse the close today, rule work-done-wip
+  # (@ID-WORK-15): a build that judges the landing before the revision
+  # gives that refusal, not work-stale. The title edit moves the revision
+  # as in @ID-WORK-165.
+  @ID-WORK-171 @wip @slice-208
+  Scenario: A stale revision refuses the close before the landing is checked, and writes nothing
+    Given the work registry has the item "slice-9" owned by "someone" with the status "doing"
+    And a feature file with the scenario "@ID-A-01" tagged "@slice-9 @wip"
+    When itos runs "next slice-9 --json"
+    Then itos exits with code 0
+    And its JSON's revision is saved as "first"
+    When itos has run "work edit slice-9 --title 'Say the next step'"
+    And itos runs "next slice-9 --json"
+    Then itos exits with code 0
+    And its JSON's revision differs from the one saved as "first"
+    And its JSON's revision is saved as "second"
+    When itos runs "work done slice-9 --json" with --expect the revision saved as "first"
+    Then itos exits with code 1
+    And stdout is one JSON report with schema 1 and ok false
+    And its JSON's problem "work-stale"'s "message" names the revision saved as "second"
+    And its JSON's problem "work-stale"'s "fix" says "itos next slice-9"
+    And the registry's item "slice-9" has the status "doing" and the owner "someone"
+    And the last commit's header is not "docs: close slice-9"
+
+  # The revision is well formed and no item's, as in @ID-WORK-167: the
+  # target holds, so no landing check runs and nothing is written. Without
+  # --expect, --json says the outcome too.
+  @ID-WORK-172 @wip @slice-208
+  Scenario: An item already done is already, whatever the revision, and --json says so without --expect too
+    Given the work registry has the item "slice-9" owned by "someone" with the status "done"
+    And the repository state is saved for comparison
+    When itos runs "work done slice-9 --json --expect sha256:0000000000000000000000000000000000000000000000000000000000000000"
+    Then itos exits with code 0
+    And its JSON's "ok" is true
+    And its JSON's "outcome" is "already"
+    And its JSON's "commit" is null
+    And the repository files index and HEAD match the saved state
+    When itos runs "work done slice-9 --expect sha256:0000000000000000000000000000000000000000000000000000000000000000"
+    Then itos exits with code 0
+    And its output says "slice-9 is already done; nothing to change"
+    When itos runs "work done slice-9 --json"
+    Then itos exits with code 0
+    And its JSON's "outcome" is "already"
+    And its JSON's "commit" is null
+    And the repository files index and HEAD match the saved state
 
   # Slice 54 (the user's calls, 2026-10-03): the rest of the registry is
   # written by commands too, as take, promote and done already are, so no one
