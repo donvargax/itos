@@ -15939,3 +15939,16 @@ items:
       session is the additive rail, to build only once an agent is seen settling a decision as the
       person (guard rails from evidence).
     tags: [guard, v9]
+
+  - id: p3-rule-ids-gate
+    title: A check fails when a rule id in the code is missing from docs/rule-ids.md
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      slice-205's implementer, 2026-10-30: docs/rule-ids.md is kept by hand and nothing checks that
+      every Rule: literal in the code is listed; a static check in the pre-commit or CI tier keeps
+      it true (automate over review).
+    tags: [gates, v8]
