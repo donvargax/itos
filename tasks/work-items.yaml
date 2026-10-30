@@ -15999,3 +15999,26 @@ items:
       commits rebased and reset instead of replaying. Also features/testdata/gh/nodes/05-timeline.sh
       overwrites fields set by 05-pull-request.sh.
     tags: [push, v8]
+
+  - id: p1-launcher-runs-tree-build
+    title: The global itos runs a repository's own build when its config says so, reading only the pin before the rest of the config
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      2026-10-30: the person's `! itos go` in this repository ran ~/src/go/bin/itos, which stopped
+      on 'itos.yaml: unknown key ci.jobs', so where things stand never printed; this repository pins
+      no release, and ADR-0024's launcher runs the called binary for a config with no pin. Wanted:
+      `itos go` alone, from the PATH, everywhere. Two gaps: (1) no pin can name the tree's build
+      (tools/bin/itos here), so a repository that judges itself with its own build gets the stale
+      global one; (2) the launcher validates the whole config before choosing what to run, so an
+      older launcher stops on any key a newer schema added, the case where handing off matters most.
+      Proposed: a pin form naming a command in the tree (a pin.bin, or hooks.bin read as such), and
+      the launcher reading only pin: (as go reads only go.mod's go and toolchain lines) before
+      handing off. direnv was considered and rejected: its hook runs only at an interactive prompt,
+      so Claude Code's ! and agents' shells see it only through an inherited PATH, and an agent in a
+      worktree inheriting the main checkout's absolute PATH would run the wrong tree's build
+      silently; tools/bin also holds about 30 other commands (pre-commit among them).
+    tags: [launcher]
