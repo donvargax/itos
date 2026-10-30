@@ -15985,3 +15985,21 @@ items:
       docs/plans/v9-coordinator.md question 3's open design (commit statuses for facts bound to a
       head; check runs need a GitHub App).
     tags: [review, v9]
+
+  - id: p3-push-small-frictions-206
+    title: ci watch names a failed job whose log it cannot fetch; push threads shows a Codex security finding's title; push resets to a remote branch GitHub rebased
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      slice-206's implementer, 2026-10-30: (1) itos ci watch on a failed run said CI failure without
+      naming the failed Windows job (its log host is outside the sandbox's allow-list), so the job
+      list came from gh run view --json jobs; (2) Codex's security finding opens with a hidden
+      marker line, so push threads shows an empty title: show the first non-marker line; (3) after
+      GitHub rebased the pull request, the local branch's rebase onto origin/<item> stopped on
+      add/add conflicts of the agent's own files: itos push could notice the remote holds the same
+      commits rebased and reset instead of replaying. Also features/testdata/gh/nodes/05-timeline.sh
+      overwrites fields set by 05-pull-request.sh.
+    tags: [push, v8]
