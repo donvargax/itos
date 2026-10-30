@@ -11270,6 +11270,10 @@ items:
       q-91 decided (ADR, the user 2026-10-21): the guarantee is a close commit signed with the
       person's own sign-off key (distinct from keys signing ordinary commits; hardware touch or
       passphrase), verified in CI; evidence alone is not enough.
+
+      The person's research reports, 2026-10-30 (kept outside the repository) (the Orchestra
+      comparison): ADR-0055 orders this after slice-158, but the registry has it depend only on
+      p1-typed-items; the edge to slice-158 is missing.
     tags: [work, v9]
 
   - id: p1-check-message-help-tree
