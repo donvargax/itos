@@ -365,7 +365,7 @@ Feature: itos brief, the filled brief an agent starts from and its request
 
   # A ref written with a leading ./ or a trailing / names the same file or
   # folder (the review of the build, round 2); the reason keeps its spelling.
-  @ID-BRIEF-14 @wip @slice-204
+  @ID-BRIEF-14 @slice-204
   Scenario: A ref's leading ./ and trailing / name the same file or folder
     Given the committed file "tasks/work-items.yaml" holding the lines:
       """

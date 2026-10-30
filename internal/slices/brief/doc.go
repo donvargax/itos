@@ -19,8 +19,10 @@
 // guide.orchestrating names, and the blobs of the reads. The reads are
 // AGENTS.md, the item's feature files (a task's ledger file), both
 // required, and for each of the item's refs the file it names or the
-// doc.go of the folder it names; a ref naming neither is omitted and said
-// so, as is a missing AGENTS.md. The spec commit is the last commit on
+// doc.go of the folder it names; a ref naming neither, or a symbolic link,
+// which an agent's checkout would resolve to something the recorded blob
+// is not, is omitted and said so, as is a missing AGENTS.md. The spec
+// commit is the last commit on
 // HEAD's first-parent history touching the spec's files, none when nothing
 // is tagged yet, which only the drafter is briefed on. The request is
 // "sha256:" and the digest of LF-terminated lines, the item, the role, the

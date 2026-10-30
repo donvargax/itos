@@ -91,7 +91,7 @@ func over(files map[string]string) *ports {
 	entries := map[string]TreeEntry{}
 	for p, text := range files {
 		head[p] = text
-		entries[p] = TreeEntry{Kind: "blob", Object: "blob:" + p}
+		entries[p] = TreeEntry{Kind: "blob", Mode: "100644", Object: "blob:" + p}
 	}
 	worktree := map[string]string{"itos.yaml": strings.Replace(itosYAML, "work-items.yaml", "other.yaml", 1)}
 	return &ports{
@@ -225,6 +225,43 @@ func TestImplementerBrief(t *testing.T) {
 // The scenarios sentence says all `@wip`, all live, or which one is live;
 // a ref read twice is read once; a title the registry lacks is the id; a
 // bug is a bug.
+// A ref is looked up by its clean path and named as written; one naming
+// the top or outside it is left out; a symbolic link, as a ref, as a
+// folder's doc.go or as AGENTS.md, is left out and said so, in the text
+// too.
+func TestRefForms(t *testing.T) {
+	p := over(map[string]string{
+		"work-items.yaml":     "phases: { 1: null }\nitems:\n  - { id: slice-9, title: Nine, phase: 1, owner: null, status: todo, depends_on: [], refs: [./docs/plan.md, ./internal/foo/, ., ../x, link.md, internal/bar] }\n",
+		"AGENTS.md":           "Rules.\n",
+		"docs/plan.md":        "# The plan\n",
+		"internal/foo/doc.go": "// Package foo.\n",
+		"link.md":             "docs/plan.md",
+		"internal/bar/doc.go": "../foo/doc.go",
+	})
+	p.entries["link.md"] = TreeEntry{Kind: "blob", Mode: "120000", Object: "blob:link.md"}
+	p.entries["internal/bar/doc.go"] = TreeEntry{Kind: "blob", Mode: "120000", Object: "blob:internal/bar/doc.go"}
+	b := brief(t, p, "slice-9", "drafter")
+	wantReads := []Read{
+		{"AGENTS.md", "blob:AGENTS.md", "the repository's agent rules", true},
+		{"docs/plan.md", "blob:docs/plan.md", "the item's ref ./docs/plan.md", false},
+		{"internal/foo/doc.go", "blob:internal/foo/doc.go", "the item's ref ./internal/foo/", false},
+	}
+	if !slices.Equal(b.Reads, wantReads) {
+		t.Errorf("reads %+v", b.Reads)
+	}
+	wantOmitted := []Omitted{{".", notInTree}, {"../x", notInTree}, {"link.md", symlinked}, {"internal/bar", symlinked}}
+	if !slices.Equal(b.Omitted, wantOmitted) {
+		t.Errorf("omitted %+v", b.Omitted)
+	}
+	if !strings.Contains(b.Text, "Left out: . is not in the tree at HEAD; ../x is not in the tree at HEAD; link.md is a symbolic link at HEAD; internal/bar is a symbolic link at HEAD.") {
+		t.Errorf("the text: %.400q", b.Text)
+	}
+	p.entries["AGENTS.md"] = TreeEntry{Kind: "blob", Mode: "120000", Object: "blob:AGENTS.md"}
+	if b = brief(t, p, "slice-9", "drafter"); len(b.Reads) != 2 || b.Omitted[0] != (Omitted{"AGENTS.md", symlinked}) {
+		t.Errorf("AGENTS.md a link: reads %+v, omitted %+v", b.Reads, b.Omitted)
+	}
+}
+
 func TestSentences(t *testing.T) {
 	p := over(map[string]string{
 		"work-items.yaml":        "phases: { 1: null }\nitems:\n  - { id: bug-7, phase: 1, owner: a, status: doing, kind: bug, depends_on: [], refs: [AGENTS.md, features/fixes.feature] }\n  - { id: slice-9, title: Nine, phase: 1, owner: null, status: todo, depends_on: [] }\n",

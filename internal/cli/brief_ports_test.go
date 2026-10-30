@@ -41,7 +41,7 @@ func TestBriefPortsBindTheRealCode(t *testing.T) {
 	p := briefPorts{o: Out{Dir: dir}}
 	p.Git.Dir = dir
 	entries, err := p.TreeEntries(t.Context(), "HEAD", []string{"AGENTS.md", "internal/foo", "internal/foo/doc.go", "docs/missing.md"})
-	if err != nil || entries["AGENTS.md"].Kind != "blob" || len(entries["AGENTS.md"].Object) != 40 || entries["internal/foo/doc.go"].Kind != "blob" || len(entries) != 2 {
+	if err != nil || entries["AGENTS.md"].Kind != "blob" || entries["AGENTS.md"].Mode != "100644" || len(entries["AGENTS.md"].Object) != 40 || entries["internal/foo/doc.go"].Kind != "blob" || len(entries) != 2 {
 		t.Errorf("TreeEntries = %+v, %v", entries, err)
 	}
 	if _, err := p.TreeEntries(t.Context(), "nosuchrev", []string{"AGENTS.md"}); err == nil {
