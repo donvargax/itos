@@ -16251,8 +16251,8 @@ items:
   - id: slice-215
     title: "Asking for a review is a step of the machine: itos review request asks each configured reviewer for the pull request's head once, through its kind's adapter, and itos next names it when the head has no request"
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: [slice-209]
     kind: slice
     why: >
