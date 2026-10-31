@@ -94,7 +94,7 @@ Feature: Under push.pr.update merge, itos push --ready brings the pull request u
   # never asking gh pr update-branch, and turns on auto-merge by merge,
   # pinned to the merge head it pushed, with the message itos writes: the
   # item's title and the registry footer.
-  @wip @slice-214 @ID-READYMERGE-01
+  @slice-214 @ID-READYMERGE-01
   Scenario: Under push.pr.update merge, push --ready on a draft main has moved past merges main in, pushes, and turns on auto-merge by merge at the head it pushed, titled after the item
     Given the config has an Item footer of registry items, taken in place of Task for test, docs and chore
     And the config, committed and pushed to the remote's main, adds the YAML:
@@ -127,7 +127,7 @@ Feature: Under push.pr.update merge, itos push --ready brings the pull request u
   # request mergeable already, and --ready merges it once itself, by merge,
   # with the same message, pinned to the head it judged (the clone's HEAD:
   # main has not moved).
-  @wip @slice-214 @ID-READYMERGE-02
+  @slice-214 @ID-READYMERGE-02
   Scenario: Under push.pr.update merge, push --ready whose auto-merge GitHub refuses as clean merges once itself by merge, titled after the item, and says it merged
     Given the config has an Item footer of registry items, taken in place of Task for test, docs and chore
     And the config, committed and pushed to the remote's main, adds the YAML:
@@ -161,7 +161,7 @@ Feature: Under push.pr.update merge, itos push --ready brings the pull request u
   # validated against the registry, itos's merge of main into the branch and
   # the merge GitHub lands on main titled after the item have no changes of
   # their own. It passes before the work and must after it.
-  @wip @slice-214 @ID-READYMERGE-03 @guard
+  @slice-214 @ID-READYMERGE-03 @guard
   Scenario: A merge commit landed as --ready lands it under push.pr.update merge passes itos verify with the item's commits and their Item footers
     Given the config has an Item footer of registry items, taken in place of Task for test, docs and chore
     And the config, committed and pushed to the remote's main, adds the YAML:
@@ -188,7 +188,7 @@ Feature: Under push.pr.update merge, itos push --ready brings the pull request u
   # call: update-branch --rebase, auto-merge by rebase, no subject or body.
   # It passes before the work (once slice-213 makes the key known) and must
   # after it.
-  @wip @slice-214 @ID-READYMERGE-04 @guard
+  @slice-214 @ID-READYMERGE-04 @guard
   Scenario: Under push.pr.update rebase, push --ready asks GitHub to rebase and turns on auto-merge by rebase as before, with no message of its own
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -218,7 +218,7 @@ Feature: Under push.pr.update merge, itos push --ready brings the pull request u
   # Without push.pr.draft a plain push turns on auto-merge itself: under
   # merge, by merge, with itos's message, and, as today, pinned to no head
   # (a push's auto-merge waits for nothing to judge).
-  @wip @slice-214 @ID-READYMERGE-05
+  @slice-214 @ID-READYMERGE-05
   Scenario: Under push.pr.update merge without push.pr.draft, the first push from an item's branch turns on auto-merge by merge, titled after the item
     Given the config has an Item footer of registry items, taken in place of Task for test, docs and chore
     And the config, committed and pushed to the remote's main, adds the YAML:
@@ -240,7 +240,7 @@ Feature: Under push.pr.update merge, itos push --ready brings the pull request u
   # The body is the registry footer's, never a hardcoded Item: a config
   # with no footer of registry items passes no --body, and GitHub writes its
   # own; the subject is still the item's title.
-  @wip @slice-214 @ID-READYMERGE-06
+  @slice-214 @ID-READYMERGE-06
   Scenario: Under push.pr.update merge, push --ready with no registry footer in the config lands by merge titled after the item, passing no body
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """

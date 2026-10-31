@@ -93,6 +93,36 @@ func TestDescribe(t *testing.T) {
 	}
 }
 
+// landing is --rebase unless push.pr.update is merge, and then --merge, the
+// pull request's title as the subject, each value joined to its flag, and the
+// registry footer as the body, none without one; ghFailed's advice names the
+// same method.
+func TestLanding(t *testing.T) {
+	const footer = "commits:\n  footers:\n    Item: { source: registry }\n"
+	for name, c := range map[string]struct {
+		config string
+		want   []string
+	}{
+		"the default":               {"version: 1\npush: { mode: pr }\n" + footer, []string{"--rebase"}},
+		"rebase":                    {"version: 1\npush: { mode: pr, pr: { update: rebase } }\n" + footer, []string{"--rebase"}},
+		"merge":                     {"version: 1\npush: { mode: pr, pr: { update: merge } }\n" + footer, []string{"--merge", "--subject=slice-9: -b the widget", "--body=Item: slice-9"}},
+		"merge, no registry footer": {"version: 1\npush: { mode: pr, pr: { update: merge } }\n", []string{"--merge", "--subject=slice-9: -b the widget"}},
+	} {
+		t.Run(name, func(t *testing.T) {
+			f := prRepo(t)
+			titled(t, f, c.config, `"-b the widget"`)
+			r := pushRun{ports: f, cfg: f.cfg, sha: "abc", branch: item}
+			if got := r.landing(); !reflect.DeepEqual(got, c.want) {
+				t.Errorf("landing is %q, want %q", got, c.want)
+			}
+			advice := r.ghFailed("gh pr merge", "no").Lines
+			if want := "(gh pr merge --auto " + c.want[0] + ")."; !strings.HasSuffix(advice[len(advice)-1], want) {
+				t.Errorf("the advice is %q, want it to end %q", advice, want)
+			}
+		})
+	}
+}
+
 // cut keeps a title of up to 256 code points as it is, else its first 255
 // and an ellipsis, counting code points and not bytes.
 func TestCut(t *testing.T) {
