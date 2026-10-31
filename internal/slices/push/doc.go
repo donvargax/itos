@@ -259,11 +259,12 @@
 // conflict below never strands a take off main; those that start at main's
 // head stay on the item's branch and go with it in one atomic push. bringUp
 // then merges in the remote's item branch when HEAD lacks it ("Merge
-// <remote>/<item> into <item>"), resetting to it instead when HEAD has nothing
-// of its own past it, and main's head after the registry's push when HEAD
-// lacks main as fetched ("Merge <main> into <item>"), with vcsport.VCS.Merge
-// (git merge --no-verify --no-ff --no-edit --no-log -m, so no setting of git's
-// changes the commit; judged at the pre-push hook, a clean merge having no
+// <remote>/<item> into <item>"), fast-forwarding to it instead when HEAD has
+// nothing of its own past it, and main's head after the registry's push when
+// HEAD lacks main as fetched ("Merge <main> into <item>"), with
+// vcsport.VCS.Merge (git merge --no-verify --no-ff --no-edit --no-log -m, --ff
+// for the remote's item branch, so no setting of git's changes the commit and
+// no untracked file is overwritten; judged at the pre-push hook, a clean merge having no
 // changes of its own, bug 30). A merge that stops is left in progress, the
 // item's branch not pushed, exit 1, outcome merge-conflict, naming the paths
 // and saying to commit the merge with a typed first line, then itos push

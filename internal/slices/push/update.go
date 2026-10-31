@@ -102,22 +102,16 @@ func (r *pushRun) mergeItem(ctx context.Context, item, main, theirMain, tip stri
 }
 
 // bringUp brings the clone's branch up to rev, named name in the merge's
-// message, "Merge <name> into <item>": with ff, a branch rev has all of is
-// fast-forwarded to it (vcsport.VCS.Reset), else rev is merged in
-// (vcsport.VCS.Merge). done, with the outcome reported, when the merge stops
-// on a conflict, left in progress for the person (merge-conflict), or does not
-// run (merge-failed); the item's branch is not pushed then, and the report
-// keeps the lines of what went to main before.
+// message, "Merge <name> into <item>" (vcsport.VCS.Merge): with ff, a branch
+// rev has all of is fast-forwarded to it, git refusing to overwrite a file the
+// work tree does not track as it would refuse any merge. done, with the
+// outcome reported, when the merge stops on a conflict, left in progress for
+// the person (merge-conflict), or does not run (merge-failed); the item's
+// branch is not pushed then, and the report keeps the lines of what went to
+// main before.
 func (r *pushRun) bringUp(ctx context.Context, rev, name string, ff bool) (Answer, bool) {
 	v := r.ports
-	if ff && v.IsAncestor(ctx, "HEAD", rev) {
-		if err := v.Reset(ctx, rev); err != nil {
-			fmt.Fprintf(r.o.Stderr, "itos: cannot fast-forward %s to %s: %s\n", r.branch, name, err)
-			return Answer{Code: missing}, true
-		}
-		return Answer{}, false
-	}
-	code, err := gitrun.ExitOf(v.Merge(ctx, rev, fmt.Sprintf("Merge %s into %s", name, r.branch), r.o.Quiet, r.talk(r.o.Stderr)))
+	code, err := gitrun.ExitOf(v.Merge(ctx, rev, fmt.Sprintf("Merge %s into %s", name, r.branch), ff, r.o.Quiet, r.talk(r.o.Stderr)))
 	if err != nil {
 		fmt.Fprintf(r.o.Stderr, "itos: cannot run git: %s\n", err)
 		return Answer{Code: missing}, true
