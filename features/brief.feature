@@ -463,6 +463,39 @@ Feature: itos brief, the filled brief an agent starts from and its request
     And its JSON's "reads" entry whose "path" is "AGENTS.md" has "blob" the git blob id of "app/AGENTS.md" at HEAD
     And its JSON's "omitted" is []
 
+  # The scenarios tagged for an item of such a project are found in its
+  # own feature files at HEAD, so its implementer is briefed (the review of
+  # the build, round 6).
+  @ID-BRIEF-19 @wip @slice-204
+  Scenario: A project in a subfolder briefs its implementer from its own scenarios
+    Given the committed file "app/itos.yaml" holding the lines:
+      """
+      version: 1
+      work:
+        registry: work-items.yaml
+      tests:
+        scenario: { root: features, id: "ID-[A-Z]+-\\d+" }
+      """
+    And the committed file "app/work-items.yaml" holding the lines:
+      """
+      phases: { 1: null }
+      items:
+        - { id: slice-9, title: Nine, phase: 1, owner: null, status: todo, depends_on: [] }
+      """
+    And the committed file "app/AGENTS.md" holding "The app's rules."
+    And the committed file "app/features/one.feature" holding the lines:
+      """
+      Feature: One
+
+        @ID-A-01 @wip @slice-9
+        Scenario: one
+          When it runs
+      """
+    When itos runs "brief slice-9 --role implementer --json" from "app"
+    Then itos exits with code 0
+    And the "path" of each entry of its JSON's "reads", in order, is "AGENTS.md, features/one.feature"
+    And its JSON's "reads" entry whose "path" is "features/one.feature" has "blob" the git blob id of "app/features/one.feature" at HEAD
+
   # The saved state is every file of the clone, its git folder included,
   # so HEAD, the index and anything itos might keep in .git/itos are
   # compared. A gh on the PATH records any call, so asking the forge shows.
