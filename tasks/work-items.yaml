@@ -16322,22 +16322,9 @@ items:
     title: "Under push.mode pr with push.pr.update: merge, itos push brings an item branch up to main by merging it in, never rebasing a pushed commit"
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: slice
-    why: >
-      p1-pr-merge-mode (the person, 2026-10-30: merges, not rebases; tonight every hand-run command
-      was a rewrite agents are refused). Settled: push.pr.update: rebase (the default, today's flow)
-      or merge, read under push.mode pr alone. Under merge, itos push on an item branch: when the
-      remote's item branch has commits the local one lacks, it merges them in (never rebases); when
-      the remote's main has commits the branch lacks, it merges origin/main in, one merge commit
-      itos writes ('Merge <main> into <item>', which the commit rules pass: a clean merge has no
-      changes of its own, bug 30); a conflict stops it, exit 1, the merge left in progress for the
-      implementer to resolve and commit (its message needs a commit type, as the rules already judge
-      a merge with changes of its own), then itos push again; the push is then a fast-forward, never
-      forced. --onto-main under merge is refused, saying itos push merges main in. merge-in-history
-      stays only where a registry commit must be carried out of a branch holding a merge. Under
-      rebase nothing changes.
     tags: [work, v8]
 
   - id: slice-214
