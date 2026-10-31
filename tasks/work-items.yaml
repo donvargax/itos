@@ -57,7 +57,6 @@ phases:
   3: donvargax
 
 queue:
-  - slice-214
   - p1-v9-design-from-friction
   - p1-ci-slow-linux-runs
   - slice-153
@@ -15710,6 +15709,17 @@ items:
       With reviewer kinds (p1-review-request-step): Bugbot's check run is bound to its head_sha by
       GitHub, so it needs no binding of its own; Copilot's review carries its commit
       (PullRequestReview.commit).
+
+      Codex's security review raised it on #240 (thread PRRT_kwDOU2JMic6yTU-7, 2026-10-31): a
+      review_by login with no Codex state counts with any review, so an author could get a review on
+      a harmless head, push an unreviewed commit, and still get success. The fix: ask for each
+      review's commit and dismissed state, page the reviews, and accept only a review of the exact
+      head. It changes --ready and review status (slice-212) together.
+
+      slice-215's implementer, 2026-10-31: Bugbot rewrites its older reviews to start '<!--
+      BUGBOT_REVIEW -->' then '<!-- BUGBOT_REVIEW_STALE -->'. Under slice-215's rule such a review
+      still counts for its own commit, which is harmless while only older commits go stale. The
+      verdict model should read the stale marker. reviews(first: 100) is not paged either.
     tags: [push, v9]
 
   - id: T-339
@@ -15795,8 +15805,8 @@ items:
   - id: slice-207
     title: itos attempt submit checks an agent's result against its brief's request and against git, and records it
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: [slice-204]
     kind: slice
     why: >
@@ -16038,7 +16048,7 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: [p1-reviews-status-workflow, p3-review-by-head-any-login, p1-review-request-step]
+    depends_on: [p1-reviews-status-workflow, p3-review-by-head-any-login, slice-215]
     kind: idea
     why: >
       The v9 plan's machine, handed back to merging (docs/plans/v9-coordinator.md; open question 4:
@@ -16071,6 +16081,17 @@ items:
 
       Superseded the note above on who asks Codex (the person, 2026-10-30): the explicit step
       p1-review-request-step asks, not itos push and not the status workflow.
+
+      Seen on #241, 2026-10-31: --ready posts '@codex review' only after the head's CI run passes,
+      so the review and CI run one after the other. A first --ready on a new head ends at 540 s
+      (exit 75) before Codex is even asked. Requesting at push time (slice-215's review-unrequested
+      at handed-back) lets them run side by side. The hand-off should rely on that request rather
+      than make one after CI.
+
+      slice-215's implementer, 2026-10-31: --ready's askForHead and requested still read any
+      itos-review-request marker as a code-review request, and sameLogin now lives both in push and
+      in internal/engine/reviewers (slice-215). The hand-off folds --ready onto the reviewers
+      engine.
     tags: [work, v8]
 
   - id: p3-work-add-refusal-keeps-id
@@ -16091,19 +16112,9 @@ items:
     title: "itos review status posts itos/reviews on a pull request's head: success once each review_by login has reviewed (a Codex state for that head), pending naming who is missing, failure on a refusal"
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: slice
-    why: >
-      q-105 (the person, 2026-10-30): the reviews' wait moves from --ready to the forge as a
-      required status check, so --ready can hand off and return (p1-ready-hand-off). Settled: it
-      judges the head's reviews exactly as --ready's wait does today (push.pr.review_by, Copilot's
-      refusal, Codex's review-state comments with both reviews completed for the head), reusing that
-      code, never a second reading of it; it posts one commit status, context itos/reviews, on the
-      pull request's current head, and never on another commit; it asks nobody for a review and
-      waits for nothing (one forge question, one status write), so running it again is harmless;
-      threads stay GitHub's conversation-resolution rule. The workflow that runs it is a separate ci
-      item; turning the check on in branch protection is the person's.
     tags: [work, v8]
 
   - id: p1-reviews-status-workflow
@@ -16130,6 +16141,18 @@ items:
       From slice-212's spec review: a pull_request_review dismissed trigger changes nothing until
       p3-review-by-head-any-login makes a dismissed review count for nothing; drop it or keep it for
       then.
+
+      slice-212 (2026-10-30) counts a Codex review for a head only when both code_review and
+      security_review are completed for it, as --ready does. The person wants each review requested
+      explicitly, so this is kept. itos/reviews therefore stays pending on a head until someone
+      requests both reviews for it. The workflow that posts itos/reviews, and the person's adding it
+      to branch protection, come after p1-review-request-step, which requests both.
+
+      Codex's security review on #240 (thread PRRT_kwDOU2JMic6yTPgQ, 2026-10-31): review status
+      takes the first open pull request for --head <item>, as review post and --ready do. Two open
+      pull requests from one branch to different bases share a head SHA, and the commit status is
+      tied to neither. The workflow has the triggering event, so it binds the status to that event's
+      pull request and base, and refuses when several are open.
     tags: [ci, v8]
 
   - id: p1-next-task-spec-on-main
@@ -16226,14 +16249,15 @@ items:
       the ledger package once.
     tags: [work]
 
-  - id: p1-review-request-step
+  - id: slice-215
     title: "Asking for a review is a step of the machine: itos review request asks each configured reviewer for the pull request's head once, through its kind's adapter, and itos next names it when the head has no request"
     phase: 1
     owner: null
     status: todo
     depends_on: [slice-209]
-    kind: idea
+    kind: slice
     why: >
+      Was p1-review-request-step.
       The person, 2026-10-30: the deterministic workflow triggers reviews explicitly, never relying
       on Codex's automatic review on ready_for_review. itos review request <item> posts '@codex
       review' and the itos-review-request marker (login and head) for each push.pr.review_by login
@@ -16335,18 +16359,9 @@ items:
     title: "Under push.pr.update: merge, push --ready brings the pull request up to main by a merge and lands it as a merge commit itos titles"
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-213]
     kind: slice
-    why: >
-      p1-pr-merge-mode (the person, 2026-10-30). Settled: under merge, --ready asks GitHub to bring
-      the branch up by merging (gh pr update-branch without --rebase) where today it rebases, and
-      lands with gh pr merge --auto --merge --match-head-commit <head> (the clean-status fallback
-      likewise, --merge), its subject '<item>: <title>' and its body ending in an Item: <item>
-      footer, so a first-parent reader of main gets the item without parsing the branch; under
-      rebase nothing changes. verify and ci range already judge a merge by its own changes (bug 30)
-      and walk the item's commits as ordinary ones; a scenario shows a landed merge passes verify.
-      This repository then turns push.pr.update: merge on (a build commit).
     tags: [work, v8]
 
   - id: p1-v9-explicit-steps
@@ -16419,3 +16434,158 @@ items:
       The repository had allow_merge_commit false, and main's ruleset had pull_request
       allowed_merge_methods [rebase]. itos reads both through gh (repos/<r> and its rulesets) and
       refuses up front, naming the setting, either in a config check or when --ready starts.
+
+  - id: p2-attempt-task-spec
+    title: itos attempt submit accepts a drafter's done result for a task, judged by its ledger entry
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      slice-207's implementer, 2026-10-30: attempt-spec-missing looks only at tagged scenarios,
+      never at a task's ledger entry, so a drafter's done result for a task can never be accepted.
+
+  - id: p3-attempt-journal-lock
+    title: Two itos attempt submit runs at once cannot count the same attempt number
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      slice-207's implementer, 2026-10-30: the attempt journal has no lock, so two concurrent
+      submits can both record the same attempt number.
+
+  - id: p3-brief-at-omitted-reasons
+    title: itos brief --at names the commit it read in its omitted-file reasons, not HEAD
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      slice-207's implementer, 2026-10-30: when --at names another commit, brief's omitted-file
+      reasons still say 'at HEAD'.
+
+  - id: p3-attempt-wip-examples
+    title: itos attempt submit's still-wip check covers @wip Examples blocks, as work done does
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      slice-207's implementer, 2026-10-30: the implementer's still-wip check covers scenarios but
+      not @wip Examples blocks, which work done refuses.
+
+  - id: p3-step-declares-scenario-kind
+    title: A feature step declares the scenario kind on main explicitly, so a scenario that crosses branches sets up main's config itself
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      slice-209's implementer, 2026-10-31: the step 'a feature file with the scenario … tagged' adds
+      the scenario kind to the config on whichever branch it runs on. ID-NEXTFORGE-16 checked out
+      main afterwards and found no scenario kind, so every slice needed a spec, and the fixture
+      needed an extra Given committing a slice-8 scenario on main. A step that declares the kind
+      explicitly would say what the setup means.
+
+  - id: p3-nextforge-13-guard
+    title: "Tag ID-NEXTFORGE-13 (trunk stays in-flight) @guard: it passes before slice-209's work by design"
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      slice-209's implementer, 2026-10-31: NEXTFORGE-13 passes before the work, as a guard does, but
+      carries no @guard tag. Left out of slice-209 so its committed work stays as it is while
+      slice-215 builds on it.
+
+  - id: p2-next-observed-conditions
+    title: "next --json's observed as conditions: each fact with whether it holds, the revision it is bound to, and a reason"
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      From the google/ax analysis, 2026-10-31 (its Kubernetes-style conditions beside the state).
+      The facts behind next's state become a list, so 'stale' is mechanical (a condition bound to an
+      older revision) and trunk or forge facts are added as more conditions, never as new shapes.
+      slice-209 and slice-215 add observed keys one by one (unrequested, the checks), so settle this
+      before the driver depends on the shape.
+
+  - id: p3-idempotent-prepare-step
+    title: Preparing an attempt's worktree and branch is a rerun-safe machine step keyed on item, attempt and base
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      From the google/ax analysis, 2026-10-31 (its runner's prepare-once marker). Today the
+      coordinator sets up each implementer's branch by hand (merging main in, choosing a base), as
+      on slices 207, 209, 212 and 215. As a step next names, the driver runs it, and a rerun after a
+      crash is a no-op. Design only, for v9.
+
+  - id: p3-brief-lenient-read
+    title: Brief consumers ignore unknown keys within schema 1, while results stay strict
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      From the google/ax analysis, 2026-10-31: reading leniently lets brief --json gain keys (as
+      slice-207 added base) without breaking a driver, while attempt submit stays strict about what
+      an agent returns.
+
+  - id: p2-attempt-executor
+    title: "An attempt records its executor (agent, model, where it ran), outside the request hash, behind a seam: a local subagent today, a sandbox backend later"
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      From the google/ax analysis, 2026-10-31. ax schedules sandboxed agent containers (gVisor on
+      Kubernetes) and has no workflow layer, so at most it is a future place an attempt runs.
+      Recording the executor on slice-207's attempt record keeps the comparison of models and agents
+      possible (p1-haiku-implementer-trial), and a seam ties to the person's sandbox project
+      (devcontainer locally, ax or DevPod later).
+
+  - id: p3-staticcheck-changed-untracked
+    title: tools/bin/staticcheck-changed judges a new package not yet committed
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      slice-215's implementer, 2026-10-31: staticcheck-changed skipped the untracked package
+      internal/engine/reviewers, so it had to be run by hand. Pre-push judges committed work, so
+      this matters only for a by-hand run before the commit, but the tool's name promises the
+      changed packages.
+
+  - id: p2-substrate-homelab-spike
+    title: "Spike: run attempts in Agent Substrate on the person's homelab Kubernetes, behind the attempt executor seam"
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The person, 2026-10-31: they have a homelab Kubernetes cluster and might run Agent Substrate
+      on it (github.com/agent-substrate/env, the gVisor actor runtime google/ax is built on).
+      Substrate, not ax, is the piece that sandboxes, so the spike runs one implementer attempt as a
+      Substrate actor (ax optional on top) and reports back through the same brief and attempt
+      submit as a local subagent (p2-attempt-executor). To check: gVisor and Linux 6.8+ with
+      OverlayFS lowerdir+ on the workers; whether Claude Code in the sandbox can use the
+      subscription's OAuth credentials, since ax's example uses ANTHROPIC_API_KEY; pushing from the
+      sandbox without broad credentials (a scoped token for the item's branch only); and suspend and
+      resume for long attempts. It comes after the first driven run, and belongs with the person's
+      sandbox project.

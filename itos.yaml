@@ -591,15 +591,18 @@ proof:
     # draws what CI will. The gates' seeds are fixed, the nightly's fresh (q-54) (T-159).
     check: "tools/bin/pinned itos-cc mutation run --count 1 --since {base} --seed {base} --fail-uncovered=lines --json cmd internal"
 
-# Work reaches main through pull requests merged by rebase once their checks
-# pass; registry and ledger bookkeeping, and docs commits off features/, go
+# Work reaches main through pull requests merged once their checks pass;
+# registry and ledger bookkeeping, and docs commits off features/, go
 # straight to main (slices 174-177, 186, T-303, T-311). A pull request stays a
 # draft, unjudged, until itos push --ready, which waits for Codex's review
-# before auto-merge (slice-179, slice-187).
+# before auto-merge (slice-179, slice-187). Merges, never rebases: itos merges
+# main into an item's branch and lands it by merge, so nothing pushed is
+# rewritten (slice-213, slice-214).
 push:
   mode: pr
   pr:
     draft: true
+    update: merge
     review_by: [chatgpt-codex-connector]
     direct:
       types: [docs]

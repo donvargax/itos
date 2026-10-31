@@ -404,8 +404,10 @@ func (r *pushRun) pushRegistry(ctx context.Context, main, onto string, p plan) A
 // push.pr.draft a plain push opens it as a draft, if it opens it, and does
 // nothing more: no auto-merge, no rebase, no wait. --ready opens it ready or
 // marks the draft ready (gh pr ready), then finishes (ready.go). Otherwise it
-// turns on auto-merge by rebase. In every case but a plain draft push, when
-// main has a commit the pushed head lacks (behind), it asks GitHub to rebase
+// turns on auto-merge, by rebase, or by merge with itos's message under
+// push.pr.update merge (landing). In every case but a plain draft push, when
+// main has a commit the pushed head lacks (behind, never under merge, whose
+// head has main's: mergeItem), it asks GitHub to rebase
 // the pull request rather than forcing the branch; the wait then watches the
 // run of the head GitHub makes (rebasedHead), not the one pushed. theirMain is
 // main's head as the push fetched it. pushed is whether this run pushed the
@@ -441,7 +443,7 @@ func (r *pushRun) pullRequest(ctx context.Context, repository, main, theirMain, 
 	}
 	switch {
 	case !draft:
-		if _, a, failed := r.gh(ctx, "pr", "merge", item, "--repo", repository, "--auto", "--rebase"); failed {
+		if _, a, failed := r.gh(ctx, append([]string{"pr", "merge", item, "--repo", repository, "--auto"}, r.landing()...)...); failed {
 			return a
 		}
 		r.pr.AutoMerge = true
@@ -651,7 +653,7 @@ func (r pushRun) ghFailed(command, reason string) Answer {
 	if r.threads {
 		return r.report(missing, "pull-request-failed", fmt.Sprintf("itos push: %s failed: %s", command, reason))
 	}
-	again := "Fix that, then itos push again: it opens the pull request (gh pr create) and turns on auto-merge (gh pr merge --auto --rebase)."
+	again := "Fix that, then itos push again: it opens the pull request (gh pr create) and turns on auto-merge (gh pr merge --auto --" + r.method() + ")."
 	switch {
 	case r.markReady:
 		again = "Fix that, then itos push --ready again: it opens the pull request ready or marks it ready, waits for its checks and reviews, then turns on auto-merge."
