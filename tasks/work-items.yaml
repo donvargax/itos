@@ -16049,7 +16049,7 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: []
+    depends_on: [p1-reviews-status-workflow]
     kind: idea
     why: >
       The v9 plan's machine, handed back to merging (docs/plans/v9-coordinator.md; open question 4:
@@ -16059,6 +16059,12 @@ items:
       merging state would wait on a forge that never merges. Handing off needs the reviews to hold
       the merge on the forge's side: open question 6, asked as a decision. Outcomes from the plan:
       handed-to-forge, already, threads-unresolved.
+
+      q-105 answered (2026-10-30): the reviews hold the merge as the required status itos/reviews
+      (slice-212, p1-reviews-status-workflow). This item then makes --ready mark the pull request
+      ready, turn on auto-merge pinned to the head, and return handed-to-forge; whether that is a
+      flag beside the blocking --ready or --ready's behaviour when the config says the reviews are a
+      check is for its spec.
     tags: [work, v8]
 
   - id: p3-work-add-refusal-keeps-id
