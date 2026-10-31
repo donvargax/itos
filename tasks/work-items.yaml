@@ -16310,3 +16310,21 @@ items:
       stays only where a registry commit must be carried out of a branch holding a merge. Under
       rebase nothing changes.
     tags: [work, v8]
+
+  - id: slice-214
+    title: "Under push.pr.update: merge, push --ready brings the pull request up to main by a merge and lands it as a merge commit itos titles"
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [slice-213]
+    kind: slice
+    why: >
+      p1-pr-merge-mode (the person, 2026-10-30). Settled: under merge, --ready asks GitHub to bring
+      the branch up by merging (gh pr update-branch without --rebase) where today it rebases, and
+      lands with gh pr merge --auto --merge --match-head-commit <head> (the clean-status fallback
+      likewise, --merge), its subject '<item>: <title>' and its body ending in an Item: <item>
+      footer, so a first-parent reader of main gets the item without parsing the branch; under
+      rebase nothing changes. verify and ci range already judge a merge by its own changes (bug 30)
+      and walk the item's commits as ordinary ones; a scenario shows a landed merge passes verify.
+      This repository then turns push.pr.update: merge on (a build commit).
+    tags: [work, v8]
