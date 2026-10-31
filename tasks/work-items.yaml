@@ -16447,3 +16447,14 @@ items:
     why: >
       slice-207's implementer, 2026-10-30: the attempt journal has no lock, so two concurrent
       submits can both record the same attempt number.
+
+  - id: p3-brief-at-omitted-reasons
+    title: itos brief --at names the commit it read in its omitted-file reasons, not HEAD
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      slice-207's implementer, 2026-10-30: when --at names another commit, brief's omitted-file
+      reasons still say 'at HEAD'.
