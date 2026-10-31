@@ -16751,3 +16751,17 @@ items:
       suite on the spec branch with @wip removed in a scratch copy, which would have shown the
       guards failing before any work. Add that to the spec reviewer's method (the persona's plan
       prompt) or as a deterministic check on a spec pull request.
+
+  - id: p3-drafter-hands-branch
+    title: A drafter's worktree releases the item's branch when it hands back, so the implementer can switch to it
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      bug-158, 2026-10-31: the implementer found branch bug-158 still checked out in the drafter's
+      worktree and had to use git switch --ignore-other-worktrees, which moved the drafter's
+      worktree HEAD under it. The same thing blocked a git branch -f on slice-215. The drafter
+      detaches (git switch --detach) before handing back, or the driver's prepare step
+      (p3-idempotent-prepare-step) owns the branch.
