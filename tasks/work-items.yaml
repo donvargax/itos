@@ -16712,3 +16712,17 @@ items:
       step ID-NEXTFORGE-07 pins cannot be run as given. Either --ready takes the item and works from
       any checkout (resolving its branch's worktree, or pushing from a fetch-only checkout), or
       next's step names where to run it. Needed before the first driven run.
+
+  - id: p3-pinned-tool-cache-shared
+    title: tools/bin/pinned unpacks into a shared cache, and a partial unpack is retried rather than kept
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      slice-209's implementer, 2026-10-31: pinned unpacks golangci-lint into the clone's git folder.
+      A fresh clone on a nearly full tmpfs failed partway ('Wrote only 9728 of 10240 bytes'), and
+      the pre-push hook refused; a symlink to the main clone's copy got past it. One cache per user
+      (~/.cache/itos/tools), with the unpack written to a temporary name and renamed, would avoid
+      both the repeat download and a half-written tool.
