@@ -478,6 +478,7 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	initializeReadyWaitSteps(sc, w)
 	initializeReviewSteps(sc, w)
 	initializeOntoMainSteps(sc, w)
+	initializePushMergeSteps(sc, w)
 	initializeWorkDonePRSteps(sc, w)
 	initializeCITrustSteps(sc, w)
 	initializeCIJobsSteps(sc, w)
