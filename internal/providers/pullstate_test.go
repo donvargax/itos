@@ -16,7 +16,7 @@ func TestPullStateQueryIsOneLine(t *testing.T) {
 	if strings.ContainsAny(PullStateQuery, "\n\t") || strings.Contains(PullStateQuery, "  ") || !strings.HasPrefix(PullStateQuery, "query($owner: String!, ") {
 		t.Errorf("the query is not on one line: %q", PullStateQuery)
 	}
-	for _, want := range []string{"after: $cursor", "pageInfo { hasNextPage endCursor }", "reviewThreads(first: 100)", "READY_FOR_REVIEW_EVENT", "statusCheckRollup { state }", "reviews(first: 100) { nodes { author { login } body commit { oid } } }"} {
+	for _, want := range []string{"after: $cursor", "pageInfo { hasNextPage endCursor }", "reviewThreads(first: 100)", "READY_FOR_REVIEW_EVENT", "statusCheckRollup { state }", "autoMergeRequest { enabledAt }", "reviews(first: 100) { nodes { author { login } body commit { oid } } }"} {
 		if !strings.Contains(PullStateQuery, want) {
 			t.Errorf("the query lacks %q: %s", want, PullStateQuery)
 		}
@@ -30,7 +30,7 @@ func pageAnswer(comments string, more string) string {
 	if more != "" {
 		pageInfo = fmt.Sprintf(`"pageInfo":{"hasNextPage":true,"endCursor":%q},`, more)
 	}
-	return `{"data":{"repository":{"pullRequest":{"headRefOid":"0123456789abcdef0123456789abcdef01234567",` +
+	return `{"data":{"repository":{"pullRequest":{"headRefOid":"0123456789abcdef0123456789abcdef01234567","autoMergeRequest":{"enabledAt":"2026-10-24T10:30:00Z"},` +
 		`"commits":{"nodes":[{"commit":{"statusCheckRollup":{"state":"FAILURE"}}}]},` +
 		`"timelineItems":{"nodes":[{"createdAt":"2026-10-24T10:00:00Z"}]},` +
 		`"reviews":{"nodes":[{"author":{"login":"codex"},"body":"LGTM","commit":{"oid":"abc"}},{"author":{"login":"x"},"body":"","commit":null},{"author":null,"body":"gone"}]},` +
@@ -67,7 +67,8 @@ func TestAskPullStateReadsOneAnswer(t *testing.T) {
 			{ID: "T2", Resolved: true, Path: "b.go"},
 			{ID: "T3", Path: "c.go", Body: "ghost's"},
 		},
-		Checks: "FAILURE",
+		Checks:    "FAILURE",
+		AutoMerge: true,
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("read\n%+v\nwant\n%+v", got, want)
@@ -118,7 +119,7 @@ func TestAskPullStatePagesTheComments(t *testing.T) {
 
 // gh's error is passed on as it comes; an answer that is not JSON, or has
 // no pull request, reviews or threads, is ErrNoPullState; one without
-// comments or a timeline reads as having none.
+// comments, a timeline or an autoMergeRequest reads as having none.
 func TestAskPullStateErrors(t *testing.T) {
 	failed := &GhFailed{Words: "HTTP 401", Err: errors.New("exit 1")}
 	gh := func(_ context.Context, args ...string) (string, error) { return "", failed }
@@ -157,8 +158,8 @@ func TestAskPullStateErrors(t *testing.T) {
 		return `{"data":{"repository":{"pullRequest":{"reviews":{"nodes":[{"author":{"login":"x"},"body":""}]},"reviewThreads":{"nodes":[]}}}}}`, nil
 	}
 	got, err := AskPullState(context.Background(), bare, "owner/name", 7)
-	if err != nil || got.Head != "" || len(got.Comments) != 0 || !got.ReadyAt.IsZero() || len(got.Reviews) != 1 || len(got.Threads) != 0 {
-		t.Errorf("an answer without comments or a timeline: %+v, %v", got, err)
+	if err != nil || got.Head != "" || len(got.Comments) != 0 || !got.ReadyAt.IsZero() || len(got.Reviews) != 1 || len(got.Threads) != 0 || got.AutoMerge {
+		t.Errorf("an answer without comments, a timeline or auto-merge: %+v, %v", got, err)
 	}
 	if !githubTime("not a time").IsZero() {
 		t.Error("a time that cannot be read is not zero")

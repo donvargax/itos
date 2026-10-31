@@ -496,8 +496,9 @@ Feature: itos review request asks each configured reviewer for the pull request'
   # next names the step on a ready pull request, after repair: a red check
   # is the implementer's first. Pending checks are no reason to wait. The
   # code review and Bugbot's requested, Codex's security review is still
-  # missing, so Codex is still unrequested; once it is asked too, the item
-  # is merging. Each request gives a new revision. Fails before the work
+  # missing, so Codex is still unrequested; once it is asked too, with
+  # auto-merge on (slice-216), the item is merging. Each request gives a
+  # new revision. Fails before the work
   # at the complete line naming review-unrequested: slice-209's next says
   # merging.
   @ID-REVREQ-12 @slice-215
@@ -541,6 +542,7 @@ Feature: itos review request asks each configured reviewer for the pull request'
     And its JSON's revision differs from the one saved as "first"
     And its JSON's revision is saved as "second"
     Given the recording gh answers that the pull request has a comment by "ana" requesting "@codex security review" of "chatgpt-codex-connector" at the clone's HEAD
+    And the recording gh's pull request for the branch "slice-9" has auto-merge on
     When itos runs "next slice-9 --json"
     Then itos exits with code 0
     And its JSON's "state" is "merging"

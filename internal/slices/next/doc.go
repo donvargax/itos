@@ -51,8 +51,9 @@
 // all for the branch named for it, whose open pull request is the item's,
 // else a merged one, a closed one counting for nothing; for an open one the
 // one question --ready and review post put (providers.AskPullState), which
-// gives its head, its comments, its reviews with their commits, its threads
-// and its head's statusCheckRollup, from which the reviewers push.pr.reviewers
+// gives its head, its comments, its reviews with their commits, its threads,
+// its head's statusCheckRollup and whether auto-merge is enabled for it
+// (slice-216), from which the reviewers push.pr.reviewers
 // names that were not requested for the head are read (Unrequested, by
 // internal/engine/reviewers, as itos review request reads them);
 // and the attempt journal, whose records next reads the role, attempt,
@@ -65,7 +66,10 @@
 // forge then gives, the first that holds: merged, repair (ready, a check
 // failed or a thread open), review-unrequested (slice-215: ready, a reviewer
 // push.pr.reviewers names not requested for the head as the reviewers engine
-// reads it), merging (ready), blocked "attempt" (the latest
+// reads it), merging (ready, auto-merge on), handed-back (ready, auto-merge
+// off, whatever the status and the journal: slice-216, since --ready marks
+// the pull request ready before it turns auto-merge on, and a driver told
+// merging would wait on nothing), blocked "attempt" (the latest
 // implementer record asks the person, needs_decision or blocked, and the
 // k-th question naming the item, k its place among such records, is not
 // answered), spec-changes (the latest implementer record a spec_defect with

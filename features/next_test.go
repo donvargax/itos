@@ -32,6 +32,15 @@ func initializeNextSteps(sc *godog.ScenarioContext, w *world) {
 		return os.WriteFile(filepath.Join(w.support, "gh-checks"), []byte(state+"\n"), 0o644)
 	})
 	sc.Step(`^the recording gh was called as "([^"]*)" (\d+) times$`, w.ghCalledTimes)
+	// slice-216: auto-merge on for the branch's pull request, the mark the
+	// recording gh's pr merge --auto leaves, which its pr view and its
+	// graphql answer (nodes/08-auto-merge.sh) read.
+	sc.Step(`^the recording gh's pull request for the branch "([^"]*)" has auto-merge on$`, func(branch string) error {
+		if _, err := os.Stat(programPath(filepath.Join(w.support, "bin", "gh"))); err != nil {
+			return errors.New("no recording gh: put one on the PATH first")
+		}
+		return os.WriteFile(filepath.Join(w.support, "gh-auto-merge-"+branch), nil, 0o644)
+	})
 }
 
 // revision is the last run's JSON "revision", a text.

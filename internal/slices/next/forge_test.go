@@ -100,6 +100,11 @@ func pullAnswer(head, rollup string, resolved []bool, comments ...string) string
 		`"reviewThreads":{"nodes":[` + strings.Join(threads, ",") + `]}}}}}`
 }
 
+// autoMerged is the answer with auto-merge enabled for the pull request.
+func autoMerged(answer string) string {
+	return strings.Replace(answer, `"pullRequest":{`, `"pullRequest":{"autoMergeRequest":{"enabledAt":"2026-10-31T00:00:00Z"},`, 1)
+}
+
 // verdictBy is a comment by the login recording the verdict of the item's
 // stage at the head.
 func verdictBy(login, item, stage, verdict, head string) string {
@@ -187,15 +192,24 @@ func TestHandleForgeStates(t *testing.T) {
 			argv: []string{"itos", "brief", "slice-9", "--role", "implementer"}, calls: []string{"pr list", "api graphql"}},
 		{name: "ready with an open thread", status: "doing", list: ready, pull: pullAnswer(headSHA, "SUCCESS", []bool{true, false}), state: "repair",
 			argv: []string{"itos", "brief", "slice-9", "--role", "implementer"}, calls: []string{"pr list", "api graphql"}},
-		{name: "ready and passed", status: "doing", list: ready, pull: pullAnswer(headSHA, "SUCCESS", []bool{true}), state: "merging",
+		{name: "ready and passed", status: "doing", list: ready, pull: autoMerged(pullAnswer(headSHA, "SUCCESS", []bool{true})), state: "merging",
 			calls: []string{"pr list", "api graphql"}},
-		{name: "ready, expected", status: "doing", list: ready, pull: pullAnswer(headSHA, "EXPECTED", nil), state: "merging",
+		{name: "ready, expected", status: "doing", list: ready, pull: autoMerged(pullAnswer(headSHA, "EXPECTED", nil)), state: "merging",
 			calls: []string{"pr list", "api graphql"}},
-		{name: "ready, no checks", status: "doing", list: ready, pull: pullAnswer(headSHA, "", nil), state: "merging",
+		{name: "ready, no checks", status: "doing", list: ready, pull: autoMerged(pullAnswer(headSHA, "", nil)), state: "merging",
 			calls: []string{"pr list", "api graphql"}},
+		{name: "ready, auto-merge off", status: "doing", list: ready, pull: pullAnswer(headSHA, "SUCCESS", []bool{true}), state: "handed-back",
+			argv: []string{"itos", "push", "--ready"}, calls: []string{"pr list", "api graphql"}},
+		{name: "ready, auto-merge off, todo", status: "todo", list: ready, pull: pullAnswer(headSHA, "PENDING", nil), state: "handed-back",
+			argv: []string{"itos", "push", "--ready"}, calls: []string{"pr list", "api graphql"}},
+		{name: "ready, auto-merge off, before the journal", status: "doing", list: ready, pull: pullAnswer(headSHA, "", nil),
+			lines: []string{line("implementer", 1, "spec_defect", "accepted", "")}, state: "handed-back",
+			argv: []string{"itos", "push", "--ready"}, calls: []string{"pr list", "api graphql"}},
+		{name: "ready, auto-merge on, a check failed", status: "doing", list: ready, pull: autoMerged(pullAnswer(headSHA, "FAILURE", nil)), state: "repair",
+			argv: []string{"itos", "brief", "slice-9", "--role", "implementer"}, calls: []string{"pr list", "api graphql"}},
 		{name: "merged, asked nothing more", status: "doing", list: listed("3 CLOSED false "+olderSHA, "7 MERGED false "+headSHA), state: "merged",
 			argv: []string{"itos", "work", "done", "slice-9"}, calls: []string{"pr list"}},
-		{name: "open wins over merged", status: "doing", list: listed("5 MERGED false "+olderSHA, "7 OPEN false "+olderSHA), pull: pullAnswer(headSHA, "PENDING", nil),
+		{name: "open wins over merged", status: "doing", list: listed("5 MERGED false "+olderSHA, "7 OPEN false "+olderSHA), pull: autoMerged(pullAnswer(headSHA, "PENDING", nil)),
 			state: "merging", calls: []string{"pr list", "api graphql"}},
 		{name: "doing, no pull request", status: "doing", list: "[]", state: "implementing",
 			argv: []string{"itos", "brief", "slice-9", "--role", "implementer"}, calls: []string{"pr list"}},
@@ -273,7 +287,7 @@ func TestForgeJSON(t *testing.T) {
 		t.Fatal(err)
 	}
 	want := map[string]any{"pr": map[string]any{"number": 7.0, "draft": true, "head": headSHA, "merged": false},
-		"verdict": nil, "checks": "none", "threads_open": 1.0, "attempt": nil, "unrequested": []any{}}
+		"verdict": nil, "checks": "none", "threads_open": 1.0, "attempt": nil, "unrequested": []any{}, "auto_merge": false}
 	if !reflect.DeepEqual(got["observed"], want) || got["state"] != "spec-review" {
 		t.Errorf("observed %v in %s", got["observed"], stdout)
 	}
@@ -297,7 +311,7 @@ func TestForgeJSON(t *testing.T) {
 	}
 	want = map[string]any{"pr": map[string]any{"number": 7.0, "draft": false, "head": headSHA, "merged": true},
 		"verdict": nil, "checks": "none", "threads_open": 0.0,
-		"attempt": map[string]any{"role": "implementer", "attempt": 2.0, "verdict": "accepted", "outcome": "done", "head": headSHA}, "unrequested": []any{}}
+		"attempt": map[string]any{"role": "implementer", "attempt": 2.0, "verdict": "accepted", "outcome": "done", "head": headSHA}, "unrequested": []any{}, "auto_merge": false}
 	if !reflect.DeepEqual(got["observed"], want) || got["state"] != "merged" {
 		t.Errorf("observed %v in %s", got["observed"], stdout)
 	}
@@ -310,6 +324,12 @@ func TestForgeJSON(t *testing.T) {
 	if !strings.Contains(stdout, `"verdict": "accepted",
       "outcome": "done"`) {
 		t.Errorf("observed.attempt's keys are not role, attempt, verdict, outcome, head in that order:\n%s", stdout)
+	}
+	p = forgeOver(t, "doing", "", map[string][]string{"pr list": {listed("7 OPEN false " + olderSHA)},
+		"api graphql": {autoMerged(pullAnswer(headSHA, "SUCCESS", nil))}})
+	if _, merging, _, _ := run(t, p, "--json", "slice-9"); !strings.Contains(merging, `"unrequested": [],
+    "auto_merge": true`) {
+		t.Errorf("observed.auto_merge is not true, after unrequested:\n%s", merging)
 	}
 }
 
@@ -447,7 +467,9 @@ func TestChecksOf(t *testing.T) {
 
 // Under push.mode pr the revision is the same for the same forge facts and
 // another for a change to any: the pull request, the verdict, the checks,
-// the open threads, a journal record, a question naming the item.
+// the open threads, auto-merge turning on, a journal record, a question
+// naming the item. Auto-merge off writes nothing: the facts' revision is the
+// one they had before slice-216.
 func TestRevisionForge(t *testing.T) {
 	base := func() Facts {
 		f := facts(t, "{ id: slice-9, status: todo }", "slice", nil, nil, live, nil)
@@ -458,6 +480,9 @@ func TestRevisionForge(t *testing.T) {
 		return f
 	}
 	first := Revision(base())
+	if first != "sha256:7592b165b62e596533f2d3e82ce549e2f40affabaa609e16048b5889829db63e" {
+		t.Errorf("the revision with auto-merge off is %s, not the one before slice-216", first)
+	}
 	if first != Revision(base()) {
 		t.Error("the same forge facts give another revision")
 	}
@@ -467,6 +492,7 @@ func TestRevisionForge(t *testing.T) {
 		"the verdict":         func(f *Facts) { f.Observed.Verdict = "changes" },
 		"the checks":          func(f *Facts) { f.Observed.Checks = "pending" },
 		"a thread":            func(f *Facts) { f.Observed.ThreadsOpen = 1 },
+		"auto-merge on":       func(f *Facts) { f.Observed.AutoMerge = true },
 		"a record":            func(f *Facts) { f.Observed.Records[0].Verdict = "rotated" },
 		"a question answered": func(f *Facts) { f.Asked[0].Answer = "This." },
 		"the ref":             func(f *Facts) { f.SpecRef = "HEAD" },
