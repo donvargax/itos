@@ -16093,3 +16093,20 @@ items:
       threads stay GitHub's conversation-resolution rule. The workflow that runs it is a separate ci
       item; turning the check on in branch protection is the person's.
     tags: [work, v8]
+
+  - id: p1-reviews-status-workflow
+    title: A workflow runs itos review status on each pull request event, so itos/reviews follows the head; the person makes it required on main
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [slice-212]
+    kind: idea
+    why: >
+      q-105 (2026-10-30). Triggers: pull_request (opened, synchronize, reopened, ready_for_review),
+      pull_request_review (submitted, dismissed), issue_comment on a pull request (Codex's
+      review-state comments). Permissions: statuses write, pull-requests read, nothing else; it
+      labels nothing (the inbox rule) and only recomputes a status from facts, so a comment by
+      anyone can at worst rerun it. To settle in its spec: a pull_request run uses the branch's own
+      copy of the workflow, so a branch could change what posts the status; issue_comment and
+      pull_request_review run main's. Then the person adds itos/reviews to main's required checks.
+    tags: [ci, v8]
