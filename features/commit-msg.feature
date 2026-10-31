@@ -102,6 +102,123 @@ Feature: The commit-msg hook
     When itos verifies every commit up to HEAD
     Then itos exits with code 0
 
+  # Bug 158 (seen on slice-209, 2026-10-31). Bug 30 read a merge's own
+  # changes as the paths of its dense combined diff (git diff-tree --cc),
+  # which keeps a hunk whose lines in the merge are no single parent's. When
+  # the two sides change neighbouring lines of one file (a line apart, inside
+  # the diff's three lines of context), git's clean merge holds both changes
+  # in one such hunk: the merge has a path of its own, and its untyped
+  # "Merge …" first line is refused under merge-type. itos push under
+  # push.pr.update merge writes that line (push-merge.feature), and the only
+  # way out was a rewrite, which Claude Code refuses agents.
+  #
+  # The rule (the coordinator's, settled): a merge's own changes are the
+  # paths where its tree differs from the tree git's automatic merge of its
+  # two parents writes, git merge-tree --write-tree <first parent> <second
+  # parent> (which exits 1 on a conflict and still writes the tree, conflict
+  # markers in it), the two trees compared as diff-tree compares them, with
+  # --no-renames. A merge whose tree is git's own has none, whatever --cc
+  # shows. A merge that resolved a conflict, with new lines or by taking one
+  # side's, or that added anything git's merge did not write, has some, and is
+  # judged as its first line's type, refused under merge-type when that has
+  # none. One reading, the VCS's OwnPaths (and StagedOwnPaths through it, for
+  # the merge the commit-msg hook judges), is what verify, the pre-push hook,
+  # the commit-msg hook, the path rules and the moves rule judge a merge by;
+  # internal/git/merge.go's and doc.go's account of --cc and --remerge-diff,
+  # the VCS port's, and verify's help say so. A merge of more than two
+  # parents is read by --cc as today: merge-tree merges two, and git's
+  # octopus merge stops at any conflict.
+  #
+  # The steps. Each "a merge commit <message> on top of it, whose two sides
+  # change …" is built as "a merge commit … with no change of its own" is
+  # (git's plumbing in a scratch index, what the scenario staged left staged
+  # and out of every commit): on HEAD, the commit "chore: write the notes"
+  # adding <path> with the lines "one" to "five", one a line; on that, a main
+  # line and a topic line of one chore commit each changing <path>; and the
+  # merge of the two with the message, the main line its first parent, HEAD's
+  # branch moved to it. Every commit but the merge has the footer Task: of the
+  # ledger's first task.
+  #   - "change neighbouring lines": the topic line makes "two" "two, the
+  #     topic's" and the main line "four" "four, main's". "with no change of
+  #     its own" makes the merge's tree git's merge of the two, both lines
+  #     changed; "with a line of its own added to it", that tree with "six,
+  #     the merge's" added at the file's end.
+  #   - "change the same line": the topic line makes "two" "two, the topic's"
+  #     and the main line "two, main's". "the conflict resolved by a line
+  #     neither side has" leaves "two, both's" there; "the conflict resolved
+  #     by taking the topic side's line" leaves the file as the topic line has
+  #     it.
+  # "a merge of the branch <branch> is in progress, whose two sides change
+  # neighbouring lines of <path>, git's merge staged" first unstages what the
+  # scenario staged, its change left in the work tree (git merges only onto
+  # an index that matches HEAD); makes the same three commits, the base and
+  # the main line's on HEAD's branch and the topic line's on the new branch
+  # <branch>; then runs git merge --no-ff --no-commit <branch> on HEAD's
+  # branch: MERGE_HEAD names <branch>'s head and the index holds git's merge.
+
+  # Fails before the work at the exit code: --cc shows notes.md's one hunk,
+  # holding both sides' lines, and the merge is refused under merge-type.
+  @wip @bug-158 @ID-CMSG-19
+  Scenario: verify passes a clean merge whose two sides changed neighbouring lines of one file, whatever its header
+    Given a merge commit "Merge branch 'topic'" on top of it, whose two sides change neighbouring lines of "notes.md", with no change of its own
+    When itos verifies every commit up to HEAD
+    Then itos exits with code 0
+
+  # The merge being made, judged by the same reading. Fails before the work
+  # at the exit code: the merge the hook commits from the index has --cc's
+  # hunk in notes.md, merge-type.
+  @wip @bug-158 @ID-CMSG-20
+  Scenario: The commit-msg hook accepts an untyped first line for a clean merge whose two sides changed neighbouring lines of one file
+    Given a merge of the branch "topic" is in progress, whose two sides change neighbouring lines of "notes.md", git's merge staged
+    When the commit-msg hook checks the message "Merge branch 'topic'"
+    Then itos exits with code 0
+
+  # A guard: --cc shows the line no parent has, and git's merge wrote
+  # conflict markers there, so it passes before the work and must after it.
+  @wip @bug-158 @guard @ID-CMSG-21
+  Scenario: verify refuses an untyped merge that resolved a conflict with a line of its own
+    Given a merge commit "Merge branch 'topic'" on top of it, whose two sides change the same line of "notes.md", the conflict resolved by a line neither side has
+    When itos verifies every commit up to HEAD
+    Then itos exits with code 1
+    And its output names the rule "merge-type"
+    And its output says "Merge branch 'topic'"
+
+  # A conflict resolved by taking one side's line is resolved by hand all the
+  # same: git's merge wrote conflict markers there, not that line. Bug 30
+  # passed it, since every line of it is the topic's and --cc shows no hunk;
+  # no scenario promised that. Fails before the work at the exit code, 0.
+  @wip @bug-158 @ID-CMSG-22
+  Scenario: verify refuses an untyped merge that resolved a conflict by taking one side's line
+    Given a merge commit "Merge branch 'topic'" on top of it, whose two sides change the same line of "notes.md", the conflict resolved by taking the topic side's line
+    When itos verifies every commit up to HEAD
+    Then itos exits with code 1
+    And its output names the rule "merge-type"
+    And its output says "notes.md"
+
+  # An evil merge: git's clean merge, then a line no side wrote, in the file
+  # both sides changed. A guard: --cc shows the hunk, so it passes before the
+  # work, and must after it, the tree being other than git's merge.
+  @wip @bug-158 @guard @ID-CMSG-23
+  Scenario: verify refuses an untyped clean merge that added a line of its own to a file both sides changed
+    Given a merge commit "Merge branch 'topic'" on top of it, whose two sides change neighbouring lines of "notes.md", with a line of its own added to it
+    When itos verifies every commit up to HEAD
+    Then itos exits with code 1
+    And its output names the rule "merge-type"
+    And its output says "notes.md"
+
+  # A change staged beside git's merge is the merge's own, and notes.md,
+  # which git merged, is not. Fails before the work at the last step: today
+  # the refusal names notes.md, whose hunk --cc shows, beside src/app.js.
+  @wip @bug-158 @ID-CMSG-24
+  Scenario: The commit-msg hook refuses an untyped merge with a change of its own staged, naming that path alone
+    Given a merge of the branch "topic" is in progress, whose two sides change neighbouring lines of "notes.md", git's merge staged
+    And a change to "src/app.js" is staged
+    When the commit-msg hook checks the message "Merge branch 'topic'"
+    Then itos exits with code 1
+    And its output names the rule "merge-type"
+    And its output says "src/app.js"
+    And its output does not say "notes.md"
+
   # Bug 31 (found by the code review of 07b0e6d, by two reviewers apart).
   # itos read git's lists of paths (diff --name-only, ls-files, ls-tree)
   # without -z or core.quotePath=false, and git C-quotes a path holding a
