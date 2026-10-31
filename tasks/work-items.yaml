@@ -16436,3 +16436,14 @@ items:
     why: >
       slice-207's implementer, 2026-10-30: attempt-spec-missing looks only at tagged scenarios,
       never at a task's ledger entry, so a drafter's done result for a task can never be accepted.
+
+  - id: p3-attempt-journal-lock
+    title: Two itos attempt submit runs at once cannot count the same attempt number
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      slice-207's implementer, 2026-10-30: the attempt journal has no lock, so two concurrent
+      submits can both record the same attempt number.
