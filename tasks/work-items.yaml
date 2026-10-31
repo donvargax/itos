@@ -7402,32 +7402,9 @@ items:
     title: itos brief <id> --role <role> prints the filled brief an agent starts from, and --json gives its request
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-119]
     kind: slice
-    why: >
-      Was p1-guide-brief-filled.
-      Cut from p1-guide-before-action (2026-10-10): the coordinator fills the same template for
-      every brief by hand, from itos work show (the item, its title, its scenarios and their feature
-      file, the repository's path). With an item, guide brief prints the template filled, leaving
-      the coordinator the settled decisions and the reads.
-
-      2026-10-23: the brief's red-first line ('commit the steps the scenarios need alone') was read
-      by a gpt-6-luna agent (bug-111) as 'the steps must already exist': it stopped on undefined
-      steps. The filled brief should say plainly that writing the missing step definitions is the
-      test commit's job, and that only a scenario that passes before the fix, or fails in setup no
-      step can fix, is a reason to stop.
-
-      2026-10-23 grooming, merged in p1-guide-work-item: itos guide work <item> prints the guide
-      then the item (as work show does), so an implementing agent starts in one round trip instead
-      of two; the brief side is itos guide brief <item> filled from the item. A loop driver needs
-      both.
-
-      The person's research reports, 2026-10-30 (kept outside the repository) (the Orchestra
-      comparison): the filled brief names the spec commit it was made from
-      (p1-policy-and-spec-digests) and lists what it left out, after Orchestra's runtime context
-      manifest (each entry with its hash, reason and explicit omissions), which also suits
-      p1-session-handoff.
     tags: [agents, v8]
 
   - id: p1-guide-work-item
