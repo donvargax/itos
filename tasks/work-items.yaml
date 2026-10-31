@@ -16049,7 +16049,7 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: [p1-reviews-status-workflow]
+    depends_on: [p1-reviews-status-workflow, p3-review-by-head-any-login]
     kind: idea
     why: >
       The v9 plan's machine, handed back to merging (docs/plans/v9-coordinator.md; open question 4:
@@ -16065,6 +16065,13 @@ items:
       ready, turn on auto-merge pinned to the head, and return handed-to-forge; whether that is a
       flag beside the blocking --ready or --ready's behaviour when the config says the reviews are a
       check is for its spec.
+
+      slice-212's spec review (2026-10-30): itos/reviews counts a plain review (Copilot, Bugbot: no
+      Codex review-state comment) whatever commit it judged, as --ready does; once the status is the
+      only gate, a non-Codex login in review_by would let an unreviewed head merge, so
+      p3-review-by-head-any-login lands first (or no non-Codex login joins review_by). After the
+      hand-off nobody asks Codex for a head pushed later (it reviews only on ready_for_review;
+      --ready's askForHead does it today): this item says who posts @codex review for a new head.
     tags: [work, v8]
 
   - id: p3-work-add-refusal-keeps-id
