@@ -107,7 +107,7 @@ real: kill it with a test, or show the mutant equivalent and except it.
 
 This repository runs `push.mode: pr` with `push.pr.draft` (T-303,
 slice-179): an item's work reaches `main` through one pull request, a draft
-until you mark it ready, merged by rebase once its checks and review pass;
+until you mark it ready, merged by merge once its checks and review pass;
 only registry and ledger bookkeeping (a take, a close, `task add`) and a
 docs commit touching nothing under `features/` go straight to `main`, from
 `main`, with `itos push` (T-311). The coordinator pushed the spec as the
