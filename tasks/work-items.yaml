@@ -16178,3 +16178,22 @@ items:
       the tree, the parent and the author date is safe to accept as a counterpart (or itos commit
       could refuse a message identical to an earlier commit's on the branch, before the push).
     tags: [work]
+
+  - id: bug-156
+    title: "A project in a subfolder with its own itos.yaml reads its ledger and files at a commit in one path frame: the VCS port's tree names and the folder git runs in agree"
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: bug
+    why: >
+      Codex on #231 (slice-204, 2026-10-30): with app/itos.yaml and ledger.files:
+      tasks/phase-{group}.yaml, a task's brief fails ledger-folder-missing though the ledger is
+      committed. gitTree.List turns tasks into the top-relative app/tasks (inRepo) and hands it to
+      Git.Files, which runs ls-tree/ls-files in the folder and so looks under app/app/tasks;
+      ledger.Files at HEAD misses the ledger for every command. The port says names are
+      top-relative; Git.Files and Texts work folder-relative. slice-204 already read Texts as
+      ./<name> (the folder frame, f85578b8/9e960110); this bug settles one frame for VCS.File,
+      Files, Texts and gitTree.List/inRepo, keeping or undoing that. Also: Trees.At with an empty
+      folder gets a relative working folder, so inRepo returns . (config check uses vcs.Git{}).
+    tags: [work, v8]
