@@ -401,26 +401,35 @@ func hookProblems(_ *value.Map, c *Config) []out.Problem {
 }
 
 // tagProblems: work.tags are names an item's tags are held to (slice 97),
-// so each is text with something in it, and none is declared twice.
+// and work.delegated names the decision classes an answering agent may
+// settle (slice 205), so each is text with something in it, and none is
+// declared twice.
 func tagProblems(_ *value.Map, c *Config) []out.Problem {
+	return append(names("work.tags", "config-work-tag", "tag", c.Work.Tags),
+		names("work.delegated", "config-work-delegated", "class", c.Work.Delegated)...)
+}
+
+// names is the problems of the list at key, whose entries are each a name
+// of what: one empty (<rule>-empty) and one declared twice (<rule>-twice).
+func names(key, rule, what string, list []string) []out.Problem {
 	var found []out.Problem
 	seen := map[string]bool{}
-	for i, tag := range c.Work.Tags {
+	for i, name := range list {
 		switch {
-		case strings.TrimSpace(tag) == "":
+		case strings.TrimSpace(name) == "":
 			found = append(found, out.Problem{
-				Rule:    "config-work-tag-empty",
-				Message: fmt.Sprintf("work.tags[%d] is empty", i),
-				Fix:     "give the tag a name, or remove it from work.tags",
+				Rule:    rule + "-empty",
+				Message: fmt.Sprintf("%s[%d] is empty", key, i),
+				Fix:     fmt.Sprintf("give the %s a name, or remove it from %s", what, key),
 			})
-		case seen[tag]:
+		case seen[name]:
 			found = append(found, out.Problem{
-				Rule:    "config-work-tag-twice",
-				Message: fmt.Sprintf("work.tags declares %q twice", tag),
-				Fix:     "remove one of the two " + tag + " from work.tags",
+				Rule:    rule + "-twice",
+				Message: fmt.Sprintf("%s declares %q twice", key, name),
+				Fix:     fmt.Sprintf("remove one of the two %s from %s", name, key),
 			})
 		}
-		seen[tag] = true
+		seen[name] = true
 	}
 	return found
 }

@@ -10,6 +10,7 @@ cases:
     stdout_has:
       [
         status,
+        next,
         task list,
         work take,
         decision add,
@@ -17,6 +18,7 @@ cases:
         draft add,
         commit check-message,
         push,
+        review post,
         git-shim install,
         pin,
         upgrade,
@@ -29,6 +31,7 @@ cases:
         config get,
         version,
         guide,
+        brief,
       ]
   - name: itos task --help
     argv: [task, --help]
@@ -59,7 +62,7 @@ cases:
     argv: [decision, --help]
     exit: 0
     stdout_nonempty: true
-    stdout_has: [itos decision add, itos decision answer, itos decision record, itos decision show]
+    stdout_has: [itos decision add, itos decision answer, itos decision ratify, itos decision overturn, itos decision record, itos decision show]
   - name: itos followup --help
     argv: [followup, --help]
     exit: 0
@@ -80,6 +83,11 @@ cases:
     exit: 0
     stdout_nonempty: true
     stdout_has: itos push
+  - name: itos review --help
+    argv: [review, --help]
+    exit: 0
+    stdout_nonempty: true
+    stdout_has: [itos review post, "--stage spec|diff", "itos:v1"]
   - name: itos git-shim --help
     argv: [git-shim, --help]
     exit: 0
@@ -145,11 +153,21 @@ cases:
     exit: 0
     stdout_nonempty: true
     stdout_has: itos guide
+  - name: itos brief --help
+    argv: [brief, --help]
+    exit: 0
+    stdout_nonempty: true
+    stdout_has: [itos brief, --role]
   - name: itos status --help
     argv: [status, --help]
     exit: 0
     stdout_nonempty: true
     stdout_has: itos status
+  - name: itos next --help
+    argv: [next, --help]
+    exit: 0
+    stdout_nonempty: true
+    stdout_has: itos next
   - name: a bare itos prints the help and exits 2
     argv: []
     exit: 2

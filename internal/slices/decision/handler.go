@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -24,15 +25,19 @@ import (
 )
 
 // Query is what the decision command asks: Sub, "" for the list, or add,
-// answer, record or show; the list's All, under --all; the question's ID;
-// add's and answer's Text; add's Item; record's Title, Options,
-// Consequences and Supersedes, or None, under --none.
+// answer, ratify, overturn, record or show; the list's All, under --all;
+// the question's ID; add's, answer's and overturn's Text; add's Item and
+// Class; answer's Provisional and By, under --provisional --by; record's
+// Title, Options, Consequences and Supersedes, or None, under --none.
 type Query struct {
 	Sub          string
 	All          bool
 	ID           string
 	Text         string
 	Item         string
+	Class        string
+	Provisional  bool
+	By           string
 	Title        string
 	Options      []string
 	Consequences string
@@ -71,20 +76,21 @@ type Out struct {
 
 // Answer is what Handle found or did: Release, nil until the registry's
 // lock is held, then for the caller to defer; the Problems that refused
-// it, nothing written; the list's Open and Answered questions and the
-// Unrecorded ones, each as itos decision record would record it; the
+// it, nothing written; the list's Open and Answered questions, its
+// Provisional answers awaiting the person, and the Unrecorded questions,
+// each as itos decision record would record it; the
 // Question shown, or as a change left it; the change's Commit, "" under a
 // stealth config, with its Header; and record's Number and Record, the
 // file it wrote.
 type Answer struct {
-	Release        func()
-	Problems       []out.Problem
-	Open, Answered []ask.Question
-	Unrecorded     []string
-	Question       ask.Question
-	Commit, Header string
-	Number         int
-	Record         string
+	Release                     func()
+	Problems                    []out.Problem
+	Open, Answered, Provisional []ask.Question
+	Unrecorded                  []string
+	Question                    ask.Question
+	Commit, Header              string
+	Number                      int
+	Record                      string
 }
 
 // Handle answers q.
@@ -94,6 +100,8 @@ func (h Handler) Handle(ctx context.Context, q Query, o Out) (Answer, error) {
 		return h.add(ctx, q, o)
 	case "answer":
 		return h.answer(ctx, q, o)
+	case "ratify", "overturn":
+		return h.settle(ctx, q, o)
 	case "record":
 		return h.record(ctx, q, o)
 	case "show":
@@ -199,9 +207,10 @@ func itemProblem(ctx context.Context, cfg *config.Loaded, item string) (*out.Pro
 	}, nil
 }
 
-// add is `decision add <text>… [--item <id>]`: a question, open, with the
-// next free id, naming the item when --item gives one, which the registry
-// must have; the file committed alone, "docs: ask q-<n>".
+// add is `decision add <text>… [--item <id>] [--class <class>]`: a
+// question, open, with the next free id, naming the item when --item gives
+// one, which the registry must have, of the class --class gives; the file
+// committed alone, "docs: ask q-<n>".
 func (h Handler) add(ctx context.Context, q Query, o Out) (Answer, error) {
 	cfg, t, a, err := h.held(ctx, o)
 	if err != nil {
@@ -221,13 +230,17 @@ func (h Handler) add(ctx context.Context, q Query, o Out) (Answer, error) {
 	if err != nil {
 		return a, err
 	}
-	question := *f.Add(q.Text, q.Item)
+	question := *f.Add(q.Text, q.Item, q.Class)
 	about := ""
 	if q.Item != "" {
 		about = " about " + q.Item
 	}
+	class := ""
+	if q.Class != "" {
+		class = ", of the class " + q.Class
+	}
 	header := "docs: ask " + question.ID
-	body := fmt.Sprintf("Ask %s%s (\"%s\"), with itos decision add.", question.ID, about, oneLine(q.Text))
+	body := fmt.Sprintf("Ask %s%s (\"%s\")%s, with itos decision add.", question.ID, about, oneLine(q.Text), class)
 	file := record.File{Path: cfg.Work.Asks, Old: old, Text: ask.Text(f), Created: !there}
 	return h.committed(ctx, t, cfg, a, []record.File{file}, header, body, question, o)
 }
@@ -249,9 +262,13 @@ func (h Handler) committed(ctx context.Context, t trackerport.Tracker, cfg *conf
 	return a, nil
 }
 
-// answer is `decision answer <id> <text>…`: the answer kept beside the
-// question, which is then answered; the file committed alone,
-// "docs: answer q-<n>". A question already answered is refused.
+// answer is `decision answer <id> <text>… [--provisional --by <handle>]`:
+// the answer kept beside the question, which is then answered; the file
+// committed alone, "docs: answer q-<n>". A question already answered is
+// refused, provisionally or not. A provisional answer (slice 205) is an
+// answering agent's, kept with who gave it, which the person ratifies or
+// overturns; it is refused for a question no agent may settle: one with no
+// class, or of a class work.delegated does not list.
 func (h Handler) answer(ctx context.Context, q Query, o Out) (Answer, error) {
 	cfg, t, a, err := h.held(ctx, o)
 	if err != nil {
@@ -267,16 +284,102 @@ func (h Handler) answer(ctx context.Context, q Query, o Out) (Answer, error) {
 		return a, nil
 	}
 	if question.Answer != "" {
-		a.Problems = []out.Problem{{
-			Rule:    "ask-answered",
-			Message: fmt.Sprintf("%s is already answered: %s", q.ID, oneLine(question.Answer)),
-			Fix:     "itos decision add asks a new question",
-		}}
+		a.Problems = []out.Problem{answered(*question)}
 		return a, nil
+	}
+	if q.Provisional {
+		if p := notDelegated(cfg, *question); p != nil {
+			a.Problems = []out.Problem{*p}
+			return a, nil
+		}
+		question.Provisional, question.By = true, q.By
 	}
 	question.Answer = q.Text
 	header := "docs: answer " + q.ID
 	body := fmt.Sprintf("Answer %s (\"%s\") with \"%s\", by itos decision answer.", q.ID, oneLine(question.Question), oneLine(q.Text))
+	if q.Provisional {
+		body = fmt.Sprintf("Answer %s (\"%s\", of the class %s) with \"%s\", provisionally, by %s, through itos decision answer --provisional; "+
+			"work proceeds on it until the person ratifies or overturns it.", q.ID, oneLine(question.Question), question.Class, oneLine(q.Text), q.By)
+	}
+	return h.committed(ctx, t, cfg, a, []record.File{{Path: cfg.Work.Asks, Old: old, Text: ask.Text(f)}}, header, body, *question, o)
+}
+
+// answered refuses an answer to a question answered already: its fix names
+// a new question, or, for a provisional answer, ratify and overturn, which
+// settle it.
+func answered(q ask.Question) out.Problem {
+	p := out.Problem{
+		Rule:    "ask-answered",
+		Message: fmt.Sprintf("%s is already answered: %s", q.ID, oneLine(q.Answer)),
+		Fix:     "itos decision add asks a new question",
+	}
+	if q.Provisional {
+		p.Message = fmt.Sprintf("%s is already answered, provisionally, by %s: %s", q.ID, q.By, oneLine(q.Answer))
+		p.Fix = fmt.Sprintf("itos decision ratify %s makes that the decision, itos decision overturn %s <text> replaces it with the person's", q.ID, q.ID)
+	}
+	return p
+}
+
+// notDelegated refuses a provisional answer to a question no answering
+// agent may settle: one with no class, which no class delegates implicitly,
+// or of a class work.delegated does not list; nil when it may.
+func notDelegated(cfg *config.Loaded, q ask.Question) *out.Problem {
+	switch {
+	case q.Class == "":
+		return &out.Problem{
+			Rule:    "ask-not-delegated",
+			Message: fmt.Sprintf("%s has no class, so it is the person's to answer", q.ID),
+			Fix:     "a question an answering agent may settle is asked with itos decision add --class <class>, a class work.delegated lists",
+		}
+	case !slices.Contains(cfg.Work.Delegated, q.Class):
+		return &out.Problem{
+			Rule:    "ask-not-delegated",
+			Message: fmt.Sprintf("%s is of the class %s, which work.delegated does not list, so it is the person's to answer", q.ID, q.Class),
+			Fix:     fmt.Sprintf("list %s in work.delegated for an answering agent to settle it, or leave it to the person", q.Class),
+		}
+	}
+	return nil
+}
+
+// settle is `decision ratify <id>` and `decision overturn <id> <text>…`:
+// the person's word on a provisional answer. ratify clears provisional,
+// keeping the class and who answered, so the answer is the decision;
+// overturn replaces the answer with the person's text, keeping the agent's
+// beside it as overturned. The file is committed alone, "docs: ratify
+// q-<n>" or "docs: overturn q-<n>". A question with no provisional answer
+// is refused, the person's own answer included: nothing replaces what the
+// person settled.
+func (h Handler) settle(ctx context.Context, q Query, o Out) (Answer, error) {
+	cfg, t, a, err := h.held(ctx, o)
+	if err != nil {
+		return a, err
+	}
+	f, old, _, err := ask.Load(ctx, t, cfg.Work.Asks)
+	if err != nil {
+		return a, err
+	}
+	question := f.Find(q.ID)
+	switch {
+	case question == nil:
+		a.Problems = noQuestion(q.ID)
+		return a, nil
+	case !question.Provisional:
+		a.Problems = []out.Problem{{
+			Rule:    "ask-not-provisional",
+			Message: fmt.Sprintf("%s has no provisional answer, so there is nothing to %s", q.ID, q.Sub),
+			Fix:     "itos decision lists the provisional answers awaiting the person",
+		}}
+		return a, nil
+	}
+	question.Provisional = false
+	header := fmt.Sprintf("docs: %s %s", q.Sub, q.ID)
+	body := fmt.Sprintf("Ratify %s (\"%s\"): %s's answer \"%s\" is the decision, by itos decision ratify.",
+		q.ID, oneLine(question.Question), question.By, oneLine(question.Answer))
+	if q.Sub == "overturn" {
+		question.Overturned, question.Answer = question.Answer, q.Text
+		body = fmt.Sprintf("Overturn %s (\"%s\"): %s's answer \"%s\" is replaced by the person's, \"%s\", by itos decision overturn.",
+			q.ID, oneLine(question.Question), question.By, oneLine(question.Overturned), oneLine(q.Text))
+	}
 	return h.committed(ctx, t, cfg, a, []record.File{{Path: cfg.Work.Asks, Old: old, Text: ask.Text(f)}}, header, body, *question, o)
 }
 
@@ -294,9 +397,9 @@ func (h Handler) show(ctx context.Context, id string) (Answer, error) {
 	return Answer{Question: *q}, nil
 }
 
-// list is `decision [--all]`: the open questions, or with all every one,
-// the answered ones after them; and the answered questions recorded
-// nowhere.
+// list is `decision [--all]`: the open questions, the provisional answers
+// awaiting the person, or with all every one, the answered ones after
+// them; and the answered questions recorded nowhere.
 func (h Handler) list(ctx context.Context, all bool) (Answer, error) {
 	f, err := h.asks(ctx)
 	if err != nil {
@@ -307,9 +410,12 @@ func (h Handler) list(ctx context.Context, all bool) (Answer, error) {
 		if q.Unrecorded() {
 			a.Unrecorded = append(a.Unrecorded, "itos decision record "+q.ID)
 		}
-		if q.Answer == "" {
+		switch {
+		case q.Provisional:
+			a.Provisional = append(a.Provisional, q)
+		case q.Answer == "":
 			a.Open = append(a.Open, q)
-		} else if all {
+		case all:
 			a.Answered = append(a.Answered, q)
 		}
 	}
@@ -340,6 +446,13 @@ func (h Handler) record(ctx context.Context, q Query, o Out) (Answer, error) {
 			Rule:    "ask-unanswered",
 			Message: fmt.Sprintf("%s is not answered, so it holds no decision to record", id),
 			Fix:     "itos decision answer " + id + " <text> answers it first",
+		}}
+		return a, nil
+	case question.Provisional:
+		a.Problems = []out.Problem{{
+			Rule:    "ask-provisional",
+			Message: fmt.Sprintf("%s's answer is provisional, %s's, so it holds no decision to record yet", id, question.By),
+			Fix:     fmt.Sprintf("itos decision ratify %s makes it the decision, itos decision overturn %s <text> replaces it", id, id),
 		}}
 		return a, nil
 	case question.Decision != "":

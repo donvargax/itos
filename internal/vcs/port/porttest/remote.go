@@ -226,6 +226,60 @@ func (v *VCS) CherryPick(ctx context.Context, commit, onto string) (string, erro
 	return made.Name, nil
 }
 
+// Merge makes a commit on HEAD with rev as its second parent and the message,
+// its tree each path as the side that changed it since their newest common
+// commit has it: a path both changed apart is a conflict, which leaves the
+// merge in progress and makes nothing. HEAD that has rev is left as it is, and
+// with ff one rev has all of moves to it.
+func (v *VCS) Merge(ctx context.Context, rev, message string, ff, _ bool, _ port.Talk) error {
+	theirs, ok := v.commit(rev)
+	ours, found := v.commit("HEAD")
+	if !ok || !found {
+		return &port.Failed{Command: "git merge " + rev, Code: 1, Words: "merge: " + rev + " - not something we can merge\n"}
+	}
+	switch {
+	case v.IsAncestor(ctx, theirs.Name, ours.Name):
+		return nil
+	case ff && v.IsAncestor(ctx, ours.Name, theirs.Name):
+		v.moveHead(v.OnBranch, theirs.Name)
+		v.Index, v.Work = nil, nil
+		return nil
+	}
+	mine, _ := v.reach(ours.Name)
+	yours, _ := v.reach(theirs.Name)
+	var base map[string]string
+	for _, c := range v.History {
+		if mine[c.Name] && yours[c.Name] {
+			base = c.Tree
+		}
+	}
+	mineChanged, yoursChanged, apart := differ(base, ours.Tree), differ(base, theirs.Tree), differ(ours.Tree, theirs.Tree)
+	tree := map[string]string{}
+	var conflicts []string
+	for _, p := range union(base, ours.Tree, theirs.Tree) {
+		side := ours.Tree
+		switch {
+		case !slices.Contains(mineChanged, p):
+			side = theirs.Tree
+		case slices.Contains(yoursChanged, p) && slices.Contains(apart, p):
+			conflicts = append(conflicts, p)
+			continue
+		}
+		if text, there := side[p]; there {
+			tree[p] = text
+		}
+	}
+	if len(conflicts) > 0 {
+		v.MergeHead, v.Unmerged = []string{theirs.Name}, conflicts
+		return &port.Failed{Command: "git merge " + rev, Code: 1, Words: "CONFLICT (content): Merge conflict in " + conflicts[0] + "\n"}
+	}
+	made := Commit{Name: v.newName(), Parents: []string{ours.Name, theirs.Name}, Message: message + "\n", Tree: tree}
+	v.History = append(v.History, made)
+	v.moveHead(v.OnBranch, made.Name)
+	v.Index, v.Work = nil, nil
+	return nil
+}
+
 // Reset moves HEAD, and its branch, to the commit, and drops the index and
 // the work tree's changes.
 func (v *VCS) Reset(_ context.Context, rev string) error {

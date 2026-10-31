@@ -20,10 +20,18 @@
   scenarios:
     - id: "@ID-ASK-03"
       why: a question asked, answered and shown, each write committed alone, the file's point in one run
+- file: attempt.feature
+  scenarios:
+    - id: "@ID-ATTEMPT-02"
+      why: an implementer briefed at the item's branch with --at, its red-first commits pushed and its result accepted and recorded, the file's point in one run
 - file: bin.feature
   scenarios:
     - id: "@ID-BIN-01"
       why: a ci.covers pattern written for itos covering a check that calls hooks.bin, the reading every pattern shares
+- file: brief.feature
+  scenarios:
+    - id: "@ID-BRIEF-07"
+      why: the filled brief's reads and omissions in the text and the request's spec commit, blobs and digest in the JSON, the file's point in one run
 - file: ci.feature
   scenarios:
     - id: "@ID-CI-01"
@@ -152,6 +160,10 @@
   scenarios:
     - id: "@ID-NEXTID-01"
       why: the next tag past the highest of a stem, live and @wip scenarios both counted, the command's point
+- file: next.feature
+  scenarios:
+    - id: "@ID-NEXT-07"
+      why: a slice and a task needing a spec, the text line with its command and the JSON, the kind read from a task's id
 - file: old-git.feature
   scenarios:
     - id: "@ID-OLDGIT-02"
@@ -172,6 +184,10 @@
   scenarios:
     - id: "@ID-PUSHREF-01"
       why: an item's first push, a new branch from the remote's main, judged from main's head and not by the whole run, the file's point
+- file: push-merge.feature
+  scenarios:
+    - id: "@ID-PUSHMERGE-04"
+      why: main merged into a pushed pull request's branch and pushed as a fast-forward, the pre-push hook judging none of main's commits, the file's point
 - file: push-mode-direct.feature
   scenarios:
     - id: "@ID-PUSHDIRECT-01"
@@ -204,6 +220,10 @@
   scenarios:
     - id: "@ID-PUSHTHREAD-04"
       why: a thread replied to, then resolved, in that order, the file's point
+- file: review.feature
+  scenarios:
+    - id: "@ID-REVIEW-01"
+      why: a verdict posted as one comment, its readable line and its marker bound to the head, round 1, the file's point
 - file: shim.feature
   scenarios:
     - id: "@ID-SHIM-01"

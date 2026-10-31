@@ -25,6 +25,9 @@ type Captured struct {
 	Seconds  float64
 	Capped   bool
 	TimedOut bool
+	// NotRun is why it did not run to completion, "" when it did
+	// (shell.Result.NotRun): what fails a fails: check that exited non-zero.
+	NotRun string
 }
 
 // Execution relocates a check and its captured output without changing policy.
@@ -90,12 +93,10 @@ func RunCaptured(cfg *config.Loaded, c ledger.Check, cap float64, env []string, 
 		if o.Err != nil {
 			return Captured{}, o.Err
 		}
-		result := Fail
-		if !o.TimedOut && o.OK != c.MustFail() {
-			result = Pass
-		}
+		notRun := shell.NotRun(o.Code, o.TimedOut)
 		return Captured{
-			Result: result, Output: o.Output, Code: o.Code, Seconds: seconds, Capped: cap < own, TimedOut: o.TimedOut,
+			Result: captured(c, o.OK, o.TimedOut, notRun), Output: o.Output, Code: o.Code,
+			Seconds: seconds, Capped: cap < own, TimedOut: o.TimedOut, NotRun: notRun,
 		}, nil
 	}
 	dir, err := os.MkdirTemp(at.TempDir, "itos-check-")
@@ -117,16 +118,23 @@ func RunCaptured(cfg *config.Loaded, c ledger.Check, cap float64, env []string, 
 	if err != nil {
 		return Captured{}, err
 	}
-	result := Fail
-	if !run.TimedOut && run.OK() != c.MustFail() {
-		result = Pass
-	}
+	notRun := run.NotRun()
 	return Captured{
-		Result:   result,
+		Result:   captured(c, run.OK(), run.TimedOut, notRun),
 		Output:   string(output),
 		Code:     run.Code,
 		Seconds:  seconds,
 		Capped:   cap < own,
 		TimedOut: run.TimedOut,
+		NotRun:   notRun,
 	}, nil
+}
+
+// captured is a captured run's verdict: a check past its timeout fails
+// whatever its code, else it is the check's verdict.
+func captured(c ledger.Check, ok, timedOut bool, notRun string) Result {
+	if timedOut {
+		return Fail
+	}
+	return verdict(c, ok, notRun)
 }

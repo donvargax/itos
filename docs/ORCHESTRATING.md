@@ -79,12 +79,14 @@ so those footers are for the consumer who upgrades.
 
 ## What a brief adds here
 
-Add these lines to the brief template `itos guide brief` prints; the
-handoff line below replaces the template's "wait for CI … close the item":
+This section is printed into every brief `itos brief` fills, after the
+role's template, so it speaks to you, the briefed agent:
 
 - **Reads:** `AGENTS.md` (this repository's rules, which add to `itos guide
-  work`), the decision records in `docs/decisions/` and the `PLAN.md` sections the item rests on, and the earlier items'
-  commits (`itos work show <id>`, and `git show <sha>` for a commit's body).
+  work`), the decision records in `docs/decisions/` and the `PLAN.md`
+  sections the item rests on, and the earlier items' commits (`itos work
+  show <id>`, and `git show <sha>` for a commit's body). The brief's reads
+  are starting points, not a boundary: read each package's `doc.go` first.
 - **For a feat or a fix:** run `go run ./tools/bin/previous-release`, and name
   in a `Changes:` footer any old scenario or non-help corpus case the change
   alters on purpose. A case can be named by a unique prefix of its name, so
@@ -93,18 +95,19 @@ handoff line below replaces the template's "wait for CI … close the item":
 - **The `Upgrading:` footer** says what a consumer must still change by hand
   after `itos upgrade` (which applies the schema's renames), concretely,
   since the notes quote it. Never "none; …" followed by text: it reads as none.
-- **The neighbours:** "Before pushing, run `go test ./features -count=1
-  -scenarios='^@(ID-AREA-|…)'`", naming the item's areas and those it touches.
+- **The neighbours:** before pushing, run `go test ./features -count=1
+  -scenarios='^@(ID-AREA-|…)'` over the item's areas and those it touches
+  (`features/README.md` names each file's area).
 - **Proof and handoff (q-57, ADR-0057):** CI judges one fresh mutant of a
   push's changed functions and the coverage of its changed lines; a survivor
   or an uncovered line needs a test. No by-hand push proof, `itos task`,
   golangci-lint or staticcheck: pre-push runs the linters, CI the rest; run a
-  diagnostic only when it is the work. The agent finishes as AGENTS.md's
-  Finishing says: it hands back the draft; the coordinator's reviewer posts
-  on a spec, Codex at ready on every diff (ADR-0061); the agent fixes
-  the threads and alone runs `itos push --ready`; a Codex review still
-  running after 30 minutes gets one new `@codex review` comment; the coordinator closes it on
-  main after the merge (T-303, slice-179).
+  diagnostic only when it is the work. Finish as AGENTS.md's Finishing says:
+  push the draft as you work; Codex and Cursor's Bugbot review it at ready
+  (ADR-0061); fix each thread's cause, never the check, resolve it, and run
+  `itos push --ready` yourself; a Codex review still running after 30
+  minutes gets one new `@codex review` comment. Never run `itos work done`:
+  the coordinator closes the item on main after the merge (T-303, slice-179).
 - **What the push proof flags:** an error check after a call that already
   returns that error is a dead branch, an uncovered line (T-281, T-282). A
   test forcing a filesystem error uses one every OS reports alike (a NUL byte
@@ -113,9 +116,6 @@ handoff line below replaces the template's "wait for CI … close the item":
 - **A portability account in the report:** how each changed path behaves on
   Windows, macOS and once pushed, and how its test sets that state; a
   warning alone did not do it (slices 169, 170).
-- **The files:** brief the item's `refs` and its tagged feature files from
-  `itos work show <id>`. Read each package's `doc.go` first. They are starting
-  points, not a boundary (`p1-work-spec-files` would derive them).
 
 ## Independent work and red repairs
 

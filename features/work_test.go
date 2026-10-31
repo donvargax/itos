@@ -85,6 +85,8 @@ func initializeWorkSteps(sc *godog.ScenarioContext, w *world) {
 	sc.Step(`^a feature file with the scenario "([^"]*)" tagged "([^"]*)"$`, w.taggedScenario)
 	sc.Step(`^a feature file with the outline "([^"]*)" tagged "([^"]*)", one Examples block live and the block "([^"]*)" tagged "([^"]*)"$`, w.taggedOutline)
 	sc.Step(`^itos has run "([^"]*)"$`, func(line string) error { return w.hasRunLine(w.dir, line) })
+	sc.Step(`^itos runs "([^"]*)" with --expect the revision saved as "([^"]*)"$`, w.runsExpecting)
+	sc.Step(`^its JSON's problem "([^"]*)"'s "([^"]*)" names the revision saved as "([^"]*)"$`, w.problemNamesRevision)
 	sc.Step(`^the registry's queue names "([^"]*)"$`, w.registryQueueNames)
 	sc.Step(`^while work done waits for CI, a commit takes "([^"]*)" for "([^"]*)"$`, w.takenWhileWaiting)
 	sc.Step(`^work\.decisions is "([^"]*)"$`, func(path string) error {
@@ -935,6 +937,39 @@ func (w *world) registryItemWithoutWhy(id, status string) error {
 	}
 	if why, has := item["why"]; has && why != nil && why != "" {
 		return fmt.Errorf("%s still has the why %q\n%s", id, why, w.report())
+	}
+	return nil
+}
+
+// The command line, split as a shell splits it, run with --expect and the
+// revision an earlier run of itos next printed, saved under the name
+// (next_test.go): the driver's rerun, handing back the state it acted on
+// (slice 208).
+func (w *world) runsExpecting(line, name string) error {
+	args, err := shellWords(line)
+	if err != nil {
+		return err
+	}
+	saved, ok := w.revisions[name]
+	if !ok {
+		return fmt.Errorf("no revision was saved as %q", name)
+	}
+	return w.itos(append(args, "--expect", saved)...)
+}
+
+// The problem's field holds the revision saved under the name, whole:
+// "sha256:" and its 64 digits, so a message printing a short prefix fails.
+func (w *world) problemNamesRevision(rule, field, name string) error {
+	saved, ok := w.revisions[name]
+	if !ok {
+		return fmt.Errorf("no revision was saved as %q", name)
+	}
+	problem, err := w.problemOfRule(rule)
+	if err != nil {
+		return err
+	}
+	if got, _ := problem[field].(string); !strings.Contains(got, saved) {
+		return fmt.Errorf("the problem %s's %s is %q, which does not name the revision %q\n%s", rule, field, got, saved, w.report())
 	}
 	return nil
 }

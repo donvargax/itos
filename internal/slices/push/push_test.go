@@ -53,6 +53,7 @@ type fake struct {
 	refsErr   error
 	pushErr   error
 	rebase    func() error
+	merge     func() error
 	pushed    [][]string
 	talk      vcsport.Talk
 
@@ -201,6 +202,14 @@ func (f *fake) CherryPick(ctx context.Context, commit, onto string) (string, err
 		}
 	}
 	return f.VCS.CherryPick(ctx, commit, onto)
+}
+
+// Merge is the fake's unless merge stands in for it (update_test.go).
+func (f *fake) Merge(ctx context.Context, rev, message string, ff, quiet bool, talk vcsport.Talk) error {
+	if f.merge != nil {
+		return f.merge()
+	}
+	return f.VCS.Merge(ctx, rev, message, ff, quiet, talk)
 }
 
 func (f *fake) Reset(ctx context.Context, rev string) error {

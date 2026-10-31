@@ -42,7 +42,19 @@ type TreeEntry struct{ Mode, Kind, Object string }
 // TreeEntries are the commit's entries at the paths, named from the top
 // (git ls-tree --full-tree): a path it lacks is not among them.
 func (g Git) TreeEntries(ctx context.Context, commit string, paths []string) (map[string]TreeEntry, error) {
-	listed, err := g.drafted(ctx, nil, append([]string{"ls-tree", "-z", "--full-tree", commit, "--"}, paths...)...)
+	return g.treeEntries(ctx, append([]string{"ls-tree", "-z", "--full-tree", commit, "--"}, paths...))
+}
+
+// FolderEntries are TreeEntries with the paths read from the folder git
+// runs in and named from it (git ls-tree without --full-tree), as a
+// project in a subfolder, with its own itos.yaml, names its files.
+func (g Git) FolderEntries(ctx context.Context, commit string, paths []string) (map[string]TreeEntry, error) {
+	return g.treeEntries(ctx, append([]string{"ls-tree", "-z", commit, "--"}, paths...))
+}
+
+// treeEntries are the entries git ls-tree -z lists with the arguments.
+func (g Git) treeEntries(ctx context.Context, args []string) (map[string]TreeEntry, error) {
+	listed, err := g.drafted(ctx, nil, args...)
 	if err != nil {
 		return nil, err
 	}

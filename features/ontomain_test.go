@@ -67,9 +67,18 @@ func (w *world) cloneIsRebasing() error {
 	return fmt.Errorf("the clone has no rebase in progress\n%s", w.report())
 }
 
-// The conflict markers of the file left out, so it holds both sides' lines,
-// then the file staged and the rebase continued, its message editor a no-op.
+// The conflict resolved keeping both sides (keepBothSides), then the rebase
+// continued, its message editor a no-op.
 func (w *world) cloneResolvesKeepingBoth(path string) error {
+	if err := w.keepBothSides(path); err != nil {
+		return err
+	}
+	return w.git("-c", "core.editor=true", "rebase", "--continue")
+}
+
+// The conflict markers of the file left out, so it holds both sides' lines,
+// then the file staged.
+func (w *world) keepBothSides(path string) error {
 	full := filepath.Join(w.dir, path)
 	text, err := os.ReadFile(full)
 	if err != nil {
@@ -89,10 +98,7 @@ func (w *world) cloneResolvesKeepingBoth(path string) error {
 	if err := os.WriteFile(full, []byte(strings.Join(kept, "")), 0o644); err != nil {
 		return err
 	}
-	if err := w.git("add", "--", path); err != nil {
-		return err
-	}
-	return w.git("-c", "core.editor=true", "rebase", "--continue")
+	return w.git("add", "--", path)
 }
 
 // The remote's branch of the name has no commit with the subject.

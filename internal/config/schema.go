@@ -303,6 +303,7 @@ var schema = about("itos's policy: the ledger, the commit rules, the named tests
 		"groups_key", about("The registry's key whose entries name each group's owner.", str),
 		"statuses", about("The statuses a work item may have; dropped, which itos work drop gives, is known whatever this lists.", strs),
 		"tags", about("The tags a work item may carry, distinct and none empty; left out, an item may carry none.", strs),
+		"delegated", about("The decision classes an answering agent may settle provisionally (itos decision answer --provisional), distinct and none empty; left out, every decision is the person's.", strs),
 		"people", about("Who may own work: the source and the file it reads.", obj([]string{"source", "file"},
 			"source", enum("all-contributors-md", "all-contributorsrc", "yaml"),
 			"file", str,
@@ -331,6 +332,8 @@ var schema = about("itos's policy: the ledger, the commit rules, the named tests
 			"review_stall", about("The seconds a push.pr.review_by login's review may read running in its review-state comment (Codex's) before itos push --ready asks for it again, once per head; 0, the default, never.", num),
 			"ready_wait", about("The seconds one itos push --ready may spend, counted from its start, before it stops waiting for GitHub's rebase, the run and the reviews "+
 				"with the outcome ready-still-waiting, so that it returns within its caller's time limit; itos push --ready again goes on. 0, no bound.", num),
+			"update", about("How itos push brings an item's branch up to the remote's item branch and to main under push.mode pr: "+
+				"rebase (the default) rebases it, merge merges them in and never rewrites a pushed commit.", enum("rebase", "merge")),
 			"direct", about("The commits a push from main goes straight to main with, beside the registry's, under push.mode pr.", obj(nil,
 				"types", about("The commit types that a push from main, or itos push --ref main, sends straight to main beside the registry's commits under push.mode pr; empty, none.", strs),
 				"except", about("Globs of paths that keep a commit of those types off main, so it goes through its item's pull request: a commit touching any is refused on main.", strs),

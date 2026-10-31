@@ -12,6 +12,13 @@
 // runs live for the invocation alone, and CI's driver keeps none, so a push
 // runs each named task's checks as its own.
 //
+// A run: check passes when its command exits 0. A fails: check passes only
+// when its command ran to completion and exited non-zero: one that timed
+// out, could not start, or that sh could not find (127) or execute (126)
+// fails, whatever its code (shell.Result.NotRun), on every path, an answer
+// from evidence included; a verbose run prints "did not run:" and why, and
+// Captured.NotRun gives why to the hook's message.
+//
 // A Runner given an evidence engine (internal/engine/evidence) looks a check that
 // opts in up by the index tree and runs a miss in a checkout of it, recording
 // the result; RunInfo gives the check's evidence beside its Result, and a

@@ -39,6 +39,7 @@ cases:
     exit: 0
     json:
       schema: 1
+      provisional: []
       questions:
       - id: q-2
         item: x
@@ -73,6 +74,7 @@ cases:
     exit: 0
     json:
       schema: 1
+      provisional: []
       questions:
         - { id: q-1, question: a, status: answered, answer: b, decision: 3 }
         - { id: q-2, question: c, status: answered, answer: d, decision: none }
@@ -89,6 +91,7 @@ cases:
     exit: 0
     json:
       schema: 1
+      provisional: []
       questions:
         - { id: q-2, item: x, question: "Is the archive\nworth it?", status: open }
         - { id: q-3, question: "Which way?", status: open }
@@ -99,6 +102,7 @@ cases:
     exit: 0
     json:
       schema: 1
+      provisional: []
       questions: []
   - name: decision show prints an open question, its lines kept
     argv: [decision, show, q-2, --json]
@@ -312,6 +316,7 @@ cases:
     exit: 0
     json:
       schema: 1
+      provisional: []
       questions:
       - id: q-5
         question: Moved?
@@ -573,3 +578,260 @@ cases:
         <!-- itos:decisions:end -->
       .git/itos/work-items.yaml.lock: null
       docs/decisions/README.md: null
+  # Slice 205: a project delegates decision classes to an answering agent
+  # (work.delegated); add --class gives a question its class; answer
+  # --provisional --by answers one of a delegated class in the person's
+  # place, refused for a question with no class or of a class not listed;
+  # the list holds the provisional answers apart, and the person's ratify
+  # and overturn settle them; record refuses a provisional answer.
+  - name: decision add --class keeps the class beside the question
+    argv: [decision, add, "Which starter?", --class, spec, --json]
+    git:
+      - commit: "docs: start"
+        files: { asks.yaml: *asks }
+    exit: 0
+    files_after:
+      asks.yaml: |
+        # The questions to the person the work is for, written by itos decision (itos help decision).
+        questions:
+          - id: q-1
+            item: "x"
+            question: "Labels or Projects?"
+            answer: "Labels, with trust by who acted."
+          - id: q-2
+            item: "x"
+            question: "Is the archive\nworth it?"
+          - id: q-3
+            question: "Which way?"
+          - id: q-4
+            question: "Which starter?"
+            class: "spec"
+    json_has:
+      schema: 1
+      ok: true
+      question: { id: q-4, question: "Which starter?", status: open, class: spec }
+      commit: "<any>"
+  - name: decision add --class takes a name
+    argv: [decision, add, "Which starter?", --class, ""]
+    exit: 2
+    stderr_has: --class
+  - name: decision answer --provisional --by answers a question of a delegated class, provisionally, and commits the file alone
+    argv: [decision, answer, q-3, Left., --provisional, --by, agent-1, --json]
+    files:
+      itos.yaml: &delegating "version: 1\nwork: { registry: work-items.yaml, delegated: [spec], people: { source: yaml, file: people.yaml } }\n"
+      asks.yaml: &classed "questions:\n  - { id: q-3, question: \"Which way?\", class: spec }\n"
+    git:
+      - commit: "docs: start"
+        files: { asks.yaml: *classed }
+    exit: 0
+    files_after:
+      asks.yaml: |
+        # The questions to the person the work is for, written by itos decision (itos help decision).
+        questions:
+          - id: q-3
+            question: "Which way?"
+            class: "spec"
+            answer: "Left."
+            provisional: true
+            by: "agent-1"
+    json_has:
+      schema: 1
+      ok: true
+      question: { id: q-3, question: "Which way?", status: answered, answer: Left., class: spec, provisional: true, by: agent-1 }
+      commit: "<any>"
+  - name: decision answer --provisional refuses a question with no class, and writes nothing
+    argv: [decision, answer, q-3, Left., --provisional, --by, agent-1, --json]
+    files:
+      itos.yaml: *delegating
+    exit: 1
+    files_after:
+      asks.yaml: *asks
+    json:
+      schema: 1
+      ok: false
+      problems:
+      - rule: ask-not-delegated
+  - name: decision answer --provisional refuses a class work.delegated does not list
+    argv: [decision, answer, q-3, Left., --provisional, --by, agent-1, --json]
+    files:
+      itos.yaml: *delegating
+      asks.yaml: &reviewed "questions:\n  - { id: q-3, question: \"Which way?\", class: review }\n"
+    exit: 1
+    files_after:
+      asks.yaml: *reviewed
+    json:
+      schema: 1
+      ok: false
+      problems:
+      - rule: ask-not-delegated
+  - name: decision answer --provisional needs --by
+    argv: [decision, answer, q-3, Left., --provisional]
+    exit: 2
+    stderr_has: --by
+  - name: decision answer --by needs --provisional
+    argv: [decision, answer, q-3, Left., --by, agent-1]
+    exit: 2
+    stderr_has: --provisional
+  - name: decision answer refuses a question answered provisionally, naming ratify and overturn
+    argv: [decision, answer, q-3, Right., --json]
+    files:
+      asks.yaml: &provisional "questions:\n  - { id: q-1, question: \"Which way?\", class: spec, answer: Left., provisional: true, by: agent-1 }\n  - { id: q-2, question: \"Open?\" }\n  - { id: q-3, question: \"Labels?\", class: spec, answer: Left., provisional: true, by: agent-2 }\n"
+    exit: 1
+    json:
+      schema: 1
+      ok: false
+      problems:
+      - rule: ask-answered
+    stdout_has: [decision ratify q-3, decision overturn q-3]
+  - name: decision lists the provisional answers apart, oldest first, and the open questions without them
+    argv: [decision, --json]
+    files:
+      asks.yaml: *provisional
+    exit: 0
+    json:
+      schema: 1
+      questions:
+        - { id: q-2, question: "Open?", status: open }
+      provisional:
+        - { id: q-1, question: "Which way?", status: answered, answer: Left., class: spec, provisional: true, by: agent-1 }
+        - { id: q-3, question: "Labels?", status: answered, answer: Left., class: spec, provisional: true, by: agent-2 }
+  - name: decision --all leaves the provisional answers out of the answered questions
+    argv: [decision, --all, --json]
+    files:
+      asks.yaml: *provisional
+    exit: 0
+    json:
+      schema: 1
+      questions:
+        - { id: q-2, question: "Open?", status: open }
+      provisional:
+        - { id: q-1, question: "Which way?", status: answered, answer: Left., class: spec, provisional: true, by: agent-1 }
+        - { id: q-3, question: "Labels?", status: answered, answer: Left., class: spec, provisional: true, by: agent-2 }
+  - name: decision ratify clears provisional, keeping the class and who answered, and commits the file alone
+    argv: [decision, ratify, q-1, --json]
+    files:
+      asks.yaml: *provisional
+    git:
+      - commit: "docs: start"
+        files: { asks.yaml: *provisional }
+    exit: 0
+    files_after:
+      asks.yaml: |
+        # The questions to the person the work is for, written by itos decision (itos help decision).
+        questions:
+          - id: q-1
+            question: "Which way?"
+            class: "spec"
+            answer: "Left."
+            by: "agent-1"
+          - id: q-2
+            question: "Open?"
+          - id: q-3
+            question: "Labels?"
+            class: "spec"
+            answer: "Left."
+            provisional: true
+            by: "agent-2"
+    json_has:
+      schema: 1
+      ok: true
+      question: { id: q-1, question: "Which way?", status: answered, answer: Left., class: spec, by: agent-1 }
+      commit: "<any>"
+  - name: decision overturn replaces the answer with the person's, keeping the agent's as overturned, and commits the file alone
+    argv: [decision, overturn, q-1, Right, then., --json]
+    files:
+      asks.yaml: *provisional
+    git:
+      - commit: "docs: start"
+        files: { asks.yaml: *provisional }
+    exit: 0
+    files_after:
+      asks.yaml: |
+        # The questions to the person the work is for, written by itos decision (itos help decision).
+        questions:
+          - id: q-1
+            question: "Which way?"
+            class: "spec"
+            answer: "Right then."
+            by: "agent-1"
+            overturned: "Left."
+          - id: q-2
+            question: "Open?"
+          - id: q-3
+            question: "Labels?"
+            class: "spec"
+            answer: "Left."
+            provisional: true
+            by: "agent-2"
+    json_has:
+      schema: 1
+      ok: true
+      question: { id: q-1, question: "Which way?", status: answered, answer: Right then., class: spec, by: agent-1, overturned: Left. }
+      commit: "<any>"
+  - name: decision ratify refuses a question with no provisional answer, the person's own included
+    argv: [decision, ratify, q-1, --json]
+    exit: 1
+    files_after:
+      asks.yaml: *asks
+    json:
+      schema: 1
+      ok: false
+      problems:
+      - rule: ask-not-provisional
+  - name: decision overturn refuses an open question
+    argv: [decision, overturn, q-3, Left., --json]
+    exit: 1
+    files_after:
+      asks.yaml: *asks
+    json:
+      schema: 1
+      ok: false
+      problems:
+      - rule: ask-not-provisional
+  - name: decision ratify takes one id
+    argv: [decision, ratify, q-1, q-2]
+    exit: 2
+    stderr_has: q-2
+  - name: decision overturn needs the person's answer
+    argv: [decision, overturn, q-1]
+    exit: 2
+    stderr_has: <text>
+  - name: decision record refuses a provisional answer, and writes nothing
+    argv: [decision, record, q-1, --title, Left, --json]
+    files:
+      asks.yaml: *provisional
+    exit: 1
+    files_after:
+      asks.yaml: *provisional
+      docs/decisions/README.md: null
+    json:
+      schema: 1
+      ok: false
+      problems:
+      - rule: ask-provisional
+  - name: a questions file whose provisional answer names no one who answered is refused, and left as it is
+    argv: [decision, add, "Which way?"]
+    files:
+      asks.yaml: &nobody "questions:\n  - { id: q-1, question: a, answer: b, provisional: true }\n"
+    exit: 2
+    stderr_has: [asks.yaml, q-1, by]
+    files_after:
+      asks.yaml: *nobody
+  - name: under a stealth config decision answer --provisional writes the questions in the git folder and commits nothing
+    argv: [decision, answer, q-3, Left., --provisional, --by, agent-1, --json]
+    git: []
+    files:
+      itos.yaml: null
+      asks.yaml: null
+      .git/itos/itos.yaml: "version: 1\nwork: { registry: work-items.yaml, delegated: [spec] }\n"
+      .git/itos/asks.yaml: *classed
+    exit: 0
+    files_after:
+      .git/itos/asks.yaml: "# The questions to the person the work is for, written by itos decision (itos help decision).\nquestions:\n  - id: q-3\n    question: \"Which way?\"\n    class: \"spec\"\n    answer: \"Left.\"\n    provisional: true\n    by: \"agent-1\"\n"
+      .git/itos/work-items.yaml.lock: null
+      asks.yaml: null
+    json:
+      schema: 1
+      ok: true
+      question: { id: q-3, question: "Which way?", status: answered, answer: Left., class: spec, provisional: true, by: agent-1 }
+      commit: null

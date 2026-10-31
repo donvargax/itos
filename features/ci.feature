@@ -320,14 +320,13 @@ Feature: ci run's log names a merged check by the kind of named tests it ran in
   # are, with {base} the range's start (<from>): every commit since the last
   # green run is code no green run has proven, whoever's item it is, so the
   # whole range is judged. It runs among the static steps, before the named
-  # tests, since it reads recorded results and runs none; itos ci plan
-  # lists it. A survivor, an uncovered or missing result fails the run,
-  # naming each problem's rule and message from the check's --json, so the
-  # release job that needs the run never runs; a check that cannot run fails
-  # it too, as any step does (@ID-CI-19), never a pass. Recording results
-  # stays the author's, before the push. With no proof.code, or a range that
-  # touches none of its paths, the plan is as before. work done no longer
-  # runs the proof (@ID-WORK-87): the green run it requires already judged it.
+  # tests; itos ci plan lists it. A survivor, an uncovered or missing result
+  # fails the run, naming each problem's rule and message from the check's
+  # --json, so the release job that needs the run never runs; a check that
+  # cannot run fails it too, as any step does (@ID-CI-19), never a pass. With
+  # no proof.code, or a range that touches none of its paths, the plan is as
+  # before. work done no longer runs the proof (@ID-WORK-87): the green run it
+  # requires already judged it.
   @ID-CI-20 @slice-106
   Scenario: A range that touches proof.code's paths runs the code proof over it, its base the range's start
     Given the config's proof.code covers "src/**" and checks with a provider that passes

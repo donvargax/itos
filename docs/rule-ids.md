@@ -38,6 +38,8 @@ The headings name the command or check that emits each rule. One invocation can 
 - `config-check-timeout`: `hooks.commit_msg.check_timeout` is not greater than zero.
 - `config-work-tag-empty`: a configured work tag is empty.
 - `config-work-tag-twice`: `work.tags` declares the same tag more than once.
+- `config-work-delegated-empty`: a configured delegated decision class is empty.
+- `config-work-delegated-twice`: `work.delegated` declares the same class more than once.
 - `config-watch-interval`: `ci.watch.interval` is negative.
 - `config-watch-timeout`: `ci.watch.timeout` is not greater than zero.
 - `config-range-check-builtin`: a built-in range check has incompatible commands, adapter, or rename settings.
@@ -145,6 +147,9 @@ The built-in header linter emits these individual rules. Their names come from t
 - `ask-recorded`: the decision has already been recorded.
 - `ask-no-decision`: the referenced decision does not exist.
 - `ask-superseded`: the decision record to supersede is already superseded.
+- `ask-not-delegated`: a provisional answer was given to a question with no class, or of a class `work.delegated` does not list.
+- `ask-not-provisional`: the question to ratify or overturn has no provisional answer.
+- `ask-provisional`: the question's answer is provisional, so it is no decision to record yet.
 - `decisions-number-twice`: two decision records use the same number.
 - `decisions-superseded-by-missing`: a decision names a superseding decision that does not exist.
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"slices"
@@ -132,15 +133,26 @@ func TestParseRefuses(t *testing.T) {
 		args []string
 		want string
 	}{
-		{[]string{"nope"}, "decision has no subcommand nope: it takes add, answer, record or show, else --all"},
+		{[]string{"nope"}, "decision has no subcommand nope: it takes add, answer, ratify, overturn, record or show, else --all"},
 		{[]string{"--bogus"}, "decision does not take --bogus"},
 		{[]string{"add"}, "decision add needs <text>, the question"},
 		{[]string{"add", "  "}, "decision add needs <text>, the question"},
 		{[]string{"add", "--bogus"}, "decision add does not take --bogus"},
+		{[]string{"add", "Q?", "--class", ""}, "decision add takes one --class with a value"},
 		{[]string{"answer", "--bogus"}, "decision answer does not take --bogus"},
 		{[]string{"answer"}, "decision answer needs <id> <text>"},
 		{[]string{"answer", "x-1", "Yes"}, `decision answer: "x-1" is no question id (q-<n>)`},
 		{[]string{"answer", "q-1"}, "decision answer needs <id> <text>, the answer"},
+		{[]string{"answer", "q-1", "A.", "--provisional"}, "decision answer --provisional needs --by <handle>, who answers in the person's place"},
+		{[]string{"answer", "q-1", "A.", "--by", "agent-1"}, "decision answer --by needs --provisional: an answer by someone else is provisional until the person ratifies it"},
+		{[]string{"answer", "q-1", "A.", "--provisional", "--by", " "}, "decision answer takes one --by with a value"},
+		{[]string{"ratify", "--bogus"}, "decision ratify does not take --bogus"},
+		{[]string{"ratify"}, "decision ratify needs <id>"},
+		{[]string{"ratify", "q-1", "q-2"}, "decision ratify takes one <id>, not q-2"},
+		{[]string{"overturn", "--bogus"}, "decision overturn does not take --bogus"},
+		{[]string{"overturn"}, "decision overturn needs <id> <text>"},
+		{[]string{"overturn", "q-1"}, "decision overturn needs <id> <text>, the person's answer"},
+		{[]string{"overturn", "q-1", " "}, "decision overturn needs <id> <text>, the person's answer"},
 		{[]string{"show", "--bogus"}, "decision show does not take --bogus"},
 		{[]string{"show"}, "decision show needs <id>"},
 		{[]string{"show", "q-1", "q-2"}, "decision show takes one <id>, not q-2"},
@@ -174,7 +186,11 @@ func TestParseReads(t *testing.T) {
 		{nil, Query{}},
 		{[]string{"--all"}, Query{All: true}},
 		{[]string{"add", "Which", "way?", "--item", "p1-a"}, Query{Sub: "add", Text: "Which way?", Item: "p1-a"}},
+		{[]string{"add", "Which", "way?", "--class", "spec"}, Query{Sub: "add", Text: "Which way?", Class: "spec"}},
 		{[]string{"answer", "q-2", " Left ", "now"}, Query{Sub: "answer", ID: "q-2", Text: "Left  now"}},
+		{[]string{"answer", "q-2", "Left", "--provisional", "--by", "agent-1"}, Query{Sub: "answer", ID: "q-2", Text: "Left", Provisional: true, By: "agent-1"}},
+		{[]string{"ratify", "q-3"}, Query{Sub: "ratify", ID: "q-3"}},
+		{[]string{"overturn", "q-3", "Right,", "then"}, Query{Sub: "overturn", ID: "q-3", Text: "Right, then"}},
 		{[]string{"show", "q-3"}, Query{Sub: "show", ID: "q-3"}},
 		{[]string{"record", "q-1", "--none"}, Query{Sub: "record", ID: "q-1", None: true}},
 		{
@@ -195,7 +211,8 @@ func TestParseReads(t *testing.T) {
 			continue
 		}
 		if err != nil || !c.JSON || !c.Quiet || c.Sub != test.want.Sub || c.All != test.want.All || c.ID != test.want.ID ||
-			c.Text != test.want.Text || c.Item != test.want.Item || c.Title != test.want.Title || !slices.Equal(c.Options, test.want.Options) ||
+			c.Text != test.want.Text || c.Item != test.want.Item || c.Class != test.want.Class || c.Provisional != test.want.Provisional ||
+			c.By != test.want.By || c.Title != test.want.Title || !slices.Equal(c.Options, test.want.Options) ||
 			c.Consequences != test.want.Consequences || c.Supersedes != test.want.Supersedes || c.None != test.want.None {
 			t.Errorf("Parse(%q) = %+v, %v; want %+v", test.args, c, err, test.want)
 		}
@@ -307,14 +324,14 @@ func TestRefuseWithNoFix(t *testing.T) {
 func TestErrors(t *testing.T) {
 	broken := errors.New("broken")
 	p := ports{err: broken}
-	for _, args := range [][]string{nil, {"show", "q-1"}, {"add", "Q"}, {"answer", "q-1", "A"}, {"record", "q-1", "--none"}} {
+	for _, args := range [][]string{nil, {"show", "q-1"}, {"add", "Q"}, {"answer", "q-1", "A"}, {"ratify", "q-1"}, {"overturn", "q-1", "A"}, {"record", "q-1", "--none"}} {
 		if code, stdout, stderr, err := call(t, p, args...); code != 0 || !errors.Is(err, broken) || stdout != "" || stderr != "" {
 			t.Errorf("%q with no config: %d, %v, %q, %q", args, code, err, stdout, stderr)
 		}
 	}
 	p, _ = over(t, nil, nil)
 	p.tracker = unloadable{&trackerfake.Tracker{}, broken, ""}
-	for _, args := range [][]string{nil, {"show", "q-1"}, {"add", "Q"}, {"answer", "q-1", "A"}, {"record", "q-1", "--none"}} {
+	for _, args := range [][]string{nil, {"show", "q-1"}, {"add", "Q"}, {"answer", "q-1", "A"}, {"ratify", "q-1"}, {"overturn", "q-1", "A"}, {"record", "q-1", "--none"}} {
 		if code, _, _, err := call(t, p, args...); code != 0 || !errors.Is(err, broken) {
 			t.Errorf("%q with questions not loaded: %d, %v", args, code, err)
 		}
@@ -463,7 +480,7 @@ func TestStealth(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, args := range [][]string{{"add", "Q?"}, {"answer", "q-1", "A"}, {"record", "q-1", "--none"}} {
+	for _, args := range [][]string{{"add", "Q?"}, {"answer", "q-1", "A"}, {"ratify", "q-1"}, {"overturn", "q-1", "A"}, {"record", "q-1", "--none"}} {
 		if code, _, _, err = call(t, p, args...); code != 0 || err == nil {
 			t.Errorf("%q with the lock held: %d, %v", args, code, err)
 		}
@@ -513,6 +530,186 @@ func TestAnswer(t *testing.T) {
 	tracker.Refuse = true
 	if code, _, _, err = call(t, p, "answer", "q-1", "Again."); code != 1 || err != nil {
 		t.Errorf("refused: %d, %v", code, err)
+	}
+}
+
+// delegating is the ports of a project whose config delegates the classes,
+// over the committed questions.
+func delegating(t *testing.T, classes string, committed map[string]string) (ports, *trackerfake.Tracker) {
+	t.Helper()
+	t.Chdir(t.TempDir())
+	src, err := treefake.Trees{Files: map[string]map[string]string{"worktree": nil}}.At(t.Context(), "worktree")
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := config.FromText(&vcsfake.VCS{}, treefake.Trees{}, src, "itos.yaml", "version: 1\nwork: { delegated: "+classes+" }\n", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tracker := &trackerfake.Tracker{}
+	commit(t, tracker, committed)
+	return ports{cfg: cfg, tracker: tracker}, tracker
+}
+
+// add --class keeps the class beside the question, and the commit's body
+// names it; answer --provisional --by keeps the answer with provisional and
+// who gave it, and its body says so; the answer is refused for a question
+// with no class, or of a class the config does not delegate, and a plain
+// answer is refused on a provisional one, naming ratify and overturn.
+func TestAnswerProvisional(t *testing.T) {
+	p, tracker := delegating(t, "[spec]", map[string]string{asks: questions("id: q-1\nquestion: \"Plain?\"", "id: q-2\nquestion: \"Reviewed?\"\nclass: review")})
+	seen := &seeing{Tracker: tracker}
+	p.tracker = seen
+	code, stdout, _, err := call(t, p, "add", "Labels", "or Projects?", "--class", "spec")
+	if code != 0 || err != nil || stdout != "q-3 asked: committed 0000000 docs: ask q-3\n" {
+		t.Errorf("add --class: %d, %v, %q", code, err, stdout)
+	}
+	if want := []string{"docs: ask q-3", `Ask q-3 ("Labels or Projects?"), of the class spec, with itos decision add.`}; !slices.Equal(flat(seen.paragraphs), want) {
+		t.Errorf("the commit is %q", seen.paragraphs)
+	}
+	if text := doc(t, tracker, asks); !strings.Contains(text, "    question: \"Labels or Projects?\"\n    class: \"spec\"\n") {
+		t.Errorf("the questions are %q", text)
+	}
+	for id, want := range map[string]string{
+		"q-1": "q-1 has no class, so it is the person's to answer\n  fix: a question an answering agent may settle is asked with itos decision add --class <class>, a class work.delegated lists\n",
+		"q-2": "q-2 is of the class review, which work.delegated does not list, so it is the person's to answer\n  fix: list review in work.delegated for an answering agent to settle it, or leave it to the person\n",
+	} {
+		code, stdout, stderr, err := call(t, p, "answer", id, "Yes.", "--provisional", "--by", "agent-1")
+		if code != 1 || err != nil || stdout != "" || stderr != want {
+			t.Errorf("answer %s --provisional: %d, %v, %q, %q", id, code, err, stdout, stderr)
+		}
+	}
+	if text := doc(t, tracker, asks); strings.Contains(text, "Yes.") {
+		t.Errorf("a refused answer was written: %q", text)
+	}
+	code, stdout, _, err = call(t, p, "answer", "q-3", "Labels.", "--provisional", "--by", "agent-1")
+	if code != 0 || err != nil || stdout != "q-3 answered provisionally by agent-1: committed 0000000 docs: answer q-3\n" {
+		t.Errorf("answer --provisional: %d, %v, %q", code, err, stdout)
+	}
+	want := []string{"docs: answer q-3", `Answer q-3 ("Labels or Projects?", of the class spec) with "Labels.", provisionally, by agent-1, through itos decision answer --provisional; work proceeds on it until the person ratifies or overturns it.`}
+	if !slices.Equal(flat(seen.paragraphs), want) {
+		t.Errorf("the commit is %q", seen.paragraphs)
+	}
+	if text := doc(t, tracker, asks); !strings.Contains(text, "    answer: \"Labels.\"\n    provisional: true\n    by: \"agent-1\"\n") {
+		t.Errorf("the questions are %q", text)
+	}
+	code, stdout, stderr, err := call(t, p, "answer", "q-3", "Projects.")
+	if code != 1 || err != nil || stdout != "" || stderr != "q-3 is already answered, provisionally, by agent-1: Labels.\n"+
+		"  fix: itos decision ratify q-3 makes that the decision, itos decision overturn q-3 <text> replaces it with the person's\n" {
+		t.Errorf("a plain answer on a provisional one: %d, %v, %q, %q", code, err, stdout, stderr)
+	}
+	code, stdout, _, err = call(t, p, "--json", "answer", "q-3", "Projects.", "--provisional", "--by", "agent-2")
+	if code != 1 || err != nil || !strings.Contains(stdout, `"rule": "ask-answered"`) {
+		t.Errorf("a second provisional answer: %d, %v, %q", code, err, stdout)
+	}
+}
+
+// ratify clears provisional, keeping the class and who answered; overturn
+// replaces the answer with the person's and keeps the agent's as
+// overturned; each commits the file alone, its body saying so; a question
+// with no provisional answer, open or the person's, or none with the id,
+// is refused, nothing written.
+func TestSettle(t *testing.T) {
+	p, tracker := delegating(t, "[spec]", map[string]string{asks: questions(
+		"id: q-1\nquestion: \"Labels?\"\nclass: spec\nanswer: \"Labels.\"\nprovisional: true\nby: agent-1",
+		"id: q-2\nquestion: \"Archive?\"\nclass: spec\nanswer: \"No.\"\nprovisional: true\nby: agent-2",
+		"id: q-3\nquestion: \"Open?\"\nclass: spec",
+		"id: q-4\nquestion: \"Mine?\"\nanswer: \"Yes.\"",
+	)})
+	seen := &seeing{Tracker: tracker}
+	p.tracker = seen
+	code, stdout, _, err := call(t, p, "ratify", "q-1")
+	if code != 0 || err != nil || stdout != "q-1 ratified: committed 0000000 docs: ratify q-1\n" {
+		t.Errorf("ratify: %d, %v, %q", code, err, stdout)
+	}
+	if want := []string{"docs: ratify q-1", `Ratify q-1 ("Labels?"): agent-1's answer "Labels." is the decision, by itos decision ratify.`}; !slices.Equal(flat(seen.paragraphs), want) {
+		t.Errorf("the commit is %q", seen.paragraphs)
+	}
+	code, stdout, _, err = call(t, p, "--json", "overturn", "q-2", "Yes,", "it", "is.")
+	var settled struct {
+		OK       bool
+		Question map[string]any
+	}
+	if code != 0 || err != nil || json.Unmarshal([]byte(stdout), &settled) != nil || !settled.OK || settled.Question["answer"] != "Yes, it is." ||
+		settled.Question["overturned"] != "No." || settled.Question["by"] != "agent-2" || settled.Question["provisional"] != nil {
+		t.Errorf("overturn --json: %d, %v, %s", code, err, stdout)
+	}
+	want := []string{"docs: overturn q-2", `Overturn q-2 ("Archive?"): agent-2's answer "No." is replaced by the person's, "Yes, it is.", by itos decision overturn.`}
+	if !slices.Equal(flat(seen.paragraphs), want) {
+		t.Errorf("the commit is %q", seen.paragraphs)
+	}
+	text := doc(t, tracker, asks)
+	if strings.Contains(text, "provisional") || !strings.Contains(text, "    class: \"spec\"\n    answer: \"Labels.\"\n    by: \"agent-1\"\n") ||
+		!strings.Contains(text, "    answer: \"Yes, it is.\"\n    by: \"agent-2\"\n    overturned: \"No.\"\n") {
+		t.Errorf("the questions are %q", text)
+	}
+	for _, args := range [][]string{{"ratify", "q-1"}, {"overturn", "q-2", "Again."}, {"ratify", "q-3"}, {"overturn", "q-4", "No."}} {
+		code, stdout, stderr, err := call(t, p, args...)
+		want := fmt.Sprintf("%s has no provisional answer, so there is nothing to %s\n  fix: itos decision lists the provisional answers awaiting the person\n", args[1], args[0])
+		if code != 1 || err != nil || stdout != "" || stderr != want {
+			t.Errorf("%q: %d, %v, %q, %q", args, code, err, stdout, stderr)
+		}
+	}
+	if code, _, stderr, err := call(t, p, "ratify", "q-9"); code != 1 || err != nil || !strings.HasPrefix(stderr, "there is no question q-9\n") {
+		t.Errorf("ratify q-9: %d, %v, %q", code, err, stderr)
+	}
+	if doc(t, tracker, asks) != text {
+		t.Error("a refused ratify or overturn wrote the questions")
+	}
+	p, tracker = delegating(t, "[spec]", map[string]string{asks: questions("id: q-1\nquestion: \"Q?\"\nclass: spec\nanswer: \"A.\"\nprovisional: true\nby: agent-1")})
+	tracker.Refuse = true
+	if code, _, _, err := call(t, p, "ratify", "q-1"); code != 1 || err != nil {
+		t.Errorf("refused: %d, %v", code, err)
+	}
+}
+
+// The list holds the provisional answers in a section of their own, oldest
+// first, each with its class and who gave it, after the open questions and
+// before the answered ones, and the nudge leaves them out; --json gives
+// them as provisional, apart from questions; show says how an answer
+// stands with the person.
+func TestListProvisional(t *testing.T) {
+	p, _ := over(t, nil, map[string]string{asks: questions(
+		"id: q-1\nquestion: \"Labels?\"\nclass: spec\nanswer: \"Labels.\"\nprovisional: true\nby: agent-1",
+		"id: q-2\nquestion: \"Starter?\"",
+		"id: q-3\nquestion: \"Archive?\"\nanswer: \"No.\"\nprovisional: true\nby: agent-2",
+		"id: q-4\nquestion: \"Mine?\"\nclass: spec\nanswer: \"Yes.\"\nby: agent-1",
+		"id: q-5\nquestion: \"Theirs?\"\nclass: spec\nanswer: \"No.\"\nby: agent-1\noverturned: \"Yes.\"\ndecision: none",
+	)})
+	code, stdout, _, err := call(t, p)
+	want := "Open questions:\n  q-2  Starter?\n\nProvisional answers, awaiting the person (itos decision ratify <id>, or overturn <id> <text>):\n" +
+		"  q-1  Labels?\n       → Labels.\n         spec, by agent-1\n" +
+		"  q-3  Archive?\n       → No.\n         by agent-2\n" +
+		"\nAnswered and recorded nowhere: itos decision record q-4 (--title <title>, or --none)\n"
+	if code != 0 || err != nil || stdout != want {
+		t.Errorf("the list: %d, %v\n got %q\nwant %q", code, err, stdout, want)
+	}
+	code, stdout, _, err = call(t, p, "--json", "--all")
+	var listed struct{ Questions, Provisional []map[string]any }
+	if code != 0 || err != nil || json.Unmarshal([]byte(stdout), &listed) != nil || len(listed.Questions) != 3 || len(listed.Provisional) != 2 ||
+		listed.Questions[0]["id"] != "q-2" || listed.Questions[1]["id"] != "q-4" || listed.Provisional[1]["id"] != "q-3" ||
+		listed.Provisional[0]["provisional"] != true || listed.Provisional[0]["class"] != "spec" {
+		t.Errorf("--json --all: %d, %v, %s", code, err, stdout)
+	}
+	for id, want := range map[string]string{
+		"q-1": "q-1: Labels?\nanswered, class spec, provisional, by agent-1\n\nLabels.\n",
+		"q-4": "q-4: Mine?\nanswered, class spec, ratified, by agent-1\n\nYes.\n",
+		"q-5": "q-5: Theirs?\nanswered, class spec, overturned, by the person, no decision (--none)\n\nNo.\n\noverturned, by agent-1:\nYes.\n",
+	} {
+		if code, stdout, _, err := call(t, p, "show", id); code != 0 || err != nil || stdout != want {
+			t.Errorf("show %s: %d, %v\n got %q\nwant %q", id, code, err, stdout, want)
+		}
+	}
+	p, _ = over(t, nil, map[string]string{asks: questions("id: q-1\nquestion: \"Labels?\"\nclass: spec\nanswer: \"Labels.\"\nprovisional: true\nby: agent-1")})
+	code, stdout, _, err = call(t, p)
+	want = "No open questions.\n\nProvisional answers, awaiting the person (itos decision ratify <id>, or overturn <id> <text>):\n  q-1  Labels?\n       → Labels.\n         spec, by agent-1\n"
+	if code != 0 || err != nil || stdout != want {
+		t.Errorf("none open: %d, %v\n got %q\nwant %q", code, err, stdout, want)
+	}
+	code, _, stderr, err := call(t, p, "record", "q-1", "--none")
+	if code != 1 || err != nil || stderr != "q-1's answer is provisional, agent-1's, so it holds no decision to record yet\n"+
+		"  fix: itos decision ratify q-1 makes it the decision, itos decision overturn q-1 <text> replaces it\n" {
+		t.Errorf("record a provisional answer: %d, %v, %q", code, err, stderr)
 	}
 }
 

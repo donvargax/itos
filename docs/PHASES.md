@@ -10,7 +10,8 @@ on it starts. Its tasks stay in `tasks/phase-<n>.yaml` and its scenarios in
 | ----- | --------------------------------------- | ----- | ------------------------- | ----- |
 | 0     | Scaffold, gates, hooks, task runner, CI | done  | Jorge Vargas (@donvargax) | —     |
 | 1     | itos v0 in its own repository           | doing | Jorge Vargas (@donvargax) | —     |
-| 2     | The Go port                             | todo  | Jorge Vargas (@donvargax) | —     |
+| 2     | The Go port                             | doing | Jorge Vargas (@donvargax) | —     |
+| 3     | The switch: Go only                     | doing | Jorge Vargas (@donvargax) | —     |
 
 ## Routing work items
 
