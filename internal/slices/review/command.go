@@ -7,10 +7,13 @@ var Command = declare.Command{
 	Rank: 105,
 	Lines: `  review post <item> --verdict approve|changes --at <commit> [--stage spec|diff] [--body-file <path>]
                                    record a reviewer's verdict on the item's pull request, bound to its head
+  review request <item> [--expect <revision>]
+                                   ask each reviewer push.pr.reviewers names for the pull request's head, once
   review status <item>             post the itos/reviews commit status on the item's pull request's head
 `,
 	Help: map[string]string{
 		"": `Usage: itos review post <item> --verdict approve|changes --at <commit> [--stage spec|diff] [--body-file <path>]
+       itos review request <item> [--expect <revision>]
        itos review status <item>
 
 Records a reviewer's verdict on an item's pull request, under push.mode pr,
@@ -69,7 +72,7 @@ JSON); review-body-file, a --body-file that cannot be read; review-unknown-
 commit, an --at git cannot resolve; review-no-pull-request, no open pull
 request for the item (itos push opens it); and review-head-moved, above. The
 first five are refused before gh is asked. Exit 2 is a usage error, asking gh
-nothing: review alone or with any word but post, post with no item or two,
+nothing: review alone or with any word but post, request or status, post with no item or two,
 without --verdict or without --at, --stage with a word that is neither spec nor
 diff, --body-file with no path, or any other flag. Exit 3, rule
 review-pull-request-failed, is a gh that is missing or fails, naming the call
@@ -80,6 +83,58 @@ no-github-repository, exit 3, is a remote that names no GitHub repository.
         outcome posted or already, head the full SHA, comment the posted
         comment's address as GitHub gives it (html_url), left out for already;
         a refusal {"schema":1,"ok":false,"problems":[{"rule","message","fix"}]}
+
+itos review request <item> [--expect <revision>] asks each reviewer
+push.pr.reviewers names ({login, kind}, in the config's order) for the head of
+the item's open pull request, each request once, under push.mode pr, from any
+branch or a detached HEAD. A request is one gh pr comment <number> --repo
+<repository> --body=<the request>, posted with the user's gh (Bugbot ignores a
+command from a bot or an app): the kind's request line, an empty line and the
+marker
+
+  <!-- itos-review-request:v1 <login> <the head's full SHA> -->
+
+the login as the config writes it. The kinds, each an adapter in itos:
+
+  codex   posts "@codex review" (the code review), then "@codex security
+          review" (the security review). Its own review of the head is its
+          review-state comment ("<!-- codex-review-state:v1 {...} -->", the
+          last the login wrote): the code review counts for the first request
+          when its commit_sha is the head, the security review for the second
+          when its commit_sha is, each alone, whatever its status.
+  bugbot  posts "@cursor review". Its own review of the head is a GitHub review
+          by the login whose body starts with "<!-- BUGBOT_REVIEW -->" and
+          whose commit is the head.
+
+A request is on the head when a comment by anyone has the request line as its
+first line and the marker naming the login (a "[bot]" suffix ignored) and the
+head; a mention without the marker, or a marker for another login or head,
+counts for nothing. A request on the head, or answered by the reviewer's own
+review of it, is not posted again, so run again it posts only what is still
+missing. It says "Asked <login> at <7 characters> on <address>: <the request
+line>." for each request posted (outcome requested), or "Every reviewer of
+<item> has a request or a review for <7 characters> on <address>; nothing was
+posted." (already), exit 0.
+
+--expect <revision>, the revision itos next <item> --json gave, is judged once
+GitHub is read and before anything is posted: already holds whatever it says;
+else one that is not the item's revision now is refused, review-stale, exit 1,
+nothing posted, naming the current one. A revision that is not "sha256:" and 64
+lowercase hex digits is a usage error.
+
+Refused, exit 1, nothing posted: review-without-pr-mode, work-unknown-item,
+review-no-reviewers (push.pr.reviewers names none; push.pr.review_by names
+whom itos push --ready waits for, never whom to ask), each before gh is asked;
+review-no-pull-request; review-stale. Exit 3, review-pull-request-failed: a gh
+that is missing or fails, naming the call and gh's words; the first gh pr
+comment that fails stops the command, the requests before it posted and none
+after it tried. Exit 2: request with no item or two, a malformed --expect, or
+any other flag. It fetches, rebases and pushes nothing, and posts no GitHub
+review and no comment through gh api.
+
+--json: {"schema":1,"ok":true,"outcome","item","head","posted"}, outcome
+        requested or already, head the full SHA, posted the requests posted in
+        order, each {"login","kind","request"}, [] for already
 
 itos review status <item> judges the reviews of the item's open pull
 request's head as itos push --ready judges them and posts the result as one
@@ -122,7 +177,8 @@ Exit 2, asking gh nothing: status with no item or two, or with any flag.
         refused, each [] for none, description the one posted, logins uncut`,
 	},
 	Spec: declare.Spec{Subs: map[string]declare.Spec{
-		"post":   {Flags: []declare.Flag{declare.Value("--verdict"), declare.Value("--at"), declare.Value("--stage"), declare.Value("--body-file")}},
-		"status": {},
+		"post":    {Flags: []declare.Flag{declare.Value("--verdict"), declare.Value("--at"), declare.Value("--stage"), declare.Value("--body-file")}},
+		"request": {Flags: []declare.Flag{declare.Value("--expect")}},
+		"status":  {},
 	}},
 }

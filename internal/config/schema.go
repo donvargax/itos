@@ -329,6 +329,11 @@ var schema = about("itos's policy: the ledger, the commit rules, the named tests
 			"draft", about("Whether itos push opens and updates an item's pull request as a draft, which nothing judges or merges until "+
 				"itos push --ready marks it ready (push.mode pr).", boo),
 			"review_by", about("The GitHub logins whose review itos push --ready waits for before it turns on auto-merge, as GitHub's GraphQL gives them (a bot's without \"[bot]\"); empty, it waits for none.", strs),
+			"reviewers", about("The reviewers itos review request asks to review an item's pull request's head, each a GitHub login and its kind (codex or bugbot); empty, it asks none.",
+				list(obj([]string{"login", "kind"},
+					"login", about("The reviewer's GitHub login; a bot's \"[bot]\" suffix may be written or not.", str),
+					"kind", about("How itos asks this reviewer and reads its review of a head: codex or bugbot.", enum("codex", "bugbot")),
+				))),
 			"review_stall", about("The seconds a push.pr.review_by login's review may read running in its review-state comment (Codex's) before itos push --ready asks for it again, once per head; 0, the default, never.", num),
 			"ready_wait", about("The seconds one itos push --ready may spend, counted from its start, before it stops waiting for GitHub's rebase, the run and the reviews "+
 				"with the outcome ready-still-waiting, so that it returns within its caller's time limit; itos push --ready again goes on. 0, no bound.", num),

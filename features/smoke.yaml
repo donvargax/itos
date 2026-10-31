@@ -232,6 +232,10 @@
   scenarios:
     - id: "@ID-REVIEW-01"
       why: a verdict posted as one comment, its readable line and its marker bound to the head, round 1, the file's point
+- file: review-request.feature
+  scenarios:
+    - id: "@ID-REVREQ-01"
+      why: each configured reviewer asked for the head, Codex's two requests then Bugbot's, each a pr comment with its marker, the file's point
 - file: review-status.feature
   scenarios:
     - id: "@ID-REVIEWSTATUS-01"

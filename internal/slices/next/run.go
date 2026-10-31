@@ -67,14 +67,15 @@ type step struct {
 
 // observed is what the forge and the journal said, as --json prints it:
 // the pull request (null for none), the verdict (null for none), the
-// checks, the open threads, and the journal's latest implementer record
-// (null for none).
+// checks, the open threads, the journal's latest implementer record (null
+// for none), and the reviewers not requested for the head ([] for none).
 type observed struct {
-	Pull        *Pull   `json:"pr"`
-	Verdict     *string `json:"verdict"`
-	Checks      string  `json:"checks"`
-	ThreadsOpen int     `json:"threads_open"`
-	Attempt     *Record `json:"attempt"`
+	Pull        *Pull    `json:"pr"`
+	Verdict     *string  `json:"verdict"`
+	Checks      string   `json:"checks"`
+	ThreadsOpen int      `json:"threads_open"`
+	Attempt     *Record  `json:"attempt"`
+	Unrequested []string `json:"unrequested"`
 }
 
 // Fields are the item as --json prints it, after "schema": ok, item, kind
@@ -101,7 +102,7 @@ func (n Next) Fields() []out.Field {
 		fields = append(fields, out.Field{Key: "blocked_reason", Value: n.BlockedReason})
 	}
 	if o := n.Observed; o != nil {
-		seen := observed{Pull: o.Pull, Checks: o.Checks, ThreadsOpen: o.ThreadsOpen}
+		seen := observed{Pull: o.Pull, Checks: o.Checks, ThreadsOpen: o.ThreadsOpen, Unrequested: o.Unrequested}
 		if o.Verdict != "" {
 			seen.Verdict = &o.Verdict
 		}

@@ -9,7 +9,7 @@ import (
 	"github.com/donvargax/itos/v8/internal/out"
 )
 
-// Run is review post or review status over h: a refusal's problems on
+// Run is review post, request or status over h: a refusal's problems on
 // stderr, each message and its fix, exit by the problem's code, or under
 // --json one object with ok false and the problems; else the line saying what
 // was posted, or that the verdict stands already, nothing under -q, or under
@@ -24,6 +24,9 @@ func (c CLI) Run(ctx context.Context, stdout, stderr io.Writer, h Handler) (int,
 	}
 	if len(a.Problems) > 0 {
 		return c.refused(stdout, stderr, a.Code, a.Problems)
+	}
+	if c.Request {
+		return 0, c.said(stdout, a)
 	}
 	if c.JSON {
 		fields := []out.Field{{Key: "ok", Value: true}, {Key: "outcome", Value: a.Outcome}, {Key: "item", Value: a.Item},
@@ -43,6 +46,26 @@ func (c CLI) Run(ctx context.Context, stdout, stderr io.Writer, h Handler) (int,
 	}
 	fmt.Fprintf(stdout, "Posted the %s review of %s at %s: %s, round %d, on %s.\n", a.Stage, a.Item, short(a.Head), a.Verdict, a.Round, a.Address)
 	return 0, nil
+}
+
+// said is what review request says it did: under --json the one object,
+// its posted requests in order; else a line for each request posted, or the
+// line saying every reviewer was asked already; nothing under -q.
+func (c CLI) said(stdout io.Writer, a Answer) error {
+	if c.JSON {
+		return out.Emit(stdout, out.Field{Key: "ok", Value: true}, out.Field{Key: "outcome", Value: a.Outcome},
+			out.Field{Key: "item", Value: a.Item}, out.Field{Key: "head", Value: a.Head}, out.Field{Key: "posted", Value: a.Posted})
+	}
+	if c.Quiet {
+		return nil
+	}
+	if a.Outcome == already {
+		fmt.Fprintf(stdout, "Every reviewer of %s has a request or a review for %s on %s; nothing was posted.\n", a.Item, short(a.Head), a.Address)
+	}
+	for _, r := range a.Posted {
+		fmt.Fprintf(stdout, "Asked %s at %s on %s: %s.\n", r.Login, short(a.Head), a.Address, r.Line)
+	}
+	return nil
 }
 
 // refused reports the problems that refused the command, each message and

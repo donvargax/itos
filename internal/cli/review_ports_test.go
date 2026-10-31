@@ -30,6 +30,10 @@ func TestReviewPortsBindTheRealCode(t *testing.T) {
 	if p.Remote(t.Context()) != "origin" {
 		t.Errorf("Remote = %q on a branch with no upstream, want origin", p.Remote(t.Context()))
 	}
+	// Revision is next's: with no registry, refused as next refuses it.
+	if revision, refused, err := p.Revision(t.Context(), cfg, "slice-9"); revision != "" || refused == nil || err != nil {
+		t.Errorf("Revision with no registry = %q, %v, %v, want next's refusal", revision, refused, err)
+	}
 	if _, err := p.Resolve(t.Context(), "HEAD"); err == nil {
 		t.Error("Resolve HEAD with no commit")
 	}

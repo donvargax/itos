@@ -76,9 +76,12 @@ func Judge(f Facts) Next {
 
 // forge is the state of an item with a spec under push.mode pr, from what
 // the forge and the journal said, the first that holds winning: merged,
-// repair, merging, blocked on the attempt, spec-changes on a spec defect,
-// handed-back, implementing, spec-accepted, spec-changes, spec-review,
-// spec-proposed; an item neither todo nor doing past those is in-flight.
+// repair, review-unrequested where merging would be, merging, blocked on the
+// attempt, spec-changes on a spec defect, review-unrequested where
+// handed-back would be, handed-back, implementing, spec-accepted,
+// spec-changes, spec-review, spec-proposed; an item neither todo nor doing
+// past those is in-flight. review-unrequested (slice-215) is a configured
+// reviewer not requested for the pull request's head.
 func (n *Next) forge(f Facts) {
 	o, pull := f.Observed, f.Observed.Pull
 	status := f.Item.At("status")
@@ -89,11 +92,15 @@ func (n *Next) forge(f Facts) {
 	}
 	implementer := []string{"itos", "brief", n.Item, "--role", "implementer"}
 	drafter := []string{"itos", "brief", n.Item, "--role", "drafter"}
+	request := []string{"itos", "review", "request", n.Item}
+	unrequested := len(o.Unrequested) > 0
 	switch {
 	case pull != nil && pull.Merged:
 		n.run("merged", "driver", "close", "itos", "work", "done", n.Item)
 	case pull != nil && !pull.Draft && (o.Checks == checksFailure || o.ThreadsOpen > 0):
 		n.run("repair", "implementer", "implement", implementer...)
+	case pull != nil && !pull.Draft && unrequested:
+		n.run("review-unrequested", "driver", "request", request...)
 	case pull != nil && !pull.Draft:
 		n.step("merging", "forge", "observe")
 	case at >= 0 && latest.asksPerson() && !spent(f.Asked, o.nth(at)):
@@ -101,6 +108,8 @@ func (n *Next) forge(f Facts) {
 		n.BlockedReason = "attempt"
 	case at >= 0 && latest.outcome() == "spec_defect" && !o.drafterAfter(at):
 		n.run("spec-changes", "drafter", "specify", drafter...)
+	case status == "doing" && pull != nil && handedBack(latest, pull.Head) && unrequested:
+		n.run("review-unrequested", "driver", "request", request...)
 	case status == "doing" && pull != nil && handedBack(latest, pull.Head):
 		n.run("handed-back", "driver", "land", "itos", "push", "--ready")
 	case status == "doing":

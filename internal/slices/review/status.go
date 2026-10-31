@@ -2,8 +2,6 @@ package review
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"strconv"
 	"strings"
 	"unicode/utf8"
@@ -84,30 +82,15 @@ func (h Handler) Status(ctx context.Context, item string) (StatusAnswer, error) 
 	if _, problem := work.Show(r, item); problem != nil {
 		return StatusAnswer{Code: policy, Problems: []out.Problem{*problem}}, nil
 	}
-	remote := h.ports.Remote(ctx)
-	repository := h.ports.GitHubRepository(ctx, cfg, remote)
-	if repository == "" {
-		return refuse(missing, "no-github-repository",
-			fmt.Sprintf("itos review: %s names no GitHub repository to find %s's pull request in; nothing was posted.", remote, item),
-			"set ci.range.github.repository_env to a variable naming it, or give the remote a GitHub address"), nil
+	p, refused := h.pull(ctx, cfg, subStatus, item)
+	if refused != nil {
+		return from(*refused), nil
 	}
-	number, address, a, failed := h.openPull(ctx, subStatus, repository, item)
-	if failed {
-		return from(a), nil
-	}
-	state, err := providers.AskPullState(ctx, h.ports.Gh, repository, number)
-	switch {
-	case errors.Is(err, providers.ErrNoPullState):
-		return from(ghFailed(subStatus, "gh api graphql", err.Error())), nil
-	case err != nil:
-		return from(ghFailed(subStatus, "gh api graphql", providers.GhReason(err))), nil
-	case state.Head == "":
-		return from(ghFailed(subStatus, "gh api graphql", "its answer names no head for the pull request")), nil
-	}
-	s := StatusAnswer{Item: item, Head: state.Head, Address: address, Number: number, Logins: logins}
+	state := p.state
+	s := StatusAnswer{Item: item, Head: state.Head, Address: p.address, Number: p.number, Logins: logins}
 	s.Missing, s.Refused = state.Verdicts(logins, state.Head)
 	s.State, s.Description = judged(s)
-	path := "repos/" + repository + "/statuses/" + state.Head
+	path := "repos/" + p.repository + "/statuses/" + state.Head
 	if _, err := h.ports.Gh(ctx, "api", path, "-f", "state="+s.State, "-f", "context="+statusContext, "-f", "description="+s.Description); err != nil {
 		return from(ghFailed(subStatus, "gh api "+path, providers.GhReason(err))), nil
 	}

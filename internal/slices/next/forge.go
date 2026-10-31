@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/donvargax/itos/v8/internal/config"
+	"github.com/donvargax/itos/v8/internal/engine/reviewers"
 	"github.com/donvargax/itos/v8/internal/kind"
 	"github.com/donvargax/itos/v8/internal/out"
 	"github.com/donvargax/itos/v8/internal/providers"
@@ -30,13 +31,16 @@ type Forge interface {
 // Pull request, nil for none open or merged; the Verdict that stands, the
 // latest counted spec verdict at the pull request's head ("" for none);
 // its head's Checks, pending, failure, success or none; how many review
-// threads are open; and the journal's Records, oldest first.
+// threads are open; the journal's Records, oldest first; and Unrequested,
+// the push.pr.reviewers logins, as written and in the config's order, not
+// requested for the open pull request's head (slice-215), empty for none.
 type Observed struct {
 	Pull        *Pull
 	Verdict     string
 	Checks      string
 	ThreadsOpen int
 	Records     []Record
+	Unrequested []string
 }
 
 // Pull is the item's pull request: its Number, whether it is a Draft, its
@@ -88,7 +92,7 @@ func observe(ctx context.Context, cfg *config.Loaded, forge Forge, r work.Regist
 	if failed != nil {
 		return nil, failed, nil
 	}
-	o = &Observed{Pull: pull, Checks: checksNone}
+	o = &Observed{Pull: pull, Checks: checksNone, Unrequested: []string{}}
 	if pull != nil && !pull.Merged {
 		state, err := providers.AskPullState(ctx, forge.Gh, repository, pull.Number)
 		switch {
@@ -99,6 +103,7 @@ func observe(ctx context.Context, cfg *config.Loaded, forge Forge, r work.Regist
 		}
 		pull.Head = state.Head
 		o.Verdict = standing(state.Comments, id, pull.Head, r)
+		o.Unrequested = reviewers.Unrequested(cfg.Push.PR.Reviewers, state, pull.Head)
 		o.Checks = checksOf(state.Checks)
 		for _, t := range state.Threads {
 			if !t.Resolved {
