@@ -16281,6 +16281,12 @@ items:
       commit (p1-pr-registry-commit-first-parent is part of it); (4) itos next, work show and the
       brief read an item's change as git show --diff-merges=first-parent <merge>. Then this
       repository turns it on.
+
+      Scope corrected (the coordinator, 2026-10-30, from the code): verify and the hook already
+      judge a merge by its own changes (bug 30) and merge-in-history refuses only a merge beside a
+      registry commit, so two slices suffice: (push merges, never rebases) and (--ready updates and
+      lands by merge). Readers (next, work show, brief) need nothing new while each item commit
+      keeps its Item: footer.
     tags: [work, v8]
 
   - id: slice-213
