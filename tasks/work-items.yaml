@@ -16492,3 +16492,17 @@ items:
       slice-209's implementer, 2026-10-31: NEXTFORGE-13 passes before the work, as a guard does, but
       carries no @guard tag. Left out of slice-209 so its committed work stays as it is while
       slice-215 builds on it.
+
+  - id: p2-next-observed-conditions
+    title: "next --json's observed as conditions: each fact with whether it holds, the revision it is bound to, and a reason"
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      From the google/ax analysis, 2026-10-31 (its Kubernetes-style conditions beside the state).
+      The facts behind next's state become a list, so 'stale' is mechanical (a condition bound to an
+      older revision) and trunk or forge facts are added as more conditions, never as new shapes.
+      slice-209 and slice-215 add observed keys one by one (unrequested, the checks), so settle this
+      before the driver depends on the shape.
