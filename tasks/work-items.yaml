@@ -16736,8 +16736,8 @@ items:
   - id: slice-216
     title: itos next says merging only once merging was requested for the head (auto-merge on); a ready pull request without it stays driver land
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: [slice-209]
     kind: slice
     why: >
