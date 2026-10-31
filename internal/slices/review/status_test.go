@@ -1,11 +1,14 @@
 package review
 
 import (
+	"bytes"
+	"context"
 	"errors"
 	"reflect"
 	"strings"
 	"testing"
 
+	"github.com/donvargax/itos/v8/internal/kind"
 	"github.com/donvargax/itos/v8/internal/out"
 	"github.com/donvargax/itos/v8/internal/providers"
 )
@@ -182,5 +185,13 @@ func TestStatusRefused(t *testing.T) {
 	code, stdout, stderr := run(t, f, false, "status", "slice-9")
 	if code != 1 || stdout != "" || !strings.Contains(stderr, "  fix: itos push from the item's branch opens its pull request; then itos review status again\n") {
 		t.Errorf("exit %d, %s%s", code, stdout, stderr)
+	}
+	// A registry that cannot be read is the command line's error, gh not asked.
+	f = statusFake("a")
+	f.registry = "items: 3\n"
+	c, _ := Parse([]string{"status", "slice-9"}, "", false, false)
+	var buf bytes.Buffer
+	if _, err := c.Run(context.Background(), &buf, &buf, NewHandler(f)); kind.Of(err) != kind.Usage || len(f.calls) != 0 {
+		t.Errorf("a registry of the wrong shape: %v, %v", err, f.calls)
 	}
 }
