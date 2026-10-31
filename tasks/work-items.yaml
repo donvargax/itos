@@ -15840,13 +15840,9 @@ items:
     title: "itos next derives an in-flight item's state from the forge under push.mode pr: spec review, implementing, merging, merged"
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-203, slice-206, slice-207]
     kind: slice
-    why: >
-      The v9 deterministic coordinator's v8 pilot (docs/plans/v9-coordinator.md, the machine):
-      slice-203's in-flight becomes the states only the forge and the attempt journal know, so a
-      driver's next step is computed, never remembered.
     tags: [work, v8]
 
   - id: p1-ready-bookkeeping-rebase
@@ -16088,6 +16084,13 @@ items:
       itos-review-request marker as a code-review request, and sameLogin now lives both in push and
       in internal/engine/reviewers (slice-215). The hand-off folds --ready onto the reviewers
       engine.
+
+      Codex on #238 (slice-209, thread PRRT_kwDOU2JMic6yUwAI, 2026-10-31): next says merging (forge
+      observe) once the pull request is ready and nothing failed, but --ready marks it ready before
+      it turns auto-merge on. After an exit 75, or under --no-wait, nothing merges and a driver
+      waits forever. next's merging must require that merging was requested (auto-merge on for the
+      head, or a merge queued), and keep driver land, itos push --ready, until then. The hand-off
+      settles both: --ready marks ready and pins auto-merge in one step.
     tags: [work, v8]
 
   - id: p3-work-add-refusal-keeps-id
@@ -16662,8 +16665,8 @@ items:
   - id: bug-158
     title: Under push.pr.update merge, itos push's own 'Merge main into <item>' is refused by pre-push when git's merge combines hunks, and only a rewrite fixes it
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: bug
     why: >
@@ -16677,3 +16680,45 @@ items:
       Either mergeItem types its message when the merge's combined diff is not empty (refactor, or
       the type the paths allow, with the item footer), or merge-type judges a clean textual merge
       (no conflict resolved by hand) as having no changes of its own.
+
+  - id: p3-guard-scoped-to-repo
+    title: itos's Claude Code guard judges only commands that run in an itos repository
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      bug-158's drafter, 2026-10-31: in a scratch repository outside itos, made to reproduce a
+      merge, the guard's PreToolUse hook refused a plain git commit and pointed to itos commit, so
+      the agent fell back to plumbing (commit-tree). The guard should judge a git command only when
+      its working directory, or its -C target, is an itos repository with an itos.yaml.
+
+  - id: p1-next-argv-runnable-from-main
+    title: "next's driver steps are runnable from the driver's clone on main: itos push --ready names the item (or the step names the item's worktree)"
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Codex on #238 (slice-209, thread PRRT_kwDOU2JMic6yUwAM, 2026-10-31): handed-back's argv is
+      'itos push --ready', which acts on the current branch. It is refused on main (ready-on-main),
+      and from another item's branch it acts on that item. The driver's clone stays on main, so the
+      step ID-NEXTFORGE-07 pins cannot be run as given. Either --ready takes the item and works from
+      any checkout (resolving its branch's worktree, or pushing from a fetch-only checkout), or
+      next's step names where to run it. Needed before the first driven run.
+
+  - id: p3-pinned-tool-cache-shared
+    title: tools/bin/pinned unpacks into a shared cache, and a partial unpack is retried rather than kept
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      slice-209's implementer, 2026-10-31: pinned unpacks golangci-lint into the clone's git folder.
+      A fresh clone on a nearly full tmpfs failed partway ('Wrote only 9728 of 10240 bytes'), and
+      the pre-push hook refused; a symlink to the main clone's copy got past it. One cache per user
+      (~/.cache/itos/tools), with the unpack written to a temporary name and renamed, would avoid
+      both the repeat download and a half-written tool.

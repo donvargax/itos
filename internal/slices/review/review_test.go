@@ -17,6 +17,7 @@ import (
 	"github.com/donvargax/itos/v8/internal/providers"
 	treefake "github.com/donvargax/itos/v8/internal/store/tree/port/porttest"
 	vcsfake "github.com/donvargax/itos/v8/internal/vcs/port/porttest"
+	"github.com/donvargax/itos/v8/internal/work"
 )
 
 const (
@@ -459,25 +460,25 @@ func TestRefusedByGitHub(t *testing.T) {
 	}
 }
 
-// readMarker reads only a marker whose JSON is a verdict's, and verdictMarker
-// writes one it reads back, the keys in order.
+// work.ReadVerdict reads only a marker whose JSON is a verdict's, and
+// verdictMarker writes one it reads back, the keys in order.
 func TestMarkers(t *testing.T) {
 	q := Query{Item: "slice-9", Stage: "spec", Verdict: "approve"}
 	written := verdictMarker(q, head, 2)
 	if written != `<!-- itos:v1 {"record":"verdict","item":"slice-9","stage":"spec","verdict":"approve","head":"`+head+`","round":2} -->` {
 		t.Errorf("written %s", written)
 	}
-	m, ok := readMarker("itos: spec review of slice-9 at 0123456: approve\r\n\r\n" + written + "\r\n")
-	if !ok || m != (marker{Record: "verdict", Item: "slice-9", Stage: "spec", Verdict: "approve", Head: head, Round: 2}) {
+	m, ok := work.ReadVerdict("itos: spec review of slice-9 at 0123456: approve\r\n\r\n" + written + "\r\n")
+	if !ok || m != (work.Verdict{Record: "verdict", Item: "slice-9", Stage: "spec", Verdict: "approve", Head: head, Round: 2}) {
 		t.Errorf("read %+v, %t", m, ok)
 	}
 	// The review's text quotes a marker: the one appended after it is read.
 	quoted := verdictMarker(Query{Item: "slice-9", Stage: "spec", Verdict: "changes"}, oldHead, 1)
-	if m, ok := readMarker("itos: spec review of slice-9 at 0123456: approve\n\nRound 1 ended with " + quoted + ", now fixed.\n\n" + written); !ok || m.Verdict != "approve" || m.Round != 2 {
+	if m, ok := work.ReadVerdict("itos: spec review of slice-9 at 0123456: approve\n\nRound 1 ended with " + quoted + ", now fixed.\n\n" + written); !ok || m.Verdict != "approve" || m.Round != 2 {
 		t.Errorf("read the quoted marker: %+v, %t", m, ok)
 	}
 	for _, body := range []string{"", "prose", "<!-- itos:v1 -->", "<!-- itos:v1 {} -->", "<!-- itos:v1 {\"record\":\"verdict\"", "<!-- itos-review-request:v1 x " + head + " -->"} {
-		if _, ok := readMarker(body); ok {
+		if _, ok := work.ReadVerdict(body); ok {
 			t.Errorf("%q read as a verdict", body)
 		}
 	}
