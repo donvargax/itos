@@ -16758,8 +16758,8 @@ items:
   - id: bug-159
     title: A merge committing merge-tree's conflict tree verbatim, raw markers included, has no own paths and passes verify untyped
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: bug
     why: >
