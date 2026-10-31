@@ -16390,3 +16390,16 @@ items:
       slice-213's implementer, 2026-10-30: under merge, push's merge-in-history advice still says
       'git rebase origin/main', a history rewrite the merge mode exists to avoid. The advice follows
       push.pr.update.
+
+  - id: p3-merge-resolve-registry-only
+    title: Under merge, a conflict resolution that changes only the registry reaches main only when the pull request lands
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      slice-213's implementer, 2026-10-30: under push.pr.update merge, a resolved conflict whose
+      only changes are registry changes stays on the item's branch, so main sees that registry
+      content only at the merge. Unconfirmed: check whether bookkeeping on main can ever lose to it
+      before building anything.
