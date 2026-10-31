@@ -125,9 +125,22 @@ Feature: The commit-msg hook
   # the merge the commit-msg hook judges), is what verify, the pre-push hook,
   # the commit-msg hook, the path rules and the moves rule judge a merge by;
   # internal/git/merge.go's and doc.go's account of --cc and --remerge-diff,
-  # the VCS port's, and verify's help say so. A merge of more than two
-  # parents is read by --cc as today: merge-tree merges two, and git's
-  # octopus merge stops at any conflict.
+  # the VCS port's, verify's help and push-mode-ready-merge.feature's
+  # description say so. A merge of more than two parents is read by --cc as
+  # today: merge-tree merges two, and git's octopus merge stops at any
+  # conflict. So is a merge of two parents with no merge base (git merge-base
+  # exits 1), which merge-tree refuses (exit 128): one made with
+  # --allow-unrelated-histories, or one read in a shallow clone whose base
+  # was cut off, as a consumer's CI with a limited fetch depth reads it.
+  #
+  # What git's merge did not write is the merge's own whatever made it, so
+  # the rule reverses bug 30's reason for refusing --remerge-diff, and these
+  # all have changes of their own: a merge made with -s ours (it owns every
+  # path its second parent changed; internal/git/merge_test.go's -s ours case
+  # flips), one made with -X ours, -X theirs or another strategy option, and
+  # one that relies on merge.renormalize, merge.renames or a custom
+  # .gitattributes merge driver set in one clone, where the hook and CI may
+  # then disagree.
   #
   # The steps. Each "a merge commit <message> on top of it, whose two sides
   # change …" is built as "a merge commit … with no change of its own" is
@@ -155,6 +168,12 @@ Feature: The commit-msg hook
   # the main line's on HEAD's branch and the topic line's on the new branch
   # <branch>; then runs git merge --no-ff --no-commit <branch> on HEAD's
   # branch: MERGE_HEAD names <branch>'s head and the index holds git's merge.
+  # "a merge commit <message> on top of it, of a root commit with no history
+  # in common with it, with no change of its own" is built the same way: a
+  # root commit "chore: start the other line" adding "other.md", with the
+  # footer Task: of the ledger's first task, and the merge of HEAD and it
+  # with the message, HEAD its first parent, its tree HEAD's with other.md
+  # added, HEAD's branch moved to it.
 
   # Fails before the work at the exit code: --cc shows notes.md's one hunk,
   # holding both sides' lines, and the merge is refused under merge-type.
@@ -218,6 +237,16 @@ Feature: The commit-msg hook
     And its output names the rule "merge-type"
     And its output says "src/app.js"
     And its output does not say "notes.md"
+
+  # A merge whose parents share no merge base, as --allow-unrelated-histories
+  # makes one, keeps the --cc reading, which finds no hunk: merge-tree would
+  # refuse it, exit 128. A guard: it passes before the work and must after
+  # it, where a build that asks merge-tree of every two-parent merge fails.
+  @wip @bug-158 @guard @ID-CMSG-25
+  Scenario: verify passes an untyped merge of a root commit with no history in common with its first parent
+    Given a merge commit "Merge branch 'other'" on top of it, of a root commit with no history in common with it, with no change of its own
+    When itos verifies every commit up to HEAD
+    Then itos exits with code 0
 
   # Bug 31 (found by the code review of 07b0e6d, by two reviewers apart).
   # itos read git's lists of paths (diff --name-only, ls-files, ls-tree)

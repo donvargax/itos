@@ -59,7 +59,8 @@ Feature: Under push.pr.update merge, itos push --ready brings the pull request u
   today: the guard below keeps that.
 
   verify needs nothing new: it judges a merge commit by its own changes, the
-  paths of its dense combined diff (bug 30, commit-msg.feature), and a merge
+  paths where its tree differs from git's automatic merge of its parents
+  (bugs 30 and 158, commit-msg.feature), and a merge
   of a branch up to date with main has none, so it passes whatever its
   message, and the item's commits beside it, each with its Item: footer,
   are judged as any commit is. A guard below holds it for the landing.
