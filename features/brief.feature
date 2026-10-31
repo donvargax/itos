@@ -466,7 +466,7 @@ Feature: itos brief, the filled brief an agent starts from and its request
   # The scenarios tagged for an item of such a project are found in its
   # own feature files at HEAD, so its implementer is briefed (the review of
   # the build, round 6).
-  @ID-BRIEF-19 @wip @slice-204
+  @ID-BRIEF-19 @slice-204
   Scenario: A project in a subfolder briefs its implementer from its own scenarios
     Given the committed file "app/itos.yaml" holding the lines:
       """
