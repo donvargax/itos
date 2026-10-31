@@ -111,3 +111,19 @@ func (g Git) Rebase(ctx context.Context, onto string, quiet bool, talk port.Talk
 	}
 	return g.run(ctx, talk, nil, false, append(args, onto)...)
 }
+
+// Merge is git merge --no-verify --no-ff --no-edit --no-log -m <message>,
+// --ff with ff, so neither the commit hooks, merge.ff, an editor nor merge.log
+// changes the commit it makes; git refuses a merge that would overwrite an
+// untracked file.
+func (g Git) Merge(ctx context.Context, rev, message string, ff, quiet bool, talk port.Talk) error {
+	fast := "--no-ff"
+	if ff {
+		fast = "--ff"
+	}
+	args := []string{"merge", "--no-verify", fast, "--no-edit", "--no-log", "-m", message}
+	if quiet {
+		args = append(args, "--quiet")
+	}
+	return g.run(ctx, talk, nil, false, append(args, rev)...)
+}

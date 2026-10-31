@@ -6,6 +6,50 @@ import (
 	"testing"
 )
 
+// Each role has a template of its own, LF-terminated and no guide or
+// procedure name: the implementer's is the brief procedure's quoted block,
+// less the quote marks, and the others ship beside it (slice-204).
+func TestTemplates(t *testing.T) {
+	if !slices.Equal(Roles, []string{"drafter", "implementer", "reviewer"}) {
+		t.Errorf("Roles = %v", Roles)
+	}
+	for role, first := range map[string]string{
+		"drafter":     "Specify <item> of <project>, in the repository at <absolute path>: <one\nline>.",
+		"implementer": "Implement <item> of <project>, in the repository at <absolute path>:\n<one line>.",
+		"reviewer":    "Review <item> of <project>, in the repository at <absolute path>: <one\nline>.",
+	} {
+		text, ok := Template(role)
+		if !ok || !strings.HasPrefix(text, first) || !strings.HasSuffix(text, "\n") || strings.Contains(text, "\r") || strings.Contains(text, "\n>") {
+			t.Errorf("Template(%q) = %.60q, %t", role, text, ok)
+		}
+		if _, isText := Text(role); isText || IsProcedure(role) {
+			t.Errorf("%q is a guide or a procedure", role)
+		}
+	}
+	if text, ok := Template("tester"); ok || text != "" {
+		t.Errorf("Template(tester) = %q, %t", text, ok)
+	}
+	// The implementer's template is every quoted line of the brief
+	// procedure, and the procedure holds no other quoted block.
+	brief, _ := Text("brief")
+	var quotedLines int
+	for _, line := range strings.Split(brief, "\n") {
+		if strings.HasPrefix(line, ">") {
+			quotedLines++
+		}
+	}
+	implementer, _ := Template("implementer")
+	if got := strings.Count(implementer, "\n"); got != quotedLines {
+		t.Errorf("the implementer's template has %d lines, the brief procedure %d quoted ones", got, quotedLines)
+	}
+	if !strings.Contains(implementer, "\n\nRed first:") {
+		t.Errorf("the quote marks of a blank line are not stripped: %q", implementer)
+	}
+	if got := quoted("# A\n\n## The brief\n\n> one\n>\n> two\n"); got != "one\n\ntwo\n" {
+		t.Errorf("quoted = %q", got)
+	}
+}
+
 // Each guide and procedure is there by its name and opens with a heading of
 // its own; a name with neither has none.
 func TestGuides(t *testing.T) {

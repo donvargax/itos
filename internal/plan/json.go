@@ -63,7 +63,7 @@ type itemJSON struct {
 	CoveredBy string         `json:"covered_by,omitempty"`
 	// Proof marks the step that is the range's code proof (slice 106,
 	// issue #28), so a consumer of the JSON can tell it from a ci.steps
-	// step: it reads recorded results and is run by internal/proof.
+	// step: it is run by internal/proof.
 	Proof bool `json:"proof,omitempty"`
 }
 

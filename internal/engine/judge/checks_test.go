@@ -16,7 +16,8 @@ import (
 func command(text string) *string { return &text }
 
 // What went wrong with a failed check, in a few words: past the hook's cap,
-// past its own timeout, passing when it must fail, stopped, or its exit code.
+// past its own timeout, passing when it must fail, a fails: check that did
+// not run to completion, stopped, or its exit code.
 func TestCheckFailure(t *testing.T) {
 	run, fails := ledger.Check{Run: command("go test")}, ledger.Check{Fails: command("go vet")}
 	for want, c := range map[string]struct {
@@ -28,6 +29,9 @@ func TestCheckFailure(t *testing.T) {
 		"`go vet` passed, and must fail":                           {fails, check.Captured{}},
 		"`go test` was stopped":                                    {run, check.Captured{Code: -1}},
 		"`go vet` exited 2":                                        {fails, check.Captured{Code: 2}},
+		"`go vet` did not run: command not found (exit 127)":       {fails, check.Captured{Code: 127, NotRun: "command not found (exit 127)"}},
+		"`go test` exited 127":                                     {run, check.Captured{Code: 127, NotRun: "command not found (exit 127)"}},
+		"`go test` exited 0":                                       {run, check.Captured{}},
 	} {
 		if got := checkFailure(c.check, c.run); got != want {
 			t.Errorf("got %q, want %q", got, want)

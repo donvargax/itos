@@ -72,6 +72,34 @@ func (r Result) Status() string {
 // a command past its timeout whatever its code reads TimedOut beside it.
 func (r Result) OK() bool { return r.Code == 0 && r.Err == nil }
 
+// NotRun is why the command did not run to completion, "" when it did: it
+// could not start, or NotRun of its code and timeout says why.
+func (r Result) NotRun() string {
+	if r.Err != nil {
+		return "could not start: " + r.Err.Error()
+	}
+	return NotRun(r.Code, r.TimedOut)
+}
+
+// NotRun is why a command that ended with code, past its timeout or not,
+// did not run to completion, "" when it did: it timed out, did not exit by
+// itself (code -1), or sh could not run it: 127 when sh does not find the
+// command, 126 when it finds it but cannot execute it (POSIX's Command
+// Search and Execution).
+func NotRun(code int, timedOut bool) string {
+	switch {
+	case timedOut:
+		return "timed out"
+	case code < 0:
+		return "stopped before it exited"
+	case code == 126:
+		return "command not executable (exit 126)"
+	case code == 127:
+		return "command not found (exit 127)"
+	}
+	return ""
+}
+
 // Argv is the command as the config's shell runs it: shell's words, then the
 // command as one argument. An empty shell is sh with no flags, as shell.ts's
 // `[shell = "sh", ...flags]` reads it.

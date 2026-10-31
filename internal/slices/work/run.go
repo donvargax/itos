@@ -203,8 +203,9 @@ func (c CLI) wrote(stdout, stderr io.Writer, a Answer) (int, error) {
 }
 
 // report prints a write of one id: its line, unless -q; under --json, ok,
-// the item, the fields the subcommand adds (edit's changed, queue's queue)
-// and the commit (null when none).
+// take's outcome (taken, or already for an item already in progress for the
+// person: slice 208), the item, the fields the subcommand adds (edit's
+// changed, queue's queue) and the commit (null when none).
 func (c CLI) report(stdout io.Writer, a Answer) (int, error) {
 	change := a.Change
 	if c.JSON {
@@ -212,7 +213,11 @@ func (c CLI) report(stdout io.Writer, a Answer) (int, error) {
 		if a.Commit != "" {
 			commit = a.Commit
 		}
-		fields := []out.Field{{Key: "ok", Value: true}, {Key: "item", Value: change.Item}}
+		fields := []out.Field{{Key: "ok", Value: true}}
+		if c.Sub == "take" {
+			fields = append(fields, outcome("taken", change.Unchanged))
+		}
+		fields = append(fields, out.Field{Key: "item", Value: change.Item})
 		switch c.Sub {
 		case "edit":
 			changed := make([]any, len(change.Changed))
@@ -295,13 +300,24 @@ func (c CLI) closed(stdout, stderr io.Writer, a Answer) (int, error) {
 		if a.Commit != "" {
 			commit = a.Commit
 		}
-		fields := append([]out.Field{{Key: "ok", Value: true}, {Key: "item", Value: d.Change.Item}}, d.Fields...)
+		fields := append([]out.Field{{Key: "ok", Value: true}, outcome("done", d.Change.Unchanged), {Key: "item", Value: d.Change.Item}}, d.Fields...)
 		return 0, out.Emit(stdout, append(fields, out.Field{Key: "commit", Value: commit})...)
 	}
 	if !c.Quiet {
 		fmt.Fprintln(stdout, d.Line)
 	}
 	return 0, nil
+}
+
+// outcome is --json's outcome of work take and work done (slice 208): what
+// the command did (did), or already for a target already reached, the
+// change unchanged, so a driver that lost the first run's answer reads the
+// second's.
+func outcome(did string, unchanged bool) out.Field {
+	if unchanged {
+		did = "already"
+	}
+	return out.Field{Key: "outcome", Value: did}
 }
 
 // withEvidence is the fields with the evidence of the task checks looked up,

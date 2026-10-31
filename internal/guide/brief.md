@@ -56,12 +56,15 @@ item teaches you to the repository's own notes, as a lesson
 > <What is settled: the decisions to build to, not to re-decide. Any live
 > scenario this item makes untrue, and that the commit must say so.>
 >
-> Red first: commit the steps the scenarios need alone, in a `test` commit
-> made with `itos commit --item <item>`, the scenarios still `@wip`; run them
-> with `@wip` removed locally and see each fail at the step that checks the
-> behaviour; then build. Check the scenarios' names against what you build,
-> correcting only a name, never what a scenario checks; if one cannot show
-> its behaviour, stop and propose the change.
+> Red first: commit the step definitions the scenarios need alone, in a
+> `test` commit made with `itos commit --item <item>`, the scenarios still
+> `@wip`; run them with `@wip` removed locally and see each fail at the step
+> that checks the behaviour; then build. Writing the missing step definitions
+> is the test commit's job: an undefined step is work, not a reason to stop.
+> Check the scenarios' names against what you build, correcting only a name,
+> never what a scenario checks. Stop only for a scenario that passes before
+> the work, or one that fails in its setup where no step definition can fix
+> it, and propose the change.
 >
 > Before pushing, run what the change can reach beyond what it names:
 > <the neighbouring scenarios and checks; for an item that moves a rule from

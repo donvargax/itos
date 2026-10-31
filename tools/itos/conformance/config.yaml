@@ -150,6 +150,18 @@ cases:
       valid: false
       problems: [{ rule: config-work-tag-empty, area: config }, { rule: config-work-tag-twice, area: config }]
     stdout_has: ["work.tags[1]", plugin]
+  # Slice 205: work.delegated, the decision classes an answering agent may
+  # settle, are distinct names too.
+  - name: work.delegated declares no empty class and none twice
+    argv: [config, check, --json]
+    files: { itos.yaml: "version: 1\nwork: { delegated: [spec, '', spec] }\n" }
+    exit: 2
+    json:
+      schema: 1
+      config: itos.yaml
+      valid: false
+      problems: [{ rule: config-work-delegated-empty, area: config }, { rule: config-work-delegated-twice, area: config }]
+    stdout_has: ["work.delegated[1]", spec]
   - name: the keys of features not built yet are unknown, header_lint.use is builtin or command, and hooks.manager, removed in v6, is unknown
     argv: [config, check, --json]
     files:
@@ -1055,6 +1067,7 @@ cases:
             review_by: []
             review_stall: 0
             ready_wait: 540
+            update: rebase
             direct:
               types: []
               except: []

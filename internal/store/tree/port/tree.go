@@ -31,8 +31,8 @@ type Trees interface {
 	// for a tree git holds outside a repository.
 	At(ctx context.Context, tree string) (Source, error)
 	// Texts are the files of a tree git holds under a folder, and its
-	// folders', that keep accepts, as path to text, paths from the
-	// repository's top as git gives them. A tree that cannot be read (the
+	// folders', that keep accepts, as path to text, paths from the folder
+	// itos runs in, as git lists them. A tree that cannot be read (the
 	// working tree, no HEAD yet, no such commit, no repository) has none.
 	Texts(ctx context.Context, tree, dir string, keep func(string) bool) map[string]string
 }

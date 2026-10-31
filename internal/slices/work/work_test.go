@@ -16,6 +16,7 @@ import (
 	"github.com/donvargax/itos/v8/internal/engine/judge"
 	"github.com/donvargax/itos/v8/internal/ledger"
 	"github.com/donvargax/itos/v8/internal/message"
+	"github.com/donvargax/itos/v8/internal/out"
 	"github.com/donvargax/itos/v8/internal/providers"
 	trackerport "github.com/donvargax/itos/v8/internal/store/tracker/port"
 	trackerfake "github.com/donvargax/itos/v8/internal/store/tracker/port/porttest"
@@ -53,6 +54,12 @@ type ports struct {
 	during          func()
 	watcher         providers.Watcher
 	watcherErr      error
+	// revision is what Revision gives of every item but revisionRefused's,
+	// or its error, each id asked kept in revisionCalls.
+	revision        string
+	revisionRefused *refusedRevision
+	revisionErr     error
+	revisionCalls   *[]string
 	// pr is what push.mode pr asks of the world: the branch the remote's HEAD
 	// names or its error, the GitHub repository, and gh's stdout or its error,
 	// each call of gh kept in ghCalls and each of the remote's in headCalls.
@@ -123,6 +130,25 @@ func (p ports) Gh(_ context.Context, args ...string) (string, error) {
 }
 
 func (p ports) GitHubRepository(context.Context, *config.Loaded, string) string { return p.repository }
+
+// Revision is the item's revision the fake gives (revision), the refusal
+// of an id the fake refuses (revisionRefused) or its error, each id asked
+// kept in revisionCalls.
+func (p ports) Revision(_ context.Context, _ *config.Loaded, _ trackerport.Tracker, id string) (string, *out.Problem, error) {
+	if p.revisionCalls != nil {
+		*p.revisionCalls = append(*p.revisionCalls, id)
+	}
+	if p.revisionRefused != nil && id == p.revisionRefused.id {
+		return "", &p.revisionRefused.problem, nil
+	}
+	return p.revision, nil, p.revisionErr
+}
+
+// refusedRevision is an id the fake's Revision refuses with the problem.
+type refusedRevision struct {
+	id      string
+	problem out.Problem
+}
 
 // broken is the VCS fake with its log, a commit's patch, git show's text or a
 // diff failing when set, and with fetch, when set, standing in for a fetch of

@@ -3,6 +3,7 @@ package tests
 import (
 	"context"
 	"os"
+	"path"
 	"path/filepath"
 	"regexp"
 	"slices"
@@ -197,6 +198,25 @@ type WipExample struct {
 // as such, and its blocks are not listed again).
 func TaggedExamples(cfg *config.Loaded, tag, at string) ([]Test, []WipExample, error) {
 	return readTagged(cfg, tag, at, true)
+}
+
+// TaggedFile is a scenario Tagged gives with Path, its feature file from
+// the repository's top (Test's File is from its kind's root), which itos
+// brief reads and names (slice-204).
+type TaggedFile struct {
+	Test
+	Path string
+}
+
+// TaggedFiles is Tagged with each scenario's feature file from the top.
+func TaggedFiles(cfg *config.Loaded, tag, at string) ([]TaggedFile, error) {
+	var found []TaggedFile
+	err := eachTagged(cfg, tag, at, func(o Options, _ string, in []Test) {
+		for _, t := range in {
+			found = append(found, TaggedFile{Test: t, Path: path.Join(filepath.ToSlash(o.Root), t.File)})
+		}
+	})
+	return found, err
 }
 
 func readTagged(cfg *config.Loaded, tag, at string, examples bool) ([]Test, []WipExample, error) {

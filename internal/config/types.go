@@ -46,12 +46,15 @@ type Push struct {
 // ReviewStall, the seconds a login's review may read running before --ready
 // asks for it again, 0 for never (slice 190); ReadyWait, the seconds one
 // itos push --ready may spend waiting before it stops with
-// ready-still-waiting, 0 for no bound (slice 200); Direct, the commits a push from main sends straight to main (slice 186).
+// ready-still-waiting, 0 for no bound (slice 200); Update, how itos push brings
+// an item's branch up to the remote's item branch and to main, rebase or
+// merge (slice-213); Direct, the commits a push from main sends straight to main (slice 186).
 type PushPR struct {
 	Draft       bool       `json:"draft"`
 	ReviewBy    []string   `json:"review_by"`
 	ReviewStall float64    `json:"review_stall"`
 	ReadyWait   float64    `json:"ready_wait"`
+	Update      string     `json:"update"`
 	Direct      PushDirect `json:"direct"`
 }
 
@@ -377,9 +380,13 @@ type Work struct {
 	Statuses  []string `json:"statuses"`
 	// Tags are the tags an item may carry (slice 97), none when the config
 	// declares none, so a typo is refused rather than becoming a tag.
-	Tags     []string `json:"tags"`
-	People   People   `json:"people"`
-	Identity struct {
+	Tags []string `json:"tags"`
+	// Delegated are the decision classes an answering agent may settle
+	// provisionally (slice 205), none when the config declares none: a
+	// question of any other class, or of none, is the person's.
+	Delegated []string `json:"delegated"`
+	People    People   `json:"people"`
+	Identity  struct {
 		Provider string `json:"provider"`
 		Hint     string `json:"hint"`
 	} `json:"identity"`

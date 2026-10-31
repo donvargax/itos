@@ -106,6 +106,19 @@ Feature: CI setup is discoverable without reading the implementation
     And its output says "whole: true is accepted and has no effect", whatever its line breaks
     And its output does not say "every test of its kind", whatever its line breaks
 
+  # T-339: ci run's help said itos work done runs a named task's after: push
+  # check, which work done leaves pending (@ID-EVID-53), and that the code
+  # proof reads recorded results and runs none of its own, while
+  # proof.code.check is run as written, this repository's running mutation
+  # afresh. Fails at "its output says": the help names "(itos task, itos
+  # work done)".
+  @ID-CI-85 @T-339
+  Scenario: ci run's help leaves work done out of who runs an after: push check, and the proof's check unqualified
+    When itos prints the help of "ci run"
+    Then itos exits with code 0
+    And its output says "to run after the push (itos task)", whatever its line breaks
+    And its output does not say "runs none of its own", whatever its line breaks
+
   # The YAML --print-defaults prints gains, inside the ci mapping after its
   # last default key and before work:, the same in every repository:
   #

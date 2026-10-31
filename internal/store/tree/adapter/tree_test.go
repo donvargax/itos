@@ -122,6 +122,28 @@ func TestTextsOfNamesGitQuotes(t *testing.T) {
 	}
 }
 
+// A project in a subfolder reads its own files of the index and of a
+// commit by the names git lists from that folder, where git would read
+// those names from the top.
+func TestTextsFromASubfolder(t *testing.T) {
+	notHooked(t)
+	dir := t.TempDir()
+	gitIn(t, dir, "init", "-q")
+	write(t, filepath.Join(dir, "features", "one.feature"), "the top's\n")
+	write(t, filepath.Join(dir, "app", "features", "one.feature"), "the app's\n")
+	gitIn(t, dir, "add", ".")
+	all := func(string) bool { return true }
+	trees := Trees{VCS: vcs.Git{Dir: filepath.Join(dir, "app")}}
+	want := map[string]string{"features/one.feature": "the app's\n"}
+	if got := trees.Texts(t.Context(), "index", "features", all); !reflect.DeepEqual(got, want) {
+		t.Errorf("index texts %q, want %q", got, want)
+	}
+	gitIn(t, dir, "commit", "-qm", "two projects")
+	if got := trees.Texts(t.Context(), "HEAD", "features", all); !reflect.DeepEqual(got, want) {
+		t.Errorf("HEAD texts %q, want %q", got, want)
+	}
+}
+
 // A file in the git folder, which no tree git holds can have, is read where
 // it is whatever the source: the stealth mode's config and data, from the
 // folder itos runs in, wherever the process stands.

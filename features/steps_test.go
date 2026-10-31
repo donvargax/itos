@@ -61,6 +61,8 @@ type world struct {
 	proofSummary      *proofSummaryFixture // how itos is invoked in the proof summary feature (ci_proof_summary_test.go)
 	ffBefore, ffAfter string               // the clone's main before and after its last fast-forward (workdonepr_test.go)
 	configAt          string               // where the scratch config is written instead of the root's itos.yaml, when ITOS_CONFIG names it (ci_jobs_test.go)
+	revisions         map[string]string    // the revisions itos next printed, saved by name (next_test.go)
+	briefSaved        map[string]string    // stdout, or one JSON value, saved under a name by the brief steps (brief_test.go)
 
 	exit           int
 	stdout, stderr string
@@ -354,6 +356,15 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	sc.Step(`^the task "([^"]*)" has the counting check as (run|fails)$`, func(task, mode string) error {
 		return w.stagedChecks(task, countingCheck(mode))
 	})
+	sc.Step(`^the task "([^"]*)" has the fails: check "([^"]*)"$`, func(task, check string) error {
+		return w.stagedChecks(task, fmt.Sprintf("{ fails: %q }", check))
+	})
+	sc.Step(`^the task "([^"]*)" has the fails: check "([^"]*)" with a timeout of (\d+) seconds?$`, func(task, check string, seconds int) error {
+		return w.stagedChecks(task, fmt.Sprintf("{ fails: %q, timeout: %d }", check, seconds))
+	})
+	sc.Step(`^the task "([^"]*)" has the static fails: check "([^"]*)"$`, func(task, check string) error {
+		return w.stagedChecks(task, fmt.Sprintf("{ fails: %q, cost: static }", check))
+	})
 	sc.Step(`^hooks\.commit_msg\.task_checks is (true|false)$`, w.taskChecksAre)
 	sc.Step(`^hooks\.commit_msg\.check_timeout is (\d+)$`, w.checkTimeoutIs)
 	sc.Step(`^work\.statuses is "([^"]*)"$`, w.statusesAre)
@@ -465,7 +476,9 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	initializePushModeSteps(sc, w)
 	initializePushThreadSteps(sc, w)
 	initializeReadyWaitSteps(sc, w)
+	initializeReviewSteps(sc, w)
 	initializeOntoMainSteps(sc, w)
+	initializePushMergeSteps(sc, w)
 	initializeWorkDonePRSteps(sc, w)
 	initializeCITrustSteps(sc, w)
 	initializeCIJobsSteps(sc, w)
@@ -477,6 +490,8 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	initializeInitShimIdentitySteps(sc, w)
 	initializeWorkSteps(sc, w)
 	initializeShowSteps(sc, w)
+	initializeNextSteps(sc, w)
+	initializeBriefSteps(sc, w)
 	initializeQueueRemovalSteps(sc, w)
 	initializeQueueHistoryAssertion(sc, w)
 	initializeFollowSteps(sc, w)

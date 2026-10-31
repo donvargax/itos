@@ -56,6 +56,15 @@ func (g Git) Log(_ context.Context, r port.Range) ([]port.Entry, error) {
 	return entries(out), nil
 }
 
+// LastTouching is the last commit on rev's first-parent history that
+// touches one of the paths, each read as the path it is, "" when none does;
+// its error is git's own words (slice-204, the spec commit itos brief
+// names).
+func (g Git) LastTouching(ctx context.Context, rev string, paths []string) (string, error) {
+	out, err := g.drafted(ctx, nil, append([]string{"rev-list", "--first-parent", "-1", rev, "--"}, paths...)...)
+	return strings.TrimSpace(out), err
+}
+
 // CommentChar is core.commentChar.
 func (g Git) CommentChar(context.Context) string {
 	out, _ := g.git().Output("config", "core.commentChar")

@@ -326,6 +326,14 @@ type VCS interface {
 	// change does not apply: a *Conflicts error then, a Failed one when it
 	// cannot run.
 	CherryPick(ctx context.Context, commit, onto string) (string, error)
+	// Merge merges rev into HEAD as a merge commit with the message, past the
+	// commit hooks and whatever the VCS's settings say of a merge; nothing
+	// when HEAD has rev. A HEAD that rev has all of is fast-forwarded to it
+	// with ff, and gets a merge commit too without. A Failed error when it
+	// makes none, a file the work tree does not track and the merge would
+	// overwrite among the reasons: a conflict is then left in progress
+	// (MergeHeads, Conflicted).
+	Merge(ctx context.Context, rev, message string, ff, quiet bool, talk Talk) error
 	// Reset sets HEAD, the branch it is on, the index and the work tree to the
 	// commit, discarding what they held; an error when rev names no commit.
 	Reset(ctx context.Context, rev string) error

@@ -5,6 +5,7 @@ package cli
 
 import (
 	"github.com/donvargax/itos/v8/internal/declare"
+	briefslice "github.com/donvargax/itos/v8/internal/slices/brief"
 	cislice "github.com/donvargax/itos/v8/internal/slices/ci"
 	commitslice "github.com/donvargax/itos/v8/internal/slices/commit"
 	configslice "github.com/donvargax/itos/v8/internal/slices/config"
@@ -17,8 +18,10 @@ import (
 	guideslice "github.com/donvargax/itos/v8/internal/slices/guide"
 	hookslice "github.com/donvargax/itos/v8/internal/slices/hook"
 	initcmdslice "github.com/donvargax/itos/v8/internal/slices/initcmd"
+	nextslice "github.com/donvargax/itos/v8/internal/slices/next"
 	pinslice "github.com/donvargax/itos/v8/internal/slices/pin"
 	pushslice "github.com/donvargax/itos/v8/internal/slices/push"
+	reviewslice "github.com/donvargax/itos/v8/internal/slices/review"
 	statusslice "github.com/donvargax/itos/v8/internal/slices/status"
 	taskslice "github.com/donvargax/itos/v8/internal/slices/task"
 	testsslice "github.com/donvargax/itos/v8/internal/slices/tests"
@@ -32,7 +35,9 @@ import (
 var declared = []declare.Command{
 	gocmdslice.Command,
 	guideslice.Command,
+	briefslice.Command,
 	statusslice.Command,
+	nextslice.Command,
 	taskslice.Command,
 	workslice.Command,
 	decisionslice.Command,
@@ -40,6 +45,7 @@ var declared = []declare.Command{
 	draftslice.Command,
 	commitslice.Command,
 	pushslice.Command,
+	reviewslice.Command,
 	gitshimslice.Command,
 	pinslice.Command,
 	upgradeslice.Command,
@@ -61,8 +67,12 @@ func dispatch(name string) (command, bool) {
 		return runGo, true
 	case "guide":
 		return runGuide, true
+	case "brief":
+		return runBrief, true
 	case "status":
 		return runStatus, true
+	case "next":
+		return runNext, true
 	case "task":
 		return runTask, true
 	case "work":
@@ -77,6 +87,8 @@ func dispatch(name string) (command, bool) {
 		return runCommit, true
 	case "push":
 		return runPush, true
+	case "review":
+		return runReview, true
 	case "git-shim":
 		return runGitShim, true
 	case "pin":
