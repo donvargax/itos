@@ -243,19 +243,26 @@ func (h Handler) pushBases(ctx context.Context, refs []pushedRef) ([]string, boo
 	return bases, whole
 }
 
-// span is a range of commits, from its start to its end.
-type span struct{ From, To string }
+// span is a range of commits, from its start to its end, and whether only
+// those of them no remote-tracking branch has are judged.
+type span struct {
+	From, To string
+	Unpushed bool
+}
 
 // pushedRange is the range of the commits a pushed ref adds, as verify takes
-// it: the ones after the remote's commit it replaces, or, with no such commit
-// in this clone, the ones on no remote-tracking branch (vcsport.Unpushed), as
-// verify with no range judges them under a stealth config. Others' commits
-// already on the remote are not the pusher's to fix.
+// it: the ones after the remote's commit it replaces that are on no
+// remote-tracking branch (<local> ^<base> --not --remotes, slice-213), its
+// range checks starting at that commit; or, with no such commit in this clone,
+// the ones on no remote-tracking branch (vcsport.Unpushed), as verify with no
+// range judges them under a stealth config. Others' commits already on the
+// remote, those a merge of main brings in among them, are not the pusher's to
+// fix.
 func (r pushedRef) pushedRange() span {
 	if r.base == "" {
-		return span{vcsport.Unpushed, r.local}
+		return span{From: vcsport.Unpushed, To: r.local}
 	}
-	return span{r.base, r.local}
+	return span{From: r.base, To: r.local, Unpushed: true}
 }
 
 // verifyPush is the hook's first step: verify over what each pushed ref
@@ -288,7 +295,11 @@ func (h Handler) verifyPush(ctx context.Context, cfg *config.Loaded, refs []push
 		}
 		seen[r] = true
 		var log strings.Builder
-		run, err := judge.Over(ctx, cfg, cfg.VCS, r.From, r.To, judge.Out{Stdout: &log, Stderr: &log, Tests: o.Tests})
+		over := judge.Over
+		if r.Unpushed {
+			over = judge.OverUnpushed
+		}
+		run, err := over(ctx, cfg, cfg.VCS, r.From, r.To, judge.Out{Stdout: &log, Stderr: &log, Tests: o.Tests})
 		if err != nil {
 			return Answer{}, err
 		}

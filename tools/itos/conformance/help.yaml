@@ -31,6 +31,7 @@ cases:
         config get,
         version,
         guide,
+        brief,
       ]
   - name: itos task --help
     argv: [task, --help]
@@ -152,6 +153,11 @@ cases:
     exit: 0
     stdout_nonempty: true
     stdout_has: itos guide
+  - name: itos brief --help
+    argv: [brief, --help]
+    exit: 0
+    stdout_nonempty: true
+    stdout_has: [itos brief, --role]
   - name: itos status --help
     argv: [status, --help]
     exit: 0

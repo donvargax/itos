@@ -143,6 +143,11 @@ func (h Handler) Handle(ctx context.Context, q Query, o Out) (Answer, error) {
 			"itos push: --onto-main brings an item's branch up to main, and push.mode is not pr in this config; nothing was fetched or pushed.",
 			"Push without --onto-main, or set push.mode: pr."), nil
 	}
+	if q.OntoMain && r.cfg.Push.PR.Update == "merge" {
+		return r.refuse("onto-main-under-merge",
+			"itos push: push.pr.update is merge, so itos push merges main in, and --onto-main, which rebases the branch onto it, is not used; nothing was fetched or pushed.",
+			"Run itos push."), nil
+	}
 	if q.Ready && !(pr && r.cfg.Push.PR.Draft) {
 		return r.report(policy, "ready-without-draft",
 			"itos push: --ready is for push.mode pr with push.pr.draft true, which this config does not set; nothing was fetched or pushed.",

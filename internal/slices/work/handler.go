@@ -38,8 +38,11 @@ import (
 // remote. Under push.mode pr, work done also asks RemoteHead, the branch the
 // remote's HEAD names, Gh, gh run with the arguments (its stdout,
 // providers.ErrNoGh when it is not installed), and GitHubRepository, the
-// repository every gh call names, "" for none. The repository is the
-// config's VCS.
+// repository every gh call names, "" for none. With --expect, work take
+// and work done ask Revision, the item's revision as itos next gives it
+// (next.RevisionOf, so the two cannot drift), over the tracker the
+// questions are in: the problem of an id no item has, as next refuses it,
+// or the error of what cannot be read. The repository is the config's VCS.
 type Ports interface {
 	Config(ctx context.Context) (*config.Loaded, error)
 	Worktree(ctx context.Context) treeport.Source
@@ -51,6 +54,7 @@ type Ports interface {
 	RemoteHead(ctx context.Context, remote string, talk vcsport.Talk) (string, error)
 	Gh(ctx context.Context, args ...string) (string, error)
 	GitHubRepository(ctx context.Context, cfg *config.Loaded, remote string) string
+	Revision(ctx context.Context, cfg *config.Loaded, tracker trackerport.Tracker, id string) (string, *out.Problem, error)
 }
 
 // Checked is what running a task's static checks found: Failure, the first
@@ -147,13 +151,13 @@ func (h Handler) Handle(ctx context.Context, q Query, o Out) (Answer, error) {
 	case "show":
 		return h.show(ctx, q)
 	case "take":
-		return h.take(ctx, q.ID, q.As, o)
+		return h.take(ctx, q.ID, q.As, q.Expect, o)
 	case "add":
 		return h.add(ctx, q.New, o)
 	case "promote":
 		return h.promote(ctx, q.Promotion, o)
 	case "done":
-		return h.done(ctx, q.ID, o)
+		return h.done(ctx, q.ID, q.Expect, o)
 	case "edit", "queue", "drop", "defer", "resume", "give-back":
 		if len(q.IDs) > 1 {
 			return h.each(ctx, q, o)

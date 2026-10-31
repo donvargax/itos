@@ -228,7 +228,7 @@ func (r pushRun) workOnMain(ctx context.Context, oldest string) Answer {
 // onto the remote's item branch when there is one, else onto main, and the
 // registry's commits go to main wherever they sit, the rest to the item's
 // branch (divide), in one atomic push; then the pull request is found or
-// opened.
+// opened. Under push.pr.update merge, mergeItem takes over after the fetches.
 func (r *pushRun) pushItem(ctx context.Context, item, main string) Answer {
 	v := r.ports
 	registry := r.cfg.Work.Registry
@@ -248,6 +248,9 @@ func (r *pushRun) pushItem(ctx context.Context, item, main string) Answer {
 	}
 	onto := theirMain
 	r.ontoName = r.remote + "/" + main
+	if r.cfg.Push.PR.Update == "merge" {
+		return r.mergeItem(ctx, item, main, theirMain, tip)
+	}
 	if r.ontoMain {
 		if a, done := r.bringOntoMain(ctx, theirMain, tip, exists); done {
 			return a
@@ -281,7 +284,7 @@ func (r *pushRun) pushItem(ctx context.Context, item, main string) Answer {
 		}
 		return r.pushRegistry(ctx, main, theirMain, plan{main: r.sha, sent: sent})
 	}
-	p, a, done := r.divide(ctx, main, theirMain, tip, exists, ahead, toMain)
+	p, a, done := r.divide(ctx, main, theirMain, theirMain, tip, exists, ahead, toMain)
 	if done {
 		return a
 	}
@@ -367,7 +370,7 @@ func (r pushRun) registryPrefix(ctx context.Context, main string, ahead []string
 		if v.Parent(ctx, c) != parent || theirs != "" && v.IsAncestor(ctx, c, theirs) {
 			return i
 		}
-		if !r.registryCommit(ctx, c) {
+		if !r.extracted(ctx, c) {
 			return i
 		}
 		parent = c

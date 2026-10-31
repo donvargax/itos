@@ -37,14 +37,16 @@ type Closed struct {
 	Fields []out.Field
 }
 
-// done is `work done <id>`: the item done and the registry committed
-// (work.Done), once its work has landed.
-func (h Handler) done(ctx context.Context, id string, o Out) (Answer, error) {
+// done is `work done <id> [--expect <revision>]`: the item done and the
+// registry committed (work.Done), once its work has landed. An item already
+// done is already, nothing written, whatever --expect says; else a stale
+// revision refuses the close before the landing is checked (slice 208).
+func (h Handler) done(ctx context.Context, id, expect string, o Out) (Answer, error) {
 	a, s, err := h.read(ctx, o)
 	if s == nil {
 		return a, err
 	}
-	change, a, err := closing(a, s, id)
+	change, a, err := h.closing(ctx, a, s, id, expect)
 	if change == nil {
 		return a, err
 	}
@@ -118,7 +120,9 @@ func (h Handler) done(ctx context.Context, id string, o Out) (Answer, error) {
 		return a, err
 	}
 	cfg = s.cfg
-	if change, a, err = closing(a, s, id); change == nil {
+	// The revision was judged before the wait; the registry as it is now is
+	// judged as before it (bug 34), not against what the caller knew then.
+	if change, a, err = h.closing(ctx, a, s, id, ""); change == nil {
 		return a, err
 	}
 	if ci.Run != nil && ci.Run.URL != "" {
@@ -220,19 +224,27 @@ func trackedText(ctx context.Context, t trackerport.Tracker, name string) (strin
 }
 
 // closing is the registry's change that makes the item done (work.Done),
-// nil when there is none to make: a refusal (exit 1), an item already done
-// (the Answer's Done saying so) or an error, with the Answer to end with.
-func closing(a Answer, s *writing, id string) (*domain.Change, Answer, error) {
+// nil when there is none to make, with the Answer to end with: an item
+// already done (the Answer's Done saying so), judged first, whatever the
+// revision; then a revision (expect, "" for none) that is no longer the
+// item's (stale, slice 208); then a refusal (exit 1) or an error.
+func (h Handler) closing(ctx context.Context, a Answer, s *writing, id, expect string) (*domain.Change, Answer, error) {
 	change, found, err := domain.Done(s.cfg, s.registry, s.text, id)
-	if err != nil {
-		return nil, a, uneditable(s.cfg.Work.Registry, err)
-	}
-	if len(found) > 0 {
-		a.Refused, a.Code = found, refused
-		return nil, a, nil
-	}
 	if change.Unchanged {
 		a.Done = &Closed{Line: id + " is already done; nothing to change", Change: change}
+		return nil, a, nil
+	}
+	stale, staleErr := h.stale(ctx, s, id, expect)
+	switch {
+	case staleErr != nil:
+		return nil, a, staleErr
+	case stale != nil:
+		a.Refused, a.Code = []out.Problem{*stale}, refused
+		return nil, a, nil
+	case err != nil:
+		return nil, a, uneditable(s.cfg.Work.Registry, err)
+	case len(found) > 0:
+		a.Refused, a.Code = found, refused
 		return nil, a, nil
 	}
 	return &change, a, nil

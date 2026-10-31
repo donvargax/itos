@@ -390,6 +390,39 @@ func (b broken) NotIgnored(ctx context.Context, path string) bool {
 	return b.VCS.NotIgnored(ctx, path)
 }
 
+func (b broken) Merge(ctx context.Context, rev, message string, ff, quiet bool, talk port.Talk) error {
+	before := *b.VCS
+	theirs, known := b.commit(rev)
+	if b.fault == "merge never fast-forwards" {
+		ff = false
+	}
+	switch {
+	case b.fault == "merge of nothing fine" && !known:
+		return nil
+	case b.fault == "merge fast-forwards" && !ff && b.IsAncestor(ctx, "HEAD", rev):
+		b.moveHead(b.OnBranch, theirs.Name)
+		return nil
+	case b.fault == "merge of what HEAD has" && known && b.IsAncestor(ctx, rev, "HEAD"):
+		ours, _ := b.commit("HEAD")
+		made := ours
+		made.Name, made.Parents = b.newName(), []string{ours.Name, theirs.Name}
+		b.History = append(b.History, made)
+		b.moveHead(b.OnBranch, made.Name)
+		return nil
+	}
+	err := b.VCS.Merge(ctx, rev, message, ff, quiet, talk)
+	switch {
+	case b.fault == "merge refuses" && err == nil:
+		return errBroken
+	case b.fault == "merge detaches" && err == nil:
+		b.OnBranch = ""
+	case b.fault == "merge stops nothing" && err != nil && known:
+		*b.VCS = before
+		return nil
+	}
+	return err
+}
+
 func (b broken) CherryPick(ctx context.Context, commit, onto string) (string, error) {
 	if b.fault == "cherry pick onto the head" {
 		onto = "HEAD"

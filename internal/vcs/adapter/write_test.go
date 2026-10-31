@@ -229,3 +229,23 @@ func TestBatchEntryRefuses(t *testing.T) {
 		}
 	}
 }
+
+// FolderEntries reads and names a path from the folder git runs in, where
+// TreeEntries reads it from the top.
+func TestFolderEntries(t *testing.T) {
+	dir := committed(t, "AGENTS.md")
+	if err := os.Mkdir(filepath.Join(dir, "app"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	write(t, dir, filepath.Join("app", "AGENTS.md"), "the app's")
+	gitIn(t, dir, "", "add", "--", "app")
+	gitIn(t, dir, "", "commit", "-q", "-m", "app")
+	top, err := Git{}.TreeEntries(t.Context(), "HEAD", []string{"AGENTS.md"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	here, err := Git{Dir: filepath.Join(dir, "app")}.FolderEntries(t.Context(), "HEAD", []string{"AGENTS.md"})
+	if err != nil || len(here) != 1 || here["AGENTS.md"].Kind != "blob" || here["AGENTS.md"].Object == top["AGENTS.md"].Object {
+		t.Errorf("FolderEntries from app = %+v, %v; the top's %+v", here, err, top)
+	}
+}

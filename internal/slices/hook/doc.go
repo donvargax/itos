@@ -110,9 +110,12 @@
 // so is any when the remote cannot be asked: itos push --onto-main makes the
 // rewrite, and a plain git push --force-with-lease of a rebased branch passes
 // as it does. It verifies next
-// (verifyPush): judge.Over on each distinct pushedRange, <remote sha>..<local
-// sha>, or the unpushed commits up to the local one when there is no remote
-// commit to compare with, each run's report written to a buffer, so a push
+// (verifyPush): on each distinct pushedRange, judge.OverUnpushed over <local
+// sha> ^<remote sha> --not --remotes, the range checks from the remote sha
+// (slice-213: commits a merge of main brings in are on the remote already, and
+// not the pusher's), or judge.Over over the unpushed commits up to the local
+// one when there is no remote commit to compare with, each run's report
+// written to a buffer, so a push
 // whose commits pass prints nothing. A failing range's report is printed
 // with fixAdvice (git commit --amend, or git rebase -i from the parent of the
 // first failing commit, --root for a root commit) and the hook exits 1 with
