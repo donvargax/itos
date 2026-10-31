@@ -16405,3 +16405,17 @@ items:
     why: >
       slice-214's implementer, 2026-10-30: itos commit --scenarios READYMERGE-01 failed with
       'unknown scenarios' and gave no hint that the IDs need the @ID- prefix.
+
+  - id: p2-merge-method-check
+    title: Check the repository's allowed merge methods against push.pr.update before --ready waits
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      slice-214, 2026-10-30: with push.pr.update merge, --ready waited through CI and review, about
+      15 minutes, then failed at gh pr merge: 'Merge commits are not allowed on this repository'.
+      The repository had allow_merge_commit false, and main's ruleset had pull_request
+      allowed_merge_methods [rebase]. itos reads both through gh (repos/<r> and its rulesets) and
+      refuses up front, naming the setting, either in a config check or when --ready starts.
