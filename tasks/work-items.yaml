@@ -16771,3 +16771,15 @@ items:
       'is not a commit of this repository', until the clone fetched main. A SHA GitHub has but the
       clone lacks is the normal case right after a merge on GitHub. ci watch can fetch origin once
       (or ask the forge for the commit's runs by SHA without resolving it locally) before refusing.
+
+  - id: p3-commit-item-not-on-base
+    title: "itos commit --item names an item missing from the branch's base, but present in main or origin/main, as 'not on this branch's base: push main first'"
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      slice-216's drafter, 2026-10-31: the commit-msg hook refused with 'unknown items: slice-216'
+      while the item existed in local main's registry and wasn't pushed yet. The message could say
+      where the item is, and what to do.
