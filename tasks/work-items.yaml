@@ -16614,3 +16614,19 @@ items:
       cannot write, such as outside its worktree or sandbox, or they are authenticated. The threat
       model to settle with it: agents share the clone with the driver today; under a sandbox
       executor (p2-attempt-executor) they would not.
+
+  - id: p2-rereview-only-own-changes
+    title: A head whose only change past the reviewed head is a merge of main needs no new code or security review
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Seen landing #236, 2026-10-31: each registry push to main made --ready merge main in, giving a
+      new head. The new head needed a new code and security review, and each fresh security review
+      raised a new design-level finding on unchanged code: two rounds, about 20 minutes each. A head
+      whose diff from the last reviewed head (the item's own changes, judged as verify and the hook
+      judge a merge) is empty could carry the earlier verdict forward. Both --ready's wait and
+      review request (slice-215) would read it. Until then: hold registry pushes to main while an
+      item is landing.
