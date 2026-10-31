@@ -106,7 +106,7 @@ Feature: itos attempt submit, an agent's result checked against its brief and ag
   # item's branch. The notes are prose and decide nothing. The journal
   # line's request, base and head are compared with the values the
   # scenario saved, so a build that recorded the attempt alone fails.
-  @ID-ATTEMPT-01 @wip @slice-207
+  @ID-ATTEMPT-01 @slice-207
   Scenario: A drafter's done result is accepted and recorded
     When itos runs "brief slice-9 --role drafter --json"
     Then itos exits with code 0
@@ -141,7 +141,7 @@ Feature: itos attempt submit, an agent's result checked against its brief and ag
   # branch with --at, and the implementer's commits past that base are a
   # test commit, then the feat commit that turns the scenario live. The
   # spec's own test commit is before base and counts for nothing.
-  @ID-ATTEMPT-02 @wip @slice-207
+  @ID-ATTEMPT-02 @slice-207
   Scenario: An implementer's done result is accepted, its JSON echoing the result
     Given the clone is on the new branch "slice-9"
     And a feature file with the scenario "@ID-A-01" tagged "@wip @slice-9"
@@ -179,7 +179,7 @@ Feature: itos attempt submit, an agent's result checked against its brief and ag
 
   # The second file differs from the first in its notes alone: the same
   # role, request, attempt, head and outcome is the same result.
-  @ID-ATTEMPT-03 @wip @slice-207
+  @ID-ATTEMPT-03 @slice-207
   Scenario: The same accepted result again is already, nothing recorded
     When itos runs "brief slice-9 --role drafter --json"
     Then itos exits with code 0
@@ -218,7 +218,7 @@ Feature: itos attempt submit, an agent's result checked against its brief and ag
   # 2. The same bytes again are refused without a second record. The spec
   # is pushed, so nothing but the key stands between the agent and
   # acceptance.
-  @ID-ATTEMPT-04 @wip @slice-207
+  @ID-ATTEMPT-04 @slice-207
   Scenario: A malformed result is rotated once and the next try is one attempt higher
     When itos runs "brief slice-9 --role drafter --json"
     Then itos exits with code 0
@@ -275,7 +275,7 @@ Feature: itos attempt submit, an agent's result checked against its brief and ag
   # the ninth is no JSON object at all, names no role, and is refused
   # without a record: eight lines in the end. Each message names the key
   # at fault. The head is the pushed tip, so only the shape refuses.
-  @ID-ATTEMPT-05 @wip @slice-207
+  @ID-ATTEMPT-05 @slice-207
   Scenario: Each malformed shape is refused, naming the key at fault
     When itos runs "brief slice-9 --role drafter --json"
     Then itos exits with code 0
@@ -373,7 +373,7 @@ Feature: itos attempt submit, an agent's result checked against its brief and ag
   # build that judged the order first fails: stale is the one problem), a
   # base the clone has no commit for, and the request of the brief at the
   # new HEAD with the old base, which is not the brief at that base.
-  @ID-ATTEMPT-06 @wip @slice-207
+  @ID-ATTEMPT-06 @slice-207
   Scenario: A result is checked against the brief at its base, and one that does not match it is stale
     When itos runs "brief slice-9 --role drafter --json"
     Then itos exits with code 0
@@ -434,7 +434,7 @@ Feature: itos attempt submit, an agent's result checked against its brief and ag
   # in, the next is 2: 3 is out of order, and so is 1 again with another
   # outcome, which is not the result the journal holds. The head is the
   # pushed tip and the request current, so only the number refuses.
-  @ID-ATTEMPT-07 @wip @slice-207
+  @ID-ATTEMPT-07 @slice-207
   Scenario: An attempt that is not the next one is refused, nothing recorded
     When itos runs "brief slice-9 --role drafter --json"
     Then itos exits with code 0
@@ -484,7 +484,7 @@ Feature: itos attempt submit, an agent's result checked against its brief and ag
   # without fetching would take the old head for the tip. The new tip
   # keeps the spec, so a result naming it is accepted once its objects are
   # fetched.
-  @ID-ATTEMPT-08 @wip @slice-207
+  @ID-ATTEMPT-08 @slice-207
   Scenario: A head that is not the tip of the item's branch on the remote is refused
     When itos runs "brief slice-9 --role drafter --json"
     Then itos exits with code 0
@@ -527,7 +527,7 @@ Feature: itos attempt submit, an agent's result checked against its brief and ag
   # prefix match would take for slice-9's), and the notes claim otherwise;
   # the second head tags one for slice-9 but live, which a drafter may not
   # make.
-  @ID-ATTEMPT-09 @wip @slice-207
+  @ID-ATTEMPT-09 @slice-207
   Scenario: A drafter's head with no wip scenario tagged for the item is refused
     When itos runs "brief slice-9 --role drafter --json"
     Then itos exits with code 0
@@ -568,7 +568,7 @@ Feature: itos attempt submit, an agent's result checked against its brief and ag
   # commit, "test: a tagged scenario", is at base, so a build that judged
   # the commits past main would find a test commit first and accept the
   # head; one that looked for a test commit anywhere would too.
-  @ID-ATTEMPT-10 @wip @slice-207
+  @ID-ATTEMPT-10 @slice-207
   Scenario: An implementer's head with no test commit past base before its first feat is refused
     Given the clone is on the new branch "slice-9"
     And a feature file with the scenario "@ID-A-01" tagged "@wip @slice-9"
@@ -599,7 +599,7 @@ Feature: itos attempt submit, an agent's result checked against its brief and ag
 
   # The test commit comes first and the feat commit after it, but the
   # feat touches the README alone: @ID-A-01 is still @wip at the head.
-  @ID-ATTEMPT-11 @wip @slice-207
+  @ID-ATTEMPT-11 @slice-207
   Scenario: An implementer's head that leaves a scenario of the item wip is refused
     Given the clone is on the new branch "slice-9"
     And a feature file with the scenario "@ID-A-01" tagged "@wip @slice-9"
@@ -634,7 +634,7 @@ Feature: itos attempt submit, an agent's result checked against its brief and ag
   # claim is checked, each is taken in with its notes, and the attempts
   # count up for the role. (That nothing is fetched for these is not
   # proved here: the remote lacking the branch refuses nothing.)
-  @ID-ATTEMPT-12 @wip @slice-207
+  @ID-ATTEMPT-12 @slice-207
   Scenario: A blocked, needs_decision or spec_defect result is accepted without a head
     Given the clone is on the new branch "slice-9"
     And a feature file with the scenario "@ID-A-01" tagged "@wip @slice-9"
@@ -686,7 +686,7 @@ Feature: itos attempt submit, an agent's result checked against its brief and ag
   # of the clone but the one the fetch refreshes, every ref of the remote
   # but the item's branch, which must end as it was, and a gh on the PATH
   # that records any call.
-  @ID-ATTEMPT-13 @wip @slice-207
+  @ID-ATTEMPT-13 @slice-207
   Scenario: itos attempt submit writes only the journal, commits nothing, pushes nothing and asks no forge
     Given a recording gh on the PATH, which opens pull requests as "https://github.com/o/r/pull/1"
     And the commit "chore: tidy the readme" on top of it
@@ -719,7 +719,7 @@ Feature: itos attempt submit, an agent's result checked against its brief and ag
   # An unknown item is refused before the result is read, so the file need
   # not exist; a file that cannot be read names no role, so no journal
   # starts.
-  @ID-ATTEMPT-14 @wip @slice-207
+  @ID-ATTEMPT-14 @slice-207
   Scenario: An unknown item, an unreadable result file and a missing argument are refused
     When itos runs "attempt submit slice-7 result.json --json"
     Then itos exits with code 1
