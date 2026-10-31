@@ -16506,3 +16506,16 @@ items:
       older revision) and trunk or forge facts are added as more conditions, never as new shapes.
       slice-209 and slice-215 add observed keys one by one (unrequested, the checks), so settle this
       before the driver depends on the shape.
+
+  - id: p3-idempotent-prepare-step
+    title: Preparing an attempt's worktree and branch is a rerun-safe machine step keyed on item, attempt and base
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      From the google/ax analysis, 2026-10-31 (its runner's prepare-once marker). Today the
+      coordinator sets up each implementer's branch by hand (merging main in, choosing a base), as
+      on slices 207, 209, 212 and 215. As a step next names, the driver runs it, and a rerun after a
+      crash is a no-op. Design only, for v9.
