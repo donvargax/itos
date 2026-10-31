@@ -16115,4 +16115,9 @@ items:
       anyone can at worst rerun it. To settle in its spec: a pull_request run uses the branch's own
       copy of the workflow, so a branch could change what posts the status; issue_comment and
       pull_request_review run main's. Then the person adds itos/reviews to main's required checks.
+
+      From slice-212's drafter (2026-10-30): review status exits 1 on a pull request whose branch
+      names no item and in a repository with no push.pr.review_by, which would fail the workflow;
+      its spec decides whether the workflow skips those or posts nothing. The token needs statuses:
+      write.
     tags: [ci, v8]
