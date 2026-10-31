@@ -15709,6 +15709,12 @@ items:
       With reviewer kinds (p1-review-request-step): Bugbot's check run is bound to its head_sha by
       GitHub, so it needs no binding of its own; Copilot's review carries its commit
       (PullRequestReview.commit).
+
+      Codex's security review raised it on #240 (thread PRRT_kwDOU2JMic6yTU-7, 2026-10-31): a
+      review_by login with no Codex state counts with any review, so an author could get a review on
+      a harmless head, push an unreviewed commit, and still get success. The fix: ask for each
+      review's commit and dismissed state, page the reviews, and accept only a review of the exact
+      head. It changes --ready and review status (slice-212) together.
     tags: [push, v9]
 
   - id: T-339
