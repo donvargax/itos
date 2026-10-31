@@ -16394,3 +16394,14 @@ items:
       only changes are registry changes stays on the item's branch, so main sees that registry
       content only at the merge. Unconfirmed: check whether bookkeeping on main can ever lose to it
       before building anything.
+
+  - id: p3-scenarios-bare-id
+    title: itos commit --scenarios accepts a bare scenario ID, or names the @ID- form it wants
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      slice-214's implementer, 2026-10-30: itos commit --scenarios READYMERGE-01 failed with
+      'unknown scenarios' and gave no hint that the IDs need the @ID- prefix.
