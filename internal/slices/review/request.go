@@ -29,7 +29,7 @@ func (h Handler) request(ctx context.Context, q Query) (Answer, error) {
 			"itos review: push.pr.reviewers names no reviewer to ask; nothing was posted.",
 			"list the reviewers to ask, each {login, kind}, in push.pr.reviewers"), nil
 	}
-	p, refused := h.pull(ctx, cfg, "request", q.Item)
+	p, refused := h.pull(ctx, cfg, subRequest, q.Item)
 	if refused != nil {
 		return *refused, nil
 	}

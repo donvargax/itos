@@ -1,5 +1,5 @@
 // Package review is the review command, a slice (ADR-0053): itos review
-// request (below), and itos review post
+// request and itos review status (below), and itos review post
 // <item> --verdict approve|changes --at <commit> [--stage spec|diff]
 // [--body-file <path>] records a reviewer's verdict on an item's pull request
 // as an append-only comment bound to the head it judged (slice-206,
@@ -12,7 +12,7 @@
 // valued flags, which internal/cli's parser holds every argument to, so an
 // unknown flag or one with no value is a usage error before Parse runs.
 // Parse (parse.go) refuses the rest, exit 2: review alone or with any word
-// but post or request, post with no item or two, no --verdict or no --at, a --stage that is
+// but post, request or status, post with no item or two, no --verdict or no --at, a --stage that is
 // neither spec nor diff. A --verdict that is neither approve nor changes is
 // not a usage error but a problem (review-bad-verdict, exit 1): a driver
 // computes the verdict from a reviewer's answer and reads the problem JSON
@@ -90,6 +90,29 @@
 // stops it, review-pull-request-failed, exit 3, the requests before it
 // posted and none after it tried. Outcome requested, --json's posted the
 // requests posted in order.
+//
+// # review status
+//
+// itos review status <item> (slice-212, features/review-status.feature)
+// posts the commit status itos/reviews on the item's pull request's head, so
+// that branch protection, not a session's wait, holds the merge on the
+// reviews. Parse takes one item and no flag (the declared spec gives status
+// none). Status refuses, before gh, outside push.mode pr
+// (review-without-pr-mode), with push.pr.review_by empty
+// (review-without-review-by, judged before the item, since a success for
+// nobody would pass any head), and an item the registry lacks; then it finds
+// the open pull request and puts the question as post and request do (pull,
+// providers.AskPullState), and judges with providers.PullState.Verdicts,
+// --ready's own code, against the head that answer gives: never the clone's.
+// The state is failure when a login refused, whatever the others' (no review
+// comes unless someone asks again), else pending when a login has no verdict,
+// else success; the description names the logins of its state, as the config
+// writes them, cut at a whole login to GitHub's 140 characters (described).
+// One gh api repos/<owner>/<name>/statuses/<head> -f state -f context -f
+// description, in that order and no target_url, its answer unread. It asks
+// nobody for a review and waits for nothing, so a workflow may run it on
+// every event. A gh that fails is review-pull-request-failed, exit 3, as
+// post's, each fix naming status to run again.
 //
 // Handle reaches the world through Ports, which internal/cli binds: the
 // config's presence and load, git's resolve, the remote, the repository, gh,

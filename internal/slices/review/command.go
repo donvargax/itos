@@ -9,10 +9,12 @@ var Command = declare.Command{
                                    record a reviewer's verdict on the item's pull request, bound to its head
   review request <item> [--expect <revision>]
                                    ask each reviewer push.pr.reviewers names for the pull request's head, once
+  review status <item>             post the itos/reviews commit status on the item's pull request's head
 `,
 	Help: map[string]string{
 		"": `Usage: itos review post <item> --verdict approve|changes --at <commit> [--stage spec|diff] [--body-file <path>]
        itos review request <item> [--expect <revision>]
+       itos review status <item>
 
 Records a reviewer's verdict on an item's pull request, under push.mode pr,
 from any branch or a detached HEAD: the item names the branch, and its open
@@ -70,7 +72,7 @@ JSON); review-body-file, a --body-file that cannot be read; review-unknown-
 commit, an --at git cannot resolve; review-no-pull-request, no open pull
 request for the item (itos push opens it); and review-head-moved, above. The
 first five are refused before gh is asked. Exit 2 is a usage error, asking gh
-nothing: review alone or with any word but post or request, post with no item or two,
+nothing: review alone or with any word but post, request or status, post with no item or two,
 without --verdict or without --at, --stage with a word that is neither spec nor
 diff, --body-file with no path, or any other flag. Exit 3, rule
 review-pull-request-failed, is a gh that is missing or fails, naming the call
@@ -132,10 +134,51 @@ review and no comment through gh api.
 
 --json: {"schema":1,"ok":true,"outcome","item","head","posted"}, outcome
         requested or already, head the full SHA, posted the requests posted in
-        order, each {"login","kind","request"}, [] for already`,
+        order, each {"login","kind","request"}, [] for already
+
+itos review status <item> judges the reviews of the item's open pull
+request's head as itos push --ready judges them and posts the result as one
+GitHub commit status on that head, its context itos/reviews, so branch
+protection can require it and a workflow can run it on every pull request
+event. Under push.mode pr, from any branch or a detached HEAD. The head is the
+one GitHub gives in the same answer as the reviews, never the clone's.
+
+A login of push.pr.review_by (a trailing "[bot]" dropped from both sides) that
+wrote a Codex review-state comment has reviewed the head when that comment
+says both its reviews completed, both of the head; any other login has when it
+wrote a review that is not Copilot's refusal ("Copilot ... was unable to review
+this pull request"); a login whose only reviews are refusals has refused. The
+status's three states:
+
+  failure  a login refused, whatever the others' state: "Refused to review:
+           <the logins that refused>."
+  pending  a login has no verdict for the head: "Waiting on <those logins>."
+  success  every login reviewed the head: "Reviewed by <every login>."
+
+the logins as the config writes them, in its order. A description over 140
+characters, which GitHub refuses, is cut at a whole login, the rest counted
+(" and <n> more."). It says "Posted itos/reviews <state> on <7 characters> of
+<the pull request's address>: " and who reviewed, who it waits on, or each
+refusal's first line, exit 0 whatever the state. It asks nobody for a review,
+waits for nothing and merges nothing: one gh pr list, the gh api graphql
+question --ready puts, and gh api repos/<owner>/<name>/statuses/<the head's
+full SHA> -f state=<state> -f context=itos/reviews -f description=<description>,
+so running it again posts the same state again.
+
+Refused, exit 1, nothing posted: review-without-pr-mode, outside push.mode pr;
+review-without-review-by, push.pr.review_by empty or absent; work-unknown-item;
+review-no-pull-request. Exit 3: review-pull-request-failed, a gh that is
+missing or fails, naming the call and gh's words, and no-github-repository.
+Exit 2, asking gh nothing: status with no item or two, or with any flag.
+
+--json: {"schema":1,"ok":true,"outcome","item","state","head","pull_request":{"url","number"},"description","missing","refused"},
+        outcome reviewed, review-pending or review-refused, head the full SHA,
+        missing every login with no verdict for the head, refused those that
+        refused, each [] for none, description the one posted, logins uncut`,
 	},
 	Spec: declare.Spec{Subs: map[string]declare.Spec{
 		"post":    {Flags: []declare.Flag{declare.Value("--verdict"), declare.Value("--at"), declare.Value("--stage"), declare.Value("--body-file")}},
 		"request": {Flags: []declare.Flag{declare.Value("--expect")}},
+		"status":  {},
 	}},
 }

@@ -9,11 +9,11 @@ import (
 )
 
 // A merge's own paths (bug 30): none for a clean merge, even of a file both
-// sides changed, and none for one that takes a side; a path no parent has,
-// a line no parent has, and a path git quotes (a byte above ASCII in it,
-// since windows takes no quote in a file's name) for a merge that adds them; the
-// same reading of the index for the merge being made, which MERGE_HEAD
-// names until it is committed.
+// sides changed; a path no parent has, a line no parent has, and a path git
+// quotes (a byte above ASCII in it, since windows takes no quote in a file's
+// name) for a merge that adds them; the same reading of the index for the
+// merge being made, which MERGE_HEAD names until it is committed; and (bug
+// 158) every path the second parent changed for a merge made with -s ours.
 func TestOwnPaths(t *testing.T) {
 	dir := t.TempDir()
 	gitIn(t, dir, "init", "-q", "-b", "main")
@@ -75,7 +75,83 @@ func TestOwnPaths(t *testing.T) {
 
 	gitIn(t, dir, "reset", "-q", "--hard", main)
 	gitIn(t, dir, "merge", "-q", "--no-ff", "-s", "ours", "-m", "Merge branch 'topic'", "topic")
+	if got, err := here.OwnPaths(gitIn(t, dir, "rev-parse", "HEAD")); err != nil || !slices.Equal(got, []string{"f"}) {
+		t.Fatalf("a merge that keeps its first parent's tree has own paths %q, %v, want f", got, err)
+	}
+	if got, err := here.OwnPaths("nope"); err == nil {
+		t.Fatalf("the own paths of no commit are %q", got)
+	}
+}
+
+// Bug 158: a merge's own paths are where its tree differs from git's merge
+// of its two parents. None for a clean merge of neighbouring lines, which
+// the dense combined diff shows as a hunk; a conflict resolved by taking a
+// side (-X theirs, where merge-tree exits 1) is the merge's own; a merge of
+// two parents with no merge base is read by --cc; and a merge-tree that
+// fails is an error.
+func TestOwnPathsAgainstGitsMerge(t *testing.T) {
+	dir := t.TempDir()
+	gitIn(t, dir, "init", "-q", "-b", "main")
+	t.Chdir(dir)
+	write := func(text string) {
+		t.Helper()
+		if err := os.WriteFile(filepath.Join(dir, "f"), []byte(text), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	lines := "1\n2\n3\n4\n5\n"
+	write(lines)
+	gitIn(t, dir, "add", "f")
+	gitIn(t, dir, "commit", "-q", "-m", "base")
+	side := func(branch, from, to string) {
+		t.Helper()
+		gitIn(t, dir, "checkout", "-q", "-b", branch, "main")
+		write(strings.Replace(lines, from, to, 1))
+		gitIn(t, dir, "commit", "-q", "-am", branch)
+	}
+	side("two", "2\n", "two\n")
+	side("four", "4\n", "four\n")
+	side("other-two", "2\n", "TWO\n")
+
+	gitIn(t, dir, "checkout", "-q", "four")
+	gitIn(t, dir, "merge", "-q", "--no-ff", "-m", "Merge branch 'two'", "two")
+	head := gitIn(t, dir, "rev-parse", "HEAD")
+	if got, err := here.combinedPaths(head); err != nil || !slices.Equal(got, []string{"f"}) {
+		t.Fatalf("the combined diff's paths of a merge of neighbouring lines = %q, %v, want f", got, err)
+	}
+	if got, err := here.OwnPaths(head); err != nil || len(got) != 0 {
+		t.Fatalf("a clean merge of neighbouring lines has own paths %q, %v", got, err)
+	}
+
+	gitIn(t, dir, "checkout", "-q", "other-two")
+	gitIn(t, dir, "merge", "-q", "--no-ff", "-X", "theirs", "-m", "Merge branch 'two'", "two")
+	taken := gitIn(t, dir, "rev-parse", "HEAD")
+	if got, err := here.OwnPaths(taken); err != nil || !slices.Equal(got, []string{"f"}) {
+		t.Fatalf("a conflict resolved by taking a side has own paths %q, %v, want f", got, err)
+	}
+
+	gitIn(t, dir, "checkout", "-q", "--orphan", "unrelated")
+	gitIn(t, dir, "rm", "-q", "-r", "--cached", "f")
+	if err := os.WriteFile(filepath.Join(dir, "g"), []byte("g\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	gitIn(t, dir, "add", "g")
+	gitIn(t, dir, "commit", "-q", "-m", "root")
+	gitIn(t, dir, "checkout", "-q", "-f", "main")
+	gitIn(t, dir, "merge", "-q", "--no-ff", "--allow-unrelated-histories", "-m", "Merge branch 'unrelated'", "unrelated")
 	if got, err := here.OwnPaths(gitIn(t, dir, "rev-parse", "HEAD")); err != nil || len(got) != 0 {
-		t.Fatalf("a merge that keeps one side's tree has own paths %q, %v", got, err)
+		t.Fatalf("a clean merge with no merge base has own paths %q, %v", got, err)
+	}
+
+	blob := gitIn(t, dir, "rev-parse", "main~1:f")
+	object := filepath.Join(dir, ".git", "objects", blob[:2], blob[2:])
+	if err := os.Chmod(object, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Remove(object); err != nil {
+		t.Fatal(err)
+	}
+	if got, err := here.OwnPaths(taken); err == nil {
+		t.Fatalf("the own paths of a merge whose base lost a file are %q", got)
 	}
 }

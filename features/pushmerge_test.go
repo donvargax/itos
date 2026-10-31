@@ -27,6 +27,13 @@ func initializePushMergeSteps(sc *godog.ScenarioContext, w *world) {
 		return fmt.Errorf("the clone has no merge in progress\n%s", w.report())
 	})
 	sc.Step(`^the clone resolves the conflict in "([^"]*)", keeping both sides, and commits the merge as "([^"]*)"$`, w.cloneResolvesMerge)
+	// Bug 158: a file whose lines two sides change.
+	sc.Step(`^the remote has gained the commit "([^"]*)" writing "([^"]*)" with the lines:$`, func(subject, path string, lines *godog.DocString) error {
+		return w.remoteGainsWriting(path, subject, lines.Content+"\n")
+	})
+	sc.Step(`^the clone has the commit "([^"]*)" writing "([^"]*)" with the lines:$`, func(subject, path string, lines *godog.DocString) error {
+		return w.cloneCommitsWriting(subject, path, lines.Content+"\n")
+	})
 }
 
 // The commit saved from the clone's HEAD is an ancestor of the head of the

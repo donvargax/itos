@@ -33,15 +33,18 @@
 // listed, and the hook, verify and the plan agree on what a commit touches;
 // only the conflicted paths select, with --diff-filter=U.
 //
-// A merge is judged by its own changes (OwnPaths): the paths of its dense
-// combined diff (git diff-tree --cc, what git show shows of a merge), those
-// with a hunk whose lines in the merge are no parent's. A clean merge has
-// none, even of a file both sides changed, since each hunk is one side's,
-// and so does a conflict resolved by taking a side; -c would count every
-// file both sides touched, and --remerge-diff any merge made with another
-// strategy. StagedOwnPaths does the same for the merge being made: it
-// commits the index's tree on HEAD and MERGE_HEAD's commits, an object
-// nothing keeps, to read its combined diff.
+// A merge is judged by its own changes (OwnPaths): the paths where its tree
+// differs from the tree git merge-tree --write-tree writes of its two
+// parents, conflict markers and all, compared with --no-renames. A clean
+// merge has none, even where both sides changed neighbouring lines of one
+// file; a conflict resolved, by taking a side or by new lines, is its own,
+// and so is all a merge made with another strategy or option changed from
+// git's merge. A merge of more parents, or of two with no merge base, which
+// merge-tree cannot merge, is read by its dense combined diff (git
+// diff-tree --cc, what git show shows of a merge): the paths with a hunk
+// whose lines in the merge are no parent's. StagedOwnPaths does the same for
+// the merge being made: it commits the index's tree on HEAD and
+// MERGE_HEAD's commits, an object nothing keeps, to read its own paths.
 //
 // A range's start is a string everywhere a range goes. Revs(from, to) is
 // the arguments git rev-list and git log take: from..to, or, for the

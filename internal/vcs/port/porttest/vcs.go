@@ -39,8 +39,11 @@ type Commit struct {
 // commits a merge in progress brings and InRebase whether a rebase is in
 // progress. Comment is core.commentChar, "" when it is not set.
 //
-// A merge's own paths are those whose content is no parent's, which git
-// tells by hunks; the contract's merges tell them apart alike.
+// A merge's own paths are those where its tree differs from Merge's tree of
+// its two parents, by whole files where git merges lines, or, for more
+// parents or two with no common commit, those whose content is no parent's;
+// the contract's
+// merges tell them apart alike.
 //
 // Tags are annotated tags' objects, each the commit it names; a ref may
 // name one. Remote are the remotes by name, and Tracking each branch's

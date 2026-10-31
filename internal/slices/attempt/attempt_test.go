@@ -479,12 +479,53 @@ func TestErrors(t *testing.T) {
 	}
 }
 
-// Log's error, a range git cannot read, is the command's.
+// logged is a repository whose log gives the records log makes of the
+// fake's.
+type logged struct {
+	*vcsfake.VCS
+	log func([]vcsport.Entry) ([]vcsport.Entry, error)
+}
+
+func (l logged) Log(ctx context.Context, r vcsport.Range) ([]vcsport.Entry, error) {
+	found, err := l.VCS.Log(ctx, r)
+	if err != nil {
+		return nil, err
+	}
+	return l.log(found)
+}
+
+// A range git cannot read, or a log that cannot be read, is the command's
+// error; so is a commit past the base the log gives no record of (a
+// message holding the byte git log's records are framed by), which is
+// never passed over as though it were not there: here the feat commit,
+// red first's own question.
 func TestLogError(t *testing.T) {
 	p := over(feat, map[string]string{feat: "@slice-9"})
-	c := claim{cfg: nil, v: p.v, id: "slice-9", Result: Result{Base: "gone", Head: &feat}}
+	c := claim{v: p.v, id: "slice-9", Result: Result{Base: "gone", Head: &feat}}
 	if _, err := c.untested(t.Context()); err == nil {
 		t.Error("an unreadable range is no error")
+	}
+	c.Base = base
+	c.v = logged{p.v, func([]vcsport.Entry) ([]vcsport.Entry, error) { return nil, errors.New("log failed") }}
+	if _, err := c.untested(t.Context()); err == nil || err.Error() != "log failed" {
+		t.Errorf("an unreadable log: %v", err)
+	}
+	c.v = logged{p.v, func(found []vcsport.Entry) ([]vcsport.Entry, error) {
+		var kept []vcsport.Entry
+		for _, e := range found {
+			if e.SHA != feat {
+				kept = append(kept, e)
+			}
+		}
+		return kept, nil
+	}}
+	if first, err := c.untested(t.Context()); err == nil || kind.Of(err) != kind.Usage || !strings.Contains(err.Error(), feat+" past the base has no record") || first != nil {
+		t.Errorf("a commit the log dropped: %v, %v", first, err)
+	}
+	p.v.History[2].Message = "docs: add the steps\n"
+	c.v = logged{p.v, func(found []vcsport.Entry) ([]vcsport.Entry, error) { return found[:0], nil }}
+	if _, err := c.untested(t.Context()); err == nil {
+		t.Error("a log of no records over commits past the base is no error")
 	}
 }
 

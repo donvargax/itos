@@ -218,8 +218,10 @@ type VCS interface {
 	// path it holds for a root commit, none for a merge; an error when rev
 	// names no commit.
 	CommitPaths(ctx context.Context, rev string) ([]string, error)
-	// OwnPaths are the paths a merge changes of its own: those it holds
-	// with lines no parent has there; none for a commit with one parent or
+	// OwnPaths are the paths a merge changes of its own: for two parents
+	// with a merge base, those where its tree differs from the VCS's
+	// automatic merge of them, conflicts included; else those it holds
+	// with lines no parent has there. None for a commit with one parent or
 	// none, and an error when rev names no commit.
 	OwnPaths(ctx context.Context, rev string) ([]string, error)
 	// Diff are the paths that differ between two commits, from EmptyTree

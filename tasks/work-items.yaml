@@ -15709,6 +15709,17 @@ items:
       With reviewer kinds (p1-review-request-step): Bugbot's check run is bound to its head_sha by
       GitHub, so it needs no binding of its own; Copilot's review carries its commit
       (PullRequestReview.commit).
+
+      Codex's security review raised it on #240 (thread PRRT_kwDOU2JMic6yTU-7, 2026-10-31): a
+      review_by login with no Codex state counts with any review, so an author could get a review on
+      a harmless head, push an unreviewed commit, and still get success. The fix: ask for each
+      review's commit and dismissed state, page the reviews, and accept only a review of the exact
+      head. It changes --ready and review status (slice-212) together.
+
+      slice-215's implementer, 2026-10-31: Bugbot rewrites its older reviews to start '<!--
+      BUGBOT_REVIEW -->' then '<!-- BUGBOT_REVIEW_STALE -->'. Under slice-215's rule such a review
+      still counts for its own commit, which is harmless while only older commits go stale. The
+      verdict model should read the stale marker. reviews(first: 100) is not paged either.
     tags: [push, v9]
 
   - id: T-339
@@ -15795,13 +15806,9 @@ items:
     title: itos attempt submit checks an agent's result against its brief's request and against git, and records it
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-204]
     kind: slice
-    why: >
-      The v9 deterministic coordinator's v8 pilot (docs/plans/v9-coordinator.md, the LLM steps'
-      contracts): an agent's result is strict JSON echoing its brief's request; itos checks the
-      identity, the schema and the claims against git, never the prose, and records the attempt.
     tags: [work, v8]
 
   - id: slice-208
@@ -15832,14 +15839,10 @@ items:
   - id: slice-209
     title: "itos next derives an in-flight item's state from the forge under push.mode pr: spec review, implementing, merging, merged"
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: done
     depends_on: [slice-203, slice-206, slice-207]
     kind: slice
-    why: >
-      The v9 deterministic coordinator's v8 pilot (docs/plans/v9-coordinator.md, the machine):
-      slice-203's in-flight becomes the states only the forge and the attempt journal know, so a
-      driver's next step is computed, never remembered.
     tags: [work, v8]
 
   - id: p1-ready-bookkeeping-rebase
@@ -16070,6 +16073,24 @@ items:
 
       Superseded the note above on who asks Codex (the person, 2026-10-30): the explicit step
       p1-review-request-step asks, not itos push and not the status workflow.
+
+      Seen on #241, 2026-10-31: --ready posts '@codex review' only after the head's CI run passes,
+      so the review and CI run one after the other. A first --ready on a new head ends at 540 s
+      (exit 75) before Codex is even asked. Requesting at push time (slice-215's review-unrequested
+      at handed-back) lets them run side by side. The hand-off should rely on that request rather
+      than make one after CI.
+
+      slice-215's implementer, 2026-10-31: --ready's askForHead and requested still read any
+      itos-review-request marker as a code-review request, and sameLogin now lives both in push and
+      in internal/engine/reviewers (slice-215). The hand-off folds --ready onto the reviewers
+      engine.
+
+      Codex on #238 (slice-209, thread PRRT_kwDOU2JMic6yUwAI, 2026-10-31): next says merging (forge
+      observe) once the pull request is ready and nothing failed, but --ready marks it ready before
+      it turns auto-merge on. After an exit 75, or under --no-wait, nothing merges and a driver
+      waits forever. next's merging must require that merging was requested (auto-merge on for the
+      head, or a merge queued), and keep driver land, itos push --ready, until then. The hand-off
+      settles both: --ready marks ready and pins auto-merge in one step.
     tags: [work, v8]
 
   - id: p3-work-add-refusal-keeps-id
@@ -16090,19 +16111,9 @@ items:
     title: "itos review status posts itos/reviews on a pull request's head: success once each review_by login has reviewed (a Codex state for that head), pending naming who is missing, failure on a refusal"
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: slice
-    why: >
-      q-105 (the person, 2026-10-30): the reviews' wait moves from --ready to the forge as a
-      required status check, so --ready can hand off and return (p1-ready-hand-off). Settled: it
-      judges the head's reviews exactly as --ready's wait does today (push.pr.review_by, Copilot's
-      refusal, Codex's review-state comments with both reviews completed for the head), reusing that
-      code, never a second reading of it; it posts one commit status, context itos/reviews, on the
-      pull request's current head, and never on another commit; it asks nobody for a review and
-      waits for nothing (one forge question, one status write), so running it again is harmless;
-      threads stay GitHub's conversation-resolution rule. The workflow that runs it is a separate ci
-      item; turning the check on in branch protection is the person's.
     tags: [work, v8]
 
   - id: p1-reviews-status-workflow
@@ -16135,6 +16146,12 @@ items:
       explicitly, so this is kept. itos/reviews therefore stays pending on a head until someone
       requests both reviews for it. The workflow that posts itos/reviews, and the person's adding it
       to branch protection, come after p1-review-request-step, which requests both.
+
+      Codex's security review on #240 (thread PRRT_kwDOU2JMic6yTPgQ, 2026-10-31): review status
+      takes the first open pull request for --head <item>, as review post and --ready do. Two open
+      pull requests from one branch to different bases share a head SHA, and the commit status is
+      tied to neither. The workflow has the triggering event, so it binds the status to that event's
+      pull request and base, and refuses when several are open.
     tags: [ci, v8]
 
   - id: p1-next-task-spec-on-main
@@ -16234,8 +16251,8 @@ items:
   - id: slice-215
     title: "Asking for a review is a step of the machine: itos review request asks each configured reviewer for the pull request's head once, through its kind's adapter, and itos next names it when the head has no request"
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: [slice-209]
     kind: slice
     why: >
@@ -16460,3 +16477,297 @@ items:
     why: >
       slice-207's implementer, 2026-10-30: the implementer's still-wip check covers scenarios but
       not @wip Examples blocks, which work done refuses.
+
+  - id: p3-step-declares-scenario-kind
+    title: A feature step declares the scenario kind on main explicitly, so a scenario that crosses branches sets up main's config itself
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      slice-209's implementer, 2026-10-31: the step 'a feature file with the scenario … tagged' adds
+      the scenario kind to the config on whichever branch it runs on. ID-NEXTFORGE-16 checked out
+      main afterwards and found no scenario kind, so every slice needed a spec, and the fixture
+      needed an extra Given committing a slice-8 scenario on main. A step that declares the kind
+      explicitly would say what the setup means.
+
+  - id: p3-nextforge-13-guard
+    title: "Tag ID-NEXTFORGE-13 (trunk stays in-flight) @guard: it passes before slice-209's work by design"
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      slice-209's implementer, 2026-10-31: NEXTFORGE-13 passes before the work, as a guard does, but
+      carries no @guard tag. Left out of slice-209 so its committed work stays as it is while
+      slice-215 builds on it.
+
+  - id: p2-next-observed-conditions
+    title: "next --json's observed as conditions: each fact with whether it holds, the revision it is bound to, and a reason"
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      From the google/ax analysis, 2026-10-31 (its Kubernetes-style conditions beside the state).
+      The facts behind next's state become a list, so 'stale' is mechanical (a condition bound to an
+      older revision) and trunk or forge facts are added as more conditions, never as new shapes.
+      slice-209 and slice-215 add observed keys one by one (unrequested, the checks), so settle this
+      before the driver depends on the shape.
+
+  - id: p3-idempotent-prepare-step
+    title: Preparing an attempt's worktree and branch is a rerun-safe machine step keyed on item, attempt and base
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      From the google/ax analysis, 2026-10-31 (its runner's prepare-once marker). Today the
+      coordinator sets up each implementer's branch by hand (merging main in, choosing a base), as
+      on slices 207, 209, 212 and 215. As a step next names, the driver runs it, and a rerun after a
+      crash is a no-op. Design only, for v9.
+
+  - id: p3-brief-lenient-read
+    title: Brief consumers ignore unknown keys within schema 1, while results stay strict
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      From the google/ax analysis, 2026-10-31: reading leniently lets brief --json gain keys (as
+      slice-207 added base) without breaking a driver, while attempt submit stays strict about what
+      an agent returns.
+
+  - id: p2-attempt-executor
+    title: "An attempt records its executor (agent, model, where it ran), outside the request hash, behind a seam: a local subagent today, a sandbox backend later"
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      From the google/ax analysis, 2026-10-31. ax schedules sandboxed agent containers (gVisor on
+      Kubernetes) and has no workflow layer, so at most it is a future place an attempt runs.
+      Recording the executor on slice-207's attempt record keeps the comparison of models and agents
+      possible (p1-haiku-implementer-trial), and a seam ties to the person's sandbox project
+      (devcontainer locally, ax or DevPod later).
+
+  - id: p3-staticcheck-changed-untracked
+    title: tools/bin/staticcheck-changed judges a new package not yet committed
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      slice-215's implementer, 2026-10-31: staticcheck-changed skipped the untracked package
+      internal/engine/reviewers, so it had to be run by hand. Pre-push judges committed work, so
+      this matters only for a by-hand run before the commit, but the tool's name promises the
+      changed packages.
+
+  - id: p2-substrate-homelab-spike
+    title: "Spike: run attempts in Agent Substrate on the person's homelab Kubernetes, behind the attempt executor seam"
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The person, 2026-10-31: they have a homelab Kubernetes cluster and might run Agent Substrate
+      on it (github.com/agent-substrate/env, the gVisor actor runtime google/ax is built on).
+      Substrate, not ax, is the piece that sandboxes, so the spike runs one implementer attempt as a
+      Substrate actor (ax optional on top) and reports back through the same brief and attempt
+      submit as a local subagent (p2-attempt-executor). To check: gVisor and Linux 6.8+ with
+      OverlayFS lowerdir+ on the workers; whether Claude Code in the sandbox can use the
+      subscription's OAuth credentials, since ax's example uses ANTHROPIC_API_KEY; pushing from the
+      sandbox without broad credentials (a scoped token for the item's branch only); and suspend and
+      resume for long attempts. It comes after the first driven run, and belongs with the person's
+      sandbox project.
+
+  - id: p2-attempt-issued-brief
+    title: itos attempt submit judges a result against the brief the driver issued (base, request, role), recorded when the attempt starts
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Codex's security review on #236 (slice-207, thread PRRT_kwDOU2JMic6yTvZF, 2026-10-31): base is
+      the agent's own claim, so an implementer can set base to its own head, compute a matching
+      request, and pass red-first over an empty range. The fix records the brief each attempt is
+      issued when the driver briefs it, and refuses a result that doesn't match. That is a step in
+      the driver's loop (the brief step writes an 'issued' journal line). A check like 'base is an
+      ancestor of head' does not close it. No agent has been seen doing this (guard rails from
+      evidence), so it comes with the driver rather than before the pilot.
+
+      A second finding, on #236 (thread PRRT_kwDOU2JMic6yT2V-, 2026-10-31): an agent that can write
+      to the clone's git folder can append an accepted line matching its own result, and submit then
+      answers already without re-checking the claims. Re-checking on a replay does not close it,
+      since a forged journal can also change the attempt count or hide a rotation. The real fix is
+      the same: the driver's own records (issued and accepted) are kept where an attempt's agent
+      cannot write, such as outside its worktree or sandbox, or they are authenticated. The threat
+      model to settle with it: agents share the clone with the driver today; under a sandbox
+      executor (p2-attempt-executor) they would not.
+
+  - id: p2-rereview-only-own-changes
+    title: A head whose only change past the reviewed head is a merge of main needs no new code or security review
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Seen landing #236, 2026-10-31: each registry push to main made --ready merge main in, giving a
+      new head. The new head needed a new code and security review, and each fresh security review
+      raised a new design-level finding on unchanged code: two rounds, about 20 minutes each. A head
+      whose diff from the last reviewed head (the item's own changes, judged as verify and the hook
+      judge a merge) is empty could carry the earlier verdict forward. Both --ready's wait and
+      review request (slice-215) would read it. Until then: hold registry pushes to main while an
+      item is landing.
+
+  - id: bug-157
+    title: The VCS adapter's log reader drops, without a word, a commit whose message holds the byte 0x1e
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: bug
+    why: >
+      Found by Codex's security review on #236 (thread PRRT_kwDOU2JMic6yT-6Q, 2026-10-31):
+      internal/vcs/adapter entries() splits git log's output on 0x1e, its record separator, so a
+      commit message holding that byte loses its record. Log and Show are shared, so verify, the
+      commit-type and footer checks and any other log reader may skip such a commit silently, a gate
+      an agent could slip a commit past. slice-207 fails closed in attempt submit only (75ec45ec:
+      every first-parent commit must have a record). The adapter frames records safely
+      (NUL-terminated fields with -z, or counts checked against rev-list) or refuses a record it
+      cannot read.
+
+  - id: p2-attempt-scenarios-present
+    title: itos attempt submit refuses an implementer's head that lacks a scenario tagged for the item at the base
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Codex's security review on #236 (thread PRRT_kwDOU2JMic6yUCrO, 2026-10-31): attempt-still-wip
+      refuses scenarios still @wip but not missing ones. An implementer could delete every @<id>
+      scenario in a test commit, add an unrelated feat, and pass red first. The refusal: every
+      scenario tagged for the item at the base is present and live at the head (a renamed scenario
+      keeps its @ID). Partly caught elsewhere today: next reads no spec for such an item and says
+      needs-spec, and the reviews read the diff. So it is a follow-up, not a blocker for slice-207.
+
+  - id: bug-158
+    title: Under push.pr.update merge, itos push's own 'Merge main into <item>' is refused by pre-push when git's merge combines hunks, and only a rewrite fixes it
+    phase: 1
+    owner: donvargax
+    status: done
+    depends_on: []
+    kind: bug
+
+  - id: p3-guard-scoped-to-repo
+    title: itos's Claude Code guard judges only commands that run in an itos repository
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      bug-158's drafter, 2026-10-31: in a scratch repository outside itos, made to reproduce a
+      merge, the guard's PreToolUse hook refused a plain git commit and pointed to itos commit, so
+      the agent fell back to plumbing (commit-tree). The guard should judge a git command only when
+      its working directory, or its -C target, is an itos repository with an itos.yaml.
+
+  - id: p1-next-argv-runnable-from-main
+    title: "next's driver steps are runnable from the driver's clone on main: itos push --ready names the item (or the step names the item's worktree)"
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Codex on #238 (slice-209, thread PRRT_kwDOU2JMic6yUwAM, 2026-10-31): handed-back's argv is
+      'itos push --ready', which acts on the current branch. It is refused on main (ready-on-main),
+      and from another item's branch it acts on that item. The driver's clone stays on main, so the
+      step ID-NEXTFORGE-07 pins cannot be run as given. Either --ready takes the item and works from
+      any checkout (resolving its branch's worktree, or pushing from a fetch-only checkout), or
+      next's step names where to run it. Needed before the first driven run.
+
+  - id: p3-pinned-tool-cache-shared
+    title: tools/bin/pinned unpacks into a shared cache, and a partial unpack is retried rather than kept
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      slice-209's implementer, 2026-10-31: pinned unpacks golangci-lint into the clone's git folder.
+      A fresh clone on a nearly full tmpfs failed partway ('Wrote only 9728 of 10240 bytes'), and
+      the pre-push hook refused; a symlink to the main clone's copy got past it. One cache per user
+      (~/.cache/itos/tools), with the unpack written to a temporary name and renamed, would avoid
+      both the repeat download and a half-written tool.
+
+  - id: p3-path-rule-names-rule
+    title: A path rule's refusal names its rule, as lint and footer problems do ([merge-type])
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      bug-158's implementer, 2026-10-31: lint and footer problems print their rule as [rule], but
+      path-rule refusals, merge-type among them, print their sentence alone (scope.Rules.Reject,
+      internal/scope/scope.go:157). So bug-158's spec checked 'its output names the rule
+      "merge-type"', a step no build could pass, and the review missed it. Naming the rule in every
+      refusal makes them uniform, and lets a scenario check the rule rather than its wording.
+
+  - id: p2-spec-review-runs-steps
+    title: The spec review checks each step's text against its definition, and runs the guards
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      bug-158's spec passed three review rounds with four scenarios whose step ('its output names
+      the rule') could never pass, including two '@guard' scenarios the review called true guards.
+      The reviewer reads steps but never runs them. A read-only reviewer can still run the feature
+      suite on the spec branch with @wip removed in a scratch copy, which would have shown the
+      guards failing before any work. Add that to the spec reviewer's method (the persona's plan
+      prompt) or as a deterministic check on a spec pull request.
+
+  - id: p3-drafter-hands-branch
+    title: A drafter's worktree releases the item's branch when it hands back, so the implementer can switch to it
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      bug-158, 2026-10-31: the implementer found branch bug-158 still checked out in the drafter's
+      worktree and had to use git switch --ignore-other-worktrees, which moved the drafter's
+      worktree HEAD under it. The same thing blocked a git branch -f on slice-215. The drafter
+      detaches (git switch --detach) before handing back, or the driver's prepare step
+      (p3-idempotent-prepare-step) owns the branch.
+
+  - id: bug-159
+    title: A merge committing merge-tree's conflict tree verbatim, raw markers included, has no own paths and passes verify untyped
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: bug
+    why: >
+      Codex's security review on #244 (bug-158, thread PRRT_kwDOU2JMic6yU2gR,
+      internal/git/merge.go:86, 2026-10-31): where the parents conflict, merge-tree --write-tree
+      exits 1 but still writes a tree with conflict markers, and bug-158 uses that tree as the
+      baseline. A merge committed with exactly that tree has no own paths, so verify passes it under
+      any header and skips the message, footer, scope and moves checks. The old --cc reading caught
+      the marker hunk, so this is a gate bug-158 weakened. Fix: every path merge-tree reports as
+      conflicted is the merge's own, whatever the merge's tree holds. Add a regression test with the
+      exact marker tree.

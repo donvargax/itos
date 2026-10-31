@@ -300,13 +300,18 @@ func (w *world) remoteGainsCommitNaming(subject, id, path string) error {
 
 // The commit's message is the subject, then each paragraph after it.
 func (w *world) remoteGains(path, subject string, paragraphs ...string) error {
+	return w.remoteGainsWriting(path, subject, lineFor(subject), paragraphs...)
+}
+
+// The same, the file holding the text.
+func (w *world) remoteGainsWriting(path, subject, text string, paragraphs ...string) error {
 	other := filepath.Join(w.support, "other")
 	if _, err := os.Stat(other); err != nil {
 		if err := w.gitIn(w.support, "clone", "-q", w.remote(), other); err != nil {
 			return err
 		}
 	}
-	if err := writeLine(other, path, subject); err != nil {
+	if err := writeText(other, path, text); err != nil {
 		return err
 	}
 	if err := w.gitIn(other, "add", "--", path); err != nil {
@@ -356,7 +361,12 @@ func (w *world) cloneCommitsNaming(subject, id, path string) error {
 
 // The commit's message is the subject, then each paragraph after it.
 func (w *world) cloneCommitsWith(subject, path string, paragraphs ...string) error {
-	if err := writeLine(w.dir, path, subject); err != nil {
+	return w.cloneCommitsWriting(subject, path, lineFor(subject), paragraphs...)
+}
+
+// The same, the file holding the text.
+func (w *world) cloneCommitsWriting(subject, path, text string, paragraphs ...string) error {
+	if err := writeText(w.dir, path, text); err != nil {
 		return err
 	}
 	if err := w.git("add", "--", path); err != nil {
@@ -427,11 +437,19 @@ func (w *world) remoteBranchHas(branch, subject string) error {
 // The file at path in the folder dir, holding one line naming the commit, so
 // two commits touching the same file conflict.
 func writeLine(dir, path, subject string) error {
+	return writeText(dir, path, lineFor(subject))
+}
+
+// The one line naming the commit.
+func lineFor(subject string) string { return "A line for " + subject + ".\n" }
+
+// The file at path in the folder dir, holding the text.
+func writeText(dir, path, text string) error {
 	full := filepath.Join(dir, path)
 	if err := os.MkdirAll(filepath.Dir(full), 0o755); err != nil {
 		return err
 	}
-	return os.WriteFile(full, []byte("A line for "+subject+".\n"), 0o644)
+	return os.WriteFile(full, []byte(text), 0o644)
 }
 
 // A take of the item pushed to the remote's main from another clone, as

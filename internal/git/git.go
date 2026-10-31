@@ -61,14 +61,19 @@ func (r Runner) Parent(sha string) string {
 func (r Runner) Read(args ...string) (string, error) {
 	out, err := r.Output(args...)
 	if err != nil {
-		failed := errors.New("Command failed: git " + strings.Join(args, " "))
-		var exit *exec.ExitError
-		if !errors.As(err, &exit) || !r.Succeeds("rev-parse", "--git-dir") {
-			return "", kind.Wrap(kind.Missing, failed)
-		}
-		return "", failed
+		return "", r.failed(args, err)
 	}
 	return out, nil
+}
+
+// failed is Read's error for a git command that failed with err.
+func (r Runner) failed(args []string, err error) error {
+	failed := errors.New("Command failed: git " + strings.Join(args, " "))
+	var exit *exec.ExitError
+	if !errors.As(err, &exit) || !r.Succeeds("rev-parse", "--git-dir") {
+		return kind.Wrap(kind.Missing, failed)
+	}
+	return failed
 }
 
 // Lines are a git command's output lines, the empty ones dropped.

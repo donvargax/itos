@@ -16,10 +16,20 @@ const (
 	stageDiff = "diff"
 )
 
-// CLI is review's command line: the Query it asks, whether it prints
-// --json's one object, and whether a success says nothing (the global -q).
+// review's words: post records a verdict, request asks the reviewers for
+// the head, status posts the reviews' status.
+const (
+	subPost    = "post"
+	subRequest = "request"
+	subStatus  = "status"
+)
+
+// CLI is review's command line: the Query it asks, whether it is status's
+// (only the Query's Item then), whether it prints --json's one object, and
+// whether a success says nothing (the global -q).
 type CLI struct {
 	Query
+	Status      bool
 	JSON, Quiet bool
 }
 
@@ -31,23 +41,26 @@ var revisionForm = regexp.MustCompile(`^sha256:[0-9a-f]{64}$`)
 // command, with the global flags and origin, the folder the person stood in
 // (relative to the top itos moved to, "" when it did not move), which the
 // body file's path is read from. Every error is a usage error (out.Usage):
-// review takes post or request and nothing else; post one item, --verdict
-// and --at, and --stage spec or diff when given; request one item and
-// --expect a revision when given. The verdict's word is Handle's to judge.
+// review takes post, request or status and nothing else; post one item,
+// --verdict and --at, and --stage spec or diff when given; request one item
+// and --expect a revision when given; status one item and no flag. The
+// verdict's word is Handle's to judge.
 func Parse(args []string, origin string, json, quiet bool) (CLI, error) {
 	sub, rest := argsengine.Split(args)
 	switch sub {
 	case "":
-		return CLI{}, out.Usage("review needs post or request: itos review post <item> --verdict approve|changes --at <commit>, or itos review request <item>")
-	case "post":
-	case "request":
+		return CLI{}, out.Usage("review needs post, request or status: itos review post <item> --verdict approve|changes --at <commit>, itos review request <item>, or itos review status <item>")
+	case subPost:
+	case subRequest:
 		q, err := parseRequest(rest)
 		if err != nil {
 			return CLI{}, err
 		}
 		return CLI{Query: q, JSON: json, Quiet: quiet}, nil
+	case subStatus:
+		return parseStatus(rest, json, quiet)
 	default:
-		return CLI{}, out.Usage("review has no subcommand %s: it takes post or request", sub)
+		return CLI{}, out.Usage("review has no subcommand %s: it takes post, request or status", sub)
 	}
 	pos, flags, _, err := argsengine.Sub("review", "post", rest, []string{"--verdict", "--at", "--stage", "--body-file"}, nil)
 	if err != nil {
@@ -80,7 +93,7 @@ func Parse(args []string, origin string, json, quiet bool) (CLI, error) {
 // parseRequest is `review request <item> [--expect <revision>]`: one item,
 // and a revision itos next gives when --expect is there.
 func parseRequest(args []string) (Query, error) {
-	pos, flags, _, err := argsengine.Sub("review", "request", args, []string{"--expect"}, nil)
+	pos, flags, _, err := argsengine.Sub("review", subRequest, args, []string{"--expect"}, nil)
 	if err != nil {
 		return Query{}, err
 	}
@@ -95,6 +108,21 @@ func parseRequest(args []string) (Query, error) {
 		return Query{}, out.Usage("review request --expect takes the revision itos next gives, \"sha256:\" and 64 lowercase hex digits, not %s", expect)
 	}
 	return Query{Request: true, Item: pos[0], Expect: expect}, nil
+}
+
+// parseStatus reads review status's arguments: one item, and no flag.
+func parseStatus(rest []string, json, quiet bool) (CLI, error) {
+	pos, _, _, err := argsengine.Sub("review", subStatus, rest, nil, nil)
+	if err != nil {
+		return CLI{}, err
+	}
+	switch {
+	case len(pos) == 0:
+		return CLI{}, out.Usage("review status needs <item>, the item whose pull request's reviews are judged")
+	case len(pos) > 1:
+		return CLI{}, out.Usage("review status takes one <item>, not %s", strings.Join(pos, " "))
+	}
+	return CLI{Query: Query{Item: pos[0]}, Status: true, JSON: json, Quiet: quiet}, nil
 }
 
 // typed is a path the person typed, as itos reads it at the top it moved to

@@ -121,18 +121,20 @@ func (f *fake) Gh(_ context.Context, args ...string) (string, error) {
 		}
 		return pull7 + "#issuecomment-2\n", nil
 	case "api graphql":
-		nodes := make([]string, 0, len(f.comments))
-		for _, c := range f.comments {
-			body, _ := json.Marshal(c.Body)
-			nodes = append(nodes, fmt.Sprintf(`{"author":{"login":%q},"body":%s}`, c.Login, body))
-		}
-		reviews := make([]string, 0, len(f.reviews))
-		for _, r := range f.reviews {
-			body, _ := json.Marshal(r.Body)
-			reviews = append(reviews, fmt.Sprintf(`{"author":{"login":%q},"body":%s,"commit":{"oid":%q}}`, r.Login, body, r.Commit))
+		nodes := func(of []providers.Authored) string {
+			each := make([]string, 0, len(of))
+			for _, c := range of {
+				body, _ := json.Marshal(c.Body)
+				commit := ""
+				if c.Commit != "" {
+					commit = fmt.Sprintf(`,"commit":{"oid":%q}`, c.Commit)
+				}
+				each = append(each, fmt.Sprintf(`{"author":{"login":%q},"body":%s%s}`, c.Login, body, commit))
+			}
+			return strings.Join(each, ",")
 		}
 		return fmt.Sprintf(`{"data":{"repository":{"pullRequest":{"headRefOid":%q,"reviews":{"nodes":[%s]},"comments":{"nodes":[%s]},"reviewThreads":{"nodes":[]}}}}}`,
-			f.head, strings.Join(reviews, ","), strings.Join(nodes, ",")), nil
+			f.head, nodes(f.reviews), nodes(f.comments)), nil
 	}
 	if strings.HasPrefix(key, "api repos/") {
 		return `{"id":1,"html_url":"` + pull7 + `#issuecomment-1"}`, nil

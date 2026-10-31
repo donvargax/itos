@@ -479,8 +479,10 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	initializeReadyWaitSteps(sc, w)
 	initializeReviewSteps(sc, w)
 	initializeReviewRequestSteps(sc, w)
+	initializeReviewStatusSteps(sc, w)
 	initializeOntoMainSteps(sc, w)
 	initializePushMergeSteps(sc, w)
+	initializeMergeSidesSteps(sc, w)
 	initializeWorkDonePRSteps(sc, w)
 	initializeCITrustSteps(sc, w)
 	initializeCIJobsSteps(sc, w)
@@ -1524,60 +1526,14 @@ func (w *world) mergeCommit(message, own string) error {
 	if err != nil {
 		return err
 	}
-	index := filepath.Join(w.support, "merge-index")
-	plumb := func(args ...string) (string, error) {
-		cmd := exec.Command(git.Bin(runtime.GOOS), args...)
-		cmd.Dir = w.dir
-		cmd.Env = append(w.env(), "GIT_INDEX_FILE="+index)
-		out, err := cmd.Output()
-		if err != nil {
-			return "", fmt.Errorf("git %s: %w", strings.Join(args, " "), err)
-		}
-		return strings.TrimSpace(string(out)), nil
-	}
-	// A tree: the commit's, with each path set to its text.
-	tree := func(from string, texts map[string]string) (string, error) {
-		if _, err := plumb("read-tree", from); err != nil {
-			return "", err
-		}
-		for path, text := range texts {
-			file := filepath.Join(w.support, "merge-blob")
-			if err := os.WriteFile(file, []byte(text), 0o644); err != nil {
-				return "", err
-			}
-			blob, err := plumb("hash-object", "-w", file)
-			if err != nil {
-				return "", err
-			}
-			if _, err := plumb("update-index", "--add", "--cacheinfo", "100644,"+blob+","+path); err != nil {
-				return "", err
-			}
-		}
-		return plumb("write-tree")
-	}
-	// A commit of the tree on the parents.
-	commit := func(tree, message string, parents ...string) (string, error) {
-		args := []string{"commit-tree", tree, "-m", message}
-		for _, p := range parents {
-			args = append(args, "-p", p)
-		}
-		return plumb(args...)
-	}
+	s := w.scratchIndex()
 	task := w.ledger[0].id
 	topicText := map[string]string{"topic.md": "The topic.\n"}
-	topicTree, err := tree(base, topicText)
+	topic, err := s.commitOn(base, "chore: add the topic\n\nTask: "+task+"\n", topicText)
 	if err != nil {
 		return err
 	}
-	topic, err := commit(topicTree, "chore: add the topic\n\nTask: "+task+"\n", base)
-	if err != nil {
-		return err
-	}
-	mainTree, err := tree(base, map[string]string{"main.md": "The main line.\n"})
-	if err != nil {
-		return err
-	}
-	mainLine, err := commit(mainTree, "chore: add the main line\n\nTask: "+task+"\n", base)
+	mainLine, err := s.commitOn(base, "chore: add the main line\n\nTask: "+task+"\n", map[string]string{"main.md": "The main line.\n"})
 	if err != nil {
 		return err
 	}
@@ -1585,15 +1541,15 @@ func (w *world) mergeCommit(message, own string) error {
 	if own != "" {
 		merged[own] = "A change of the merge's own.\n"
 	}
-	mergeTree, err := tree(mainLine, merged)
+	mergeTree, err := s.tree(mainLine, merged)
 	if err != nil {
 		return err
 	}
-	merge, err := commit(mergeTree, message+"\n", mainLine, topic)
+	merge, err := s.commit(mergeTree, message+"\n", mainLine, topic)
 	if err != nil {
 		return err
 	}
-	if _, err := plumb("update-ref", "HEAD", merge); err != nil {
+	if _, err := s.git("update-ref", "HEAD", merge); err != nil {
 		return err
 	}
 	w.commits = append(w.commits, topic, mainLine, merge)

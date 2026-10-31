@@ -245,17 +245,33 @@ func (v *VCS) Merge(ctx context.Context, rev, message string, ff, _ bool, _ port
 		v.Index, v.Work = nil, nil
 		return nil
 	}
+	tree, conflicts, _ := v.merged(ours, theirs)
+	if len(conflicts) > 0 {
+		v.MergeHead, v.Unmerged = []string{theirs.Name}, conflicts
+		return &port.Failed{Command: "git merge " + rev, Code: 1, Words: "CONFLICT (content): Merge conflict in " + conflicts[0] + "\n"}
+	}
+	made := Commit{Name: v.newName(), Parents: []string{ours.Name, theirs.Name}, Message: message + "\n", Tree: tree}
+	v.History = append(v.History, made)
+	v.moveHead(v.OnBranch, made.Name)
+	v.Index, v.Work = nil, nil
+	return nil
+}
+
+// merged is the tree Merge makes of two commits, each path as the side that
+// changed it since their newest common commit has it, and the paths both
+// changed apart, its conflicts, which it leaves out; based is whether they
+// have a common commit.
+func (v VCS) merged(ours, theirs Commit) (tree map[string]string, conflicts []string, based bool) {
 	mine, _ := v.reach(ours.Name)
 	yours, _ := v.reach(theirs.Name)
 	var base map[string]string
 	for _, c := range v.History {
 		if mine[c.Name] && yours[c.Name] {
-			base = c.Tree
+			base, based = c.Tree, true
 		}
 	}
 	mineChanged, yoursChanged, apart := differ(base, ours.Tree), differ(base, theirs.Tree), differ(ours.Tree, theirs.Tree)
-	tree := map[string]string{}
-	var conflicts []string
+	tree = map[string]string{}
 	for _, p := range union(base, ours.Tree, theirs.Tree) {
 		side := ours.Tree
 		switch {
@@ -269,15 +285,7 @@ func (v *VCS) Merge(ctx context.Context, rev, message string, ff, _ bool, _ port
 			tree[p] = text
 		}
 	}
-	if len(conflicts) > 0 {
-		v.MergeHead, v.Unmerged = []string{theirs.Name}, conflicts
-		return &port.Failed{Command: "git merge " + rev, Code: 1, Words: "CONFLICT (content): Merge conflict in " + conflicts[0] + "\n"}
-	}
-	made := Commit{Name: v.newName(), Parents: []string{ours.Name, theirs.Name}, Message: message + "\n", Tree: tree}
-	v.History = append(v.History, made)
-	v.moveHead(v.OnBranch, made.Name)
-	v.Index, v.Work = nil, nil
-	return nil
+	return tree, conflicts, based
 }
 
 // Reset moves HEAD, and its branch, to the commit, and drops the index and
