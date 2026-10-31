@@ -16270,6 +16270,13 @@ items:
       parts for the head, and a head is passed only when both are completed with no unresolved
       findings. A clean security review leaves a receipt comment; its findings come as suggestions,
       so they block through threads like everything else.
+
+      Bugbot's first real run (PR 242, 2026-10-30): '@cursor review' from the person's gh started
+      it, and it took about 6 minutes. The result has two parts. A check run named 'Cursor Bugbot'
+      (app slug cursor) on the head_sha, conclusion success, output title 'Bugbot Review'. A review
+      from cursor[bot], state COMMENTED, body starting with the marker '<!-- BUGBOT_REVIEW -->' and
+      naming the reviewed commit. A clean run says 'found no new issues'. The bugbot adapter reads
+      the check run for the head. Its login for push.pr.reviewers is cursor[bot].
     tags: [work, v8]
 
   - id: p1-pr-merge-mode
