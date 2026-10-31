@@ -16226,3 +16226,16 @@ items:
       writing a scenario's tag before claiming its ID made next-id skip BRIEF-15, claimed and never
       used.
     tags: [work]
+
+  - id: p3-ledger-task-ids-one-helper
+    title: The task-id pattern from ledger.id (none when it is unset) is one ledger helper that work and brief share
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      slice-204 (2026-10-30) added taskIDs to the brief slice, a copy of the work slice's: with no
+      ledger.id it passes no pattern, so an item with no kind is not taken for a task. Move it to
+      the ledger package once.
+    tags: [work]
