@@ -184,7 +184,7 @@ Feature: The commit-msg hook
 
   # Fails before the work at the exit code: --cc shows notes.md's one hunk,
   # holding both sides' lines, and the merge is refused under merge-type.
-  @wip @bug-158 @ID-CMSG-19
+  @bug-158 @ID-CMSG-19
   Scenario: verify passes a clean merge whose two sides changed neighbouring lines of one file, whatever its header
     Given a merge commit "Merge branch 'topic'" on top of it, whose two sides change neighbouring lines of "notes.md", with no change of its own
     When itos verifies every commit up to HEAD
@@ -193,7 +193,7 @@ Feature: The commit-msg hook
   # The merge being made, judged by the same reading. Fails before the work
   # at the exit code: the merge the hook commits from the index has --cc's
   # hunk in notes.md, merge-type.
-  @wip @bug-158 @ID-CMSG-20
+  @bug-158 @ID-CMSG-20
   Scenario: The commit-msg hook accepts an untyped first line for a clean merge whose two sides changed neighbouring lines of one file
     Given a merge of the branch "topic" is in progress, whose two sides change neighbouring lines of "notes.md", git's merge staged
     When the commit-msg hook checks the message "Merge branch 'topic'"
@@ -201,7 +201,7 @@ Feature: The commit-msg hook
 
   # A guard: --cc shows the line no parent has, and git's merge wrote
   # conflict markers there, so it passes before the work and must after it.
-  @wip @bug-158 @guard @ID-CMSG-21
+  @bug-158 @guard @ID-CMSG-21
   Scenario: verify refuses an untyped merge that resolved a conflict with a line of its own
     Given a merge commit "Merge branch 'topic'" on top of it, whose two sides change the same line of "notes.md", the conflict resolved by a line neither side has
     When itos verifies every commit up to HEAD
@@ -213,7 +213,7 @@ Feature: The commit-msg hook
   # same: git's merge wrote conflict markers there, not that line. Bug 30
   # passed it, since every line of it is the topic's and --cc shows no hunk;
   # no scenario promised that. Fails before the work at the exit code, 0.
-  @wip @bug-158 @ID-CMSG-22
+  @bug-158 @ID-CMSG-22
   Scenario: verify refuses an untyped merge that resolved a conflict by taking one side's line
     Given a merge commit "Merge branch 'topic'" on top of it, whose two sides change the same line of "notes.md", the conflict resolved by taking the topic side's line
     When itos verifies every commit up to HEAD
@@ -224,7 +224,7 @@ Feature: The commit-msg hook
   # An evil merge: git's clean merge, then a line no side wrote, in the file
   # both sides changed. A guard: --cc shows the hunk, so it passes before the
   # work, and must after it, the tree being other than git's merge.
-  @wip @bug-158 @guard @ID-CMSG-23
+  @bug-158 @guard @ID-CMSG-23
   Scenario: verify refuses an untyped clean merge that added a line of its own to a file both sides changed
     Given a merge commit "Merge branch 'topic'" on top of it, whose two sides change neighbouring lines of "notes.md", with a line of its own added to it
     When itos verifies every commit up to HEAD
@@ -235,7 +235,7 @@ Feature: The commit-msg hook
   # A change staged beside git's merge is the merge's own, and notes.md,
   # which git merged, is not. Fails before the work at the last step: today
   # the refusal names notes.md, whose hunk --cc shows, beside src/app.js.
-  @wip @bug-158 @ID-CMSG-24
+  @bug-158 @ID-CMSG-24
   Scenario: The commit-msg hook refuses an untyped merge with a change of its own staged, naming that path alone
     Given a merge of the branch "topic" is in progress, whose two sides change neighbouring lines of "notes.md", git's merge staged
     And a change to "src/app.js" is staged
@@ -254,7 +254,7 @@ Feature: The commit-msg hook
   # passes before the work and must after it, where a build that asks
   # merge-tree of every two-parent merge fails, and so does the empty-base
   # one.
-  @wip @bug-158 @guard @ID-CMSG-25
+  @bug-158 @guard @ID-CMSG-25
   Scenario: verify passes an untyped merge of a root commit with no history in common with its first parent
     Given a merge commit "Merge branch 'other'" on top of it, of a root commit with no history in common with it, with no change of its own
     When itos verifies every commit up to HEAD

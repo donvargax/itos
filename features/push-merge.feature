@@ -227,7 +227,7 @@ Feature: Under push.mode pr with push.pr.update merge, itos push brings an item'
   # way. Fails before the work at the exit code: the real pre-push hook
   # judges the merge, whose combined diff has widget.md's one hunk, and
   # refuses it under merge-type, so the item's branch is not pushed.
-  @wip @bug-158 @ID-PUSHMERGE-16
+  @bug-158 @ID-PUSHMERGE-16
   Scenario: Under merge, a merge of main whose two sides changed neighbouring lines of one file is pushed untyped, past the pre-push hook
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """

@@ -334,7 +334,7 @@ func TestVCSContractFailsEachBrokenVCS(t *testing.T) {
 		{"staged against HEAD always", map[string][]string{"staged": {"Staged(c) are"}}},
 		{"staged against the empty tree", map[string][]string{"staged": {"Staged(HEAD) are"}, "commit": {"Commit of c.txt alone left"}}},
 		{"staged of nothing", map[string][]string{"staged": {"Staged against no commit"}}},
-		{"staged own as staged", map[string][]string{"staged": {"StagedOwnPaths(c, s) are"}}},
+		{"staged own as staged", map[string][]string{"staged": {"StagedOwnPaths(b, s) are"}}},
 		{"staged own of nothing", map[string][]string{"staged": {"StagedOwnPaths on no commit"}}},
 		{"changes unstaged only", map[string][]string{"work tree": {"Changes are"}}},
 		{"changes untracked listed", map[string][]string{"work tree": {"Changes are"}}},

@@ -126,15 +126,26 @@ func (v VCS) OwnPaths(_ context.Context, rev string) ([]string, error) {
 	return v.ownOn(c.Tree, c.Parents)
 }
 
-// ownOn are a tree's own paths on the parents.
+// ownOn are a tree's own paths on the parents: on two with a common commit,
+// those where it differs from Merge's tree of them, every conflict among
+// them; else those whose content is no parent's.
 func (v VCS) ownOn(tree map[string]string, parents []string) ([]string, error) {
+	var commits []Commit
 	var trees []map[string]string
 	for _, p := range parents {
-		t, ok := v.tree(p)
+		c, ok := v.commit(p)
 		if !ok {
 			return nil, errors.New(p + " names no commit")
 		}
-		trees = append(trees, t)
+		commits, trees = append(commits, c), append(trees, c.Tree)
+	}
+	if len(commits) == 2 {
+		if merged, conflicts, based := v.merged(commits[0], commits[1]); based {
+			for _, p := range conflicts {
+				merged[p] = "<<<<<<< conflict markers no tree holds"
+			}
+			return differ(merged, tree), nil
+		}
 	}
 	return own(tree, trees), nil
 }
