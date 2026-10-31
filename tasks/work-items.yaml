@@ -15709,6 +15709,12 @@ items:
       With reviewer kinds (p1-review-request-step): Bugbot's check run is bound to its head_sha by
       GitHub, so it needs no binding of its own; Copilot's review carries its commit
       (PullRequestReview.commit).
+
+      Codex's security review raised it on #240 (thread PRRT_kwDOU2JMic6yTU-7, 2026-10-31): a
+      review_by login with no Codex state counts with any review, so an author could get a review on
+      a harmless head, push an unreviewed commit, and still get success. The fix: ask for each
+      review's commit and dismissed state, page the reviews, and accept only a review of the exact
+      head. It changes --ready and review status (slice-212) together.
     tags: [push, v9]
 
   - id: T-339
@@ -16070,6 +16076,12 @@ items:
 
       Superseded the note above on who asks Codex (the person, 2026-10-30): the explicit step
       p1-review-request-step asks, not itos push and not the status workflow.
+
+      Seen on #241, 2026-10-31: --ready posts '@codex review' only after the head's CI run passes,
+      so the review and CI run one after the other. A first --ready on a new head ends at 540 s
+      (exit 75) before Codex is even asked. Requesting at push time (slice-215's review-unrequested
+      at handed-back) lets them run side by side. The hand-off should rely on that request rather
+      than make one after CI.
     tags: [work, v8]
 
   - id: p3-work-add-refusal-keeps-id
@@ -16135,6 +16147,12 @@ items:
       explicitly, so this is kept. itos/reviews therefore stays pending on a head until someone
       requests both reviews for it. The workflow that posts itos/reviews, and the person's adding it
       to branch protection, come after p1-review-request-step, which requests both.
+
+      Codex's security review on #240 (thread PRRT_kwDOU2JMic6yTPgQ, 2026-10-31): review status
+      takes the first open pull request for --head <item>, as review post and --ready do. Two open
+      pull requests from one branch to different bases share a head SHA, and the commit status is
+      tied to neither. The workflow has the triggering event, so it binds the status to that event's
+      pull request and base, and refuses when several are open.
     tags: [ci, v8]
 
   - id: p1-next-task-spec-on-main
@@ -16460,3 +16478,82 @@ items:
     why: >
       slice-207's implementer, 2026-10-30: the implementer's still-wip check covers scenarios but
       not @wip Examples blocks, which work done refuses.
+
+  - id: p3-step-declares-scenario-kind
+    title: A feature step declares the scenario kind on main explicitly, so a scenario that crosses branches sets up main's config itself
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      slice-209's implementer, 2026-10-31: the step 'a feature file with the scenario … tagged' adds
+      the scenario kind to the config on whichever branch it runs on. ID-NEXTFORGE-16 checked out
+      main afterwards and found no scenario kind, so every slice needed a spec, and the fixture
+      needed an extra Given committing a slice-8 scenario on main. A step that declares the kind
+      explicitly would say what the setup means.
+
+  - id: p3-nextforge-13-guard
+    title: "Tag ID-NEXTFORGE-13 (trunk stays in-flight) @guard: it passes before slice-209's work by design"
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      slice-209's implementer, 2026-10-31: NEXTFORGE-13 passes before the work, as a guard does, but
+      carries no @guard tag. Left out of slice-209 so its committed work stays as it is while
+      slice-215 builds on it.
+
+  - id: p2-next-observed-conditions
+    title: "next --json's observed as conditions: each fact with whether it holds, the revision it is bound to, and a reason"
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      From the google/ax analysis, 2026-10-31 (its Kubernetes-style conditions beside the state).
+      The facts behind next's state become a list, so 'stale' is mechanical (a condition bound to an
+      older revision) and trunk or forge facts are added as more conditions, never as new shapes.
+      slice-209 and slice-215 add observed keys one by one (unrequested, the checks), so settle this
+      before the driver depends on the shape.
+
+  - id: p3-idempotent-prepare-step
+    title: Preparing an attempt's worktree and branch is a rerun-safe machine step keyed on item, attempt and base
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      From the google/ax analysis, 2026-10-31 (its runner's prepare-once marker). Today the
+      coordinator sets up each implementer's branch by hand (merging main in, choosing a base), as
+      on slices 207, 209, 212 and 215. As a step next names, the driver runs it, and a rerun after a
+      crash is a no-op. Design only, for v9.
+
+  - id: p3-brief-lenient-read
+    title: Brief consumers ignore unknown keys within schema 1, while results stay strict
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      From the google/ax analysis, 2026-10-31: reading leniently lets brief --json gain keys (as
+      slice-207 added base) without breaking a driver, while attempt submit stays strict about what
+      an agent returns.
+
+  - id: p2-attempt-executor
+    title: "An attempt records its executor (agent, model, where it ran), outside the request hash, behind a seam: a local subagent today, a sandbox backend later"
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      From the google/ax analysis, 2026-10-31. ax schedules sandboxed agent containers (gVisor on
+      Kubernetes) and has no workflow layer, so at most it is a future place an attempt runs.
+      Recording the executor on slice-207's attempt record keeps the comparison of models and agents
+      possible (p1-haiku-implementer-trial), and a seam ties to the person's sandbox project
+      (devcontainer locally, ax or DevPod later).
