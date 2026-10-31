@@ -16038,7 +16038,7 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: [p1-reviews-status-workflow, p3-review-by-head-any-login, p1-review-request-step]
+    depends_on: [p1-reviews-status-workflow, p3-review-by-head-any-login, slice-215]
     kind: idea
     why: >
       The v9 plan's machine, handed back to merging (docs/plans/v9-coordinator.md; open question 4:
@@ -16232,14 +16232,15 @@ items:
       the ledger package once.
     tags: [work]
 
-  - id: p1-review-request-step
+  - id: slice-215
     title: "Asking for a review is a step of the machine: itos review request asks each configured reviewer for the pull request's head once, through its kind's adapter, and itos next names it when the head has no request"
     phase: 1
     owner: null
     status: todo
     depends_on: [slice-209]
-    kind: idea
+    kind: slice
     why: >
+      Was p1-review-request-step.
       The person, 2026-10-30: the deterministic workflow triggers reviews explicitly, never relying
       on Codex's automatic review on ready_for_review. itos review request <item> posts '@codex
       review' and the itos-review-request marker (login and head) for each push.pr.review_by login
