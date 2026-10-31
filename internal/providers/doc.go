@@ -107,6 +107,15 @@
 // without comments or times, as a recorded answer from before slice 200 is,
 // reads as having none.
 //
+// PullState.Verdicts is the one judge of whether push.pr.review_by's logins
+// reviewed a head, which --ready's wait and itos review status both call
+// (slice-212): a login that wrote a Codex review-state comment (StateOf, the
+// last such comment's "<!-- codex-review-state:v1 {json} -->" line) has the
+// verdict it gives and no other, both its reviews completed and of the head;
+// any other login's verdict is a review that is not Copilot's refusal
+// (RefusalLine), and a login whose only reviews are refusals has refused.
+// Logins compare with a trailing "[bot]" dropped (SameLogin).
+//
 // People reads work.people: an All Contributors table in Markdown
 // (AllContributorsMd, CONTRIBUTORS.md here), an .all-contributorsrc
 // (AllContributorsRc) or a YAML list (YAMLLogins). A people file that is missing or cannot be read is
