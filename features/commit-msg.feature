@@ -313,7 +313,7 @@ Feature: The commit-msg hook
 
   # Fails before the work at the exit code, 0: the merge's tree is
   # merge-tree's, so it has no path of its own.
-  @wip @bug-159 @ID-CMSG-26
+  @bug-159 @ID-CMSG-26
   Scenario: verify refuses an untyped merge that committed merge-tree's conflict markers as they are
     Given a merge commit "Merge branch 'topic'" on top of it, whose two sides change the same line of "notes.md", the conflict left as git merge-tree writes it, markers and all
     When itos verifies every commit up to HEAD
@@ -323,7 +323,7 @@ Feature: The commit-msg hook
 
   # The merge being made, by the same reading. Fails before the work at the
   # exit code, 0: the index written as a tree is merge-tree's.
-  @wip @bug-159 @ID-CMSG-27
+  @bug-159 @ID-CMSG-27
   Scenario: The commit-msg hook refuses an untyped merge with merge-tree's conflict markers staged as they are
     Given a merge of the branch "topic" is in progress, whose two sides change the same line of "notes.md", git merge-tree's conflict tree staged
     When the commit-msg hook checks the message "Merge branch 'topic'"
@@ -337,7 +337,7 @@ Feature: The commit-msg hook
   # tree still passes it, and so does one that falls back to --cc on a
   # conflict, whose dense combined diff shows no hunk for a side kept whole.
   # Fails before the work at the exit code, 0.
-  @wip @bug-159 @ID-CMSG-28
+  @bug-159 @ID-CMSG-28
   Scenario: verify refuses an untyped merge that kept the changed side of a modify/delete conflict
     Given a merge commit "Merge branch 'topic'" on top of it, whose main line deletes "notes.md" and whose topic line changes it, keeping the topic's change
     When itos verifies every commit up to HEAD
