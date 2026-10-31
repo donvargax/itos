@@ -180,6 +180,10 @@
   scenarios:
     - id: "@ID-PUSHREF-01"
       why: an item's first push, a new branch from the remote's main, judged from main's head and not by the whole run, the file's point
+- file: push-merge.feature
+  scenarios:
+    - id: "@ID-PUSHMERGE-04"
+      why: main merged into a pushed pull request's branch and pushed as a fast-forward, the pre-push hook judging none of main's commits, the file's point
 - file: push-mode-direct.feature
   scenarios:
     - id: "@ID-PUSHDIRECT-01"

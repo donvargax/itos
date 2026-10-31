@@ -57,7 +57,6 @@ phases:
   3: donvargax
 
 queue:
-  - slice-213
   - slice-214
   - p1-v9-design-from-friction
   - p1-ci-slow-linux-runs
@@ -15810,13 +15809,9 @@ items:
     title: "work take and work done take --expect <revision>: a stale one changes nothing, a target already reached is already"
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-203]
     kind: slice
-    why: >
-      The v9 deterministic coordinator's v8 pilot (docs/plans/v9-coordinator.md, rerun safety;
-      p1-mutations-rerun-safe): a driver passes the revision itos next returned, so a rerun after a
-      lost answer is safe.
     tags: [work, v8]
 
   - id: p1-next-registry-commit-landed
@@ -15870,6 +15865,11 @@ items:
       CI is green, so its review restarted too. slice-205 (#230) needed four. The pilot's hand-off
       --ready (auto-merge pinned to the head, return) is the design's answer
       (docs/plans/v9-coordinator.md).
+
+      Seen again 2026-10-30 night: slice-208's --ready took 4 runs and about 30 minutes, green and
+      reviewed at 0554cd6, because the coordinator's registry pushes moved main each round and
+      GitHub rebased the pull request, restarting CI and Codex. Under merge mode (slice-213/214) the
+      same cycle holds unless --ready accepts a head whose only gap to main is registry bookkeeping.
     tags: [push, v9]
 
   - id: p2-gh-transient-exit-75
@@ -16259,6 +16259,29 @@ items:
       name no login.
 
       The person, 2026-10-30: Bugbot's request is the comment '@cursor review'.
+
+      Codex's security review (seen 2026-10-30, PR 242): with the person opted in, it runs with
+      every code review that '@codex review' starts ('@codex security review' asks for it alone), so
+      it needs no request of its own. Its result is in the same Codex Review Summary comment, in a
+      machine-readable marker: codex-review-state:v1 {code_review:{commit_sha, has_any_findings,
+      has_unresolved_findings, status}, security_review:{…}}, plus codex-security-review:v1
+      {headSha, blockingSeverityThreshold, mergeGateEnabled, status}. The codex adapter reads both
+      parts for the head, and a head is passed only when both are completed with no unresolved
+      findings. A clean security review leaves a receipt comment; its findings come as suggestions,
+      so they block through threads like everything else.
+
+      Bugbot's first real run (PR 242, 2026-10-30): '@cursor review' from the person's gh started
+      it, and it took about 6 minutes. The result has two parts. A check run named 'Cursor Bugbot'
+      (app slug cursor) on the head_sha, conclusion success, output title 'Bugbot Review'. A review
+      from cursor[bot], state COMMENTED, body starting with the marker '<!-- BUGBOT_REVIEW -->' and
+      naming the reviewed commit. A clean run says 'found no new issues'. The bugbot adapter reads
+      the check run for the head. Its login for push.pr.reviewers is cursor[bot].
+
+      Manual Codex mode (the person switched Codex reviews to manual on 2026-10-30): '@codex review'
+      at PR 242's head 08d8cad ran the code review only. Before the switch it also ran the security
+      review. The security review needs its own '@codex security review'. Until it comes, --ready
+      waits on chatgpt-codex-connector (exit 75, every round). So the codex adapter requests both,
+      and a head counts as requested only when both requests are posted for it.
     tags: [work, v8]
 
   - id: p1-pr-merge-mode
@@ -16297,30 +16320,17 @@ items:
   - id: slice-213
     title: "Under push.mode pr with push.pr.update: merge, itos push brings an item branch up to main by merging it in, never rebasing a pushed commit"
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: done
     depends_on: []
     kind: slice
-    why: >
-      p1-pr-merge-mode (the person, 2026-10-30: merges, not rebases; tonight every hand-run command
-      was a rewrite agents are refused). Settled: push.pr.update: rebase (the default, today's flow)
-      or merge, read under push.mode pr alone. Under merge, itos push on an item branch: when the
-      remote's item branch has commits the local one lacks, it merges them in (never rebases); when
-      the remote's main has commits the branch lacks, it merges origin/main in, one merge commit
-      itos writes ('Merge <main> into <item>', which the commit rules pass: a clean merge has no
-      changes of its own, bug 30); a conflict stops it, exit 1, the merge left in progress for the
-      implementer to resolve and commit (its message needs a commit type, as the rules already judge
-      a merge with changes of its own), then itos push again; the push is then a fast-forward, never
-      forced. --onto-main under merge is refused, saying itos push merges main in. merge-in-history
-      stays only where a registry commit must be carried out of a branch holding a merge. Under
-      rebase nothing changes.
     tags: [work, v8]
 
   - id: slice-214
     title: "Under push.pr.update: merge, push --ready brings the pull request up to main by a merge and lands it as a merge commit itos titles"
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: [slice-213]
     kind: slice
     why: >
@@ -16333,3 +16343,49 @@ items:
       and walk the item's commits as ordinary ones; a scenario shows a landed merge passes verify.
       This repository then turns push.pr.update: merge on (a build commit).
     tags: [work, v8]
+
+  - id: p1-v9-explicit-steps
+    title: "v9: every forge or branch effect is its own itos command the driver runs from itos next, and push --ready only composes them"
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The person, 2026-10-30: the minor steps hidden inside other commands (bringing a branch up to
+      main, marking ready, asking each reviewer, turning on auto-merge pinned to a head, merging,
+      closing) are explicit steps of the deterministic workflow, not implicit in itos push or
+      --ready. Each primitive: one mutation, a precondition, an effect itos next can observe,
+      --expect, already when its effect holds, a budget of its own; next.argv names it. --ready
+      today pushes, readies, updates, waits, asks and merges in one call, so a stop halfway is only
+      an exit code (exit 75 loops; bug-155's eleven --ready calls). push --ready stays a shortcut
+      that runs the primitives in order with no behaviour of its own, or goes once the driver is the
+      normal path. For the pilot slices 213 and 214 stay inside push and --ready; their merge and
+      landing logic becomes the primitives' body. Folds in p1-review-request-step and
+      p1-ready-hand-off's auto-merge step.
+    tags: [work, v9]
+
+  - id: p3-merge-advice-names-merge
+    title: Under push.pr.update merge, the merge-in-history refusal's advice names git merge, not git rebase origin/main
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      slice-213's implementer, 2026-10-30: under merge, push's merge-in-history advice still says
+      'git rebase origin/main', a history rewrite the merge mode exists to avoid. The advice follows
+      push.pr.update.
+
+  - id: p3-merge-resolve-registry-only
+    title: Under merge, a conflict resolution that changes only the registry reaches main only when the pull request lands
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      slice-213's implementer, 2026-10-30: under push.pr.update merge, a resolved conflict whose
+      only changes are registry changes stays on the item's branch, so main sees that registry
+      content only at the merge. Unconfirmed: check whether bookkeeping on main can ever lose to it
+      before building anything.

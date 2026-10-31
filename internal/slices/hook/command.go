@@ -77,7 +77,10 @@ passes too. A rewrite that would drop a commit is refused naming each by its
 short SHA and subject, and a squash or a reword is such a drop. Then it
 verifies the commits each
 pushed ref adds, as itos verify does (messages, paths, range checks,
-commits.since left out): the ones after the remote's commit it replaces,
+commits.since left out): the ones after the remote's commit it replaces that
+no remote-tracking branch has (<commit> ^<remote's commit> --not --remotes, so
+main's commits a merge brings in, judged when they reached the remote, are
+not judged again; the range checks still start at the remote's commit),
 else (a new ref, or an accepted rewrite, which is judged as a new branch is)
 the ones on no remote-tracking branch. It prints nothing for
 commits that pass. A failure prints verify's report and how to fix the

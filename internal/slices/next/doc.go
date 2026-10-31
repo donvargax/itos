@@ -49,5 +49,8 @@
 // any, a ledger.id that no longer makes an id a task's included, gives a
 // new one; a driver
 // hands it back to a mutating command as the state it acted on
-// (docs/plans/v9-coordinator.md, rerun safety).
+// (docs/plans/v9-coordinator.md, rerun safety): RevisionOf is the revision
+// over the facts read as Handle reads them, which the assembly binds as
+// work take's and work done's Revision port (slice 208, --expect), so the
+// two cannot drift.
 package next

@@ -16,7 +16,7 @@
 // Rebasing, MergeHeads, Branch, NotIgnored); the files at a tree (File,
 // Files, Texts, Index the index's), a commit's patch (Patch, Shown) and the
 // refs (Ref, Refs, Symref); the remote (Upstream, Remotes, RemoteURL, RemoteRefs,
-// Fetch, Push, Rebase), whose failures are a Failed with its Failure; and
+// Fetch, Push, Rebase, Merge), whose failures are a Failed with its Failure; and
 // committing (Commit, Add, Unstage, Untrack, Restore, Note, and CommitFile,
 // a commit outside every branch, as the ID counter makes one; CherryPick
 // makes one the same way from another's change, a *Conflicts error when it
