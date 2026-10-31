@@ -16519,3 +16519,15 @@ items:
       coordinator sets up each implementer's branch by hand (merging main in, choosing a base), as
       on slices 207, 209, 212 and 215. As a step next names, the driver runs it, and a rerun after a
       crash is a no-op. Design only, for v9.
+
+  - id: p3-brief-lenient-read
+    title: Brief consumers ignore unknown keys within schema 1, while results stay strict
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      From the google/ax analysis, 2026-10-31: reading leniently lets brief --json gain keys (as
+      slice-207 added base) without breaking a driver, while attempt submit stays strict about what
+      an agent returns.
