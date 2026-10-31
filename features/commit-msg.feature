@@ -206,7 +206,7 @@ Feature: The commit-msg hook
     Given a merge commit "Merge branch 'topic'" on top of it, whose two sides change the same line of "notes.md", the conflict resolved by a line neither side has
     When itos verifies every commit up to HEAD
     Then itos exits with code 1
-    And its output names the rule "merge-type"
+    And its output says "needs one of the commit types in its first line"
     And its output says "Merge branch 'topic'"
 
   # A conflict resolved by taking one side's line is resolved by hand all the
@@ -218,7 +218,7 @@ Feature: The commit-msg hook
     Given a merge commit "Merge branch 'topic'" on top of it, whose two sides change the same line of "notes.md", the conflict resolved by taking the topic side's line
     When itos verifies every commit up to HEAD
     Then itos exits with code 1
-    And its output names the rule "merge-type"
+    And its output says "needs one of the commit types in its first line"
     And its output says "notes.md"
 
   # An evil merge: git's clean merge, then a line no side wrote, in the file
@@ -229,7 +229,7 @@ Feature: The commit-msg hook
     Given a merge commit "Merge branch 'topic'" on top of it, whose two sides change neighbouring lines of "notes.md", with a line of its own added to it
     When itos verifies every commit up to HEAD
     Then itos exits with code 1
-    And its output names the rule "merge-type"
+    And its output says "needs one of the commit types in its first line"
     And its output says "notes.md"
 
   # A change staged beside git's merge is the merge's own, and notes.md,
@@ -241,7 +241,7 @@ Feature: The commit-msg hook
     And a change to "src/app.js" is staged
     When the commit-msg hook checks the message "Merge branch 'topic'"
     Then itos exits with code 1
-    And its output names the rule "merge-type"
+    And its output says "needs one of the commit types in its first line"
     And its output says "src/app.js"
     And its output does not say "notes.md"
 
