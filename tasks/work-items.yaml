@@ -16213,3 +16213,16 @@ items:
       request's inputs are its spec's contract, recomputable by another tool); weigh with slice-207
       whether the request adds a digest of the delivered text or of the config's brief section.
     tags: [agents, v8]
+
+  - id: p3-tests-next-id-claims-first
+    title: itos tests next-id counts only claimed IDs, or the guide says to claim before writing, so a scenario written first does not skip an ID
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      slice-204's implementer (2026-10-30): next-id counts the IDs already in the working tree, so
+      writing a scenario's tag before claiming its ID made next-id skip BRIEF-15, claimed and never
+      used.
+    tags: [work]
