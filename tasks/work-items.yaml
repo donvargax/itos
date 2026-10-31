@@ -16704,18 +16704,9 @@ items:
     title: A merge committing merge-tree's conflict tree verbatim, raw markers included, has no own paths and passes verify untyped
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: bug
-    why: >
-      Codex's security review on #244 (bug-158, thread PRRT_kwDOU2JMic6yU2gR,
-      internal/git/merge.go:86, 2026-10-31): where the parents conflict, merge-tree --write-tree
-      exits 1 but still writes a tree with conflict markers, and bug-158 uses that tree as the
-      baseline. A merge committed with exactly that tree has no own paths, so verify passes it under
-      any header and skips the message, footer, scope and moves checks. The old --cc reading caught
-      the marker hunk, so this is a gate bug-158 weakened. Fix: every path merge-tree reports as
-      conflicted is the merge's own, whatever the merge's tree holds. Add a regression test with the
-      exact marker tree.
 
   - id: p3-dir-rename-conflict-no-paths
     title: A merge whose conflict merge-tree reports with no paths (some directory renames) is judged as conflicting, not clean
