@@ -15810,13 +15810,9 @@ items:
     title: "work take and work done take --expect <revision>: a stale one changes nothing, a target already reached is already"
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-203]
     kind: slice
-    why: >
-      The v9 deterministic coordinator's v8 pilot (docs/plans/v9-coordinator.md, rerun safety;
-      p1-mutations-rerun-safe): a driver passes the revision itos next returned, so a rerun after a
-      lost answer is safe.
     tags: [work, v8]
 
   - id: p1-next-registry-commit-landed
