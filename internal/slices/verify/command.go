@@ -19,7 +19,8 @@ live judged by the commit's own footers and paths, as the hook judged it);
 then each kind's
 range command. A merge commit is judged by its own changes, the paths where
 its tree differs from git's automatic merge of its two parents (git
-merge-tree --write-tree), or, for more parents or two with no merge base,
+merge-tree --write-tree) and those that merge reports conflicted, or, for
+more parents or two with no merge base,
 the paths of its dense combined diff (git diff-tree --cc): with none it passes whatever its
 message, with some it is judged as its first line's type, and refused when
 that is none of the commit types. The commit commits.since names and its ancestors are left out,

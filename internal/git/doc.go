@@ -35,11 +35,12 @@
 //
 // A merge is judged by its own changes (OwnPaths): the paths where its tree
 // differs from the tree git merge-tree --write-tree writes of its two
-// parents, conflict markers and all, compared with --no-renames. A clean
+// parents, conflict markers and all, compared with --no-renames, and every
+// path that merge reports conflicted, however the merge settled it. A clean
 // merge has none, even where both sides changed neighbouring lines of one
-// file; a conflict resolved, by taking a side or by new lines, is its own,
-// and so is all a merge made with another strategy or option changed from
-// git's merge. A merge of more parents, or of two with no merge base, which
+// file; a conflict, resolved or committed as merge-tree left it, is its
+// own, and so is all a merge made with another strategy or option changed
+// from git's merge. A merge of more parents, or of two with no merge base, which
 // merge-tree cannot merge, is read by its dense combined diff (git
 // diff-tree --cc, what git show shows of a merge): the paths with a hunk
 // whose lines in the merge are no parent's. StagedOwnPaths does the same for

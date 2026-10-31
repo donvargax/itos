@@ -1,6 +1,7 @@
-// The steps of bug 158 (commit-msg.feature): a merge whose two sides change
-// one file, committed or in progress, and a merge of a root commit with no
-// history in common with HEAD. How each is built is the comment above the
+// The steps of bugs 158 and 159 (commit-msg.feature): a merge whose two
+// sides change one file, committed or in progress, a merge of a root commit
+// with no history in common with HEAD, and a merge of a line that deletes a
+// file and one that changes it. How each is built is the comment above each
 // bug's scenarios.
 package features
 
@@ -19,9 +20,13 @@ import (
 
 func initializeMergeSidesSteps(sc *godog.ScenarioContext, w *world) {
 	sc.Step(`^a merge commit "([^"]*)" on top of it, whose two sides change (neighbouring lines|the same line) of "([^"]*)", (.+)$`, w.mergeOfSides)
-	sc.Step(`^a merge of the branch "([^"]*)" is in progress, whose two sides change neighbouring lines of "([^"]*)", git's merge staged$`, w.mergeOfSidesInProgress)
+	sc.Step(`^a merge of the branch "([^"]*)" is in progress, whose two sides change (neighbouring lines|the same line) of "([^"]*)", (git's merge|git merge-tree's conflict tree) staged$`, w.mergeOfSidesInProgress)
 	sc.Step(`^a merge commit "([^"]*)" on top of it, of a root commit with no history in common with it, with no change of its own$`, w.mergeOfUnrelatedRoot)
+	sc.Step(`^a merge commit "([^"]*)" on top of it, whose main line deletes "([^"]*)" and whose topic line changes it, keeping the topic's change$`, w.mergeOfDeleteAndChange)
 }
+
+// The merge whose tree is the one git merge-tree writes for its two lines.
+const asMergeTreeWritesIt = "the conflict left as git merge-tree writes it, markers and all"
 
 // The notes both sides change, as the base commit writes them.
 const notesBase = "one\ntwo\nthree\nfour\nfive\n"
@@ -59,10 +64,6 @@ func mergedNotes(change, merge string) (string, error) {
 // A merge commit on top of HEAD whose two sides change the path, built in a
 // scratch index, HEAD's branch moved to it.
 func (w *world) mergeOfSides(message, change, path, merge string) error {
-	text, err := mergedNotes(change, merge)
-	if err != nil {
-		return err
-	}
 	if len(w.ledger) == 0 {
 		return errors.New("the repository's ledger has no task to name")
 	}
@@ -85,7 +86,71 @@ func (w *world) mergeOfSides(message, change, path, merge string) error {
 	if err != nil {
 		return err
 	}
-	tree, err := s.tree(mainLine, map[string]string{path: text})
+	tree, err := s.mergedTree(change, merge, path, mainLine, topic)
+	if err != nil {
+		return err
+	}
+	merged, err := s.commit(tree, message+"\n", mainLine, topic)
+	if err != nil {
+		return err
+	}
+	if _, err := s.git("update-ref", "HEAD", merged); err != nil {
+		return err
+	}
+	w.commits = append(w.commits, notes, mainLine, topic, merged)
+	return nil
+}
+
+// The merge's tree: the one git merge-tree writes for the two lines, or the
+// main line's with the path's text as mergedNotes gives it.
+func (s scratchIndex) mergedTree(change, merge, path, mainLine, topic string) (string, error) {
+	if merge == asMergeTreeWritesIt {
+		return s.mergeTree(mainLine, topic)
+	}
+	text, err := mergedNotes(change, merge)
+	if err != nil {
+		return "", err
+	}
+	return s.tree(mainLine, map[string]string{path: text})
+}
+
+// A merge commit on top of HEAD of a main line that deletes the path and a
+// topic line that changes it, its tree the main line's with the topic's
+// path, built in a scratch index, HEAD's branch moved to it.
+func (w *world) mergeOfDeleteAndChange(message, path string) error {
+	if len(w.ledger) == 0 {
+		return errors.New("the repository's ledger has no task to name")
+	}
+	footer := "\n\nTask: " + w.ledger[0].id + "\n"
+	head, err := w.head()
+	if err != nil {
+		return err
+	}
+	s := w.scratchIndex()
+	notes, err := s.commitOn(head, "chore: write the notes"+footer, map[string]string{path: notesBase})
+	if err != nil {
+		return err
+	}
+	if _, err := s.git("read-tree", notes); err != nil {
+		return err
+	}
+	if _, err := s.git("update-index", "--force-remove", path); err != nil {
+		return err
+	}
+	deleted, err := s.git("write-tree")
+	if err != nil {
+		return err
+	}
+	mainLine, err := s.commit(deleted, "chore: remove the notes on the main line"+footer, notes)
+	if err != nil {
+		return err
+	}
+	_, topicText := sidesTexts("the same line")
+	topic, err := s.commitOn(notes, "chore: change the notes on the topic line"+footer, map[string]string{path: topicText})
+	if err != nil {
+		return err
+	}
+	tree, err := s.tree(mainLine, map[string]string{path: topicText})
 	if err != nil {
 		return err
 	}
@@ -102,8 +167,11 @@ func (w *world) mergeOfSides(message, change, path, merge string) error {
 
 // The same three commits made with git's porcelain, the topic line's on the
 // new branch, and git merge --no-ff --no-commit of it on HEAD's branch, what
-// the scenario staged unstaged first and left in the work tree.
-func (w *world) mergeOfSidesInProgress(branch, path string) error {
+// the scenario staged unstaged first and left in the work tree. Where the
+// sides change the same line, git merge stops at the conflict, MERGE_HEAD
+// written, and the tree git merge-tree writes for HEAD and MERGE_HEAD is
+// staged in place of git merge's index.
+func (w *world) mergeOfSidesInProgress(branch, change, path, staged string) error {
 	if len(w.ledger) == 0 {
 		return errors.New("the repository's ledger has no task to name")
 	}
@@ -113,7 +181,7 @@ func (w *world) mergeOfSidesInProgress(branch, path string) error {
 		return err
 	}
 	home := strings.TrimSpace(out)
-	mainText, topicText := sidesTexts("neighbouring lines")
+	mainText, topicText := sidesTexts(change)
 	commit := func(subject, text string) error {
 		if err := w.write(path, text); err != nil {
 			return err
@@ -141,7 +209,26 @@ func (w *world) mergeOfSidesInProgress(branch, path string) error {
 	if err := commit("chore: change the notes on the main line", mainText); err != nil {
 		return err
 	}
-	return w.git("merge", "-q", "--no-ff", "--no-commit", branch)
+	merging := w.git("merge", "-q", "--no-ff", "--no-commit", branch)
+	if staged == "git's merge" {
+		return merging
+	}
+	if merging == nil {
+		return errors.New("git merge of the two sides stopped at no conflict")
+	}
+	head, err := w.head()
+	if err != nil {
+		return err
+	}
+	theirs, err := w.gitOutput("rev-parse", "MERGE_HEAD")
+	if err != nil {
+		return err
+	}
+	tree, err := w.scratchIndex().mergeTree(head, strings.TrimSpace(theirs))
+	if err != nil {
+		return err
+	}
+	return w.git("read-tree", tree)
 }
 
 // A root commit adding other.md and a README.md of its own, and a merge of
@@ -202,6 +289,26 @@ func (s scratchIndex) git(args ...string) (string, error) {
 		return "", fmt.Errorf("git %s: %w", strings.Join(args, " "), err)
 	}
 	return strings.TrimSpace(string(out)), nil
+}
+
+// The tree git merge-tree --write-tree writes for the two commits, named as
+// given (full SHAs, as itos names them, label its conflict markers): the
+// first line it prints, where it exits 0 on a clean merge or 1 on a
+// conflict.
+func (s scratchIndex) mergeTree(first, second string) (string, error) {
+	args := []string{"merge-tree", "--write-tree", "--no-messages", first, second}
+	cmd := exec.Command(git.Bin(runtime.GOOS), args...)
+	cmd.Dir = s.w.dir
+	cmd.Env = s.w.env()
+	out, err := cmd.Output()
+	if exit := (*exec.ExitError)(nil); errors.As(err, &exit) && exit.ExitCode() == 1 {
+		err = nil
+	}
+	if err != nil {
+		return "", fmt.Errorf("git %s: %w", strings.Join(args, " "), err)
+	}
+	tree, _, _ := strings.Cut(string(out), "\n")
+	return tree, nil
 }
 
 // A tree: the commit's (or tree's), with each path set to its text.

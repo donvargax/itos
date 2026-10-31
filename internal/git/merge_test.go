@@ -143,6 +143,11 @@ func TestOwnPathsAgainstGitsMerge(t *testing.T) {
 		t.Fatalf("a clean merge with no merge base has own paths %q, %v", got, err)
 	}
 
+	two := gitIn(t, dir, "rev-parse", "two")
+	if tree, conflicted, err := here.mergedTree(two, gitIn(t, dir, "rev-parse", "four")); err != nil || len(tree) != len(two) || len(conflicted) != 0 {
+		t.Fatalf("merge-tree's clean merge = %q, %q, %v, want a tree alone", tree, conflicted, err)
+	}
+
 	blob := gitIn(t, dir, "rev-parse", "main~1:f")
 	object := filepath.Join(dir, ".git", "objects", blob[:2], blob[2:])
 	if err := os.Chmod(object, 0o644); err != nil {
@@ -153,5 +158,74 @@ func TestOwnPathsAgainstGitsMerge(t *testing.T) {
 	}
 	if got, err := here.OwnPaths(taken); err == nil {
 		t.Fatalf("the own paths of a merge whose base lost a file are %q", got)
+	}
+}
+
+// Bug 159: every path git's merge reports conflicted is the merge's own,
+// whatever its tree holds: a merge that commits merge-tree's conflict tree
+// as it is, the markers of a conflict on one line and the changed side of a
+// modify/delete conflict kept, and the same tree staged for the merge being
+// made; beside them, each once and in git's order, the paths where the
+// merge's tree differs from merge-tree's.
+func TestOwnPathsOfAConflict(t *testing.T) {
+	dir := t.TempDir()
+	gitIn(t, dir, "init", "-q", "-b", "main")
+	t.Chdir(dir)
+	write := func(name, text string) {
+		t.Helper()
+		if err := os.WriteFile(filepath.Join(dir, name), []byte(text), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	write("b", "1\n2\n3\n")
+	write("d", "x\n")
+	gitIn(t, dir, "add", "b", "d")
+	gitIn(t, dir, "commit", "-q", "-m", "base")
+	gitIn(t, dir, "checkout", "-q", "-b", "topic")
+	write("b", "1\ntopic\n3\n")
+	write("d", "x, the topic's\n")
+	gitIn(t, dir, "commit", "-q", "-am", "topic")
+	gitIn(t, dir, "checkout", "-q", "main")
+	write("b", "1\nmain\n3\n")
+	gitIn(t, dir, "rm", "-q", "d")
+	gitIn(t, dir, "commit", "-q", "-am", "main")
+	main, topic := gitIn(t, dir, "rev-parse", "main"), gitIn(t, dir, "rev-parse", "topic")
+
+	conflicts := []string{"b", "d"}
+	tree, conflicted, err := here.mergedTree(main, topic)
+	if err != nil || !slices.Equal(conflicted, conflicts) {
+		t.Fatalf("merge-tree's conflicted paths = %q, %v, want %q", conflicted, err, conflicts)
+	}
+	if text := gitIn(t, dir, "cat-file", "blob", tree+":b"); !strings.Contains(text, "<<<<<<< "+main) {
+		t.Fatalf("merge-tree's b holds no markers labelled by the first parent:\n%s", text)
+	}
+	asWritten := gitIn(t, dir, "commit-tree", tree, "-p", main, "-p", topic, "-m", "Merge branch 'topic'")
+	if got, err := here.OwnPaths(asWritten); err != nil || !slices.Equal(got, conflicts) {
+		t.Fatalf("a merge of merge-tree's conflict tree has own paths %q, %v, want %q", got, err, conflicts)
+	}
+	gitIn(t, dir, "read-tree", tree)
+	if got, err := here.StagedOwnPaths([]string{main, topic}); err != nil || !slices.Equal(got, conflicts) {
+		t.Fatalf("the merge being made of merge-tree's conflict tree has own paths %q, %v, want %q", got, err, conflicts)
+	}
+
+	write("b", "1\nboth\n3\n")
+	write("z", "z\n")
+	gitIn(t, dir, "add", "b", "z")
+	resolvedTree := gitIn(t, dir, "write-tree")
+	resolved := gitIn(t, dir, "commit-tree", resolvedTree, "-p", main, "-p", topic, "-m", "Merge branch 'topic'")
+	want := []string{"b", "d", "z"}
+	if got, err := here.OwnPaths(resolved); err != nil || !slices.Equal(got, want) {
+		t.Fatalf("a merge that resolves b and adds z has own paths %q, %v, want %q", got, err, want)
+	}
+
+	object := filepath.Join(dir, ".git", "objects", resolvedTree[:2], resolvedTree[2:])
+	if err := os.Chmod(object, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Remove(object); err != nil {
+		t.Fatal(err)
+	}
+	if got, err := here.OwnPaths(resolved); err == nil {
+		t.Fatalf("the own paths of a merge whose tree is lost are %q", got)
 	}
 }

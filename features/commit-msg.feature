@@ -260,6 +260,91 @@ Feature: The commit-msg hook
     When itos verifies every commit up to HEAD
     Then itos exits with code 0
 
+  # Bug 159 (Codex's review of bug 158's PR #244, 2026-10-31). Where the two
+  # parents conflict, merge-tree exits 1 and still writes a tree, conflict
+  # markers in it, and bug 158 took that tree as git's merge: a merge
+  # committed with exactly that tree, the raw markers included, had no
+  # changes of its own and passed verify and the hooks under any first line,
+  # skipping the message, footer, scope and moves checks. Bug 30's --cc
+  # reading caught the markers' hunk. A conflict whose tree holds no markers
+  # at all and that a merge keeps as merge-tree left it passed the same way,
+  # and --cc never caught it either, a gap bug 30 had too: the modified side
+  # of a modify/delete conflict, or the first parent's side of a binary one.
+  #
+  # The rule (the coordinator's, settled): every path merge-tree reports as
+  # conflicted is the merge's own change, whatever the merge's tree holds,
+  # beside the paths where its tree differs from merge-tree's. merge-tree
+  # lists them after the tree: git merge-tree --write-tree --name-only
+  # --no-messages prints the tree, then each conflicted path once, a line
+  # each (-z separates them by NUL, so a path git would quote is read as it
+  # is named, bug 31's rule); without --name-only each comes once per stage,
+  # with its mode and object, and the messages are prose, an "Auto-merging"
+  # line for a path that merged clean. The rest of bug 158's rule stands: a
+  # clean merge's own changes are its tree's difference from merge-tree's,
+  # and a merge of more than two parents or of two with no merge base is read
+  # by --cc. A conflict merge-tree lists no path for (a directory rename split,
+  # git's documentation says, exits 1 with an empty list) is beyond this
+  # rule: its own paths are its tree's difference alone.
+  #
+  # ID-CMSG-19 (verify) and ID-CMSG-20 (the hook) are the guards that a clean
+  # merge still has none: a build reading the messages' "Auto-merging
+  # notes.md", or counting every path either side changed, refuses them.
+  #
+  # The steps. "the conflict left as git merge-tree writes it, markers and
+  # all" builds the merge as the other "the same line" merges are built, its
+  # tree the one git merge-tree --write-tree <main line> <topic line> writes,
+  # the two commits named by their full SHAs, the first parent first: the
+  # markers are labelled by the names merge-tree is given, and itos gives it
+  # the parents' full SHAs, so any other names make another tree. "a merge of
+  # the branch <branch> is in progress, whose two sides change the same line
+  # of <path>, git merge-tree's conflict tree staged" makes the commits of
+  # "… change neighbouring lines …, git's merge staged" with the same line's
+  # texts, runs the same git merge --no-ff --no-commit <branch>, which stops
+  # at the conflict with MERGE_HEAD written, then stages the tree merge-tree
+  # writes for the full SHAs of HEAD and MERGE_HEAD (git read-tree of it),
+  # whose markers git merge's own, labelled HEAD and <branch>, are not. "a
+  # merge commit <message> on top of it, whose main line deletes <path> and
+  # whose topic line changes it, keeping the topic's change" builds, in the
+  # scratch index, the commit "chore: write the notes" adding <path> with the
+  # lines "one" to "five"; on it a main line's chore commit removing <path>
+  # and a topic line's making "two" "two, the topic's", each with the footer
+  # Task: of the ledger's first task; and the merge of the two, its tree the
+  # main line's with the topic's <path>, which is merge-tree's tree for them.
+
+  # Fails before the work at the exit code, 0: the merge's tree is
+  # merge-tree's, so it has no path of its own.
+  @bug-159 @ID-CMSG-26
+  Scenario: verify refuses an untyped merge that committed merge-tree's conflict markers as they are
+    Given a merge commit "Merge branch 'topic'" on top of it, whose two sides change the same line of "notes.md", the conflict left as git merge-tree writes it, markers and all
+    When itos verifies every commit up to HEAD
+    Then itos exits with code 1
+    And its output says "needs one of the commit types in its first line"
+    And its output says "notes.md"
+
+  # The merge being made, by the same reading. Fails before the work at the
+  # exit code, 0: the index written as a tree is merge-tree's.
+  @bug-159 @ID-CMSG-27
+  Scenario: The commit-msg hook refuses an untyped merge with merge-tree's conflict markers staged as they are
+    Given a merge of the branch "topic" is in progress, whose two sides change the same line of "notes.md", git merge-tree's conflict tree staged
+    When the commit-msg hook checks the message "Merge branch 'topic'"
+    Then itos exits with code 1
+    And its output says "needs one of the commit types in its first line"
+    And its output says "notes.md"
+
+  # A conflict with no markers: merge-tree keeps the modified side of a
+  # modify/delete conflict in its tree, so a merge that keeps it too has no
+  # path of its own today; a build that looks for markers in the merge's
+  # tree still passes it, and so does one that falls back to --cc on a
+  # conflict, whose dense combined diff shows no hunk for a side kept whole.
+  # Fails before the work at the exit code, 0.
+  @bug-159 @ID-CMSG-28
+  Scenario: verify refuses an untyped merge that kept the changed side of a modify/delete conflict
+    Given a merge commit "Merge branch 'topic'" on top of it, whose main line deletes "notes.md" and whose topic line changes it, keeping the topic's change
+    When itos verifies every commit up to HEAD
+    Then itos exits with code 1
+    And its output says "needs one of the commit types in its first line"
+    And its output says "notes.md"
+
   # Bug 31 (found by the code review of 07b0e6d, by two reviewers apart).
   # itos read git's lists of paths (diff --name-only, ls-files, ls-tree)
   # without -z or core.quotePath=false, and git C-quotes a path holding a

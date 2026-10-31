@@ -1,12 +1,17 @@
 package git
 
-// A merge commit's own changes (bugs 30 and 158): the commit rules judge a
-// merge by what it changes itself, never by what its parents bring, which
-// their own commits were judged by. A two-parent merge's own changes are the
-// paths where its tree differs from the tree git's automatic merge of its
-// parents writes (`git merge-tree --write-tree`, conflict markers and all),
-// compared with --no-renames: what git's merge did not write is the merge's
-// own, whatever made it. A clean merge has none, even where both sides
+// A merge commit's own changes (bugs 30, 158 and 159): the commit rules
+// judge a merge by what it changes itself, never by what its parents bring,
+// which their own commits were judged by. A two-parent merge's own changes
+// are the paths where its tree differs from the tree git's automatic merge
+// of its parents writes (`git merge-tree --write-tree`, conflict markers and
+// all), compared with --no-renames, and every path that merge reports
+// conflicted, whatever the merge's tree holds: what git's merge did not
+// write, or could not settle, is the merge's own, whatever made it. A merge
+// that commits merge-tree's conflict tree as it is, markers and all, or the
+// changed side of a modify/delete conflict it kept, changes those paths. A
+// conflict merge-tree lists no path for (a directory rename split) is read
+// by the trees alone. A clean merge has none, even where both sides
 // changed neighbouring lines of one file; a conflict resolved, by new lines
 // or by taking a side, is the merge's own, and so is all a merge made with
 // -s ours, -X ours or -X theirs changed from git's merge, or one that relied
@@ -22,6 +27,7 @@ import (
 	"errors"
 	"os"
 	"os/exec"
+	"slices"
 	"strconv"
 	"strings"
 )
@@ -59,7 +65,8 @@ const combinedHeader = "diff --cc "
 
 // OwnPaths are the paths a merge commit changes of its own, in git's order:
 // for a merge of two parents with a merge base, those where its tree differs
-// from git's merge of them; else those its dense combined diff has a hunk in.
+// from git's merge of them and those git's merge reports conflicted; else
+// those its dense combined diff has a hunk in.
 func (r Runner) OwnPaths(merge string) ([]string, error) {
 	parents, err := r.Parents(merge)
 	if err != nil {
@@ -68,27 +75,34 @@ func (r Runner) OwnPaths(merge string) ([]string, error) {
 	if len(parents) != 2 || !r.Succeeds("merge-base", parents[0], parents[1]) {
 		return r.combinedPaths(merge)
 	}
-	tree, err := r.mergedTree(parents[0], parents[1])
+	tree, conflicted, err := r.mergedTree(parents[0], parents[1])
 	if err != nil {
 		return nil, err
 	}
-	return r.Paths("diff-tree", "--no-commit-id", "--name-only", "--no-renames", "-r", tree, merge)
+	paths, err := r.Paths("diff-tree", "--no-commit-id", "--name-only", "--no-renames", "-r", tree, merge)
+	if err != nil {
+		return nil, err
+	}
+	paths = append(paths, conflicted...)
+	slices.Sort(paths)
+	return slices.Compact(paths), nil
 }
 
 // mergedTree is the tree git's automatic merge of the two commits writes,
-// the first line merge-tree prints, which it writes with conflict markers
-// where it exits 1 on a conflict.
-func (r Runner) mergedTree(first, second string) (string, error) {
-	args := []string{"merge-tree", "--write-tree", "--no-messages", first, second}
+// with conflict markers where it exits 1 on a conflict, and the paths it
+// reports conflicted, each once: with --name-only and -z merge-tree prints
+// the tree and then each conflicted path, every one ended by a NUL.
+func (r Runner) mergedTree(first, second string) (string, []string, error) {
+	args := []string{"merge-tree", "--write-tree", "--name-only", "--no-messages", "-z", first, second}
 	out, err := r.Output(args...)
 	if exit := (*exec.ExitError)(nil); errors.As(err, &exit) && exit.ExitCode() == 1 {
 		err = nil
 	}
 	if err != nil {
-		return "", r.failed(args, err)
+		return "", nil, r.failed(args, err)
 	}
-	tree, _, _ := strings.Cut(out, "\n")
-	return tree, nil
+	tree, conflicted, _ := strings.Cut(out, "\x00")
+	return tree, SplitNUL(conflicted), nil
 }
 
 // combinedPaths are the paths a merge's dense combined diff has a hunk in,
