@@ -16329,8 +16329,8 @@ items:
   - id: slice-214
     title: "Under push.pr.update: merge, push --ready brings the pull request up to main by a merge and lands it as a merge commit itos titles"
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: [slice-213]
     kind: slice
     why: >
