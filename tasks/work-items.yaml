@@ -16197,3 +16197,19 @@ items:
       Files, Texts and gitTree.List/inRepo, keeping or undoing that. Also: Trees.At with an empty
       folder gets a relative working folder, so inRepo returns . (config check uses vcs.Git{}).
     tags: [work, v8]
+
+  - id: p2-brief-request-binds-text
+    title: "itos brief's request also binds what the agent is told beyond its reads: the repository's brief lines and the item's registry entry"
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: [slice-207]
+    kind: idea
+    why: >
+      Codex's security review on #231 (slice-204, 2026-10-30): the request hashes the item, role,
+      spec commit and the reads' blobs, so a change to the title, the dependencies, the omissions or
+      the guide.orchestrating text gives materially different instructions under the same request,
+      which slice-207's attempt submit accepts as the same attempt. Declined in slice-204 (the
+      request's inputs are its spec's contract, recomputable by another tool); weigh with slice-207
+      whether the request adds a digest of the delivered text or of the config's brief section.
+    tags: [agents, v8]
