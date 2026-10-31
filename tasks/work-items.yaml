@@ -16531,3 +16531,17 @@ items:
       From the google/ax analysis, 2026-10-31: reading leniently lets brief --json gain keys (as
       slice-207 added base) without breaking a driver, while attempt submit stays strict about what
       an agent returns.
+
+  - id: p2-attempt-executor
+    title: "An attempt records its executor (agent, model, where it ran), outside the request hash, behind a seam: a local subagent today, a sandbox backend later"
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      From the google/ax analysis, 2026-10-31. ax schedules sandboxed agent containers (gVisor on
+      Kubernetes) and has no workflow layer, so at most it is a future place an attempt runs.
+      Recording the executor on slice-207's attempt record keeps the comparison of models and agents
+      possible (p1-haiku-implementer-trial), and a seam ties to the person's sandbox project
+      (devcontainer locally, ax or DevPod later).
