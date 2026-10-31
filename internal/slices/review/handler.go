@@ -35,13 +35,6 @@ const (
 	already = "already"
 )
 
-// The marker a verdict comment ends with: the hidden JSON between these,
-// its record verdict (readMarker, verdictMarker).
-const (
-	markerStart = "<!-- itos:v1 "
-	markerEnd   = " -->"
-)
-
 // fullSHA is a commit named in full, taken as given.
 var fullSHA = regexp.MustCompile(`^[0-9a-fA-F]{40}$`)
 
@@ -95,16 +88,6 @@ type Answer struct {
 	Round    int
 	Address  string
 	Comment  string
-}
-
-// marker is a verdict marker's JSON, its keys in the order written.
-type marker struct {
-	Record  string `json:"record"`
-	Item    string `json:"item"`
-	Stage   string `json:"stage"`
-	Verdict string `json:"verdict"`
-	Head    string `json:"head"`
-	Round   int    `json:"round"`
 }
 
 // Handle records q's verdict, or refuses it (doc.go says the order).
@@ -242,54 +225,18 @@ func ghFailed(word, command, reason string) Answer {
 // countMarkers counts the verdict markers of the item and stage in the
 // comments whose author is one of the registry's people (every login when
 // it has none), in GitHub's order, and gives the latest, nil for none.
-func countMarkers(comments []providers.Authored, item, stage string, r work.Registry) (int, *marker) {
+func countMarkers(comments []providers.Authored, item, stage string, r work.Registry) (int, *work.Verdict) {
 	count := 0
-	var latest *marker
+	var latest *work.Verdict
 	for _, c := range comments {
-		m, ok := readMarker(c.Body)
-		if !ok || m.Item != item || m.Stage != stage || !counted(r, c.Login) {
+		m, ok := work.ReadVerdict(c.Body)
+		if !ok || m.Item != item || m.Stage != stage || !r.Counts(c.Login) {
 			continue
 		}
 		count++
 		latest = &m
 	}
 	return count, latest
-}
-
-// counted is whether a comment by the login counts: among the people,
-// compared regardless of case as GitHub's logins are, or anyone when the
-// registry has no people to hold owners to (work.Registry.Nobody).
-func counted(r work.Registry, login string) bool {
-	if r.Nobody() {
-		return true
-	}
-	for _, person := range r.Logins {
-		if strings.EqualFold(person, login) {
-			return true
-		}
-	}
-	return false
-}
-
-// readMarker reads a comment's verdict marker: the JSON between the last
-// markerStart and the markerEnd after it, whose record is verdict; the last,
-// since itos appends the marker after the review's text, which may quote
-// one. A body without one, with one that is not JSON or with another record
-// is prose, not ok.
-func readMarker(body string) (marker, bool) {
-	at := strings.LastIndex(body, markerStart)
-	if at < 0 {
-		return marker{}, false
-	}
-	text, _, found := strings.Cut(body[at+len(markerStart):], markerEnd)
-	if !found {
-		return marker{}, false
-	}
-	var m marker
-	if err := json.Unmarshal([]byte(text), &m); err != nil || m.Record != "verdict" {
-		return marker{}, false
-	}
-	return m, true
 }
 
 // verdictBody is the comment posted: the readable line, the body file's
@@ -303,11 +250,10 @@ func verdictBody(q Query, head, text string, round int) string {
 	return body + "\n\n" + verdictMarker(q, head, round)
 }
 
-// verdictMarker is the marker a program reads: markerStart, the JSON with
-// its keys in marker's order and nothing else in it, markerEnd.
+// verdictMarker is the marker of q's verdict at the head, its round given
+// (work.Verdict.Marker).
 func verdictMarker(q Query, head string, round int) string {
-	text, _ := json.Marshal(marker{Record: "verdict", Item: q.Item, Stage: q.Stage, Verdict: q.Verdict, Head: head, Round: round})
-	return markerStart + string(text) + markerEnd
+	return work.Verdict{Record: "verdict", Item: q.Item, Stage: q.Stage, Verdict: q.Verdict, Head: head, Round: round}.Marker()
 }
 
 // post puts the body on the pull request as one plain issue comment (gh api

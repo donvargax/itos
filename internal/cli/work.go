@@ -101,9 +101,9 @@ func (workPorts) GitHubRepository(ctx context.Context, cfg *config.Loaded, remot
 }
 
 // Revision is the next slice's RevisionOf: the item's revision as itos next
-// gives it, over the tracker the questions are in.
-func (workPorts) Revision(ctx context.Context, cfg *config.Loaded, tracker trackerport.Tracker, id string) (string, *out.Problem, error) {
-	return nextslice.RevisionOf(ctx, cfg, tracker, id)
+// gives it, over the tracker the questions are in and next's forge.
+func (p workPorts) Revision(ctx context.Context, cfg *config.Loaded, tracker trackerport.Tracker, id string) (string, *out.Problem, error) {
+	return nextslice.RevisionOf(ctx, cfg, tracker, nextPorts(p), id)
 }
 
 // workAddLine is workslice.AddLine, which draft reads a work add line with.
