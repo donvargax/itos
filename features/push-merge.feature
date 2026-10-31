@@ -215,6 +215,65 @@ Feature: Under push.mode pr with push.pr.update merge, itos push brings an item'
     And the clone's HEAD is the head of the remote's branch "slice-9"
     And its output says "https://github.example/o/r/pull/7"
 
+  # Bug 158: the merge itos writes holds two sides' changes to neighbouring
+  # lines of one file, which git merged cleanly into one hunk of its combined
+  # diff, as on slice-209 (internal/providers/doc.go). Its untyped first line
+  # passes, since its tree is git's own merge of its parents
+  # (commit-msg.feature's bug-158 block). "the remote has gained the commit
+  # <subject> writing <path> with the lines:" is "the remote has gained the
+  # commit <subject> touching <path>" with <path> holding the docstring's
+  # lines, and "the clone has the commit <subject> writing <path> with the
+  # lines:" is "the clone has the commit <subject> touching <path>" the same
+  # way. Fails before the work at the exit code: the real pre-push hook
+  # judges the merge, whose combined diff has widget.md's one hunk, and
+  # refuses it under merge-type, so the item's branch is not pushed.
+  @bug-158 @ID-PUSHMERGE-16
+  Scenario: Under merge, a merge of main whose two sides changed neighbouring lines of one file is pushed untyped, past the pre-push hook
+    Given the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+        pr:
+          draft: true
+          update: merge
+      """
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the remote has gained the commit "docs: describe the widget" writing "widget.md" with the lines:
+      """
+      one
+      two
+      three
+      four
+      five
+      """
+    And the clone has fetched the remote
+    And the clone has reset its branch to the remote's main
+    And the clone is on the new branch "slice-9"
+    And the clone has the commit "feat: add the widget" writing "widget.md" with the lines:
+      """
+      one
+      two, the item's
+      three
+      four
+      five
+      """
+    And git pushes HEAD to the remote's new branch "slice-9"
+    And the recording gh has the draft pull request "https://github.example/o/r/pull/7" open for the branch "slice-9"
+    And the remote has gained the commit "chore: tidy the widget" writing "widget.md" with the lines:
+      """
+      one
+      two
+      three
+      four, main's
+      five
+      """
+    And the pre-push hook is installed
+    When itos runs "push"
+    Then itos exits with code 0
+    And the head of the remote's branch "slice-9" is the merge commit "Merge main into slice-9"
+    And the remote's branch "slice-9" has the remote main's commit "chore: tidy the widget"
+    And the clone's HEAD is the head of the remote's branch "slice-9"
+
   # A commit someone pushed to the item's branch (the coordinator's fix to
   # the spec, say) is merged in rather than the clone's new commit being
   # rebased onto it: the clone's commit reaches the remote under the SHA it

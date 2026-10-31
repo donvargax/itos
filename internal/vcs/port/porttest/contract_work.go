@@ -158,7 +158,11 @@ func pathsContract[C T[C]](t C, open func(t C, l Layout) (port.VCS, string)) {
 			t.Errorf("Staged against no commit are %q", got)
 		}
 		got, err = v.StagedOwnPaths(ctx, []string{sha(t, v, "c"), sha(t, v, "s")})
-		wantPaths(t, "StagedOwnPaths(c, s)", got, err, "a.txt", "new.txt")
+		wantPaths(t, "StagedOwnPaths(c, s)", got, err, "a.txt", "b.txt", "new.txt")
+		got, err = v.StagedOwnPaths(ctx, []string{sha(t, v, "b"), sha(t, v, "s")})
+		wantPaths(t, "StagedOwnPaths(b, s)", got, err, "a.txt", "b.txt", "c.txt", "new.txt", "x.md")
+		got, err = v.StagedOwnPaths(ctx, []string{sha(t, v, "m"), sha(t, v, "t")})
+		wantPaths(t, "StagedOwnPaths(m, t), in conflict on a.txt", got, err, "a.txt", "b.txt", "new.txt")
 		if got, err := v.StagedOwnPaths(ctx, []string{"nope", sha(t, v, "s")}); err == nil {
 			t.Errorf("StagedOwnPaths on no commit are %q", got)
 		}
