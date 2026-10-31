@@ -48,10 +48,11 @@ Feature: itos review status posts the itos/reviews commit status on an item's pu
   success. The description names the logins as the config writes them, in
   its order: success "Reviewed by <every login>.", pending "Waiting on
   <the logins with no verdict>.", failure "Refused to review: <the logins
-  that refused>.", the logins joined by ", ". GitHub keeps 140 characters
-  of a description, so a longer one is cut at a whole login: the first
-  logins, as many as fit, then " and <n> more." for the n left out, the
-  whole at most 140 characters (Unicode code points); when not even the
+  that refused>.", the logins joined by ", ". GitHub refuses (422) a
+  status whose description is over 140 characters, it does not cut one,
+  so itos cuts a longer one at a whole login: the first logins, as many as
+  fit, then " and <n> more." for the n left out, the whole at most 140
+  characters; when not even the
   first login fits, "<the same beginning><n> logins.". The output and
   --json name every login, uncut.
 
@@ -111,14 +112,15 @@ Feature: itos review status posts the itos/reviews commit status on an item's pu
   call goes to api-repos.sh, which answers nothing and exits 0 for a path
   it does not know, and itos reads no answer from it, so no handler is
   added. New steps, in a step file of their own: "the recording gh posted
-  <n> commit status(es), (each) with the context <c>, the state <s> and the
-  description <d>, on the head of the remote's branch <b>", which takes the
-  recorded calls starting "api repos/" that hold "/statuses/", fails unless
-  there are exactly n, and fails unless each one's path ends in the full
-  SHA of the head the remote's branch has when the step runs, holds " -f
-  state=<s> " and " -f context=<c> ", and has, after " -f description=",
-  exactly <d> to the end of the line (so the description must be the call's
-  last field, which the step's doc comment says); "the recording gh posted
+  <n> commit status(es), (each) the call <line>, @HEAD:<b>@ the full SHA of
+  the head of the remote's branch <b>", which takes the recorded calls
+  starting "api repos/" that hold "/statuses/", fails unless there are
+  exactly n, and fails unless each one is exactly <line> (the whole
+  recorded line, as dispatch.sh records it), "@HEAD:<b>@" in it replaced by
+  the full SHA of the head the remote's branch has when the step runs; so
+  the line "api repos/owner/scratch/statuses/@HEAD:slice-9@ -f state=<s>
+  -f context=itos/reviews -f description=<d>" holds the field order and
+  that no other field, target_url among them, is sent; "the recording gh posted
   no commit status", no such call (the recording gh was never called as
   <command> cannot say it: it matches a command followed by a space, and
   the status call's path goes on with "/<sha>", so it would pass whatever
@@ -165,7 +167,7 @@ Feature: itos review status posts the itos/reviews commit status on an item's pu
     Then itos exits with code 0
     And its output says "Posted itos/reviews success on " with the first 7 characters of the head of the remote's branch "slice-9"
     And its output says " of https://github.example/o/r/pull/7: reviewed by chatgpt-codex-connector, copilot-pull-request-reviewer[bot]."
-    And the recording gh posted 1 commit status, with the context "itos/reviews", the state "success" and the description "Reviewed by chatgpt-codex-connector, copilot-pull-request-reviewer[bot].", on the head of the remote's branch "slice-9"
+    And the recording gh posted 1 commit status, the call "api repos/owner/scratch/statuses/@HEAD:slice-9@ -f state=success -f context=itos/reviews -f description=Reviewed by chatgpt-codex-connector, copilot-pull-request-reviewer[bot].", @HEAD:slice-9@ the full SHA of the head of the remote's branch "slice-9"
     And the recording gh's "pr list" call has "slice-9"
     And the recording gh's "api graphql" call has "number=7"
     And the recording gh was called as "api graphql" once
@@ -208,13 +210,13 @@ Feature: itos review status posts the itos/reviews commit status on an item's pu
     And its JSON's "description" is "Waiting on chatgpt-codex-connector."
     And its JSON's "missing" is ["chatgpt-codex-connector"]
     And its JSON's "refused" is []
-    And the recording gh posted 1 commit status, with the context "itos/reviews", the state "pending" and the description "Waiting on chatgpt-codex-connector.", on the head of the remote's branch "slice-9"
+    And the recording gh posted 1 commit status, the call "api repos/owner/scratch/statuses/@HEAD:slice-9@ -f state=pending -f context=itos/reviews -f description=Waiting on chatgpt-codex-connector.", @HEAD:slice-9@ the full SHA of the head of the remote's branch "slice-9"
     And the recording gh was never called as "pr comment"
     When itos runs "review status slice-9"
     Then itos exits with code 0
     And its output says "Posted itos/reviews pending on " with the first 7 characters of the head of the remote's branch "slice-9"
     And its output says ": waiting on chatgpt-codex-connector."
-    And the recording gh posted 2 commit statuses, each with the context "itos/reviews", the state "pending" and the description "Waiting on chatgpt-codex-connector.", on the head of the remote's branch "slice-9"
+    And the recording gh posted 2 commit statuses, each the call "api repos/owner/scratch/statuses/@HEAD:slice-9@ -f state=pending -f context=itos/reviews -f description=Waiting on chatgpt-codex-connector.", @HEAD:slice-9@ the full SHA of the head of the remote's branch "slice-9"
     And the recording gh was never called as "pr comment"
 
   # The head is GitHub's, read in the same answer as the reviews, never the
@@ -249,7 +251,7 @@ Feature: itos review status posts the itos/reviews commit status on an item's pu
     And its JSON's "outcome" is "review-pending"
     And its JSON's "head" holds the full SHA of the head of the remote's branch "slice-9"
     And its JSON's "missing" is ["chatgpt-codex-connector"]
-    And the recording gh posted 1 commit status, with the context "itos/reviews", the state "pending" and the description "Waiting on chatgpt-codex-connector.", on the head of the remote's branch "slice-9"
+    And the recording gh posted 1 commit status, the call "api repos/owner/scratch/statuses/@HEAD:slice-9@ -f state=pending -f context=itos/reviews -f description=Waiting on chatgpt-codex-connector.", @HEAD:slice-9@ the full SHA of the head of the remote's branch "slice-9"
     And the recording gh was never called as "pr comment"
     And the recording gh was never called as "api repos/owner/scratch/issues/7/comments"
 
@@ -279,7 +281,7 @@ Feature: itos review status posts the itos/reviews commit status on an item's pu
     Then itos exits with code 0
     And its JSON's "outcome" is "review-pending"
     And its JSON's "state" is "pending"
-    And the recording gh posted 1 commit status, with the context "itos/reviews", the state "pending" and the description "Waiting on chatgpt-codex-connector.", on the head of the remote's branch "slice-9"
+    And the recording gh posted 1 commit status, the call "api repos/owner/scratch/statuses/@HEAD:slice-9@ -f state=pending -f context=itos/reviews -f description=Waiting on chatgpt-codex-connector.", @HEAD:slice-9@ the full SHA of the head of the remote's branch "slice-9"
 
   # Copilot's only review is its refusal: no review comes unless someone
   # asks again, so failure, not pending, though Codex's review still runs
@@ -310,7 +312,7 @@ Feature: itos review status posts the itos/reviews commit status on an item's pu
     And its JSON's "state" is "failure"
     And its JSON's "missing" is ["copilot-pull-request-reviewer[bot]", "chatgpt-codex-connector"]
     And its JSON's "refused" is ["copilot-pull-request-reviewer[bot]"]
-    And the recording gh posted 1 commit status, with the context "itos/reviews", the state "failure" and the description "Refused to review: copilot-pull-request-reviewer[bot].", on the head of the remote's branch "slice-9"
+    And the recording gh posted 1 commit status, the call "api repos/owner/scratch/statuses/@HEAD:slice-9@ -f state=failure -f context=itos/reviews -f description=Refused to review: copilot-pull-request-reviewer[bot].", @HEAD:slice-9@ the full SHA of the head of the remote's branch "slice-9"
     When itos runs "review status slice-9"
     Then itos exits with code 0
     And its output says "Posted itos/reviews failure on " with the first 7 characters of the head of the remote's branch "slice-9"
@@ -318,8 +320,8 @@ Feature: itos review status posts the itos/reviews commit status on an item's pu
     And its output says "Copilot was unable to review this pull request because"
     And the recording gh was never called as "pr comment"
 
-  # GitHub keeps 140 characters of a status's description: the list is cut
-  # at a whole login, the rest counted. Here three logins fit exactly, 140
+  # GitHub refuses (422) a status whose description is over 140
+  # characters, so the list is cut at a whole login, the rest counted. Here three logins fit exactly, 140
   # characters with " and 1 more.", and all four (170) do not; a build that
   # stops one short of the limit keeps two, one that cuts mid-login or
   # appends an ellipsis ends otherwise. --json keeps every login. Nobody
@@ -348,7 +350,7 @@ Feature: itos review status posts the itos/reviews commit status on an item's pu
     And its JSON's "outcome" is "review-pending"
     And its JSON's "missing" is ["reviewer-one-with-a-login-this-long-ab", "reviewer-two-with-a-login-this-long-ab", "reviewer-three-with-a-login-this-long", "reviewer-four-with-a-login-this-long-ab"]
     And its JSON's "description" is "Waiting on reviewer-one-with-a-login-this-long-ab, reviewer-two-with-a-login-this-long-ab, reviewer-three-with-a-login-this-long and 1 more."
-    And the recording gh posted 1 commit status, with the context "itos/reviews", the state "pending" and the description "Waiting on reviewer-one-with-a-login-this-long-ab, reviewer-two-with-a-login-this-long-ab, reviewer-three-with-a-login-this-long and 1 more.", on the head of the remote's branch "slice-9"
+    And the recording gh posted 1 commit status, the call "api repos/owner/scratch/statuses/@HEAD:slice-9@ -f state=pending -f context=itos/reviews -f description=Waiting on reviewer-one-with-a-login-this-long-ab, reviewer-two-with-a-login-this-long-ab, reviewer-three-with-a-login-this-long and 1 more.", @HEAD:slice-9@ the full SHA of the head of the remote's branch "slice-9"
 
   # A branch not pushed yet has no pull request to judge: refused, review
   # post's words, nothing asked past gh pr list and nothing posted. Fails
@@ -414,10 +416,13 @@ Feature: itos review status posts the itos/reviews commit status on an item's pu
 
   # With no review_by there is nobody whose review to judge, and a success
   # posted for nobody would let branch protection pass any head: refused
-  # before gh is asked. Fails before the work at the exit code: today
-  # review status is a usage error, exit 2.
+  # before gh is asked. The order is pinned: review_by is judged before
+  # the item, so slice-7, which the registry lacks, is refused for the
+  # missing review_by alone, never as work-unknown-item. Fails before the
+  # work at the exit code, each row: today review status is a usage error,
+  # exit 2.
   @wip @slice-212 @ID-REVIEWSTATUS-10
-  Scenario: Under push.mode pr with no push.pr.review_by, review status is refused, exit 1, asking gh nothing
+  Scenario Outline: Under push.mode pr with no push.pr.review_by, review status of any item, in the registry or not, is refused for review_by, exit 1, asking gh nothing
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
       push:
@@ -427,11 +432,17 @@ Feature: itos review status posts the itos/reviews commit status on an item's pu
       """
     And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
     And the clone has the commit "feat: add the widget" touching "widget.md"
-    When itos runs "review status slice-9 --json"
+    When itos runs "review status <item> --json"
     Then itos exits with code 1
     And stdout is one JSON report with schema 1 and ok false
     And its JSON's problem "review-without-review-by"'s "message" says "push.pr.review_by"
+    And its output does not say "work-unknown-item"
     And the recording gh was never called
+
+    Examples:
+      | item    |
+      | slice-9 |
+      | slice-7 |
 
   # The item names the branch, so one the registry lacks is refused as
   # itos work show refuses it, before gh is asked. Fails before the work at
