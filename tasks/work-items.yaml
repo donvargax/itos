@@ -16677,3 +16677,16 @@ items:
       Either mergeItem types its message when the merge's combined diff is not empty (refactor, or
       the type the paths allow, with the item footer), or merge-type judges a clean textual merge
       (no conflict resolved by hand) as having no changes of its own.
+
+  - id: p3-guard-scoped-to-repo
+    title: itos's Claude Code guard judges only commands that run in an itos repository
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      bug-158's drafter, 2026-10-31: in a scratch repository outside itos, made to reproduce a
+      merge, the guard's PreToolUse hook refused a plain git commit and pointed to itos commit, so
+      the agent fell back to plumbing (commit-tree). The guard should judge a git command only when
+      its working directory, or its -C target, is an itos repository with an itos.yaml.
