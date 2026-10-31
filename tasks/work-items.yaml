@@ -16333,3 +16333,24 @@ items:
       and walk the item's commits as ordinary ones; a scenario shows a landed merge passes verify.
       This repository then turns push.pr.update: merge on (a build commit).
     tags: [work, v8]
+
+  - id: p1-v9-explicit-steps
+    title: "v9: every forge or branch effect is its own itos command the driver runs from itos next, and push --ready only composes them"
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The person, 2026-10-30: the minor steps hidden inside other commands (bringing a branch up to
+      main, marking ready, asking each reviewer, turning on auto-merge pinned to a head, merging,
+      closing) are explicit steps of the deterministic workflow, not implicit in itos push or
+      --ready. Each primitive: one mutation, a precondition, an effect itos next can observe,
+      --expect, already when its effect holds, a budget of its own; next.argv names it. --ready
+      today pushes, readies, updates, waits, asks and merges in one call, so a stop halfway is only
+      an exit code (exit 75 loops; bug-155's eleven --ready calls). push --ready stays a shortcut
+      that runs the primitives in order with no behaviour of its own, or goes once the driver is the
+      normal path. For the pilot slices 213 and 214 stay inside push and --ready; their merge and
+      landing logic becomes the primitives' body. Folds in p1-review-request-step and
+      p1-ready-hand-off's auto-merge step.
+    tags: [work, v9]
