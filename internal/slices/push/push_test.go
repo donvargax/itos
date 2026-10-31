@@ -205,11 +205,11 @@ func (f *fake) CherryPick(ctx context.Context, commit, onto string) (string, err
 }
 
 // Merge is the fake's unless merge stands in for it (update_test.go).
-func (f *fake) Merge(ctx context.Context, rev, message string, quiet bool, talk vcsport.Talk) error {
+func (f *fake) Merge(ctx context.Context, rev, message string, ff, quiet bool, talk vcsport.Talk) error {
 	if f.merge != nil {
 		return f.merge()
 	}
-	return f.VCS.Merge(ctx, rev, message, quiet, talk)
+	return f.VCS.Merge(ctx, rev, message, ff, quiet, talk)
 }
 
 func (f *fake) Reset(ctx context.Context, rev string) error {

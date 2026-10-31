@@ -390,13 +390,16 @@ func (b broken) NotIgnored(ctx context.Context, path string) bool {
 	return b.VCS.NotIgnored(ctx, path)
 }
 
-func (b broken) Merge(ctx context.Context, rev, message string, quiet bool, talk port.Talk) error {
+func (b broken) Merge(ctx context.Context, rev, message string, ff, quiet bool, talk port.Talk) error {
 	before := *b.VCS
 	theirs, known := b.commit(rev)
+	if b.fault == "merge never fast-forwards" {
+		ff = false
+	}
 	switch {
 	case b.fault == "merge of nothing fine" && !known:
 		return nil
-	case b.fault == "merge fast-forwards" && b.IsAncestor(ctx, "HEAD", rev):
+	case b.fault == "merge fast-forwards" && !ff && b.IsAncestor(ctx, "HEAD", rev):
 		b.moveHead(b.OnBranch, theirs.Name)
 		return nil
 	case b.fault == "merge of what HEAD has" && known && b.IsAncestor(ctx, rev, "HEAD"):
@@ -407,7 +410,7 @@ func (b broken) Merge(ctx context.Context, rev, message string, quiet bool, talk
 		b.moveHead(b.OnBranch, made.Name)
 		return nil
 	}
-	err := b.VCS.Merge(ctx, rev, message, quiet, talk)
+	err := b.VCS.Merge(ctx, rev, message, ff, quiet, talk)
 	switch {
 	case b.fault == "merge refuses" && err == nil:
 		return errBroken

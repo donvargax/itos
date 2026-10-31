@@ -89,8 +89,8 @@ func TestMergeUpdateSendsATakeToMainFirst(t *testing.T) {
 
 // A commit the remote's item branch has that the clone lacks is merged in, the
 // clone's own commit kept under its SHA; a branch with nothing of its own past
-// the remote's is fast-forwarded to it, nothing pushed, and one that cannot be
-// is reported, exit 3.
+// the remote's is fast-forwarded to it by the merge, nothing pushed, and one
+// git will not fast-forward (an untracked file in the way) is merge-failed.
 func TestMergeUpdateMergesTheRemoteItemBranchIn(t *testing.T) {
 	f := updateRepo(t)
 	f.Remote["origin"].Refs["refs/heads/main"] = base
@@ -111,8 +111,11 @@ func TestMergeUpdateMergesTheRemoteItemBranchIn(t *testing.T) {
 	f = updateRepo(t)
 	f.Remote["origin"].Refs["refs/heads/main"] = base
 	f.Remote["origin"].Refs["refs/heads/slice-9"] = "nw000"
-	f.resetErr = errors.New("locked")
-	if code, _, stderr, _ := call(t, f); code != missing || stderr != "itos: cannot fast-forward slice-9 to origin/slice-9: locked\n" {
+	f.merge = func() error {
+		return &vcsport.Failed{Command: "git merge", Code: 1, Words: "error: The following untracked working tree files would be overwritten by merge\n"}
+	}
+	if code, _, stderr, _ := call(t, f); code != policy || f.head(t) != mine ||
+		stderr != "itos push: the merge of origin/slice-9 into slice-9 did not run (git's message above); origin/slice-9 was not pushed.\n" {
 		t.Errorf("a fast-forward that fails: exit %d\n%s", code, stderr)
 	}
 }

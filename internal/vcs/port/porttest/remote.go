@@ -229,14 +229,20 @@ func (v *VCS) CherryPick(ctx context.Context, commit, onto string) (string, erro
 // Merge makes a commit on HEAD with rev as its second parent and the message,
 // its tree each path as the side that changed it since their newest common
 // commit has it: a path both changed apart is a conflict, which leaves the
-// merge in progress and makes nothing. HEAD that has rev is left as it is.
-func (v *VCS) Merge(ctx context.Context, rev, message string, _ bool, _ port.Talk) error {
+// merge in progress and makes nothing. HEAD that has rev is left as it is, and
+// with ff one rev has all of moves to it.
+func (v *VCS) Merge(ctx context.Context, rev, message string, ff, _ bool, _ port.Talk) error {
 	theirs, ok := v.commit(rev)
 	ours, found := v.commit("HEAD")
 	if !ok || !found {
 		return &port.Failed{Command: "git merge " + rev, Code: 1, Words: "merge: " + rev + " - not something we can merge\n"}
 	}
-	if v.IsAncestor(ctx, theirs.Name, ours.Name) {
+	switch {
+	case v.IsAncestor(ctx, theirs.Name, ours.Name):
+		return nil
+	case ff && v.IsAncestor(ctx, ours.Name, theirs.Name):
+		v.moveHead(v.OnBranch, theirs.Name)
+		v.Index, v.Work = nil, nil
 		return nil
 	}
 	mine, _ := v.reach(ours.Name)

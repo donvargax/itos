@@ -181,7 +181,7 @@ func remoteContract[C T[C]](t C, open func(t C, l Layout) (port.VCS, string)) {
 		v, _ := open(t, Layout{Ours: true})
 		ctx := t.Context()
 		s, o := sha(t, v, "s"), sha(t, v, "o")
-		if err := v.Merge(ctx, "s", "merge s", true, port.Talk{}); err != nil {
+		if err := v.Merge(ctx, "s", "merge s", true, true, port.Talk{}); err != nil {
 			t.Fatalf("Merge(s) into ours: %v", err)
 		}
 		head := sha(t, v, "HEAD")
@@ -193,11 +193,11 @@ func remoteContract[C T[C]](t C, open func(t C, l Layout) (port.VCS, string)) {
 			t.Errorf("Merge(s) into ours: parents %q, subject %q, on %q, files %q, merge heads %q; want o and s, on ours, a.txt o and s.txt s",
 				parents, shown.Subject, v.Branch(ctx), texts, v.MergeHeads(ctx))
 		}
-		if err := v.Merge(ctx, "c", "merge c", true, port.Talk{}); err != nil || sha(t, v, "HEAD") != head {
+		if err := v.Merge(ctx, "c", "merge c", false, true, port.Talk{}); err != nil || sha(t, v, "HEAD") != head {
 			t.Errorf("Merge(c), which HEAD has: %v, HEAD at %s; want nothing made", err, sha(t, v, "HEAD"))
 		}
 		head = sha(t, v, "HEAD")
-		if err := v.Merge(ctx, "nope", "merge nope", true, port.Talk{}); err == nil || sha(t, v, "HEAD") != head {
+		if err := v.Merge(ctx, "nope", "merge nope", false, true, port.Talk{}); err == nil || sha(t, v, "HEAD") != head {
 			t.Errorf("Merge of no commit: %v, HEAD at %s; want an error and nothing made", err, sha(t, v, "HEAD"))
 		}
 		v, _ = open(t, Layout{Ours: true})
@@ -205,12 +205,18 @@ func remoteContract[C T[C]](t C, open func(t C, l Layout) (port.VCS, string)) {
 		if err := v.Reset(ctx, "c"); err != nil {
 			t.Fatalf("Reset(c): %v", err)
 		}
-		err := v.Merge(ctx, "t", "merge t", false, port.Talk{})
+		err := v.Merge(ctx, "t", "merge t", false, false, port.Talk{})
 		if parents, _ := v.Parents(ctx, "HEAD"); err != nil || !slices.Equal(parents, []string{c, theirs}) {
 			t.Errorf("Merge(t) into c, which a fast-forward would reach: %v, parents %q; want c and t", err, parents)
 		}
+		if err := v.Reset(ctx, "c"); err != nil {
+			t.Fatalf("Reset(c): %v", err)
+		}
+		if err := v.Merge(ctx, "t", "merge t", true, true, port.Talk{}); err != nil || sha(t, v, "HEAD") != theirs || sha(t, v, "ours") != theirs {
+			t.Errorf("Merge(t) into c with ff: %v, HEAD at %s; want t %s, on ours", err, sha(t, v, "HEAD"), theirs)
+		}
 		v, _ = open(t, Layout{Ours: true})
-		err = v.Merge(ctx, "t", "merge t", true, port.Talk{})
+		err = v.Merge(ctx, "t", "merge t", false, true, port.Talk{})
 		if _, ok := failureOf(err); !ok || sha(t, v, "HEAD") != o || !slices.Equal(v.MergeHeads(ctx), []string{theirs}) ||
 			!slices.Equal(v.Conflicted(ctx), []string{"a.txt"}) {
 			t.Errorf("Merge(t) into ours, both changing a.txt: %v, HEAD at %s, merge heads %q, conflicted %q; want o, t merging, a.txt",
