@@ -16147,6 +16147,12 @@ items:
       explicitly, so this is kept. itos/reviews therefore stays pending on a head until someone
       requests both reviews for it. The workflow that posts itos/reviews, and the person's adding it
       to branch protection, come after p1-review-request-step, which requests both.
+
+      Codex's security review on #240 (thread PRRT_kwDOU2JMic6yTPgQ, 2026-10-31): review status
+      takes the first open pull request for --head <item>, as review post and --ready do. Two open
+      pull requests from one branch to different bases share a head SHA, and the commit status is
+      tied to neither. The workflow has the triggering event, so it binds the status to that event's
+      pull request and base, and refuses when several are open.
     tags: [ci, v8]
 
   - id: p1-next-task-spec-on-main
