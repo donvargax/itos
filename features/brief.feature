@@ -435,6 +435,34 @@ Feature: itos brief, the filled brief an agent starts from and its request
     Then itos exits with code 1
     And its JSON's problem "brief-idea"'s "message" says "p1-next"
 
+  # A project in a folder of its own, with its own itos.yaml, is briefed
+  # from that folder: AGENTS.md and a ref are the folder's, never the
+  # repository top's, whose AGENTS.md the Background commits (the review of
+  # the build, round 5). Nothing is tagged, so the drafter is briefed.
+  @ID-BRIEF-18 @wip @slice-204
+  Scenario: A project in a subfolder is briefed from its own files
+    Given the committed file "app/itos.yaml" holding the lines:
+      """
+      version: 1
+      work:
+        registry: work-items.yaml
+      tests:
+        scenario: { root: features, id: "ID-[A-Z]+-\\d+" }
+      """
+    And the committed file "app/work-items.yaml" holding the lines:
+      """
+      phases: { 1: null }
+      items:
+        - { id: slice-9, title: Nine, phase: 1, owner: null, status: todo, depends_on: [], refs: [docs/plan.md] }
+      """
+    And the committed file "app/AGENTS.md" holding "The app's rules."
+    And the committed file "app/docs/plan.md" holding "# The plan"
+    When itos runs "brief slice-9 --role drafter --json" from "app"
+    Then itos exits with code 0
+    And the "path" of each entry of its JSON's "reads", in order, is "AGENTS.md, docs/plan.md"
+    And its JSON's "reads" entry whose "path" is "AGENTS.md" has "blob" the git blob id of "app/AGENTS.md" at HEAD
+    And its JSON's "omitted" is []
+
   # The saved state is every file of the clone, its git folder included,
   # so HEAD, the index and anything itos might keep in .git/itos are
   # compared. A gh on the PATH records any call, so asking the forge shows.
