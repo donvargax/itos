@@ -16252,64 +16252,9 @@ items:
     title: "Asking for a review is a step of the machine: itos review request asks each configured reviewer for the pull request's head once, through its kind's adapter, and itos next names it when the head has no request"
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-209]
     kind: slice
-    why: >
-      Was p1-review-request-step.
-      The person, 2026-10-30: the deterministic workflow triggers reviews explicitly, never relying
-      on Codex's automatic review on ready_for_review. itos review request <item> posts '@codex
-      review' and the itos-review-request marker (login and head) for each push.pr.review_by login
-      with no request and no review for the head: outcomes requested, already; rerun-safe, --expect
-      like every mutation. itos next derives requested, waiting and reviewed from the markers and
-      review states, so a review nobody triggered is a fact, not a slow review. It folds --ready's
-      askForHead and review_stall re-ask into one rule (a first review, a fix push, a GitHub rebase
-      and a stall are all a head with no request). It runs with the user's gh, so the request comes
-      from a person's login. Codex's automatic reviews are turned off in its settings (the
-      person's), so the request is the only trigger.
-
-      Generalized (the person, 2026-10-30): trigger Codex and Cursor's Bugbot both. A reviewer is a
-      login and a kind (push.pr.reviewers: [{login, kind}]); each kind is a Go adapter with recorded
-      conformance cases, never a format language in config (vendor formats change silently): how to
-      request (codex '@codex review'; bugbot 'cursor review' or 'bugbot run', which it ignores from
-      a bot or app, so the request comes from the person's gh), and how its result maps to one
-      verdict per head (requested, running, passed, findings, refused, stalled): codex its
-      review-state comment for the commit, bugbot its 'Cursor Bugbot' check run on the head_sha
-      (success, neutral, failure), copilot its review or refusal. Findings block through unresolved
-      threads (GitHub's conversation resolution), uniform for every kind. Bugbot set to run only
-      when mentioned (its default reviews every push: implicit). Its adapter waits on reading its
-      real output on one PR: by 2026-10-30 it had posted nothing on any PR (227-240), and its docs
-      name no login.
-
-      The person, 2026-10-30: Bugbot's request is the comment '@cursor review'.
-
-      Codex's security review (seen 2026-10-30, PR 242): with the person opted in, it runs with
-      every code review that '@codex review' starts ('@codex security review' asks for it alone), so
-      it needs no request of its own. Its result is in the same Codex Review Summary comment, in a
-      machine-readable marker: codex-review-state:v1 {code_review:{commit_sha, has_any_findings,
-      has_unresolved_findings, status}, security_review:{…}}, plus codex-security-review:v1
-      {headSha, blockingSeverityThreshold, mergeGateEnabled, status}. The codex adapter reads both
-      parts for the head, and a head is passed only when both are completed with no unresolved
-      findings. A clean security review leaves a receipt comment; its findings come as suggestions,
-      so they block through threads like everything else.
-
-      Bugbot's first real run (PR 242, 2026-10-30): '@cursor review' from the person's gh started
-      it, and it took about 6 minutes. The result has two parts. A check run named 'Cursor Bugbot'
-      (app slug cursor) on the head_sha, conclusion success, output title 'Bugbot Review'. A review
-      from cursor[bot], state COMMENTED, body starting with the marker '<!-- BUGBOT_REVIEW -->' and
-      naming the reviewed commit. A clean run says 'found no new issues'. The bugbot adapter reads
-      the check run for the head. Its login for push.pr.reviewers is cursor[bot].
-
-      Manual Codex mode (the person switched Codex reviews to manual on 2026-10-30): '@codex review'
-      at PR 242's head 08d8cad ran the code review only. Before the switch it also ran the security
-      review. The security review needs its own '@codex security review'. Until it comes, --ready
-      waits on chatgpt-codex-connector (exit 75, every round). So the codex adapter requests both,
-      and a head counts as requested only when both requests are posted for it.
-
-      The person, 2026-10-30: the security review is requested explicitly too, as a step of its own,
-      never left to ride on the code review. Codex has three requests per head: '@codex review',
-      '@codex security review' and Bugbot's '@cursor review'. Each is posted once per head with its
-      marker.
     tags: [work, v8]
 
   - id: p1-pr-merge-mode
@@ -16758,8 +16703,8 @@ items:
   - id: bug-159
     title: A merge committing merge-tree's conflict tree verbatim, raw markers included, has no own paths and passes verify untyped
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: bug
     why: >
@@ -16771,3 +16716,28 @@ items:
       the marker hunk, so this is a gate bug-158 weakened. Fix: every path merge-tree reports as
       conflicted is the merge's own, whatever the merge's tree holds. Add a regression test with the
       exact marker tree.
+
+  - id: p3-dir-rename-conflict-no-paths
+    title: A merge whose conflict merge-tree reports with no paths (some directory renames) is judged as conflicting, not clean
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      bug-159's drafter, 2026-10-31: git's manual says some directory rename conflicts exit 1 with
+      an empty conflicted-files list. bug-159 leaves them out, so such a merge's own paths are only
+      its tree's difference from merge-tree's. Decide whether exit 1 with no paths should refuse an
+      untyped merge outright, or fall back to the --cc reading.
+
+  - id: p3-next-id-area-name
+    title: itos tests next-id takes a scenario area by its bare name (CMSG) as well as its prefix (ID-CMSG)
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      bug-159's drafter, 2026-10-31: 'itos tests next-id scenario CMSG' refused with a hint to use
+      ID-CMSG. It could take the area name as features/README.md lists it. Related to
+      p3-scenarios-bare-id.
