@@ -15705,6 +15705,10 @@ items:
       reviewed). Bound to the head with nobody asking again, every rebase leaves Copilot or Bugbot
       pending: it needs a re-ask, or p2-review-verdict-by-patch-id. Also: a dismissed review counts
       for nothing (verdicts counts every review GraphQL returns, dismissed ones included).
+
+      With reviewer kinds (p1-review-request-step): Bugbot's check run is bound to its head_sha by
+      GitHub, so it needs no binding of its own; Copilot's review carries its commit
+      (PullRequestReview.commit).
     tags: [push, v9]
 
   - id: T-339
