@@ -16630,3 +16630,20 @@ items:
       judge a merge) is empty could carry the earlier verdict forward. Both --ready's wait and
       review request (slice-215) would read it. Until then: hold registry pushes to main while an
       item is landing.
+
+  - id: bug-157
+    title: The VCS adapter's log reader drops, without a word, a commit whose message holds the byte 0x1e
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: bug
+    why: >
+      Found by Codex's security review on #236 (thread PRRT_kwDOU2JMic6yT-6Q, 2026-10-31):
+      internal/vcs/adapter entries() splits git log's output on 0x1e, its record separator, so a
+      commit message holding that byte loses its record. Log and Show are shared, so verify, the
+      commit-type and footer checks and any other log reader may skip such a commit silently, a gate
+      an agent could slip a commit past. slice-207 fails closed in attempt submit only (75ec45ec:
+      every first-parent commit must have a record). The adapter frames records safely
+      (NUL-terminated fields with -z, or counts checked against rev-list) or refuses a record it
+      cannot read.
