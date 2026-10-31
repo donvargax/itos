@@ -16112,19 +16112,9 @@ items:
     title: "itos review status posts itos/reviews on a pull request's head: success once each review_by login has reviewed (a Codex state for that head), pending naming who is missing, failure on a refusal"
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: slice
-    why: >
-      q-105 (the person, 2026-10-30): the reviews' wait moves from --ready to the forge as a
-      required status check, so --ready can hand off and return (p1-ready-hand-off). Settled: it
-      judges the head's reviews exactly as --ready's wait does today (push.pr.review_by, Copilot's
-      refusal, Codex's review-state comments with both reviews completed for the head), reusing that
-      code, never a second reading of it; it posts one commit status, context itos/reviews, on the
-      pull request's current head, and never on another commit; it asks nobody for a review and
-      waits for nothing (one forge question, one status write), so running it again is harmless;
-      threads stay GitHub's conversation-resolution rule. The workflow that runs it is a separate ci
-      item; turning the check on in branch protection is the person's.
     tags: [work, v8]
 
   - id: p1-reviews-status-workflow
