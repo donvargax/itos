@@ -121,7 +121,7 @@ func (h Handler) Handle(ctx context.Context, q Query) (Answer, error) {
 	if problem != nil {
 		return refused(*problem), nil
 	}
-	f := facts{ID: q.ID, Role: q.Role, Kind: itemKind(shown.Item, ledger.IDPattern(at)), Depends: dependencies(registry, shown.Item)}
+	f := facts{ID: q.ID, Role: q.Role, Kind: itemKind(shown.Item, taskIDs(at)), Depends: dependencies(registry, shown.Item)}
 	if f.Kind == "idea" {
 		return refused(out.Problem{Rule: "brief-idea", Message: q.ID + " is an idea, which has no spec and no kind to brief for",
 			Fix: fmt.Sprintf("make it work first: itos work promote %s --kind slice, or --kind task --type <type> --check <command>", q.ID)}), nil
@@ -174,6 +174,16 @@ func absent(v any) bool { return v == nil || v == value.Undefined }
 
 // bugID is a bug's id, bug-<n>.
 var bugID = regexp.MustCompile(`^bug-\d+$`)
+
+// taskIDs is ledger.id as a pattern, nil when the config has none, where
+// an item of no kind is never a task by its id (work.SpecKind), as work
+// show reads it.
+func taskIDs(at *config.Loaded) *regexp.Regexp {
+	if at.Ledger.ID == nil {
+		return nil
+	}
+	return ledger.IDPattern(at)
+}
 
 // itemKind is the item's kind as the brief names it: its kind when it gives
 // one, else slice or task as the registry's header reads an id, bug for

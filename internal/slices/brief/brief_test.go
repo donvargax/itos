@@ -637,3 +637,27 @@ func TestRun(t *testing.T) {
 		t.Errorf("error: exit %d, %v", code, err)
 	}
 }
+
+// An item of no kind is a task by its id only where ledger.id says what a
+// task's id is: without it, bug-7 is a bug, p1-next an idea, refused, and
+// T-001 an idea too; with it, T-001 is a task.
+func TestTaskIDs(t *testing.T) {
+	p := over(map[string]string{
+		"work-items.yaml":        "phases: { 1: null }\nitems:\n  - { id: bug-7, phase: 1, owner: null, status: todo, depends_on: [] }\n  - { id: p1-next, phase: 1, owner: null, status: todo, depends_on: [] }\n  - { id: T-001, phase: 1, owner: null, status: todo, depends_on: [] }\n",
+		"AGENTS.md":              "Rules.\n",
+		"features/fixes.feature": "Feature: Fixes\n\n  @ID-F-01 @bug-7\n  Scenario: one\n    When it runs\n",
+		"tasks/phase-1.yaml":     "- id: T-001\n  type: chore\n  title: Tidy\n",
+	})
+	if b := brief(t, p, "bug-7", "implementer"); !strings.HasPrefix(b.Text, "Implement bug-7 (a bug) of project") {
+		t.Errorf("an untyped bug: %.120q", b.Text)
+	}
+	for _, id := range []string{"p1-next", "T-001"} {
+		if a := handle(t, p, id, "drafter"); len(a.Refused) != 1 || a.Refused[0].Rule != "brief-idea" {
+			t.Errorf("%s without ledger.id: %+v", id, a.Refused)
+		}
+	}
+	p.trees.Files["HEAD"]["itos.yaml"] = itosYAML + "  id: 'T-\\d+'\n"
+	if b := brief(t, p, "T-001", "implementer"); !strings.HasPrefix(b.Text, "Implement T-001 (a task) of project") {
+		t.Errorf("T-001 under ledger.id: %.120q", b.Text)
+	}
+}
