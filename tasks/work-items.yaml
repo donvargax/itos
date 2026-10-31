@@ -16055,7 +16055,7 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: [p1-reviews-status-workflow, p3-review-by-head-any-login]
+    depends_on: [p1-reviews-status-workflow, p3-review-by-head-any-login, p1-review-request-step]
     kind: idea
     why: >
       The v9 plan's machine, handed back to merging (docs/plans/v9-coordinator.md; open question 4:
@@ -16085,6 +16085,9 @@ items:
       person's login (whether Codex answers a request a bot posts is unknown, so the status workflow
       should not ask). A head GitHub makes by rebasing (update-branch) has no itos push behind it:
       whoever asks for the rebase asks for the review too.
+
+      Superseded the note above on who asks Codex (the person, 2026-10-30): the explicit step
+      p1-review-request-step asks, not itos push and not the status workflow.
     tags: [work, v8]
 
   - id: p3-work-add-refusal-keeps-id
