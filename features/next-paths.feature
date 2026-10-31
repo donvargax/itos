@@ -21,17 +21,22 @@ Feature: itos next walks each item kind's path from work.paths: a kind whose spe
   kind key, else its id.
 
   The rule. Under push.mode pr, for an item whose kind's spec_review is
-  skip, every state slice-209 derives from the spec's verdict is
-  spec-accepted instead, driver take, itos work take <id>: a todo item whose
-  open pull request has no counted verdict at its head (slice-209's
-  spec-review) and one whose verdict there is changes (slice-209's
-  spec-changes). So next never asks a reviewer for that item. Everything
-  else is as slice-209 has it: the forge is asked the same calls, observed
-  is filled the same, the verdict included (a marker posted anyway is
-  reported and decides nothing), and every other state keeps its order and
-  its step: spec-proposed (a spec with no open or merged pull request, the
-  drafter's to push, which opens it) and, past the spec, implementing,
-  handed-back, merging, repair, merged and blocked. spec-changes from the
+  skip, every state slice-209 gives a todo item with a spec short of a
+  ready pull request is spec-accepted instead, driver take, itos work take
+  <id>: one whose open pull request has no counted verdict at its head
+  (slice-209's spec-review), one whose verdict there is changes
+  (slice-209's spec-changes), and one with no open or merged pull request
+  at all (slice-209's spec-proposed). So next never asks a reviewer for
+  that item, nor a drafter to push its spec: a task's spec is its ledger
+  entry, which itos task add commits to main under push.mode pr, so there
+  is nothing to push and the item would stall at spec-proposed, the case
+  skip exists for; the implementer's first push opens the draft
+  (slice-209: a doing item with no pull request is implementing).
+  Everything else is as slice-209 has it: the forge is asked the same
+  calls, observed is filled the same, the verdict included (a marker posted
+  anyway is reported and decides nothing), and every other state keeps its
+  order and its step: past the spec, implementing, handed-back, merging,
+  repair, merged and blocked. spec-changes from the
   journal (an implementer's spec_defect, which no verdict decides) stays the
   drafter's. A kind's path changes nothing for another kind. Under push.mode
   trunk nothing changes: in-flight, nothing asked.
@@ -41,6 +46,11 @@ Feature: itos next walks each item kind's path from work.paths: a kind whose spe
   has a path (slice, bug, task) whatever its state: a change to work.paths
   that changes that kind's path gives a new revision, and a change to
   another kind's path, or the default written out, leaves it as it was.
+
+  The defaults gain work.paths, so the feat updates the corpus case "the
+  defaults as --json" (tools/itos/conformance/config.yaml) for it; the last
+  release's corpus is judged against new JSON additively (previous-release),
+  so a key added there needs no Changes: or BREAKING-CHANGE: footer.
 
   Not in this slice, each an idea when wanted: the C value (spec review
   required only for the classes the config names, ADR-0061's high blast
@@ -63,13 +73,15 @@ Feature: itos next walks each item kind's path from work.paths: a kind whose spe
     And a clone of it, where itos runs
 
   # The slice's point: a task whose kind skips the review needs no verdict.
-  # With its spec, the ledger check, on its pushed branch and no pull
-  # request yet it is spec-proposed, the drafter's to push, as slice-209
-  # has it. With a draft pull request and no marker, which slice-209 calls
-  # spec-review, it is spec-accepted: the driver takes it. A marker asking
-  # for changes at the head is reported and decides nothing.
+  # Its spec, the ledger check, is committed on the clone's main, where
+  # itos task add puts it, and the remote has no branch T-001 and no pull
+  # request: slice-209 says spec-proposed, the drafter's, and skip says
+  # spec-accepted, the driver's, observed.pr null. Then a draft pull request
+  # is open for the branch, pushed from main, with no marker, which
+  # slice-209 calls spec-review: still spec-accepted. A marker asking for
+  # changes at the head is reported and decides nothing.
   @ID-NEXTPATHS-01 @wip @slice-211
-  Scenario: Under push.mode pr, a task whose kind skips spec review is spec-accepted on its draft pull request with no verdict, and a changes verdict does not send it back
+  Scenario: Under push.mode pr, a task whose kind skips spec review is spec-accepted with its spec on main and no pull request, on a draft with no verdict, and despite a changes verdict
     Given the config sets "work.paths" to the YAML "{ task: { spec_review: skip } }"
     And the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -78,14 +90,15 @@ Feature: itos next walks each item kind's path from work.paths: a kind whose spe
       """
     And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
     And the work registry has the task "T-001" owned by nobody with the status "todo" and no why
-    And the clone is on the new branch "T-001"
     And the task "T-001" has the committed check "true"
-    And git pushes HEAD to the remote's new branch "T-001"
     When itos runs "next T-001 --json"
     Then itos exits with code 0
-    And its JSON's "state" is "spec-proposed"
-    And its JSON's "next" is {"actor": "drafter", "action": "specify", "argv": ["itos", "brief", "T-001", "--role", "drafter"]}
-    Given the recording gh has the draft pull request "https://github.example/o/r/pull/7" open for the branch "T-001"
+    And its JSON's "state" is "spec-accepted"
+    And its JSON's "next" is {"actor": "driver", "action": "take", "argv": ["itos", "work", "take", "T-001"]}
+    And its JSON's "observed.pr" is null
+    And the recording gh's "pr list" call has "--head T-001"
+    Given git pushes HEAD to the remote's new branch "T-001"
+    And the recording gh has the draft pull request "https://github.example/o/r/pull/7" open for the branch "T-001"
     When itos runs "next T-001"
     Then itos exits with code 0
     And stdout contains the complete line "T-001: spec-accepted; next: driver take; run: itos work take T-001" exactly once
@@ -159,6 +172,36 @@ Feature: itos next walks each item kind's path from work.paths: a kind whose spe
     And its JSON's "kind" is "slice"
     And its JSON's "state" is "spec-review"
     And its JSON's "next" is {"actor": "reviewer", "action": "review", "argv": ["itos", "brief", "slice-9", "--role", "reviewer"]}
+    And its JSON's "observed.verdict" is null
+
+  # Skip is the kind's, not the tasks' alone: bug-3 has no kind key, so its
+  # kind is read from its id, and the bugs' path skips the review. Its
+  # scenario is on its pushed branch and its draft pull request has no
+  # marker, which slice-209 calls spec-review. A build that read a path for
+  # the kind key alone, or for tasks alone, says spec-review.
+  @ID-NEXTPATHS-10 @wip @slice-211
+  Scenario: Under push.mode pr, a bug whose kind, read from its id, skips spec review is spec-accepted on its draft pull request with no verdict
+    Given the config sets "work.paths" to the YAML "{ bug: { spec_review: skip } }"
+    And the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+      """
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the work registry has the item "bug-3" owned by nobody with the status "todo"
+    And the clone is on the new branch "bug-3"
+    And a feature file with the scenario "@ID-A-01" tagged "@bug-3"
+    And git pushes HEAD to the remote's new branch "bug-3"
+    And the recording gh has the draft pull request "https://github.example/o/r/pull/7" open for the branch "bug-3"
+    When itos runs "next bug-3"
+    Then itos exits with code 0
+    And stdout contains the complete line "bug-3: spec-accepted; next: driver take; run: itos work take bug-3" exactly once
+    When itos runs "next bug-3 --json"
+    Then itos exits with code 0
+    And its JSON's "kind" is "bug"
+    And its JSON's "state" is "spec-accepted"
+    And its JSON's "next" is {"actor": "driver", "action": "take", "argv": ["itos", "work", "take", "bug-3"]}
+    And its JSON's "observed.pr.number" is 7
     And its JSON's "observed.verdict" is null
 
   # Past the spec, skip changes nothing. slice-9 is doing on its draft with
