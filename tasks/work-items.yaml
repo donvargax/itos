@@ -16605,3 +16605,12 @@ items:
       the driver's loop (the brief step writes an 'issued' journal line). A check like 'base is an
       ancestor of head' does not close it. No agent has been seen doing this (guard rails from
       evidence), so it comes with the driver rather than before the pilot.
+
+      A second finding, on #236 (thread PRRT_kwDOU2JMic6yT2V-, 2026-10-31): an agent that can write
+      to the clone's git folder can append an accepted line matching its own result, and submit then
+      answers already without re-checking the claims. Re-checking on a replay does not close it,
+      since a forged journal can also change the attempt count or hide a rotation. The real fix is
+      the same: the driver's own records (issued and accepted) are kept where an attempt's agent
+      cannot write, such as outside its worktree or sandbox, or they are authenticated. The threat
+      model to settle with it: agents share the clone with the driver today; under a sandbox
+      executor (p2-attempt-executor) they would not.
