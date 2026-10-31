@@ -16758,3 +16758,16 @@ items:
       driver land (itos push --ready). The first driven run needs this. Its sibling, the land step
       being runnable from the driver's checkout (p1-next-argv-runnable-from-main), is handled by the
       pilot driver running --ready in the item's worktree.
+
+  - id: p3-ci-watch-fetches-unknown-sha
+    title: itos ci watch fetches once before refusing a SHA the clone doesn't have
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      slice-215's implementer, 2026-10-31: 'itos ci watch <sha>' for main's merge commit exited 2,
+      'is not a commit of this repository', until the clone fetched main. A SHA GitHub has but the
+      clone lacks is the normal case right after a merge on GitHub. ci watch can fetch origin once
+      (or ask the forge for the commit's runs by SHA without resolving it locally) before refusing.
