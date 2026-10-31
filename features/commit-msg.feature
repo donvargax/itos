@@ -169,11 +169,18 @@ Feature: The commit-msg hook
   # <branch>; then runs git merge --no-ff --no-commit <branch> on HEAD's
   # branch: MERGE_HEAD names <branch>'s head and the index holds git's merge.
   # "a merge commit <message> on top of it, of a root commit with no history
-  # in common with it, with no change of its own" is built the same way: a
-  # root commit "chore: start the other line" adding "other.md", with the
-  # footer Task: of the ledger's first task, and the merge of HEAD and it
-  # with the message, HEAD its first parent, its tree HEAD's with other.md
-  # added, HEAD's branch moved to it.
+  # in common with it, with no change of its own" is built the same way, by
+  # plumbing in a scratch index, so the Background's staged change to
+  # README.md stays staged and out of every commit: a root commit "chore:
+  # start the other line" adding "other.md" and a README.md of its own
+  # ("# The other line"), with the footer Task: of the ledger's first task,
+  # and the merge of HEAD and it with the message, HEAD its first parent,
+  # its tree HEAD's (README.md as HEAD has it) with other.md added, HEAD's
+  # branch moved to it. Both parents holding README.md is what makes the
+  # path shared: a build that merges them on an empty base (merge-tree
+  # --allow-unrelated-histories) gets an add/add conflict there and refuses
+  # README.md as the merge's own, while the --cc fallback finds no hunk,
+  # README.md being HEAD's.
 
   # Fails before the work at the exit code: --cc shows notes.md's one hunk,
   # holding both sides' lines, and the merge is refused under merge-type.
@@ -240,8 +247,13 @@ Feature: The commit-msg hook
 
   # A merge whose parents share no merge base, as --allow-unrelated-histories
   # makes one, keeps the --cc reading, which finds no hunk: merge-tree would
-  # refuse it, exit 128. A guard: it passes before the work and must after
-  # it, where a build that asks merge-tree of every two-parent merge fails.
+  # refuse it, exit 128. Both parents hold README.md, the merge keeping
+  # HEAD's: a build that merges on an empty base instead (merge-tree
+  # --allow-unrelated-histories) meets an add/add conflict there and refuses
+  # README.md under merge-type, while the fallback passes it. A guard: it
+  # passes before the work and must after it, where a build that asks
+  # merge-tree of every two-parent merge fails, and so does the empty-base
+  # one.
   @wip @bug-158 @guard @ID-CMSG-25
   Scenario: verify passes an untyped merge of a root commit with no history in common with its first parent
     Given a merge commit "Merge branch 'other'" on top of it, of a root commit with no history in common with it, with no change of its own
