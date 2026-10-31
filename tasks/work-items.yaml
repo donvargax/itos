@@ -15795,8 +15795,8 @@ items:
   - id: slice-207
     title: itos attempt submit checks an agent's result against its brief's request and against git, and records it
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: [slice-204]
     kind: slice
     why: >
