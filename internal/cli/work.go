@@ -9,7 +9,9 @@ import (
 	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/engine/judge"
 	"github.com/donvargax/itos/v8/internal/ledger"
+	"github.com/donvargax/itos/v8/internal/out"
 	"github.com/donvargax/itos/v8/internal/providers"
+	nextslice "github.com/donvargax/itos/v8/internal/slices/next"
 	workslice "github.com/donvargax/itos/v8/internal/slices/work"
 	trackerport "github.com/donvargax/itos/v8/internal/store/tracker/port"
 	trees "github.com/donvargax/itos/v8/internal/store/tree/adapter"
@@ -96,6 +98,12 @@ func (p workPorts) Gh(ctx context.Context, args ...string) (string, error) {
 func (workPorts) GitHubRepository(ctx context.Context, cfg *config.Loaded, remote string) string {
 	url, _ := cfg.VCS.RemoteURL(ctx, remote)
 	return providers.Repository(cfg, os.Getenv, url)
+}
+
+// Revision is the next slice's RevisionOf: the item's revision as itos next
+// gives it, over the tracker the questions are in.
+func (workPorts) Revision(ctx context.Context, cfg *config.Loaded, tracker trackerport.Tracker, id string) (string, *out.Problem, error) {
+	return nextslice.RevisionOf(ctx, cfg, tracker, id)
 }
 
 // workAddLine is workslice.AddLine, which draft reads a work add line with.

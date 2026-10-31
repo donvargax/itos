@@ -47,6 +47,21 @@ func TestWorkPortsBindTheRealCode(t *testing.T) {
 		!strings.Contains(stdout.String(), "one") || !strings.Contains(stdout.String(), "One") {
 		t.Errorf("runWork list = %d, %v, stdout %q, stderr %q", code, err, stdout.String(), stderr.String())
 	}
+	// Revision is the next slice's: the item's revision as itos next gives
+	// it, an id no item has refused as next refuses it.
+	tracker := p.Tracker(t.Context(), cfg)
+	revision, refused, err := p.Revision(t.Context(), cfg, tracker, "one")
+	if err != nil || refused != nil || !strings.HasPrefix(revision, "sha256:") || len(revision) != len("sha256:")+64 {
+		t.Errorf("Revision(one) = %q, %v, %v, want next's revision", revision, refused, err)
+	}
+	stdout.Reset()
+	if code, err := runNext([]string{"one"}, Out{Stdout: &stdout, Stderr: &stderr, OS: runtime.GOOS, JSON: true}); code != 0 || err != nil ||
+		!strings.Contains(stdout.String(), `"revision": "`+revision+`"`) {
+		t.Errorf("runNext one = %d, %v, stdout %q, want the revision %s", code, err, stdout.String(), revision)
+	}
+	if revision, refused, err := p.Revision(t.Context(), cfg, tracker, "nope"); err != nil || refused == nil || refused.Rule != "work-unknown-item" || revision != "" {
+		t.Errorf("Revision(nope) = %q, %v, %v, want the unknown item refused", revision, refused, err)
+	}
 	if code, err := runWork([]string{"show", "a", "b"}, Out{}); code != 0 || err == nil || err.Error() != "work show needs one <id>" {
 		t.Errorf("runWork show a b = %d, %v, want the usage error alone", code, err)
 	}

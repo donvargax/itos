@@ -73,14 +73,17 @@ func hold(ctx context.Context, t trackerport.Tracker, stderr io.Writer) (release
 	}, nil
 }
 
-// take is `work take <id> [--as <handle>]`: the item set in progress for
-// the person and the registry committed (work.Take). The person is --as,
-// else who the identity provider says, as for work; one that is nobody, or
-// not among the people, exits 3. Under a stealth config, or with no one in
-// the people (Registry.Nobody: a people file missing or listing nobody), with
-// no --as nobody is asked: every item is the session's, and its owner is left
-// as it is (bug 46).
-func (h Handler) take(ctx context.Context, id, as string, o Out) (Answer, error) {
+// take is `work take <id> [--as <handle>] [--expect <revision>]`: the item
+// set in progress for the person and the registry committed (work.Take).
+// The person is --as, else who the identity provider says, as for work; one
+// that is nobody, or not among the people, exits 3. Under a stealth config,
+// or with no one in the people (Registry.Nobody: a people file missing or
+// listing nobody), with no --as nobody is asked: every item is the
+// session's, and its owner is left as it is (bug 46). An item already in
+// progress for the person is already, nothing written, whatever --expect
+// says; else a stale revision (stale) refuses the take before its own
+// refusals (slice 208).
+func (h Handler) take(ctx context.Context, id, as, expect string, o Out) (Answer, error) {
 	a, s, err := h.read(ctx, o)
 	if s == nil {
 		return a, err
@@ -91,7 +94,39 @@ func (h Handler) take(ctx context.Context, id, as string, o Out) (Answer, error)
 		return a, nil
 	}
 	change, problem, err := domain.Take(s.registry, s.text, id, person, every)
+	if !change.Unchanged {
+		stale, staleErr := h.stale(ctx, s, id, expect)
+		if staleErr != nil {
+			return a, staleErr
+		}
+		if stale != nil {
+			a.Refused, a.Code = []out.Problem{*stale}, refused
+			return a, nil
+		}
+	}
 	return h.commit(ctx, a, s, id, change, asList(problem), err, o)
+}
+
+// stale is the problem of --expect's revision (expect, "" for none) that is
+// not the item's current one, as itos next gives it (Ports.Revision): what
+// the caller knew of the item when it chose the command no longer holds,
+// and the fix is to ask itos next again (slice 208, work take and work
+// done). The message names the current revision whole. An item next gives
+// no revision for, none with the id, is left to the command's own refusal;
+// what next cannot read is the error.
+func (h Handler) stale(ctx context.Context, s *writing, id, expect string) (*out.Problem, error) {
+	if expect == "" {
+		return nil, nil
+	}
+	current, refused, err := h.ports.Revision(ctx, s.cfg, s.tracker, id)
+	if err != nil || refused != nil || current == expect {
+		return nil, err
+	}
+	return &out.Problem{
+		Rule:    "work-stale",
+		Message: fmt.Sprintf("%s's revision is %s, not %s: what was known of it when this command was chosen no longer holds", id, current, expect),
+		Fix:     "run itos next " + id + " again, and act on what it says now",
+	}, nil
 }
 
 // add is `work add [<idea-id>] --title <t> --why <w> [--kind

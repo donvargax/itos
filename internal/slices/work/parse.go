@@ -2,6 +2,7 @@ package work
 
 import (
 	"path/filepath"
+	"regexp"
 	"slices"
 	"strings"
 
@@ -27,7 +28,9 @@ type CLI struct {
 // commit's patch on its own. IDs are the items edit, queue, drop, defer,
 // resume and give-back name, in the order given; Why their reason; Place
 // where queue puts them; Edits what edit changes. New is the item add
-// makes, and Promotion the idea promote makes a slice or a task.
+// makes, and Promotion the idea promote makes a slice or a task. Expect is
+// take's and done's --expect, the revision itos next gave the caller, ""
+// for none.
 type Query struct {
 	Sub       string
 	As        string
@@ -36,6 +39,7 @@ type Query struct {
 	File      string
 	Named     bool
 	ID        string
+	Expect    string
 	Patch     bool
 	JSON      bool
 	IDs       []string
@@ -87,9 +91,9 @@ func Parse(args []string, origin string, json, quiet bool) (CLI, error) {
 	case "show":
 		q, err = parseShow(rest)
 	case "take":
-		q.ID, q.As, err = parseTake(rest)
+		q.ID, q.As, q.Expect, err = parseTake(rest)
 	case "done":
-		q.ID, _, err = oneID("done", rest, nil)
+		q.ID, q.Expect, err = parseDone(rest)
 	case "promote":
 		q.Promotion, err = PromoteLine(rest)
 	case "add":
@@ -169,10 +173,43 @@ func parseShow(args []string) (Query, error) {
 	return Query{ID: ids[0], Patch: patch}, nil
 }
 
-// parseTake is `work take <id> [--as <handle>]`: the id and the handle.
-func parseTake(args []string) (string, string, error) {
-	id, flags, err := oneID("take", args, nil, "--as")
-	return id, flags["--as"], err
+// parseTake is `work take <id> [--as <handle>] [--expect <revision>]`: the
+// id, the handle and the revision.
+func parseTake(args []string) (id, as, expect string, err error) {
+	id, flags, err := oneID("take", args, nil, "--as", "--expect")
+	if err != nil {
+		return "", "", "", err
+	}
+	if expect, err = expected("take", flags["--expect"]); err != nil {
+		return "", "", "", err
+	}
+	return id, flags["--as"], expect, nil
+}
+
+// parseDone is `work done <id> [--expect <revision>]`: the id and the
+// revision.
+func parseDone(args []string) (id, expect string, err error) {
+	id, flags, err := oneID("done", args, nil, "--expect")
+	if err != nil {
+		return "", "", err
+	}
+	if expect, err = expected("done", flags["--expect"]); err != nil {
+		return "", "", err
+	}
+	return id, expect, nil
+}
+
+// revisionForm is the shape of a revision itos next gives (next.Revision):
+// "sha256:" and the digest's 64 lowercase hex digits.
+var revisionForm = regexp.MustCompile(`^sha256:[0-9a-f]{64}$`)
+
+// expected is --expect's revision, "" for none: one not of revisionForm is
+// a usage error naming the form (slice 208), before anything is read.
+func expected(sub, revision string) (string, error) {
+	if revision != "" && !revisionForm.MatchString(revision) {
+		return "", out.Usage("work %s --expect takes the revision itos next gives, \"sha256:\" and 64 lowercase hex digits, not %s", sub, revision)
+	}
+	return revision, nil
 }
 
 // parseEdit is `work edit <id>… [--title <title>] [--depends-on <ids>]

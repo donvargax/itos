@@ -58,6 +58,21 @@
 //     owner is left as it is, its line saying "with no owner recorded" when
 //     it has none (bug 133). work add mints the id of a slice, a task or a
 //     bug through ItemID before work.Add; an idea keeps its author's.
+//   - work take and work done take --expect <revision> (slice 208, rerun
+//     safety: docs/plans/v9-coordinator.md), the revision itos next gave the
+//     caller, a usage error when not of next's form (parse.go's
+//     revisionForm). Judged once the person is known and the writer's
+//     change made, in this order: a change the writer found already made
+//     (work.Take's and work.Done's Unchanged: the item doing for the
+//     person, or done) is already, nothing written, whatever the revision,
+//     which is not asked; else, with --expect, a revision that is not the
+//     item's current one, as Ports.Revision gives it (next.RevisionOf, so
+//     the two cannot drift), is refused work-stale (stale), its message
+//     naming the current revision whole, before the writer's own refusals,
+//     done's landing checks and, under push.mode pr, its remote's HEAD;
+//     else the command runs as before. An id next refuses is left to the
+//     writer's refusal. --json's outcome (run.go's outcome) says taken or
+//     done, or already, with or without --expect.
 //   - work promote (promote.go) calls work.Promote, and judges all it can
 //     refuse before ItemID reserves the id (slice 138): work.Promotable,
 //     the questions, and for a task its ledger entry, by ledger.Add under

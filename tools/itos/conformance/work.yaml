@@ -11,7 +11,11 @@
 # command provider, slice 85); the
 # registry's default beside the ledger, in the folder ledger.files names;
 # the queue (slice 66): work queue's places, its commit and its refusals, the
-# proposal in its order and work check's problems with it.
+# proposal in its order and work check's problems with it; work take's and
+# work done's --json outcome and --expect <revision> (slice 208): a target
+# already reached is already whatever the revision, a revision that is not
+# the item's is stale (work-stale), nothing written, and one not of next's
+# form a usage error.
 files:
   itos.yaml: |
     version: 1
@@ -766,6 +770,7 @@ cases:
     json_has:
       schema: 1
       ok: true
+      outcome: taken
       item: { id: x, title: "X, quoted", phase: 1, owner: a, status: doing, depends_on: [], tags: [] }
       commit: "<any>"
     stderr_has: "docs: take x"
@@ -782,6 +787,7 @@ cases:
     json:
       schema: 1
       ok: true
+      outcome: taken
       item: { id: x, title: "X, quoted", phase: 1, owner: a, status: doing, depends_on: [], tags: [] }
       commit: null
     files_after:
@@ -794,7 +800,7 @@ cases:
       .git/itos/itos.yaml: *stealth
       .git/itos/work-items.yaml: "phases: { 1: q }\nitems:\n  - { id: x, title: X, phase: 1, owner: z, status: todo }\n"
     exit: 0
-    json: { schema: 1, ok: true, item: { id: x, title: X, phase: 1, owner: z, status: doing, depends_on: [], tags: [] }, commit: null }
+    json: { schema: 1, ok: true, outcome: taken, item: { id: x, title: X, phase: 1, owner: z, status: doing, depends_on: [], tags: [] }, commit: null }
     files_after:
       .git/itos/work-items.yaml: "phases: { 1: q }\nitems:\n  - { id: x, title: X, phase: 1, owner: z, status: doing }\n"
   - name: work take refuses an item someone else owns
@@ -836,7 +842,31 @@ cases:
   - name: work take of an item already in progress for the person changes nothing
     argv: [work, take, busy, --json]
     exit: 0
-    json: { schema: 1, ok: true, item: { id: busy, title: Busy, phase: 1, owner: a, status: doing, depends_on: [], tags: [] }, commit: null }
+    json: { schema: 1, ok: true, outcome: already, item: { id: busy, title: Busy, phase: 1, owner: a, status: doing, depends_on: [], tags: [] }, commit: null }
+    files_after:
+      work-items.yaml: *registry
+  # Slice 208: --expect <revision>, the revision itos next gave. An item
+  # already in progress for the person is already whatever the revision; a
+  # well-formed revision that is not the item's is stale, nothing written,
+  # before the take's own refusals (free is nobody's and takeable); one not
+  # of the form is a usage error.
+  - name: work take --expect of an item already in progress for the person is already, whatever the revision
+    argv: [work, take, busy, --json, --expect, "sha256:0000000000000000000000000000000000000000000000000000000000000000"]
+    exit: 0
+    json: { schema: 1, ok: true, outcome: already, item: { id: busy, title: Busy, phase: 1, owner: a, status: doing, depends_on: [], tags: [] }, commit: null }
+    files_after:
+      work-items.yaml: *registry
+  - name: work take --expect with a revision that is not the item's is refused as stale, nothing written
+    argv: [work, take, free, --json, --expect, "sha256:0000000000000000000000000000000000000000000000000000000000000000"]
+    exit: 1
+    json: { schema: 1, ok: false, problems: [{ rule: work-stale }] }
+    stdout_has: "itos next free"
+    files_after:
+      work-items.yaml: *registry
+  - name: work take --expect with a revision not of next's form is a usage error, nothing written
+    argv: [work, take, free, --expect, abc]
+    exit: 2
+    stderr_has: ["--expect", "sha256:"]
     files_after:
       work-items.yaml: *registry
   - name: work take refuses a registry with changes no commit holds
@@ -1084,6 +1114,7 @@ cases:
     json_has:
       schema: 1
       ok: true
+      outcome: done
       item: { id: x, title: "X, quoted", phase: 1, owner: null, status: done, depends_on: [], tags: [] }
       ci: unwatched
       commit: "<any>"
@@ -1193,8 +1224,38 @@ cases:
     json:
       schema: 1
       ok: true
+      outcome: already
       item: { id: done, title: Done, phase: 1, owner: a, status: done, depends_on: [], tags: [] }
       commit: null
+    files_after:
+      work-items.yaml: *registry
+  # Slice 208: --expect <revision> as for work take. An item already done is
+  # already whatever the revision; a well-formed revision that is not the
+  # item's is stale, nothing written, before the landing is checked (busy is
+  # in progress, with no scenario and no remote); one not of the form is a
+  # usage error.
+  - name: work done --expect of an item already done is already, whatever the revision
+    argv: [work, done, done, --json, --expect, "sha256:0000000000000000000000000000000000000000000000000000000000000000"]
+    exit: 0
+    json:
+      schema: 1
+      ok: true
+      outcome: already
+      item: { id: done, title: Done, phase: 1, owner: a, status: done, depends_on: [], tags: [] }
+      commit: null
+    files_after:
+      work-items.yaml: *registry
+  - name: work done --expect with a revision that is not the item's is refused as stale, nothing written
+    argv: [work, done, busy, --json, --expect, "sha256:0000000000000000000000000000000000000000000000000000000000000000"]
+    exit: 1
+    json: { schema: 1, ok: false, problems: [{ rule: work-stale }] }
+    stdout_has: "itos next busy"
+    files_after:
+      work-items.yaml: *registry
+  - name: work done --expect with a revision not of next's form is a usage error, nothing written
+    argv: [work, done, busy, --expect, "sha1:0000000000000000000000000000000000000000000000000000000000000000"]
+    exit: 2
+    stderr_has: ["--expect", "sha256:"]
     files_after:
       work-items.yaml: *registry
   - name: work add makes an idea at the end of the items, todo and nobody's, and commits the registry alone

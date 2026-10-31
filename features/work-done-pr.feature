@@ -452,7 +452,7 @@ Feature: Under push.mode pr, work done closes an item only once its pull request
   # revision gives that refusal, not work-stale. The title edit, committed
   # on the branch, moves the revision (@ID-NEXT-10). Nothing is written,
   # and gh is never called.
-  @ID-PRDONE-17 @wip @slice-208
+  @ID-PRDONE-17 @slice-208
   Scenario: Under pr, a stale revision refuses work done before HEAD's branch is judged
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
