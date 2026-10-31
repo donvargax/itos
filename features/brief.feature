@@ -413,6 +413,28 @@ Feature: itos brief, the filled brief an agent starts from and its request
     And the "path" of each entry of its JSON's "omitted", in order, is "../notes.md, .."
     And its JSON's "omitted" entry whose "path" is "../notes.md" has "reason" "not in the tree at HEAD"
 
+  # Without ledger.id an item of no kind is a task by its id never, as work
+  # show reads it, so an untyped bug-<n> is still a bug and an untyped idea
+  # still refused (the review of the build, round 4).
+  @ID-BRIEF-17 @wip @slice-204
+  Scenario: Without ledger.id, an item of no kind is a bug or an idea by its id
+    Given the config has no ledger.id
+    And the committed feature file "features/fixes.feature" with the live scenario "@ID-F-01" tagged "@bug-7"
+    And the committed file "tasks/work-items.yaml" holding the lines:
+      """
+      phases: { 1: null }
+      items:
+        - { id: bug-7, title: A bug, phase: 1, owner: null, status: todo, depends_on: [] }
+        - { id: p1-next, title: Later, phase: 1, owner: null, status: todo, depends_on: [], why: Later. }
+      """
+    When itos runs "brief bug-7 --role implementer"
+    Then itos exits with code 0
+    And its output says "Implement bug-7 (a bug) of"
+    And its output says "The scenarios are @ID-F-01 in features/fixes.feature, all live."
+    When itos runs "brief p1-next --role drafter --json"
+    Then itos exits with code 1
+    And its JSON's problem "brief-idea"'s "message" says "p1-next"
+
   # The saved state is every file of the clone, its git folder included,
   # so HEAD, the index and anything itos might keep in .git/itos are
   # compared. A gh on the PATH records any call, so asking the forge shows.
