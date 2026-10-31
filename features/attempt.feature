@@ -741,7 +741,7 @@ Feature: itos attempt submit, an agent's result checked against its brief and ag
   # HEAD names it with another request, and --at the older commit gives
   # that commit's brief again, its base and request those of the first
   # run. A rev git cannot resolve is refused.
-  @ID-ATTEMPT-15 @wip @slice-207
+  @ID-ATTEMPT-15 @slice-207
   Scenario: itos brief --json names the commit it was computed at, and --at computes it at another
     Given the last commit SHA is saved as "first"
     When itos runs "brief slice-9 --role drafter --json"

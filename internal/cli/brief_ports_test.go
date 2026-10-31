@@ -58,7 +58,7 @@ func TestBriefPortsBindTheRealCode(t *testing.T) {
 	// The config is HEAD's: an uncommitted change to it, naming another
 	// registry, changes no brief.
 	writeFile(t, filepath.Join(dir, "itos.yaml"), "version: 1\nwork:\n  registry: other.yaml\n")
-	if cfg, err := p.Config(t.Context()); err != nil || cfg.Work.Registry != "work-items.yaml" || cfg.Source.Tree(t.Context()) != "HEAD" {
+	if cfg, err := p.Config(t.Context(), "HEAD"); err != nil || cfg.Work.Registry != "work-items.yaml" || cfg.Source.Tree(t.Context()) != "HEAD" {
 		t.Errorf("Config = %v, %v", cfg, err)
 	}
 	code, stdout, stderr := run("brief", "slice-9", "--role", "implementer", "--json")
@@ -96,7 +96,7 @@ func TestBriefPortsBindTheRealCode(t *testing.T) {
 	// missing environment.
 	outside := briefPorts{o: Out{Dir: t.TempDir()}}
 	outside.Git.Dir = outside.o.Dir
-	if cfg, err := outside.Config(t.Context()); err == nil || kind.Of(err) != kind.Missing {
+	if cfg, err := outside.Config(t.Context(), "HEAD"); err == nil || kind.Of(err) != kind.Missing {
 		t.Errorf("Config outside a repository = %v, %v, want a missing environment", cfg, err)
 	}
 }

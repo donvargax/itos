@@ -14,21 +14,24 @@ type CLI struct {
 	JSON bool
 }
 
-// Query is what brief asks: the item's ID and the Role briefed.
+// Query is what brief asks: the item's ID, the Role briefed, and the
+// revision At which it is computed, HEAD when "".
 type Query struct {
-	ID, Role string
+	ID, Role, At string
 }
 
 // usage is how the line is written, as a usage error names it.
-const usage = "itos brief <id> --role drafter|implementer|reviewer"
+const usage = "itos brief <id> --role drafter|implementer|reviewer [--at <rev>]"
 
 // Parse reads the arguments internal/cli's flag spec hands the brief
 // command, with the global --json: one item's id and --role. Every error
 // is a usage error (out.Usage), given before anything is read; whether the
-// role is one itos knows is the handler's to refuse.
+// role is one itos knows, and --at a revision git resolves, is the
+// handler's to refuse.
 func Parse(args []string, json bool) (CLI, error) {
 	role, hasRole := argsengine.FlagValue(args, "--role")
-	ids := argsengine.Positional(args, "--role")
+	at, _ := argsengine.FlagValue(args, "--at")
+	ids := argsengine.Positional(args, "--role", "--at")
 	switch {
 	case len(ids) == 0:
 		return CLI{}, out.Usage("brief needs an item's id: %s", usage)
@@ -37,5 +40,5 @@ func Parse(args []string, json bool) (CLI, error) {
 	case !hasRole:
 		return CLI{}, out.Usage("brief needs --role: %s", usage)
 	}
-	return CLI{Query: Query{ID: ids[0], Role: role}, JSON: json}, nil
+	return CLI{Query: Query{ID: ids[0], Role: role, At: at}, JSON: json}, nil
 }

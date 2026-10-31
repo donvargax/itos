@@ -20,6 +20,10 @@
   scenarios:
     - id: "@ID-ASK-03"
       why: a question asked, answered and shown, each write committed alone, the file's point in one run
+- file: attempt.feature
+  scenarios:
+    - id: "@ID-ATTEMPT-15"
+      why: the brief's base and --at, which every result is bound to, its only live scenario until attempt submit lands
 - file: bin.feature
   scenarios:
     - id: "@ID-BIN-01"
