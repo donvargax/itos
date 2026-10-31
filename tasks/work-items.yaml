@@ -16580,3 +16580,22 @@ items:
       internal/engine/reviewers, so it had to be run by hand. Pre-push judges committed work, so
       this matters only for a by-hand run before the commit, but the tool's name promises the
       changed packages.
+
+  - id: p2-substrate-homelab-spike
+    title: "Spike: run attempts in Agent Substrate on the person's homelab Kubernetes, behind the attempt executor seam"
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The person, 2026-10-31: they have a homelab Kubernetes cluster and might run Agent Substrate
+      on it (github.com/agent-substrate/env, the gVisor actor runtime google/ax is built on).
+      Substrate, not ax, is the piece that sandboxes, so the spike runs one implementer attempt as a
+      Substrate actor (ax optional on top) and reports back through the same brief and attempt
+      submit as a local subagent (p2-attempt-executor). To check: gVisor and Linux 6.8+ with
+      OverlayFS lowerdir+ on the workers; whether Claude Code in the sandbox can use the
+      subscription's OAuth credentials, since ax's example uses ANTHROPIC_API_KEY; pushing from the
+      sandbox without broad credentials (a scoped token for the item's branch only); and suspend and
+      resume for long attempts. It comes after the first driven run, and belongs with the person's
+      sandbox project.
