@@ -16771,3 +16771,16 @@ items:
       the marker hunk, so this is a gate bug-158 weakened. Fix: every path merge-tree reports as
       conflicted is the merge's own, whatever the merge's tree holds. Add a regression test with the
       exact marker tree.
+
+  - id: p3-dir-rename-conflict-no-paths
+    title: A merge whose conflict merge-tree reports with no paths (some directory renames) is judged as conflicting, not clean
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      bug-159's drafter, 2026-10-31: git's manual says some directory rename conflicts exit 1 with
+      an empty conflicted-files list. bug-159 leaves them out, so such a merge's own paths are only
+      its tree's difference from merge-tree's. Decide whether exit 1 with no paths should refuse an
+      untyped merge outright, or fall back to the --cc reading.
