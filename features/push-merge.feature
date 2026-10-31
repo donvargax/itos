@@ -144,7 +144,7 @@ Feature: Under push.mode pr with push.pr.update merge, itos push brings an item'
 
   # Both values pass, rebase written out as the default is. Fails before the
   # work at the exit code: today push.pr.update is an unknown key, exit 2.
-  @wip @ID-PUSHMERGE-01 @slice-213
+  @ID-PUSHMERGE-01 @slice-213
   Scenario Outline: config check accepts push.pr.update <update>
     Given the config sets "push.pr.update" to "<update>"
     When itos checks the config
@@ -158,7 +158,7 @@ Feature: Under push.mode pr with push.pr.update merge, itos push brings an item'
   # squash is the merge GitHub offers that the commit rules cannot judge.
   # Fails before the work at the values: today the refusal is of an unknown
   # key, exit 2 as well, naming push.pr.update but not the two values.
-  @wip @ID-PUSHMERGE-02 @slice-213
+  @ID-PUSHMERGE-02 @slice-213
   Scenario: config check refuses a push.pr.update other than rebase or merge, naming both
     Given the config sets "push.pr.update" to "squash"
     When itos checks the config
@@ -169,7 +169,7 @@ Feature: Under push.mode pr with push.pr.update merge, itos push brings an item'
   # Rebase by default, so a repository that does not ask pushes as before.
   # Fails before the work at the exit code: today config get refuses the
   # unknown key, exit 2.
-  @wip @ID-PUSHMERGE-03 @slice-213
+  @ID-PUSHMERGE-03 @slice-213
   Scenario: config get prints push.pr.update's default, rebase, when the config leaves it out
     When itos runs "config get push.pr.update"
     Then itos exits with code 0
@@ -189,7 +189,7 @@ Feature: Under push.mode pr with push.pr.update merge, itos push brings an item'
   # the pre-push hook, which cannot read the config either, refuses it.
   # (With the config readable and today's hook, the hook would judge the
   # chore in <base>..<local> and refuse the push.)
-  @wip @ID-PUSHMERGE-04 @slice-213
+  @ID-PUSHMERGE-04 @slice-213
   Scenario: Under merge, a push from an item's branch main has moved past merges main in and pushes a fast-forward, the pre-push hook judging none of main's commits
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -221,7 +221,7 @@ Feature: Under push.mode pr with push.pr.update merge, itos push brings an item'
   # was made with. Fails before the work at the saved commit's step: today
   # the config cannot be read and the trunk push sends the clone's commits,
   # rebased, to main, so the remote's item branch lacks it.
-  @wip @ID-PUSHMERGE-05 @slice-213
+  @ID-PUSHMERGE-05 @slice-213
   Scenario: Under merge, a commit the remote's item branch has that the clone lacks is merged in, never rebased onto
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -252,7 +252,7 @@ Feature: Under push.mode pr with push.pr.update merge, itos push brings an item'
   # the file and what to run next. Fails before the work at the outcome:
   # today the config cannot be read and the trunk push's rebase onto main
   # stops, outcome rebase-stopped.
-  @wip @ID-PUSHMERGE-06 @slice-213
+  @ID-PUSHMERGE-06 @slice-213
   Scenario: Under merge, a merge of main that conflicts is left in progress, exit 1, nothing pushed
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -284,7 +284,7 @@ Feature: Under push.mode pr with push.pr.update merge, itos push brings an item'
   # and passes; the spec pushed before keeps its SHA. Fails before the work
   # at the Given that commits the merge: today the push before it stops in a
   # rebase, not a merge, so there is no merge to commit.
-  @wip @ID-PUSHMERGE-07 @slice-213
+  @ID-PUSHMERGE-07 @slice-213
   Scenario: Under merge, itos push again after the implementer commits the resolved merge pushes it
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -320,7 +320,7 @@ Feature: Under push.mode pr with push.pr.update merge, itos push brings an item'
   # at the item branch's main-commit step: today the config cannot be read
   # and the trunk push sends everything to main, the remote's item branch
   # left with the spec alone.
-  @wip @ID-PUSHMERGE-08 @slice-213
+  @ID-PUSHMERGE-08 @slice-213
   Scenario: Under merge, a take on the branch goes to main and the work to the item's branch with main merged in
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -359,7 +359,7 @@ Feature: Under push.mode pr with push.pr.update merge, itos push brings an item'
   # stays the implementer's merge. Fails before the work at the Given that
   # commits the merge: today the push before it stops in a rebase, not a
   # merge.
-  @wip @ID-PUSHMERGE-09 @slice-213
+  @ID-PUSHMERGE-09 @slice-213
   Scenario: Under merge, an idea added above the implementer's unpushed merge goes to main and the merge to the item's branch
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -391,7 +391,7 @@ Feature: Under push.mode pr with push.pr.update merge, itos push brings an item'
   # Fails before the work at the outcome: today the config cannot be read,
   # so --onto-main is refused as outside push.mode pr,
   # onto-main-without-pr.
-  @wip @ID-PUSHMERGE-10 @slice-213
+  @ID-PUSHMERGE-10 @slice-213
   Scenario: Under merge, push --onto-main is refused, exit 1, nothing pushed, saying itos push merges main in
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -418,7 +418,7 @@ Feature: Under push.mode pr with push.pr.update merge, itos push brings an item'
   # With no push.pr.update the push rebases onto the remote's item branch as
   # it does today, no merge commit. A guard: it passes before the work and
   # must after it.
-  @wip @ID-PUSHMERGE-11 @slice-213 @guard
+  @ID-PUSHMERGE-11 @slice-213 @guard
   Scenario: Without push.pr.update, a push still rebases onto the remote's item branch, with no merge commit
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -445,7 +445,7 @@ Feature: Under push.mode pr with push.pr.update merge, itos push brings an item'
   # left in progress, no gh called. Fails before the work at the outcome:
   # today the config cannot be read and the trunk push's rebase onto main
   # stops on widget.md, rebase-stopped.
-  @wip @ID-PUSHMERGE-12 @slice-213
+  @ID-PUSHMERGE-12 @slice-213
   Scenario: Under merge, a take on the branch reaches main before a merge of main that conflicts stops the push
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -480,7 +480,7 @@ Feature: Under push.mode pr with push.pr.update merge, itos push brings an item'
   # branch through the merge, under main's SHA. Fails before the work at the
   # Given that commits the merge: today the push before it stops in a
   # rebase, not a merge.
-  @wip @ID-PUSHMERGE-13 @slice-213
+  @ID-PUSHMERGE-13 @slice-213
   Scenario: Under merge, itos push again after a take went to main and the implementer committed the resolved merge pushes the merge
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -516,7 +516,7 @@ Feature: Under push.mode pr with push.pr.update merge, itos push brings an item'
   # head step: today the config cannot be read, the trunk push sends the
   # clone's commits to main, and the remote's item branch ends at "fix: mend
   # the widget".
-  @wip @ID-PUSHMERGE-14 @slice-213
+  @ID-PUSHMERGE-14 @slice-213
   Scenario: Under merge, a take goes to main before the remote's item commit is merged in
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -549,7 +549,7 @@ Feature: Under push.mode pr with push.pr.update merge, itos push brings an item'
   # merged in. Fails before the work at the head step: today the config
   # cannot be read and the trunk push sends everything to main, so the
   # remote has no branch "slice-9".
-  @wip @ID-PUSHMERGE-15 @slice-213
+  @ID-PUSHMERGE-15 @slice-213
   Scenario: Under merge, a first push with a take sends it to main and merges main into the work rather than rebasing it
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """

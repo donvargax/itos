@@ -67,20 +67,34 @@ type verifier struct {
 // failing one's report and the count, then runs each range command once, up
 // to the first that fails.
 func Over(ctx context.Context, cfg *config.Loaded, repo vcsport.VCS, from, to string, o Out) (Run, error) {
+	return newVerifier(cfg, repo, o).over(ctx, from, to, cfg.Range(from, to))
+}
+
+// OverUnpushed is Over judging, of the range's commits, those no remote branch
+// has (slice-213): the pre-push hook's for a ref the remote has, so the
+// commits a merge of main brings in, judged when they reached the remote, are
+// not judged again. The range commands still take from as their start.
+func OverUnpushed(ctx context.Context, cfg *config.Loaded, repo vcsport.VCS, from, to string, o Out) (Run, error) {
+	return newVerifier(cfg, repo, o).over(ctx, from, to, vcsport.Range{From: vcsport.Unpushed, To: to, Since: cfg.RangeStart(from)})
+}
+
+// newVerifier is the run of verify over repo that writes where o says.
+func newVerifier(cfg *config.Loaded, repo vcsport.VCS, o Out) *verifier {
 	v := &verifier{cfg: cfg, vcs: repo, moves: tests.NewMoves(cfg, o.Tests), log: o.Stdout, o: o}
 	if o.JSON {
 		v.log = o.Stderr
 	}
-	return v.over(ctx, from, to)
+	return v
 }
 
-// over is Over's walk.
-func (v *verifier) over(ctx context.Context, from, to string) (Run, error) {
+// over is the walk of Over and OverUnpushed: the commits of judged, then the
+// range commands from from to to.
+func (v *verifier) over(ctx context.Context, from, to string, judged vcsport.Range) (Run, error) {
 	run := Run{Since: v.cfg.Since(), Results: []Verified{}, Ranged: true}
 	if run.Since != "" {
 		fmt.Fprintf(v.log, "Not checked: %s (commits.since) and its ancestors\n", short(run.Since))
 	}
-	commits, err := v.vcs.Commits(ctx, v.cfg.Range(from, to))
+	commits, err := v.vcs.Commits(ctx, judged)
 	if err != nil {
 		return run, err
 	}

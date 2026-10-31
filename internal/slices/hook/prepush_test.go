@@ -82,12 +82,12 @@ func TestPushedRefs(t *testing.T) {
 	if len(bases) != 0 || !whole {
 		t.Errorf("new branch: %q %v", bases, whole)
 	}
-	if len(refs) != 1 || refs[0].pushedRange() != (span{vcsport.Unpushed, "abc"}) {
+	if len(refs) != 1 || refs[0].pushedRange() != (span{From: vcsport.Unpushed, To: "abc"}) {
 		t.Errorf("new branch's range: %v", refs)
 	}
 	refs = refsOf(h, line(b, a)+line(b, a)+line(c, b)+"short")
 	bases, whole = h.pushBases(ctx, refs)
-	if len(refs) != 3 || !slices.Equal(bases, []string{a, b}) || whole || refs[0].pushedRange() != (span{a, b}) {
+	if len(refs) != 3 || !slices.Equal(bases, []string{a, b}) || whole || refs[0].pushedRange() != (span{From: a, To: b, Unpushed: true}) {
 		t.Errorf("updates: %v %q %v", refs, bases, whole)
 	}
 	refs = refsOf(h, line(c, gone))
@@ -475,5 +475,29 @@ func TestVerifyPush(t *testing.T) {
 	if code, _, stderr, _ := hook(t, p, "pre-push", "origin", "url"); code != policy ||
 		!strings.HasSuffix(stderr, "The push is refused: fix what the range checks above report, then push again.\n") {
 		t.Errorf("a range check that fails: exit %d\n%s", code, stderr)
+	}
+}
+
+// A ref the remote has is judged by the commits it adds that no
+// remote-tracking branch has (slice-213): main's code commit c, which a merge
+// brings onto b and the docs rules refuse, is on the remote already and judged
+// when it reached it; on no remote-tracking branch it is the pusher's again.
+// The range checks still start at the remote's commit.
+func TestVerifyPushPassesOverRemoteCommits(t *testing.T) {
+	text := "version: 1\ncommits:\n  types: [docs]\n  scopes: { docs: { only: [\"**/*.md\"] } }\n" +
+		"tests:\n  scenario:\n    root: features\n    range_checks: [{ name: from, range: \"test {from} = " + b + "\" }]\n"
+	d := strings.Repeat("d", 40)
+	p := pushing(t, text, "")
+	p.VCS.History = append(p.VCS.History, vcsfake.Commit{Name: d, Parents: []string{b, c}, Message: "Merge main into b\n",
+		Tree: map[string]string{"a.md": "a\n", "b.md": "b\n", "c.go": "package c\n"}})
+	p.VCS.Named["refs/remotes/origin/main"] = c
+	h := NewHandler(p)
+	if a1, err := h.verifyPush(t.Context(), p.cfg, refsOf(h, line(d, b)), Out{}); err != nil || a1.Code != 0 {
+		t.Errorf("a merge of a commit on the remote: %+v, %v", a1, err)
+	}
+	delete(p.VCS.Named, "refs/remotes/origin/main")
+	if a1, err := h.verifyPush(t.Context(), p.cfg, refsOf(h, line(d, b)), Out{}); err != nil || a1.Code != policy ||
+		!strings.Contains(a1.Said, "git rebase -i "+a[:7]) {
+		t.Errorf("a merge of a commit on no remote: %+v, %v", a1, err)
 	}
 }

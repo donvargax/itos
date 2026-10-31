@@ -20,11 +20,12 @@ import (
 // first the commit that starts what the pull request carries; moved whether
 // registry commits left the branch, so the clone's branch ends at item; bare
 // whether nothing is left for the item's branch to gain; and sent the "Sent
-// ..." lines for the commits each branch gains.
+// ..." lines for the commits each branch gains, main's first toMain of them.
 type plan struct {
 	main, item, first string
 	moved, bare       bool
 	sent              []string
+	toMain            int
 }
 
 // divide puts the commits of an item's push where they go (slice-192): those
@@ -35,15 +36,18 @@ type plan struct {
 // main's head, after the prefix, in order, and left out of the item's branch,
 // whose other new commits go onto the remote's item branch (or the prefix, or
 // main) in theirs. A commit the remote's item branch has stays as it is, and
-// so does one nothing was taken from under. Nothing is pushed or changed in the
+// so does one nothing was taken from under. base is the commit the item's
+// branch starts on when it keeps nothing of the remote's or the prefix: main's
+// head after a rebase, the commit below the first under push.pr.update merge,
+// which rebases nothing onto main. Nothing is pushed or changed in the
 // clone, so a commit that does not apply ends the push with its refusal: done.
-func (r *pushRun) divide(ctx context.Context, main, theirMain, tip string, exists bool, ahead []string, prefix int) (p plan, a Answer, done bool) {
+func (r *pushRun) divide(ctx context.Context, main, theirMain, base, tip string, exists bool, ahead []string, prefix int) (p plan, a Answer, done bool) {
 	v := r.ports
 	kept := 0
 	for kept < len(ahead) && exists && v.IsAncestor(ctx, ahead[kept], tip) {
 		kept++
 	}
-	mainTip, itemTip := theirMain, theirMain
+	mainTip, itemTip := theirMain, base
 	switch {
 	case prefix > 0:
 		mainTip, itemTip = ahead[prefix-1], ahead[prefix-1]
@@ -91,7 +95,7 @@ func (r *pushRun) divide(ctx context.Context, main, theirMain, tip string, exist
 	}
 	p.item, p.moved, p.bare = itemTip, len(moved) > 0, left == 0
 	if len(mainNew) > 0 {
-		p.main = mainTip
+		p.main, p.toMain = mainTip, len(mainNew)
 		for _, c := range mainNew {
 			p.sent = append(p.sent, r.sentLine(ctx, c, main))
 		}
@@ -107,15 +111,31 @@ func (r *pushRun) divide(ctx context.Context, main, theirMain, tip string, exist
 // refuseMerge is the refusal (outcome merge-in-history, exit 1) of commits that
 // hold a merge and a registry commit: carrying the registry commit out of the
 // item's branch means making the commits above it again one after the other on
-// their first parents, which would drop what a merge brings in. Nothing is
-// pushed or changed; the person makes the history linear first.
+// their first parents, which would drop what a merge brings in. Under
+// push.pr.update merge (slice-213) only a registry commit a merge among them
+// descends from is refused: one no merge descends from is carried with nothing
+// past a merge made again. Nothing is pushed or changed; the person makes the
+// history linear first.
 func (r pushRun) refuseMerge(ctx context.Context, commits []string) (Answer, bool) {
 	v := r.ports
-	registry := slices.IndexFunc(commits, func(c string) bool { return r.registryCommit(ctx, c) })
-	merge := slices.IndexFunc(commits, func(c string) bool {
+	isRegistry := func(c string) bool { return r.registryCommit(ctx, c) }
+	isMerge := func(c string) bool {
 		parents, _ := v.Parents(ctx, c)
 		return len(parents) > 1
-	})
+	}
+	registry, merge := slices.IndexFunc(commits, isRegistry), slices.IndexFunc(commits, isMerge)
+	if r.cfg.Push.PR.Update == "merge" {
+		registry, merge = -1, -1
+		for i, c := range commits {
+			if !isMerge(c) {
+				continue
+			}
+			if j := slices.IndexFunc(commits, func(o string) bool { return isRegistry(o) && v.IsAncestor(ctx, o, c) }); j >= 0 {
+				registry, merge = j, i
+				break
+			}
+		}
+	}
 	if registry < 0 || merge < 0 {
 		return Answer{}, false
 	}

@@ -92,6 +92,33 @@ func TestOver(t *testing.T) {
 	}
 }
 
+// OverUnpushed judges, of the range, the commits no remote branch has
+// (slice-213): the side commit a remote branch has, which the merge brings in,
+// is left out, and so are commits.since and its ancestors; the range commands
+// still start at from, or at commits.since when it is past from.
+func TestOverUnpushed(t *testing.T) {
+	repo := history()
+	repo.Named = map[string]string{"refs/remotes/origin/main": "side"}
+	cfg := configOver(t, repo, rules+"  since: "+good+"\n"+`tests:
+  scenario:
+    root: features
+    id: "ID-[A-Z]+-\\d+"
+    range_checks: [{ name: from, range: "echo from {from}" }]
+`)
+	var stdout strings.Builder
+	run, err := OverUnpushed(t.Context(), cfg, repo, "root", "merged", Out{Stdout: &stdout, Stderr: &strings.Builder{}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []Verified{{SHA: "bad1234567", Header: "docs: add code", OK: false}, {SHA: "merged", Header: "Merge branch 'side'", OK: true}}
+	if !reflect.DeepEqual(run.Results, want) || run.Passed != 1 {
+		t.Errorf("got %+v", run)
+	}
+	if want := "Not checked: abababa (commits.since) and its ancestors\n1/2 commits pass the commit rules\nfrom " + good + "\n"; stdout.String() != want {
+		t.Errorf("stdout %q, want %q", stdout.String(), want)
+	}
+}
+
 // Under --json the logs go to stderr, and commits.since and its ancestors
 // are said and left out.
 func TestOverSinceUnderJSON(t *testing.T) {
