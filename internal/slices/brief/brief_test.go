@@ -24,11 +24,16 @@ import (
 
 // ports are the brief command's ports over the fakes: a repository whose
 // HEAD is c1, the trees (the working tree holds the config, HEAD the
-// data), the entries git would list for the paths asked, and the last
-// commit touching the spec's files.
+// data, c1 the same files as HEAD), the commits the config and the
+// entries were asked at, the entries git would list for the paths asked,
+// and the last commit touching the spec's files and the revision it was
+// asked at.
 type ports struct {
 	*vcsfake.VCS
 	trees      treefake.Trees
+	configAt   string
+	entriesAt  string
+	lastAt     string
 	configErr  error
 	entries    map[string]TreeEntry
 	entriesErr error
@@ -39,13 +44,14 @@ type ports struct {
 	tweak      func(*config.Loaded)
 }
 
-// Config is the config and its data as HEAD has them, as the real port
-// reads them; a tree that cannot be read is a missing repository.
-func (p *ports) Config(ctx context.Context) (*config.Loaded, error) {
+// Config is the config and its data as the commit has them, as the real
+// port reads them; a tree that cannot be read is a missing repository.
+func (p *ports) Config(ctx context.Context, commit string) (*config.Loaded, error) {
+	p.configAt = commit
 	if p.configErr != nil {
 		return nil, p.configErr
 	}
-	src, err := p.trees.At(ctx, "HEAD")
+	src, err := p.trees.At(ctx, commit)
 	if err != nil {
 		return nil, kind.Else(kind.Missing, err)
 	}
@@ -59,8 +65,8 @@ func (p *ports) Config(ctx context.Context) (*config.Loaded, error) {
 // TreeEntries answers as git ls-tree does for the paths asked, which it
 // keeps: a path's own entry, and the entries under a folder asked for with
 // a path below it; a path outside the top is refused, as git refuses it.
-func (p *ports) TreeEntries(_ context.Context, _ string, paths []string) (map[string]TreeEntry, error) {
-	p.asked = paths
+func (p *ports) TreeEntries(_ context.Context, commit string, paths []string) (map[string]TreeEntry, error) {
+	p.asked, p.entriesAt = paths, commit
 	if p.entriesErr != nil {
 		return nil, p.entriesErr
 	}
@@ -80,8 +86,8 @@ func (p *ports) TreeEntries(_ context.Context, _ string, paths []string) (map[st
 	return found, nil
 }
 
-func (p *ports) LastTouching(_ context.Context, _ string, paths []string) (string, error) {
-	p.lastPaths = paths
+func (p *ports) LastTouching(_ context.Context, rev string, paths []string) (string, error) {
+	p.lastPaths, p.lastAt = paths, rev
 	return p.last, p.lastErr
 }
 
@@ -104,7 +110,7 @@ func over(files map[string]string) *ports {
 	return &ports{
 		VCS: &vcsfake.VCS{Root: top, Located: map[string]vcsport.Location{"": {Top: top, GitDir: ".git", Common: ".git"}},
 			History: []vcsfake.Commit{{Name: "c1"}}, Named: map[string]string{"HEAD": "c1"}},
-		trees:   treefake.Trees{Common: ".git", Files: map[string]map[string]string{"worktree": worktree, "HEAD": head}},
+		trees:   treefake.Trees{Common: ".git", Files: map[string]map[string]string{"worktree": worktree, "HEAD": head, "c1": head}},
 		entries: entries,
 		last:    "spec-sha",
 	}
@@ -457,7 +463,7 @@ func TestErrors(t *testing.T) {
 	fails("no HEAD", p, "slice-9", kind.Missing, "has no commit")
 	p = specified()
 	p.trees.Common = ""
-	fails("no tree", p, "slice-9", kind.Missing, "HEAD cannot be read")
+	fails("no tree", p, "slice-9", kind.Missing, "c1 cannot be read")
 	p = specified()
 	p.trees.Files["HEAD"]["work-items.yaml"] = "items: [\n"
 	fails("registry", p, "slice-9", kind.Usage, "did not find expected")
@@ -566,10 +572,10 @@ func TestList(t *testing.T) {
 // Parse: an id and --role, both required, nothing else.
 func TestParse(t *testing.T) {
 	for args, want := range map[string]string{
-		"":                   "brief needs an item's id: itos brief <id> --role drafter|implementer|reviewer",
-		"--role drafter":     "brief needs an item's id: itos brief <id> --role drafter|implementer|reviewer",
-		"a b --role drafter": "brief takes one id, not a b: itos brief <id> --role drafter|implementer|reviewer",
-		"slice-9":            "brief needs --role: itos brief <id> --role drafter|implementer|reviewer",
+		"":                   "brief needs an item's id: itos brief <id> --role drafter|implementer|reviewer [--at <rev>]",
+		"--role drafter":     "brief needs an item's id: itos brief <id> --role drafter|implementer|reviewer [--at <rev>]",
+		"a b --role drafter": "brief takes one id, not a b: itos brief <id> --role drafter|implementer|reviewer [--at <rev>]",
+		"slice-9":            "brief needs --role: itos brief <id> --role drafter|implementer|reviewer [--at <rev>]",
 	} {
 		_, err := Parse(strings.Fields(args), false)
 		var usage out.UsageError
@@ -579,6 +585,38 @@ func TestParse(t *testing.T) {
 	}
 	if c, err := Parse([]string{"--role", "tester", "slice-9"}, true); err != nil || c != (CLI{Query: Query{ID: "slice-9", Role: "tester"}, JSON: true}) {
 		t.Errorf("Parse = %+v, %v", c, err)
+	}
+	if c, err := Parse([]string{"--at", "origin/slice-9", "slice-9", "--role", "implementer"}, false); err != nil || c != (CLI{Query: Query{ID: "slice-9", Role: "implementer", At: "origin/slice-9"}}) {
+		t.Errorf("Parse with --at = %+v, %v", c, err)
+	}
+}
+
+// The brief is computed at the commit it names as its base: HEAD's by
+// default, the one --at resolves to otherwise, which the config, the
+// scenarios, the spec commit, the entries and the notes (HEAD's say
+// Reads:, the older commit has none) are all read at; a revision
+// git cannot resolve is refused, nothing read.
+func TestAt(t *testing.T) {
+	p := specified()
+	b := brief(t, p, "slice-9", "implementer")
+	if b.Base != "c1" || p.configAt != "c1" || p.entriesAt != "c1" || p.lastAt != "c1" {
+		t.Errorf("at HEAD: base %s, config at %s, entries at %s, spec commit at %s", b.Base, p.configAt, p.entriesAt, p.lastAt)
+	}
+	p.History = append(p.History, vcsfake.Commit{Name: "c0"})
+	p.Named["refs/heads/old"] = "c0"
+	p.trees.Files["c0"] = map[string]string{"itos.yaml": itosYAML, "work-items.yaml": lean, "AGENTS.md": "Older rules.\n"}
+	a, err := NewHandler(p).Handle(t.Context(), Query{ID: "slice-9", Role: "drafter", At: "old"})
+	if err != nil || a.Brief == nil {
+		t.Fatalf("--at old: %+v, %v", a, err)
+	}
+	if a.Brief.Base != "c0" || p.configAt != "c0" || p.entriesAt != "c0" || a.Brief.Spec != "" || !strings.Contains(a.Brief.Text, "No scenario is tagged @slice-9 yet.") || strings.Contains(a.Brief.Text, "Reads:") {
+		t.Errorf("--at old: base %s, config at %s, entries at %s, spec %q, text %.300q", a.Brief.Base, p.configAt, p.entriesAt, a.Brief.Spec, a.Brief.Text)
+	}
+	p.configAt = ""
+	handle(t, p, "slice-9", "drafter")
+	a, err = NewHandler(p).Handle(t.Context(), Query{ID: "slice-9", Role: "drafter", At: "nowhere"})
+	if err != nil || a.Brief != nil || len(a.Refused) != 1 || a.Refused[0].Rule != "brief-unknown-revision" || !strings.Contains(a.Refused[0].Message, "nowhere") || a.Refused[0].Fix == "" || p.configAt != "c1" {
+		t.Errorf("--at nowhere: %+v, %v, config at %s", a, err, p.configAt)
 	}
 }
 
@@ -605,6 +643,7 @@ func TestRun(t *testing.T) {
 		Item    string
 		Role    string
 		Request string
+		Base    string
 		Spec    struct{ Commit *string }
 		Reads   []Read
 		Omitted []Omitted
@@ -613,10 +652,10 @@ func TestRun(t *testing.T) {
 	if code != 0 || err != nil || stderr != "" || json.Unmarshal([]byte(stdout), &got) != nil {
 		t.Fatalf("json: exit %d, %v, stderr %q, stdout %s", code, err, stderr, stdout)
 	}
-	if got.Schema != 1 || !got.OK || got.Item != "slice-9" || got.Role != "implementer" || got.Request != want.Request || got.Spec.Commit == nil || *got.Spec.Commit != "spec-sha" || !slices.Equal(got.Reads, want.Reads) || !slices.Equal(got.Omitted, want.Omitted) || got.Brief != want.Text {
+	if got.Schema != 1 || !got.OK || got.Item != "slice-9" || got.Role != "implementer" || got.Request != want.Request || got.Base != "c1" || got.Spec.Commit == nil || *got.Spec.Commit != "spec-sha" || !slices.Equal(got.Reads, want.Reads) || !slices.Equal(got.Omitted, want.Omitted) || got.Brief != want.Text {
 		t.Errorf("json: %+v", got)
 	}
-	if !strings.HasPrefix(stdout, "{\n  \"schema\": 1,\n  \"ok\": true,\n  \"item\": \"slice-9\",\n  \"role\": \"implementer\",\n  \"request\": \"sha256:") || !strings.Contains(stdout, "\"omitted\": [\n    {") {
+	if !strings.HasPrefix(stdout, "{\n  \"schema\": 1,\n  \"ok\": true,\n  \"item\": \"slice-9\",\n  \"role\": \"implementer\",\n  \"request\": \"sha256:") || !strings.Contains(stdout, "\",\n  \"base\": \"c1\",\n  \"spec\": {") || !strings.Contains(stdout, "\"omitted\": [\n    {") {
 		t.Errorf("the keys' order: %.200s", stdout)
 	}
 	p = over(map[string]string{"work-items.yaml": lean, "AGENTS.md": "Rules.\n"})

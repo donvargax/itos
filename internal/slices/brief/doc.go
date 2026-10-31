@@ -11,9 +11,11 @@
 // which internal/cli binds: the repository, the config at HEAD, a commit's
 // tree entries and the last first-parent commit touching paths.
 //
-// Everything is read from HEAD's tree, the config included, never the
-// working tree or the index, so the brief is a function of one commit and
-// names what it holds: the registry (internal/work), the
+// Everything is read from one commit's tree, HEAD's or the one --at names
+// (slice-207, which binds an agent's result to the brief at that commit,
+// its base), the config included, never the working tree or the index, so
+// the brief is a function of one commit and names it and what it holds:
+// the registry (internal/work), the
 // scenarios tagged for the item (tests.TaggedFiles), a task's ledger entry
 // (internal/ledger), the "## What a brief adds here" section of the file
 // guide.orchestrating names, and the blobs of the reads. The reads are
@@ -23,7 +25,7 @@
 // which an agent's checkout would resolve to something the recorded blob
 // is not, is omitted and said so, as is a missing AGENTS.md. The spec
 // commit is the last commit on
-// HEAD's first-parent history touching the spec's files, none when nothing
+// that commit's first-parent history touching the spec's files, none when nothing
 // is tagged yet, which only the drafter is briefed on. The request is
 // "sha256:" and the digest of LF-terminated lines, the item, the role, the
 // spec commit's SHA or "-", then "<path> <blob>" per read in order, so

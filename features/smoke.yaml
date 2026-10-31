@@ -20,6 +20,10 @@
   scenarios:
     - id: "@ID-ASK-03"
       why: a question asked, answered and shown, each write committed alone, the file's point in one run
+- file: attempt.feature
+  scenarios:
+    - id: "@ID-ATTEMPT-02"
+      why: an implementer briefed at the item's branch with --at, its red-first commits pushed and its result accepted and recorded, the file's point in one run
 - file: bin.feature
   scenarios:
     - id: "@ID-BIN-01"
