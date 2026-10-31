@@ -16589,3 +16589,19 @@ items:
       sandbox without broad credentials (a scoped token for the item's branch only); and suspend and
       resume for long attempts. It comes after the first driven run, and belongs with the person's
       sandbox project.
+
+  - id: p2-attempt-issued-brief
+    title: itos attempt submit judges a result against the brief the driver issued (base, request, role), recorded when the attempt starts
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Codex's security review on #236 (slice-207, thread PRRT_kwDOU2JMic6yTvZF, 2026-10-31): base is
+      the agent's own claim, so an implementer can set base to its own head, compute a matching
+      request, and pass red-first over an empty range. The fix records the brief each attempt is
+      issued when the driver briefs it, and refuses a result that doesn't match. That is a step in
+      the driver's loop (the brief step writes an 'issued' journal line). A check like 'base is an
+      ancestor of head' does not close it. No agent has been seen doing this (guard rails from
+      evidence), so it comes with the driver rather than before the pilot.
