@@ -211,9 +211,21 @@ func TestOwnPathsOfAConflict(t *testing.T) {
 	write("b", "1\nboth\n3\n")
 	write("z", "z\n")
 	gitIn(t, dir, "add", "b", "z")
-	resolved := gitIn(t, dir, "commit-tree", gitIn(t, dir, "write-tree"), "-p", main, "-p", topic, "-m", "Merge branch 'topic'")
+	resolvedTree := gitIn(t, dir, "write-tree")
+	resolved := gitIn(t, dir, "commit-tree", resolvedTree, "-p", main, "-p", topic, "-m", "Merge branch 'topic'")
 	want := []string{"b", "d", "z"}
 	if got, err := here.OwnPaths(resolved); err != nil || !slices.Equal(got, want) {
 		t.Fatalf("a merge that resolves b and adds z has own paths %q, %v, want %q", got, err, want)
+	}
+
+	object := filepath.Join(dir, ".git", "objects", resolvedTree[:2], resolvedTree[2:])
+	if err := os.Chmod(object, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Remove(object); err != nil {
+		t.Fatal(err)
+	}
+	if got, err := here.OwnPaths(resolved); err == nil {
+		t.Fatalf("the own paths of a merge whose tree is lost are %q", got)
 	}
 }
