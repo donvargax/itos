@@ -16697,3 +16697,18 @@ items:
       merge, the guard's PreToolUse hook refused a plain git commit and pointed to itos commit, so
       the agent fell back to plumbing (commit-tree). The guard should judge a git command only when
       its working directory, or its -C target, is an itos repository with an itos.yaml.
+
+  - id: p1-next-argv-runnable-from-main
+    title: "next's driver steps are runnable from the driver's clone on main: itos push --ready names the item (or the step names the item's worktree)"
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Codex on #238 (slice-209, thread PRRT_kwDOU2JMic6yUwAM, 2026-10-31): handed-back's argv is
+      'itos push --ready', which acts on the current branch. It is refused on main (ready-on-main),
+      and from another item's branch it acts on that item. The driver's clone stays on main, so the
+      step ID-NEXTFORGE-07 pins cannot be run as given. Either --ready takes the item and works from
+      any checkout (resolving its branch's worktree, or pushing from a fetch-only checkout), or
+      next's step names where to run it. Needed before the first driven run.
