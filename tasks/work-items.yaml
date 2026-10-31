@@ -16138,3 +16138,19 @@ items:
       review needs another vehicle (the take's draft pull request reviewed before implementing, or a
       review of the main commit that added it).
     tags: [work, v8]
+
+  - id: p3-push-reword-pushed-commit
+    title: An item branch's pushed commit whose message is wrong can be reworded through itos push, its tree unchanged
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      2026-10-30: slice-211's spec drafter committed its round-1 amendment with the first spec
+      commit's message (its message file edit had failed) and pushed it; itos push refuses a rewrite
+      that drops a commit with no counterpart, and a reworded commit has none, so only the person's
+      force push with --no-verify could fix it, or both headers land on main. A reword that keeps
+      the tree, the parent and the author date is safe to accept as a counterpart (or itos commit
+      could refuse a message identical to an earlier commit's on the branch, before the push).
+    tags: [work]
