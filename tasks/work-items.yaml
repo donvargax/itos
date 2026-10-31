@@ -16662,8 +16662,8 @@ items:
   - id: bug-158
     title: Under push.pr.update merge, itos push's own 'Merge main into <item>' is refused by pre-push when git's merge combines hunks, and only a rewrite fixes it
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: bug
     why: >
