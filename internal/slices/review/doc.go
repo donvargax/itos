@@ -66,6 +66,29 @@
 // review (the person cannot approve their own pull request), no pr comment,
 // nothing fetched, rebased or pushed.
 //
+// # review status
+//
+// itos review status <item> (slice-212, features/review-status.feature)
+// posts the commit status itos/reviews on the item's pull request's head, so
+// that branch protection, not a session's wait, holds the merge on the
+// reviews. Parse takes one item and no flag (the declared spec gives status
+// none). Status refuses, before gh, outside push.mode pr
+// (review-without-pr-mode), with push.pr.review_by empty
+// (review-without-review-by, judged before the item, since a success for
+// nobody would pass any head), and an item the registry lacks; then it finds
+// the open pull request and puts the question as post does (openPull,
+// providers.AskPullState), and judges with providers.PullState.Verdicts,
+// --ready's own code, against the head that answer gives: never the clone's.
+// The state is failure when a login refused, whatever the others' (no review
+// comes unless someone asks again), else pending when a login has no verdict,
+// else success; the description names the logins of its state, as the config
+// writes them, cut at a whole login to GitHub's 140 characters (described).
+// One gh api repos/<owner>/<name>/statuses/<head> -f state -f context -f
+// description, in that order and no target_url, its answer unread. It asks
+// nobody for a review and waits for nothing, so a workflow may run it on
+// every event. A gh that fails is review-pull-request-failed, exit 3, as
+// post's, each fix naming status to run again.
+//
 // Handle reaches the world through Ports, which internal/cli binds: the
 // config's presence and load, git's resolve, the remote, the repository, gh
 // and the body file's read.

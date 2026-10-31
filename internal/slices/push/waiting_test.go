@@ -193,7 +193,7 @@ func TestRequested(t *testing.T) {
 		"only the words":           {"@codex review", false},
 	} {
 		t.Run(name, func(t *testing.T) {
-			s := pullState{comments: []authored{{login: "someone", body: "other"}, {login: "someone", body: c.body}}}
+			s := pullState{pull: providers.PullState{Comments: []providers.Authored{{Login: "someone", Body: "other"}, {Login: "someone", Body: c.body}}}}
 			if got, at := s.requested("a", head); got != c.want || !at.IsZero() {
 				t.Errorf("requested: %t at %s, want %t at none", got, at, c.want)
 			}
@@ -204,12 +204,12 @@ func TestRequested(t *testing.T) {
 	}
 	// The time is the latest of the requests', as GitHub gives it.
 	older, newer := time.Unix(1_000, 0), time.Unix(2_000, 0)
-	s := pullState{comments: []authored{
-		{login: "x", body: marker("a", head), created: newer},
-		{login: "y", body: marker("a", head), created: older},
-		{login: "z", body: marker("b", head), created: time.Unix(3_000, 0)},
-		{login: "w", body: marker("a", "ffffffffffffffffffffffffffffffffffffffff"), created: time.Unix(4_000, 0)},
-	}}
+	s := pullState{pull: providers.PullState{Comments: []providers.Authored{
+		{Login: "x", Body: marker("a", head), Created: newer},
+		{Login: "y", Body: marker("a", head), Created: older},
+		{Login: "z", Body: marker("b", head), Created: time.Unix(3_000, 0)},
+		{Login: "w", Body: marker("a", "ffffffffffffffffffffffffffffffffffffffff"), Created: time.Unix(4_000, 0)},
+	}}}
 	if found, at := s.requested("a", head); !found || !at.Equal(newer) {
 		t.Errorf("requested: %t at %s, want the latest, %s", found, at, newer)
 	}

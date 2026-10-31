@@ -145,18 +145,18 @@ func (h Handler) Handle(ctx context.Context, q Query) (Answer, error) {
 			fmt.Sprintf("itos review: %s names no GitHub repository to find %s's pull request in; nothing was posted.", remote, q.Item),
 			"set ci.range.github.repository_env to a variable naming it, or give the remote a GitHub address"), nil
 	}
-	number, address, a, failed := h.openPull(ctx, repository, q.Item)
+	number, address, a, failed := h.openPull(ctx, subPost, repository, q.Item)
 	if failed {
 		return a, nil
 	}
 	state, err := providers.AskPullState(ctx, h.ports.Gh, repository, number)
 	switch {
 	case errors.Is(err, providers.ErrNoPullState):
-		return ghFailed("gh api graphql", err.Error()), nil
+		return ghFailed(subPost, "gh api graphql", err.Error()), nil
 	case err != nil:
-		return ghFailed("gh api graphql", providers.GhReason(err)), nil
+		return ghFailed(subPost, "gh api graphql", providers.GhReason(err)), nil
 	case state.Head == "":
-		return ghFailed("gh api graphql", "its answer names no head for the pull request"), nil
+		return ghFailed(subPost, "gh api graphql", "its answer names no head for the pull request"), nil
 	}
 	if state.Head != head {
 		return refuse(policy, "review-head-moved",
@@ -193,33 +193,33 @@ func (h Handler) prMode(ctx context.Context) (*config.Loaded, bool) {
 // openPull is the item's open pull request, its number and address, asked
 // with gh pr list as push threads asks: failed, with the problem, when gh
 // fails (review-pull-request-failed, exit 3) or lists none
-// (review-no-pull-request, exit 1).
-func (h Handler) openPull(ctx context.Context, repository, item string) (number int, address string, a Answer, failed bool) {
+// (review-no-pull-request, exit 1), each fix naming review's word to run again.
+func (h Handler) openPull(ctx context.Context, word, repository, item string) (number int, address string, a Answer, failed bool) {
 	listed, err := h.ports.Gh(ctx, "pr", "list", "--repo", repository, "--head", item, "--state", "open", "--json", "number,url")
 	if err != nil {
-		return 0, "", ghFailed("gh pr list", providers.GhReason(err)), true
+		return 0, "", ghFailed(word, "gh pr list", providers.GhReason(err)), true
 	}
 	var open []struct {
 		Number int    `json:"number"`
 		URL    string `json:"url"`
 	}
 	if err := json.Unmarshal([]byte(listed), &open); err != nil {
-		return 0, "", ghFailed("gh pr list", "its answer is not a list of pull requests: "+err.Error()), true
+		return 0, "", ghFailed(word, "gh pr list", "its answer is not a list of pull requests: "+err.Error()), true
 	}
 	if len(open) == 0 {
 		return 0, "", Answer{Code: policy, Problems: []out.Problem{{Rule: "review-no-pull-request",
 			Message: fmt.Sprintf("itos review: %s has no open pull request; itos push opens it. Nothing was posted.", item),
-			Fix:     "itos push from the item's branch opens its pull request; then itos review post again"}}}, true
+			Fix:     "itos push from the item's branch opens its pull request; then itos review " + word + " again"}}}, true
 	}
 	return open[0].Number, open[0].URL, Answer{}, false
 }
 
 // ghFailed is the review-pull-request-failed problem (exit 3): the command
-// that failed and why, nothing posted.
-func ghFailed(command, reason string) Answer {
+// that failed and why, nothing posted, its fix naming review's word to run again.
+func ghFailed(word, command, reason string) Answer {
 	return Answer{Code: missing, Problems: []out.Problem{{Rule: "review-pull-request-failed",
 		Message: fmt.Sprintf("itos review: %s failed: %s; nothing was posted.", command, reason),
-		Fix:     "fix that, then itos review post again"}}}
+		Fix:     "fix that, then itos review " + word + " again"}}}
 }
 
 // countMarkers counts the verdict markers of the item and stage in the
@@ -265,13 +265,13 @@ func (h Handler) post(ctx context.Context, repository string, number int, body s
 	path := "repos/" + repository + "/issues/" + strconv.Itoa(number) + "/comments"
 	answered, err := h.ports.Gh(ctx, "api", path, "-f", "body="+body)
 	if err != nil {
-		return "", ghFailed("gh api "+path, providers.GhReason(err)), true
+		return "", ghFailed(subPost, "gh api "+path, providers.GhReason(err)), true
 	}
 	var comment struct {
 		URL string `json:"html_url"`
 	}
 	if err := json.Unmarshal([]byte(answered), &comment); err != nil || comment.URL == "" {
-		return "", ghFailed("gh api "+path, "its answer names no comment (html_url); the comment may be posted: read the pull request"), true
+		return "", ghFailed(subPost, "gh api "+path, "its answer names no comment (html_url); the comment may be posted: read the pull request"), true
 	}
 	return comment.URL, Answer{}, false
 }

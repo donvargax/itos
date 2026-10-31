@@ -208,6 +208,10 @@
   scenarios:
     - id: "@ID-MAINTASK-01"
       why: itos commit naming a task only the remote's main holds, on an item's branch under pr, the file's point
+- file: push-mode-ready-merge.feature
+  scenarios:
+    - id: "@ID-READYMERGE-01"
+      why: --ready under push.pr.update merge merging main in and turning on auto-merge by merge at the head it pushed, titled after the item, the file's point
 - file: push-mode-title.feature
   scenarios:
     - id: "@ID-PRTITLE-01"
@@ -228,6 +232,10 @@
   scenarios:
     - id: "@ID-REVIEW-01"
       why: a verdict posted as one comment, its readable line and its marker bound to the head, round 1, the file's point
+- file: review-status.feature
+  scenarios:
+    - id: "@ID-REVIEWSTATUS-01"
+      why: itos/reviews success posted on the head GitHub gives once every review_by login reviewed it, nothing else asked, the file's point
 - file: shim.feature
   scenarios:
     - id: "@ID-SHIM-01"

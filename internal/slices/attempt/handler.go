@@ -277,25 +277,40 @@ func (c *claim) implemented(ctx context.Context, tagged []tests.Test) (Answer, e
 // untested is the first feat or fix commit on the head's first-parent
 // history past the base when no test commit comes before it, nil when one
 // does or there is none: a merge's commits from another branch are not the
-// item's.
+// item's. The commits past the base are git's list of their names, and
+// each judged one must have its record in the log: a message holding the
+// byte the log's records are framed by loses its record, and a commit
+// whose type cannot be read is an error, never passed over.
 func (c *claim) untested(ctx context.Context) (*vcsport.Entry, error) {
-	past, err := c.v.Log(ctx, vcsport.Range{From: c.Base, To: *c.Head})
-	if err != nil || len(past) == 0 {
+	r := vcsport.Range{From: c.Base, To: *c.Head}
+	names, err := c.v.Commits(ctx, r)
+	if err != nil || len(names) == 0 {
+		return nil, err
+	}
+	past, err := c.v.Log(ctx, r)
+	if err != nil {
 		return nil, err
 	}
 	byName := make(map[string]vcsport.Entry, len(past))
 	for _, e := range past {
 		byName[e.SHA] = e
 	}
-	chain, err := c.v.FirstParents(ctx, *c.Head, 0, len(past))
+	in := make(map[string]bool, len(names))
+	for _, name := range names {
+		in[name] = true
+	}
+	chain, err := c.v.FirstParents(ctx, *c.Head, 0, len(names))
 	if err != nil {
 		return nil, err
 	}
 	tested := false
 	for i := len(chain) - 1; i >= 0; i-- {
+		if !in[chain[i]] {
+			continue
+		}
 		e, ok := byName[chain[i]]
 		if !ok {
-			continue
+			return nil, kind.Wrap(kind.Usage, fmt.Errorf("the commit %s past the base has no record in git log, so its type cannot be read: its message may hold the byte 0x1e", chain[i]))
 		}
 		switch message.Type(e.Message) {
 		case "test":
