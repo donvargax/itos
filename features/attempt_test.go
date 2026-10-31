@@ -68,21 +68,18 @@ type attemptRefs struct {
 	clone, remote map[string]string
 }
 
-// savedText is the value saved under the name as text: a JSON string a
-// brief step saved, unquoted, any other JSON value as written, or a commit
-// saved by its SHA.
+// savedText is the value saved under the name as text: a JSON string,
+// unquoted, any other JSON value as written.
 func (w *world) savedText(name string) (string, error) {
-	if saved, ok := w.briefSaved[name]; ok {
-		var text string
-		if err := json.Unmarshal([]byte(saved), &text); err == nil {
-			return text, nil
-		}
-		return saved, nil
+	saved, err := w.saved(name)
+	if err != nil {
+		return "", err
 	}
-	if sha, ok := w.workCommits[name]; ok {
-		return sha, nil
+	var text string
+	if err := json.Unmarshal([]byte(saved), &text); err == nil {
+		return text, nil
 	}
-	return "", fmt.Errorf("nothing was saved as %q", name)
+	return saved, nil
 }
 
 // placeholder is a saved value's name between angle brackets.

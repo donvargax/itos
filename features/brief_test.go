@@ -47,13 +47,15 @@ func (w *world) outputSaysWithTop(text string) error {
 }
 
 // saved is what the brief steps keep under a name: stdout, or one JSON
-// value's text.
+// value's text; else a commit saved by name, as its SHA's JSON text.
 func (w *world) saved(name string) (string, error) {
-	text, ok := w.briefSaved[name]
-	if !ok {
-		return "", fmt.Errorf("nothing was saved as %q", name)
+	if text, ok := w.briefSaved[name]; ok {
+		return text, nil
 	}
-	return text, nil
+	if sha, ok := w.workCommits[name]; ok {
+		return jsonText(sha), nil
+	}
+	return "", fmt.Errorf("nothing was saved as %q", name)
 }
 
 func (w *world) save(name, text string) {
