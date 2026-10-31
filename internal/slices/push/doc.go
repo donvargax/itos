@@ -135,7 +135,11 @@
 // the repository (Ports.GitHubRepository, required once the branch is
 // rebased): pullRequest finds the open pull request or opens one, turns on
 // auto-merge by rebase and, when main has a commit the pushed head lacks,
-// asks GitHub to rebase it (update-branch) instead of forcing the branch.
+// asks GitHub to rebase it (update-branch) instead of forcing the branch;
+// under push.pr.update merge it turns on auto-merge by merge (landing,
+// merge.go: --merge, --subject= the pull request's title as describe
+// computes it, --body= the item's registry footer, none when the config has
+// no such footer) and never asks update-branch, its head having main's.
 // A gh that is missing or fails exits 3, the branch pushed already
 // (pull-request-failed). Answer.PullRequest is --json's pull_request.
 //
@@ -271,7 +275,8 @@
 // again, or git merge --abort; one git does not run is merge-failed. The item's
 // branch is then pushed as a fast-forward, and the pull request found or
 // opened, never asked to update, its head having main's; under --ready this is
-// the merge pushed before the wait.
+// the merge pushed before the wait, so the head --ready judges, watches the run
+// of and pins is the head it pushed, and it lands by merge (slice-214).
 //
 // # push.pr.draft and --ready
 //
@@ -289,7 +294,8 @@
 // ready-without-draft) and, once main is known, from main (ready-on-main);
 // Parse refuses it beside --tag or --ref. Otherwise pullRequest opens the
 // pull request ready or marks the draft ready (gh pr ready), asks for the
-// rebase when main moved, and with --no-wait stops there. Else finish (ready.go)
+// rebase when main moved (under push.pr.update merge never: mergeItem merged
+// main in and pushed the merge), and with --no-wait stops there. Else finish (ready.go)
 // takes over, whether or not anything was pushed: the run of the pull
 // request's head, the head GitHub made when it was asked to rebase, is
 // watched with ciwatch.WatchReady, which passes over the draft's run whose jobs
@@ -337,7 +343,9 @@
 // merge (merge.go) is the last step. Every merge call carries --match-head-commit
 // with the head judged, so GitHub refuses a head that came in since: gh pr merge
 // --auto --rebase; when GitHub refuses that as "is in clean status", the pull
-// request being mergeable already, one direct gh pr merge --rebase; when a merge
+// request being mergeable already, one direct gh pr merge --rebase; under
+// push.pr.update merge both calls take landing's --merge, --subject= and
+// --body= instead of --rebase, and the lines it says name merge; when a merge
 // call fails otherwise, gh pr view tells whether the pull request is merged at
 // the head judged already (an earlier auto-merge), which is then success. After
 // the call that succeeded, readBack reads the pull request once (gh pr view

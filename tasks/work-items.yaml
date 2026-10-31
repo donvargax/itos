@@ -57,7 +57,6 @@ phases:
   3: donvargax
 
 queue:
-  - slice-214
   - p1-v9-design-from-friction
   - p1-ci-slow-linux-runs
   - slice-153
@@ -15795,8 +15794,8 @@ items:
   - id: slice-207
     title: itos attempt submit checks an agent's result against its brief's request and against git, and records it
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: [slice-204]
     kind: slice
     why: >
@@ -16038,7 +16037,7 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: [p1-reviews-status-workflow, p3-review-by-head-any-login, p1-review-request-step]
+    depends_on: [p1-reviews-status-workflow, p3-review-by-head-any-login, slice-215]
     kind: idea
     why: >
       The v9 plan's machine, handed back to merging (docs/plans/v9-coordinator.md; open question 4:
@@ -16090,8 +16089,8 @@ items:
   - id: slice-212
     title: "itos review status posts itos/reviews on a pull request's head: success once each review_by login has reviewed (a Codex state for that head), pending naming who is missing, failure on a refusal"
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: slice
     why: >
@@ -16130,6 +16129,12 @@ items:
       From slice-212's spec review: a pull_request_review dismissed trigger changes nothing until
       p3-review-by-head-any-login makes a dismissed review count for nothing; drop it or keep it for
       then.
+
+      slice-212 (2026-10-30) counts a Codex review for a head only when both code_review and
+      security_review are completed for it, as --ready does. The person wants each review requested
+      explicitly, so this is kept. itos/reviews therefore stays pending on a head until someone
+      requests both reviews for it. The workflow that posts itos/reviews, and the person's adding it
+      to branch protection, come after p1-review-request-step, which requests both.
     tags: [ci, v8]
 
   - id: p1-next-task-spec-on-main
@@ -16226,14 +16231,15 @@ items:
       the ledger package once.
     tags: [work]
 
-  - id: p1-review-request-step
+  - id: slice-215
     title: "Asking for a review is a step of the machine: itos review request asks each configured reviewer for the pull request's head once, through its kind's adapter, and itos next names it when the head has no request"
     phase: 1
     owner: null
     status: todo
     depends_on: [slice-209]
-    kind: idea
+    kind: slice
     why: >
+      Was p1-review-request-step.
       The person, 2026-10-30: the deterministic workflow triggers reviews explicitly, never relying
       on Codex's automatic review on ready_for_review. itos review request <item> posts '@codex
       review' and the itos-review-request marker (login and head) for each push.pr.review_by login
@@ -16282,6 +16288,11 @@ items:
       review. The security review needs its own '@codex security review'. Until it comes, --ready
       waits on chatgpt-codex-connector (exit 75, every round). So the codex adapter requests both,
       and a head counts as requested only when both requests are posted for it.
+
+      The person, 2026-10-30: the security review is requested explicitly too, as a step of its own,
+      never left to ride on the code review. Codex has three requests per head: '@codex review',
+      '@codex security review' and Bugbot's '@cursor review'. Each is posted once per head with its
+      marker.
     tags: [work, v8]
 
   - id: p1-pr-merge-mode
@@ -16330,18 +16341,9 @@ items:
     title: "Under push.pr.update: merge, push --ready brings the pull request up to main by a merge and lands it as a merge commit itos titles"
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-213]
     kind: slice
-    why: >
-      p1-pr-merge-mode (the person, 2026-10-30). Settled: under merge, --ready asks GitHub to bring
-      the branch up by merging (gh pr update-branch without --rebase) where today it rebases, and
-      lands with gh pr merge --auto --merge --match-head-commit <head> (the clean-status fallback
-      likewise, --merge), its subject '<item>: <title>' and its body ending in an Item: <item>
-      footer, so a first-parent reader of main gets the item without parsing the branch; under
-      rebase nothing changes. verify and ci range already judge a merge by its own changes (bug 30)
-      and walk the item's commits as ordinary ones; a scenario shows a landed merge passes verify.
-      This repository then turns push.pr.update: merge on (a build commit).
     tags: [work, v8]
 
   - id: p1-v9-explicit-steps
@@ -16389,3 +16391,72 @@ items:
       only changes are registry changes stays on the item's branch, so main sees that registry
       content only at the merge. Unconfirmed: check whether bookkeeping on main can ever lose to it
       before building anything.
+
+  - id: p3-scenarios-bare-id
+    title: itos commit --scenarios accepts a bare scenario ID, or names the @ID- form it wants
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      slice-214's implementer, 2026-10-30: itos commit --scenarios READYMERGE-01 failed with
+      'unknown scenarios' and gave no hint that the IDs need the @ID- prefix.
+
+  - id: p2-merge-method-check
+    title: Check the repository's allowed merge methods against push.pr.update before --ready waits
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      slice-214, 2026-10-30: with push.pr.update merge, --ready waited through CI and review, about
+      15 minutes, then failed at gh pr merge: 'Merge commits are not allowed on this repository'.
+      The repository had allow_merge_commit false, and main's ruleset had pull_request
+      allowed_merge_methods [rebase]. itos reads both through gh (repos/<r> and its rulesets) and
+      refuses up front, naming the setting, either in a config check or when --ready starts.
+
+  - id: p2-attempt-task-spec
+    title: itos attempt submit accepts a drafter's done result for a task, judged by its ledger entry
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      slice-207's implementer, 2026-10-30: attempt-spec-missing looks only at tagged scenarios,
+      never at a task's ledger entry, so a drafter's done result for a task can never be accepted.
+
+  - id: p3-attempt-journal-lock
+    title: Two itos attempt submit runs at once cannot count the same attempt number
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      slice-207's implementer, 2026-10-30: the attempt journal has no lock, so two concurrent
+      submits can both record the same attempt number.
+
+  - id: p3-brief-at-omitted-reasons
+    title: itos brief --at names the commit it read in its omitted-file reasons, not HEAD
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      slice-207's implementer, 2026-10-30: when --at names another commit, brief's omitted-file
+      reasons still say 'at HEAD'.
+
+  - id: p3-attempt-wip-examples
+    title: itos attempt submit's still-wip check covers @wip Examples blocks, as work done does
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      slice-207's implementer, 2026-10-30: the implementer's still-wip check covers scenarios but
+      not @wip Examples blocks, which work done refuses.

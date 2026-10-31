@@ -200,6 +200,10 @@
   scenarios:
     - id: "@ID-MAINTASK-01"
       why: itos commit naming a task only the remote's main holds, on an item's branch under pr, the file's point
+- file: push-mode-ready-merge.feature
+  scenarios:
+    - id: "@ID-READYMERGE-01"
+      why: --ready under push.pr.update merge merging main in and turning on auto-merge by merge at the head it pushed, titled after the item, the file's point
 - file: push-mode-title.feature
   scenarios:
     - id: "@ID-PRTITLE-01"
