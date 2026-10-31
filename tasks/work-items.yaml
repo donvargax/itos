@@ -16239,3 +16239,27 @@ items:
       from a person's login. Codex's automatic reviews are turned off in its settings (the
       person's), so the request is the only trigger.
     tags: [work, v8]
+
+  - id: p1-pr-merge-mode
+    title: "Under push.mode pr, an opt-in push.pr.update: merge brings an item branch up to main by a merge and lands it as a merge commit, so no step rewrites history"
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The person, 2026-10-30, settling the v9 plan's open question 1 (docs/plans/v9-coordinator.md,
+      Landing under pr) for the pilot: merges, not rebases. Tonight every command the person had to
+      run by hand was a rewrite Claude Code's classifier refuses agents (gh pr update-branch
+      --rebase, itos push --onto-main, a force push to reword); a merge rewrites nothing. v8's
+      released merge-in-history refusal makes it opt-in (default rebase, today's flow), so no break
+      before v9. Pieces, each its own slice: (1) itos push on an item branch main has moved past
+      merges origin/main in, a conflict being the implementer's ordinary commit, instead of refusing
+      or --onto-main; the merge-in-history refusal is off under merge; (2) --ready brings the branch
+      up by update-branch without --rebase and lands with gh pr merge --auto --merge
+      --match-head-commit, the merge message itos's (<item>: <title> and an Item: footer); (3)
+      verify and ci range walk main's first parents and judge each landing's second-parent side per
+      commit (p1-pr-registry-commit-first-parent is part of it); (4) itos next, work show and the
+      brief read an item's change as git show --diff-merges=first-parent <merge>. Then this
+      repository turns it on.
+    tags: [work, v8]
