@@ -27,6 +27,7 @@ git:
       docs/plan.md: "# The plan\n"
       internal/bar/bar.go: "package bar\n"
   - commit: "chore: tidy the readme"
+    label: tidy
     files: { README.md: "# Scratch\n" }
 cases:
   - name: brief --json is the request, the spec commit, the reads with their blobs and what was left out
@@ -86,3 +87,23 @@ cases:
     argv: [brief, slice-9]
     exit: 2
     stderr_has: --role
+  # slice-207: the base is the commit the brief was computed at, HEAD's by
+  # default; --at computes it at another, its tree read instead of HEAD's.
+  # The readme is no read, so the brief one commit back has the same request.
+  - name: brief --json names HEAD as its base
+    argv: [brief, slice-9, --role, implementer, --json]
+    exit: 0
+    json_has: { schema: 1, ok: true, base: "{{sha.tidy}}" }
+  - name: brief --at computes the brief at the commit it names
+    argv: [brief, slice-9, --role, implementer, --json, --at, HEAD~1]
+    exit: 0
+    json_has:
+      schema: 1
+      ok: true
+      base: "{{sha.spec}}"
+      request: sha256:a70b63a6502e066113aab9dbb8b1b904cf50c780cc7bc4a3012b814b799f6031
+      spec: { commit: "{{sha.spec}}" }
+  - name: brief refuses an --at git cannot resolve
+    argv: [brief, slice-9, --role, implementer, --json, --at, nowhere]
+    exit: 1
+    json: { schema: 1, ok: false, problems: [{ rule: brief-unknown-revision }] }

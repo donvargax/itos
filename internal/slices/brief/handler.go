@@ -27,7 +27,7 @@ import (
 
 // Ports are what the brief command reaches the world through, which
 // internal/cli binds: the repository; Config, the config and its data as
-// HEAD's tree has them, so that an uncommitted change to the policy
+// the commit's tree has them, so that an uncommitted change to the policy
 // changes no brief and its Source is the tree the reads are made from
 // (ADR-0053's --data-at reads a commit's data by the working tree's
 // config; the brief is a function of one commit); TreeEntries, a
@@ -38,7 +38,7 @@ import (
 // does.
 type Ports interface {
 	vcsport.VCS
-	Config(ctx context.Context) (*config.Loaded, error)
+	Config(ctx context.Context, commit string) (*config.Loaded, error)
 	TreeEntries(ctx context.Context, commit string, paths []string) (map[string]TreeEntry, error)
 	LastTouching(ctx context.Context, rev string, paths []string) (string, error)
 }
@@ -75,13 +75,14 @@ type Omitted struct {
 }
 
 // Brief is a brief as Handle gives it: the Item and Role briefed, the
-// Request digest, the Spec commit ("" when nothing is tagged yet), the
-// Reads and the Omitted, and the Text printed.
+// Request digest, the Base commit it was computed at, the Spec commit (""
+// when nothing is tagged yet), the Reads and the Omitted, and the Text
+// printed.
 type Brief struct {
-	Item, Role, Request, Spec string
-	Reads                     []Read
-	Omitted                   []Omitted
-	Text                      string
+	Item, Role, Request, Base, Spec string
+	Reads                           []Read
+	Omitted                         []Omitted
+	Text                            string
 }
 
 // Answer is what Handle found: the problems a brief is Refused for, or the
@@ -91,21 +92,22 @@ type Answer struct {
 	Brief   *Brief
 }
 
-// head is the tree everything is read from.
+// head is the revision everything is read from when --at names none.
 const head = "HEAD"
 
-// Handle answers q: the role's template filled from the item at HEAD, or
-// why it is refused. An error is a config or a repository that cannot be
-// read, each with its kind.
+// Handle answers q: the role's template filled from the item at the commit
+// q.At names, HEAD's when it names none, or why it is refused. An error is
+// a config or a repository that cannot be read, each with its kind.
 func (h Handler) Handle(ctx context.Context, q Query) (Answer, error) {
 	if !slices.Contains(guidetext.Roles, q.Role) {
 		return refused(out.Problem{Rule: "brief-unknown-role", Message: "no brief for the role " + q.Role,
 			Fix: "name one of the roles: drafter, implementer or reviewer"}), nil
 	}
-	if _, err := h.ports.Resolve(ctx, head); err != nil {
-		return Answer{}, kind.Wrap(kind.Missing, errors.New("itos brief reads HEAD's tree, and the repository has no commit"))
+	problems, base, err := h.base(ctx, q.At)
+	if problems != nil || err != nil {
+		return Answer{Refused: problems}, err
 	}
-	at, err := h.ports.Config(ctx)
+	at, err := h.ports.Config(ctx, base)
 	if err != nil {
 		return Answer{}, err
 	}
@@ -136,15 +138,15 @@ func (h Handler) Handle(ctx context.Context, q Query) (Answer, error) {
 		return Answer{}, kind.Else(kind.Missing, err)
 	}
 	f.Top = filepath.ToSlash(l.Top)
-	if err := h.spec(ctx, at, &f); err != nil {
+	if err := h.spec(ctx, at, base, &f); err != nil {
 		return Answer{}, err
 	}
 	if len(f.specFiles) == 0 && q.Role != guidetext.Drafter {
 		return refused(noSpec(q.ID, f.Kind)), nil
 	}
-	b := &Brief{Item: q.ID, Role: q.Role, Reads: []Read{}, Omitted: []Omitted{}}
+	b := &Brief{Item: q.ID, Role: q.Role, Base: base, Reads: []Read{}, Omitted: []Omitted{}}
 	if len(f.specFiles) > 0 {
-		if b.Spec, err = h.ports.LastTouching(ctx, head, f.specFiles); err != nil {
+		if b.Spec, err = h.ports.LastTouching(ctx, base, f.specFiles); err != nil {
 			return Answer{}, err
 		}
 	}
@@ -158,6 +160,26 @@ func (h Handler) Handle(ctx context.Context, q Query) (Answer, error) {
 }
 
 func refused(p out.Problem) Answer { return Answer{Refused: []out.Problem{p}} }
+
+// base is the full name of the commit the brief is computed at: the one at
+// names, HEAD's when it names none. A revision git cannot resolve is
+// refused, brief-unknown-revision; a repository with no commit, when at
+// names none, is an error, a missing environment.
+func (h Handler) base(ctx context.Context, at string) ([]out.Problem, string, error) {
+	if at == "" {
+		sha, err := h.ports.Resolve(ctx, head)
+		if err != nil {
+			return nil, "", kind.Wrap(kind.Missing, errors.New("itos brief reads HEAD's tree, and the repository has no commit"))
+		}
+		return nil, sha, nil
+	}
+	sha, err := h.ports.Resolve(ctx, at)
+	if err != nil {
+		return []out.Problem{{Rule: "brief-unknown-revision", Message: "git cannot resolve " + at + " to a commit of the clone",
+			Fix: "name a commit the clone has with --at: a SHA, a branch, a tag, or origin/<branch> once fetched"}}, "", nil
+	}
+	return nil, sha, nil
+}
 
 // noSpec is the refusal of an item nothing specifies yet, for a role that
 // works from a spec: the drafter's brief is the fix.
@@ -237,10 +259,10 @@ func refsOf(item *value.Map) []string {
 	return refs
 }
 
-// spec reads the item's spec at HEAD into f: a task's ledger entry, its
-// checks and its file, or the scenarios tagged for the item and their
-// files, each once, in the order found.
-func (h Handler) spec(_ context.Context, at *config.Loaded, f *facts) error {
+// spec reads the item's spec at the commit base into f: a task's ledger
+// entry, its checks and its file, or the scenarios tagged for the item and
+// their files, each once, in the order found.
+func (h Handler) spec(_ context.Context, at *config.Loaded, base string, f *facts) error {
 	if f.Kind == "task" {
 		// Files first: Tasks reads them too, so a folder that cannot be
 		// listed fails here and a file that is not YAML there.
@@ -272,7 +294,7 @@ func (h Handler) spec(_ context.Context, at *config.Loaded, f *facts) error {
 		f.task = &tasks[i]
 		return nil
 	}
-	scenarios, err := tests.TaggedFiles(at, "@"+f.ID, head)
+	scenarios, err := tests.TaggedFiles(at, "@"+f.ID, base)
 	if err != nil {
 		return err
 	}
@@ -285,8 +307,8 @@ func (h Handler) spec(_ context.Context, at *config.Loaded, f *facts) error {
 	return nil
 }
 
-// reads fills b's Reads and Omitted, and f's paths read, from HEAD's
-// entries: AGENTS.md, the spec's files, then each ref, a file as it is, a
+// reads fills b's Reads and Omitted, and f's paths read, from the entries
+// of b's Base: AGENTS.md, the spec's files, then each ref, a file as it is, a
 // folder by its doc.go; what is not there, or is a symbolic link (git's
 // mode 120000: the agent would read whatever the link points at in its
 // checkout, not the blob the request records), is omitted with its reason.
@@ -302,7 +324,7 @@ func (h Handler) reads(ctx context.Context, b *Brief, f *facts, refs []string) e
 			paths = append(paths, p, path.Join(p, "doc.go"))
 		}
 	}
-	entries, err := h.ports.TreeEntries(ctx, head, paths)
+	entries, err := h.ports.TreeEntries(ctx, b.Base, paths)
 	if err != nil {
 		return err
 	}
