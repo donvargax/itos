@@ -16078,6 +16078,13 @@ items:
       p3-review-by-head-any-login lands first (or no non-Codex login joins review_by). After the
       hand-off nobody asks Codex for a head pushed later (it reviews only on ready_for_review;
       --ready's askForHead does it today): this item says who posts @codex review for a new head.
+
+      Who asks Codex after the hand-off, the coordinator's recommendation (2026-10-30): the push
+      that moves the head. itos push on a ready pull request's branch posts the request for the new
+      head (askForHead's comment, once per head), with the user's own gh, so the ask comes from a
+      person's login (whether Codex answers a request a bot posts is unknown, so the status workflow
+      should not ask). A head GitHub makes by rebasing (update-branch) has no itos push behind it:
+      whoever asks for the rebase asks for the review too.
     tags: [work, v8]
 
   - id: p3-work-add-refusal-keeps-id
