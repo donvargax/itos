@@ -30,21 +30,25 @@ const (
 // and a people file written as text, the commits git resolves, the comments
 // GitHub answers with their head, the gh calls made and the files readable.
 type fake struct {
-	config   string // the YAML added to the config, "" for no config file
-	noConfig bool
-	badYAML  bool
-	registry string
-	people   string
-	resolved map[string]string
-	remote   string
-	noRepo   bool
-	head     string
-	comments []providers.Authored
-	reviews  []providers.Authored
-	ghErr    map[string]error  // the call (its first two words) that fails
-	answers  map[string]string // the call's answer
-	calls    []string
-	files    map[string]string
+	config     string // the YAML added to the config, "" for no config file
+	noConfig   bool
+	badYAML    bool
+	registry   string
+	people     string
+	resolved   map[string]string
+	remote     string
+	noRepo     bool
+	head       string
+	comments   []providers.Authored
+	reviews    []providers.Authored // with their commits
+	failWith   string               // a pr comment whose body has it fails
+	revision   string               // the item's revision as next gives it
+	revErr     error
+	revProblem *out.Problem
+	ghErr      map[string]error  // the call (its first two words) that fails
+	answers    map[string]string // the call's answer
+	calls      []string
+	files      map[string]string
 }
 
 func newFake() *fake {
@@ -111,12 +115,21 @@ func (f *fake) Gh(_ context.Context, args ...string) (string, error) {
 	switch key {
 	case "pr list":
 		return `[{"number":7,"url":"` + pull7 + `"}]`, nil
+	case "pr comment":
+		if f.failWith != "" && strings.Contains(call, f.failWith) {
+			return "", &providers.GhFailed{Words: "HTTP 502: Bad Gateway", Err: errors.New("exit 1")}
+		}
+		return pull7 + "#issuecomment-2\n", nil
 	case "api graphql":
 		nodes := func(of []providers.Authored) string {
 			each := make([]string, 0, len(of))
 			for _, c := range of {
 				body, _ := json.Marshal(c.Body)
-				each = append(each, fmt.Sprintf(`{"author":{"login":%q},"body":%s}`, c.Login, body))
+				commit := ""
+				if c.Commit != "" {
+					commit = fmt.Sprintf(`,"commit":{"oid":%q}`, c.Commit)
+				}
+				each = append(each, fmt.Sprintf(`{"author":{"login":%q},"body":%s%s}`, c.Login, body, commit))
 			}
 			return strings.Join(each, ",")
 		}
@@ -134,6 +147,10 @@ func (f *fake) ReadFile(_ context.Context, path string) ([]byte, error) {
 		return []byte(text), nil
 	}
 	return nil, errors.New("open " + path + ": no such file or directory")
+}
+
+func (f *fake) Revision(context.Context, *config.Loaded, string) (string, *out.Problem, error) {
+	return f.revision, f.revProblem, f.revErr
 }
 
 // A comment recording a verdict as itos writes one.

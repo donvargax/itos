@@ -5,7 +5,9 @@ import (
 	"os"
 
 	"github.com/donvargax/itos/v8/internal/config"
+	"github.com/donvargax/itos/v8/internal/out"
 	"github.com/donvargax/itos/v8/internal/providers"
+	nextslice "github.com/donvargax/itos/v8/internal/slices/next"
 	"github.com/donvargax/itos/v8/internal/slices/review"
 	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
 )
@@ -61,6 +63,12 @@ func (p reviewPorts) GitHubRepository(ctx context.Context, cfg *config.Loaded, r
 // Gh is providers.Gh in the folder itos runs in.
 func (p reviewPorts) Gh(ctx context.Context, args ...string) (string, error) {
 	return providers.Gh(ctx, p.o.Dir, args...)
+}
+
+// Revision is the next slice's RevisionOf: the item's revision as itos next
+// gives it, over the tracker the questions are in and next's forge.
+func (p reviewPorts) Revision(ctx context.Context, cfg *config.Loaded, id string) (string, *out.Problem, error) {
+	return nextslice.RevisionOf(ctx, cfg, tracker(cfg, p.o.OS), nextPorts{p.o}, id)
 }
 
 // ReadFile reads the path from the folder itos runs in, an error naming the

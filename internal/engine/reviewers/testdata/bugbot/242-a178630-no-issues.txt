@@ -1,0 +1,6 @@
+<!-- BUGBOT_REVIEW -->
+✅ Bugbot reviewed your changes and found no new issues!
+
+_Comment `@cursor review` or `bugbot run` to trigger another review on this PR_
+
+<sup>Reviewed by [Cursor Bugbot](https://cursor.com/bugbot) for commit a1786308c13d16fbec642365ed91c4b0a2e68add. Configure [here](https://www.cursor.com/dashboard/bugbot).</sup>

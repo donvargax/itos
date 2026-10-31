@@ -40,7 +40,11 @@ nothing), then for an open one the one gh api graphql question --ready asks
 attempt journal, itos/attempts/<id>.jsonl in the git folder. The states, the
 first that holds winning: merged (driver close, itos work done <id>); repair
 (ready, a check failed or a thread unresolved: implementer implement, itos
-brief <id> --role implementer); merging (ready: forge observe); blocked (the
+brief <id> --role implementer); review-unrequested (where merging or
+handed-back would be, a reviewer push.pr.reviewers names not requested for the
+head, neither asked with itos review request's marker nor answered by its own
+review of the head: driver request, itos review request <id>); merging (ready:
+forge observe); blocked (the
 latest implementer record is needs_decision or blocked and the k-th question
 naming the item, k its place among such records, is not answered: person
 answer, blocked_reason attempt; the person's step is itos decision add
@@ -88,7 +92,9 @@ hold, and "attempt" for an implementer's result asking the person; observed
 when the forge was asked: {"pr":{"number","draft","head","merged"} or null,
 "verdict":"approve"|"changes"|null, "checks":"pending"|"failure"|"success"|
 "none", "threads_open", "attempt":{"role","attempt","verdict","outcome",
-"head"} or null, the journal's latest implementer record}; revision "sha256:"
+"head"} or null, the journal's latest implementer record, "unrequested", the
+push.pr.reviewers logins, as written, not requested for the open pull
+request's head, [] for none}; revision "sha256:"
 and the hex digest of exactly the facts read, the kind as read among them and
 under pr the ref the scenarios were read at and what the forge and the
 journal said, so a commit that touches none of them leaves it as it was and a

@@ -16,7 +16,7 @@ func TestPullStateQueryIsOneLine(t *testing.T) {
 	if strings.ContainsAny(PullStateQuery, "\n\t") || strings.Contains(PullStateQuery, "  ") || !strings.HasPrefix(PullStateQuery, "query($owner: String!, ") {
 		t.Errorf("the query is not on one line: %q", PullStateQuery)
 	}
-	for _, want := range []string{"after: $cursor", "pageInfo { hasNextPage endCursor }", "reviewThreads(first: 100)", "READY_FOR_REVIEW_EVENT", "statusCheckRollup { state }"} {
+	for _, want := range []string{"after: $cursor", "pageInfo { hasNextPage endCursor }", "reviewThreads(first: 100)", "READY_FOR_REVIEW_EVENT", "statusCheckRollup { state }", "reviews(first: 100) { nodes { author { login } body commit { oid } } }"} {
 		if !strings.Contains(PullStateQuery, want) {
 			t.Errorf("the query lacks %q: %s", want, PullStateQuery)
 		}
@@ -33,7 +33,7 @@ func pageAnswer(comments string, more string) string {
 	return `{"data":{"repository":{"pullRequest":{"headRefOid":"0123456789abcdef0123456789abcdef01234567",` +
 		`"commits":{"nodes":[{"commit":{"statusCheckRollup":{"state":"FAILURE"}}}]},` +
 		`"timelineItems":{"nodes":[{"createdAt":"2026-10-24T10:00:00Z"}]},` +
-		`"reviews":{"nodes":[{"author":{"login":"codex"},"body":"LGTM"},{"author":null,"body":"gone"}]},` +
+		`"reviews":{"nodes":[{"author":{"login":"codex"},"body":"LGTM","commit":{"oid":"abc"}},{"author":{"login":"x"},"body":"","commit":null},{"author":null,"body":"gone"}]},` +
 		`"comments":{` + pageInfo + `"nodes":[` + comments + `]},` +
 		`"reviewThreads":{"nodes":[` +
 		`{"id":"T1","isResolved":false,"path":"a.go","line":3,"comments":{"nodes":[{"author":{"login":"ana"},"body":"first line\nsecond"}]}},` +
@@ -59,7 +59,7 @@ func TestAskPullStateReadsOneAnswer(t *testing.T) {
 	at := func(text string) time.Time { return githubTime(text) }
 	want := PullState{
 		Head:     "0123456789abcdef0123456789abcdef01234567",
-		Reviews:  []Authored{{Login: "codex", Body: "LGTM"}},
+		Reviews:  []Authored{{Login: "codex", Body: "LGTM", Commit: "abc"}, {Login: "x"}},
 		Comments: []Authored{{Login: "someone", Body: "hi", Created: at("2026-10-24T11:00:00Z"), Updated: at("2026-10-24T12:00:00Z")}},
 		ReadyAt:  at("2026-10-24T10:00:00Z"),
 		Threads: []ReviewThread{
@@ -100,7 +100,7 @@ func TestAskPullStatePagesTheComments(t *testing.T) {
 	if !reflect.DeepEqual(cursors, []string{"", "cursor=page2"}) {
 		t.Errorf("the pages asked: %v", cursors)
 	}
-	if len(got.Comments) != 2 || got.Comments[0].Body != "one" || got.Comments[1].Body != "two" || len(got.Reviews) != 1 || len(got.Threads) != 3 {
+	if len(got.Comments) != 2 || got.Comments[0].Body != "one" || got.Comments[1].Body != "two" || len(got.Reviews) != 2 || len(got.Threads) != 3 {
 		t.Errorf("read %+v", got)
 	}
 

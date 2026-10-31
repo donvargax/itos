@@ -2,6 +2,7 @@ package review
 
 import (
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	argsengine "github.com/donvargax/itos/v8/internal/engine/args"
@@ -15,10 +16,12 @@ const (
 	stageDiff = "diff"
 )
 
-// review's words: post records a verdict, status posts the reviews' status.
+// review's words: post records a verdict, request asks the reviewers for
+// the head, status posts the reviews' status.
 const (
-	subPost   = "post"
-	subStatus = "status"
+	subPost    = "post"
+	subRequest = "request"
+	subStatus  = "status"
 )
 
 // CLI is review's command line: the Query it asks, whether it is status's
@@ -30,23 +33,34 @@ type CLI struct {
 	JSON, Quiet bool
 }
 
+// revisionForm is the shape of a revision itos next gives: "sha256:" and 64
+// lowercase hex digits.
+var revisionForm = regexp.MustCompile(`^sha256:[0-9a-f]{64}$`)
+
 // Parse reads the arguments internal/cli's flag spec hands the review
 // command, with the global flags and origin, the folder the person stood in
 // (relative to the top itos moved to, "" when it did not move), which the
 // body file's path is read from. Every error is a usage error (out.Usage):
-// review takes post or status and nothing else; post one item, --verdict and
-// --at, and --stage spec or diff when given; status one item and no flag. The
+// review takes post, request or status and nothing else; post one item,
+// --verdict and --at, and --stage spec or diff when given; request one item
+// and --expect a revision when given; status one item and no flag. The
 // verdict's word is Handle's to judge.
 func Parse(args []string, origin string, json, quiet bool) (CLI, error) {
 	sub, rest := argsengine.Split(args)
 	switch sub {
 	case "":
-		return CLI{}, out.Usage("review needs post or status: itos review post <item> --verdict approve|changes --at <commit>, or itos review status <item>")
+		return CLI{}, out.Usage("review needs post, request or status: itos review post <item> --verdict approve|changes --at <commit>, itos review request <item>, or itos review status <item>")
 	case subPost:
+	case subRequest:
+		q, err := parseRequest(rest)
+		if err != nil {
+			return CLI{}, err
+		}
+		return CLI{Query: q, JSON: json, Quiet: quiet}, nil
 	case subStatus:
 		return parseStatus(rest, json, quiet)
 	default:
-		return CLI{}, out.Usage("review has no subcommand %s: it takes post or status", sub)
+		return CLI{}, out.Usage("review has no subcommand %s: it takes post, request or status", sub)
 	}
 	pos, flags, _, err := argsengine.Sub("review", "post", rest, []string{"--verdict", "--at", "--stage", "--body-file"}, nil)
 	if err != nil {
@@ -74,6 +88,26 @@ func Parse(args []string, origin string, json, quiet bool) (CLI, error) {
 	}
 	q.BodyFile = typed(origin, flags["--body-file"])
 	return CLI{Query: q, JSON: json, Quiet: quiet}, nil
+}
+
+// parseRequest is `review request <item> [--expect <revision>]`: one item,
+// and a revision itos next gives when --expect is there.
+func parseRequest(args []string) (Query, error) {
+	pos, flags, _, err := argsengine.Sub("review", subRequest, args, []string{"--expect"}, nil)
+	if err != nil {
+		return Query{}, err
+	}
+	switch {
+	case len(pos) == 0:
+		return Query{}, out.Usage("review request needs <item>, the item whose pull request's head the reviewers are asked for")
+	case len(pos) > 1:
+		return Query{}, out.Usage("review request takes one <item>, not %s", strings.Join(pos, " "))
+	}
+	expect, given := flags["--expect"]
+	if given && !revisionForm.MatchString(expect) {
+		return Query{}, out.Usage("review request --expect takes the revision itos next gives, \"sha256:\" and 64 lowercase hex digits, not %s", expect)
+	}
+	return Query{Request: true, Item: pos[0], Expect: expect}, nil
 }
 
 // parseStatus reads review status's arguments: one item, and no flag.

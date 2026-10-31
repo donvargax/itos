@@ -1065,6 +1065,7 @@ cases:
           pr:
             draft: false
             review_by: []
+            reviewers: []
             review_stall: 0
             ready_wait: 540
             update: rebase
