@@ -224,6 +224,10 @@
   scenarios:
     - id: "@ID-REVIEW-01"
       why: a verdict posted as one comment, its readable line and its marker bound to the head, round 1, the file's point
+- file: review-status.feature
+  scenarios:
+    - id: "@ID-REVIEWSTATUS-01"
+      why: itos/reviews success posted on the head GitHub gives once every review_by login reviewed it, nothing else asked, the file's point
 - file: shim.feature
   scenarios:
     - id: "@ID-SHIM-01"

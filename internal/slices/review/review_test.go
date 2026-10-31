@@ -39,6 +39,7 @@ type fake struct {
 	noRepo   bool
 	head     string
 	comments []providers.Authored
+	reviews  []providers.Authored
 	ghErr    map[string]error  // the call (its first two words) that fails
 	answers  map[string]string // the call's answer
 	calls    []string
@@ -110,13 +111,16 @@ func (f *fake) Gh(_ context.Context, args ...string) (string, error) {
 	case "pr list":
 		return `[{"number":7,"url":"` + pull7 + `"}]`, nil
 	case "api graphql":
-		nodes := make([]string, 0, len(f.comments))
-		for _, c := range f.comments {
-			body, _ := json.Marshal(c.Body)
-			nodes = append(nodes, fmt.Sprintf(`{"author":{"login":%q},"body":%s}`, c.Login, body))
+		nodes := func(of []providers.Authored) string {
+			each := make([]string, 0, len(of))
+			for _, c := range of {
+				body, _ := json.Marshal(c.Body)
+				each = append(each, fmt.Sprintf(`{"author":{"login":%q},"body":%s}`, c.Login, body))
+			}
+			return strings.Join(each, ",")
 		}
-		return fmt.Sprintf(`{"data":{"repository":{"pullRequest":{"headRefOid":%q,"reviews":{"nodes":[]},"comments":{"nodes":[%s]},"reviewThreads":{"nodes":[]}}}}}`,
-			f.head, strings.Join(nodes, ",")), nil
+		return fmt.Sprintf(`{"data":{"repository":{"pullRequest":{"headRefOid":%q,"reviews":{"nodes":[%s]},"comments":{"nodes":[%s]},"reviewThreads":{"nodes":[]}}}}}`,
+			f.head, nodes(f.reviews), nodes(f.comments)), nil
 	}
 	if strings.HasPrefix(key, "api repos/") {
 		return `{"id":1,"html_url":"` + pull7 + `#issuecomment-1"}`, nil

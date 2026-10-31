@@ -440,26 +440,26 @@ func TestReviewStatesAreOfTheHead(t *testing.T) {
 		"no commit":                          {comment: "<!-- codex-review-state:v1 {\"code_review\":{\"status\":\"completed\"},\"security_review\":{\"status\":\"completed\"}} -->", completed: true, elsewhere: true},
 	} {
 		t.Run(name, func(t *testing.T) {
-			s := pullState{comments: []authored{{login: "a", body: c.comment}}}
-			st := s.stateOf("a")
-			if !st.stated || st.completed() != c.completed || s.running("a", head) != c.running || s.elsewhere("a", head) != c.elsewhere || st.underway(head) != c.underway {
-				t.Errorf("completed %t, running %t, elsewhere %t, underway %t", st.completed(), s.running("a", head), s.elsewhere("a", head), st.underway(head))
+			s := pullState{pull: providers.PullState{Comments: []providers.Authored{{Login: "a", Body: c.comment}}}}
+			st := s.pull.StateOf("a")
+			if !st.Stated || st.Completed() != c.completed || s.running("a", head) != c.running || s.elsewhere("a", head) != c.elsewhere || underway(st, head) != c.underway {
+				t.Errorf("completed %t, running %t, elsewhere %t, underway %t", st.Completed(), s.running("a", head), s.elsewhere("a", head), underway(st, head))
 			}
-			missing, _ := s.verdicts([]string{"a"}, head)
+			missing, _ := s.pull.Verdicts([]string{"a"}, head)
 			if got := len(missing) == 0; got != (c.completed && !c.elsewhere) {
 				t.Errorf("a verdict: %t", got)
 			}
 		})
 	}
 	// No comment, no state; its edits are the comment's updatedAt.
-	s := pullState{comments: []authored{{login: "a", body: "other"}}}
-	if st := s.stateOf("a"); st.stated || s.running("a", head) || s.elsewhere("a", head) {
+	s := pullState{pull: providers.PullState{Comments: []providers.Authored{{Login: "a", Body: "other"}}}}
+	if st := s.pull.StateOf("a"); st.Stated || s.running("a", head) || s.elsewhere("a", head) {
 		t.Errorf("a state from no state comment: %+v", st)
 	}
 	edited := time.Unix(1_234, 0)
-	s = pullState{comments: []authored{{login: "a", body: codexStateAt("running", head, "running", head), updated: edited}}}
-	if st := s.stateOf("a"); !st.updated.Equal(edited) {
-		t.Errorf("updated: %s", st.updated)
+	s = pullState{pull: providers.PullState{Comments: []providers.Authored{{Login: "a", Body: codexStateAt("running", head, "running", head), Updated: edited}}}}
+	if st := s.pull.StateOf("a"); !st.Updated.Equal(edited) {
+		t.Errorf("updated: %s", st.Updated)
 	}
 }
 

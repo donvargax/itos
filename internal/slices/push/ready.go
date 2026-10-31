@@ -24,28 +24,16 @@ const reviewPoll = 50 * time.Millisecond
 // post reads too (slice-206), so the two commands read one answer.
 var reviewQuery = providers.PullStateQuery
 
-// pullState is what GitHub says of the pull request: its reviews and comments,
-// by the logins GraphQL gives, when it was last marked ready (zero when it does
-// not say), the node ids of all its review threads and the threads still open.
+// pullState is what GitHub says of the pull request: the answer itself, whose
+// reviews and comments the verdicts are read from (providers.PullState's
+// Verdicts, which itos review status reads too), when it was last marked
+// ready (zero when it does not say), the node ids of all its review threads
+// and the threads still open.
 type pullState struct {
-	reviews    []authored
-	comments   []authored
+	pull       providers.PullState
 	readyAt    time.Time
 	ids        []string
 	unresolved []openThread
-}
-
-// authored is a review or a comment: who wrote it, its body and, for a
-// comment, when it was made and last edited (zero when GitHub does not say).
-type authored struct {
-	login, body      string
-	created, updated time.Time
-}
-
-// refusal is a review_by login with no verdict whose reviews are all refusals:
-// the first line of the last.
-type refusal struct {
-	login, line string
 }
 
 // openThread is a review thread that is not resolved: its node id, where it is
@@ -197,7 +185,7 @@ func (r *pushRun) awaitReviews(ctx context.Context, repository string, w *waitin
 				deadline = from.Add(timeout)
 			}
 		}
-		missing, refused := state.verdicts(logins, w.head)
+		missing, refused := state.pull.Verdicts(logins, w.head)
 		w.look(state, missing)
 		if len(missing) == 0 {
 			return state, Answer{}, false
@@ -205,7 +193,7 @@ func (r *pushRun) awaitReviews(ctx context.Context, repository string, w *waitin
 		if len(refused) > 0 {
 			for _, f := range refused {
 				fmt.Fprintf(r.o.Stderr, "itos: %s gave no verdict on %s: \"%s\"; auto-merge is not turned on: request its review again, then itos push --ready again.\n",
-					f.login, r.pr.URL, f.line)
+					f.Login, r.pr.URL, f.Line)
 			}
 			return state, r.report(temporary, "review-refused"), true
 		}
@@ -230,120 +218,10 @@ func (r *pushRun) awaitReviews(ctx context.Context, repository string, w *waitin
 	}
 }
 
-// sameLogin is whether two logins are equal once a trailing "[bot]" is dropped
-// from each, GraphQL naming a bot without it and the REST API with it.
-func sameLogin(a, b string) bool {
-	return strings.TrimSuffix(a, "[bot]") == strings.TrimSuffix(b, "[bot]")
-}
-
-// verdicts splits the logins, as the config wrote them, that have no verdict
-// for the head (missing) from those among them whose reviews are all refusals
-// (refused, in the config's order). A login that wrote a review-state comment
-// has the verdict that comment gives and no other: both its reviews completed,
-// both of the head (slice 200); else any review of its that is not a refusal is
-// one.
-func (s pullState) verdicts(logins []string, head string) (missing []string, refused []refusal) {
-	for _, login := range logins {
-		if st := s.stateOf(login); st.stated {
-			if !st.completed() || !st.forHead(head) {
-				missing = append(missing, login)
-			}
-			continue
-		}
-		gave, last := false, ""
-		for _, rv := range s.reviews {
-			if !sameLogin(rv.login, login) {
-				continue
-			}
-			if line, refuses := refusalLine(rv.body); refuses {
-				last = line
-			} else {
-				gave = true
-			}
-		}
-		if gave {
-			continue
-		}
-		missing = append(missing, login)
-		if last != "" {
-			refused = append(refused, refusal{login, last})
-		}
-	}
-	return missing, refused
-}
-
-// refusalLine is the first line of a review body and whether it is Copilot's
-// refusal to review: it begins "Copilot" and says it was unable to review the
-// pull request.
-func refusalLine(body string) (string, bool) {
-	first, _, _ := strings.Cut(body, "\n")
-	first = strings.TrimSpace(first)
-	return first, strings.HasPrefix(first, "Copilot") && strings.Contains(first, "was unable to review this pull request")
-}
-
-// reviewState is a login's review-state comment: whether it wrote one, each of
-// its two reviews and when the comment was last edited (zero when GitHub does
-// not say).
-type reviewState struct {
-	stated         bool
-	code, security stateReview
-	updated        time.Time
-}
-
-// stateReview is one review of a review-state comment: its status and the
-// commit it is of.
-type stateReview struct {
-	status, sha string
-}
-
-// completed is whether both reviews are.
-func (s reviewState) completed() bool {
-	return s.code.status == "completed" && s.security.status == "completed"
-}
-
-// forHead is whether both reviews are of the head.
-func (s reviewState) forHead(head string) bool {
-	return s.code.sha == head && s.security.sha == head
-}
-
 // underway is whether a review of the head, in the state, reads anything but
 // completed.
-func (s reviewState) underway(head string) bool {
-	return s.code.sha == head && s.code.status != "completed" || s.security.sha == head && s.security.status != "completed"
-}
-
-// stateOf reads the login's review-state comment, the last it wrote with a
-// "<!-- codex-review-state:v1 {json} -->" line; one that cannot be read has
-// reviews that are none and no commit.
-func (s pullState) stateOf(login string) (state reviewState) {
-	for _, c := range s.comments {
-		if !sameLogin(c.login, login) {
-			continue
-		}
-		for _, line := range strings.Split(c.body, "\n") {
-			text, ok := strings.CutPrefix(strings.TrimSpace(line), "<!-- codex-review-state:v1 ")
-			text, ok2 := strings.CutSuffix(text, " -->")
-			if !ok || !ok2 {
-				continue
-			}
-			var parsed struct {
-				CodeReview struct {
-					Status string `json:"status"`
-					SHA    string `json:"commit_sha"`
-				} `json:"code_review"`
-				SecurityReview struct {
-					Status string `json:"status"`
-					SHA    string `json:"commit_sha"`
-				} `json:"security_review"`
-			}
-			state = reviewState{stated: true, updated: c.updated}
-			if json.Unmarshal([]byte(text), &parsed) == nil {
-				state.code = stateReview{parsed.CodeReview.Status, parsed.CodeReview.SHA}
-				state.security = stateReview{parsed.SecurityReview.Status, parsed.SecurityReview.SHA}
-			}
-		}
-	}
-	return state
+func underway(s providers.ReviewState, head string) bool {
+	return s.Code.SHA == head && s.Code.Status != "completed" || s.Security.SHA == head && s.Security.Status != "completed"
 }
 
 // reviewsFrom is when the clock of ci.watch.timeout for the reviews starts:
@@ -401,13 +279,7 @@ func (r *pushRun) ask(ctx context.Context, repository string, number int) (pullS
 // the ready time, every thread's id and the threads still open, each with the
 // first line of its first comment.
 func fromPullState(got providers.PullState) pullState {
-	state := pullState{readyAt: got.ReadyAt}
-	for _, a := range got.Reviews {
-		state.reviews = append(state.reviews, authored{a.Login, a.Body, a.Created, a.Updated})
-	}
-	for _, a := range got.Comments {
-		state.comments = append(state.comments, authored{a.Login, a.Body, a.Created, a.Updated})
-	}
+	state := pullState{pull: got, readyAt: got.ReadyAt}
 	for _, t := range got.Threads {
 		state.ids = append(state.ids, t.ID)
 		if t.Resolved {

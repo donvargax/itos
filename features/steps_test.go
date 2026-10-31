@@ -477,6 +477,7 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	initializePushThreadSteps(sc, w)
 	initializeReadyWaitSteps(sc, w)
 	initializeReviewSteps(sc, w)
+	initializeReviewStatusSteps(sc, w)
 	initializeOntoMainSteps(sc, w)
 	initializePushMergeSteps(sc, w)
 	initializeWorkDonePRSteps(sc, w)

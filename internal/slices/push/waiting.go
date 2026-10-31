@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/donvargax/itos/v8/internal/providers"
 	"github.com/donvargax/itos/v8/internal/value"
 )
 
@@ -89,16 +90,16 @@ func (w *waiting) look(state pullState, missing []string) {
 // running is whether the login wrote a review-state comment for the head whose
 // reviews are not both completed.
 func (s pullState) running(login, head string) bool {
-	st := s.stateOf(login)
-	return st.stated && st.forHead(head) && !st.completed()
+	st := s.pull.StateOf(login)
+	return st.Stated && st.ForHead(head) && !st.Completed()
 }
 
 // elsewhere is whether the login wrote a review-state comment for another
 // commit than the head, and none of its reviews that name the head is under
 // way: the review of the head has not been asked for, or not begun.
 func (s pullState) elsewhere(login, head string) bool {
-	st := s.stateOf(login)
-	return st.stated && !st.forHead(head) && !st.underway(head)
+	st := s.pull.StateOf(login)
+	return st.Stated && !st.ForHead(head) && !underway(st, head)
 }
 
 // requested is whether some comment, by anyone, asks the login to review the
@@ -106,17 +107,17 @@ func (s pullState) elsewhere(login, head string) bool {
 // login matched as review_by's are; at is when the latest such comment was
 // made, zero when GitHub does not say.
 func (s pullState) requested(login, head string) (found bool, at time.Time) {
-	for _, c := range s.comments {
-		for _, line := range strings.Split(c.body, "\n") {
+	for _, c := range s.pull.Comments {
+		for _, line := range strings.Split(c.Body, "\n") {
 			text, ok := strings.CutPrefix(strings.TrimSpace(line), requestMarker)
 			text, ok2 := strings.CutSuffix(text, " -->")
 			if !ok || !ok2 {
 				continue
 			}
-			if who, sha, with := strings.Cut(text, " "); with && sha == head && sameLogin(who, login) {
+			if who, sha, with := strings.Cut(text, " "); with && sha == head && providers.SameLogin(who, login) {
 				found = true
-				if c.created.After(at) {
-					at = c.created
+				if c.Created.After(at) {
+					at = c.Created
 				}
 			}
 		}
@@ -191,7 +192,7 @@ func (r *pushRun) stalled(ctx context.Context, repository string, w *waiting, rv
 			rv.since[login] = at
 		}
 		from := rv.since[login]
-		if edited := state.stateOf(login).updated; !edited.IsZero() {
+		if edited := state.pull.StateOf(login).Updated; !edited.IsZero() {
 			from = edited
 		}
 		posted, wasPosted := rv.asked[login]

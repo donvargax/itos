@@ -754,59 +754,6 @@ const (
 	oops  = "Copilot encountered an error and was unable to review this pull request. You can try again by re-requesting a review."
 )
 
-// A verdict is a review that is no refusal, unless the login wrote a
-// review-state comment, whose two statuses both completed are then the only
-// verdict; a login whose reviews are all refusals, and that wrote no state, is
-// refused with the first line of its last refusal.
-func TestVerdicts(t *testing.T) {
-	review := func(login, body string) authored { return authored{login: login, body: body} }
-	for name, c := range map[string]struct {
-		state   pullState
-		missing []string
-		refused []refusal
-	}{
-		"nothing":                            {pullState{}, []string{"a"}, nil},
-		"a review":                           {pullState{reviews: []authored{review("a", "")}}, nil, nil},
-		"a review by a bot, a login without": {pullState{reviews: []authored{review("a[bot]", "x")}}, nil, nil},
-		"another's review":                   {pullState{reviews: []authored{review("b", "")}}, []string{"a"}, nil},
-		"a refusal":                          {pullState{reviews: []authored{review("a", quota+"\nmore")}}, []string{"a"}, []refusal{{"a", quota}}},
-		"an error":                           {pullState{reviews: []authored{review("a", oops)}}, []string{"a"}, []refusal{{"a", oops}}},
-		"the last refusal":                   {pullState{reviews: []authored{review("a", quota), review("a", oops)}}, []string{"a"}, []refusal{{"a", oops}}},
-		"a refusal then a review":            {pullState{reviews: []authored{review("a", quota), review("a", "<!-- ccr-overview-v2 -->")}}, nil, nil},
-		"a review then a refusal":            {pullState{reviews: []authored{review("a", "ok"), review("a", quota)}}, nil, nil},
-		"not Copilot's words":                {pullState{reviews: []authored{review("a", "It was unable to review this pull request")}}, nil, nil},
-		"not on the first line":              {pullState{reviews: []authored{review("a", "hi\n"+quota)}}, nil, nil},
-		"indented first line":                {pullState{reviews: []authored{review("a", "  "+quota)}}, []string{"a"}, []refusal{{"a", quota}}},
-		"a refusal and a bystander":          {pullState{reviews: []authored{review("a", quota), review("b", "")}}, []string{"a"}, []refusal{{"a", quota}}},
-		"completed":                          {pullState{comments: []authored{{login: "a", body: codexState("completed", "completed")}}}, nil, nil},
-		"completed by a bot":                 {pullState{comments: []authored{{login: "a[bot]", body: codexState("completed", "completed")}}}, nil, nil},
-		"code running":                       {pullState{comments: []authored{{login: "a", body: codexState("running", "completed")}}}, []string{"a"}, nil},
-		"security running":                   {pullState{comments: []authored{{login: "a", body: codexState("completed", "running")}}}, []string{"a"}, nil},
-		"by another":                         {pullState{comments: []authored{{login: "b", body: codexState("completed", "completed")}}}, []string{"a"}, nil},
-		"state beats a review":               {pullState{reviews: []authored{review("a", "### Codex Review")}, comments: []authored{{login: "a", body: codexState("completed", "running")}}}, []string{"a"}, nil},
-		"state beats a refusal":              {pullState{reviews: []authored{review("a", quota)}, comments: []authored{{login: "a", body: codexState("completed", "running")}}}, []string{"a"}, nil},
-		"state, then a refusal":              {pullState{reviews: []authored{review("a", quota)}, comments: []authored{{login: "a", body: codexState("completed", "completed")}}}, nil, nil},
-		"the last state":                     {pullState{comments: []authored{{login: "a", body: codexState("running", "running")}, {login: "a", body: codexState("completed", "completed")}}}, nil, nil},
-		"carriage return":                    {pullState{comments: []authored{{login: "a", body: "x\r\n  " + strings.ReplaceAll(codexState("completed", "completed"), "\n", "\r\n") + "  "}}}, nil, nil},
-		"no security review":                 {pullState{comments: []authored{{login: "a", body: "<!-- codex-review-state:v1 {\"code_review\":{\"status\":\"completed\"}} -->"}}}, []string{"a"}, nil},
-		"not json":                           {pullState{comments: []authored{{login: "a", body: "<!-- codex-review-state:v1 {nope -->"}}}, []string{"a"}, nil},
-		"another comment":                    {pullState{comments: []authored{{login: "a", body: "all completed"}}}, []string{"a"}, nil},
-		"no closing":                         {pullState{comments: []authored{{login: "a", body: "<!-- codex-review-state:v1 {\"code_review\":{\"status\":\"completed\"},\"security_review\":{\"status\":\"completed\"}}"}}}, []string{"a"}, nil},
-		"no opening":                         {pullState{comments: []authored{{login: "a", body: "{\"code_review\":{\"status\":\"completed\"},\"security_review\":{\"status\":\"completed\"}} -->"}}}, []string{"a"}, nil},
-	} {
-		t.Run(name, func(t *testing.T) {
-			missing, refused := c.state.verdicts([]string{"a"}, "@head")
-			if !reflect.DeepEqual(missing, c.missing) || !reflect.DeepEqual(refused, c.refused) {
-				t.Errorf("missing %v, refused %v; want %v, %v", missing, refused, c.missing, c.refused)
-			}
-		})
-	}
-	missing, refused := pullState{reviews: []authored{review("c", "")}}.verdicts([]string{"a", "b[bot]", "c"}, "@head")
-	if !reflect.DeepEqual(missing, []string{"a", "b[bot]"}) || refused != nil {
-		t.Errorf("missing %v, refused %v", missing, refused)
-	}
-}
-
 // A login whose reviews are all refusals stops the wait at once, however long
 // ci.watch.timeout and while another login's verdict is still to come: 75,
 // review-refused, each such login in the config's order with its last refusal,
