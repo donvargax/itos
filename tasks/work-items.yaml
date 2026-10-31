@@ -16458,3 +16458,14 @@ items:
     why: >
       slice-207's implementer, 2026-10-30: when --at names another commit, brief's omitted-file
       reasons still say 'at HEAD'.
+
+  - id: p3-attempt-wip-examples
+    title: itos attempt submit's still-wip check covers @wip Examples blocks, as work done does
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      slice-207's implementer, 2026-10-30: the implementer's still-wip check covers scenarios but
+      not @wip Examples blocks, which work done refuses.
