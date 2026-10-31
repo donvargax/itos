@@ -16260,6 +16260,16 @@ items:
       name no login.
 
       The person, 2026-10-30: Bugbot's request is the comment '@cursor review'.
+
+      Codex's security review (seen 2026-10-30, PR 242): with the person opted in, it runs with
+      every code review that '@codex review' starts ('@codex security review' asks for it alone), so
+      it needs no request of its own. Its result is in the same Codex Review Summary comment, in a
+      machine-readable marker: codex-review-state:v1 {code_review:{commit_sha, has_any_findings,
+      has_unresolved_findings, status}, security_review:{…}}, plus codex-security-review:v1
+      {headSha, blockingSeverityThreshold, mergeGateEnabled, status}. The codex adapter reads both
+      parts for the head, and a head is passed only when both are completed with no unresolved
+      findings. A clean security review leaves a receipt comment; its findings come as suggestions,
+      so they block through threads like everything else.
     tags: [work, v8]
 
   - id: p1-pr-merge-mode
