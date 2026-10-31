@@ -16095,7 +16095,7 @@ items:
     tags: [work]
 
   - id: slice-212
-    title: "itos review status posts itos/reviews on a pull request's head: success once each review_by login has reviewed that head, pending naming who is missing, failure on a refusal"
+    title: "itos review status posts itos/reviews on a pull request's head: success once each review_by login has reviewed (a Codex state for that head), pending naming who is missing, failure on a refusal"
     phase: 1
     owner: null
     status: todo
