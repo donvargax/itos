@@ -16130,6 +16130,12 @@ items:
       From slice-212's spec review: a pull_request_review dismissed trigger changes nothing until
       p3-review-by-head-any-login makes a dismissed review count for nothing; drop it or keep it for
       then.
+
+      slice-212 (2026-10-30) counts a Codex review for a head only when both code_review and
+      security_review are completed for it, as --ready does. The person wants each review requested
+      explicitly, so this is kept. itos/reviews therefore stays pending on a head until someone
+      requests both reviews for it. The workflow that posts itos/reviews, and the person's adding it
+      to branch protection, come after p1-review-request-step, which requests both.
     tags: [ci, v8]
 
   - id: p1-next-task-spec-on-main
