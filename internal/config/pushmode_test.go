@@ -73,9 +73,35 @@ func TestPushPR(t *testing.T) {
 			t.Errorf("%q: got %q, want %q", text, got, want)
 		}
 	}
-	for _, key := range []string{"push.pr", "push.pr.draft", "push.pr.review_by", "push.pr.review_stall", "push.pr.ready_wait", "push.pr.update"} {
+	for _, key := range []string{"push.pr", "push.pr.draft", "push.pr.review_by", "push.pr.reviewers", "push.pr.review_stall", "push.pr.ready_wait", "push.pr.update"} {
 		if ok, _ := KnownKey(key); !ok {
 			t.Errorf("%s is no key of the schema", key)
+		}
+	}
+}
+
+// push.pr.reviewers (slice-215) is empty by default; a file's reviewers are
+// read in its order, each its login as written and its kind; a kind but codex
+// or bugbot, and a reviewer without a login or a kind, are refused.
+func TestPushPRReviewers(t *testing.T) {
+	c, err := load(t, "version: 1\n")
+	if err != nil || len(c.Push.PR.Reviewers) != 0 {
+		t.Errorf("by default: %+v, %v", c.Push.PR.Reviewers, err)
+	}
+	c, err = load(t, "version: 1\npush: { mode: pr, pr: { reviewers: [{login: chatgpt-codex-connector, kind: codex}, {login: 'cursor[bot]', kind: bugbot}] } }\n")
+	want := []Reviewer{{Login: "chatgpt-codex-connector", Kind: "codex"}, {Login: "cursor[bot]", Kind: "bugbot"}}
+	if err != nil || !slices.Equal(c.Push.PR.Reviewers, want) {
+		t.Errorf("set: %+v, %v", c.Push.PR.Reviewers, err)
+	}
+	for text, want := range map[string]string{
+		"version: 1\npush: { pr: { reviewers: [{login: a, kind: copilot}] } }\n": `push.pr.reviewers[0].kind should be one of codex, bugbot, not "copilot"`,
+		"version: 1\npush: { pr: { reviewers: [{kind: codex}] } }\n":             "push.pr.reviewers[0]",
+		"version: 1\npush: { pr: { reviewers: [{login: a}] } }\n":                "push.pr.reviewers[0]",
+		"version: 1\npush: { pr: { reviewers: [a] } }\n":                         "push.pr.reviewers[0]",
+	} {
+		_, err := load(t, text)
+		if got := messages(t, err); len(got) != 1 || !strings.Contains(got[0], want) {
+			t.Errorf("%q: got %q, want %q", text, got, want)
 		}
 	}
 }

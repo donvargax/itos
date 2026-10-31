@@ -51,7 +51,10 @@
 // all for the branch named for it, whose open pull request is the item's,
 // else a merged one, a closed one counting for nothing; for an open one the
 // one question --ready and review post put (providers.AskPullState), which
-// gives its head, its comments, its threads and its head's statusCheckRollup;
+// gives its head, its comments, its reviews with their commits, its threads
+// and its head's statusCheckRollup, from which the reviewers push.pr.reviewers
+// names that were not requested for the head are read (Unrequested, by
+// internal/engine/reviewers, as itos review request reads them);
 // and the attempt journal, whose records next reads the role, attempt,
 // outcome, head and verdict of. The verdict that stands is the latest spec
 // marker of the item at the head by a login that counts (work.ReadVerdict,
@@ -60,12 +63,15 @@
 // exit 3, and no repository is no-github-repository, exit 3; a journal that
 // cannot be read, or a line of it that is no record, is the error. Judge's
 // forge then gives, the first that holds: merged, repair (ready, a check
-// failed or a thread open), merging (ready), blocked "attempt" (the latest
+// failed or a thread open), review-unrequested (slice-215: ready, a reviewer
+// push.pr.reviewers names not requested for the head as the reviewers engine
+// reads it), merging (ready), blocked "attempt" (the latest
 // implementer record asks the person, needs_decision or blocked, and the
 // k-th question naming the item, k its place among such records, is not
 // answered), spec-changes (the latest implementer record a spec_defect with
-// no drafter record after it), handed-back (doing, the latest implementer
-// record accepted done at the head), implementing (doing), spec-accepted
+// no drafter record after it), review-unrequested where handed-back would
+// be, handed-back (doing, the latest implementer record accepted done at the
+// head), implementing (doing), spec-accepted
 // and spec-changes (todo, by the verdict), spec-review (todo, a pull
 // request), spec-proposed (todo, none); --json's observed says what was
 // read.

@@ -10,7 +10,8 @@ import (
 )
 
 // PullStateQuery is the one question a pull request's state is read with
-// (gh api graphql, since gh pr view has no threads): its reviews, its
+// (gh api graphql, since gh pr view has no threads): its reviews with the
+// commit each is of (slice-215), its
 // comments (with the times they were made and last edited, a page of them
 // after the cursor), the time it was last marked ready, its review threads
 // and the roll-up state of its head commit's checks, on a single line, since
@@ -20,7 +21,7 @@ var PullStateQuery = strings.Join(strings.Fields(`
 	repository(owner: $owner, name: $name) { pullRequest(number: $number) { headRefOid
 	commits(last: 1) { nodes { commit { statusCheckRollup { state } } } }
 	timelineItems(last: 1, itemTypes: [READY_FOR_REVIEW_EVENT]) { nodes { ... on ReadyForReviewEvent { createdAt } } }
-	reviews(first: 100) { nodes { author { login } body } }
+	reviews(first: 100) { nodes { author { login } body commit { oid } } }
 	comments(first: 100, after: $cursor) { pageInfo { hasNextPage endCursor } nodes { author { login } body createdAt updatedAt } }
 	reviewThreads(first: 100) { nodes { id isResolved path line
 	comments(first: 1) { nodes { author { login } body } } } } } } }`), " ")
@@ -49,11 +50,13 @@ type PullState struct {
 	Checks   string
 }
 
-// Authored is a review or a comment: who wrote it, its body and, for a
-// comment, when it was made and last edited (zero when GitHub does not say).
+// Authored is a review or a comment: who wrote it, its body, for a comment
+// when it was made and last edited (zero when GitHub does not say), and for a
+// review the full SHA of the Commit it is of ("" when GitHub gives none).
 type Authored struct {
 	Login, Body      string
 	Created, Updated time.Time
+	Commit           string
 }
 
 // ReviewThread is a review thread: its node id, whether it is resolved,
@@ -204,6 +207,9 @@ type authoredNodes struct {
 		Body      string `json:"body"`
 		CreatedAt string `json:"createdAt"`
 		UpdatedAt string `json:"updatedAt"`
+		Commit    *struct {
+			Oid string `json:"oid"`
+		} `json:"commit"`
 	} `json:"nodes"`
 }
 
@@ -222,9 +228,14 @@ func (a *authoredNodes) authored() []Authored {
 		return out
 	}
 	for _, n := range a.Nodes {
-		if n.Author != nil {
-			out = append(out, Authored{n.Author.Login, n.Body, githubTime(n.CreatedAt), githubTime(n.UpdatedAt)})
+		if n.Author == nil {
+			continue
 		}
+		a := Authored{Login: n.Author.Login, Body: n.Body, Created: githubTime(n.CreatedAt), Updated: githubTime(n.UpdatedAt)}
+		if n.Commit != nil {
+			a.Commit = n.Commit.Oid
+		}
+		out = append(out, a)
 	}
 	return out
 }

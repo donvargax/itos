@@ -273,7 +273,7 @@ func TestForgeJSON(t *testing.T) {
 		t.Fatal(err)
 	}
 	want := map[string]any{"pr": map[string]any{"number": 7.0, "draft": true, "head": headSHA, "merged": false},
-		"verdict": nil, "checks": "none", "threads_open": 1.0, "attempt": nil}
+		"verdict": nil, "checks": "none", "threads_open": 1.0, "attempt": nil, "unrequested": []any{}}
 	if !reflect.DeepEqual(got["observed"], want) || got["state"] != "spec-review" {
 		t.Errorf("observed %v in %s", got["observed"], stdout)
 	}
@@ -297,7 +297,7 @@ func TestForgeJSON(t *testing.T) {
 	}
 	want = map[string]any{"pr": map[string]any{"number": 7.0, "draft": false, "head": headSHA, "merged": true},
 		"verdict": nil, "checks": "none", "threads_open": 0.0,
-		"attempt": map[string]any{"role": "implementer", "attempt": 2.0, "verdict": "accepted", "outcome": "done", "head": headSHA}}
+		"attempt": map[string]any{"role": "implementer", "attempt": 2.0, "verdict": "accepted", "outcome": "done", "head": headSHA}, "unrequested": []any{}}
 	if !reflect.DeepEqual(got["observed"], want) || got["state"] != "merged" {
 		t.Errorf("observed %v in %s", got["observed"], stdout)
 	}

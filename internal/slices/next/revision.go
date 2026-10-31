@@ -81,6 +81,12 @@ func Revision(f Facts) string {
 		for _, q := range f.Asked {
 			b.WriteString("asked " + value.JSON(q.ID) + " " + value.JSON(q.Status()) + "\n")
 		}
+		// None unrequested writes no line, so a config with no reviewers
+		// keeps the revisions it had before slice-215.
+		if len(o.Unrequested) > 0 {
+			logins, _ := json.Marshal(o.Unrequested)
+			b.WriteString("unrequested " + string(logins) + "\n")
+		}
 	}
 	sum := sha256.Sum256([]byte(b.String()))
 	return "sha256:" + hex.EncodeToString(sum[:])

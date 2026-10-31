@@ -30,6 +30,9 @@ func (c CLI) Run(ctx context.Context, stdout, stderr io.Writer, h Handler) (int,
 		}
 		return a.Code, nil
 	}
+	if c.Request {
+		return 0, c.said(stdout, a)
+	}
 	if c.JSON {
 		fields := []out.Field{{Key: "ok", Value: true}, {Key: "outcome", Value: a.Outcome}, {Key: "item", Value: a.Item},
 			{Key: "stage", Value: a.Stage}, {Key: "verdict", Value: a.Verdict}, {Key: "head", Value: a.Head}, {Key: "round", Value: a.Round}}
@@ -48,4 +51,24 @@ func (c CLI) Run(ctx context.Context, stdout, stderr io.Writer, h Handler) (int,
 	}
 	fmt.Fprintf(stdout, "Posted the %s review of %s at %s: %s, round %d, on %s.\n", a.Stage, a.Item, short(a.Head), a.Verdict, a.Round, a.Address)
 	return 0, nil
+}
+
+// said is what review request says it did: under --json the one object,
+// its posted requests in order; else a line for each request posted, or the
+// line saying every reviewer was asked already; nothing under -q.
+func (c CLI) said(stdout io.Writer, a Answer) error {
+	if c.JSON {
+		return out.Emit(stdout, out.Field{Key: "ok", Value: true}, out.Field{Key: "outcome", Value: a.Outcome},
+			out.Field{Key: "item", Value: a.Item}, out.Field{Key: "head", Value: a.Head}, out.Field{Key: "posted", Value: a.Posted})
+	}
+	if c.Quiet {
+		return nil
+	}
+	if a.Outcome == already {
+		fmt.Fprintf(stdout, "Every reviewer of %s has a request or a review for %s on %s; nothing was posted.\n", a.Item, short(a.Head), a.Address)
+	}
+	for _, r := range a.Posted {
+		fmt.Fprintf(stdout, "Asked %s at %s on %s: %s.\n", r.Login, short(a.Head), a.Address, r.Line)
+	}
+	return nil
 }

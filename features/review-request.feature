@@ -161,7 +161,7 @@ Feature: itos review request asks each configured reviewer for the pull request'
   # and the marker, through gh pr comment with the pull request's number;
   # nothing else is posted, nothing pushed. Fails before the work at the
   # exit code: today review request is a usage error, exit 2.
-  @ID-REVREQ-01 @wip @slice-215
+  @ID-REVREQ-01 @slice-215
   Scenario: Under push.mode pr, review request asks each configured reviewer for the head: Codex's code and security reviews, then Bugbot's
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -212,7 +212,7 @@ Feature: itos review request asks each configured reviewer for the pull request'
   # and one that counted any review at the head nothing for Bugbot. Fails
   # before the work at the exit code: today review request is a usage
   # error, exit 2.
-  @ID-REVREQ-02 @wip @slice-215
+  @ID-REVREQ-02 @slice-215
   Scenario: Under push.mode pr, review request posts only the requests not on the head: one at an older head, without its marker or answered at an older head is posted again
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -259,7 +259,7 @@ Feature: itos review request asks each configured reviewer for the pull request'
   # GitHub would never give Bugbot's review a commit to match. Fails
   # before the work at the exit code: today review request is a usage
   # error, exit 2.
-  @ID-REVREQ-03 @wip @slice-215
+  @ID-REVREQ-03 @slice-215
   Scenario: Under push.mode pr, review request with every reviewer's review of the head posts nothing and reports already, whatever --expect says
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -298,7 +298,7 @@ Feature: itos review request asks each configured reviewer for the pull request'
   # the new head. The next runs only read the revisions; the spec is
   # tagged so next reads the forge. Fails before the work at the first
   # review request's exit code: today it is a usage error, exit 2.
-  @ID-REVREQ-04 @wip @slice-215
+  @ID-REVREQ-04 @slice-215
   Scenario: Under push.mode pr, review request --expect with a revision that is no longer the item's is refused as stale, posting nothing
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -338,7 +338,7 @@ Feature: itos review request asks each configured reviewer for the pull request'
   # the command so Bugbot's is never tried, and the fix is to run it
   # again, which asks only for what is missing. Fails before the work at
   # the exit code: today review request is a usage error, exit 2.
-  @ID-REVREQ-05 @wip @slice-215
+  @ID-REVREQ-05 @slice-215
   Scenario: Under push.mode pr, review request stops at the first gh pr comment that fails, exit 3, naming the call, the requests before it posted and none after it tried
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -369,7 +369,7 @@ Feature: itos review request asks each configured reviewer for the pull request'
   # whose reviewers name nobody: review_by is whom --ready waits for, not
   # whom to ask. Fails before the work at the first exit code: today
   # review request is a usage error, exit 2.
-  @ID-REVREQ-06 @wip @slice-215
+  @ID-REVREQ-06 @slice-215
   Scenario: Under push.mode pr, review request for an unknown item, or with no push.pr.reviewers, is refused before gh is asked
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -396,7 +396,7 @@ Feature: itos review request asks each configured reviewer for the pull request'
   # Under trunk there is no pull request to ask on: refused, gh never
   # asked. Fails before the work at the exit code: today review request is
   # a usage error, exit 2.
-  @ID-REVREQ-07 @wip @slice-215
+  @ID-REVREQ-07 @slice-215
   Scenario: Outside push.mode pr, review request is refused, exit 1, asking gh nothing
     Given a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
     And the work registry has the item "slice-9" owned by "ana" with the status "doing"
@@ -411,7 +411,7 @@ Feature: itos review request asks each configured reviewer for the pull request'
   # A branch not pushed has no pull request to ask on; nothing is asked
   # past gh pr list. Fails before the work at the exit code: today review
   # request is a usage error, exit 2.
-  @ID-REVREQ-08 @wip @slice-215
+  @ID-REVREQ-08 @slice-215
   Scenario: Under push.mode pr, review request with no open pull request for the item is refused, posting nothing
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -436,7 +436,7 @@ Feature: itos review request asks each configured reviewer for the pull request'
   # The key is new and additive, read only under pr. Fails before the
   # work at the exit code: today config check refuses the unknown key
   # push.pr.reviewers, exit 2.
-  @ID-REVREQ-09 @wip @slice-215
+  @ID-REVREQ-09 @slice-215
   Scenario: config check accepts push.pr.reviewers of the kinds codex and bugbot
     Given the config sets "push.pr" to the YAML "{review_by: [chatgpt-codex-connector], reviewers: [{login: chatgpt-codex-connector, kind: codex}, {login: 'cursor[bot]', kind: bugbot}]}"
     When itos checks the config
@@ -446,7 +446,7 @@ Feature: itos review request asks each configured reviewer for the pull request'
   # one itos has none for is refused as any value outside a key's set is.
   # Fails before the work at the output step: today config check refuses
   # the unknown key push.pr.reviewers, exit 2, in other words.
-  @ID-REVREQ-15 @wip @slice-215
+  @ID-REVREQ-15 @slice-215
   Scenario: config check refuses a push.pr.reviewers kind that is neither codex nor bugbot
     Given the config sets "push.pr" to the YAML "{reviewers: [{login: copilot-pull-request-reviewer, kind: copilot}]}"
     When itos checks the config
@@ -455,7 +455,7 @@ Feature: itos review request asks each configured reviewer for the pull request'
 
   # The help is where a driver's author looks first. Fails before the work
   # at the first output step: today itos --help has no review request.
-  @ID-REVREQ-10 @wip @slice-215
+  @ID-REVREQ-10 @slice-215
   Scenario: itos's help lists review request and help review says what each kind posts
     When itos runs "--help"
     Then itos exits with code 0
@@ -469,7 +469,7 @@ Feature: itos review request asks each configured reviewer for the pull request'
   # request takes an item, once, and --expect alone. A guard: every row is
   # exit 2 before the work too, request being no word of review, and must
   # stay one after it.
-  @ID-REVREQ-11 @wip @slice-215 @guard
+  @ID-REVREQ-11 @slice-215 @guard
   Scenario Outline: Under push.mode pr, review request with no item, two items, a malformed --expect or another flag is a usage error, exit 2
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -500,7 +500,7 @@ Feature: itos review request asks each configured reviewer for the pull request'
   # is merging. Each request gives a new revision. Fails before the work
   # at the complete line naming review-unrequested: slice-209's next says
   # merging.
-  @ID-REVREQ-12 @wip @slice-215
+  @ID-REVREQ-12 @slice-215
   Scenario: Under push.mode pr, a ready pull request whose head a configured reviewer was not asked about is review-unrequested, the driver requests
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -560,7 +560,7 @@ Feature: itos review request asks each configured reviewer for the pull request'
   # security review is asked for at the head, handed back, the driver
   # lands it. Fails before the work at the first complete line:
   # slice-209's next says handed-back.
-  @ID-REVREQ-13 @wip @slice-215
+  @ID-REVREQ-13 @slice-215
   Scenario: Under push.mode pr, a handed-back draft whose head was not asked about is review-unrequested, and the reviewer's own review of the head counts as asked
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -602,7 +602,7 @@ Feature: itos review request asks each configured reviewer for the pull request'
   # with no verdict stays in spec review, its reviewer the itos reviewer,
   # though observed says Codex was not asked about the head. Fails before
   # the work at observed.unrequested: slice-209's observed has no such key.
-  @ID-REVREQ-14 @wip @slice-215
+  @ID-REVREQ-14 @slice-215
   Scenario: Under push.mode pr, a todo item's draft stays in spec review whatever the reviewers were asked
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """

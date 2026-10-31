@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/donvargax/itos/v8/internal/config"
+	"github.com/donvargax/itos/v8/internal/engine/reviewers"
 	"github.com/donvargax/itos/v8/internal/out"
 	"github.com/donvargax/itos/v8/internal/providers"
 	"github.com/donvargax/itos/v8/internal/work"
@@ -38,11 +39,15 @@ const (
 // fullSHA is a commit named in full, taken as given.
 var fullSHA = regexp.MustCompile(`^[0-9a-fA-F]{40}$`)
 
-// Query is what review post asks: the Item whose pull request the Verdict
-// goes on, At, the commit judged, the Stage (spec or diff) and the BodyFile
-// to put between the line and the marker, "" for none.
+// Query is what review asks. review post: the Item whose pull request the
+// Verdict goes on, At, the commit judged, the Stage (spec or diff) and the
+// BodyFile to put between the line and the marker, "" for none. review
+// request (Request): the Item whose pull request's head the reviewers are
+// asked for, and Expect, the revision itos next gave, "" for none.
 type Query struct {
 	Item, Verdict, At, Stage, BodyFile string
+	Request                            bool
+	Expect                             string
 }
 
 // Ports are what review reaches the world through, which internal/cli
@@ -51,8 +56,9 @@ type Query struct {
 // a revision names in the clone, an error for none; Remote, the branch's
 // upstream's remote, else origin; GitHubRepository, the repository every gh
 // call names, "" for none; Gh, gh run with the arguments, its stdout,
-// providers.ErrNoGh when it is not installed; and ReadFile, a file's bytes
-// from the folder itos runs in.
+// providers.ErrNoGh when it is not installed; ReadFile, a file's bytes
+// from the folder itos runs in; and Revision, the item's revision as itos
+// next gives it (next.RevisionOf), refused as next refuses an item.
 type Ports interface {
 	ConfigFound(ctx context.Context) bool
 	LoadConfig(ctx context.Context) (*config.Loaded, error)
@@ -61,6 +67,7 @@ type Ports interface {
 	GitHubRepository(ctx context.Context, cfg *config.Loaded, remote string) string
 	Gh(ctx context.Context, args ...string) (string, error)
 	ReadFile(ctx context.Context, path string) ([]byte, error)
+	Revision(ctx context.Context, cfg *config.Loaded, id string) (string, *out.Problem, error)
 }
 
 // Handler is review's application, over its ports.
@@ -76,7 +83,9 @@ func NewHandler(p Ports) Handler {
 // Answer is what Handle did: Code, its exit; Problems, what refused it,
 // nothing posted; else Outcome, posted or already, the Item, Stage and
 // Verdict, the Head judged (the full SHA), the Round the marker records,
-// the pull request's Address and, when posted, the Comment's address.
+// the pull request's Address and, when posted, the Comment's address. For
+// review request, Outcome is requested or already and Posted the requests
+// posted, in order.
 type Answer struct {
 	Code     int
 	Problems []out.Problem
@@ -88,29 +97,26 @@ type Answer struct {
 	Round    int
 	Address  string
 	Comment  string
+	Posted   []reviewers.Request
 }
 
-// Handle records q's verdict, or refuses it (doc.go says the order).
+// refuse is the answer of one problem, its exit code given.
+func refuse(code int, rule, message, fix string) Answer {
+	return Answer{Code: code, Problems: []out.Problem{{Rule: rule, Message: message, Fix: fix}}}
+}
+
+// Handle records q's verdict, or asks q's reviewers, or refuses it (doc.go
+// says the order).
 func (h Handler) Handle(ctx context.Context, q Query) (Answer, error) {
-	refuse := func(code int, rule, message, fix string) Answer {
-		return Answer{Code: code, Problems: []out.Problem{{Rule: rule, Message: message, Fix: fix}}}
+	if q.Request {
+		return h.request(ctx, q)
 	}
-	cfg, pr := h.prMode(ctx)
-	if !pr {
-		return refuse(policy, "review-without-pr-mode",
-			"itos review: a verdict goes on an item's pull request, and this config does not set push.mode: pr; nothing was posted.",
-			"set push.mode: pr in the config, or record the verdict elsewhere"), nil
-	}
-	registry := cfg.Work.Registry
-	if !cfg.Source.Has(ctx, registry) {
-		return Answer{Code: policy, Problems: []out.Problem{work.Missing(registry, false)}}, nil
-	}
-	r, err := work.Load(cfg, registry)
-	if err != nil {
+	cfg, r, refused, err := h.known(ctx, q.Item, "a verdict", "record the verdict elsewhere")
+	switch {
+	case err != nil:
 		return Answer{}, err
-	}
-	if _, problem := work.Show(r, q.Item); problem != nil {
-		return Answer{Code: policy, Problems: []out.Problem{*problem}}, nil
+	case refused != nil:
+		return *refused, nil
 	}
 	if q.Verdict != approve && q.Verdict != changes {
 		return refuse(policy, "review-bad-verdict",
@@ -138,44 +144,54 @@ func (h Handler) Handle(ctx context.Context, q Query) (Answer, error) {
 		}
 		head = sha
 	}
-	remote := h.ports.Remote(ctx)
-	repository := h.ports.GitHubRepository(ctx, cfg, remote)
-	if repository == "" {
-		return refuse(missing, "no-github-repository",
-			fmt.Sprintf("itos review: %s names no GitHub repository to find %s's pull request in; nothing was posted.", remote, q.Item),
-			"set ci.range.github.repository_env to a variable naming it, or give the remote a GitHub address"), nil
+	p, refused := h.pull(ctx, cfg, "post", q.Item)
+	if refused != nil {
+		return *refused, nil
 	}
-	number, address, a, failed := h.openPull(ctx, repository, q.Item)
-	if failed {
-		return a, nil
-	}
-	state, err := providers.AskPullState(ctx, h.ports.Gh, repository, number)
-	switch {
-	case errors.Is(err, providers.ErrNoPullState):
-		return ghFailed("gh api graphql", err.Error()), nil
-	case err != nil:
-		return ghFailed("gh api graphql", providers.GhReason(err)), nil
-	case state.Head == "":
-		return ghFailed("gh api graphql", "its answer names no head for the pull request"), nil
-	}
-	if state.Head != head {
+	if p.state.Head != head {
 		return refuse(policy, "review-head-moved",
-			fmt.Sprintf("itos: %s's pull request %s is at %s, not %s; nothing was posted.", q.Item, address, state.Head, head),
-			fmt.Sprintf("review %s and run itos review post %s --verdict %s --at %s", short(state.Head), q.Item, q.Verdict, state.Head)), nil
+			fmt.Sprintf("itos: %s's pull request %s is at %s, not %s; nothing was posted.", q.Item, p.address, p.state.Head, head),
+			fmt.Sprintf("review %s and run itos review post %s --verdict %s --at %s", short(p.state.Head), q.Item, q.Verdict, p.state.Head)), nil
 	}
-	count, latest := countMarkers(state.Comments, q.Item, q.Stage, r)
-	a = Answer{Item: q.Item, Stage: q.Stage, Verdict: q.Verdict, Head: head, Address: address}
+	count, latest := countMarkers(p.state.Comments, q.Item, q.Stage, r)
+	a := Answer{Item: q.Item, Stage: q.Stage, Verdict: q.Verdict, Head: head, Address: p.address}
 	if latest != nil && latest.Verdict == q.Verdict && latest.Head == head {
 		a.Outcome, a.Round = already, latest.Round
 		return a, nil
 	}
 	a.Round = count + 1
-	comment, failedAnswer, failed := h.post(ctx, repository, number, verdictBody(q, head, text, a.Round))
+	comment, failedAnswer, failed := h.post(ctx, p.repository, p.number, verdictBody(q, head, text, a.Round))
 	if failed {
 		return failedAnswer, nil
 	}
 	a.Outcome, a.Comment = posted, comment
 	return a, nil
+}
+
+// known is the config and the registry, once the config says push.mode pr
+// and the registry has the item; refused, nothing read past it, outside
+// push.mode pr (review-without-pr-mode, what saying what goes on the pull
+// request and elsewhere what else to do), with no registry or no such item.
+func (h Handler) known(ctx context.Context, item, what, elsewhere string) (*config.Loaded, work.Registry, *Answer, error) {
+	cfg, pr := h.prMode(ctx)
+	if !pr {
+		a := refuse(policy, "review-without-pr-mode",
+			fmt.Sprintf("itos review: %s goes on an item's pull request, and this config does not set push.mode: pr; nothing was posted.", what),
+			"set push.mode: pr in the config, or "+elsewhere)
+		return nil, work.Registry{}, &a, nil
+	}
+	registry := cfg.Work.Registry
+	if !cfg.Source.Has(ctx, registry) {
+		return nil, work.Registry{}, &Answer{Code: policy, Problems: []out.Problem{work.Missing(registry, false)}}, nil
+	}
+	r, err := work.Load(cfg, registry)
+	if err != nil {
+		return nil, work.Registry{}, nil, err
+	}
+	if _, problem := work.Show(r, item); problem != nil {
+		return nil, work.Registry{}, &Answer{Code: policy, Problems: []out.Problem{*problem}}, nil
+	}
+	return cfg, r, nil, nil
 }
 
 // prMode is the config, when it is there, reads and says push.mode pr.
@@ -190,36 +206,78 @@ func (h Handler) prMode(ctx context.Context) (*config.Loaded, bool) {
 	return cfg, true
 }
 
+// pulled is the item's open pull request as gh gave it: the repository gh
+// was asked about, its number, its address and its state.
+type pulled struct {
+	repository string
+	number     int
+	address    string
+	state      providers.PullState
+}
+
+// pull finds the item's open pull request in the repository push names and
+// asks GitHub its state (providers.AskPullState): refused when there is no
+// repository (no-github-repository, exit 3), when gh pr list lists none or
+// gh fails (openPull), or when gh api graphql fails or answers no head
+// (review-pull-request-failed, exit 3), sub, post or request, the command to
+// run again.
+func (h Handler) pull(ctx context.Context, cfg *config.Loaded, sub, item string) (pulled, *Answer) {
+	remote := h.ports.Remote(ctx)
+	repository := h.ports.GitHubRepository(ctx, cfg, remote)
+	if repository == "" {
+		a := refuse(missing, "no-github-repository",
+			fmt.Sprintf("itos review: %s names no GitHub repository to find %s's pull request in; nothing was posted.", remote, item),
+			"set ci.range.github.repository_env to a variable naming it, or give the remote a GitHub address")
+		return pulled{}, &a
+	}
+	number, address, a, failed := h.openPull(ctx, sub, repository, item)
+	if failed {
+		return pulled{}, &a
+	}
+	state, err := providers.AskPullState(ctx, h.ports.Gh, repository, number)
+	switch {
+	case errors.Is(err, providers.ErrNoPullState):
+		a = ghFailed(sub, "gh api graphql", err.Error())
+	case err != nil:
+		a = ghFailed(sub, "gh api graphql", providers.GhReason(err))
+	case state.Head == "":
+		a = ghFailed(sub, "gh api graphql", "its answer names no head for the pull request")
+	default:
+		return pulled{repository: repository, number: number, address: address, state: state}, nil
+	}
+	return pulled{}, &a
+}
+
 // openPull is the item's open pull request, its number and address, asked
 // with gh pr list as push threads asks: failed, with the problem, when gh
 // fails (review-pull-request-failed, exit 3) or lists none
 // (review-no-pull-request, exit 1).
-func (h Handler) openPull(ctx context.Context, repository, item string) (number int, address string, a Answer, failed bool) {
+func (h Handler) openPull(ctx context.Context, sub, repository, item string) (number int, address string, a Answer, failed bool) {
 	listed, err := h.ports.Gh(ctx, "pr", "list", "--repo", repository, "--head", item, "--state", "open", "--json", "number,url")
 	if err != nil {
-		return 0, "", ghFailed("gh pr list", providers.GhReason(err)), true
+		return 0, "", ghFailed(sub, "gh pr list", providers.GhReason(err)), true
 	}
 	var open []struct {
 		Number int    `json:"number"`
 		URL    string `json:"url"`
 	}
 	if err := json.Unmarshal([]byte(listed), &open); err != nil {
-		return 0, "", ghFailed("gh pr list", "its answer is not a list of pull requests: "+err.Error()), true
+		return 0, "", ghFailed(sub, "gh pr list", "its answer is not a list of pull requests: "+err.Error()), true
 	}
 	if len(open) == 0 {
 		return 0, "", Answer{Code: policy, Problems: []out.Problem{{Rule: "review-no-pull-request",
 			Message: fmt.Sprintf("itos review: %s has no open pull request; itos push opens it. Nothing was posted.", item),
-			Fix:     "itos push from the item's branch opens its pull request; then itos review post again"}}}, true
+			Fix:     "itos push from the item's branch opens its pull request; then itos review " + sub + " again"}}}, true
 	}
 	return open[0].Number, open[0].URL, Answer{}, false
 }
 
 // ghFailed is the review-pull-request-failed problem (exit 3): the command
-// that failed and why, nothing posted.
-func ghFailed(command, reason string) Answer {
+// that failed and why, nothing posted, and itos review sub to run again.
+func ghFailed(sub, command, reason string) Answer {
 	return Answer{Code: missing, Problems: []out.Problem{{Rule: "review-pull-request-failed",
 		Message: fmt.Sprintf("itos review: %s failed: %s; nothing was posted.", command, reason),
-		Fix:     "fix that, then itos review post again"}}}
+		Fix:     "fix that, then itos review " + sub + " again"}}}
 }
 
 // countMarkers counts the verdict markers of the item and stage in the
@@ -265,13 +323,13 @@ func (h Handler) post(ctx context.Context, repository string, number int, body s
 	path := "repos/" + repository + "/issues/" + strconv.Itoa(number) + "/comments"
 	answered, err := h.ports.Gh(ctx, "api", path, "-f", "body="+body)
 	if err != nil {
-		return "", ghFailed("gh api "+path, providers.GhReason(err)), true
+		return "", ghFailed("post", "gh api "+path, providers.GhReason(err)), true
 	}
 	var comment struct {
 		URL string `json:"html_url"`
 	}
 	if err := json.Unmarshal([]byte(answered), &comment); err != nil || comment.URL == "" {
-		return "", ghFailed("gh api "+path, "its answer names no comment (html_url); the comment may be posted: read the pull request"), true
+		return "", ghFailed("post", "gh api "+path, "its answer names no comment (html_url); the comment may be posted: read the pull request"), true
 	}
 	return comment.URL, Answer{}, false
 }

@@ -30,20 +30,25 @@ const (
 // and a people file written as text, the commits git resolves, the comments
 // GitHub answers with their head, the gh calls made and the files readable.
 type fake struct {
-	config   string // the YAML added to the config, "" for no config file
-	noConfig bool
-	badYAML  bool
-	registry string
-	people   string
-	resolved map[string]string
-	remote   string
-	noRepo   bool
-	head     string
-	comments []providers.Authored
-	ghErr    map[string]error  // the call (its first two words) that fails
-	answers  map[string]string // the call's answer
-	calls    []string
-	files    map[string]string
+	config     string // the YAML added to the config, "" for no config file
+	noConfig   bool
+	badYAML    bool
+	registry   string
+	people     string
+	resolved   map[string]string
+	remote     string
+	noRepo     bool
+	head       string
+	comments   []providers.Authored
+	reviews    []providers.Authored // with their commits
+	failWith   string               // a pr comment whose body has it fails
+	revision   string               // the item's revision as next gives it
+	revErr     error
+	revProblem *out.Problem
+	ghErr      map[string]error  // the call (its first two words) that fails
+	answers    map[string]string // the call's answer
+	calls      []string
+	files      map[string]string
 }
 
 func newFake() *fake {
@@ -110,14 +115,24 @@ func (f *fake) Gh(_ context.Context, args ...string) (string, error) {
 	switch key {
 	case "pr list":
 		return `[{"number":7,"url":"` + pull7 + `"}]`, nil
+	case "pr comment":
+		if f.failWith != "" && strings.Contains(call, f.failWith) {
+			return "", &providers.GhFailed{Words: "HTTP 502: Bad Gateway", Err: errors.New("exit 1")}
+		}
+		return pull7 + "#issuecomment-2\n", nil
 	case "api graphql":
 		nodes := make([]string, 0, len(f.comments))
 		for _, c := range f.comments {
 			body, _ := json.Marshal(c.Body)
 			nodes = append(nodes, fmt.Sprintf(`{"author":{"login":%q},"body":%s}`, c.Login, body))
 		}
-		return fmt.Sprintf(`{"data":{"repository":{"pullRequest":{"headRefOid":%q,"reviews":{"nodes":[]},"comments":{"nodes":[%s]},"reviewThreads":{"nodes":[]}}}}}`,
-			f.head, strings.Join(nodes, ",")), nil
+		reviews := make([]string, 0, len(f.reviews))
+		for _, r := range f.reviews {
+			body, _ := json.Marshal(r.Body)
+			reviews = append(reviews, fmt.Sprintf(`{"author":{"login":%q},"body":%s,"commit":{"oid":%q}}`, r.Login, body, r.Commit))
+		}
+		return fmt.Sprintf(`{"data":{"repository":{"pullRequest":{"headRefOid":%q,"reviews":{"nodes":[%s]},"comments":{"nodes":[%s]},"reviewThreads":{"nodes":[]}}}}}`,
+			f.head, strings.Join(reviews, ","), strings.Join(nodes, ",")), nil
 	}
 	if strings.HasPrefix(key, "api repos/") {
 		return `{"id":1,"html_url":"` + pull7 + `#issuecomment-1"}`, nil
@@ -130,6 +145,10 @@ func (f *fake) ReadFile(_ context.Context, path string) ([]byte, error) {
 		return []byte(text), nil
 	}
 	return nil, errors.New("open " + path + ": no such file or directory")
+}
+
+func (f *fake) Revision(context.Context, *config.Loaded, string) (string, *out.Problem, error) {
+	return f.revision, f.revProblem, f.revErr
 }
 
 // A comment recording a verdict as itos writes one.

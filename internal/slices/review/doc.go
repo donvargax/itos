@@ -1,4 +1,5 @@
-// Package review is the review command, a slice (ADR-0053): itos review post
+// Package review is the review command, a slice (ADR-0053): itos review
+// request (below), and itos review post
 // <item> --verdict approve|changes --at <commit> [--stage spec|diff]
 // [--body-file <path>] records a reviewer's verdict on an item's pull request
 // as an append-only comment bound to the head it judged (slice-206,
@@ -11,7 +12,7 @@
 // valued flags, which internal/cli's parser holds every argument to, so an
 // unknown flag or one with no value is a usage error before Parse runs.
 // Parse (parse.go) refuses the rest, exit 2: review alone or with any word
-// but post, no item or two, no --verdict or no --at, a --stage that is
+// but post or request, post with no item or two, no --verdict or no --at, a --stage that is
 // neither spec nor diff. A --verdict that is neither approve nor changes is
 // not a usage error but a problem (review-bad-verdict, exit 1): a driver
 // computes the verdict from a reviewer's answer and reads the problem JSON
@@ -66,7 +67,31 @@
 // review (the person cannot approve their own pull request), no pr comment,
 // nothing fetched, rebased or pushed.
 //
+// # review request
+//
+// itos review request <item> [--expect <revision>] (slice-215,
+// features/review-request.feature; request.go) asks each reviewer
+// push.pr.reviewers names for the pull request's head, once per request:
+// what each kind posts, and how a request or the reviewer's own review of
+// the head is read, is internal/engine/reviewers', which itos next's
+// review-unrequested reads too. Parse refuses, exit 2, no item or two, a
+// --expect that is not "sha256:" and 64 lowercase hex digits, and any other
+// flag. Handle refuses before any gh call as post does (review-without-pr-
+// mode, work-unknown-item), then a push.pr.reviewers that names nobody
+// (review-no-reviewers; push.pr.review_by names whom --ready waits for, not
+// whom to ask); then finds the pull request and reads it as post does
+// (pull), the head the one GitHub gives. With every request on the head it
+// is already, nothing posted, whatever --expect says; else --expect's
+// revision, when it is not the item's now as itos next gives it
+// (Ports.Revision, next.RevisionOf), is review-stale, nothing posted. Then
+// each missing request, in the config's order and its kind's, is one gh pr
+// comment <number> --repo <repository> --body=<the request> with the user's
+// gh (Bugbot ignores a command from a bot or an app); the first that fails
+// stops it, review-pull-request-failed, exit 3, the requests before it
+// posted and none after it tried. Outcome requested, --json's posted the
+// requests posted in order.
+//
 // Handle reaches the world through Ports, which internal/cli binds: the
-// config's presence and load, git's resolve, the remote, the repository, gh
-// and the body file's read.
+// config's presence and load, git's resolve, the remote, the repository, gh,
+// the body file's read and next's revision.
 package review
