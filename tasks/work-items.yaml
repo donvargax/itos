@@ -15806,13 +15806,9 @@ items:
     title: itos attempt submit checks an agent's result against its brief's request and against git, and records it
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-204]
     kind: slice
-    why: >
-      The v9 deterministic coordinator's v8 pilot (docs/plans/v9-coordinator.md, the LLM steps'
-      contracts): an agent's result is strict JSON echoing its brief's request; itos checks the
-      identity, the schema and the claims against git, never the prose, and records the attempt.
     tags: [work, v8]
 
   - id: slice-208
