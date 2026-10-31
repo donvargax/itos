@@ -111,3 +111,14 @@ func (g Git) Rebase(ctx context.Context, onto string, quiet bool, talk port.Talk
 	}
 	return g.run(ctx, talk, nil, false, append(args, onto)...)
 }
+
+// Merge is git merge --no-verify --no-ff --no-edit --no-log -m <message>, so
+// neither the commit hooks, merge.ff, an editor nor merge.log changes the
+// commit it makes.
+func (g Git) Merge(ctx context.Context, rev, message string, quiet bool, talk port.Talk) error {
+	args := []string{"merge", "--no-verify", "--no-ff", "--no-edit", "--no-log", "-m", message}
+	if quiet {
+		args = append(args, "--quiet")
+	}
+	return g.run(ctx, talk, nil, false, append(args, rev)...)
+}

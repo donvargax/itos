@@ -236,6 +236,39 @@
 // all is a push's: the pull request found or opened, auto-merge, no
 // update-branch since the head pushed has main's, and the wait.
 //
+// # push.pr.update merge
+//
+// push.pr.update (slice-213; config.PushPR.Update, rebase by default) merge
+// brings an item's branch up by merges, so no step rewrites a pushed commit:
+// Claude Code refuses agents every rewrite (gh pr update-branch --rebase,
+// --onto-main, a force push). Handle refuses --onto-main under it before
+// anything is fetched (onto-main-under-merge, exit 1, refuse). After the
+// fetches pushItem hands the branch to mergeItem (update.go), which rebases
+// nothing. It lists the commits HEAD has that neither main nor the remote's
+// item branch has (Range.Since the item's head), so on a linear branch those
+// the remote has never sit in the list, and divides them as slice-192 does,
+// the item's branch starting on the first one's parent (divide's base), the
+// merge-base of HEAD and main on a first push, never main's head. refuseMerge
+// refuses then only a registry commit a merge among them descends from
+// (IsAncestor): one no merge descends from is carried with no merge made again.
+// Registry commits that leave the branch go to main first, in a push of their
+// own (Sent lines and all), and the clone is reset to the item's head, so a
+// conflict below never strands a take off main; those that start at main's
+// head stay on the item's branch and go with it in one atomic push. bringUp
+// then merges in the remote's item branch when HEAD lacks it ("Merge
+// <remote>/<item> into <item>"), resetting to it instead when HEAD has nothing
+// of its own past it, and main's head after the registry's push when HEAD
+// lacks main as fetched ("Merge <main> into <item>"), with vcsport.VCS.Merge
+// (git merge --no-verify --no-ff --no-edit --no-log -m, so no setting of git's
+// changes the commit; judged at the pre-push hook, a clean merge having no
+// changes of its own, bug 30). A merge that stops is left in progress, the
+// item's branch not pushed, exit 1, outcome merge-conflict, naming the paths
+// and saying to commit the merge with a typed first line, then itos push
+// again, or git merge --abort; one git does not run is merge-failed. The item's
+// branch is then pushed as a fast-forward, and the pull request found or
+// opened, never asked to update, its head having main's; under --ready this is
+// the merge pushed before the wait.
+//
 // # push.pr.draft and --ready
 //
 // push.pr.draft (slice 179; push.pr is read under pr alone, config.PushPR)

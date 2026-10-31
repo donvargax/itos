@@ -158,6 +158,28 @@ or absent included, outcome onto-main-without-pr) before anything is fetched or
 pushed, and from main (onto-main-on-main), which is never rewritten; with --tag
 or --ref it is a usage error, exit 2.
 
+push.pr.update (rebase by default, under push.mode pr) merge brings an item's
+branch up by merges instead, so no pushed commit is rewritten, and --onto-main
+is refused under it (exit 1, outcome onto-main-under-merge) before anything is
+fetched. From an item's branch, after the fetches, the commits that neither
+main nor the remote's item branch has are divided as above, the item's branch
+starting on the commit below the first (on a first push, where HEAD and main
+part, never main's head); a registry commit that a merge among them descends
+from is refused (merge-in-history), one above every merge is not. Registry
+commits that leave the branch go to main first, in a push of their own, and the
+branch is reset without them. Then the remote's item branch, when the branch
+lacks it, is merged in, "Merge origin/<item> into <item>" (the branch is
+fast-forwarded to it when it has nothing of its own past it), and main's head,
+when the branch lacks main as fetched, "Merge main into <item>": git merge
+--no-verify --no-ff --no-edit --no-log -m, whatever git's merge settings say,
+the commit judged by the pre-push hook. A merge that conflicts is left in
+progress, the item's branch not pushed, no gh called, exit 1, outcome
+merge-conflict: resolve the files, git add them, commit the merge (itos commit
+or git commit) with a typed first line, then itos push again; or git merge
+--abort. One git does not run is merge-failed, exit 1. The item's branch is
+then pushed as a fast-forward, and gh pr update-branch is never asked: its head
+has main's. --ready pushes the same merge before it waits.
+
 push.pr.draft (false by default, under push.mode pr) makes the pull request a
 draft: a push opens it as one (gh pr create --draft) and turns on no
 auto-merge, asks GitHub for no rebase and waits for no run, ci.watch or not,
@@ -252,7 +274,8 @@ stopped, the remote or the pre-push hook refused the push (a lease the remote
 moved from included), --onto-main outside push.mode pr or from main, a tag or a branch
 named that the clone does not have, a tag the remote has as another object,
 the CI run waited for failed, or, under push.mode pr, work pushed to main or
-a branch that names no item, and for --ready, an unresolved review thread or
+a branch that names no item, and under push.pr.update merge a merge that
+conflicts or does not run, or --onto-main, and for --ready, an unresolved review thread or
 --ready where it has nothing to do, and for push threads and push thread,
 where they have nothing to do or a thread that is none of the repository's; 2 an argument (--onto-main beside --tag
 or --ref among them), or a core.hooksPath set by git -c; 3 no git repository, itos's pre-push hook that would not run, no
@@ -282,8 +305,9 @@ read from git's message; git's own exit code is never itos's.
         HEAD too), no-default-branch, rebase-stopped, rebase-failed,
         push-failed, and under push.mode pr work-on-main, not-item-branch,
         no-github-repository, pull-request-failed, registry-conflict,
-        needs-registry-commit, merge-in-history, for --onto-main
-        onto-main-without-pr and onto-main-on-main, and for --ready
+        needs-registry-commit, merge-in-history, under push.pr.update merge
+        merge-conflict and merge-failed, for --onto-main onto-main-without-pr,
+        onto-main-on-main and onto-main-under-merge, and for --ready
         review-timeout, review-refused, review-stalled, ready-still-waiting,
         review-threads-unresolved, ready-without-draft and ready-on-main;
         push threads gives {"schema":1,"ok","outcome","pull_request"?,"threads"?},

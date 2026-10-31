@@ -36,8 +36,16 @@ func TestPushMode(t *testing.T) {
 // it is not a number.
 func TestPushPR(t *testing.T) {
 	c, err := load(t, "version: 1\n")
-	if err != nil || c.Push.PR.Draft || len(c.Push.PR.ReviewBy) != 0 || c.Push.PR.ReviewStall != 0 || c.Push.PR.ReadyWait != 540 {
+	if err != nil || c.Push.PR.Draft || len(c.Push.PR.ReviewBy) != 0 || c.Push.PR.ReviewStall != 0 || c.Push.PR.ReadyWait != 540 ||
+		c.Push.PR.Update != "rebase" {
 		t.Errorf("by default: %+v, %v", c.Push.PR, err)
+	}
+	if c, err = load(t, "version: 1\npush: { mode: pr, pr: { update: merge } }\n"); err != nil || c.Push.PR.Update != "merge" {
+		t.Errorf("update merge: %+v, %v", c.Push.PR, err)
+	}
+	_, err = load(t, "version: 1\npush: { pr: { update: squash } }\n")
+	if got, want := messages(t, err), []string{`push.pr.update should be one of rebase, merge, not "squash"`}; !slices.Equal(got, want) {
+		t.Errorf("update squash: got %q, want %q", got, want)
 	}
 	c, err = load(t, "version: 1\npush: { mode: pr, pr: { draft: true, review_by: [copilot-pull-request-reviewer, bo] } }\n")
 	if err != nil || !c.Push.PR.Draft || !slices.Equal(c.Push.PR.ReviewBy, []string{"copilot-pull-request-reviewer", "bo"}) {
@@ -65,7 +73,7 @@ func TestPushPR(t *testing.T) {
 			t.Errorf("%q: got %q, want %q", text, got, want)
 		}
 	}
-	for _, key := range []string{"push.pr", "push.pr.draft", "push.pr.review_by", "push.pr.review_stall", "push.pr.ready_wait"} {
+	for _, key := range []string{"push.pr", "push.pr.draft", "push.pr.review_by", "push.pr.review_stall", "push.pr.ready_wait", "push.pr.update"} {
 		if ok, _ := KnownKey(key); !ok {
 			t.Errorf("%s is no key of the schema", key)
 		}
