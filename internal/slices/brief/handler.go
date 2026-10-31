@@ -31,8 +31,9 @@ import (
 // changes no brief and its Source is the tree the reads are made from
 // (ADR-0053's --data-at reads a commit's data by the working tree's
 // config; the brief is a function of one commit); TreeEntries, a
-// commit's entries at paths, each named from the top, a path the commit
-// lacks among them not at all; and LastTouching, the last commit on a
+// commit's entries at paths, each read and named from the folder itos
+// runs in, as the config's paths are, a path the commit lacks among them
+// not at all; and LastTouching, the last commit on a
 // revision's first-parent history touching one of the paths, "" when none
 // does.
 type Ports interface {
@@ -364,13 +365,13 @@ func (h Handler) reads(ctx context.Context, b *Brief, f *facts, refs []string) e
 }
 
 // inTop is whether a ref's clean path p is one git ls-tree is asked for: a
-// path under the top, not the top, nor above it, nor absolute, a drive's
-// or one with a backslash (on Windows, git reads either as a path outside
-// the repository and refuses the whole listing), nor pathspec magic. Any
-// other is not in the tree, on every OS alike.
+// path under the folder itos runs in, not that folder, nor above it, nor
+// absolute, a drive's or one with a backslash (on Windows, git reads
+// either as a path outside the repository and refuses the whole listing).
+// Any other is not in the tree, on every OS alike. The adapter runs git
+// with literal pathspecs, so a leading colon is a name, not magic.
 func inTop(p string) bool {
-	if p == "." || p == ".." || strings.HasPrefix(p, "../") || strings.HasPrefix(p, "/") ||
-		strings.HasPrefix(p, ":") || strings.Contains(p, `\`) {
+	if p == "." || p == ".." || strings.HasPrefix(p, "../") || strings.HasPrefix(p, "/") || strings.Contains(p, `\`) {
 		return false
 	}
 	return len(p) < 2 || p[1] != ':'

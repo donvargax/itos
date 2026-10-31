@@ -439,7 +439,7 @@ Feature: itos brief, the filled brief an agent starts from and its request
   # from that folder: AGENTS.md and a ref are the folder's, never the
   # repository top's, whose AGENTS.md the Background commits (the review of
   # the build, round 5). Nothing is tagged, so the drafter is briefed.
-  @ID-BRIEF-18 @wip @slice-204
+  @ID-BRIEF-18 @slice-204
   Scenario: A project in a subfolder is briefed from its own files
     Given the committed file "app/itos.yaml" holding the lines:
       """
