@@ -137,6 +137,32 @@ Feature: itos next reads an in-flight item's state from the forge under push.mod
   walks a dotted key as "its JSON's <key> is" does (jsonValueIs), so
   observed.pr.head and observed.attempt.head are read with it.
 
+  slice-216 amends merging. itos push --ready marks the pull request ready
+  before it turns auto-merge on, so after its exit 75, or under --no-wait,
+  nothing merges a ready pull request and a driver told merging waits
+  forever. merging now needs auto-merge on as well: the pull request is
+  ready, auto-merge is enabled for it, nothing failed and every configured
+  reviewer requested. A ready pull request with auto-merge off, nothing
+  failed and every reviewer requested is handed-back, the driver's land
+  step, itos push --ready, whatever the item's status or the journal says,
+  since the ready pull request's states are judged before the journal's.
+  merged, repair and review-unrequested keep their places before both; a
+  draft's states, and trunk mode, are unchanged. Auto-merge is read in the
+  one graphql question next already asks (providers.PullStateQuery gains
+  the pull request's autoMergeRequest { enabledAt }: on when it is not
+  null), never by another gh call. observed gains auto_merge, true or
+  false, false when no open pull request was asked about; the revision
+  digests it. ID-NEXTFORGE-08 and slice-215's ID-REVREQ-12, which say
+  merging of a ready pull request without auto-merge, gain the Given that
+  turns it on, and the commit that builds this names both in Changes:.
+  The recording gh learns "the recording gh's pull request for the branch
+  <branch> has auto-merge on", which writes gh-auto-merge-<branch>, the
+  mark its pr merge --auto leaves and its pr view reads, and a nodes file,
+  nodes/08-auto-merge.sh, gives the pull request numbered (its branch found
+  in gh-pull-requests, as nodes/06-head-ref-oid.sh finds it)
+  "autoMergeRequest": {"enabledAt": <a time>} when that mark is there and
+  null otherwise, so an answer always has the field.
+
   Background:
     Given a repository whose ledger has the task "T-001"
     And a clone of it, where itos runs
@@ -578,6 +604,145 @@ Feature: itos next reads an in-flight item's state from the forge under push.mod
     Then itos exits with code 0
     And its JSON's "state" is "merging"
     And its JSON's "observed.checks" is "pending"
+
+  # slice-216: --ready marks the pull request ready before it turns
+  # auto-merge on, so after its exit 75, or under --no-wait, a ready pull
+  # request with nothing failed has nothing to merge it. merging is said
+  # only once auto-merge is on; without it the step is handed-back's, the
+  # driver lands it with itos push --ready. No journal here: the ready pull
+  # request's states are judged before the journal's, so a build that let
+  # it fall through to slice-209's handed-back, which needs the
+  # implementer's accepted done at the head, would say implementing. One
+  # graphql question a run and no pr view: auto-merge is read in it. Fails
+  # before the work at the first complete line: slice-209's next says
+  # merging.
+  @wip @ID-NEXTFORGE-17 @slice-216
+  Scenario: Under push.mode pr, a ready pull request with nothing failed is merging only once auto-merge is on; without it the driver lands it
+    Given the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+      """
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the work registry has the item "slice-9" owned by "ana" with the status "doing"
+    And the clone is on the new branch "slice-9"
+    And a feature file with the scenario "@ID-A-01" tagged "@wip @slice-9"
+    And git pushes HEAD to the remote's new branch "slice-9"
+    And the recording gh has the pull request "https://github.example/o/r/pull/7" open for the branch "slice-9"
+    And the recording gh answers that the pull request's head's checks are "SUCCESS"
+    And the recording gh answers that the pull request has a resolved review thread on "gadget.md" line 1, its first comment the lines "Fine now." and "Thanks."
+    When itos runs "next slice-9"
+    Then itos exits with code 0
+    And stdout contains the complete line "slice-9: handed-back; next: driver land; run: itos push --ready" exactly once
+    When itos runs "next slice-9 --json"
+    Then itos exits with code 0
+    And its JSON's "state" is "handed-back"
+    And its JSON's "next" is {"actor": "driver", "action": "land", "argv": ["itos", "push", "--ready"]}
+    And its JSON's "observed.pr.draft" is false
+    And its JSON's "observed.auto_merge" is false
+    And its JSON's "observed.checks" is "success"
+    And its JSON's "observed.threads_open" is 0
+    And its JSON's "observed.attempt" is null
+    Given the recording gh's pull request for the branch "slice-9" has auto-merge on
+    When itos runs "next slice-9"
+    Then itos exits with code 0
+    And stdout contains the complete line "slice-9: merging; next: forge observe" exactly once
+    When itos runs "next slice-9 --json"
+    Then itos exits with code 0
+    And its JSON's "state" is "merging"
+    And its JSON's "next" is {"actor": "forge", "action": "observe"}
+    And its JSON's "observed.auto_merge" is true
+    Given the recording gh answers that the pull request's head's checks are "PENDING"
+    When itos runs "next slice-9 --json"
+    Then itos exits with code 0
+    And its JSON's "state" is "merging"
+    And its JSON's "observed.checks" is "pending"
+    And its JSON's "observed.auto_merge" is true
+    And the recording gh's "api graphql" call has "autoMergeRequest"
+    And the recording gh was called as "api graphql" 5 times
+    And the recording gh was never called as "pr view"
+
+  # auto-merge is a fact of its own: GitHub keeps it on while a required
+  # check fails, and turning it on moves the revision though the state
+  # stays repair. repair, then review-unrequested (slice-215), keep their
+  # precedence over merging: a red check is the implementer's, then a
+  # configured reviewer not asked about the head is the driver's to
+  # request, auto-merge on or not. Fails before the work at the first
+  # observed.auto_merge: slice-209's observed has no such key.
+  @wip @ID-NEXTFORGE-18 @slice-216
+  Scenario: Under push.mode pr, auto-merge turning on moves the revision, and repair and review-unrequested come before merging
+    Given the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+        pr:
+          reviewers:
+            - { login: chatgpt-codex-connector, kind: codex }
+      """
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the work registry has the item "slice-9" owned by "ana" with the status "doing"
+    And the clone is on the new branch "slice-9"
+    And a feature file with the scenario "@ID-A-01" tagged "@wip @slice-9"
+    And git pushes HEAD to the remote's new branch "slice-9"
+    And the recording gh has the pull request "https://github.example/o/r/pull/7" open for the branch "slice-9"
+    And the recording gh answers that the pull request's head's checks are "FAILURE"
+    When itos runs "next slice-9 --json"
+    Then itos exits with code 0
+    And its JSON's "state" is "repair"
+    And its JSON's "observed.auto_merge" is false
+    And its JSON's revision is saved as "off"
+    Given the recording gh's pull request for the branch "slice-9" has auto-merge on
+    When itos runs "next slice-9 --json"
+    Then itos exits with code 0
+    And its JSON's "state" is "repair"
+    And its JSON's "next" is {"actor": "implementer", "action": "implement", "argv": ["itos", "brief", "slice-9", "--role", "implementer"]}
+    And its JSON's "observed.auto_merge" is true
+    And its JSON's revision differs from the one saved as "off"
+    Given the recording gh answers that the pull request's head's checks are "PENDING"
+    When itos runs "next slice-9 --json"
+    Then itos exits with code 0
+    And its JSON's "state" is "review-unrequested"
+    And its JSON's "next" is {"actor": "driver", "action": "request", "argv": ["itos", "review", "request", "slice-9"]}
+    And its JSON's "observed.auto_merge" is true
+
+  # The path that left a driver waiting: push --ready --no-wait marks the
+  # draft ready and turns on no auto-merge, as an exit 75 leaves it, so
+  # next hands the item back to the driver to land; --ready run again turns
+  # auto-merge on and next says merging. The recording gh's pr merge --auto
+  # leaves the mark its graphql answer's autoMergeRequest reads, as its pr
+  # view's does. Fails before the work at the complete line naming
+  # handed-back: slice-209's next says merging.
+  @wip @ID-NEXTFORGE-19 @slice-216
+  Scenario: Under push.mode pr, after push --ready --no-wait the driver lands the item, and once push --ready turned auto-merge on it is merging
+    Given the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+        pr:
+          draft: true
+      """
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the work registry has the item "slice-9" owned by "ana" with the status "doing"
+    And the clone is on the new branch "slice-9"
+    And a feature file with the scenario "@ID-A-01" tagged "@wip @slice-9"
+    And git pushes HEAD to the remote's new branch "slice-9"
+    And the recording gh has the draft pull request "https://github.example/o/r/pull/7" open for the branch "slice-9"
+    And the clone has the commit "feat: add the widget" touching "widget.md"
+    When itos runs "push --ready --no-wait"
+    Then itos exits with code 0
+    And the recording gh's "pr ready" call has "slice-9"
+    And the recording gh was never called as "pr merge"
+    When itos runs "next slice-9"
+    Then itos exits with code 0
+    And stdout contains the complete line "slice-9: handed-back; next: driver land; run: itos push --ready" exactly once
+    When itos runs "push --ready"
+    Then itos exits with code 0
+    And the recording gh's "pr merge" call has "--auto"
+    When itos runs "next slice-9 --json"
+    Then itos exits with code 0
+    And its JSON's "state" is "merging"
+    And its JSON's "observed.pr.draft" is false
+    And its JSON's "observed.auto_merge" is true
 
   # A red check at the head of a ready pull request is the implementer's
   # to repair: FAILURE first, then ERROR, both failure. The registry says
