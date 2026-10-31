@@ -15715,6 +15715,11 @@ items:
       a harmless head, push an unreviewed commit, and still get success. The fix: ask for each
       review's commit and dismissed state, page the reviews, and accept only a review of the exact
       head. It changes --ready and review status (slice-212) together.
+
+      slice-215's implementer, 2026-10-31: Bugbot rewrites its older reviews to start '<!--
+      BUGBOT_REVIEW -->' then '<!-- BUGBOT_REVIEW_STALE -->'. Under slice-215's rule such a review
+      still counts for its own commit, which is harmless while only older commits go stale. The
+      verdict model should read the stale marker. reviews(first: 100) is not paged either.
     tags: [push, v9]
 
   - id: T-339
