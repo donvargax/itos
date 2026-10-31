@@ -16736,3 +16736,18 @@ items:
       internal/scope/scope.go:157). So bug-158's spec checked 'its output names the rule
       "merge-type"', a step no build could pass, and the review missed it. Naming the rule in every
       refusal makes them uniform, and lets a scenario check the rule rather than its wording.
+
+  - id: p2-spec-review-runs-steps
+    title: The spec review checks each step's text against its definition, and runs the guards
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      bug-158's spec passed three review rounds with four scenarios whose step ('its output names
+      the rule') could never pass, including two '@guard' scenarios the review called true guards.
+      The reviewer reads steps but never runs them. A read-only reviewer can still run the feature
+      suite on the spec branch with @wip removed in a scratch copy, which would have shown the
+      guards failing before any work. Add that to the spec reviewer's method (the persona's plan
+      prompt) or as a deterministic check on a spec pull request.
