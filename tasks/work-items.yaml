@@ -16121,3 +16121,20 @@ items:
       its spec decides whether the workflow skips those or posts nothing. The token needs statuses:
       write.
     tags: [ci, v8]
+
+  - id: p1-next-task-spec-on-main
+    title: "itos next under pr gives a task whose spec sits on main a step that can move: no pull request can carry it"
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [slice-209]
+    kind: idea
+    why: >
+      slice-211's spec review (2026-10-30): under push.mode pr task add commits the ledger entry, a
+      task's spec, straight to main, so slice-209 calls the task spec-proposed and names a drafter
+      to push a spec, but its branch has no commit beyond main and GitHub refuses a pull request
+      with no diff: the task stalls. slice-211 settles it for a kind whose spec_review is skip
+      (spec-accepted, the implementer's push opens the draft); under a required review the spec
+      review needs another vehicle (the take's draft pull request reviewed before implementing, or a
+      review of the main commit that added it).
+    tags: [work, v8]
