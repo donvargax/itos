@@ -16480,3 +16480,15 @@ items:
       main afterwards and found no scenario kind, so every slice needed a spec, and the fixture
       needed an extra Given committing a slice-8 scenario on main. A step that declares the kind
       explicitly would say what the setup means.
+
+  - id: p3-nextforge-13-guard
+    title: "Tag ID-NEXTFORGE-13 (trunk stays in-flight) @guard: it passes before slice-209's work by design"
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      slice-209's implementer, 2026-10-31: NEXTFORGE-13 passes before the work, as a guard does, but
+      carries no @guard tag. Left out of slice-209 so its committed work stays as it is while
+      slice-215 builds on it.
