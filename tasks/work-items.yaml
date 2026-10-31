@@ -16378,3 +16378,15 @@ items:
       landing logic becomes the primitives' body. Folds in p1-review-request-step and
       p1-ready-hand-off's auto-merge step.
     tags: [work, v9]
+
+  - id: p3-merge-advice-names-merge
+    title: Under push.pr.update merge, the merge-in-history refusal's advice names git merge, not git rebase origin/main
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      slice-213's implementer, 2026-10-30: under merge, push's merge-in-history advice still says
+      'git rebase origin/main', a history rewrite the merge mode exists to avoid. The advice follows
+      push.pr.update.
