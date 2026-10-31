@@ -267,6 +267,26 @@ func TestMergeUpdateRefusesARegistryCommitBelowAMerge(t *testing.T) {
 	}
 }
 
+// A merge of main that brought a take alone, made and not pushed (a push that
+// failed after itos made it), is no registry commit under merge: it goes to the
+// item's branch as it is, and nothing to main. Under rebase such a merge is
+// the registry's, refused as merge-in-history, as before.
+func TestMergeUpdateKeepsAMergeOfATakeOnTheItemsBranch(t *testing.T) {
+	for _, update := range []string{"merge", "rebase"} {
+		f := updateRepo(t)
+		f.cfg.Push.PR.Update = update
+		f.Remote["origin"].Refs["refs/heads/main"] = "tk000"
+		f.Remote["origin"].Refs["refs/heads/slice-9"] = mine
+		f.mergeOf("mg000", "Merge main into slice-9", mine, "tk000")
+		code, stdout, stderr, _ := call(t, f)
+		switch {
+		case update == "merge" && (code != 0 || fmt.Sprint(f.pushed) != "[[mg000:refs/heads/slice-9]]" || f.head(t) != "mg000"),
+			update == "rebase" && (code != policy || !strings.Contains(stderr, "mg000 Merge main into slice-9 is a merge")):
+			t.Errorf("%s: exit %d, pushed %v\n%s%s", update, code, f.pushed, stdout, stderr)
+		}
+	}
+}
+
 // --onto-main, the rebase merge replaces, is refused before anything is
 // fetched or pushed.
 func TestMergeUpdateRefusesOntoMain(t *testing.T) {

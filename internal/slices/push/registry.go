@@ -63,7 +63,7 @@ func (r *pushRun) divide(ctx context.Context, main, theirMain, base, tip string,
 	var moved []string
 	left := 0
 	for _, c := range rest {
-		if r.registryCommit(ctx, c) {
+		if r.extracted(ctx, c) {
 			made, conflicts, bad, failed := r.carry(ctx, c, mainTip)
 			if failed {
 				return p, bad, true
@@ -118,11 +118,8 @@ func (r *pushRun) divide(ctx context.Context, main, theirMain, base, tip string,
 // history linear first.
 func (r pushRun) refuseMerge(ctx context.Context, commits []string) (Answer, bool) {
 	v := r.ports
-	isRegistry := func(c string) bool { return r.registryCommit(ctx, c) }
-	isMerge := func(c string) bool {
-		parents, _ := v.Parents(ctx, c)
-		return len(parents) > 1
-	}
+	isRegistry := func(c string) bool { return r.extracted(ctx, c) }
+	isMerge := func(c string) bool { return r.isMerge(ctx, c) }
 	registry, merge := slices.IndexFunc(commits, isRegistry), slices.IndexFunc(commits, isMerge)
 	if r.cfg.Push.PR.Update == "merge" {
 		registry, merge = -1, -1
@@ -143,6 +140,24 @@ func (r pushRun) refuseMerge(ctx context.Context, commits []string) (Answer, boo
 		fmt.Sprintf("itos push: %s is the registry's and goes to main, and %s is a merge, which is not made again on the commits it would leave; nothing was pushed.",
 			r.named(ctx, commits[registry]), r.named(ctx, commits[merge])),
 		"Make the history linear first (git rebase "+r.base()+"), then itos push again."), true
+}
+
+// isMerge is whether the commit has more than one parent.
+func (r pushRun) isMerge(ctx context.Context, commit string) bool {
+	parents, _ := r.ports.Parents(ctx, commit)
+	return len(parents) > 1
+}
+
+// extracted is whether the commit is one of the registry's that leaves the
+// item's branch for main (registryCommit). Under push.pr.update merge a merge
+// never is (slice-213): what it brings against its first parent is main's own,
+// a merge of main that brought a take alone among them, or their resolution,
+// and it stays on the item's branch.
+func (r pushRun) extracted(ctx context.Context, commit string) bool {
+	if r.cfg.Push.PR.Update == "merge" && r.isMerge(ctx, commit) {
+		return false
+	}
+	return r.registryCommit(ctx, commit)
 }
 
 // carry makes the commit again on onto (vcsport.VCS.CherryPick), with its itos
