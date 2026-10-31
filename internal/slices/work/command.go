@@ -29,9 +29,9 @@ var Command = declare.Command{
 		"": `Usage: itos work [--as <handle>]
        itos work list [--all] [--tag <tag>]
        itos work show <id> [--patch]
-       itos work take <id> [--as <handle>]
+       itos work take <id> [--as <handle>] [--expect <revision>]
         itos work promote <idea> --kind slice|task [--title <title>] […]
-       itos work done <id>
+       itos work done <id> [--expect <revision>]
         itos work add [<idea-id>] --title <title> --why <why> [--kind idea|slice|task|bug] […]
        itos work edit <id>… [--title <title>] [--depends-on <ids>] [--refs <refs>] [--tags <tags>] [--note <text>]
        itos work queue <id>… --top|--before <id>|--after <id>|--remove
@@ -90,7 +90,7 @@ item with the id; 2 when itos decision's file is there and cannot be read.
 "commits":[{"sha","short","header","message"?,"patch"?}]}, message and patch with --patch;
 or {"schema":1,"ok":false,"problems":[{"rule","message","fix"}]}`,
 
-		"take": `Usage: itos work take <id> [--as <handle>]
+		"take": `Usage: itos work take <id> [--as <handle>] [--expect <revision>]
 
 Sets the item in progress for the person, its status doing and its owner the
 person (--as, else the config's work.identity provider, as for work), and
@@ -107,8 +107,16 @@ config, or with no one in the people (no people file, an unreadable one, or
 one listing no one), with no --as nobody is asked and nothing exits 3: every
 item is the session's, its owner is left as it is, and the line says "no owner
 recorded" when it has none.
+--expect <revision> is the revision itos next <id> --json gave (itos help
+next), for a caller that lost a run's answer and runs the command again:
+once the person is known, an item already in progress for them is already,
+exit 0, nothing written, whatever the revision; else a revision that is no
+longer the item's is refused as stale (rule work-stale, exit 1, nothing
+written), naming the current one, before the take's own refusals: ask itos
+next again. A revision not "sha256:" and 64 lowercase hex digits exits 2.
 
---json: {"schema":1,"ok":true,"item":{…},"commit":"<sha>"|null}, or
+--json: {"schema":1,"ok":true,"outcome":"taken"|"already","item":{…},"commit":"<sha>"|null},
+outcome with or without --expect; or
 {"schema":1,"ok":false,"problems":[{"rule","message","fix"}]}`,
 
 		"promote": `Usage: itos work promote <idea> --kind slice [--title <title>]
@@ -139,7 +147,7 @@ refuses. Under a stealth config the files are written and nothing committed.
 --json: {"schema":1,"ok":true,"item":{…},"was","rewritten":[…],"task"?:{…},"file"?,"questions"?:[…],"commit":"<sha>"|null},
 or {"schema":1,"ok":false,"problems":[{"rule","message","fix"}]}`,
 
-		"done": `Usage: itos work done <id>
+		"done": `Usage: itos work done <id> [--expect <revision>]
 
 Marks the item done once its work has landed, its status done, its owner left
 as it is and its why dropped (the registry is an index: a slice's why lives in
@@ -219,8 +227,17 @@ looked at. An item already done changes nothing.
 An item the registry's queue holds is then taken out of it, in a commit of its
 own, "docs: queue <id>". Under a stealth config the registry and the ledger
 are written and nothing committed.
+--expect <revision> is the revision itos next <id> --json gave (itos help
+next), for a caller that lost a run's answer and runs the command again: an
+item already done is already, exit 0, nothing written and CI not asked,
+whatever the revision; else a revision that is no longer the item's is
+refused as stale (rule work-stale, exit 1, nothing written), naming the
+current one, before the landing is checked: ask itos next again. The
+revision is judged once, before the checks, not again after the wait. A
+revision not "sha256:" and 64 lowercase hex digits exits 2.
 
---json: {"schema":1,"ok":true,"item":{…},"ci":"success"|"unwatched","run"?,"evidence"?:[{"command","hit","recorded",…}],"left_to_ci"?:[{"task","command"}],"queue_commit"?:"<sha>"|null,"commit":"<sha>"|null},
+--json: {"schema":1,"ok":true,"outcome":"done"|"already","item":{…},"ci":"success"|"unwatched","run"?,"evidence"?:[{"command","hit","recorded",…}],"left_to_ci"?:[{"task","command"}],"queue_commit"?:"<sha>"|null,"commit":"<sha>"|null},
+outcome with or without --expect, ci and the rest only for a close made;
 or {"schema":1,"ok":false,"problems":[{"rule","message","fix"}],"ci"?,"run"?,"evidence"?};
 a failing check's problem (rule work-done-task-check) adds "task", "command",
 "exit" (null when it did not exit by itself), "timed_out" and "output", the
@@ -445,10 +462,10 @@ twice). Exit 1 on a problem. The messages call a group by ledger.group.label
 	Spec: declare.Spec{Flags: []declare.Flag{declare.Value("--as")}, Subs: map[string]declare.Spec{
 		"list": {Flags: []declare.Flag{declare.Switch("--all"), declare.Value("--tag")}},
 		"show": {Flags: []declare.Flag{declare.Switch("--patch")}},
-		"take": {Flags: []declare.Flag{declare.Value("--as")}},
+		"take": {Flags: []declare.Flag{declare.Value("--as"), declare.Value("--expect")}},
 		"promote": {Flags: []declare.Flag{declare.Value("--id"), declare.Value("--kind"), declare.Value("--title"), declare.Value("--why"), declare.Value("--type"),
 			declare.Values("--check"), declare.Values("--timeout")}},
-		"done": {},
+		"done": {Flags: []declare.Flag{declare.Value("--expect")}},
 		"add": {Flags: []declare.Flag{declare.Value("--title"), declare.Value("--why"), declare.Value("--kind"), declare.Value("--phase"), declare.Value("--owner"),
 			declare.Value("--depends-on"), declare.Value("--refs"), declare.Value("--tags")}},
 		"edit":      {Flags: []declare.Flag{declare.Value("--title"), declare.Value("--depends-on"), declare.Value("--refs"), declare.Value("--tags"), declare.Value("--note")}},

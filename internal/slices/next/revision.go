@@ -1,13 +1,30 @@
 package next
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"strings"
 
+	"github.com/donvargax/itos/v8/internal/config"
+	"github.com/donvargax/itos/v8/internal/out"
+	trackerport "github.com/donvargax/itos/v8/internal/store/tracker/port"
 	"github.com/donvargax/itos/v8/internal/value"
 )
+
+// RevisionOf is the item's revision as itos next gives it (Revision over
+// the facts read as Handle reads them), for a mutating command handed one
+// back with --expect (slice 208, work take and work done): refused is the
+// problem of a registry that is not there or an id no item has, as next
+// refuses it, with no revision; what cannot be read is the error.
+func RevisionOf(ctx context.Context, cfg *config.Loaded, tracker trackerport.Tracker, id string) (revision string, refused *out.Problem, err error) {
+	facts, refused, err := read(ctx, cfg, tracker, id)
+	if err != nil || refused != nil {
+		return "", refused, err
+	}
+	return Revision(facts), nil, nil
+}
 
 // Revision is "sha256:" and the hex digest of exactly the facts read, one
 // line each in a fixed order, each field JSON so no field holds a line

@@ -213,7 +213,7 @@ Feature: The work registry
   # passes the revision of before the take, which the take itself made
   # stale: the target holds, so it is already, not stale, and nothing is
   # written or committed (the git folder is compared too).
-  @ID-WORK-164 @wip @slice-208
+  @ID-WORK-164 @slice-208
   Scenario: work take --expect with the revision next gave takes the item, and a rerun with the same revision is already
     Given the work registry has the item "slice-9" owned by nobody with the status "todo"
     When itos runs "next slice-9 --json"
@@ -241,7 +241,7 @@ Feature: The work registry
   # digits, so a message printing a short prefix fails. The take is
   # refused as a whole: the item stays todo and no one's, and no take
   # commit is made.
-  @ID-WORK-165 @wip @slice-208
+  @ID-WORK-165 @slice-208
   Scenario: A revision that is no longer the item's refuses the take as stale, naming the current one, and writes nothing
     Given the work registry has the item "slice-9" owned by nobody with the status "todo"
     When itos runs "next slice-9 --json"
@@ -269,7 +269,7 @@ Feature: The work registry
   # that refusal, not work-stale. Stale comes first, since the driver's
   # answer to either is the same, itos next again, and only the revision
   # says whether what it knew still holds.
-  @ID-WORK-166 @wip @slice-208
+  @ID-WORK-166 @slice-208
   Scenario: A stale revision is judged before the take's own refusals
     Given the work registry has the item "slice-9" owned by "another" with the status "todo"
     When itos runs "next slice-9 --json"
@@ -285,7 +285,7 @@ Feature: The work registry
   # The revision is well formed and no item's: a build that judged the
   # revision before the target gives stale, exit 1. The line is today's
   # (@ID-WORK-153's shape, with an owner).
-  @ID-WORK-167 @wip @slice-208
+  @ID-WORK-167 @slice-208
   Scenario: An item already in progress for the person is already, whatever the revision
     Given the work registry has the item "slice-9" owned by "someone" with the status "doing"
     And the repository state is saved for comparison
@@ -303,7 +303,7 @@ Feature: The work registry
   # A driver reads the outcome whether or not it passed --expect, and
   # today's keys stay: ok, item and commit, the commit null when nothing
   # was committed, as before.
-  @ID-WORK-168 @wip @slice-208
+  @ID-WORK-168 @slice-208
   Scenario: work take --json says its outcome without --expect, taken then already
     Given the work registry has the item "slice-9" owned by nobody with the status "todo"
     When itos runs "work take slice-9 --as someone --json"
@@ -323,7 +323,7 @@ Feature: The work registry
   # The usage error names the form, "sha256:" and 64 lowercase hex digits,
   # which today's "does not take --expect" does not. Judged before the
   # registry is read, so nothing is written for take or for done.
-  @ID-WORK-169 @wip @slice-208
+  @ID-WORK-169 @slice-208
   Scenario Outline: A malformed revision is a usage error, exit 2, naming the form, and nothing is written
     Given the work registry has the item "slice-9" owned by "someone" with the status "<status>"
     When itos runs "<line>"
@@ -383,7 +383,7 @@ Feature: The work registry
   # Slice 208: @ID-WORK-18's landing with --expect, then the driver's rerun
   # with the revision of before the close, which the close made stale: the
   # item is done, so it is already, nothing committed, CI not asked again.
-  @ID-WORK-170 @wip @slice-208
+  @ID-WORK-170 @slice-208
   Scenario: work done --expect with the revision next gave closes the item, and a rerun with the same revision is already
     Given a clone of it, where itos runs
     And the work registry has the item "slice-9" owned by "someone" with the status "doing"
@@ -411,7 +411,7 @@ Feature: The work registry
   # (@ID-WORK-15): a build that judges the landing before the revision
   # gives that refusal, not work-stale. The title edit moves the revision
   # as in @ID-WORK-165.
-  @ID-WORK-171 @wip @slice-208
+  @ID-WORK-171 @slice-208
   Scenario: A stale revision refuses the close before the landing is checked, and writes nothing
     Given the work registry has the item "slice-9" owned by "someone" with the status "doing"
     And a feature file with the scenario "@ID-A-01" tagged "@slice-9 @wip"
@@ -434,7 +434,7 @@ Feature: The work registry
   # The revision is well formed and no item's, as in @ID-WORK-167: the
   # target holds, so no landing check runs and nothing is written. Without
   # --expect, --json says the outcome too.
-  @ID-WORK-172 @wip @slice-208
+  @ID-WORK-172 @slice-208
   Scenario: An item already done is already, whatever the revision, and --json says so without --expect too
     Given the work registry has the item "slice-9" owned by "someone" with the status "done"
     And the repository state is saved for comparison
