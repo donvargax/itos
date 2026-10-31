@@ -146,7 +146,7 @@ Feature: itos review status posts the itos/reviews commit status on an item's pu
   # [bot]. Run from main: the item names the branch. Fails before the work
   # at the exit code: today review's only word is post, so review status is
   # a usage error, exit 2.
-  @wip @slice-212 @ID-REVIEWSTATUS-01
+  @slice-212 @ID-REVIEWSTATUS-01
   Scenario: Under push.mode pr, review status posts itos/reviews success on the pull request's head once every review_by login has reviewed it
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -182,7 +182,7 @@ Feature: itos review status posts the itos/reviews commit status on an item's pu
   # workflow may run it on every event. --json is what a driver reads.
   # Fails before the work at the exit code: today review status is a usage
   # error, exit 2.
-  @wip @slice-212 @ID-REVIEWSTATUS-02
+  @slice-212 @ID-REVIEWSTATUS-02
   Scenario: Under push.mode pr, review status posts itos/reviews pending naming the review_by logins with no verdict for the head, and the same again when run again
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -229,7 +229,7 @@ Feature: itos review status posts the itos/reviews commit status on an item's pu
   # left at the older commit) would post success there. A draft: the
   # workflow runs on a draft's pushes too. Fails before the work at the
   # exit code: today review status is a usage error, exit 2.
-  @wip @slice-212 @ID-REVIEWSTATUS-03
+  @slice-212 @ID-REVIEWSTATUS-03
   Scenario: Under push.mode pr, review status from a detached HEAD judges and marks the head GitHub gives, so a review state for an older commit is pending there, and asks nobody for a review
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -261,7 +261,7 @@ Feature: itos review status posts the itos/reviews commit status on an item's pu
   # (--ready's rule, PUSHDRAFT-22). A build that counted any review by the
   # login would post success. Fails before the work at the exit code: today
   # review status is a usage error, exit 2.
-  @wip @slice-212 @ID-REVIEWSTATUS-04
+  @slice-212 @ID-REVIEWSTATUS-04
   Scenario: Under push.mode pr, review status does not count a review by a login whose review-state comment says a review still runs, and posts pending
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -290,7 +290,7 @@ Feature: itos review status posts the itos/reviews commit status on an item's pu
   # as --ready does. A build that ranked pending above failure would post
   # pending. Fails before the work at the exit code: today review status is
   # a usage error, exit 2.
-  @wip @slice-212 @ID-REVIEWSTATUS-05
+  @slice-212 @ID-REVIEWSTATUS-05
   Scenario: Under push.mode pr, review status posts itos/reviews failure when a review_by login's only reviews are refusals, whatever the others' state
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -327,7 +327,7 @@ Feature: itos review status posts the itos/reviews commit status on an item's pu
   # appends an ellipsis ends otherwise. --json keeps every login. Nobody
   # has reviewed yet. Fails before the work at the exit code: today review
   # status is a usage error, exit 2.
-  @wip @slice-212 @ID-REVIEWSTATUS-06
+  @slice-212 @ID-REVIEWSTATUS-06
   Scenario: Under push.mode pr, review status cuts a description past 140 characters at a whole login and counts the logins left out
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -356,7 +356,7 @@ Feature: itos review status posts the itos/reviews commit status on an item's pu
   # post's words, nothing asked past gh pr list and nothing posted. Fails
   # before the work at the exit code: today review status is a usage
   # error, exit 2.
-  @wip @slice-212 @ID-REVIEWSTATUS-07
+  @slice-212 @ID-REVIEWSTATUS-07
   Scenario: Under push.mode pr, review status with no open pull request for the item is refused, posting nothing
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -380,7 +380,7 @@ Feature: itos review status posts the itos/reviews commit status on an item's pu
   # write, gh fails, and that is an environment failure, exit 3, naming
   # the call and gh's words, as review post reports gh. Fails before the
   # work at the exit code: today review status is a usage error, exit 2.
-  @wip @slice-212 @ID-REVIEWSTATUS-08
+  @slice-212 @ID-REVIEWSTATUS-08
   Scenario: Under push.mode pr, review status whose status write gh fails exits 3, naming the call
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -404,7 +404,7 @@ Feature: itos review status posts the itos/reviews commit status on an item's pu
   # Under trunk there is no pull request to mark: refused, gh never asked.
   # Fails before the work at the exit code: today review status is a usage
   # error, exit 2.
-  @wip @slice-212 @ID-REVIEWSTATUS-09
+  @slice-212 @ID-REVIEWSTATUS-09
   Scenario: Outside push.mode pr, review status is refused, exit 1, asking gh nothing
     Given a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
     And the clone has the commit "feat: add the widget" touching "widget.md"
@@ -421,7 +421,7 @@ Feature: itos review status posts the itos/reviews commit status on an item's pu
   # missing review_by alone, never as work-unknown-item. Fails before the
   # work at the exit code, each row: today review status is a usage error,
   # exit 2.
-  @wip @slice-212 @ID-REVIEWSTATUS-10
+  @slice-212 @ID-REVIEWSTATUS-10
   Scenario Outline: Under push.mode pr with no push.pr.review_by, review status of any item, in the registry or not, is refused for review_by, exit 1, asking gh nothing
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -447,7 +447,7 @@ Feature: itos review status posts the itos/reviews commit status on an item's pu
   # The item names the branch, so one the registry lacks is refused as
   # itos work show refuses it, before gh is asked. Fails before the work at
   # the exit code: today review status is a usage error, exit 2.
-  @wip @slice-212 @ID-REVIEWSTATUS-11
+  @slice-212 @ID-REVIEWSTATUS-11
   Scenario: Under push.mode pr, review status of an item the registry does not have is refused, exit 1, asking gh nothing
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -468,7 +468,7 @@ Feature: itos review status posts the itos/reviews commit status on an item's pu
   # status takes one item and no flag but --json: post's flags are post's.
   # A guard: every row is exit 2 before the work too, review's only word
   # being post, and must stay one after it.
-  @wip @slice-212 @ID-REVIEWSTATUS-12 @guard
+  @slice-212 @ID-REVIEWSTATUS-12 @guard
   Scenario Outline: Under push.mode pr, review status with no item, two items or any flag is a usage error, exit 2
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -495,7 +495,7 @@ Feature: itos review status posts the itos/reviews commit status on an item's pu
   # The help is where the workflow's author looks first. Fails before the
   # work at the first output step: today itos --help lists review post
   # alone.
-  @wip @slice-212 @ID-REVIEWSTATUS-13
+  @slice-212 @ID-REVIEWSTATUS-13
   Scenario: itos's help lists review status and help review documents the itos/reviews status
     When itos runs "--help"
     Then itos exits with code 0
