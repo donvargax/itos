@@ -266,10 +266,10 @@ Feature: The commit-msg hook
   # committed with exactly that tree, the raw markers included, had no
   # changes of its own and passed verify and the hooks under any first line,
   # skipping the message, footer, scope and moves checks. Bug 30's --cc
-  # reading caught the markers' hunk. So did a conflict whose tree holds no
-  # markers at all and that a merge keeps as merge-tree left it: the modified
-  # side of a modify/delete conflict, or the first parent's side of a binary
-  # one.
+  # reading caught the markers' hunk. A conflict whose tree holds no markers
+  # at all and that a merge keeps as merge-tree left it passed the same way,
+  # and --cc never caught it either, a gap bug 30 had too: the modified side
+  # of a modify/delete conflict, or the first parent's side of a binary one.
   #
   # The rule (the coordinator's, settled): every path merge-tree reports as
   # conflicted is the merge's own change, whatever the merge's tree holds,
@@ -333,8 +333,10 @@ Feature: The commit-msg hook
 
   # A conflict with no markers: merge-tree keeps the modified side of a
   # modify/delete conflict in its tree, so a merge that keeps it too has no
-  # path of its own today, and a build that looks for markers in the merge's
-  # tree still passes it. Fails before the work at the exit code, 0.
+  # path of its own today; a build that looks for markers in the merge's
+  # tree still passes it, and so does one that falls back to --cc on a
+  # conflict, whose dense combined diff shows no hunk for a side kept whole.
+  # Fails before the work at the exit code, 0.
   @wip @bug-159 @ID-CMSG-28
   Scenario: verify refuses an untyped merge that kept the changed side of a modify/delete conflict
     Given a merge commit "Merge branch 'topic'" on top of it, whose main line deletes "notes.md" and whose topic line changes it, keeping the topic's change
