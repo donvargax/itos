@@ -16088,6 +16088,13 @@ items:
       itos-review-request marker as a code-review request, and sameLogin now lives both in push and
       in internal/engine/reviewers (slice-215). The hand-off folds --ready onto the reviewers
       engine.
+
+      Codex on #238 (slice-209, thread PRRT_kwDOU2JMic6yUwAI, 2026-10-31): next says merging (forge
+      observe) once the pull request is ready and nothing failed, but --ready marks it ready before
+      it turns auto-merge on. After an exit 75, or under --no-wait, nothing merges and a driver
+      waits forever. next's merging must require that merging was requested (auto-merge on for the
+      head, or a merge queued), and keep driver land, itos push --ready, until then. The hand-off
+      settles both: --ready marks ready and pins auto-merge in one step.
     tags: [work, v8]
 
   - id: p3-work-add-refusal-keeps-id
