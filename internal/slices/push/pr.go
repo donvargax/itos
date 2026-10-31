@@ -370,7 +370,7 @@ func (r pushRun) registryPrefix(ctx context.Context, main string, ahead []string
 		if v.Parent(ctx, c) != parent || theirs != "" && v.IsAncestor(ctx, c, theirs) {
 			return i
 		}
-		if !r.registryCommit(ctx, c) {
+		if !r.extracted(ctx, c) {
 			return i
 		}
 		parent = c

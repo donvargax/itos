@@ -248,9 +248,12 @@
 // item branch has (Range.Since the item's head), so on a linear branch those
 // the remote has never sit in the list, and divides them as slice-192 does,
 // the item's branch starting on the first one's parent (divide's base), the
-// merge-base of HEAD and main on a first push, never main's head. refuseMerge
-// refuses then only a registry commit a merge among them descends from
-// (IsAncestor): one no merge descends from is carried with no merge made again.
+// merge-base of HEAD and main on a first push, never main's head. A merge is
+// never a registry commit there (extracted), whatever it brings against its
+// first parent: a merge of main that brought a take alone stays on the item's
+// branch. refuseMerge refuses then only a registry commit a merge among them
+// descends from (IsAncestor): one no merge descends from is carried with no
+// merge made again.
 // Registry commits that leave the branch go to main first, in a push of their
 // own (Sent lines and all), and the clone is reset to the item's head, so a
 // conflict below never strands a take off main; those that start at main's
