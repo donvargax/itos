@@ -16060,3 +16060,17 @@ items:
       the merge on the forge's side: open question 6, asked as a decision. Outcomes from the plan:
       handed-to-forge, already, threads-unresolved.
     tags: [work, v8]
+
+  - id: p3-work-add-refusal-keeps-id
+    title: A work add refused before it writes leaves the shared counter where it was
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      2026-10-30: work add --kind slice without --phase was refused (no phase said) after naming
+      slice-210, and the retry minted slice-211: the refusal had advanced the counter, so slice-210
+      names no item. Check the phase (and every refusal work add has before writing) before minting,
+      or mint only once the item is written.
+    tags: [work]
