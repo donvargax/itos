@@ -16425,3 +16425,14 @@ items:
       The repository had allow_merge_commit false, and main's ruleset had pull_request
       allowed_merge_methods [rebase]. itos reads both through gh (repos/<r> and its rulesets) and
       refuses up front, naming the setting, either in a config check or when --ready starts.
+
+  - id: p2-attempt-task-spec
+    title: itos attempt submit accepts a drafter's done result for a task, judged by its ledger entry
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      slice-207's implementer, 2026-10-30: attempt-spec-missing looks only at tagged scenarios,
+      never at a task's ledger entry, so a drafter's done result for a task can never be accepted.
