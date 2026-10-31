@@ -117,7 +117,11 @@ edit --title), its description left as it is. It turns on auto-merge by rebase
 (gh pr merge --auto --rebase, never squash; push.pr.draft, below, changes
 that) and, when main has a commit the pushed head
 lacks, asks GitHub to rebase it (gh pr update-branch --rebase) rather than
-forcing the branch; the push prints the pull request's address, and these
+forcing the branch; under push.pr.update merge, below, it turns on auto-merge
+by merge (gh pr merge --auto --merge --subject=<the pull request's title,
+computed as above> --body=<the item's footer, as "Item: <item>": the first of
+commits.footers whose source is the work registry, none without one>) and
+never asks update-branch; the push prints the pull request's address, and these
 calls run with nothing to push too. A branch of the registry's commits alone
 goes to main with no pull request. With no gh, or a gh that fails, the branch
 is pushed already: exit 3, naming the gh command, and itos push again
@@ -178,7 +182,8 @@ merge-conflict: resolve the files, git add them, commit the merge (itos commit
 or git commit) with a typed first line, then itos push again; or git merge
 --abort. One git does not run is merge-failed, exit 1. The item's branch is
 then pushed as a fast-forward, and gh pr update-branch is never asked: its head
-has main's. --ready pushes the same merge before it waits.
+has main's. --ready pushes the same merge before it waits, so the head it
+judges is the head it pushed, and lands the pull request by merge (below).
 
 push.pr.draft (false by default, under push.mode pr) makes the pull request a
 draft: a push opens it as one (gh pr create --draft) and turns on no
@@ -207,7 +212,11 @@ the first line of its first comment; and only then merges: gh pr merge --auto
 auto-merge as "is in clean status", the pull request being mergeable already,
 one gh pr merge --rebase --match-head-commit, and it says whether the pull
 request was merged or auto-merge is on (a pull request merged at the head
-already when a merge call fails is merged too). Auto-merge thus comes after the
+already when a merge call fails is merged too). Under push.pr.update merge it
+asks no rebase (the merge it pushed has main's head) and both calls merge
+instead: gh pr merge --auto --merge --subject=<subject> --body=<body>
+--match-head-commit, or one gh pr merge --merge --subject=<subject>
+--body=<body> --match-head-commit, the subject and body as a push's above. Auto-merge thus comes after the
 checks and the reviews. The reviews, comments and threads are one gh api graphql
 question. The clocks of ci.watch.timeout are GitHub's: the run's from its
 latest attempt's start, else its creation, the reviews' from when the pull request was marked ready
