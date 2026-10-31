@@ -15866,6 +15866,11 @@ items:
       CI is green, so its review restarted too. slice-205 (#230) needed four. The pilot's hand-off
       --ready (auto-merge pinned to the head, return) is the design's answer
       (docs/plans/v9-coordinator.md).
+
+      Seen again 2026-10-30 night: slice-208's --ready took 4 runs and about 30 minutes, green and
+      reviewed at 0554cd6, because the coordinator's registry pushes moved main each round and
+      GitHub rebased the pull request, restarting CI and Codex. Under merge mode (slice-213/214) the
+      same cycle holds unless --ready accepts a head whose only gap to main is registry bookkeeping.
     tags: [push, v9]
 
   - id: p2-gh-transient-exit-75
