@@ -16022,3 +16022,24 @@ items:
       worktree inheriting the main checkout's absolute PATH would run the wrong tree's build
       silently; tools/bin also holds about 30 other commands (pre-commit among them).
     tags: [launcher]
+
+  - id: slice-211
+    title: "itos next walks each kind's path from work.paths: a kind whose spec_review is skip goes from its spec to spec-accepted with no verdict"
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [slice-209]
+    kind: slice
+    why: >
+      The v9 plan's 'A path per kind' (docs/plans/v9-coordinator.md): the paths are config, read by
+      itos next, so a typo-level task does not walk every state; piloted on v8 with a default that
+      is today's flow. Settled (the coordinator, 2026-10-30; minimal first): work.paths maps a kind
+      (slice, bug, task) to its steps; this slice has one step key, spec_review: required (the
+      default, slice-209's states) or skip. With skip, every state slice-209 derives from the spec's
+      verdict (spec-review, spec-changes) is spec-accepted instead, and no verdict is asked for.
+      config check refuses an unknown kind, step or value. The revision digests the kind's path, so
+      a config change that moves the step moves it (slice-203's rule). Not in this slice, each an
+      idea when wanted: the C value (required only for the classes the config names, ADR-0061's high
+      blast radius as data), red_first (slice-207's attempt check), change_review (push.pr.review_by
+      per kind).
+    tags: [work, v8]
