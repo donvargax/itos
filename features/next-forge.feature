@@ -147,7 +147,7 @@ Feature: itos next reads an in-flight item's state from the forge under push.mod
   # list with --state all and the one graphql question with the checks in
   # it, and nothing else: no view, no mutation, no fetch, no file. Fails
   # before the work at the exit code: today next is no command, exit 2.
-  @ID-NEXTFORGE-01 @wip @slice-209
+  @ID-NEXTFORGE-01 @slice-209
   Scenario: Under push.mode pr, a todo item whose draft pull request has no verdict marker is in spec review
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -201,7 +201,7 @@ Feature: itos next reads an in-flight item's state from the forge under push.mod
   # read being digested, with no fetch asked of the clone. Main's config
   # declares the scenario kind, as a driver's does, through slice-8's
   # scenario committed there: the config next reads is the clone's.
-  @ID-NEXTFORGE-16 @wip @slice-209
+  @ID-NEXTFORGE-16 @slice-209
   Scenario: Under push.mode pr, the spec is read at origin/<item> when the clone has that ref, so a clone on main asks the forge
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -244,7 +244,7 @@ Feature: itos next reads an in-flight item's state from the forge under push.mod
   # is of the diff stage and the other approve is of slice-8, so none of
   # them counts. A build that took the last marker whoever wrote it would
   # say spec-changes.
-  @ID-NEXTFORGE-02 @wip @slice-209
+  @ID-NEXTFORGE-02 @slice-209
   Scenario: Under push.mode pr, a todo item whose latest counted spec verdict at the head is approve is spec-accepted, the driver takes it
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -275,7 +275,7 @@ Feature: itos next reads an in-flight item's state from the forge under push.mod
   # The markers are append-only and the latest counted one stands: ana
   # approved, then asked for changes. A build that found the first marker,
   # or any approve, would say spec-accepted.
-  @ID-NEXTFORGE-03 @wip @slice-209
+  @ID-NEXTFORGE-03 @slice-209
   Scenario: Under push.mode pr, a todo item whose latest counted spec verdict at the head is changes goes back to the drafter
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -305,7 +305,7 @@ Feature: itos next reads an in-flight item's state from the forge under push.mod
   # spec is to be reviewed again, verdict null. Then, with no people file,
   # every login counts, as review post and the work registry read such a
   # repository: Copilot's approve at the head is the verdict.
-  @ID-NEXTFORGE-04 @wip @slice-209
+  @ID-NEXTFORGE-04 @slice-209
   Scenario: Under push.mode pr, a verdict at an older head does not count, and with no people file any login's does
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -335,7 +335,7 @@ Feature: itos next reads an in-flight item's state from the forge under push.mod
   # the first page: they are read as --ready and review post read them, so
   # the approve on the second page stands. A build reading one page would
   # say spec-review.
-  @ID-NEXTFORGE-05 @wip @slice-209
+  @ID-NEXTFORGE-05 @slice-209
   Scenario: Under push.mode pr, a verdict marker on the second page of comments is read
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -372,7 +372,7 @@ Feature: itos next reads an in-flight item's state from the forge under push.mod
   # record follows it, when it is implementing again. The owner is ana's,
   # as written. The journal lines are whole, as attempt submit writes
   # them; the keys next does not read are filled with anything.
-  @ID-NEXTFORGE-06 @wip @slice-209
+  @ID-NEXTFORGE-06 @slice-209
   Scenario: Under push.mode pr, a doing item with no accepted implementer result at the pull request's head is implementing, blocked on an unspent needs_decision, spec-changes on an unspent spec_defect
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -496,7 +496,7 @@ Feature: itos next reads an in-flight item's state from the forge under push.mod
   # and a drafter's line comes after it: observed.attempt is the
   # implementer's, not the journal's last line. The head is the remote's
   # branch tip, which the clone's HEAD is not.
-  @ID-NEXTFORGE-07 @wip @slice-209
+  @ID-NEXTFORGE-07 @slice-209
   Scenario: Under push.mode pr, a doing item whose latest implementer result is accepted done at the pull request's head is handed back, the driver lands it
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -543,7 +543,7 @@ Feature: itos next reads an in-flight item's state from the forge under push.mod
   # The registry's status is doing and a journal says done at the head:
   # ready is judged before handed-back, so a build that read the journal
   # first would say handed-back.
-  @ID-NEXTFORGE-08 @wip @slice-209
+  @ID-NEXTFORGE-08 @slice-209
   Scenario: Under push.mode pr, a ready pull request whose checks passed or are pending with every thread resolved is merging, the forge acts
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -584,7 +584,7 @@ Feature: itos next reads an in-flight item's state from the forge under push.mod
   # todo and a marker approves the spec at the head, so a build that
   # judged the spec states before the ready pull request would say
   # spec-accepted.
-  @ID-NEXTFORGE-09 @wip @slice-209
+  @ID-NEXTFORGE-09 @slice-209
   Scenario: Under push.mode pr, a ready pull request whose head's checks failed is in repair, the implementer acts
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -617,7 +617,7 @@ Feature: itos next reads an in-flight item's state from the forge under push.mod
   # The checks passed, but one of the two threads is unresolved: a review
   # finding is the implementer's to address before the forge can merge.
   # threads_open counts the unresolved one alone.
-  @ID-NEXTFORGE-10 @wip @slice-209
+  @ID-NEXTFORGE-10 @slice-209
   Scenario: Under push.mode pr, a ready pull request with an unresolved review thread is in repair
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -645,7 +645,7 @@ Feature: itos next reads an in-flight item's state from the forge under push.mod
   # request: the head is gh pr list's. Once the registry says done, done is
   # judged first and the forge is not asked at all: the list was called for
   # the two merged runs alone.
-  @ID-NEXTFORGE-11 @wip @slice-209
+  @ID-NEXTFORGE-11 @slice-209
   Scenario: Under push.mode pr, a merged pull request whose item the registry does not say done is merged, the driver closes it
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -687,7 +687,7 @@ Feature: itos next reads an in-flight item's state from the forge under push.mod
   # slice-8 has no spec at either place, so it needs one and asks nothing:
   # the list was called for slice-9's two runs alone, and no graphql
   # question for either.
-  @ID-NEXTFORGE-12 @wip @slice-209
+  @ID-NEXTFORGE-12 @slice-209
   Scenario: Under push.mode pr, a todo item with a spec and no open or merged pull request is spec-proposed, the drafter's, and one with no spec asks no forge
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -721,7 +721,7 @@ Feature: itos next reads an in-flight item's state from the forge under push.mod
   # No push.mode in the config: trunk, where the forge has nothing to say
   # of an item, so in-flight stays as slice-203 has it and the gh on the
   # PATH, holding a draft pull request for the branch, is never called.
-  @ID-NEXTFORGE-13 @wip @slice-209
+  @ID-NEXTFORGE-13 @slice-209
   Scenario: Under push.mode trunk, an item with a spec stays in flight and the forge is not asked
     Given a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
     And the work registry has the item "slice-9" owned by "ana" with the status "doing"
@@ -741,7 +741,7 @@ Feature: itos next reads an in-flight item's state from the forge under push.mod
   # spec-review), a check's result on the draft (still spec-review), a new
   # verdict (spec-accepted now). A build digesting slice-203's facts alone
   # would give "first" throughout.
-  @ID-NEXTFORGE-14 @wip @slice-209
+  @ID-NEXTFORGE-14 @slice-209
   Scenario: Under push.mode pr, the revision digests the forge's facts: a new head, a check result or a new verdict changes it
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -784,7 +784,7 @@ Feature: itos next reads an in-flight item's state from the forge under push.mod
   # A gh that fails is an environment failure, exit 3, naming the call and
   # gh's words, under --json the house problems JSON and without it the
   # message in the output; no state is printed, nothing is written.
-  @ID-NEXTFORGE-15 @wip @slice-209
+  @ID-NEXTFORGE-15 @slice-209
   Scenario: Under push.mode pr, next with a gh that fails exits 3, naming the call
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """

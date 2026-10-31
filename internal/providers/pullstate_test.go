@@ -16,7 +16,7 @@ func TestPullStateQueryIsOneLine(t *testing.T) {
 	if strings.ContainsAny(PullStateQuery, "\n\t") || strings.Contains(PullStateQuery, "  ") || !strings.HasPrefix(PullStateQuery, "query($owner: String!, ") {
 		t.Errorf("the query is not on one line: %q", PullStateQuery)
 	}
-	for _, want := range []string{"after: $cursor", "pageInfo { hasNextPage endCursor }", "reviewThreads(first: 100)", "READY_FOR_REVIEW_EVENT"} {
+	for _, want := range []string{"after: $cursor", "pageInfo { hasNextPage endCursor }", "reviewThreads(first: 100)", "READY_FOR_REVIEW_EVENT", "statusCheckRollup { state }"} {
 		if !strings.Contains(PullStateQuery, want) {
 			t.Errorf("the query lacks %q: %s", want, PullStateQuery)
 		}
@@ -31,6 +31,7 @@ func pageAnswer(comments string, more string) string {
 		pageInfo = fmt.Sprintf(`"pageInfo":{"hasNextPage":true,"endCursor":%q},`, more)
 	}
 	return `{"data":{"repository":{"pullRequest":{"headRefOid":"0123456789abcdef0123456789abcdef01234567",` +
+		`"commits":{"nodes":[{"commit":{"statusCheckRollup":{"state":"FAILURE"}}}]},` +
 		`"timelineItems":{"nodes":[{"createdAt":"2026-10-24T10:00:00Z"}]},` +
 		`"reviews":{"nodes":[{"author":{"login":"codex"},"body":"LGTM"},{"author":null,"body":"gone"}]},` +
 		`"comments":{` + pageInfo + `"nodes":[` + comments + `]},` +
@@ -66,6 +67,7 @@ func TestAskPullStateReadsOneAnswer(t *testing.T) {
 			{ID: "T2", Resolved: true, Path: "b.go"},
 			{ID: "T3", Path: "c.go", Body: "ghost's"},
 		},
+		Checks: "FAILURE",
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("read\n%+v\nwant\n%+v", got, want)

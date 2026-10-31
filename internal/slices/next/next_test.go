@@ -25,16 +25,32 @@ import (
 )
 
 // ports are the next command's ports over the fakes: a config or the error
-// loading it, and the tracker's fake.
+// loading it, the tracker's fake, and the forge's: the repository, gh's
+// answers (forge_test.go) and the journal's bytes or the error reading it.
 type ports struct {
-	cfg     *config.Loaded
-	err     error
-	tracker trackerport.Tracker
+	cfg        *config.Loaded
+	err        error
+	tracker    trackerport.Tracker
+	repository string
+	gh         *gh
+	journal    []byte
+	journalErr error
 }
 
 func (p ports) Config(context.Context) (*config.Loaded, error) { return p.cfg, p.err }
 
 func (p ports) Tracker(context.Context, *config.Loaded) trackerport.Tracker { return p.tracker }
+
+func (p ports) GitHubRepository(context.Context, *config.Loaded) string { return p.repository }
+
+func (p ports) Gh(_ context.Context, args ...string) (string, error) {
+	if p.gh == nil {
+		return "", errors.New("no gh in this test")
+	}
+	return p.gh.call(args)
+}
+
+func (p ports) Journal(context.Context, string) ([]byte, error) { return p.journal, p.journalErr }
 
 // configText names the registry, the people, the ledger with its id and the
 // scenario kind under features/.
@@ -59,12 +75,14 @@ const bareConfig = "version: 1\nwork:\n  registry: work-items.yaml\n  people: { 
 
 // fixture is what a test's repository holds: the config's text, the
 // working tree's files by path, HEAD's files by path (nil for a repository
-// with no commit) and the questions ("" for no file).
+// with no commit), the questions ("" for no file) and other refs' files,
+// by the ref.
 type fixture struct {
 	config    string
 	files     map[string]string
 	head      map[string]string
 	questions string
+	refs      map[string]map[string]string
 }
 
 // over is the ports of a repository whose top is an empty folder the test
@@ -74,10 +92,14 @@ func over(t *testing.T, f fixture) ports {
 	dir := t.TempDir()
 	t.Chdir(dir)
 	common := filepath.Join(dir, ".git")
-	v := &vcsfake.VCS{Root: dir, Located: map[string]vcsport.Location{"": {Top: dir, GitDir: common, Common: common}}}
+	v := &vcsfake.VCS{Root: dir, Located: map[string]vcsport.Location{"": {Top: dir, GitDir: common, Common: common}}, Named: map[string]string{}}
 	files := map[string]map[string]string{"worktree": f.files}
 	if f.head != nil {
 		files["HEAD"] = f.head
+	}
+	for ref, held := range f.refs {
+		files[ref] = held
+		v.Named[ref] = "0123456789abcdef0123456789abcdef01234567"
 	}
 	trees := treefake.Trees{Common: common, Files: files}
 	src, err := trees.At(t.Context(), "worktree")

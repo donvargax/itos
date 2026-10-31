@@ -96,16 +96,17 @@
 // graphql failed with its reason; an answer that is not JSON or lacks the
 // repository or a branch's pull requests as one that gave none, with why.
 //
-// AskPullState is the one question itos push --ready and itos review post
-// put about a pull request (PullStateQuery, on one line, since the scenarios'
-// recording gh keeps a call to one line; slices 179, 187, 200 and 206): the
-// full SHA of its head (headRefOid, which review post holds a verdict to),
-// its reviews, its comments with their times, paged a hundred at a time up to
-// CommentPages, the time it was last marked ready and its review threads,
-// each with its first comment. gh's error is passed on as it comes; an
-// answer without the reviews and the threads is ErrNoPullState, while one
-// without comments or times, as a recorded answer from before slice 200 is,
-// reads as having none.
+// AskPullState is the one question itos push --ready, itos review post and
+// itos next put about a pull request (PullStateQuery, on one line, since the
+// scenarios' recording gh keeps a call to one line; slices 179, 187, 200, 206
+// and 209): the full SHA of its head (headRefOid, which review post holds a
+// verdict to), the roll-up state of its head commit's checks (which next
+// reads), its reviews, its comments with their times, paged a hundred at a
+// time up to CommentPages, the time it was last marked ready and its review
+// threads, each with its first comment. gh's error is passed on as it comes;
+// an answer without the reviews and the threads is ErrNoPullState, while one
+// without comments, times or checks, as a recorded answer from before slice
+// 200 is, reads as having none.
 //
 // People reads work.people: an All Contributors table in Markdown
 // (AllContributorsMd, CONTRIBUTORS.md here), an .all-contributorsrc
