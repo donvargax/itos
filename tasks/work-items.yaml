@@ -15839,8 +15839,8 @@ items:
   - id: slice-209
     title: "itos next derives an in-flight item's state from the forge under push.mode pr: spec review, implementing, merging, merged"
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: [slice-203, slice-206, slice-207]
     kind: slice
     why: >
