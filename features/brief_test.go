@@ -248,16 +248,21 @@ func (w *world) jsonListEntryHas(key, field, value, other, want string) error {
 
 // The entry's other field is git's blob id of the file at HEAD.
 func (w *world) jsonListEntryHasBlob(key, field, value, other, file string) error {
+	return w.jsonListEntryHasBlobAt(key, field, value, other, file, "HEAD")
+}
+
+// The entry's other field is git's blob id of the file at the revision.
+func (w *world) jsonListEntryHasBlobAt(key, field, value, other, file, rev string) error {
 	entry, err := w.jsonListEntry(key, field, value)
 	if err != nil {
 		return err
 	}
-	blob, err := w.gitOutput("rev-parse", "HEAD:"+file)
+	blob, err := w.gitOutput("rev-parse", rev+":"+file)
 	if err != nil {
 		return err
 	}
 	if got := fmt.Sprint(entry[other]); got != strings.TrimSpace(blob) {
-		return fmt.Errorf("the JSON's %q entry whose %q is %q has %q %q, not the blob %s of %s at HEAD\n%s", key, field, value, other, got, strings.TrimSpace(blob), file, w.report())
+		return fmt.Errorf("the JSON's %q entry whose %q is %q has %q %q, not the blob %s of %s at %s\n%s", key, field, value, other, got, strings.TrimSpace(blob), file, rev, w.report())
 	}
 	return nil
 }

@@ -63,6 +63,7 @@ type world struct {
 	configAt          string               // where the scratch config is written instead of the root's itos.yaml, when ITOS_CONFIG names it (ci_jobs_test.go)
 	revisions         map[string]string    // the revisions itos next printed, saved by name (next_test.go)
 	briefSaved        map[string]string    // stdout, or one JSON value, saved under a name by the brief steps (brief_test.go)
+	attemptRefs       *attemptRefs         // the refs of the clone and of the remote, saved for comparison (attempt_test.go)
 
 	exit           int
 	stdout, stderr string
@@ -492,6 +493,7 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	initializeShowSteps(sc, w)
 	initializeNextSteps(sc, w)
 	initializeBriefSteps(sc, w)
+	initializeAttemptSteps(sc, w)
 	initializeQueueRemovalSteps(sc, w)
 	initializeQueueHistoryAssertion(sc, w)
 	initializeFollowSteps(sc, w)
