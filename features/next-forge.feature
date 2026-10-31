@@ -198,7 +198,9 @@ Feature: itos next reads an in-flight item's state from the forge under push.mod
   # item: the spec is at origin/slice-9, the ref the push left, so the
   # item is in spec review, not needs-spec, and the forge is asked. A
   # second scenario pushed to the branch changes the revision, the ref
-  # read being digested, with no fetch asked of the clone.
+  # read being digested, with no fetch asked of the clone. Main's config
+  # declares the scenario kind, as a driver's does, through slice-8's
+  # scenario committed there: the config next reads is the clone's.
   @ID-NEXTFORGE-16 @wip @slice-209
   Scenario: Under push.mode pr, the spec is read at origin/<item> when the clone has that ref, so a clone on main asks the forge
     Given the config, committed and pushed to the remote's main, adds the YAML:
@@ -208,6 +210,7 @@ Feature: itos next reads an in-flight item's state from the forge under push.mod
       """
     And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
     And the work registry has the item "slice-9" owned by nobody with the status "todo"
+    And a feature file with the scenario "@ID-Z-01" tagged "@wip @slice-8"
     And the clone is on the new branch "slice-9"
     And a feature file with the scenario "@ID-A-01" tagged "@wip @slice-9"
     And git pushes HEAD to the remote's new branch "slice-9"
