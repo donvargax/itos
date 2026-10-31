@@ -416,7 +416,7 @@ Feature: itos brief, the filled brief an agent starts from and its request
   # Without ledger.id an item of no kind is a task by its id never, as work
   # show reads it, so an untyped bug-<n> is still a bug and an untyped idea
   # still refused (the review of the build, round 4).
-  @ID-BRIEF-17 @wip @slice-204
+  @ID-BRIEF-17 @slice-204
   Scenario: Without ledger.id, an item of no kind is a bug or an idea by its id
     Given the config has no ledger.id
     And the committed feature file "features/fixes.feature" with the live scenario "@ID-F-01" tagged "@bug-7"
