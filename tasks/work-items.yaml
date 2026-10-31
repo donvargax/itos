@@ -15722,6 +15722,12 @@ items:
       merge gate (docs/plans/v9-coordinator.md, question 6) reads both. How Bugbot reports (reviews,
       a check run, or comments) is to be read from its first pull request here before this is
       specified.
+
+      From slice-212's spec review (2026-10-30): it now gates p1-ready-hand-off when a non-Codex
+      login is in review_by (the required itos/reviews status would otherwise pass a head nobody
+      reviewed). Bound to the head with nobody asking again, every rebase leaves Copilot or Bugbot
+      pending: it needs a re-ask, or p2-review-verdict-by-patch-id. Also: a dismissed review counts
+      for nothing (verdicts counts every review GraphQL returns, dismissed ones included).
     tags: [push, v9]
 
   - id: T-339
