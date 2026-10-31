@@ -35,18 +35,27 @@ Feature: itos review request asks each configured reviewer for the pull request'
   head, in this order: the line "@codex review" (the code review), then the
   line "@codex security review" (the security review, which with automatic
   review off "@codex review" no longer starts, PR 242). bugbot asks once:
-  "@cursor review". A request is on the head when a comment by anyone has
-  that request line as its first line and the marker line naming the
-  reviewer's login (matched as --ready matches review_by's, "[bot]" ignored)
-  and the head's full SHA; a request line with no marker, or a marker for
-  another head or another login, counts for nothing. The reviewer's own
-  review of the head counts as its request: for codex, the code review when
-  the login's review-state comment, as --ready reads it (its last
-  "<!-- codex-review-state:v1 {...} -->"), has a code_review whose commit_sha
-  is the head, whatever its status, and the security review likewise with
-  security_review; for bugbot, a review by the login whose body starts with
-  "<!-- BUGBOT_REVIEW -->" and whose commit is the head. A reviewer is
-  requested for a head when each of its kind's requests is.
+  "@cursor review". Logins are matched as --ready matches review_by's
+  (sameLogin), a "[bot]" suffix ignored on either side, so the config's
+  cursor[bot] is the author GitHub's GraphQL names cursor, and the marker's
+  login is the config's. A request is on the head when a comment by anyone
+  has that request line as its first line and the marker line naming the
+  reviewer's login and the head's full SHA; a request line with no marker,
+  or a marker for another head or another login, counts for nothing. The
+  reviewer's own review of the head counts as its request, each request
+  judged alone: for codex, the code review when the login's review-state
+  comment, as --ready reads it (its last "<!-- codex-review-state:v1 {...}
+  -->"), has a code_review whose commit_sha is the head, whatever its
+  status, and the security review when its security_review's commit_sha is
+  the head, never one for the other (in manual mode the code review is
+  often at the head and the security review at an older commit), and any
+  other comment of Codex's (its "To use Codex here, create an environment
+  for this repo" reply to a mention, seen on #243) counts for nothing; for
+  bugbot, a review whose author is the login, whose body starts with
+  "<!-- BUGBOT_REVIEW -->" and whose commit is the head, so the person's
+  empty-bodied reviews (a thread reply makes one) and any other review by
+  the login count for nothing. A reviewer is requested for a head when each
+  of its kind's requests is.
 
   itos review request <item> [--expect <revision>] [--json], under
   push.mode pr, from any branch or a detached HEAD (the item names the
@@ -64,8 +73,10 @@ Feature: itos review request asks each configured reviewer for the pull request'
   open: review-no-pull-request, "itos review: <item> has no open pull
   request; itos push opens it. Nothing was posted."); the one gh api graphql
   question --ready, review post and next put (providers.PullStateQuery,
-  which gains each review's commit { oid } here), paged as they page it, for
-  the head (headRefOid), the comments and the reviews. Then each request of
+  whose reviews become "reviews(first: 100) { nodes { author { login } body
+  commit { oid } } }" here, so a review's commit is asked of GitHub), paged
+  as they page it, for the head (headRefOid), the comments and the
+  reviews. Then each request of
   each reviewer, in the config's order and the kind's, that is not on the
   head is posted, one gh pr comment <number> --repo <repository>
   --body=<the request> each, with the user's gh: a request then comes from a
@@ -93,7 +104,8 @@ Feature: itos review request asks each configured reviewer for the pull request'
   gh that is missing or fails exits 3, review-pull-request-failed, naming
   the call and gh's words ("gh pr comment failed: HTTP 502: Bad Gateway"),
   the fix saying that itos review request <item> again asks only for what
-  is still missing; the requests posted before it stay posted.
+  is still missing. The first failed call stops the command: the requests
+  posted before it stay posted, and none after it is tried.
 
   The words. request is review's second word beside post. A usage error,
   exit 2, asking gh nothing: request with no item or two, a malformed
@@ -190,12 +202,16 @@ Feature: itos review request asks each configured reviewer for the pull request'
 
   # Each request is judged alone. Not on the head, so posted: Codex's
   # security review, asked at an older commit and in a comment with no
-  # marker, and Bugbot's, whose review is of an older commit. On it, so
-  # not posted: Codex's code review, which someone asked for at the head.
-  # A build asking per login would post nothing for Codex, and one that
-  # counted a request line without its marker nothing for its security
-  # review. Fails before the work at the exit code: today review request
-  # is a usage error, exit 2.
+  # marker, Codex's reply that is no review state beside them; and
+  # Bugbot's, whose marked review is of an older commit, while at the head
+  # are only ana's empty review (a thread reply makes one) and a review by
+  # cursor without Bugbot's marker. On it, so not posted: Codex's code
+  # review, which someone asked for at the head. A build asking per login
+  # would post nothing for Codex, one that counted a request line without
+  # its marker or any comment of Codex's nothing for its security review,
+  # and one that counted any review at the head nothing for Bugbot. Fails
+  # before the work at the exit code: today review request is a usage
+  # error, exit 2.
   @ID-REVREQ-02 @wip @slice-215
   Scenario: Under push.mode pr, review request posts only the requests not on the head: one at an older head, without its marker or answered at an older head is posted again
     Given the config, committed and pushed to the remote's main, adds the YAML:
@@ -216,7 +232,10 @@ Feature: itos review request asks each configured reviewer for the pull request'
     And the recording gh answers that the pull request has a comment by "someone" asking "chatgpt-codex-connector" to review the clone's HEAD again
     And the recording gh answers that the pull request has a comment by "ana" requesting "@codex security review" of "chatgpt-codex-connector" at the commit "0123456789abcdef0123456789abcdef01234567"
     And the recording gh answers that the pull request has a comment by "ana" saying "@codex security review"
+    And the recording gh answers that the pull request has a comment by "chatgpt-codex-connector" saying "To use Codex here, create an environment for this repo."
     And the recording gh answers that the pull request has a review by "cursor" of the commit "0123456789abcdef0123456789abcdef01234567" whose body is "<!-- BUGBOT_REVIEW --> Bugbot found no new issues."
+    And the recording gh answers that the pull request has a review by "ana" of the clone's HEAD whose body is ""
+    And the recording gh answers that the pull request has a review by "cursor" of the clone's HEAD whose body is "Bugbot found no new issues."
     When itos runs "review request slice-9 --json"
     Then itos exits with code 0
     And stdout is one JSON report with schema 1 and ok true
@@ -234,7 +253,10 @@ Feature: itos review request asks each configured reviewer for the pull request'
   # state names the head for both reviews, one still running, and
   # Bugbot's review is of the head, so nothing is posted. Already holds
   # whatever --expect says, as work take's does: the revision is no
-  # item's, and a build judging it first would say review-stale. Fails
+  # item's, and a build judging it first would say review-stale. The
+  # recording gh answers the nodes it was given whatever the query asks,
+  # so the query is checked to ask for each review's commit: without it,
+  # GitHub would never give Bugbot's review a commit to match. Fails
   # before the work at the exit code: today review request is a usage
   # error, exit 2.
   @ID-REVREQ-03 @wip @slice-215
@@ -260,6 +282,7 @@ Feature: itos review request asks each configured reviewer for the pull request'
     Then itos exits with code 0
     And its output says "Every reviewer of slice-9 has a request or a review for "
     And its output says " on https://github.example/o/r/pull/7; nothing was posted."
+    And the recording gh's "api graphql" call has "body commit { oid }"
     And the recording gh was never called as "pr comment"
     When itos runs "review request slice-9 --json --expect sha256:0000000000000000000000000000000000000000000000000000000000000000"
     Then itos exits with code 0
@@ -311,11 +334,12 @@ Feature: itos review request asks each configured reviewer for the pull request'
     And the recording gh's "pr comment" call has the full SHA of the head of the remote's branch "slice-9"
 
   # The second request fails: an environment failure, exit 3, naming the
-  # call and gh's words; the first was posted before it, and the fix is to
-  # run it again, which asks only for what is missing. Fails before the
-  # work at the exit code: today review request is a usage error, exit 2.
+  # call and gh's words; the first was posted before it, the failure stops
+  # the command so Bugbot's is never tried, and the fix is to run it
+  # again, which asks only for what is missing. Fails before the work at
+  # the exit code: today review request is a usage error, exit 2.
   @ID-REVREQ-05 @wip @slice-215
-  Scenario: Under push.mode pr, review request with a gh pr comment that fails exits 3, naming the call, the requests before it posted
+  Scenario: Under push.mode pr, review request stops at the first gh pr comment that fails, exit 3, naming the call, the requests before it posted and none after it tried
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
       push:
@@ -323,6 +347,7 @@ Feature: itos review request asks each configured reviewer for the pull request'
         pr:
           reviewers:
             - { login: chatgpt-codex-connector, kind: codex }
+            - { login: "cursor[bot]", kind: bugbot }
       """
     And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
     And the work registry has the item "slice-9" owned by "ana" with the status "doing"
@@ -337,6 +362,7 @@ Feature: itos review request asks each configured reviewer for the pull request'
     And its JSON's problem "review-pull-request-failed"'s "message" says "gh pr comment failed: HTTP 502: Bad Gateway"
     And its JSON's problem "review-pull-request-failed"'s "fix" says "itos review request slice-9"
     And the recording gh's call with "--body=@codex review" comes before its call with "--body=@codex security review"
+    And the recording gh's "pr comment" call does not have "@cursor review"
 
   # What is wrong before gh is asked is refused without asking it: an item
   # the registry lacks, then a config whose review_by names Codex but
@@ -523,10 +549,17 @@ Feature: itos review request asks each configured reviewer for the pull request'
     And its JSON's revision differs from the one saved as "second"
 
   # Handed back on a draft: the reviews are asked for before the driver
-  # lands it, so --ready waits on reviews already running. Codex's own
-  # review state naming the head stands for both its requests: handed
-  # back, the driver lands it. Fails before the work at the first complete
-  # line: slice-209's next says handed-back.
+  # lands it, so --ready waits on reviews already running. Verified
+  # 2026-10-31 on draft #243: both vendors answer a mention on a draft
+  # (Bugbot's check run started 7 s after the request; Codex's summary
+  # showed both reviews running, "Manual request"). Codex's own review
+  # state stands for each request whose review names the head, and only
+  # that one: its code review at the head and its security review at an
+  # older commit, as manual mode leaves them, is still unrequested; a
+  # build reading one commit_sha for both would say handed-back. Once the
+  # security review is asked for at the head, handed back, the driver
+  # lands it. Fails before the work at the first complete line:
+  # slice-209's next says handed-back.
   @ID-REVREQ-13 @wip @slice-215
   Scenario: Under push.mode pr, a handed-back draft whose head was not asked about is review-unrequested, and the reviewer's own review of the head counts as asked
     Given the config, committed and pushed to the remote's main, adds the YAML:
@@ -551,7 +584,12 @@ Feature: itos review request asks each configured reviewer for the pull request'
     When itos runs "next slice-9"
     Then itos exits with code 0
     And stdout contains the complete line "slice-9: review-unrequested; next: driver request; run: itos review request slice-9" exactly once
-    Given the recording gh answers that the pull request has a comment by "chatgpt-codex-connector" holding Codex's review state, its code review "completed" of the clone's HEAD and its security review "completed" of the clone's HEAD
+    Given the recording gh answers that the pull request has a comment by "chatgpt-codex-connector" holding Codex's review state, its code review "completed" of the clone's HEAD and its security review "completed" of the commit "0123456789abcdef0123456789abcdef01234567"
+    When itos runs "next slice-9 --json"
+    Then itos exits with code 0
+    And its JSON's "state" is "review-unrequested"
+    And its JSON's "observed.unrequested" is ["chatgpt-codex-connector"]
+    Given the recording gh answers that the pull request has a comment by "ana" requesting "@codex security review" of "chatgpt-codex-connector" at the clone's HEAD
     When itos runs "next slice-9"
     Then itos exits with code 0
     And stdout contains the complete line "slice-9: handed-back; next: driver land; run: itos push --ready" exactly once
