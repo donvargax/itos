@@ -186,17 +186,24 @@ func (t Trees) Texts(ctx context.Context, tree, dir string, keep func(string) bo
 	if err != nil {
 		return map[string]string{}
 	}
+	// git lists the files from the folder it runs in, and reads one by its
+	// path from the top unless that starts with ./: the two differ in a
+	// project in a subfolder.
 	var kept []string
 	for _, f := range listed {
 		if keep(f) {
-			kept = append(kept, f)
+			kept = append(kept, "./"+f)
 		}
 	}
 	texts, err := t.VCS.Texts(ctx, at(tree), kept)
 	if err != nil {
 		return map[string]string{}
 	}
-	return texts
+	byName := make(map[string]string, len(texts))
+	for p, text := range texts {
+		byName[strings.TrimPrefix(p, "./")] = text
+	}
+	return byName
 }
 
 // nodeError is a failed file operation as Node reports it: the code, what it
