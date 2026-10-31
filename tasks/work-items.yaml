@@ -16722,3 +16722,17 @@ items:
       the pre-push hook refused; a symlink to the main clone's copy got past it. One cache per user
       (~/.cache/itos/tools), with the unpack written to a temporary name and renamed, would avoid
       both the repeat download and a half-written tool.
+
+  - id: p3-path-rule-names-rule
+    title: A path rule's refusal names its rule, as lint and footer problems do ([merge-type])
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      bug-158's implementer, 2026-10-31: lint and footer problems print their rule as [rule], but
+      path-rule refusals, merge-type among them, print their sentence alone (scope.Rules.Reject,
+      internal/scope/scope.go:157). So bug-158's spec checked 'its output names the rule
+      "merge-type"', a step no build could pass, and the review missed it. Naming the rule in every
+      refusal makes them uniform, and lets a scenario check the rule rather than its wording.
