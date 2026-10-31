@@ -16466,3 +16466,17 @@ items:
     why: >
       slice-207's implementer, 2026-10-30: the implementer's still-wip check covers scenarios but
       not @wip Examples blocks, which work done refuses.
+
+  - id: p3-step-declares-scenario-kind
+    title: A feature step declares the scenario kind on main explicitly, so a scenario that crosses branches sets up main's config itself
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      slice-209's implementer, 2026-10-31: the step 'a feature file with the scenario … tagged' adds
+      the scenario kind to the config on whichever branch it runs on. ID-NEXTFORGE-16 checked out
+      main afterwards and found no scenario kind, so every slice needed a spec, and the fixture
+      needed an extra Given committing a slice-8 scenario on main. A step that declares the kind
+      explicitly would say what the setup means.
