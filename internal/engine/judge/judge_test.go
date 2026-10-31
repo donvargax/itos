@@ -117,6 +117,12 @@ func TestOverUnpushed(t *testing.T) {
 	if want := "Not checked: abababa (commits.since) and its ancestors\n1/2 commits pass the commit rules\nfrom " + good + "\n"; stdout.String() != want {
 		t.Errorf("stdout %q, want %q", stdout.String(), want)
 	}
+	// From the side branch, which commits.since is not on, both are left out.
+	repo.Named = nil
+	run, err = OverUnpushed(t.Context(), cfg, repo, "side", "merged", Out{Stdout: &strings.Builder{}, Stderr: &strings.Builder{}})
+	if err != nil || !reflect.DeepEqual(run.Results, want) {
+		t.Errorf("from side: %+v, %v", run, err)
+	}
 }
 
 // Under --json the logs go to stderr, and commits.since and its ancestors
