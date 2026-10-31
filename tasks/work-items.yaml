@@ -16277,6 +16277,12 @@ items:
       from cursor[bot], state COMMENTED, body starting with the marker '<!-- BUGBOT_REVIEW -->' and
       naming the reviewed commit. A clean run says 'found no new issues'. The bugbot adapter reads
       the check run for the head. Its login for push.pr.reviewers is cursor[bot].
+
+      Manual Codex mode (the person switched Codex reviews to manual on 2026-10-30): '@codex review'
+      at PR 242's head 08d8cad ran the code review only. Before the switch it also ran the security
+      review. The security review needs its own '@codex security review'. Until it comes, --ready
+      waits on chatgpt-codex-connector (exit 75, every round). So the codex adapter requests both,
+      and a head counts as requested only when both requests are posted for it.
     tags: [work, v8]
 
   - id: p1-pr-merge-mode
