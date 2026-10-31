@@ -25,6 +25,7 @@ func TestBriefPortsBindTheRealCode(t *testing.T) {
 		"AGENTS.md":               "Rules.\n",
 		"features/tagged.feature": "Feature: Tagged\n\n  @ID-A-01 @wip @slice-9\n  Scenario: one\n    When it runs\n",
 		"internal/foo/doc.go":     "// Package foo.\n",
+		"app/AGENTS.md":           "The app's rules.\n",
 	})
 	for _, args := range [][]string{
 		{"add", "--", "."},
@@ -46,6 +47,13 @@ func TestBriefPortsBindTheRealCode(t *testing.T) {
 	}
 	if _, err := p.TreeEntries(t.Context(), "nosuchrev", []string{"AGENTS.md"}); err == nil {
 		t.Error("TreeEntries of a revision git lacks is no error")
+	}
+	// Run from a project's subfolder, a path is the folder's, as the
+	// config's are: app/AGENTS.md, not the top's.
+	app := briefPorts{}
+	app.Git.Dir = filepath.Join(dir, "app")
+	if here, err := app.TreeEntries(t.Context(), "HEAD", []string{"AGENTS.md"}); err != nil || len(here) != 1 || here["AGENTS.md"].Object == entries["AGENTS.md"].Object {
+		t.Errorf("TreeEntries from app = %+v, %v", here, err)
 	}
 	// The config is HEAD's: an uncommitted change to it, naming another
 	// registry, changes no brief.

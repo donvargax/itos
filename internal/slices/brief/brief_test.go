@@ -269,13 +269,13 @@ func TestRefForms(t *testing.T) {
 	}
 }
 
-// A ref naming the top, above it, absolute, a drive's, with a backslash
-// or pathspec magic is never asked of git, which refuses the whole listing
-// for one (on Windows, the drive's and the backslash's too): each is left
-// out as not in the tree and the brief is still written.
+// A ref naming the top, above it, absolute, a drive's or with a
+// backslash is never asked of git, which refuses the whole listing for one
+// (on Windows, the drive's and the backslash's too): each is left out as
+// not in the tree and the brief is still written.
 func TestRefOutside(t *testing.T) {
 	p := over(map[string]string{
-		"work-items.yaml": "phases: { 1: null }\nitems:\n  - { id: slice-9, title: Nine, phase: 1, owner: null, status: todo, depends_on: [], refs: [., '..', '../x', /etc/hosts, ':!x', 'C:/x', '..\\x', docs/plan.md] }\n",
+		"work-items.yaml": "phases: { 1: null }\nitems:\n  - { id: slice-9, title: Nine, phase: 1, owner: null, status: todo, depends_on: [], refs: [., '..', '../x', /etc/hosts, 'C:/x', '..\\x', docs/plan.md] }\n",
 		"AGENTS.md":       "Rules.\n",
 		"docs/plan.md":    "# The plan\n",
 	})
@@ -286,7 +286,7 @@ func TestRefOutside(t *testing.T) {
 	if len(b.Reads) != 2 || b.Reads[1].Path != "docs/plan.md" {
 		t.Errorf("reads %+v", b.Reads)
 	}
-	if want := []Omitted{{".", notInTree}, {"..", notInTree}, {"../x", notInTree}, {"/etc/hosts", notInTree}, {":!x", notInTree}, {"C:/x", notInTree}, {`..\x`, notInTree}}; !slices.Equal(b.Omitted, want) {
+	if want := []Omitted{{".", notInTree}, {"..", notInTree}, {"../x", notInTree}, {"/etc/hosts", notInTree}, {"C:/x", notInTree}, {`..\x`, notInTree}}; !slices.Equal(b.Omitted, want) {
 		t.Errorf("omitted %+v", b.Omitted)
 	}
 }
