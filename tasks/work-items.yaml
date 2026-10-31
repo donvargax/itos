@@ -16647,3 +16647,18 @@ items:
       every first-parent commit must have a record). The adapter frames records safely
       (NUL-terminated fields with -z, or counts checked against rev-list) or refuses a record it
       cannot read.
+
+  - id: p2-attempt-scenarios-present
+    title: itos attempt submit refuses an implementer's head that lacks a scenario tagged for the item at the base
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Codex's security review on #236 (thread PRRT_kwDOU2JMic6yUCrO, 2026-10-31): attempt-still-wip
+      refuses scenarios still @wip but not missing ones. An implementer could delete every @<id>
+      scenario in a test commit, add an unrelated feat, and pass red first. The refusal: every
+      scenario tagged for the item at the base is present and live at the head (a renamed scenario
+      keeps its @ID). Partly caught elsewhere today: next reads no spec for such an item and says
+      needs-spec, and the reviews read the diff. So it is a follow-up, not a blocker for slice-207.
