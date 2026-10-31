@@ -16658,3 +16658,22 @@ items:
       scenario tagged for the item at the base is present and live at the head (a renamed scenario
       keeps its @ID). Partly caught elsewhere today: next reads no spec for such an item and says
       needs-spec, and the reviews read the diff. So it is a follow-up, not a blocker for slice-207.
+
+  - id: bug-158
+    title: Under push.pr.update merge, itos push's own 'Merge main into <item>' is refused by pre-push when git's merge combines hunks, and only a rewrite fixes it
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: bug
+    why: >
+      Seen on slice-209, 2026-10-31: a clean merge of main into the branch combined slice-212's and
+      slice-209's edits to adjacent lines of internal/providers/doc.go into one hunk (git show --cc
+      shows it). The commit rule merge-type then counts it as a merge with changes of its own, which
+      needs a typed first line. itos push makes the same untyped 'Merge main into <item>' message
+      (slice-213, mergeItem, with --no-verify, judged at pre-push), so its own merge would be
+      refused the same way. Then the only fixes are amending or redoing an unpushed merge, which
+      Claude Code's classifier refuses agents as Git Destructive, so the person must run them.
+      Either mergeItem types its message when the merge's combined diff is not empty (refactor, or
+      the type the paths allow, with the item footer), or merge-type judges a clean textual merge
+      (no conflict resolved by hand) as having no changes of its own.
