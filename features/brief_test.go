@@ -47,13 +47,15 @@ func (w *world) outputSaysWithTop(text string) error {
 }
 
 // saved is what the brief steps keep under a name: stdout, or one JSON
-// value's text.
+// value's text; else a commit saved by name, as its SHA's JSON text.
 func (w *world) saved(name string) (string, error) {
-	text, ok := w.briefSaved[name]
-	if !ok {
-		return "", fmt.Errorf("nothing was saved as %q", name)
+	if text, ok := w.briefSaved[name]; ok {
+		return text, nil
 	}
-	return text, nil
+	if sha, ok := w.workCommits[name]; ok {
+		return jsonText(sha), nil
+	}
+	return "", fmt.Errorf("nothing was saved as %q", name)
 }
 
 func (w *world) save(name, text string) {
@@ -248,16 +250,21 @@ func (w *world) jsonListEntryHas(key, field, value, other, want string) error {
 
 // The entry's other field is git's blob id of the file at HEAD.
 func (w *world) jsonListEntryHasBlob(key, field, value, other, file string) error {
+	return w.jsonListEntryHasBlobAt(key, field, value, other, file, "HEAD")
+}
+
+// The entry's other field is git's blob id of the file at the revision.
+func (w *world) jsonListEntryHasBlobAt(key, field, value, other, file, rev string) error {
 	entry, err := w.jsonListEntry(key, field, value)
 	if err != nil {
 		return err
 	}
-	blob, err := w.gitOutput("rev-parse", "HEAD:"+file)
+	blob, err := w.gitOutput("rev-parse", rev+":"+file)
 	if err != nil {
 		return err
 	}
 	if got := fmt.Sprint(entry[other]); got != strings.TrimSpace(blob) {
-		return fmt.Errorf("the JSON's %q entry whose %q is %q has %q %q, not the blob %s of %s at HEAD\n%s", key, field, value, other, got, strings.TrimSpace(blob), file, w.report())
+		return fmt.Errorf("the JSON's %q entry whose %q is %q has %q %q, not the blob %s of %s at %s\n%s", key, field, value, other, got, strings.TrimSpace(blob), file, rev, w.report())
 	}
 	return nil
 }

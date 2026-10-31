@@ -32,6 +32,12 @@
 // idea or deferred item is exempt from the started-item problems; an item
 // still to do that depends on a dropped one is work-dropped-dependency.
 //
+// A Verdict is the marker itos review post appends to its comment on an
+// item's pull request (slice-206) and itos next reads (slice-209):
+// ReadVerdict reads the last one in a body, Marker writes one, and
+// Registry.Counts says whose comments count, the people's regardless of
+// case, anyone's with nobody listed.
+//
 // # The proposal
 //
 // Whoami gives the session's person: --as, which must be among the people

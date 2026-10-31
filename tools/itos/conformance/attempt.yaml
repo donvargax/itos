@@ -1,0 +1,88 @@
+# itos attempt submit (slice-207): an agent's result checked against the
+# brief it got and against git, and recorded in the clone's journal. The
+# implementer's request is pinned: the brief at HEAD and
+# at the spec commit are the same, the readme being no read. A done result's
+# claims need a remote, which the scenarios have; these cases have none.
+files:
+  itos.yaml: |
+    version: 1
+    work:
+      registry: work-items.yaml
+    tests:
+      scenario: { root: features, id: "ID-[A-Z]+-\\d+" }
+git:
+  - commit: "test: a tagged scenario"
+    label: spec
+    files:
+      work-items.yaml: |
+        phases: { 1: null }
+        items:
+          - { id: slice-8, title: Earlier, phase: 1, owner: null, status: done, depends_on: [] }
+          - { id: slice-9, title: Say the next step, phase: 1, owner: null, status: todo, depends_on: [slice-8], refs: [internal/foo, docs/plan.md, internal/bar, docs/missing.md] }
+      AGENTS.md: "Stage only your own files.\n"
+      features/tagged.feature: "Feature: Tagged\n\n  @ID-A-01 @wip @slice-9\n  Scenario: one\n    When it runs\n"
+      internal/foo/doc.go: "// Package foo says the next step.\n"
+      docs/plan.md: "# The plan\n"
+      internal/bar/bar.go: "package bar\n"
+  - commit: "chore: tidy the readme"
+    label: tidy
+    files: { README.md: "# Scratch\n" }
+cases:
+  - name: a blocked result of the brief at its base is accepted and recorded, its head null
+    argv: [attempt, submit, slice-9, result.json, --json]
+    files:
+      result.json: |
+        {"schema":1,"item":"slice-9","role":"implementer","request":"sha256:54d93b6216253570ead5170d3f10f12c297e8fde9b50e4b963a2dde217d2f0c8","base":"{{sha.spec}}","attempt":1,"outcome":"blocked","notes":"Waiting on a decision."}
+    exit: 0
+    json:
+      schema: 1
+      ok: true
+      outcome: accepted
+      item: slice-9
+      role: implementer
+      attempt: 1
+      request: sha256:54d93b6216253570ead5170d3f10f12c297e8fde9b50e4b963a2dde217d2f0c8
+      base: "{{sha.spec}}"
+      head: null
+    files_after:
+      .git/itos/attempts/slice-9.jsonl: |
+        {"schema":1,"role":"implementer","attempt":1,"request":"sha256:54d93b6216253570ead5170d3f10f12c297e8fde9b50e4b963a2dde217d2f0c8","base":"{{sha.spec}}","outcome":"blocked","head":null,"notes":"Waiting on a decision.","verdict":"accepted","sha256":"sha256:ab42e20bd0c5f46d540b1326f787787dc4592215e2eabf27c929d81bdcc26638"}
+  - name: a result with a key the contract lacks is rotated, recorded with the journal's attempt
+    argv: [attempt, submit, slice-9, result.json, --json]
+    files:
+      result.json: |
+        {"schema":1,"item":"slice-9","role":"drafter","request":"sha256:54d93b6216253570ead5170d3f10f12c297e8fde9b50e4b963a2dde217d2f0c8","base":"{{sha.tidy}}","attempt":"1","outcome":"blocked","extra":true}
+    exit: 1
+    json: { schema: 1, ok: false, problems: [{ rule: attempt-malformed }] }
+    files_after:
+      .git/itos/attempts/slice-9.jsonl: |
+        {"schema":1,"role":"drafter","attempt":1,"request":"sha256:54d93b6216253570ead5170d3f10f12c297e8fde9b50e4b963a2dde217d2f0c8","base":"{{sha.tidy}}","outcome":"blocked","head":null,"notes":null,"verdict":"rotated","sha256":"sha256:781b2e9ce5b80eb6ab597728459db4c07d5e0ecf6ee83d6d99c2422338fb2d3d"}
+  - name: a request not the one brief computes at the base is stale, nothing recorded
+    argv: [attempt, submit, slice-9, result.json, --json]
+    files:
+      result.json: |
+        {"schema":1,"item":"slice-9","role":"implementer","request":"sha256:0000000000000000000000000000000000000000000000000000000000000000","base":"{{sha.tidy}}","attempt":1,"outcome":"needs_decision"}
+    exit: 1
+    json: { schema: 1, ok: false, problems: [{ rule: attempt-stale }] }
+    files_after: { .git/itos/attempts/slice-9.jsonl: null }
+  - name: an attempt that is not the next one is out of order, nothing recorded
+    argv: [attempt, submit, slice-9, result.json, --json]
+    files:
+      result.json: |
+        {"schema":1,"item":"slice-9","role":"implementer","request":"sha256:54d93b6216253570ead5170d3f10f12c297e8fde9b50e4b963a2dde217d2f0c8","base":"{{sha.tidy}}","attempt":2,"outcome":"spec_defect"}
+    exit: 1
+    json: { schema: 1, ok: false, problems: [{ rule: attempt-out-of-order }] }
+    files_after: { .git/itos/attempts/slice-9.jsonl: null }
+  - name: attempt submit refuses an id the registry does not have, before reading the result
+    argv: [attempt, submit, slice-7, result.json, --json]
+    exit: 1
+    json: { schema: 1, ok: false, problems: [{ rule: work-unknown-item }] }
+  - name: a result file that cannot be read is malformed, recorded for no one
+    argv: [attempt, submit, slice-9, missing.json, --json]
+    exit: 1
+    json: { schema: 1, ok: false, problems: [{ rule: attempt-malformed }] }
+    files_after: { .git/itos/attempts/slice-9.jsonl: null }
+  - name: attempt submit without a result file is a usage error
+    argv: [attempt, submit, slice-9]
+    exit: 2
+    stderr_has: result

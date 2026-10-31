@@ -20,17 +20,17 @@ func TestRevisionOf(t *testing.T) {
 	if err != nil || a.Next == nil {
 		t.Fatalf("Handle(slice-9) = %+v, %v", a, err)
 	}
-	revision, refused, err := RevisionOf(t.Context(), p.cfg, p.tracker, "slice-9")
+	revision, refused, err := RevisionOf(t.Context(), p.cfg, p.tracker, p, "slice-9")
 	if err != nil || refused != nil || revision != a.Next.Revision || !digest.MatchString(revision) {
 		t.Errorf("RevisionOf(slice-9) = %q, %v, %v, want Handle's %q", revision, refused, err, a.Next.Revision)
 	}
-	revision, refused, err = RevisionOf(t.Context(), p.cfg, p.tracker, "nope")
+	revision, refused, err = RevisionOf(t.Context(), p.cfg, p.tracker, p, "nope")
 	if err != nil || refused == nil || refused.Rule != "work-unknown-item" || revision != "" {
 		t.Errorf("RevisionOf(nope) = %q, %v, %v, want the unknown item refused", revision, refused, err)
 	}
 
 	p = over(t, fixture{files: map[string]string{"people.yaml": "- ana\n"}})
-	if revision, refused, err = RevisionOf(t.Context(), p.cfg, p.tracker, "slice-9"); err != nil || refused == nil || revision != "" {
+	if revision, refused, err = RevisionOf(t.Context(), p.cfg, p.tracker, p, "slice-9"); err != nil || refused == nil || revision != "" {
 		t.Errorf("RevisionOf with no registry = %q, %v, %v, want refused", revision, refused, err)
 	}
 
@@ -38,7 +38,7 @@ func TestRevisionOf(t *testing.T) {
 		files:     map[string]string{"work-items.yaml": registryOf(item("id: slice-9, title: Nine, phase: 1, owner: ana, status: todo, depends_on: []")), "people.yaml": "- ana\n"},
 		questions: "questions: [",
 	})
-	if revision, refused, err = RevisionOf(t.Context(), p.cfg, p.tracker, "slice-9"); err == nil || refused != nil || revision != "" {
+	if revision, refused, err = RevisionOf(t.Context(), p.cfg, p.tracker, p, "slice-9"); err == nil || refused != nil || revision != "" {
 		t.Errorf("RevisionOf over questions that cannot be read = %q, %v, %v, want the error", revision, refused, err)
 	}
 }

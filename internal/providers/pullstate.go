@@ -12,12 +12,13 @@ import (
 // PullStateQuery is the one question a pull request's state is read with
 // (gh api graphql, since gh pr view has no threads): its reviews, its
 // comments (with the times they were made and last edited, a page of them
-// after the cursor), the time it was last marked ready and its review
-// threads, on a single line, since the recording gh of the scenarios keeps a
-// call to one line.
+// after the cursor), the time it was last marked ready, its review threads
+// and the roll-up state of its head commit's checks, on a single line, since
+// the recording gh of the scenarios keeps a call to one line.
 var PullStateQuery = strings.Join(strings.Fields(`
 	query($owner: String!, $name: String!, $number: Int!, $cursor: String) {
 	repository(owner: $owner, name: $name) { pullRequest(number: $number) { headRefOid
+	commits(last: 1) { nodes { commit { statusCheckRollup { state } } } }
 	timelineItems(last: 1, itemTypes: [READY_FOR_REVIEW_EVENT]) { nodes { ... on ReadyForReviewEvent { createdAt } } }
 	reviews(first: 100) { nodes { author { login } body } }
 	comments(first: 100, after: $cursor) { pageInfo { hasNextPage endCursor } nodes { author { login } body createdAt updatedAt } }
@@ -35,14 +36,17 @@ var ErrNoPullState = errors.New("its answer is not a pull request's reviews and 
 // PullState is what GitHub says of a pull request: its Head, the full SHA
 // of its branch's head as GitHub has it (headRefOid, "" when the answer
 // gives none; slice-206), its reviews and comments, by the logins GraphQL
-// gives, when it was last marked ready (zero when it does not say) and its
-// review threads.
+// gives, when it was last marked ready (zero when it does not say), its
+// review threads, and Checks, the statusCheckRollup state of its head commit
+// as GitHub writes it (SUCCESS, FAILURE, ERROR, PENDING or EXPECTED; "" for
+// none; slice-209).
 type PullState struct {
 	Head     string
 	Reviews  []Authored
 	Comments []Authored
 	ReadyAt  time.Time
 	Threads  []ReviewThread
+	Checks   string
 }
 
 // Authored is a review or a comment: who wrote it, its body and, for a
@@ -112,7 +116,16 @@ func pullStatePage(answered string) (state PullState, next string, ok bool) {
 		Data struct {
 			Repository struct {
 				PullRequest *struct {
-					HeadRefOid    string `json:"headRefOid"`
+					HeadRefOid string `json:"headRefOid"`
+					Commits    *struct {
+						Nodes []struct {
+							Commit struct {
+								StatusCheckRollup *struct {
+									State string `json:"state"`
+								} `json:"statusCheckRollup"`
+							} `json:"commit"`
+						} `json:"nodes"`
+					} `json:"commits"`
 					TimelineItems *struct {
 						Nodes []struct {
 							CreatedAt string `json:"createdAt"`
@@ -146,6 +159,9 @@ func pullStatePage(answered string) (state PullState, next string, ok bool) {
 		return PullState{}, "", false
 	}
 	state.Head = pull.HeadRefOid
+	if pull.Commits != nil && len(pull.Commits.Nodes) > 0 && pull.Commits.Nodes[0].Commit.StatusCheckRollup != nil {
+		state.Checks = pull.Commits.Nodes[0].Commit.StatusCheckRollup.State
+	}
 	state.Reviews, state.Comments = pull.Reviews.authored(), pull.Comments.authored()
 	if pull.TimelineItems != nil && len(pull.TimelineItems.Nodes) > 0 {
 		state.ReadyAt = githubTime(pull.TimelineItems.Nodes[0].CreatedAt)

@@ -11,10 +11,12 @@ import (
 // Ports are what the next command reaches the world through, which
 // internal/cli binds: Config, the config every command finds, whose source,
 // trees and VCS the registry, the ledger and the scenarios are read through;
-// and Tracker, the tracker store the questions are in.
+// Tracker, the tracker store the questions are in; and the Forge, asked
+// under push.mode pr for an item in flight.
 type Ports interface {
 	Config(ctx context.Context) (*config.Loaded, error)
 	Tracker(ctx context.Context, cfg *config.Loaded) trackerport.Tracker
+	Forge
 }
 
 // Handler is the next command's application, over its ports.
@@ -28,10 +30,12 @@ func NewHandler(p Ports) Handler {
 }
 
 // Answer is what Handle found: the item's Next, or the Refused problem of
-// a registry that is not there or an id no item has.
+// a registry that is not there or an id no item has, or the Failed one of a
+// forge that cannot be asked.
 type Answer struct {
 	Next    *Next
 	Refused *out.Problem
+	Failed  *out.Problem
 }
 
 // Handle answers q over the config every command finds: the item's facts,
@@ -41,9 +45,9 @@ func (h Handler) Handle(ctx context.Context, q Query) (Answer, error) {
 	if err != nil {
 		return Answer{}, err
 	}
-	facts, refused, err := read(ctx, cfg, h.ports.Tracker(ctx, cfg), q.ID)
-	if err != nil || refused != nil {
-		return Answer{Refused: refused}, err
+	facts, refused, failed, err := read(ctx, cfg, h.ports.Tracker(ctx, cfg), h.ports, q.ID)
+	if err != nil || refused != nil || failed != nil {
+		return Answer{Refused: refused, Failed: failed}, err
 	}
 	n := Judge(facts)
 	return Answer{Next: &n}, nil

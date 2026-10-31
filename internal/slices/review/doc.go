@@ -45,10 +45,10 @@
 // naming the call and gh's words.
 //
 // The round (count): the verdict markers of the same item and stage whose
-// comment's author is a login among the people (work.Registry.Logins,
+// comment's author is a login among the people (work.Registry.Counts:
 // compared regardless of case as GitHub's logins are; with no people,
 // Nobody, every login counts) are counted, in GitHub's order, and the new
-// marker's round is one more. A marker (readMarker: "<!-- itos:v1 " to "
+// marker's round is one more. A marker (work.ReadVerdict: "<!-- itos:v1 " to "
 // -->", JSON with record verdict) by any other login, of another item or
 // stage, one that is not JSON or not a verdict, the review-request marker
 // and any prose count for nothing. The latest counted marker is the verdict
@@ -60,7 +60,7 @@
 // line "itos: <stage> review of <item> at <7 chars>: <verdict>", the body
 // file's text after an empty line when there is one, and after an empty
 // line the marker, its JSON's keys record, item, stage, verdict, head (the
-// full SHA) and round, in that order (verdictMarker). gh's answer gives the
+// full SHA) and round, in that order (work.Verdict.Marker). gh's answer gives the
 // comment's html_url, --json's comment; an answer without it is
 // review-pull-request-failed, saying the comment may be posted. No GitHub
 // review (the person cannot approve their own pull request), no pr comment,

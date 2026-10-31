@@ -20,6 +20,10 @@
   scenarios:
     - id: "@ID-ASK-03"
       why: a question asked, answered and shown, each write committed alone, the file's point in one run
+- file: attempt.feature
+  scenarios:
+    - id: "@ID-ATTEMPT-02"
+      why: an implementer briefed at the item's branch with --at, its red-first commits pushed and its result accepted and recorded, the file's point in one run
 - file: bin.feature
   scenarios:
     - id: "@ID-BIN-01"
@@ -148,6 +152,10 @@
   scenarios:
     - id: "@ID-MOVESCMD-02"
       why: the commit-msg hook refuses a test commit that turns a live test wip, the rule on a command kind
+- file: next-forge.feature
+  scenarios:
+    - id: "@ID-NEXTFORGE-01"
+      why: a todo item's draft pull request with no verdict in spec review, observed exact and the forge asked the one list and the one question, the file's point
 - file: next-id-stems.feature
   scenarios:
     - id: "@ID-NEXTID-09"

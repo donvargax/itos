@@ -5,6 +5,7 @@ package cli
 
 import (
 	"github.com/donvargax/itos/v8/internal/declare"
+	attemptslice "github.com/donvargax/itos/v8/internal/slices/attempt"
 	briefslice "github.com/donvargax/itos/v8/internal/slices/brief"
 	cislice "github.com/donvargax/itos/v8/internal/slices/ci"
 	commitslice "github.com/donvargax/itos/v8/internal/slices/commit"
@@ -38,6 +39,7 @@ var declared = []declare.Command{
 	briefslice.Command,
 	statusslice.Command,
 	nextslice.Command,
+	attemptslice.Command,
 	taskslice.Command,
 	workslice.Command,
 	decisionslice.Command,
@@ -73,6 +75,8 @@ func dispatch(name string) (command, bool) {
 		return runStatus, true
 	case "next":
 		return runNext, true
+	case "attempt":
+		return runAttempt, true
 	case "task":
 		return runTask, true
 	case "work":
