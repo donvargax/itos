@@ -16741,3 +16741,20 @@ items:
       bug-159's drafter, 2026-10-31: 'itos tests next-id scenario CMSG' refused with a hint to use
       ID-CMSG. It could take the area name as features/README.md lists it. Related to
       p3-scenarios-bare-id.
+
+  - id: slice-216
+    title: itos next says merging only once merging was requested for the head (auto-merge on); a ready pull request without it stays driver land
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [slice-209]
+    kind: slice
+    why: >
+      Codex on #238 (slice-209, thread PRRT_kwDOU2JMic6yUwAI, 2026-10-31): --ready marks the pull
+      request ready before it turns auto-merge on, so after an exit 75 or under --no-wait nothing
+      merges, while next says merging (forge observe) and a driver waits forever. next reads whether
+      auto-merge is enabled for the head (autoMergeRequest in the graphql question --ready already
+      asks), and says merging only then. A ready pull request without it is handed-back's step,
+      driver land (itos push --ready). The first driven run needs this. Its sibling, the land step
+      being runnable from the driver's checkout (p1-next-argv-runnable-from-main), is handled by the
+      pilot driver running --ready in the item's worktree.
