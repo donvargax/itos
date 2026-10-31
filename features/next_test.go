@@ -5,7 +5,10 @@ package features
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
 	"regexp"
 
 	"github.com/cucumber/godog"
@@ -20,6 +23,15 @@ func initializeNextSteps(sc *godog.ScenarioContext, w *world) {
 	sc.Step(`^its JSON's revision differs from the one saved as "([^"]*)"$`, func(name string) error {
 		return w.revisionCompares(name, false)
 	})
+	// slice 209 (next-forge.feature): the head's checks the recording gh's
+	// api graphql answers (nodes/07-checks.sh), and how many calls it had.
+	sc.Step(`^the recording gh answers that the pull request's head's checks are "([^"]*)"$`, func(state string) error {
+		if _, err := os.Stat(programPath(filepath.Join(w.support, "bin", "gh"))); err != nil {
+			return errors.New("no recording gh: put one on the PATH first")
+		}
+		return os.WriteFile(filepath.Join(w.support, "gh-checks"), []byte(state+"\n"), 0o644)
+	})
+	sc.Step(`^the recording gh was called as "([^"]*)" (\d+) times$`, w.ghCalledTimes)
 }
 
 // revision is the last run's JSON "revision", a text.

@@ -534,7 +534,10 @@ func (w *world) ghCallHasHead(command string) error {
 
 // The recording gh was called as the command once: never, or more than once,
 // fails.
-func (w *world) ghCalledOnce(command string) error {
+func (w *world) ghCalledOnce(command string) error { return w.ghCalledTimes(command, 1) }
+
+// The recording gh was called as the command exactly n times (slice 209).
+func (w *world) ghCalledTimes(command string, n int) error {
 	calls, err := w.ghCallLines()
 	if err != nil {
 		return err
@@ -545,8 +548,8 @@ func (w *world) ghCalledOnce(command string) error {
 			named = append(named, call)
 		}
 	}
-	if len(named) != 1 {
-		return fmt.Errorf("the recording gh was called as %q %d times, not once:\n%s\n%s", command, len(named), strings.Join(named, "\n"), w.report())
+	if len(named) != n {
+		return fmt.Errorf("the recording gh was called as %q %d times, not %d:\n%s\n%s", command, len(named), n, strings.Join(named, "\n"), w.report())
 	}
 	return nil
 }
