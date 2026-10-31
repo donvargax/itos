@@ -16255,6 +16255,8 @@ items:
       when mentioned (its default reviews every push: implicit). Its adapter waits on reading its
       real output on one PR: by 2026-10-30 it had posted nothing on any PR (227-240), and its docs
       name no login.
+
+      The person, 2026-10-30: Bugbot's request is the comment '@cursor review'.
     tags: [work, v8]
 
   - id: p1-pr-merge-mode
