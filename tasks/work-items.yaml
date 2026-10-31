@@ -16287,6 +16287,9 @@ items:
       registry commit, so two slices suffice: (push merges, never rebases) and (--ready updates and
       lands by merge). Readers (next, work show, brief) need nothing new while each item commit
       keeps its Item: footer.
+
+      The note above lost its ids to a script error: the two slices are slice-213 (push merges,
+      never rebases) and slice-214 (--ready updates and lands by merge).
     tags: [work, v8]
 
   - id: slice-213
