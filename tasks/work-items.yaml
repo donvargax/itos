@@ -16133,6 +16133,10 @@ items:
       names no item and in a repository with no push.pr.review_by, which would fail the workflow;
       its spec decides whether the workflow skips those or posts nothing. The token needs statuses:
       write.
+
+      From slice-212's spec review: a pull_request_review dismissed trigger changes nothing until
+      p3-review-by-head-any-login makes a dismissed review count for nothing; drop it or keep it for
+      then.
     tags: [ci, v8]
 
   - id: p1-next-task-spec-on-main
