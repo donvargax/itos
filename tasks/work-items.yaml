@@ -16221,7 +16221,7 @@ items:
     tags: [work]
 
   - id: p1-review-request-step
-    title: "Asking for a review is a step of the machine: itos review request asks each review_by login for the pull request's head once, and itos next names it when the head has no request"
+    title: "Asking for a review is a step of the machine: itos review request asks each configured reviewer for the pull request's head once, through its kind's adapter, and itos next names it when the head has no request"
     phase: 1
     owner: null
     status: todo
@@ -16238,6 +16238,19 @@ items:
       and a stall are all a head with no request). It runs with the user's gh, so the request comes
       from a person's login. Codex's automatic reviews are turned off in its settings (the
       person's), so the request is the only trigger.
+
+      Generalized (the person, 2026-10-30): trigger Codex and Cursor's Bugbot both. A reviewer is a
+      login and a kind (push.pr.reviewers: [{login, kind}]); each kind is a Go adapter with recorded
+      conformance cases, never a format language in config (vendor formats change silently): how to
+      request (codex '@codex review'; bugbot 'cursor review' or 'bugbot run', which it ignores from
+      a bot or app, so the request comes from the person's gh), and how its result maps to one
+      verdict per head (requested, running, passed, findings, refused, stalled): codex its
+      review-state comment for the commit, bugbot its 'Cursor Bugbot' check run on the head_sha
+      (success, neutral, failure), copilot its review or refusal. Findings block through unresolved
+      threads (GitHub's conversation resolution), uniform for every kind. Bugbot set to run only
+      when mentioned (its default reviews every push: implicit). Its adapter waits on reading its
+      real output on one PR: by 2026-10-30 it had posted nothing on any PR (227-240), and its docs
+      name no login.
     tags: [work, v8]
 
   - id: p1-pr-merge-mode
