@@ -16070,6 +16070,12 @@ items:
 
       Superseded the note above on who asks Codex (the person, 2026-10-30): the explicit step
       p1-review-request-step asks, not itos push and not the status workflow.
+
+      Seen on #241, 2026-10-31: --ready posts '@codex review' only after the head's CI run passes,
+      so the review and CI run one after the other. A first --ready on a new head ends at 540 s
+      (exit 75) before Codex is even asked. Requesting at push time (slice-215's review-unrequested
+      at handed-back) lets them run side by side. The hand-off should rely on that request rather
+      than make one after CI.
     tags: [work, v8]
 
   - id: p3-work-add-refusal-keeps-id
