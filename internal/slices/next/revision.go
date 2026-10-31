@@ -87,6 +87,11 @@ func Revision(f Facts) string {
 			logins, _ := json.Marshal(o.Unrequested)
 			b.WriteString("unrequested " + string(logins) + "\n")
 		}
+		// Auto-merge off writes no line, so a pull request without it keeps
+		// the revision it had before slice-216.
+		if o.AutoMerge {
+			b.WriteString("auto_merge true\n")
+		}
 	}
 	sum := sha256.Sum256([]byte(b.String()))
 	return "sha256:" + hex.EncodeToString(sum[:])

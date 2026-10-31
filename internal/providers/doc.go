@@ -99,15 +99,16 @@
 // AskPullState is the one question itos push --ready, itos review post and request and
 // itos next put about a pull request (PullStateQuery, on one line, since the
 // scenarios' recording gh keeps a call to one line; slices 179, 187, 200, 206,
-// 209 and 215): the full SHA of its head (headRefOid, which review post holds a
-// verdict to), the roll-up state of its head commit's checks (which next
-// reads), its reviews, each with the commit it is of (which review request
+// 209, 215 and 216): the full SHA of its head (headRefOid, which review post holds a
+// verdict to), the roll-up state of its head commit's checks and whether
+// auto-merge is enabled for it (which next reads), its reviews, each with the commit it is of (which review request
 // and next read Bugbot's by), its comments with their times, paged a hundred at a
 // time up to CommentPages, the time it was last marked ready and its review
 // threads, each with its first comment. gh's error is passed on as it comes;
 // an answer without the reviews and the threads is ErrNoPullState, while one
 // without comments, times or checks, as a recorded answer from before slice
-// 200 is, reads as having none.
+// 200 is, reads as having none, and one without an autoMergeRequest as
+// auto-merge off.
 //
 // PullState.Verdicts is the one judge of whether push.pr.review_by's logins
 // reviewed a head, which --ready's wait and itos review status both call

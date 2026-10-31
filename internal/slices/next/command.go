@@ -36,15 +36,18 @@ Under push.mode pr an item in flight asks the forge, through gh and the
 repository push names: gh pr list --state all for the branch named for the
 item (its open pull request, else a merged one; a closed one counts for
 nothing), then for an open one the one gh api graphql question --ready asks
-(its head, comments, threads and the head's statusCheckRollup), and reads the
+(its head, comments, threads, the head's statusCheckRollup and whether
+auto-merge is enabled for it, its autoMergeRequest), and reads the
 attempt journal, itos/attempts/<id>.jsonl in the git folder. The states, the
 first that holds winning: merged (driver close, itos work done <id>); repair
 (ready, a check failed or a thread unresolved: implementer implement, itos
 brief <id> --role implementer); review-unrequested (where merging or
 handed-back would be, a reviewer push.pr.reviewers names not requested for the
 head, neither asked with itos review request's marker nor answered by its own
-review of the head: driver request, itos review request <id>); merging (ready:
-forge observe); blocked (the
+review of the head: driver request, itos review request <id>); merging (ready,
+auto-merge on: forge observe); handed-back (ready, auto-merge off, whatever
+the item's status or the journal says: driver land, itos push --ready);
+blocked (the
 latest implementer record is needs_decision or blocked and the k-th question
 naming the item, k its place among such records, is not answered: person
 answer, blocked_reason attempt; the person's step is itos decision add
@@ -94,7 +97,8 @@ when the forge was asked: {"pr":{"number","draft","head","merged"} or null,
 "none", "threads_open", "attempt":{"role","attempt","verdict","outcome",
 "head"} or null, the journal's latest implementer record, "unrequested", the
 push.pr.reviewers logins, as written, not requested for the open pull
-request's head, [] for none}; revision "sha256:"
+request's head, [] for none, "auto_merge", whether auto-merge is enabled for
+the open pull request, false when none was asked about}; revision "sha256:"
 and the hex digest of exactly the facts read, the kind as read among them and
 under pr the ref the scenarios were read at and what the forge and the
 journal said, so a commit that touches none of them leaves it as it was and a

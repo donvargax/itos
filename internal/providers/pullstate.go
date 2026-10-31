@@ -13,12 +13,14 @@ import (
 // (gh api graphql, since gh pr view has no threads): its reviews with the
 // commit each is of (slice-215), its
 // comments (with the times they were made and last edited, a page of them
-// after the cursor), the time it was last marked ready, its review threads
-// and the roll-up state of its head commit's checks, on a single line, since
-// the recording gh of the scenarios keeps a call to one line.
+// after the cursor), the time it was last marked ready, its review threads,
+// the roll-up state of its head commit's checks and whether auto-merge is
+// enabled for it (slice-216), on a single line, since the recording gh of the
+// scenarios keeps a call to one line.
 var PullStateQuery = strings.Join(strings.Fields(`
 	query($owner: String!, $name: String!, $number: Int!, $cursor: String) {
 	repository(owner: $owner, name: $name) { pullRequest(number: $number) { headRefOid
+	autoMergeRequest { enabledAt }
 	commits(last: 1) { nodes { commit { statusCheckRollup { state } } } }
 	timelineItems(last: 1, itemTypes: [READY_FOR_REVIEW_EVENT]) { nodes { ... on ReadyForReviewEvent { createdAt } } }
 	reviews(first: 100) { nodes { author { login } body commit { oid } } }
@@ -40,14 +42,16 @@ var ErrNoPullState = errors.New("its answer is not a pull request's reviews and 
 // gives, when it was last marked ready (zero when it does not say), its
 // review threads, and Checks, the statusCheckRollup state of its head commit
 // as GitHub writes it (SUCCESS, FAILURE, ERROR, PENDING or EXPECTED; "" for
-// none; slice-209).
+// none; slice-209), and AutoMerge, whether auto-merge is enabled for it (its
+// autoMergeRequest not null; slice-216).
 type PullState struct {
-	Head     string
-	Reviews  []Authored
-	Comments []Authored
-	ReadyAt  time.Time
-	Threads  []ReviewThread
-	Checks   string
+	Head      string
+	Reviews   []Authored
+	Comments  []Authored
+	ReadyAt   time.Time
+	Threads   []ReviewThread
+	Checks    string
+	AutoMerge bool
 }
 
 // Authored is a review or a comment: who wrote it, its body, for a comment
@@ -119,8 +123,11 @@ func pullStatePage(answered string) (state PullState, next string, ok bool) {
 		Data struct {
 			Repository struct {
 				PullRequest *struct {
-					HeadRefOid string `json:"headRefOid"`
-					Commits    *struct {
+					HeadRefOid       string `json:"headRefOid"`
+					AutoMergeRequest *struct {
+						EnabledAt string `json:"enabledAt"`
+					} `json:"autoMergeRequest"`
+					Commits *struct {
 						Nodes []struct {
 							Commit struct {
 								StatusCheckRollup *struct {
@@ -161,7 +168,7 @@ func pullStatePage(answered string) (state PullState, next string, ok bool) {
 	if err != nil || pull == nil || pull.Reviews == nil || pull.ReviewThreads == nil {
 		return PullState{}, "", false
 	}
-	state.Head = pull.HeadRefOid
+	state.Head, state.AutoMerge = pull.HeadRefOid, pull.AutoMergeRequest != nil
 	if pull.Commits != nil && len(pull.Commits.Nodes) > 0 && pull.Commits.Nodes[0].Commit.StatusCheckRollup != nil {
 		state.Checks = pull.Commits.Nodes[0].Commit.StatusCheckRollup.State
 	}

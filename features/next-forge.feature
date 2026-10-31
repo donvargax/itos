@@ -568,6 +568,7 @@ Feature: itos next reads an in-flight item's state from the forge under push.mod
   # Once ready, the pull request is the forge's: the checks passed and the
   # one thread is resolved, so nothing is to be done but wait, no argv and
   # no "; run:". Then with the checks still pending it is merging as well.
+  # Auto-merge is on (slice-216): without it the driver would land it.
   # The registry's status is doing and a journal says done at the head:
   # ready is judged before handed-back, so a build that read the journal
   # first would say handed-back.
@@ -591,6 +592,7 @@ Feature: itos next reads an in-flight item's state from the forge under push.mod
       """
       {"schema":1,"role":"implementer","attempt":1,"request":"sha256:0000000000000000000000000000000000000000000000000000000000000000","base":"<head>","outcome":"done","head":"<head>","notes":null,"verdict":"accepted","sha256":"sha256:1111111111111111111111111111111111111111111111111111111111111111"}
       """
+    And the recording gh's pull request for the branch "slice-9" has auto-merge on
     When itos runs "next slice-9"
     Then itos exits with code 0
     And stdout contains the complete line "slice-9: merging; next: forge observe" exactly once
@@ -618,7 +620,7 @@ Feature: itos next reads an in-flight item's state from the forge under push.mod
   # covers a doing item). One graphql question a run and no pr view:
   # auto-merge is read in it. Fails before the work at the first complete
   # line: slice-209's next says merging.
-  @wip @ID-NEXTFORGE-17 @slice-216
+  @ID-NEXTFORGE-17 @slice-216
   Scenario: Under push.mode pr, a ready pull request with nothing failed is merging only once auto-merge is on; without it the driver lands it
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -673,7 +675,7 @@ Feature: itos next reads an in-flight item's state from the forge under push.mod
   # first, the revision has moved, auto_merge the one fact changed. Fails
   # before the work at the first observed.auto_merge: slice-209's observed
   # has no such key.
-  @wip @ID-NEXTFORGE-18 @slice-216
+  @ID-NEXTFORGE-18 @slice-216
   Scenario: Under push.mode pr, auto-merge turning on moves the revision, and repair and review-unrequested come before merging
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -723,7 +725,7 @@ Feature: itos next reads an in-flight item's state from the forge under push.mod
   # leaves the mark its graphql answer's autoMergeRequest reads, as its pr
   # view's does. Fails before the work at the complete line naming
   # handed-back: slice-209's next says merging.
-  @wip @ID-NEXTFORGE-19 @slice-216
+  @ID-NEXTFORGE-19 @slice-216
   Scenario: Under push.mode pr, after push --ready --no-wait the driver lands the item, and once push --ready turned auto-merge on it is merging
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
