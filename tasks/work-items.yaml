@@ -16043,3 +16043,20 @@ items:
       blast radius as data), red_first (slice-207's attempt check), change_review (push.pr.review_by
       per kind).
     tags: [work, v8]
+
+  - id: p1-ready-hand-off
+    title: "push --ready hands the pull request to the forge: ready, auto-merge pinned to the head, and returns at once"
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The v9 plan's machine, handed back to merging (docs/plans/v9-coordinator.md; open question 4:
+      the driver runs --ready, since it no longer judges or waits). Today --ready waits for the run
+      and the reviews itself, and turns on auto-merge only after them, because auto-merge would
+      merge before the review; --ready --no-wait marks it ready and turns on nothing, so slice-209's
+      merging state would wait on a forge that never merges. Handing off needs the reviews to hold
+      the merge on the forge's side: open question 6, asked as a decision. Outcomes from the plan:
+      handed-to-forge, already, threads-unresolved.
+    tags: [work, v8]
