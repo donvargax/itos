@@ -16298,8 +16298,8 @@ items:
   - id: slice-213
     title: "Under push.mode pr with push.pr.update: merge, itos push brings an item branch up to main by merging it in, never rebasing a pushed commit"
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: slice
     why: >
