@@ -16082,6 +16082,11 @@ items:
       (exit 75) before Codex is even asked. Requesting at push time (slice-215's review-unrequested
       at handed-back) lets them run side by side. The hand-off should rely on that request rather
       than make one after CI.
+
+      slice-215's implementer, 2026-10-31: --ready's askForHead and requested still read any
+      itos-review-request marker as a code-review request, and sameLogin now lives both in push and
+      in internal/engine/reviewers (slice-215). The hand-off folds --ready onto the reviewers
+      engine.
     tags: [work, v8]
 
   - id: p3-work-add-refusal-keeps-id
