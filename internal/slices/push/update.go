@@ -126,13 +126,14 @@ func (r *pushRun) bringUp(ctx context.Context, rev, name string, ff bool) (Answe
 		return Answer{}, false
 	}
 	sent := slices.Clone(r.sent)
-	if len(v.MergeHeads(ctx)) == 0 {
+	conflicted := v.Conflicted(ctx)
+	if len(conflicted) == 0 {
 		return r.refuse("merge-failed", append(sent,
 			fmt.Sprintf("itos push: the merge of %s into %s did not run (git's message above); %s was not pushed.", name, r.branch, r.upstream()))...), true
 	}
 	return r.refuse("merge-conflict", append(sent,
 		fmt.Sprintf("itos push: the merge of %s into %s stopped on a conflict in %s; %s was not pushed.",
-			name, r.branch, strings.Join(v.Conflicted(ctx), ", "), r.upstream()),
+			name, r.branch, strings.Join(conflicted, ", "), r.upstream()),
 		"Resolve the files, git add them and commit the merge (itos commit or git commit) with a typed first line,",
 		fmt.Sprintf("as in \"chore: merge %s into %s\": a merge with changes of its own needs a commit type, and git's", name, r.branch),
 		"prepared \"Merge ...\" line has none. Then itos push again; or run git merge --abort to go back to where the branch was.")...), true
