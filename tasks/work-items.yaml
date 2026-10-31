@@ -57,6 +57,7 @@ phases:
   3: donvargax
 
 queue:
+  - slice-214
   - p1-v9-design-from-friction
   - p1-ci-slow-linux-runs
   - slice-153
