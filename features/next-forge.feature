@@ -152,7 +152,9 @@ Feature: itos next reads an in-flight item's state from the forge under push.mod
   the pull request's autoMergeRequest { enabledAt }: on when it is not
   null), never by another gh call. observed gains auto_merge, true or
   false, false when no open pull request was asked about; the revision
-  digests it. ID-NEXTFORGE-08 and slice-215's ID-REVREQ-12, which say
+  digests it, a true writing its line and a false none, as slice-215's
+  unrequested writes none when empty, so a pull request without auto-merge
+  keeps the revision it had before slice-216. ID-NEXTFORGE-08 and slice-215's ID-REVREQ-12, which say
   merging of a ready pull request without auto-merge, gain the Given that
   turns it on, and the commit that builds this names both in Changes:.
   The recording gh learns "the recording gh's pull request for the branch
@@ -609,13 +611,13 @@ Feature: itos next reads an in-flight item's state from the forge under push.mod
   # auto-merge on, so after its exit 75, or under --no-wait, a ready pull
   # request with nothing failed has nothing to merge it. merging is said
   # only once auto-merge is on; without it the step is handed-back's, the
-  # driver lands it with itos push --ready. No journal here: the ready pull
-  # request's states are judged before the journal's, so a build that let
-  # it fall through to slice-209's handed-back, which needs the
-  # implementer's accepted done at the head, would say implementing. One
-  # graphql question a run and no pr view: auto-merge is read in it. Fails
-  # before the work at the first complete line: slice-209's next says
-  # merging.
+  # driver lands it with itos push --ready, whatever the item's status. The
+  # item is todo and has no journal: the ready pull request's states are
+  # judged before the spec's and the journal's, so a build that let it fall
+  # through to slice-209's later states would say spec-review (ID-NEXTFORGE-19
+  # covers a doing item). One graphql question a run and no pr view:
+  # auto-merge is read in it. Fails before the work at the first complete
+  # line: slice-209's next says merging.
   @wip @ID-NEXTFORGE-17 @slice-216
   Scenario: Under push.mode pr, a ready pull request with nothing failed is merging only once auto-merge is on; without it the driver lands it
     Given the config, committed and pushed to the remote's main, adds the YAML:
@@ -624,7 +626,7 @@ Feature: itos next reads an in-flight item's state from the forge under push.mod
         mode: pr
       """
     And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
-    And the work registry has the item "slice-9" owned by "ana" with the status "doing"
+    And the work registry has the item "slice-9" owned by nobody with the status "todo"
     And the clone is on the new branch "slice-9"
     And a feature file with the scenario "@ID-A-01" tagged "@wip @slice-9"
     And git pushes HEAD to the remote's new branch "slice-9"
@@ -662,13 +664,15 @@ Feature: itos next reads an in-flight item's state from the forge under push.mod
     And the recording gh was called as "api graphql" 5 times
     And the recording gh was never called as "pr view"
 
-  # auto-merge is a fact of its own: GitHub keeps it on while a required
-  # check fails, and turning it on moves the revision though the state
-  # stays repair. repair, then review-unrequested (slice-215), keep their
-  # precedence over merging: a red check is the implementer's, then a
-  # configured reviewer not asked about the head is the driver's to
-  # request, auto-merge on or not. Fails before the work at the first
-  # observed.auto_merge: slice-209's observed has no such key.
+  # repair, then review-unrequested (slice-215), keep their precedence over
+  # both: a red check is the implementer's, then a configured reviewer not
+  # asked about the head is the driver's to request, auto-merge off (where
+  # handed-back would be) or on (where merging would be). auto-merge is a
+  # fact of its own: GitHub keeps it on while a required check fails, and
+  # with the checks red again and auto-merge on, the state repair as at
+  # first, the revision has moved, auto_merge the one fact changed. Fails
+  # before the work at the first observed.auto_merge: slice-209's observed
+  # has no such key.
   @wip @ID-NEXTFORGE-18 @slice-216
   Scenario: Under push.mode pr, auto-merge turning on moves the revision, and repair and review-unrequested come before merging
     Given the config, committed and pushed to the remote's main, adds the YAML:
@@ -691,7 +695,14 @@ Feature: itos next reads an in-flight item's state from the forge under push.mod
     And its JSON's "state" is "repair"
     And its JSON's "observed.auto_merge" is false
     And its JSON's revision is saved as "off"
-    Given the recording gh's pull request for the branch "slice-9" has auto-merge on
+    Given the recording gh answers that the pull request's head's checks are "PENDING"
+    When itos runs "next slice-9 --json"
+    Then itos exits with code 0
+    And its JSON's "state" is "review-unrequested"
+    And its JSON's "next" is {"actor": "driver", "action": "request", "argv": ["itos", "review", "request", "slice-9"]}
+    And its JSON's "observed.auto_merge" is false
+    Given the recording gh answers that the pull request's head's checks are "FAILURE"
+    And the recording gh's pull request for the branch "slice-9" has auto-merge on
     When itos runs "next slice-9 --json"
     Then itos exits with code 0
     And its JSON's "state" is "repair"
