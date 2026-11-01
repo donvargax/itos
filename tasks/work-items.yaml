@@ -13618,6 +13618,11 @@ items:
       ORCHESTRATING lines) could say: write only inside the worktree or a scratch repository under
       the scratchpad, enter it with cd <dir> || exit 1, and use absolute paths.
 
+      dzaffren/claude-plugin hit the same (docs/learnings/agent-bash-calls-start-fresh.md,
+      scratch-copy-is-not-a-sandbox.md): a probe is one Bash call, its cd joined by && (never ;),
+      with HOME, XDG_* and TMPDIR pointed into the scratch copy, since a git config, a cache or a
+      tool's state outside the repository leaks otherwise.
+
   - id: p1-yaml-errors-name-file
     title: "Every YAML reader names its file for a malformed document: a scalar item, a scalar registry, a duplicate key, a syntax error"
     phase: 1
