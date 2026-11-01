@@ -16907,6 +16907,11 @@ items:
       Ideas to take whichever way it goes: dispatch recorded before a step as the runaway guard,
       overrides that accumulate past a cycle limit, the machine's diagram rendered from its config.
 
+      Also judge, 2026-11-01: whether Swamp can start a workflow from an event (a webhook, a
+      schedule) or only from the CLI, since the person also wanted a code-based n8n and a simpler
+      IaC and Swamp may cover both; and the split to test: itos as the project's record and judge
+      (items, decisions, specs, proofs, all in git), Swamp as the runtime that does the work.
+
   - id: p2-ready-review-never-started
     title: itos push --ready tells a reviewer that never starts a review from one that is still running
     phase: 2
