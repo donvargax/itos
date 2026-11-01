@@ -6009,6 +6009,11 @@ items:
       that needs a green run runs anyway. Decide which it is and say so in the plan: judge from the
       root commit, fail the run, or list the proof as left out with the reason, the way a task not
       started is listed.
+
+      The same rule generalised in dzaffren/claude-plugin
+      (docs/learnings/gate-scanned-nothing-is-not-a-pass.md,
+      gates-allow-the-pass-not-block-the-fail.md): every gate's pass names what it scanned, and a
+      gate that scanned nothing fails rather than passes.
     tags: [proof, v8]
 
   - id: p1-proof-status
