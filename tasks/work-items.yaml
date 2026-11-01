@@ -10043,6 +10043,11 @@ items:
       the workflows. If tried: read its curl installer first, run once against a git archive export
       in a scratch folder, never this checkout, with the key in a file only the user writes and a
       token budget. The user has Anthropic API credits for it.
+
+      dzaffren/claude-plugin's pentest pass (docs/specs/pentest.md, docs/security/*/report.md) found
+      real holes in its own guards nearly every release because each finding is proven by running it
+      and judged blind. Here: scheduled, not a release gate (every green feat/fix releases), inside
+      the devcontainer, a proven finding opening an issue.
     tags: [gates]
 
   - id: p2-agent-shared-trunk
