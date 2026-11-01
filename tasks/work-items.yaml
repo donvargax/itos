@@ -16872,6 +16872,15 @@ items:
       worktree list), so the driver, or itos next's land argv (p1-next-argv-runnable-from-main),
       should find it instead of carrying it.
 
+      bug-157 run 2, 2026-11-01: implementer attempts 2 to 5 were all blocked the same way, because
+      a worktree-isolated agent may not run git in another worktree, and the one holding branch
+      bug-157 was the first implementer's. The driver kept pointing each next agent at the previous
+      isolated worktree, never the one with the branch. Its no-progress check did not fire either:
+      each blocked attempt moves the revision (the attempt count), so a loop of identical blocked
+      attempts looks like progress. The driver should run an implementer in the worktree that holds
+      the branch (git worktree list), not in a fresh isolated one, and next should not route repair
+      again after a blocked attempt whose head did not move.
+
   - id: p1-swamp-factory-spike
     title: "Spike: run one itos item through Swamp's software-factory, with itos as the gates' judge, to decide whether to pivot onto it"
     phase: 1
