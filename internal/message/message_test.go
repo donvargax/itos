@@ -77,6 +77,12 @@ func TestIDsInFailsOnALogItCannotRead(t *testing.T) {
 	if got, err := IDsIn(cfg, "", "c-b", "Task"); got != nil || err == nil || !strings.Contains(err.Error(), "c-b no record") {
 		t.Errorf("IDsIn of a log it cannot read = %v, %v; want its error", got, err)
 	}
+	cfg.VCS = v
+	bad := "T-("
+	cfg.Ledger.ID = &bad
+	if got, err := IDsIn(cfg, "", "c-b", "Task"); got != nil || err == nil {
+		t.Errorf("IDsIn under an ID pattern that does not compile = %v, %v; want its error", got, err)
+	}
 }
 
 // A footer's IDs over several lines, split at whitespace and commas, the

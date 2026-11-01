@@ -575,7 +575,7 @@ func IDsIn(cfg *config.Loaded, from, to, key string) ([]string, error) {
 	}
 	matches, err := regexp.Compile("^(?:" + whole + ")$")
 	if err != nil {
-		return nil, nil
+		return nil, err
 	}
 	var ids []string
 	for _, e := range slices.Backward(log) {
