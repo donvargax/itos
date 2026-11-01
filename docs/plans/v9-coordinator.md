@@ -62,24 +62,24 @@ mode, over the git and GitHub adapters itos has.
 
 ## The machine
 
-| From → to                        | Actor                                                           | Command                                                      | Outcomes                                       |
-| -------------------------------- | --------------------------------------------------------------- | ------------------------------------------------------------ | ---------------------------------------------- |
-| idea → todo                      | person, or the answering agent in a delegated class             | `work promote` (exists)                                      | promoted, already, refused                     |
-| todo → spec drafting             | drafter                                                         | `itos brief --role drafter`, `itos attempt submit` (new)     | accepted, rotated, stale, scope-mismatch       |
-| spec drafting → spec review      | derived                                                         | the pull request holds the spec commits                      |                                                |
-| spec review → approved / changes | reviewer                                                        | `itos review post --verdict … --head <sha>` (new)            | approved, changes, head-moved, already         |
-| changes → spec review            | drafter                                                         | `push`, `push thread --reply --resolve` (exist)              | as push; past N rounds, blocked                |
-| approved → implementing          | driver                                                          | `work take`, a marker, no commit                             | taken, already, owned-by-other                 |
-| implementing → handed back       | implementer                                                     | `itos brief --role implementer`, `itos attempt submit`       | accepted, rotated, needs-decision, spec-defect |
-| handed back → merging            | driver                                                          | `push --ready`: ready, auto-merge pinned to the head, return | handed-to-forge, already, threads-unresolved   |
-| merging → repair                 | derived: a red check at the head, a new thread                  |                                                              |                                                |
-| repair → merging                 | implementer                                                     | fix, `push` (merges main in), `push --ready`                 | as above                                       |
-| merging → merged                 | the forge                                                       | observed                                                     |                                                |
-| merged → done                    | derived: merged and main green                                  | nothing to run                                               |                                                |
-| merged → repair                  | derived: main red at the merge                                  | a revert, `work give-back` (exists)                          |                                                |
-| any → blocked                    | an LLM's needs-decision, a spent budget, the same failure twice | `decision add --item` (exists)                               | added, already                                 |
-| blocked → back                   | the answering agent (delegated class) or the person             | `decision answer`, `--provisional --class` (new)             | answered, already, class-not-delegated         |
-| any → deferred / dropped         | the person                                                      | `work defer`, `work drop` (exist)                            | terminal: later moves are stale                |
+| From → to                        | Actor                                                           | Command                                                                                                          | Outcomes                                       |
+| -------------------------------- | --------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
+| idea → todo                      | person, or the answering agent in a delegated class             | `work promote` (exists)                                                                                          | promoted, already, refused                     |
+| todo → spec drafting             | drafter                                                         | `itos brief --role drafter`, `itos attempt submit` (new)                                                         | accepted, rotated, stale, scope-mismatch       |
+| spec drafting → spec review      | derived                                                         | the pull request holds the spec commits                                                                          |                                                |
+| spec review → approved / changes | reviewer                                                        | `itos review post --verdict … --head <sha>` (new)                                                                | approved, changes, head-moved, already         |
+| changes → spec review            | drafter                                                         | `push`, `push thread --reply --resolve` (exist)                                                                  | as push; past N rounds, blocked                |
+| approved → implementing          | driver                                                          | `work take`, a marker, no commit                                                                                 | taken, already, owned-by-other                 |
+| implementing → handed back       | implementer                                                     | `itos brief --role implementer`, `itos attempt submit`                                                           | accepted, rotated, needs-decision, spec-defect |
+| handed back → merging            | driver                                                          | one forge operation per step (below): push if behind main, ready, request reviews, auto-merge pinned to the head | handed-to-forge, already, threads-unresolved   |
+| merging → repair                 | derived: a red check at the head, a new thread                  |                                                                                                                  |                                                |
+| repair → merging                 | implementer                                                     | fix, `push` (merges main in), `push --ready`                                                                     | as above                                       |
+| merging → merged                 | the forge                                                       | observed                                                                                                         |                                                |
+| merged → done                    | derived: merged and main green                                  | nothing to run                                                                                                   |                                                |
+| merged → repair                  | derived: main red at the merge                                  | a revert, `work give-back` (exists)                                                                              |                                                |
+| any → blocked                    | an LLM's needs-decision, a spent budget, the same failure twice | `decision add --item` (exists)                                                                                   | added, already                                 |
+| blocked → back                   | the answering agent (delegated class) or the person             | `decision answer`, `--provisional --class` (new)                                                                 | answered, already, class-not-delegated         |
+| any → deferred / dropped         | the person                                                      | `work defer`, `work drop` (exist)                                                                                | terminal: later moves are stale                |
 
 ```mermaid
 stateDiagram-v2
@@ -131,6 +131,22 @@ rebase; a conflict is an ordinary commit by the implementer. The pull request la
 and an `Item:` footer), so a first-parent reader never parses the branch for the item. `verify` and
 `ci range` walk first parents and judge each landing's second-parent side per commit. An item's
 change is `git show --diff-merges=first-parent <merge>`; its commits `git log <merge>^1..<merge>^2`.
+
+### One forge operation per step
+
+Each GitHub mutation is its own `itos next` step, never one of several in a command: a push to the
+item branch, marking ready, a review request, turning on auto-merge. A step whose operation
+triggers a workflow run is done only when that run finishes; until then `itos next` says `forge
+observe`, and names the next mutation after. A run is matched by its head and the event that
+started it, since one head can carry several (a draft's `synchronize`, then `ready_for_review`). An
+operation that starts no run (path filters) waits a bounded window for one to appear, then counts
+none as coming.
+
+Why: bug-160. `--ready`'s merge push and its ready event reached GitHub in the same second. The
+draft's run, which skips every job, cancelled the ready run through the shared concurrency group,
+so the head had no result. Serializing fixes this in itos for any consumer's CI and keeps
+cancel-in-progress for a genuinely newer head. On v8, bug-160's fix is the same rule inside
+`--ready`: it waits for its own push's run before marking the pull request ready.
 
 ### Rerun safety (p1-mutations-rerun-safe)
 
