@@ -16816,3 +16816,21 @@ items:
     depends_on: []
     kind: idea
     refs: [bug-157]
+
+  - id: bug-160
+    title: A draft's skipped CI run cancels the ready run of the same head
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: bug
+    why: >
+      bug-157's itos push --ready, 2026-11-01: the merge push (synchronize, the pull request still a
+      draft) and the ready_for_review event reached GitHub in the same second. The draft's run
+      41334974134 skips every job, yet it shares the concurrency group ci-<ref> with
+      cancel-in-progress on for pull_request events, so it cancelled the ready run 41334973836,
+      which was the run that checks the head. --ready then waited on a cancelled run and exited 75
+      three times, and the driver stopped with no progress. Fix in ci.yml: a run that skips (a draft
+      event) must not cancel one that checks, e.g. cancel-in-progress only for a run that is not a
+      draft, or a group keyed by draft. A ci change, not a weakened gate: the newest ready head
+      still cancels an older one.
