@@ -16812,14 +16812,7 @@ items:
     title: CI's plan names no task when a readable range's log cannot be read
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: []
     kind: idea
-    why: >
-      message.IDsIn turns any Log error into no IDs, so plan.TasksIn and TestsNamedIn give none and
-      CI runs no named task checks. For a range that cannot be read that is meant (every test runs),
-      but Log may also fail on a readable range: bug-157 made a record it cannot frame an error.
-      Found by Copilot on #247 (thread PRRT_kwDOU2JMic6ydFgQ); no real run reaches it yet. IDsIn,
-      namedIn, TasksIn and TestsNamedIn return the error for a readable range, and forRange, prtrust
-      and ci-repo fail closed on it.
     refs: [bug-157]
