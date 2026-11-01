@@ -16871,3 +16871,31 @@ items:
       knew its worktree. The worktree holding the item's branch is something git already says (git
       worktree list), so the driver, or itos next's land argv (p1-next-argv-runnable-from-main),
       should find it instead of carrying it.
+
+  - id: p1-swamp-factory-spike
+    title: "Spike: run one itos item through Swamp's software-factory, with itos as the gates' judge, to decide whether to pivot onto it"
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      2026-11-01: Swamp's @swamp/software-factory extension (AGPL-3.0-or-later,
+      github.com/swamp-club/swamp-extensions) is a generic work-item state machine whose lifecycle
+      is data: status as the driver's entry, record_dispatch before a step (a third dispatch
+      hard-fails), schema-checked artifacts and evidence, maxCycles with cumulative human overrides,
+      approvals scoped to a cycle, an append-only journal, a Mermaid render of the machine. That is
+      v9's shape, built. Its gates judge its own records, not the code (only workflow-succeeded
+      reads run records), which is what itos is ahead on. The person is leaning towards a pivot:
+      build beside software-factory, itos as the judge, rather than finish v9's engine. Before
+      building more, run the spike: Swamp inside the devcontainer only (Deno, TypeScript extensions:
+      the no-npm rule), a small lifecycle (spec, review, implement, land) whose gates call itos (a
+      workflow-succeeded gate over workflows running itos verify, itos ci watch, itos review
+      status), one real item end to end. Glue is our own extension through Swamp's API alone, so the
+      exception in Swamp's COPYING-EXCEPTION lets it be ours; no Swamp or software-factory code in
+      itos (ADR-0063). Judge: does itos stay the judge with state derived from git and the forge, or
+      does software-factory's data store become a second authority; what the swamp-club.com account
+      (swamp auth login, SWAMP_API_KEY) ties us to; how it holds cycles (spec changes and repair) on
+      a DAG runtime; and what the strategic risk is, Elder Swamp Club shipping the same factory.
+      Ideas to take whichever way it goes: dispatch recorded before a step as the runaway guard,
+      overrides that accumulate past a cycle limit, the machine's diagram rendered from its config.
