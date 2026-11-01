@@ -475,6 +475,8 @@ func TestJudgeSaysNothingWhenGitCannotGiveAReading(t *testing.T) {
 	for name, change := range map[string]func(*broken){
 		"the head's commits":           func(b *broken) { b.log = nthFails(1, fails) },
 		"the range's commits":          func(b *broken) { b.log = nthFails(2, fails) },
+		"main's commit's tasks":        func(b *broken) { b.log = nthFails(3, fails) },
+		"main's commit's tests":        func(b *broken) { b.log = nthFails(4, fails) },
 		"a commit's paths":             func(b *broken) { b.paths = fails },
 		"a commit and its counterpart": func(b *broken) { b.diff = nthFails(1, fails) },
 		"the head and the end":         func(b *broken) { b.diff = nthFails(2, fails) },
@@ -489,7 +491,9 @@ func TestJudgeSaysNothingWhenGitCannotGiveAReading(t *testing.T) {
 
 // nthFails fails the nth call: of the diffs, the first is a commit's against
 // its counterpart, the second the head's against the end's; of the logs, the
-// first is the head's commits, the second the range's.
+// first is the head's commits, the second the range's, the third and fourth
+// main's own commit's, for the tasks and the tests it names, and the fifth
+// the range's again, for the tasks it names.
 func nthFails(n int, err error) func() error {
 	calls := 0
 	return func() error {
@@ -522,6 +526,13 @@ func TestJudgeComparesTheNamedTasksChecks(t *testing.T) {
 	ledgerChange(s, entry("T-1", checked)+entry("T-2", checked))
 	if got := s.judge(t); got.Trust == nil {
 		t.Errorf("another task's entry: %+v", got)
+	}
+
+	s = newScene()
+	ledgerChange(s, late)
+	s.mutate = func(b *broken) { b.log = nthFails(5, errors.New("git failed")) }
+	if got := s.judge(t); got != (Result{}) || len(s.runsAsked) != 0 {
+		t.Errorf("the named tasks' log git cannot give: %+v", got)
 	}
 
 	s = newScene()

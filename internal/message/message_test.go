@@ -1,6 +1,8 @@
 package message
 
 import (
+	"context"
+	"errors"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -12,6 +14,7 @@ import (
 	"github.com/donvargax/itos/v8/internal/store/tree/adapter"
 	"github.com/donvargax/itos/v8/internal/store/tree/port/porttest"
 	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
+	vcsport "github.com/donvargax/itos/v8/internal/vcs/port"
 	vcstest "github.com/donvargax/itos/v8/internal/vcs/port/porttest"
 )
 
@@ -38,6 +41,47 @@ func TestGatheredReadsTheVCS(t *testing.T) {
 	}
 	if got, err := Gathered(cfg, "nope", "c-m", "Upgrading"); err == nil {
 		t.Errorf("Gathered of no commit = %+v", got)
+	}
+}
+
+// unlogged is the fake VCS whose Log fails while its ranges stay readable.
+type unlogged struct{ *vcstest.VCS }
+
+func (unlogged) Log(context.Context, vcsport.Range) ([]vcsport.Entry, error) {
+	return nil, errors.New("git log gives c-b no record itos can read")
+}
+
+// IDsIn reads a footer's IDs newest commit first; a range git cannot read
+// names none, and one it reads whose log the VCS cannot is that error
+// (bug-157).
+func TestIDsInFailsOnALogItCannotRead(t *testing.T) {
+	file := filepath.Join(t.TempDir(), "itos.yaml")
+	if err := os.WriteFile(file, []byte("version: 1\ncommits:\n  footers:\n    Task: { source: ledger }\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	v := &vcstest.VCS{History: []vcstest.Commit{
+		{Name: "c-a", Message: "chore: a\n\nTask: T-1\n"},
+		{Name: "c-b", Parents: []string{"c-a"}, Message: "chore: b\n\nTask: T-2\n"},
+	}}
+	cfg, err := config.Load(v, adapter.Trees{VCS: vcs.Git{}}, adapter.Worktree, file)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, err := IDsIn(cfg, "", "c-b", "Task"); !reflect.DeepEqual(got, []string{"T-2", "T-1"}) || err != nil {
+		t.Errorf("IDsIn = %v, %v; want T-2 and T-1", got, err)
+	}
+	if got, err := IDsIn(cfg, "nope", "c-b", "Task"); got != nil || err != nil {
+		t.Errorf("IDsIn of a range git cannot read = %v, %v; want none", got, err)
+	}
+	cfg.VCS = unlogged{v}
+	if got, err := IDsIn(cfg, "", "c-b", "Task"); got != nil || err == nil || !strings.Contains(err.Error(), "c-b no record") {
+		t.Errorf("IDsIn of a log it cannot read = %v, %v; want its error", got, err)
+	}
+	cfg.VCS = v
+	bad := "T-("
+	cfg.Ledger.ID = &bad
+	if got, err := IDsIn(cfg, "", "c-b", "Task"); got != nil || err == nil {
+		t.Errorf("IDsIn under an ID pattern that does not compile = %v, %v; want its error", got, err)
 	}
 }
 

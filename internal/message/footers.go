@@ -543,18 +543,24 @@ func PrintFooters(w io.Writer, found []out.Problem) {
 // newest commit first, each ID once in the order first given, the
 // footer's strip_prefix taken off, and only those whose whole matches the
 // footer's ID pattern (the ledger's id, or its kind's; any ID without one). A
-// range that cannot be read, or has no end, gives none. The range is the one
+// range that git cannot read, or has no end, gives none; one it reads whose
+// log the VCS cannot is the VCS's error, never a range naming nothing
+// (bug-157). The range is the one
 // CI plans, from..to as git reads it: commits.since does not narrow it, as it
 // narrows verify's, since the TypeScript's plan does not. An empty start is
 // every commit up to to, as `itos ci range` gives it when no green start can
 // be trusted (bug 33): the plan then runs what every one of them names.
-func IDsIn(cfg *config.Loaded, from, to, key string) []string {
+func IDsIn(cfg *config.Loaded, from, to, key string) ([]string, error) {
 	if to == "" {
-		return nil
+		return nil, nil
 	}
-	log, err := cfg.VCS.Log(context.Background(), vcs.Range{From: from, To: to})
+	r := vcs.Range{From: from, To: to}
+	log, err := cfg.VCS.Log(context.Background(), r)
 	if err != nil {
-		return nil
+		if !cfg.VCS.Readable(context.Background(), r) {
+			err = nil
+		}
+		return nil, err
 	}
 	f, _ := cfg.Commits.Footers.Get(key)
 	var pattern *string
@@ -569,7 +575,7 @@ func IDsIn(cfg *config.Loaded, from, to, key string) []string {
 	}
 	matches, err := regexp.Compile("^(?:" + whole + ")$")
 	if err != nil {
-		return nil
+		return nil, err
 	}
 	var ids []string
 	for _, e := range slices.Backward(log) {
@@ -583,7 +589,7 @@ func IDsIn(cfg *config.Loaded, from, to, key string) []string {
 			}
 		}
 	}
-	return unique(ids)
+	return unique(ids), nil
 }
 
 // unique is a list without its repeats, in the order first seen.

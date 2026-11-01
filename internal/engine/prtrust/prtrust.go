@@ -1,6 +1,7 @@
 package prtrust
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 	"path"
@@ -109,8 +110,12 @@ func (j judging) run(ctx context.Context) (string, *plan.Trust) {
 			return fmt.Sprintf("the range holds %s, which is not the pull request's and changes %s", short(c.SHA), first(others)), nil
 		}
 		parent := v.Parent(ctx, c.SHA)
-		named := append(plan.TasksIn(j.cfg, parent, c.SHA), plan.TestsNamedIn(j.cfg, parent, c.SHA, kind)...)
-		if len(named) > 0 {
+		tasks, err := plan.TasksIn(j.cfg, parent, c.SHA)
+		tests, testsErr := plan.TestsNamedIn(j.cfg, parent, c.SHA, kind)
+		if cmp.Or(err, testsErr) != nil {
+			return "", nil
+		}
+		if named := append(tasks, tests...); len(named) > 0 {
 			return fmt.Sprintf("the range holds %s, which is not the pull request's and names %s", short(c.SHA), named[0]), nil
 		}
 	}
@@ -128,7 +133,11 @@ func (j judging) run(ctx context.Context) (string, *plan.Trust) {
 		return "", nil
 	}
 	if _, ledgers := OutsideBookkeeping(j.cfg, files); ledgers {
-		for _, id := range plan.TasksIn(j.cfg, j.from, j.to) {
+		tasks, err := plan.TasksIn(j.cfg, j.from, j.to)
+		if err != nil {
+			return "", nil
+		}
+		for _, id := range tasks {
 			same, unreadable := SameChecks(ctx, j.cfg, id, h, j.to)
 			if unreadable != "" {
 				return fmt.Sprintf("the ledger at %s cannot be read", short(unreadable)), nil

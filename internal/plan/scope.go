@@ -74,8 +74,9 @@ func DocsOnly(cfg *config.Loaded, paths []string) (bool, error) {
 }
 
 // namedIn are the IDs a range's commits give in every footer that of picks,
-// each once, footer by footer in the config's order.
-func namedIn(cfg *config.Loaded, from, to string, of func(config.Footer) bool) []string {
+// each once, footer by footer in the config's order; the error is
+// message.IDsIn's.
+func namedIn(cfg *config.Loaded, from, to string, of func(config.Footer) bool) ([]string, error) {
 	seen := map[string]bool{}
 	ids := []string{}
 	for _, key := range cfg.Commits.Footers.Keys {
@@ -83,19 +84,23 @@ func namedIn(cfg *config.Loaded, from, to string, of func(config.Footer) bool) [
 		if !of(f) {
 			continue
 		}
-		for _, id := range message.IDsIn(cfg, from, to, key) {
+		named, err := message.IDsIn(cfg, from, to, key)
+		if err != nil {
+			return nil, err
+		}
+		for _, id := range named {
 			if !seen[id] {
 				seen[id] = true
 				ids = append(ids, id)
 			}
 		}
 	}
-	return ids
+	return ids, nil
 }
 
 // TasksIn are the tasks a range's commits name in their ledger footers: each
 // footer whose source is the ledger, whatever commits.footers calls it.
-func TasksIn(cfg *config.Loaded, from, to string) []string {
+func TasksIn(cfg *config.Loaded, from, to string) ([]string, error) {
 	return namedIn(cfg, from, to, func(f config.Footer) bool {
 		return f.Source.IsName && f.Source.Name == "ledger"
 	})
@@ -103,7 +108,7 @@ func TasksIn(cfg *config.Loaded, from, to string) []string {
 
 // TestsNamedIn are the tests of a kind a range's footers name (`Scenarios:`
 // for the scenario kind); none for the kind "".
-func TestsNamedIn(cfg *config.Loaded, from, to, kind string) []string {
+func TestsNamedIn(cfg *config.Loaded, from, to, kind string) ([]string, error) {
 	return namedIn(cfg, from, to, func(f config.Footer) bool {
 		return kind != "" && !f.Source.IsName && f.Source.Tests == kind
 	})

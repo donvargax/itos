@@ -232,6 +232,13 @@ func initializeScenario(sc *godog.ScenarioContext) {
 
 	sc.Step(`^a repository made from a template, its first commit "([^"]*)"$`, w.templateRepository)
 	sc.Step(`^the commit "([^"]*)" on top of it$`, w.commitOnTop)
+	sc.Step(`^the commit `+goQuoted+` on top of it, its backslash escapes read as Go's$`, func(message string) error {
+		message, err := goEscapes(message)
+		if err != nil {
+			return err
+		}
+		return w.commitOnTop(message)
+	})
 	sc.Step(`^a repository whose ledger has the task "([^"]*)"$`, func(task string) error {
 		return w.repositoryWithTask(task)
 	})
