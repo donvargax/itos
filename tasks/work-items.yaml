@@ -15647,6 +15647,10 @@ items:
       it last looked, without rereading every item or calling GitHub (p1-status-local's rate-limit
       concern). A commit is the cursor; one beyond reachable history says so rather than returning a
       partial list.
+
+      One consumer: a 'what changed since you last looked' summary for the person, by scenario and
+      decision rather than by diff, for ratifying provisional answers (ADR-0062);
+      dzaffren/claude-plugin's gate card (docs/specs/gate-card.md) is one shape. CLI text only.
     tags: [status, v9]
 
   - id: p2-json-contract-describe
