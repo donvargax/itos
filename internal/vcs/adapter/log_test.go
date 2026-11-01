@@ -1,6 +1,7 @@
 package adapter
 
 import (
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -34,6 +35,25 @@ func TestLogReadsAMessageHoldingTheRecordSeparator(t *testing.T) {
 	}
 }
 
+// Commits and Log read a branch whose name is also a folder of the work tree
+// as the branch.
+func TestLogReadsABranchNamedAsAFolder(t *testing.T) {
+	dir := filepath.Join(alone(t), "r")
+	gitIn(t, "", "", "init", "-q", "-b", "main", dir)
+	gitIn(t, dir, "", "commit", "-q", "--allow-empty", "-m", "a")
+	gitIn(t, dir, "", "branch", "docs")
+	if err := os.Mkdir(filepath.Join(dir, "docs"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	g := Git{Dir: dir}
+	if shas, err := g.Commits(t.Context(), port.Range{To: "docs"}); err != nil || len(shas) != 1 {
+		t.Errorf("Commits of docs is %v, %v; want its one commit", shas, err)
+	}
+	if logged, err := g.Log(t.Context(), port.Range{To: "docs"}); err != nil || len(logged) != 1 || logged[0].Subject != "a" {
+		t.Errorf("Log of docs is %+v, %v; want a", logged, err)
+	}
+}
+
 // record is a record as logArgs prints it of the commit sha, its note note.
 func record(sha, note string) string {
 	return strings.Join([]string{sha, sha[:2], "s", "t", "t@t", "1 +0000", "", "s\n", note}, "\x00") + "\x00"
@@ -48,6 +68,9 @@ func TestEntriesReadOnlyTheRecordsOfTheCommitsNamed(t *testing.T) {
 	}
 	if got, err := entries("", nil); err != nil || got != nil {
 		t.Errorf("no commit is %+v, %v", got, err)
+	}
+	if got, err := entries(record("aa", ""), nil); err == nil || !strings.Contains(err.Error(), "record of aa") || got != nil {
+		t.Errorf("a record of no commit named is %+v, %v; want an error naming aa", got, err)
 	}
 	for _, c := range []struct{ name, out, blamed string }{
 		{"a note holding NUL before another record", record("aa", "n\x00m") + record("bb", ""), "aa"},

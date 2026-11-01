@@ -150,10 +150,10 @@ func revs(r port.Range) []string {
 	return append(args, git.Revs(r.From, r.To)...)
 }
 
-// Commits is git rev-list --reverse; its error is git's, worded as git.Read
-// words it, which verify prints.
+// Commits is git rev-list --reverse, each revision read as one, as Log reads
+// it; its error is git's, worded as git.Read words it, which verify prints.
 func (g Git) Commits(_ context.Context, r port.Range) ([]string, error) {
-	return g.git().Lines(append([]string{"rev-list", "--reverse"}, revs(r)...)...)
+	return g.git().Lines(append(append([]string{"rev-list", "--reverse"}, revs(r)...), "--")...)
 }
 
 func (g Git) Readable(_ context.Context, r port.Range) bool {

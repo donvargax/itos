@@ -34,6 +34,9 @@ func entry(f []string) port.Entry {
 // error naming the commit, never a commit passed over.
 func entries(out string, shas []string) ([]port.Entry, error) {
 	f := strings.Split(out, "\x00")
+	if len(shas) == 0 && out != "" {
+		return nil, fmt.Errorf("git log gives a record of %s, a commit git rev-list does not name", f[0])
+	}
 	var found []port.Entry
 	for i, sha := range shas {
 		at, next := i*entryFields, (i+1)*entryFields
