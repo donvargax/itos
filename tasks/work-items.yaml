@@ -11386,6 +11386,11 @@ items:
       credits, and the CLI's clean-tree guard becomes the loop's own check after the step. Trial
       both on the same diffs once the driver exists and compare verdicts. Replaces this idea's
       earlier self-review framing: the reviewer is independent of the implementer.
+
+      Beside the verdict: dzaffren/claude-plugin has the implementer record each choice it made
+      alone (what it chose, the other option, how to undo it), checks the record mechanically and
+      writes it into the pull request body (plugins/zuko references/ledger.md, lib/pr_body.py). A
+      candidate optional field of the v9 attempt result, once that schema settles.
     refs: [internal/guides]
     tags: [agents, v8]
 
