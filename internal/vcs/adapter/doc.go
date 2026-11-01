@@ -18,8 +18,11 @@
 // A range (port.Range) is git rev-list's arguments: ^Since first, then
 // From..To, To alone for an empty From, or To --not --remotes for
 // port.Unpushed. Show and Log read every field of an Entry in one git log,
-// NUL-separated with each commit's ended by a record separator, the itos
-// notes alone shown as %N. The changed paths are read as internal/git reads
+// each field ended by NUL (git log -z), the itos notes alone shown as %N.
+// Show's one record is read whole, its note all that follows the message.
+// Since a note is a blob and may hold NUL, Log reads its records as the
+// commits git rev-list names over the range, and a record that is not its
+// commit's, whole, is an error naming the commit. The changed paths are read as internal/git reads
 // them, NUL-separated and with no rename detection; the work tree's state
 // is internal/git's. A file at a tree is git show <tree>:<path>, the files
 // of a tree git cat-file --batch in one run.

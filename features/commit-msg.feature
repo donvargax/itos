@@ -412,7 +412,7 @@ Feature: The commit-msg hook
   # cut the message at the byte would find no Task: footer, and say "chore
   # commits need …" instead. Fails before the work at the exit code: verify
   # exits 70, "<sha> names no commit".
-  @wip @bug-157 @ID-CMSG-29
+  @bug-157 @ID-CMSG-29
   Scenario: verify judges a commit whose message holds the byte 0x1e by the whole message
     Given the commit "chore: tidy the readme\n\nA line with \x1e in it.\n\nTask: T-999" on top of it, its backslash escapes read as Go's
     When itos verifies every commit up to HEAD
@@ -423,7 +423,7 @@ Feature: The commit-msg hook
   # A sound commit holding the byte passes: it is read, not refused. Fails
   # before the work at the exit code: verify exits 70, "<sha> names no
   # commit".
-  @wip @bug-157 @ID-CMSG-30
+  @bug-157 @ID-CMSG-30
   Scenario: verify passes a sound commit whose message holds the byte 0x1e
     Given the commit "chore: tidy the readme\n\nA line with \x1e in it.\n\nTask: T-001" on top of it, its backslash escapes read as Go's
     When itos verifies every commit up to HEAD
@@ -435,7 +435,7 @@ Feature: The commit-msg hook
   # Task: sits after the byte, so a reader that cut the message there would
   # name no task either. Fails before the work at the exit code: ci run
   # plans no task check and exits 0.
-  @wip @bug-157 @ID-CMSG-31
+  @bug-157 @ID-CMSG-31
   Scenario: ci run runs the check of a task that only a commit whose message holds the byte 0x1e names
     Given the task "T-001" has the check "exit 4"
     And the commit "chore: tidy the readme\n\nA line with \x1e in it.\n\nTask: T-001" on top of it, its backslash escapes read as Go's
