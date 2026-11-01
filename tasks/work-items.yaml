@@ -16607,8 +16607,8 @@ items:
   - id: bug-157
     title: The VCS adapter's log reader drops, without a word, a commit whose message holds the byte 0x1e
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: bug
     why: >
@@ -16794,3 +16794,16 @@ items:
       slice-216's drafter, 2026-10-31: the commit-msg hook refused with 'unknown items: slice-216'
       while the item existed in local main's registry and wasn't pushed yet. The message could say
       where the item is, and what to do.
+
+  - id: p2-attempt-no-record-hint
+    title: attempt submit's no-record error names a cause the VCS adapter no longer has
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      slice-207's check in internal/slices/attempt/handler.go says a commit past the base with no
+      log record may hold the byte 0x1e. Since bug-157 the adapter's Log reads such a commit, and a
+      record it cannot read is an error, so the check guards only a port that breaks its contract,
+      and its hint sends a reader looking for a byte that is no longer the cause.
