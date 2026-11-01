@@ -373,6 +373,56 @@ Feature: The commit-msg hook
     When the commit-msg hook checks the message "docs: say it in French"
     Then itos exits with code 0
 
+  # Bug 157 (Codex's security review of pull request 236, 2026-10-31). The
+  # VCS adapter read git log's output as one text split on the byte 0x1e,
+  # the record separator its format ends each commit with, and git commit
+  # stores that byte in a message as it is given. A message (or an itos
+  # note) holding it split its commit's record into pieces too short to
+  # read, and the reader dropped them: Log, which status, the pull request
+  # trust and the check for commits a push drops read, left the commit out
+  # without a word, and Show, through which verify reads each commit, said "<sha>
+  # names no commit", exit 70, so verify could judge no range holding one.
+  #
+  # The rule: the adapter frames each commit's record so that no byte a
+  # message or a note may hold ends it, and reads every field whole, the
+  # part of the message after the byte included. Of the item's two ways
+  # (frame safely, or refuse the record), safe framing is decided here: a
+  # commit that can be read is judged as any other, never refused for the
+  # byte, since a refused commit on main cannot be fixed forward, and
+  # verify, re-checking every commit since the last green run, would stay
+  # red until commits.since passed it. A record the adapter still cannot
+  # read is an error naming the commit, never a commit passed over (Show's
+  # today, as slice 207 made attempt submit's).
+  #
+  # "the commit <text> on top of it, its backslash escapes read as Go's" is
+  # new: the commit "the commit <message> on top of it" makes, its message
+  # the text read as the body of a Go string literal, as the footer of "the
+  # commit … naming the task … with the footer <text>, its backslash escapes
+  # read as Go's" is read. git commit -m takes the byte as an argument on
+  # every OS: it is a control character, not NUL.
+
+  # The footer after the byte is read: a reader that kept the record but
+  # cut the message at the byte would find no Task: footer, and say "chore
+  # commits need …" instead. Fails before the work at the exit code: verify
+  # exits 70, "<sha> names no commit".
+  @wip @bug-157 @ID-CMSG-29
+  Scenario: verify judges a commit whose message holds the byte 0x1e by the whole message
+    Given the commit "chore: tidy the readme\n\nA line with \x1e in it.\n\nTask: T-999" on top of it, its backslash escapes read as Go's
+    When itos verifies every commit up to HEAD
+    Then itos exits with code 1
+    And its output says "unknown tasks: T-999"
+    And its output says "chore: tidy the readme"
+
+  # A sound commit holding the byte passes: it is read, not refused. Fails
+  # before the work at the exit code: verify exits 70, "<sha> names no
+  # commit".
+  @wip @bug-157 @ID-CMSG-30
+  Scenario: verify passes a sound commit whose message holds the byte 0x1e
+    Given the commit "chore: tidy the readme\n\nA line with \x1e in it.\n\nTask: T-001" on top of it, its backslash escapes read as Go's
+    When itos verifies every commit up to HEAD
+    Then itos exits with code 0
+    And its output says "2/2 commits pass the commit rules"
+
   # Bug 32 (found by the code review of 07b0e6d). The commit-msg hook read
   # the staged paths with git's rename detection on, so a rename listed only
   # its new path: git mv of code into docs/ passed a docs commit. Its
