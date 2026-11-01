@@ -378,10 +378,14 @@ Feature: The commit-msg hook
   # the record separator its format ends each commit with, and git commit
   # stores that byte in a message as it is given. A message (or an itos
   # note) holding it split its commit's record into pieces too short to
-  # read, and the reader dropped them: Log, which status, the pull request
-  # trust and the check for commits a push drops read, left the commit out
-  # without a word, and Show, through which verify reads each commit, said "<sha>
+  # read, and the reader dropped them: Log left the commit out without a
+  # word, and Show, through which verify reads each commit, said "<sha>
   # names no commit", exit 70, so verify could judge no range holding one.
+  # Log's readers lost the commit: CI's plan, which reads the tasks and the
+  # named tests a range's footers name (message.IDsIn), so the checks of a
+  # task only such a commit names did not run; a release's notes (itos
+  # commit footers); work show and work done (message.History); status, the
+  # pull request trust and the check for commits a push drops.
   #
   # The rule: the adapter frames each commit's record so that no byte a
   # message or a note may hold ends it, and reads every field whole, the
@@ -392,7 +396,10 @@ Feature: The commit-msg hook
   # verify, re-checking every commit since the last green run, would stay
   # red until commits.since passed it. A record the adapter still cannot
   # read is an error naming the commit, never a commit passed over (Show's
-  # today, as slice 207 made attempt submit's).
+  # today, as slice 207 made attempt submit's). A note is a blob and may
+  # hold NUL, so a framing on NUL alone still needs that error, checked
+  # against the commits git names; no scenario can make such a record, so
+  # the adapter's unit tests pin it.
   #
   # "the commit <text> on top of it, its backslash escapes read as Go's" is
   # new: the commit "the commit <message> on top of it" makes, its message
@@ -422,6 +429,19 @@ Feature: The commit-msg hook
     When itos verifies every commit up to HEAD
     Then itos exits with code 0
     And its output says "2/2 commits pass the commit rules"
+
+  # Through Log: CI's plan reads the range's Task: footers from it, so a
+  # commit Log drops names no task, and its task's failing check never runs.
+  # Task: sits after the byte, so a reader that cut the message there would
+  # name no task either. Fails before the work at the exit code: ci run
+  # plans no task check and exits 0.
+  @wip @bug-157 @ID-CMSG-31
+  Scenario: ci run runs the check of a task that only a commit whose message holds the byte 0x1e names
+    Given the task "T-001" has the check "exit 4"
+    And the commit "chore: tidy the readme\n\nA line with \x1e in it.\n\nTask: T-001" on top of it, its backslash escapes read as Go's
+    When itos runs CI over the commits after the first
+    Then itos exits with code 1
+    And its output says "CI failed at T-001 (Tidy)"
 
   # Bug 32 (found by the code review of 07b0e6d). The commit-msg hook read
   # the staged paths with git's rename detection on, so a rename listed only
