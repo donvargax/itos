@@ -4662,6 +4662,11 @@ items:
       go stops appending the notes whole: a note is a startup essential or attached to a role,
       procedure or item, printed where it applies; split from this item on 2026-10-10, q-47 and
       q-48). One design with p1-typed-items, v9.
+
+      From dzaffren/claude-plugin's docs/learnings (68 files, a 13 KB index loaded every session,
+      with duplicates and lessons gates already enforce: the cap here is right): take its capture
+      triggers (a correction, a third recurrence, a blocker the plan missed) and area tags, so a
+      brief carries only the rules for the item's areas.
     refs: [docs/ORCHESTRATING.md, AGENTS.md, internal/guide]
     tags: [agents, v9]
 
