@@ -48,11 +48,11 @@ func classify(cfg *config.Loaded, from, to string) (scope, error) {
 	if len(paths) == 0 || cfg.CI.Prose == nil || len(cfg.CI.Prose.Steps) == 0 {
 		return full, nil
 	}
-	if len(plan.TasksIn(cfg, from, to)) != 0 {
+	if tasks, err := plan.TasksIn(cfg, from, to); err != nil || len(tasks) != 0 {
 		return full, nil
 	}
 	for _, kind := range cfg.Tests.Keys {
-		if len(plan.TestsNamedIn(cfg, from, to, kind)) != 0 {
+		if tests, err := plan.TestsNamedIn(cfg, from, to, kind); err != nil || len(tests) != 0 {
 			return full, nil
 		}
 	}

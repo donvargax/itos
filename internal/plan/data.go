@@ -72,7 +72,10 @@ func ForTrusted(cfg *config.Loaded, from, to string, d Data, t *Trust) (*Plan, e
 }
 
 func forRange(cfg *config.Loaded, from, to string, d Data, trusted *Trust) (*Plan, error) {
-	ids := TasksIn(cfg, from, to)
+	ids, err := TasksIn(cfg, from, to)
+	if err != nil {
+		return nil, err
+	}
 	changed, readErr := ChangedErr(cfg.VCS, from, to)
 	prose, err := DocsOnly(cfg, changed)
 	if err != nil {
@@ -88,7 +91,10 @@ func forRange(cfg *config.Loaded, from, to string, d Data, trusted *Trust) (*Pla
 	if err != nil {
 		return nil, err
 	}
-	in := Input{Prose: prose, Known: known, Scenarios: TestsNamedIn(cfg, from, to, kind), Smoke: d.Smoke}
+	in := Input{Prose: prose, Known: known, Smoke: d.Smoke}
+	if in.Scenarios, err = TestsNamedIn(cfg, from, to, kind); err != nil {
+		return nil, err
+	}
 	ends := EndsOf(cfg, from, to)
 	var omitted string
 	if trusted == nil {

@@ -21,6 +21,7 @@ import (
 	"github.com/donvargax/itos/v8/internal/store/tree/adapter"
 	"github.com/donvargax/itos/v8/internal/store/tree/port/porttest"
 	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
+	vcsport "github.com/donvargax/itos/v8/internal/vcs/port"
 )
 
 func load(t *testing.T, text string) *config.Loaded {
@@ -469,6 +470,38 @@ func TestForStopsAtAProofGlobItCannotRead(t *testing.T) {
 	cfg.Proof.Code.Paths = []string{"?src"}
 	if p, err := For(cfg, from, to, Data{}); err == nil || p != nil {
 		t.Errorf("a proof glob it cannot read gave %+v, %v", p, err)
+	}
+}
+
+// logFails is a VCS whose nth Log fails.
+type logFails struct {
+	vcsport.VCS
+	n     int
+	calls *int
+}
+
+func (l logFails) Log(ctx context.Context, r vcsport.Range) ([]vcsport.Entry, error) {
+	if *l.calls++; *l.calls == l.n {
+		return nil, errors.New("git log gives a record itos cannot read")
+	}
+	return l.VCS.Log(ctx, r)
+}
+
+// For stops at a range git reads whose commits the VCS cannot log, for the
+// tasks they name or the tests (bug-157): a plan naming neither would leave
+// their checks out.
+func TestForStopsAtALogItCannotRead(t *testing.T) {
+	from, to := gitRange(t)
+	cfg := load(t, scratch+"commits:\n  footers:\n    Task: { source: ledger }\n    Scenarios: { source: { tests: scenario } }\n")
+	if _, err := For(cfg, from, to, Data{}); err != nil {
+		t.Fatalf("the range's plan: %v", err)
+	}
+	for _, n := range []int{1, 2} {
+		calls := 0
+		cfg.VCS = logFails{VCS: vcs.Git{}, n: n, calls: &calls}
+		if p, err := For(cfg, from, to, Data{}); err == nil || !strings.Contains(err.Error(), "cannot read") || p != nil {
+			t.Errorf("log %d failing gave %+v, %v", n, p, err)
+		}
 	}
 }
 

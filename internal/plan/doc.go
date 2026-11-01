@@ -88,6 +88,8 @@
 // commits.since does not narrow it, as it narrows verify's, and an empty
 // start is unread (Readable), so every test runs, yet the footers of every
 // commit up to the end are read, so the tasks and tests they name run too.
+// A range git reads whose commits the VCS cannot is an error, never a plan
+// naming none of their tasks (bug-157).
 // A stealth config's itos ci plan with no range plans the unpushed commits
 // (vcs.Unpushed; RangeOf gives the JSON's from as --remotes). The plan
 // carries its range's Ends (ends.go): the start a range check's {from} gets
