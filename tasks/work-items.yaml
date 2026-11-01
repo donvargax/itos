@@ -5159,6 +5159,13 @@ items:
       comment: a ledger file conflicts the same way when one session's work done drops a task's
       done_when lines and another's task add or promote appends the next task right after them;
       whatever merges the registry should cover the ledgers too.
+
+      bug-157's close, 2026-11-01: the merged pull request appended one idea at the registry's end,
+      and main held five local ideas appended there, so work done's required git pull conflicted.
+      Finishing it took four tries: the hook refuses git commit, the pre-commit tests ran out of
+      disk under /tmp without TMPDIR set, and commit-msg refused a merge commit without a type until
+      its title was rewritten through GIT_EDITOR. Until the merge driver exists, work done could say
+      how to finish such a pull (git merge --continue with a docs title).
     tags: [work, v9]
 
   - id: p1-refs-overlap
