@@ -63,5 +63,6 @@ file and leaves this list, which itos decision record writes.
 - [ADR-0060: Opted-in checks keep a result keyed by what they ran on; local records speed reruns, CI records prove](0060-opted-in-checks-keep-a-result-keyed-by-what-they-ran-on-local-records-speed-reruns-ci-records-prove.md)
 - [ADR-0061: The model reviewer reads every spec, and the diff only of a change with a high blast radius](0061-the-model-reviewer-reads-every-spec-and-the-diff-only-of-a-change-with-a-high-blast-radius.md)
 - [ADR-0062: A project delegates decision classes to an answering agent, whose answers are provisional until the person ratifies or overturns them](0062-a-project-delegates-decision-classes-to-an-answering-agent-whose-answers-are-provisional-until-the-person-ratifies-or-overturns-them.md)
+- [ADR-0063: No code written outside itos goes into its source](0063-no-code-written-outside-itos-goes-into-its-source.md)
 
 <!-- itos:decisions:end -->

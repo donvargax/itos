@@ -435,3 +435,4 @@ questions:
   - id: q-106
     question: "May code written outside itos go into its source?"
     answer: "No. No code written outside itos goes into its source, whatever its license: not copied, vendored, or ported line by line. Another project's ideas and designs are fine, reimplemented here from what they do. Libraries taken as dependencies through go.mod stay allowed, as deps-check governs them. Code from Open Orchestra, which the person co-owns, is the one exception."
+    decision: 63
