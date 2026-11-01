@@ -157,7 +157,7 @@ func (g Git) Commits(_ context.Context, r port.Range) ([]string, error) {
 }
 
 func (g Git) Readable(_ context.Context, r port.Range) bool {
-	return g.git().Succeeds(append([]string{"rev-list", "--quiet"}, revs(r)...)...)
+	return g.git().Succeeds(append(append([]string{"rev-list", "--quiet"}, revs(r)...), "--")...)
 }
 
 func (g Git) UnpushedBase(_ context.Context, to string) string { return g.git().UnpushedBase(to) }

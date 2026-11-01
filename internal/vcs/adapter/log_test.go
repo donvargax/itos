@@ -35,8 +35,8 @@ func TestLogReadsAMessageHoldingTheRecordSeparator(t *testing.T) {
 	}
 }
 
-// Commits and Log read a branch whose name is also a folder of the work tree
-// as the branch.
+// Commits, Log and Readable read a branch whose name is also a folder of the
+// work tree as the branch.
 func TestLogReadsABranchNamedAsAFolder(t *testing.T) {
 	dir := filepath.Join(alone(t), "r")
 	gitIn(t, "", "", "init", "-q", "-b", "main", dir)
@@ -51,6 +51,9 @@ func TestLogReadsABranchNamedAsAFolder(t *testing.T) {
 	}
 	if logged, err := g.Log(t.Context(), port.Range{To: "docs"}); err != nil || len(logged) != 1 || logged[0].Subject != "a" {
 		t.Errorf("Log of docs is %+v, %v; want a", logged, err)
+	}
+	if !g.Readable(t.Context(), port.Range{To: "docs"}) {
+		t.Error("docs is not Readable")
 	}
 }
 
