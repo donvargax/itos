@@ -16818,7 +16818,7 @@ items:
     refs: [bug-157]
 
   - id: bug-160
-    title: A draft's skipped CI run cancels the ready run of the same head
+    title: itos push --ready marks a pull request ready while the run its own push triggered has not finished, so the two runs race
     phase: 1
     owner: null
     status: todo
@@ -16834,6 +16834,14 @@ items:
       event) must not cancel one that checks, e.g. cancel-in-progress only for a run that is not a
       draft, or a group keyed by draft. A ci change, not a weakened gate: the newest ready head
       still cancels an older one.
+
+      Fix (the person, 2026-11-01): every GitHub operation is its own step, and one that triggers a
+      workflow run waits for that run to finish before the next operation; here, --ready waits for
+      the merge push's run (a draft's, which skips in seconds) before marking the pull request
+      ready. This fixes the race in itos for every consumer, whatever its ci.yml, and keeps
+      cancel-in-progress. A push that triggers no run (path filters) must not wait forever: a
+      bounded wait for a run to appear, then none is coming. In v9 each operation becomes its own
+      itos next step.
 
   - id: p2-cancelled-run-rerun
     title: itos next and push --ready name a cancelled run of the head as a rerun step, not pending
