@@ -16908,3 +16908,20 @@ items:
       a DAG runtime; and what the strategic risk is, Elder Swamp Club shipping the same factory.
       Ideas to take whichever way it goes: dispatch recorded before a step as the runaway guard,
       overrides that accumulate past a cycle limit, the machine's diagram rendered from its config.
+
+  - id: p2-ready-review-never-started
+    title: itos push --ready tells a reviewer that never starts a review from one that is still running
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      bug-157, PR #247, 2026-11-01: Codex's review-state comment kept security_review at status null
+      and commit_sha null on every head, while each @codex security review request got a code review
+      receipt instead. --ready waited the full 1800 s (ci.watch.timeout) twice, saying only that
+      chatgpt-codex-connector was waiting. A review-state comment whose review is null after a
+      request for the head has not started, and is not stalled: --ready should say that after
+      push.pr.review_stall, name the request comment, and stop with 75 then, not at the timeout.
+      Security reviews on the six PRs before it completed normally, so this is a Codex fault on one
+      PR, not a config one.
