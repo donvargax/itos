@@ -16849,3 +16849,17 @@ items:
       never finish. A cancelled run with no newer run of the head is its own outcome: --ready exits
       with a rule naming the rerun (gh run rerun <id>, or an itos ci rerun), and next gives the
       driver that step, so the loop moves without the person.
+
+  - id: p3-driver-resumable
+    title: The pilot driver picks up an item mid-flight, finding the implementer's worktree without its own memory
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      bug-157's driven run, 2026-11-01: the driver stopped at handed-back (no progress, a cancelled
+      CI run), and a fresh run could not land, because only the run that started the implementer
+      knew its worktree. The worktree holding the item's branch is something git already says (git
+      worktree list), so the driver, or itos next's land argv (p1-next-argv-runnable-from-main),
+      should find it instead of carrying it.
