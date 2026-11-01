@@ -434,3 +434,4 @@ questions:
     answer: "A required status check, itos/reviews (the person, 2026-10-30): a workflow on pull_request, pull_request_review and issue_comment events runs itos to read the head's reviews as --ready reads them and posts success, pending or failure for that head; the person adds it to main's branch protection. Then --ready hands off: ready, auto-merge pinned to the head, return. Items: the status command (slice), the workflow (ci), then the hand-off mode."
   - id: q-106
     question: "May code written outside itos go into its source?"
+    answer: "No. No code written outside itos goes into its source, whatever its license: not copied, vendored, or ported line by line. Another project's ideas and designs are fine, reimplemented here from what they do. Libraries taken as dependencies through go.mod stay allowed, as deps-check governs them. Code from Open Orchestra, which the person co-owns, is the one exception."
