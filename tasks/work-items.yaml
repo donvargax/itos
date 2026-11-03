@@ -16935,3 +16935,16 @@ items:
       push.pr.review_stall, name the request comment, and stop with 75 then, not at the timeout.
       Security reviews on the six PRs before it completed normally, so this is a Codex fault on one
       PR, not a config one.
+
+  - id: p3-devcontainer-itos-pin
+    title: "'The devcontainer installs the current itos release, not 6.3.0'"
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      'Planning the Swamp spike, 2026-11-03: .devcontainer/Dockerfile still pins ITOS_VERSION 6.3.0,
+      two majors behind 8.45.3, so the git shim inside runs a v6 itos. The hooks use tools/bin/itos
+      built from the tree, so only the shim lags, but nothing says when the pin falls behind. Move
+      the pin with each major, or have the release workflow check it.'
