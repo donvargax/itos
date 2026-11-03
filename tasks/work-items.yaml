@@ -16912,6 +16912,13 @@ items:
       IaC and Swamp may cover both; and the split to test: itos as the project's record and judge
       (items, decisions, specs, proofs, all in git), Swamp as the runtime that does the work.
 
+      2026-11-03: Cloudflare took in the Deno team on 2026-10-09; the Deno runtime gets fixes until
+      about October 2027, then none. Swamp is built on Deno (deno compile binaries, extensions in
+      Deno's permission sandbox, JSR) and has said nothing in public; since then its commits keep
+      deepening the Deno ties (2.9.8, deno.lock, JSR). Its tracker is on swamp-club.com, so look
+      there. Also judge what Swamp does about it. Correction to the trigger question: Swamp has
+      swamp serve and a webhook extension kind, so check how far they go, not whether they exist.
+
   - id: p2-ready-review-never-started
     title: itos push --ready tells a reviewer that never starts a review from one that is still running
     phase: 2
