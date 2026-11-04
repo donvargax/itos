@@ -133,14 +133,18 @@ Feature: Under push.mode pr, itos push threads lists an item's open review threa
   A comment's summary is one function, commentSummary (threads.go), which push
   threads, its --json's comment and --ready's refusal all use. It drops every
   HTML comment, across lines too, and every Markdown image with the <sub> tags
-  directly around it, then takes the first line holding a letter or a digit
-  that is no Markdown heading (one to six # and a space), trimmed; a comment
-  that is only headings gives its first heading. A heading is skipped because
-  "### 🛡️ Codex Security Review" stands on every security finding and says
-  nothing, so such a finding's summary is its bold title. Nothing else is
-  touched: bold markers and a kept heading's markers stay, since a rule for them
-  is more code and "2**3" would pay for it, and a long line stays whole, since
-  today's first line is not cut either. Any image goes, not badges
+  directly around it, then takes the first line holding a letter or a digit,
+  a real line, trimmed. When that line is a Markdown heading (one to six # and
+  a space) and another real line follows, the summary is the heading, ": ",
+  then that next real line, trimmed, whether it is a heading or not; a comment
+  whose real lines are all headings gives its first heading. A heading alone
+  would not do, and no vendor has a rule: "### 🛡️ Codex Security Review" stands
+  on every security finding, whose title is the next line, while "### Reviews
+  not pinned" is a Bugbot finding's title, whose next line is its severity. So
+  each gives both. Nothing else is touched: bold and heading markers stay,
+  since a rule for them is more code and "2**3" would pay for it, and a long
+  line stays whole, since today's first line is not cut either. Any image goes,
+  not badges
   alone, since telling them apart is the longer rule. Other angle brackets stay
   ("--reply <text>"), and a "<!--" that never closes is text, so nothing is
   hidden on a guess. A comment with no such line, or no comment at all, has the
@@ -163,13 +167,15 @@ Feature: Under push.mode pr, itos push threads lists an item's open review threa
   them, their words changed:
 
     "<!-- codex-security-review-finding:v1 -->\n\n### 🛡️ Codex Security Review\n\n**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub> Security: Keep the token out of the log**\n\nWhen a widget logs its request.\n\nUseful? React with 👍 / 👎."
-      gives "** Security: Keep the token out of the log**"
+      gives "### 🛡️ Codex Security Review: ** Security: Keep the token out of the log**"
     "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Limit the retries**\n\nA widget that never answers.\n\n<!-- codex-code-review-finding:v1 -->"
       gives "**  Limit the retries**"
     "### Reviews not pinned\n\n**High Severity**\n\n<!-- DESCRIPTION START -->\nEvery review.\n<!-- DESCRIPTION END -->"
-      gives "**High Severity**"
+      gives "### Reviews not pinned: **High Severity**"
     "### Only a heading\n\n<!-- m -->" gives "### Only a heading"
     "## One\n### Two" gives "## One"
+    "### One\n## Two\n\nRename this." gives "### One: ## Two"
+    "  ### Rename this.  \r\n\r\n<!-- m -->\r\n  It clashes.  \r\nNext." gives "### Rename this.: It clashes."
     "#243 broke this.\n\nNext." gives "#243 broke this."
     "####### Seven.\n\nNext." gives "####### Seven."
     a line of 300 letters, then "\nNext." gives that line whole
@@ -277,10 +283,11 @@ Feature: Under push.mode pr, itos push threads lists an item's open review threa
     And the recording gh's "api graphql" call does not have "mutation"
     And the remote has no branch "slice-9"
 
-  # Bug 165's point: what a thread says, not its marker, its badge or the heading
-  # every security finding repeats, which the whole comment beneath keeps; the
-  # bold markers stay, with whatever spaces the badge left inside them. Fails
-  # before the
+  # Bug 165's point: what a thread says, not its marker or its badge. The
+  # security finding's first real line is a heading, so its summary goes on to
+  # the title below it; the badge finding's first real line is no heading, so it
+  # stands alone. The bold markers stay, with whatever spaces the badge left
+  # inside them. Fails before the
   # work at the first "PRRT_1" output step: today its line ends in the marker.
   @ID-PUSHTHREAD-26 @wip @bug-165
   Scenario: Under push.mode pr, push threads gives each open thread's first line of real text and, beneath it, its whole first comment
@@ -314,7 +321,7 @@ Feature: Under push.mode pr, itos push threads lists an item's open review threa
       """
     When itos runs "push threads"
     Then itos exits with code 0
-    And its output says "PRRT_1 widget.md:3 chatgpt-codex-connector: ** Security: Keep the widget's token out of its log**"
+    And its output says "PRRT_1 widget.md:3 chatgpt-codex-connector: ### 🛡️ Codex Security Review: ** Security: Keep the widget's token out of its log**"
     And its output says "PRRT_3 widget.md:8 chatgpt-codex-connector: **  Limit the widget's retries**"
     And its output says "    <!-- codex-security-review-finding:v1 -->"
     And its output says "    ### 🛡️ Codex Security Review"
@@ -819,10 +826,9 @@ Feature: Under push.mode pr, itos push threads lists an item's open review threa
       """
     When itos runs "push --ready"
     Then itos exits with code 1
-    And its output says "widget.md:3 ** Security: Keep the widget's token out of its log**"
+    And its output says "widget.md:3 ### 🛡️ Codex Security Review: ** Security: Keep the widget's token out of its log**"
     And its output says "widget.md:8 **  Limit the widget's retries**"
     And its output does not say "codex-security-review-finding"
-    And its output does not say "Codex Security Review"
     And its output does not say "img.shields.io"
     And its output does not say "When a widget logs its request"
     And the recording gh was never called as "pr merge"
