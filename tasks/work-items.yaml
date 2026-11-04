@@ -17371,3 +17371,16 @@ items:
       cleanly as x a x b, so no conflict and no keep-both runs, and nothing reads work-queue-twice
       on the way to the remote. Also, queueIssues refuses only unknown or twice: a done item in the
       queue is no queue problem, so an id a merge brings back stays unnoticed.
+
+  - id: p3-architecture-on-go-list
+    title: This repository's layout rules hold against a nolint, a generated header and a build-tagged file
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Probes of rules modelled on these, 2026-11-04: //nolint:depguard and its spellings, a
+      generated-file header and a build-tagged file all evade depguard, and
+      tools/bin/architecture-check reads none of them; filed against itos-cc too. Low urgency: no
+      agent was seen doing it. Check against the go list graph when v9's layout settles.
