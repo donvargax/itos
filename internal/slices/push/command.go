@@ -203,8 +203,11 @@ ci.watch.timeout, for a verdict by each login (a "[bot]" suffix is dropped from
 both sides, since GraphQL names a bot without it): a review that is not
 Copilot's refusal to review, or, from a login that wrote a Codex review-state
 comment, that comment with both reviews completed and both of the head judged
-(a state for another commit is waited on, and the login is asked once for the
-head, "@codex review"); exit 75 when one is missing, and at once, outcome
+(a review of the state whose commit is not the head, or that names none, is
+waited on and asked for once per head, each alone: "@codex review" for the code
+review, "@codex security review" for the security review, the comments itos
+review request posts and reads; a login with no such comment is asked nothing);
+exit 75 when one is missing, and at once, outcome
 review-refused, when a login's only reviews are refusals; refuses, exit 1, a
 pull request with an unresolved review thread, naming each by its file, line and
 the first line of its first comment; and only then merges: gh pr merge --auto
@@ -231,8 +234,8 @@ running (its review-state comment reads a review not completed) or completed.
 push.pr.review_stall (seconds, 0 by default: never) makes it ask a login whose
 review has read running that long for it again, once per head: a gh pr comment
 holding "@codex review" and a hidden itos-review-request line with the login and
-the head's full SHA, a comment with that line meaning it was asked already; a
-review still running review_stall seconds after the request ends --ready, exit
+the head's full SHA, a comment with that request meaning it was asked already,
+a security request counting for nothing here; a review still running review_stall seconds after the request ends --ready, exit
 75, outcome review-stalled, auto-merge not turned on. --ready
 --no-wait stops once the pull request is ready, with no run, review or
 auto-merge, since auto-merge unwatched would merge before the review; itos

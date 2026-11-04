@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/donvargax/itos/v8/internal/engine/ciwatch"
+	"github.com/donvargax/itos/v8/internal/engine/reviewers"
 	"github.com/donvargax/itos/v8/internal/providers"
 	"github.com/donvargax/itos/v8/internal/value"
 )
@@ -174,7 +175,7 @@ func (r *pushRun) awaitReviews(ctx context.Context, repository string, w *waitin
 	if w.run == "" {
 		w.show()
 	}
-	rv := &reviewing{stall: r.cfg.Push.PR.ReviewStall, since: map[string]time.Time{}, asked: map[string]time.Time{}}
+	rv := &reviewing{stall: r.cfg.Push.PR.ReviewStall, since: map[string]time.Time{}, asked: map[reviewers.Request]time.Time{}}
 	for first := true; ; first = false {
 		state, a, failed := r.ask(ctx, repository, r.pr.Number)
 		if failed {
@@ -197,7 +198,7 @@ func (r *pushRun) awaitReviews(ctx context.Context, repository string, w *waitin
 			}
 			return state, r.report(temporary, "review-refused"), true
 		}
-		if a, done := r.askForHead(ctx, repository, w, rv, state, missing); done {
+		if a, done := r.askForHead(ctx, repository, w, rv, state); done {
 			return state, a, true
 		}
 		timedOut, bounded, left := r.limits(deadline)
@@ -216,12 +217,6 @@ func (r *pushRun) awaitReviews(ctx context.Context, repository string, w *waitin
 		}
 		sleep(min(max(interval, reviewPoll), left))
 	}
-}
-
-// underway is whether a review of the head, in the state, reads anything but
-// completed.
-func underway(s providers.ReviewState, head string) bool {
-	return s.Code.SHA == head && s.Code.Status != "completed" || s.Security.SHA == head && s.Security.Status != "completed"
 }
 
 // reviewsFrom is when the clock of ci.watch.timeout for the reviews starts:
