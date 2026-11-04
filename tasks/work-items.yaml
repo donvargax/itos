@@ -16986,8 +16986,8 @@ items:
   - id: slice-221
     title: itos brief's drafter step names the commit type the config lets a spec's scenarios take, not docs
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: [slice-220]
     kind: slice
     why: >
