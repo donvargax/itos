@@ -17245,3 +17245,16 @@ items:
       gets attempt-not-red-first, though a task has no test step (untested ignores kind); a
       throwaway scenario confirms it. And implemented never asks whether a task's checks still exist
       at the head, or pass.
+
+  - id: p3-tests-run-wip
+    title: A way to run named @wip scenarios without editing the feature file
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Every drafter strips @wip with sed, runs its scenarios to name the failing steps, then
+      restores the file; a refused compound command left one feature without its tags until noticed
+      (slice-220's drafter, 2026-11-04). A flag to include @wip for named scenarios ends the
+      routine.
