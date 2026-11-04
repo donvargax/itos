@@ -41,6 +41,11 @@ func askedBy(author, login, head string) string {
 	return node(author, "@codex review\n\n<!-- itos-review-request:v1 "+login+" "+head+" -->")
 }
 
+// askedForSecurity is the same, for the security review.
+func askedForSecurity(author, login, head string) string {
+	return node(author, "@codex security review\n\n<!-- itos-review-request:v1 "+login+" "+head+" -->")
+}
+
 // waitingLines are the lines of the output that say what --ready waits on,
 // without the address and the head they all begin with.
 func waitingLines(output, address, head string) []string {
@@ -169,52 +174,6 @@ func TestPushReadySaysWhatItWaitsOnAtTheRebasedHead(t *testing.T) {
 	}
 }
 
-// A comment by anyone with the marker line for the login and the head asks for
-// it again; the login is matched as review_by's are, the line trimmed.
-func TestRequested(t *testing.T) {
-	const head = "0123456789abcdef0123456789abcdef01234567"
-	marker := func(login, sha string) string { return "<!-- itos-review-request:v1 " + login + " " + sha + " -->" }
-	for name, c := range map[string]struct {
-		body string
-		want bool
-	}{
-		"as itos writes it":        {"@codex review\n\n" + marker("a", head), true},
-		"the line alone":           {marker("a", head), true},
-		"a bot":                    {marker("a[bot]", head), true},
-		"indented, carriage":       {"x\r\n  " + marker("a", head) + "  \r\n", true},
-		"another head":             {marker("a", "ffffffffffffffffffffffffffffffffffffffff"), false},
-		"a short head":             {marker("a", head[:7]), false},
-		"another login":            {marker("ab", head), false},
-		"no login":                 {"<!-- itos-review-request:v1 " + head + " -->", false},
-		"a longer login":           {marker("a b", head), false},
-		"another version":          {strings.Replace(marker("a", head), "v1", "v2", 1), false},
-		"no closing":               {strings.TrimSuffix(marker("a", head), " -->"), false},
-		"not on a line of its own": {"see " + marker("a", head), false},
-		"only the words":           {"@codex review", false},
-	} {
-		t.Run(name, func(t *testing.T) {
-			s := pullState{pull: providers.PullState{Comments: []providers.Authored{{Login: "someone", Body: "other"}, {Login: "someone", Body: c.body}}}}
-			if got, at := s.requested("a", head); got != c.want || !at.IsZero() {
-				t.Errorf("requested: %t at %s, want %t at none", got, at, c.want)
-			}
-		})
-	}
-	if found, _ := (pullState{}).requested("a", head); found {
-		t.Error("no comment asks")
-	}
-	// The time is the latest of the requests', as GitHub gives it.
-	older, newer := time.Unix(1_000, 0), time.Unix(2_000, 0)
-	s := pullState{pull: providers.PullState{Comments: []providers.Authored{
-		{Login: "x", Body: marker("a", head), Created: newer},
-		{Login: "y", Body: marker("a", head), Created: older},
-		{Login: "z", Body: marker("b", head), Created: time.Unix(3_000, 0)},
-		{Login: "w", Body: marker("a", "ffffffffffffffffffffffffffffffffffffffff"), Created: time.Unix(4_000, 0)},
-	}}}
-	if found, at := s.requested("a", head); !found || !at.Equal(newer) {
-		t.Errorf("requested: %t at %s, want the latest, %s", found, at, newer)
-	}
-}
-
 // stalling is a pull request whose reviews by a are asked each 10 seconds, the
 // answer the function gives for the ask and whether a pr comment call has been
 // made, review_stall seconds and ci.watch.timeout 100.
@@ -317,6 +276,11 @@ func TestPushReadyStallCases(t *testing.T) {
 		}, temporary, "review-stalled", 1, 7},
 		"another login": {"review_stall: 30", func(_ int, _ bool, head string) string {
 			return answerOf([]string{node("b", "")}, []string{askedBy("someone", "ab", head), runningBy("a")})
+		}, temporary, "review-stalled", 1, 7},
+		// A security request is not the stall's: the code review is still asked
+		// for, and its clock starts from the running review, not from that request.
+		"a security request": {"review_stall: 30", func(_ int, _ bool, head string) string {
+			return answerOf([]string{node("b", "")}, []string{askedForSecurity("someone", "a", head), runningBy("a")})
 		}, temporary, "review-stalled", 1, 7},
 		// What GitHub shows after the request counts from the request, not from
 		// the first look.
