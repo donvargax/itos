@@ -334,7 +334,7 @@ var schema = about("itos's policy: the ledger, the commit rules, the named tests
 					"login", about("The reviewer's GitHub login; a bot's \"[bot]\" suffix may be written or not.", str),
 					"kind", about("How itos asks this reviewer and reads its review of a head: codex or bugbot.", enum("codex", "bugbot")),
 				))),
-			"review_stall", about("The seconds a push.pr.review_by login's review may read running in its review-state comment (Codex's) before itos push --ready asks for it again, once per head; 0, the default, never.", num),
+			"review_stall", about("The seconds a push.pr.review_by login's review may read running in its review-state comment (Codex's), or not started after its request, before itos push --ready asks for it again, and as long again before it stops, exit 75; 0, the default, never. It must exceed the reviewer's queue plus its review: a slow healthy reviewer still on the old commit reads as not started, at a cost of one extra request and a stop at twice this.", num),
 			"ready_wait", about("The seconds one itos push --ready may spend, counted from its start, before it stops waiting for GitHub's rebase, the run and the reviews "+
 				"with the outcome ready-still-waiting, so that it returns within its caller's time limit; itos push --ready again goes on. 0, no bound.", num),
 			"update", about("How itos push brings an item's branch up to the remote's item branch and to main under push.mode pr: "+

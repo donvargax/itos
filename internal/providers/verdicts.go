@@ -27,6 +27,18 @@ type StateReview struct {
 	Status, SHA string
 }
 
+// UnderWay is whether the review is running on the head: of the head, its status
+// neither null nor completed.
+func (r StateReview) UnderWay(head string) bool {
+	return r.SHA == head && r.Status != "" && r.Status != "completed"
+}
+
+// NotStarted is whether the review has not started on the head: its status null,
+// or no commit, or another commit whatever its status (slice 218).
+func (r StateReview) NotStarted(head string) bool {
+	return r.Status == "" || r.SHA != head
+}
+
 // Completed is whether both reviews are.
 func (s ReviewState) Completed() bool {
 	return s.Code.Status == "completed" && s.Security.Status == "completed"

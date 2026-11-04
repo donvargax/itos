@@ -144,43 +144,44 @@ func TestUnmarkedMentionsOf243(t *testing.T) {
 func TestAFirstLineIsNotItsOwnMarker(t *testing.T) {
 	line := marker + bugbotLogin + " " + head243 + " -->"
 	comments := []providers.Authored{{Login: "donvargax", Body: line}}
-	if on, _ := (Request{Login: bugbotLogin, Kind: "bugbot", Line: line}).OnHead(comments, head243); on {
+	if (Request{Login: bugbotLogin, Kind: "bugbot", Line: line}).OnHead(comments, head243) {
 		t.Errorf("%q counts as a request", line)
 	}
 }
 
 // The two requests of Codex share a marker line and are told apart by the line
 // above it, so the code review's reads neither the security review's nor a
-// marker alone. When is the latest of the request's own comments, as GitHub
-// gives it, and none where it gives none.
-func TestOnHeadReadsOneRequestAndItsLatestTime(t *testing.T) {
+// marker alone. Made gives the request's own comments, in the order given.
+func TestOnHeadReadsOneRequest(t *testing.T) {
 	mark := "\n\n" + marker + codexLogin + " " + head243 + " -->"
 	code := CodexReview(codexLogin)
 	if want := (Request{Login: codexLogin, Kind: "codex", Line: "@codex review"}); code != want {
 		t.Errorf("CodexReview = %+v, want %+v", code, want)
 	}
+	if want := (Request{Login: codexLogin, Kind: "codex", Line: "@codex security review"}); CodexSecurity(codexLogin) != want {
+		t.Errorf("CodexSecurity = %+v, want %+v", CodexSecurity(codexLogin), want)
+	}
 	first, later := time.Unix(1_000, 0), time.Unix(2_000, 0)
 	for name, c := range map[string]struct {
 		comments []providers.Authored
-		on       bool
-		at       time.Time
+		made     []time.Time
 	}{
-		"no comment":          {nil, false, time.Time{}},
-		"no time":             {[]providers.Authored{{Body: "@codex review" + mark}}, true, time.Time{}},
-		"the security review": {[]providers.Authored{{Body: "@codex security review" + mark, Created: later}}, false, time.Time{}},
-		"a marker alone":      {[]providers.Authored{{Body: strings.TrimPrefix(mark, "\n\n")}}, false, time.Time{}},
-		"the latest, listed last": {[]providers.Authored{
-			{Body: "@codex review" + mark, Created: first},
+		"no comment":          {nil, nil},
+		"no time":             {[]providers.Authored{{Body: "@codex review" + mark}}, []time.Time{{}}},
+		"the security review": {[]providers.Authored{{Body: "@codex security review" + mark, Created: later}}, nil},
+		"a marker alone":      {[]providers.Authored{{Body: strings.TrimPrefix(mark, "\n\n")}}, nil},
+		"both, in order": {[]providers.Authored{
 			{Body: "@codex review" + mark, Created: later},
-		}, true, later},
-		"the latest, listed first": {[]providers.Authored{
-			{Body: "@codex review" + mark, Created: later},
-			{Body: "@codex review" + mark, Created: first},
 			{Body: "@codex security review" + mark, Created: later.Add(time.Hour)},
-		}, true, later},
+			{Body: "@codex review" + mark, Created: first},
+		}, []time.Time{later, first}},
 	} {
-		if on, at := code.OnHead(c.comments, head243); on != c.on || !at.Equal(c.at) {
-			t.Errorf("%s: %t at %s, want %t at %s", name, on, at, c.on, c.at)
+		var made []time.Time
+		for _, m := range code.Made(c.comments, head243) {
+			made = append(made, m.Created)
+		}
+		if !reflect.DeepEqual(made, c.made) || code.OnHead(c.comments, head243) != (len(c.made) > 0) {
+			t.Errorf("%s: made %v, on %t, want %v", name, made, code.OnHead(c.comments, head243), c.made)
 		}
 	}
 }

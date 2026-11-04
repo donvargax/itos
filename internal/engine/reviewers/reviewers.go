@@ -3,7 +3,6 @@ package reviewers
 import (
 	"slices"
 	"strings"
-	"time"
 
 	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/providers"
@@ -50,7 +49,7 @@ func Missing(reviewers []config.Reviewer, state providers.PullState, head string
 		a := kinds[rv.Kind]
 		for _, line := range a.lines {
 			r := Request{Login: rv.Login, Kind: rv.Kind, Line: line}
-			if on, _ := r.OnHead(state.Comments, head); on || a.reviewed(state, rv.Login, line, head) {
+			if r.OnHead(state.Comments, head) || a.reviewed(state, rv.Login, line, head) {
 				continue
 			}
 			missing = append(missing, r)
@@ -72,28 +71,35 @@ func Unrequested(reviewers []config.Reviewer, state providers.PullState, head st
 	return logins
 }
 
-// OnHead is whether a comment, by anyone, has the request's line as its first
-// line and a marker line naming its login and the head; at is when the latest
-// such comment was made, zero when GitHub does not say.
-func (r Request) OnHead(comments []providers.Authored, head string) (on bool, at time.Time) {
+// OnHead is whether a comment on the pull request makes the request for the head.
+func (r Request) OnHead(comments []providers.Authored, head string) bool {
+	return slices.ContainsFunc(comments, func(c providers.Authored) bool { return r.madeBy(c, head) })
+}
+
+// Made is each comment that makes the request for the head, in the order given.
+func (r Request) Made(comments []providers.Authored, head string) []providers.Authored {
+	var made []providers.Authored
 	for _, c := range comments {
-		lines := strings.Split(strings.ReplaceAll(c.Body, "\r\n", "\n"), "\n")
-		if strings.TrimSpace(lines[0]) != r.Line {
-			continue
-		}
-		for _, l := range lines[1:] {
-			text, ok := strings.CutPrefix(strings.TrimSpace(l), marker)
-			text, closed := strings.CutSuffix(text, " -->")
-			who, sha, both := strings.Cut(text, " ")
-			if ok && closed && both && sameLogin(who, r.Login) && strings.EqualFold(sha, head) {
-				on = true
-				if c.Created.After(at) {
-					at = c.Created
-				}
-			}
+		if r.madeBy(c, head) {
+			made = append(made, c)
 		}
 	}
-	return on, at
+	return made
+}
+
+// madeBy is whether the comment, by anyone, has the request's line as its first
+// line and a marker line naming its login and the head.
+func (r Request) madeBy(c providers.Authored, head string) bool {
+	lines := strings.Split(strings.ReplaceAll(c.Body, "\r\n", "\n"), "\n")
+	if strings.TrimSpace(lines[0]) != r.Line {
+		return false
+	}
+	return slices.ContainsFunc(lines[1:], func(l string) bool {
+		text, ok := strings.CutPrefix(strings.TrimSpace(l), marker)
+		text, closed := strings.CutSuffix(text, " -->")
+		who, sha, both := strings.Cut(text, " ")
+		return ok && closed && both && sameLogin(who, r.Login) && strings.EqualFold(sha, head)
+	})
 }
 
 // sameLogin is whether two logins are equal once a trailing "[bot]" is

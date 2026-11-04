@@ -87,7 +87,8 @@ type Out struct {
 // PullRequest, the pull request of an item's branch under push.mode pr; Pull,
 // Threads and Thread, what push threads and push thread report (threads.go),
 // Thread a *ThreadResult for an answer or a *ThreadView for a shown thread;
-// and Watched, the CI run waited for after the push, if one was.
+// Watched, the CI run waited for after the push, if one was; and NotStarted, the
+// review that ended --ready as not started.
 type Answer struct {
 	Code           int
 	Outcome        string
@@ -100,6 +101,17 @@ type Answer struct {
 	Threads        []ThreadInfo
 	Thread         any
 	Watched        *ciwatch.Watched
+	NotStarted     *NotStarted
+}
+
+// NotStarted is the review that ended --ready as not started (slice 218), as
+// --json's not_started gives it: the login as the config writes it, the review,
+// code or security, the head's full SHA and the address of the latest request.
+type NotStarted struct {
+	Login   string `json:"login"`
+	Review  string `json:"review"`
+	Head    string `json:"head"`
+	Request string `json:"request"`
 }
 
 // Handle answers q, writing where o says as it runs: the plain push, or

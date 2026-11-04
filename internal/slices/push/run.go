@@ -64,6 +64,9 @@ func (c CLI) Run(ctx context.Context, stdout, stderr io.Writer, h Handler) (int,
 		if a.Watched != nil {
 			fields = append(fields, a.Watched.Fields()...)
 		}
+		if a.NotStarted != nil {
+			fields = append(fields, out.Field{Key: "not_started", Value: a.NotStarted})
+		}
 		return a.Code, out.Emit(stdout, fields...)
 	}
 	w := stderr
