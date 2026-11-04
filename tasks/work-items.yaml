@@ -17163,3 +17163,17 @@ items:
       went nowhere. A loop then has no route from a second reviewer to the drafter's brief. Either
       take a further body at the same verdict, or have itos brief read other comments addressed to
       the item.
+
+  - id: p2-next-reviewer-stuck
+    title: itos next reports a reviewer that stopped a landing, so a driver does not rerun --ready on it
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      slice-218's review, 2026-11-04: after review-not-started or review-stalled, itos next stays
+      handed-back with the action itos push --ready. A rerun posts nothing and exits 75 at its first
+      look, so a driver spins on reads until someone looks. next reads the forge and the journal,
+      not --ready's outcomes; a state of its own would come from the same facts. Related: bug-160's
+      One forge operation per step.
