@@ -67,8 +67,12 @@ Feature: itos attempt submit, an agent's result checked against its brief and ag
   tagged for it says nothing. A task's checks at a head are those itos
   next's needs-spec reads, the same read over the ledger of the head's
   tree, under the clone's config as the scenarios are: a ledger at the head
-  that cannot be read is that read's error, never a state, and nothing is
-  recorded.
+  that cannot be read, or a head with no ledger folder, is that read's
+  error, never a state, and nothing is recorded; no ledger entry means an
+  entry missing from a ledger that exists. next's kindOf and checks move to
+  a package both commands can import, since one slice cannot import another
+  (tools/bin/architecture-check). A copy would pass every scenario here, so
+  the review judges that, not the scenarios.
 
   The journal is .git/itos/attempts/<id>.jsonl in the git folder (the
   common dir of a linked worktree), one line per result taken in:
@@ -774,12 +778,43 @@ Feature: itos attempt submit, an agent's result checked against its brief and ag
     And its JSON's problem "attempt-spec-missing"'s "message" says "a task's spec is its done_when checks"
     And the file ".git/itos/attempts/T-001.jsonl" does not exist
 
+  # A guard: the kind is read from the clone's registry, as next reads it,
+  # never from the head's. slice-9 is a slice on main; its head relabels
+  # itself kind: task in its own registry and writes a ledger check, with no
+  # scenario. If the head's registry were read, a drafter could relabel its
+  # way out of its scenarios: such a build accepts this head and fails at
+  # "itos exits with code 1". Today's submit reads no kind, so it passes
+  # before the work, and it must after.
+  @ID-ATTEMPT-26 @wip @guard @slice-219
+  Scenario: A slice's head relabelling itself a task in its own registry is judged by its scenarios
+    When itos runs "brief slice-9 --role drafter --json"
+    Then itos exits with code 0
+    And the JSON's "request" is saved as "request"
+    And the JSON's "base" is saved as "base"
+    Given the clone is on the new branch "slice-9"
+    And the committed file "tasks/work-items.yaml" holding the lines:
+      """
+      phases: { 1: null }
+      items:
+        - { id: slice-9, title: Relabelled, phase: 1, owner: null, status: todo, kind: task, depends_on: [] }
+      """
+    And the task "slice-9" has the committed check "go vet ./..."
+    And the last commit SHA is saved as "head"
+    And git pushes HEAD to the remote's new branch "slice-9"
+    And the clone switches to its branch "main"
+    And the file "result.json" holds the lines, the saved values filled in:
+      """
+      {"schema":1,"item":"slice-9","role":"drafter","request":"<request>","base":"<base>","attempt":1,"outcome":"done","head":"<head>"}
+      """
+    When itos runs "attempt submit slice-9 result.json --json"
+    Then itos exits with code 1
+    And its JSON's problem "attempt-spec-missing"'s "message" says "no scenario is tagged @slice-9 at the head"
+    And the file ".git/itos/attempts/slice-9.jsonl" does not exist
+
   # The read is next's, so what it cannot read is its error, never a state:
   # the head's ledger is not YAML, which ledger.Tasks refuses as a usage
   # error. Not a spec-missing refusal, which would tell the drafter the
-  # checks are absent, and today's answer. A ledger folder the head lacks
-  # is that read's error too (ledger-folder-missing, exit 2), which is why a
-  # head with no entry at all is judged with the folder there.
+  # checks are absent, and today's answer.
   @ID-ATTEMPT-22 @wip @slice-219
   Scenario: A task's drafter head whose ledger cannot be read is an error, nothing recorded
     Given the work registry has the task "T-001" owned by nobody with the status "todo" and no why
@@ -800,6 +835,35 @@ Feature: itos attempt submit, an agent's result checked against its brief and ag
     Then itos exits with code 2
     And its output does not say "attempt-spec-missing"
     And the file ".git/itos/attempts/T-001.jsonl" does not exist
+
+  # A head with no ledger folder keeps the shared read's error,
+  # ledger-folder-missing, exit 2, as next and every command reading the
+  # ledger give it. ID-ATTEMPT-18's refusal is for an entry missing from a
+  # ledger that exists. Today's submit never reads the ledger: exit 1.
+  @ID-ATTEMPT-27 @wip @slice-219
+  Scenario: A task's drafter head with no ledger folder is the read's error, nothing recorded
+    Given the work registry has the task "T-001" owned by nobody with the status "todo" and no why
+    When itos runs "brief T-001 --role drafter --json"
+    Then itos exits with code 0
+    And the JSON's "request" is saved as "request"
+    And the JSON's "base" is saved as "base"
+    Given the clone is on the new branch "T-001"
+    And the ledger folder is missing
+    And the last commit SHA is saved as "head"
+    And git pushes HEAD to the remote's new branch "T-001"
+    And the clone switches to its branch "main"
+    And the file "result.json" holds the lines, the saved values filled in:
+      """
+      {"schema":1,"item":"T-001","role":"drafter","request":"<request>","base":"<base>","attempt":1,"outcome":"done","head":"<head>"}
+      """
+    When itos runs "attempt submit T-001 result.json"
+    Then itos exits with code 2
+    And its output says "the ledger's folder tasks does not exist"
+    And its output does not say "attempt-spec-missing"
+    And the file ".git/itos/attempts/T-001.jsonl" does not exist
+    When itos runs "attempt submit T-001 result.json --json"
+    Then itos exits with code 2
+    And its JSON's problem "ledger-folder-missing"'s "message" says "tasks"
 
   # A guard: a bug's drafter is judged as a slice's, today and after, by
   # scenarios tagged for it; ID-ATTEMPT-01 and ID-ATTEMPT-09 hold a slice's.
@@ -869,6 +933,34 @@ Feature: itos attempt submit, an agent's result checked against its brief and ag
     And its JSON's problem "attempt-spec-missing"'s "message" says "no scenario is tagged @T-001 at the head"
     And its JSON's problem "attempt-spec-missing"'s "fix" says "tag the item's scenarios @wip @T-001"
     And the file ".git/itos/attempts/T-001.jsonl" does not exist
+
+  # The other way round: chore-1's id is no slice's, bug's or task's, and its
+  # kind key says task, which next reads as a task. A build that took the
+  # id's kind unless the key said slice or bug would judge it by scenarios
+  # and refuse this head.
+  @ID-ATTEMPT-25 @wip @slice-219
+  Scenario: An item whose kind key says task is judged by its checks, whatever its id
+    Given the work registry has the task "chore-1" owned by nobody with the status "todo" and no why
+    When itos runs "next chore-1 --json"
+    Then itos exits with code 0
+    And its JSON's "kind" is "task"
+    When itos runs "brief chore-1 --role drafter --json"
+    Then itos exits with code 0
+    And the JSON's "request" is saved as "request"
+    And the JSON's "base" is saved as "base"
+    Given the clone is on the new branch "chore-1"
+    And the task "chore-1" has the committed check "go vet ./..."
+    And the last commit SHA is saved as "head"
+    And git pushes HEAD to the remote's new branch "chore-1"
+    And the clone switches to its branch "main"
+    And the file "result.json" holds the lines, the saved values filled in:
+      """
+      {"schema":1,"item":"chore-1","role":"drafter","request":"<request>","base":"<base>","attempt":1,"outcome":"done","head":"<head>"}
+      """
+    When itos runs "attempt submit chore-1 result.json --json"
+    Then itos exits with code 0
+    And its JSON's "outcome" is "accepted"
+    And line 1 of the file ".git/itos/attempts/chore-1.jsonl" is a JSON object whose "verdict" is "accepted"
 
   # Past base, the feat commit comes first and the test commit after it:
   # the scenario went live before any test could be red. The spec's own
