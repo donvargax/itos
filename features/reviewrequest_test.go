@@ -8,6 +8,7 @@ package features
 
 import (
 	"fmt"
+	"path/filepath"
 	"strings"
 
 	"github.com/cucumber/godog"
@@ -24,6 +25,22 @@ func initializeReviewRequestSteps(sc *godog.ScenarioContext, w *world) {
 		})
 	sc.Step(`^the recording gh answers that the pull request has a comment by "([^"]*)" requesting "([^"]*)" of "([^"]*)" at the commit "([^"]*)"$`,
 		w.ghAnswersRequest)
+	sc.Step(`^the recording gh answers that the pull request has a comment by "([^"]*)" requesting "([^"]*)" of "([^"]*)" at the clone's HEAD, posted (\d+) seconds ago, at "([^"]*)"$`,
+		func(author, line, login string, seconds int, address string) error {
+			sha, err := w.head()
+			if err != nil {
+				return err
+			}
+			then := secondsAgo(seconds)
+			return w.ghAddNode(w.ghComments(), map[string]any{"author": map[string]any{"login": author}, "body": requestBody(line, login, sha),
+				"url": address, "createdAt": then, "updatedAt": then})
+		})
+	sc.Step(`^the recording gh's pr comment prints "([^"]*)" and the call's number$`, func(address string) error {
+		return w.ghWrite(w.ghCommentPrints(), []byte(address))
+	})
+	sc.Step(`^the recording gh lists each pr comment it takes$`, func() error {
+		return w.ghWrite(w.ghCommentLists(), nil)
+	})
 	sc.Step(`^the recording gh answers that the pull request has a review by "([^"]*)" of the clone's HEAD whose body is "([^"]*)"$`,
 		func(login, body string) error {
 			sha, err := w.head()
@@ -42,9 +59,19 @@ func initializeReviewRequestSteps(sc *godog.ScenarioContext, w *world) {
 // by the author requesting the line of the login at the commit: the line, an
 // empty line, then itos's request marker for the login and the commit.
 func (w *world) ghAnswersRequest(author, line, login, sha string) error {
-	body := line + "\n\n<!-- itos-review-request:v1 " + login + " " + sha + " -->"
-	return w.ghAddNode(w.ghComments(), map[string]any{"author": map[string]any{"login": author}, "body": body})
+	return w.ghAddNode(w.ghComments(), map[string]any{"author": map[string]any{"login": author}, "body": requestBody(line, login, sha)})
 }
+
+// requestBody is a request as itos writes it: the line, an empty line, then its
+// request marker for the login and the commit.
+func requestBody(line, login, sha string) string {
+	return line + "\n\n<!-- itos-review-request:v1 " + login + " " + sha + " -->"
+}
+
+// The recording gh's files of slice 218: the address pr comment prints before
+// the call's number, and whether it lists what it takes as a comment.
+func (w *world) ghCommentPrints() string { return filepath.Join(w.support, "gh-comment-prints") }
+func (w *world) ghCommentLists() string  { return filepath.Join(w.support, "gh-comment-lists") }
 
 // The recording gh's api graphql answers that the pull request has a review
 // by the login of the commit, whose body is the one given.
