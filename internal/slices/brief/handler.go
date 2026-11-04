@@ -124,7 +124,7 @@ func (h Handler) Handle(ctx context.Context, q Query) (Answer, error) {
 	if problem != nil {
 		return refused(*problem), nil
 	}
-	f := facts{ID: q.ID, Role: q.Role, Kind: itemKind(shown.Item, at), Depends: dependencies(registry, shown.Item)}
+	f := facts{ID: q.ID, Role: q.Role, Kind: itemKind(shown.Item, at), Depends: dependencies(registry, shown.Item), phase: phaseOf(shown.Item)}
 	if f.Kind == "idea" {
 		return refused(out.Problem{Rule: "brief-idea", Message: q.ID + " is an idea, which has no spec and no kind to brief for",
 			Fix: fmt.Sprintf("make it work first: itos work promote %s --kind slice, or --kind task --type <type> --check <command>", q.ID)}), nil
@@ -154,6 +154,11 @@ func (h Handler) Handle(ctx context.Context, q Query) (Answer, error) {
 		return Answer{}, err
 	}
 	f.Lines = lines(ctx, at, src)
+	if q.Role == guidetext.Drafter {
+		if f.commit, err = chooseSpecCommit(at, q.ID, f.Kind, f.filesToCommit()); err != nil {
+			return Answer{}, err
+		}
+	}
 	b.Text = fill(q.Role, f)
 	b.Request = request(b)
 	return Answer{Brief: b}, nil
@@ -194,6 +199,14 @@ func noSpec(id, k string) out.Problem {
 
 // absent is a registry value an item does not give.
 func absent(v any) bool { return v == nil || v == value.Undefined }
+
+// phaseOf is the item's phase as text, "" for an item that gives none.
+func phaseOf(item *value.Map) string {
+	if phase := item.At("phase"); !absent(phase) {
+		return value.String(phase)
+	}
+	return ""
+}
 
 // itemKind is the item's kind as the brief names it: as next reads it
 // (ledger.KindOf), idea for an item that gives none.
@@ -241,7 +254,9 @@ func refsOf(item *value.Map) []string {
 
 // spec reads the item's spec at the commit base into f: a task's ledger
 // entry, its checks and its file, or the scenarios tagged for the item and
-// their files, each once, in the order found.
+// their files, each once, in the order found. With neither, unwritten is the
+// file it would be written in: a task's by its phase, a slice's or a bug's
+// under the first Gherkin kind's root.
 func (h Handler) spec(_ context.Context, at *config.Loaded, base string, f *facts) error {
 	if f.Kind == "task" {
 		// Files first: Tasks reads them too, so a folder that cannot be
@@ -256,6 +271,7 @@ func (h Handler) spec(_ context.Context, at *config.Loaded, base string, f *fact
 		}
 		i := slices.IndexFunc(tasks, func(t ledger.Task) bool { return t.ID == f.ID })
 		if i < 0 {
+			f.unwritten = ledger.GroupFile(at, files, f.phase)
 			return nil
 		}
 		// The task's file is the one of its group, read as Tasks reads a
@@ -283,6 +299,9 @@ func (h Handler) spec(_ context.Context, at *config.Loaded, base string, f *fact
 		if !slices.Contains(f.specFiles, s.Path) {
 			f.specFiles = append(f.specFiles, s.Path)
 		}
+	}
+	if root, ok := tests.GherkinRoot(at); ok && len(f.specFiles) == 0 {
+		f.unwritten = path.Join(root, f.ID+".feature")
 	}
 	return nil
 }

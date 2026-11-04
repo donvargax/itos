@@ -8,6 +8,27 @@ import (
 	trackerport "github.com/donvargax/itos/v8/internal/store/tracker/port"
 )
 
+// A group's file is the ledger's whose group it is, a numeric group by its
+// number, else the one ledger.files names; none where it cannot name one.
+func TestGroupFile(t *testing.T) {
+	cfg := scratchLedger(t, map[string]string{})
+	files := []File{{Path: "tasks/phase-01.yaml", Group: "01"}}
+	cfg.Ledger.Group.Numeric = true
+	if got := GroupFile(cfg, files, "1"); got != "tasks/phase-01.yaml" {
+		t.Errorf("a numeric group's file: %q", got)
+	}
+	if got := GroupFile(cfg, files, "2"); got != "tasks/phase-2.yaml" {
+		t.Errorf("a group with no file: %q", got)
+	}
+	if got := GroupFile(cfg, files, ""); got != "" {
+		t.Errorf("no group: %q", got)
+	}
+	cfg.Ledger.Files = "tasks/all.yaml"
+	if got := GroupFile(cfg, nil, "2"); got != "" {
+		t.Errorf("a ledger.files with no {group}: %q", got)
+	}
+}
+
 // The new task goes after the last of its group's file as load reads it, or
 // in a file made for a group that has none, its text before none; a load
 // that fails is its error, nothing added.

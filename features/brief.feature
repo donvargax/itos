@@ -49,6 +49,84 @@ Feature: itos brief, the filled brief an agent starts from and its request
   scan, the ledger, the ORCHESTRATING section and the reads' blobs, never
   the working tree or the index.
 
+  The drafter's brief names the commit type its spec goes in under, and the
+  flag of itos commit that goes with it (slice-221). It said docs and --item
+  whatever the config, and a project whose commits.scopes.docs leaves out
+  features/ refuses docs (itos commit check-paths --type docs): a drafter
+  following the brief stopped twice on it, and its driver had to tell its
+  agents the right type. The flag is the one the config has: --item where it
+  has a footer of the work registry, else --task for a task where it has a
+  ledger footer, else plain itos commit, as itos commit refuses a flag whose
+  footer the config lacks. On a project with a ci: section, --task also makes
+  CI run the task's checks once the spec's commit is pushed, as it does for any
+  commit naming a task. The type is docs when the config lets docs carry the
+  spec's files; otherwise the first of commits.types that may carry them and
+  that the registry's footer (Item:) stands in for, or, where the config has no
+  such footer, for a task, that its ledger footer is required for. So a slice
+  or a bug with no such footer, one whose in_place_of names nothing, or a task
+  with neither footer, has docs alone. A type may carry them when commits.types
+  has it, when the path
+  rules itos commit check-paths judges with let it touch them, and when the
+  hook's footer rules call nothing missing from a commit made with that flag,
+  a required footer of free text among them, as the brief's sentence writes
+  none. The spec's files are those of the scenarios tagged for the item, else
+  a feature file under the root of the first Gherkin kind of tests, as the
+  scan for tagged scenarios reads them; a task's are its ledger file, else the
+  one its phase would have. Where no type may, or a slice or a bug has no such
+  kind, the brief says so and tells the drafter to stop and report, so that it
+  never names a type its config refuses by its types, path rules and footers.
+  It does not judge the hook's staged range commands, which need the staged
+  files a brief does not have. With no commits section there is nothing to
+  judge by, and the brief keeps docs with plain itos commit, even with no
+  Gherkin kind, where docs wins over the stop; the hook's path rules call such
+  a config an error whatever the type, so this promises nothing of that
+  commit. The config is the one the brief reads, HEAD's or
+  --at's. The request stays a digest of the item, the role, the spec commit
+  and the reads: a config changing the type changes the brief's text and not
+  its request, as the repository's own brief lines do.
+
+  The choice is a function, so the scenarios hold what reaches it from the
+  command line (ID-BRIEF-28, 33, 34, 36 and 40) and the rest are the rows of
+  its table test, TestSpecCommitType in internal/slices/brief, each giving a
+  config and an item and holding the type and flag chosen, or the stop.
+  ID-BRIEF-29 to 32, 35, 37 to 39 and 41 name rows here and are not scenarios,
+  and their IDs stay spent:
+  - ID-BRIEF-29: nothing tagged, the kind's root acceptance/, docs may touch
+    features/** alone: test, so a build judging features/ fails.
+  - ID-BRIEF-30: types [feat, refactor, build, test, chore, docs], in_place_of
+    listing chore first, refactor's never barring the file, build's must_touch
+    unmet (only and never alone, TypesFor, let it through), feat not stood in
+    for: test.
+  - ID-BRIEF-31: commits.types without docs, and no path rule on it: test.
+  - ID-BRIEF-32: docs may touch the file and needs a Task: footer Item: does
+    not stand in for: test.
+  - ID-BRIEF-35: a task whose ledger file docs and test may not touch: chore.
+  - ID-BRIEF-37: a task with no ledger entry, chore's only naming the file of
+    its phase, so ledger.files with {group} still in it fails: chore.
+  - ID-BRIEF-38: over the task's text, no registry footer, docs barred and the
+    types its ledger footer is required for barred too: the stop, with no word
+    of scenarios in it, naming `itos commit --task T-001`.
+  - ID-BRIEF-39: this repository's itos.yaml, read from the tree so that it
+    cannot drift: a slice's sentence stays whole, docs and --item, though
+    commits.types has test before docs.
+  - ID-BRIEF-41: no commits section: docs, plain itos commit, with a Gherkin
+    kind and with none, where docs wins over the stop.
+  - A task with no registry footer: docs barred, a type its ledger footer is
+    not required for passed over: the first it is, with --task.
+  - A task with neither a registry nor a ledger footer, docs let touch its file:
+    docs, plain itos commit, never --task.
+  - An Item footer with no in_place_of, docs barred: the stop.
+  - A type that requires a footer of free text: passed over for the next.
+  - No Gherkin kind (no tests, or a command adapter alone), under a commits
+    section: a slice's stop.
+  - A command kind listed before the Gherkin one, docs may touch the command
+    kind's root alone: test, judged under the Gherkin kind's root.
+  A unit assertion holds two configs choosing different types to the same
+  request and to different texts, so it cannot pass with the type left out of
+  the brief. TestSliceAndBugBriefsGolden, which slice-220 adds, changes only where
+  its config makes it: run it under a config with a registry footer that lets
+  docs touch the file, and its drafter's commit sentence stays byte for byte.
+
   --json gives the request:
   {"schema":1,"ok":true,"item","role","request","spec":{"commit"},"reads":[{"path","blob","reason","required"}],"omitted":[{"path","reason"}],"brief"},
   brief the text output, byte for byte; spec.commit the last commit on
@@ -359,6 +437,225 @@ Feature: itos brief, the filled brief an agent starts from and its request
     Then itos exits with code 0
     And its output says "Implement bug-7 (a bug) of"
     And its output says "The scenarios are @ID-F-01 in features/fixes.feature, all live."
+
+  # The case that stopped a drafter: docs may not touch the feature files, so
+  # the spec goes in as test, with Item: in place of Task:. The header is
+  # <type>: specify <item>, <short rule>, the rest of the sentence as it was.
+  # The two check-paths runs hold the brief to the judgement it shares: test
+  # taken, docs refused, by the very config it read. A slice and a bug alike:
+  # both use the one drafter's text, and slice-220 gives a task its own.
+  @ID-BRIEF-28 @slice-221
+  Scenario Outline: Where docs may not touch the feature files, a <kind>'s drafter is told test
+    Given the work registry has the item "<item>" owned by nobody with the status "todo"
+    And a feature file with the scenario "@ID-A-01" tagged "@wip @<item>"
+    And the committed file "itos.yaml" holding the lines:
+      """
+      version: 1
+      ledger:
+        files: "tasks/phase-{group}.yaml"
+        id: "T-\\d+"
+      commits:
+        types: [feat, fix, refactor, perf, test, build, ci, chore, docs, style, revert]
+        footers:
+          Task:
+            source: ledger
+            required_for: [refactor, perf, test, build, ci, chore, style, revert]
+            validate_for: all
+            read_at: commit
+          Item:
+            source: registry
+            validate_for: all
+            read_at: commit
+            in_place_of: { Task: [test, docs, chore] }
+        scopes:
+          docs: { only: ["**/*.md", "docs/**", "tasks/**"] }
+      tests:
+        scenario: { root: features, id: "ID-[A-Z]+-\\d+" }
+      """
+    When itos runs "brief <item> --role drafter"
+    Then itos exits with code 0
+    And its output says "Commit with `itos commit --item <item>`: the header `test: specify <item>, <short rule>`, the body the problem, the rule and each scenario's failing step. Push with `itos push`."
+    And its output does not say "`docs: specify"
+    When itos runs "commit check-paths --type test features/tagged.feature"
+    Then itos exits with code 0
+    When itos runs "commit check-paths --type docs features/tagged.feature"
+    Then itos exits with code 1
+
+    Examples:
+      | kind  | item    |
+      | slice | slice-9 |
+      | bug   | bug-7   |
+
+  # No type may: docs is barred and no footer of the registry stands in for
+  # any other, the commits section itos init writes today (the idea
+  # p2-starter-item-footer would change that). So the brief says so, and the
+  # drafter stops before it writes a spec it could not commit. With no such
+  # footer, --item is a usage error, so the sentence says plain itos commit. The
+  # commit and push sentences go with the type they would have named; the rest
+  # of the paragraph stays. It is a brief, not a refusal: exit 0, as a drafter
+  # is the one to report it.
+  @ID-BRIEF-33 @slice-221
+  Scenario: Where no type may carry the spec, the drafter is told to stop and report
+    Given the work registry has the item "slice-9" owned by nobody with the status "todo"
+    And the committed file "itos.yaml" holding the lines:
+      """
+      version: 1
+      ledger:
+        files: "tasks/phase-{group}.yaml"
+        id: "T-\\d+"
+      commits:
+        types: [feat, fix, refactor, perf, test, build, ci, chore, docs, style, revert]
+        footers:
+          Task:
+            source: ledger
+            required_for: [refactor, perf, test, build, ci, chore, style, revert]
+            validate_for: all
+            read_at: commit
+        scopes:
+          docs: { only: ["**/*.md", "docs/**", "tasks/**"] }
+      tests:
+        scenario: { root: features, id: "ID-[A-Z]+-\\d+" }
+      """
+    When itos runs "brief slice-9 --role drafter"
+    Then itos exits with code 0
+    And its output says "No commit type of this repository's config can carry this spec: none may touch the spec's files and be committed with `itos commit`."
+    And its output says "Stop and report that before writing the spec; do not commit it under another type."
+    And its output says "Do the work yourself; start no agents."
+    And its output does not say "the header `"
+    And its output does not say "specify slice-9,"
+    And its output does not say "Push with `itos push`"
+
+  # The config the brief reads, never the working tree's. HEAD bars docs and
+  # the staged file lets it, so a build loading the working tree's config for
+  # the rule alone names docs; HEAD~1 is the config the feature file's step
+  # committed, which lets it too, so a build ignoring --at for the rule names
+  # test there. The staged file is the working tree's and the index's both.
+  @ID-BRIEF-34 @slice-221
+  Scenario: The type comes from HEAD's config or --at's, never the working tree's
+    Given the work registry has the item "slice-9" owned by nobody with the status "todo"
+    And a feature file with the scenario "@ID-A-01" tagged "@wip @slice-9"
+    And the committed file "itos.yaml" holding the lines:
+      """
+      version: 1
+      ledger:
+        files: "tasks/phase-{group}.yaml"
+        id: "T-\\d+"
+      commits:
+        types: [feat, fix, test, chore, docs]
+        footers:
+          Task:
+            source: ledger
+            required_for: [test, chore]
+            validate_for: all
+            read_at: commit
+          Item:
+            source: registry
+            validate_for: all
+            read_at: commit
+            in_place_of: { Task: [test, docs, chore] }
+        scopes:
+          docs: { only: ["**/*.md", "docs/**"] }
+      tests:
+        scenario: { root: features, id: "ID-[A-Z]+-\\d+" }
+      """
+    And the staged file "itos.yaml" holding the lines:
+      """
+      version: 1
+      ledger:
+        files: "tasks/phase-{group}.yaml"
+        id: "T-\\d+"
+      commits:
+        types: [feat, fix, test, chore, docs]
+        footers:
+          Task:
+            source: ledger
+            required_for: [test, chore]
+            validate_for: all
+            read_at: commit
+          Item:
+            source: registry
+            validate_for: all
+            read_at: commit
+            in_place_of: { Task: [test, docs, chore] }
+        scopes:
+          docs: { only: ["**/*.md", "docs/**", "features/**"] }
+      tests:
+        scenario: { root: features, id: "ID-[A-Z]+-\\d+" }
+      """
+    When itos runs "brief slice-9 --role drafter"
+    Then itos exits with code 0
+    And its output says "the header `test: specify slice-9, <short rule>`"
+    And its output does not say "`docs: specify"
+    When itos runs "brief slice-9 --role drafter --at HEAD~1"
+    Then itos exits with code 0
+    And its output says "the header `docs: specify slice-9, <short rule>`"
+    And its output does not say "`test: specify"
+
+  # One config, two files: docs may touch the ledger and not the feature
+  # files, so the task's drafter keeps docs and the slice's gets test. A build
+  # judging features/ for every item names test for both. The task's half rests
+  # on slice-220, which gives a task's drafter its own text and whose ID-BRIEF-21
+  # will pin the header sentence. slice-9's half is what fails today.
+  @ID-BRIEF-36 @slice-221
+  Scenario: Under one config a slice's drafter and a task's get the type that fits each one's files
+    Given the work registry has the item "slice-9" owned by nobody with the status "todo"
+    And the work registry has the task "T-001" owned by nobody with the status "todo" and no why
+    And the task "T-001" has the committed check "go vet ./..."
+    And the committed file "itos.yaml" holding the lines:
+      """
+      version: 1
+      ledger:
+        files: "tasks/phase-{group}.yaml"
+        id: "T-\\d+"
+      commits:
+        types: [feat, fix, refactor, perf, test, build, ci, chore, docs, style, revert]
+        footers:
+          Task:
+            source: ledger
+            required_for: [refactor, perf, test, build, ci, chore, style, revert]
+            validate_for: all
+            read_at: commit
+          Item:
+            source: registry
+            validate_for: all
+            read_at: commit
+            in_place_of: { Task: [test, docs, chore] }
+        scopes:
+          docs: { only: ["**/*.md", "docs/**", "tasks/**"] }
+      tests:
+        scenario: { root: features, id: "ID-[A-Z]+-\\d+" }
+      """
+    When itos runs "brief slice-9 --role drafter"
+    Then itos exits with code 0
+    And its output says "the header `test: specify slice-9, <short rule>`"
+    When itos runs "brief T-001 --role drafter"
+    Then itos exits with code 0
+    And its output says "the header `docs: specify T-001, <short rule>`"
+
+  # The scenarios' default config lets docs touch the feature files and the
+  # ledger, and has no footer of the registry, so itos commit refuses --item
+  # there as a usage error: the brief names the flag the config has, plain itos
+  # commit for a slice and --task for a task. A build asking Item: to stand in
+  # for docs too tells this drafter to stop, and one that takes test by default
+  # names a type no flag here can carry. The task's half rests on slice-220 as
+  # ID-BRIEF-36 does. The implementer's brief is not this slice's: guide brief's
+  # template stays, and released ID-BRIEF-01 pins its --item.
+  @ID-BRIEF-40 @slice-221
+  Scenario: Under the default config a drafter keeps docs and is told the flag the config has
+    Given the work registry has the item "slice-9" owned by nobody with the status "todo"
+    And the work registry has the task "T-001" owned by nobody with the status "todo" and no why
+    And the task "T-001" has the committed check "go vet ./..."
+    And a feature file with the scenario "@ID-A-01" tagged "@wip @slice-9"
+    When itos runs "brief slice-9 --role drafter"
+    Then itos exits with code 0
+    And its output says "Commit with `itos commit`: the header `docs: specify slice-9, <short rule>`, the body the problem, the rule and each scenario's failing step. Push with `itos push`."
+    And its output does not say "itos commit --item"
+    And its output does not say "No commit type"
+    When itos runs "brief T-001 --role drafter"
+    Then itos exits with code 0
+    And its output says "`itos commit --task T-001`"
+    And its output says "the header `docs: specify T-001, <short rule>`"
+    And its output does not say "itos commit --item"
 
   # The section's body follows the filled template as written; the other
   # sections of the notes stay out, and the heading itself is not printed.

@@ -25,7 +25,19 @@ written. What a person must add stays a marked placeholder: the settled
 decisions, the neighbouring scenarios and checks, the item's own questions.
 For a slice or a bug, the implementer's template is itos guide brief's and the
 drafter's and the reviewer's ship beside it; a task's text for each role is its
-own, the item's kind as next reads it choosing. Everything is read from HEAD's
+own, the item's kind as next reads it choosing. A drafter is told the commit its
+spec goes in under, by the config it reads: the flag the config has, --item for
+a footer of the work registry, else --task for a task and a ledger footer, else
+plain itos commit; and the type, docs where it may carry the spec's files, else
+the first of commits.types that may and that the registry's footer stands in
+for, or, with no such footer, for a task, that its ledger footer is required
+for. A type may carry them when commits.types has it, commit check-paths' rules
+let it touch them and the hook's footer rules call nothing missing, the staged
+range commands not judged. The spec's files are the tagged scenarios' or a task's
+ledger file, else a feature file under the first Gherkin kind's root or the file
+of the task's phase. Where no type may, or a slice or a bug has no such kind, the
+brief says so and tells the drafter to stop and report, exit 0; with no commits
+section it says docs and plain itos commit. Everything is read from HEAD's
 tree, the config included, never the working tree or the index; with --at <rev>, from the
 tree of the commit git resolves rev to instead (the registry, the tagged
 scenarios, the ledger, the reads' blobs and the notes), so a driver on main

@@ -66,6 +66,7 @@ func TestTaskBriefsFillEveryPlaceholder(t *testing.T) {
 // their output would become released cases (ADR-0054 exempts guide text).
 func TestSliceAndBugBriefsGolden(t *testing.T) {
 	p := over(map[string]string{
+		"itos.yaml":               itosYAML + "commits:\n  footers:\n    Item: { source: registry }\n",
 		"work-items.yaml":         "phases: { 1: null }\nitems:\n  - { id: slice-9, title: Say the next step, phase: 1, owner: null, status: todo, depends_on: [] }\n  - { id: bug-7, title: A bug, phase: 1, owner: null, status: todo, depends_on: [] }\n",
 		"AGENTS.md":               "Rules.\n",
 		"features/tagged.feature": "Feature: Tagged\n\n  @ID-A-01 @wip @slice-9\n  Scenario: one\n    When it runs\n",
