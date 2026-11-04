@@ -17106,3 +17106,14 @@ items:
     why: >
       #249: a docs cleanup left about a dozen open ideas pointing at deleted files, and both checks
       passed. Done items are exempt, their refs being history.
+
+  - id: p2-ci-run-skipped-task-checks
+    title: ci run does not end in a plain 'CI passed' when it skipped a named task's checks
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      #248: a task named but still todo has its checks skipped with one line, then 'CI passed', exit
+      0; the session read that as its checks holding and handed back with one failing.
