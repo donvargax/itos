@@ -17095,3 +17095,14 @@ items:
     why: >
       #250: a session knew its first step would fail for an external reason and had to repeat each
       later step by hand. The default stays fail-fast.
+
+  - id: p2-work-check-dead-refs
+    title: work check reports an open item whose refs name a path that no longer exists
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      #249: a docs cleanup left about a dozen open ideas pointing at deleted files, and both checks
+      passed. Done items are exempt, their refs being history.
