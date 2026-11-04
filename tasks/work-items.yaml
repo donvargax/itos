@@ -17563,3 +17563,17 @@ items:
       ignored, so a slow runner, or a removal refused while the other side has the file open, reads
       as a lock still held. Cost: a Windows job of over nine minutes run again. Give the released
       case a long Wait, and retry the removal.
+
+  - id: p3-stall-asks-finished-review-unrequested
+    title: --ready's stall posts @codex review for a finished code review when no code request exists
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Bug-164 keeps a lone older code request as asked when the code review is not under way, as the
+      running review is the security one. With no code request at all, stallClock still says not
+      asked, so code completed and security running past review_stall posts @codex review for a
+      finished review. Bug-164 left the no-request path as it was. Reachable where Codex reviews on
+      ready_for_review with no request; read from the code, not seen in a run.
