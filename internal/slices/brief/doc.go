@@ -34,4 +34,13 @@
 // another tool can recompute it; the attempt number and the base revision
 // are not in it. What a person must add stays a marked placeholder, never
 // invented. It reads, writes nothing, commits nothing and asks no forge.
+//
+// A drafter's brief names the commit its spec goes in under (slice-221,
+// chooseSpecCommit), a function of the config at that commit and the spec's
+// files, or the file it would have, by the path rules itos commit check-paths
+// judges with (internal/scope) and the footers the hook calls missing
+// (internal/message): the flag the config has and the type it lets carry them,
+// or a stop in place of the commit's sentences. It is in the text and not the
+// request, as the repository's own brief lines are: the base an attempt binds
+// fixes the config.
 package brief

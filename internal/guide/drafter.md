@@ -29,9 +29,9 @@ before the work and pass after a correct one; say in the commit body at
 which step each fails today, and why. Other drafters may be specifying
 sibling items at the same time: touch only your own feature file.
 
-Commit with `itos commit --item <item>`: the header `docs: specify <item>,
-<short rule>`, the body the problem, the rule and each scenario's failing
-step. Push with `itos push`. Do the work yourself; start no agents. Prefix
+Commit with `itos commit <spec flag>`: the header `<spec type>: specify
+<item>, <short rule>`, the body the problem, the rule and each scenario's
+failing step. Push with `itos push`. Do the work yourself; start no agents. Prefix
 your scratch files with <item>: sessions share the folder.
 
 Report: the pushed commit, each scenario's ID, title and failing step before

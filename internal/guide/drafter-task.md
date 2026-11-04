@@ -23,9 +23,9 @@ code shows one cannot work as stated, stop and say so in your report rather
 than inventing around it. A decision the spec leaves open you make yourself,
 in the spec, and list in your report.
 
-Commit with `itos commit --item <item>`: the header `docs: specify <item>,
-<short rule>`, the body the problem, the rule and how each check fails today.
-Push with `itos push`. Do the work yourself; start no agents. Prefix
+Commit with `itos commit <spec flag>`: the header `<spec type>: specify
+<item>, <short rule>`, the body the problem, the rule and how each check
+fails today. Push with `itos push`. Do the work yourself; start no agents. Prefix
 your scratch files with <item>: sessions share the folder.
 
 Report: the pushed commit, each check and how it fails before the work, the

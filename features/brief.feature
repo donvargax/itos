@@ -444,7 +444,7 @@ Feature: itos brief, the filled brief an agent starts from and its request
   # The two check-paths runs hold the brief to the judgement it shares: test
   # taken, docs refused, by the very config it read. A slice and a bug alike:
   # both use the one drafter's text, and slice-220 gives a task its own.
-  @ID-BRIEF-28 @wip @slice-221
+  @ID-BRIEF-28 @slice-221
   Scenario Outline: Where docs may not touch the feature files, a <kind>'s drafter is told test
     Given the work registry has the item "<item>" owned by nobody with the status "todo"
     And a feature file with the scenario "@ID-A-01" tagged "@wip @<item>"
@@ -494,7 +494,7 @@ Feature: itos brief, the filled brief an agent starts from and its request
   # commit and push sentences go with the type they would have named; the rest
   # of the paragraph stays. It is a brief, not a refusal: exit 0, as a drafter
   # is the one to report it.
-  @ID-BRIEF-33 @wip @slice-221
+  @ID-BRIEF-33 @slice-221
   Scenario: Where no type may carry the spec, the drafter is told to stop and report
     Given the work registry has the item "slice-9" owned by nobody with the status "todo"
     And the committed file "itos.yaml" holding the lines:
@@ -530,7 +530,7 @@ Feature: itos brief, the filled brief an agent starts from and its request
   # the rule alone names docs; HEAD~1 is the config the feature file's step
   # committed, which lets it too, so a build ignoring --at for the rule names
   # test there. The staged file is the working tree's and the index's both.
-  @ID-BRIEF-34 @wip @slice-221
+  @ID-BRIEF-34 @slice-221
   Scenario: The type comes from HEAD's config or --at's, never the working tree's
     Given the work registry has the item "slice-9" owned by nobody with the status "todo"
     And a feature file with the scenario "@ID-A-01" tagged "@wip @slice-9"
@@ -596,7 +596,7 @@ Feature: itos brief, the filled brief an agent starts from and its request
   # judging features/ for every item names test for both. The task's half rests
   # on slice-220, which gives a task's drafter its own text and whose ID-BRIEF-21
   # will pin the header sentence. slice-9's half is what fails today.
-  @ID-BRIEF-36 @wip @slice-221
+  @ID-BRIEF-36 @slice-221
   Scenario: Under one config a slice's drafter and a task's get the type that fits each one's files
     Given the work registry has the item "slice-9" owned by nobody with the status "todo"
     And the work registry has the task "T-001" owned by nobody with the status "todo" and no why
@@ -640,7 +640,7 @@ Feature: itos brief, the filled brief an agent starts from and its request
   # names a type no flag here can carry. The task's half rests on slice-220 as
   # ID-BRIEF-36 does. The implementer's brief is not this slice's: guide brief's
   # template stays, and released ID-BRIEF-01 pins its --item.
-  @ID-BRIEF-40 @wip @slice-221
+  @ID-BRIEF-40 @slice-221
   Scenario: Under the default config a drafter keeps docs and is told the flag the config has
     Given the work registry has the item "slice-9" owned by nobody with the status "todo"
     And the work registry has the task "T-001" owned by nobody with the status "todo" and no why

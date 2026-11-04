@@ -34,6 +34,11 @@ func LayoutOf(cfg *config.Loaded) (Layout, error) {
 	if err := cfg.Section("ledger"); err != nil {
 		return Layout{}, err
 	}
+	return layoutOf(cfg), nil
+}
+
+// layoutOf is the layout of a config known to have a ledger section.
+func layoutOf(cfg *config.Loaded) Layout {
 	files := filepath.ToSlash(cfg.Ledger.Files)
 	parts := strings.Split(path.Base(files), "{group}")
 	before, after := parts[0], ""
@@ -44,7 +49,7 @@ func LayoutOf(cfg *config.Loaded) (Layout, error) {
 		Dir:     path.Dir(files),
 		File:    regexp.MustCompile("^" + regexp.QuoteMeta(before) + "(" + cfg.Ledger.Group.Pattern + ")" + regexp.QuoteMeta(after) + "$"),
 		Numeric: cfg.Ledger.Group.Numeric,
-	}, nil
+	}
 }
 
 // File is one ledger file and its group.

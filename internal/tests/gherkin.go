@@ -219,6 +219,19 @@ func TaggedFiles(cfg *config.Loaded, tag, at string) ([]TaggedFile, error) {
 	return found, err
 }
 
+// GherkinRoot is the root of the first kind the built-in Gherkin adapter
+// reads, in the config's order, with forward slashes: the first place
+// TaggedFiles looks. False when no such kind gives one.
+func GherkinRoot(cfg *config.Loaded) (string, bool) {
+	for _, name := range cfg.Tests.Keys {
+		k := cfg.Tests.Values[name]
+		if k.Adapter.Command == "" && k.Adapter.Name == "gherkin" && k.Root != nil {
+			return filepath.ToSlash(*k.Root), true
+		}
+	}
+	return "", false
+}
+
 func readTagged(cfg *config.Loaded, tag, at string, examples bool) ([]Test, []WipExample, error) {
 	var found []Test
 	var wip []WipExample

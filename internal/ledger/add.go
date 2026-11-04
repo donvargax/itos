@@ -61,10 +61,6 @@ func Add(cfg *config.Loaded, n NewTask, load Load) (Added, []out.Problem, error)
 		return refuse("ledger-add-type", fmt.Sprintf("%s is not a commit type: commits.types lists %s", n.Type, strings.Join(types, ", ")),
 			"pass --type with one of "+strings.Join(types, ", "))
 	}
-	layout, err := LayoutOf(cfg)
-	if err != nil {
-		return Added{}, nil, err
-	}
 	files, err := Files(cfg)
 	if err != nil {
 		return Added{}, nil, err
@@ -76,7 +72,6 @@ func Add(cfg *config.Loaded, n NewTask, load Load) (Added, []out.Problem, error)
 	if found := Issues(cfg, paths); len(found) > 0 {
 		return Added{}, found, nil
 	}
-	file := ""
 	for _, f := range files {
 		tasks, _ := read(cfg.Source, f.Path)
 		for _, t := range tasks {
@@ -85,17 +80,12 @@ func Add(cfg *config.Loaded, n NewTask, load Load) (Added, []out.Problem, error)
 					"give the new task an ID the ledger does not have")
 			}
 		}
-		if file == "" && sameGroup(cfg, f.Group, n.Group) {
-			file = f.Path
-		}
 	}
-	label := cfg.Ledger.Group.Label
+	file := GroupFile(cfg, files, n.Group)
 	if file == "" {
-		file = path.Join(layout.Dir, strings.ReplaceAll(path.Base(filepath.ToSlash(cfg.Ledger.Files)), "{group}", n.Group))
-		if !strings.Contains(cfg.Ledger.Files, "{group}") || !layout.File.MatchString(path.Base(file)) {
-			return refuse("ledger-add-group", fmt.Sprintf("%s is not a %s ledger.files can name: ledger.group.pattern is %s", n.Group, label, cfg.Ledger.Group.Pattern),
-				"pass a "+label+" ledger.group.pattern matches")
-		}
+		label := cfg.Ledger.Group.Label
+		return refuse("ledger-add-group", fmt.Sprintf("%s is not a %s ledger.files can name: ledger.group.pattern is %s", n.Group, label, cfg.Ledger.Group.Pattern),
+			"pass a "+label+" ledger.group.pattern matches")
 	}
 	task := value.NewMap("id", n.ID, "type", n.Type, "title", n.Title)
 	if value.Trim(n.Why) != "" {
@@ -133,6 +123,24 @@ func Add(cfg *config.Loaded, n NewTask, load Load) (Added, []out.Problem, error)
 	}
 	list := read.([]any)
 	return Added{Path: file, Old: old, Text: text, Created: created, Task: list[len(list)-1].(*value.Map)}, nil, nil
+}
+
+// GroupFile is the file of a group's tasks: the first of files, the ledger's,
+// whose group it is, else the one ledger.files names for it, where a new task
+// of the group would go; "" when ledger.files cannot name one (no {group} in
+// it, or a group ledger.group.pattern does not match).
+func GroupFile(cfg *config.Loaded, files []File, group string) string {
+	for _, f := range files {
+		if sameGroup(cfg, f.Group, group) {
+			return f.Path
+		}
+	}
+	layout := layoutOf(cfg)
+	file := path.Join(layout.Dir, strings.ReplaceAll(path.Base(filepath.ToSlash(cfg.Ledger.Files)), "{group}", group))
+	if !strings.Contains(cfg.Ledger.Files, "{group}") || !layout.File.MatchString(path.Base(file)) {
+		return ""
+	}
+	return file
 }
 
 // sameGroup is whether a file's group is the one given: Number() of each
