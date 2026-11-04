@@ -132,9 +132,62 @@ Feature: itos review request asks each configured reviewer for the pull request'
   the revision digests it, so a request posted gives a new one. With
   push.pr.reviewers empty nothing of slice-209's changes.
 
-  bug-163: Codex answers "@codex security review" with the request marker in
-  its comment as a code review, security_review staying null; the form that
-  starts the security review is being settled on this pull request, by hand.
+  bug-163: Codex's security request. Asked, Codex starts the security review
+  for a comment that is "@codex security review" alone, and not with the marker
+  in it. On real pull requests, 2026-11-04, each on a head with no security
+  review and no review running: the line, an empty line and the marker (#260,
+  null 15 minutes on),
+  the marker, an empty line and the line (#263), and the line with the marker
+  on the very next line (#263) each ran a code review, trigger "Manual
+  request", security_review staying null; the line alone, the marker following
+  2 seconds later in a comment of its own, started it 8 seconds after the post
+  (#263), as the line alone had after 12 seconds (#260). So the security
+  request is two gh pr comments, in this order: the line alone, then the marker
+  alone, "<!-- itos-review-request:v1 <login> <the head's full SHA> -->", and
+  itos review request and push --ready post them through the one form of
+  internal/engine/reviewers. The line goes first: a marker with no line after
+  it would read as asked when nothing was. The marker failing is any gh pr
+  comment failing, the line staying posted; run again, what is still missing is
+  asked. The code review's and Bugbot's request stay one comment, line then
+  marker: those work and ID-REVREQ-01 pins them.
+
+  The security request is on the head when a comment by anyone is the marker
+  alone, naming its login and the head: every other line of it empty, nothing
+  else on the marker's. That comment is the request: its address and time are
+  what "once per head", slice-218's two requests and its clock count, and what
+  --ready prints and not_started.request gives. The line alone still counts for
+  nothing, since it names no head. A marker alone is no request of the code
+  review or of Bugbot's, and a marker with any line asks nothing of the security
+  review: the old form, "@codex security review", an empty line and the marker,
+  which a released itos left on open pull requests, never started anything, so
+  it counts as no request, and an upgraded itos asks anew, once and then once
+  more, rather than stopping at review-not-started on what did nothing. The JSON
+  and the words keep the line: "request" and "Asked <login> at <7 characters>
+  on <address>: @codex security review." do not change.
+
+  The bodies are recorded as the package's doc.go asks, by the implementer, from
+  #263 and #260 (a docs commit may not touch testdata):
+  testdata/codex/263-security-request.txt, "@codex security review";
+  263-request-marker.txt, the marker alone of
+  adb2892e5b33555027dd30fa93f1cb052e8a5997; 263-review-state.txt, Codex's
+  review-state comment after both, reading the security review of that head;
+  and 260-marked-security-request.txt, the old form. A table test reads them, and
+  each case no scenario needs to: a marker alone of another login or head, with
+  text beside it, under CRLF; the marker before the line; the line then the
+  marker on the very next line; a marker alone read as the code review's or
+  Bugbot's; and the marker's gh pr comment failing, from either command.
+
+  What this changes, each named in the fix's Changes: footer (a throwaway correct
+  build, run through go run ./tools/bin/previous-release, failed exactly these). In
+  their words, what they pin of the old form or of one comment per request:
+  ID-REVREQ-01, 02 and 04; ID-PUSHDRAFT-34, 47, 48, 49, 52, 53, 54, 55, 56, 59, 60
+  and 64. In the step alone, their words staying: ID-REVREQ-12 and 13;
+  ID-PUSHDRAFT-57, 58, 61 and 62. ID-REVREQ-05, ID-PUSHDRAFT-51 and 63 and the
+  corpus hold as they are. Help and prose follow: the "The kinds" paragraph here,
+  slice 217's and 218's words on a request in push-mode-draft.feature, itos help
+  review, itos push --help, and the doc.go of internal/engine/reviewers and
+  internal/slices/push. docs/ORCHESTRATING.md says nothing of the form: it names
+  itos review request and itos push --ready, which stay true, so it does not change.
 
   Not in this slice: folding --ready's askForHead and its review_stall
   re-ask into this command (p1-ready-hand-off); the per-head verdict model
@@ -155,6 +208,17 @@ Feature: itos review request asks each configured reviewer for the pull request'
   call starting with the command, exactly those lines in that order, the
   placeholder replaced, a line end in a call written as the two characters
   \n, as dispatch.sh records it.
+
+  bug-163's steps. New: "the recording gh answers that the pull request has a
+  comment by <author> holding the old marked request <line> of <login> at the
+  clone's HEAD", the body requesting's step writes today, and the same ending ",
+  posted <n> seconds ago, at <address>"; and "the recording gh answers that the
+  pull request has a comment by <author> holding the request marker alone of
+  <login> at the clone's HEAD, posted <n> seconds ago, at <address>". Changed, in
+  the fix's commit: "requesting <line> of <login> ..." with Codex's security line
+  gives two comments by the author, the line alone and then the marker alone, the
+  time and address of a timed one on the marker's, so the scenarios that say a
+  security request is on the pull request keep their words and mean the new form.
 
   Background:
     Given a repository whose ledger has the task "T-001"
@@ -251,6 +315,92 @@ Feature: itos review request asks each configured reviewer for the pull request'
       """
       pr comment 7 --repo owner/scratch --body=@codex security review\n\n<!-- itos-review-request:v1 chatgpt-codex-connector @HEAD:slice-9@ -->
       pr comment 7 --repo owner/scratch --body=@cursor review\n\n<!-- itos-review-request:v1 cursor[bot] @HEAD:slice-9@ -->
+      """
+
+  # bug-163: Codex's security request is the line alone, then the marker alone,
+  # and it reads as made for the head, once per head across runs: run again with
+  # what it posted listed, nothing is posted, and next reads Codex as requested.
+  # A build that posts the two comments and still looks for the line above the
+  # marker posts them again at the second run. The recording gh lists each
+  # comment as GitHub does. Fails before the work at the pr comment lines: today
+  # the security request is one comment, the line, an empty line and the marker.
+  @wip @ID-REVREQ-16 @bug-163
+  Scenario: Under push.mode pr, review request posts Codex's security request as the line alone then the marker alone, and run again reads it as made
+    Given the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+        pr:
+          reviewers:
+            - { login: chatgpt-codex-connector, kind: codex }
+      """
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the work registry has the item "slice-9" owned by "ana" with the status "doing"
+    And the clone is on the new branch "slice-9"
+    And a feature file with the scenario "@ID-A-01" tagged "@wip @slice-9"
+    And git pushes HEAD to the remote's new branch "slice-9"
+    And the recording gh has the pull request "https://github.example/o/r/pull/7" open for the branch "slice-9"
+    And the recording gh lists each pr comment it takes
+    When itos runs "review request slice-9 --json"
+    Then itos exits with code 0
+    And its JSON's "outcome" is "requested"
+    And its JSON's "posted" is [{"login": "chatgpt-codex-connector", "kind": "codex", "request": "@codex review"}, {"login": "chatgpt-codex-connector", "kind": "codex", "request": "@codex security review"}]
+    And the recording gh's "pr comment" calls are these lines, in order, @HEAD:slice-9@ the full SHA of the head of the remote's branch "slice-9":
+      """
+      pr comment 7 --repo owner/scratch --body=@codex review\n\n<!-- itos-review-request:v1 chatgpt-codex-connector @HEAD:slice-9@ -->
+      pr comment 7 --repo owner/scratch --body=@codex security review
+      pr comment 7 --repo owner/scratch --body=<!-- itos-review-request:v1 chatgpt-codex-connector @HEAD:slice-9@ -->
+      """
+    When itos runs "review request slice-9 --json"
+    Then itos exits with code 0
+    And its JSON's "outcome" is "already"
+    And its JSON's "posted" is []
+    And the recording gh's "pr comment" calls are these lines, in order, @HEAD:slice-9@ the full SHA of the head of the remote's branch "slice-9":
+      """
+      pr comment 7 --repo owner/scratch --body=@codex review\n\n<!-- itos-review-request:v1 chatgpt-codex-connector @HEAD:slice-9@ -->
+      pr comment 7 --repo owner/scratch --body=@codex security review
+      pr comment 7 --repo owner/scratch --body=<!-- itos-review-request:v1 chatgpt-codex-connector @HEAD:slice-9@ -->
+      """
+    When itos runs "next slice-9 --json"
+    Then itos exits with code 0
+    And its JSON's "observed.unrequested" is []
+
+  # bug-163, the upgrade: the old form of the security request on the head started
+  # nothing, so it is no request. next says so, the driver requests, and only the
+  # security request goes, in the form that works; the marked code request stays
+  # the code review's. A build still reading any comment with the line and the
+  # marker leaves this pull request reading as asked for a review that never
+  # comes. Fails before the work at next's observed.unrequested: today the old
+  # form reads as the request, so it is [].
+  @wip @ID-REVREQ-17 @bug-163
+  Scenario: Under push.mode pr, the old marked security request on the head counts as no request, and review request asks in the form that works
+    Given the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+        pr:
+          reviewers:
+            - { login: chatgpt-codex-connector, kind: codex }
+      """
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the work registry has the item "slice-9" owned by "ana" with the status "doing"
+    And the clone is on the new branch "slice-9"
+    And a feature file with the scenario "@ID-A-01" tagged "@wip @slice-9"
+    And git pushes HEAD to the remote's new branch "slice-9"
+    And the recording gh has the pull request "https://github.example/o/r/pull/7" open for the branch "slice-9"
+    And the recording gh answers that the pull request has a comment by "ana" asking "chatgpt-codex-connector" to review the clone's HEAD again
+    And the recording gh answers that the pull request has a comment by "ana" holding the old marked request "@codex security review" of "chatgpt-codex-connector" at the clone's HEAD
+    When itos runs "next slice-9 --json"
+    Then itos exits with code 0
+    And its JSON's "observed.unrequested" is ["chatgpt-codex-connector"]
+    When itos runs "review request slice-9 --json"
+    Then itos exits with code 0
+    And its JSON's "outcome" is "requested"
+    And its JSON's "posted" is [{"login": "chatgpt-codex-connector", "kind": "codex", "request": "@codex security review"}]
+    And the recording gh's "pr comment" calls are these lines, in order, @HEAD:slice-9@ the full SHA of the head of the remote's branch "slice-9":
+      """
+      pr comment 7 --repo owner/scratch --body=@codex security review
+      pr comment 7 --repo owner/scratch --body=<!-- itos-review-request:v1 chatgpt-codex-connector @HEAD:slice-9@ -->
       """
 
   # A reviewer's own review of the head is its request: Codex's review
