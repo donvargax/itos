@@ -17269,3 +17269,15 @@ items:
     why: >
       slice-219's spec, 2026-11-04. slice-219 shares next's read with attempt; brief keeps its own,
       and slice-220 reads the kind there too. One definition, in the package that owns items.
+
+  - id: p2-unrunnable-check-is-no-spec
+    title: A done_when entry with no runnable check does not count as a spec, in next and attempt alike
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      slice-219's review, 2026-11-04: done_when: [{nope: 1}] counts as one check in the read next
+      and attempt share, though config check fails it and itos task exits 70; done_when: 'go vet' is
+      refused. An unrunnable check is no spec. The fix goes in the shared read.
