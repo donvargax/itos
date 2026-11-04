@@ -500,3 +500,12 @@ func TestLoadedFolder(t *testing.T) {
 		t.Errorf("Folder with no VCS = %q", got)
 	}
 }
+
+// A ledger.files the file leaves empty is none: the registry and the asks
+// stay in the table's folder, never at the repository's top.
+func TestAnEmptyLedgerFilesLeavesTheRegistryAtTheDefault(t *testing.T) {
+	work := DefaultsFor(value.NewMap("ledger", value.NewMap("files", "")), false).At("work").(*value.Map)
+	if registry, asks := work.At("registry"), work.At("asks"); registry != "tasks/work-items.yaml" || asks != "tasks/asks.yaml" {
+		t.Errorf("registry %v, asks %v", registry, asks)
+	}
+}
