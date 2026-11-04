@@ -17234,6 +17234,10 @@ items:
       throwaway scenario confirms it. And implemented never asks whether a task's checks still exist
       at the head, or pass.
 
+      slice-219's implementer, 2026-11-04: red first reads as needing a real step commit, but where
+      a spec's steps all exist there is nothing to commit, and attempt submit still demands a test
+      commit before the first fix; it held unit tests of a moved read instead.
+
   - id: p3-tests-run-wip
     title: A way to run named @wip scenarios without editing the feature file
     phase: 3
