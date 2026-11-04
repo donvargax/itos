@@ -2,7 +2,6 @@ package next
 
 import (
 	"context"
-	"regexp"
 
 	"github.com/donvargax/itos/v8/internal/ask"
 	"github.com/donvargax/itos/v8/internal/config"
@@ -67,7 +66,7 @@ func read(ctx context.Context, cfg *config.Loaded, tracker trackerport.Tracker, 
 		return Facts{}, problem, nil, nil
 	}
 	f.Item = shown.Item
-	f.Kind = kindOf(shown.Item, cfg)
+	f.Kind = ledger.KindOf(shown.Item, cfg)
 	f.Dependencies = dependencies(registry, shown.Item)
 	asks, _, _, err := ask.Load(ctx, tracker, cfg.Work.Asks)
 	if err != nil {
@@ -87,7 +86,7 @@ func read(ctx context.Context, cfg *config.Loaded, tracker trackerport.Tracker, 
 			return Facts{}, nil, nil, err
 		}
 	case "task":
-		f.Checks, err = checks(cfg, id)
+		f.Checks, _, err = ledger.ChecksOf(cfg, id)
 		if err != nil {
 			return Facts{}, nil, nil, err
 		}
@@ -123,33 +122,6 @@ func scenarios(ctx context.Context, cfg *config.Loaded, id string, pr bool) ([]t
 	return found, "HEAD", err
 }
 
-// sliceID and bugID are the ids of a slice and a bug, as the registry's
-// header names them.
-var (
-	sliceID = regexp.MustCompile(`^slice-\d+$`)
-	bugID   = regexp.MustCompile(`^bug-\d+$`)
-)
-
-// kindOf is the item's kind: its kind key as written when it is text, else
-// by its id (next's own rule: work show reads no bug), slice-<n> a slice,
-// bug-<n> a bug, an id ledger.id matches a task, where the config has a
-// ledger.id; "" for none.
-func kindOf(item *value.Map, cfg *config.Loaded) string {
-	if kind, ok := item.At("kind").(string); ok {
-		return kind
-	}
-	id, _ := item.At("id").(string)
-	switch {
-	case sliceID.MatchString(id):
-		return "slice"
-	case bugID.MatchString(id):
-		return "bug"
-	case cfg.Ledger.ID != nil && ledger.IDPattern(cfg).MatchString(id):
-		return "task"
-	}
-	return ""
-}
-
 // dependencies are the item's depends_on, each with its status in the
 // registry, the first item of an id giving it, as work.ItemStatuses reads
 // them.
@@ -172,19 +144,4 @@ func dependencies(r work.Registry, item *value.Map) []Dependency {
 		found = append(found, Dependency{ID: id, Status: status})
 	}
 	return found
-}
-
-// checks are the done_when checks of the ledger's task id, none for a task
-// the ledger lacks; a ledger that cannot be read is its error.
-func checks(cfg *config.Loaded, id string) ([]ledger.Check, error) {
-	tasks, err := ledger.Tasks(cfg)
-	if err != nil {
-		return nil, err
-	}
-	for _, t := range tasks {
-		if t.ID == id {
-			return t.DoneWhen, nil
-		}
-	}
-	return nil, nil
 }
