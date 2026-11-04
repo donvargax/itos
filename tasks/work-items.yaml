@@ -17429,6 +17429,10 @@ items:
       making a new head, and both reviews reran: one idea cost 30 minutes. Related:
       p2-rereview-only-own-changes.
 
+      bug-163, 2026-11-04: the take does the same: itos push sends it to main and leaves the branch
+      behind it, so the next --ready always makes a new head and both reviews on the old head go to
+      waste.
+
   - id: bug-165
     title: itos push threads prints a comment's first line, so a Codex security finding shows only its marker
     phase: 1
