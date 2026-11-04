@@ -202,7 +202,7 @@ func (r *pushRun) awaitReviews(ctx context.Context, repository string, w *waitin
 		}
 		timedOut, bounded, left := r.limits(deadline)
 		if timedOut {
-			fmt.Fprintf(r.o.Stderr, "itos: no review by %s on %s after %s seconds (ci.watch.timeout), so auto-merge is not turned on; itos push --ready again waits again.\n",
+			fmt.Fprintf(r.o.Stderr, "itos: no review by %s on %s after %s seconds (ci.watch.timeout), so auto-merge is not turned on; itos push --ready again turns it on if the reviews have come, else stops here at once, the wait counting from when the pull request was marked ready or its head pushed; a new head starts it afresh.\n",
 				strings.Join(missing, ", "), r.pr.URL, value.Number(*watch.Timeout))
 			return state, r.report(temporary, "review-timeout"), true
 		}

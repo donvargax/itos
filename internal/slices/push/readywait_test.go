@@ -756,9 +756,10 @@ func TestPushReadyCountsTheReviewWaitFromGitHubsTimes(t *testing.T) {
 	}
 }
 
-// The stall counts from GitHub's times where it gives them: before a request
-// from the last edit of the review-state comment, after one from the request's
-// time; ask is the look the request was posted at, 0 for none.
+// The stall counts from GitHub's times where it gives them: from the last edit of
+// the review-state comment, or a request at or after that edit; ask is the look
+// the request was posted at, 0 for none. Looks are 10 seconds apart and review_stall
+// is 60.
 func TestPushReadyCountsTheStallFromGitHubsTimes(t *testing.T) {
 	running := func(c *clock, head string, edited int) string {
 		return timedNode("a", codexStateAt("running", head, "completed", head), c.ago(edited), c.ago(edited))
@@ -779,8 +780,34 @@ func TestPushReadyCountsTheStallFromGitHubsTimes(t *testing.T) {
 		"asked from the first look": {func(c *clock, head string) []string {
 			return []string{timedNode("a", codexStateAt("running", head, "completed", head), "", "")}
 		}, "review-timeout", 11, 7},
-		"asked long ago":       {func(c *clock, head string) []string { return []string{running(c, head, 30), request(c, head, 120)} }, "review-stalled", 1, 0},
+		// Older than the edit: asked at the fourth look, 60 seconds past the edit,
+		// and stalled 60 seconds after that request.
+		"asked long ago":       {func(c *clock, head string) []string { return []string{running(c, head, 30), request(c, head, 120)} }, "review-stalled", 10, 4},
 		"asked 20 seconds ago": {func(c *clock, head string) []string { return []string{running(c, head, 30), request(c, head, 20)} }, "review-stalled", 5, 0},
+		// Two requests older than the edit: no third, stopped 60 seconds past the edit.
+		"asked twice long ago": {func(c *clock, head string) []string {
+			return []string{running(c, head, 30), request(c, head, 120), request(c, head, 100)}
+		}, "review-stalled", 4, 0},
+		"asked twice, the edit past the stall": {func(c *clock, head string) []string {
+			return []string{running(c, head, 90), request(c, head, 120), request(c, head, 100)}
+		}, "review-stalled", 1, 0},
+		// In the same second as the edit, the request's clock and no post: the
+		// clock's two times being equal, what this row pins is that it counts as
+		// asked, a build reading it as older posting at the fourth look.
+		"asked in the second of the edit": {func(c *clock, head string) []string { return []string{running(c, head, 30), request(c, head, 30)} }, "review-stalled", 4, 0},
+		// A request with no time counts from the first look, and as asked.
+		"an edit and a request with no time": {func(c *clock, head string) []string {
+			return []string{running(c, head, 30), timedNode("someone", "@codex review\n\n<!-- itos-review-request:v1 a "+head+" -->", "", "")}
+		}, "review-stalled", 7, 0},
+		// With no edit time, the request's clock.
+		"a request and no edit time": {func(c *clock, head string) []string {
+			return []string{timedNode("a", codexStateAt("running", head, "completed", head), "", ""), request(c, head, 120)}
+		}, "review-stalled", 1, 0},
+		// The review running is the security one, which "@codex review" does not ask
+		// for: the lone older request stays asked, and it stops 60 seconds past the edit.
+		"code completed, security running": {func(c *clock, head string) []string {
+			return []string{timedNode("a", codexStateAt("completed", head, "running", head), c.ago(30), c.ago(30)), request(c, head, 120)}
+		}, "review-stalled", 4, 0},
 		"asked for another head": {func(c *clock, head string) []string {
 			return []string{running(c, head, 30), request(c, otherSHA, 120)}
 		}, "review-stalled", 10, 4},

@@ -139,7 +139,9 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
      stderr (under --json too) "itos: no review by <the logins without
      one, comma-separated, as the config writes them> on <address> after
      <n> seconds (ci.watch.timeout), so auto-merge is not turned on; itos
-     push --ready again waits again." (bug-164 changes what it says of a rerun.)
+     push --ready again turns it on if the reviews have come, else stops here
+     at once, the wait counting from when the pull request was marked ready or
+     its head pushed; a new head starts it afresh."
   5. The review threads, always under --ready: a thread whose isResolved is
      false refuses the merge, exit 1, outcome review-threads-unresolved,
      auto-merge not turned on, stderr (under --json too, written as it runs)
@@ -2038,7 +2040,7 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   # says a rerun waits again, and says what it does. The outcome and the exit code
   # stay. Fails before the work at the "does not say" step: today the line ends
   # "itos push --ready again waits again.".
-  @wip @ID-PUSHDRAFT-73 @bug-164
+  @ID-PUSHDRAFT-73 @bug-164
   Scenario: Under push.pr.draft, push --ready past ci.watch.timeout says a rerun stops at once unless the reviews have come, not that it waits again
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -3020,15 +3022,15 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
 
   # The stall's clock is GitHub's: the request for this head was posted
   # two minutes ago, past push.pr.review_stall, and Codex's state, running
-  # for the head, was last edited 30 seconds ago, after it. Once a request
-  # exists the stall counts from its createdAt, so a fresh --ready stops at
-  # its first look with the stall, posting nothing. A build that counts
-  # from the state's updatedAt alone (30 seconds, 40 at ci.watch.timeout)
-  # or from the call's first look never reaches 60 seconds within
-  # ci.watch.timeout and ends review-timeout. Fails before the work
-  # at the outcome step: today the stall counts from this call's first look
-  # that read it running, so the wait ends at ci.watch.timeout,
-  # review-timeout.
+  # for the head, was last edited 130 seconds ago, before it. A request made
+  # at or after the last edit replaces it, so the stall counts from the
+  # request's createdAt and a fresh --ready stops at its first look with the
+  # stall, posting nothing. A build that counts from the call's first look
+  # never reaches 60 seconds within ci.watch.timeout and ends review-timeout;
+  # one counting from the edit alone is caught by the unit row "asked from the
+  # last edit". Fails before the work at the outcome step: today the stall
+  # counts from this call's first look that read it running, so the wait ends
+  # at ci.watch.timeout, review-timeout.
   @ID-PUSHDRAFT-41 @slice-200
   Scenario: Under push.pr.draft, push --ready counts push.pr.review_stall from GitHub's times, so a rerun past it stops at the stall
     Given the config, committed and pushed to the remote's main, adds the YAML:
@@ -3049,7 +3051,7 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
     And git pushes HEAD to the remote's new branch "slice-9"
     And the recording gh has the draft pull request "https://github.example/o/r/pull/7" open for the branch "slice-9"
     And the recording gh answers that the pull request has a comment by "someone" asking "chatgpt-codex-connector" to review the clone's HEAD again, posted 120 seconds ago
-    And the recording gh answers that the pull request has a comment by "chatgpt-codex-connector" holding Codex's review state, its code review "running" and its security review "completed", last edited 30 seconds ago
+    And the recording gh answers that the pull request has a comment by "chatgpt-codex-connector" holding Codex's review state, its code review "running" and its security review "completed", last edited 130 seconds ago
     When itos runs "push --ready --json"
     Then itos exits with code 75
     And its JSON's "outcome" is "review-stalled"
@@ -3064,7 +3066,7 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   # and the review then completes. Fails before the work at the exit code: today
   # the code request replaces the last edit, so the first look stops, 75,
   # review-stalled.
-  @wip @ID-PUSHDRAFT-69 @bug-164
+  @ID-PUSHDRAFT-69 @bug-164
   Scenario: Under push.pr.draft, push --ready does not stop a review that started seconds ago, however old its request
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -3101,7 +3103,7 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   # stops review_stall after it. Fails before the work at the pr comment count:
   # today the old request reads as asked again, so the first look stops with
   # nothing posted, and only a build that asks again passes.
-  @wip @ID-PUSHDRAFT-70 @bug-164
+  @ID-PUSHDRAFT-70 @bug-164
   Scenario: Under push.pr.draft, push --ready asks once again for a review still running push.pr.review_stall past its start when its one request is older, then stops, exit 75
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -3135,7 +3137,7 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   # A guard: it passes before the work, the later request being past review_stall,
   # and must after it, where a build reading any request older than the start as no
   # asking at all posts a third.
-  @wip @ID-PUSHDRAFT-71 @bug-164 @guard
+  @ID-PUSHDRAFT-71 @bug-164 @guard
   Scenario: Under push.pr.draft, push --ready posts no third request for a review running past its start with two requests older than it, and stops, exit 75
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -3170,7 +3172,7 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   # for one request passes ID-69 and stops here. Fails before the work at the second
   # exit code: today the later request, 120 seconds old, is the clock, so the rerun
   # stops too, 75, review-stalled, until the review completes.
-  @wip @ID-PUSHDRAFT-72 @bug-164
+  @ID-PUSHDRAFT-72 @bug-164
   Scenario: Under push.pr.draft, push --ready run again after review-stalled does not stop a review started since
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
