@@ -6697,6 +6697,9 @@ items:
       killed or excepted; the next nightly draws fresh ones.
     refs: [internal/cli/gitshim.go, internal/cli/push.go, internal/work/propose.go]
     tags: [proof]
+    deferred: >
+      q-107: the survivor backlog waits until after v9, which will change and likely shrink the
+      code. Revisit then, and whether survivors should fail the nightly again.
 
   - id: slice-110
     title: init --policy derives a command adapter's smoke set
