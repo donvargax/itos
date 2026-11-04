@@ -15513,6 +15513,11 @@ items:
       The person, 2026-10-30, on docs/plans/v9-coordinator.md: agrees with every recommendation but
       question 3 (still asking), message checks at push included. Question 6 covers Cursor's Bugbot
       too, added as a second reviewer.
+
+      bug-160's spec, 2026-11-04: docs/plans/v9-coordinator.md's 'a run is matched by its head and
+      the event that started it' cannot hold as written: run.event reads pull_request for a draft's
+      synchronize and for ready_for_review alike, as runs 41334974134 and 41334973836 show, with no
+      activity-type field. forge observe must match otherwise.
     tags: [v9]
 
   - id: p1-reviewer-on-astra
