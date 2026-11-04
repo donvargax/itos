@@ -16899,14 +16899,15 @@ items:
     depends_on: []
     kind: idea
 
-  - id: p2-ready-review-never-started
+  - id: slice-218
     title: itos push --ready tells a reviewer that never starts a review from one that is still running
     phase: 2
     owner: null
     status: todo
     depends_on: []
-    kind: idea
+    kind: slice
     why: >
+      Was p2-ready-review-never-started.
       bug-157, PR #247, 2026-11-01: Codex's review-state comment kept security_review at status null
       and commit_sha null on every head, while each @codex security review request got a code review
       receipt instead. --ready waited the full 1800 s (ci.watch.timeout) twice, saying only that
