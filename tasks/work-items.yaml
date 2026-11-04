@@ -17328,6 +17328,11 @@ items:
       projects resolves these by hand. This lands the keep-both resolution alone: p1-registry-merge
       and its file-per-item or merge-driver design wait on p1-typed-items.
     tags: [work, v8]
+    deferred: >
+      Spec written and twice reviewed on #262; two small findings stand. The rule is safe, but 0 of
+      46 merges here and 2 of 50 elsewhere conflict in a registry or ledger, and an agent handles
+      each abort anyway. Wait for p1-registry-merge's design, which stops the conflict at its
+      source. Resume if conflicts become common.
 
   - id: p2-stall-clock-older-than-the-review
     title: --ready's stall reads a review that just started as stalled, its clock an older request
