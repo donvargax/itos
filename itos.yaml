@@ -479,14 +479,15 @@ ci:
       # The two mutation steps are the plan's last, the twenty first (T-185): they take most of the
       # night's time, so a runner that shuts down during them costs only them, never the steps
       # that would have come after.
+      # q-107: tools/bin/nightly-survivors, which both run through, goes after v9.
       # Twenty mutation sites of the Go code judged freshly (q-41's nightly budget, q-52), drawn
-      # across cmd and internal with no cache; a survivor fails the night. Not --fail-uncovered
+      # across cmd and internal with no cache. Not --fail-uncovered
       # (q-54): with no range, strict coverage judges every function, and that backlog is the
       # debt baseline's (p3-debt-role). The seed is the run's own, GitHub's run id (the time, run
       # by hand), not HEAD's, so two nights on one commit draw differently; the report names it,
       # to reproduce a draw. Linux only, as the job is.
       - {
-          run: 'tools/bin/pinned itos-cc mutation run --count 20 --seed "${GITHUB_RUN_ID:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}" --json cmd internal',
+          run: 'go run ./tools/bin/nightly-survivors -- tools/bin/pinned itos-cc mutation run --count 20 --seed "${GITHUB_RUN_ID:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}" --json cmd internal',
           cost: late,
         }
       # The mutation sites of the Go functions changed since the last green nightly, strictly
@@ -501,12 +502,12 @@ ci:
       # green night moves the base, and never runs past the job's time. With no green nightly in
       # reach (none, gh failing, or its commit not in HEAD's history) it says so and judges from
       # the floor, never every function. The twenty above still draw from all of the code, no
-      # floor (the user, 2026-10-17). A survivor or an uncovered changed line fails the night.
+      # floor (the user, 2026-10-17). An uncovered changed line fails the night.
       # Linux only, as the job is (T-161). A Go file only another OS builds, such as a _windows.go
       # file, is left out by itos-cc itself ("not_built" in its report, itos-cc#18) and fails
       # nothing, so a change to one cannot keep every night red and the base from moving.
       - {
-          run: 'base=$(go run ./tools/bin/nightly-base -floor a9de53f62e7b6755a91f47d2780bdc2a827b94e4) && tools/bin/pinned itos-cc mutation run --since "$base" --count 60 --seed "${GITHUB_RUN_ID:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}" --fail-uncovered=lines --json cmd internal',
+          run: 'base=$(go run ./tools/bin/nightly-base -floor a9de53f62e7b6755a91f47d2780bdc2a827b94e4) && go run ./tools/bin/nightly-survivors -- tools/bin/pinned itos-cc mutation run --since "$base" --count 60 --seed "${GITHUB_RUN_ID:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}" --fail-uncovered=lines --json cmd internal',
           cost: late,
         }
   wait_on_status: [todo] # a named task nobody has started waits
