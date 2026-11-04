@@ -17479,3 +17479,14 @@ items:
     kind: idea
     why: >
       x
+
+  - id: p3-spec-carries-fixture
+    title: A spec commit cannot carry a recorded fixture, though a fix's brief asks for one with the spec
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      bug-163's drafter, 2026-11-04: itos commit check-paths refuses testdata in a docs commit, so
+      the real vendor bodies a spec rests on wait in its description for the implementer.
