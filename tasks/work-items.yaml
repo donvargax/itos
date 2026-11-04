@@ -5173,6 +5173,11 @@ items:
       slice-222 lands keep-both on itos push's merge of main, without waiting for typed items; what
       stays here: rebase and pull paths, work done's git pull, and the design that stops the
       conflict at its source.
+
+      slice-222's review, 2026-11-04: a hunk-level keep-both is unsafe even with an empty diff3
+      base: main's work defer on the last item and a branch's work add attach the defer to the new
+      item, passing every check. Any resolution must compare entries by id across base, ours, theirs
+      and the result.
     tags: [work, v9]
 
   - id: p1-refs-overlap
