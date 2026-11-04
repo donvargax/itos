@@ -377,13 +377,16 @@
 // that many seconds,
 // from the last edit of its comment (GitHub's updatedAt) else the first look of
 // this --ready that read it so: "@codex review", an empty
-// line and "<!-- itos-review-request:v1 <login> <head> -->", once per head
-// ever (reviewers.Request.OnHead: any comment with that request for the login and
-// the head is an earlier one, and a security request is not that request). A review still running review_stall seconds
-// after the request, counted from the request comment's createdAt, from when
-// this --ready posted it until GitHub lists it, or from its first look that read
-// it running when an earlier request has no time, ends the wait: exit 75,
-// outcome review-stalled. ci.watch.timeout still bounds the whole wait.
+// line and "<!-- itos-review-request:v1 <login> <head> -->", unless it counts as
+// asked (stallClock; reviewers.Request.OnHead: any comment with that request for
+// the login and the head is one, and a security request is not that request): a
+// request made at or after that edit, two of any age, or one older than the edit
+// while the code review is not under way for the head. A review counting as asked
+// and running review_stall seconds past that edit, or past a request at or after
+// it, counted from the request comment's createdAt, from when this --ready posted
+// it until GitHub lists it, or from its first look that read it running when a
+// request has no time, ends the wait: exit 75, outcome review-stalled.
+// ci.watch.timeout still bounds the whole wait.
 //
 // A review that never starts (slice 218, notStarted): with review_stall above 0,
 // each of a login's two reviews is judged alone at each look, the code review

@@ -139,7 +139,9 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
      stderr (under --json too) "itos: no review by <the logins without
      one, comma-separated, as the config writes them> on <address> after
      <n> seconds (ci.watch.timeout), so auto-merge is not turned on; itos
-     push --ready again waits again."
+     push --ready again turns it on if the reviews have come, else stops here
+     at once, the wait counting from when the pull request was marked ready or
+     its head pushed; a new head starts it afresh."
   5. The review threads, always under --ready: a thread whose isResolved is
      false refuses the merge, exit 1, outcome review-threads-unresolved,
      auto-merge not turned on, stderr (under --json too, written as it runs)
@@ -374,7 +376,8 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   line "<!-- itos-review-request:v1 <login> <sha> -->" (the line trimmed,
   the login matched as review_by's are) for that login and the head's full
   SHA means it was asked already, by this --ready or an earlier one, and
-  nothing is posted again. One naming another head counts for nothing.
+  nothing is posted again. One naming another head counts for nothing. bug-164
+  narrows this: a request older than the running review's start is not asking again.
 
   The stall. When the login's review still reads running review_stall
   seconds after it was asked again (counted from the re-request this
@@ -525,6 +528,98 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   adds to gh-comments a node by "someone" with the call's body, what it printed
   as its url and the call's time as its createdAt and updatedAt, as GitHub lists
   a comment made.
+
+  bug-164: a stall counts from the review's start. Seen 2026-11-04 on slice-218's
+  own run: at --ready's second request Codex's state flipped to code review
+  running with its security review null, the stall counted from the code review's
+  request, 20 minutes old, and --ready stopped review-stalled seconds after the
+  review started, on every rerun until it completed. No wrong merge, but it
+  misleads and stops a healthy review.
+
+  The clock. stalled reads the review-state comment's last edit (slice 200) only
+  while no code request is on the head; a request found replaces it, however old.
+  Now a review under way started, as far as itos can tell, at that last edit, and
+  a request replaces it only when made at or after it (the same second counting
+  as after, GitHub's times being whole seconds). A request older than the start
+  asked for the review now running, and did not ask for it again. So the clock is
+  the later of the two, and a review that started seconds ago is not stalled,
+  however old its request. An edit is any change to the comment, the other
+  review's completion among them, so the start can read late, which gives a stuck
+  review longer, and never early. With no last edit, or a request with no time,
+  the clock is what it was: the request's time, else the first look of this
+  --ready that read the review running. A rerun keeps nothing from the run before
+  and reads the same times, so it does not stop a review started since.
+
+  Stalled means what it meant: running review_stall seconds past that clock, asked
+  again once, then review-stalled, as the schema's words for review_stall have it.
+  Past the clock with the one request older than the start and the code review
+  under way for the head, --ready posts slice 190's "@codex review" and says so, and
+  stops review_stall after that request. A lone older request stays asked when the
+  code review is not under way for the head: the running review is then the security
+  one, which "@codex review" does not ask for, and a code review that has finished
+  is not asked again, so --ready posts nothing and stops at the start plus
+  review_stall. With two requests for the head it posts nothing and stops: two
+  requests for a review and a head, ever, is slice 218's and stays, so slice 190's
+  once per head now reads: a request made since the review started, a request while
+  the code review is not under way, or a second. Bug-163's form for the security
+  request is unchanged, and so is notStarted.
+
+  Words this makes false, which change with it: the --ready help in
+  internal/slices/push/command.go ("a comment with that request meaning it was asked
+  already") and internal/slices/push/doc.go ("once per head ever"), beside the
+  comment above stalled.
+
+  The timeout's words. ci.watch.timeout counts from when the pull request was
+  marked ready or its head pushed (slice 200), and is judged first, so a --ready
+  past it looks once and returns: it does not wait. Its line now says so: "itos: no
+  review by <logins> on <address> after <n> seconds (ci.watch.timeout), so
+  auto-merge is not turned on; itos push --ready again turns it on if the reviews
+  have come, else stops here at once, the wait counting from when the pull request
+  was marked ready or its head pushed; a new head starts it afresh." Exit 75 and
+  outcome review-timeout stay. Where GitHub gives neither time a rerun's clock
+  starts at its first ask and it does wait; the line does not carve that out, as a
+  pull request --ready marked ready has the ready event.
+
+  The config. With ci.watch.timeout at its default 1800 judged first, this
+  repository's review_stall of 1200 gives the second request but never reaches
+  review-not-started at twice that. A build commit on this item sets
+  ci.watch.timeout to 3000 beside push.pr.review_stall: 1200. Its other readers:
+  ciwatch.Watch (itos ci watch, a plain itos push, itos work done), which
+  push.pr.ready_wait does not bound, so a run that never ends holds them 20 minutes
+  longer, while a run that ends is judged as before; ciwatch.WatchReady and
+  rebasedHead (--ready), each bounded by ready_wait, so a run that never ends takes
+  more reruns to reach its timeout, and this repository's push.pr.update merge asks
+  for no rebase.
+
+  Not in bug-164: a config check refusing a timeout under twice review_stall; a
+  change to the order of the judges, ci.watch.timeout staying first; a new outcome.
+
+  The rest is unit rows beside slice 200's, in
+  TestPushReadyCountsTheStallFromGitHubsTimes: its row "asked long ago" (last edited
+  30 seconds ago, the request 120, review_stall 60) now asks again at the fourth
+  look and stops at the tenth, and new rows give two requests older than the last
+  edit (no third, stopped when the edit is past review_stall), a request in the same
+  second as the edit (the request's clock, no post), an edit with a request with no
+  time (the first look's clock), and the code review completed with its security
+  review running, last edited 30 seconds ago, the lone code request 120 (no post,
+  review-stalled at the fourth look, 60 seconds past the edit). The same-second rule
+  rests on its row alone: no scenario pins it. The row "asked from the last edit"
+  keeps a build from counting from the edit alone, which would stop at the look after
+  its request. The waits-again words in TestPushReady's review-timeout case
+  (ready_test.go) follow the new line.
+
+  ID-PUSHDRAFT-41, as released, is this bug: a request 120 seconds old beside a last
+  edit 30 seconds old stops at the first look. Its rule stays, a rerun past the clock
+  stops at the stall, so the fix changes its state's line to "last edited 130 seconds
+  ago", the request made after the edit, and the fix's Changes: footer names it. Its
+  comment changes with its line: "last edited 30 seconds ago, after it" and "Once a
+  request exists the stall counts from its createdAt" are no longer so, and a build
+  counting from updatedAt alone no longer fails it, the row above catching that one.
+
+  bug-164's step: slice 218's state step for its first <n> api graphql calls
+  with ", last edited <m> seconds ago" before ", for its first", the state of those
+  calls being that long edited (createdAt and updatedAt) as of when the step ran, and
+  the later state having no times.
 
   Slice 200: --ready finishes on its own. Seen 2026-10-25 on #146, #149
   and #156: GitHub refuses auto-merge on a pull request that is mergeable
@@ -686,7 +781,7 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   first entry's timestamp when its after is the judged head's full SHA,
   else none (an activity call that fails or an answer that cannot be read
   is none too, not a failure: it only sets a clock); review_stall, before a request, from the review-state comment's
-  updatedAt while it reads running (Codex edits it in place as its status
+  updatedAt while it reads running (bug-164: after one too, when later than it; Codex edits it in place as its status
   changes), and after one from the request comment's createdAt (a request
   this --ready posted counting from when it posted it, until GitHub lists
   it). reviewQuery asks for each comment's createdAt and updatedAt and for
@@ -1941,6 +2036,37 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
     And its output says "no review by copilot-pull-request-reviewer[bot]"
     And the recording gh was never called as "pr merge"
 
+  # Past ci.watch.timeout a --ready looks once and returns, so its line no longer
+  # says a rerun waits again, and says what it does. The outcome and the exit code
+  # stay. Fails before the work at the "does not say" step: today the line ends
+  # "itos push --ready again waits again.".
+  @ID-PUSHDRAFT-73 @bug-164
+  Scenario: Under push.pr.draft, push --ready past ci.watch.timeout says a rerun stops at once unless the reviews have come, not that it waits again
+    Given the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+        pr:
+          draft: true
+          review_by: ["copilot-pull-request-reviewer[bot]"]
+      """
+    And ci.watch asks a fake GitHub, which reports the run "https://ci.example/runs/1"
+    And ci.watch.timeout is 60
+    And the watched run's jobs "ci" and "platform" succeed
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the clone is on the new branch "slice-9"
+    And the clone has the commit "feat: add the widget" touching "widget.md"
+    And git pushes HEAD to the remote's new branch "slice-9"
+    And the recording gh has the pull request "https://github.example/o/r/pull/7" open for the branch "slice-9"
+    And the recording gh answers that the pull request was marked ready 130 seconds ago and its head pushed 120 seconds ago
+    When itos runs "push --ready --json"
+    Then itos exits with code 75
+    And its JSON's "outcome" is "review-timeout"
+    And its output does not say "waits again"
+    And its output says "itos push --ready again turns it on if the reviews have come, else stops here at once"
+    And its output says "a new head starts it afresh."
+    And the recording gh was never called as "pr merge"
+
   # The run's clock is GitHub's too: the watched run's latest attempt
   # started two minutes ago (run_started_at), past ci.watch.timeout, so a
   # fresh --ready ends the watch
@@ -2896,15 +3022,15 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
 
   # The stall's clock is GitHub's: the request for this head was posted
   # two minutes ago, past push.pr.review_stall, and Codex's state, running
-  # for the head, was last edited 30 seconds ago, after it. Once a request
-  # exists the stall counts from its createdAt, so a fresh --ready stops at
-  # its first look with the stall, posting nothing. A build that counts
-  # from the state's updatedAt alone (30 seconds, 40 at ci.watch.timeout)
-  # or from the call's first look never reaches 60 seconds within
-  # ci.watch.timeout and ends review-timeout. Fails before the work
-  # at the outcome step: today the stall counts from this call's first look
-  # that read it running, so the wait ends at ci.watch.timeout,
-  # review-timeout.
+  # for the head, was last edited 130 seconds ago, before it. A request made
+  # at or after the last edit replaces it, so the stall counts from the
+  # request's createdAt and a fresh --ready stops at its first look with the
+  # stall, posting nothing. A build that counts from the call's first look
+  # never reaches 60 seconds within ci.watch.timeout and ends review-timeout;
+  # one counting from the edit alone is caught by the unit row "asked from the
+  # last edit". Fails before the work at the outcome step: today the stall
+  # counts from this call's first look that read it running, so the wait ends
+  # at ci.watch.timeout, review-timeout.
   @ID-PUSHDRAFT-41 @slice-200
   Scenario: Under push.pr.draft, push --ready counts push.pr.review_stall from GitHub's times, so a rerun past it stops at the stall
     Given the config, committed and pushed to the remote's main, adds the YAML:
@@ -2925,12 +3051,157 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
     And git pushes HEAD to the remote's new branch "slice-9"
     And the recording gh has the draft pull request "https://github.example/o/r/pull/7" open for the branch "slice-9"
     And the recording gh answers that the pull request has a comment by "someone" asking "chatgpt-codex-connector" to review the clone's HEAD again, posted 120 seconds ago
-    And the recording gh answers that the pull request has a comment by "chatgpt-codex-connector" holding Codex's review state, its code review "running" and its security review "completed", last edited 30 seconds ago
+    And the recording gh answers that the pull request has a comment by "chatgpt-codex-connector" holding Codex's review state, its code review "running" and its security review "completed", last edited 130 seconds ago
     When itos runs "push --ready --json"
     Then itos exits with code 75
     And its JSON's "outcome" is "review-stalled"
     And the recording gh was never called as "pr comment"
     And the recording gh was never called as "pr merge"
+
+  # The run seen on slice-218's own: the code and security requests are 20 minutes
+  # old, review_stall, and Codex's state has just flipped to code review running
+  # with its security review null. The stall counts from the review's start, the
+  # state's last edit 5 seconds ago, so the code review is not stalled, while the
+  # security review not started gets its second request alone, in bug-163's form,
+  # and the review then completes. Fails before the work at the exit code: today
+  # the code request replaces the last edit, so the first look stops, 75,
+  # review-stalled.
+  @ID-PUSHDRAFT-69 @bug-164
+  Scenario: Under push.pr.draft, push --ready does not stop a review that started seconds ago, however old its request
+    Given the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+        pr:
+          draft: true
+          review_by: [chatgpt-codex-connector]
+          review_stall: 1200
+      """
+    And ci.watch asks a fake GitHub, which reports the run "https://ci.example/runs/1"
+    And ci.watch.timeout is 10
+    And the watched run's jobs "ci" and "platform" succeed
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the clone is on the new branch "slice-9"
+    And the clone has the commit "feat: add the widget" touching "widget.md"
+    And git pushes HEAD to the remote's new branch "slice-9"
+    And the recording gh has the draft pull request "https://github.example/o/r/pull/7" open for the branch "slice-9"
+    And the recording gh answers that the pull request has a comment by "someone" asking "chatgpt-codex-connector" to review the clone's HEAD again, posted 1200 seconds ago
+    And the recording gh answers that the pull request has a comment by "someone" requesting "@codex security review" of "chatgpt-codex-connector" at the clone's HEAD, posted 1200 seconds ago, at "https://github.example/o/r/pull/7#issuecomment-11"
+    And the recording gh answers that the pull request has a comment by "chatgpt-codex-connector" holding Codex's review state, its code review "running" of the clone's HEAD and its security review null of no commit, last edited 5 seconds ago, for its first 2 api graphql calls, then both "completed" of the clone's HEAD
+    When itos runs "push --ready"
+    Then itos exits with code 0
+    And the recording gh's "pr comment" calls are these lines, in order, @HEAD:slice-9@ the full SHA of the head of the remote's branch "slice-9":
+      """
+      pr comment slice-9 --repo owner/scratch --body=@codex security review
+      pr comment slice-9 --repo owner/scratch --body=<!-- itos-review-request:v1 chatgpt-codex-connector @HEAD:slice-9@ -->
+      """
+    And the recording gh's "pr merge" call has "--auto"
+
+  # A review truly stuck still stops, and is asked again first. The one request is
+  # older than the review's start, so it asked for what is running, not for it
+  # again; running review_stall past that start, --ready posts "@codex review", and
+  # stops review_stall after it. Fails before the work at the pr comment count:
+  # today the old request reads as asked again, so the first look stops with
+  # nothing posted, and only a build that asks again passes.
+  @ID-PUSHDRAFT-70 @bug-164
+  Scenario: Under push.pr.draft, push --ready asks once again for a review still running push.pr.review_stall past its start when its one request is older, then stops, exit 75
+    Given the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+        pr:
+          draft: true
+          review_by: [chatgpt-codex-connector]
+          review_stall: 1
+      """
+    And ci.watch asks a fake GitHub, which reports the run "https://ci.example/runs/1"
+    And ci.watch.timeout is 10
+    And the watched run's jobs "ci" and "platform" succeed
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the clone is on the new branch "slice-9"
+    And the clone has the commit "feat: add the widget" touching "widget.md"
+    And git pushes HEAD to the remote's new branch "slice-9"
+    And the recording gh has the draft pull request "https://github.example/o/r/pull/7" open for the branch "slice-9"
+    And the recording gh answers that the pull request has a comment by "someone" asking "chatgpt-codex-connector" to review the clone's HEAD again, posted 300 seconds ago
+    And the recording gh answers that the pull request has a comment by "chatgpt-codex-connector" holding Codex's review state, its code review "running" and its security review "completed", last edited 120 seconds ago
+    When itos runs "push --ready --json"
+    Then itos exits with code 75
+    And its JSON's "outcome" is "review-stalled"
+    And the recording gh was called as "pr comment" once
+    And the recording gh's "pr comment" call has "@codex review"
+    And its output says "after it was asked again"
+    And the recording gh was never called as "pr merge"
+
+  # Two requests for a review and a head, ever, stay slice 218's: both older than
+  # the review's start and it past review_stall, --ready posts no third and stops.
+  # A guard: it passes before the work, the later request being past review_stall,
+  # and must after it, where a build reading any request older than the start as no
+  # asking at all posts a third.
+  @ID-PUSHDRAFT-71 @bug-164 @guard
+  Scenario: Under push.pr.draft, push --ready posts no third request for a review running past its start with two requests older than it, and stops, exit 75
+    Given the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+        pr:
+          draft: true
+          review_by: [chatgpt-codex-connector]
+          review_stall: 1
+      """
+    And ci.watch asks a fake GitHub, which reports the run "https://ci.example/runs/1"
+    And ci.watch.timeout is 10
+    And the watched run's jobs "ci" and "platform" succeed
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the clone is on the new branch "slice-9"
+    And the clone has the commit "feat: add the widget" touching "widget.md"
+    And git pushes HEAD to the remote's new branch "slice-9"
+    And the recording gh has the draft pull request "https://github.example/o/r/pull/7" open for the branch "slice-9"
+    And the recording gh answers that the pull request has a comment by "someone" asking "chatgpt-codex-connector" to review the clone's HEAD again, posted 300 seconds ago
+    And the recording gh answers that the pull request has a comment by "someone" asking "chatgpt-codex-connector" to review the clone's HEAD again, posted 200 seconds ago
+    And the recording gh answers that the pull request has a comment by "chatgpt-codex-connector" holding Codex's review state, its code review "running" and its security review "completed", last edited 120 seconds ago
+    When itos runs "push --ready --json"
+    Then itos exits with code 75
+    And its JSON's "outcome" is "review-stalled"
+    And the recording gh was never called as "pr comment"
+    And the recording gh was never called as "pr merge"
+
+  # A rerun after review-stalled reads the same clock. The first --ready stops at
+  # a review running past review_stall, with two requests older than its start. The
+  # review then starts afresh, its state edited 5 seconds ago, and the second
+  # --ready goes on to the verdict, posting nothing. A build reading the edit only
+  # for one request passes ID-69 and stops here. Fails before the work at the second
+  # exit code: today the later request, 120 seconds old, is the clock, so the rerun
+  # stops too, 75, review-stalled, until the review completes.
+  @ID-PUSHDRAFT-72 @bug-164
+  Scenario: Under push.pr.draft, push --ready run again after review-stalled does not stop a review started since
+    Given the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+        pr:
+          draft: true
+          review_by: [chatgpt-codex-connector]
+          review_stall: 60
+      """
+    And ci.watch asks a fake GitHub, which reports the run "https://ci.example/runs/1"
+    And ci.watch.timeout is 10
+    And the watched run's jobs "ci" and "platform" succeed
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the clone is on the new branch "slice-9"
+    And the clone has the commit "feat: add the widget" touching "widget.md"
+    And git pushes HEAD to the remote's new branch "slice-9"
+    And the recording gh has the draft pull request "https://github.example/o/r/pull/7" open for the branch "slice-9"
+    And the recording gh answers that the pull request has a comment by "someone" asking "chatgpt-codex-connector" to review the clone's HEAD again, posted 300 seconds ago
+    And the recording gh answers that the pull request has a comment by "someone" asking "chatgpt-codex-connector" to review the clone's HEAD again, posted 120 seconds ago
+    And the recording gh answers that the pull request has a comment by "chatgpt-codex-connector" holding Codex's review state, its code review "running" and its security review "completed", last edited 90 seconds ago
+    When itos runs "push --ready --json"
+    Then itos exits with code 75
+    And its JSON's "outcome" is "review-stalled"
+    Given the recording gh answers that the pull request has a comment by "chatgpt-codex-connector" holding Codex's review state, its code review "running" of the clone's HEAD and its security review "completed" of the clone's HEAD, last edited 5 seconds ago, for its first 2 api graphql calls, then both "completed" of the clone's HEAD
+    When itos runs "push --ready"
+    Then itos exits with code 0
+    And the recording gh was never called as "pr comment"
+    And the recording gh's "pr merge" call has "--auto"
 
   # Copilot out of quota posts a review that is a refusal, and #158 merged
   # on it unreviewed. A refusal is no verdict, and waiting cannot bring a

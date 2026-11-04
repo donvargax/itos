@@ -235,11 +235,15 @@ run waiting or succeeded and each push.pr.review_by login not asked, waiting,
 running (its review-state comment reads a review under way on the head) or
 completed.
 push.pr.review_stall (seconds, 0 by default: never) makes it ask a login whose
-review has read running that long for it again, once per head: a gh pr comment
-holding "@codex review" and a hidden itos-review-request line with the login and
-the head's full SHA, a comment with that request meaning it was asked already,
-a security request counting for nothing here; a review still running review_stall seconds after the request ends --ready, exit
-75, outcome review-stalled, auto-merge not turned on. With it set, each of
+review has read running that long for it again, counted from the last edit of its
+review-state comment: a gh pr comment holding "@codex review" and a hidden
+itos-review-request line with the login and the head's full SHA. A comment with
+that request made at or after the edit means it was asked already and counts from
+its time; so do two of any age, and one older than the edit while the code review
+is not the one running, those counting from the edit; a security request counts
+for nothing here. A review still running review_stall seconds past that, once
+asked, ends --ready, exit 75, outcome review-stalled, auto-merge not turned on.
+With it set, each of
 the two reviews in a login's review-state comment that was requested for the head
 and has not started review_stall seconds after the latest such request (its
 status null, or no commit, or another commit whatever its status) is asked once

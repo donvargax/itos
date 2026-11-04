@@ -263,17 +263,11 @@ func (r *pushRun) notStarted(ctx context.Context, repository string, w *waiting,
 }
 
 // stalled judges a login's reviews under way (slice 190): one that has read
-// running for review_stall seconds and was not asked for this head's code review
-// is asked again (gh pr comment), and it says so; one that was asked, by this
-// --ready or an earlier one, and still reads running review_stall seconds later
-// ends the wait: done, 75, review-stalled, auto-merge not turned on. Also done,
-// with the outcome reported, when gh pr comment fails. The clocks are GitHub's
-// where it gives them (slice 200): before a request, the review-state comment's
-// last edit; after one, the request comment's time, a request this --ready posted
-// counting from when it posted it until GitHub lists it; a time it does not give
-// counts from the first look of this --ready that read the review running. A
-// security request counts for nothing here: it neither takes the place of "@codex
-// review" nor starts a clock.
+// running for review_stall seconds by stallClock and does not count as asked is
+// asked again (gh pr comment), and it says so; one that counts as asked ends the
+// wait: done, 75, review-stalled, auto-merge not turned on. Also done, with the
+// outcome reported, when gh pr comment fails. A security request counts for
+// nothing here: it neither takes the place of "@codex review" nor starts a clock.
 func (r *pushRun) stalled(ctx context.Context, repository string, w *waiting, rv *reviewing, state pullState, at time.Time, login string) (Answer, bool) {
 	if !state.running(login, w.head) {
 		delete(rv.since, login)
@@ -282,23 +276,14 @@ func (r *pushRun) stalled(ctx context.Context, repository string, w *waiting, rv
 	if _, ok := rv.since[login]; !ok {
 		rv.since[login] = at
 	}
-	from := rv.since[login]
-	if edited := state.pull.StateOf(login).Updated; !edited.IsZero() {
-		from = edited
-	}
+	st := state.pull.StateOf(login)
 	code := reviewers.CodexReview(login)
-	made := rv.requests(code, state.pull.Comments, w.head)
-	if len(made) > 0 {
-		from = rv.since[login]
-		if last := latest(made); !last.at.IsZero() {
-			from = last.at
-		}
-	}
+	from, asked := stallClock(rv.since[login], st.Updated, rv.requests(code, state.pull.Comments, w.head), st.Code.UnderWay(w.head))
 	if at.Sub(from).Seconds() < rv.stall {
 		return Answer{}, false
 	}
 	seconds := value.Number(rv.stall)
-	if len(made) > 0 {
+	if asked {
 		fmt.Fprintf(r.o.Stderr, "itos: the review by %s of %s on %s stalled: still running %s seconds (push.pr.review_stall) after it was asked again, so auto-merge is not turned on; look at the reviewer, then itos push --ready again.\n",
 			login, short(w.head), r.pr.URL, seconds)
 		return r.report(temporary, "review-stalled"), true
@@ -309,4 +294,31 @@ func (r *pushRun) stalled(ctx context.Context, repository string, w *waiting, rv
 	r.say(fmt.Sprintf("Asked %s to review %s again on %s: its review read running for %s seconds (push.pr.review_stall).",
 		login, short(w.head), r.pr.URL, seconds))
 	return Answer{}, false
+}
+
+// stallClock is what a review under way counts from and whether its code review
+// counts as asked. The clocks are GitHub's where it gives them (slice 200, bug-164):
+// the review-state comment's last edit, when the review started or later; a request
+// made at or after it instead, GitHub's times being whole seconds, and one this
+// --ready posted counting from when it posted it until GitHub lists it. A request
+// older than that edit asked for what is running, not for it again, so one of them
+// alone leaves the review unasked while its code review is under way; with the
+// code review not under way "@codex review" would ask for nothing that runs, so it
+// counts as asked, as two do. A time GitHub does not give counts from first, the
+// first look of this --ready that read the review running.
+func stallClock(first, edited time.Time, made []requestMade, codeUnderWay bool) (time.Time, bool) {
+	if len(made) == 0 {
+		if edited.IsZero() {
+			return first, false
+		}
+		return edited, false
+	}
+	last := latest(made).at
+	switch {
+	case last.IsZero():
+		return first, true
+	case edited.IsZero() || !last.Before(edited):
+		return last, true
+	}
+	return edited, len(made) > 1 || !codeUnderWay
 }

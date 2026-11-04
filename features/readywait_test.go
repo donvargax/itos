@@ -53,6 +53,8 @@ func initializeReadyWaitSteps(sc *godog.ScenarioContext, w *world) {
 		w.ghAnswersCodexStateOfUntilComment)
 	sc.Step(`^the recording gh answers that the pull request has a comment by "([^"]*)" holding Codex's review state, `+reviewsOf+` for its first (\d+) api graphql calls, then both "([^"]*)" of the clone's HEAD$`,
 		w.ghAnswersCodexStateOfThen)
+	sc.Step(`^the recording gh answers that the pull request has a comment by "([^"]*)" holding Codex's review state, `+reviewsOf+`, last edited (\d+) seconds ago, for its first (\d+) api graphql calls, then both "([^"]*)" of the clone's HEAD$`,
+		w.ghAnswersCodexStateEditedThen)
 	sc.Step(`^the recording gh answers that the pull request has a comment by "([^"]*)" holding Codex's review state of the head of the remote's branch "([^"]*)" at each call, its code review "([^"]*)" and its security review "([^"]*)"$`,
 		func(login, branch, code, security string) error {
 			if err := w.ghKeepsHead(branch); err != nil {
@@ -230,6 +232,24 @@ func (w *world) ghAnswersCodexStateOfThen(login, code, codeCommit, security, sec
 	if err != nil {
 		return err
 	}
+	return w.ghAnswersEarlyThen(login, comment, n, then)
+}
+
+// The same with the state of those first calls that long edited, as of when the
+// step ran (bug-164); the later state has no times.
+func (w *world) ghAnswersCodexStateEditedThen(login, code, codeCommit, security, securityCommit string, seconds, n int, then string) error {
+	comment, err := w.codexCommentOf(login, code, codeCommit, security, securityCommit)
+	if err != nil {
+		return err
+	}
+	edited := secondsAgo(seconds)
+	comment["createdAt"], comment["updatedAt"] = edited, edited
+	return w.ghAnswersEarlyThen(login, comment, n, then)
+}
+
+// ghAnswersEarlyThen answers the comment in the first n api graphql calls, and
+// the login's state of both the status given in every later one.
+func (w *world) ghAnswersEarlyThen(login string, comment map[string]any, n int, then string) error {
 	sha, err := w.head()
 	if err != nil {
 		return err
