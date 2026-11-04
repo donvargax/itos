@@ -29,8 +29,8 @@
 // head's full SHA> -->", the login as the config writes it. A request is on
 // the head when a comment by anyone has the line as its first line and a
 // marker line naming the login and the head; a line without the marker, or a
-// marker of another login or head, counts for nothing (Request.OnHead, which
-// also says when the latest such comment was made). Logins are compared
+// marker of another login or head, counts for nothing (Request.OnHead, and
+// Request.Made, which gives those comments). Logins are compared
 // with a trailing "[bot]" dropped from each, as GraphQL names a bot without
 // it. Missing is each request of each reviewer, in the config's order and the
 // kind's, neither on the head nor answered by the reviewer's own review of

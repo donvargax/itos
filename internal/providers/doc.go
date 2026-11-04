@@ -102,7 +102,7 @@
 // 209, 215 and 216): the full SHA of its head (headRefOid, which review post holds a
 // verdict to), the roll-up state of its head commit's checks and whether
 // auto-merge is enabled for it (which next reads), its reviews, each with the commit it is of (which review request
-// and next read Bugbot's by), its comments with their times, paged a hundred at a
+// and next read Bugbot's by), its comments with their times and addresses, paged a hundred at a
 // time up to CommentPages, the time it was last marked ready and its review
 // threads, each with its first comment. gh's error is passed on as it comes;
 // an answer without the reviews and the threads is ErrNoPullState, while one

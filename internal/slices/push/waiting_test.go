@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/donvargax/itos/v8/internal/engine/reviewers"
 	"github.com/donvargax/itos/v8/internal/providers"
 	vcsfake "github.com/donvargax/itos/v8/internal/vcs/port/porttest"
 )
@@ -373,5 +374,157 @@ func TestPushReadyStallPastTheTimeout(t *testing.T) {
 	code, stdout, _, _ := call(t, f, "--json", "--ready")
 	if r := reported(t, stdout); code != temporary || r.Outcome != "review-timeout" || len(comments(f)) != 0 || c.at.Sub(time.Unix(1_000_000, 0)) != 100*time.Second {
 		t.Errorf("exit %d, %s, %d comments\n%s", code, r.Outcome, len(comments(f)), stdout)
+	}
+}
+
+// notStartedBy is the login's review-state comment with its code review completed
+// for the head and its security review null of no commit, the case of bug-157.
+func notStartedBy(login string) string { return codexFor(login, "completed", "@head", "", "") }
+
+// A review not started is asked once more review_stall seconds after its one
+// request and ends the wait review_stall seconds after that, each at the first look
+// that has it: the looks are at 0, 10, ... seconds, so at the fourth and seventh.
+func TestPushReadyAsksOnceMoreThenStops(t *testing.T) {
+	f, p, c := stalling(t, "review_stall: 30", func(_ int, _ bool, head string) string {
+		return answerOf([]string{node("b", "")}, []string{askedForSecurity("someone", "a", head), notStartedBy("a")})
+	})
+	code, stdout, stderr, _ := call(t, f, "--json", "--ready")
+	head := f.head(t)
+	body := "pr comment slice-9 --repo owner/name --body=@codex security review\n\n<!-- itos-review-request:v1 a " + head + " -->"
+	stop := "itos: the security review by a of " + head + " on " + open7 + " has not started 30 seconds (push.pr.review_stall) after the request " +
+		", so auto-merge is not turned on; look at the reviewer, then itos push --ready again.\n"
+	if r := reported(t, stdout); code != temporary || r.Outcome != "review-not-started" || p.asks != 7 || len(c.slept) != 6 ||
+		!reflect.DeepEqual(comments(f), []string{body}) || !strings.HasSuffix(stderr, stop) {
+		t.Errorf("exit %d, %s, asks %d, %q\n%s%s", code, r.Outcome, p.asks, comments(f), stdout, stderr)
+	}
+}
+
+// A review's status reading anything but not started starts the first look's clock
+// again, and a review with no request for the head is judged by nothing: the
+// request of another head, or of the other review, is none.
+func TestPushReadyNotStartedCases(t *testing.T) {
+	for name, c := range map[string]struct {
+		answer   func(ask int, commented bool, head string) string
+		outcome  string
+		comments int
+		asks     int
+	}{
+		"a request of the other review only, of the head": {func(_ int, _ bool, head string) string {
+			return answerOf([]string{node("b", "")}, []string{askedBy("someone", "a", head), codexFor("a", "completed", head, "", head)})
+		}, "review-timeout", 0, 11},
+		"a request of another head": {func(int, bool, string) string {
+			return answerOf([]string{node("b", "")}, []string{askedForSecurity("someone", "a", "ffff"), codexFor("a", "completed", "@head", "", "@head")})
+		}, "review-timeout", 0, 11},
+		// Running at the second and third looks, so the clock restarts at the fourth:
+		// the second request comes three looks after it, at the seventh, not the fourth.
+		"started, then null again": {func(ask int, _ bool, head string) string {
+			state := notStartedBy("a")
+			if ask == 2 || ask == 3 {
+				state = codexFor("a", "completed", "@head", "running", "@head")
+			}
+			return answerOf([]string{node("b", "")}, []string{askedBy("someone", "a", head), askedForSecurity("someone", "a", head), state})
+		}, "review-not-started", 1, 10},
+	} {
+		t.Run(name, func(t *testing.T) {
+			f, p, _ := stalling(t, "review_stall: 30", c.answer)
+			code, stdout, stderr, _ := call(t, f, "--json", "--ready")
+			if r := reported(t, stdout); code != temporary || r.Outcome != c.outcome || len(comments(f)) != c.comments || p.asks != c.asks {
+				t.Errorf("exit %d, %s, %d comments, %d asks\n%s%s", code, r.Outcome, len(comments(f)), p.asks, stdout, stderr)
+			}
+		})
+	}
+}
+
+// The code review not started comes before a review under way: a running security
+// review does not stop the wait as a stall while the code review's second request
+// is due, and the stop names the code review.
+func TestPushReadyJudgesTheCodeReviewBeforeTheStall(t *testing.T) {
+	f, p, _ := stalling(t, "review_stall: 30", func(_ int, _ bool, head string) string {
+		return answerOf([]string{node("b", "")}, []string{askedBy("someone", "a", head), codexFor("a", "", "@head", "running", "@head")})
+	})
+	code, stdout, stderr, _ := call(t, f, "--json", "--ready")
+	if r := reported(t, stdout); code != temporary || r.Outcome != "review-not-started" || p.asks != 7 || len(comments(f)) != 1 ||
+		!strings.Contains(stderr, "the code review by a of ") {
+		t.Errorf("exit %d, %s, asks %d, %q\n%s%s", code, r.Outcome, p.asks, comments(f), stdout, stderr)
+	}
+}
+
+// ci.watch.timeout comes first: at a look where it has passed and two requests are
+// past review_stall, the outcome is review-timeout, nothing asked.
+func TestPushReadyNotStartedPastTheTimeout(t *testing.T) {
+	f, p, c := stalling(t, "review_stall: 30", nil)
+	p.graph = func(int) string {
+		sha := f.head(t)
+		request := "@codex security review\n\n<!-- itos-review-request:v1 a " + sha + " -->"
+		return answerAt([]string{node("b", "")}, []string{
+			timedNode("someone", request, c.ago(190), c.ago(190)),
+			timedNode("someone", request, c.ago(150), c.ago(150)),
+			notStartedBy("a"),
+		}, c.ago(200))
+	}
+	code, stdout, stderr, _ := call(t, f, "--json", "--ready")
+	if r := reported(t, stdout); code != temporary || r.Outcome != "review-timeout" || p.asks != 1 || len(comments(f)) != 0 {
+		t.Errorf("exit %d, %s, asks %d, %q\n%s%s", code, r.Outcome, p.asks, comments(f), stdout, stderr)
+	}
+}
+
+// gh pr comment failing on the second request is any gh call failing: exit 3,
+// pull-request-failed, nothing merged.
+func TestPushReadyWhereTheSecondRequestFails(t *testing.T) {
+	f, p, _ := stalling(t, "review_stall: 30", func(_ int, _ bool, head string) string {
+		return answerOf([]string{node("b", "")}, []string{askedForSecurity("someone", "a", head), notStartedBy("a")})
+	})
+	p.fail = map[string]error{"pr comment": &providers.GhFailed{Words: "HTTP 502\n", Err: errors.New("exit status 1")}}
+	code, stdout, stderr, _ := call(t, f, "--json", "--ready")
+	if r := reported(t, stdout); code != missing || r.Outcome != "pull-request-failed" || p.asks != 4 ||
+		!strings.Contains(stderr, "gh pr comment failed: HTTP 502") || strings.Contains(strings.Join(f.calls(), "\n"), "pr merge") {
+		t.Errorf("exit %d, %s, asks %d\n%s%s", code, r.Outcome, p.asks, stdout, stderr)
+	}
+}
+
+// A request posted counts until GitHub lists it, and then once, known by its
+// address; one with no address cannot be known, and counts beside those listed.
+func TestRequestsCountAPostedRequestOnce(t *testing.T) {
+	const head = "0123456789abcdef0123456789abcdef01234567"
+	req := reviewers.CodexSecurity("a")
+	listedAt, postedAt := time.Unix(1_000, 0), time.Unix(1_001, 0)
+	listed := []providers.Authored{{Body: req.Body(head), URL: "u1", Created: listedAt}}
+	for name, c := range map[string]struct {
+		comments []providers.Authored
+		posted   []requestMade
+		want     []requestMade
+	}{
+		"not listed yet":    {nil, []requestMade{{"u1", postedAt}}, []requestMade{{"u1", postedAt}}},
+		"listed":            {listed, []requestMade{{"u1", postedAt}}, []requestMade{{"u1", listedAt}}},
+		"another's listed":  {listed, []requestMade{{"u2", postedAt}}, []requestMade{{"u1", listedAt}, {"u2", postedAt}}},
+		"no address":        {[]providers.Authored{{Body: req.Body(head)}}, []requestMade{{"", postedAt}}, []requestMade{{"", time.Time{}}, {"", postedAt}}},
+		"two with one name": {nil, []requestMade{{"u1", listedAt}, {"u1", postedAt}}, []requestMade{{"u1", listedAt}, {"u1", postedAt}}},
+	} {
+		rv := newReviewing(1)
+		rv.asked[req] = c.posted
+		if got := rv.requests(req, c.comments, head); !reflect.DeepEqual(got, c.want) {
+			t.Errorf("%s: %+v, want %+v", name, got, c.want)
+		}
+	}
+}
+
+// The latest request is by its time, whatever the order given, and the one given
+// last of those with the same time or with none.
+func TestLatestRequest(t *testing.T) {
+	first, later := time.Unix(1_000, 0), time.Unix(2_000, 0)
+	for _, c := range []struct {
+		made []requestMade
+		want string
+	}{
+		{nil, ""},
+		{[]requestMade{{"a", first}, {"b", later}}, "b"},
+		{[]requestMade{{"a", later}, {"b", first}}, "a"},
+		{[]requestMade{{"a", later}, {"b", later}}, "b"},
+		{[]requestMade{{"a", time.Time{}}, {"b", time.Time{}}}, "b"},
+		{[]requestMade{{"a", time.Time{}}, {"b", first}}, "b"},
+	} {
+		if got := latest(c.made).address; got != c.want {
+			t.Errorf("%+v: %q, want %q", c.made, got, c.want)
+		}
 	}
 }

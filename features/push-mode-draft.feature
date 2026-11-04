@@ -493,8 +493,7 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
 
   Not in slice 218: a login's reviews starting with no request at all (slice
   217 leaves a fresh pull request unasked); a reviewer other than Codex; a
-  state of itos next's own for this stop; turning review_stall on in this
-  repository, whose config leaves it out.
+  state of itos next's own for this stop.
 
   Slice 218's steps. The steps giving a review a status of a commit (slice 200's
   and slice 217's "until a pr comment call, then both <status> of the clone's
@@ -506,8 +505,8 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   gh-comments-early, since nodes/21-comments-early.sh answers that file in place
   of gh-comments and the comments the steps before it gave must stay listed;
   slice 215's "requesting <line> of <login> at the clone's
-  HEAD" ending ", at <address>" (the node's url) or ", posted <n> seconds ago,
-  at <address>" (its url, createdAt and updatedAt); "the recording gh's pr
+  HEAD" ending ", posted <n> seconds ago, at <address>" (its url, createdAt and
+  updatedAt); "the recording gh's pr
   comment prints <address> and the call's number", after which pr-comment.sh
   prints the address followed by how many pr comment calls there have been,
   the first being 1, and without which it prints nothing, as before; and "the
@@ -2267,7 +2266,7 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   # second and names issuecomment-1. Fails before the work at the outcome: today
   # the marker alone reads as asked, nothing is posted and the wait ends at
   # ci.watch.timeout, review-timeout.
-  @ID-PUSHDRAFT-54 @slice-218 @wip
+  @ID-PUSHDRAFT-54 @slice-218
   Scenario: Under push.pr.draft, push --ready asks once more for a review that has not started review_stall after its request, and stops review_stall after that, exit 75
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -2320,7 +2319,7 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   # Fails before the work at the outcome, for each row: the null of the head
   # reads as running today and ends review-stalled; the others wait out
   # ci.watch.timeout, review-timeout, the marker alone reading as asked.
-  @ID-PUSHDRAFT-55 @slice-218 @wip
+  @ID-PUSHDRAFT-55 @slice-218
   Scenario Outline: Under push.pr.draft, push --ready reads a review as not started by its own status and commit, whatever the other review's
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -2372,7 +2371,7 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   # request stops at the next look, review-not-started. Rests on slice 217: the
   # request above reading as the security review's. Fails before the work at the
   # pr comment lines: today the marker alone reads as asked, nothing is posted.
-  @ID-PUSHDRAFT-56 @slice-218 @wip
+  @ID-PUSHDRAFT-56 @slice-218
   Scenario: Under push.pr.draft, push --ready counts review_stall for a review not started from the request comment's time, then from the request it posted
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -2409,7 +2408,7 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   # posts a third here. Rests on slice 217: a request reading as the review's.
   # Fails before the work at the outcome: today nothing ends the wait but
   # ci.watch.timeout, review-timeout.
-  @ID-PUSHDRAFT-57 @slice-218 @wip
+  @ID-PUSHDRAFT-57 @slice-218
   Scenario: Under push.pr.draft, push --ready finding two requests for a review not started, past review_stall, posts no third and stops at its first look
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -2445,7 +2444,7 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   # where a request older than review_stall can post or stop: a build counting
   # from the earlier request stops at its first look. A build allowing a request
   # per --ready passes it, the clock not having run: ID-PUSHDRAFT-57 catches one.
-  @ID-PUSHDRAFT-58 @slice-218 @guard @wip
+  @ID-PUSHDRAFT-58 @slice-218 @guard
   Scenario: Under push.pr.draft, push --ready finding two requests for a review not started posts no third while review_stall has not run from the later one
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -2479,7 +2478,7 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   # Rests on slice 217: both first requests. Fails before the work at the outcome:
   # today one "@codex review" is posted and the wait ends at ci.watch.timeout,
   # review-timeout.
-  @ID-PUSHDRAFT-59 @slice-218 @wip
+  @ID-PUSHDRAFT-59 @slice-218
   Scenario: Under push.pr.draft, push --ready counts requests for the head alone, and judges each of Codex's reviews with its own two
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -2522,7 +2521,7 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   # Fails before the work at the exit code: today the marker alone reads as asked,
   # no pr comment is posted, the state never moves and ci.watch.timeout ends the
   # wait, exit 75.
-  @ID-PUSHDRAFT-60 @slice-218 @wip
+  @ID-PUSHDRAFT-60 @slice-218
   Scenario: Under push.pr.draft, push --ready turns on auto-merge when the second request brings the review that had not started
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -2557,7 +2556,7 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   # guard: it passes before the work, where nothing posts and running stalls, and
   # must after it, where a build that latches "not started" at the first looks
   # posts the second request or stops review-not-started.
-  @ID-PUSHDRAFT-61 @slice-218 @guard @wip
+  @ID-PUSHDRAFT-61 @slice-218 @guard
   Scenario: Under push.pr.draft, push --ready stops counting a review as not started once it reads running, and goes on as for any running review
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -2591,7 +2590,7 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   # for up to ci.watch.timeout and asked for no more, whatever the request's age.
   # A guard: it passes before the work and must after it, where a build reading a
   # review_stall of 0 as no time at all posts at the first look, or stops there.
-  @ID-PUSHDRAFT-62 @slice-218 @guard @wip
+  @ID-PUSHDRAFT-62 @slice-218 @guard
   Scenario: Under push.pr.draft, push --ready without push.pr.review_stall waits for a review not started up to ci.watch.timeout, asking no more
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -2623,7 +2622,7 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   # at all, so it waits up to ci.watch.timeout as before. Codex's other comment is
   # no review state. A guard: it passes before the work and must after it, where a
   # build reading no state as a null one posts the second request or stops.
-  @ID-PUSHDRAFT-63 @slice-218 @guard @wip
+  @ID-PUSHDRAFT-63 @slice-218 @guard
   Scenario: Under push.pr.draft, push --ready does not read a login with no review-state comment as not started, and waits up to ci.watch.timeout
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -2658,7 +2657,7 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   # the work at the outcome: today a running code review holds back every request
   # and the stall reads both commits, so ci.watch.timeout ends the wait,
   # review-timeout.
-  @ID-PUSHDRAFT-64 @slice-218 @wip
+  @ID-PUSHDRAFT-64 @slice-218
   Scenario: Under push.pr.draft, push --ready judges a running code review and a security review not started each on its own, the code review first
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
