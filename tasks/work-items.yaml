@@ -16902,8 +16902,8 @@ items:
       exception in Swamp's COPYING-EXCEPTION lets it be ours; no Swamp or software-factory code in
       itos (ADR-0063). Judge: does itos stay the judge with state derived from git and the forge, or
       does software-factory's data store become a second authority; what the swamp-club.com account
-      (swamp auth login, SWAMP_API_KEY) ties us to; how it holds cycles (spec changes and repair) on
-      a DAG runtime; and what the strategic risk is, Elder Swamp Club shipping the same factory.
+      (swamp auth login, SWAMP_API_KEY) ties us to; and how it holds cycles (spec changes and
+      repair) on a DAG runtime.
       Ideas to take whichever way it goes: dispatch recorded before a step as the runaway guard,
       overrides that accumulate past a cycle limit, the machine's diagram rendered from its config.
 
