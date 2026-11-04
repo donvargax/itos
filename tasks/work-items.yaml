@@ -16972,3 +16972,17 @@ items:
       drive only a pr-mode project. The project had to switch to push.mode pr first, and the commit
       that switches cannot itself go straight to main once the new config is read, so it needed a
       pull request of its own.
+
+  - id: p3-upgrade-by-hand-summary
+    title: itos upgrade groups its by-hand steps into a short checklist of what to change, not every footer of every release
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      itos upgrade from 7.0.0-rc.1 to 8.45.3 on another of the person's projects (2026-11-03)
+      printed 699 lines; its by-hand part repeated each Upgrading footer line by line under every
+      commit, so the few actions (bump the itos action's pin in the workflows, record proof.code
+      before pushing, drop caller-supplied IDs, push tags with --tag) had to be dug out by hand. A
+      grouped checklist, leaving out what the upgrade already did, would make the move one task.
