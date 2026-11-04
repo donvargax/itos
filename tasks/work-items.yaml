@@ -17467,3 +17467,13 @@ items:
       slice-219, 2026-11-04: CI takes longer than the 540 s ready_wait, so exit 75 is the normal
       first result of --ready; an agent reads it as a stop. Say so, or wait on, or count the wait
       from the run's start.
+
+  - id: p3-tests-run-wip-placeholder
+    title: x
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      x
