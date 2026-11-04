@@ -206,7 +206,9 @@ comment, that comment with both reviews completed and both of the head judged
 (a review of the state whose commit is not the head, or that names none, is
 waited on and asked for once per head, each alone: "@codex review" for the code
 review, "@codex security review" for the security review, the comments itos
-review request posts and reads; a login with no such comment is asked nothing);
+review request posts and reads, the security review's two, the line alone and then
+the marker alone, the marker's being the request; a login with no such comment is
+asked nothing);
 exit 75 when one is missing, and at once, outcome
 review-refused, when a login's only reviews are refusals; refuses, exit 1, a
 pull request with an unresolved review thread, naming each by its file, line and
@@ -230,13 +232,26 @@ waits on and the head's full SHA; itos push --ready again goes on.
 While it waits it prints, when the wait starts and after each look that changes
 something, "Waiting on <address> at <head>: run <state>, <login> <state>.", the
 run waiting or succeeded and each push.pr.review_by login not asked, waiting,
-running (its review-state comment reads a review not completed) or completed.
+running (its review-state comment reads a review under way on the head) or
+completed.
 push.pr.review_stall (seconds, 0 by default: never) makes it ask a login whose
-review has read running that long for it again, once per head: a gh pr comment
-holding "@codex review" and a hidden itos-review-request line with the login and
-the head's full SHA, a comment with that request meaning it was asked already,
-a security request counting for nothing here; a review still running review_stall seconds after the request ends --ready, exit
-75, outcome review-stalled, auto-merge not turned on. --ready
+review has read running that long for it again, counted from the last edit of its
+review-state comment: a gh pr comment holding "@codex review" and a hidden
+itos-review-request line with the login and the head's full SHA. A comment with
+that request made at or after the edit means it was asked already and counts from
+its time; so do two of any age, and one older than the edit while the code review
+is not the one running, those counting from the edit; a security request counts
+for nothing here. A review still running review_stall seconds past that, once
+asked, ends --ready, exit 75, outcome review-stalled, auto-merge not turned on.
+With it set, each of
+the two reviews in a login's review-state comment that was requested for the head
+and has not started review_stall seconds after the latest such request (its
+status null, or no commit, or another commit whatever its status) is asked once
+more, and with two requests, counted from the pull request across --ready runs,
+ends --ready: exit 75, outcome review-not-started, auto-merge not turned on,
+naming the login, the review, the head and the request (for the security review,
+the address of its marker's comment). review_stall must exceed
+the reviewer's queue plus its review. --ready
 --no-wait stops once the pull request is ready, with no run, review or
 auto-merge, since auto-merge unwatched would merge before the review; itos
 push --ready again finishes it. --ready is refused, exit 1, outside push.mode
@@ -300,13 +315,14 @@ reached (a connection refused or timed out, a host that does not resolve), a
 CI run not finished, a CI run cancelled with no newer run to follow,
 GitHub's API failing, or --ready's wait for a review not answered within
 ci.watch.timeout, a review still running push.pr.review_stall seconds after
-it was asked again, or --ready's wait for GitHub, the run and the reviews at
+it was asked again, a review not started that long after its second request, or
+--ready's wait for GitHub, the run and the reviews at
 push.pr.ready_wait; 70 a fetch, a read of the remote's tags or a push that
 failed for another reason. The kind of a failed fetch or push is
 read from git's message; git's own exit code is never itos's.
 
 --json: git's output on stderr;
-        {"schema":1,"ok","outcome","remote"?,"branch"?,"tags"?,"refs"?,"commit"?,"pull_request"?,"ci"?,"run"?},
+        {"schema":1,"ok","outcome","remote"?,"branch"?,"tags"?,"refs"?,"commit"?,"pull_request"?,"ci"?,"run"?,"not_started"?},
         tags and refs what --tag and --ref named, pull_request
         {"url","number","created","updated","draft","auto_merge","merged"} after a push
         from an item's branch under push.mode pr (draft whether it is a draft
@@ -320,8 +336,11 @@ read from git's message; git's own exit code is never itos's.
         needs-registry-commit, merge-in-history, under push.pr.update merge
         merge-conflict and merge-failed, for --onto-main onto-main-without-pr,
         onto-main-on-main and onto-main-under-merge, and for --ready
-        review-timeout, review-refused, review-stalled, ready-still-waiting,
-        review-threads-unresolved, ready-without-draft and ready-on-main;
+        review-timeout, review-refused, review-stalled, review-not-started,
+        ready-still-waiting, review-threads-unresolved, ready-without-draft and
+        ready-on-main; not_started {"login","review","head","request"} with
+        review-not-started, review code or security and request the address of
+        the latest request;
         push threads gives {"schema":1,"ok","outcome","pull_request"?,"threads"?},
         pull_request {"url","number"}, threads a list of {"id","path","line"?,
         "author","comment"} (line left out for an outdated thread, [] for none),

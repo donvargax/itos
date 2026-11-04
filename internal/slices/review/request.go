@@ -47,10 +47,12 @@ func (h Handler) request(ctx context.Context, q Query) (Answer, error) {
 		return *stale, nil
 	}
 	for _, r := range asks {
-		if _, err := h.ports.Gh(ctx, "pr", "comment", strconv.Itoa(p.number), "--repo", p.repository, "--body="+r.Body(head)); err != nil {
-			return refuse(missing, "review-pull-request-failed",
-				fmt.Sprintf("itos review: gh pr comment failed: %s; the requests before it stay posted, and none after it was tried.", providers.GhReason(err)),
-				"fix that, then itos review request "+q.Item+" again, which asks only for what is still missing"), nil
+		for _, body := range r.Bodies(head) {
+			if _, err := h.ports.Gh(ctx, "pr", "comment", strconv.Itoa(p.number), "--repo", p.repository, "--body="+body); err != nil {
+				return refuse(missing, "review-pull-request-failed",
+					fmt.Sprintf("itos review: gh pr comment failed: %s; the requests before it stay posted, and none after it was tried.", providers.GhReason(err)),
+					"fix that, then itos review request "+q.Item+" again, which asks only for what is still missing"), nil
+			}
 		}
 		a.Posted = append(a.Posted, r)
 	}

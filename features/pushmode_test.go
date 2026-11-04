@@ -40,6 +40,7 @@ import (
 	"regexp"
 	"runtime"
 	"slices"
+	"strconv"
 	"strings"
 	"unicode/utf8"
 
@@ -451,7 +452,7 @@ func (w *world) ghAnswersReviewBody(login, body string) error {
 // it has two, are the comment's createdAt and updatedAt (slice 200).
 func codexComment(login, codeStatus, codeSHA, securityStatus, securitySHA string, times ...string) map[string]any {
 	review := func(status, sha string) string {
-		return fmt.Sprintf(`{"commit_sha":%q,"has_any_findings":false,"has_unresolved_findings":false,"status":%q}`, sha, status)
+		return fmt.Sprintf(`{"commit_sha":%s,"has_any_findings":false,"has_unresolved_findings":false,"status":%s}`, stringOrNull(sha), stringOrNull(status))
 	}
 	body := "<!-- codex-pull-request-review-summary -->\n" +
 		`<!-- codex-review-state:v1 {"code_review":` + review(codeStatus, codeSHA) + `,"security_review":` + review(securityStatus, securitySHA) + "} -->\n" +
@@ -461,6 +462,14 @@ func codexComment(login, codeStatus, codeSHA, securityStatus, securitySHA string
 		comment["createdAt"], comment["updatedAt"] = times[0], times[1]
 	}
 	return comment
+}
+
+// stringOrNull is the text as a JSON string, or JSON's null for none (slice 218).
+func stringOrNull(text string) string {
+	if text == "" {
+		return "null"
+	}
+	return strconv.Quote(text)
 }
 
 // The recording gh's api graphql answers that the pull request has a comment

@@ -41,7 +41,18 @@ func (f *fake) posted() []string {
 
 // commentOf is the pr comment call of the line asked of the login at the head.
 func commentOf(line, login string) string {
-	return "pr comment 7 --repo owner/name --body=" + line + "\n\n<!-- itos-review-request:v1 " + login + " " + head + " -->"
+	return "pr comment 7 --repo owner/name --body=" + line + "\n\n" + markerOf(login)
+}
+
+// markerOf is itos's request marker of the login at the head.
+func markerOf(login string) string {
+	return "<!-- itos-review-request:v1 " + login + " " + head + " -->"
+}
+
+// securityOf are the pr comment calls of Codex's security request at the head: the
+// line alone, then the marker alone.
+func securityOf(login string) []string {
+	return []string{"pr comment 7 --repo owner/name --body=@codex security review", "pr comment 7 --repo owner/name --body=" + markerOf(login)}
 }
 
 // Parse: request with one item, and --expect a revision; no item, two, a
@@ -72,17 +83,15 @@ func TestParseRequest(t *testing.T) {
 	}
 }
 
-// Nobody asked: Codex's two requests, then Bugbot's, one gh pr comment each
-// by number, each the line, an empty line and the marker; the text names
-// each, --json lists them in order.
+// Nobody asked: Codex's two requests, then Bugbot's, by number, each a gh pr
+// comment of the line, an empty line and the marker, Codex's security request two,
+// the line alone and then the marker alone; the text names each, --json lists them
+// in order.
 func TestRequestAsksEachReviewer(t *testing.T) {
 	f := requestFake()
 	code, stdout, stderr := run(t, f, false, "request", "slice-9")
-	want := []string{
-		commentOf("@codex review", "chatgpt-codex-connector"),
-		commentOf("@codex security review", "chatgpt-codex-connector"),
-		commentOf("@cursor review", "cursor[bot]"),
-	}
+	want := append(append([]string{commentOf("@codex review", "chatgpt-codex-connector")}, securityOf("chatgpt-codex-connector")...),
+		commentOf("@cursor review", "cursor[bot]"))
 	if code != 0 || stderr != "" || !reflect.DeepEqual(f.posted(), want) {
 		t.Errorf("exit %d, comments\n%s\n%s", code, strings.Join(f.posted(), "\n"), stderr)
 	}
@@ -111,7 +120,7 @@ func TestRequestAsksEachReviewer(t *testing.T) {
 	f = requestFake()
 	c, _ := Parse([]string{"request", "slice-9"}, "", false, true)
 	var quiet bytes.Buffer
-	if code, err := c.Run(context.Background(), &quiet, &quiet, NewHandler(f)); code != 0 || err != nil || quiet.Len() != 0 || len(f.posted()) != 3 {
+	if code, err := c.Run(context.Background(), &quiet, &quiet, NewHandler(f)); code != 0 || err != nil || quiet.Len() != 0 || len(f.posted()) != 4 {
 		t.Errorf("-q: exit %d, %v, %q", code, err, quiet.String())
 	}
 }
@@ -152,7 +161,7 @@ func TestRequestExpect(t *testing.T) {
 
 	f = requestFake()
 	f.revProblem = &out.Problem{Rule: "work-unknown-item"}
-	if code, _, _ := run(t, f, false, "request", "slice-9", "--expect", otherRevision); code != 0 || len(f.posted()) != 3 {
+	if code, _, _ := run(t, f, false, "request", "slice-9", "--expect", otherRevision); code != 0 || len(f.posted()) != 4 {
 		t.Errorf("no revision: exit %d, %v", code, f.posted())
 	}
 
@@ -174,18 +183,30 @@ func TestRequestExpect(t *testing.T) {
 // The first gh pr comment that fails stops the command, exit 3, naming gh's
 // words, the requests before it posted and none after it tried.
 func TestRequestStopsAtTheFirstFailure(t *testing.T) {
-	f := requestFake()
-	f.failWith = "@codex security review"
-	code, stdout, _ := run(t, f, true, "request", "slice-9")
-	got := reported(t, stdout)
-	problems, _ := got["problems"].([]any)
-	if code != 3 || rule(got) != "review-pull-request-failed" ||
-		!strings.Contains(problems[0].(map[string]any)["message"].(string), "gh pr comment failed: HTTP 502: Bad Gateway") ||
-		!strings.Contains(problems[0].(map[string]any)["fix"].(string), "itos review request slice-9") {
-		t.Errorf("exit %d, %s", code, stdout)
-	}
-	if want := []string{commentOf("@codex review", "chatgpt-codex-connector"), commentOf("@codex security review", "chatgpt-codex-connector")}; !reflect.DeepEqual(f.posted(), want) {
-		t.Errorf("comments\n%s", strings.Join(f.posted(), "\n"))
+	const login = "chatgpt-codex-connector"
+	line, mark := securityOf(login)[0], securityOf(login)[1]
+	for name, c := range map[string]struct {
+		failWith string
+		want     []string
+	}{
+		"the security request's line":   {"@codex security review", []string{commentOf("@codex review", login), line}},
+		"the security request's marker": {"--body=<!--", []string{commentOf("@codex review", login), line, mark}},
+	} {
+		t.Run(name, func(t *testing.T) {
+			f := requestFake()
+			f.failWith = c.failWith
+			code, stdout, _ := run(t, f, true, "request", "slice-9")
+			got := reported(t, stdout)
+			problems, _ := got["problems"].([]any)
+			if code != 3 || rule(got) != "review-pull-request-failed" ||
+				!strings.Contains(problems[0].(map[string]any)["message"].(string), "gh pr comment failed: HTTP 502: Bad Gateway") ||
+				!strings.Contains(problems[0].(map[string]any)["fix"].(string), "itos review request slice-9") {
+				t.Errorf("exit %d, %s", code, stdout)
+			}
+			if !reflect.DeepEqual(f.posted(), c.want) {
+				t.Errorf("comments\n%s", strings.Join(f.posted(), "\n"))
+			}
+		})
 	}
 }
 

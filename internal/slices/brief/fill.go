@@ -35,6 +35,7 @@ const (
 	absolutePath  = "<absolute path>"
 	oneLine       = "<one line>"
 	scenariosLine = "The scenarios are <ids> in <feature file>, all `@wip` (or: the task is <id>)."
+	taskSpecLine  = "<the task's spec>"
 	readsLine     = "<the repository's agent instructions and the docs this item rests on>."
 	settled       = "<What is settled: the decisions to build to, not to re-decide. Any live scenario this item makes untrue, and that the commit must say so.>"
 	neighbours    = "<the neighbouring scenarios and checks; for an item that moves a rule from one command to another, the scenarios of both commands>"
@@ -45,17 +46,22 @@ const (
 	questionsMark  = "<the item's own questions, filled by the coordinator>"
 )
 
-// fill is the role's template filled with f: each paragraph on one line,
-// the placeholders replaced, and the repository's own brief lines after a
-// blank line when there are any.
+// fill is the role's template filled with f, a task's own for a task: each
+// paragraph on one line, the placeholders replaced, and the repository's own
+// brief lines after a blank line when there are any.
 func fill(role string, f facts) string {
 	template, _ := guidetext.Template(role)
+	if f.Kind == "task" {
+		template, _ = guidetext.TaskTemplate(role)
+	}
+	spec := specSentence(f) + dependsSentence(f.Depends)
 	r := strings.NewReplacer(
 		itemOfProject, fmt.Sprintf("%s (a %s) of %s", f.ID, f.Kind, path.Base(f.Top)),
 		item, f.ID,
 		absolutePath, f.Top,
 		oneLine, f.Title,
-		scenariosLine, specSentence(f)+dependsSentence(f.Depends),
+		scenariosLine, spec,
+		taskSpecLine, spec,
 		readsLine, readsSentence(f.Reads, f.Omitted),
 		settled, settledMark,
 		neighbours, neighboursMark,

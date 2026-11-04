@@ -47,10 +47,14 @@ func initializeReadyWaitSteps(sc *godog.ScenarioContext, w *world) {
 		}
 		return w.outputSays(text + sha)
 	})
-	sc.Step(`^the recording gh answers that the pull request has a comment by "([^"]*)" holding Codex's review state, its code review "([^"]*)" of (the clone's HEAD|the commit "[^"]*") and its security review "([^"]*)" of (the clone's HEAD|the commit "[^"]*")$`,
+	sc.Step(`^the recording gh answers that the pull request has a comment by "([^"]*)" holding Codex's review state, `+reviewsOf+`$`,
 		w.ghAnswersCodexStateOf)
-	sc.Step(`^the recording gh answers that the pull request has a comment by "([^"]*)" holding Codex's review state, its code review "([^"]*)" of (the clone's HEAD|the commit "[^"]*") and its security review "([^"]*)" of (the clone's HEAD|the commit "[^"]*") until a pr comment call, then both "([^"]*)" of the clone's HEAD$`,
+	sc.Step(`^the recording gh answers that the pull request has a comment by "([^"]*)" holding Codex's review state, `+reviewsOf+` until a pr comment call, then both "([^"]*)" of the clone's HEAD$`,
 		w.ghAnswersCodexStateOfUntilComment)
+	sc.Step(`^the recording gh answers that the pull request has a comment by "([^"]*)" holding Codex's review state, `+reviewsOf+` for its first (\d+) api graphql calls, then both "([^"]*)" of the clone's HEAD$`,
+		w.ghAnswersCodexStateOfThen)
+	sc.Step(`^the recording gh answers that the pull request has a comment by "([^"]*)" holding Codex's review state, `+reviewsOf+`, last edited (\d+) seconds ago, for its first (\d+) api graphql calls, then both "([^"]*)" of the clone's HEAD$`,
+		w.ghAnswersCodexStateEditedThen)
 	sc.Step(`^the recording gh answers that the pull request has a comment by "([^"]*)" holding Codex's review state of the head of the remote's branch "([^"]*)" at each call, its code review "([^"]*)" and its security review "([^"]*)"$`,
 		func(login, branch, code, security string) error {
 			if err := w.ghKeepsHead(branch); err != nil {
@@ -185,6 +189,10 @@ func (w *world) ghKeepsHead(branch string) error {
 	return errors.Join(err, f.Close())
 }
 
+// reviewsOf is how a step gives each of Codex's two reviews: a status or null,
+// of the clone's HEAD, a commit named or no commit (slice 218).
+const reviewsOf = `its code review ("[^"]*"|null) of (the clone's HEAD|the commit "[^"]*"|no commit) and its security review ("[^"]*"|null) of (the clone's HEAD|the commit "[^"]*"|no commit)`
+
 var commitNamed = regexp.MustCompile(`^the commit "([^"]*)"$`)
 
 // Codex's review state with each review a status of a commit, each commit the
@@ -215,14 +223,70 @@ func (w *world) ghAnswersCodexStateOfUntilComment(login, code, codeCommit, secur
 	return w.ghAddNode(w.ghCommentsAfter(), codexComment(login, then, sha, then, sha))
 }
 
-// codexCommentOf is the login's review-state comment, each review a status of
-// the clone's HEAD or of the commit named.
+// The same in the answers to the first n api graphql calls, the comments the
+// steps before it gave staying in them, and both the status given, of the clone's
+// HEAD, in every later one (slice 218): nodes/21-comments-early.sh answers
+// gh-comments-early in place of gh-comments, so that file starts as a copy of it.
+func (w *world) ghAnswersCodexStateOfThen(login, code, codeCommit, security, securityCommit string, n int, then string) error {
+	comment, err := w.codexCommentOf(login, code, codeCommit, security, securityCommit)
+	if err != nil {
+		return err
+	}
+	return w.ghAnswersEarlyThen(login, comment, n, then)
+}
+
+// The same with the state of those first calls that long edited, as of when the
+// step ran (bug-164); the later state has no times.
+func (w *world) ghAnswersCodexStateEditedThen(login, code, codeCommit, security, securityCommit string, seconds, n int, then string) error {
+	comment, err := w.codexCommentOf(login, code, codeCommit, security, securityCommit)
+	if err != nil {
+		return err
+	}
+	edited := secondsAgo(seconds)
+	comment["createdAt"], comment["updatedAt"] = edited, edited
+	return w.ghAnswersEarlyThen(login, comment, n, then)
+}
+
+// ghAnswersEarlyThen answers the comment in the first n api graphql calls, and
+// the login's state of both the status given in every later one.
+func (w *world) ghAnswersEarlyThen(login string, comment map[string]any, n int, then string) error {
+	sha, err := w.head()
+	if err != nil {
+		return err
+	}
+	given, err := os.ReadFile(w.ghComments())
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+	if err := os.WriteFile(w.ghCommentsEarly(), given, 0o644); err != nil {
+		return err
+	}
+	if err := w.ghAddNode(w.ghCommentsEarly(), comment); err != nil {
+		return err
+	}
+	if err := w.ghAddNode(w.ghComments(), codexComment(login, then, sha, then, sha)); err != nil {
+		return err
+	}
+	return os.WriteFile(w.ghCommentsLeft(), fmt.Appendf(nil, "%d\n", n), 0o644)
+}
+
+// codexCommentOf is the login's review-state comment, each review a status or
+// null of the clone's HEAD, of the commit named or of no commit.
 func (w *world) codexCommentOf(login, code, codeCommit, security, securityCommit string) (map[string]any, error) {
 	commit := func(text string) (string, error) {
+		if text == "no commit" {
+			return "", nil
+		}
 		if m := commitNamed.FindStringSubmatch(text); m != nil {
 			return m[1], nil
 		}
 		return w.head()
+	}
+	status := func(text string) string {
+		if text == "null" {
+			return ""
+		}
+		return strings.Trim(text, `"`)
 	}
 	codeSHA, err := commit(codeCommit)
 	if err != nil {
@@ -232,7 +296,7 @@ func (w *world) codexCommentOf(login, code, codeCommit, security, securityCommit
 	if err != nil {
 		return nil, err
 	}
-	return codexComment(login, code, codeSHA, security, securitySHA), nil
+	return codexComment(login, status(code), codeSHA, status(security), securitySHA), nil
 }
 
 // The time that many seconds before now, as GitHub writes one.

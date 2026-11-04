@@ -47,7 +47,9 @@ Feature: itos attempt submit, an agent's result checked against its brief and ag
   branch the remote lacks refuses nothing by itself), the message naming
   the tip when the branch has one;
   attempt-spec-missing, a drafter's head whose tree holds no scenario
-  tagged @<id>, or one that is not @wip, the message naming it;
+  tagged @<id>, or one that is not @wip, the message naming it; for a task,
+  a drafter's head with no check in the item's ledger entry, or no ledger
+  entry, the message and the fix speaking of checks;
   attempt-not-red-first, an implementer's head whose commits past base
   (base..head, so the spec's own test commit never counts) hold no test
   commit before the first feat or fix, the message naming that commit;
@@ -57,6 +59,20 @@ Feature: itos attempt submit, an agent's result checked against its brief and ag
   config, the scenario kind the clone declares, as itos work done reads
   them at HEAD: the head's itos.yaml is never read. The commit types are
   the headers' as the message rules read them.
+
+  A task's spec is its ledger entry's done_when checks, never a scenario
+  (slice-219). The item's kind decides which a drafter's head is judged by,
+  and only the kind, read as itos next reads it: the kind key of the
+  clone's registry, else what the id gives; whether scenarios happen to be
+  tagged for it says nothing. A task's checks at a head are those itos
+  next's needs-spec reads, the same read over the ledger of the head's
+  tree, under the clone's config as the scenarios are: a ledger at the head
+  that cannot be read, or a head with no ledger folder, is that read's
+  error, never a state, and nothing is recorded; no ledger entry means an
+  entry missing from a ledger that exists. next's kindOf and checks move to
+  a package both commands can import, since one slice cannot import another
+  (tools/bin/architecture-check). A copy would pass every scenario here, so
+  the review judges that, not the scenarios.
 
   The journal is .git/itos/attempts/<id>.jsonl in the git folder (the
   common dir of a linked worktree), one line per result taken in:
@@ -562,6 +578,389 @@ Feature: itos attempt submit, an agent's result checked against its brief and ag
     And its output says "@ID-B-01"
     And its output says "@wip"
     And the file ".git/itos/attempts/slice-9.jsonl" does not exist
+
+  # A task's spec is its ledger entry's done_when checks: itos next routes
+  # a task to the drafter, who rightly writes them, and submit took no
+  # scenario for a spec. T-001's entry, the Background's, has no check on
+  # main, so a build that read the clone's working tree instead of the head
+  # fails. The record is a slice's drafter record, field for field.
+  @ID-ATTEMPT-16 @slice-219
+  Scenario: A task's drafter head whose ledger entry has a check is accepted and recorded
+    Given the work registry has the task "T-001" owned by nobody with the status "todo" and no why
+    When itos runs "brief T-001 --role drafter --json"
+    Then itos exits with code 0
+    And the JSON's "request" is saved as "request"
+    And the JSON's "base" is saved as "base"
+    Given the clone is on the new branch "T-001"
+    And the task "T-001" has the committed check "go vet ./..."
+    And the last commit SHA is saved as "head"
+    And git pushes HEAD to the remote's new branch "T-001"
+    And the clone switches to its branch "main"
+    And the file "result.json" holds the lines, the saved values filled in:
+      """
+      {"schema":1,"item":"T-001","role":"drafter","request":"<request>","base":"<base>","attempt":1,"outcome":"done","head":"<head>"}
+      """
+    When itos runs "attempt submit T-001 result.json"
+    Then itos exits with code 0
+    And its output says "accepted T-001's drafter attempt 1, done at " with the full SHA of the head of the remote's branch "T-001"
+    And ".git/itos/attempts/T-001.jsonl" has exactly 1 line
+    And line 1 of the file ".git/itos/attempts/T-001.jsonl" is a JSON object whose "role" is "drafter"
+    And line 1 of the file ".git/itos/attempts/T-001.jsonl" is a JSON object whose "outcome" is "done"
+    And line 1 of the file ".git/itos/attempts/T-001.jsonl" is a JSON object whose "verdict" is "accepted"
+    And line 1 of the file ".git/itos/attempts/T-001.jsonl" is a JSON object whose "request" is the value saved as "request"
+    And line 1 of the file ".git/itos/attempts/T-001.jsonl" is a JSON object whose "base" is the value saved as "base"
+    And line 1 of the file ".git/itos/attempts/T-001.jsonl" is a JSON object whose "head" is the value saved as "head"
+
+  # The check is on main and the head's entry has none, done_when: [] as
+  # next's read counts it: a build that read the clone's working tree would
+  # accept this head. The message and the fix speak of checks, so a task's
+  # drafter is not told to tag scenarios.
+  @ID-ATTEMPT-17 @slice-219
+  Scenario: A task's drafter head whose ledger entry has no check is refused, speaking of checks
+    Given the work registry has the task "T-001" owned by nobody with the status "todo" and no why
+    And the task "T-001" has the committed check "go vet ./..."
+    When itos runs "brief T-001 --role drafter --json"
+    Then itos exits with code 0
+    And the JSON's "request" is saved as "request"
+    And the JSON's "base" is saved as "base"
+    Given the clone is on the new branch "T-001"
+    And the committed file "tasks/phase-1.yaml" holding the lines:
+      """
+      - { id: T-001, type: chore, title: Trim, done_when: [] }
+      """
+    And the last commit SHA is saved as "head"
+    And git pushes HEAD to the remote's new branch "T-001"
+    And the clone switches to its branch "main"
+    And the file "result.json" holds the lines, the saved values filled in:
+      """
+      {"schema":1,"item":"T-001","role":"drafter","request":"<request>","base":"<base>","attempt":1,"outcome":"done","head":"<head>"}
+      """
+    When itos runs "attempt submit T-001 result.json --json"
+    Then itos exits with code 1
+    And stdout is one JSON report with schema 1 and ok false
+    And its JSON's "problems" has exactly 1 entry
+    And its JSON's problem "attempt-spec-missing"'s "message" says "a task's spec is its done_when checks"
+    And its JSON's problem "attempt-spec-missing"'s "fix" says "write T-001's done_when checks in its ledger entry"
+    And the file ".git/itos/attempts/T-001.jsonl" does not exist
+    When itos runs "attempt submit T-001 result.json"
+    Then itos exits with code 1
+    And its output says "attempt-spec-missing"
+    And its output says "T-001's ledger entry has no check at the head " with the full SHA of the head of the remote's branch "T-001"
+    And its output does not say "scenario"
+    And the file ".git/itos/attempts/T-001.jsonl" does not exist
+
+  # The entry is on main with a check, and the head's ledger lacks it,
+  # holding only T-0010, whose check a prefix match would take for T-001's.
+  @ID-ATTEMPT-18 @slice-219
+  Scenario: A task's drafter head with no ledger entry for it is refused, speaking of checks
+    Given the work registry has the task "T-001" owned by nobody with the status "todo" and no why
+    And the task "T-001" has the committed check "go vet ./..."
+    When itos runs "brief T-001 --role drafter --json"
+    Then itos exits with code 0
+    And the JSON's "request" is saved as "request"
+    And the JSON's "base" is saved as "base"
+    Given the clone is on the new branch "T-001"
+    And the committed file "tasks/phase-1.yaml" holding the lines:
+      """
+      - { id: T-0010, type: chore, title: Another, done_when: [{ run: "go vet ./..." }] }
+      """
+    And the last commit SHA is saved as "head"
+    And git pushes HEAD to the remote's new branch "T-001"
+    And the clone switches to its branch "main"
+    And the file "result.json" holds the lines, the saved values filled in:
+      """
+      {"schema":1,"item":"T-001","role":"drafter","request":"<request>","base":"<base>","attempt":1,"outcome":"done","head":"<head>"}
+      """
+    When itos runs "attempt submit T-001 result.json --json"
+    Then itos exits with code 1
+    And stdout is one JSON report with schema 1 and ok false
+    And its JSON's problem "attempt-spec-missing"'s "message" says "a task's spec is its done_when checks"
+    And its JSON's problem "attempt-spec-missing"'s "fix" says "write T-001's done_when checks in its ledger entry"
+    And the file ".git/itos/attempts/T-001.jsonl" does not exist
+    When itos runs "attempt submit T-001 result.json"
+    Then itos exits with code 1
+    And its output says "attempt-spec-missing"
+    And its output says "T-001 has no ledger entry at the head " with the full SHA of the head of the remote's branch "T-001"
+    And its output does not say "scenario"
+    And the file ".git/itos/attempts/T-001.jsonl" does not exist
+
+  # The kind decides, not whether scenarios happen to be tagged: a task's
+  # @wip scenario is no spec, which today's submit accepts, and a live one
+  # no fault, which today's refuses as not @wip. The checks alone judge
+  # both heads.
+  @ID-ATTEMPT-19 @slice-219
+  Scenario: A task's drafter head is judged by its checks, whatever scenarios are tagged for it
+    Given the work registry has the task "T-001" owned by nobody with the status "todo" and no why
+    When itos runs "brief T-001 --role drafter --json"
+    Then itos exits with code 0
+    And the JSON's "request" is saved as "request"
+    And the JSON's "base" is saved as "base"
+    Given the clone is on the new branch "T-001"
+    And a feature file with the scenario "@ID-A-01" tagged "@wip @T-001"
+    And the last commit SHA is saved as "head"
+    And git pushes HEAD to the remote's new branch "T-001"
+    And the clone switches to its branch "main"
+    And the file "result.json" holds the lines, the saved values filled in:
+      """
+      {"schema":1,"item":"T-001","role":"drafter","request":"<request>","base":"<base>","attempt":1,"outcome":"done","head":"<head>"}
+      """
+    When itos runs "attempt submit T-001 result.json --json"
+    Then itos exits with code 1
+    And its JSON's problem "attempt-spec-missing"'s "message" says "a task's spec is its done_when checks"
+    And the file ".git/itos/attempts/T-001.jsonl" does not exist
+    Given the clone switches to its branch "T-001"
+    And the task "T-001" has the committed check "go vet ./..."
+    And the committed feature file "features/b.feature" with the live scenario "@ID-B-01" tagged "@T-001"
+    And the last commit SHA is saved as "head"
+    And git pushes HEAD to the remote's new branch "T-001"
+    And the clone switches to its branch "main"
+    And the file "result.json" holds the lines, the saved values filled in:
+      """
+      {"schema":1,"item":"T-001","role":"drafter","request":"<request>","base":"<base>","attempt":1,"outcome":"done","head":"<head>"}
+      """
+    When itos runs "attempt submit T-001 result.json --json"
+    Then itos exits with code 0
+    And its JSON's "outcome" is "accepted"
+    And its JSON's "head" matches the one saved as "head"
+
+  # T-002's registry entry has no kind key: next gives it the kind task by
+  # its id, ledger.id matching, so a build that read the key alone would
+  # judge it by scenarios and refuse this head.
+  @ID-ATTEMPT-20 @slice-219
+  Scenario: An item of no kind key whose id ledger.id matches is judged as a task
+    Given the work registry has the item "T-002" owned by nobody with the status "todo"
+    When itos runs "brief T-002 --role drafter --json"
+    Then itos exits with code 0
+    And the JSON's "request" is saved as "request"
+    And the JSON's "base" is saved as "base"
+    Given the clone is on the new branch "T-002"
+    And the task "T-002" has the committed check "go vet ./..."
+    And the last commit SHA is saved as "head"
+    And git pushes HEAD to the remote's new branch "T-002"
+    And the clone switches to its branch "main"
+    And the file "result.json" holds the lines, the saved values filled in:
+      """
+      {"schema":1,"item":"T-002","role":"drafter","request":"<request>","base":"<base>","attempt":1,"outcome":"done","head":"<head>"}
+      """
+    When itos runs "attempt submit T-002 result.json --json"
+    Then itos exits with code 0
+    And its JSON's "outcome" is "accepted"
+    And line 1 of the file ".git/itos/attempts/T-002.jsonl" is a JSON object whose "verdict" is "accepted"
+
+  # The head moves its own ledger elsewhere in its itos.yaml, and only
+  # there does T-001 have a check. The head's config is never read, as for
+  # scenarios: a drafter does not get to say where its spec is judged from.
+  # The clone's config finds T-001's entry at the head, with no check. A
+  # build that loaded the config from the head, as itos brief does at a
+  # base, would accept it.
+  @ID-ATTEMPT-21 @slice-219
+  Scenario: A task's checks at a head are read under the clone's config, never the head's
+    Given the work registry has the task "T-001" owned by nobody with the status "todo" and no why
+    When itos runs "brief T-001 --role drafter --json"
+    Then itos exits with code 0
+    And the JSON's "request" is saved as "request"
+    And the JSON's "base" is saved as "base"
+    Given the clone is on the new branch "T-001"
+    And the config sets "ledger.files" to "other/phase-{group}.yaml"
+    And the committed file "other/phase-1.yaml" holding the lines:
+      """
+      - { id: T-001, type: chore, title: Moved, done_when: [{ run: "go vet ./..." }] }
+      """
+    And the last commit SHA is saved as "head"
+    And git pushes HEAD to the remote's new branch "T-001"
+    And the clone switches to its branch "main"
+    And the file "result.json" holds the lines, the saved values filled in:
+      """
+      {"schema":1,"item":"T-001","role":"drafter","request":"<request>","base":"<base>","attempt":1,"outcome":"done","head":"<head>"}
+      """
+    When itos runs "attempt submit T-001 result.json --json"
+    Then itos exits with code 1
+    And its JSON's problem "attempt-spec-missing"'s "message" says "a task's spec is its done_when checks"
+    And the file ".git/itos/attempts/T-001.jsonl" does not exist
+
+  # A guard: the kind is read from the clone's registry, as next reads it,
+  # never from the head's. slice-9 is a slice on main; its head relabels
+  # itself kind: task in its own registry and writes a ledger check, with no
+  # scenario. If the head's registry were read, a drafter could relabel its
+  # way out of its scenarios: such a build accepts this head and fails at
+  # "itos exits with code 1". Today's submit reads no kind, so it passes
+  # before the work, and it must after.
+  @ID-ATTEMPT-26 @guard @slice-219
+  Scenario: A slice's head relabelling itself a task in its own registry is judged by its scenarios
+    When itos runs "brief slice-9 --role drafter --json"
+    Then itos exits with code 0
+    And the JSON's "request" is saved as "request"
+    And the JSON's "base" is saved as "base"
+    Given the clone is on the new branch "slice-9"
+    And the committed file "tasks/work-items.yaml" holding the lines:
+      """
+      phases: { 1: null }
+      items:
+        - { id: slice-9, title: Relabelled, phase: 1, owner: null, status: todo, kind: task, depends_on: [] }
+      """
+    And the task "slice-9" has the committed check "go vet ./..."
+    And the last commit SHA is saved as "head"
+    And git pushes HEAD to the remote's new branch "slice-9"
+    And the clone switches to its branch "main"
+    And the file "result.json" holds the lines, the saved values filled in:
+      """
+      {"schema":1,"item":"slice-9","role":"drafter","request":"<request>","base":"<base>","attempt":1,"outcome":"done","head":"<head>"}
+      """
+    When itos runs "attempt submit slice-9 result.json --json"
+    Then itos exits with code 1
+    And its JSON's problem "attempt-spec-missing"'s "message" says "no scenario is tagged @slice-9 at the head"
+    And the file ".git/itos/attempts/slice-9.jsonl" does not exist
+
+  # The read is next's, so what it cannot read is its error, never a state:
+  # the head's ledger is not YAML, which ledger.Tasks refuses as a usage
+  # error. Not a spec-missing refusal, which would tell the drafter the
+  # checks are absent, and today's answer.
+  @ID-ATTEMPT-22 @slice-219
+  Scenario: A task's drafter head whose ledger cannot be read is an error, nothing recorded
+    Given the work registry has the task "T-001" owned by nobody with the status "todo" and no why
+    When itos runs "brief T-001 --role drafter --json"
+    Then itos exits with code 0
+    And the JSON's "request" is saved as "request"
+    And the JSON's "base" is saved as "base"
+    Given the clone is on the new branch "T-001"
+    And the committed file "tasks/phase-1.yaml" holding "{ id: T-001, done_when: ["
+    And the last commit SHA is saved as "head"
+    And git pushes HEAD to the remote's new branch "T-001"
+    And the clone switches to its branch "main"
+    And the file "result.json" holds the lines, the saved values filled in:
+      """
+      {"schema":1,"item":"T-001","role":"drafter","request":"<request>","base":"<base>","attempt":1,"outcome":"done","head":"<head>"}
+      """
+    When itos runs "attempt submit T-001 result.json"
+    Then itos exits with code 2
+    And its output does not say "attempt-spec-missing"
+    And the file ".git/itos/attempts/T-001.jsonl" does not exist
+
+  # A head with no ledger folder keeps the shared read's error,
+  # ledger-folder-missing, exit 2, as next and every command reading the
+  # ledger give it. ID-ATTEMPT-18's refusal is for an entry missing from a
+  # ledger that exists. Today's submit never reads the ledger: exit 1.
+  @ID-ATTEMPT-27 @slice-219
+  Scenario: A task's drafter head with no ledger folder is the read's error, nothing recorded
+    Given the work registry has the task "T-001" owned by nobody with the status "todo" and no why
+    When itos runs "brief T-001 --role drafter --json"
+    Then itos exits with code 0
+    And the JSON's "request" is saved as "request"
+    And the JSON's "base" is saved as "base"
+    Given the clone is on the new branch "T-001"
+    And the ledger folder is missing
+    And the last commit SHA is saved as "head"
+    And git pushes HEAD to the remote's new branch "T-001"
+    And the clone switches to its branch "main"
+    And the file "result.json" holds the lines, the saved values filled in:
+      """
+      {"schema":1,"item":"T-001","role":"drafter","request":"<request>","base":"<base>","attempt":1,"outcome":"done","head":"<head>"}
+      """
+    When itos runs "attempt submit T-001 result.json"
+    Then itos exits with code 2
+    And its output says "the ledger's folder tasks does not exist"
+    And its output does not say "attempt-spec-missing"
+    And the file ".git/itos/attempts/T-001.jsonl" does not exist
+    When itos runs "attempt submit T-001 result.json --json"
+    Then itos exits with code 2
+    And its JSON's problem "ledger-folder-missing"'s "message" says "tasks"
+
+  # A guard: a bug's drafter is judged as a slice's, today and after, by
+  # scenarios tagged for it; ID-ATTEMPT-01 and ID-ATTEMPT-09 hold a slice's.
+  # Only a task's kind changes the judge, so a build that gave every kind
+  # but a slice the ledger's fails.
+  @ID-ATTEMPT-23 @guard @slice-219
+  Scenario: A bug's drafter head is judged by its scenarios, not by a ledger
+    Given the work registry has the item "bug-3" owned by nobody with the status "todo"
+    When itos runs "brief bug-3 --role drafter --json"
+    Then itos exits with code 0
+    And the JSON's "request" is saved as "request"
+    And the JSON's "base" is saved as "base"
+    Given the clone is on the new branch "bug-3"
+    And the commit "docs: add a note" on top of it
+    And the last commit SHA is saved as "head"
+    And git pushes HEAD to the remote's new branch "bug-3"
+    And the clone switches to its branch "main"
+    And the file "result.json" holds the lines, the saved values filled in:
+      """
+      {"schema":1,"item":"bug-3","role":"drafter","request":"<request>","base":"<base>","attempt":1,"outcome":"done","head":"<head>"}
+      """
+    When itos runs "attempt submit bug-3 result.json --json"
+    Then itos exits with code 1
+    And its JSON's problem "attempt-spec-missing"'s "message" says "no scenario is tagged @bug-3 at the head"
+    And its JSON's problem "attempt-spec-missing"'s "fix" says "tag the item's scenarios @wip @bug-3"
+    And the file ".git/itos/attempts/bug-3.jsonl" does not exist
+    Given the clone switches to its branch "bug-3"
+    And a feature file with the scenario "@ID-A-01" tagged "@wip @bug-3"
+    And the last commit SHA is saved as "head"
+    And git pushes HEAD to the remote's new branch "bug-3"
+    And the clone switches to its branch "main"
+    And the file "result.json" holds the lines, the saved values filled in:
+      """
+      {"schema":1,"item":"bug-3","role":"drafter","request":"<request>","base":"<base>","attempt":1,"outcome":"done","head":"<head>"}
+      """
+    When itos runs "attempt submit bug-3 result.json --json"
+    Then itos exits with code 0
+    And its JSON's "outcome" is "accepted"
+
+  # A guard: T-001's id is a task's and its ledger entry has a check on the
+  # head, but its kind key says slice, which wins for next: a slice's spec
+  # is its scenarios, today and after. A build that judged by the id, or by
+  # a ledger entry being there, accepts the first head.
+  @ID-ATTEMPT-24 @guard @slice-219
+  Scenario: An item whose kind key says slice is judged by its scenarios, whatever its id and ledger entry
+    Given the committed file "tasks/work-items.yaml" holding the lines:
+      """
+      phases: { 1: null }
+      items:
+        - { id: T-001, title: A slice by its key, phase: 1, owner: null, status: todo, kind: slice, depends_on: [] }
+      """
+    When itos runs "brief T-001 --role drafter --json"
+    Then itos exits with code 0
+    And the JSON's "request" is saved as "request"
+    And the JSON's "base" is saved as "base"
+    Given the clone is on the new branch "T-001"
+    And the task "T-001" has the committed check "go vet ./..."
+    And the last commit SHA is saved as "head"
+    And git pushes HEAD to the remote's new branch "T-001"
+    And the clone switches to its branch "main"
+    And the file "result.json" holds the lines, the saved values filled in:
+      """
+      {"schema":1,"item":"T-001","role":"drafter","request":"<request>","base":"<base>","attempt":1,"outcome":"done","head":"<head>"}
+      """
+    When itos runs "attempt submit T-001 result.json --json"
+    Then itos exits with code 1
+    And its JSON's problem "attempt-spec-missing"'s "message" says "no scenario is tagged @T-001 at the head"
+    And its JSON's problem "attempt-spec-missing"'s "fix" says "tag the item's scenarios @wip @T-001"
+    And the file ".git/itos/attempts/T-001.jsonl" does not exist
+
+  # The other way round: chore-1's id is no slice's, bug's or task's, and its
+  # kind key says task, which next reads as a task. A build that took the
+  # id's kind unless the key said slice or bug would judge it by scenarios
+  # and refuse this head.
+  @ID-ATTEMPT-25 @slice-219
+  Scenario: An item whose kind key says task is judged by its checks, whatever its id
+    Given the work registry has the task "chore-1" owned by nobody with the status "todo" and no why
+    When itos runs "next chore-1 --json"
+    Then itos exits with code 0
+    And its JSON's "kind" is "task"
+    When itos runs "brief chore-1 --role drafter --json"
+    Then itos exits with code 0
+    And the JSON's "request" is saved as "request"
+    And the JSON's "base" is saved as "base"
+    Given the clone is on the new branch "chore-1"
+    And the task "chore-1" has the committed check "go vet ./..."
+    And the last commit SHA is saved as "head"
+    And git pushes HEAD to the remote's new branch "chore-1"
+    And the clone switches to its branch "main"
+    And the file "result.json" holds the lines, the saved values filled in:
+      """
+      {"schema":1,"item":"chore-1","role":"drafter","request":"<request>","base":"<base>","attempt":1,"outcome":"done","head":"<head>"}
+      """
+    When itos runs "attempt submit chore-1 result.json --json"
+    Then itos exits with code 0
+    And its JSON's "outcome" is "accepted"
+    And line 1 of the file ".git/itos/attempts/chore-1.jsonl" is a JSON object whose "verdict" is "accepted"
 
   # Past base, the feat commit comes first and the test commit after it:
   # the scenario went live before any test could be red. The spec's own

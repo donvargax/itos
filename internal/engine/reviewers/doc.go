@@ -24,15 +24,26 @@
 //     whose commit is the head; any other review, a person's empty one
 //     included, counts for nothing.
 //
-// A request (Request.Body) is a comment of the request line, an empty line
+// A request (Request.Bodies) is a comment of the request line, an empty line
 // and itos's request marker, "<!-- itos-review-request:v1 <login> <the
 // head's full SHA> -->", the login as the config writes it. A request is on
 // the head when a comment by anyone has the line as its first line and a
 // marker line naming the login and the head; a line without the marker, or a
-// marker of another login or head, counts for nothing (Request.OnHead, which
-// also says when the latest such comment was made). Logins are compared
-// with a trailing "[bot]" dropped from each, as GraphQL names a bot without
-// it. Missing is each request of each reviewer, in the config's order and the
+// marker of another login or head, counts for nothing (Request.OnHead, and
+// Request.Made, which gives those comments).
+//
+// Codex's security request is two comments, in this order: the line alone, then
+// the marker alone. Codex runs "@codex security review" as a code review when the
+// marker is in its comment, before or after the line (#260, #263, bug-163). The
+// line goes first, since a marker with no line after it would read as asked when
+// nothing was. So that request is on the head when a comment by anyone is the
+// marker alone, every other line of it empty, and that comment's address and time
+// are the request's: the line names no head and counts for nothing, the old form, a
+// marker under a line, counts for nothing, since it never started the review, and a
+// marker alone is no other request.
+//
+// Logins are compared with a trailing "[bot]" dropped from each, as GraphQL
+// names a bot without it. Missing is each request of each reviewer, in the config's order and the
 // kind's, neither on the head nor answered by the reviewer's own review of
 // it; Unrequested the logins, as written, with a request missing.
 package reviewers

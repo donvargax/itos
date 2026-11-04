@@ -10,9 +10,10 @@ Feature: itos brief, the filled brief an agent starts from and its request
   commit it was made from, a manifest of what it reads and what was left out.
 
   itos brief <id> --role <role> prints the brief for one role, drafter,
-  implementer or reviewer, filled from the item: the implementer's is itos
-  guide brief's template (which stays as it is), the drafter's and the
-  reviewer's are templates shipped beside it, not guide names. Filled in: the
+  implementer or reviewer, filled from the item: for a slice or a bug, the
+  implementer's is itos guide brief's template (which stays as it is), the
+  drafter's and the reviewer's are templates shipped beside it, not guide
+  names; a task's text for each role is its own (below). Filled in: the
   item's id, its kind and title, the repository's top as git prints it and
   its folder's name as the project, the ids of the scenarios tagged for a
   slice or a bug and their feature file, a task's checks from its ledger
@@ -148,6 +149,19 @@ Feature: itos brief, the filled brief an agent starts from and its request
   the drafter's brief); the drafter briefs it, its spec commit null. A
   missing --role is a usage error, exit 2.
 
+  A task has no scenarios: its spec is its ledger entry's why and done_when
+  checks. Its brief gave it the scenario workflow all the same (red first
+  through @wip scenarios, step definitions, "scenarios turned green"), so an
+  implementer had to be told to read the template differently, and a
+  consumer reported the same of the guides (slice-220, #237). The item's
+  kind, as next reads it (its kind key, else its id), chooses the role's
+  text: a slice's and a bug's stay byte for byte as they are, and only a
+  task's change. What a person must add stays a marked placeholder in a
+  task's brief too. itos guide work and itos guide brief say what red first
+  means for a task in one same line, outside the brief procedure's quoted
+  block, which is the implementer's template. This closes the idea
+  p2-guide-red-first-tasks.
+
   Background:
     Given a repository whose ledger has the task "T-001"
     And the committed file "AGENTS.md" holding "Stage only your own files."
@@ -218,6 +232,200 @@ Feature: itos brief, the filled brief an agent starts from and its request
     Then itos exits with code 0
     And its JSON's "reads" entry whose "path" is "tasks/phase-1.yaml" has "reason" "the task's ledger entry"
     And its JSON's "reads" entry whose "path" is "tasks/phase-1.yaml" has "required" true
+
+  # A task's why settles its design and its checks are the proof. Red first
+  # is running them before the work; a check that cannot fail before it is
+  # said so, as a post-push check cannot. The commit flag is said because the
+  # scenario workflow's red-first paragraph, which held --item, is gone. The
+  # neighbours' placeholder keeps its one mention of scenarios: placeholders
+  # stay, as they are, and a task's change can reach a scenario. The last
+  # step is case-insensitive, so any other mention of them fails, "Scenarios"
+  # as "scenario".
+  @ID-BRIEF-20 @slice-220
+  Scenario: A task's implementer is told its why settles the design and red first is running its checks
+    Given the work registry has the task "T-001" owned by nobody with the status "todo" and no why
+    And the task "T-001" has the committed check "go vet ./..."
+    When itos runs "brief T-001 --role implementer"
+    Then itos exits with code 0
+    And its output says "Implement T-001 (a task) of"
+    And its output says "The task is T-001, whose checks are `go vet ./...`. Take it with `itos work take T-001`"
+    And its output says "read AGENTS.md and tasks/phase-1.yaml"
+    And its output says "The task's why in its ledger entry settles the design, and its checks are the proof."
+    And its output says "Red first: run the task's checks with `itos task T-001` before the work and see each fail; where one cannot fail before the work, say so."
+    And its output says "A new program's own tests fail against a stub."
+    And its output says "itos commit --task T-001"
+    And its output says "each check and how it failed before the work"
+    And its output says "<settled decisions, filled by the coordinator>"
+    And its output says "<neighbouring scenarios and checks, filled by the coordinator>"
+    And its output says "<the item's own questions, filled by the coordinator>"
+    And its output does not say "<item>"
+    And its output does not say "@wip"
+    And its output does not say "step definition"
+    And its output does not say "scenario" outside "<neighbouring scenarios and checks, filled by the coordinator>"
+
+  # The spec is the entry's why and its checks, so nothing is minted or
+  # tagged. No command edits an entry: itos task add mints a new id and item,
+  # which is wrong for an item the registry already has, and itos task edit
+  # is only the idea p1-task-edit. So the brief says by hand, until it is
+  # built. The settled decisions go in the entry's why, where work edit --note
+  # refuses a task. The one mention of scenarios is the sentence saying there
+  # are none to write: a leftover such as "Tag each scenario" fails.
+  @ID-BRIEF-21 @slice-220
+  Scenario: A task's drafter is told its spec is the ledger entry, written by hand, with nothing to mint
+    Given the work registry has the task "T-001" owned by nobody with the status "todo" and no why
+    And the task "T-001" has the committed check "go vet ./..."
+    When itos runs "brief T-001 --role drafter"
+    Then itos exits with code 0
+    And its output says "Specify T-001 (a task) of"
+    And its output says "The task is T-001, whose checks are `go vet ./...`. Your job"
+    And its output says "read AGENTS.md and tasks/phase-1.yaml"
+    And its output says "The spec is the task's ledger entry: its why and its done_when checks, each able to fail before the work. There are no scenarios to write and no IDs to mint."
+    And its output says "No command edits a ledger entry, and `itos task add` mints another task: write this one's by hand in its group's ledger file."
+    And its output says "Every settled decision goes into the entry's why"
+    And its output says "the header `docs: specify T-001, <short rule>`, the body the problem, the rule and how each check fails today."
+    And its output says "each check and how it fails before the work"
+    And its output says "<settled decisions, filled by the coordinator>"
+    And its output says "<the item's own questions, filled by the coordinator>"
+    And its output does not say "<item>"
+    And its output does not say "@wip"
+    And its output does not say "step definition"
+    And its output does not say "itos tests next-id"
+    And its output does not say "feature file"
+    And its output does not say "scenario" outside "There are no scenarios to write"
+
+  # The drafter is the one role briefed on a task with no entry: T-002 is in
+  # the registry and the ledger has only the Background's T-001. So it is
+  # told to write the entry, in the file its reads cannot name yet.
+  @ID-BRIEF-22 @slice-220
+  Scenario: A task's drafter is told the same when the task has no ledger entry yet
+    Given the work registry has the task "T-002" owned by nobody with the status "todo" and no why
+    When itos runs "brief T-002 --role drafter"
+    Then itos exits with code 0
+    And its output says "T-002 has no ledger entry yet. Your job"
+    And its output says "No command edits a ledger entry, and `itos task add` mints another task: write this one's by hand in its group's ledger file."
+    And its output does not say "itos tests next-id"
+    And its output does not say "scenario" outside "There are no scenarios to write"
+
+  # A task can have an entry and no check: T-001 here has the Background's
+  # entry alone, a state ID-BRIEF-22's task with no entry cannot show. Its
+  # drafter still gets the task's text, for it is the one to write the checks.
+  @ID-BRIEF-27 @slice-220
+  Scenario: A task's drafter is told the same when the task has no checks yet
+    Given the work registry has the task "T-001" owned by nobody with the status "todo" and no why
+    When itos runs "brief T-001 --role drafter"
+    Then itos exits with code 0
+    And its output says "which has no checks yet. Your job"
+    And its output says "There are no scenarios to write"
+    And its output does not say "scenario" outside "There are no scenarios to write"
+
+  # A task has checks to judge, not scenarios: a verdict on each, whether it
+  # can fail before the work and pass after. This template has no neighbours'
+  # placeholder, so the word is gone altogether: the text the last step
+  # excepts holds no such word, and the step's case-insensitive reading is
+  # what the plain step lacks.
+  @ID-BRIEF-23 @slice-220
+  Scenario: A task's reviewer judges each check, not scenarios
+    Given the work registry has the task "T-001" owned by nobody with the status "todo" and no why
+    And the task "T-001" has the committed check "go vet ./..."
+    When itos runs "brief T-001 --role reviewer"
+    Then itos exits with code 0
+    And its output says "Review T-001 (a task) of"
+    And its output says "The task is T-001, whose checks are `go vet ./...`. Your job"
+    And its output says "read AGENTS.md and tasks/phase-1.yaml"
+    And its output says "For each check, say whether it can fail before the work and pass after a correct one"
+    And its output says "for each check, whether it can fail before the work and pass after a correct one"
+    And its output says "<settled decisions, filled by the coordinator>"
+    And its output says "<the item's own questions, filled by the coordinator>"
+    And its output does not say "<item>"
+    And its output does not say "scenario" outside "<settled decisions, filled by the coordinator>"
+
+  # The kind is read as next reads it: an item of no kind by its id, so
+  # T-001 under ledger.id is a task, and a kind key over the id, so T-002 is
+  # a slice whatever its id looks like. A build reading only the key fails
+  # the first, one reading only the id the second.
+  @ID-BRIEF-24 @slice-220
+  Scenario: The item's kind, as next reads it, chooses the text, not its id alone
+    Given the committed file "tasks/work-items.yaml" holding the lines:
+      """
+      phases: { 1: null }
+      items:
+        - { id: T-001, title: Tidy, phase: 1, owner: null, status: todo, depends_on: [] }
+        - { id: T-002, title: Sliced, phase: 1, owner: null, status: todo, kind: slice, depends_on: [] }
+      """
+    And the task "T-001" has the committed check "go vet ./..."
+    When itos runs "brief T-001 --role drafter"
+    Then itos exits with code 0
+    And its output says "Specify T-001 (a task) of"
+    And its output says "There are no scenarios to write and no IDs to mint."
+    And its output does not say "Mint every scenario ID"
+    When itos runs "brief T-002 --role drafter"
+    Then itos exits with code 0
+    And its output says "Specify T-002 (a slice) of"
+    And its output says "Mint every scenario ID with `itos tests next-id`"
+    And its output does not say "There are no scenarios to write"
+
+  # Passes before the work, on purpose: a slice's and a bug's briefs do not
+  # change. One clause of each paragraph a task's text replaces, for every
+  # role, so a build that sends a bug the task's text (a kind check on
+  # "slice"), or puts the guides' new line inside the brief procedure's
+  # quoted block, the implementer's template, fails. Whole paragraphs would
+  # become released cases, though ADR-0054 exempts guide text, so byte
+  # equality is a unit test's: TestSliceAndBugBriefsGolden in
+  # internal/slices/brief, each role's brief of a slice and of a bug against
+  # the text before this slice, which catches what no clause here does, such
+  # as removing "start no agents" or "close the item with `itos work done`".
+  # slice-221 will run that golden under a config with a registry footer that
+  # lets docs touch the file.
+  # The drafter's commit paragraph is left to slice-221, which changes it.
+  @ID-BRIEF-25 @slice-220 @guard
+  Scenario Outline: A slice's and a bug's briefs keep the scenario workflow
+    Given the work registry has the item "<item>" owned by nobody with the status "todo"
+    And a feature file with the scenario "@ID-A-01" tagged "@wip @<item>"
+    When itos runs "brief <item> --role implementer"
+    Then itos exits with code 0
+    And its output says "Implement <item> (<kind>) of"
+    And its output says "Red first: commit the step definitions the scenarios need alone"
+    And its output says "each scenario's failing step before the work, the scenarios turned green"
+    And its output does not say "red first is running"
+    And its output does not say "The task's why"
+    When itos runs "brief <item> --role drafter"
+    Then itos exits with code 0
+    And its output says "Specify <item> (<kind>) of"
+    And its output says "Your job is the spec alone: the `@wip` scenarios the item needs"
+    And its output says "Read in full the feature file the scenarios go in"
+    And its output says "Every settled decision goes into the scenarios or the comments above them, never re-decided"
+    And its output says "Mint every scenario ID with `itos tests next-id`"
+    And its output says "each scenario's ID, title and failing step before the work"
+    And its output does not say "There are no scenarios to write"
+    When itos runs "brief <item> --role reviewer"
+    Then itos exits with code 0
+    And its output says "Review <item> (<kind>) of"
+    And its output says "Read what the change must do before what it does: the scenarios"
+    And its output says "For each scenario, say whether it can fail before the work"
+    And its output says "for each scenario, whether it can fail before the work"
+    And its output does not say "For each check"
+
+    Examples:
+      | item    | kind    |
+      | slice-9 | a slice |
+      | bug-7   | a bug   |
+
+  # The guides are read before a brief and are the same in every repository,
+  # so the line says nothing a repository could change. Both are asked for it
+  # (#237); neither scenario-driven line goes. These live here, not in
+  # guide.feature, with the rest of what this slice says of red first for a
+  # task.
+  @ID-BRIEF-26 @slice-220
+  Scenario Outline: itos guide <guide> says what red first means for a task
+    When itos runs "guide <guide>"
+    Then itos exits with code 0
+    And its output says "For a task, red first is running its checks before the work and seeing each fail, saying so where one cannot; a new program's own tests fail against a stub.", whatever its line breaks
+    And its output says "**Red first.**"
+
+    Examples:
+      | guide |
+      | work  |
+      | brief |
 
   # A bug's scenario is tagged @bug-<n>; one live scenario is said to be
   # live, not `@wip`.

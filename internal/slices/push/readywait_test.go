@@ -419,8 +419,9 @@ func codexFor(login, code, codeSHA, security, securitySHA string) string {
 }
 
 // A review-state comment counts for the head alone, both its reviews of it: the
-// verdict needs both completed and of the head, running means a review of the
-// head not completed, and a state for another commit is neither.
+// verdict needs both completed and of the head, running means a review under way
+// on the head, whatever the other's commit or status, and a status null of the
+// head, or a state for another commit, is neither.
 func TestReviewStatesAreOfTheHead(t *testing.T) {
 	const head = "0123456789abcdef0123456789abcdef01234567"
 	for name, c := range map[string]struct {
@@ -433,8 +434,9 @@ func TestReviewStatesAreOfTheHead(t *testing.T) {
 		"both of another commit":             {comment: codexStateAt("completed", otherSHA, "completed", otherSHA), completed: true, elsewhere: true},
 		"code of the head, security other":   {comment: codexStateAt("completed", head, "completed", otherSHA), completed: true, elsewhere: true},
 		"security of the head, code other":   {comment: codexStateAt("completed", otherSHA, "completed", head), completed: true, elsewhere: true},
-		"code of the head running":           {comment: codexStateAt("running", head, "completed", otherSHA), elsewhere: true},
-		"security of the head running":       {comment: codexStateAt("completed", otherSHA, "running", head), elsewhere: true},
+		"code of the head running":           {comment: codexStateAt("running", head, "completed", otherSHA), running: true, elsewhere: true},
+		"security of the head running":       {comment: codexStateAt("completed", otherSHA, "running", head), running: true, elsewhere: true},
+		"both of the head, security null":    {comment: codexStateAt("completed", head, "", head), elsewhere: true},
 		"another commit running":             {comment: codexStateAt("running", otherSHA, "running", otherSHA), elsewhere: true},
 		"no commit":                          {comment: "<!-- codex-review-state:v1 {\"code_review\":{\"status\":\"completed\"},\"security_review\":{\"status\":\"completed\"}} -->", completed: true, elsewhere: true},
 	} {
@@ -494,7 +496,7 @@ func TestPushReadyAsksForTheHeadOnce(t *testing.T) {
 		"another commit": {"", func(_ int, _ *clock, _ string, _ bool) string {
 			return answerOf([]string{reviewOfB}, []string{stateFor(otherSHA)})
 		}, []string{code, security}, "review-timeout"},
-		"with review_stall set": {", review_stall: 30", func(_ int, _ *clock, _ string, _ bool) string {
+		"with review_stall set": {", review_stall: 100", func(_ int, _ *clock, _ string, _ bool) string {
 			return answerOf([]string{reviewOfB}, []string{stateFor(otherSHA)})
 		}, []string{code, security}, "review-timeout"},
 		"the code review asked on the pull request": {"", func(_ int, _ *clock, head string, _ bool) string {
@@ -536,26 +538,32 @@ func TestPushReadyAsksForTheHeadOnce(t *testing.T) {
 			f, p, _ := askingFor(t, c.config, c.answer)
 			code, stdout, stderr, _ := call(t, f, "--json", "--ready")
 			r := reported(t, stdout)
-			if r.Outcome != c.outcome || len(comments(f)) != len(c.asked) {
+			if r.Outcome != c.outcome {
 				t.Fatalf("exit %d, %s, %d comments, %d asks\n%s%s", code, r.Outcome, len(comments(f)), p.asks, stdout, stderr)
 			}
 			if len(c.asked) == 0 {
+				if len(comments(f)) != 0 {
+					t.Errorf("asked nothing, yet %q", comments(f))
+				}
 				return
 			}
 			head := f.head(t)
 			var bodies []string
 			for _, line := range c.asked {
-				bodies = append(bodies, "pr comment slice-9 --repo owner/name --body="+line+"\n\n<!-- itos-review-request:v1 a "+head+" -->")
 				what := short(head)
 				if line == security {
 					what += " for security"
+					bodies = append(bodies, "pr comment slice-9 --repo owner/name --body="+line,
+						"pr comment slice-9 --repo owner/name --body=<!-- itos-review-request:v1 a "+head+" -->")
+				} else {
+					bodies = append(bodies, "pr comment slice-9 --repo owner/name --body="+line+"\n\n<!-- itos-review-request:v1 a "+head+" -->")
 				}
 				if said := "Asked a to review " + what + " on " + open7 + ": its review state is for another commit.\n"; !strings.Contains(stderr, said) {
 					t.Errorf("not said: %q\n%s", said, stderr)
 				}
 			}
 			calls := f.calls()
-			if !reflect.DeepEqual(comments(f), bodies) || strings.Count(stderr, "Asked ") != len(bodies) ||
+			if !reflect.DeepEqual(comments(f), bodies) || strings.Count(stderr, "Asked ") != len(c.asked) ||
 				!reflect.DeepEqual(calls[:4+len(bodies)], append([]string{list, ready, graphql(7), activity}, bodies...)) {
 				t.Errorf("the requests: %v\n%s", calls, stderr)
 			}
@@ -571,7 +579,7 @@ func TestPushReadyAsksForTheHeadBeforeJudgingTheTimeout(t *testing.T) {
 		return answerAt(nil, []string{codexFor("a", "completed", otherSHA, "completed", otherSHA)}, c.ago(200))
 	})
 	code, stdout, _, _ := call(t, f, "--json", "--ready")
-	if r := reported(t, stdout); code != temporary || r.Outcome != "review-timeout" || len(comments(f)) != 2 || p.asks != 1 || len(c.slept) != 0 {
+	if r := reported(t, stdout); code != temporary || r.Outcome != "review-timeout" || len(comments(f)) != 3 || p.asks != 1 || len(c.slept) != 0 {
 		t.Errorf("exit %d, %d comments, %d asks, slept %v\n%s", code, len(comments(f)), p.asks, c.slept, stdout)
 	}
 }
@@ -587,15 +595,15 @@ func TestPushReadyStallsAfterTheRequestForTheHead(t *testing.T) {
 		return answerOf([]string{node("b", "")}, []string{codexFor("a", "running", head, "completed", head)})
 	})
 	code, stdout, _, _ := call(t, f, "--json", "--ready")
-	if r := reported(t, stdout); code != temporary || r.Outcome != "review-stalled" || len(comments(f)) != 2 || p.asks != 4 {
+	if r := reported(t, stdout); code != temporary || r.Outcome != "review-stalled" || len(comments(f)) != 3 || p.asks != 4 {
 		t.Errorf("exit %d, %d comments, %d asks\n%s", code, len(comments(f)), p.asks, stdout)
 	}
 }
 
 // A security request this --ready posted is not the stall's: the code review,
-// then read running for the head, is asked for at review_stall from when it first
-// read so, and stalls review_stall seconds after that request, not after the
-// security one. The looks are 10 seconds apart: the security request at the
+// read running for the head, is asked for at review_stall from when it first read
+// so, and stalls review_stall seconds after that request, not after the security
+// one. The looks are 10 seconds apart: the security request at the
 // first, the code review's at the fourth, the stall at the seventh.
 func TestPushReadyStallsAfterItsOwnSecurityRequest(t *testing.T) {
 	f, p, _ := askingFor(t, ", review_stall: 30", func(_ int, _ *clock, head string, commented bool) string {
@@ -607,10 +615,11 @@ func TestPushReadyStallsAfterItsOwnSecurityRequest(t *testing.T) {
 	code, stdout, stderr, _ := call(t, f, "--json", "--ready")
 	head := f.head(t)
 	want := []string{
-		"pr comment slice-9 --repo owner/name --body=@codex security review\n\n<!-- itos-review-request:v1 a " + head + " -->",
+		"pr comment slice-9 --repo owner/name --body=@codex security review",
+		"pr comment slice-9 --repo owner/name --body=<!-- itos-review-request:v1 a " + head + " -->",
 		"pr comment slice-9 --repo owner/name --body=@codex review\n\n<!-- itos-review-request:v1 a " + head + " -->",
 	}
-	if r := reported(t, stdout); code != temporary || r.Outcome != "review-stalled" || !reflect.DeepEqual(comments(f), want) || p.asks != 8 {
+	if r := reported(t, stdout); code != temporary || r.Outcome != "review-stalled" || !reflect.DeepEqual(comments(f), want) || p.asks != 7 {
 		t.Errorf("exit %d, %s, %d asks, %q\n%s%s", code, r.Outcome, p.asks, comments(f), stdout, stderr)
 	}
 }
@@ -747,9 +756,10 @@ func TestPushReadyCountsTheReviewWaitFromGitHubsTimes(t *testing.T) {
 	}
 }
 
-// The stall counts from GitHub's times where it gives them: before a request
-// from the last edit of the review-state comment, after one from the request's
-// time; ask is the look the request was posted at, 0 for none.
+// The stall counts from GitHub's times where it gives them: from the last edit of
+// the review-state comment, or a request at or after that edit; ask is the look
+// the request was posted at, 0 for none. Looks are 10 seconds apart and review_stall
+// is 60.
 func TestPushReadyCountsTheStallFromGitHubsTimes(t *testing.T) {
 	running := func(c *clock, head string, edited int) string {
 		return timedNode("a", codexStateAt("running", head, "completed", head), c.ago(edited), c.ago(edited))
@@ -770,8 +780,34 @@ func TestPushReadyCountsTheStallFromGitHubsTimes(t *testing.T) {
 		"asked from the first look": {func(c *clock, head string) []string {
 			return []string{timedNode("a", codexStateAt("running", head, "completed", head), "", "")}
 		}, "review-timeout", 11, 7},
-		"asked long ago":       {func(c *clock, head string) []string { return []string{running(c, head, 30), request(c, head, 120)} }, "review-stalled", 1, 0},
+		// Older than the edit: asked at the fourth look, 60 seconds past the edit,
+		// and stalled 60 seconds after that request.
+		"asked long ago":       {func(c *clock, head string) []string { return []string{running(c, head, 30), request(c, head, 120)} }, "review-stalled", 10, 4},
 		"asked 20 seconds ago": {func(c *clock, head string) []string { return []string{running(c, head, 30), request(c, head, 20)} }, "review-stalled", 5, 0},
+		// Two requests older than the edit: no third, stopped 60 seconds past the edit.
+		"asked twice long ago": {func(c *clock, head string) []string {
+			return []string{running(c, head, 30), request(c, head, 120), request(c, head, 100)}
+		}, "review-stalled", 4, 0},
+		"asked twice, the edit past the stall": {func(c *clock, head string) []string {
+			return []string{running(c, head, 90), request(c, head, 120), request(c, head, 100)}
+		}, "review-stalled", 1, 0},
+		// In the same second as the edit, the request's clock and no post: the
+		// clock's two times being equal, what this row pins is that it counts as
+		// asked, a build reading it as older posting at the fourth look.
+		"asked in the second of the edit": {func(c *clock, head string) []string { return []string{running(c, head, 30), request(c, head, 30)} }, "review-stalled", 4, 0},
+		// A request with no time counts from the first look, and as asked.
+		"an edit and a request with no time": {func(c *clock, head string) []string {
+			return []string{running(c, head, 30), timedNode("someone", "@codex review\n\n<!-- itos-review-request:v1 a "+head+" -->", "", "")}
+		}, "review-stalled", 7, 0},
+		// With no edit time, the request's clock.
+		"a request and no edit time": {func(c *clock, head string) []string {
+			return []string{timedNode("a", codexStateAt("running", head, "completed", head), "", ""), request(c, head, 120)}
+		}, "review-stalled", 1, 0},
+		// The review running is the security one, which "@codex review" does not ask
+		// for: the lone older request stays asked, and it stops 60 seconds past the edit.
+		"code completed, security running": {func(c *clock, head string) []string {
+			return []string{timedNode("a", codexStateAt("completed", head, "running", head), c.ago(30), c.ago(30)), request(c, head, 120)}
+		}, "review-stalled", 4, 0},
 		"asked for another head": {func(c *clock, head string) []string {
 			return []string{running(c, head, 30), request(c, otherSHA, 120)}
 		}, "review-stalled", 10, 4},

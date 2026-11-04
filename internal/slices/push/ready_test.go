@@ -32,6 +32,7 @@ type pulls struct {
 	threads       []string // review threads, as GraphQL's JSON nodes
 	graph         func(ask int) string
 	fail          map[string]error
+	failBody      string // a pr comment whose body has it fails
 	asks, viewed  int
 	current       func() string
 	view          string // the answer to a pr view that asks for the pull request's state, "{}" without
@@ -53,6 +54,9 @@ func (p *pulls) gh(args []string) (string, error) {
 	command := strings.Join(args[:2], " ")
 	if err := p.fail[command]; err != nil {
 		return "", err
+	}
+	if command == "pr comment" && p.failBody != "" && strings.Contains(strings.Join(args, " "), p.failBody) {
+		return "", refused("HTTP 502")
 	}
 	switch command {
 	case "pr list":
@@ -507,7 +511,7 @@ func TestPushReadyWaitsForTheReviews(t *testing.T) {
 	r := reported(t, stdout)
 	if code != temporary || r.OK || r.Outcome != "review-timeout" || r.PR == nil || r.PR.AutoMerge || p.asks != 4 ||
 		!reflect.DeepEqual(c.slept, []time.Duration{2 * time.Second, 2 * time.Second, time.Second}) ||
-		!strings.Contains(stderr, "itos: no review by a, c on "+open7+" after 5 seconds (ci.watch.timeout), so auto-merge is not turned on; itos push --ready again waits again.\n") ||
+		!strings.Contains(stderr, "itos: no review by a, c on "+open7+" after 5 seconds (ci.watch.timeout), so auto-merge is not turned on; itos push --ready again turns it on if the reviews have come, else stops here at once, the wait counting from when the pull request was marked ready or its head pushed; a new head starts it afresh.\n") ||
 		strings.Contains(strings.Join(f.calls(), "\n"), "pr merge") {
 		t.Errorf("exit %d, asks %d, slept %v\n%s%s", code, p.asks, c.slept, stdout, stderr)
 	}

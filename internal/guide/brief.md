@@ -38,6 +38,9 @@ loop's steps 2 and 3 in `itos go`).
   made with `itos commit --item <id>`, its scenarios still `@wip`; runs them
   and sees each fail at the step that checks the behaviour; then builds.
   Git shows the order, and anyone can check that commit out and see red.
+  For a task, red first is running its checks before the work and seeing each
+  fail, saying so where one cannot; a new program's own tests fail against a
+  stub.
 
 ## The brief
 

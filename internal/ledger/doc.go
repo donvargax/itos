@@ -37,8 +37,10 @@
 //
 // Tasks reads every task; one whose checks cannot run (a done_when that is
 // not a list, a check without a command) carries its error and fails only
-// the command that runs it. IDs gives the task IDs at a tree, for a footer
-// read at a commit; NextID the next free one (internal/nextid). Add writes a
+// the command that runs it. KindOf is a registry item's kind and ChecksOf a
+// task's checks, the one read of an item's spec that itos next and itos
+// attempt submit share. IDs gives the task IDs at a tree, for a footer read
+// at a commit; NextID the next free one (internal/nextid). Add writes a
 // task at the end of its group's file for itos task add: the id judged
 // against ledger.id, the type against commits.types, then a ledger without
 // problems that lacks the id; the group's file is the one Files gives for it
