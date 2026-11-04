@@ -17433,3 +17433,18 @@ items:
       commits to main and exited 0 without waiting, then the following --ready merged main in,
       making a new head, and both reviews reran: one idea cost 30 minutes. Related:
       p2-rereview-only-own-changes.
+
+  - id: bug-165
+    title: itos push threads prints a comment's first line, so a Codex security finding shows only its marker
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: bug
+    why: >
+      A driven run, 2026-11-04: Codex's security findings start with the line <!--
+      codex-security-review-finding:v1 -->, and itos push threads prints that alone, so an
+      implementer given the list saw findings with no text and asked what they said, twice, until a
+      no-progress stop. Security findings are in effect invisible through the command agents are
+      told to use. Expected: the comment's text, with HTML comments dropped, whole or at least to
+      its first real line; --json carrying the whole body.
