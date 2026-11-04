@@ -134,69 +134,49 @@ Feature: Under push.mode pr, itos push threads lists an item's open review threa
   threads, its --json's comment and --ready's refusal all use. It drops every
   HTML comment, across lines too, and every Markdown image with the <sub> tags
   directly around it, then takes the first line holding a letter or a digit,
-  a real line, trimmed. When that line is a Markdown heading (one to six # and
-  a space) and another real line follows, the summary is the heading, ": ",
-  then that next real line, trimmed, whether it is a heading or not; a comment
-  whose real lines are all headings gives its first heading. A heading alone
-  would not do, and no vendor has a rule: "### 🛡️ Codex Security Review" stands
-  on every security finding, whose title is the next line, while "### Reviews
-  not pinned" is a Bugbot finding's title, whose next line is its severity. So
-  each gives both. Nothing else is touched: bold and heading markers stay,
-  since a rule for them is more code and "2**3" would pay for it, and a long
-  line stays whole, since today's first line is not cut either. Any image goes,
-  not badges
-  alone, since telling them apart is the longer rule. Other angle brackets stay
-  ("--reply <text>"), and a "<!--" that never closes is text, so nothing is
-  hidden on a guess. A comment with no such line, or no comment at all, has the
-  summary "(no text)", rather than nothing.
+  a real line, trimmed, a \r\n read as \n. When that line is a Markdown heading
+  (one to six # and a space, so neither "#243 broke this." nor seven #) and
+  another real line follows, the summary is the heading, ": ", then that next
+  real line, trimmed, whether it is a heading or not; a comment whose real lines
+  are all headings gives its first heading. A heading alone would not do, and no
+  vendor has a rule: "### 🛡️ Codex Security Review" stands on every security
+  finding, whose title is the next line, while "### Reviews not pinned" is a
+  Bugbot finding's title, whose next line is its severity, so that one's summary
+  is "### Reviews not pinned: **High Severity**". Nothing else is touched: bold
+  and heading markers stay, since a rule for them is more code and "2**3" would
+  pay for it, and a long line stays whole, since today's first line is not cut
+  either. Any image goes, not badges alone, since telling them apart is the
+  longer rule. Other angle brackets stay ("--reply <text>"), and a "<!--" that
+  never closes is text, so nothing is hidden on a guess; a marker a line quotes
+  is dropped from its summary, the whole text keeping it. A comment with no real
+  line (a marker, a badge, a heading or a rule with no letter in it, or nothing)
+  or no comment at all has the summary "(no text)", rather than nothing.
 
   Beneath its line, push threads prints each thread's first comment whole as
   GitHub gives it, marker and badge included, each line indented by four spaces
-  and a \r\n read as \n, as push thread shows one; an empty body prints no line
-  beneath. There is no flag: the implementer read the list it was given, and a
+  and a \r\n read as \n, as push thread shows one. Nothing is printed beneath for
+  an empty body or no comment, nor when the body, trimmed, equals the summary:
+  about a third of the comments on this repository's pull requests are one line
+  and would print twice. There is no flag: the implementer read the list it was
+  given, and a
   flag it does not know of leaves it where it was, on top of a flag's parsing,
   usage errors and help. Whole means as GitHub gives it because a finding can
   quote a marker in its text (a Bugbot finding on #243 did) and the badge's alt
   text is the finding's severity, which the summary drops. --json's new body is
   the same text unchanged, "" for no comment; push thread <id> and its --json
-  do not change. itos push --help and doc.go say all this where they now say
-  "first line".
+  do not change, and --json's body is whole even where nothing is printed
+  beneath. itos push --help and doc.go say all this where they now say "first
+  line". So does features/push-mode-draft.feature:149's description of --ready's
+  refusal, "the first line of its first comment", which the fix commit changes,
+  this spec's commit keeping to its own file.
 
-  The table test, TestCommentSummary (threads_test.go), holds these rows, each
-  body in Go's escapes, the first three as this repository's pull requests have
-  them, their words changed:
-
-    "<!-- codex-security-review-finding:v1 -->\n\n### 🛡️ Codex Security Review\n\n**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub> Security: Keep the token out of the log**\n\nWhen a widget logs its request.\n\nUseful? React with 👍 / 👎."
-      gives "### 🛡️ Codex Security Review: ** Security: Keep the token out of the log**"
-    "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Limit the retries**\n\nA widget that never answers.\n\n<!-- codex-code-review-finding:v1 -->"
-      gives "**  Limit the retries**"
-    "### Reviews not pinned\n\n**High Severity**\n\n<!-- DESCRIPTION START -->\nEvery review.\n<!-- DESCRIPTION END -->"
-      gives "### Reviews not pinned: **High Severity**"
-    "### Only a heading\n\n<!-- m -->" gives "### Only a heading"
-    "## One\n### Two" gives "## One"
-    "### One\n## Two\n\nRename this." gives "### One: ## Two"
-    "  ### Rename this.  \r\n\r\n<!-- m -->\r\n  It clashes.  \r\nNext." gives "### Rename this.: It clashes."
-    "#243 broke this.\n\nNext." gives "#243 broke this."
-    "####### Seven.\n\nNext." gives "####### Seven."
-    a line of 300 letters, then "\nNext." gives that line whole
-    "\n\n  Rename this.  \nIt clashes." gives "Rename this."
-    "\r\n\r\nRename this.\r\nIt clashes." gives "Rename this."
-    "<!-- one\ntwo -->\nRename this." gives "Rename this."
-    "Rename <!-- x -->this." gives "Rename this."
-    "<!-- one -->\n<!-- two -->\n\n---\n\nRename this." gives "Rename this."
-    "![P1 Badge](https://b.example/p1)\n\nRename this." gives "Rename this."
-    "**<sub>![P1 Badge](https://b.example/p1)</sub>**\n\nRename this." gives "Rename this."
-    "![shot](a.png) The panel is blank." gives "The panel is blank."
-    "--reply <text> eats its argument." gives "--reply <text> eats its argument."
-    "<sub>small</sub> print." gives "<sub>small</sub> print."
-    "2**3 overflows." gives "2**3 overflows."
-    "The prefix <!-- X --> is unpinned." gives "The prefix  is unpinned."
-    "<!-- never closed\nRename this." gives "<!-- never closed"
-    "<!-- codex-security-review-finding:v1 -->" gives "(no text)"
-    "<!-- codex-security-review-finding:v1 -->\n\n" gives "(no text)"
-    "**<sub>![P1 Badge](https://b.example/p1)</sub>**" gives "(no text)"
-    "### 🛡️\n---" gives "(no text)"
-    "" gives "(no text)"
+  Unit tests, in threads_test.go. TestCommentSummary is a table of these rules
+  and of bodies shaped as this repository's pull requests have Codex's security
+  and code findings and Bugbot's, their words changed. TestPushThreadsCommentBeneath
+  has a case each for a body with \r\n, read as \n beneath; an empty body and a
+  thread with no comment, each "(no text)" with nothing beneath and --json's body
+  "", through the branch's pull request and through --pr; and a one-line body,
+  with nothing beneath.
 
   Not in this slice: a pull request with more than 100 review threads, as
   --ready; editing or deleting a reply; unresolving a thread; replying to a
@@ -327,7 +307,7 @@ Feature: Under push.mode pr, itos push threads lists an item's open review threa
     And its output says "    ### 🛡️ Codex Security Review"
     And its output says "    **<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub> Security: Keep the widget's token out of its log**"
     And its output says "    When a widget logs its request, its token lands in the log."
-    And its output says "    Useful? React with 👍 / 👎."
+    And its output says "    Useful? React with 👍 / 👎." before "PRRT_3"
     And its output says "    A widget that never answers is asked for ever."
 
   # Only a marker: a placeholder says so where a line with nothing after the
@@ -435,6 +415,25 @@ Feature: Under push.mode pr, itos push threads lists an item's open review threa
     And its output does not say "PRRT_2"
     And the recording gh's "api graphql" call has "number=7"
     And the recording gh's "api graphql" call does not have "mutation"
+    And the recording gh was never called as "pr list"
+
+  # push threads --pr reads its threads by another path than the branch's (t.open,
+  # not fromPullState), so the summary and the whole comment are pinned on it too.
+  # Fails before the work at the summary step: today the line ends in the marker.
+  @ID-PUSHTHREAD-30 @wip @bug-165
+  Scenario: Under push.mode pr, push threads --pr <n> gives a marker-first comment's first line of real text and, beneath it, the comment whole
+    Given the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+      """
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the recording gh has the pull request "https://github.example/o/r/pull/7" open for the branch "slice-9"
+    And the recording gh answers that the pull request has an unresolved review thread "PRRT_1" on "widget.md" line 3 by "chatgpt-codex-connector", its first comment the lines "<!-- codex-security-review-finding:v1 -->" and "P1: this panics on an empty widget."
+    When itos runs "push threads --pr 7"
+    Then itos exits with code 0
+    And its output says "PRRT_1 widget.md:3 chatgpt-codex-connector: P1: this panics on an empty widget."
+    And its output says "    <!-- codex-security-review-finding:v1 -->"
     And the recording gh was never called as "pr list"
 
   # The slice's first point: a thread read in full, every comment's author
