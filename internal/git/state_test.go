@@ -71,3 +71,21 @@ func TestState(t *testing.T) {
 		t.Fatalf("detached, Branch = %q", got)
 	}
 }
+
+// Changed gives each changed file a line of its own: only a rename or a copy
+// takes the entry after it as its old path.
+func TestChangedGivesEachFileItsLine(t *testing.T) {
+	dir := t.TempDir()
+	gitIn(t, dir, "init", "-q", "-b", "main")
+	t.Chdir(dir)
+	commitFile(t, dir, "a")
+	commitFile(t, dir, "b")
+	for _, name := range []string{"a", "b"} {
+		if err := os.WriteFile(filepath.Join(dir, name), []byte("changed\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if got := here.Changed(); !slices.Equal(got, []string{" M a", " M b"}) {
+		t.Errorf("Changed = %q, want each file's line", got)
+	}
+}

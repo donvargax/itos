@@ -5,6 +5,8 @@ import (
 	"encoding/hex"
 	"strings"
 	"testing"
+
+	messages "github.com/cucumber/messages/go/v34"
 )
 
 var fingerprintOptions = Options{ID: `ID-[A-Z]+-\d+`, TagPrefix: "@", WipTag: "@wip"}
@@ -181,5 +183,31 @@ func TestFingerprintsIgnoreAnEmptyIDCapture(t *testing.T) {
 	got := Fingerprints(text, Options{ID: "(|x)", TagPrefix: "@"})
 	if len(got) != 0 {
 		t.Errorf("fingerprints of an empty ID capture = %v, want none", got)
+	}
+}
+
+// A scenario's ID is that of the first tag holding one: a tag the pattern
+// does not find, or finds holding no ID since the pattern may match nothing,
+// is passed over.
+func TestScenarioIDIsTheFirstTagHoldingAnID(t *testing.T) {
+	idTag, err := Options{ID: `\d*`, TagPrefix: "@"}.idTag()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, c := range []struct {
+		tags []string
+		want string
+	}{
+		{[]string{"phase", "@12"}, "12"},
+		{[]string{"@wip", "@12", "@13"}, "12"},
+		{[]string{"phase", "@wip"}, ""},
+	} {
+		s := &messages.Scenario{}
+		for _, name := range c.tags {
+			s.Tags = append(s.Tags, &messages.Tag{Name: name})
+		}
+		if got := scenarioID(idTag, s); got != c.want {
+			t.Errorf("scenarioID of %q = %q, want %q", c.tags, got, c.want)
+		}
 	}
 }

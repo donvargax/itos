@@ -463,3 +463,23 @@ func TestTheRunSaysTheTrustAndTheNote(t *testing.T) {
 		t.Errorf("not trusted, --json: stdout %q, stderr %q", stdout, stderr)
 	}
 }
+
+// A failing task check is failed_at's with code 1, whatever it exited with:
+// only a step gives its own code (slice 86).
+func TestAFailingCheckIsCodeOneWhateverItExits(t *testing.T) {
+	failing := "exit 5"
+	item := plan.Item{Check: &plan.Check{
+		CostedCheck: check.CostedCheck{Task: ledger.Task{ID: "T-001"}, Check: ledger.Check{Run: &failing}},
+		Action:      plan.Run,
+	}}
+	code, stdout, _ := run(t, &plan.Plan{Order: []plan.Item{item}}, Options{JSON: true})
+	var report struct {
+		FailedAt Failure `json:"failed_at"`
+	}
+	if err := json.Unmarshal([]byte(stdout), &report); err != nil {
+		t.Fatalf("%v\n%s", err, stdout)
+	}
+	if code != 1 || report.FailedAt.Task != "T-001" || report.FailedAt.Code != 1 {
+		t.Errorf("exit %d, failed_at %+v\n%s", code, report.FailedAt, stdout)
+	}
+}

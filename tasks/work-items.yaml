@@ -57,7 +57,6 @@ phases:
   3: donvargax
 
 queue:
-  - T-340
   - T-341
   - p1-v9-design-from-friction
   - p1-ci-slow-linux-runs
@@ -17058,7 +17057,7 @@ items:
     title: Kill or except the 23 survivors of nightlies 2026-10-31 to 2026-11-04
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
 
@@ -17150,3 +17149,17 @@ items:
     status: todo
     depends_on: []
     kind: task
+
+  - id: p3-review-post-second-verdict
+    title: itos review post cannot add a second reviewer's findings at a head that already has that verdict
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      A coordinator adding settled decisions to a pull request whose reviewer had just posted
+      changes at the same head got 'changes already', exit status not checked by eye, and the text
+      went nowhere. A loop then has no route from a second reviewer to the drafter's brief. Either
+      take a further body at the same verdict, or have itos brief read other comments addressed to
+      the item.
