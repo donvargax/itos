@@ -17117,3 +17117,14 @@ items:
     why: >
       #248: a task named but still todo has its checks skipped with one line, then 'CI passed', exit
       0; the session read that as its checks holding and handed back with one failing.
+
+  - id: p2-guide-red-first-tasks
+    title: guide work and guide brief say what red first means for a task, not only for scenarios
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      #237: a session handed a task whose tests live in a new script's self-test had no direction
+      and improvised a failing stub. Related: p1-brief-task-role.
