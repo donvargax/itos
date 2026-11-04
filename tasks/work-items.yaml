@@ -17201,3 +17201,16 @@ items:
       while the review really was running --ready returned 75 at once, 'no review after 1800
       seconds', with no way to wait through its last minutes. Slice-218 ends the swallowed case
       sooner, not this one.
+
+  - id: p3-review-request-spacing
+    title: itos review request spaces Codex's two requests, one of which was swallowed when posted 4 seconds apart
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      T-341, 2026-11-04: @codex review and @codex security review went out 4 seconds apart; Codex
+      never started the security review, its state null for 28 minutes, until one more request. Seen
+      across several pull requests. Whether spacing helps is unproven: try it first, as slice-218
+      only recovers from it after the fact.
