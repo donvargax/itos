@@ -16250,6 +16250,10 @@ items:
       ./<name> (the folder frame, f85578b8/9e960110); this bug settles one frame for VCS.File,
       Files, Texts and gitTree.List/inRepo, keeping or undoing that. Also: Trees.At with an empty
       folder gets a relative working folder, so inRepo returns . (config check uses vcs.Git{}).
+
+      slice-221's review, 2026-11-04: with a project in a subfolder the commit-msg hook runs from
+      the top with the top's config, while itos commit check-paths from that folder judges its
+      rules, though the help says from the repository's top.
     tags: [work, v8]
 
   - id: p2-brief-request-binds-text
