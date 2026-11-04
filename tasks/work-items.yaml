@@ -58,6 +58,7 @@ phases:
 
 queue:
   - T-340
+  - T-341
   - p1-v9-design-from-friction
   - p1-ci-slow-linux-runs
   - slice-153
