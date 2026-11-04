@@ -84,12 +84,13 @@
 // is already, nothing posted, whatever --expect says; else --expect's
 // revision, when it is not the item's now as itos next gives it
 // (Ports.Revision, next.RevisionOf), is review-stale, nothing posted. Then
-// each missing request, in the config's order and its kind's, is one gh pr
-// comment <number> --repo <repository> --body=<the request> with the user's
+// each missing request, in the config's order and its kind's, is its gh pr
+// comments (reviewers.Request.Bodies: one, or Codex's security request's two)
+// <number> --repo <repository> --body=<the comment> with the user's
 // gh (Bugbot ignores a command from a bot or an app); the first that fails
-// stops it, review-pull-request-failed, exit 3, the requests before it
-// posted and none after it tried. Outcome requested, --json's posted the
-// requests posted in order.
+// stops it, review-pull-request-failed, exit 3, what was before it
+// posted, a line whose marker failed included, and none after it tried.
+// Outcome requested, --json's posted the requests posted in order.
 //
 // # review status
 //
