@@ -17416,8 +17416,8 @@ items:
   - id: bug-165
     title: itos push threads prints a comment's first line, so a Codex security finding shows only its marker
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: bug
     why: >
