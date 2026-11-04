@@ -17031,3 +17031,18 @@ items:
       brief for a task (T-4, a build task whose spec is its done_when checks) emitted the scenario
       workflow (red-first, @wip tags) and unfilled coordinator placeholders. Same root as
       p1-attempt-drafter-task-spec: the brief and submit treat every item as scenario work.
+
+  - id: p1-brief-spec-commit-type
+    title: itos brief's drafter step names the commit type the config lets a spec's scenarios take, not docs
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      A drafter in a loop over another of the person's projects (2026-11-04) stopped on its first
+      slice: the drafter brief says to commit the @wip scenarios as a docs commit, but that
+      project's commits.scopes.docs allows only **/*.md, docs/** and tasks/**, so itos commit
+      check-paths --type docs refuses features/*.feature; there a spec goes in as test: with Item:.
+      The brief should read commits.scopes (and the types Item: stands in for) and name the type
+      that may carry features/, as itos commit check-paths already judges it.
