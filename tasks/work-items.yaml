@@ -17002,3 +17002,19 @@ items:
       for the head (ReviewState.Completed and ForHead), so it waited out 540 s twice and would never
       finish. It should post "@codex security review" too when security_review's commit is not the
       head, as itos review request does.
+
+  - id: p1-attempt-drafter-task-spec
+    title: "itos attempt submit takes a task's drafter result: its spec is the ledger entry's checks, not a scenario"
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      A loop over another of the person's projects (2026-11-04): itos next routed a task (T-3, a ci
+      task) through spec-proposed to the drafter, who rightly wrote the task's done_when checks in
+      its ledger entry; attempt submit then refused it, attempt-spec-missing (no scenario tagged
+      @T-3 at the head). For a task the spec is its ledger checks, as next's needs-spec state
+      already reads it, so submit should judge a task's drafter head by those checks, not by
+      scenarios. The loop went on (next reads the draft pull request as spec-review), but the
+      journal holds no drafter record.
