@@ -17522,3 +17522,14 @@ items:
       review were coming. T-18 elsewhere did the same to the coordinator. Name it: no review
       requested, run itos review request. Each --ready also opens with 'not asked' before it has
       looked: p3-ready-state-says-asked.
+
+  - id: p3-review-request-one-kind
+    title: itos review request takes a reviewer kind
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      slice-220, 2026-11-04: with Bugbot off for a day, asking Codex alone meant writing its markers
+      by hand, as no command asks one kind.
