@@ -72,6 +72,22 @@ func TestShowNamesTheItemsDependingOnIt(t *testing.T) {
 	}
 }
 
+// One item depending on it is named too, as several are.
+func TestPrintNamesTheOneItemDependingOnIt(t *testing.T) {
+	r := registryOf(t, "phases: { 1: null }\nitems:\n"+
+		"  - { id: a, title: A, phase: 1, owner: null, status: todo }\n"+
+		"  - { id: b, title: B, phase: 1, owner: q, status: todo, depends_on: [a] }\n")
+	shown, problem := Show(r, "a")
+	if problem != nil {
+		t.Fatal(problem)
+	}
+	var b strings.Builder
+	shown.Print(&b, 100)
+	if !strings.Contains(b.String(), "\n  depended on by: b\n") {
+		t.Errorf("a prints\n%s", b.String())
+	}
+}
+
 // A registry why that reads as the ledger's, whitespace and blank lines
 // aside, is the copy task add wrote until bug-107: work show gives it once.
 // One that says something else, or beside no ledger why, stays.
@@ -88,6 +104,7 @@ func TestListedLeavesOutARegistryWhyRepeatingTheLedgers(t *testing.T) {
 		{"The ledger says why.\n", "An idea's reasons.", true},
 		{"Why.\n", "Because.", true},
 		{"", "The registry says why.", true},
+		{"", "", true},
 		{"The ledger says why.\n", nil, true},
 	} {
 		shown := Shown{Item: item(c.registry), LedgerWhy: c.ledger}
