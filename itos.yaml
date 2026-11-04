@@ -605,6 +605,7 @@ push:
     draft: true
     update: merge
     review_by: [chatgpt-codex-connector]
+    review_stall: 1200
     reviewers:
       - { login: chatgpt-codex-connector, kind: codex }
       - { login: "cursor[bot]", kind: bugbot }

@@ -1,8 +1,8 @@
 // Package reviewers is how itos asks the reviewers push.pr.reviewers names
 // for a pull request's head, and reads whether each was asked (slice-215,
-// features/review-request.feature): what itos review request posts and itos
-// next's review-unrequested judges, an engine (ADR-0053) so the two cannot
-// disagree.
+// features/review-request.feature): what itos review request posts, itos
+// next's review-unrequested judges and itos push --ready posts for a review
+// that lags a new head, an engine (ADR-0053) so they cannot disagree.
 //
 // A reviewer is a login and a kind, and a kind is an adapter here, never a
 // format the config describes, since vendors change their formats without
@@ -29,7 +29,8 @@
 // head's full SHA> -->", the login as the config writes it. A request is on
 // the head when a comment by anyone has the line as its first line and a
 // marker line naming the login and the head; a line without the marker, or a
-// marker of another login or head, counts for nothing. Logins are compared
+// marker of another login or head, counts for nothing (Request.OnHead, and
+// Request.Made, which gives those comments). Logins are compared
 // with a trailing "[bot]" dropped from each, as GraphQL names a bot without
 // it. Missing is each request of each reviewer, in the config's order and the
 // kind's, neither on the head nor answered by the reviewer's own review of

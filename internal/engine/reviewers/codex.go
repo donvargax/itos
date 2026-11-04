@@ -16,6 +16,16 @@ const (
 
 var codex = adapter{lines: []string{codexReview, codexSecurity}, reviewed: codexReviewed}
 
+// CodexReview is the login's request for Codex's code review.
+func CodexReview(login string) Request {
+	return Request{Login: login, Kind: "codex", Line: codexReview}
+}
+
+// CodexSecurity is the login's request for Codex's security review.
+func CodexSecurity(login string) Request {
+	return Request{Login: login, Kind: "codex", Line: codexSecurity}
+}
+
 // codexReviewed is whether the login's review state names the head for the
 // review the line asks for: the code review's commit_sha for "@codex
 // review", the security review's for "@codex security review".

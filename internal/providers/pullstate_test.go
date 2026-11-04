@@ -16,7 +16,7 @@ func TestPullStateQueryIsOneLine(t *testing.T) {
 	if strings.ContainsAny(PullStateQuery, "\n\t") || strings.Contains(PullStateQuery, "  ") || !strings.HasPrefix(PullStateQuery, "query($owner: String!, ") {
 		t.Errorf("the query is not on one line: %q", PullStateQuery)
 	}
-	for _, want := range []string{"after: $cursor", "pageInfo { hasNextPage endCursor }", "reviewThreads(first: 100)", "READY_FOR_REVIEW_EVENT", "statusCheckRollup { state }", "autoMergeRequest { enabledAt }", "reviews(first: 100) { nodes { author { login } body commit { oid } } }"} {
+	for _, want := range []string{"after: $cursor", "pageInfo { hasNextPage endCursor }", "reviewThreads(first: 100)", "READY_FOR_REVIEW_EVENT", "statusCheckRollup { state }", "autoMergeRequest { enabledAt }", "reviews(first: 100) { nodes { author { login } body commit { oid } } }", "nodes { author { login } body createdAt updatedAt url } }"} {
 		if !strings.Contains(PullStateQuery, want) {
 			t.Errorf("the query lacks %q: %s", want, PullStateQuery)
 		}
@@ -50,7 +50,7 @@ func TestAskPullStateReadsOneAnswer(t *testing.T) {
 	var calls [][]string
 	gh := func(_ context.Context, args ...string) (string, error) {
 		calls = append(calls, args)
-		return pageAnswer(`{"author":{"login":"someone"},"body":"hi","createdAt":"2026-10-24T11:00:00Z","updatedAt":"2026-10-24T12:00:00Z"}`, ""), nil
+		return pageAnswer(`{"author":{"login":"someone"},"body":"hi","createdAt":"2026-10-24T11:00:00Z","updatedAt":"2026-10-24T12:00:00Z","url":"https://github.example/o/r/pull/7#issuecomment-1"}`, ""), nil
 	}
 	got, err := AskPullState(context.Background(), gh, "owner/name", 7)
 	if err != nil {
@@ -60,7 +60,7 @@ func TestAskPullStateReadsOneAnswer(t *testing.T) {
 	want := PullState{
 		Head:     "0123456789abcdef0123456789abcdef01234567",
 		Reviews:  []Authored{{Login: "codex", Body: "LGTM", Commit: "abc"}, {Login: "x"}},
-		Comments: []Authored{{Login: "someone", Body: "hi", Created: at("2026-10-24T11:00:00Z"), Updated: at("2026-10-24T12:00:00Z")}},
+		Comments: []Authored{{Login: "someone", Body: "hi", Created: at("2026-10-24T11:00:00Z"), Updated: at("2026-10-24T12:00:00Z"), URL: "https://github.example/o/r/pull/7#issuecomment-1"}},
 		ReadyAt:  at("2026-10-24T10:00:00Z"),
 		Threads: []ReviewThread{
 			{ID: "T1", Path: "a.go", Line: 3, Author: "ana", Body: "first line\nsecond"},

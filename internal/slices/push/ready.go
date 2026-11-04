@@ -160,8 +160,8 @@ func (r *pushRun) stillWaiting(w *waiting) Answer {
 // ready or its head pushed, whichever is later, else from the first ask: done,
 // with the exit reported (75, outcome review-timeout, naming the logins that
 // have none; or at once 75, review-refused, for a login whose reviews are all
-// refusals; or 75, review-stalled, see stalled; or 75, ready-still-waiting, at
-// push.pr.ready_wait), or the failure of gh api graphql. The last answer is the
+// refusals; or 75, review-stalled or review-not-started, see judgeReviews; or 75,
+// ready-still-waiting, at push.pr.ready_wait), or the failure of gh api graphql. The last answer is the
 // state. w says what is waited on, at the start and at each look that changes
 // it.
 func (r *pushRun) awaitReviews(ctx context.Context, repository string, w *waiting) (pullState, Answer, bool) {
@@ -174,7 +174,7 @@ func (r *pushRun) awaitReviews(ctx context.Context, repository string, w *waitin
 	if w.run == "" {
 		w.show()
 	}
-	rv := &reviewing{stall: r.cfg.Push.PR.ReviewStall, since: map[string]time.Time{}, asked: map[string]time.Time{}}
+	rv := newReviewing(r.cfg.Push.PR.ReviewStall)
 	for first := true; ; first = false {
 		state, a, failed := r.ask(ctx, repository, r.pr.Number)
 		if failed {
@@ -197,7 +197,7 @@ func (r *pushRun) awaitReviews(ctx context.Context, repository string, w *waitin
 			}
 			return state, r.report(temporary, "review-refused"), true
 		}
-		if a, done := r.askForHead(ctx, repository, w, rv, state, missing); done {
+		if a, done := r.askForHead(ctx, repository, w, rv, state); done {
 			return state, a, true
 		}
 		timedOut, bounded, left := r.limits(deadline)
@@ -210,18 +210,12 @@ func (r *pushRun) awaitReviews(ctx context.Context, repository string, w *waitin
 			return state, r.stillWaiting(w), true
 		}
 		if rv.stall > 0 {
-			if a, done := r.stalled(ctx, repository, w, rv, state, missing); done {
+			if a, done := r.judgeReviews(ctx, repository, w, rv, state); done {
 				return state, a, true
 			}
 		}
 		sleep(min(max(interval, reviewPoll), left))
 	}
-}
-
-// underway is whether a review of the head, in the state, reads anything but
-// completed.
-func underway(s providers.ReviewState, head string) bool {
-	return s.Code.SHA == head && s.Code.Status != "completed" || s.Security.SHA == head && s.Security.Status != "completed"
 }
 
 // reviewsFrom is when the clock of ci.watch.timeout for the reviews starts:

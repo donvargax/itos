@@ -5169,6 +5169,15 @@ items:
       disk under /tmp without TMPDIR set, and commit-msg refused a merge commit without a type until
       its title was rewritten through GIT_EDITOR. Until the merge driver exists, work done could say
       how to finish such a pull (git merge --continue with a docs title).
+
+      slice-222 lands keep-both on itos push's merge of main, without waiting for typed items; what
+      stays here: rebase and pull paths, work done's git pull, and the design that stops the
+      conflict at its source.
+
+      slice-222's review, 2026-11-04: a hunk-level keep-both is unsafe even with an empty diff3
+      base: main's work defer on the last item and a branch's work add attach the defer to the new
+      item, passing every check. Any resolution must compare entries by id across base, ours, theirs
+      and the result.
     tags: [work, v9]
 
   - id: p1-refs-overlap
@@ -16250,6 +16259,10 @@ items:
       ./<name> (the folder frame, f85578b8/9e960110); this bug settles one frame for VCS.File,
       Files, Texts and gitTree.List/inRepo, keeping or undoing that. Also: Trees.At with an empty
       folder gets a relative working folder, so inRepo returns . (config check uses vcs.Git{}).
+
+      slice-221's review, 2026-11-04: with a project in a subfolder the commit-msg hook runs from
+      the top with the top's config, while itos commit check-paths from that folder judges its
+      rules, though the help says from the repository's top.
     tags: [work, v8]
 
   - id: p2-brief-request-binds-text
@@ -16900,20 +16913,10 @@ items:
   - id: slice-218
     title: itos push --ready tells a reviewer that never starts a review from one that is still running
     phase: 2
-    owner: null
-    status: todo
+    owner: donvargax
+    status: done
     depends_on: [slice-217]
     kind: slice
-    why: >
-      Was p2-ready-review-never-started.
-      bug-157, PR #247, 2026-11-01: Codex's review-state comment kept security_review at status null
-      and commit_sha null on every head, while each @codex security review request got a code review
-      receipt instead. --ready waited the full 1800 s (ci.watch.timeout) twice, saying only that
-      chatgpt-codex-connector was waiting. A review-state comment whose review is null after a
-      request for the head has not started, and is not stalled: --ready should say that after
-      push.pr.review_stall, name the request comment, and stop with 75 then, not at the timeout.
-      Security reviews on the six PRs before it completed normally, so this is a Codex fault on one
-      PR, not a config one.
 
   - id: p3-devcontainer-itos-pin
     title: "'The devcontainer installs the current itos release, not 6.3.0'"
@@ -16960,18 +16963,9 @@ items:
     title: itos push --ready asks Codex for the code review alone on a new head, then waits for both reviews
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: slice
-    why: >
-      Was p1-ready-asks-security-review.
-      Landing a pull request on another of the person's projects (2026-11-04): --ready merged main
-      into the item's branch, then asked chatgpt-codex-connector for the new head with "@codex
-      review" only (askForHead's postRequest). Codex reviewed the code within two minutes, but its
-      review-state comment kept security_review on the old head, and --ready requires both completed
-      for the head (ReviewState.Completed and ForHead), so it waited out 540 s twice and would never
-      finish. It should post "@codex security review" too when security_review's commit is not the
-      head, as itos review request does.
 
   - id: slice-219
     title: "itos attempt submit takes a task's drafter result: its spec is the ledger entry's checks, not a scenario"
@@ -17009,7 +17003,7 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: []
+    depends_on: [slice-220]
     kind: slice
     why: >
       Was p1-brief-spec-commit-type.
@@ -17217,3 +17211,225 @@ items:
       never started the security review, its state null for 28 minutes, until one more request. Seen
       across several pull requests. Whether spacing helps is unproven: try it first, as slice-218
       only recovers from it after the fact.
+
+  - id: p1-next-task-checks-on-branch
+    title: itos next reads a task's checks from the working tree alone, so a check on the item's branch reads as needs-spec
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      slice-219's spec, 2026-11-04: next-forge.feature keeps a task's ledger checks out of what it
+      reads at origin/<id>, as it reads a slice's scenarios. So once attempt submit accepts a task's
+      drafter head, a task whose only check is on its branch is accepted and next still sends it
+      back to the drafter; a throwaway scenario under trunk mode shows needs-spec. Under pr mode
+      read in facts.go returns before the forge is asked. Decide with slice-219 landing whether next
+      reads origin/<task> for a task as it does for scenarios.
+
+      slice-219's review, 2026-11-04: without this a driver re-dispatches a task's drafter without
+      bound when its first check is only on the branch. Promote next after slice-219.
+
+  - id: p2-attempt-implementer-task
+    title: attempt submit's red-first and done checks ignore an item's kind
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      slice-219's spec, 2026-11-04: a task whose implementer commits feat or fix with no test commit
+      gets attempt-not-red-first, though a task has no test step (untested ignores kind); a
+      throwaway scenario confirms it. And implemented never asks whether a task's checks still exist
+      at the head, or pass.
+
+  - id: p3-tests-run-wip
+    title: A way to run named @wip scenarios without editing the feature file
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Every drafter strips @wip with sed, runs its scenarios to name the failing steps, then
+      restores the file; a refused compound command left one feature without its tags until noticed
+      (slice-220's drafter, 2026-11-04). A flag to include @wip for named scenarios ends the
+      routine.
+
+  - id: p3-one-item-kind
+    title: next's kindOf and brief's itemKind are two definitions of an item's kind
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      slice-219's spec, 2026-11-04. slice-219 shares next's read with attempt; brief keeps its own,
+      and slice-220 reads the kind there too. One definition, in the package that owns items.
+
+  - id: p2-unrunnable-check-is-no-spec
+    title: A done_when entry with no runnable check does not count as a spec, in next and attempt alike
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      slice-219's review, 2026-11-04: done_when: [{nope: 1}] counts as one check in the read next
+      and attempt share, though config check fails it and itos task exits 70; done_when: 'go vet' is
+      refused. An unrunnable check is no spec. The fix goes in the shared read.
+
+  - id: p2-starter-item-footer
+    title: "itos init's starter config lets a spec be committed: an Item footer, or a docs scope holding features/"
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      slice-221's spec, 2026-11-04: the starter has no Item footer and its docs scope is **/*.md,
+      docs/** and tasks/**, so no type can carry a spec, and itos commit --item, which every brief
+      names, is itself a usage error there. So a fresh repository's drafter is told to stop. A fresh
+      repository should be able to commit a spec.
+
+      slice-221's spec, 2026-11-04: the flag rule covers the drafter's text only; the implementer's
+      brief still names itos commit --item under a config with no registry footer, pinned by
+      released ID-BRIEF-01. It goes with this item.
+
+  - id: p3-survivor-matcher-annotation
+    title: A survivor on a green nightly also shows a red annotation from the Go problem matcher
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Nightly 41877123893, 2026-11-04, the first green since q-107: each survivor is one ::warning
+      from nightly-survivors, and .github/actions/go-toolchain/go-matcher.json also matches the
+      report's message line as a failure annotation. The run stays green; only the page misleads.
+      Narrow the matcher, or leave it until survivors are revisited after v9.
+
+  - id: slice-222
+    title: itos push resolves a merge of main that conflicts only in the registry or a ledger by keeping both sides
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: slice
+    why: >
+      Merge mode's --ready merges main into an item's branch and stops on any conflict, though two
+      sessions appending to tasks/work-items.yaml or a ledger conflict on every such merge, by
+      construction (#107; bug-157's close took four tries). A loop over another of the person's
+      projects resolves these by hand. This lands the keep-both resolution alone: p1-registry-merge
+      and its file-per-item or merge-driver design wait on p1-typed-items.
+    tags: [work, v8]
+    deferred: >
+      Spec written and twice reviewed on #262; two small findings stand. The rule is safe, but 0 of
+      46 merges here and 2 of 50 elsewhere conflict in a registry or ledger, and an agent handles
+      each abort anyway. Wait for p1-registry-merge's design, which stops the conflict at its
+      source. Resume if conflicts become common.
+
+  - id: p2-stall-clock-older-than-the-review
+    title: --ready's stall reads a review that just started as stalled, its clock an older request
+    phase: 2
+    owner: null
+    status: dropped
+    depends_on: []
+    kind: idea
+
+  - id: p2-ready-gh-network-blip
+    title: --ready's wait ends exit 3 on a network failure of gh
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Seen on the slice-218 PR, 2026-11-04: gh api graphql failing with a TLS handshake timeout
+      during --ready's wait ended it exit 3, pull-request-failed, naming a fix to make, where a CI
+      API failure exits 75 and the wait could go on to its next look. Running --ready again was all
+      it needed.
+
+  - id: p2-queue-twice-at-push
+    title: A clean merge can land a queue holding one id twice, and no gate reads it at push
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      slice-222's drafter, 2026-11-04: the same id queued at neighbouring places by two sides merges
+      cleanly as x a x b, so no conflict and no keep-both runs, and nothing reads work-queue-twice
+      on the way to the remote. Also, queueIssues refuses only unknown or twice: a done item in the
+      queue is no queue problem, so an id a merge brings back stays unnoticed.
+
+  - id: p3-architecture-on-go-list
+    title: This repository's layout rules hold against a nolint, a generated header and a build-tagged file
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Probes of rules modelled on these, 2026-11-04: //nolint:depguard and its spellings, a
+      generated-file header and a build-tagged file all evade depguard, and
+      tools/bin/architecture-check reads none of them; filed against itos-cc too. Low urgency: no
+      agent was seen doing it. Check against the go list graph when v9's layout settles.
+
+  - id: p3-ci-range-required-checks
+    title: itos ci range counts a run green by its required checks, not every job
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      An audit, 2026-11-04 (inferred from the code, not run): ci range starts from the last green
+      run, so an unrequired job's infrastructure cancel, a macOS runner never acquired, leaves a run
+      not green and widens every later range until one passes, here 8 runs in an hour. Check whether
+      only required checks should count.
+
+  - id: bug-163
+    title: A marked @codex security review may start no security review, so --ready and review request ask in a form that does not work
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: bug
+    why: >
+      slices 217 and 218's real runs, 2026-11-04: on #258 and #257, @codex security review carrying
+      the request marker got a code review each time, four posts across two heads, and a plain one
+      started the security review within 13 seconds. Every plain success was also later than the
+      marked one, after the code review had finished, so timing is not ruled out, and a plain
+      request has been swallowed too. Controlled test first, on a real pull request: a marked
+      security request alone, long after a completed code review. Then fix Request.Body or the
+      spacing. Slice-218's second request cannot start what it asks for until this is settled.
+
+  - id: bug-164
+    title: --ready ends review-stalled seconds after a review starts, as the stall counts from a request older than the review
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: bug
+    why: >
+      slice-218's real run, 2026-11-04: at --ready's second request Codex's state flipped to code
+      review running with security null; the stall counted from the code review's request, 20
+      minutes old, and stopped review-stalled seconds after the review started, on every rerun until
+      it completes. No wrong merge, but it misleads and stops a healthy review. Was the idea
+      p2-stall-clock-older-than-the-review. Also: with ci.watch.timeout 1800 judged first,
+      review_stall 1200 gives the second request but never review-not-started, and past the timeout
+      --ready returns at once though it says it waits again: settle the two values with the fix.
+
+  - id: p2-ready-registry-push-restarts-reviews
+    title: A work add during a pull request's wait moves its head on the next --ready, restarting both reviews
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      slice-218, 2026-11-04: a work add during the wait: the next --ready sent only the registry
+      commits to main and exited 0 without waiting, then the following --ready merged main in,
+      making a new head, and both reviews reran: one idea cost 30 minutes. Related:
+      p2-rereview-only-own-changes.
