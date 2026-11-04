@@ -17533,3 +17533,17 @@ items:
     why: >
       slice-220, 2026-11-04: with Bugbot off for a day, asking Codex alone meant writing its markers
       by hand, as no command asks one kind.
+
+  - id: p3-task-checks-in-workspace
+    title: A task's checks run as written in the implementer's workspace, so a compromised spec can run there
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      A Codex security finding on slice-220, 2026-11-04, P2: telling an implementer to run itos task
+      before the work runs a drafter's done_when shell commands with the implementer's environment.
+      Spec review is the only mitigation, and the same is true of CI and of a slice's steps, which
+      an implementer also runs. Weigh a sandbox with the container work, or a warning, as itos's own
+      threat model says.
