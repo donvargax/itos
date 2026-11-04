@@ -584,7 +584,7 @@ Feature: itos attempt submit, an agent's result checked against its brief and ag
   # scenario for a spec. T-001's entry, the Background's, has no check on
   # main, so a build that read the clone's working tree instead of the head
   # fails. The record is a slice's drafter record, field for field.
-  @ID-ATTEMPT-16 @wip @slice-219
+  @ID-ATTEMPT-16 @slice-219
   Scenario: A task's drafter head whose ledger entry has a check is accepted and recorded
     Given the work registry has the task "T-001" owned by nobody with the status "todo" and no why
     When itos runs "brief T-001 --role drafter --json"
@@ -615,7 +615,7 @@ Feature: itos attempt submit, an agent's result checked against its brief and ag
   # next's read counts it: a build that read the clone's working tree would
   # accept this head. The message and the fix speak of checks, so a task's
   # drafter is not told to tag scenarios.
-  @ID-ATTEMPT-17 @wip @slice-219
+  @ID-ATTEMPT-17 @slice-219
   Scenario: A task's drafter head whose ledger entry has no check is refused, speaking of checks
     Given the work registry has the task "T-001" owned by nobody with the status "todo" and no why
     And the task "T-001" has the committed check "go vet ./..."
@@ -651,7 +651,7 @@ Feature: itos attempt submit, an agent's result checked against its brief and ag
 
   # The entry is on main with a check, and the head's ledger lacks it,
   # holding only T-0010, whose check a prefix match would take for T-001's.
-  @ID-ATTEMPT-18 @wip @slice-219
+  @ID-ATTEMPT-18 @slice-219
   Scenario: A task's drafter head with no ledger entry for it is refused, speaking of checks
     Given the work registry has the task "T-001" owned by nobody with the status "todo" and no why
     And the task "T-001" has the committed check "go vet ./..."
@@ -688,7 +688,7 @@ Feature: itos attempt submit, an agent's result checked against its brief and ag
   # @wip scenario is no spec, which today's submit accepts, and a live one
   # no fault, which today's refuses as not @wip. The checks alone judge
   # both heads.
-  @ID-ATTEMPT-19 @wip @slice-219
+  @ID-ATTEMPT-19 @slice-219
   Scenario: A task's drafter head is judged by its checks, whatever scenarios are tagged for it
     Given the work registry has the task "T-001" owned by nobody with the status "todo" and no why
     When itos runs "brief T-001 --role drafter --json"
@@ -726,7 +726,7 @@ Feature: itos attempt submit, an agent's result checked against its brief and ag
   # T-002's registry entry has no kind key: next gives it the kind task by
   # its id, ledger.id matching, so a build that read the key alone would
   # judge it by scenarios and refuse this head.
-  @ID-ATTEMPT-20 @wip @slice-219
+  @ID-ATTEMPT-20 @slice-219
   Scenario: An item of no kind key whose id ledger.id matches is judged as a task
     Given the work registry has the item "T-002" owned by nobody with the status "todo"
     When itos runs "brief T-002 --role drafter --json"
@@ -753,7 +753,7 @@ Feature: itos attempt submit, an agent's result checked against its brief and ag
   # The clone's config finds T-001's entry at the head, with no check. A
   # build that loaded the config from the head, as itos brief does at a
   # base, would accept it.
-  @ID-ATTEMPT-21 @wip @slice-219
+  @ID-ATTEMPT-21 @slice-219
   Scenario: A task's checks at a head are read under the clone's config, never the head's
     Given the work registry has the task "T-001" owned by nobody with the status "todo" and no why
     When itos runs "brief T-001 --role drafter --json"
@@ -785,7 +785,7 @@ Feature: itos attempt submit, an agent's result checked against its brief and ag
   # way out of its scenarios: such a build accepts this head and fails at
   # "itos exits with code 1". Today's submit reads no kind, so it passes
   # before the work, and it must after.
-  @ID-ATTEMPT-26 @wip @guard @slice-219
+  @ID-ATTEMPT-26 @guard @slice-219
   Scenario: A slice's head relabelling itself a task in its own registry is judged by its scenarios
     When itos runs "brief slice-9 --role drafter --json"
     Then itos exits with code 0
@@ -815,7 +815,7 @@ Feature: itos attempt submit, an agent's result checked against its brief and ag
   # the head's ledger is not YAML, which ledger.Tasks refuses as a usage
   # error. Not a spec-missing refusal, which would tell the drafter the
   # checks are absent, and today's answer.
-  @ID-ATTEMPT-22 @wip @slice-219
+  @ID-ATTEMPT-22 @slice-219
   Scenario: A task's drafter head whose ledger cannot be read is an error, nothing recorded
     Given the work registry has the task "T-001" owned by nobody with the status "todo" and no why
     When itos runs "brief T-001 --role drafter --json"
@@ -840,7 +840,7 @@ Feature: itos attempt submit, an agent's result checked against its brief and ag
   # ledger-folder-missing, exit 2, as next and every command reading the
   # ledger give it. ID-ATTEMPT-18's refusal is for an entry missing from a
   # ledger that exists. Today's submit never reads the ledger: exit 1.
-  @ID-ATTEMPT-27 @wip @slice-219
+  @ID-ATTEMPT-27 @slice-219
   Scenario: A task's drafter head with no ledger folder is the read's error, nothing recorded
     Given the work registry has the task "T-001" owned by nobody with the status "todo" and no why
     When itos runs "brief T-001 --role drafter --json"
@@ -869,7 +869,7 @@ Feature: itos attempt submit, an agent's result checked against its brief and ag
   # scenarios tagged for it; ID-ATTEMPT-01 and ID-ATTEMPT-09 hold a slice's.
   # Only a task's kind changes the judge, so a build that gave every kind
   # but a slice the ledger's fails.
-  @ID-ATTEMPT-23 @wip @guard @slice-219
+  @ID-ATTEMPT-23 @guard @slice-219
   Scenario: A bug's drafter head is judged by its scenarios, not by a ledger
     Given the work registry has the item "bug-3" owned by nobody with the status "todo"
     When itos runs "brief bug-3 --role drafter --json"
@@ -907,7 +907,7 @@ Feature: itos attempt submit, an agent's result checked against its brief and ag
   # head, but its kind key says slice, which wins for next: a slice's spec
   # is its scenarios, today and after. A build that judged by the id, or by
   # a ledger entry being there, accepts the first head.
-  @ID-ATTEMPT-24 @wip @guard @slice-219
+  @ID-ATTEMPT-24 @guard @slice-219
   Scenario: An item whose kind key says slice is judged by its scenarios, whatever its id and ledger entry
     Given the committed file "tasks/work-items.yaml" holding the lines:
       """
@@ -938,7 +938,7 @@ Feature: itos attempt submit, an agent's result checked against its brief and ag
   # kind key says task, which next reads as a task. A build that took the
   # id's kind unless the key said slice or bug would judge it by scenarios
   # and refuse this head.
-  @ID-ATTEMPT-25 @wip @slice-219
+  @ID-ATTEMPT-25 @slice-219
   Scenario: An item whose kind key says task is judged by its checks, whatever its id
     Given the work registry has the task "chore-1" owned by nobody with the status "todo" and no why
     When itos runs "next chore-1 --json"

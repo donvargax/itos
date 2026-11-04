@@ -8,6 +8,7 @@ import (
 
 	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/kind"
+	"github.com/donvargax/itos/v8/internal/ledger"
 	"github.com/donvargax/itos/v8/internal/message"
 	"github.com/donvargax/itos/v8/internal/out"
 	"github.com/donvargax/itos/v8/internal/tests"
@@ -74,7 +75,8 @@ func (h Handler) Handle(ctx context.Context, q Query) (Answer, error) {
 	if err != nil {
 		return Answer{}, err
 	}
-	if _, problem := work.Show(registry, q.ID); problem != nil {
+	shown, problem := work.Show(registry, q.ID)
+	if problem != nil {
 		return Answer{Refused: []out.Problem{*problem}}, nil
 	}
 	data, err := h.ports.ReadFile(ctx, q.Path)
@@ -95,7 +97,7 @@ func (h Handler) Handle(ctx context.Context, q Query) (Answer, error) {
 	if len(p.faults) > 0 {
 		return h.rotate(ctx, q.ID, p, j, sum)
 	}
-	c := claim{cfg: cfg, v: cfg.VCS, id: q.ID, Result: p.Result}
+	c := claim{cfg: cfg, v: cfg.VCS, id: q.ID, kind: ledger.KindOf(shown.Item, cfg), Result: p.Result}
 	if a, err := h.current(ctx, &c); a.Refused != nil || err != nil {
 		return a, err
 	}
@@ -143,14 +145,16 @@ func (h Handler) rotate(ctx context.Context, id string, p parsed, j journal, sum
 		fmt.Sprintf("write the result with exactly the keys itos attempt --help names, and submit it as attempt %d", n+1)), nil
 }
 
-// claim is a well-formed result of the item id, checked against git
-// through v under cfg, the clone's config; tip is the head of the item's
-// branch on the remote once fetched, "" when the remote has none.
+// claim is a well-formed result of the item id, of the kind the clone's
+// registry gives it, checked against git through v under cfg, the clone's
+// config; tip is the head of the item's branch on the remote once fetched,
+// "" when the remote has none.
 type claim struct {
 	Result
 	cfg    *config.Loaded
 	v      vcsport.VCS
 	id     string
+	kind   string
 	remote string
 	tip    string
 }
@@ -228,6 +232,9 @@ func (c *claim) claims(ctx context.Context) (Answer, error) {
 		return refused("attempt-head-not-pushed", fmt.Sprintf("the head %s is not the tip of %s's branch %s: the tip is %s", head, c.remote, c.id, c.tip),
 			fmt.Sprintf("push the head to %s's branch %s, or submit the tip as the head when it is the work", c.remote, c.id)), nil
 	}
+	if c.Role == drafter && c.kind == "task" {
+		return c.checks(ctx)
+	}
 	tagged, err := tests.Tagged(c.cfg, "@"+c.id, head)
 	if err != nil {
 		return Answer{}, err
@@ -251,6 +258,27 @@ func (c *claim) spec(tagged []tests.Test) Answer {
 		}
 	}
 	return Answer{}
+}
+
+// checks refuses a task's drafter head whose ledger, read in its tree under
+// the clone's config, has no entry for the task or an entry with no check: a
+// task's spec is its checks, whatever scenarios are tagged for it. A ledger
+// the read cannot read is its error, never a refusal.
+func (c *claim) checks(ctx context.Context) (Answer, error) {
+	tree, err := c.cfg.Trees.At(ctx, *c.Head)
+	if err != nil {
+		return Answer{}, err
+	}
+	checks, entry, err := ledger.ChecksOf(c.cfg.DataFrom(tree), c.id)
+	if err != nil || len(checks) > 0 {
+		return Answer{}, err
+	}
+	missing := fmt.Sprintf("%s's ledger entry has no check at the head %s", c.id, *c.Head)
+	if !entry {
+		missing = fmt.Sprintf("%s has no ledger entry at the head %s", c.id, *c.Head)
+	}
+	return refused("attempt-spec-missing", missing+": a task's spec is its done_when checks",
+		fmt.Sprintf("write %s's done_when checks in its ledger entry, push them, and submit the new tip as the head", c.id)), nil
 }
 
 // implemented refuses an implementer's head whose first-parent commits

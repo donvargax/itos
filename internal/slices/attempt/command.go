@@ -34,11 +34,16 @@ holds for the item and role ("expected attempt <n>"); then, for done, each
 claim against git, never the notes: attempt-head-not-pushed, the head not
 the tip of the item's branch on the remote (fetched first);
 attempt-spec-missing, a drafter's head holding no scenario tagged @<id>, or
-one that is not @wip; attempt-not-red-first, an implementer's first-parent
-commits past the base holding no test commit before the first feat or fix;
+one that is not @wip, or, for an item of the kind task, whatever scenarios
+are tagged for it, a head whose ledger has no entry for it or an entry with
+no check; attempt-not-red-first, an implementer's first-parent commits past
+the base holding no test commit before the first feat or fix;
 attempt-still-wip, an implementer's head leaving a scenario tagged @<id>
-@wip. The scenarios at a head are read under the clone's config, never the
-head's.
+@wip. The scenarios and a task's checks at a head are read under the clone's
+config, never the head's, and the kind is the clone's registry's, as itos
+next reads it: its kind key, else what the id gives. A head's ledger that
+cannot be read, or a head with no ledger folder, is an error, exit 2, nothing
+recorded.
 
 Recorded: an accepted result, verdict accepted; a malformed one naming a
 role, verdict rotated, null for each key at fault and the journal's own

@@ -379,6 +379,48 @@ func TestSpecMissing(t *testing.T) {
 	refusedFor(t, submit(t, p, result(finished(drafter, 1, tested))), "attempt-spec-missing", "@ID-A-01", "not @wip")
 }
 
+// A task's drafter head is judged by its ledger entry in the head's tree, by
+// the kind the clone's registry gives it: a check is accepted whatever
+// scenarios are tagged, none or no entry refused speaking of checks, and a
+// tree or a ledger that cannot be read is the command's error, nothing
+// recorded.
+func TestTaskDrafter(t *testing.T) {
+	task := func(ledger string) *ports {
+		p := over(tested, nil)
+		p.trees.Files["worktree"]["itos.yaml"] = itosYAML + "ledger:\n  files: \"tasks/phase-{group}.yaml\"\n"
+		p.trees.Files["worktree"]["work-items.yaml"] = "phases: { 1: null }\nitems:\n  - { id: slice-9, phase: 1, owner: null, status: todo, kind: task, depends_on: [] }\n"
+		p.trees.Files[tested] = map[string]string{"tasks/phase-1.yaml": ledger,
+			"features/a.feature": "Feature: A\n\n  @ID-A-01 @slice-9\n  Scenario: one\n    When it runs\n"}
+		return p
+	}
+	p := task(`- { id: slice-9, done_when: [{ run: "go vet" }] }` + "\n")
+	if a := submit(t, p, result(finished(drafter, 1, tested))); a.Taken == nil || len(records(t, p)) != 1 {
+		t.Errorf("a check: %+v, journal %q", a, p.journal)
+	}
+	for ledger, says := range map[string]string{
+		"- { id: slice-9, done_when: [] }\n": "slice-9's ledger entry has no check at the head " + tested,
+		"- { id: slice-90 }\n":               "slice-9 has no ledger entry at the head " + tested,
+	} {
+		p = task(ledger)
+		problem := refusedFor(t, submit(t, p, result(finished(drafter, 1, tested))), "attempt-spec-missing", says, "a task's spec is its done_when checks")
+		if !strings.Contains(problem.Fix, "write slice-9's done_when checks in its ledger entry") || strings.Contains(problem.Message+problem.Fix, "scenario") || p.journal != "" {
+			t.Errorf("%s: %+v, journal %q", ledger, problem, p.journal)
+		}
+	}
+	p = task("{ id: slice-9, done_when: [\n")
+	p.files["result.json"] = result(finished(drafter, 1, tested))
+	query := Query{ID: "slice-9", File: "result.json", Path: "result.json"}
+	if _, err := NewHandler(p).Handle(t.Context(), query); kind.Of(err) != kind.Usage || p.journal != "" {
+		t.Errorf("a ledger that is not YAML: %v, journal %q", err, p.journal)
+	}
+	p = task("")
+	p.files["result.json"] = result(finished(drafter, 1, tested))
+	p.tweak = func(cfg *config.Loaded) { cfg.Trees = treefake.Trees{} }
+	if _, err := NewHandler(p).Handle(t.Context(), query); err == nil || !strings.Contains(err.Error(), "cannot be read outside a git repository") || p.journal != "" {
+		t.Errorf("a tree that cannot be read: %v, journal %q", err, p.journal)
+	}
+}
+
 // An implementer's first-parent commits past the base: a test commit
 // before the feat is red first, main's feat commit merged in counting for
 // nothing; a feat with no test commit before it is refused, naming it; a
