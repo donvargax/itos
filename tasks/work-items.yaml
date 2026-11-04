@@ -16973,14 +16973,15 @@ items:
       finish. It should post "@codex security review" too when security_review's commit is not the
       head, as itos review request does.
 
-  - id: p1-attempt-drafter-task-spec
+  - id: slice-219
     title: "itos attempt submit takes a task's drafter result: its spec is the ledger entry's checks, not a scenario"
     phase: 1
     owner: null
     status: todo
     depends_on: []
-    kind: idea
+    kind: slice
     why: >
+      Was p1-attempt-drafter-task-spec.
       A loop over another of the person's projects (2026-11-04): itos next routed a task (T-3, a ci
       task) through spec-proposed to the drafter, who rightly wrote the task's done_when checks in
       its ledger entry; attempt submit then refused it, attempt-spec-missing (no scenario tagged
