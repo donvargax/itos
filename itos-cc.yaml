@@ -341,3 +341,30 @@ mutation:
       replacement: <=
       reason: "Equivalent: the two differ only for a line whose indentation equals shared, which sets shared to indent(l), the value it already has (indent is a pure function of the line); shared < 0 short-circuits before the comparison, so shared is never negative where it is made."
       line_text: if strings.TrimSpace(l) != "" && (shared < 0 || indent(l) < shared) {
+    - file: internal/cli/ci.go
+      function: github.com/donvargax/itos/v8/internal/cli#runCi
+      hash: c3594c159c61ee3c
+      line_in_function: 4
+      column: 10
+      original: "0"
+      replacement: "1"
+      reason: "Equivalent: mainWith is the one caller of a command outside the tests (dispatch elsewhere only asks whether the name exists), and it returns failure(err, o) whenever the error is set, reading the code only with no error, so the code beside Parse's error is never read."
+      line_text: return 0, err
+    - file: internal/slices/push/registry.go
+      function: github.com/donvargax/itos/v8/internal/slices/push.pushRun#refuseMerge
+      hash: d2008d604e7e8c3a
+      line_in_function: 7
+      column: 22
+      original: "1"
+      replacement: "0"
+      reason: "Equivalent: -0 is 0, so registry starts at 0 while merge starts at -1; the loop sets the two together when it finds a merge with a registry commit under it, and otherwise merge stays -1, where registry < 0 || merge < 0 returns no refusal whatever registry holds, so the value it starts at is never read."
+      line_text: registry, merge = -1, -1
+    - file: internal/tests/nextid.go
+      function: github.com/donvargax/itos/v8/internal/tests#NextTagFrom
+      hash: df93de14be12a9ce
+      line_in_function: 2
+      column: 11
+      original: "1"
+      replacement: "0"
+      reason: "Equivalent: nextid.Next writes the number highest+1, at least 1 since highest is never below 0, with %0*d at the width, fits being nil here; a number of at least 1 has a digit whatever the width, so width 0 writes what width 1 does, and Area sets width 2 after it either way."
+      line_text: width := 1
