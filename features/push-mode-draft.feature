@@ -695,7 +695,8 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   So each of the two reviews in a review_by login's latest review-state
   comment is judged alone, at the look that reads it, whatever the other's
   commit or status: a review whose commit is not the head is asked for, a
-  review of the head is not, whatever its status. "@codex review" asks for the
+  review with no commit counting as not the head, and a review of the head is
+  not, whatever its status. "@codex review" asks for the
   code review and "@codex security review" for the security review, in that
   order, one gh pr comment each, as slice 200's request: gh pr comment <item>
   --repo <repository> --body=<the line, an empty line, "<!--
@@ -719,13 +720,28 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   A login with no review-state comment yet is asked nothing, as before: a
   fresh pull request's first reviews are not this slice's.
 
-  Not in slice 217: a review that never starts (slice-218); slice 190's stall,
-  whose request stays "@codex review"; asking on ready_for_review.
+  Not in slice 217: a review that never starts (slice-218); asking on
+  ready_for_review; slice 190's stall, whose request stays "@codex review". The
+  stall counts only the code review's request, so that a security request,
+  on the pull request or posted by this --ready, neither takes the place of
+  the stall's one "@codex review" nor starts the clock that ends in
+  review-stalled.
 
-  Slice 217's steps are all there already: the review state of a commit (slice
-  200), "requesting <line> of <login> at the clone's HEAD" or "at the commit
-  <sha>" and "the recording gh's <command> calls are these lines" (slice 215),
-  and "a comment by <login> saying <text>" (slice 206).
+  The implementer rewrites docs/ORCHESTRATING.md:107-108, which tells agents
+  to post "@codex security review" by hand: with no marker that comment counts
+  for nothing, so --ready would start a second security review. The --ready
+  help and internal/slices/push/doc.go follow this rule.
+
+  Slice 217's steps are there already but one: the review state of a commit
+  (slice 200), "requesting <line> of <login> at the clone's HEAD" or "at the
+  commit <sha>" and "the recording gh's <command> calls are these lines" (slice
+  215), and "a comment by <login> saying <text>" (slice 206). New: "the
+  recording gh answers that the pull request has a comment by <login> holding
+  Codex's review state, its code review <status> of <commit> and its security
+  review <status> of <commit> until a pr comment call, then both <status> of
+  the clone's HEAD", each <commit> as in slice 200's step and the clone's HEAD
+  its full SHA when the step runs, into the files slice 190's "until a pr
+  comment call" fills (gh-comments-before and gh-comments-after).
 
   Background:
     Given a repository whose ledger has the task "T-001"
@@ -1481,10 +1497,11 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   # Each review is judged alone: only the one that lags is asked for, whatever
   # the other's status. The first row is the wait this slice ends: Codex
   # reviewed the code of the head and the state kept security_review on the old
-  # commit. Fails before the work at the pr comment lines, for each row: today
-  # the first posts "@codex review", for a code review that is done, and the
-  # other two nothing, a review of the head reading as under way (slice 200's
-  # underway, which judges the two together).
+  # commit. The last row's security review names no commit, which counts as not
+  # the head. Fails before the work at the pr comment lines, for each row: today
+  # the first and the last post "@codex review", for a code review that is done,
+  # and the other two nothing, a review of the head reading as under way (slice
+  # 200's underway, which judges the two together).
   @ID-PUSHDRAFT-48 @slice-217 @wip
   Scenario Outline: Under push.pr.draft, push --ready asks only for the one of Codex's reviews whose commit is not the head, whatever the other's status
     Given the config, committed and pushed to the remote's main, adds the YAML:
@@ -1518,6 +1535,7 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
       | completed | the clone's HEAD                                      | completed | the commit "0123456789abcdef0123456789abcdef01234567" | @codex security review |
       | running   | the clone's HEAD                                      | completed | the commit "0123456789abcdef0123456789abcdef01234567" | @codex security review |
       | completed | the commit "0123456789abcdef0123456789abcdef01234567" | running   | the clone's HEAD                                      | @codex review          |
+      | completed | the clone's HEAD                                      |           | the commit ""                                         | @codex security review |
 
   # Once per head, for each review, across separate --ready runs. An earlier
   # run left one review's request on the pull request: that one is not posted
@@ -1565,6 +1583,39 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
       | on the pull request    | posted                 |
       | @codex review          | @codex security review |
       | @codex security review | @codex review          |
+
+  # The wait this slice ends, from end to end: the state keeps security_review
+  # on an older commit until the request is posted, then reads both reviews
+  # completed for the head, so --ready asks and finishes in one run. Fails
+  # before the work at the pr comment lines: today any pr comment moves the
+  # recording gh's state, so --ready turns on auto-merge, exit 0, having posted
+  # "@codex review" for a code review that is done.
+  @ID-PUSHDRAFT-52 @slice-217 @wip
+  Scenario: Under push.pr.draft, push --ready asks for the security review that lags and turns on auto-merge once the state reads both completed for the head
+    Given the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+        pr:
+          draft: true
+          review_by: [chatgpt-codex-connector]
+      """
+    And ci.watch asks a fake GitHub, which reports the run "https://ci.example/runs/1"
+    And ci.watch.timeout is 10
+    And the watched run's jobs "ci" and "platform" succeed
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the clone is on the new branch "slice-9"
+    And the clone has the commit "feat: add the widget" touching "widget.md"
+    And git pushes HEAD to the remote's new branch "slice-9"
+    And the recording gh has the draft pull request "https://github.example/o/r/pull/7" open for the branch "slice-9"
+    And the recording gh answers that the pull request has a comment by "chatgpt-codex-connector" holding Codex's review state, its code review "completed" of the clone's HEAD and its security review "completed" of the commit "0123456789abcdef0123456789abcdef01234567" until a pr comment call, then both "completed" of the clone's HEAD
+    When itos runs "push --ready"
+    Then itos exits with code 0
+    And the recording gh's "pr comment" calls are these lines, in order, @HEAD:slice-9@ the full SHA of the head of the remote's branch "slice-9":
+      """
+      pr comment slice-9 --repo owner/scratch --body=@codex security review\n\n<!-- itos-review-request:v1 chatgpt-codex-connector @HEAD:slice-9@ -->
+      """
+    And the recording gh's "pr merge" call has "--auto"
 
   # A pull request with no review-state comment yet gets no request: a fresh
   # pull request's first reviews are not this slice's, and a duplicate request
@@ -1919,6 +1970,43 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
     And the recording gh's "pr comment" call has "<!-- itos-review-request:v1 chatgpt-codex-connector "
     And the recording gh's "pr comment" call has the full SHA of the clone's HEAD
     And its output says "Asked chatgpt-codex-connector to review "
+    And its output says "(push.pr.review_stall)"
+    And the recording gh's "pr merge" call has "--auto"
+
+  # The stall counts only the code review's request: a security request for the
+  # head, as itos review request leaves one, is not the stall's. So the code
+  # review, running past push.pr.review_stall, is asked for once, and the state
+  # then completes. Fails before the work at the exit code: today
+  # pullState.requested reads the marker alone, so the security request counts
+  # as the stall's, nothing is posted, and --ready ends at review_stall, exit
+  # 75, review-stalled.
+  @ID-PUSHDRAFT-51 @slice-217 @wip
+  Scenario: Under push.pr.draft, push --ready past push.pr.review_stall asks for the code review even with a security request on the head
+    Given the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+        pr:
+          draft: true
+          review_by: [chatgpt-codex-connector]
+          review_stall: 1
+      """
+    And ci.watch asks a fake GitHub, which reports the run "https://ci.example/runs/1"
+    And ci.watch.timeout is 10
+    And the watched run's jobs "ci" and "platform" succeed
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the clone is on the new branch "slice-9"
+    And the clone has the commit "feat: add the widget" touching "widget.md"
+    And git pushes HEAD to the remote's new branch "slice-9"
+    And the recording gh has the draft pull request "https://github.example/o/r/pull/7" open for the branch "slice-9"
+    And the recording gh answers that the pull request has a comment by "someone" requesting "@codex security review" of "chatgpt-codex-connector" at the clone's HEAD
+    And the recording gh answers that the pull request has a comment by "chatgpt-codex-connector" holding Codex's review state, its code review "running" and its security review "completed" until a pr comment call, then both "completed"
+    When itos runs "push --ready"
+    Then itos exits with code 0
+    And the recording gh's "pr comment" calls are these lines, in order, @HEAD:slice-9@ the full SHA of the head of the remote's branch "slice-9":
+      """
+      pr comment slice-9 --repo owner/scratch --body=@codex review\n\n<!-- itos-review-request:v1 chatgpt-codex-connector @HEAD:slice-9@ -->
+      """
     And its output says "(push.pr.review_stall)"
     And the recording gh's "pr merge" call has "--auto"
 
