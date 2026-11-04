@@ -18,9 +18,10 @@ the open questions. Read these too:
 - **A red nightly's failures:** `gh run view <id> --log-failed`, the id from
   the status's Nightly line, or the open "Nightly red" issue. The gates'
   self-tests, the features under hostile PATHs, 20 fresh mutation sites and
-  the release's verification run only there, so a change that reaches what
-  no push judges shows up the next morning. A closed task's checks run
-  nowhere: `work done` takes them out of the ledger (ADR-0043).
+  the release's verification run only there, so what no push judges shows up
+  the next morning (a survivor alone as a warning, q-107). A closed
+  task's checks run nowhere: `work done` takes them out of the ledger
+  (ADR-0043).
   **A red nightly is the first item**, a `fix` handed to an agent before any
   new work. It is also the next fix release.
 - **The inbox:** `go run ./tools/bin/inbox` (below).
@@ -103,10 +104,9 @@ role's template, so it speaks to you, the briefed agent:
   or an uncovered line needs a test. No by-hand push proof, `itos task`,
   golangci-lint or staticcheck: pre-push runs the linters, CI the rest; run a
   diagnostic only when it is the work. Finish as AGENTS.md's Finishing says:
-  push the draft as you work; reviews run only when asked (ADR-0061): Codex's
-  code review by `itos push --ready`, its security review and Cursor's
-  Bugbot by one `@codex security review` and one `@cursor review` comment
-  per head; fix each thread's cause, never the check, resolve it, and run
+  push the draft as you work; reviews run only when asked (ADR-0061): `itos review
+  request <item>` asks each configured reviewer for the head once, and
+  `itos push --ready` asks Codex for what a new head leaves behind; fix each thread's cause, never the check, resolve it, and run
   `itos push --ready` yourself. Never run `itos work done`:
   the coordinator closes the item on main after the merge (T-303, slice-179).
 - **What the push proof flags:** an error check after a call that already

@@ -420,30 +420,29 @@ func codexFor(login, code, codeSHA, security, securitySHA string) string {
 
 // A review-state comment counts for the head alone, both its reviews of it: the
 // verdict needs both completed and of the head, running means a review of the
-// head not completed, and a state for another commit is neither, asked for the
-// head unless one of its reviews that names the head is under way.
+// head not completed, and a state for another commit is neither.
 func TestReviewStatesAreOfTheHead(t *testing.T) {
 	const head = "0123456789abcdef0123456789abcdef01234567"
 	for name, c := range map[string]struct {
-		comment                                 string
-		completed, running, elsewhere, underway bool
+		comment                       string
+		completed, running, elsewhere bool
 	}{
 		"both of the head, completed":        {comment: codexStateAt("completed", head, "completed", head), completed: true},
-		"both of the head, code running":     {comment: codexStateAt("running", head, "completed", head), running: true, underway: true},
-		"both of the head, security running": {comment: codexStateAt("completed", head, "running", head), running: true, underway: true},
+		"both of the head, code running":     {comment: codexStateAt("running", head, "completed", head), running: true},
+		"both of the head, security running": {comment: codexStateAt("completed", head, "running", head), running: true},
 		"both of another commit":             {comment: codexStateAt("completed", otherSHA, "completed", otherSHA), completed: true, elsewhere: true},
 		"code of the head, security other":   {comment: codexStateAt("completed", head, "completed", otherSHA), completed: true, elsewhere: true},
 		"security of the head, code other":   {comment: codexStateAt("completed", otherSHA, "completed", head), completed: true, elsewhere: true},
-		"code of the head running":           {comment: codexStateAt("running", head, "completed", otherSHA), underway: true},
-		"security of the head running":       {comment: codexStateAt("completed", otherSHA, "running", head), underway: true},
+		"code of the head running":           {comment: codexStateAt("running", head, "completed", otherSHA), elsewhere: true},
+		"security of the head running":       {comment: codexStateAt("completed", otherSHA, "running", head), elsewhere: true},
 		"another commit running":             {comment: codexStateAt("running", otherSHA, "running", otherSHA), elsewhere: true},
 		"no commit":                          {comment: "<!-- codex-review-state:v1 {\"code_review\":{\"status\":\"completed\"},\"security_review\":{\"status\":\"completed\"}} -->", completed: true, elsewhere: true},
 	} {
 		t.Run(name, func(t *testing.T) {
 			s := pullState{pull: providers.PullState{Comments: []providers.Authored{{Login: "a", Body: c.comment}}}}
 			st := s.pull.StateOf("a")
-			if !st.Stated || st.Completed() != c.completed || s.running("a", head) != c.running || s.elsewhere("a", head) != c.elsewhere || underway(st, head) != c.underway {
-				t.Errorf("completed %t, running %t, elsewhere %t, underway %t", st.Completed(), s.running("a", head), s.elsewhere("a", head), underway(st, head))
+			if !st.Stated || st.Completed() != c.completed || s.running("a", head) != c.running {
+				t.Errorf("completed %t, running %t", st.Completed(), s.running("a", head))
 			}
 			missing, _ := s.pull.Verdicts([]string{"a"}, head)
 			if got := len(missing) == 0; got != (c.completed && !c.elsewhere) {
@@ -453,7 +452,7 @@ func TestReviewStatesAreOfTheHead(t *testing.T) {
 	}
 	// No comment, no state; its edits are the comment's updatedAt.
 	s := pullState{pull: providers.PullState{Comments: []providers.Authored{{Login: "a", Body: "other"}}}}
-	if st := s.pull.StateOf("a"); st.Stated || s.running("a", head) || s.elsewhere("a", head) {
+	if st := s.pull.StateOf("a"); st.Stated || s.running("a", head) {
 		t.Errorf("a state from no state comment: %+v", st)
 	}
 	edited := time.Unix(1_234, 0)
@@ -475,70 +474,96 @@ func askingFor(t *testing.T, config string, answer func(ask int, c *clock, head 
 	return f, p, c
 }
 
-// A login whose review-state comment is for another commit is asked once for the
-// head, at the look that reads it, whether or not push.pr.review_stall is set,
-// and then waited for to ci.watch.timeout. It is not asked when a comment with
-// its request for the head is on the pull request, when this --ready asked
-// already, when it has no review-state comment, or when one of its reviews that
-// names the head is under way.
+// Each review of a login's review-state comment whose commit is not the head is
+// asked for once per head, the code review first, at the look that reads the
+// state, whether or not push.pr.review_stall is set, and then waited for to
+// ci.watch.timeout. A review is not asked for when a comment with its own request
+// for the head is on the pull request, when this --ready asked already, when the
+// login has no review-state comment, or when its own commit is the head, whatever
+// its status and the other's.
 func TestPushReadyAsksForTheHeadOnce(t *testing.T) {
+	const code, security = "@codex review", "@codex security review"
 	stateFor := func(sha string) string { return codexFor("a", "completed", sha, "completed", sha) }
 	reviewOfB := node("b", "")
 	for name, c := range map[string]struct {
-		config   string
-		answer   func(ask int, c *clock, head string, commented bool) string
-		comments int
-		outcome  string
+		config  string
+		answer  func(ask int, c *clock, head string, commented bool) string
+		asked   []string
+		outcome string
 	}{
 		"another commit": {"", func(_ int, _ *clock, _ string, _ bool) string {
 			return answerOf([]string{reviewOfB}, []string{stateFor(otherSHA)})
-		}, 1, "review-timeout"},
+		}, []string{code, security}, "review-timeout"},
 		"with review_stall set": {", review_stall: 30", func(_ int, _ *clock, _ string, _ bool) string {
 			return answerOf([]string{reviewOfB}, []string{stateFor(otherSHA)})
-		}, 1, "review-timeout"},
-		"asked on the pull request": {"", func(_ int, _ *clock, head string, _ bool) string {
+		}, []string{code, security}, "review-timeout"},
+		"the code review asked on the pull request": {"", func(_ int, _ *clock, head string, _ bool) string {
 			return answerOf([]string{reviewOfB}, []string{askedBy("someone", "a", head), stateFor(otherSHA)})
-		}, 0, "review-timeout"},
+		}, []string{security}, "review-timeout"},
+		"the security review asked on the pull request": {"", func(_ int, _ *clock, head string, _ bool) string {
+			return answerOf([]string{reviewOfB}, []string{askedForSecurity("someone", "a", head), stateFor(otherSHA)})
+		}, []string{code}, "review-timeout"},
+		"both asked on the pull request": {"", func(_ int, _ *clock, head string, _ bool) string {
+			return answerOf([]string{reviewOfB}, []string{askedBy("someone", "a", head), askedForSecurity("someone", "a", head), stateFor(otherSHA)})
+		}, nil, "review-timeout"},
 		"asked, and listed once posted": {"", func(_ int, _ *clock, head string, commented bool) string {
 			if commented {
-				return answerOf([]string{reviewOfB}, []string{askedBy("me", "a", head), stateFor(otherSHA)})
+				return answerOf([]string{reviewOfB}, []string{askedBy("me", "a", head), askedForSecurity("me", "a", head), stateFor(otherSHA)})
 			}
 			return answerOf([]string{reviewOfB}, []string{stateFor(otherSHA)})
-		}, 1, "review-timeout"},
+		}, []string{code, security}, "review-timeout"},
 		"asked for another head": {"", func(_ int, _ *clock, _ string, _ bool) string {
-			return answerOf([]string{reviewOfB}, []string{askedBy("someone", "a", otherSHA), stateFor(otherSHA)})
-		}, 1, "review-timeout"},
-		"no state comment": {"", func(_ int, _ *clock, _ string, _ bool) string { return answerOf([]string{reviewOfB}, nil) }, 0, "review-timeout"},
-		"a review of the head under way": {"", func(_ int, _ *clock, head string, _ bool) string {
+			return answerOf([]string{reviewOfB}, []string{askedBy("someone", "a", otherSHA), askedForSecurity("someone", "a", otherSHA), stateFor(otherSHA)})
+		}, []string{code, security}, "review-timeout"},
+		"no state comment": {"", func(_ int, _ *clock, _ string, _ bool) string { return answerOf([]string{reviewOfB}, nil) }, nil, "review-timeout"},
+		"the code review of the head running": {"", func(_ int, _ *clock, head string, _ bool) string {
 			return answerOf([]string{reviewOfB}, []string{codexFor("a", "running", head, "completed", otherSHA)})
-		}, 0, "review-timeout"},
+		}, []string{security}, "review-timeout"},
+		"the security review of the head running": {"", func(_ int, _ *clock, head string, _ bool) string {
+			return answerOf([]string{reviewOfB}, []string{codexFor("a", "completed", otherSHA, "running", head)})
+		}, []string{code}, "review-timeout"},
+		"a security review with no commit": {"", func(_ int, _ *clock, head string, _ bool) string {
+			return answerOf([]string{reviewOfB}, []string{codexFor("a", "completed", head, "", "")})
+		}, []string{security}, "review-timeout"},
+		"both running for the head": {"", func(_ int, _ *clock, head string, _ bool) string {
+			return answerOf([]string{reviewOfB}, []string{codexFor("a", "running", head, "running", head)})
+		}, nil, "review-timeout"},
 		"a state for the head": {"", func(_ int, _ *clock, head string, _ bool) string {
 			return answerOf([]string{reviewOfB}, []string{stateFor(head)})
-		}, 0, "pushed"},
+		}, nil, "pushed"},
 	} {
 		t.Run(name, func(t *testing.T) {
 			f, p, _ := askingFor(t, c.config, c.answer)
 			code, stdout, stderr, _ := call(t, f, "--json", "--ready")
 			r := reported(t, stdout)
-			if r.Outcome != c.outcome || len(comments(f)) != c.comments {
+			if r.Outcome != c.outcome || len(comments(f)) != len(c.asked) {
 				t.Fatalf("exit %d, %s, %d comments, %d asks\n%s%s", code, r.Outcome, len(comments(f)), p.asks, stdout, stderr)
 			}
-			if c.comments == 0 {
+			if len(c.asked) == 0 {
 				return
 			}
 			head := f.head(t)
-			body := "pr comment slice-9 --repo owner/name --body=@codex review\n\n<!-- itos-review-request:v1 a " + head + " -->"
-			asked := "Asked a to review " + short(head) + " on " + open7 + ": its review state is for another commit.\n"
+			var bodies []string
+			for _, line := range c.asked {
+				bodies = append(bodies, "pr comment slice-9 --repo owner/name --body="+line+"\n\n<!-- itos-review-request:v1 a "+head+" -->")
+				what := short(head)
+				if line == security {
+					what += " for security"
+				}
+				if said := "Asked a to review " + what + " on " + open7 + ": its review state is for another commit.\n"; !strings.Contains(stderr, said) {
+					t.Errorf("not said: %q\n%s", said, stderr)
+				}
+			}
 			calls := f.calls()
-			if !reflect.DeepEqual(comments(f), []string{body}) || strings.Count(stderr, "Asked ") != 1 || !strings.Contains(stderr, asked) ||
-				!reflect.DeepEqual(calls[:5], []string{list, ready, graphql(7), activity, body}) {
-				t.Errorf("the request: %v\n%s", calls, stderr)
+			if !reflect.DeepEqual(comments(f), bodies) || strings.Count(stderr, "Asked ") != len(bodies) ||
+				!reflect.DeepEqual(calls[:4+len(bodies)], append([]string{list, ready, graphql(7), activity}, bodies...)) {
+				t.Errorf("the requests: %v\n%s", calls, stderr)
 			}
 		})
 	}
 }
 
-// The new head's request is posted at the look that reads the old state even
+// The new head's requests are posted at the look that reads the old state even
 // when that look is past ci.watch.timeout (the pull request was marked ready
 // long ago), then the wait ends review-timeout.
 func TestPushReadyAsksForTheHeadBeforeJudgingTheTimeout(t *testing.T) {
@@ -546,13 +571,14 @@ func TestPushReadyAsksForTheHeadBeforeJudgingTheTimeout(t *testing.T) {
 		return answerAt(nil, []string{codexFor("a", "completed", otherSHA, "completed", otherSHA)}, c.ago(200))
 	})
 	code, stdout, _, _ := call(t, f, "--json", "--ready")
-	if r := reported(t, stdout); code != temporary || r.Outcome != "review-timeout" || len(comments(f)) != 1 || p.asks != 1 || len(c.slept) != 0 {
+	if r := reported(t, stdout); code != temporary || r.Outcome != "review-timeout" || len(comments(f)) != 2 || p.asks != 1 || len(c.slept) != 0 {
 		t.Errorf("exit %d, %d comments, %d asks, slept %v\n%s", code, len(comments(f)), p.asks, c.slept, stdout)
 	}
 }
 
 // Once asked for the head, a review that then reads running for it is stalled
-// when it has read so review_stall seconds after the request, as usual.
+// when it has read so review_stall seconds after the code review's request, as
+// usual, with no further request.
 func TestPushReadyStallsAfterTheRequestForTheHead(t *testing.T) {
 	f, p, _ := askingFor(t, ", review_stall: 30", func(ask int, _ *clock, head string, _ bool) string {
 		if ask < 4 {
@@ -561,8 +587,31 @@ func TestPushReadyStallsAfterTheRequestForTheHead(t *testing.T) {
 		return answerOf([]string{node("b", "")}, []string{codexFor("a", "running", head, "completed", head)})
 	})
 	code, stdout, _, _ := call(t, f, "--json", "--ready")
-	if r := reported(t, stdout); code != temporary || r.Outcome != "review-stalled" || len(comments(f)) != 1 || p.asks != 4 {
+	if r := reported(t, stdout); code != temporary || r.Outcome != "review-stalled" || len(comments(f)) != 2 || p.asks != 4 {
 		t.Errorf("exit %d, %d comments, %d asks\n%s", code, len(comments(f)), p.asks, stdout)
+	}
+}
+
+// A security request this --ready posted is not the stall's: the code review,
+// then read running for the head, is asked for at review_stall from when it first
+// read so, and stalls review_stall seconds after that request, not after the
+// security one. The looks are 10 seconds apart: the security request at the
+// first, the code review's at the fourth, the stall at the seventh.
+func TestPushReadyStallsAfterItsOwnSecurityRequest(t *testing.T) {
+	f, p, _ := askingFor(t, ", review_stall: 30", func(_ int, _ *clock, head string, commented bool) string {
+		if !commented {
+			return answerOf([]string{node("b", "")}, []string{codexFor("a", "running", head, "completed", otherSHA)})
+		}
+		return answerOf([]string{node("b", "")}, []string{codexFor("a", "running", head, "running", head)})
+	})
+	code, stdout, stderr, _ := call(t, f, "--json", "--ready")
+	head := f.head(t)
+	want := []string{
+		"pr comment slice-9 --repo owner/name --body=@codex security review\n\n<!-- itos-review-request:v1 a " + head + " -->",
+		"pr comment slice-9 --repo owner/name --body=@codex review\n\n<!-- itos-review-request:v1 a " + head + " -->",
+	}
+	if r := reported(t, stdout); code != temporary || r.Outcome != "review-stalled" || !reflect.DeepEqual(comments(f), want) || p.asks != 8 {
+		t.Errorf("exit %d, %s, %d asks, %q\n%s%s", code, r.Outcome, p.asks, comments(f), stdout, stderr)
 	}
 }
 
@@ -583,7 +632,7 @@ func pagedAnswer(reviews, comments []string, next string) string {
 // a page that has no next stops it, and so does one whose next has no cursor,
 // and so, at the 20th, does one that always has.
 func TestPushReadyReadsEveryPageOfComments(t *testing.T) {
-	stateFor := codexFor("a", "completed", otherSHA, "completed", otherSHA)
+	stateFor := codexFor("a", "completed", otherSHA, "completed", "@head")
 	f, p, _ := askingFor(t, "", func(int, *clock, string, bool) string { return "" })
 	p.graph = func(ask int) string {
 		if ask%2 == 1 {
