@@ -17358,3 +17358,16 @@ items:
       during --ready's wait ended it exit 3, pull-request-failed, naming a fix to make, where a CI
       API failure exits 75 and the wait could go on to its next look. Running --ready again was all
       it needed.
+
+  - id: p2-queue-twice-at-push
+    title: A clean merge can land a queue holding one id twice, and no gate reads it at push
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      slice-222's drafter, 2026-11-04: the same id queued at neighbouring places by two sides merges
+      cleanly as x a x b, so no conflict and no keep-both runs, and nothing reads work-queue-twice
+      on the way to the remote. Also, queueIssues refuses only unknown or twice: a done item in the
+      queue is no queue problem, so an id a merge brings back stays unnoticed.
