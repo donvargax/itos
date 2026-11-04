@@ -9,6 +9,12 @@
 // (itos-cc, the features, CI's other steps) runs. A provider's refusal, and a provider that cannot
 // run, must still fail the run.
 //
+// Both nightly commands run through tools/bin/nightly-survivors (T-341, q-107), so where a nightly
+// provider reports, the fake shell runs that program for real, by go run as the step does, around
+// a fake provider: survivors alone pass the plan with a warning for each, and any other rule fails
+// it, an uncovered line beside a survivor among them. A push's code proof does not run through it:
+// a survivor still fails a push.
+//
 // The changed-sites step's base is read by tools/bin/nightly-base, which the fake shell never
 // runs, so the step as the plan dispatches it is also run by a real sh, with a fake gh first on
 // the PATH and the mutation provider replaced by a fake that logs its arguments (this binary
@@ -21,8 +27,10 @@ package budget
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"slices"
@@ -46,12 +54,28 @@ const (
 	envGh = "CI_MUTATION_FAKE_GH"
 	// envProvider makes this binary a fake itos-cc that logs its arguments to the file it names.
 	envProvider = "CI_MUTATION_FAKE_PROVIDER"
+	// envReport makes this binary a fake itos-cc that prints this report and exits 1.
+	envReport = "CI_MUTATION_FAKE_REPORT"
 )
+
+const survivor = `{"rule":"mutation.survived","message":"a mutant of ci.Run survived","fix":"test it"}`
+
+// reports are the reports a nightly provider prints, by CI_MUTATION_FAIL's value.
+var reports = map[string]string{
+	"survivor":  `{"schema":1,"ok":false,"problems":[` + survivor + `]}`,
+	"flaky":     `{"schema":1,"ok":false,"problems":[{"rule":"mutation.flaky","message":"a flaky mutant"}]}`,
+	"uncovered": `{"schema":1,"ok":false,"problems":[` + survivor + `,{"rule":"mutation.uncovered","message":"an uncovered line"}]}`,
+}
 
 // TestMain is the fake shell when the driver starts this binary as one: it answers every
 // command with exit 0, except a mutation command while CI_MUTATION_FAIL is set: "refuse" prints
-// itos-cc's refusal of a survivor and exits 1, a number exits with it.
+// itos-cc's refusal of a survivor and exits 1, a number exits with it, and the name of a report
+// runs tools/bin/nightly-survivors around a fake provider that prints it.
 func TestMain(m *testing.M) {
+	if report := os.Getenv(envReport); report != "" {
+		os.Stdout.WriteString(report)
+		os.Exit(1)
+	}
 	if mode := os.Getenv(envGh); mode != "" && filepath.Base(os.Args[0]) == "gh" {
 		fakeGh(mode)
 	}
@@ -81,10 +105,35 @@ func TestMain(m *testing.M) {
 			os.Stdout.WriteString(`{"schema":1,"ok":false,"problems":[{"rule":"mutation.survived","message":"a mutant of ci.Run survived","fix":"test it"}]}`)
 			os.Exit(1)
 		}
+		if report, ok := reports[fail]; ok {
+			os.Exit(wrapper(report))
+		}
 		code, _ := strconv.Atoi(fail)
 		os.Exit(code)
 	}
 	os.Exit(0)
+}
+
+// wrapper runs the nightly's wrapper as its steps do around a fake provider printing report, and
+// gives its exit code.
+func wrapper(report string) int {
+	self, err := os.Executable()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return 9
+	}
+	cmd := exec.Command("go", "run", "./tools/bin/nightly-survivors", "--", self)
+	cmd.Env = append(os.Environ(), envReport+"="+report)
+	cmd.Stdout, cmd.Stderr = os.Stdout, os.Stderr
+	if err := cmd.Run(); err != nil {
+		var exit *exec.ExitError
+		if errors.As(err, &exit) {
+			return exit.ExitCode()
+		}
+		fmt.Fprintln(os.Stderr, err)
+		return 9
+	}
+	return 0
 }
 
 // fakeGh answers gh run list --json databaseId,headSha,createdAt as mode says, and exits.
@@ -162,8 +211,9 @@ func TestSelftest(t *testing.T) {
 
 	// One run of tools/bin/itos with the fake shell: its exit code, its answer and every
 	// itos-cc mutation command the plan dispatched, the plan's budget; dispatched is every command
-	// it dispatched, in order.
+	// it dispatched, in order, and logged what it wrote on stderr.
 	var dispatched []string
+	var logged string
 	invocation := func(t *testing.T, fail string, args ...string) (int, answer, []string) {
 		t.Helper()
 		if err := os.WriteFile(log, nil, 0o644); err != nil {
@@ -174,6 +224,7 @@ func TestSelftest(t *testing.T) {
 		if r.Code < 0 {
 			t.Fatalf("tools/bin/itos could not start:\n%s", r.Output())
 		}
+		logged = r.Stderr
 		var a answer
 		if err := json.Unmarshal([]byte(r.Stdout), &a); err != nil {
 			t.Fatalf("itos %s said no JSON: %v\n%s", strings.Join(args, " "), err, r.Output())
@@ -208,10 +259,10 @@ func TestSelftest(t *testing.T) {
 	from := git("", "rev-parse", "HEAD")
 
 	expectedPush := "tools/bin/pinned itos-cc mutation run --count 1 --since " + from + " --seed " + from + " --fail-uncovered=lines --json cmd internal"
-	const expectedNightly = `tools/bin/pinned itos-cc mutation run --count 20 --seed "${GITHUB_RUN_ID:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}" --json cmd internal`
+	const expectedNightly = `go run ./tools/bin/nightly-survivors -- tools/bin/pinned itos-cc mutation run --count 20 --seed "${GITHUB_RUN_ID:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}" --json cmd internal`
 	// The changed sites' floor: T-191's head, which judged the slices refactor's last batch (T-280).
 	const floor = "a9de53f62e7b6755a91f47d2780bdc2a827b94e4"
-	const expectedChanged = `base=$(go run ./tools/bin/nightly-base -floor ` + floor + `) && tools/bin/pinned itos-cc mutation run --since "$base" --count 60 --seed "${GITHUB_RUN_ID:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}" --fail-uncovered=lines --json cmd internal`
+	const expectedChanged = `base=$(go run ./tools/bin/nightly-base -floor ` + floor + `) && go run ./tools/bin/nightly-survivors -- tools/bin/pinned itos-cc mutation run --since "$base" --count 60 --seed "${GITHUB_RUN_ID:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}" --fail-uncovered=lines --json cmd internal`
 
 	// A push: one fresh mutant of the range's changed Go functions, drawn by the range's start
 	// (T-159), strict coverage of its changed lines (q-57), cmd and internal, and no other
@@ -367,7 +418,8 @@ func TestSelftest(t *testing.T) {
 		}
 	})
 
-	// A provider's refusal fails the push at the code proof, its problem kept.
+	// A provider's refusal fails the push at the code proof, its problem kept: a survivor still
+	// fails a push.
 	t.Run("a refusing provider blocks a push", func(t *testing.T) {
 		code, a, _ := invocation(t, "refuse", "ci", "run", from, to, "--json")
 		if code != 1 || a.OK || a.FailedAt.Step != expectedPush || len(a.FailedAt.Problems) == 0 || a.FailedAt.Problems[0].Rule != "mutation.survived" {
@@ -384,20 +436,51 @@ func TestSelftest(t *testing.T) {
 		}
 	})
 
-	// And the nightly's steps fail the night: the twenty first, the changed sites' alone.
+	// And the nightly's steps fail the night on any rule but survived alone: the twenty first, the
+	// changed sites' alone.
 	t.Run("a failing provider blocks the nightly", func(t *testing.T) {
-		code, a, _ := invocation(t, "1", "ci", "run", "--nightly", "--json")
+		code, a, _ := invocation(t, "flaky", "ci", "run", "--nightly", "--json")
 		if code != 1 || a.FailedAt.Step != expectedNightly || a.FailedAt.Code != 1 {
-			t.Errorf("a failing nightly provider did not block: exit %d, %+v", code, a)
+			t.Errorf("a failing nightly provider did not block: exit %d, %+v\n%s", code, a, logged)
 		}
 	})
 
 	t.Run("a failing provider of the changed sites blocks the nightly", func(t *testing.T) {
 		failOnly = "--since"
 		defer func() { failOnly = "" }()
-		code, a, _ := invocation(t, "1", "ci", "run", "--nightly", "--json")
+		code, a, _ := invocation(t, "flaky", "ci", "run", "--nightly", "--json")
 		if code != 1 || a.FailedAt.Step != expectedChanged || a.FailedAt.Code != 1 {
-			t.Errorf("a failing changed-sites provider did not block: exit %d, %+v", code, a)
+			t.Errorf("a failing changed-sites provider did not block: exit %d, %+v\n%s", code, a, logged)
+		}
+	})
+
+	t.Run("an uncovered line beside a survivor blocks the nightly", func(t *testing.T) {
+		failOnly = "--since"
+		defer func() { failOnly = "" }()
+		code, a, _ := invocation(t, "uncovered", "ci", "run", "--nightly", "--json")
+		if code != 1 || a.FailedAt.Step != expectedChanged || a.FailedAt.Code != 1 {
+			t.Errorf("an uncovered line beside a survivor did not block: exit %d, %+v\n%s", code, a, logged)
+		}
+		if strings.Contains(logged, "::warning::") {
+			t.Errorf("the failing step annotated its survivor:\n%s", logged)
+		}
+	})
+
+	// A survivor alone in both steps passes the plan, a warning for each on the run's page and the
+	// report still in its log (q-107).
+	t.Run("a survivor alone passes the nightly", func(t *testing.T) {
+		code, a, mutations := invocation(t, "survivor", "ci", "run", "--nightly", "--json")
+		if code != 0 || !a.OK {
+			t.Errorf("survivors alone did not pass the plan: exit %d, %+v\n%s", code, a, logged)
+		}
+		if !slices.Equal(mutations, []string{expectedNightly, expectedChanged}) {
+			t.Errorf("the plan did not run both mutation commands:\n%s", strings.Join(mutations, "\n"))
+		}
+		if n := strings.Count(logged, "::warning::a mutant of ci.Run survived\n"); n != 2 {
+			t.Errorf("%d warnings, not one a step's survivor:\n%s", n, logged)
+		}
+		if n := strings.Count(logged, reports["survivor"]); n != 2 {
+			t.Errorf("%d reports in the log, not one a step's:\n%s", n, logged)
 		}
 	})
 }

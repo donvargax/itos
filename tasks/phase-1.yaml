@@ -5255,6 +5255,3 @@
     which is intended; -floor stays. nightly-report is unchanged: it reads failed steps, and the
     survivors stay in the run's annotations and log. A comment beside the steps in itos.yaml names
     q-107 and that this goes after v9. A ci commit, gates only.
-  done_when:
-    - run: go test -count=1 ./tools/bin/nightly-survivors
-    - run: test "$(grep -c 'nightly-survivors -- tools/bin/pinned itos-cc mutation run' itos.yaml)" = 2

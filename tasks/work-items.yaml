@@ -57,7 +57,6 @@ phases:
   3: donvargax
 
 queue:
-  - T-341
   - p1-v9-design-from-friction
   - p1-ci-slow-linux-runs
   - slice-153
@@ -16903,7 +16902,7 @@ items:
     phase: 2
     owner: null
     status: todo
-    depends_on: []
+    depends_on: [slice-217]
     kind: slice
     why: >
       Was p2-ready-review-never-started.
@@ -16960,8 +16959,8 @@ items:
   - id: slice-217
     title: itos push --ready asks Codex for the code review alone on a new head, then waits for both reviews
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: slice
     why: >
@@ -16974,14 +16973,15 @@ items:
       finish. It should post "@codex security review" too when security_review's commit is not the
       head, as itos review request does.
 
-  - id: p1-attempt-drafter-task-spec
+  - id: slice-219
     title: "itos attempt submit takes a task's drafter result: its spec is the ledger entry's checks, not a scenario"
     phase: 1
     owner: null
     status: todo
     depends_on: []
-    kind: idea
+    kind: slice
     why: >
+      Was p1-attempt-drafter-task-spec.
       A loop over another of the person's projects (2026-11-04): itos next routed a task (T-3, a ci
       task) through spec-proposed to the drafter, who rightly wrote the task's done_when checks in
       its ledger entry; attempt submit then refused it, attempt-spec-missing (no scenario tagged
@@ -16990,27 +16990,29 @@ items:
       scenarios. The loop went on (next reads the draft pull request as spec-review), but the
       journal holds no drafter record.
 
-  - id: p1-brief-task-role
+  - id: slice-220
     title: itos brief gives a task's drafter and implementer the task's own steps, not scenario instructions
     phase: 1
     owner: null
     status: todo
     depends_on: []
-    kind: idea
+    kind: slice
     why: >
+      Was p1-brief-task-role.
       An implementer in a loop over another of the person's projects (2026-11-04) reported that itos
       brief for a task (T-4, a build task whose spec is its done_when checks) emitted the scenario
       workflow (red-first, @wip tags) and unfilled coordinator placeholders. Same root as
       p1-attempt-drafter-task-spec: the brief and submit treat every item as scenario work.
 
-  - id: p1-brief-spec-commit-type
+  - id: slice-221
     title: itos brief's drafter step names the commit type the config lets a spec's scenarios take, not docs
     phase: 1
     owner: null
     status: todo
     depends_on: []
-    kind: idea
+    kind: slice
     why: >
+      Was p1-brief-spec-commit-type.
       A drafter in a loop over another of the person's projects (2026-11-04) stopped on its first
       slice: the drafter brief says to commit the @wip scenarios as a docs commit, but that
       project's commits.scopes.docs allows only **/*.md, docs/** and tasks/**, so itos commit
@@ -17145,8 +17147,8 @@ items:
   - id: T-341
     title: A mutation survivor no longer fails the nightly (q-107), until after v9
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: done
     depends_on: []
     kind: task
 
@@ -17163,3 +17165,55 @@ items:
       went nowhere. A loop then has no route from a second reviewer to the drafter's brief. Either
       take a further body at the same verdict, or have itos brief read other comments addressed to
       the item.
+
+  - id: p2-next-reviewer-stuck
+    title: itos next reports a reviewer that stopped a landing, so a driver does not rerun --ready on it
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      slice-218's review, 2026-11-04: after review-not-started or review-stalled, itos next stays
+      handed-back with the action itos push --ready. A rerun posts nothing and exits 75 at its first
+      look, so a driver spins on reads until someone looks. next reads the forge and the journal,
+      not --ready's outcomes; a state of its own would come from the same facts. Related: bug-160's
+      One forge operation per step.
+
+  - id: p3-ready-state-says-asked
+    title: --ready's first waiting line says a login was not asked when it was
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      T-341, 2026-11-04: every --ready starts with 'chatgpt-codex-connector not asked' even when it
+      was asked and answered; only the initial state, but it misled an implementer into doubting the
+      request.
+
+  - id: p2-ready-timeout-from-request
+    title: ci.watch.timeout runs from a head's latest request, not from marking ready
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      T-341, 2026-11-04: a swallowed review request used up the 1800 seconds counted from ready, so
+      while the review really was running --ready returned 75 at once, 'no review after 1800
+      seconds', with no way to wait through its last minutes. Slice-218 ends the swallowed case
+      sooner, not this one.
+
+  - id: p3-review-request-spacing
+    title: itos review request spaces Codex's two requests, one of which was swallowed when posted 4 seconds apart
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      T-341, 2026-11-04: @codex review and @codex security review went out 4 seconds apart; Codex
+      never started the security review, its state null for 28 minutes, until one more request. Seen
+      across several pull requests. Whether spacing helps is unproven: try it first, as slice-218
+      only recovers from it after the fact.
