@@ -17292,3 +17292,16 @@ items:
       docs/** and tasks/**, so no type can carry a spec, and itos commit --item, which every brief
       names, is itself a usage error there. So a fresh repository's drafter is told to stop. A fresh
       repository should be able to commit a spec.
+
+  - id: p3-survivor-matcher-annotation
+    title: A survivor on a green nightly also shows a red annotation from the Go problem matcher
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Nightly 41877123893, 2026-11-04, the first green since q-107: each survivor is one ::warning
+      from nightly-survivors, and .github/actions/go-toolchain/go-matcher.json also matches the
+      report's message line as a failure annotation. The run stays green; only the page misleads.
+      Narrow the matcher, or leave it until survivors are revisited after v9.
