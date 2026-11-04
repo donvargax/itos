@@ -17577,3 +17577,16 @@ items:
       asked, so code completed and security running past review_stall posts @codex review for a
       finished review. Bug-164 left the no-request path as it was. Reachable where Codex reviews on
       ready_for_review with no request; read from the code, not seen in a run.
+
+  - id: p3-ready-first-line-not-asked
+    title: --ready's first waiting line says a login is not asked when its requests are on the pull request
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      On bug-164's --ready every run opened with 'run waiting, chatgpt-codex-connector not asked'
+      though both requests for the head were posted, and it stayed so through a 540 second wait on
+      the run, as the reviews are read only after the run. An agent reading it would ask again. Say
+      nothing of a login until the reviews are read, or read them for this line.
