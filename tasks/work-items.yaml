@@ -17022,3 +17022,20 @@ items:
       it is needed, not its size). Without them the loop drifted into small follow-ups and ran one
       item at a time. Each answered in a JSON schema and the loop ran the itos commands; the
       coordinator should own these steps and their schemas.
+
+  - id: p2-architecture-as-hypothesis
+    title: A project can name an arc42 document as the loop's design, with deviations recorded as decisions
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The person, 2026-11-04: an unattended loop builds better from a detailed plan, and an arc42
+      document fits its steps (goals and quality goals as the charter, the building-block view as
+      breakdown's input, runtime views as scenarios, decisions for deviations, quality requirements
+      as gates). At that level some details will be wrong, so the document is a hypothesis: an agent
+      that departs from a section records a decision naming the section and updates it in the same
+      pull request, spec review refuses a departure without one, and triage files drift as its own
+      kind of idea. itos could name the document in its config, put it in briefs, and check the
+      decision-with-update rule.
