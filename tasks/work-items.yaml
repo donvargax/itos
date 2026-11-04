@@ -17258,6 +17258,8 @@ items:
       (slice-220's drafter, 2026-11-04). A flag to include @wip for named scenarios ends the
       routine.
 
+      bug-163's drafter, 2026-11-04: the same again.
+
   - id: p3-one-item-kind
     title: next's kindOf and brief's itemKind are two definitions of an item's kind
     phase: 3
@@ -17467,3 +17469,24 @@ items:
       slice-219, 2026-11-04: CI takes longer than the 540 s ready_wait, so exit 75 is the normal
       first result of --ready; an agent reads it as a stop. Say so, or wait on, or count the wait
       from the run's start.
+
+  - id: p3-tests-run-wip-placeholder
+    title: x
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      x
+
+  - id: p3-spec-carries-fixture
+    title: A spec commit cannot carry a recorded fixture, though a fix's brief asks for one with the spec
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      bug-163's drafter, 2026-11-04: itos commit check-paths refuses testdata in a docs commit, so
+      the real vendor bodies a spec rests on wait in its description for the implementer.
