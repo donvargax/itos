@@ -574,7 +574,7 @@ func btoi(b bool) int {
 }
 
 // A thread whose isResolved is false refuses the merge, exit 1, and is named
-// by where it is and the first line of its first comment, in GitHub's order;
+// by where it is and its first comment's summary, in GitHub's order;
 // one with no line is an outdated one; a resolved thread is not named, nor
 // is a second line.
 func TestPushReadyRefusesUnresolvedReviewThreads(t *testing.T) {
@@ -589,7 +589,7 @@ func TestPushReadyRefusesUnresolvedReviewThreads(t *testing.T) {
 	}
 	code, stdout, stderr, _ := call(t, f, "--ready")
 	want := "itos push: auto-merge is not turned on: " + open7 + " has unresolved review threads:\n" +
-		"  widget.md:3 Rename this.\n  old.md Outdated one.\n  bare.md:2\n" +
+		"  widget.md:3 Rename this.\n  old.md Outdated one.\n  bare.md:2 (no text)\n" +
 		"Address each (fix it and push, or reply on the pull request), resolve it, then itos push --ready again.\n" +
 		"itos push threads lists them with their ids, and itos push thread <id> --reply <text> --resolve answers one.\n"
 	if code != policy || stderr != want || !strings.HasPrefix(stdout, "Pushed ") || strings.Contains(strings.Join(f.calls(), "\n"), "pr merge") {

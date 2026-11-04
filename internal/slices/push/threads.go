@@ -4,8 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"regexp"
+	"slices"
 	"strconv"
 	"strings"
+	"unicode"
 )
 
 // The gh api graphql mutations that answer a review thread, and the two
@@ -32,14 +35,15 @@ type PullRef struct {
 }
 
 // ThreadInfo is one of --json's threads: an open review thread, its place (no
-// line when outdated), its first comment's author and that comment's first
-// line.
+// line when outdated), its first comment's author, that comment's summary
+// (commentSummary) and the comment whole as GitHub gives it.
 type ThreadInfo struct {
 	ID      string `json:"id"`
 	Path    string `json:"path"`
 	Line    int    `json:"line,omitempty"`
 	Author  string `json:"author"`
 	Comment string `json:"comment"`
+	Body    string `json:"body"`
 }
 
 // ThreadResult is --json's thread of push thread answering a thread: whether
@@ -102,18 +106,55 @@ func (t threadNode) line() int {
 }
 
 // open is the thread as push threads lists it: its first comment's author, ""
-// when GitHub no longer has it, and the first line of that comment.
+// when GitHub no longer has it, and that comment, whole and as its summary.
 func (t threadNode) open() openThread {
-	o := openThread{id: t.ID, path: t.Path, line: t.line()}
+	o := openThread{id: t.ID, path: t.Path, line: t.line(), summary: commentSummary("")}
 	if len(t.Comments.Nodes) > 0 {
 		c := t.Comments.Nodes[0]
-		first, _, _ := strings.Cut(c.Body, "\n")
-		o.first = strings.TrimSpace(first)
+		o.body, o.summary = c.Body, commentSummary(c.Body)
 		if c.Author != nil {
 			o.author = c.Author.Login
 		}
 	}
 	return o
+}
+
+var (
+	htmlComment = regexp.MustCompile(`(?s)<!--.*?-->`)
+	image       = regexp.MustCompile(`(?:<sub>)*!\[[^\]\n]*\]\([^)\n]*\)(?:</sub>)*`)
+	heading     = regexp.MustCompile(`^#{1,6} `)
+)
+
+// commentSummary is what push threads, its --json and --ready's refusal call a
+// review comment (bug 165): its first real line, a line holding a letter or a
+// digit once its HTML comments and Markdown images are dropped, trimmed; or
+// "(no text)" with none. A heading is followed by ": " and the next real line,
+// since a vendor's finding may have its title on either, unless every real line
+// is a heading, when the first stands alone.
+func commentSummary(body string) string {
+	text := image.ReplaceAllString(htmlComment.ReplaceAllString(body, ""), "")
+	var lines []string
+	for line := range strings.Lines(text) {
+		if strings.IndexFunc(line, func(c rune) bool { return unicode.IsLetter(c) || unicode.IsDigit(c) }) >= 0 {
+			lines = append(lines, strings.TrimSpace(line))
+		}
+	}
+	if len(lines) == 0 {
+		return "(no text)"
+	}
+	if !heading.MatchString(lines[0]) || !slices.ContainsFunc(lines, func(line string) bool { return !heading.MatchString(line) }) {
+		return lines[0]
+	}
+	return lines[0] + ": " + lines[1]
+}
+
+// indented is the text's lines, each after the indent, a \r\n read as a \n.
+func indented(text, indent string) []string {
+	var lines []string
+	for line := range strings.SplitSeq(strings.ReplaceAll(text, "\r\n", "\n"), "\n") {
+		lines = append(lines, indent+line)
+	}
+	return lines
 }
 
 // place is a thread's path, and :line after it when it has a line.
@@ -311,16 +352,16 @@ func (r pushRun) showThread(node nodeThread) Answer {
 		}
 		view.Comments = append(view.Comments, CommentView{Author: author, Body: c.Body})
 		lines = append(lines, author+":")
-		for _, line := range strings.Split(strings.ReplaceAll(c.Body, "\r\n", "\n"), "\n") {
-			lines = append(lines, "  "+line)
-		}
+		lines = append(lines, indented(c.Body, "  ")...)
 	}
 	a := r.report(0, "thread-shown", lines...)
 	a.Pull, a.Thread = &pull, view
 	return a
 }
 
-// listThreads is push threads' end: the open threads, one line each.
+// listThreads is push threads' end: the open threads, each a line with its
+// comment's summary and the comment whole beneath, unless it is empty or says
+// no more than that line.
 func (r pushRun) listThreads(pull *PullRef, unresolved []openThread) Answer {
 	threads := []ThreadInfo{}
 	lines := []string{pull.URL + " has no unresolved review threads."}
@@ -328,8 +369,11 @@ func (r pushRun) listThreads(pull *PullRef, unresolved []openThread) Answer {
 		lines = []string{fmt.Sprintf("%s has %d unresolved review threads:", pull.URL, len(unresolved))}
 	}
 	for _, t := range unresolved {
-		threads = append(threads, ThreadInfo{ID: t.id, Path: t.path, Line: t.line, Author: t.author, Comment: t.first})
-		lines = append(lines, fmt.Sprintf("  %s %s %s: %s", t.id, place(t.path, t.line), t.author, t.first))
+		threads = append(threads, ThreadInfo{ID: t.id, Path: t.path, Line: t.line, Author: t.author, Comment: t.summary, Body: t.body})
+		lines = append(lines, fmt.Sprintf("  %s %s %s: %s", t.id, place(t.path, t.line), t.author, t.summary))
+		if whole := strings.TrimSpace(t.body); whole != "" && whole != t.summary {
+			lines = append(lines, indented(t.body, "    ")...)
+		}
 	}
 	a := r.report(0, "threads-listed", lines...)
 	a.Pull, a.Threads = pull, threads

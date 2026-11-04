@@ -212,7 +212,7 @@ asked nothing);
 exit 75 when one is missing, and at once, outcome
 review-refused, when a login's only reviews are refusals; refuses, exit 1, a
 pull request with an unresolved review thread, naming each by its file, line and
-the first line of its first comment; and only then merges: gh pr merge --auto
+its first comment's summary (below); and only then merges: gh pr merge --auto
 --rebase --match-head-commit <the head judged>, or, when GitHub refuses
 auto-merge as "is in clean status", the pull request being mergeable already,
 one gh pr merge --rebase --match-head-commit, and it says whether the pull
@@ -259,9 +259,15 @@ pr with push.pr.draft true and from main, before anything is fetched or
 pushed, and takes no --tag or --ref.
 
 itos push threads, from an item's branch under push.mode pr, lists the review
-threads of its open pull request that are not resolved, in GitHub's order, one
-line each: the thread's node id, its file and line, the login of its first
-comment's author and the first line of that comment; with none open it says
+threads of its open pull request that are not resolved, in GitHub's order, each
+a line: the thread's node id, its file and line, the login of its first
+comment's author and that comment's summary; and beneath that line the comment
+whole as GitHub gives it, indented by four spaces, unless it is empty or, trimmed,
+equals the summary. A comment's summary is its first line holding a letter or a
+digit, trimmed, its HTML comments and Markdown images (with the <sub> tags directly
+around them) dropped; a Markdown heading is followed by ": " and the next such
+line, unless all are headings, when the first stands alone; with no such line it
+is "(no text)". With none open it says
 so, exit 0. With --pr <n> it lists those of the repository's pull request n
 instead, from any branch or a detached HEAD, asking no gh pr list: the same
 question gives the pull request's address. itos push thread <id> with neither
@@ -343,7 +349,9 @@ read from git's message; git's own exit code is never itos's.
         the latest request;
         push threads gives {"schema":1,"ok","outcome","pull_request"?,"threads"?},
         pull_request {"url","number"}, threads a list of {"id","path","line"?,
-        "author","comment"} (line left out for an outdated thread, [] for none),
+        "author","comment","body"} (comment the summary, body the comment whole
+        as GitHub gives it, "" for no comment, line left out for an outdated
+        thread, [] for none),
         outcome threads-listed; push thread gives {"schema":1,"ok","outcome",
         "pull_request"?,"thread"?}, thread {"id","replied","resolved"} and
         outcome thread-answered after an answer, thread {"id","path","line"?,
