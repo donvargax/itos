@@ -17443,3 +17443,15 @@ items:
       no-progress stop. Security findings are in effect invisible through the command agents are
       told to use. Expected: the comment's text, with HTML comments dropped, whole or at least to
       its first real line; --json carrying the whole body.
+
+  - id: p3-ready-wait-under-ci
+    title: push.pr.ready_wait is shorter than a normal CI run, so a green path needs two --ready calls
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      slice-219, 2026-11-04: CI takes longer than the 540 s ready_wait, so exit 75 is the normal
+      first result of --ready; an agent reads it as a stop. Say so, or wait on, or count the wait
+      from the run's start.
