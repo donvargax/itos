@@ -17146,7 +17146,7 @@ items:
     title: A mutation survivor no longer fails the nightly (q-107), until after v9
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
 
