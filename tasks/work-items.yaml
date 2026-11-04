@@ -17145,8 +17145,8 @@ items:
   - id: T-341
     title: A mutation survivor no longer fails the nightly (q-107), until after v9
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
 
