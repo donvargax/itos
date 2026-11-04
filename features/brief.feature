@@ -204,6 +204,7 @@ Feature: itos brief, the filled brief an agent starts from and its request
     And its output says "The spec is the task's ledger entry: its why and its done_when checks, each able to fail before the work. There are no scenarios to write and no IDs to mint."
     And its output says "No command edits a ledger entry, and `itos task add` mints another task: write this one's by hand in its group's ledger file."
     And its output says "Every settled decision goes into the entry's why"
+    And its output says "Commit with `itos commit --item T-001`: the header `docs: specify T-001, <short rule>`, the body the problem, the rule and how each check fails today."
     And its output says "each check and how it fails before the work"
     And its output says "<settled decisions, filled by the coordinator>"
     And its output says "<the item's own questions, filled by the coordinator>"
