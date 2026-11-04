@@ -23,9 +23,10 @@ own brief lines, the "## What a brief adds here" section of the file
 guide.orchestrating names (docs/ORCHESTRATING.md by default), follow as
 written. What a person must add stays a marked placeholder: the settled
 decisions, the neighbouring scenarios and checks, the item's own questions.
-The implementer's template is itos guide brief's; the drafter's and the
-reviewer's ship beside it. Everything is read from HEAD's tree, the config
-included, never the working tree or the index; with --at <rev>, from the
+For a slice or a bug, the implementer's template is itos guide brief's and the
+drafter's and the reviewer's ship beside it; a task's text for each role is its
+own, the item's kind as next reads it choosing. Everything is read from HEAD's
+tree, the config included, never the working tree or the index; with --at <rev>, from the
 tree of the commit git resolves rev to instead (the registry, the tagged
 scenarios, the ledger, the reads' blobs and the notes), so a driver on main
 briefs an implementer at the item's branch with --at origin/<id>. It reads,

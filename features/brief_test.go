@@ -21,6 +21,7 @@ import (
 
 func initializeBriefSteps(sc *godog.ScenarioContext, w *world) {
 	sc.Step(`^its output says "([^"]*)", the repository's folder name and top filled in$`, w.outputSaysWithTop)
+	sc.Step(`^its output does not say "([^"]*)" outside "([^"]*)"$`, w.outputDoesNotSayOutside)
 	sc.Step(`^stdout is saved as "([^"]*)"$`, w.saveStdout)
 	sc.Step(`^the JSON's "([^"]*)" is saved as "([^"]*)"$`, w.saveJSONValue)
 	sc.Step(`^its JSON's "([^"]*)" matches the one saved as "([^"]*)"$`, w.jsonValueMatchesSaved)
@@ -44,6 +45,16 @@ func (w *world) outputSaysWithTop(text string) error {
 	top = strings.TrimSpace(top)
 	filled := strings.NewReplacer("<folder>", path.Base(top), "<top>", top).Replace(text)
 	return w.outputSays(filled)
+}
+
+// The output, the excepted text taken out, says the word in no case of it, so
+// "Scenarios" is found as "scenario" is.
+func (w *world) outputDoesNotSayOutside(word, excepted string) error {
+	rest := strings.ReplaceAll(w.output(), excepted, "")
+	if strings.Contains(strings.ToLower(rest), strings.ToLower(word)) {
+		return fmt.Errorf("the output says %q outside %q\n%s", word, excepted, w.report())
+	}
+	return nil
 }
 
 // saved is what the brief steps keep under a name: stdout, or one JSON
