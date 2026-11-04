@@ -42,9 +42,10 @@ func askedBy(author, login, head string) string {
 	return node(author, "@codex review\n\n<!-- itos-review-request:v1 "+login+" "+head+" -->")
 }
 
-// askedForSecurity is the same, for the security review.
+// askedForSecurity is the comment the security review's request is read from: the
+// marker alone.
 func askedForSecurity(author, login, head string) string {
-	return node(author, "@codex security review\n\n<!-- itos-review-request:v1 "+login+" "+head+" -->")
+	return node(author, "<!-- itos-review-request:v1 "+login+" "+head+" -->")
 }
 
 // waitingLines are the lines of the output that say what --ready waits on,
@@ -390,11 +391,12 @@ func TestPushReadyAsksOnceMoreThenStops(t *testing.T) {
 	})
 	code, stdout, stderr, _ := call(t, f, "--json", "--ready")
 	head := f.head(t)
-	body := "pr comment slice-9 --repo owner/name --body=@codex security review\n\n<!-- itos-review-request:v1 a " + head + " -->"
+	line := "pr comment slice-9 --repo owner/name --body=@codex security review"
+	mark := "pr comment slice-9 --repo owner/name --body=<!-- itos-review-request:v1 a " + head + " -->"
 	stop := "itos: the security review by a of " + head + " on " + open7 + " has not started 30 seconds (push.pr.review_stall) after the request " +
 		", so auto-merge is not turned on; look at the reviewer, then itos push --ready again.\n"
 	if r := reported(t, stdout); code != temporary || r.Outcome != "review-not-started" || p.asks != 7 || len(c.slept) != 6 ||
-		!reflect.DeepEqual(comments(f), []string{body}) || !strings.HasSuffix(stderr, stop) {
+		!reflect.DeepEqual(comments(f), []string{line, mark}) || !strings.HasSuffix(stderr, stop) {
 		t.Errorf("exit %d, %s, asks %d, %q\n%s%s", code, r.Outcome, p.asks, comments(f), stdout, stderr)
 	}
 }
@@ -423,7 +425,7 @@ func TestPushReadyNotStartedCases(t *testing.T) {
 				state = codexFor("a", "completed", "@head", "running", "@head")
 			}
 			return answerOf([]string{node("b", "")}, []string{askedBy("someone", "a", head), askedForSecurity("someone", "a", head), state})
-		}, "review-not-started", 1, 10},
+		}, "review-not-started", 2, 10},
 	} {
 		t.Run(name, func(t *testing.T) {
 			f, p, _ := stalling(t, "review_stall: 30", c.answer)
@@ -455,7 +457,7 @@ func TestPushReadyNotStartedPastTheTimeout(t *testing.T) {
 	f, p, c := stalling(t, "review_stall: 30", nil)
 	p.graph = func(int) string {
 		sha := f.head(t)
-		request := "@codex security review\n\n<!-- itos-review-request:v1 a " + sha + " -->"
+		request := "<!-- itos-review-request:v1 a " + sha + " -->"
 		return answerAt([]string{node("b", "")}, []string{
 			timedNode("someone", request, c.ago(190), c.ago(190)),
 			timedNode("someone", request, c.ago(150), c.ago(150)),
@@ -482,13 +484,44 @@ func TestPushReadyWhereTheSecondRequestFails(t *testing.T) {
 	}
 }
 
+// The marker's comment failing is the request not made, the line staying posted and
+// no address given.
+func TestPushReadyWhereTheSecurityMarkerFails(t *testing.T) {
+	for name, c := range map[string]struct {
+		answer func(head string) []string
+		asks   int
+	}{
+		"the first request":  {func(string) []string { return []string{notStartedBy("a")} }, 1},
+		"the second request": {func(head string) []string { return []string{askedForSecurity("someone", "a", head), notStartedBy("a")} }, 4},
+	} {
+		t.Run(name, func(t *testing.T) {
+			f, p, _ := stalling(t, "review_stall: 30", func(_ int, _ bool, head string) string {
+				return answerOf([]string{node("b", "")}, c.answer(head))
+			})
+			p.failBody = "--body=<!--"
+			code, stdout, stderr, _ := call(t, f, "--json", "--ready")
+			head := f.head(t)
+			want := []string{
+				"pr comment slice-9 --repo owner/name --body=@codex security review",
+				"pr comment slice-9 --repo owner/name --body=<!-- itos-review-request:v1 a " + head + " -->",
+			}
+			if r := reported(t, stdout); code != missing || r.Outcome != "pull-request-failed" || p.asks != c.asks ||
+				!reflect.DeepEqual(comments(f), want) || strings.Contains(stderr, "Asked ") ||
+				!strings.Contains(stderr, "gh pr comment failed: HTTP 502") || strings.Contains(strings.Join(f.calls(), "\n"), "pr merge") {
+				t.Errorf("exit %d, %s, asks %d, %q\n%s%s", code, r.Outcome, p.asks, comments(f), stdout, stderr)
+			}
+		})
+	}
+}
+
 // A request posted counts until GitHub lists it, and then once, known by its
 // address; one with no address cannot be known, and counts beside those listed.
 func TestRequestsCountAPostedRequestOnce(t *testing.T) {
 	const head = "0123456789abcdef0123456789abcdef01234567"
 	req := reviewers.CodexSecurity("a")
 	listedAt, postedAt := time.Unix(1_000, 0), time.Unix(1_001, 0)
-	listed := []providers.Authored{{Body: req.Body(head), URL: "u1", Created: listedAt}}
+	mark := req.Bodies(head)[1]
+	listed := []providers.Authored{{Body: mark, URL: "u1", Created: listedAt}}
 	for name, c := range map[string]struct {
 		comments []providers.Authored
 		posted   []requestMade
@@ -497,7 +530,7 @@ func TestRequestsCountAPostedRequestOnce(t *testing.T) {
 		"not listed yet":    {nil, []requestMade{{"u1", postedAt}}, []requestMade{{"u1", postedAt}}},
 		"listed":            {listed, []requestMade{{"u1", postedAt}}, []requestMade{{"u1", listedAt}}},
 		"another's listed":  {listed, []requestMade{{"u2", postedAt}}, []requestMade{{"u1", listedAt}, {"u2", postedAt}}},
-		"no address":        {[]providers.Authored{{Body: req.Body(head)}}, []requestMade{{"", postedAt}}, []requestMade{{"", time.Time{}}, {"", postedAt}}},
+		"no address":        {[]providers.Authored{{Body: mark}}, []requestMade{{"", postedAt}}, []requestMade{{"", time.Time{}}, {"", postedAt}}},
 		"two with one name": {nil, []requestMade{{"u1", listedAt}, {"u1", postedAt}}, []requestMade{{"u1", listedAt}, {"u1", postedAt}}},
 	} {
 		rv := newReviewing(1)

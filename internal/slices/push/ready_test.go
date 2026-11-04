@@ -32,6 +32,7 @@ type pulls struct {
 	threads       []string // review threads, as GraphQL's JSON nodes
 	graph         func(ask int) string
 	fail          map[string]error
+	failBody      string // a pr comment whose body has it fails
 	asks, viewed  int
 	current       func() string
 	view          string // the answer to a pr view that asks for the pull request's state, "{}" without
@@ -53,6 +54,9 @@ func (p *pulls) gh(args []string) (string, error) {
 	command := strings.Join(args[:2], " ")
 	if err := p.fail[command]; err != nil {
 		return "", err
+	}
+	if command == "pr comment" && p.failBody != "" && strings.Contains(strings.Join(args, " "), p.failBody) {
+		return "", refused("HTTP 502")
 	}
 	switch command {
 	case "pr list":

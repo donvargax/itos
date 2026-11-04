@@ -31,9 +31,38 @@ func initializeReviewRequestSteps(sc *godog.ScenarioContext, w *world) {
 			if err != nil {
 				return err
 			}
-			then := secondsAgo(seconds)
-			return w.ghAddNode(w.ghComments(), map[string]any{"author": map[string]any{"login": author}, "body": requestBody(line, login, sha),
-				"url": address, "createdAt": then, "updatedAt": then})
+			comments := requestComments(line, login, sha)
+			last := len(comments) - 1
+			for _, body := range comments[:last] {
+				if err := w.ghAddNode(w.ghComments(), authored(author, body)); err != nil {
+					return err
+				}
+			}
+			return w.ghAddTimedComment(author, comments[last], seconds, address)
+		})
+	sc.Step(`^the recording gh answers that the pull request has a comment by "([^"]*)" holding the old marked request "([^"]*)" of "([^"]*)" at the clone's HEAD$`,
+		func(author, line, login string) error {
+			sha, err := w.head()
+			if err != nil {
+				return err
+			}
+			return w.ghAddNode(w.ghComments(), authored(author, requestBody(line, login, sha)))
+		})
+	sc.Step(`^the recording gh answers that the pull request has a comment by "([^"]*)" holding the old marked request "([^"]*)" of "([^"]*)" at the clone's HEAD, posted (\d+) seconds ago, at "([^"]*)"$`,
+		func(author, line, login string, seconds int, address string) error {
+			sha, err := w.head()
+			if err != nil {
+				return err
+			}
+			return w.ghAddTimedComment(author, requestBody(line, login, sha), seconds, address)
+		})
+	sc.Step(`^the recording gh answers that the pull request has a comment by "([^"]*)" holding the request marker alone of "([^"]*)" at the clone's HEAD, posted (\d+) seconds ago, at "([^"]*)"$`,
+		func(author, login string, seconds int, address string) error {
+			sha, err := w.head()
+			if err != nil {
+				return err
+			}
+			return w.ghAddTimedComment(author, requestMarker(login, sha), seconds, address)
 		})
 	sc.Step(`^the recording gh's pr comment prints "([^"]*)" and the call's number$`, func(address string) error {
 		return w.ghWrite(w.ghCommentPrints(), []byte(address))
@@ -51,21 +80,66 @@ func initializeReviewRequestSteps(sc *godog.ScenarioContext, w *world) {
 		})
 	sc.Step(`^the recording gh answers that the pull request has a review by "([^"]*)" of the commit "([^"]*)" whose body is "([^"]*)"$`,
 		w.ghAnswersReviewOf)
+	sc.Step(`^the recording gh's "pr comment" calls for "([^"]*)" are the comments of "([^"]*)" of "([^"]*)" at the head of the remote's branch "([^"]*)"$`,
+		func(target, line, login, branch string) error {
+			sha, err := w.remoteBranchHead(branch)
+			if err != nil {
+				return err
+			}
+			var want []string
+			for _, body := range requestComments(line, login, sha) {
+				want = append(want, "pr comment "+target+" --repo owner/scratch --body="+strings.ReplaceAll(body, "\n", `\n`))
+			}
+			return w.ghCallsMatch("pr comment", want)
+		})
 	sc.Step(`^the recording gh's "([^"]*)" calls are these lines, in order, @HEAD:([^@]*)@ the full SHA of the head of the remote's branch "([^"]*)":$`,
 		w.ghCallsAre)
 }
 
-// The recording gh's api graphql answers that the pull request has a comment
-// by the author requesting the line of the login at the commit: the line, an
-// empty line, then itos's request marker for the login and the commit.
+// The recording gh's api graphql answers that the pull request has the comments
+// by the author requesting the line of the login at the commit, as itos writes them.
 func (w *world) ghAnswersRequest(author, line, login, sha string) error {
-	return w.ghAddNode(w.ghComments(), map[string]any{"author": map[string]any{"login": author}, "body": requestBody(line, login, sha)})
+	for _, body := range requestComments(line, login, sha) {
+		if err := w.ghAddNode(w.ghComments(), authored(author, body)); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
-// requestBody is a request as itos writes it: the line, an empty line, then its
+// requestComments are the comments of a request as itos writes them: one, the line,
+// an empty line and its request marker for the login and the commit; or for Codex's
+// security line two, the line alone and then the marker alone.
+func requestComments(line, login, sha string) []string {
+	if line == "@codex security review" {
+		return []string{line, requestMarker(login, sha)}
+	}
+	return []string{requestBody(line, login, sha)}
+}
+
+// authored is a comment by the author.
+func authored(author, body string) map[string]any {
+	return map[string]any{"author": map[string]any{"login": author}, "body": body}
+}
+
+// requestBody is a request of one comment: the line, an empty line, then itos's
 // request marker for the login and the commit.
 func requestBody(line, login, sha string) string {
-	return line + "\n\n<!-- itos-review-request:v1 " + login + " " + sha + " -->"
+	return line + "\n\n" + requestMarker(login, sha)
+}
+
+// requestMarker is itos's request marker for the login and the commit.
+func requestMarker(login, sha string) string {
+	return "<!-- itos-review-request:v1 " + login + " " + sha + " -->"
+}
+
+// ghAddTimedComment adds a comment by the author, posted that many seconds ago
+// at the address.
+func (w *world) ghAddTimedComment(author, body string, seconds int, address string) error {
+	then := secondsAgo(seconds)
+	node := authored(author, body)
+	node["url"], node["createdAt"], node["updatedAt"] = address, then, then
+	return w.ghAddNode(w.ghComments(), node)
 }
 
 // The recording gh's files of slice 218: the address pr comment prints before
@@ -86,15 +160,20 @@ func (w *world) ghAnswersReviewOf(login, sha, body string) error {
 // branch has now, a line end inside a call written as the two characters \n,
 // as dispatch.sh records it.
 func (w *world) ghCallsAre(command, headBranch, branch string, lines *godog.DocString) error {
-	calls, err := w.ghCallLines()
-	if err != nil {
-		return err
-	}
 	sha, err := w.remoteBranchHead(branch)
 	if err != nil {
 		return err
 	}
-	want := strings.Split(strings.ReplaceAll(strings.ReplaceAll(lines.Content, "\r\n", "\n"), headOf(headBranch), sha), "\n")
+	return w.ghCallsMatch(command, strings.Split(strings.ReplaceAll(strings.ReplaceAll(lines.Content, "\r\n", "\n"), headOf(headBranch), sha), "\n"))
+}
+
+// ghCallsMatch is whether every call of the recording gh that starts with the words
+// of the command is, in order, one of the lines wanted, and there are as many.
+func (w *world) ghCallsMatch(command string, want []string) error {
+	calls, err := w.ghCallLines()
+	if err != nil {
+		return err
+	}
 	var got []string
 	for _, call := range calls {
 		if strings.HasPrefix(call, command+" ") || call == command {

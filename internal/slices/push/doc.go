@@ -365,8 +365,11 @@
 // for once per head (askForHead, slice 217) at the look that reads it, whether or
 // not review_stall is set, since Codex here reviews on ready_for_review alone:
 // each alone, whatever the other's commit or status, by the request itos review
-// request posts and reads (reviewers.Missing), so the code review and the security
-// review each have their line above one marker. A login with no such comment
+// request posts and reads (reviewers.Missing, reviewers.Request.Bodies), so the code
+// review's is its line above one marker and the security review's the line alone and
+// then the marker alone, the marker's comment being the request whose address it
+// keeps; a gh pr comment failing leaves the line posted and the request unmade. A
+// login with no such comment
 // is asked nothing. With
 // push.pr.review_stall above 0, stalled posts one gh pr
 // comment for a login with a review under way on the head (its commit the head,

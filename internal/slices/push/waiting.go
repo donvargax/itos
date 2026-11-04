@@ -145,14 +145,17 @@ func latest(made []requestMade) requestMade {
 	return last
 }
 
-// postRequest posts the request for the head, as one gh pr comment, and keeps the
-// address gh prints.
+// postRequest posts the request's comments for the head, in order, and keeps the
+// address gh prints for the last, the one the request is read from.
 func (r *pushRun) postRequest(ctx context.Context, repository string, rv *reviewing, req reviewers.Request, head string) (string, Answer, bool) {
-	printed, a, failed := r.gh(ctx, "pr", "comment", r.branch, "--repo", repository, "--body="+req.Body(head))
-	if failed {
-		return "", a, true
+	var address string
+	for _, body := range req.Bodies(head) {
+		printed, a, failed := r.gh(ctx, "pr", "comment", r.branch, "--repo", repository, "--body="+body)
+		if failed {
+			return "", a, true
+		}
+		address = strings.TrimSpace(printed)
 	}
-	address := strings.TrimSpace(printed)
 	rv.asked[req] = append(rv.asked[req], requestMade{address, now()})
 	return address, Answer{}, false
 }

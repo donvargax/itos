@@ -206,7 +206,9 @@ comment, that comment with both reviews completed and both of the head judged
 (a review of the state whose commit is not the head, or that names none, is
 waited on and asked for once per head, each alone: "@codex review" for the code
 review, "@codex security review" for the security review, the comments itos
-review request posts and reads; a login with no such comment is asked nothing);
+review request posts and reads, the security review's two, the line alone and then
+the marker alone, the marker's being the request; a login with no such comment is
+asked nothing);
 exit 75 when one is missing, and at once, outcome
 review-refused, when a login's only reviews are refusals; refuses, exit 1, a
 pull request with an unresolved review thread, naming each by its file, line and
@@ -243,7 +245,8 @@ and has not started review_stall seconds after the latest such request (its
 status null, or no commit, or another commit whatever its status) is asked once
 more, and with two requests, counted from the pull request across --ready runs,
 ends --ready: exit 75, outcome review-not-started, auto-merge not turned on,
-naming the login, the review, the head and the request. review_stall must exceed
+naming the login, the review, the head and the request (for the security review,
+the address of its marker's comment). review_stall must exceed
 the reviewer's queue plus its review. --ready
 --no-wait stops once the pull request is ready, with no run, review or
 auto-merge, since auto-merge unwatched would merge before the review; itos
