@@ -17494,3 +17494,15 @@ items:
       then reads no run. The fix may be for RunOf to prefer a run with a job not skipped among the
       head's, and for the merge push to wait before marking ready, or for the concurrency group not
       to let a draft's run cancel.
+
+  - id: p3-changes-footer-packed
+    title: commit --changes is not packed onto lines as --scenarios is, so a long list fails after the tests ran
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      bug-163, 2026-11-04: previous-release's advice of one --changes flag fails on the
+      100-character limit after the hooks' tests have run, and 21 IDs had to be split by hand into
+      repeated flags.
