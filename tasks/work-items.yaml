@@ -17442,6 +17442,8 @@ items:
       told to use. Expected: the comment's text, with HTML comments dropped, whole or at least to
       its first real line; --json carrying the whole body.
 
+      slice-220, 2026-11-04: --ready's refusal prints the same marker line alone.
+
   - id: p3-ready-wait-under-ci
     title: push.pr.ready_wait is shorter than a normal CI run, so a green path needs two --ready calls
     phase: 3
