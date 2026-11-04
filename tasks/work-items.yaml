@@ -17328,3 +17328,20 @@ items:
       projects resolves these by hand. This lands the keep-both resolution alone: p1-registry-merge
       and its file-per-item or merge-driver design wait on p1-typed-items.
     tags: [work, v8]
+
+  - id: p2-stall-clock-older-than-the-review
+    title: --ready's stall reads a review that just started as stalled, its clock an older request
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Seen on the slice-218 PR, 2026-11-04, push.pr.review_stall 1200: requests at 18:26, the code
+      review done by 18:28, the security review null; --ready's second security request at 18:46
+      made Codex's state read the code review running, and the same look's stall counted from the
+      code review's 20-minute-old request, so --ready stopped review-stalled seconds after the
+      review started, and stops so again at each rerun until it completes. A security review running
+      after a late start reads the same way. No wrong merge; a stop that says stalled about a review
+      seconds old. The clock could take the later of the request and when the state first read
+      running, which slice 200's scenarios would have to allow.
