@@ -31,9 +31,31 @@ func initializeReviewRequestSteps(sc *godog.ScenarioContext, w *world) {
 			if err != nil {
 				return err
 			}
-			then := secondsAgo(seconds)
-			return w.ghAddNode(w.ghComments(), map[string]any{"author": map[string]any{"login": author}, "body": requestBody(line, login, sha),
-				"url": address, "createdAt": then, "updatedAt": then})
+			return w.ghAddTimedComment(author, requestBody(line, login, sha), seconds, address)
+		})
+	sc.Step(`^the recording gh answers that the pull request has a comment by "([^"]*)" holding the old marked request "([^"]*)" of "([^"]*)" at the clone's HEAD$`,
+		func(author, line, login string) error {
+			sha, err := w.head()
+			if err != nil {
+				return err
+			}
+			return w.ghAddNode(w.ghComments(), map[string]any{"author": map[string]any{"login": author}, "body": requestBody(line, login, sha)})
+		})
+	sc.Step(`^the recording gh answers that the pull request has a comment by "([^"]*)" holding the old marked request "([^"]*)" of "([^"]*)" at the clone's HEAD, posted (\d+) seconds ago, at "([^"]*)"$`,
+		func(author, line, login string, seconds int, address string) error {
+			sha, err := w.head()
+			if err != nil {
+				return err
+			}
+			return w.ghAddTimedComment(author, requestBody(line, login, sha), seconds, address)
+		})
+	sc.Step(`^the recording gh answers that the pull request has a comment by "([^"]*)" holding the request marker alone of "([^"]*)" at the clone's HEAD, posted (\d+) seconds ago, at "([^"]*)"$`,
+		func(author, login string, seconds int, address string) error {
+			sha, err := w.head()
+			if err != nil {
+				return err
+			}
+			return w.ghAddTimedComment(author, requestMarker(login, sha), seconds, address)
 		})
 	sc.Step(`^the recording gh's pr comment prints "([^"]*)" and the call's number$`, func(address string) error {
 		return w.ghWrite(w.ghCommentPrints(), []byte(address))
@@ -65,7 +87,20 @@ func (w *world) ghAnswersRequest(author, line, login, sha string) error {
 // requestBody is a request as itos writes it: the line, an empty line, then its
 // request marker for the login and the commit.
 func requestBody(line, login, sha string) string {
-	return line + "\n\n<!-- itos-review-request:v1 " + login + " " + sha + " -->"
+	return line + "\n\n" + requestMarker(login, sha)
+}
+
+// requestMarker is itos's request marker for the login and the commit.
+func requestMarker(login, sha string) string {
+	return "<!-- itos-review-request:v1 " + login + " " + sha + " -->"
+}
+
+// ghAddTimedComment adds a comment by the author, posted that many seconds ago
+// at the address.
+func (w *world) ghAddTimedComment(author, body string, seconds int, address string) error {
+	then := secondsAgo(seconds)
+	return w.ghAddNode(w.ghComments(), map[string]any{"author": map[string]any{"login": author}, "body": body,
+		"url": address, "createdAt": then, "updatedAt": then})
 }
 
 // The recording gh's files of slice 218: the address pr comment prints before
