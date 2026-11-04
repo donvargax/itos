@@ -24,11 +24,14 @@ func reviewersOver(t *testing.T, status string, answers map[string][]string, lin
 	return p
 }
 
-// requestOf is a comment asking Codex for the line at the head, with itos's
-// marker.
+// requestOf is the comment read as asking Codex for the line at the head, with
+// itos's marker: under the line, or alone for its security review.
 func requestOf(line, head string) string {
-	text, _ := json.Marshal(map[string]any{"author": map[string]any{"login": "ana"},
-		"body": line + "\n\n<!-- itos-review-request:v1 chatgpt-codex-connector " + head + " -->"})
+	body := "<!-- itos-review-request:v1 chatgpt-codex-connector " + head + " -->"
+	if line != "@codex security review" {
+		body = line + "\n\n" + body
+	}
+	text, _ := json.Marshal(map[string]any{"author": map[string]any{"login": "ana"}, "body": body})
 	return string(text)
 }
 

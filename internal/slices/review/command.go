@@ -97,7 +97,9 @@ marker
 the login as the config writes it. The kinds, each an adapter in itos:
 
   codex   posts "@codex review" (the code review), then "@codex security
-          review" (the security review). Its own review of the head is its
+          review" (the security review), that request two comments, the line
+          alone and then the marker alone, since Codex runs the line as a code
+          review when the marker is in its comment. Its own review of the head is its
           review-state comment ("<!-- codex-review-state:v1 {...} -->", the
           last the login wrote): the code review counts for the first request
           when its commit_sha is the head, the security review for the second
@@ -108,8 +110,9 @@ the login as the config writes it. The kinds, each an adapter in itos:
 
 A request is on the head when a comment by anyone has the request line as its
 first line and the marker naming the login (a "[bot]" suffix ignored) and the
-head; a mention without the marker, or a marker for another login or head,
-counts for nothing. A request on the head, or answered by the reviewer's own
+head, or, for Codex's security request, is that marker alone; a mention without
+the marker, a marker for another login or head, or the security line in the
+marker's comment, which never started the review, counts for nothing. A request on the head, or answered by the reviewer's own
 review of it, is not posted again, so run again it posts only what is still
 missing. It says "Asked <login> at <7 characters> on <address>: <the request
 line>." for each request posted (outcome requested), or "Every reviewer of
@@ -128,7 +131,8 @@ whom itos push --ready waits for, never whom to ask), each before gh is asked;
 review-no-pull-request; review-stale. Exit 3, review-pull-request-failed: a gh
 that is missing or fails, naming the call and gh's words; the first gh pr
 comment that fails stops the command, the requests before it posted and none
-after it tried. Exit 2: request with no item or two, a malformed --expect, or
+after it tried, a security request whose marker failed leaving its line posted
+and asked anew when run again. Exit 2: request with no item or two, a malformed --expect, or
 any other flag. It fetches, rebases and pushes nothing, and posts no GitHub
 review and no comment through gh api.
 

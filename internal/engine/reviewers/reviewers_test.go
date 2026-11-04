@@ -16,6 +16,8 @@ import (
 const (
 	head242      = "08d8cad5329599664cd89a3cdd238892f4cc3c53"
 	head243      = "64da3fbcb1112982c1ca27e3406b6a0f103ac596"
+	head260      = "43eb6d6513b16b1a999d2f0821bd1d3ebabb87b9"
+	head263      = "adb2892e5b33555027dd30fa93f1cb052e8a5997"
 	older        = "0123456789abcdef0123456789abcdef01234567"
 	codexLogin   = "chatgpt-codex-connector"
 	bugbotLogin  = "cursor[bot]"
@@ -46,12 +48,22 @@ func lines(requests []Request) []string {
 	return got
 }
 
-// A request is the line, an empty line and the marker naming the login as
-// written and the head; each kind posts its lines in its order.
-func TestRequestBodyAndLines(t *testing.T) {
-	r := Request{Login: bugbotLogin, Kind: "bugbot", Line: "@cursor review"}
-	if got, want := r.Body(head243), "@cursor review\n\n<!-- itos-review-request:v1 cursor[bot] "+head243+" -->"; got != want {
-		t.Errorf("Body = %q, want %q", got, want)
+// A request is one comment, the line, an empty line and the marker naming the login
+// as written and the head, but for Codex's security request, which is two, the line
+// alone and then the marker alone; each kind posts its lines in its order.
+func TestRequestBodiesAndLines(t *testing.T) {
+	mark := func(login string) string { return "<!-- itos-review-request:v1 " + login + " " + head243 + " -->" }
+	for _, c := range []struct {
+		r    Request
+		want []string
+	}{
+		{Request{Login: bugbotLogin, Kind: "bugbot", Line: "@cursor review"}, []string{"@cursor review\n\n" + mark(bugbotLogin)}},
+		{CodexReview(codexLogin), []string{"@codex review\n\n" + mark(codexLogin)}},
+		{CodexSecurity(codexLogin), []string{"@codex security review", mark(codexLogin)}},
+	} {
+		if got := c.r.Bodies(head243); !reflect.DeepEqual(got, c.want) {
+			t.Errorf("Bodies of %s = %q, want %q", c.r.Line, got, c.want)
+		}
 	}
 	for kind, want := range map[string][]string{
 		"codex":   {"@codex review", "@codex security review"},

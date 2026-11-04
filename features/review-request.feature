@@ -31,7 +31,8 @@ Feature: itos review request asks each configured reviewer for the pull request'
   The kinds. A request is a pull request comment of two paragraphs: the
   kind's request line, an empty line, and itos's request marker "<!--
   itos-review-request:v1 <login> <the head's full SHA> -->" (the marker
-  askForHead posts; login as the config writes it). codex asks twice per
+  askForHead posts; login as the config writes it), but for Codex's security
+  request, the line alone and then the marker alone (bug-163). codex asks twice per
   head, in this order: the line "@codex review" (the code review), then the
   line "@codex security review" (the security review, which with automatic
   review off "@codex review" no longer starts, PR 242). bugbot asks once:
@@ -40,7 +41,8 @@ Feature: itos review request asks each configured reviewer for the pull request'
   cursor[bot] is the author GitHub's GraphQL names cursor, and the marker's
   login is the config's. A request is on the head when a comment by anyone
   has that request line as its first line and the marker line naming the
-  reviewer's login and the head's full SHA; a request line with no marker,
+  reviewer's login and the head's full SHA, or for Codex's security request is
+  that marker alone; a request line with no marker,
   or a marker for another head or another login, counts for nothing. The
   reviewer's own review of the head counts as its request, each request
   judged alone: for codex, the code review when the login's review-state
@@ -219,6 +221,9 @@ Feature: itos review request asks each configured reviewer for the pull request'
   gives two comments by the author, the line alone and then the marker alone, the
   time and address of a timed one on the marker's, so the scenarios that say a
   security request is on the pull request keep their words and mean the new form.
+  New in the fix's commit: "the recording gh's "pr comment" calls for <target> are
+  the comments of <line> of <login> at the head of the remote's branch <branch>",
+  for an outline whose rows ask for either review.
 
   Background:
     Given a repository whose ledger has the task "T-001"
@@ -226,7 +231,8 @@ Feature: itos review request asks each configured reviewer for the pull request'
 
   # The slice's point: a ready pull request nobody asked about gets three
   # comments, Codex's two requests then Bugbot's, each its request line
-  # and the marker, through gh pr comment with the pull request's number;
+  # and the marker, Codex's security request in two comments (bug-163), through
+  # gh pr comment with the pull request's number;
   # nothing else is posted, nothing pushed. Fails before the work at the
   # exit code: today review request is a usage error, exit 2.
   @ID-REVREQ-01 @slice-215
@@ -260,7 +266,8 @@ Feature: itos review request asks each configured reviewer for the pull request'
     And the recording gh's "pr comment" calls are these lines, in order, @HEAD:slice-9@ the full SHA of the head of the remote's branch "slice-9":
       """
       pr comment 7 --repo owner/scratch --body=@codex review\n\n<!-- itos-review-request:v1 chatgpt-codex-connector @HEAD:slice-9@ -->
-      pr comment 7 --repo owner/scratch --body=@codex security review\n\n<!-- itos-review-request:v1 chatgpt-codex-connector @HEAD:slice-9@ -->
+      pr comment 7 --repo owner/scratch --body=@codex security review
+      pr comment 7 --repo owner/scratch --body=<!-- itos-review-request:v1 chatgpt-codex-connector @HEAD:slice-9@ -->
       pr comment 7 --repo owner/scratch --body=@cursor review\n\n<!-- itos-review-request:v1 cursor[bot] @HEAD:slice-9@ -->
       """
     And the recording gh was never called as "api repos/owner/scratch/issues/7/comments"
@@ -313,7 +320,8 @@ Feature: itos review request asks each configured reviewer for the pull request'
     And its JSON's "posted" is [{"login": "chatgpt-codex-connector", "kind": "codex", "request": "@codex security review"}, {"login": "cursor[bot]", "kind": "bugbot", "request": "@cursor review"}]
     And the recording gh's "pr comment" calls are these lines, in order, @HEAD:slice-9@ the full SHA of the head of the remote's branch "slice-9":
       """
-      pr comment 7 --repo owner/scratch --body=@codex security review\n\n<!-- itos-review-request:v1 chatgpt-codex-connector @HEAD:slice-9@ -->
+      pr comment 7 --repo owner/scratch --body=@codex security review
+      pr comment 7 --repo owner/scratch --body=<!-- itos-review-request:v1 chatgpt-codex-connector @HEAD:slice-9@ -->
       pr comment 7 --repo owner/scratch --body=@cursor review\n\n<!-- itos-review-request:v1 cursor[bot] @HEAD:slice-9@ -->
       """
 
@@ -324,7 +332,7 @@ Feature: itos review request asks each configured reviewer for the pull request'
   # marker posts them again at the second run. The recording gh lists each
   # comment as GitHub does. Fails before the work at the pr comment lines: today
   # the security request is one comment, the line, an empty line and the marker.
-  @wip @ID-REVREQ-16 @bug-163
+  @ID-REVREQ-16 @bug-163
   Scenario: Under push.mode pr, review request posts Codex's security request as the line alone then the marker alone, and run again reads it as made
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -372,7 +380,7 @@ Feature: itos review request asks each configured reviewer for the pull request'
   # marker leaves this pull request reading as asked for a review that never
   # comes. Fails before the work at next's observed.unrequested: today the old
   # form reads as the request, so it is [].
-  @wip @ID-REVREQ-17 @bug-163
+  @ID-REVREQ-17 @bug-163
   Scenario: Under push.mode pr, the old marked security request on the head counts as no request, and review request asks in the form that works
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -484,7 +492,7 @@ Feature: itos review request asks each configured reviewer for the pull request'
     When itos runs "review request slice-9 --json" with --expect the revision saved as "second"
     Then itos exits with code 0
     And its JSON's "outcome" is "requested"
-    And the recording gh was called as "pr comment" 2 times
+    And the recording gh was called as "pr comment" 3 times
     And the recording gh's "pr comment" call has the full SHA of the head of the remote's branch "slice-9"
 
   # The second request fails: an environment failure, exit 3, naming the

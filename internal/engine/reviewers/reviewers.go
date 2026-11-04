@@ -20,10 +20,16 @@ type Request struct {
 	Line  string `json:"request"`
 }
 
-// Body is the comment that asks for the request at the head: the line, an
-// empty line, then the marker naming the login and the head.
-func (r Request) Body(head string) string {
-	return r.Line + "\n\n" + marker + r.Login + " " + head + " -->"
+// Bodies are the comments that ask for the request at the head, in the order
+// they are posted: the line, an empty line, then the marker naming the login and
+// the head; or, for Codex's security review, which it runs as a code review when
+// the marker is in the line's comment, the line alone, then the marker alone.
+func (r Request) Bodies(head string) []string {
+	mark := marker + r.Login + " " + head + " -->"
+	if r.Line == codexSecurity {
+		return []string{r.Line, mark}
+	}
+	return []string{r.Line + "\n\n" + mark}
 }
 
 // adapter is a kind: the lines it posts, in order, and whether the login's
@@ -87,19 +93,27 @@ func (r Request) Made(comments []providers.Authored, head string) []providers.Au
 	return made
 }
 
-// madeBy is whether the comment, by anyone, has the request's line as its first
-// line and a marker line naming its login and the head.
+// madeBy is whether the comment, by anyone, makes the request for the head: for
+// Codex's security review it is the marker alone, naming the login and the head;
+// for any other, it has the request's line as its first line and such a marker line.
 func (r Request) madeBy(c providers.Authored, head string) bool {
+	if r.Line == codexSecurity {
+		return r.named(c.Body, head)
+	}
 	lines := strings.Split(strings.ReplaceAll(c.Body, "\r\n", "\n"), "\n")
 	if strings.TrimSpace(lines[0]) != r.Line {
 		return false
 	}
-	return slices.ContainsFunc(lines[1:], func(l string) bool {
-		text, ok := strings.CutPrefix(strings.TrimSpace(l), marker)
-		text, closed := strings.CutSuffix(text, " -->")
-		who, sha, both := strings.Cut(text, " ")
-		return ok && closed && both && sameLogin(who, r.Login) && strings.EqualFold(sha, head)
-	})
+	return slices.ContainsFunc(lines[1:], func(l string) bool { return r.named(l, head) })
+}
+
+// named is whether the text, spaces and empty lines around it aside, is one marker
+// naming the request's login and the head.
+func (r Request) named(text, head string) bool {
+	text, ok := strings.CutPrefix(strings.TrimSpace(text), marker)
+	text, closed := strings.CutSuffix(text, " -->")
+	who, sha, both := strings.Cut(text, " ")
+	return ok && closed && both && sameLogin(who, r.Login) && strings.EqualFold(sha, head)
 }
 
 // sameLogin is whether two logins are equal once a trailing "[bot]" is
