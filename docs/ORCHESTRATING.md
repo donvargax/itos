@@ -104,10 +104,9 @@ role's template, so it speaks to you, the briefed agent:
   or an uncovered line needs a test. No by-hand push proof, `itos task`,
   golangci-lint or staticcheck: pre-push runs the linters, CI the rest; run a
   diagnostic only when it is the work. Finish as AGENTS.md's Finishing says:
-  push the draft as you work; reviews run only when asked (ADR-0061): Codex's
-  code review by `itos push --ready`, its security review and Cursor's
-  Bugbot by one `@codex security review` and one `@cursor review` comment
-  per head; fix each thread's cause, never the check, resolve it, and run
+  push the draft as you work; reviews run only when asked (ADR-0061): `itos review
+  request <item>` asks each configured reviewer for the head once, and
+  `itos push --ready` asks Codex for what a new head leaves behind; fix each thread's cause, never the check, resolve it, and run
   `itos push --ready` yourself. Never run `itos work done`:
   the coordinator closes the item on main after the merge (T-303, slice-179).
 - **What the push proof flags:** an error check after a call that already

@@ -360,17 +360,21 @@
 // asked until the first ask, then waiting, running (its review-state comment
 // with a review not completed) or completed (its verdict). The head is the one
 // whose run is watched, the head GitHub made when it rebased the pull request
-// included (watchRun, unwatchedHead). A login whose review-state comment is for
-// another commit than the head, none of its reviews of the head under way, is
-// asked once for the head (askForHead) at the look that reads it, whether or not
-// review_stall is set, since Codex here reviews on ready_for_review alone. With
+// included (watchRun, unwatchedHead). Each review in a login's review-state
+// comment whose commit is not the head, one with no commit included, is asked
+// for once per head (askForHead, slice 217) at the look that reads it, whether or
+// not review_stall is set, since Codex here reviews on ready_for_review alone:
+// each alone, whatever the other's commit or status, by the request itos review
+// request posts and reads (reviewers.Missing), so the code review and the security
+// review each have their line above one marker. A login with no such comment
+// is asked nothing. With
 // push.pr.review_stall above 0, stalled posts one gh pr
 // comment for a login whose review of the head has read running that many seconds,
 // from the last edit of its comment (GitHub's updatedAt) else the first look of
 // this --ready that read it so: "@codex review", an empty
 // line and "<!-- itos-review-request:v1 <login> <head> -->", once per head
-// ever (pullState.requested: any comment with that line for the login and the
-// head is an earlier request). A review still running review_stall seconds
+// ever (reviewers.Request.OnHead: any comment with that request for the login and
+// the head is an earlier one, and a security request is not that request). A review still running review_stall seconds
 // after the request, counted from the request comment's createdAt, from when
 // this --ready posted it until GitHub lists it, or from its first look that read
 // it running when an earlier request has no time, ends the wait: exit 75,
