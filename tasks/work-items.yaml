@@ -17495,6 +17495,10 @@ items:
       head's, and for the merge push to wait before marking ready, or for the concurrency group not
       to let a draft's run cancel.
 
+      bug-163, 2026-11-04: during the cancelled run the pull request read mergeStateStatus CLEAN,
+      which may mean skipped required checks count as passed: check. --ready did not merge then,
+      since it waits for the run. Same family as bug-160.
+
   - id: p3-changes-footer-packed
     title: commit --changes is not packed onto lines as --scenarios is, so a long list fails after the tests ran
     phase: 3
