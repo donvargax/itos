@@ -5169,6 +5169,10 @@ items:
       disk under /tmp without TMPDIR set, and commit-msg refused a merge commit without a type until
       its title was rewritten through GIT_EDITOR. Until the merge driver exists, work done could say
       how to finish such a pull (git merge --continue with a docs title).
+
+      slice-222 lands keep-both on itos push's merge of main, without waiting for typed items; what
+      stays here: rebase and pull paths, work done's git pull, and the design that stops the
+      conflict at its source.
     tags: [work, v9]
 
   - id: p1-refs-overlap
