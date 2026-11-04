@@ -204,7 +204,7 @@ Feature: itos brief, the filled brief an agent starts from and its request
     And its output says "The spec is the task's ledger entry: its why and its done_when checks, each able to fail before the work. There are no scenarios to write and no IDs to mint."
     And its output says "No command edits a ledger entry, and `itos task add` mints another task: write this one's by hand in its group's ledger file."
     And its output says "Every settled decision goes into the entry's why"
-    And its output says "Commit with `itos commit --item T-001`: the header `docs: specify T-001, <short rule>`, the body the problem, the rule and how each check fails today."
+    And its output says "the header `docs: specify T-001, <short rule>`, the body the problem, the rule and how each check fails today."
     And its output says "each check and how it fails before the work"
     And its output says "<settled decisions, filled by the coordinator>"
     And its output says "<the item's own questions, filled by the coordinator>"
@@ -296,6 +296,8 @@ Feature: itos brief, the filled brief an agent starts from and its request
   # internal/slices/brief, each role's brief of a slice and of a bug against
   # the text before this slice, which catches what no clause here does, such
   # as removing "start no agents" or "close the item with `itos work done`".
+  # slice-221 will run that golden under a config with a registry footer that
+  # lets docs touch the file.
   # The drafter's commit paragraph is left to slice-221, which changes it.
   @ID-BRIEF-25 @wip @slice-220 @guard
   Scenario Outline: A slice's and a bug's briefs keep the scenario workflow
