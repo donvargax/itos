@@ -166,9 +166,8 @@ Feature: Under push.mode pr, itos push threads lists an item's open review threa
   the same text unchanged, "" for no comment; push thread <id> and its --json
   do not change, and --json's body is whole even where nothing is printed
   beneath. itos push --help and doc.go say all this where they now say "first
-  line". So does features/push-mode-draft.feature:149's description of --ready's
-  refusal, "the first line of its first comment", which the fix commit changes,
-  this spec's commit keeping to its own file.
+  line", as does features/push-mode-draft.feature's description of --ready's
+  refusal.
 
   Unit tests, in threads_test.go. TestCommentSummary is a table of these rules
   and of bodies shaped as this repository's pull requests have Codex's security
@@ -232,11 +231,9 @@ Feature: Under push.mode pr, itos push threads lists an item's open review threa
     And the work registry has the item "slice-9" owned by "someone" with the status "doing"
 
   # The slice's point: the open threads, each with the id an answer names,
-  # its place, its author and its first comment's first line; a resolved
+  # its place, its author and its first comment's summary; a resolved
   # one is left out, and nothing is pushed. Fails before the work at the
-  # exit code: today push takes no argument, exit 2. Bug 165's fix changes it:
-  # its comment is now printed whole, so the step that says the list lacks "It
-  # clashes with the gadget." goes, and its Changes: footer names this scenario.
+  # exit code: today push takes no argument, exit 2.
   @ID-PUSHTHREAD-01 @slice-191
   Scenario: Under push.mode pr, push threads lists the open review threads of the branch's pull request with their ids, pushing nothing
     Given the config, committed and pushed to the remote's main, adds the YAML:
@@ -257,7 +254,6 @@ Feature: Under push.mode pr, itos push threads lists an item's open review threa
     And its output says "PRRT_1 widget.md:3 copilot-pull-request-reviewer: Rename this."
     And its output says "PRRT_3 widget.md:8 chatgpt-codex-connector: P1: this panics on an empty widget."
     And its output does not say "PRRT_2"
-    And its output does not say "It clashes with the gadget."
     And the recording gh's "pr list" call has "slice-9"
     And the recording gh's "api graphql" call has "number=7"
     And the recording gh's "api graphql" call does not have "mutation"
@@ -269,7 +265,7 @@ Feature: Under push.mode pr, itos push threads lists an item's open review threa
   # stands alone. The bold markers stay, with whatever spaces the badge left
   # inside them. Fails before the
   # work at the first "PRRT_1" output step: today its line ends in the marker.
-  @ID-PUSHTHREAD-26 @wip @bug-165
+  @ID-PUSHTHREAD-26 @bug-165
   Scenario: Under push.mode pr, push threads gives each open thread's first line of real text and, beneath it, its whole first comment
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -314,7 +310,7 @@ Feature: Under push.mode pr, itos push threads lists an item's open review threa
   # colon would look like a bug, and the marker stays beneath it, being all the
   # comment holds. Fails before the work at the "(no text)" step: today the line
   # ends in the marker.
-  @ID-PUSHTHREAD-27 @wip @bug-165
+  @ID-PUSHTHREAD-27 @bug-165
   Scenario: Under push.mode pr, push threads says a comment holding only a marker has no text
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -335,11 +331,9 @@ Feature: Under push.mode pr, itos push threads lists an item's open review threa
 
   # --json is what an agent reads: the ids to answer, exactly these fields.
   # Fails before the work at the exit code: today push takes no argument,
-  # exit 2. Bug 165's fix changes it: each thread gains "body", "Rename
-  # this.\nIt clashes with the gadget." here, and its Changes: footer names this
-  # scenario.
+  # exit 2.
   @ID-PUSHTHREAD-02 @slice-191
-  Scenario: Under push.mode pr, push threads --json gives each open thread's id, path, line, author and first comment line
+  Scenario: Under push.mode pr, push threads --json gives each open thread's id, path, line, author, comment summary and whole comment
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
       push:
@@ -354,12 +348,12 @@ Feature: Under push.mode pr, itos push threads lists an item's open review threa
     Then itos exits with code 0
     And its JSON's "outcome" is "threads-listed"
     And its JSON's "pull_request.url" is "https://github.example/o/r/pull/7"
-    And its JSON's "threads" is [{"id":"PRRT_1","path":"widget.md","line":3,"author":"copilot-pull-request-reviewer","comment":"Rename this."}]
+    And its JSON's "threads" is [{"id":"PRRT_1","path":"widget.md","line":3,"author":"copilot-pull-request-reviewer","comment":"Rename this.","body":"Rename this.\nIt clashes with the gadget."}]
 
   # An agent's whole finding through --json, the marker in it as GitHub gave it,
   # with the summary beside it. Fails before the work at the "threads" step:
   # today comment is the marker and there is no body.
-  @ID-PUSHTHREAD-28 @wip @bug-165
+  @ID-PUSHTHREAD-28 @bug-165
   Scenario: Under push.mode pr, push threads --json gives each thread's summary as its comment and the comment whole as its body
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -420,7 +414,7 @@ Feature: Under push.mode pr, itos push threads lists an item's open review threa
   # push threads --pr reads its threads by another path than the branch's (t.open,
   # not fromPullState), so the summary and the whole comment are pinned on it too.
   # Fails before the work at the summary step: today the line ends in the marker.
-  @ID-PUSHTHREAD-30 @wip @bug-165
+  @ID-PUSHTHREAD-30 @bug-165
   Scenario: Under push.mode pr, push threads --pr <n> gives a marker-first comment's first line of real text and, beneath it, the comment whole
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -789,7 +783,7 @@ Feature: Under push.mode pr, itos push threads lists an item's open review threa
   # --ready's refusal reads a thread's summary by the same function, and stays
   # one line each: it points at push threads for the rest. Fails before the work
   # at the first output step: today the refusal names the thread by its marker.
-  @ID-PUSHTHREAD-29 @wip @bug-165
+  @ID-PUSHTHREAD-29 @bug-165
   Scenario: Under push.pr.draft, push --ready's refusal names each unresolved review thread by its first line of real text
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
