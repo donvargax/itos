@@ -17284,3 +17284,16 @@ items:
       slice-219's review, 2026-11-04: done_when: [{nope: 1}] counts as one check in the read next
       and attempt share, though config check fails it and itos task exits 70; done_when: 'go vet' is
       refused. An unrunnable check is no spec. The fix goes in the shared read.
+
+  - id: p2-starter-item-footer
+    title: "itos init's starter config lets a spec be committed: an Item footer, or a docs scope holding features/"
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      slice-221's spec, 2026-11-04: the starter has no Item footer and its docs scope is **/*.md,
+      docs/** and tasks/**, so no type can carry a spec, and itos commit --item, which every brief
+      names, is itself a usage error there. So a fresh repository's drafter is told to stop. A fresh
+      repository should be able to commit a spec.
