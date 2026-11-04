@@ -739,3 +739,12 @@ tests:
 		}
 	}
 }
+
+// An indented line with no trailer above it continues nothing: it is passed
+// over, as a stealth note's first line can be (linked).
+func TestParseTrailersPassesOverAnIndentedFirstLine(t *testing.T) {
+	got := parseTrailers([]string{"  T-0", "Task: T-1"}, "#")
+	if want := []trailer{{"Task", "T-1"}}; !reflect.DeepEqual(got, want) {
+		t.Errorf("parseTrailers = %q, want %q", got, want)
+	}
+}
