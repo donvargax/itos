@@ -15911,6 +15911,10 @@ items:
       reviewed at 0554cd6, because the coordinator's registry pushes moved main each round and
       GitHub rebased the pull request, restarting CI and Codex. Under merge mode (slice-213/214) the
       same cycle holds unless --ready accepts a head whose only gap to main is registry bookkeeping.
+
+      #251 (2026-11-03): under a strict required check, every direct registry commit makes every
+      open pull request BEHIND, each then needing a rebase and a whole new CI run before auto-merge
+      fires.
     tags: [push, v9]
 
   - id: p2-gh-transient-exit-75
