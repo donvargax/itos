@@ -19,11 +19,15 @@
 // result the journal already accepted being already instead; then, for
 // outcome done, the claims, against git alone: the head the tip of the
 // item's branch on the remote, fetched first; a drafter's head holding the
-// item's scenarios, all @wip; an implementer's first-parent commits past
-// the base holding a test commit before the first feat or fix, and leaving
-// none of the item's scenarios @wip. The scenarios at a head are read under
-// the clone's config, as itos work done reads them at HEAD, and a commit's
-// type as the message rules read it (message.Type).
+// item's scenarios, all @wip, or, for a task, its ledger entry holding a
+// check; an implementer's first-parent commits past the base holding a test
+// commit before the first feat or fix, and leaving none of the item's
+// scenarios @wip. The scenarios and a task's checks at a head are read under
+// the clone's config, as itos work done reads them at HEAD, the checks by the
+// read itos next shares (ledger.ChecksOf), so what it cannot read is its
+// error; the kind is the clone's registry's (ledger.KindOf), never the head's,
+// so a head cannot relabel itself out of its spec; a commit's type is read as
+// the message rules read it (message.Type).
 //
 // The journal (journal.go) is <git common dir>/itos/attempts/<id>.jsonl, a
 // line per result taken in. Beyond it the command writes nothing; its only
