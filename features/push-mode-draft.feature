@@ -550,12 +550,22 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
 
   Stalled means what it meant: running review_stall seconds past that clock, asked
   again once, then review-stalled, as the schema's words for review_stall have it.
-  Past the clock with the one request older than the start, --ready posts slice
-  190's "@codex review" and says so, and stops review_stall after that request.
-  With two requests for the head it posts nothing and stops: two requests for a
-  review and a head, ever, is slice 218's and stays, so slice 190's once per head
-  now reads: a request made since the review started, or a second. Bug-163's form
-  for the security request is unchanged, and so is notStarted.
+  Past the clock with the one request older than the start and the code review
+  under way for the head, --ready posts slice 190's "@codex review" and says so, and
+  stops review_stall after that request. A lone older request stays asked when the
+  code review is not under way for the head: the running review is then the security
+  one, which "@codex review" does not ask for, and a code review that has finished
+  is not asked again, so --ready posts nothing and stops at the start plus
+  review_stall. With two requests for the head it posts nothing and stops: two
+  requests for a review and a head, ever, is slice 218's and stays, so slice 190's
+  once per head now reads: a request made since the review started, a request while
+  the code review is not under way, or a second. Bug-163's form for the security
+  request is unchanged, and so is notStarted.
+
+  Words this makes false, which change with it: the --ready help in
+  internal/slices/push/command.go ("a comment with that request meaning it was asked
+  already") and internal/slices/push/doc.go ("once per head ever"), beside the
+  comment above stalled.
 
   The timeout's words. ci.watch.timeout counts from when the pull request was
   marked ready or its head pushed (slice 200), and is judged first, so a --ready
@@ -587,16 +597,22 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   30 seconds ago, the request 120, review_stall 60) now asks again at the fourth
   look and stops at the tenth, and new rows give two requests older than the last
   edit (no third, stopped when the edit is past review_stall), a request in the same
-  second as the edit (the request's clock, no post), and an edit with a request with
-  no time (the first look's clock). The row "asked from the last edit" keeps a build
-  from counting from the edit alone, which would stop at the look after its request.
-  The waits-again words in TestPushReady's review-timeout case (ready_test.go) follow
-  the new line.
+  second as the edit (the request's clock, no post), an edit with a request with no
+  time (the first look's clock), and the code review completed with its security
+  review running, last edited 30 seconds ago, the lone code request 120 (no post,
+  review-stalled at the fourth look, 60 seconds past the edit). The same-second rule
+  rests on its row alone: no scenario pins it. The row "asked from the last edit"
+  keeps a build from counting from the edit alone, which would stop at the look after
+  its request. The waits-again words in TestPushReady's review-timeout case
+  (ready_test.go) follow the new line.
 
   ID-PUSHDRAFT-41, as released, is this bug: a request 120 seconds old beside a last
   edit 30 seconds old stops at the first look. Its rule stays, a rerun past the clock
   stops at the stall, so the fix changes its state's line to "last edited 130 seconds
-  ago", the request made after the edit, and the fix's Changes: footer names it.
+  ago", the request made after the edit, and the fix's Changes: footer names it. Its
+  comment changes with its line: "last edited 30 seconds ago, after it" and "Once a
+  request exists the stall counts from its createdAt" are no longer so, and a build
+  counting from updatedAt alone no longer fails it, the row above catching that one.
 
   bug-164's step: slice 218's state step for its first <n> api graphql calls
   with ", last edited <m> seconds ago" before ", for its first", the state of those
