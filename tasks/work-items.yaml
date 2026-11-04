@@ -17047,3 +17047,16 @@ items:
     status: todo
     depends_on: []
     kind: task
+
+  - id: bug-161
+    title: A push in the nightly's Windows shard exits 1 with no output at all, so 'A push waits for its run' failed once
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: bug
+    why: >
+      Nightly 41630021205 (2026-11-03), platform windows-latest shard 2/2: @watch.feature's 'A push
+      waits for its run' got exit 1, empty stdout and stderr, in 0.46 s. It has passed since. itos
+      exiting 1 and saying nothing is wrong whatever triggered it. Read the job's log first; not yet
+      reproduced.
