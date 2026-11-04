@@ -88,11 +88,15 @@ func initializePushModeSteps(sc *godog.ScenarioContext, w *world) {
 		})
 	sc.Step(`^the recording gh answers that the pull request has an unresolved review thread "([^"]*)" on "([^"]*)" line (\d+) by "([^"]*)", its first comment the lines "([^"]*)" and "([^"]*)"$`,
 		func(id, path string, line int, login, first, second string) error {
-			return w.ghAnswersThreadBy(false, id, path, line, login, first, second)
+			return w.ghAnswersThreadBy(false, id, path, line, login, first+"\n"+second)
+		})
+	sc.Step(`^the recording gh answers that the pull request has an unresolved review thread "([^"]*)" on "([^"]*)" line (\d+) by "([^"]*)", its first comment:$`,
+		func(id, path string, line int, login string, body *godog.DocString) error {
+			return w.ghAnswersThreadBy(false, id, path, line, login, body.Content)
 		})
 	sc.Step(`^the recording gh answers that the pull request has a resolved review thread "([^"]*)" on "([^"]*)" line (\d+) by "([^"]*)", its first comment the lines "([^"]*)" and "([^"]*)"$`,
 		func(id, path string, line int, login, first, second string) error {
-			return w.ghAnswersThreadBy(true, id, path, line, login, first, second)
+			return w.ghAnswersThreadBy(true, id, path, line, login, first+"\n"+second)
 		})
 	sc.Step(`^the recording gh's "([^"]*)" call does not have "([^"]*)"$`, w.ghCallLacks)
 	sc.Step(`^the recording gh's call with "([^"]*)" comes before its call with "([^"]*)"$`, w.ghCallOrder)
@@ -571,14 +575,15 @@ func (w *world) ghAnswersThread(resolved bool, path string, line int, first, sec
 		"comments": map[string]any{"nodes": []any{map[string]any{"body": first + "\n" + second}}}})
 }
 
-// The same, a thread with an id whose first comment's author has the login;
-// its node is answered to a call that asks for the id (pushthread_test.go).
-func (w *world) ghAnswersThreadBy(resolved bool, id, path string, line int, login, first, second string) error {
+// The same, a thread with an id whose first comment, the body, has an author
+// with the login; its node is answered to a call that asks for the id
+// (pushthread_test.go).
+func (w *world) ghAnswersThreadBy(resolved bool, id, path string, line int, login, body string) error {
 	if err := w.ghAddNode(w.ghThreads(), map[string]any{"id": id, "isResolved": resolved, "path": path, "line": line,
-		"comments": map[string]any{"nodes": []any{map[string]any{"author": map[string]any{"login": login}, "body": first + "\n" + second}}}}); err != nil {
+		"comments": map[string]any{"nodes": []any{map[string]any{"author": map[string]any{"login": login}, "body": body}}}}); err != nil {
 		return err
 	}
-	return w.ghNodeOfThread(id, resolved, path, line, login, first, second)
+	return w.ghNodeOfThread(id, resolved, path, line, login, body)
 }
 
 // The node, as JSON, joins those the file holds.
