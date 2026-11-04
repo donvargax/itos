@@ -17060,3 +17060,15 @@ items:
       waits for its run' got exit 1, empty stdout and stderr, in 0.46 s. It has passed since. itos
       exiting 1 and saying nothing is wrong whatever triggered it. Read the job's log first; not yet
       reproduced.
+
+  - id: bug-162
+    title: "push --ready fails when gh pr update-branch runs right after its own push: head sha didn't match the current head ref"
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: bug
+    why: >
+      #253: seen twice in one afternoon on 8.45.3, right after pushing a fix for a review thread;
+      running --ready again went on. GitHub had not yet seen the new head. Neighbour of bug-160, the
+      same family of race after --ready's own push. Expected: --ready retries this answer itself.
