@@ -17345,3 +17345,16 @@ items:
       after a late start reads the same way. No wrong merge; a stop that says stalled about a review
       seconds old. The clock could take the later of the request and when the state first read
       running, which slice 200's scenarios would have to allow.
+
+  - id: p2-ready-gh-network-blip
+    title: --ready's wait ends exit 3 on a network failure of gh
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Seen on the slice-218 PR, 2026-11-04: gh api graphql failing with a TLS handshake timeout
+      during --ready's wait ended it exit 3, pull-request-failed, naming a fix to make, where a CI
+      API failure exits 75 and the wait could go on to its next look. Running --ready again was all
+      it needed.
