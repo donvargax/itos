@@ -479,3 +479,21 @@ func boundIn(d time.Duration) func() time.Duration {
 	until := time.Now().Add(d)
 	return func() time.Duration { return time.Until(until) }
 }
+
+// A run's address is said once, however many looks find the run going.
+func TestARunsAddressIsSaidOnce(t *testing.T) {
+	noSleep(t)
+	looks := 0
+	look := func(string) (providers.Run, bool, error) {
+		looks++
+		if looks < 3 {
+			return providers.Run{URL: "u", Status: "in_progress"}, true, nil
+		}
+		return providers.Run{URL: "u", Status: "completed", Conclusion: "success"}, true, nil
+	}
+	var stdout, stderr strings.Builder
+	w := watchRun(watchConfig(0, 60), providers.Watcher{Look: look}, "abc", "", Out{Stdout: &stdout, Stderr: &stderr})
+	if said := strings.Count(stdout.String(), "CI run: u\n"); w.Code != 0 || looks != 3 || said != 1 {
+		t.Errorf("code %d, looks %d, said %d times\n%s%s", w.Code, looks, said, stdout.String(), stderr.String())
+	}
+}

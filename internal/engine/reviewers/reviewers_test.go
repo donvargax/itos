@@ -132,3 +132,13 @@ func TestUnmarkedMentionsOf243(t *testing.T) {
 		t.Errorf("Missing = %q, want %q", got, want)
 	}
 }
+
+// A request is its first line and a marker line after it: a comment of one
+// line that reads as both has no marker of its own.
+func TestAFirstLineIsNotItsOwnMarker(t *testing.T) {
+	line := marker + bugbotLogin + " " + head243 + " -->"
+	comments := []providers.Authored{{Login: "donvargax", Body: line}}
+	if requested(comments, bugbotLogin, line, head243) {
+		t.Errorf("%q counts as a request", line)
+	}
+}

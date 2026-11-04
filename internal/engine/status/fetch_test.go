@@ -73,6 +73,10 @@ func TestFetchesNothingWhere(t *testing.T) {
 		line   string
 	}{
 		{"stealth", func(_ *fetches, stealth *bool) { *stealth = true }, ""},
+		{"stealth, with HEAD behind the remote", func(v *fetches, stealth *bool) {
+			*stealth = true
+			v.Named["HEAD"] = c1
+		}, ""},
 		{"the remote lacks the branch", func(v *fetches, _ *bool) { delete(v.Remote["origin"].Refs, "refs/heads/main") },
 			"origin has no branch main yet, so there is no CI run to read."},
 	} {
