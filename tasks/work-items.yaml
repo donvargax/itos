@@ -5169,6 +5169,10 @@ items:
       disk under /tmp without TMPDIR set, and commit-msg refused a merge commit without a type until
       its title was rewritten through GIT_EDITOR. Until the merge driver exists, work done could say
       how to finish such a pull (git merge --continue with a docs title).
+
+      slice-222 lands keep-both on itos push's merge of main, without waiting for typed items; what
+      stays here: rebase and pull paths, work done's git pull, and the design that stops the
+      conflict at its source.
     tags: [work, v9]
 
   - id: p1-refs-overlap
@@ -16250,6 +16254,10 @@ items:
       ./<name> (the folder frame, f85578b8/9e960110); this bug settles one frame for VCS.File,
       Files, Texts and gitTree.List/inRepo, keeping or undoing that. Also: Trees.At with an empty
       folder gets a relative working folder, so inRepo returns . (config check uses vcs.Git{}).
+
+      slice-221's review, 2026-11-04: with a project in a subfolder the commit-msg hook runs from
+      the top with the top's config, while itos commit check-paths from that folder judges its
+      rules, though the help says from the repository's top.
     tags: [work, v8]
 
   - id: p2-brief-request-binds-text
@@ -16900,8 +16908,8 @@ items:
   - id: slice-218
     title: itos push --ready tells a reviewer that never starts a review from one that is still running
     phase: 2
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: [slice-217]
     kind: slice
     why: >
@@ -17288,3 +17296,35 @@ items:
       docs/** and tasks/**, so no type can carry a spec, and itos commit --item, which every brief
       names, is itself a usage error there. So a fresh repository's drafter is told to stop. A fresh
       repository should be able to commit a spec.
+
+      slice-221's spec, 2026-11-04: the flag rule covers the drafter's text only; the implementer's
+      brief still names itos commit --item under a config with no registry footer, pinned by
+      released ID-BRIEF-01. It goes with this item.
+
+  - id: p3-survivor-matcher-annotation
+    title: A survivor on a green nightly also shows a red annotation from the Go problem matcher
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Nightly 41877123893, 2026-11-04, the first green since q-107: each survivor is one ::warning
+      from nightly-survivors, and .github/actions/go-toolchain/go-matcher.json also matches the
+      report's message line as a failure annotation. The run stays green; only the page misleads.
+      Narrow the matcher, or leave it until survivors are revisited after v9.
+
+  - id: slice-222
+    title: itos push resolves a merge of main that conflicts only in the registry or a ledger by keeping both sides
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: slice
+    why: >
+      Merge mode's --ready merges main into an item's branch and stops on any conflict, though two
+      sessions appending to tasks/work-items.yaml or a ledger conflict on every such merge, by
+      construction (#107; bug-157's close took four tries). A loop over another of the person's
+      projects resolves these by hand. This lands the keep-both resolution alone: p1-registry-merge
+      and its file-per-item or merge-driver design wait on p1-typed-items.
+    tags: [work, v8]
