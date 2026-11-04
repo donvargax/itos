@@ -17579,3 +17579,16 @@ items:
       slice-221, 2026-11-04: the brief's closing sentence says to close the item with itos work done
       once green, and the repository's appended lines say never to: under pr the coordinator closes
       after the merge. The template should name the mode's rule.
+
+  - id: p2-escape-controls-in-review-text
+    title: push threads and push thread print a reviewer's text raw, terminal control bytes included
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      A Codex security finding on bug-165, 2026-11-04, P3: a reviewer can put control bytes after a
+      harmless first line, and the whole-body print sends them to the terminal without being asked.
+      push thread does the same. Any commenter on a public repository can write such a comment.
+      Escape C0 and C1 controls in both commands' plain output; --json stays exact.
