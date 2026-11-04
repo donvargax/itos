@@ -16879,6 +16879,9 @@ items:
       with a rule naming the rerun (gh run rerun <id>, or an itos ci rerun), and next gives the
       driver that step, so the loop moves without the person.
 
+      bug-160's spec, 2026-11-04: --ready's half is folded into bug-160; itos next naming the rerun
+      stays here.
+
   - id: p3-driver-resumable
     title: The pilot driver picks up an item mid-flight, finding the implementer's worktree without its own memory
     phase: 3
@@ -16987,17 +16990,9 @@ items:
     title: itos brief's drafter step names the commit type the config lets a spec's scenarios take, not docs
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-220]
     kind: slice
-    why: >
-      Was p1-brief-spec-commit-type.
-      A drafter in a loop over another of the person's projects (2026-11-04) stopped on its first
-      slice: the drafter brief says to commit the @wip scenarios as a docs commit, but that
-      project's commits.scopes.docs allows only **/*.md, docs/** and tasks/**, so itos commit
-      check-paths --type docs refuses features/*.feature; there a spec goes in as test: with Item:.
-      The brief should read commits.scopes (and the types Item: stands in for) and name the type
-      that may carry features/, as itos commit check-paths already judges it.
 
   - id: p1-coordinator-planning-steps
     title: The v9 coordinator has plan, breakdown and triage as steps of its own, each answering in a schema
@@ -17576,3 +17571,15 @@ items:
     status: dropped
     depends_on: []
     kind: idea
+
+  - id: p2-brief-close-under-pr
+    title: An implementer's brief says to close with itos work done, against its own lines under push.mode pr
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      slice-221, 2026-11-04: the brief's closing sentence says to close the item with itos work done
+      once green, and the repository's appended lines say never to: under pr the coordinator closes
+      after the merge. The template should name the mode's rule.

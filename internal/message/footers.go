@@ -442,10 +442,10 @@ func standInWhat(f config.Footer) string {
 	return f.Source.Tests
 }
 
-// standIns are the footers of IDs, in the config's order, that stand in for
+// StandIns are the footers of IDs, in the config's order, that stand in for
 // the footer key in a commit of the type typ (their in_place_of names key for
 // typ).
-func standIns(cfg *config.Loaded, key, typ string) []string {
+func StandIns(cfg *config.Loaded, key, typ string) []string {
 	var keys []string
 	for _, other := range cfg.Commits.Footers.Keys {
 		f := cfg.Commits.Footers.Values[other]
@@ -461,7 +461,7 @@ func standIns(cfg *config.Loaded, key, typ string) []string {
 
 // standIn is the first footer standing in for key in a commit of the type.
 func standIn(cfg *config.Loaded, key, typ string) (string, bool) {
-	keys := standIns(cfg, key, typ)
+	keys := StandIns(cfg, key, typ)
 	if len(keys) == 0 {
 		return "", false
 	}
@@ -473,7 +473,7 @@ func standIn(cfg *config.Loaded, key, typ string) (string, bool) {
 // for typ), so the commit needs no footer of key. A stand-in's own IDs are
 // its own rule's to judge.
 func stoodIn(cfg *config.Loaded, key, typ, footers string) bool {
-	return slices.ContainsFunc(standIns(cfg, key, typ), func(other string) bool {
+	return slices.ContainsFunc(StandIns(cfg, key, typ), func(other string) bool {
 		return len(IDs(cfg, footers, other)) > 0
 	})
 }
