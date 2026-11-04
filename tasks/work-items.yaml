@@ -17004,3 +17004,21 @@ items:
       check-paths --type docs refuses features/*.feature; there a spec goes in as test: with Item:.
       The brief should read commits.scopes (and the types Item: stands in for) and name the type
       that may carry features/, as itos commit check-paths already judges it.
+
+  - id: p1-coordinator-planning-steps
+    title: The v9 coordinator has plan, breakdown and triage as steps of its own, each answering in a schema
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      A loop over another of the person's projects (2026-11-03/04) needed three judgement steps
+      beside drafter, reviewer and implementer: plan (when nothing can start, promote the next
+      queued idea that serves the charter's current step), breakdown (split an idea larger than one
+      pull request into 3-8 items with depends_on only where one needs another's code, so several
+      workers can build at once) and triage (each idea an agent hands back: note on an existing
+      item, drop, route upstream to the tool it belongs to, or at most one add, phase meaning when
+      it is needed, not its size). Without them the loop drifted into small follow-ups and ran one
+      item at a time. Each answered in a JSON schema and the loop ran the itos commands; the
+      coordinator should own these steps and their schemas.
