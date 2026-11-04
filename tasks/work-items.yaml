@@ -16879,6 +16879,9 @@ items:
       with a rule naming the rerun (gh run rerun <id>, or an itos ci rerun), and next gives the
       driver that step, so the loop moves without the person.
 
+      bug-160's spec, 2026-11-04: --ready's half is folded into bug-160; itos next naming the rerun
+      stays here.
+
   - id: p3-driver-resumable
     title: The pilot driver picks up an item mid-flight, finding the implementer's worktree without its own memory
     phase: 3
