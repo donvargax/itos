@@ -16979,8 +16979,8 @@ items:
   - id: slice-220
     title: itos brief gives a task's drafter and implementer the task's own steps, not scenario instructions
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: slice
     why: >
