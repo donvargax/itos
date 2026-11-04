@@ -132,6 +132,10 @@ Feature: itos review request asks each configured reviewer for the pull request'
   the revision digests it, so a request posted gives a new one. With
   push.pr.reviewers empty nothing of slice-209's changes.
 
+  bug-163: Codex answers "@codex security review" with the request marker in
+  its comment as a code review, security_review staying null; the form that
+  starts the security review is being settled on this pull request, by hand.
+
   Not in this slice: folding --ready's askForHead and its review_stall
   re-ask into this command (p1-ready-hand-off); the per-head verdict model
   (requested, running, passed, findings, refused, stalled) and reading
