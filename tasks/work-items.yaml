@@ -17039,3 +17039,11 @@ items:
       pull request, spec review refuses a departure without one, and triage files drift as its own
       kind of idea. itos could name the document in its config, put it in briefs, and check the
       decision-with-update rule.
+
+  - id: T-340
+    title: Kill or except the 23 survivors of nightlies 2026-10-31 to 2026-11-04
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task
