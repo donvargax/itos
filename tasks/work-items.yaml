@@ -17405,6 +17405,11 @@ items:
       security request alone, long after a completed code review. Then fix Request.Body or the
       spacing. Slice-218's second request cannot start what it asks for until this is settled.
 
+      Test on #260, 2026-11-04: a marked @codex security review alone, 5 min 13 s after a completed
+      code review, ran as a second code review (trigger Manual request, security_review stayed null
+      for 15 minutes); a plain one then started the security review 12 s after posting. So spacing
+      is not the cause; Codex answers the marked form as @codex review.
+
   - id: bug-164
     title: --ready ends review-stalled seconds after a review starts, as the stall counts from a request older than the review
     phase: 1
