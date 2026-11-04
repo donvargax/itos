@@ -16990,17 +16990,9 @@ items:
     title: itos brief's drafter step names the commit type the config lets a spec's scenarios take, not docs
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-220]
     kind: slice
-    why: >
-      Was p1-brief-spec-commit-type.
-      A drafter in a loop over another of the person's projects (2026-11-04) stopped on its first
-      slice: the drafter brief says to commit the @wip scenarios as a docs commit, but that
-      project's commits.scopes.docs allows only **/*.md, docs/** and tasks/**, so itos commit
-      check-paths --type docs refuses features/*.feature; there a spec goes in as test: with Item:.
-      The brief should read commits.scopes (and the types Item: stands in for) and name the type
-      that may carry features/, as itos commit check-paths already judges it.
 
   - id: p1-coordinator-planning-steps
     title: The v9 coordinator has plan, breakdown and triage as steps of its own, each answering in a schema
