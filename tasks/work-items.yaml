@@ -58,6 +58,7 @@ phases:
 
 queue:
   - T-340
+  - T-341
   - p1-v9-design-from-friction
   - p1-ci-slow-linux-runs
   - slice-153
@@ -6696,6 +6697,9 @@ items:
       killed or excepted; the next nightly draws fresh ones.
     refs: [internal/cli/gitshim.go, internal/cli/push.go, internal/work/propose.go]
     tags: [proof]
+    deferred: >
+      q-107: the survivor backlog waits until after v9, which will change and likely shrink the
+      code. Revisit then, and whether survivors should fail the nightly again.
 
   - id: slice-110
     title: init --policy derives a command adapter's smoke set
@@ -16895,14 +16899,15 @@ items:
     depends_on: []
     kind: idea
 
-  - id: p2-ready-review-never-started
+  - id: slice-218
     title: itos push --ready tells a reviewer that never starts a review from one that is still running
     phase: 2
     owner: null
     status: todo
     depends_on: []
-    kind: idea
+    kind: slice
     why: >
+      Was p2-ready-review-never-started.
       bug-157, PR #247, 2026-11-01: Codex's review-state comment kept security_review at status null
       and commit_sha null on every head, while each @codex security review request got a code review
       receipt instead. --ready waited the full 1800 s (ci.watch.timeout) twice, saying only that
@@ -16953,14 +16958,15 @@ items:
       before pushing, drop caller-supplied IDs, push tags with --tag) had to be dug out by hand. A
       grouped checklist, leaving out what the upgrade already did, would make the move one task.
 
-  - id: p1-ready-asks-security-review
+  - id: slice-217
     title: itos push --ready asks Codex for the code review alone on a new head, then waits for both reviews
     phase: 1
     owner: null
     status: todo
     depends_on: []
-    kind: idea
+    kind: slice
     why: >
+      Was p1-ready-asks-security-review.
       Landing a pull request on another of the person's projects (2026-11-04): --ready merged main
       into the item's branch, then asked chatgpt-codex-connector for the new head with "@codex
       review" only (askForHead's postRequest). Codex reviewed the code within two minutes, but its
@@ -17136,3 +17142,11 @@ items:
     why: >
       #237: a session handed a task whose tests live in a new script's self-test had no direction
       and improvised a failing stub. Related: p1-brief-task-role.
+
+  - id: T-341
+    title: A mutation survivor no longer fails the nightly (q-107), until after v9
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task

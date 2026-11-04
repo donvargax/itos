@@ -5235,3 +5235,29 @@
   done_when:
     - run: test "$(go env GOOS)" = windows || tools/bin/pinned itos-cc mutation run --own-tests --json --site 'internal/ci/ci.go:github.com/donvargax/itos/v8/internal/ci.driver#check@344:373:41573982053a298b:1033:1>0' --site 'internal/cli/ci.go:github.com/donvargax/itos/v8/internal/cli#runCi@17:23:c3594c159c61ee3c:122:0>1' --site 'internal/config/cross.go:github.com/donvargax/itos/v8/internal/config#watchProblems@440:457:a014cb326c705c7a:461:<=><' --site 'internal/config/defaults.go:github.com/donvargax/itos/v8/internal/config#DefaultsFor@118:132:d9369b4f91007d67:151:&&>||' --site 'internal/engine/ciwatch/watch.go:github.com/donvargax/itos/v8/internal/engine/ciwatch#watch@127:261:d8e47c9cc586d01a:2099:&&>||' --site 'internal/engine/reviewers/reviewers.go:github.com/donvargax/itos/v8/internal/engine/reviewers#requested@75:91:a30acc44ed883337:267:1>0' --site 'internal/engine/status/status.go:github.com/donvargax/itos/v8/internal/engine/status.Standing#readBranch@341:395:c329a3245f673f8f:505:false>true' --site 'internal/git/git.go:github.com/donvargax/itos/v8/internal/git.Runner#failed@70:77:e98659dab90b03f3:159:!>' --site 'internal/git/state.go:github.com/donvargax/itos/v8/internal/git.Runner#Changed@47:60:36ea475536f37014:274:&&>||' --site 'internal/message/cases.go:github.com/donvargax/itos/v8/internal/message#isBreak@216:219:ce381d42663f295c:72:||>&&' --site 'internal/message/cases.go:github.com/donvargax/itos/v8/internal/message#wordAt@259:376:64fc8355264d0aa3:975:1>0' --site 'internal/message/trailers.go:github.com/donvargax/itos/v8/internal/message#parseTrailers@155:175:4ce680a8712c9a78:93:->' --site 'internal/providers/identity.go:github.com/donvargax/itos/v8/internal/providers#GhLogin@60:73:d541f507acc1afc6:338:&&>||' --site 'internal/shell/shell.go:github.com/donvargax/itos/v8/internal/shell.Result#Status@58:68:4b44cf7807f42dbf:134:!=>==' --site 'internal/slices/decision/run.go:github.com/donvargax/itos/v8/internal/slices/decision.CLI#show@173:198:2207c8e0487b4f03:503:+>-' --site 'internal/slices/push/push.go:github.com/donvargax/itos/v8/internal/slices/push.pushRun#push@316:325:50de7072c51d7fdb:136:false>true' --site 'internal/slices/push/registry.go:github.com/donvargax/itos/v8/internal/slices/push.pushRun#refuseMerge@119:143:d2008d604e7e8c3a:379:1>0' --site 'internal/tests/fingerprint.go:github.com/donvargax/itos/v8/internal/tests#scenarioID@45:52:19133b69651253a9:150:&&>||' --site 'internal/tests/fingerprint.go:github.com/donvargax/itos/v8/internal/tests#scenarioID@45:52:19133b69651253a9:155:1>0' --site 'internal/tests/nextid.go:github.com/donvargax/itos/v8/internal/tests#NextTagFrom@63:69:df93de14be12a9ce:79:1>0' --site 'internal/vcs/adapter/log.go:github.com/donvargax/itos/v8/internal/vcs/adapter#entries@35:49:73a10329e8eb9361:227:0>1' --site 'internal/work/show.go:github.com/donvargax/itos/v8/internal/work.Shown#Listed@36:44:b8eeeae6555152a8:84:||>&&' --site 'internal/work/show.go:github.com/donvargax/itos/v8/internal/work.Shown#Print@147:176:d04b4be0b736fb9f:555:0>1'
       timeout: 1800
+
+- id: T-341
+  type: ci
+  title: A mutation survivor no longer fails the nightly (q-107), until after v9
+  why: >
+    q-107, the person, 2026-11-04: survivors stop failing the nightly until after v9, which will
+    change and likely shrink the code. itos-cc has no flag for this, so a new gate program,
+    tools/bin/nightly-survivors, wraps both of ci.nightly's mutation steps in itos.yaml: go run
+    ./tools/bin/nightly-survivors -- tools/bin/pinned itos-cc mutation run … It runs the command
+    with its output passed through and its exit code kept, except one case: exit 1 with a --json
+    report whose problems are all rule mutation.survived, and at least one, becomes exit 0, printing
+    a GitHub ::warning annotation per survivor with its message, so the run's page lists them.
+    Anything else keeps its exit: another rule beside a survivor (mutation.uncovered and
+    mutation.uncovered-statement above all, so --fail-uncovered=lines still fails the changed-sites
+    step; a stale exception, mutation.flaky, an interrupted run, a cleanup failure), output that is
+    not the report, any other exit code. The push proof, proof.code.check, is untouched: a survivor
+    still fails a push. Standard library only, as the other gate programs.
+    tools/selftest/ci-mutation-budget's expected commands follow; its case that a failing nightly
+    provider blocks fails on a rule other than survived, and a new case shows a survivor alone
+    passes the plan. A green night now closes the Nightly red issue and moves nightly-base's base,
+    which is intended; -floor stays. nightly-report is unchanged: it reads failed steps, and the
+    survivors stay in the run's annotations and log. A comment beside the steps in itos.yaml names
+    q-107 and that this goes after v9. A ci commit, gates only.
+  done_when:
+    - run: go test -count=1 ./tools/bin/nightly-survivors
+    - run: test "$(grep -c 'nightly-survivors -- tools/bin/pinned itos-cc mutation run' itos.yaml)" = 2
