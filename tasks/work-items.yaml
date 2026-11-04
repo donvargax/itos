@@ -15513,6 +15513,11 @@ items:
       The person, 2026-10-30, on docs/plans/v9-coordinator.md: agrees with every recommendation but
       question 3 (still asking), message checks at push included. Question 6 covers Cursor's Bugbot
       too, added as a second reviewer.
+
+      bug-160's spec, 2026-11-04: docs/plans/v9-coordinator.md's 'a run is matched by its head and
+      the event that started it' cannot hold as written: run.event reads pull_request for a draft's
+      synchronize and for ready_for_review alike, as runs 41334974134 and 41334973836 show, with no
+      activity-type field. forge observe must match otherwise.
     tags: [v9]
 
   - id: p1-reviewer-on-astra
@@ -17417,18 +17422,9 @@ items:
     title: itos push threads prints a comment's first line, so a Codex security finding shows only its marker
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: bug
-    why: >
-      A driven run, 2026-11-04: Codex's security findings start with the line <!--
-      codex-security-review-finding:v1 -->, and itos push threads prints that alone, so an
-      implementer given the list saw findings with no text and asked what they said, twice, until a
-      no-progress stop. Security findings are in effect invisible through the command agents are
-      told to use. Expected: the comment's text, with HTML comments dropped, whole or at least to
-      its first real line; --json carrying the whole body.
-
-      slice-220, 2026-11-04: --ready's refusal prints the same marker line alone.
 
   - id: p3-ready-wait-under-ci
     title: push.pr.ready_wait is shorter than a normal CI run, so a green path needs two --ready calls
@@ -17583,3 +17579,27 @@ items:
       slice-221, 2026-11-04: the brief's closing sentence says to close the item with itos work done
       once green, and the repository's appended lines say never to: under pr the coordinator closes
       after the merge. The template should name the mode's rule.
+
+  - id: p2-escape-controls-in-review-text
+    title: push threads and push thread print a reviewer's text raw, terminal control bytes included
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      A Codex security finding on bug-165, 2026-11-04, P3: a reviewer can put control bytes after a
+      harmless first line, and the whole-body print sends them to the terminal without being asked.
+      push thread does the same. Any commenter on a public repository can write such a comment.
+      Escape C0 and C1 controls in both commands' plain output; --json stays exact.
+
+  - id: p3-take-after-merge-order
+    title: Say that an item's merge of main is pushed before its take
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      bug-165, 2026-11-04: commits holding both a merge and a registry commit are refused
+      (merge-in-history), so merge, push, take, push is the working order, and no guide says so.

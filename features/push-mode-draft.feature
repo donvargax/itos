@@ -146,9 +146,9 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
      false refuses the merge, exit 1, outcome review-threads-unresolved,
      auto-merge not turned on, stderr (under --json too, written as it runs)
      "itos push: auto-merge is not turned on: <address> has unresolved review
-     threads:", then for each, in GitHub's order, "  <path>:<line> <the first
-     line of its first comment>" ("  <path> ..." when GitHub gives no line,
-     an outdated thread), then "Address each (fix it and push, or reply on
+     threads:", then for each, in GitHub's order, "  <path>:<line> <its first
+     comment's summary (bug 165, push-threads.feature)>" ("  <path> ..." when
+     GitHub gives no line, an outdated thread), then "Address each (fix it and push, or reply on
      the pull request), resolve it, then itos push --ready again." Resolved
      threads are not listed.
   6. gh pr merge <item> --repo <repository> --auto --rebase, as slice 174
@@ -1600,7 +1600,7 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
     And the recording gh was never called as "pr merge"
 
   # The merge waits until Copilot's findings are addressed: an unresolved
-  # thread leaves auto-merge off and names where it is, by the first line of
+  # thread leaves auto-merge off and names where it is, by the summary of
   # its first comment; a resolved one is not named. Said on stderr under
   # --json too. Fails before the work at the exit code: today push refuses
   # --ready, exit 2.

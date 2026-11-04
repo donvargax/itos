@@ -339,6 +339,8 @@ func TestPushThreadsListsAPullRequestByItsNumber(t *testing.T) {
 			code, stdout, stderr, err := call(t, f, "threads", "--pr", "7")
 			want := open7 + " has 2 unresolved review threads:\n" +
 				"  T1 widget.md:3 alice: Rename this.\n" +
+				"    Rename this.\n" +
+				"    It clashes.\n" +
 				"  T3 old.md bob: Outdated one.\n"
 			if code != 0 || err != nil || stdout != want || stderr != "" {
 				t.Errorf("exit %d, %v\n%s%s", code, err, stdout, stderr)
@@ -351,8 +353,8 @@ func TestPushThreadsListsAPullRequestByItsNumber(t *testing.T) {
 			}
 			code, stdout, stderr, _ = call(t, f, "--json", "threads", "--pr=7")
 			wantJSON := `{"schema":1,"ok":true,"outcome":"threads-listed","pull_request":{"url":"` + open7 + `","number":7},"threads":[` +
-				`{"id":"T1","path":"widget.md","line":3,"author":"alice","comment":"Rename this."},` +
-				`{"id":"T3","path":"old.md","author":"bob","comment":"Outdated one."}]}`
+				`{"id":"T1","path":"widget.md","line":3,"author":"alice","comment":"Rename this.","body":"Rename this.\nIt clashes."},` +
+				`{"id":"T3","path":"old.md","author":"bob","comment":"Outdated one.","body":"  Outdated one.  "}]}`
 			if code != 0 || stderr != "" || !jsonEqual(t, stdout, wantJSON) {
 				t.Errorf("--json: exit %d\n%s%s", code, stdout, stderr)
 			}

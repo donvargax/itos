@@ -13,17 +13,18 @@ Feature: Under push.mode pr, itos push threads lists an item's open review threa
   itos push threads, from an item's branch under push.mode pr (draft or
   not), lists the review threads of the branch's open pull request that are
   not resolved, in GitHub's order: first "<address> has <n> unresolved
-  review threads:", then one line each, "  <id> <path>:<line> <author>:
-  <first line>", the thread's node id, where it is, the login of its first
-  comment's author as GraphQL gives it (a bot's without "[bot]") and the
-  first line of that comment, trimmed ("  <id> <path> <author>: ..." for an
-  outdated thread, which GitHub gives no line, as --ready names one). With
+  review threads:", then for each a line, "  <id> <path>:<line> <author>:
+  <summary>", the thread's node id, where it is, the login of its first
+  comment's author as GraphQL gives it (a bot's without "[bot]") and that
+  comment's summary (bug 165, below; "  <id> <path> <author>: ..." for an
+  outdated thread, which GitHub gives no line, as --ready names one), and
+  beneath that line the comment whole. With
   none open: "<address> has no unresolved review threads." Exit 0, outcome
   threads-listed. It fetches, rebases and pushes nothing, and posts nothing.
   --json: {"schema":1,"ok","outcome","pull_request"?,"threads"?},
   pull_request {"url","number"}, threads a list of {"id","path","line",
-  "author","comment"}, comment the first line as above, line left out for an
-  outdated thread, [] for none.
+  "author","comment","body"}, comment the summary as above, body the comment
+  whole as GitHub gives it, line left out for an outdated thread, [] for none.
 
   itos push thread <id> --reply <text> [--resolve], from any branch or a
   detached HEAD (below), answers one review thread of the repository: it
@@ -123,6 +124,59 @@ Feature: Under push.mode pr, itos push threads lists an item's open review threa
   The help's usage gains "itos push threads [--pr <n>]" and "itos push
   thread <id>", and says the show form shows the thread in full.
 
+  Bug 165. Codex's security findings start with a line holding only the marker
+  <!-- codex-security-review-finding:v1 --> and its other findings with a badge
+  image in bold, and push threads and --ready's refusal printed a comment's
+  first line. So an implementer given the list saw findings with no text,
+  asked what they said, twice, and a driven run stopped on no progress.
+
+  A comment's summary is one function, commentSummary (threads.go), which push
+  threads, its --json's comment and --ready's refusal all use. It drops every
+  HTML comment, across lines too, and every Markdown image with the <sub> tags
+  directly around it, then takes the first line holding a letter or a digit,
+  a real line, trimmed, a \r\n read as \n. When that line is a Markdown heading
+  (one to six # and a space, so neither "#243 broke this." nor seven #) and
+  another real line follows, the summary is the heading, ": ", then that next
+  real line, trimmed, whether it is a heading or not; a comment whose real lines
+  are all headings gives its first heading. A heading alone would not do, and no
+  vendor has a rule: "### 🛡️ Codex Security Review" stands on every security
+  finding, whose title is the next line, while "### Reviews not pinned" is a
+  Bugbot finding's title, whose next line is its severity, so that one's summary
+  is "### Reviews not pinned: **High Severity**". Nothing else is touched: bold
+  and heading markers stay, since a rule for them is more code and "2**3" would
+  pay for it, and a long line stays whole, since today's first line is not cut
+  either. Any image goes, not badges alone, since telling them apart is the
+  longer rule. Other angle brackets stay ("--reply <text>"), and a "<!--" that
+  never closes is text, so nothing is hidden on a guess; a marker a line quotes
+  is dropped from its summary, the whole text keeping it. A comment with no real
+  line (a marker, a badge, a heading or a rule with no letter in it, or nothing)
+  or no comment at all has the summary "(no text)", rather than nothing.
+
+  Beneath its line, push threads prints each thread's first comment whole as
+  GitHub gives it, marker and badge included, each line indented by four spaces
+  and a \r\n read as \n, as push thread shows one. Nothing is printed beneath for
+  an empty body or no comment, nor when the body, trimmed, equals the summary:
+  about a third of the comments on this repository's pull requests are one line
+  and would print twice. There is no flag: the implementer read the list it was
+  given, and a
+  flag it does not know of leaves it where it was, on top of a flag's parsing,
+  usage errors and help. Whole means as GitHub gives it because a finding can
+  quote a marker in its text (a Bugbot finding on #243 did) and the badge's alt
+  text is the finding's severity, which the summary drops. --json's new body is
+  the same text unchanged, "" for no comment; push thread <id> and its --json
+  do not change, and --json's body is whole even where nothing is printed
+  beneath. itos push --help and doc.go say all this where they now say "first
+  line", as does features/push-mode-draft.feature's description of --ready's
+  refusal.
+
+  Unit tests, in threads_test.go. TestCommentSummary is a table of these rules
+  and of bodies shaped as this repository's pull requests have Codex's security
+  and code findings and Bugbot's, their words changed. TestPushThreadsCommentBeneath
+  has a case each for a body with \r\n, read as \n beneath; an empty body and a
+  thread with no comment, each "(no text)" with nothing beneath and --json's body
+  "", through the branch's pull request and through --pr; and a one-line body,
+  with nothing beneath.
+
   Not in this slice: a pull request with more than 100 review threads, as
   --ready; editing or deleting a reply; unresolving a thread; replying to a
   pull request's comment that is not a review thread; listing the threads of
@@ -166,13 +220,18 @@ Feature: Under push.mode pr, itos push threads lists an item's open review threa
   <login>, its first comment the lines <first> and <second>", a node the
   node question alone answers, in no pull request's list.
 
+  Bug 165's. One new step: "the recording gh answers that the pull request has
+  an unresolved review thread <id> on <path> line <n> by <login>, its first
+  comment:" and a doc string, the thread and node of slice 191's and 201's step
+  with the doc string as the comment's whole body.
+
   Background:
     Given a repository whose ledger has the task "T-001"
     And a clone of it, where itos runs
     And the work registry has the item "slice-9" owned by "someone" with the status "doing"
 
   # The slice's point: the open threads, each with the id an answer names,
-  # its place, its author and its first comment's first line; a resolved
+  # its place, its author and its first comment's summary; a resolved
   # one is left out, and nothing is pushed. Fails before the work at the
   # exit code: today push takes no argument, exit 2.
   @ID-PUSHTHREAD-01 @slice-191
@@ -195,17 +254,86 @@ Feature: Under push.mode pr, itos push threads lists an item's open review threa
     And its output says "PRRT_1 widget.md:3 copilot-pull-request-reviewer: Rename this."
     And its output says "PRRT_3 widget.md:8 chatgpt-codex-connector: P1: this panics on an empty widget."
     And its output does not say "PRRT_2"
-    And its output does not say "It clashes with the gadget."
     And the recording gh's "pr list" call has "slice-9"
     And the recording gh's "api graphql" call has "number=7"
     And the recording gh's "api graphql" call does not have "mutation"
     And the remote has no branch "slice-9"
 
+  # Bug 165's point: what a thread says, not its marker or its badge. The
+  # security finding's first real line is a heading, so its summary goes on to
+  # the title below it; the badge finding's first real line is no heading, so it
+  # stands alone. The bold markers stay, with whatever spaces the badge left
+  # inside them. Fails before the
+  # work at the first "PRRT_1" output step: today its line ends in the marker.
+  @ID-PUSHTHREAD-26 @bug-165
+  Scenario: Under push.mode pr, push threads gives each open thread's first line of real text and, beneath it, its whole first comment
+    Given the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+      """
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the clone is on the new branch "slice-9"
+    And the recording gh has the pull request "https://github.example/o/r/pull/7" open for the branch "slice-9"
+    And the recording gh answers that the pull request has an unresolved review thread "PRRT_1" on "widget.md" line 3 by "chatgpt-codex-connector", its first comment:
+      """
+      <!-- codex-security-review-finding:v1 -->
+
+      ### 🛡️ Codex Security Review
+
+      **<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub> Security: Keep the widget's token out of its log**
+
+      When a widget logs its request, its token lands in the log.
+
+      Useful? React with 👍 / 👎.
+      """
+    And the recording gh answers that the pull request has an unresolved review thread "PRRT_3" on "widget.md" line 8 by "chatgpt-codex-connector", its first comment:
+      """
+      **<sub><sub>![P3 Badge](https://img.shields.io/badge/P3-lightgrey?style=flat)</sub></sub>  Limit the widget's retries**
+
+      A widget that never answers is asked for ever.
+
+      <!-- codex-code-review-finding:v1 -->
+      """
+    When itos runs "push threads"
+    Then itos exits with code 0
+    And its output says "PRRT_1 widget.md:3 chatgpt-codex-connector: ### 🛡️ Codex Security Review: ** Security: Keep the widget's token out of its log**"
+    And its output says "PRRT_3 widget.md:8 chatgpt-codex-connector: **  Limit the widget's retries**"
+    And its output says "    <!-- codex-security-review-finding:v1 -->"
+    And its output says "    ### 🛡️ Codex Security Review"
+    And its output says "    **<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub> Security: Keep the widget's token out of its log**"
+    And its output says "    When a widget logs its request, its token lands in the log."
+    And its output says "    Useful? React with 👍 / 👎." before "PRRT_3"
+    And its output says "    A widget that never answers is asked for ever."
+
+  # Only a marker: a placeholder says so where a line with nothing after the
+  # colon would look like a bug, and the marker stays beneath it, being all the
+  # comment holds. Fails before the work at the "(no text)" step: today the line
+  # ends in the marker.
+  @ID-PUSHTHREAD-27 @bug-165
+  Scenario: Under push.mode pr, push threads says a comment holding only a marker has no text
+    Given the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+      """
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the clone is on the new branch "slice-9"
+    And the recording gh has the pull request "https://github.example/o/r/pull/7" open for the branch "slice-9"
+    And the recording gh answers that the pull request has an unresolved review thread "PRRT_1" on "widget.md" line 3 by "chatgpt-codex-connector", its first comment:
+      """
+      <!-- codex-security-review-finding:v1 -->
+      """
+    When itos runs "push threads"
+    Then itos exits with code 0
+    And its output says "PRRT_1 widget.md:3 chatgpt-codex-connector: (no text)"
+    And its output says "    <!-- codex-security-review-finding:v1 -->"
+
   # --json is what an agent reads: the ids to answer, exactly these fields.
   # Fails before the work at the exit code: today push takes no argument,
   # exit 2.
   @ID-PUSHTHREAD-02 @slice-191
-  Scenario: Under push.mode pr, push threads --json gives each open thread's id, path, line, author and first comment line
+  Scenario: Under push.mode pr, push threads --json gives each open thread's id, path, line, author, comment summary and whole comment
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
       push:
@@ -220,7 +348,25 @@ Feature: Under push.mode pr, itos push threads lists an item's open review threa
     Then itos exits with code 0
     And its JSON's "outcome" is "threads-listed"
     And its JSON's "pull_request.url" is "https://github.example/o/r/pull/7"
-    And its JSON's "threads" is [{"id":"PRRT_1","path":"widget.md","line":3,"author":"copilot-pull-request-reviewer","comment":"Rename this."}]
+    And its JSON's "threads" is [{"id":"PRRT_1","path":"widget.md","line":3,"author":"copilot-pull-request-reviewer","comment":"Rename this.","body":"Rename this.\nIt clashes with the gadget."}]
+
+  # An agent's whole finding through --json, the marker in it as GitHub gave it,
+  # with the summary beside it. Fails before the work at the "threads" step:
+  # today comment is the marker and there is no body.
+  @ID-PUSHTHREAD-28 @bug-165
+  Scenario: Under push.mode pr, push threads --json gives each thread's summary as its comment and the comment whole as its body
+    Given the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+      """
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the clone is on the new branch "slice-9"
+    And the recording gh has the pull request "https://github.example/o/r/pull/7" open for the branch "slice-9"
+    And the recording gh answers that the pull request has an unresolved review thread "PRRT_1" on "widget.md" line 3 by "chatgpt-codex-connector", its first comment the lines "<!-- codex-security-review-finding:v1 -->" and "P1: this panics on an empty widget."
+    When itos runs "push threads --json"
+    Then itos exits with code 0
+    And its JSON's "threads" is [{"id":"PRRT_1","path":"widget.md","line":3,"author":"chatgpt-codex-connector","comment":"P1: this panics on an empty widget.","body":"<!-- codex-security-review-finding:v1 -->\nP1: this panics on an empty widget."}]
 
   # Every thread answered is the state --ready waits for: said, exit 0.
   # Fails before the work at the exit code: today push takes no argument,
@@ -263,6 +409,25 @@ Feature: Under push.mode pr, itos push threads lists an item's open review threa
     And its output does not say "PRRT_2"
     And the recording gh's "api graphql" call has "number=7"
     And the recording gh's "api graphql" call does not have "mutation"
+    And the recording gh was never called as "pr list"
+
+  # push threads --pr reads its threads by another path than the branch's (t.open,
+  # not fromPullState), so the summary and the whole comment are pinned on it too.
+  # Fails before the work at the summary step: today the line ends in the marker.
+  @ID-PUSHTHREAD-30 @bug-165
+  Scenario: Under push.mode pr, push threads --pr <n> gives a marker-first comment's first line of real text and, beneath it, the comment whole
+    Given the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+      """
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the recording gh has the pull request "https://github.example/o/r/pull/7" open for the branch "slice-9"
+    And the recording gh answers that the pull request has an unresolved review thread "PRRT_1" on "widget.md" line 3 by "chatgpt-codex-connector", its first comment the lines "<!-- codex-security-review-finding:v1 -->" and "P1: this panics on an empty widget."
+    When itos runs "push threads --pr 7"
+    Then itos exits with code 0
+    And its output says "PRRT_1 widget.md:3 chatgpt-codex-connector: P1: this panics on an empty widget."
+    And its output says "    <!-- codex-security-review-finding:v1 -->"
     And the recording gh was never called as "pr list"
 
   # The slice's first point: a thread read in full, every comment's author
@@ -613,6 +778,52 @@ Feature: Under push.mode pr, itos push threads lists an item's open review threa
     And its output says "widget.md:3 Rename this."
     And its output says "itos push threads lists them with their ids"
     And its output says "itos push thread <id> --reply <text> --resolve answers one"
+    And the recording gh was never called as "pr merge"
+
+  # --ready's refusal reads a thread's summary by the same function, and stays
+  # one line each: it points at push threads for the rest. Fails before the work
+  # at the first output step: today the refusal names the thread by its marker.
+  @ID-PUSHTHREAD-29 @bug-165
+  Scenario: Under push.pr.draft, push --ready's refusal names each unresolved review thread by its first line of real text
+    Given the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+        pr:
+          draft: true
+      """
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the clone is on the new branch "slice-9"
+    And the clone has the commit "feat: add the widget" touching "widget.md"
+    And git pushes HEAD to the remote's new branch "slice-9"
+    And the recording gh has the draft pull request "https://github.example/o/r/pull/7" open for the branch "slice-9"
+    And the recording gh answers that the pull request has an unresolved review thread "PRRT_1" on "widget.md" line 3 by "chatgpt-codex-connector", its first comment:
+      """
+      <!-- codex-security-review-finding:v1 -->
+
+      ### 🛡️ Codex Security Review
+
+      **<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub> Security: Keep the widget's token out of its log**
+
+      When a widget logs its request, its token lands in the log.
+
+      Useful? React with 👍 / 👎.
+      """
+    And the recording gh answers that the pull request has an unresolved review thread "PRRT_3" on "widget.md" line 8 by "chatgpt-codex-connector", its first comment:
+      """
+      **<sub><sub>![P3 Badge](https://img.shields.io/badge/P3-lightgrey?style=flat)</sub></sub>  Limit the widget's retries**
+
+      A widget that never answers is asked for ever.
+
+      <!-- codex-code-review-finding:v1 -->
+      """
+    When itos runs "push --ready"
+    Then itos exits with code 1
+    And its output says "widget.md:3 ### 🛡️ Codex Security Review: ** Security: Keep the widget's token out of its log**"
+    And its output says "widget.md:8 **  Limit the widget's retries**"
+    And its output does not say "codex-security-review-finding"
+    And its output does not say "img.shields.io"
+    And its output does not say "When a widget logs its request"
     And the recording gh was never called as "pr merge"
 
   # The help is where an agent looks first. Fails before the work at the

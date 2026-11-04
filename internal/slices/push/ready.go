@@ -38,13 +38,14 @@ type pullState struct {
 
 // openThread is a review thread that is not resolved: its node id, where it is
 // (line 0 for an outdated one, which GitHub gives none), the login of its first
-// comment's author and the first line of that comment.
+// comment's author and that comment, whole and as its summary (commentSummary).
 type openThread struct {
-	id     string
-	path   string
-	line   int
-	author string
-	first  string
+	id      string
+	path    string
+	line    int
+	author  string
+	body    string
+	summary string
 }
 
 // finish is --ready's end under push.pr.draft, once the pull request is ready
@@ -112,7 +113,7 @@ func (r *pushRun) finish(ctx context.Context, repository, outcome, line string) 
 			if t.line > 0 {
 				where += ":" + strconv.Itoa(t.line)
 			}
-			fmt.Fprintf(r.o.Stderr, "  %s\n", strings.TrimSpace(where+" "+t.first))
+			fmt.Fprintf(r.o.Stderr, "  %s %s\n", where, t.summary)
 		}
 		fmt.Fprintln(r.o.Stderr, "Address each (fix it and push, or reply on the pull request), resolve it, then itos push --ready again.")
 		fmt.Fprintln(r.o.Stderr, "itos push threads lists them with their ids, and itos push thread <id> --reply <text> --resolve answers one.")
@@ -270,8 +271,8 @@ func (r *pushRun) ask(ctx context.Context, repository string, number int) (pullS
 }
 
 // fromPullState is the state as --ready reads it: the reviews and comments,
-// the ready time, every thread's id and the threads still open, each with the
-// first line of its first comment.
+// the ready time, every thread's id and the threads still open, each with its
+// first comment.
 func fromPullState(got providers.PullState) pullState {
 	state := pullState{pull: got, readyAt: got.ReadyAt}
 	for _, t := range got.Threads {
@@ -279,8 +280,7 @@ func fromPullState(got providers.PullState) pullState {
 		if t.Resolved {
 			continue
 		}
-		first, _, _ := strings.Cut(t.Body, "\n")
-		state.unresolved = append(state.unresolved, openThread{id: t.ID, path: t.Path, line: t.Line, author: t.Author, first: strings.TrimSpace(first)})
+		state.unresolved = append(state.unresolved, openThread{id: t.ID, path: t.Path, line: t.Line, author: t.Author, body: t.Body, summary: commentSummary(t.Body)})
 	}
 	return state
 }

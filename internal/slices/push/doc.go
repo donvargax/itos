@@ -327,9 +327,9 @@
 // fails, except for the comments and the times, which an answer without is
 // read as having none (v8.22.2's recorded answers carry none). A thread not
 // resolved refuses the merge (exit 1,
-// review-threads-unresolved), named by its file, line and the first line of
-// its first comment; only then merge, so auto-merge comes after the checks and
-// the reviews, never before.
+// review-threads-unresolved), named by its file, line and its first comment's
+// summary (commentSummary); only then merge, so auto-merge comes after the
+// checks and the reviews, never before.
 //
 // push.pr.ready_wait (slice 200; 540 seconds by default, 0 for no bound) bounds
 // one --ready call, counted from its start (pushRun.began, bound): every wait of
@@ -449,7 +449,10 @@
 // found as pr finds it, naming --pr), then gh pr list (openPulls) finds the
 // open pull request, else no-pull-request, and ask the threads, which carry
 // each node id and the first comment's author. Both end in listThreads
-// (threads-listed, in GitHub's order, ThreadInfo for --json). A pull request
+// (threads-listed, in GitHub's order, ThreadInfo for --json): each thread's
+// line carries its first comment's summary (commentSummary, bug 165) and the
+// comment whole goes beneath, unless it is empty or says no more than that
+// summary. A pull request
 // GitHub does not have is a gh that fails, exit 3.
 //
 // Handle reaches the world through Ports, which the slice owns and
