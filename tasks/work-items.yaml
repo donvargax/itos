@@ -17309,3 +17309,18 @@ items:
       from nightly-survivors, and .github/actions/go-toolchain/go-matcher.json also matches the
       report's message line as a failure annotation. The run stays green; only the page misleads.
       Narrow the matcher, or leave it until survivors are revisited after v9.
+
+  - id: slice-222
+    title: itos push resolves a merge of main that conflicts only in the registry or a ledger by keeping both sides
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: slice
+    why: >
+      Merge mode's --ready merges main into an item's branch and stops on any conflict, though two
+      sessions appending to tasks/work-items.yaml or a ledger conflict on every such merge, by
+      construction (#107; bug-157's close took four tries). A loop over another of the person's
+      projects resolves these by hand. This lands the keep-both resolution alone: p1-registry-merge
+      and its file-per-item or merge-driver design wait on p1-typed-items.
+    tags: [work, v8]
