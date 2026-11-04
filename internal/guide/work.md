@@ -40,7 +40,9 @@ slice|task|bug` mints a numbered item instead.
   commit (`itos commit --item <id>`) with the scenarios still `@wip`. Run them
   with `@wip` removed locally and see each fail at the step that checks the
   behaviour, not at an undefined step. Then build, and report each failing
-  step.
+  step. For a task, red first is running its checks before the work and seeing
+  each fail, saying so where one cannot; a new program's own tests fail against
+  a stub.
 
 ## Never
 

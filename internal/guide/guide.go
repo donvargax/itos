@@ -37,6 +37,15 @@ var drafter string
 //go:embed reviewer.md
 var reviewer string
 
+//go:embed drafter-task.md
+var drafterTask string
+
+//go:embed implementer-task.md
+var implementerTask string
+
+//go:embed reviewer-task.md
+var reviewerTask string
+
 // Coordinate is the name of the coordinator's guide, the one itos go prints.
 const Coordinate = "coordinate"
 
@@ -97,12 +106,27 @@ var templates = map[string]string{
 	Reviewer: reviewer,
 }
 
-// Template is the role's brief template, the paragraphs itos brief fills
-// from an item, as written and with its lines ending in LF (Text), and
-// whether the role has one. The implementer's is the brief procedure's own,
-// the quoted block of its "## The brief" section less the quote marks, so
-// the one itos guide brief prints to a person and the one itos brief fills
-// are the same text.
+// taskTemplates are each role's for a task, whose spec is its ledger entry,
+// shipped beside the others and no guide names.
+var taskTemplates = map[string]string{
+	Drafter:     drafterTask,
+	Implementer: implementerTask,
+	Reviewer:    reviewerTask,
+}
+
+// TaskTemplate is the role's brief template for a task, as Template gives a
+// slice's and a bug's, and whether the role has one.
+func TaskTemplate(role string) (string, bool) {
+	text, ok := taskTemplates[role]
+	return lf(text), ok
+}
+
+// Template is the role's brief template for a slice or a bug, the paragraphs
+// itos brief fills from an item, as written and with its lines ending in LF
+// (Text), and whether the role has one. The implementer's is the brief
+// procedure's own, the quoted block of its "## The brief" section less the
+// quote marks, so the one itos guide brief prints to a person and the one
+// itos brief fills are the same text.
 func Template(role string) (string, bool) {
 	if role == Implementer {
 		return quoted(lf(brief)), true
