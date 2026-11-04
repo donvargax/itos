@@ -17592,3 +17592,14 @@ items:
       harmless first line, and the whole-body print sends them to the terminal without being asked.
       push thread does the same. Any commenter on a public repository can write such a comment.
       Escape C0 and C1 controls in both commands' plain output; --json stays exact.
+
+  - id: p3-take-after-merge-order
+    title: Say that an item's merge of main is pushed before its take
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      bug-165, 2026-11-04: commits holding both a merge and a registry commit are refused
+      (merge-in-history), so merge, push, take, push is the working order, and no guide says so.
