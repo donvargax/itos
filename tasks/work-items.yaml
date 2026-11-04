@@ -16959,8 +16959,8 @@ items:
   - id: slice-217
     title: itos push --ready asks Codex for the code review alone on a new head, then waits for both reviews
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: slice
     why: >
