@@ -237,6 +237,7 @@ Feature: itos brief, the filled brief an agent starts from and its request
     Then itos exits with code 0
     And its output says "which has no checks yet. Your job"
     And its output says "There are no scenarios to write"
+    And its output does not say "scenario" outside "There are no scenarios to write"
 
   # A task has checks to judge, not scenarios: a verdict on each, whether it
   # can fail before the work and pass after. This template has no neighbours'
