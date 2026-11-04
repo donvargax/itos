@@ -16986,3 +16986,19 @@ items:
       commit, so the few actions (bump the itos action's pin in the workflows, record proof.code
       before pushing, drop caller-supplied IDs, push tags with --tag) had to be dug out by hand. A
       grouped checklist, leaving out what the upgrade already did, would make the move one task.
+
+  - id: p1-ready-asks-security-review
+    title: itos push --ready asks Codex for the code review alone on a new head, then waits for both reviews
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Landing a pull request on another of the person's projects (2026-11-04): --ready merged main
+      into the item's branch, then asked chatgpt-codex-connector for the new head with "@codex
+      review" only (askForHead's postRequest). Codex reviewed the code within two minutes, but its
+      review-state comment kept security_review on the old head, and --ready requires both completed
+      for the head (ReviewState.Completed and ForHead), so it waited out 540 s twice and would never
+      finish. It should post "@codex security review" too when security_review's commit is not the
+      head, as itos review request does.
