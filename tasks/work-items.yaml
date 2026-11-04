@@ -16958,3 +16958,17 @@ items:
       two majors behind 8.45.3, so the git shim inside runs a v6 itos. The hooks use tools/bin/itos
       built from the tree, so only the shim lags, but nothing says when the pin falls behind. Move
       the pin with each major, or have the release workflow check it.'
+
+  - id: p2-next-trunk-mode
+    title: itos next names the next step for an item in flight under push.mode trunk, not only under pr
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Setting up a Codex loop over another of the person's projects (2026-11-03): under trunk, itos
+      next reads an item in flight as forge observe and names nothing, so a deterministic loop can
+      drive only a pr-mode project. The project had to switch to push.mode pr first, and the commit
+      that switches cannot itself go straight to main once the new config is read, so it needed a
+      pull request of its own.
