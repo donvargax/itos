@@ -17397,22 +17397,9 @@ items:
     title: A marked @codex security review may start no security review, so --ready and review request ask in a form that does not work
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: bug
-    why: >
-      slices 217 and 218's real runs, 2026-11-04: on #258 and #257, @codex security review carrying
-      the request marker got a code review each time, four posts across two heads, and a plain one
-      started the security review within 13 seconds. Every plain success was also later than the
-      marked one, after the code review had finished, so timing is not ruled out, and a plain
-      request has been swallowed too. Controlled test first, on a real pull request: a marked
-      security request alone, long after a completed code review. Then fix Request.Body or the
-      spacing. Slice-218's second request cannot start what it asks for until this is settled.
-
-      Test on #260, 2026-11-04: a marked @codex security review alone, 5 min 13 s after a completed
-      code review, ran as a second code review (trigger Manual request, security_review stayed null
-      for 15 minutes); a plain one then started the security review 12 s after posting. So spacing
-      is not the cause; Codex answers the marked form as @codex review.
 
   - id: bug-164
     title: --ready ends review-stalled seconds after a review starts, as the stall counts from a request older than the review
