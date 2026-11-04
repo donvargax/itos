@@ -16900,8 +16900,8 @@ items:
   - id: slice-218
     title: itos push --ready tells a reviewer that never starts a review from one that is still running
     phase: 2
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: [slice-217]
     kind: slice
     why: >
