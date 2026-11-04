@@ -17549,3 +17549,17 @@ items:
       Spec review is the only mitigation, and the same is true of CI and of a slice's steps, which
       an implementer also runs. Weigh a sandbox with the container work, or a warning, as itos's own
       threat model says.
+
+  - id: p3-lock-hold-test-windows-race
+    title: TestHoldWaitsForTheLockAndRefusesOneStillHeld races 100 ms on Windows
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      It failed on Windows on bug-164's pull request, unrelated to the change, and passed on the
+      rerun: Wait is 100 ms and the file's removal comes from a goroutine sleeping 20 ms, its error
+      ignored, so a slow runner, or a removal refused while the other side has the file open, reads
+      as a lock still held. Cost: a Windows job of over nine minutes run again. Give the released
+      case a long Wait, and retry the removal.
