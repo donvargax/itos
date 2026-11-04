@@ -17420,3 +17420,16 @@ items:
       p2-stall-clock-older-than-the-review. Also: with ci.watch.timeout 1800 judged first,
       review_stall 1200 gives the second request but never review-not-started, and past the timeout
       --ready returns at once though it says it waits again: settle the two values with the fix.
+
+  - id: p2-ready-registry-push-restarts-reviews
+    title: A work add during a pull request's wait moves its head on the next --ready, restarting both reviews
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      slice-218, 2026-11-04: a work add during the wait: the next --ready sent only the registry
+      commits to main and exited 0 without waiting, then the following --ready merged main in,
+      making a new head, and both reviews reran: one idea cost 30 minutes. Related:
+      p2-rereview-only-own-changes.
