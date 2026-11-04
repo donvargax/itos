@@ -17397,3 +17397,19 @@ items:
       run, so an unrequired job's infrastructure cancel, a macOS runner never acquired, leaves a run
       not green and widens every later range until one passes, here 8 runs in an hour. Check whether
       only required checks should count.
+
+  - id: bug-163
+    title: A marked @codex security review may start no security review, so --ready and review request ask in a form that does not work
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: bug
+    why: >
+      slices 217 and 218's real runs, 2026-11-04: on #258 and #257, @codex security review carrying
+      the request marker got a code review each time, four posts across two heads, and a plain one
+      started the security review within 13 seconds. Every plain success was also later than the
+      marked one, after the code review had finished, so timing is not ruled out, and a plain
+      request has been swallowed too. Controlled test first, on a real pull request: a marked
+      security request alone, long after a completed code review. Then fix Request.Body or the
+      spacing. Slice-218's second request cannot start what it asks for until this is settled.
