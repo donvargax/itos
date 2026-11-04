@@ -17232,3 +17232,16 @@ items:
       back to the drafter; a throwaway scenario under trunk mode shows needs-spec. Under pr mode
       read in facts.go returns before the forge is asked. Decide with slice-219 landing whether next
       reads origin/<task> for a task as it does for scenarios.
+
+  - id: p2-attempt-implementer-task
+    title: attempt submit's red-first and done checks ignore an item's kind
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      slice-219's spec, 2026-11-04: a task whose implementer commits feat or fix with no test commit
+      gets attempt-not-red-first, though a task has no test step (untested ignores kind); a
+      throwaway scenario confirms it. And implemented never asks whether a task's checks still exist
+      at the head, or pass.
