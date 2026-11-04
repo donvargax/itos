@@ -17396,8 +17396,8 @@ items:
   - id: bug-163
     title: A marked @codex security review may start no security review, so --ready and review request ask in a form that does not work
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: bug
     why: >
