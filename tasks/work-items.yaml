@@ -17293,6 +17293,10 @@ items:
       names, is itself a usage error there. So a fresh repository's drafter is told to stop. A fresh
       repository should be able to commit a spec.
 
+      slice-221's spec, 2026-11-04: the flag rule covers the drafter's text only; the implementer's
+      brief still names itos commit --item under a config with no registry footer, pinned by
+      released ID-BRIEF-01. It goes with this item.
+
   - id: p3-survivor-matcher-annotation
     title: A survivor on a green nightly also shows a red annotation from the Go problem matcher
     phase: 3
