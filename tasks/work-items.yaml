@@ -4366,6 +4366,9 @@ items:
       its why named and could not record the reason on it (work edit --note refuses tasks); the
       coordinator hand-edited the ledger. A --note on a task, appended to its ledger why, would
       close #168.
+
+      #252 (2026-11-03): an implementer who built more than the checks covered had no command to add
+      a check to its open task.
     tags: [work, v9]
 
   - id: p3-stealth-ledger-portability
