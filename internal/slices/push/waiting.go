@@ -7,13 +7,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/donvargax/itos/v8/internal/providers"
+	"github.com/donvargax/itos/v8/internal/config"
+	"github.com/donvargax/itos/v8/internal/engine/reviewers"
 	"github.com/donvargax/itos/v8/internal/value"
 )
-
-// requestMarker opens the hidden line of the comment that asks a login for a
-// review again; the line is "<!-- itos-review-request:v1 <login> <sha> -->".
-const requestMarker = "<!-- itos-review-request:v1 "
 
 // waiting is what --ready waits on and has said so far (slice 190): the head
 // whose run is watched, the run's state when one is ("waiting", then
@@ -94,93 +91,66 @@ func (s pullState) running(login, head string) bool {
 	return st.Stated && st.ForHead(head) && !st.Completed()
 }
 
-// elsewhere is whether the login wrote a review-state comment for another
-// commit than the head, and none of its reviews that name the head is under
-// way: the review of the head has not been asked for, or not begun.
-func (s pullState) elsewhere(login, head string) bool {
-	st := s.pull.StateOf(login)
-	return st.Stated && !st.ForHead(head) && !underway(st, head)
-}
-
-// requested is whether some comment, by anyone, asks the login to review the
-// head again: a line "<!-- itos-review-request:v1 <login> <head> -->", the
-// login matched as review_by's are; at is when the latest such comment was
-// made, zero when GitHub does not say.
-func (s pullState) requested(login, head string) (found bool, at time.Time) {
-	for _, c := range s.pull.Comments {
-		for _, line := range strings.Split(c.Body, "\n") {
-			text, ok := strings.CutPrefix(strings.TrimSpace(line), requestMarker)
-			text, ok2 := strings.CutSuffix(text, " -->")
-			if !ok || !ok2 {
-				continue
-			}
-			if who, sha, with := strings.Cut(text, " "); with && sha == head && providers.SameLogin(who, login) {
-				found = true
-				if c.Created.After(at) {
-					at = c.Created
-				}
-			}
-		}
-	}
-	return found, at
-}
-
 // reviewing is what a --ready keeps of the logins' reviews between its looks:
 // stall, push.pr.review_stall; since, the first look of this --ready that read
-// each login's review running for the head; and asked, when this --ready asked
-// the login for the head.
+// each login's review running for the head; and asked, when this --ready posted
+// each request for the head, kept per request since GitHub may not list one yet.
 type reviewing struct {
 	stall float64
 	since map[string]time.Time
-	asked map[string]time.Time
+	asked map[reviewers.Request]time.Time
 }
 
-// postRequest posts the request for the login to review the head: "@codex review", an
-// empty line and the marker line, as one gh pr comment.
-func (r *pushRun) postRequest(ctx context.Context, repository, login, head string) (Answer, bool) {
-	body := "@codex review\n\n" + requestMarker + login + " " + head + " -->"
-	_, a, failed := r.gh(ctx, "pr", "comment", r.branch, "--repo", repository, "--body="+body)
+// postRequest posts the request for the head, as one gh pr comment.
+func (r *pushRun) postRequest(ctx context.Context, repository string, req reviewers.Request, head string) (Answer, bool) {
+	_, a, failed := r.gh(ctx, "pr", "comment", r.branch, "--repo", repository, "--body="+req.Body(head))
 	return a, failed
 }
 
-// askForHead asks, once per head, a login whose review-state comment is for
-// another commit to review the head (slice 200): Codex here reviews on
-// ready_for_review alone, so after a fix is pushed nothing else would. It does
-// so at the look that reads the state, whether or not push.pr.review_stall is
-// set, unless a comment with the login's request for the head is on the pull
-// request, or this --ready posted one. done, with the outcome reported, when
-// gh pr comment fails.
-func (r *pushRun) askForHead(ctx context.Context, repository string, w *waiting, rv *reviewing, state pullState, missing []string) (Answer, bool) {
+// askForHead asks for each review, in a login's review-state comment, whose
+// commit is not the head, one with no commit included (slices 200, 217): Codex
+// here reviews on ready_for_review alone, so after a fix is pushed nothing else
+// would, and each review is judged alone, whatever the other's commit or status.
+// It does so at the look that reads the state, whether or not
+// push.pr.review_stall is set, unless a comment with that review's request for
+// the head is on the pull request (reviewers.Missing), or this --ready posted it.
+// A login with no review-state comment is asked nothing. done, with the outcome
+// reported, when gh pr comment fails.
+func (r *pushRun) askForHead(ctx context.Context, repository string, w *waiting, rv *reviewing, state pullState) (Answer, bool) {
 	for _, login := range w.logins {
-		if !slices.Contains(missing, login) || !state.elsewhere(login, w.head) {
+		if !state.pull.StateOf(login).Stated {
 			continue
 		}
-		if _, posted := rv.asked[login]; posted {
-			continue
+		for _, req := range reviewers.Missing([]config.Reviewer{{Login: login, Kind: "codex"}}, state.pull, w.head) {
+			if _, posted := rv.asked[req]; posted {
+				continue
+			}
+			if a, failed := r.postRequest(ctx, repository, req, w.head); failed {
+				return a, true
+			}
+			rv.asked[req] = now()
+			what := short(w.head)
+			if req != reviewers.CodexReview(login) {
+				what += " for security"
+			}
+			r.say(fmt.Sprintf("Asked %s to review %s on %s: its review state is for another commit.", login, what, r.pr.URL))
 		}
-		if found, _ := state.requested(login, w.head); found {
-			continue
-		}
-		if a, failed := r.postRequest(ctx, repository, login, w.head); failed {
-			return a, true
-		}
-		rv.asked[login] = now()
-		r.say(fmt.Sprintf("Asked %s to review %s on %s: its review state is for another commit.", login, short(w.head), r.pr.URL))
 	}
 	return Answer{}, false
 }
 
 // stalled judges a look at reviews still running (slice 190), each login in
 // the config's order: one that has read running for review_stall seconds and
-// was not asked for this head is asked again (gh pr comment), and it says so;
-// one that was asked, by this --ready or an earlier one, and still reads
-// running review_stall seconds later ends the wait: done, 75, review-stalled,
+// was not asked for this head's code review is asked again (gh pr comment), and
+// it says so; one that was asked, by this --ready or an earlier one, and still
+// reads running review_stall seconds later ends the wait: done, 75, review-stalled,
 // auto-merge not turned on. Also done, with the outcome reported, when gh pr
 // comment fails. The clocks are GitHub's where it gives them (slice 200): before
 // a request, the review-state comment's last edit; after one, the request
 // comment's time, a request this --ready posted counting from when it posted it
 // until GitHub lists it; a time it does not give counts from the first look of
-// this --ready that read the review running.
+// this --ready that read the review running. A security request counts for
+// nothing here: it neither takes the place of "@codex review" nor starts a clock.
 func (r *pushRun) stalled(ctx context.Context, repository string, w *waiting, rv *reviewing, state pullState, missing []string) (Answer, bool) {
 	at := now()
 	for _, login := range w.logins {
@@ -195,8 +165,9 @@ func (r *pushRun) stalled(ctx context.Context, repository string, w *waiting, rv
 		if edited := state.pull.StateOf(login).Updated; !edited.IsZero() {
 			from = edited
 		}
-		posted, wasPosted := rv.asked[login]
-		listed, madeAt := state.requested(login, w.head)
+		code := reviewers.CodexReview(login)
+		posted, wasPosted := rv.asked[code]
+		listed, madeAt := code.OnHead(state.pull.Comments, w.head)
 		requested := wasPosted || listed
 		switch {
 		case !madeAt.IsZero():
@@ -218,10 +189,10 @@ func (r *pushRun) stalled(ctx context.Context, repository string, w *waiting, rv
 		if at.Sub(from).Seconds() < rv.stall {
 			continue
 		}
-		if a, failed := r.postRequest(ctx, repository, login, w.head); failed {
+		if a, failed := r.postRequest(ctx, repository, code, w.head); failed {
 			return a, true
 		}
-		rv.asked[login] = at
+		rv.asked[code] = at
 		r.say(fmt.Sprintf("Asked %s to review %s again on %s: its review read running for %s seconds (push.pr.review_stall).",
 			login, short(w.head), r.pr.URL, seconds))
 	}

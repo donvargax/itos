@@ -16900,8 +16900,8 @@ items:
   - id: slice-218
     title: itos push --ready tells a reviewer that never starts a review from one that is still running
     phase: 2
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: [slice-217]
     kind: slice
     why: >
@@ -16960,18 +16960,9 @@ items:
     title: itos push --ready asks Codex for the code review alone on a new head, then waits for both reviews
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: slice
-    why: >
-      Was p1-ready-asks-security-review.
-      Landing a pull request on another of the person's projects (2026-11-04): --ready merged main
-      into the item's branch, then asked chatgpt-codex-connector for the new head with "@codex
-      review" only (askForHead's postRequest). Codex reviewed the code within two minutes, but its
-      review-state comment kept security_review on the old head, and --ready requires both completed
-      for the head (ReviewState.Completed and ForHead), so it waited out 540 s twice and would never
-      finish. It should post "@codex security review" too when security_review's commit is not the
-      head, as itos review request does.
 
   - id: slice-219
     title: "itos attempt submit takes a task's drafter result: its spec is the ledger entry's checks, not a scenario"
@@ -17009,7 +17000,7 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: []
+    depends_on: [slice-220]
     kind: slice
     why: >
       Was p1-brief-spec-commit-type.
@@ -17217,3 +17208,83 @@ items:
       never started the security review, its state null for 28 minutes, until one more request. Seen
       across several pull requests. Whether spacing helps is unproven: try it first, as slice-218
       only recovers from it after the fact.
+
+  - id: p1-next-task-checks-on-branch
+    title: itos next reads a task's checks from the working tree alone, so a check on the item's branch reads as needs-spec
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      slice-219's spec, 2026-11-04: next-forge.feature keeps a task's ledger checks out of what it
+      reads at origin/<id>, as it reads a slice's scenarios. So once attempt submit accepts a task's
+      drafter head, a task whose only check is on its branch is accepted and next still sends it
+      back to the drafter; a throwaway scenario under trunk mode shows needs-spec. Under pr mode
+      read in facts.go returns before the forge is asked. Decide with slice-219 landing whether next
+      reads origin/<task> for a task as it does for scenarios.
+
+      slice-219's review, 2026-11-04: without this a driver re-dispatches a task's drafter without
+      bound when its first check is only on the branch. Promote next after slice-219.
+
+  - id: p2-attempt-implementer-task
+    title: attempt submit's red-first and done checks ignore an item's kind
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      slice-219's spec, 2026-11-04: a task whose implementer commits feat or fix with no test commit
+      gets attempt-not-red-first, though a task has no test step (untested ignores kind); a
+      throwaway scenario confirms it. And implemented never asks whether a task's checks still exist
+      at the head, or pass.
+
+  - id: p3-tests-run-wip
+    title: A way to run named @wip scenarios without editing the feature file
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Every drafter strips @wip with sed, runs its scenarios to name the failing steps, then
+      restores the file; a refused compound command left one feature without its tags until noticed
+      (slice-220's drafter, 2026-11-04). A flag to include @wip for named scenarios ends the
+      routine.
+
+  - id: p3-one-item-kind
+    title: next's kindOf and brief's itemKind are two definitions of an item's kind
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      slice-219's spec, 2026-11-04. slice-219 shares next's read with attempt; brief keeps its own,
+      and slice-220 reads the kind there too. One definition, in the package that owns items.
+
+  - id: p2-unrunnable-check-is-no-spec
+    title: A done_when entry with no runnable check does not count as a spec, in next and attempt alike
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      slice-219's review, 2026-11-04: done_when: [{nope: 1}] counts as one check in the read next
+      and attempt share, though config check fails it and itos task exits 70; done_when: 'go vet' is
+      refused. An unrunnable check is no spec. The fix goes in the shared read.
+
+  - id: p2-starter-item-footer
+    title: "itos init's starter config lets a spec be committed: an Item footer, or a docs scope holding features/"
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      slice-221's spec, 2026-11-04: the starter has no Item footer and its docs scope is **/*.md,
+      docs/** and tasks/**, so no type can carry a spec, and itos commit --item, which every brief
+      names, is itself a usage error there. So a fresh repository's drafter is told to stop. A fresh
+      repository should be able to commit a spec.

@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/providers"
@@ -106,6 +107,11 @@ func TestRequested(t *testing.T) {
 		"another line with a marker": {"@codex review\n\n" + mark(bugbotLogin, head243), []string{bugbotLogin + " @cursor review"}},
 		"a marker without its login": {"@cursor review\n\n<!-- itos-review-request:v1 " + head243 + " -->", []string{bugbotLogin + " @cursor review"}},
 		"a marker left open":         {"@cursor review\n\n<!-- itos-review-request:v1 cursor " + head243, []string{bugbotLogin + " @cursor review"}},
+		"indented, trailing spaces":  {"  @cursor review \n\n  " + mark(bugbotLogin, head243) + "  ", nil},
+		"another version":            {"@cursor review\n\n" + strings.Replace(mark(bugbotLogin, head243), "v1", "v2", 1), []string{bugbotLogin + " @cursor review"}},
+		"a short head":               {"@cursor review\n\n" + mark(bugbotLogin, head243[:7]), []string{bugbotLogin + " @cursor review"}},
+		"a longer login":             {"@cursor review\n\n" + mark("cursor x", head243), []string{bugbotLogin + " @cursor review"}},
+		"not on a line of its own":   {"@cursor review\n\nsee " + mark(bugbotLogin, head243), []string{bugbotLogin + " @cursor review"}},
 	}
 	for name, c := range cases {
 		t.Run(name, func(t *testing.T) {
@@ -138,7 +144,43 @@ func TestUnmarkedMentionsOf243(t *testing.T) {
 func TestAFirstLineIsNotItsOwnMarker(t *testing.T) {
 	line := marker + bugbotLogin + " " + head243 + " -->"
 	comments := []providers.Authored{{Login: "donvargax", Body: line}}
-	if requested(comments, bugbotLogin, line, head243) {
+	if on, _ := (Request{Login: bugbotLogin, Kind: "bugbot", Line: line}).OnHead(comments, head243); on {
 		t.Errorf("%q counts as a request", line)
+	}
+}
+
+// The two requests of Codex share a marker line and are told apart by the line
+// above it, so the code review's reads neither the security review's nor a
+// marker alone. When is the latest of the request's own comments, as GitHub
+// gives it, and none where it gives none.
+func TestOnHeadReadsOneRequestAndItsLatestTime(t *testing.T) {
+	mark := "\n\n" + marker + codexLogin + " " + head243 + " -->"
+	code := CodexReview(codexLogin)
+	if want := (Request{Login: codexLogin, Kind: "codex", Line: "@codex review"}); code != want {
+		t.Errorf("CodexReview = %+v, want %+v", code, want)
+	}
+	first, later := time.Unix(1_000, 0), time.Unix(2_000, 0)
+	for name, c := range map[string]struct {
+		comments []providers.Authored
+		on       bool
+		at       time.Time
+	}{
+		"no comment":          {nil, false, time.Time{}},
+		"no time":             {[]providers.Authored{{Body: "@codex review" + mark}}, true, time.Time{}},
+		"the security review": {[]providers.Authored{{Body: "@codex security review" + mark, Created: later}}, false, time.Time{}},
+		"a marker alone":      {[]providers.Authored{{Body: strings.TrimPrefix(mark, "\n\n")}}, false, time.Time{}},
+		"the latest, listed last": {[]providers.Authored{
+			{Body: "@codex review" + mark, Created: first},
+			{Body: "@codex review" + mark, Created: later},
+		}, true, later},
+		"the latest, listed first": {[]providers.Authored{
+			{Body: "@codex review" + mark, Created: later},
+			{Body: "@codex review" + mark, Created: first},
+			{Body: "@codex security review" + mark, Created: later.Add(time.Hour)},
+		}, true, later},
+	} {
+		if on, at := code.OnHead(c.comments, head243); on != c.on || !at.Equal(c.at) {
+			t.Errorf("%s: %t at %s, want %t at %s", name, on, at, c.on, c.at)
+		}
 	}
 }

@@ -49,6 +49,8 @@ func initializeReadyWaitSteps(sc *godog.ScenarioContext, w *world) {
 	})
 	sc.Step(`^the recording gh answers that the pull request has a comment by "([^"]*)" holding Codex's review state, its code review "([^"]*)" of (the clone's HEAD|the commit "[^"]*") and its security review "([^"]*)" of (the clone's HEAD|the commit "[^"]*")$`,
 		w.ghAnswersCodexStateOf)
+	sc.Step(`^the recording gh answers that the pull request has a comment by "([^"]*)" holding Codex's review state, its code review "([^"]*)" of (the clone's HEAD|the commit "[^"]*") and its security review "([^"]*)" of (the clone's HEAD|the commit "[^"]*") until a pr comment call, then both "([^"]*)" of the clone's HEAD$`,
+		w.ghAnswersCodexStateOfUntilComment)
 	sc.Step(`^the recording gh answers that the pull request has a comment by "([^"]*)" holding Codex's review state of the head of the remote's branch "([^"]*)" at each call, its code review "([^"]*)" and its security review "([^"]*)"$`,
 		func(login, branch, code, security string) error {
 			if err := w.ghKeepsHead(branch); err != nil {
@@ -188,6 +190,34 @@ var commitNamed = regexp.MustCompile(`^the commit "([^"]*)"$`)
 // Codex's review state with each review a status of a commit, each commit the
 // clone's HEAD or one named.
 func (w *world) ghAnswersCodexStateOf(login, code, codeCommit, security, securityCommit string) error {
+	comment, err := w.codexCommentOf(login, code, codeCommit, security, securityCommit)
+	if err != nil {
+		return err
+	}
+	return w.ghAddNode(w.ghComments(), comment)
+}
+
+// The same, in every answer until the recording gh has been called as pr
+// comment, and both the status given, of the clone's HEAD, in every one after
+// it (slice 217).
+func (w *world) ghAnswersCodexStateOfUntilComment(login, code, codeCommit, security, securityCommit, then string) error {
+	comment, err := w.codexCommentOf(login, code, codeCommit, security, securityCommit)
+	if err != nil {
+		return err
+	}
+	if err := w.ghAddNode(w.ghCommentsBefore(), comment); err != nil {
+		return err
+	}
+	sha, err := w.head()
+	if err != nil {
+		return err
+	}
+	return w.ghAddNode(w.ghCommentsAfter(), codexComment(login, then, sha, then, sha))
+}
+
+// codexCommentOf is the login's review-state comment, each review a status of
+// the clone's HEAD or of the commit named.
+func (w *world) codexCommentOf(login, code, codeCommit, security, securityCommit string) (map[string]any, error) {
 	commit := func(text string) (string, error) {
 		if m := commitNamed.FindStringSubmatch(text); m != nil {
 			return m[1], nil
@@ -196,13 +226,13 @@ func (w *world) ghAnswersCodexStateOf(login, code, codeCommit, security, securit
 	}
 	codeSHA, err := commit(codeCommit)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	securitySHA, err := commit(securityCommit)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return w.ghAddNode(w.ghComments(), codexComment(login, code, codeSHA, security, securitySHA))
+	return codexComment(login, code, codeSHA, security, securitySHA), nil
 }
 
 // The time that many seconds before now, as GitHub writes one.
