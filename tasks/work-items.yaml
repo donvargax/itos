@@ -16970,8 +16970,8 @@ items:
   - id: slice-219
     title: "itos attempt submit takes a task's drafter result: its spec is the ledger entry's checks, not a scenario"
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: slice
     why: >
