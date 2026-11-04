@@ -16919,6 +16919,16 @@ items:
       there. Also judge what Swamp does about it. Correction to the trigger question: Swamp has
       swamp serve and a webhook extension kind, so check how far they go, not whether they exist.
 
+      2026-11-03, after a run through software-factory's sdlc-classic in a tour repo: the person
+      judged the extension simplistic next to itos and Open Orchestra. It is a generic state machine
+      over self-recorded artifacts and evidence; only workflow-succeeded is checked by Swamp, an
+      approval's actor is a plain string (the driving agent ran approve with the person's name), the
+      example's skills exist in no registry extension, and the item's history lives only in the
+      gitignored .swamp store. So the question is no longer whether to pivot onto software-factory
+      but whether itos and Open Orchestra should run on Swamp's platform layer (serve, workflows,
+      typed data, extensions, approvals bound on serve), with itos as the judge. The tick-workflow
+      test, gates bound through serve, and itos as an extension decide it.
+
   - id: p2-ready-review-never-started
     title: itos push --ready tells a reviewer that never starts a review from one that is still running
     phase: 2
