@@ -17117,12 +17117,9 @@ items:
     title: guide work and guide brief say what red first means for a task, not only for scenarios
     phase: 2
     owner: null
-    status: todo
+    status: dropped
     depends_on: []
     kind: idea
-    why: >
-      #237: a session handed a task whose tests live in a new script's self-test had no direction
-      and improvised a failing stub. Related: p1-brief-task-role.
 
   - id: T-341
     title: A mutation survivor no longer fails the nightly (q-107), until after v9
