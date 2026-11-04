@@ -17413,3 +17413,19 @@ items:
       request has been swallowed too. Controlled test first, on a real pull request: a marked
       security request alone, long after a completed code review. Then fix Request.Body or the
       spacing. Slice-218's second request cannot start what it asks for until this is settled.
+
+  - id: bug-164
+    title: --ready ends review-stalled seconds after a review starts, as the stall counts from a request older than the review
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: bug
+    why: >
+      slice-218's real run, 2026-11-04: at --ready's second request Codex's state flipped to code
+      review running with security null; the stall counted from the code review's request, 20
+      minutes old, and stopped review-stalled seconds after the review started, on every rerun until
+      it completes. No wrong merge, but it misleads and stops a healthy review. Was the idea
+      p2-stall-clock-older-than-the-review. Also: with ci.watch.timeout 1800 judged first,
+      review_stall 1200 gives the second request but never review-not-started, and past the timeout
+      --ready returns at once though it says it waits again: settle the two values with the fix.
