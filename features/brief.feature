@@ -54,13 +54,17 @@ Feature: itos brief, the filled brief an agent starts from and its request
   features/ refuses docs (itos commit check-paths --type docs): a drafter
   following the brief stopped twice on it, and its driver had to tell its
   agents the right type. The flag is the one the config has: --item where it
-  has a footer of the work registry, else --task for a task, else plain itos
-  commit. The type is docs when the config lets docs carry the spec's files;
-  otherwise the first of commits.types that may carry them and that the
-  registry's footer (Item:) stands in for, or, where the config has no such
-  footer, for a task, that its ledger footer is required for. So a slice or a
-  bug with no such footer, or with one whose in_place_of names nothing, has
-  docs alone. A type may carry them when commits.types has it, when the path
+  has a footer of the work registry, else --task for a task where it has a
+  ledger footer, else plain itos commit, as itos commit refuses a flag whose
+  footer the config lacks. On a project with a ci: section, --task also makes
+  CI run the task's checks once the spec's commit is pushed, as it does for any
+  commit naming a task. The type is docs when the config lets docs carry the
+  spec's files; otherwise the first of commits.types that may carry them and
+  that the registry's footer (Item:) stands in for, or, where the config has no
+  such footer, for a task, that its ledger footer is required for. So a slice
+  or a bug with no such footer, one whose in_place_of names nothing, or a task
+  with neither footer, has docs alone. A type may carry them when commits.types
+  has it, when the path
   rules itos commit check-paths judges with let it touch them, and when the
   hook's footer rules call nothing missing from a commit made with that flag,
   a required footer of free text among them, as the brief's sentence writes
@@ -72,9 +76,10 @@ Feature: itos brief, the filled brief an agent starts from and its request
   never names a type its config refuses by its types, path rules and footers.
   It does not judge the hook's staged range commands, which need the staged
   files a brief does not have. With no commits section there is nothing to
-  judge by, and the brief keeps docs with plain itos commit; the hook's path
-  rules call such a config an error whatever the type, so this promises
-  nothing of that commit. The config is the one the brief reads, HEAD's or
+  judge by, and the brief keeps docs with plain itos commit, even with no
+  Gherkin kind, where docs wins over the stop; the hook's path rules call such
+  a config an error whatever the type, so this promises nothing of that
+  commit. The config is the one the brief reads, HEAD's or
   --at's. The request stays a digest of the item, the role, the spec commit
   and the reads: a config changing the type changes the brief's text and not
   its request, as the repository's own brief lines do.
@@ -103,14 +108,21 @@ Feature: itos brief, the filled brief an agent starts from and its request
   - ID-BRIEF-39: this repository's itos.yaml, read from the tree so that it
     cannot drift: a slice's sentence stays whole, docs and --item, though
     commits.types has test before docs.
-  - ID-BRIEF-41: no commits section: docs, plain itos commit.
+  - ID-BRIEF-41: no commits section: docs, plain itos commit, with a Gherkin
+    kind and with none, where docs wins over the stop.
   - A task with no registry footer: docs barred, a type its ledger footer is
     not required for passed over: the first it is, with --task.
+  - A task with neither a registry nor a ledger footer, docs let touch its file:
+    docs, plain itos commit, never --task.
   - An Item footer with no in_place_of, docs barred: the stop.
   - A type that requires a footer of free text: passed over for the next.
-  - No Gherkin kind (no tests, or a command adapter alone): a slice's stop.
-  A unit assertion holds the request unchanged by two configs choosing different
-  types. TestSliceAndBugBriefsGolden, which slice-220 adds, changes only where
+  - No Gherkin kind (no tests, or a command adapter alone), under a commits
+    section: a slice's stop.
+  - A command kind listed before the Gherkin one, docs may touch the command
+    kind's root alone: test, judged under the Gherkin kind's root.
+  A unit assertion holds two configs choosing different types to the same
+  request and to different texts, so it cannot pass with the type left out of
+  the brief. TestSliceAndBugBriefsGolden, which slice-220 adds, changes only where
   its config makes it: run it under a config with a registry footer that lets
   docs touch the file, and its drafter's commit sentence stays byte for byte.
 
