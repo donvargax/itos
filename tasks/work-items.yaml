@@ -17258,3 +17258,14 @@ items:
       restores the file; a refused compound command left one feature without its tags until noticed
       (slice-220's drafter, 2026-11-04). A flag to include @wip for named scenarios ends the
       routine.
+
+  - id: p3-one-item-kind
+    title: next's kindOf and brief's itemKind are two definitions of an item's kind
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      slice-219's spec, 2026-11-04. slice-219 shares next's read with attempt; brief keeps its own,
+      and slice-220 reads the kind there too. One definition, in the package that owns items.
