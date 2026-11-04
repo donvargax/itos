@@ -17397,8 +17397,8 @@ items:
   - id: bug-164
     title: --ready ends review-stalled seconds after a review starts, as the stall counts from a request older than the review
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: bug
     why: >
