@@ -50,6 +50,80 @@ func TestTemplates(t *testing.T) {
 	}
 }
 
+// A task's template is each role's own, LF-terminated and no guide or
+// procedure name, and no other role has one (slice-220).
+func TestTaskTemplates(t *testing.T) {
+	for role, first := range map[string]string{
+		"drafter":     "Specify <item> of <project>, in the repository at <absolute path>: <one\nline>. <the task's spec> ",
+		"implementer": "Implement <item> of <project>, in the repository at <absolute path>: <one\nline>. <the task's spec> ",
+		"reviewer":    "Review <item> of <project>, in the repository at <absolute path>: <one\nline>. <the task's spec> ",
+	} {
+		text, ok := TaskTemplate(role)
+		if !ok || !strings.HasPrefix(text, first) || !strings.HasSuffix(text, "\n") || strings.Contains(text, "\r") {
+			t.Errorf("TaskTemplate(%q) = %.60q, %t", role, text, ok)
+		}
+		if _, isText := Text(role + "-task"); isText || IsProcedure(role+"-task") {
+			t.Errorf("%q is a guide or a procedure", role+"-task")
+		}
+	}
+	if text, ok := TaskTemplate("tester"); ok || text != "" {
+		t.Errorf("TaskTemplate(tester) = %q, %t", text, ok)
+	}
+}
+
+// What a task's template copies from the role's other, each run of it from one
+// text through another, stays the same in both, whatever its line breaks.
+func TestTaskTemplatesKeepTheSharedText(t *testing.T) {
+	settled := [2]string{"<What is settled", "must say so.>"}
+	for role, shared := range map[string][][2]string{
+		"drafter": {
+			{"Take nothing:", "takes the item."},
+			{"Run `itos guide brief` first", "rests on>."},
+			settled,
+			{"never re-decided;", "list in your report."},
+			{"Push with `itos push`.", "share the folder."},
+		},
+		"implementer": {
+			{"Run `itos guide work` first", "rests on>."},
+			settled,
+			{"Before pushing, run", "both commands>."},
+			{"Others push to main", "once it is green."},
+		},
+		"reviewer": {
+			{"Your job is a verdict", "push nothing."},
+			{"Run `itos work show <item>` first", "rests on>."},
+			settled,
+			{"Take neither the spec's", "the linters judge those."},
+			{"Report: a verdict", "what would fix it;"},
+			{"<the item's own questions>;", "unsure of."},
+		},
+	} {
+		other, _ := Template(role)
+		task, _ := TaskTemplate(role)
+		for _, run := range shared {
+			got, want := textRun(task, run), textRun(other, run)
+			if want == "" || got != want {
+				t.Errorf("%s: a task's %q is not the other's:\n%q\n%q", role, run[0], got, want)
+			}
+		}
+	}
+}
+
+// textRun is the text from run's first through its second, on one line; "" when
+// the text lacks either.
+func textRun(text string, run [2]string) string {
+	folded := strings.Join(strings.Fields(text), " ")
+	_, rest, ok := strings.Cut(folded, run[0])
+	if !ok {
+		return ""
+	}
+	inner, _, ok := strings.Cut(rest, run[1])
+	if !ok {
+		return ""
+	}
+	return run[0] + inner + run[1]
+}
+
 // Each guide and procedure is there by its name and opens with a heading of
 // its own; a name with neither has none.
 func TestGuides(t *testing.T) {

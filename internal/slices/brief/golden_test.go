@@ -41,6 +41,26 @@ var asBug = strings.NewReplacer(
 	"features/tagged.feature", "features/fixes.feature",
 )
 
+// A task's text leaves no placeholder of a template unfilled: only what a person
+// adds, each marked, and the drafter's header, which is the drafter's to write.
+func TestTaskBriefsFillEveryPlaceholder(t *testing.T) {
+	p := over(map[string]string{
+		"work-items.yaml":    "phases: { 1: null }\nitems:\n  - { id: T-001, title: Tidy, phase: 1, owner: null, status: todo, kind: task, depends_on: [slice-8] }\n  - { id: slice-8, title: Earlier, phase: 1, owner: null, status: done, depends_on: [] }\n",
+		"AGENTS.md":          "Rules.\n",
+		"tasks/phase-1.yaml": "- id: T-001\n  type: chore\n  title: Tidy\n  done_when:\n    - { run: go vet ./... }\n",
+	})
+	marked := strings.NewReplacer(settledMark, "", neighboursMark, "", questionsMark, "", "<short rule>", "")
+	for _, role := range []string{"drafter", "implementer", "reviewer"} {
+		text := brief(t, p, "T-001", role).Text
+		if left := marked.Replace(text); strings.Contains(left, "<") || strings.Contains(left, ">") {
+			t.Errorf("the %s's brief keeps a placeholder:\n%s", role, left)
+		}
+		if !strings.Contains(text, "The task is T-001, whose checks are `go vet ./...`. It depends on slice-8 (done). ") {
+			t.Errorf("the %s's brief does not name the task's spec:\n%s", role, text)
+		}
+	}
+}
+
 // A slice's and a bug's briefs are byte for byte what they were before a task
 // had texts of its own, for every role: no scenario can pin a whole brief, as
 // their output would become released cases (ADR-0054 exempts guide text).

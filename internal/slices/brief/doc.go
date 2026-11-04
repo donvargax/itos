@@ -1,8 +1,10 @@
 // Package brief is the brief command (slice-204, features/brief.feature), a
 // slice (ADR-0053): itos brief <id> --role drafter|implementer|reviewer
 // prints the brief an agent of the role starts from, the role's template
-// (internal/guide: the implementer's is the brief procedure's own, the
-// drafter's and the reviewer's ship beside it and are no guide names)
+// (internal/guide: for a slice or a bug, the implementer's is the brief
+// procedure's own, the drafter's and the reviewer's ship beside it and are
+// no guide names; a task's text for each role is its own, slice-220, the
+// item's kind as next reads it, ledger.KindOf, choosing)
 // filled from the item, and with --json the request a deterministic
 // coordinator binds an attempt to (docs/plans/v9-coordinator.md, the LLM
 // steps' contracts): the spec commit, the reads with their blobs, what was

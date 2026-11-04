@@ -124,7 +124,7 @@ func (h Handler) Handle(ctx context.Context, q Query) (Answer, error) {
 	if problem != nil {
 		return refused(*problem), nil
 	}
-	f := facts{ID: q.ID, Role: q.Role, Kind: itemKind(shown.Item, taskIDs(at)), Depends: dependencies(registry, shown.Item)}
+	f := facts{ID: q.ID, Role: q.Role, Kind: itemKind(shown.Item, at), Depends: dependencies(registry, shown.Item)}
 	if f.Kind == "idea" {
 		return refused(out.Problem{Rule: "brief-idea", Message: q.ID + " is an idea, which has no spec and no kind to brief for",
 			Fix: fmt.Sprintf("make it work first: itos work promote %s --kind slice, or --kind task --type <type> --check <command>", q.ID)}), nil
@@ -195,31 +195,11 @@ func noSpec(id, k string) out.Problem {
 // absent is a registry value an item does not give.
 func absent(v any) bool { return v == nil || v == value.Undefined }
 
-// bugID is a bug's id, bug-<n>.
-var bugID = regexp.MustCompile(`^bug-\d+$`)
-
-// taskIDs is ledger.id as a pattern, nil when the config has none, where
-// an item of no kind is never a task by its id (work.SpecKind), as work
-// show reads it.
-func taskIDs(at *config.Loaded) *regexp.Regexp {
-	if at.Ledger.ID == nil {
-		return nil
-	}
-	return ledger.IDPattern(at)
-}
-
-// itemKind is the item's kind as the brief names it: its kind when it gives
-// one, else slice or task as the registry's header reads an id, bug for
-// bug-<n>, and idea for any other.
-func itemKind(item *value.Map, taskID *regexp.Regexp) string {
-	if k := item.At("kind"); !absent(k) {
-		return value.String(k)
-	}
-	if k := domain.SpecKind(item, taskID); k != "" {
+// itemKind is the item's kind as the brief names it: as next reads it
+// (ledger.KindOf), idea for an item that gives none.
+func itemKind(item *value.Map, at *config.Loaded) string {
+	if k := ledger.KindOf(item, at); k != "" {
 		return k
-	}
-	if bugID.MatchString(value.String(item.At("id"))) {
-		return "bug"
 	}
 	return "idea"
 }

@@ -491,11 +491,12 @@ func TestErrors(t *testing.T) {
 	fails("location", p, "slice-9", kind.Missing, "not a git repository")
 }
 
-// The kind an item is briefed as: its kind when it gives one, else by its
-// id as the registry's header reads it, a bug by bug-<n>, an idea for any
-// other.
+// The kind an item is briefed as: as next reads it, its kind when it gives
+// one, else by its id, an idea for any other.
 func TestItemKind(t *testing.T) {
-	taskID := regexp.MustCompile(`^T-\d+$`)
+	taskID := `T-\d+`
+	at := &config.Loaded{}
+	at.Ledger.ID = &taskID
 	for text, want := range map[string]string{
 		"{ id: p1-x, kind: bug }":     "bug",
 		"{ id: slice-3 }":             "slice",
@@ -508,7 +509,7 @@ func TestItemKind(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if got := itemKind(raw.(*value.Map), taskID); got != want {
+		if got := itemKind(raw.(*value.Map), at); got != want {
 			t.Errorf("itemKind(%s) = %s, not %s", text, got, want)
 		}
 	}

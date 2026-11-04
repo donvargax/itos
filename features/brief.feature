@@ -163,7 +163,7 @@ Feature: itos brief, the filled brief an agent starts from and its request
   # stay, as they are, and a task's change can reach a scenario. The last
   # step is case-insensitive, so any other mention of them fails, "Scenarios"
   # as "scenario".
-  @ID-BRIEF-20 @wip @slice-220
+  @ID-BRIEF-20 @slice-220
   Scenario: A task's implementer is told its why settles the design and red first is running its checks
     Given the work registry has the task "T-001" owned by nobody with the status "todo" and no why
     And the task "T-001" has the committed check "go vet ./..."
@@ -192,7 +192,7 @@ Feature: itos brief, the filled brief an agent starts from and its request
   # built. The settled decisions go in the entry's why, where work edit --note
   # refuses a task. The one mention of scenarios is the sentence saying there
   # are none to write: a leftover such as "Tag each scenario" fails.
-  @ID-BRIEF-21 @wip @slice-220
+  @ID-BRIEF-21 @slice-220
   Scenario: A task's drafter is told its spec is the ledger entry, written by hand, with nothing to mint
     Given the work registry has the task "T-001" owned by nobody with the status "todo" and no why
     And the task "T-001" has the committed check "go vet ./..."
@@ -218,7 +218,7 @@ Feature: itos brief, the filled brief an agent starts from and its request
   # The drafter is the one role briefed on a task with no entry: T-002 is in
   # the registry and the ledger has only the Background's T-001. So it is
   # told to write the entry, in the file its reads cannot name yet.
-  @ID-BRIEF-22 @wip @slice-220
+  @ID-BRIEF-22 @slice-220
   Scenario: A task's drafter is told the same when the task has no ledger entry yet
     Given the work registry has the task "T-002" owned by nobody with the status "todo" and no why
     When itos runs "brief T-002 --role drafter"
@@ -231,7 +231,7 @@ Feature: itos brief, the filled brief an agent starts from and its request
   # A task can have an entry and no check: T-001 here has the Background's
   # entry alone, a state ID-BRIEF-22's task with no entry cannot show. Its
   # drafter still gets the task's text, for it is the one to write the checks.
-  @ID-BRIEF-27 @wip @slice-220
+  @ID-BRIEF-27 @slice-220
   Scenario: A task's drafter is told the same when the task has no checks yet
     Given the work registry has the task "T-001" owned by nobody with the status "todo" and no why
     When itos runs "brief T-001 --role drafter"
@@ -245,7 +245,7 @@ Feature: itos brief, the filled brief an agent starts from and its request
   # placeholder, so the word is gone altogether: the text the last step
   # excepts holds no such word, and the step's case-insensitive reading is
   # what the plain step lacks.
-  @ID-BRIEF-23 @wip @slice-220
+  @ID-BRIEF-23 @slice-220
   Scenario: A task's reviewer judges each check, not scenarios
     Given the work registry has the task "T-001" owned by nobody with the status "todo" and no why
     And the task "T-001" has the committed check "go vet ./..."
@@ -265,7 +265,7 @@ Feature: itos brief, the filled brief an agent starts from and its request
   # T-001 under ledger.id is a task, and a kind key over the id, so T-002 is
   # a slice whatever its id looks like. A build reading only the key fails
   # the first, one reading only the id the second.
-  @ID-BRIEF-24 @wip @slice-220
+  @ID-BRIEF-24 @slice-220
   Scenario: The item's kind, as next reads it, chooses the text, not its id alone
     Given the committed file "tasks/work-items.yaml" holding the lines:
       """
@@ -299,7 +299,7 @@ Feature: itos brief, the filled brief an agent starts from and its request
   # slice-221 will run that golden under a config with a registry footer that
   # lets docs touch the file.
   # The drafter's commit paragraph is left to slice-221, which changes it.
-  @ID-BRIEF-25 @wip @slice-220 @guard
+  @ID-BRIEF-25 @slice-220 @guard
   Scenario Outline: A slice's and a bug's briefs keep the scenario workflow
     Given the work registry has the item "<item>" owned by nobody with the status "todo"
     And a feature file with the scenario "@ID-A-01" tagged "@wip @<item>"
@@ -337,7 +337,7 @@ Feature: itos brief, the filled brief an agent starts from and its request
   # (#237); neither scenario-driven line goes. These live here, not in
   # guide.feature, with the rest of what this slice says of red first for a
   # task.
-  @ID-BRIEF-26 @wip @slice-220
+  @ID-BRIEF-26 @slice-220
   Scenario Outline: itos guide <guide> says what red first means for a task
     When itos runs "guide <guide>"
     Then itos exits with code 0
