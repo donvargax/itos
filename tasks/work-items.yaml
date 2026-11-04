@@ -16990,14 +16990,15 @@ items:
       scenarios. The loop went on (next reads the draft pull request as spec-review), but the
       journal holds no drafter record.
 
-  - id: p1-brief-task-role
+  - id: slice-220
     title: itos brief gives a task's drafter and implementer the task's own steps, not scenario instructions
     phase: 1
     owner: null
     status: todo
     depends_on: []
-    kind: idea
+    kind: slice
     why: >
+      Was p1-brief-task-role.
       An implementer in a loop over another of the person's projects (2026-11-04) reported that itos
       brief for a task (T-4, a build task whose spec is its done_when checks) emitted the scenario
       workflow (red-first, @wip tags) and unfilled coordinator placeholders. Same root as
