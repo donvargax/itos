@@ -1,11 +1,14 @@
 package git
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"runtime"
 	"slices"
 	"testing"
+
+	"github.com/donvargax/itos/v8/internal/kind"
 )
 
 // Paths reads a path list NUL-separated (bug 31): a path git would C-quote,
@@ -75,5 +78,20 @@ func TestPaths(t *testing.T) {
 	gitIn(t, dir, "mv", "a", "b é")
 	if got := here.Changed(); !slices.Equal(got, []string{"R  a -> b é"}) {
 		t.Fatalf("renamed, Changed = %q, want [\"R  a -> b é\"]", got)
+	}
+}
+
+// A git that ran in a repository and failed has no kind; one that did not run
+// is a missing environment.
+func TestReadKindsAFailureByWhetherGitRan(t *testing.T) {
+	dir := t.TempDir()
+	gitIn(t, dir, "init", "-q", "-b", "main")
+	t.Chdir(dir)
+	_, err := here.Read("rev-parse", "--verify", "--quiet", "nonesuch")
+	if err == nil || kind.Of(err) == kind.Missing || err.Error() != "Command failed: git rev-parse --verify --quiet nonesuch" {
+		t.Errorf("a command git refused: %v, kind %v", err, kind.Of(err))
+	}
+	if err := here.failed([]string{"status"}, errors.New("no git")); kind.Of(err) != kind.Missing {
+		t.Errorf("a git that did not run: %v, kind %v", err, kind.Of(err))
 	}
 }

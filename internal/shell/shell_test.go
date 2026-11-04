@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"syscall"
 	"testing"
 
 	"github.com/donvargax/itos/v8/internal/config"
@@ -73,5 +74,20 @@ func TestNotRun(t *testing.T) {
 	}
 	if r := Run(cfg, "true\x00", Options{}); r.Err == nil || r.Code != -1 || !strings.HasPrefix(r.NotRun(), "could not start: ") {
 		t.Errorf("a NUL byte: %+v", r)
+	}
+}
+
+// A signal is named as Node names it when it is one of signals, as Go names it
+// otherwise.
+func TestStatusNamesASignal(t *testing.T) {
+	other := syscall.Signal(99)
+	for want, r := range map[string]Result{
+		"SIGTERM":      {Code: -1, Signal: syscall.SIGTERM},
+		other.String(): {Code: -1, Signal: other},
+		"null":         {Code: -1},
+	} {
+		if got := r.Status(); got != want {
+			t.Errorf("%+v: Status = %q, want %q", r, got, want)
+		}
 	}
 }

@@ -75,6 +75,10 @@ func TestEntriesReadOnlyTheRecordsOfTheCommitsNamed(t *testing.T) {
 	if got, err := entries(record("aa", ""), nil); err == nil || !strings.Contains(err.Error(), "record of aa") || got != nil {
 		t.Errorf("a record of no commit named is %+v, %v; want an error naming aa", got, err)
 	}
+	// By its full name, the record's first field, never its short one.
+	if _, err := entries(record("aabbcc", ""), nil); err == nil || !strings.Contains(err.Error(), "record of aabbcc,") {
+		t.Errorf("a record of no commit named gives %v; want an error naming aabbcc", err)
+	}
 	for _, c := range []struct{ name, out, blamed string }{
 		{"a note holding NUL before another record", record("aa", "n\x00m") + record("bb", ""), "aa"},
 		{"a note holding NUL in the last record", record("aa", "") + record("bb", "n\x00"), "bb"},

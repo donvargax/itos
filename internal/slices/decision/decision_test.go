@@ -1003,3 +1003,13 @@ type unreadable struct {
 }
 
 func (u unreadable) List(context.Context, string) ([]string, error) { return nil, u.err }
+
+// A question of several lines sets each after its first under its first's
+// text, past the ID and its colon.
+func TestShowIndentsAQuestionsLinesUnderItsFirst(t *testing.T) {
+	p, _ := over(t, nil, map[string]string{asks: questions("id: q-1\nquestion: \"Which\\nway?\"")})
+	code, stdout, _, err := call(t, p, "show", "q-1")
+	if want := "q-1: Which\n     way?\nopen\n"; code != 0 || err != nil || stdout != want {
+		t.Errorf("show q-1: %d, %v\n got %q\nwant %q", code, err, stdout, want)
+	}
+}

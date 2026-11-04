@@ -42,10 +42,12 @@ func TestLoadRefusesUnusableValues(t *testing.T) {
 		},
 		// ci.watch.interval's bound is 0, which looks again at once.
 		"version: 1\nci: { watch: { interval: 0 } }\n": nil,
-		"version: 1\nshell: []\n":                      {"shell names no program, so no command can run under it"},
-		"version: 1\nshell: [' ', -c]\n":               {"shell names no program, so no command can run under it"},
-		"version: 1\nshell: [sh, '']\n":                nil,
-		"version: 1\nshell: [sh]\n":                    nil,
+		// ci.watch.timeout's is above 0, which would leave a watch no time to look.
+		"version: 1\nci: { watch: { timeout: 0 } }\n": {"ci.watch.timeout is a number of seconds above 0, not 0"},
+		"version: 1\nshell: []\n":                     {"shell names no program, so no command can run under it"},
+		"version: 1\nshell: [' ', -c]\n":              {"shell names no program, so no command can run under it"},
+		"version: 1\nshell: [sh, '']\n":               nil,
+		"version: 1\nshell: [sh]\n":                   nil,
 		// A timeout of no seconds is no timeout; a non-finite one is named once.
 		"version: 1\nledger: { files: 'tasks/{group}.yaml', check: { timeout: 0 } }\n": {
 			"ledger.check.timeout is a number of seconds above 0, not 0",

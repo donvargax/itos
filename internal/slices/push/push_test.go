@@ -484,6 +484,15 @@ func TestPushRebasesAndPushes(t *testing.T) {
 	}
 }
 
+// A push of the one branch asks for no --atomic, which a remote without the
+// capability refuses: it has nothing to keep together.
+func TestAPushOfOneBranchIsNotAtomic(t *testing.T) {
+	f := repo(t)
+	if code, stdout, stderr, err := call(t, f); code != 0 || err != nil || !reflect.DeepEqual(f.atomic, []bool{false}) {
+		t.Errorf("exit %d, %v, atomic %v\n%s%s", code, err, f.atomic, stdout, stderr)
+	}
+}
+
 // A rebase in progress, a conflict left and an uncommitted change to a
 // tracked file are refused, exit 1, before anything is fetched; so is a
 // detached HEAD.
