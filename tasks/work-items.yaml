@@ -17188,3 +17188,16 @@ items:
       T-341, 2026-11-04: every --ready starts with 'chatgpt-codex-connector not asked' even when it
       was asked and answered; only the initial state, but it misled an implementer into doubting the
       request.
+
+  - id: p2-ready-timeout-from-request
+    title: ci.watch.timeout runs from a head's latest request, not from marking ready
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      T-341, 2026-11-04: a swallowed review request used up the 1800 seconds counted from ready, so
+      while the review really was running --ready returned 75 at once, 'no review after 1800
+      seconds', with no way to wait through its last minutes. Slice-218 ends the swallowed case
+      sooner, not this one.
