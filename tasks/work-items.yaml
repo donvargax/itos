@@ -16980,15 +16980,9 @@ items:
     title: itos brief gives a task's drafter and implementer the task's own steps, not scenario instructions
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: slice
-    why: >
-      Was p1-brief-task-role.
-      An implementer in a loop over another of the person's projects (2026-11-04) reported that itos
-      brief for a task (T-4, a build task whose spec is its done_when checks) emitted the scenario
-      workflow (red-first, @wip tags) and unfilled coordinator placeholders. Same root as
-      p1-attempt-drafter-task-spec: the brief and submit treat every item as scenario work.
 
   - id: slice-221
     title: itos brief's drafter step names the commit type the config lets a spec's scenarios take, not docs
