@@ -8,6 +8,36 @@ import (
 	"github.com/donvargax/itos/v8/internal/config"
 )
 
+// The root is the first kind's that the built-in adapter reads and that gives
+// one: a command kind before it, or a named adapter of another name, is passed
+// over.
+func TestGherkinRoot(t *testing.T) {
+	root, other := "features", "checks"
+	cfg := &config.Loaded{}
+	if got, ok := GherkinRoot(cfg); ok {
+		t.Errorf("no kinds: %q", got)
+	}
+	kind := func(k config.Kind, name, command string, root *string) config.Kind {
+		k.Adapter.Name, k.Adapter.Command, k.Root = name, command, root
+		return k
+	}
+	cfg.Tests.Keys = []string{"unit", "named", "rootless", "scenario", "later"}
+	cfg.Tests.Values = map[string]config.Kind{
+		"unit":     kind(config.Kind{}, "gherkin", "./list", &other),
+		"named":    kind(config.Kind{}, "other", "", &other),
+		"rootless": kind(config.Kind{}, "gherkin", "", nil),
+		"scenario": kind(config.Kind{}, "gherkin", "", &root),
+		"later":    kind(config.Kind{}, "gherkin", "", &other),
+	}
+	if got, ok := GherkinRoot(cfg); !ok || got != "features" {
+		t.Errorf("GherkinRoot = %q, %t", got, ok)
+	}
+	cfg.Tests.Keys = []string{"unit"}
+	if got, ok := GherkinRoot(cfg); ok {
+		t.Errorf("a command kind alone: %q", got)
+	}
+}
+
 // Tagged reads a Gherkin kind's scenarios by a tag on their own tag line or
 // their file's, live or not, and leaves out a tag that only starts another.
 func TestTagged(t *testing.T) {

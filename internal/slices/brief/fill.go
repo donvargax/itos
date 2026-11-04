@@ -13,12 +13,16 @@ import (
 // facts are what a template is filled with: the item's ID, Role, Kind and
 // Title, the repository's Top as git prints it, the Scenarios tagged for
 // the item (a task's ledger entry instead, task), what it Depends on, the
-// paths Read and what was Omitted, and the repository's own brief Lines.
+// paths Read and what was Omitted, and the repository's own brief Lines; for
+// a drafter, how its spec is committed. Where the spec has no file yet,
+// unwritten is the one it would have, a task's by its phase.
 type facts struct {
 	ID, Role, Kind, Title, Top string
 	Scenarios                  []tests.TaggedFile
 	task                       *ledger.Task
 	specFiles                  []string
+	phase, unwritten           string
+	commit                     specCommit
 	Depends                    []dependency
 	Reads                      []string
 	Omitted                    []Omitted
@@ -40,6 +44,8 @@ const (
 	settled       = "<What is settled: the decisions to build to, not to re-decide. Any live scenario this item makes untrue, and that the commit must say so.>"
 	neighbours    = "<the neighbouring scenarios and checks; for an item that moves a rule from one command to another, the scenarios of both commands>"
 	questions     = "<the item's own questions>"
+	commitCommand = "itos commit <spec flag>"
+	commitType    = "<spec type>"
 
 	settledMark    = "<settled decisions, filled by the coordinator>"
 	neighboursMark = "<neighbouring scenarios and checks, filled by the coordinator>"
@@ -66,10 +72,16 @@ func fill(role string, f facts) string {
 		settled, settledMark,
 		neighbours, neighboursMark,
 		questions, questionsMark,
+		commitCommand, f.commit.command(f.ID),
+		commitType, f.commit.Type,
 	)
 	var paragraphs []string
 	for _, p := range strings.Split(strings.TrimSpace(template), "\n\n") {
-		paragraphs = append(paragraphs, r.Replace(strings.Join(strings.Fields(p), " ")))
+		p = strings.Join(strings.Fields(p), " ")
+		if f.commit.Stop {
+			p = commitSentences.ReplaceAllLiteralString(p, noCommitType)
+		}
+		paragraphs = append(paragraphs, r.Replace(p))
 	}
 	text := strings.Join(paragraphs, "\n\n") + "\n"
 	if f.Lines != "" {
