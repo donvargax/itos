@@ -17571,3 +17571,15 @@ items:
     status: dropped
     depends_on: []
     kind: idea
+
+  - id: p2-brief-close-under-pr
+    title: An implementer's brief says to close with itos work done, against its own lines under push.mode pr
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      slice-221, 2026-11-04: the brief's closing sentence says to close the item with itos work done
+      once green, and the repository's appended lines say never to: under pr the coordinator closes
+      after the merge. The template should name the mode's rule.
