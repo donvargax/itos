@@ -17084,3 +17084,14 @@ items:
       #254: a 110-character image digest in a body was refused for its length only after the
       pre-commit hook ran, and had to be split, which breaks it as a copy-paste reference. Cheap
       check first; a line with no space to break at is not a wrapping fault.
+
+  - id: p3-ci-run-keep-going
+    title: ci run --keep-going runs every step and reports each, past a step known to fail
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      #250: a session knew its first step would fail for an external reason and had to repeat each
+      later step by hand. The default stays fail-fast.
