@@ -17599,3 +17599,15 @@ items:
       540 s for Windows, then exited 75 saying run waiting. A failed job could end the wait at once,
       or the line could name it. gh run view --log-failed refuses while the run goes, so itos could
       print the failure once a job fails.
+
+  - id: p3-brief-task-spec-at-branch
+    title: itos brief reads a task's spec at the brief's base, so a check only on its branch may read as none
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      slice-223's drafter, 2026-11-04, unconfirmed: brief/handler.go's spec reads at the brief's
+      base, so a reviewer's or implementer's brief may say 'has no checks yet'. Check which base
+      those roles get, as next and attempt now read the branch.
