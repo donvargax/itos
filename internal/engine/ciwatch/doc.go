@@ -52,8 +52,21 @@
 // bound, exit 75, at the first look after push.pr.ready_wait has passed,
 // unless the timeout passed first.
 //
-// A run that completed with any conclusion but cancelled is given Detail
-// before its end is said (slice 172, features/watch-failures.feature); a
+// Before either limit, a look of WatchReady that finds a job concluded failure,
+// the run not finished, ends the watch at once as a red run's end, exit 1, outcome
+// failure (slice-225): Detail and Ended as below, the end line saying the run has
+// not finished, and Run as GitHub gave it, with no conclusion. The job's log is
+// there to read though gh run view --log-failed refuses while the run goes, since
+// that refusal is gh's own. Only a conclusion of failure stops it: a cancelled job
+// has no verdict (bug 41), and timed_out, and a job still running with a failed
+// step, are left to the run's end. A job allowed to fail (continue-on-error) reads
+// as failed, and the jobs API does not say which is, so the stop cannot tell; a
+// finished run is judged by its own conclusion, whatever its jobs say. Watch does
+// not stop: it waits for the run's end.
+//
+// A run that completed with any conclusion but cancelled, or that WatchReady
+// stopped at, is given Detail before its end is said (slice 172,
+// features/watch-failures.feature); a
 // cancelled run is followed or ends 75 as above, and has nothing failed to
 // name. Detail is the remote's tags at its head commit
 // (git ls-remote, an annotated tag by its ^{} commit), and, for each job that

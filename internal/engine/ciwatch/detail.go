@@ -11,8 +11,9 @@ import (
 	vcsport "github.com/donvargax/itos/v8/internal/vcs/port"
 )
 
-// Detail is a run that completed with what a reader would otherwise look for
-// by hand (slice 172, features/watch-failures.feature): the tags the remote
+// Detail is a run that completed, or that WatchReady stopped at while it goes on
+// (slice-225), with what a reader would otherwise look for by hand (slice 172,
+// features/watch-failures.feature): the tags the remote
 // has at its head commit, an annotated tag by the commit it points to, and
 // for each job that did not succeed the step it failed at and what its log
 // names. A log is asked for once per failed job, never retried, and not at
