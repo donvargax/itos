@@ -17752,3 +17752,15 @@ items:
       From a read of the beads tracker, 2026-11-05. Hosts truncate long output silently, and itos go
       prints 28 KB here. Capping at whole-entry boundaries with a line naming what was cut, as
       beads' prime does, lets an agent know it saw part.
+
+  - id: p3-rules-guidance-not-permission
+    title: itos go says its guidance is not permission to override the person
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      From a read of the beads tracker, 2026-11-05. One sentence in the rules block: guidance is not
+      permission to override what the person said. beads added it after its own push-pressure
+      wording.
