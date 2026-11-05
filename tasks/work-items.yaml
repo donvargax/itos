@@ -17685,3 +17685,18 @@ items:
       increased'. itos next said repair, and --ready would say a CI failure, so an agent is spent
       per round on a problem outside the code. A failed job with no failed step could be its own
       outcome, naming the annotation and for the person.
+
+  - id: p2-v9-module-path-vanity
+    title: "v9 design question: does the module path become a vanity path at the /v9 cut?"
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The person, 2026-11-05: a vanity path would keep Go imports working if itos ever leaves
+      GitHub, as they would then not name the host. The v9 cut changes github.com/donvargax/itos/v8
+      to /v9 anyway, so everyone importing it updates then regardless, which makes it the cheapest
+      moment; the next free chance is v10. It costs one small hosted page. It covers Go imports
+      alone: Actions, pull requests, reviewers and itos push stay tied to GitHub.
+    tags: [v9]
