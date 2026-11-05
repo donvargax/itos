@@ -49,6 +49,31 @@ Feature: itos brief, the filled brief an agent starts from and its request
   scan, the ledger, the ORCHESTRATING section and the reads' blobs, never
   the working tree or the index.
 
+  Where HEAD is not the item's spec (slice-226). Under push.mode pr an item's
+  spec lives on its branch and the driver's clone stays on main, and itos next
+  tells the driver to run itos brief <id> --role reviewer, or implementer, with
+  no --at. From main that brief said a task "has no checks yet" and refused a
+  slice brief-no-spec, while next and attempt submit read the branch (slice-223).
+  A literal reviewer then asked for changes, and the drafter reran for nothing.
+  So, with no --at, under the push.mode of HEAD's config, the reviewer's and
+  the implementer's brief is computed at origin/<id> when next would read the
+  spec there: the clone has that ref, nothing fetched, and it holds a scenario
+  tagged for a slice or a bug, or a ledger entry for a task that is neither
+  done nor dropped, whatever the entry's checks; a ledger the ref cannot give
+  is an error, never HEAD's answer. That is next's reading, shared rather than
+  copied, asked under HEAD's config as everything here is, where next asks
+  under the clone's. Otherwise the brief is computed at HEAD, as ever.
+
+  The brief so computed is the one --at origin/<id> gives, byte for byte. Its
+  base is that ref's commit, not HEAD, because attempt submit recomputes the
+  request with --at <base>: a base left at HEAD with reads from the branch
+  would never match, and every attempt from such a brief would be stale. So
+  the registry, the config and the rest are read at that commit too, and what
+  --at origin/<id> says of a branch is what this says: a branch whose registry
+  lacks the item is refused work-unknown-item. --at still wins, which is also
+  what keeps attempt submit's recomputation at the base. The drafter's brief
+  stays at HEAD, as does every role's outside push.mode pr.
+
   The drafter's brief names the commit type its spec goes in under, and the
   flag of itos commit that goes with it (slice-221). It said docs and --item
   whatever the config, and a project whose commits.scopes.docs leaves out
@@ -867,6 +892,406 @@ Feature: itos brief, the filled brief an agent starts from and its request
     Then itos exits with code 0
     And its JSON's "item" is "slice-9"
     And the "path" of each entry of its JSON's "reads", in order, is "AGENTS.md, features/tagged.feature"
+
+  # slice-226, the rule of this block; the feature's description has it whole.
+  # next's reading is facts.go's atBranch, its readers and a done or dropped
+  # task's exception; slices import no slice, so it moves where both reach it,
+  # or internal/cli binds it as a port, and TestSpecRef's rows keep holding it.
+  # The case slice-223's review found: main's entry has no check, the branch's
+  # has. The JSON is compared with --at origin/T-001's, base, request and text
+  # alike, so a build that reads the checks from the branch and leaves the
+  # rest at HEAD fails, as its request would be stale at attempt submit. Fails
+  # before the work at the first "its output says": "which has no checks yet".
+  @ID-BRIEF-42 @wip @slice-226
+  Scenario: Under push.mode pr, a task's reviewer and implementer are briefed on its check at origin/<task>, with no --at
+    Given a clone of it, where itos runs
+    And the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+      """
+    And the work registry has the task "T-001" owned by nobody with the status "todo" and no why
+    And the clone is on the new branch "T-001"
+    And the task "T-001" has the committed check "go vet ./..."
+    And the last commit SHA is saved as "branch"
+    And git pushes HEAD to the remote's new branch "T-001"
+    And the clone switches to its branch "main"
+    When itos runs "brief T-001 --role reviewer"
+    Then itos exits with code 0
+    And its output says "The task is T-001, whose checks are `go vet ./...`."
+    And its output does not say "no checks yet"
+    When itos runs "brief T-001 --role implementer"
+    Then itos exits with code 0
+    And its output says "The task is T-001, whose checks are `go vet ./...`."
+    And its output does not say "no checks yet"
+    When itos runs "brief T-001 --role implementer --json --at origin/T-001"
+    Then itos exits with code 0
+    And the JSON's "request" is saved as "request"
+    And the JSON's "brief" is saved as "text"
+    When itos runs "brief T-001 --role implementer --json"
+    Then itos exits with code 0
+    And its JSON's "base" matches the one saved as "branch"
+    And its JSON's "spec.commit" matches the one saved as "branch"
+    And its JSON's "request" matches the one saved as "request"
+    And its JSON's "brief" matches the one saved as "text"
+    And its JSON's "reads" entry whose "path" is "tasks/phase-1.yaml" has "blob" the git blob id of "tasks/phase-1.yaml" at the commit saved as "branch"
+
+  # A slice has the same problem, worse: from main the reviewer and the
+  # implementer are refused, for the same code reads both, the spec at the
+  # brief's base. other.feature declares the scenario kind on main, as HEAD's
+  # config judges whether the ref holds the spec. Fails before the work at the
+  # first "itos exits with code 0": exit 1, brief-no-spec.
+  @ID-BRIEF-43 @wip @slice-226
+  Scenario: Under push.mode pr, a slice's reviewer and implementer are briefed on its scenarios at origin/<slice>, with no --at
+    Given a clone of it, where itos runs
+    And the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+      """
+    And the committed feature file "features/other.feature" with the live scenario "@ID-O-01" tagged "@slice-8"
+    And the work registry has the item "slice-9" owned by nobody with the status "todo"
+    And the clone is on the new branch "slice-9"
+    And a feature file with the scenario "@ID-A-01" tagged "@wip @slice-9"
+    And the last commit SHA is saved as "branch"
+    And git pushes HEAD to the remote's new branch "slice-9"
+    And the clone switches to its branch "main"
+    When itos runs "brief slice-9 --role reviewer"
+    Then itos exits with code 0
+    And its output says "The scenarios are @ID-A-01 in features/tagged.feature, all `@wip`."
+    When itos runs "brief slice-9 --role implementer"
+    Then itos exits with code 0
+    And its output says "The scenarios are @ID-A-01 in features/tagged.feature, all `@wip`."
+    When itos runs "brief slice-9 --role implementer --json"
+    Then itos exits with code 0
+    And its JSON's "base" matches the one saved as "branch"
+    And its JSON's "spec.commit" matches the one saved as "branch"
+    And the "path" of each entry of its JSON's "reads", in order, is "AGENTS.md, features/tagged.feature"
+
+  # An entry at the ref wins even with no check, as in next (ID-NEXTFORGE-22):
+  # the branch is what its pull request would land, and next sends this task
+  # to its drafter. So here "has no checks yet" is true, and said at the
+  # branch's base. Fails before the work at the first "its output says": it
+  # reads main's check.
+  @ID-BRIEF-44 @wip @slice-226
+  Scenario: Under push.mode pr, a task whose entry at origin/<task> has no check is briefed so, whatever main's entry holds
+    Given a clone of it, where itos runs
+    And the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+      """
+    And the work registry has the task "T-001" owned by nobody with the status "todo" and no why
+    And the task "T-001" has the committed check "go vet ./..."
+    And the clone is on the new branch "T-001"
+    And the committed file "tasks/phase-1.yaml" holding the lines:
+      """
+      - { id: T-001, type: chore, title: Trim, done_when: [] }
+      """
+    And the last commit SHA is saved as "branch"
+    And git pushes HEAD to the remote's new branch "T-001"
+    And the clone switches to its branch "main"
+    When itos runs "brief T-001 --role implementer"
+    Then itos exits with code 0
+    And its output says "The task is T-001, which has no checks yet."
+    And its output does not say "go vet"
+    When itos runs "brief T-001 --role implementer --json"
+    Then itos exits with code 0
+    And its JSON's "base" matches the one saved as "branch"
+
+  # Main and the branch both tag a scenario for the slice, each its own: the
+  # branch answers, so a build that reads the branch only when HEAD holds
+  # nothing fails. Fails before the work at "its output says": it names
+  # @ID-A-01, main's.
+  @ID-BRIEF-45 @wip @slice-226
+  Scenario: Under push.mode pr, a slice's scenarios at origin/<slice> are the brief's, whatever main tags for it
+    Given a clone of it, where itos runs
+    And the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+      """
+    And the work registry has the item "slice-9" owned by nobody with the status "todo"
+    And a feature file with the scenario "@ID-A-01" tagged "@wip @slice-9"
+    And the clone is on the new branch "slice-9"
+    And a feature file with the scenario "@ID-A-02" tagged "@wip @slice-9"
+    And the last commit SHA is saved as "branch"
+    And git pushes HEAD to the remote's new branch "slice-9"
+    And the clone switches to its branch "main"
+    When itos runs "brief slice-9 --role reviewer"
+    Then itos exits with code 0
+    And its output says "The scenarios are @ID-A-02 in features/tagged.feature, all `@wip`."
+    When itos runs "brief slice-9 --role reviewer --json"
+    Then itos exits with code 0
+    And its JSON's "base" matches the one saved as "branch"
+
+  # The settled decision on the base: a result of a brief with no --at is not
+  # stale at attempt submit, which recomputes the request at the result's base.
+  # Main moves after the brief, AGENTS.md reworded, so a base read from HEAD at
+  # submit fails too. ID-ATTEMPT-02's flow with the --at left out; its spec
+  # commit is before the base, so the implementer's test commit is what counts.
+  # A later brief's base is the tip by then, as --at origin/<id>'s is, so a
+  # result whose first commit past it is a feat or a fix is attempt-not-red-first:
+  # that is attempt's rule at --at's base and not this slice's to change.
+  # Fails before the work at the first "itos exits with code 0": exit 1,
+  # brief-no-spec.
+  @ID-BRIEF-46 @wip @slice-226
+  Scenario: Under push.mode pr, a result of a brief with no --at is accepted, main having moved since
+    Given a clone of it, where itos runs
+    And the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+      """
+    And the committed file ".gitignore" holding "result.json"
+    And the committed feature file "features/other.feature" with the live scenario "@ID-O-01" tagged "@slice-8"
+    And the work registry has the item "slice-9" owned by nobody with the status "todo"
+    And the clone is on the new branch "slice-9"
+    And a feature file with the scenario "@ID-A-01" tagged "@wip @slice-9"
+    And the last commit SHA is saved as "branch"
+    And git pushes HEAD to the remote's new branch "slice-9"
+    And the clone switches to its branch "main"
+    When itos runs "brief slice-9 --role implementer --json"
+    Then itos exits with code 0
+    And its JSON's "base" matches the one saved as "branch"
+    And the JSON's "request" is saved as "request"
+    And the JSON's "base" is saved as "base"
+    Given the committed file "AGENTS.md" holding "Stage only your own files, by path."
+    And the clone switches to its branch "slice-9"
+    And the commit "test: add the steps" on top of it
+    And the commit "feat: say the next step" turning the scenario "@ID-A-01" live on top of it
+    And the last commit SHA is saved as "head"
+    And git pushes HEAD to the remote's new branch "slice-9"
+    And the clone switches to its branch "main"
+    And the file "result.json" holds the lines, the saved values filled in:
+      """
+      {"schema":1,"item":"slice-9","role":"implementer","request":"<request>","base":"<base>","attempt":1,"outcome":"done","head":"<head>"}
+      """
+    When itos runs "attempt submit slice-9 result.json --json"
+    Then itos exits with code 0
+    And its JSON's "outcome" is "accepted"
+    And its JSON's "base" matches the one saved as "branch"
+
+  # A guard: with no ref HEAD answers, which is what a clone with no remote, or
+  # one that never fetched the branch, gets: main's "no checks yet". Removing
+  # the remote takes its refs with it. The check staged on main is no commit,
+  # so a build calling next's whole read, whose fallback for a task is the
+  # working tree, fails: the brief reads no working tree (ID-BRIEF-13). It
+  # passes before the work and must after.
+  @ID-BRIEF-47 @guard @wip @slice-226
+  Scenario: Under push.mode pr, with no ref for the item's branch, the brief is computed at HEAD and never in the working tree
+    Given a clone of it, where itos runs
+    And the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+      """
+    And the work registry has the task "T-001" owned by nobody with the status "todo" and no why
+    And the clone is on the new branch "T-001"
+    And the task "T-001" has the committed check "go vet ./..."
+    And git pushes HEAD to the remote's new branch "T-001"
+    And the clone switches to its branch "main"
+    And the clone has no remote
+    And the last commit SHA is saved as "main"
+    And the task "T-001" has the check "go test ./..."
+    When itos runs "brief T-001 --role reviewer"
+    Then itos exits with code 0
+    And its output says "The task is T-001, which has no checks yet."
+    When itos runs "brief T-001 --role implementer --json"
+    Then itos exits with code 0
+    And its JSON's "base" matches the one saved as "main"
+
+  # A guard: a ref that holds no spec is no answer, as in next (ID-NEXTFORGE-23),
+  # a branch forked before the spec was written. T-0010 is there so that a build
+  # matching the id by its prefix fails. A build that takes the ref whenever it
+  # exists says "no checks yet" of the task and refuses the slice brief-no-spec.
+  # It passes before the work and must after.
+  @ID-BRIEF-48 @guard @wip @slice-226
+  Scenario: Under push.mode pr, an item's branch that holds no spec for it leaves the brief at HEAD
+    Given a clone of it, where itos runs
+    And the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+      """
+    And the work registry has the task "T-001" owned by nobody with the status "todo" and no why
+    And the work registry has the item "slice-9" owned by nobody with the status "todo"
+    And the clone is on the new branch "T-001"
+    And the committed file "tasks/phase-1.yaml" holding the lines:
+      """
+      - { id: T-0010, type: chore, title: Another, done_when: [] }
+      """
+    And git pushes HEAD to the remote's new branch "T-001"
+    And the clone switches to its branch "main"
+    And the clone is on the new branch "slice-9"
+    And the clone has the commit "docs: add a note" touching "notes.md"
+    And git pushes HEAD to the remote's new branch "slice-9"
+    And the clone switches to its branch "main"
+    And the task "T-001" has the committed check "go vet ./..."
+    And a feature file with the scenario "@ID-A-01" tagged "@wip @slice-9"
+    And the last commit SHA is saved as "main"
+    When itos runs "brief T-001 --role implementer"
+    Then itos exits with code 0
+    And its output says "The task is T-001, whose checks are `go vet ./...`."
+    When itos runs "brief T-001 --role implementer --json"
+    Then itos exits with code 0
+    And its JSON's "base" matches the one saved as "main"
+    When itos runs "brief slice-9 --role reviewer"
+    Then itos exits with code 0
+    And its output says "The scenarios are @ID-A-01 in features/tagged.feature, all `@wip`."
+    When itos runs "brief slice-9 --role reviewer --json"
+    Then itos exits with code 0
+    And its JSON's "base" matches the one saved as "main"
+
+  # A guard, two settled decisions: --at wins, whichever commit it names, which
+  # attempt submit's recomputation rests on; and the drafter's own brief is not
+  # changed, with or without a branch, so a build reading the branch for every
+  # role fails. It passes before the work and must after.
+  @ID-BRIEF-49 @guard @wip @slice-226
+  Scenario: Under push.mode pr, --at wins over the item's branch, and a drafter's brief stays at HEAD
+    Given a clone of it, where itos runs
+    And the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+      """
+    And the work registry has the task "T-001" owned by nobody with the status "todo" and no why
+    And the clone is on the new branch "T-001"
+    And the task "T-001" has the committed check "go vet ./..."
+    And the last commit SHA is saved as "branch"
+    And git pushes HEAD to the remote's new branch "T-001"
+    And the clone switches to its branch "main"
+    And the last commit SHA is saved as "main"
+    When itos runs "brief T-001 --role implementer --at main"
+    Then itos exits with code 0
+    And its output says "The task is T-001, which has no checks yet."
+    When itos runs "brief T-001 --role reviewer --json --at main"
+    Then itos exits with code 0
+    And its JSON's "base" matches the one saved as "main"
+    When itos runs "brief T-001 --role drafter"
+    Then itos exits with code 0
+    And its output says "which has no checks yet. Your job"
+    When itos runs "brief T-001 --role drafter --json"
+    Then itos exits with code 0
+    And its JSON's "base" matches the one saved as "main"
+    When itos runs "brief T-001 --role drafter --json --at origin/T-001"
+    Then itos exits with code 0
+    And its JSON's "base" matches the one saved as "branch"
+
+  # A guard: outside push.mode pr a branch named for an item means nothing, as
+  # in next, so a build with no regard for the mode fails. It passes before the
+  # work and must after.
+  @ID-BRIEF-50 @guard @wip @slice-226
+  Scenario: Under trunk, a task's brief stays at HEAD, a branch named for it or not
+    Given a clone of it, where itos runs
+    And the work registry has the task "T-001" owned by nobody with the status "todo" and no why
+    And the clone is on the new branch "T-001"
+    And the task "T-001" has the committed check "go vet ./..."
+    And git pushes HEAD to the remote's new branch "T-001"
+    And the clone switches to its branch "main"
+    And the last commit SHA is saved as "main"
+    When itos runs "brief T-001 --role implementer"
+    Then itos exits with code 0
+    And its output says "The task is T-001, which has no checks yet."
+    When itos runs "brief T-001 --role reviewer --json"
+    Then itos exits with code 0
+    And its JSON's "base" matches the one saved as "main"
+
+  # The ref is the one the clone's last fetch or push left: the brief reads,
+  # fetches nothing and asks no forge, reachable remote or not. The remote's
+  # branch moves past it from another clone, and a fetch would move the ref,
+  # which the saved state compares; a remote that cannot be reached, or a commit
+  # on the clone's own branch not pushed, changes nothing either, the rule being
+  # the branch on the remote. Fails before the work at the first "its output
+  # says": main's "which has no checks yet".
+  @ID-BRIEF-51 @wip @slice-226
+  Scenario: Under push.mode pr, the brief reads the ref the clone has, fetching nothing, whatever the remote or the clone's branch hold since
+    Given a clone of it, where itos runs
+    And the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+      """
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the work registry has the task "T-001" owned by nobody with the status "todo" and no why
+    And the clone is on the new branch "T-001"
+    And the task "T-001" has the committed check "go vet ./..."
+    And the last commit SHA is saved as "branch"
+    And git pushes HEAD to the remote's new branch "T-001"
+    And the remote's branch "T-001" has gained the commit "docs: add a note" touching "notes.md"
+    And the clone switches to its branch "main"
+    And the repository state is saved for comparison
+    When itos runs "brief T-001 --role reviewer"
+    Then itos exits with code 0
+    And its output says "The task is T-001, whose checks are `go vet ./...`."
+    When itos runs "brief T-001 --role reviewer --json"
+    Then itos exits with code 0
+    And its JSON's "base" matches the one saved as "branch"
+    And the repository files index and HEAD match the saved state
+    And git reports no change to the working tree or the index
+    And the recording gh was never called
+    Given the remote cannot be reached
+    When itos runs "brief T-001 --role reviewer --json"
+    Then itos exits with code 0
+    And its JSON's "base" matches the one saved as "branch"
+    Given the clone switches to its branch "T-001"
+    And the clone has the commit "docs: add a later note" touching "later.md"
+    When itos runs "brief T-001 --role implementer --json"
+    Then itos exits with code 0
+    And its JSON's "base" matches the one saved as "branch"
+
+  # A ledger the ref cannot give is the read's error, a usage error as
+  # ledger.Tasks gives it, never HEAD's answer, as in next (ID-NEXTFORGE-25):
+  # main's entry has a check, so a build that falls back on the error says it.
+  # Fails before the work at the exit code: it reads main's check, exit 0.
+  @ID-BRIEF-52 @wip @slice-226
+  Scenario: Under push.mode pr, a ledger that cannot be read at origin/<task> is an error, not main's checks
+    Given a clone of it, where itos runs
+    And the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+      """
+    And the work registry has the task "T-001" owned by nobody with the status "todo" and no why
+    And the task "T-001" has the committed check "go vet ./..."
+    And the clone is on the new branch "T-001"
+    And the committed file "tasks/phase-1.yaml" holding "{ id: T-001, done_when: ["
+    And git pushes HEAD to the remote's new branch "T-001"
+    And the clone switches to its branch "main"
+    When itos runs "brief T-001 --role implementer"
+    Then itos exits with code 2
+    And its output does not say "go vet"
+
+  # A guard: a done or dropped task's branch may be stale, so next reads no ref
+  # for it, and neither does this: a bad ledger there refuses nothing. It passes
+  # before the work and must after; a build sharing next's reading of the ref
+  # with no regard for the status fails, with exit 2.
+  @ID-BRIEF-53 @guard @wip @slice-226
+  Scenario Outline: Under push.mode pr, a <status> task's brief stays at HEAD, its branch stale or not
+    Given a clone of it, where itos runs
+    And the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+      """
+    And the work registry has the task "T-001" owned by nobody with the status "<status>" and no why
+    And the task "T-001" has the committed check "go vet ./..."
+    And the clone is on the new branch "T-001"
+    And the committed file "tasks/phase-1.yaml" holding "{ id: T-001, done_when: ["
+    And git pushes HEAD to the remote's new branch "T-001"
+    And the clone switches to its branch "main"
+    And the last commit SHA is saved as "main"
+    When itos runs "brief T-001 --role implementer"
+    Then itos exits with code 0
+    And its output says "The task is T-001, whose checks are `go vet ./...`."
+    When itos runs "brief T-001 --role implementer --json"
+    Then itos exits with code 0
+    And its JSON's "base" matches the one saved as "main"
+
+    Examples:
+      | status  |
+      | done    |
+      | dropped |
 
   # A ref written with a leading ./ or a trailing / names the same file or
   # folder (the review of the build, round 2); the reason keeps its spelling.
