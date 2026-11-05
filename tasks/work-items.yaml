@@ -17142,18 +17142,9 @@ items:
     title: --ready's first waiting line says a login was not asked when it was
     phase: 3
     owner: null
-    status: todo
+    status: dropped
     depends_on: []
     kind: idea
-    why: >
-      T-341, 2026-11-04: every --ready starts with 'chatgpt-codex-connector not asked' even when it
-      was asked and answered; only the initial state, but it misled an implementer into doubting the
-      request.
-
-      slice-219, 2026-11-04: it said not asked for the whole wait and in the exit 75 message, long
-      after both reviews completed on the head, and changed only once CI passed. May follow from the
-      plain security request having no marker. A clean security review leaves has_any_findings null
-      while a clean code review gives false, so read status.
 
   - id: p2-ready-timeout-from-request
     title: ci.watch.timeout runs from a head's latest request, not from marking ready
