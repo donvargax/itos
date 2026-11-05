@@ -17966,3 +17966,18 @@ items:
       choice and its loop's workers coordinate through itos state and one lock. Worth revisiting
       only if v10 runs agents in parallel on one item or across repositories.
     tags: [v9]
+
+  - id: p3-v9-tradeoff-telemetry
+    title: "Trade-off: usage telemetry from users' machines"
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      From a read of the beads tracker, 2026-11-05; recorded as a trade-off for the v9 and v10
+      design, not adopted. Gains: knowing which commands are used and where they fail, which would
+      steer v9 and v10. Costs: trust (beads' is on by default while its security doc says none),
+      data leaving users' machines, a service to run. If itos ever wants this, opt-in only, local
+      first: itos's friction ideas and consumer reports already give the signal with consent.
+    tags: [v9]
