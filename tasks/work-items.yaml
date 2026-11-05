@@ -18014,3 +18014,16 @@ items:
       p1-agent-rules-as-data, which gives each rule a caught count, false positives and an exit
       date.
     tags: [v9]
+
+  - id: p2-brief-address-paragraph
+    title: "Experiment: itos brief opens with an address paragraph saying what the agent is and how it is judged"
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      From Steve Yegge's essays Fences not Sandboxes, Seats and Sunsets and The Counting House, read
+      2026-11-05. The Counting House tells each clerk it is stateless, proposes rather than acts,
+      who checks its work, that a malformed result is rotated rather than blamed, and how to decline
+      with a reason. Try the paragraph on a driven loop and compare steering needed and declines.
