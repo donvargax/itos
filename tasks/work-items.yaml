@@ -17852,3 +17852,16 @@ items:
       rerun-safe facts, and a test failing on a command missing from it, would finish p1-json-gaps
       and p1-mutations-rerun-safe and keep them finished.
     tags: [v9]
+
+  - id: p2-v9-staleness-from-facts
+    title: "v9: an item's staleness comes from its last push or journal time, not heartbeats"
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      From a read of the beads tracker, 2026-11-05. Input to p1-work-backlog-summary and mid-flight
+      pickup. Agent-sent heartbeats depend on agents remembering to send them; the forge and journal
+      already know.
+    tags: [v9]
