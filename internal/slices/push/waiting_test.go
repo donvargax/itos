@@ -9,7 +9,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/donvargax/itos/v8/internal/engine/reviewers"
 	"github.com/donvargax/itos/v8/internal/providers"
 	vcsfake "github.com/donvargax/itos/v8/internal/vcs/port/porttest"
 )
@@ -700,53 +699,5 @@ func TestPushReadyWhereTheSecurityMarkerFails(t *testing.T) {
 				t.Errorf("exit %d, %s, asks %d, %q\n%s%s", code, r.Outcome, p.asks, comments(f), stdout, stderr)
 			}
 		})
-	}
-}
-
-// A request posted counts until GitHub lists it, and then once, known by its
-// address; one with no address cannot be known, and counts beside those listed.
-func TestRequestsCountAPostedRequestOnce(t *testing.T) {
-	const head = "0123456789abcdef0123456789abcdef01234567"
-	req := reviewers.CodexSecurity("a")
-	listedAt, postedAt := time.Unix(1_000, 0), time.Unix(1_001, 0)
-	mark := req.Bodies(head)[1]
-	listed := []providers.Authored{{Body: mark, URL: "u1", Created: listedAt}}
-	for name, c := range map[string]struct {
-		comments []providers.Authored
-		posted   []requestMade
-		want     []requestMade
-	}{
-		"not listed yet":    {nil, []requestMade{{"u1", postedAt}}, []requestMade{{"u1", postedAt}}},
-		"listed":            {listed, []requestMade{{"u1", postedAt}}, []requestMade{{"u1", listedAt}}},
-		"another's listed":  {listed, []requestMade{{"u2", postedAt}}, []requestMade{{"u1", listedAt}, {"u2", postedAt}}},
-		"no address":        {[]providers.Authored{{Body: mark}}, []requestMade{{"", postedAt}}, []requestMade{{"", time.Time{}}, {"", postedAt}}},
-		"two with one name": {nil, []requestMade{{"u1", listedAt}, {"u1", postedAt}}, []requestMade{{"u1", listedAt}, {"u1", postedAt}}},
-	} {
-		rv := newReviewing(1)
-		rv.asked[req] = c.posted
-		if got := rv.requests(req, c.comments, head); !reflect.DeepEqual(got, c.want) {
-			t.Errorf("%s: %+v, want %+v", name, got, c.want)
-		}
-	}
-}
-
-// The latest request is by its time, whatever the order given, and the one given
-// last of those with the same time or with none.
-func TestLatestRequest(t *testing.T) {
-	first, later := time.Unix(1_000, 0), time.Unix(2_000, 0)
-	for _, c := range []struct {
-		made []requestMade
-		want string
-	}{
-		{nil, ""},
-		{[]requestMade{{"a", first}, {"b", later}}, "b"},
-		{[]requestMade{{"a", later}, {"b", first}}, "a"},
-		{[]requestMade{{"a", later}, {"b", later}}, "b"},
-		{[]requestMade{{"a", time.Time{}}, {"b", time.Time{}}}, "b"},
-		{[]requestMade{{"a", time.Time{}}, {"b", first}}, "b"},
-	} {
-		if got := latest(c.made).address; got != c.want {
-			t.Errorf("%+v: %q, want %q", c.made, got, c.want)
-		}
 	}
 }

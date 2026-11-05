@@ -1081,7 +1081,7 @@ Feature: itos next reads an in-flight item's state from the forge under push.mod
   # graphql question a run, nothing posted. Then --ready over the same answer stops
   # with the same review and request, so the two read one judgement. Fails before
   # the work at the first output line: next says handed-back.
-  @wip @ID-NEXTFORGE-26 @slice-224
+  @ID-NEXTFORGE-26 @slice-224
   Scenario: Under push.mode pr, a ready pull request whose review has not started after its two requests, past push.pr.review_stall, is review-stuck, the person's step
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -1136,7 +1136,7 @@ Feature: itos next reads an in-flight item's state from the forge under push.mod
   # The item is todo with no journal, the ready pull request being judged first.
   # Then --ready stops at the same login, posting nothing. Fails before the work at
   # the state: next says handed-back.
-  @wip @ID-NEXTFORGE-27 @slice-224
+  @ID-NEXTFORGE-27 @slice-224
   Scenario: Under push.mode pr, a ready pull request whose review still runs past push.pr.review_stall after it was asked again is review-stuck
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -1180,7 +1180,7 @@ Feature: itos next reads an in-flight item's state from the forge under push.mod
   # the reviews, and must after it: a build reading a review not started as stuck
   # fails at the first run, one needing a single request at the second, one counting
   # from the earlier request at the third.
-  @wip @ID-NEXTFORGE-28 @guard @slice-224
+  @ID-NEXTFORGE-28 @guard @slice-224
   Scenario: Under push.mode pr, next stays handed-back while --ready still has a request to post or a clock to run
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -1219,7 +1219,7 @@ Feature: itos next reads an in-flight item's state from the forge under push.mod
   # taking review_stall 0 as a clock that has run says review-stuck at the first run,
   # and so does one defaulting an unset review_stall to this repository's 1200, the
   # times being well past it.
-  @wip @ID-NEXTFORGE-29 @guard @slice-224
+  @ID-NEXTFORGE-29 @guard @slice-224
   Scenario: Under push.mode pr, with no push.pr.review_stall next never says review-stuck
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -1259,7 +1259,7 @@ Feature: itos next reads an in-flight item's state from the forge under push.mod
   # so it is handed-back, until the new head's own two requests stick again, naming
   # that head. Then the review starting clears it, and so does it completing. Fails
   # before the work at the first review-stuck state: next says handed-back.
-  @wip @ID-NEXTFORGE-30 @slice-224
+  @ID-NEXTFORGE-30 @slice-224
   Scenario: Under push.mode pr, review-stuck moves the revision, a new head starts afresh, and a review starting or completing clears it
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """

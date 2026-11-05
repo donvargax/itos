@@ -6,6 +6,7 @@ import (
 	"io"
 	"strings"
 
+	"github.com/donvargax/itos/v8/internal/engine/reviewers"
 	"github.com/donvargax/itos/v8/internal/out"
 )
 
@@ -48,11 +49,16 @@ func (c CLI) refuse(stdout, stderr io.Writer, p out.Problem, code int) (int, err
 }
 
 // Line is the item's line: "<id>: <state>; next: <actor> <action>", then
-// "; run: <command>" when the step is a deterministic itos command.
+// "; run: <command>" when the step is a deterministic itos command, or what is
+// stuck for review-stuck.
 func (n Next) Line() string {
 	line := fmt.Sprintf("%s: %s; next: %s %s", n.Item, n.State, n.Actor, n.Action)
 	if n.Argv != nil {
 		line += "; run: " + strings.Join(n.Argv, " ")
+	}
+	if n.Observed != nil && n.Observed.ReviewStuck != nil {
+		s := n.Observed.ReviewStuck
+		line += fmt.Sprintf("; %s review by %s of %s, last asked at %s", s.Review, s.Login, s.Head, s.Request)
 	}
 	return line
 }
@@ -68,16 +74,17 @@ type step struct {
 // observed is what the forge and the journal said, as --json prints it:
 // the pull request (null for none), the verdict (null for none), the
 // checks, the open threads, the journal's latest implementer record (null
-// for none), the reviewers not requested for the head ([] for none), and
-// whether auto-merge is on.
+// for none), the reviewers not requested for the head ([] for none), whether
+// auto-merge is on, and the review stuck (null outside review-stuck).
 type observed struct {
-	Pull        *Pull    `json:"pr"`
-	Verdict     *string  `json:"verdict"`
-	Checks      string   `json:"checks"`
-	ThreadsOpen int      `json:"threads_open"`
-	Attempt     *Record  `json:"attempt"`
-	Unrequested []string `json:"unrequested"`
-	AutoMerge   bool     `json:"auto_merge"`
+	Pull        *Pull           `json:"pr"`
+	Verdict     *string         `json:"verdict"`
+	Checks      string          `json:"checks"`
+	ThreadsOpen int             `json:"threads_open"`
+	Attempt     *Record         `json:"attempt"`
+	Unrequested []string        `json:"unrequested"`
+	AutoMerge   bool            `json:"auto_merge"`
+	ReviewStuck *reviewers.Stop `json:"review_stuck"`
 }
 
 // Fields are the item as --json prints it, after "schema": ok, item, kind
@@ -104,7 +111,7 @@ func (n Next) Fields() []out.Field {
 		fields = append(fields, out.Field{Key: "blocked_reason", Value: n.BlockedReason})
 	}
 	if o := n.Observed; o != nil {
-		seen := observed{Pull: o.Pull, Checks: o.Checks, ThreadsOpen: o.ThreadsOpen, Unrequested: o.Unrequested, AutoMerge: o.AutoMerge}
+		seen := observed{Pull: o.Pull, Checks: o.Checks, ThreadsOpen: o.ThreadsOpen, Unrequested: o.Unrequested, AutoMerge: o.AutoMerge, ReviewStuck: o.ReviewStuck}
 		if o.Verdict != "" {
 			seen.Verdict = &o.Verdict
 		}

@@ -46,4 +46,15 @@
 // names a bot without it. Missing is each request of each reviewer, in the config's order and the
 // kind's, neither on the head nor answered by the reviewer's own review of
 // it; Unrequested the logins, as written, with a request missing.
+//
+// # The walk
+//
+// Reviewing.Walk is one look at the reviews a wait has asked for, what itos push
+// --ready does at each look and what itos next reads of a pull request stopped there
+// (slice-224), so they cannot disagree: it reaches each request a review-state comment
+// lacks on the head (askForHead), then, under push.pr.review_stall, each review's stop
+// or second request in its order (judgeReviews). --ready gives it a poster and calls its
+// limits between those two phases, ci.watch.timeout and ready_wait coming before the
+// judging; next (Stuck) gives it neither, so the first post it reaches ends the walk with
+// no Stop, and a time GitHub does not give counts from that look, so no clock has run.
 package reviewers
