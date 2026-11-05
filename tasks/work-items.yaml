@@ -17995,3 +17995,22 @@ items:
       spend, summaries that can be wrong, a model dependency in the tracker. git keeps full history,
       so archiving closed items (p1-archive-closed) shrinks the registry exactly and for free.
     tags: [v9]
+
+  - id: p1-v9-gate-and-rule-triage
+    title: "v9 design: triage itos's gates and rules, and give each a way to retire"
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      From Steve Yegge's essays Fences not Sandboxes, Seats and Sunsets and The Counting House, read
+      2026-11-05. His factory jammed at 650 refusal sites, all made from postmortems with nobody
+      curating them, and recovered at 14 ('The Cut'); his own read of his rules was wrong within
+      three weeks. itos admits a rail only for an observed mistake, which slows growth but caps
+      nothing: 58 of 472 open ideas add a refusal or guard (count from the read, unchecked). Triage
+      those ideas and the existing gates before v9 settles: keep, merge, move pure craftsmanship to
+      docs, or drop. Answers v9-friction.md's 'Which local gates earn their cost' with
+      p1-agent-rules-as-data, which gives each rule a caught count, false positives and an exit
+      date.
+    tags: [v9]
