@@ -17814,3 +17814,16 @@ items:
       three-way JSONL merge engine and then removed it (reason inferred from commit subjects only).
       A file per item lets git merge most changes without a driver.
     tags: [v9]
+
+  - id: p2-v9-typed-waits
+    title: "v9: blocked_by names what it waits on, as facts next reads"
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      From a read of the beads tracker, 2026-11-05. blocked_by is prose today and names nothing;
+      p1-defer-until covers dates alone. Typed waits such as pr:123, run:<id> or date:<day> would be
+      read as itos next facts. Do not make waits into items.
+    tags: [v9]
