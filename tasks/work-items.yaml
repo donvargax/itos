@@ -17554,6 +17554,10 @@ items:
       person answer, the driver printed 'needs the person', and the person was not needed. A blocked
       record could say whom it waits for; next would name that actor. Autonomous projects need the
       person out of this path.
+    deferred: >
+      docs/plans/v9-coordinator.md already gives this path to an answerer actor and decision answer
+      --provisional --class (blocked to back, by the answering agent or the person). A key on the v8
+      attempt record would be replaced by it; take it up in that design.
 
   - id: slice-225
     title: itos push --ready stops at a job that already failed and names it, instead of waiting out the run
