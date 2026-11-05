@@ -106,18 +106,46 @@ func read(ctx context.Context, cfg *config.Loaded, tracker trackerport.Tracker, 
 }
 
 // atBranch is an item's spec under push.mode pr and the ref it was read at:
-// at origin/<id> when the clone has that ref, the one the last fetch or push
-// left, nothing fetched, and at says the tree holds it, else fallback's. A
-// tree that cannot be read is at's error, never fallback's answer.
+// heldAtBranch's when it finds one, ref origin/<id>, else fallback's. A tree
+// that cannot be read is at's error, never fallback's answer.
 func atBranch[T any](ctx context.Context, cfg *config.Loaded, id string, at func(tree string) (T, bool, error), fallback func() (T, string, error)) (T, string, error) {
-	remote := "origin/" + id
-	if _, err := cfg.VCS.Ref(ctx, "refs/remotes/"+remote); err == nil {
-		found, holds, err := at("refs/remotes/" + remote)
-		if err != nil || holds {
-			return found, remote, err
-		}
+	found, commit, err := heldAtBranch(ctx, cfg, id, at)
+	if err != nil || commit != "" {
+		return found, "origin/" + id, err
 	}
 	return fallback()
+}
+
+// heldAtBranch is what at finds at origin/<id> and that ref's commit, when the
+// clone has the ref, the one the last fetch or push left, nothing fetched, and
+// at says its tree holds the item's spec; commit "" otherwise.
+func heldAtBranch[T any](ctx context.Context, cfg *config.Loaded, id string, at func(tree string) (T, bool, error)) (T, string, error) {
+	tree := "refs/remotes/origin/" + id
+	if commit, err := cfg.VCS.Ref(ctx, tree); err == nil {
+		found, holds, err := at(tree)
+		if err != nil || holds {
+			return found, commit, err
+		}
+	}
+	var none T
+	return none, "", nil
+}
+
+// SpecCommit is the commit of origin/<id> when next's reading finds the spec
+// of an item of kind k there (heldAtBranch, scenariosAt, checksAt), under cfg,
+// "" when it does not or k has no spec. It is for itos brief, which computes a
+// brief at that commit (slice-226) and so decides for itself whether a done or
+// dropped item reads it. An error is a tree that cannot be read.
+func SpecCommit(ctx context.Context, cfg *config.Loaded, k, id string) (string, error) {
+	var commit string
+	var err error
+	switch k {
+	case "slice", "bug":
+		_, commit, err = heldAtBranch(ctx, cfg, id, scenariosAt(cfg, id))
+	case "task":
+		_, commit, err = heldAtBranch(ctx, cfg, id, checksAt(ctx, cfg, id))
+	}
+	return commit, err
 }
 
 // scenarios are the scenarios tagged for the item and the ref they were
@@ -128,21 +156,25 @@ func scenarios(ctx context.Context, cfg *config.Loaded, id string, pr bool) ([]t
 		found, err := tests.Tagged(cfg, "@"+id, "HEAD")
 		return found, "", err
 	}
-	return atBranch(ctx, cfg, id, func(tree string) ([]tests.Test, bool, error) {
-		found, err := tests.Tagged(cfg, "@"+id, tree)
-		return found, len(found) > 0, err
-	}, func() ([]tests.Test, string, error) {
+	return atBranch(ctx, cfg, id, scenariosAt(cfg, id), func() ([]tests.Test, string, error) {
 		found, err := tests.Tagged(cfg, "@"+id, "HEAD")
 		return found, "HEAD", err
 	})
 }
 
+// scenariosAt reads the scenarios tagged for the item at a tree, which holds
+// its spec when it tags any.
+func scenariosAt(cfg *config.Loaded, id string) func(tree string) ([]tests.Test, bool, error) {
+	return func(tree string) ([]tests.Test, bool, error) {
+		found, err := tests.Tagged(cfg, "@"+id, tree)
+		return found, len(found) > 0, err
+	}
+}
+
 // checks are the task's ledger checks and the ref they were read at: in the
 // working tree, ref "", outside push.mode pr and for a done or dropped task,
-// whose branch may be stale; under pr at origin/<id> when the ledger there,
-// read under the clone's config as attempt submit reads a head's, holds an
-// entry for the task, whatever its checks, else in the working tree
-// (atBranch).
+// whose branch may be stale; under pr at origin/<id> when the ledger there
+// holds an entry for the task, else in the working tree (atBranch).
 func checks(ctx context.Context, cfg *config.Loaded, item *value.Map, id string, pr bool) ([]ledger.Check, string, error) {
 	inWorkingTree := func() ([]ledger.Check, string, error) {
 		found, _, err := ledger.ChecksOf(cfg, id)
@@ -152,13 +184,20 @@ func checks(ctx context.Context, cfg *config.Loaded, item *value.Map, id string,
 	if !pr || status == "done" || status == work.Dropped {
 		return inWorkingTree()
 	}
-	return atBranch(ctx, cfg, id, func(tree string) ([]ledger.Check, bool, error) {
+	return atBranch(ctx, cfg, id, checksAt(ctx, cfg, id), inWorkingTree)
+}
+
+// checksAt reads the task's checks from the ledger at a tree, under cfg as
+// attempt submit reads a head's, which holds its spec when it has an entry for
+// the task, whatever its checks.
+func checksAt(ctx context.Context, cfg *config.Loaded, id string) func(tree string) ([]ledger.Check, bool, error) {
+	return func(tree string) ([]ledger.Check, bool, error) {
 		source, err := cfg.Trees.At(ctx, tree)
 		if err != nil {
 			return nil, false, err
 		}
 		return ledger.ChecksOf(cfg.DataFrom(source), id)
-	}, inWorkingTree)
+	}
 }
 
 // dependencies are the item's depends_on, each with its status in the

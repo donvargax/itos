@@ -912,7 +912,7 @@ Feature: itos brief, the filled brief an agent starts from and its request
   # reads the registry at HEAD and the rest at the ref: main's refs entry adds
   # a read, so its request is stale at attempt submit. Fails before the work at
   # the first "its output says": "which has no checks yet".
-  @ID-BRIEF-42 @wip @slice-226
+  @ID-BRIEF-42 @slice-226
   Scenario: Under push.mode pr, a task's reviewer and implementer are briefed on its check at origin/<task>, with no --at
     Given a clone of it, where itos runs
     And the config, committed and pushed to the remote's main, adds the YAML:
@@ -959,7 +959,7 @@ Feature: itos brief, the filled brief an agent starts from and its request
   # brief's base. other.feature declares the scenario kind on main, as HEAD's
   # config judges whether the ref holds the spec. Fails before the work at the
   # first "itos exits with code 0": exit 1, brief-no-spec.
-  @ID-BRIEF-43 @wip @slice-226
+  @ID-BRIEF-43 @slice-226
   Scenario: Under push.mode pr, a slice's reviewer and implementer are briefed on its scenarios at origin/<slice>, with no --at
     Given a clone of it, where itos runs
     And the config, committed and pushed to the remote's main, adds the YAML:
@@ -991,7 +991,7 @@ Feature: itos brief, the filled brief an agent starts from and its request
   # declared on the branch alone, so under HEAD's config the ref holds nothing,
   # the brief stays at HEAD and is refused. A build judging under the ref's
   # config exits 0. It passes before the work and must after.
-  @ID-BRIEF-54 @guard @wip @slice-226
+  @ID-BRIEF-54 @guard @slice-226
   Scenario: Under push.mode pr, a scenario kind declared on the item's branch alone leaves the brief at HEAD, refused
     Given a clone of it, where itos runs
     And the config, committed and pushed to the remote's main, adds the YAML:
@@ -1013,7 +1013,7 @@ Feature: itos brief, the filled brief an agent starts from and its request
   # spec with a registry that lacks the item, is refused work-unknown-item. No
   # fallback to HEAD, which holds no spec to brief from. Fails before the work
   # at the problem's step: main's brief is refused brief-no-spec.
-  @ID-BRIEF-55 @wip @slice-226
+  @ID-BRIEF-55 @slice-226
   Scenario: Under push.mode pr, an item's branch whose registry lacks the item is refused, as --at refuses it
     Given a clone of it, where itos runs
     And the config, committed and pushed to the remote's main, adds the YAML:
@@ -1036,7 +1036,7 @@ Feature: itos brief, the filled brief an agent starts from and its request
   # to its drafter. So here "has no checks yet" is true, and said at the
   # branch's base. Fails before the work at the first "its output says": it
   # reads main's check.
-  @ID-BRIEF-44 @wip @slice-226
+  @ID-BRIEF-44 @slice-226
   Scenario: Under push.mode pr, a task whose entry at origin/<task> has no check is briefed so, whatever main's entry holds
     Given a clone of it, where itos runs
     And the config, committed and pushed to the remote's main, adds the YAML:
@@ -1066,7 +1066,7 @@ Feature: itos brief, the filled brief an agent starts from and its request
   # it, each its own: the branch answers, so a build that reads the branch only
   # when HEAD holds nothing fails, as does one reading it for a slice alone.
   # Fails before the work at "its output says": it names @ID-A-01, main's.
-  @ID-BRIEF-45 @wip @slice-226
+  @ID-BRIEF-45 @slice-226
   Scenario: Under push.mode pr, a bug's scenarios at origin/<bug> are the brief's, whatever main tags for it
     Given a clone of it, where itos runs
     And the config, committed and pushed to the remote's main, adds the YAML:
@@ -1098,7 +1098,7 @@ Feature: itos brief, the filled brief an agent starts from and its request
   # that is attempt's rule at --at's base and not this slice's to change.
   # Fails before the work at the first "itos exits with code 0": exit 1,
   # brief-no-spec.
-  @ID-BRIEF-46 @wip @slice-226
+  @ID-BRIEF-46 @slice-226
   Scenario: Under push.mode pr, a result of a brief with no --at is accepted, main having moved since
     Given a clone of it, where itos runs
     And the config, committed and pushed to the remote's main, adds the YAML:
@@ -1141,7 +1141,7 @@ Feature: itos brief, the filled brief an agent starts from and its request
   # so a build that loads the clone's config for this read, whose source is the
   # working tree, names it and fails: the brief reads no working tree
   # (ID-BRIEF-13). It passes before the work and must after.
-  @ID-BRIEF-47 @guard @wip @slice-226
+  @ID-BRIEF-47 @guard @slice-226
   Scenario: Under push.mode pr, with no ref for the item's branch, the brief is computed at HEAD and never in the working tree
     Given a clone of it, where itos runs
     And the config, committed and pushed to the remote's main, adds the YAML:
@@ -1169,7 +1169,7 @@ Feature: itos brief, the filled brief an agent starts from and its request
   # matching the id by its prefix fails. A build that takes the ref whenever it
   # exists exits 1 at the first exit code, refused with "T-001 has no ledger
   # entry yet". It passes before the work and must after.
-  @ID-BRIEF-48 @guard @wip @slice-226
+  @ID-BRIEF-48 @guard @slice-226
   Scenario: Under push.mode pr, an item's branch that holds no spec for it leaves the brief at HEAD
     Given a clone of it, where itos runs
     And the config, committed and pushed to the remote's main, adds the YAML:
@@ -1210,7 +1210,7 @@ Feature: itos brief, the filled brief an agent starts from and its request
   # attempt submit's recomputation rests on; and the drafter's own brief is not
   # changed, with or without a branch, so a build reading the branch for every
   # role fails. It passes before the work and must after.
-  @ID-BRIEF-49 @guard @wip @slice-226
+  @ID-BRIEF-49 @guard @slice-226
   Scenario: Under push.mode pr, --at wins over the item's branch, and a drafter's brief stays at HEAD
     Given a clone of it, where itos runs
     And the config, committed and pushed to the remote's main, adds the YAML:
@@ -1244,7 +1244,7 @@ Feature: itos brief, the filled brief an agent starts from and its request
   # A guard: outside push.mode pr a branch named for an item means nothing, as
   # in next, so a build with no regard for the mode fails. It passes before the
   # work and must after.
-  @ID-BRIEF-50 @guard @wip @slice-226
+  @ID-BRIEF-50 @guard @slice-226
   Scenario: Under trunk, a task's brief stays at HEAD, a branch named for it or not
     Given a clone of it, where itos runs
     And the work registry has the task "T-001" owned by nobody with the status "todo" and no why
@@ -1267,7 +1267,7 @@ Feature: itos brief, the filled brief an agent starts from and its request
   # on the clone's own branch not pushed, changes nothing either, the rule being
   # the branch on the remote. Fails before the work at the first "its output
   # says": main's "which has no checks yet".
-  @ID-BRIEF-51 @wip @slice-226
+  @ID-BRIEF-51 @slice-226
   Scenario: Under push.mode pr, the brief reads the ref the clone has, fetching nothing, whatever the remote or the clone's branch hold since
     Given a clone of it, where itos runs
     And the config, committed and pushed to the remote's main, adds the YAML:
@@ -1307,7 +1307,7 @@ Feature: itos brief, the filled brief an agent starts from and its request
   # ledger.Tasks gives it, never HEAD's answer, as in next (ID-NEXTFORGE-25):
   # main's entry has a check, so a build that falls back on the error says it.
   # Fails before the work at the exit code: it reads main's check, exit 0.
-  @ID-BRIEF-52 @wip @slice-226
+  @ID-BRIEF-52 @slice-226
   Scenario: Under push.mode pr, a ledger that cannot be read at origin/<task> is an error, not main's checks
     Given a clone of it, where itos runs
     And the config, committed and pushed to the remote's main, adds the YAML:
@@ -1332,7 +1332,7 @@ Feature: itos brief, the filled brief an agent starts from and its request
   # judged here for every kind. It passes before the work and must after; a build
   # with no regard for the status exits 2 on the task, and one regarding it for
   # a task alone names @ID-A-02.
-  @ID-BRIEF-53 @guard @wip @slice-226
+  @ID-BRIEF-53 @guard @slice-226
   Scenario Outline: Under push.mode pr, a <status> item's brief stays at HEAD, its branch stale or not
     Given a clone of it, where itos runs
     And the config, committed and pushed to the remote's main, adds the YAML:

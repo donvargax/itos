@@ -11,7 +11,8 @@
 // left out, and a digest of them all. Its CLI and Run are the command
 // line, its Query and Handler the application, over the Ports it owns,
 // which internal/cli binds: the repository, the config at HEAD, a commit's
-// tree entries and the last first-parent commit touching paths.
+// tree entries, the last first-parent commit touching paths and next's
+// reading of an item's branch.
 //
 // Everything is read from one commit's tree, HEAD's or the one --at names
 // (slice-207, which binds an agent's result to the brief at that commit,
@@ -34,6 +35,17 @@
 // another tool can recompute it; the attempt number and the base revision
 // are not in it. What a person must add stays a marked placeholder, never
 // invented. It reads, writes nothing, commits nothing and asks no forge.
+//
+// Under push.mode pr an item's spec lives on its branch while a driver stays on
+// main, so a reviewer's or an implementer's brief with no --at is computed at
+// origin/<id> when next's reading finds the spec there (slice-226, branchSpec),
+// by Handle answering as --at would: that commit is the base, and attempt
+// submit recomputes the request at the base, which is why everything moves and
+// not the spec alone. The reading is next's, reached through the SpecCommit
+// port, as slices import no slice, and asked under HEAD's config. A done or
+// dropped item reads no ref, whatever its kind: next has no such exception for
+// scenarios, as it stops at done before any brief, and here a stale branch
+// would be briefed in place of main's spec.
 //
 // A drafter's brief names the commit its spec goes in under (slice-221,
 // chooseSpecCommit), a function of the config at that commit and the spec's

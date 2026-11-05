@@ -11,7 +11,8 @@ var Command = declare.Command{
 		"": `Usage: itos brief <id> --role drafter|implementer|reviewer [--at <rev>]
 
 Prints the brief an agent of the role starts from: the role's template
-filled from the item at HEAD, or at the commit --at names. Filled in: the item's id, kind and title, the
+filled from the item at HEAD, at the commit --at names, or, for the reviewer
+and the implementer under push.mode pr, at the item's branch (below). Filled in: the item's id, kind and title, the
 repository's top as git prints it and its folder's name as the project, the
 scenarios tagged for it and their feature files (a task's checks from its
 ledger entry), what it depends on with each status, and what the agent reads:
@@ -40,9 +41,15 @@ brief says so and tells the drafter to stop and report, exit 0; with no commits
 section it says docs and plain itos commit. Everything is read from HEAD's
 tree, the config included, never the working tree or the index; with --at <rev>, from the
 tree of the commit git resolves rev to instead (the registry, the tagged
-scenarios, the ledger, the reads' blobs and the notes), so a driver on main
-briefs an implementer at the item's branch with --at origin/<id>. It reads,
-writes nothing, commits nothing and asks no forge.
+scenarios, the ledger, the reads' blobs and the notes). With no --at, under
+the push.mode pr of HEAD's config, a reviewer's or an implementer's brief is
+the one --at origin/<id> gives when the clone has that ref, nothing fetched,
+and under HEAD's config it holds a scenario tagged for a slice or a bug, or a
+ledger entry for a task, whatever its checks, as itos next reads the spec, and
+HEAD's registry has the item neither done nor dropped; a ledger the ref cannot
+give is an error, never HEAD's answer. A drafter's stays at HEAD, as does every
+role's outside push.mode pr. It reads, writes nothing, commits nothing and asks
+no forge.
 
 Refused, exit 1: an id the registry does not have, a role it does not know,
 an idea (promote it first), for the implementer and the reviewer an item

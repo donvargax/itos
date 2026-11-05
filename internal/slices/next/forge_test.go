@@ -516,6 +516,49 @@ func TestTaskSpecRef(t *testing.T) {
 	}
 }
 
+// SpecCommit is the commit of origin/<id> when the reading TestSpecRef and
+// TestTaskSpecRef hold finds the item's spec there, by its kind alone.
+func TestSpecCommit(t *testing.T) {
+	const (
+		ledgerFile = "tasks/phase-1.yaml"
+		commit     = "0123456789abcdef0123456789abcdef01234567"
+	)
+	entry := func(id string) string { return "- { id: " + id + ", type: chore, title: One, done_when: [] }\n" }
+	scenario := map[string]string{"features/b.feature": feature("@ID-B-01 @slice-9")}
+	bug := map[string]string{"features/b.feature": feature("@ID-B-01 @bug-7")}
+	for _, test := range []struct {
+		name, k, id string
+		held        map[string]string
+		want        string
+		failed      bool
+	}{
+		{name: "a slice's scenario", k: "slice", id: "slice-9", held: scenario, want: commit},
+		{name: "a bug's scenario", k: "bug", id: "bug-7", held: bug, want: commit},
+		{name: "another item's scenario", k: "slice", id: "slice-9", held: bug},
+		{name: "no ref", k: "slice", id: "slice-9"},
+		{name: "a task's entry, with no check", k: "task", id: "T-1", held: map[string]string{ledgerFile: entry("T-1")}, want: commit},
+		{name: "another task's entry", k: "task", id: "T-1", held: map[string]string{ledgerFile: entry("T-10")}},
+		{name: "a task with no ref", k: "task", id: "T-1"},
+		{name: "a task's scenario", k: "task", id: "T-1", held: map[string]string{ledgerFile: entry("T-10"), "features/b.feature": feature("@ID-B-01 @T-1")}},
+		{name: "a slice's ledger entry", k: "slice", id: "slice-9", held: map[string]string{ledgerFile: entry("slice-9")}},
+		{name: "a ledger that cannot be read", k: "task", id: "T-1", held: map[string]string{ledgerFile: "{ id: T-1, done_when: ["}, failed: true},
+		{name: "no ledger folder", k: "task", id: "T-1", held: map[string]string{}, failed: true},
+		{name: "a kind with no spec", k: "idea", id: "slice-9", held: scenario},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			var refs map[string]map[string]string
+			if test.held != nil {
+				refs = map[string]map[string]string{"refs/remotes/origin/" + test.id: test.held}
+			}
+			p := over(t, fixture{config: prConfig, files: map[string]string{"people.yaml": "- ana\n", ledgerFile: entry("T-1")}, head: map[string]string{}, refs: refs})
+			got, err := SpecCommit(t.Context(), p.cfg, test.k, test.id)
+			if (err != nil) != test.failed || (!test.failed && got != test.want) {
+				t.Errorf("SpecCommit = %q, %v; want %q, an error %v", got, err, test.want, test.failed)
+			}
+		})
+	}
+}
+
 // A forge that cannot be asked is exit 3 with its problem, under --json
 // the problems JSON, nothing else printed; RevisionOf gives it as an error
 // of kind Missing. A journal that cannot be read is the error.

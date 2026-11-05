@@ -6,6 +6,7 @@ import (
 	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/kind"
 	briefslice "github.com/donvargax/itos/v8/internal/slices/brief"
+	nextslice "github.com/donvargax/itos/v8/internal/slices/next"
 	trees "github.com/donvargax/itos/v8/internal/store/tree/adapter"
 	vcs "github.com/donvargax/itos/v8/internal/vcs/adapter"
 )
@@ -39,6 +40,12 @@ func (p briefPorts) Config(ctx context.Context, commit string) (*config.Loaded, 
 		return nil, kind.Else(kind.Missing, err)
 	}
 	return config.Load(p.Git, t, src, config.Path(p.Git, src))
+}
+
+// SpecCommit is the next slice's SpecCommit: next's reading of an item's
+// branch, under the config the brief reads by.
+func (p briefPorts) SpecCommit(ctx context.Context, cfg *config.Loaded, k, id string) (string, error) {
+	return nextslice.SpecCommit(ctx, cfg, k, id)
 }
 
 // TreeEntries are the git adapter's FolderEntries, each entry's kind, mode

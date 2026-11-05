@@ -42,6 +42,9 @@ type ports struct {
 	lastErr    error
 	lastPaths  []string
 	tweak      func(*config.Loaded)
+	specCommit string
+	specErr    error
+	specAsked  []string
 }
 
 // Config is the config and its data as the commit has them, as the real
@@ -89,6 +92,13 @@ func (p *ports) TreeEntries(_ context.Context, commit string, paths []string) (m
 func (p *ports) LastTouching(_ context.Context, rev string, paths []string) (string, error) {
 	p.lastPaths, p.lastAt = paths, rev
 	return p.last, p.lastErr
+}
+
+// SpecCommit answers as given, keeping the kind and the id asked and the
+// config's push mode, so a test sees it asked under HEAD's.
+func (p *ports) SpecCommit(_ context.Context, cfg *config.Loaded, k, id string) (string, error) {
+	p.specAsked = append(p.specAsked, k+" "+id+" "+cfg.Push.Mode)
+	return p.specCommit, p.specErr
 }
 
 const top = "/work/project"
@@ -618,6 +628,72 @@ func TestAt(t *testing.T) {
 	a, err = NewHandler(p).Handle(t.Context(), Query{ID: "slice-9", Role: "drafter", At: "nowhere"})
 	if err != nil || a.Brief != nil || len(a.Refused) != 1 || a.Refused[0].Rule != "brief-unknown-revision" || !strings.Contains(a.Refused[0].Message, "nowhere") || a.Refused[0].Fix == "" || p.configAt != "c1" {
 		t.Errorf("--at nowhere: %+v, %v, config at %s", a, err, p.configAt)
+	}
+}
+
+// Under push.mode pr a reviewer's and an implementer's brief with no --at is
+// the one --at gives of the commit the item's branch holds its spec at; the
+// rows that read no branch never ask, and an unreadable branch is the error.
+func TestBranchSpec(t *testing.T) {
+	branch := func(status string) *ports {
+		p := specified()
+		p.tweak = func(cfg *config.Loaded) { cfg.Push.Mode = "pr" }
+		p.specCommit = "c2"
+		p.trees.Files["HEAD"]["work-items.yaml"] = strings.ReplaceAll(registry, "status: todo", "status: "+status)
+		p.History = append(p.History, vcsfake.Commit{Name: "c2"})
+		held := map[string]string{"itos.yaml": itosYAML, "work-items.yaml": registry, "AGENTS.md": "The branch's rules.\n", "features/tagged.feature": tagged}
+		p.trees.Files["c2"] = held
+		return p
+	}
+	for _, role := range []string{"reviewer", "implementer"} {
+		p := branch("todo")
+		b := brief(t, p, "slice-9", role)
+		if b.Base != "c2" || p.configAt != "c2" || p.entriesAt != "c2" || p.lastAt != "c2" || !slices.Equal(p.specAsked, []string{"slice slice-9 pr"}) {
+			t.Errorf("%s: base %s, config at %s, entries at %s, spec commit at %s, asked %v", role, b.Base, p.configAt, p.entriesAt, p.lastAt, p.specAsked)
+		}
+		byAt, err := NewHandler(p).Handle(t.Context(), Query{ID: "slice-9", Role: role, At: "c2"})
+		if err != nil || byAt.Brief == nil || byAt.Brief.Text != b.Text || byAt.Brief.Request != b.Request {
+			t.Errorf("%s: not --at c2's brief: %+v, %v", role, byAt, err)
+		}
+	}
+	p := branch("todo")
+	handle(t, p, "bug-7", "reviewer")
+	if !slices.Equal(p.specAsked, []string{"bug bug-7 pr"}) {
+		t.Errorf("a bug: asked %v", p.specAsked)
+	}
+	p = branch("todo")
+	p.specCommit = ""
+	if b := brief(t, p, "slice-9", "implementer"); b.Base != "c1" || len(p.specAsked) != 1 {
+		t.Errorf("a branch holding no spec: base %s, asked %v", b.Base, p.specAsked)
+	}
+	p = branch("todo")
+	p.specErr = kind.Wrap(kind.Usage, errors.New("the ledger at the ref"))
+	if a, err := NewHandler(p).Handle(t.Context(), Query{ID: "slice-9", Role: "implementer"}); a.Brief != nil || kind.Of(err) != kind.Usage {
+		t.Errorf("a branch that cannot be read: %+v, %v", a, err)
+	}
+	for _, test := range []struct {
+		name, id, role, at string
+		status             string
+		mode               string
+	}{
+		{name: "a drafter", id: "slice-9", role: "drafter", status: "todo", mode: "pr"},
+		{name: "--at", id: "slice-9", role: "implementer", at: "HEAD", status: "todo", mode: "pr"},
+		{name: "trunk", id: "slice-9", role: "implementer", status: "todo", mode: ""},
+		{name: "a done slice", id: "slice-9", role: "implementer", status: "done", mode: "pr"},
+		{name: "a dropped slice", id: "slice-9", role: "reviewer", status: "dropped", mode: "pr"},
+		{name: "a done task", id: "T-001", role: "implementer", status: "done", mode: "pr"},
+		{name: "a dropped task", id: "T-001", role: "reviewer", status: "dropped", mode: "pr"},
+		{name: "an idea", id: "p1-next", role: "implementer", status: "todo", mode: "pr"},
+		{name: "an unknown item", id: "slice-1", role: "implementer", status: "todo", mode: "pr"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			p := branch(test.status)
+			p.tweak = func(cfg *config.Loaded) { cfg.Push.Mode = test.mode }
+			a, err := NewHandler(p).Handle(t.Context(), Query{ID: test.id, Role: test.role, At: test.at})
+			if len(p.specAsked) != 0 || (a.Brief != nil && a.Brief.Base != "c1") {
+				t.Errorf("asked %v, answered %+v, %v", p.specAsked, a.Brief, err)
+			}
+		})
 	}
 }
 

@@ -24,9 +24,10 @@ Feature: itos attempt submit, an agent's result checked against its brief and ag
   from a tree already: its --json names "base", the full SHA of the commit
   it computed the brief at, HEAD unless --at <rev> names another commit,
   which it then reads everything from instead of HEAD (the registry, the
-  tagged scenarios, the ledger, the reads' blobs), so a driver on main
-  briefs an implementer at the item's branch with --at origin/<id>. A rev
-  git cannot resolve is refused, exit 1, brief-unknown-revision.
+  tagged scenarios, the ledger, the reads' blobs), or, for a reviewer or an
+  implementer under push.mode pr with no --at, origin/<id> where it holds the
+  item's spec (slice-226, features/brief.feature), as --at origin/<id> would.
+  A rev git cannot resolve is refused, exit 1, brief-unknown-revision.
 
   The checks, in this order, the first failing one refusing with exit 1
   and {"schema":1,"ok":false,"problems":[{"rule","message","fix"}]}, the
