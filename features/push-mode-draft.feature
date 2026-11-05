@@ -1753,7 +1753,7 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
         mode: pr
         pr:
           draft: true
-          ready_wait: 1
+          ready_wait: 30
       """
     And ci.watch asks a fake GitHub, which reports the run "https://ci.example/runs/1"
     And the watched run's first look goes on with its job "platform" running, and its later looks go on with its job "ci" failed
