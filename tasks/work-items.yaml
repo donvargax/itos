@@ -17619,6 +17619,11 @@ items:
       the idle one seeing its HEAD move. The spec session could leave the branch detached when it
       hands back, or itos could name the way through.
 
+      slice-226, 2026-11-05: a spec worktree left detached avoids the hold, but the brief's git
+      switch --no-track -c still fails where a local branch of that name exists, at the same commit,
+      held by no worktree. A plain git switch worked. The brief could say git switch <item> when the
+      branch exists.
+
   - id: p2-attempt-red-first-from-branch-base
     title: A brief taken at an item's pushed branch has its tip as base, so attempt's red-first check refuses a repair's first fix
     phase: 2
@@ -17645,3 +17650,32 @@ items:
       drafter stopped twice on it. work edit --note said to write the note in the slice's feature
       file, which does not exist until the spec the wrong why is blocking. The only routes left are
       a by-hand registry edit or steering outside the registry.
+
+  - id: p2-brief-rules-from-trusted-head
+    title: itos brief takes agent rules from the item's branch by default; keep them from a trusted HEAD
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      slice-226's security review, 2026-11-05: a brief with no --at reads config, registry, notes
+      and AGENTS.md from origin/<id>, with no check of owner, pull request head or verdict, so
+      someone who can push a branch but not merge can feed instructions to a privileged agent.
+      Accepted for now: only collaborators can push there, a fork gets no such ref, an agent in that
+      checkout already reads its AGENTS.md, and --at main restores the old reading. The fix needs a
+      request attempt can recompute from two commits, rules at HEAD and spec at the branch. For v9's
+      coordinator.
+
+  - id: p3-ready-merge-spends-review
+    title: --ready merging main changes the head, spending a review already asked for on a head that never lands
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      slice-226, 2026-11-05: a request made by hand on 91c6fb3 went stale when itos push --ready
+      merged main on its next run, and --ready asked Codex again for the new head. A review was
+      spent on a head that never landed. --ready could say before asking that main will be merged,
+      or merge first.
