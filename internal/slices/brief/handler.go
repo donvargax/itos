@@ -33,14 +33,17 @@ import (
 // config; the brief is a function of one commit); TreeEntries, a
 // commit's entries at paths, each read and named from the folder itos
 // runs in, as the config's paths are, a path the commit lacks among them
-// not at all; and LastTouching, the last commit on a
-// revision's first-parent history touching one of the paths, "" when none
-// does.
+// not at all; LastTouching, the last commit on a revision's first-parent
+// history touching one of the paths, "" when none does; and SpecCommit, the
+// commit of origin/<id> when next's reading, under the config given, finds
+// the spec of an item of that kind there, "" when it does not, an error for a
+// tree that cannot be read.
 type Ports interface {
 	vcsport.VCS
 	Config(ctx context.Context, commit string) (*config.Loaded, error)
 	TreeEntries(ctx context.Context, commit string, paths []string) (map[string]TreeEntry, error)
 	LastTouching(ctx context.Context, rev string, paths []string) (string, error)
+	SpecCommit(ctx context.Context, cfg *config.Loaded, k, id string) (string, error)
 }
 
 // TreeEntry is one entry of a commit's tree: its Kind, blob or tree, its
@@ -96,8 +99,9 @@ type Answer struct {
 const head = "HEAD"
 
 // Handle answers q: the role's template filled from the item at the commit
-// q.At names, HEAD's when it names none, or why it is refused. An error is
-// a config or a repository that cannot be read, each with its kind.
+// q.At names, HEAD's when it names none, unless branchSpec names another, or
+// why it is refused. An error is a config or a repository that cannot be read,
+// each with its kind.
 func (h Handler) Handle(ctx context.Context, q Query) (Answer, error) {
 	if !slices.Contains(guidetext.Roles, q.Role) {
 		return refused(out.Problem{Rule: "brief-unknown-role", Message: "no brief for the role " + q.Role,
@@ -133,6 +137,16 @@ func (h Handler) Handle(ctx context.Context, q Query) (Answer, error) {
 	if f.Title == "" || absent(shown.Item.At("title")) {
 		f.Title = q.ID
 	}
+	if q.At == "" && q.Role != guidetext.Drafter {
+		commit, err := h.branchSpec(ctx, at, shown.Item, f.Kind, q.ID)
+		if err != nil {
+			return Answer{}, err
+		}
+		if commit != "" {
+			q.At = commit
+			return h.Handle(ctx, q)
+		}
+	}
 	l, err := h.ports.Locate(ctx, "")
 	if err != nil {
 		return Answer{}, kind.Else(kind.Missing, err)
@@ -162,6 +176,19 @@ func (h Handler) Handle(ctx context.Context, q Query) (Answer, error) {
 	b.Text = fill(q.Role, f)
 	b.Request = request(b)
 	return Answer{Brief: b}, nil
+}
+
+// branchSpec is the commit of the item's branch that holds its spec, which a
+// reviewer's or an implementer's brief with no --at is computed at as --at
+// computes it (slice-226), "" for HEAD's: outside push.mode pr, and for a done
+// or dropped item, whatever its kind, whose branch may be stale. at is HEAD's
+// config, so a config only the branch has judges nothing.
+func (h Handler) branchSpec(ctx context.Context, at *config.Loaded, item *value.Map, k, id string) (string, error) {
+	status := item.At("status")
+	if at.Push.Mode != "pr" || status == "done" || status == domain.Dropped {
+		return "", nil
+	}
+	return h.ports.SpecCommit(ctx, at, k, id)
 }
 
 func refused(p out.Problem) Answer { return Answer{Refused: []out.Problem{p}} }

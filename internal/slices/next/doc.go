@@ -106,5 +106,7 @@
 // over the facts read as Handle reads them, which the assembly binds as
 // work take's and work done's Revision port (slice 208, --expect), so the
 // two cannot drift: it asks the forge as next does, and a forge that cannot
-// be asked is its error, of kind Missing.
+// be asked is its error, of kind Missing. SpecCommit is the reading of an
+// item's branch alone, which the assembly binds as itos brief's port
+// (slice-226), so the two cannot drift either.
 package next
