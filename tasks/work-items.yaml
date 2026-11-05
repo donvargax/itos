@@ -17184,14 +17184,15 @@ items:
       across several pull requests. Whether spacing helps is unproven: try it first, as slice-218
       only recovers from it after the fact.
 
-  - id: p1-next-task-checks-on-branch
+  - id: slice-223
     title: itos next reads a task's checks from the working tree alone, so a check on the item's branch reads as needs-spec
     phase: 1
     owner: null
     status: todo
     depends_on: []
-    kind: idea
+    kind: slice
     why: >
+      Was p1-next-task-checks-on-branch.
       slice-219's spec, 2026-11-04: next-forge.feature keeps a task's ledger checks out of what it
       reads at origin/<id>, as it reads a slice's scenarios. So once attempt submit accepts a task's
       drafter head, a task whose only check is on its branch is accepted and next still sends it
