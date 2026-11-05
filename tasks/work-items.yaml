@@ -17128,16 +17128,9 @@ items:
     title: itos next reports a reviewer that stopped a landing, so a driver does not rerun --ready on it
     phase: 2
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: slice
-    why: >
-      Was p2-next-reviewer-stuck.
-      slice-218's review, 2026-11-04: after review-not-started or review-stalled, itos next stays
-      handed-back with the action itos push --ready. A rerun posts nothing and exits 75 at its first
-      look, so a driver spins on reads until someone looks. next reads the forge and the journal,
-      not --ready's outcomes; a state of its own would come from the same facts. Related: bug-160's
-      One forge operation per step.
 
   - id: p3-ready-state-says-asked
     title: --ready's first waiting line says a login was not asked when it was
