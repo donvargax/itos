@@ -17670,3 +17670,18 @@ items:
       merged main on its next run, and --ready asked Codex again for the new head. A review was
       spent on a head that never landed. --ready could say before asking that main will be merged,
       or merge first.
+
+  - id: p2-next-job-never-started
+    title: A job GitHub never started reads as a red run, so next sends an implementer to repair what no code can fix
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      A driven run, 2026-11-05: a private repository's Actions quota ran out. Every job ended
+      failure with no failed step and no log, its only reason the annotation 'The job was not
+      started because recent account payments have failed or your spending limit needs to be
+      increased'. itos next said repair, and --ready would say a CI failure, so an agent is spent
+      per round on a problem outside the code. A failed job with no failed step could be its own
+      outcome, naming the annotation and for the person.
