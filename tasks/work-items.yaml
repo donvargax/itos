@@ -17787,3 +17787,17 @@ items:
       From a read of the beads tracker, 2026-11-05. itos has only git-shim uninstall. A remove that
       reverses init's hooks, config and agent files, tested against a repository init changed, makes
       trying itos reversible.
+
+  - id: p2-v9-tracker-state-off-branches
+    title: "v9: keep queue and registry state on a ref, off code branches"
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      From a read of the beads tracker, 2026-11-05. Status is derived in v9, but definitions and the
+      queue are still committed, so work add and queue moves keep conflicting with item branches. A
+      ref like refs/itos/ids, which the counter already uses, would take them off branches; the cost
+      is losing the review diff. Not Dolt.
+    tags: [v9]
