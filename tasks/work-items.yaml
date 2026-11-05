@@ -17764,3 +17764,14 @@ items:
       From a read of the beads tracker, 2026-11-05. One sentence in the rules block: guidance is not
       permission to override what the person said. beads added it after its own push-pressure
       wording.
+
+  - id: p3-plugin-reprime-after-compaction
+    title: The Claude Code plugin re-runs itos go after a context compaction
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      From a read of the beads tracker, 2026-11-05. A SessionStart hook on source=compact re-primes
+      an agent whose rules were compacted away. Additive and optional: no flow may need the plugin.
