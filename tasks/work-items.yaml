@@ -4670,6 +4670,10 @@ items:
       with duplicates and lessons gates already enforce: the cap here is right): take its capture
       triggers (a correction, a third recurrence, a blocker the plan missed) and area tags, so a
       brief carries only the rules for the item's areas.
+
+      2026-11-05, from Yegge's essays: rules need retiring, not only admission; each rule's caught
+      count, false positives and exit date let one with no catches go. See
+      p1-v9-gate-and-rule-triage.
     refs: [docs/ORCHESTRATING.md, AGENTS.md, internal/guide]
     tags: [agents, v9]
 
