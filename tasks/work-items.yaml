@@ -17611,3 +17611,7 @@ items:
       slice-223's drafter, 2026-11-04, unconfirmed: brief/handler.go's spec reads at the brief's
       base, so a reviewer's or implementer's brief may say 'has no checks yet'. Check which base
       those roles get, as next and attempt now read the branch.
+
+      Confirmed by slice-223's review, 2026-11-04: from main, reviewer and implementer briefs say
+      has no checks yet; --at origin/T-001 reads the check. The one spin: a literal reviewer says
+      changes and the drafter reruns.
