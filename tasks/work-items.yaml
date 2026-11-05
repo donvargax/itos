@@ -17618,3 +17618,17 @@ items:
       implementer had to switch with --ignore-other-worktrees, leaving two worktrees on one branch,
       the idle one seeing its HEAD move. The spec session could leave the branch detached when it
       hands back, or itos could name the way through.
+
+  - id: p2-attempt-red-first-from-branch-base
+    title: A brief taken at an item's pushed branch has its tip as base, so attempt's red-first check refuses a repair's first fix
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      slice-226's drafter reproduced it: with test and feat already pushed, a brief computed at
+      origin/<id>, one fix commit and a submit are refused attempt-not-red-first, as that check
+      reads only the commits past the base. It reaches next's repair route and a re-brief while
+      implementing, and already happens with --at origin/<id>. The check could read from where the
+      item's branch left main.
