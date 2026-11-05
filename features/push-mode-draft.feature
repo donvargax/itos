@@ -1097,6 +1097,63 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   its full SHA when the step runs, into the files slice 190's "until a pr
   comment call" fills (gh-comments-before and gh-comments-after).
 
+  Slice-225: --ready stops at a job that already failed. On bug-160's pull
+  request, with ci (ubuntu-latest) already failed, --ready waited out the 540
+  seconds of push.pr.ready_wait for Windows, then exited 75 saying the run was
+  waiting, so the implementer learned nothing until the run ended.
+
+  So a look of --ready's watch (ciwatch.WatchReady) that finds a job of the
+  run concluded failure, the run not finished, ends the wait at once, before
+  either limit is judged: the exit code and outcome a red run gives, exit 1,
+  outcome pushed or nothing-to-push, "ci" failure, no merge, no auto-merge, and
+  no wait for the rest of the run. A job that failed before --ready started is
+  read at the watch's first look, which stops there, as a rerun of --ready does
+  while the run goes.
+
+  What it says is what a red run says. The end line, on stderr, "CI failure:
+  <address>; failed jobs: <names>", names the jobs a red run's would, then
+  says the run has not finished, and each job is described by Detail as for a
+  red run: its step and what its log names, or its annotations. gh run view
+  --log-failed refuses while the run goes, but that is gh's own check: the job's
+  log endpoint providers.JobLog reads gave a finished job's log from a run still
+  in progress on this repository's CI, 2026-11-05. A log that cannot be read
+  says so as for a red run, and the end line has named the run's address.
+  --json gives the run as last seen: its status as GitHub gave it and no
+  conclusion, since GitHub has given none.
+
+  Only a job's conclusion failure stops it. A cancelled job does not: a newer
+  push cancelling the run cancels its jobs first, and that has no verdict (bug
+  41), so a run ending cancelled is followed or ends run-cancelled as ever. Nor
+  do timed_out and the rest, whose run's end judges them as today; a job not
+  completed, whatever its steps say, has no conclusion yet.
+
+  A job allowed to fail (continue-on-error at the job's level) reads as failed
+  and its run may still end a success (the GitHub community's discussions 15452
+  and 47243; none was observed here, and this repository's workflows set none).
+  The jobs API does not say which job is allowed to, so the stop cannot tell
+  and stops: a false stop, costing one call, since a finished run is judged by
+  its own conclusion as ever, whatever its jobs say, and --ready run again then
+  lands.
+
+  Not in this slice: plain itos push and itos ci watch, which wait for the
+  run's end as ever; the wait before the marking (awaitPushRuns), whose runs
+  are listed without their jobs and which the ready run judges after it. No new
+  config key. The implementing push updates itos push --help (the --ready
+  paragraph on the run's wait) and the doc.go of ciwatch and of push.
+
+  Slice-225's steps. New: "the watched run goes on at every look, its job <name>
+  still running", which makes every look the fake gives so far in_progress with
+  no conclusion, and its job of that name running, replaced or else added, the
+  others as they are; "the watched run has one look before those, finished with
+  its jobs <a> and <b> skipped, as a draft's run has", which adds that look
+  first, for the wait before the marking; "the watched run's first look goes on
+  with its job <a> cancelled and its job <b> running, and its later looks end it
+  cancelled, both jobs cancelled"; "the watched run's first look goes on with its
+  job <a> failed and its job <b> running, and its later looks end it a success,
+  <a> still failed and <b> succeeded, as continue-on-error lets a run"; "the fake
+  GitHub was asked for the run of the clone's HEAD once", which fails unless it
+  gave exactly one look, of that commit.
+
   Background:
     Given a repository whose ledger has the task "T-001"
     And a clone of it, where itos runs
@@ -1615,6 +1672,204 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
     And its output does not say "the run did not succeed"
     And its output does not say "(ci.watch.timeout)"
     And the recording gh was never called as "pr merge"
+
+  # bug-160's wait, through the marking: the draft's run has finished, so gh pr
+  # ready comes, and the watch's look finds two jobs failed and one going. Fails
+  # before the work at the exit code: today it waits to push.pr.ready_wait, exit
+  # 75, ready-still-waiting.
+  @wip @slice-225 @ID-PUSHDRAFT-84
+  Scenario: Under push.pr.draft, push --ready stops at the jobs that failed while its run goes on, exit 1, naming each and what failed in it, and merges nothing
+    Given the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+        pr:
+          draft: true
+          ready_wait: 1
+      """
+    And ci.watch asks a fake GitHub, which reports the run "https://ci.example/runs/1"
+    And the watched run's job "ci" fails at its step "Run the unit tests", its log:
+      """
+      --- FAIL: TestWidget (0.00s)
+          widget_test.go:12: the widget broke
+      FAIL
+      FAIL	example.com/widget	0.010s
+      ##[error]Process completed with exit code 1.
+      """
+    And the watched run's job "lint" fails at its step "Run the linters", its log:
+      """
+      something went wrong
+      ##[error]Process completed with exit code 1.
+      """
+    And the watched run goes on at every look, its job "platform" still running
+    And the watched run has one look before those, finished with its jobs "ci" and "platform" skipped, as a draft's run has
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the clone is on the new branch "slice-9"
+    And the clone has the commit "feat: add the widget" touching "widget.md"
+    And git pushes HEAD to the remote's new branch "slice-9"
+    And the recording gh has the draft pull request "https://github.example/o/r/pull/7" open for the branch "slice-9"
+    When itos runs "push --ready"
+    Then itos exits with code 1
+    And the recording gh's "pr ready" call has "slice-9"
+    And its output says "ci: failure"
+    And its stderr says "CI failure: https://ci.example/runs/1; failed jobs: ci, lint"
+    And its stderr says "Run the unit tests"
+    And its stderr says "the widget broke"
+    And its stderr says "Run the linters"
+    And its stderr says "has not finished"
+    And its stderr says "auto-merge is not turned on"
+    And its output does not say "(push.pr.ready_wait)"
+    And the recording gh was never called as "pr merge"
+
+  # A job that failed before --ready started: the pull request is ready, so
+  # nothing waits before the watch, whose first look stops, with no second. The
+  # run in --json is as GitHub gave it: going, with no conclusion. Fails before
+  # the work at the exit code: today it waits to push.pr.ready_wait, exit 75.
+  @wip @slice-225 @ID-PUSHDRAFT-85
+  Scenario: Under push.pr.draft, push --ready finding a job failed at its first look at the run stops there, and --json gives a red run's keys with the run as it still goes
+    Given the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+        pr:
+          draft: true
+          ready_wait: 1
+      """
+    And ci.watch asks a fake GitHub, which reports the run "https://ci.example/runs/1"
+    And the watched run's job "ci" fails at its step "Run the unit tests", its log:
+      """
+      something went wrong
+      ##[error]Process completed with exit code 1.
+      """
+    And the watched run goes on at every look, its job "platform" still running
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the clone is on the new branch "slice-9"
+    And the clone has the commit "feat: add the widget" touching "widget.md"
+    And git pushes HEAD to the remote's new branch "slice-9"
+    And the recording gh has the pull request "https://github.example/o/r/pull/7" open for the branch "slice-9"
+    When itos runs "push --ready --json"
+    Then itos exits with code 1
+    And its JSON's "outcome" is "nothing-to-push"
+    And its JSON's "ci" is "failure"
+    And its JSON's "run.status" is "in_progress"
+    And its JSON's run has no "conclusion"
+    And its JSON's job "ci" has "step" "Run the unit tests"
+    And its JSON's job "ci" has "log" "read"
+    And its JSON's job "platform" has "status" "in_progress"
+    And its JSON's job "platform" has no "step"
+    And its JSON's "pull_request.auto_merge" is false
+    And the fake GitHub was asked for the run of the clone's HEAD once
+    And the recording gh was never called as "pr merge"
+
+  # Where a log cannot be read while the run goes it says so, as a red run does,
+  # and the end line has the run's address to go to; the exit is the failed job's,
+  # never the log's. Fails before the work at the exit code: today 75.
+  @wip @slice-225 @ID-PUSHDRAFT-86
+  Scenario: Under push.pr.draft, push --ready stopped at a failed job whose log cannot be read says so, names the run's address and still exits 1
+    Given the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+        pr:
+          draft: true
+          ready_wait: 1
+      """
+    And ci.watch asks a fake GitHub, which reports the run "https://ci.example/runs/1"
+    And the watched run's job "ci" fails at its step "Run the unit tests", its log:
+      """
+      --- FAIL: TestUnread (0.00s)
+      """
+    And the watched run goes on at every look, its job "platform" still running
+    And the fake GitHub answers 410 for the log of the job "ci"
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the clone is on the new branch "slice-9"
+    And the clone has the commit "feat: add the widget" touching "widget.md"
+    And git pushes HEAD to the remote's new branch "slice-9"
+    And the recording gh has the pull request "https://github.example/o/r/pull/7" open for the branch "slice-9"
+    When itos runs "push --ready --json"
+    Then itos exits with code 1
+    And its JSON's "ci" is "failure"
+    And its JSON's job "ci" has "step" "Run the unit tests"
+    And its JSON's job "ci" has "log" "unreadable"
+    And its stderr says "could not be read"
+    And its stderr says "CI failure: https://ci.example/runs/1; failed jobs: ci"
+    And the recording gh was never called as "pr merge"
+
+  # A guard, as it passes before the work on purpose: a cancelled job is no
+  # failure. A newer push cancelling the run cancels its jobs before the run ends,
+  # and that has no verdict (bug 41), so a build that stops at any job that did not
+  # succeed exits 1 here, at its first look, for a run nothing judged.
+  @wip @slice-225 @ID-PUSHDRAFT-87 @guard
+  Scenario: Under push.pr.draft, push --ready passes over a job cancelled while its run goes on, and a run that ends cancelled is run-cancelled as before
+    Given the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+        pr:
+          draft: true
+      """
+    And ci.watch asks a fake GitHub, which reports the run "https://ci.example/runs/1"
+    And the watched run's first look goes on with its job "ci" cancelled and its job "platform" running, and its later looks end it cancelled, both jobs cancelled
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the clone is on the new branch "slice-9"
+    And the clone has the commit "feat: add the widget" touching "widget.md"
+    And git pushes HEAD to the remote's new branch "slice-9"
+    And the recording gh has the pull request "https://github.example/o/r/pull/7" open for the branch "slice-9"
+    When itos runs "push --ready --json"
+    Then itos exits with code 75
+    And its JSON's "outcome" is "run-cancelled"
+    And its output does not say "CI failure"
+    And the recording gh was never called as "pr merge"
+
+  # A job allowed to fail reads as failed while its run may end a success, and the
+  # jobs API does not say which, so the stop is false there and costs one call: run
+  # again once the run has finished, --ready goes by the run's own conclusion. A
+  # build that judges a finished run by its jobs never lands this. Fails before the
+  # work at the first exit code: today the wait reaches the run's end, exit 0, merged.
+  @wip @slice-225 @ID-PUSHDRAFT-88
+  Scenario: Under push.pr.draft, push --ready stops at a job allowed to fail while its run goes on, and run again once the run ended a success lands
+    Given the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+        pr:
+          draft: true
+      """
+    And ci.watch asks a fake GitHub, which reports the run "https://ci.example/runs/1"
+    And the watched run's first look goes on with its job "experimental" failed and its job "ci" running, and its later looks end it a success, "experimental" still failed and "ci" succeeded, as continue-on-error lets a run
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the clone is on the new branch "slice-9"
+    And the clone has the commit "feat: add the widget" touching "widget.md"
+    And git pushes HEAD to the remote's new branch "slice-9"
+    And the recording gh has the pull request "https://github.example/o/r/pull/7" open for the branch "slice-9"
+    When itos runs "push --ready"
+    Then itos exits with code 1
+    And its stderr says "CI failure: https://ci.example/runs/1; failed jobs: experimental"
+    And the recording gh was never called as "pr merge"
+    When itos runs "push --ready"
+    Then itos exits with code 0
+    And its output says "CI passed: https://ci.example/runs/1"
+    And the recording gh's "pr merge" call with "--auto" has the full SHA of the clone's HEAD
+
+  # A guard, as it passes before the work on purpose: the stop is --ready's alone.
+  # itos ci watch reads the same run and waits for its end, so a build that stops in
+  # the shared watch with no regard for --ready exits 1 here. A plain push under
+  # push.pr.draft waits for no run, and without it takes the same path.
+  @wip @slice-225 @ID-PUSHDRAFT-89 @guard
+  Scenario: itos ci watch goes on waiting for a run with a failed job, exit 75 at ci.watch.timeout, as the stop is push --ready's alone
+    Given ci.watch asks a fake GitHub, which reports the run "https://ci.example/runs/1"
+    And ci.watch.timeout is 1
+    And the watched run's job "ci" fails at its step "Run the unit tests", its log:
+      """
+      something went wrong
+      ##[error]Process completed with exit code 1.
+      """
+    And the watched run goes on at every look, its job "platform" still running
+    When itos runs "ci watch"
+    Then itos exits with code 75
+    And its output says "ci: failure"
+    And its output says "(ci.watch.timeout)"
+    And its output does not say "CI failure"
 
   # The merge waits until Copilot's findings are addressed: an unresolved
   # thread leaves auto-merge off and names where it is, by the summary of
