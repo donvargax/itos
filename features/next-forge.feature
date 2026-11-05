@@ -272,10 +272,12 @@ Feature: itos next reads an in-flight item's state from the forge under push.mod
   # holds an entry for the task, else in the working tree, nothing fetched:
   # the rule facts.go's scenarios codes for a slice, shared rather than
   # copied, with its own reader and its own fallback. The ledger is read under
-  # the clone's config, as attempt submit reads a head's (slice-219). Trunk
-  # mode is unchanged. The ref read is digested as a slice's is; the fallback
-  # read no ref and writes no ref line, so a task with no branch keeps the
-  # revision it had. The fix commit amends this feature's description, in
+  # the clone's config, as attempt submit reads a head's (slice-219). A done
+  # or dropped task reads the working tree, never the ref: a closed task's
+  # stale branch with a bad ledger would otherwise exit 2 instead of saying
+  # done or parked. Trunk mode is unchanged. The ref read is digested as a
+  # slice's is; the fallback read no ref and writes no ref line, so a task with
+  # no branch keeps the revision it had. The fix commit amends this feature's description, in
   # that commit and not in a docs one, since it changes what a live scenario
   # means: "for a task's ledger checks, nothing changes" under "Where the
   # spec is read", and "the ref the scenarios were read at" in the revision's
@@ -283,9 +285,11 @@ Feature: itos next reads an in-flight item's state from the forge under push.mod
   # check only at the ref is needs-spec and reads no ref; pr with no ref reads
   # the working tree; an entry at the ref with no done_when key counts as one
   # with done_when: []; a ref with no ledger folder is the read's error,
-  # ledger-folder-missing, as at a head (ID-ATTEMPT-27); the kind alone picks
-  # the reader, a task's scenarios and a slice's ledger entry at the ref
-  # counting for nothing.
+  # ledger-folder-missing, as at a head (ID-ATTEMPT-27); a done task and a
+  # dropped one with an unreadable ledger at the ref are done and parked, read
+  # no ref and exit 0, a row and not a scenario since that passes before the
+  # work; the kind alone picks the reader, a task's scenarios and a slice's
+  # ledger entry at the ref counting for nothing.
   #
   # The loop this ends: slice-219 accepts a task's drafter head whose check is
   # on its branch, and next, reading only the working tree on main, said
@@ -385,7 +389,9 @@ Feature: itos next reads an in-flight item's state from the forge under push.mod
   # on main with its entry, before its branch exists, so the branch holds it;
   # only a branch forked before main gained the check reads as needs-spec, and
   # its drafter merges main. The forge is not asked, needs-spec being judged
-  # first. Fails before the work at the complete line: next reads main's check
+  # first, so a doing task whose branch lacks the check reads needs-spec too,
+  # shadowing merged and repair; that is bounded, ending when the drafter
+  # merges main. Fails before the work at the complete line: next reads main's check
   # and says spec-review.
   @ID-NEXTFORGE-22 @wip @slice-223
   Scenario: Under push.mode pr, a task whose entry at origin/<task> has no check needs a spec, whatever main's entry holds
