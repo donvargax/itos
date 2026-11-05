@@ -4856,6 +4856,10 @@ items:
       chosen per repository by its needs (push.mode), neither a step towards the other. This item is
       the sequential mode's own guarantee (work take refuses a second item in progress), to be
       specified beside p1-pr-mode so the two modes are one setting.
+
+      2026-11-05, from Yegge's essays: a factory stalls or floods; its only dampers were the person.
+      A limit on landing rate or work in progress is the flood side, which the v9 state machine does
+      not cover.
     tags: [work, v9]
 
   - id: slice-96
