@@ -17700,3 +17700,16 @@ items:
       moment; the next free chance is v10. It costs one small hosted page. It covers Go imports
       alone: Actions, pull requests, reviewers and itos push stay tied to GitHub.
     tags: [v9]
+
+  - id: p3-ci-range-no-green-run
+    title: With no green run on main, itos ci range starts at commits.since and the code proof judges the whole project
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      2026-11-05: a repository moved to a new remote kept red on main, as no green run existed
+      there, and each push ran the proof over all history with one fixed seed, reporting survivors
+      its changes never touched. itos ci range could say it is measuring from commits.since for lack
+      of a green run, so a reader does not take them for the push's fault.
