@@ -17127,8 +17127,8 @@ items:
   - id: slice-224
     title: itos next reports a reviewer that stopped a landing, so a driver does not rerun --ready on it
     phase: 2
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: slice
     why: >
