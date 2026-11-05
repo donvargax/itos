@@ -17571,18 +17571,9 @@ items:
     title: itos brief reads a reviewer's and implementer's spec from the item's branch, so a check only there is not 'no checks yet'
     phase: 3
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: slice
-    why: >
-      Was p3-brief-task-spec-at-branch.
-      slice-223's drafter, 2026-11-04, unconfirmed: brief/handler.go's spec reads at the brief's
-      base, so a reviewer's or implementer's brief may say 'has no checks yet'. Check which base
-      those roles get, as next and attempt now read the branch.
-
-      Confirmed by slice-223's review, 2026-11-04: from main, reviewer and implementer briefs say
-      has no checks yet; --at origin/T-001 reads the check. The one spin: a literal reviewer says
-      changes and the drafter reruns.
 
   - id: bug-166
     title: "--ready's waiting line misreads a review: not asked once asked, and waiting when nobody was asked"
