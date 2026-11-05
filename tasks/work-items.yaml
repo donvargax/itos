@@ -17555,14 +17555,15 @@ items:
       record could say whom it waits for; next would name that actor. Autonomous projects need the
       person out of this path.
 
-  - id: p2-ready-stops-at-a-failed-job
-    title: --ready waits out a run whose job has already failed, and does not name it
+  - id: slice-225
+    title: itos push --ready stops at a job that already failed and names it, instead of waiting out the run
     phase: 2
     owner: null
     status: todo
     depends_on: []
-    kind: idea
+    kind: slice
     why: >
+      Was p2-ready-stops-at-a-failed-job.
       bug-160, 2026-11-05: with ci (ubuntu-latest) failure already known, --ready waited the full
       540 s for Windows, then exited 75 saying run waiting. A failed job could end the wait at once,
       or the line could name it. gh run view --log-failed refuses while the run goes, so itos could
