@@ -41,10 +41,10 @@ func RevisionOf(ctx context.Context, cfg *config.Loaded, tracker trackerport.Tra
 // moves the step moves the revision), each dependency's id and status,
 // each open question's id and text, each tagged scenario's id, file and
 // whether it is live, and each ledger check; under push.mode pr the ref the
-// scenarios were read at and, when the forge was asked, what it and the
-// journal said and each question naming the item with its status. A commit
-// that touches none of them leaves it as it was; a change to any gives a
-// new one.
+// spec was read at, none for a task's read in the working tree, and, when the
+// forge was asked, what it and the journal said and each question naming the
+// item with its status. A commit that touches none of them leaves it as it
+// was; a change to any gives a new one.
 func Revision(f Facts) string {
 	var b strings.Builder
 	b.WriteString("itos next revision v1\n")

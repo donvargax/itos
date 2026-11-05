@@ -18,8 +18,13 @@
 // tagged scenarios at HEAD (tests.Tagged, as work done reads them, @wip ones
 // included; under push.mode pr at origin/<id> when the clone has that ref
 // and it holds some, else at HEAD, nothing fetched, slice-209) and a task's
-// ledger checks from the ledger in the working tree (ledger.ChecksOf). An item's kind is ledger.KindOf: its kind key; with none, its id gives
-// it, since work show reads no bug: slice-<n> a slice,
+// ledger checks from the ledger in the working tree (ledger.ChecksOf; under
+// push.mode pr at origin/<id> when the clone has that ref and the ledger
+// there, read under the clone's config as attempt submit reads a head's, holds
+// an entry for the task, else in the working tree, nothing fetched, the same
+// rule, slice-223; a done or dropped task reads the working tree, as its branch
+// may be stale). An item's kind is ledger.KindOf: its kind key; with none, its
+// id gives it, since work show reads no bug: slice-<n> a slice,
 // bug-<n> a bug, an id ledger.id matches a task (and with no ledger.id, none
 // is), else none. Only a slice's or a bug's scenarios and a task's checks are
 // read: the other kinds have no spec itos reads. A registry that is not
@@ -82,7 +87,7 @@
 //
 // The revision (revision.go) is sha256: and the hex digest of exactly the
 // facts read, the kind as read among them, under push.mode pr the ref the
-// scenarios were read at and what the forge and the journal said, with the
+// spec was read at and what the forge and the journal said, with the
 // questions naming the item, one line each in a fixed order,
 // so a commit that touches none of them leaves it as it was and a change to
 // any, a ledger.id that no longer makes an id a task's included, gives a
