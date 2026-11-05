@@ -17801,3 +17801,16 @@ items:
       ref like refs/itos/ids, which the counter already uses, would take them off branches; the cost
       is losing the review diff. Not Dolt.
     tags: [v9]
+
+  - id: p2-v9-item-per-file
+    title: "v9: one file per item instead of a registry merge driver"
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      From a read of the beads tracker, 2026-11-05. Input to p1-registry-merge: beads built a
+      three-way JSONL merge engine and then removed it (reason inferred from commit subjects only).
+      A file per item lets git merge most changes without a driver.
+    tags: [v9]
