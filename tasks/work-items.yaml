@@ -18027,3 +18027,16 @@ items:
       2026-11-05. The Counting House tells each clerk it is stateless, proposes rather than acts,
       who checks its work, that a malformed result is rotated rather than blamed, and how to decline
       with a reason. Try the paragraph on a driven loop and compare steering needed and declines.
+
+  - id: p2-refusal-tally
+    title: "Experiment: a weekly tally of refusal codes, each top cause with an owner"
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      From Steve Yegge's essays Fences not Sandboxes, Seats and Sunsets and The Counting House, read
+      2026-11-05. His Bezos loop feeds contact histograms back to owners. A tally of itos refusals
+      by code, read weekly, names which gates cost most and which causes to fix, the gate or the
+      agent, and feeds p1-v9-gate-and-rule-triage.
