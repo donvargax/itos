@@ -17598,3 +17598,16 @@ items:
     status: done
     depends_on: []
     kind: bug
+
+  - id: p3-next-other-stops
+    title: itos next says handed-back for --ready's other stops that a rerun cannot pass
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      slice-224's spec, 2026-11-05: review-timeout with no review_stall, a second request past the
+      timeout, review-refused, and a reviewer with no review-state comment each stop at once on a
+      rerun or wait to the timeout while next keeps handing the driver land. Some need the head's
+      push time, a call next does not make.
