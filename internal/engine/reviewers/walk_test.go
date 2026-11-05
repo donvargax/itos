@@ -159,6 +159,68 @@ func TestStuck(t *testing.T) {
 	}
 }
 
+// A review under way stops once it counts as asked, past review_stall, each row as
+// it reads: its code request names it whichever review runs, and the code review
+// comes first where both are under way. A login with no state is passed over.
+func TestWalkStopsAReviewUnderWay(t *testing.T) {
+	for name, c := range map[string]struct {
+		code, security string
+		want           *Stop
+	}{
+		"the code review":     {"running", "completed", &Stop{Login: "b", Review: "code", Head: head243, Request: "#1", Stalled: true}},
+		"the security review": {"completed", "running", &Stop{Login: "b", Review: "security", Head: head243, Request: "#1", Stalled: true}},
+		"both":                {"running", "running", &Stop{Login: "b", Review: "code", Head: head243, Request: "#1", Stalled: true}},
+	} {
+		t.Run(name, func(t *testing.T) {
+			comments := []providers.Authored{stateComment("b", c.code, head243, c.security, head243, 300),
+				madeAgo(CodexReview("b"), 120, "#1"), madeAgo(CodexSecurity("b"), 120, "#2")}
+			if stop, calls := walked(NewReviewing(60), comments, "", "nobody", "b"); !reflect.DeepEqual(stop, c.want) || !reflect.DeepEqual(calls, []string{"between"}) {
+				t.Errorf("stop %+v, calls %q, want %+v", stop, calls, c.want)
+			}
+		})
+	}
+}
+
+// The code review not started stops before a review under way, and names itself.
+func TestWalkStopsTheCodeReviewFirst(t *testing.T) {
+	comments := []providers.Authored{stateComment("a", "", "", "running", head243, 300),
+		madeAgo(CodexReview("a"), 300, "#1"), madeAgo(CodexReview("a"), 120, "#2"), madeAgo(CodexSecurity("a"), 300, "#3")}
+	want := &Stop{Login: "a", Review: "code", Head: head243, Request: "#2"}
+	if stop, _ := walked(NewReviewing(60), comments, "", "a"); !reflect.DeepEqual(stop, want) {
+		t.Errorf("stop %+v, want %+v", stop, want)
+	}
+}
+
+// What a review under way counts from and whether it counts as asked. first is the
+// wait's first look that read it running, edited its comment's last edit; a request
+// at or after the edit counts from itself; one older counts as asked only as the
+// second, or with the code review not under way.
+func TestStallClock(t *testing.T) {
+	first, edit, before, after := time.Unix(5_000, 0), time.Unix(2_000, 0), time.Unix(1_000, 0), time.Unix(3_000, 0)
+	none := time.Time{}
+	for name, c := range map[string]struct {
+		edited       time.Time
+		made         []requestMade
+		codeUnderWay bool
+		from         time.Time
+		asked        bool
+	}{
+		"no request, no edit":                      {none, nil, true, first, false},
+		"no request, an edit":                      {edit, nil, true, edit, false},
+		"a request with no time":                   {edit, []requestMade{{"a", none}}, true, first, true},
+		"a request, no edit":                       {none, []requestMade{{"a", before}}, true, before, true},
+		"a request after the edit":                 {edit, []requestMade{{"a", after}}, true, after, true},
+		"a request at the edit":                    {edit, []requestMade{{"a", edit}}, true, edit, true},
+		"an older request, the code under way":     {edit, []requestMade{{"a", before}}, true, edit, false},
+		"an older request, the code not under way": {edit, []requestMade{{"a", before}}, false, edit, true},
+		"two older requests, the code under way":   {edit, []requestMade{{"a", before}, {"b", before}}, true, edit, true},
+	} {
+		if from, asked := stallClock(first, c.edited, c.made, c.codeUnderWay); !from.Equal(c.from) || asked != c.asked {
+			t.Errorf("%s: %v, %v, want %v, %v", name, from, asked, c.from, c.asked)
+		}
+	}
+}
+
 // Each kept clock forgets a review that no longer reads so: a review running, then
 // done, then running again counts from its look, as does one not started again.
 func TestWalkForgetsItsClocks(t *testing.T) {
