@@ -17839,3 +17839,16 @@ items:
       From a read of the beads tracker, 2026-11-05. next needs an id today, so a driver parses itos
       work to choose one; beads' ready --claim does it in one call.
     tags: [v9]
+
+  - id: p2-v9-command-table
+    title: "v9: one table of commands, and a test refusing an unclassified one"
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      From a read of the beads tracker, 2026-11-05. A table with each command's --json, mutating and
+      rerun-safe facts, and a test failing on a command missing from it, would finish p1-json-gaps
+      and p1-mutations-rerun-safe and keep them finished.
+    tags: [v9]
