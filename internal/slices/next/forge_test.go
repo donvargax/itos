@@ -396,6 +396,83 @@ func TestSpecRef(t *testing.T) {
 	}
 }
 
+// Under push.mode pr a task's checks are read at origin/<id> when the clone
+// has the ref and the ledger there holds an entry for it, else in the working
+// tree, with no ref read; the rows no scenario can fail without.
+func TestTaskSpecRef(t *testing.T) {
+	const ledgerFile = "tasks/phase-1.yaml"
+	entry := func(id, doneWhen string) string {
+		return "- { id: " + id + ", type: chore, title: One" + doneWhen + " }\n"
+	}
+	vet, none := entry("T-1", `, done_when: [{ run: "go vet" }]`), entry("T-1", ", done_when: []")
+	bad := map[string]string{ledgerFile: "{ id: T-1, done_when: ["}
+	for _, test := range []struct {
+		name   string
+		config string
+		id     string
+		status string
+		tree   string
+		held   map[string]string
+		ref    string
+		checks []string
+		state  string
+	}{
+		{
+			name: "trunk, a check only at the ref", config: configText, id: "T-1", status: "todo",
+			tree: none, held: map[string]string{ledgerFile: vet}, state: "needs-spec",
+		},
+		{
+			name: "no ref, the working tree's", config: prConfig, id: "T-1", status: "todo",
+			tree: vet, checks: []string{"go vet"}, state: "spec-proposed",
+		},
+		{
+			name: "no entry at the ref, the working tree's", config: prConfig, id: "T-1", status: "todo",
+			tree: vet, held: map[string]string{ledgerFile: entry("T-10", ", done_when: []")},
+			checks: []string{"go vet"}, state: "spec-proposed",
+		},
+		{
+			name: "done, an unreadable ledger at the ref", config: prConfig, id: "T-1", status: "done",
+			tree: vet, held: bad, checks: []string{"go vet"}, state: "done",
+		},
+		{
+			name: "dropped, an unreadable ledger at the ref", config: prConfig, id: "T-1", status: "dropped",
+			tree: vet, held: bad, checks: []string{"go vet"}, state: "parked",
+		},
+		{
+			name: "a task's scenario at the ref counts for nothing", config: prConfig, id: "T-1", status: "todo",
+			tree: none, held: map[string]string{ledgerFile: entry("T-10", ", done_when: []"), "features/b.feature": feature("@ID-B-01 @T-1")},
+			state: "needs-spec",
+		},
+		{
+			name: "a slice's ledger entry at the ref counts for nothing", config: prConfig, id: "slice-9", status: "todo",
+			tree: none, held: map[string]string{ledgerFile: entry("slice-9", `, done_when: [{ run: "go vet" }]`)},
+			ref: "HEAD", state: "needs-spec",
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			registry := registryOf(item("id: " + test.id + ", status: " + test.status + ", title: One, phase: 1, owner: null, depends_on: []"))
+			files := map[string]string{"work-items.yaml": registry, "people.yaml": "- ana\n", ledgerFile: test.tree}
+			var refs map[string]map[string]string
+			if test.held != nil {
+				refs = map[string]map[string]string{"refs/remotes/origin/" + test.id: test.held}
+			}
+			p := over(t, fixture{config: test.config, files: files, head: map[string]string{}, refs: refs})
+			p.repository, p.gh = "o/r", &gh{answers: map[string][]string{"pr list": {"[]"}}}
+			facts, _, _, err := read(t.Context(), p.cfg, p.tracker, p, test.id)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var checks []string
+			for _, c := range facts.Checks {
+				checks = append(checks, c.Command())
+			}
+			if facts.SpecRef != test.ref || !reflect.DeepEqual(checks, test.checks) || Judge(facts).State != test.state {
+				t.Errorf("read %v at %q, %s; want %v at %q, %s", checks, facts.SpecRef, Judge(facts).State, test.checks, test.ref, test.state)
+			}
+		})
+	}
+}
+
 // A forge that cannot be asked is exit 3 with its problem, under --json
 // the problems JSON, nothing else printed; RevisionOf gives it as an error
 // of kind Missing. A journal that cannot be read is the error.
