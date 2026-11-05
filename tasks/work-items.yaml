@@ -17570,8 +17570,8 @@ items:
   - id: slice-226
     title: itos brief reads a reviewer's and implementer's spec from the item's branch, so a check only there is not 'no checks yet'
     phase: 3
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: slice
     why: >
