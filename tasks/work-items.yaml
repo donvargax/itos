@@ -17619,6 +17619,11 @@ items:
       the idle one seeing its HEAD move. The spec session could leave the branch detached when it
       hands back, or itos could name the way through.
 
+      slice-226, 2026-11-05: a spec worktree left detached avoids the hold, but the brief's git
+      switch --no-track -c still fails where a local branch of that name exists, at the same commit,
+      held by no worktree. A plain git switch worked. The brief could say git switch <item> when the
+      branch exists.
+
   - id: p2-attempt-red-first-from-branch-base
     title: A brief taken at an item's pushed branch has its tip as base, so attempt's red-first check refuses a repair's first fix
     phase: 2
