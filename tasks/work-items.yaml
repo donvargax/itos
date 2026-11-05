@@ -17981,3 +17981,17 @@ items:
       data leaving users' machines, a service to run. If itos ever wants this, opt-in only, local
       first: itos's friction ideas and consumer reports already give the signal with consent.
     tags: [v9]
+
+  - id: p3-v9-tradeoff-llm-summaries
+    title: "Trade-off: LLM summaries of closed items to shrink the registry"
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      From a read of the beads tracker, 2026-11-05; recorded as a trade-off for the v9 and v10
+      design, not adopted. Gains: a smaller working set an agent reads. Costs: an API call and
+      spend, summaries that can be wrong, a model dependency in the tracker. git keeps full history,
+      so archiving closed items (p1-archive-closed) shrinks the registry exactly and for free.
+    tags: [v9]
