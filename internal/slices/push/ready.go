@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/donvargax/itos/v8/internal/engine/ciwatch"
+	"github.com/donvargax/itos/v8/internal/engine/reviewers"
 	"github.com/donvargax/itos/v8/internal/providers"
 	"github.com/donvargax/itos/v8/internal/value"
 )
@@ -283,7 +284,7 @@ func (r *pushRun) stillWaiting(w *waiting) Answer {
 // ready or its head pushed, whichever is later, else from the first ask: done,
 // with the exit reported (75, outcome review-timeout, naming the logins that
 // have none; or at once 75, review-refused, for a login whose reviews are all
-// refusals; or 75, review-stalled or review-not-started, see judgeReviews; or 75,
+// refusals; or 75, review-stalled or review-not-started, see walkReviews; or 75,
 // ready-still-waiting, at push.pr.ready_wait), or the failure of gh api graphql. The last answer is the
 // state. w says what is waited on, at the start and at each look that changes
 // it.
@@ -294,7 +295,7 @@ func (r *pushRun) awaitReviews(ctx context.Context, repository string, w *waitin
 	timeout := time.Duration(*watch.Timeout * float64(time.Second))
 	deadline := now().Add(timeout)
 	r.say(fmt.Sprintf("Waiting for reviews by %s on %s.", strings.Join(logins, ", "), r.pr.URL))
-	rv := newReviewing(r.cfg.Push.PR.ReviewStall)
+	rv := reviewers.NewReviewing(r.cfg.Push.PR.ReviewStall)
 	for first := true; ; first = false {
 		state, a, failed := r.ask(ctx, repository, r.pr.Number)
 		if failed {
@@ -317,23 +318,9 @@ func (r *pushRun) awaitReviews(ctx context.Context, repository string, w *waitin
 			}
 			return state, r.report(temporary, "review-refused"), true
 		}
-		if a, done := r.askForHead(ctx, repository, w, rv, state); done {
+		left, a, done := r.walkReviews(ctx, repository, w, rv, state, missing, deadline)
+		if done {
 			return state, a, true
-		}
-		w.look(state, missing, rv)
-		timedOut, bounded, left := r.limits(deadline)
-		if timedOut {
-			fmt.Fprintf(r.o.Stderr, "itos: no review by %s on %s after %s seconds (ci.watch.timeout), so auto-merge is not turned on; itos push --ready again turns it on if the reviews have come, else stops here at once, the wait counting from when the pull request was marked ready or its head pushed; a new head starts it afresh.\n",
-				strings.Join(missing, ", "), r.pr.URL, value.Number(*watch.Timeout))
-			return state, r.report(temporary, "review-timeout"), true
-		}
-		if bounded {
-			return state, r.stillWaiting(w), true
-		}
-		if rv.stall > 0 {
-			if a, done := r.judgeReviews(ctx, repository, w, rv, state); done {
-				return state, a, true
-			}
 		}
 		sleep(min(max(interval, reviewPoll), left))
 	}

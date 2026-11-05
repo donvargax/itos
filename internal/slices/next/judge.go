@@ -77,7 +77,8 @@ func Judge(f Facts) Next {
 // forge is the state of an item with a spec under push.mode pr, from what
 // the forge and the journal said, the first that holds winning: merged,
 // repair, review-unrequested where merging or handed-back would be, merging
-// (auto-merge on), handed-back (ready, auto-merge off; slice-216), blocked on
+// (auto-merge on), review-stuck where handed-back would be for a ready pull
+// request (slice-224), handed-back (ready, auto-merge off; slice-216), blocked on
 // the attempt, spec-changes on a spec defect, review-unrequested where
 // handed-back would be, handed-back, implementing, spec-accepted,
 // spec-changes, spec-review, spec-proposed; an item neither todo nor doing
@@ -104,6 +105,8 @@ func (n *Next) forge(f Facts) {
 		n.run("review-unrequested", "driver", "request", request...)
 	case pull != nil && !pull.Draft && o.AutoMerge:
 		n.step("merging", "forge", "observe")
+	case o.ReviewStuck != nil:
+		n.step("review-stuck", "person", "look")
 	case pull != nil && !pull.Draft:
 		n.run("handed-back", "driver", "land", "itos", "push", "--ready")
 	case at >= 0 && latest.asksPerson() && !spent(f.Asked, o.nth(at)):

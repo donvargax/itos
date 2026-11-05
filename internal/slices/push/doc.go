@@ -389,7 +389,7 @@
 // whose run is watched, the head GitHub made when it rebased the pull request
 // included (watchRun, unwatchedHead). Each review in a login's review-state
 // comment whose commit is not the head, one with no commit included, is asked
-// for once per head (askForHead, slice 217) at the look that reads it, whether or
+// for once per head (slice 217) at the look that reads it, whether or
 // not review_stall is set, since Codex here reviews on ready_for_review alone:
 // each alone, whatever the other's commit or status, by the request itos review
 // request posts and reads (reviewers.Missing, reviewers.Request.Bodies), so the code
@@ -400,12 +400,12 @@
 // is asked nothing. With
 // push.pr.review_stall above 0, stalled posts one gh pr
 // comment for a login with a review under way on the head (its commit the head,
-// its status neither null nor completed; judgeReviews, stalled) that has read so
+// its status neither null nor completed; reviewers.Reviewing.Walk) that has read so
 // that many seconds,
 // from the last edit of its comment (GitHub's updatedAt) else the first look of
 // this --ready that read it so: "@codex review", an empty
 // line and "<!-- itos-review-request:v1 <login> <head> -->", unless it counts as
-// asked (stallClock; reviewers.Request.OnHead: any comment with that request for
+// asked (reviewers' stallClock; reviewers.Request.OnHead: any comment with that request for
 // the login and the head is one, and a security request is not that request): a
 // request made at or after that edit, two of any age, or one older than the edit
 // while the code review is not under way for the head. A review counting as asked
@@ -415,24 +415,25 @@
 // request has no time, ends the wait: exit 75, outcome review-stalled.
 // ci.watch.timeout still bounds the whole wait.
 //
-// A review that never starts (slice 218, notStarted): with review_stall above 0,
+// A review that never starts (slice 218): with review_stall above 0,
 // each of a login's two reviews is judged alone at each look, the code review
 // first, then a review under way, then the security review, after that look's
 // ci.watch.timeout and ready_wait. A review with a request for the head
-// (reviewing.requests: the comments reviewers.Request.Made gives, then those this
+// (the comments reviewers.Request.Made gives, then those this
 // --ready posted that GitHub does not list yet, one posted and listed counting
 // once, known by the address gh pr comment printed and the comment's url) whose
 // status is null, or with no commit, or another commit whatever its status
 // (providers.StateReview.NotStarted), review_stall seconds after the latest such
-// request (latest, by createdAt, a request not listed yet from when it was posted,
+// request (by createdAt, a request not listed yet from when it was posted,
 // a time GitHub does not give from the first look that read it so) has not started.
 // With one request it is asked once more, and said so; with two the wait ends,
 // exit 75, outcome review-not-started, auto-merge off, stderr and --json's
 // not_started (Answer.NotStarted) naming the login, the review, the full SHA of the
 // head and the latest request's address. Two requests for a review and a head,
-// ever, counted from the pull request, since itos next reads a pull request stopped
-// here as handed-back and a driver rerunning --ready would otherwise post at each
-// review_stall; a new head starts afresh. A login with no review-state comment is
+// ever, counted from the pull request, since a driver rerunning --ready would otherwise
+// post at each review_stall; a new head starts afresh. The walk of a look, the requests
+// and the stops, is reviewers.Reviewing.Walk, which itos next takes with no poster
+// and reads a pull request stopped here as review-stuck (slice-224). A login with no review-state comment is
 // judged by nothing here. review_stall must exceed the reviewer's queue plus its
 // review: a slow healthy reviewer still on the old commit reads as not started, at
 // a cost of one extra request and a stop at twice review_stall.

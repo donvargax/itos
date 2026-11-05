@@ -26,6 +26,15 @@ func CodexSecurity(login string) Request {
 	return Request{Login: login, Kind: "codex", Line: codexSecurity}
 }
 
+// Review is which review of its login's the request asks for: security for
+// Codex's security request, code for any other.
+func (r Request) Review() string {
+	if r.Line == codexSecurity {
+		return "security"
+	}
+	return "code"
+}
+
 // codexReviewed is whether the login's review state names the head for the
 // review the line asks for: the code review's commit_sha for "@codex
 // review", the security review's for "@codex security review".

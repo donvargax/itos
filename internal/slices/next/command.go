@@ -47,7 +47,11 @@ brief <id> --role implementer); review-unrequested (where merging or
 handed-back would be, a reviewer push.pr.reviewers names not requested for the
 head, neither asked with itos review request's marker nor answered by its own
 review of the head: driver request, itos review request <id>); merging (ready,
-auto-merge on: forge observe); handed-back (ready, auto-merge off, whatever
+auto-merge on: forge observe); review-stuck (where handed-back would be for a
+ready pull request, a review --ready would stop on having posted nothing,
+review-stalled or review-not-started under push.pr.review_stall, the clock read
+now, never with no review_stall: person look, no command; look at the reviewer,
+then itos push --ready again); handed-back (ready, auto-merge off, whatever
 the item's status or the journal says: driver land, itos push --ready);
 blocked (the
 latest implementer record is needs_decision or blocked and the k-th question
@@ -73,7 +77,8 @@ observe. A command is named only when the step is a deterministic itos
 command, and never run.
 
 One line: "<id>: <state>; next: <actor> <action>", then "; run: <command>"
-when there is one. Exit 0 in every state; 1 when there is no registry where
+when there is one; review-stuck says what is stuck there, "; <review> review by
+<login> of <full head>, last asked at <address>". Exit 0 in every state; 1 when there is no registry where
 itos looks, or no item with the id (rule work-unknown-item, as work show
 refuses it); 2 when the registry, the ledger a task needs, the questions file
 or the attempt journal cannot be read; 3 when gh is missing or fails (rule
@@ -100,10 +105,14 @@ when the forge was asked: {"pr":{"number","draft","head","merged"} or null,
 "head"} or null, the journal's latest implementer record, "unrequested", the
 push.pr.reviewers logins, as written, not requested for the open pull
 request's head, [] for none, "auto_merge", whether auto-merge is enabled for
-the open pull request, false when none was asked about}; revision "sha256:"
+the open pull request, false when none was asked about, "review_stuck":
+{"login","review","head","request"}, as push --ready's not_started has them, the
+review "code" or "security", the code review first where both are under way and
+an under way review's request its code request, null in any state but
+review-stuck}; revision "sha256:"
 and the hex digest of exactly the facts read, the kind as read among them and
 under pr the ref the spec was read at and what the forge and the
-journal said, so a commit that touches none of them leaves it as it was and a
+journal said, review_stuck only in that state and never a time or an age, so a commit that touches none of them leaves it as it was and a
 config change that moves the step moves it. Refused:
 {"schema":1,"ok":false,"problems":[{"rule","message","fix"}]}`,
 	},

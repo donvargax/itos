@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/engine/reviewers"
@@ -34,8 +35,10 @@ type Forge interface {
 // threads are open; the journal's Records, oldest first; Unrequested, the
 // push.pr.reviewers logins, as written and in the config's order, not
 // requested for the open pull request's head (slice-215), empty for none;
-// and AutoMerge, whether auto-merge is enabled for the open pull request
-// (slice-216), false when none was asked about.
+// AutoMerge, whether auto-merge is enabled for the open pull request
+// (slice-216), false when none was asked about; and ReviewStuck, the review
+// --ready would stop on having posted nothing (slice-224), nil in any state
+// but review-stuck.
 type Observed struct {
 	Pull        *Pull
 	Verdict     string
@@ -44,6 +47,7 @@ type Observed struct {
 	Records     []Record
 	Unrequested []string
 	AutoMerge   bool
+	ReviewStuck *reviewers.Stop
 }
 
 // Pull is the item's pull request: its Number, whether it is a Draft, its
@@ -81,7 +85,8 @@ const forgeFailed = 3
 // observe reads the forge and the journal of the item id under push.mode
 // pr: one gh pr list for the branch named for it, then, for an open pull
 // request, the one gh api graphql question (providers.AskPullState); a
-// merged one is asked nothing more. failed is the problem of a forge that
+// merged one is asked nothing more. The clock is read here, so Judge stays
+// pure over the facts. failed is the problem of a forge that
 // cannot be asked (next-forge-failed, or no-github-repository); err a
 // journal that cannot be read.
 func observe(ctx context.Context, cfg *config.Loaded, forge Forge, r work.Registry, id string) (o *Observed, failed *out.Problem, err error) {
@@ -113,6 +118,9 @@ func observe(ctx context.Context, cfg *config.Loaded, forge Forge, r work.Regist
 				o.ThreadsOpen++
 			}
 		}
+		if o.landing() {
+			o.ReviewStuck = reviewers.Stuck(cfg.Push.PR.ReviewBy, cfg.Push.PR.ReviewStall, state, pull.Head, time.Now())
+		}
 	}
 	data, err := forge.Journal(ctx, id)
 	if err != nil {
@@ -120,6 +128,14 @@ func observe(ctx context.Context, cfg *config.Loaded, forge Forge, r work.Regist
 	}
 	o.Records, err = readJournal(id, data)
 	return o, nil, err
+}
+
+// landing is whether Judge's forge reaches its land step for the open ready pull
+// request: nothing failed, no thread open, every reviewer requested, auto-merge off.
+// Only there is a review stuck, so the clock moves no revision in a state it does
+// not change.
+func (o *Observed) landing() bool {
+	return !o.Pull.Draft && o.Checks != checksFailure && o.ThreadsOpen == 0 && len(o.Unrequested) == 0 && !o.AutoMerge
 }
 
 // listPull is the item's pull request from gh pr list --state all for the

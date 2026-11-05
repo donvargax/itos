@@ -7,9 +7,11 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/donvargax/itos/v8/internal/ask"
 	"github.com/donvargax/itos/v8/internal/config"
+	"github.com/donvargax/itos/v8/internal/engine/reviewers"
 	"github.com/donvargax/itos/v8/internal/kind"
 	"github.com/donvargax/itos/v8/internal/providers"
 	treefake "github.com/donvargax/itos/v8/internal/store/tree/port/porttest"
@@ -289,7 +291,7 @@ func TestForgeJSON(t *testing.T) {
 		t.Fatal(err)
 	}
 	want := map[string]any{"pr": map[string]any{"number": 7.0, "draft": true, "head": headSHA, "merged": false},
-		"verdict": nil, "checks": "none", "threads_open": 1.0, "attempt": nil, "unrequested": []any{}, "auto_merge": false}
+		"verdict": nil, "checks": "none", "threads_open": 1.0, "attempt": nil, "unrequested": []any{}, "auto_merge": false, "review_stuck": nil}
 	if !reflect.DeepEqual(got["observed"], want) || got["state"] != "spec-review" {
 		t.Errorf("observed %v in %s", got["observed"], stdout)
 	}
@@ -313,7 +315,7 @@ func TestForgeJSON(t *testing.T) {
 	}
 	want = map[string]any{"pr": map[string]any{"number": 7.0, "draft": false, "head": headSHA, "merged": true},
 		"verdict": nil, "checks": "none", "threads_open": 0.0,
-		"attempt": map[string]any{"role": "implementer", "attempt": 2.0, "verdict": "accepted", "outcome": "done", "head": headSHA}, "unrequested": []any{}, "auto_merge": false}
+		"attempt": map[string]any{"role": "implementer", "attempt": 2.0, "verdict": "accepted", "outcome": "done", "head": headSHA}, "unrequested": []any{}, "auto_merge": false, "review_stuck": nil}
 	if !reflect.DeepEqual(got["observed"], want) || got["state"] != "merged" {
 		t.Errorf("observed %v in %s", got["observed"], stdout)
 	}
@@ -605,12 +607,15 @@ func TestRevisionForge(t *testing.T) {
 		t.Error("the same forge facts give another revision")
 	}
 	for name, change := range map[string]func(f *Facts){
-		"the head":            func(f *Facts) { f.Observed.Pull.Head = olderSHA },
-		"no pull request":     func(f *Facts) { f.Observed.Pull = nil },
-		"the verdict":         func(f *Facts) { f.Observed.Verdict = "changes" },
-		"the checks":          func(f *Facts) { f.Observed.Checks = "pending" },
-		"a thread":            func(f *Facts) { f.Observed.ThreadsOpen = 1 },
-		"auto-merge on":       func(f *Facts) { f.Observed.AutoMerge = true },
+		"the head":        func(f *Facts) { f.Observed.Pull.Head = olderSHA },
+		"no pull request": func(f *Facts) { f.Observed.Pull = nil },
+		"the verdict":     func(f *Facts) { f.Observed.Verdict = "changes" },
+		"the checks":      func(f *Facts) { f.Observed.Checks = "pending" },
+		"a thread":        func(f *Facts) { f.Observed.ThreadsOpen = 1 },
+		"auto-merge on":   func(f *Facts) { f.Observed.AutoMerge = true },
+		"a review stuck": func(f *Facts) {
+			f.Observed.ReviewStuck = &reviewers.Stop{Login: "a", Review: "code", Head: headSHA, Request: "#1"}
+		},
 		"a record":            func(f *Facts) { f.Observed.Records[0].Verdict = "rotated" },
 		"a question answered": func(f *Facts) { f.Asked[0].Answer = "This." },
 		"the ref":             func(f *Facts) { f.SpecRef = "HEAD" },
@@ -620,5 +625,267 @@ func TestRevisionForge(t *testing.T) {
 		if Revision(f) == first {
 			t.Errorf("%s leaves the revision as it was", name)
 		}
+	}
+}
+
+// The logins of TestForgeReviewStuck's pull requests.
+const (
+	codexA = "chatgpt-codex-connector"
+	codexB = "codex-b"
+)
+
+// stuckConfig is the config with review_stall 60, review_by the logins and any
+// more of push.pr after them.
+func stuckConfig(more string, logins ...string) string {
+	return prConfig + "  pr:\n    draft: true\n    review_by: [" + strings.Join(logins, ", ") + "]\n    review_stall: 60\n" + more
+}
+
+// stuckOver is the ports of a pull request whose config is the text and whose
+// answer is the pull request's, listed at draft or ready.
+func stuckOver(t *testing.T, config, status, list, pull string, lines ...string) ports {
+	t.Helper()
+	p := over(t, fixture{
+		config: config,
+		files: map[string]string{"work-items.yaml": registryOf(
+			item("id: slice-9, title: Nine, phase: 1, owner: ana, status: " + status + ", depends_on: []"),
+		), "people.yaml": "- ana\n"},
+		head: map[string]string{"features/a.feature": feature("@ID-A-01 @wip @slice-9")},
+	})
+	p.repository, p.gh = "o/r", &gh{answers: map[string][]string{"pr list": {list}, "api graphql": {pull}}}
+	if len(lines) > 0 {
+		p.journal = []byte(strings.Join(lines, "\n") + "\n")
+	}
+	return p
+}
+
+// ago is the time that many seconds ago, as GitHub writes it; "" for a negative one,
+// a time GitHub does not give.
+func ago(seconds int) string {
+	if seconds < 0 {
+		return ""
+	}
+	return time.Now().Add(-time.Duration(seconds) * time.Second).UTC().Format(time.RFC3339)
+}
+
+// timedComment is a comment by the login made and last edited those many seconds
+// ago, at the address.
+func timedComment(login, body string, created, edited int, url string) string {
+	text, _ := json.Marshal(map[string]any{"author": map[string]any{"login": login}, "body": body,
+		"createdAt": ago(created), "updatedAt": ago(edited), "url": url})
+	return string(text)
+}
+
+// asked is a comment asking the login for the review, "code" or "security", at
+// the head, posted those many seconds ago, at #<id>.
+func asked(login, review, head string, seconds int, id string) string {
+	req := reviewers.CodexReview(login)
+	if review == "security" {
+		req = reviewers.CodexSecurity(login)
+	}
+	bodies := req.Bodies(head)
+	return timedComment("someone", bodies[len(bodies)-1], seconds, seconds, "#"+id)
+}
+
+// stateOf is the login's review-state comment, its two reviews each a status and
+// the commit it is of, last edited those many seconds ago.
+func stateOf(login, code, codeSHA, security, securitySHA string, edited int) string {
+	review := func(status, sha string) string {
+		text, _ := json.Marshal(map[string]any{"status": nullable(status), "commit_sha": nullable(sha)})
+		return string(text)
+	}
+	return timedComment(login, `<!-- codex-review-state:v1 {"code_review":`+review(code, codeSHA)+`,"security_review":`+review(security, securitySHA)+`} -->`, edited, edited, "#state")
+}
+
+// nullable is the text, or null for none.
+func nullable(text string) any {
+	if text == "" {
+		return nil
+	}
+	return text
+}
+
+// securityNotStarted is the login's state with its code review completed for the
+// head and its security review null of no commit.
+func securityNotStarted(login string) string {
+	return stateOf(login, "completed", headSHA, "", "", 400)
+}
+
+// securityStuck are the comments of a login whose security review has not started
+// after its two requests, the later past review_stall.
+func securityStuck(login string) []string {
+	return []string{securityNotStarted(login), asked(login, "security", headSHA, 300, "1"), asked(login, "security", headSHA, 120, "2")}
+}
+
+// The state's rows, the first of which is the stop itself: a stop under each state
+// that keeps its place over it, and each answer --ready would judge otherwise. The
+// answers name the review where --ready would stop, as it reads them.
+func TestForgeReviewStuck(t *testing.T) {
+	draft := listed("7 OPEN true " + olderSHA)
+	ready := listed("7 OPEN false " + olderSHA)
+	handed := line("implementer", 1, "done", "accepted", headSHA)
+	one := stuckConfig("", codexA)
+	two := stuckConfig("", codexA, codexB)
+	stuck := securityStuck(codexA)
+	code := func(request string) *reviewers.Stop {
+		return &reviewers.Stop{Login: codexA, Review: "code", Head: headSHA, Request: request}
+	}
+	security := func(login, request string) *reviewers.Stop {
+		return &reviewers.Stop{Login: login, Review: "security", Head: headSHA, Request: request}
+	}
+	for _, test := range []struct {
+		name, config, status, list, pull string
+		lines                            []string
+		state                            string
+		want                             *reviewers.Stop
+		stalled                          bool
+	}{
+		{name: "checks pending", status: "doing", pull: pullAnswer(headSHA, "PENDING", nil, stuck...), state: "review-stuck", want: security(codexA, "#2")},
+		{name: "no checks", status: "doing", pull: pullAnswer(headSHA, "", nil, stuck...), state: "review-stuck", want: security(codexA, "#2")},
+		{name: "checks passed", status: "doing", pull: pullAnswer(headSHA, "SUCCESS", nil, stuck...), state: "review-stuck", want: security(codexA, "#2")},
+		{name: "a todo item with no journal", status: "todo", pull: pullAnswer(headSHA, "", nil, stuck...), state: "review-stuck", want: security(codexA, "#2")},
+		{name: "a draft", status: "doing", list: draft, pull: pullAnswer(headSHA, "", nil, stuck...), lines: []string{handed}, state: "handed-back"},
+		{name: "a failed check", status: "doing", pull: pullAnswer(headSHA, "FAILURE", nil, stuck...), state: "repair"},
+		{name: "an open thread", status: "doing", pull: pullAnswer(headSHA, "", []bool{false}, stuck...), state: "repair"},
+		{name: "a resolved thread", status: "doing", pull: pullAnswer(headSHA, "", []bool{true}, stuck...), state: "review-stuck", want: security(codexA, "#2")},
+		{name: "auto-merge on", status: "doing", pull: autoMerged(pullAnswer(headSHA, "", nil, stuck...)), state: "merging"},
+		{name: "an unrequested reviewer", config: stuckConfig("    reviewers:\n      - { login: \"cursor[bot]\", kind: bugbot }\n", codexA), status: "doing",
+			pull: pullAnswer(headSHA, "", nil, stuck...), state: "review-unrequested"},
+		{name: "a login reviewers names and review_by does not", config: stuckConfig("    reviewers:\n      - { login: "+codexA+", kind: codex }\n", "someone-else"), status: "doing",
+			pull: pullAnswer(headSHA, "", nil, stuck...), state: "handed-back"},
+		{name: "no review-state comment", status: "doing",
+			pull: pullAnswer(headSHA, "", nil, asked(codexA, "security", headSHA, 300, "1"), asked(codexA, "security", headSHA, 120, "2")), state: "handed-back"},
+		{name: "a request with no time", status: "doing",
+			pull: pullAnswer(headSHA, "", nil, securityNotStarted(codexA), asked(codexA, "security", headSHA, -1, "1"), asked(codexA, "security", headSHA, -1, "2")), state: "handed-back"},
+		{name: "one request past review_stall", status: "doing",
+			pull: pullAnswer(headSHA, "", nil, securityNotStarted(codexA), asked(codexA, "security", headSHA, 300, "1")), state: "handed-back"},
+		{name: "the later request inside review_stall", status: "doing",
+			pull: pullAnswer(headSHA, "", nil, securityNotStarted(codexA), asked(codexA, "security", headSHA, 300, "1"), asked(codexA, "security", headSHA, 5, "2")), state: "handed-back"},
+		{name: "two requests listed later first", status: "doing",
+			pull:  pullAnswer(headSHA, "", nil, securityNotStarted(codexA), asked(codexA, "security", headSHA, 120, "2"), asked(codexA, "security", headSHA, 300, "1")),
+			state: "review-stuck", want: security(codexA, "#2")},
+		{name: "two under way requests older than the last edit, past it", status: "doing",
+			pull:  pullAnswer(headSHA, "", nil, stateOf(codexA, "running", headSHA, "completed", headSHA, 100), asked(codexA, "code", headSHA, 300, "1"), asked(codexA, "code", headSHA, 200, "2")),
+			state: "review-stuck", want: code("#2"), stalled: true},
+		{name: "one under way request older than the last edit", status: "doing",
+			pull:  pullAnswer(headSHA, "", nil, stateOf(codexA, "running", headSHA, "completed", headSHA, 100), asked(codexA, "code", headSHA, 300, "1")),
+			state: "handed-back"},
+		{name: "the code review under way inside review_stall of a request", status: "doing",
+			pull:  pullAnswer(headSHA, "", nil, stateOf(codexA, "running", headSHA, "completed", headSHA, 100), asked(codexA, "code", headSHA, 5, "1")),
+			state: "handed-back"},
+		{name: "the security review under way with one older code request", status: "doing",
+			pull:  pullAnswer(headSHA, "", nil, stateOf(codexA, "completed", headSHA, "running", headSHA, 100), asked(codexA, "code", headSHA, 300, "1")),
+			state: "review-stuck", want: security(codexA, "#1"), stalled: true},
+		{name: "both reviews under way", status: "doing",
+			pull:  pullAnswer(headSHA, "", nil, stateOf(codexA, "running", headSHA, "running", headSHA, 300), asked(codexA, "code", headSHA, 120, "1")),
+			state: "review-stuck", want: code("#1"), stalled: true},
+		{name: "the code review with one request before the security review with two", status: "doing",
+			pull: pullAnswer(headSHA, "", nil, stateOf(codexA, "", "", "", "", 400),
+				asked(codexA, "code", headSHA, 120, "1"), asked(codexA, "security", headSHA, 300, "2"), asked(codexA, "security", headSHA, 120, "3")),
+			state: "handed-back"},
+		{name: "the code review with two before the security review with one", status: "doing",
+			pull: pullAnswer(headSHA, "", nil, stateOf(codexA, "", "", "", "", 400),
+				asked(codexA, "code", headSHA, 300, "1"), asked(codexA, "code", headSHA, 120, "2"), asked(codexA, "security", headSHA, 120, "3")),
+			state: "review-stuck", want: code("#2")},
+		{name: "a first login's missing request, the other stuck", config: two, status: "doing",
+			pull: pullAnswer(headSHA, "", nil, append(securityStuck(codexB), securityNotStarted(codexA))...), state: "handed-back"},
+		{name: "a second login's missing request, the first stuck", config: two, status: "doing",
+			pull: pullAnswer(headSHA, "", nil, append(securityStuck(codexA), securityNotStarted(codexB))...), state: "handed-back"},
+		{name: "two logins stuck, in the config's order", config: two, status: "doing",
+			pull: pullAnswer(headSHA, "", nil, append(securityStuck(codexB), securityStuck(codexA)...)...), state: "review-stuck", want: security(codexA, "#2")},
+		{name: "a login inside its clock passed over", config: two, status: "doing",
+			pull:  pullAnswer(headSHA, "", nil, append(securityStuck(codexB), securityNotStarted(codexA), asked(codexA, "security", headSHA, 300, "3"), asked(codexA, "security", headSHA, 5, "4"))...),
+			state: "review-stuck", want: security(codexB, "#2")},
+		{name: "a login with a verdict passed over", config: two, status: "doing",
+			pull:  pullAnswer(headSHA, "", nil, append(securityStuck(codexB), stateOf(codexA, "completed", headSHA, "completed", headSHA, 400))...),
+			state: "review-stuck", want: security(codexB, "#2")},
+		{name: "another login refused", config: two, status: "doing",
+			pull: strings.Replace(pullAnswer(headSHA, "", nil, securityStuck(codexB)...), `"reviews":{"nodes":[]}`,
+				`"reviews":{"nodes":[{"author":{"login":"`+codexA+`"},"body":"Copilot was unable to review this pull request."}]}`, 1),
+			state: "review-stuck", want: security(codexB, "#2")},
+		{name: "a ready time past ci.watch.timeout", config: stuckConfig("", codexA) + "ci:\n  watch:\n    timeout: 10\n", status: "doing",
+			pull: strings.Replace(pullAnswer(headSHA, "", nil, stuck...), `"pullRequest":{`,
+				`"pullRequest":{"timelineItems":{"nodes":[{"createdAt":"`+ago(3600)+`"}]},`, 1),
+			state: "review-stuck", want: security(codexA, "#2")},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			config, list := test.config, test.list
+			if config == "" {
+				config = one
+			}
+			if list == "" {
+				list = ready
+			}
+			a, err := NewHandler(stuckOver(t, config, test.status, list, test.pull, test.lines...)).Handle(t.Context(), Query{ID: "slice-9"})
+			if err != nil || a.Next == nil {
+				t.Fatalf("Handle = %+v, %v", a, err)
+			}
+			n := a.Next
+			if test.want != nil {
+				test.want.Stalled = test.stalled
+			}
+			if n.State != test.state || !reflect.DeepEqual(n.Observed.ReviewStuck, test.want) {
+				t.Errorf("state %s, stuck %+v; want %s, %+v", n.State, n.Observed.ReviewStuck, test.state, test.want)
+			}
+			if test.state == "review-stuck" && (n.Actor != "person" || n.Action != "look" || n.Argv != nil) {
+				t.Errorf("the step is %s %s %v, not person look with no argv", n.Actor, n.Action, n.Argv)
+			}
+		})
+	}
+}
+
+// With no review_stall nothing is stuck, whatever the times.
+func TestForgeReviewStuckNoStall(t *testing.T) {
+	config := prConfig + "  pr:\n    draft: true\n    review_by: [" + codexA + "]\n"
+	a, err := NewHandler(stuckOver(t, config, "doing", listed("7 OPEN false "+olderSHA), pullAnswer(headSHA, "", nil, securityStuck(codexA)...))).Handle(t.Context(), Query{ID: "slice-9"})
+	if err != nil || a.Next.State != "handed-back" || a.Next.Observed.ReviewStuck != nil {
+		t.Errorf("Handle = %+v, %v", a.Next, err)
+	}
+}
+
+// The line says what is stuck after the step, with no command to run.
+func TestForgeReviewStuckLine(t *testing.T) {
+	p := stuckOver(t, stuckConfig("", codexA), "doing", listed("7 OPEN false "+olderSHA), pullAnswer(headSHA, "", nil, securityStuck(codexA)...))
+	_, stdout, _, err := run(t, p, "slice-9")
+	want := "slice-9: review-stuck; next: person look; security review by " + codexA + " of " + headSHA + ", last asked at #2\n"
+	if err != nil || stdout != want {
+		t.Errorf("%q, %v; want %q", stdout, err, want)
+	}
+}
+
+// A kept state over a stop has one revision either side of the stop's clock, and
+// nothing stuck on either side: the clock moves no revision in a state it does not
+// change. Each has its second request five seconds old, then past review_stall.
+func TestForgeReviewStuckKeepsTheRevision(t *testing.T) {
+	approve := verdictBy("ana", "slice-9", "spec", "approve", headSHA)
+	for _, test := range []struct {
+		name, status, list, state, rollup string
+		also                              []string
+	}{
+		{name: "spec-accepted on a draft", status: "todo", list: listed("7 OPEN true " + olderSHA), state: "spec-accepted", also: []string{approve}},
+		{name: "repair on a red pull request", status: "doing", list: listed("7 OPEN false " + olderSHA), state: "repair", rollup: "FAILURE"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			// One comment's address at each age, so only the clock moves between them;
+			// the times a kept state does not read are not in its revision.
+			of := func(seconds int) (string, *Observed) {
+				comments := append([]string{securityNotStarted(codexA), asked(codexA, "security", headSHA, 300, "1"), asked(codexA, "security", headSHA, seconds, "2")}, test.also...)
+				a, err := NewHandler(stuckOver(t, stuckConfig("", codexA), test.status, test.list, pullAnswer(headSHA, test.rollup, nil, comments...))).Handle(t.Context(), Query{ID: "slice-9"})
+				if err != nil || a.Next.State != test.state {
+					t.Fatalf("Handle = %+v, %v", a.Next, err)
+				}
+				return a.Next.Revision, a.Next.Observed
+			}
+			young, seen := of(5)
+			if seen.ReviewStuck != nil {
+				t.Errorf("five seconds old: stuck %+v", seen.ReviewStuck)
+			}
+			past, seen := of(120)
+			if seen.ReviewStuck != nil {
+				t.Errorf("past review_stall: stuck %+v", seen.ReviewStuck)
+			}
+			if young != past {
+				t.Errorf("the revision moved with the clock: %s, %s", young, past)
+			}
+		})
 	}
 }

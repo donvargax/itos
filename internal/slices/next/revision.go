@@ -92,6 +92,12 @@ func Revision(f Facts) string {
 		if o.AutoMerge {
 			b.WriteString("auto_merge true\n")
 		}
+		// What is stuck and never a time, and only in review-stuck, so a pull
+		// request in any other state keeps the revision it had before slice-224.
+		if o.ReviewStuck != nil {
+			stuck, _ := json.Marshal(o.ReviewStuck)
+			b.WriteString("review_stuck " + string(stuck) + "\n")
+		}
 	}
 	sum := sha256.Sum256([]byte(b.String()))
 	return "sha256:" + hex.EncodeToString(sum[:])

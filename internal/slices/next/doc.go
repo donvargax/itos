@@ -71,7 +71,8 @@
 // forge then gives, the first that holds: merged, repair (ready, a check
 // failed or a thread open), review-unrequested (slice-215: ready, a reviewer
 // push.pr.reviewers names not requested for the head as the reviewers engine
-// reads it), merging (ready, auto-merge on), handed-back (ready, auto-merge
+// reads it), merging (ready, auto-merge on), review-stuck (slice-224, below),
+// handed-back (ready, auto-merge
 // off, whatever the status and the journal: slice-216, since --ready marks
 // the pull request ready before it turns auto-merge on, and a driver told
 // merging would wait on nothing), blocked "attempt" (the latest
@@ -84,6 +85,14 @@
 // and spec-changes (todo, by the verdict), spec-review (todo, a pull
 // request), spec-proposed (todo, none); --json's observed says what was
 // read.
+//
+// review-stuck (slice-224) is the person's step, look at the reviewer, where a rerun
+// of --ready would post nothing and stop, exit 75, so a driver told handed-back would
+// spin. observe asks reviewers.Stuck, the walk --ready's looks take with no poster
+// (internal/engine/reviewers), only where the ladder reaches the ready pull request's
+// land step (Observed.landing): that one check keeps observed.review_stuck null in any
+// other state and the revision's line away from it, so the clock alone moves no
+// revision in a state it does not change.
 //
 // The revision (revision.go) is sha256: and the hex digest of exactly the
 // facts read, the kind as read among them, under push.mode pr the ref the

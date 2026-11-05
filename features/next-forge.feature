@@ -168,6 +168,89 @@ Feature: itos next reads an in-flight item's state from the forge under push.mod
   "autoMergeRequest": {"enabledAt": <a time>} when that mark is there and
   null otherwise, so an answer always has the field.
 
+  slice-224 adds review-stuck. After itos push --ready stops a review that does
+  not come, exit 75, review-stalled or review-not-started, the pull request is
+  ready with auto-merge off, so next says handed-back and itos push --ready. A
+  rerun posts nothing and exits 75 at its first look, so a driver spins on reads
+  until someone looks. next reads the forge and the journal, not --ready's
+  outcomes, so the state comes from the same facts: review-stuck holds where
+  --ready's judging of this answer, under push.pr.review_stall, would stop with
+  one of those outcomes having posted nothing. --ready can stop before that
+  judging, posting nothing either: review-refused with another login refused, and
+  review-timeout past ci.watch.timeout. next still names the stuck review there,
+  since a rerun would only stop again and the person has the same look to take.
+  So, for each login of push.pr.review_by with a review-state comment,
+  in the config's order, as --ready judges them: a request either review still
+  lacks on the head (askForHead) is --ready's to post, and so is the second
+  request judgeReviews would reach first, and either leaves handed-back; the first stop
+  judgeReviews would reach is review-stuck, naming it. A review of the head that
+  has not started stops with its two requests made, the latest past review_stall
+  from its time. One under way stops where stalled does: when its code requests
+  count as asked (stallClock, which can be one, the request --ready asked again
+  with, ID-NEXTFORGE-27), past review_stall from that clock. A request of another
+  head counts for nothing, so a new head starts afresh, and a review starting or
+  completing clears it. The walk of askForHead and judgeReviews, with its counting
+  of requests and its clocks, is one function that both commands call
+  (internal/engine/reviewers, beside Missing, so they cannot disagree), never a
+  copy of its order: --ready calls it with a poster, next with none, the first
+  post it reaches being handed-back. next is such a first look with nothing
+  posted, and a time GitHub does not give counts from that look, so no clock has
+  run and it stays handed-back, as --ready would wait.
+  With review_stall 0, the default, next never says it, as --ready has no stall.
+
+  It stands where handed-back would for a ready pull request, after merged,
+  repair, review-unrequested and merging, whatever the item's status, the journal
+  or the checks still pending say. A draft stays handed-back, since --ready has
+  a pull request to mark ready. Its step is person look, no argv: look at the
+  reviewer, then itos push --ready again, as --ready's stop says. A driver's
+  handling of a person's step is unchanged, it stops and says so: this replaces a
+  silent spin with a named stop. The text is the one line with what is stuck
+  after the step, "<id>: review-stuck; next: person look; <review> review by
+  <login> of <full head>, last asked at <address>". --json's observed gains
+  review_stuck, {"login","review","head","request"} as --ready's not_started
+  has them, the review "code" or "security", the code review first where both
+  are under way, and null in any other state. An under way review's request is
+  its code request whichever review runs, the one --ready's stall reads.
+
+  It costs no gh call: the comments' times and addresses (createdAt, updatedAt,
+  url) are in the one graphql question next already asks. The clock is read where
+  the forge is, so Judge stays pure over the facts. The revision digests what is
+  stuck, its login, review, head and request and never a time or an age, and only
+  where the state is review-stuck: any other state writes no line, whatever the
+  reviews read beneath it, so the clock alone moves no revision in a state it does
+  not change, which would stale work take --expect, and a pull request not
+  review-stuck keeps the revision it had before slice-224. The clock moves a
+  revision once, with the state. RevisionOf gives the same, so --expect covers it.
+  The commit that builds this is a feat with no Changes:, its Upgrading: naming
+  the state review-stuck and the action look, new to a driver reading --json, and
+  TestForgeJSON gains the key. A table test, TestForgeReviewStuck beside
+  TestForgeReviewUnrequested in internal/slices/next/forge_test.go, holds the
+  state's rows: a draft, a failed check, an open thread, auto-merge on and an
+  unrequested reviewer each keep their state over a stop; checks pending, none or
+  success, and a todo item with no journal, are review-stuck; a login
+  push.pr.reviewers names and review_by does not, and one with no review-state
+  comment, are handed-back; a request with no time is handed-back; two requests
+  listed later first name the later by time; two under way requests older than
+  the state's last edit, past it, are review-stuck, one is handed-back; the
+  security review under way with one older code request is review-stuck, its
+  review security and its request that code one; the code review with one
+  request past review_stall before the security review with two is handed-back,
+  --ready posting first, and the code review with two before the security review
+  with one is review-stuck, code, --ready stopping before it asks; a login's
+  missing first request is handed-back though another login is stuck; two logins
+  stuck name the first in the config's order, a login still inside its clock
+  passed over; another login refused, where --ready says review-refused, is
+  review-stuck naming the stuck login; a ready time past ci.watch.timeout, where
+  --ready says review-timeout, is review-stuck naming the stuck review; and a kept
+  state, spec-accepted on a draft and repair on a red pull request, has one revision
+  either side of a stop's clock, its second request five seconds old and then past
+  review_stall, and observed.review_stuck null on both sides.
+
+  Not in slice-224: --ready's other stops at its first look with no review stuck,
+  review-timeout past ci.watch.timeout and review-refused; a reviewer with no
+  review-state comment, which --ready's stall does not judge either; a main that
+  moved, which a rerun would rebase onto and next does not read.
+
   Background:
     Given a repository whose ledger has the task "T-001"
     And a clone of it, where itos runs
@@ -990,6 +1073,262 @@ Feature: itos next reads an in-flight item's state from the forge under push.mod
     And its JSON's "state" is "merging"
     And its JSON's "observed.pr.draft" is false
     And its JSON's "observed.auto_merge" is true
+
+  # The slice's point: the security review has not started after its two requests,
+  # the later past review_stall, so a rerun of --ready would post nothing and stop.
+  # next says so instead of handed-back, and it is the person's step: no argv. It
+  # names the later request by its time, GitHub listing it first. One list and one
+  # graphql question a run, nothing posted. Then --ready over the same answer stops
+  # with the same review and request, so the two read one judgement. Fails before
+  # the work at the first output line: next says handed-back.
+  @ID-NEXTFORGE-26 @slice-224
+  Scenario: Under push.mode pr, a ready pull request whose review has not started after its two requests, past push.pr.review_stall, is review-stuck, the person's step
+    Given the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+        pr:
+          draft: true
+          review_by: [chatgpt-codex-connector]
+          review_stall: 60
+      """
+    And ci.watch asks a fake GitHub, which reports the run "https://ci.example/runs/1"
+    And ci.watch.timeout is 10
+    And the watched run's jobs "ci" and "platform" succeed
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the work registry has the item "slice-9" owned by "ana" with the status "doing"
+    And the clone is on the new branch "slice-9"
+    And a feature file with the scenario "@ID-A-01" tagged "@wip @slice-9"
+    And git pushes HEAD to the remote's new branch "slice-9"
+    And the recording gh has the pull request "https://github.example/o/r/pull/7" open for the branch "slice-9"
+    And the recording gh answers that the pull request has a comment by "someone" requesting "@codex security review" of "chatgpt-codex-connector" at the clone's HEAD, posted 120 seconds ago, at "https://github.example/o/r/pull/7#issuecomment-12"
+    And the recording gh answers that the pull request has a comment by "someone" requesting "@codex security review" of "chatgpt-codex-connector" at the clone's HEAD, posted 300 seconds ago, at "https://github.example/o/r/pull/7#issuecomment-11"
+    And the recording gh answers that the pull request has a comment by "chatgpt-codex-connector" holding Codex's review state, its code review "completed" of the clone's HEAD and its security review null of no commit
+    When itos runs "next slice-9"
+    Then itos exits with code 0
+    And its output says "slice-9: review-stuck; next: person look; security review by chatgpt-codex-connector of " with the full SHA of the head of the remote's branch "slice-9"
+    And its output says ", last asked at https://github.example/o/r/pull/7#issuecomment-12"
+    When itos runs "next slice-9 --json"
+    Then itos exits with code 0
+    And its JSON's "state" is "review-stuck"
+    And its JSON's "next" is {"actor": "person", "action": "look"}
+    And its JSON's "observed.review_stuck.login" is "chatgpt-codex-connector"
+    And its JSON's "observed.review_stuck.review" is "security"
+    And its JSON's "observed.review_stuck.head" holds the full SHA of the head of the remote's branch "slice-9"
+    And its JSON's "observed.review_stuck.request" is "https://github.example/o/r/pull/7#issuecomment-12"
+    And its JSON's "observed.auto_merge" is false
+    And the recording gh was called as "pr list" 2 times
+    And the recording gh was called as "api graphql" 2 times
+    And the recording gh was never called as "pr comment"
+    And the recording gh was never called as "pr view"
+    When itos runs "push --ready --json"
+    Then itos exits with code 75
+    And its JSON's "outcome" is "review-not-started"
+    And its JSON's "not_started.review" is "security"
+    And its JSON's "not_started.request" is "https://github.example/o/r/pull/7#issuecomment-12"
+    And the recording gh was never called as "pr comment"
+    And the recording gh was never called as "pr merge"
+
+  # --ready's other stop, by its usual path (ID-PUSHDRAFT-29): the code review is
+  # running, --ready asked again once, and it still runs past review_stall from that
+  # request. One request is enough here: stallClock counts one made at or after the
+  # review's start as asked, so "its two requests" would leave this rerun spinning.
+  # The item is todo with no journal, the ready pull request being judged first.
+  # Then --ready stops at the same login, posting nothing. Fails before the work at
+  # the state: next says handed-back.
+  @ID-NEXTFORGE-27 @slice-224
+  Scenario: Under push.mode pr, a ready pull request whose review still runs past push.pr.review_stall after it was asked again is review-stuck
+    Given the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+        pr:
+          draft: true
+          review_by: [chatgpt-codex-connector]
+          review_stall: 60
+      """
+    And ci.watch asks a fake GitHub, which reports the run "https://ci.example/runs/1"
+    And ci.watch.timeout is 10
+    And the watched run's jobs "ci" and "platform" succeed
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the work registry has the item "slice-9" owned by nobody with the status "todo"
+    And the clone is on the new branch "slice-9"
+    And a feature file with the scenario "@ID-A-01" tagged "@wip @slice-9"
+    And git pushes HEAD to the remote's new branch "slice-9"
+    And the recording gh has the pull request "https://github.example/o/r/pull/7" open for the branch "slice-9"
+    And the recording gh answers that the pull request has a comment by "someone" requesting "@codex review" of "chatgpt-codex-connector" at the clone's HEAD, posted 120 seconds ago, at "https://github.example/o/r/pull/7#issuecomment-12"
+    And the recording gh answers that the pull request has a comment by "chatgpt-codex-connector" holding Codex's review state, its code review "running" and its security review "completed", last edited 300 seconds ago
+    When itos runs "next slice-9 --json"
+    Then itos exits with code 0
+    And its JSON's "state" is "review-stuck"
+    And its JSON's "next" is {"actor": "person", "action": "look"}
+    And its JSON's "observed.review_stuck.login" is "chatgpt-codex-connector"
+    And its JSON's "observed.review_stuck.review" is "code"
+    And its JSON's "observed.review_stuck.head" holds the full SHA of the head of the remote's branch "slice-9"
+    And its JSON's "observed.review_stuck.request" is "https://github.example/o/r/pull/7#issuecomment-12"
+    And the recording gh was never called as "pr comment"
+    When itos runs "push --ready --json"
+    Then itos exits with code 75
+    And its JSON's "outcome" is "review-stalled"
+    And the recording gh was never called as "pr comment"
+    And the recording gh was never called as "pr merge"
+
+  # Before that point --ready has work to do, so next stays handed-back: with no
+  # request, it asks; with one past review_stall, it asks once more; with two, the
+  # later five seconds old, its clock has not run. The same pull request, a request
+  # at a time. A guard: it passes before the work, which says handed-back whatever
+  # the reviews, and must after it: a build reading a review not started as stuck
+  # fails at the first run, one needing a single request at the second, one counting
+  # from the earlier request at the third.
+  @ID-NEXTFORGE-28 @guard @slice-224
+  Scenario: Under push.mode pr, next stays handed-back while --ready still has a request to post or a clock to run
+    Given the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+        pr:
+          draft: true
+          review_by: [chatgpt-codex-connector]
+          review_stall: 60
+      """
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the work registry has the item "slice-9" owned by "ana" with the status "doing"
+    And the clone is on the new branch "slice-9"
+    And a feature file with the scenario "@ID-A-01" tagged "@wip @slice-9"
+    And git pushes HEAD to the remote's new branch "slice-9"
+    And the recording gh has the pull request "https://github.example/o/r/pull/7" open for the branch "slice-9"
+    And the recording gh answers that the pull request has a comment by "chatgpt-codex-connector" holding Codex's review state, its code review "completed" of the clone's HEAD and its security review null of no commit
+    When itos runs "next slice-9 --json"
+    Then itos exits with code 0
+    And its JSON's "state" is "handed-back"
+    And its JSON's "next" is {"actor": "driver", "action": "land", "argv": ["itos", "push", "--ready"]}
+    Given the recording gh answers that the pull request has a comment by "someone" requesting "@codex security review" of "chatgpt-codex-connector" at the clone's HEAD, posted 300 seconds ago, at "https://github.example/o/r/pull/7#issuecomment-11"
+    When itos runs "next slice-9 --json"
+    Then itos exits with code 0
+    And its JSON's "state" is "handed-back"
+    And its JSON's "next" is {"actor": "driver", "action": "land", "argv": ["itos", "push", "--ready"]}
+    Given the recording gh answers that the pull request has a comment by "someone" requesting "@codex security review" of "chatgpt-codex-connector" at the clone's HEAD, posted 5 seconds ago, at "https://github.example/o/r/pull/7#issuecomment-12"
+    When itos runs "next slice-9"
+    Then itos exits with code 0
+    And stdout contains the complete line "slice-9: handed-back; next: driver land; run: itos push --ready" exactly once
+    And the recording gh was never called as "pr comment"
+
+  # No push.pr.review_stall, so --ready has no stall and next has none: two requests
+  # a day old for a review not started, then a review running for a day, are
+  # handed-back. A guard: it passes before the work, and must after it: a build
+  # taking review_stall 0 as a clock that has run says review-stuck at the first run,
+  # and so does one defaulting an unset review_stall to this repository's 1200, the
+  # times being well past it.
+  @ID-NEXTFORGE-29 @guard @slice-224
+  Scenario: Under push.mode pr, with no push.pr.review_stall next never says review-stuck
+    Given the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+        pr:
+          draft: true
+          review_by: [chatgpt-codex-connector]
+      """
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the work registry has the item "slice-9" owned by "ana" with the status "doing"
+    And the clone is on the new branch "slice-9"
+    And a feature file with the scenario "@ID-A-01" tagged "@wip @slice-9"
+    And git pushes HEAD to the remote's new branch "slice-9"
+    And the recording gh has the pull request "https://github.example/o/r/pull/7" open for the branch "slice-9"
+    And the recording gh answers that the pull request has a comment by "someone" requesting "@codex security review" of "chatgpt-codex-connector" at the clone's HEAD, posted 90000 seconds ago, at "https://github.example/o/r/pull/7#issuecomment-11"
+    And the recording gh answers that the pull request has a comment by "someone" requesting "@codex security review" of "chatgpt-codex-connector" at the clone's HEAD, posted 86400 seconds ago, at "https://github.example/o/r/pull/7#issuecomment-12"
+    And the recording gh answers that the pull request has a comment by "chatgpt-codex-connector" holding Codex's review state, its code review "completed" of the clone's HEAD and its security review null of no commit
+    When itos runs "next slice-9 --json"
+    Then itos exits with code 0
+    And its JSON's "state" is "handed-back"
+    And its JSON's "next" is {"actor": "driver", "action": "land", "argv": ["itos", "push", "--ready"]}
+    Given the recording gh answers that the pull request has a comment by "someone" requesting "@codex review" of "chatgpt-codex-connector" at the clone's HEAD, posted 86400 seconds ago, at "https://github.example/o/r/pull/7#issuecomment-13"
+    And the recording gh answers that the pull request has a comment by "chatgpt-codex-connector" holding Codex's review state, its code review "running" and its security review "completed", last edited 90000 seconds ago
+    When itos runs "next slice-9 --json"
+    Then itos exits with code 0
+    And its JSON's "state" is "handed-back"
+    And its JSON's "next" is {"actor": "driver", "action": "land", "argv": ["itos", "push", "--ready"]}
+
+  # The state moves with the facts, and the revision with it. A first request is
+  # handed-back; the second, past review_stall, is review-stuck with a new revision,
+  # the same at the next run, so no age is digested, and a driver's work take with
+  # the old one is stale. A later request, someone asking by hand, leaves it
+  # review-stuck with the same head and names that request: the revision digests
+  # what is stuck, so a build digesting only whether something is gives the same one
+  # there. A new head starts afresh: the requests of the old one count for nothing,
+  # so it is handed-back, until the new head's own two requests stick again, naming
+  # that head. Then the review starting clears it, and so does it completing. Fails
+  # before the work at the first review-stuck state: next says handed-back.
+  @ID-NEXTFORGE-30 @slice-224
+  Scenario: Under push.mode pr, review-stuck moves the revision, a new head starts afresh, and a review starting or completing clears it
+    Given the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+        pr:
+          draft: true
+          review_by: [chatgpt-codex-connector]
+          review_stall: 60
+      """
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the work registry has the item "slice-9" owned by nobody with the status "todo"
+    And the clone is on the new branch "slice-9"
+    And a feature file with the scenario "@ID-A-01" tagged "@wip @slice-9"
+    And git pushes HEAD to the remote's new branch "slice-9"
+    And the recording gh has the pull request "https://github.example/o/r/pull/7" open for the branch "slice-9"
+    And the recording gh answers that the pull request has a comment by "chatgpt-codex-connector" holding Codex's review state, its code review "completed" of the clone's HEAD and its security review null of no commit
+    And the recording gh answers that the pull request has a comment by "someone" requesting "@codex security review" of "chatgpt-codex-connector" at the clone's HEAD, posted 300 seconds ago, at "https://github.example/o/r/pull/7#issuecomment-11"
+    When itos runs "next slice-9 --json"
+    Then itos exits with code 0
+    And its JSON's "state" is "handed-back"
+    And its JSON's revision is saved as "asked once"
+    Given the recording gh answers that the pull request has a comment by "someone" requesting "@codex security review" of "chatgpt-codex-connector" at the clone's HEAD, posted 120 seconds ago, at "https://github.example/o/r/pull/7#issuecomment-12"
+    When itos runs "next slice-9 --json"
+    Then itos exits with code 0
+    And its JSON's "state" is "review-stuck"
+    And its JSON's revision differs from the one saved as "asked once"
+    And its JSON's revision is saved as "stuck"
+    When itos runs "next slice-9 --json"
+    Then itos exits with code 0
+    And its JSON's revision is the one saved as "stuck"
+    When itos runs "work take slice-9 --as someone --json" with --expect the revision saved as "asked once"
+    Then itos exits with code 1
+    And its JSON's problem "work-stale"'s "message" names the revision saved as "stuck"
+    And the registry's item "slice-9" has the status "todo" and the owner "nobody"
+    Given the recording gh answers that the pull request has a comment by "someone" requesting "@codex security review" of "chatgpt-codex-connector" at the clone's HEAD, posted 90 seconds ago, at "https://github.example/o/r/pull/7#issuecomment-15"
+    When itos runs "next slice-9 --json"
+    Then itos exits with code 0
+    And its JSON's "state" is "review-stuck"
+    And its JSON's "observed.review_stuck.request" is "https://github.example/o/r/pull/7#issuecomment-15"
+    And its JSON's revision differs from the one saved as "stuck"
+    Given the clone has the commit "docs: answer the review" touching "notes.md"
+    And git pushes HEAD to the remote's new branch "slice-9"
+    When itos runs "next slice-9 --json"
+    Then itos exits with code 0
+    And its JSON's "state" is "handed-back"
+    And its JSON's "observed.review_stuck" is null
+    And its JSON's revision differs from the one saved as "stuck"
+    Given the recording gh answers that the pull request has a comment by "chatgpt-codex-connector" holding Codex's review state, its code review "completed" of the clone's HEAD and its security review null of no commit
+    And the recording gh answers that the pull request has a comment by "someone" requesting "@codex security review" of "chatgpt-codex-connector" at the clone's HEAD, posted 300 seconds ago, at "https://github.example/o/r/pull/7#issuecomment-13"
+    And the recording gh answers that the pull request has a comment by "someone" requesting "@codex security review" of "chatgpt-codex-connector" at the clone's HEAD, posted 120 seconds ago, at "https://github.example/o/r/pull/7#issuecomment-14"
+    When itos runs "next slice-9 --json"
+    Then itos exits with code 0
+    And its JSON's "state" is "review-stuck"
+    And its JSON's "observed.review_stuck.head" holds the full SHA of the head of the remote's branch "slice-9"
+    And its JSON's "observed.review_stuck.request" is "https://github.example/o/r/pull/7#issuecomment-14"
+    And its JSON's revision differs from the one saved as "stuck"
+    And its JSON's revision is saved as "stuck again"
+    Given the recording gh answers that the pull request has a comment by "chatgpt-codex-connector" holding Codex's review state, its code review "completed" of the clone's HEAD and its security review "running" of the clone's HEAD
+    When itos runs "next slice-9 --json"
+    Then itos exits with code 0
+    And its JSON's "state" is "handed-back"
+    And its JSON's "observed.review_stuck" is null
+    And its JSON's revision differs from the one saved as "stuck again"
+    Given the recording gh answers that the pull request has a comment by "chatgpt-codex-connector" holding Codex's review state, its code review "completed" of the clone's HEAD and its security review "completed" of the clone's HEAD
+    When itos runs "next slice-9 --json"
+    Then itos exits with code 0
+    And its JSON's "state" is "handed-back"
+    And its JSON's "observed.review_stuck" is null
 
   # A red check at the head of a ready pull request is the implementer's
   # to repair: FAILURE first, then ERROR, both failure. The registry says
