@@ -17827,3 +17827,15 @@ items:
       p1-defer-until covers dates alone. Typed waits such as pr:123, run:<id> or date:<day> would be
       read as itos next facts. Do not make waits into items.
     tags: [v9]
+
+  - id: p2-v9-next-without-id
+    title: "v9: itos next with no id names the first startable item"
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      From a read of the beads tracker, 2026-11-05. next needs an id today, so a driver parses itos
+      work to choose one; beads' ready --claim does it in one call.
+    tags: [v9]
