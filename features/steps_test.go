@@ -485,6 +485,7 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	initializePushThreadSteps(sc, w)
 	initializeReadyWaitSteps(sc, w)
 	initializeReadyRaceSteps(sc, w)
+	initializeReadyFailedJobSteps(sc, w)
 	initializeReviewSteps(sc, w)
 	initializeReviewRequestSteps(sc, w)
 	initializeReviewStatusSteps(sc, w)
