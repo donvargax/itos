@@ -17605,3 +17605,17 @@ items:
       timeout, review-refused, and a reviewer with no review-state comment each stop at once on a
       rerun or wait to the timeout while next keeps handing the driver land. Some need the head's
       push time, a call next does not make.
+
+  - id: p2-implementer-branch-held-by-spec-worktree
+    title: An implementer cannot switch to its item branch while the spec worktree holds it
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      slice-225, 2026-11-05: creating the item branch as the brief and AGENTS.md say failed, as the
+      branch already existed, checked out in the worktree of the agent that wrote the spec. The
+      implementer had to switch with --ignore-other-worktrees, leaving two worktrees on one branch,
+      the idle one seeing its HEAD move. The spec session could leave the branch detached when it
+      hands back, or itos could name the way through.
