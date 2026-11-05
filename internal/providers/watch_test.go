@@ -622,6 +622,9 @@ func TestRunOfFailsWithAnAskForJobsAndHeadRunsNameTheirEvent(t *testing.T) {
 	if _, found, err := g.RunOf("abc"); found || kind.Of(err) != kind.Temporary {
 		t.Errorf("found %v, err %v", found, err)
 	}
+	if _, found, err := (GitHub{Repository: "o/n", Token: "t", Workflow: "ci.yml", Branch: "main"}).NewestRun(); found || kind.Of(err) != kind.Temporary {
+		t.Errorf("the newest on a branch: found %v, err %v", found, err)
+	}
 	listed, err := g.RunsOfHead("abc")
 	if err != nil || len(listed) != 1 || listed[0].Event != "pull_request" || listed[0].Jobs != nil {
 		t.Errorf("err %v, listed %+v", err, listed)
