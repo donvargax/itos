@@ -17446,15 +17446,9 @@ items:
     title: --ready says it waits on a login nobody has asked, on a pull request with no review state
     phase: 2
     owner: null
-    status: todo
+    status: dropped
     depends_on: []
     kind: idea
-    why: >
-      slice-220, 2026-11-04: with no review-state comment yet, --ready asks nothing by design, as
-      the first request is itos review request's, yet prints 'waiting' for two 540 s calls as if a
-      review were coming. T-18 elsewhere did the same to the coordinator. Name it: no review
-      requested, run itos review request. Each --ready also opens with 'not asked' before it has
-      looked: p3-ready-state-says-asked.
 
   - id: p3-review-request-one-kind
     title: itos review request takes a reviewer kind
