@@ -25,7 +25,8 @@ const (
 
 // Watched is how a watch ended: its exit code, its outcome (success,
 // failure, cancelled, timeout or error; bound for a WatchReady whose Ready
-// bound passed first), the run as last seen, nil when none was, and the
+// bound passed first), the run as last seen, nil when none was, not finished on
+// a failure for a WatchReady that stopped at a failed job, and the
 // address of the commit's cancelled run when a newer run was followed in its
 // place.
 type Watched struct {
@@ -113,7 +114,9 @@ type Ready struct {
 // starts on the same head shows. The timeout counts from the start of the
 // run's latest attempt (providers.Run.Started) when GitHub gives it (slice
 // 200), so that a rerun of --ready continues it, else from the run's creation,
-// else from the watch's start.
+// else from the watch's start. A look that finds a job concluded failure, the run
+// not finished, ends the watch at once as a red run's end, before either limit
+// is judged (slice-225), the run as GitHub gave it, with no conclusion.
 func WatchReady(ctx context.Context, cfg *config.Loaded, wr providers.Watcher, v vcsport.VCS, sha, remote string, o Out, ready Ready) Watched {
 	return watch(ctx, cfg, wr, v, sha, remote, "", o, &ready)
 }
@@ -240,7 +243,7 @@ func watch(ctx context.Context, cfg *config.Loaded, wr providers.Watcher, v vcsp
 					fmt.Fprintf(progress, "  %s: %s\n", j.Name, j.Conclusion)
 				}
 			}
-			if !run.Done() {
+			if !run.Done() && (ready == nil || !slices.ContainsFunc(run.Jobs, concludedFailure)) {
 				break
 			}
 			if run.Conclusion != "cancelled" {
@@ -357,10 +360,11 @@ func fetchQuietly(ctx context.Context, v vcsport.VCS, remote string) {
 	_, _ = v.Fetch(ctx, remote, "", vcsport.Talk{NoPrompt: true})
 }
 
-// Ended is the watch of a run that completed: 0 when it succeeded, else 1,
-// naming the jobs that did not succeed and, once Detail has been to them,
-// what failed in each; the end goes to end, a failure's to o.Stderr. The tags
-// the run's head carries are named beside its address.
+// Ended is the watch of a run that completed, or that WatchReady stopped at
+// while it goes on: 0 when it succeeded, else 1, naming the jobs that did not
+// succeed and, once Detail has been to them, what failed in each, and saying of
+// a run stopped at that it has not finished; the end goes to end, a failure's to
+// o.Stderr. The tags the run's head carries are named beside its address.
 func Ended(run providers.Run, o Out, end io.Writer) Watched {
 	tagged := ""
 	if len(run.Tags) > 0 {
@@ -378,11 +382,15 @@ func Ended(run providers.Run, o Out, end io.Writer) Watched {
 			failed = append(failed, j.Name)
 		}
 	}
-	line := fmt.Sprintf("CI %s: %s", run.Conclusion, run.URL)
+	said, going := run.Conclusion, ""
+	if !run.Done() {
+		said, going = "failure", "; the run has not finished"
+	}
+	line := fmt.Sprintf("CI %s: %s", said, run.URL)
 	if len(failed) > 0 {
 		line += "; failed jobs: " + strings.Join(failed, ", ")
 	}
-	fmt.Fprintln(o.Stderr, line+tagged)
+	fmt.Fprintln(o.Stderr, line+going+tagged)
 	describe(o.Stderr, run)
 	return Watched{Code: exitPolicy, Outcome: "failure", Run: &run}
 }
@@ -391,6 +399,14 @@ func Ended(run providers.Run, o Out, end io.Writer) Watched {
 // neutral ones aside.
 func failedJob(j providers.Job) bool {
 	return j.Done() && j.Conclusion != "success" && j.Conclusion != "skipped" && j.Conclusion != "neutral"
+}
+
+// concludedFailure is whether the job ended in failure: what stops WatchReady on
+// a run still going. A cancelled job does not (a newer push cancels a run's jobs
+// first, bug 41), and timed_out, or a job still running with a failed step, is
+// left to the run's end.
+func concludedFailure(j providers.Job) bool {
+	return j.Done() && j.Conclusion == "failure"
 }
 
 // short is a commit's abbreviation as the TypeScript's slice(0, 7) writes it.

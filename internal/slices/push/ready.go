@@ -125,13 +125,19 @@ func (r *pushRun) finish(ctx context.Context, repository, outcome string) Answer
 // runNotPassed ends --ready at a watch that did not end in success, r.watched:
 // a run cancelled with none to follow is its own end, outcome run-cancelled,
 // naming the rerun that would give the head a result; any other leaves outcome,
-// pushed or nothing-to-push.
+// pushed or nothing-to-push. A failure on a run still going is the watch's stop
+// at a failed job (slice-225), which cannot say the run did not succeed: a job
+// allowed to fail reads as failed, and its run may yet.
 func (r *pushRun) runNotPassed(outcome string) Answer {
 	if r.watched.Outcome == "cancelled" {
 		run := r.watched.Run
 		fmt.Fprintf(r.o.Stderr, "itos: the run %s of %s on %s was cancelled and no other run checked that head, so auto-merge is not turned on: rerun it with gh run rerun %d, then itos push --ready again.\n",
 			run.URL, short(run.HeadSHA), r.pr.URL, run.ID)
 		return r.report(r.watched.Code, "run-cancelled")
+	}
+	if run := r.watched.Run; r.watched.Outcome == "failure" && !run.Done() {
+		fmt.Fprintf(r.o.Stderr, "itos: auto-merge is not turned on: a job failed and the run goes on. Fix what failed and push, or wait for the run's end with itos ci watch %s, then itos push --ready again.\n", run.HeadSHA)
+		return r.report(r.watched.Code, outcome)
 	}
 	fmt.Fprintln(r.o.Stderr, "itos: auto-merge is not turned on: the run did not succeed. Fix what failed and push, or wait for the run, then itos push --ready again.")
 	return r.report(r.watched.Code, outcome)

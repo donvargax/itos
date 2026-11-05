@@ -431,6 +431,28 @@ func TestPushReadyWhereTheRunDoesNotSucceed(t *testing.T) {
 	}
 }
 
+// A job failed with the run still going ends --ready as a red run does, but its
+// last line cannot say the run did not succeed, and names the wait for its end.
+func TestPushReadyStoppedAtAFailedJob(t *testing.T) {
+	f, p := draftRepo(t, `draft: true`, github)
+	f.watcher, f.watchOK = providers.Watcher{Look: func(sha string) (providers.Run, bool, error) {
+		return providers.Run{URL: "https://ci/1", Status: "in_progress", HeadSHA: sha, Jobs: []providers.Job{
+			{Name: "ci", Status: "completed", Conclusion: "failure"},
+			{Name: "platform", Status: "in_progress"},
+		}}, true, nil
+	}, HeadRuns: pushRunDone}, true
+	p.open, p.draft = open7, true
+	code, stdout, stderr, _ := call(t, f, "--ready")
+	left := "itos: auto-merge is not turned on: a job failed and the run goes on. Fix what failed and push, or wait for the run's end with itos ci watch " +
+		f.head(t) + ", then itos push --ready again.\n"
+	if code != policy || !strings.Contains(stderr, "CI failure: https://ci/1; failed jobs: ci; the run has not finished\n") || !strings.HasSuffix(stderr, left) {
+		t.Errorf("exit %d\n%s%s", code, stdout, stderr)
+	}
+	if strings.Contains(stderr, "did not succeed") {
+		t.Errorf("says the run did not succeed:\n%s", stderr)
+	}
+}
+
 // When main moved, --ready asks GitHub to rebase the pull request once it is
 // ready and watches the run of the head GitHub makes, as a plain push does;
 // none within ci.watch.timeout, or a gh pr view that fails, leaves auto-merge

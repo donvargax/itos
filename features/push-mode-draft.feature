@@ -1696,7 +1696,7 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   # ready comes, and the watch's look finds two jobs failed and one going. Fails
   # before the work at the exit code: today it waits to push.pr.ready_wait, exit
   # 75, ready-still-waiting.
-  @wip @slice-225 @ID-PUSHDRAFT-84
+  @slice-225 @ID-PUSHDRAFT-84
   Scenario: Under push.pr.draft, push --ready stops at the jobs that failed while its run goes on, exit 1, naming each and what failed in it, and merges nothing
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -1745,7 +1745,7 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   # The main path: nothing has failed at the watch's first look, and a job fails
   # while it watches, so a build that judges only the first look waits on. Fails
   # before the work at the exit code: today it waits to push.pr.ready_wait, exit 75.
-  @wip @slice-225 @ID-PUSHDRAFT-90
+  @slice-225 @ID-PUSHDRAFT-90
   Scenario: Under push.pr.draft, push --ready watching a run with nothing failed stops at the look that finds a job failed, exit 1
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -1770,7 +1770,7 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   # The stop comes before either limit: the run started long past ci.watch.timeout,
   # and a build that judges the failed job after the limits says timeout. Fails
   # before the work at the exit code: today ci.watch.timeout ends it, exit 75.
-  @wip @slice-225 @ID-PUSHDRAFT-91
+  @slice-225 @ID-PUSHDRAFT-91
   Scenario: Under push.pr.draft, push --ready stops at a failed job though ci.watch.timeout has passed since its run started, exit 1
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -1801,7 +1801,7 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   # nothing waits before the watch, whose first look stops, with no second. The
   # run in --json is as GitHub gave it: going, with no conclusion. Fails before
   # the work at the exit code: today it waits to push.pr.ready_wait, exit 75.
-  @wip @slice-225 @ID-PUSHDRAFT-85
+  @slice-225 @ID-PUSHDRAFT-85
   Scenario: Under push.pr.draft, push --ready finding a job failed at its first look at the run stops there, and --json gives a red run's keys with the run as it still goes
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -1840,7 +1840,7 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   # Where a log cannot be read while the run goes it says so, as a red run does,
   # and the end line has the run's address to go to; the exit is the failed job's,
   # never the log's. Fails before the work at the exit code: today 75.
-  @wip @slice-225 @ID-PUSHDRAFT-86
+  @slice-225 @ID-PUSHDRAFT-86
   Scenario: Under push.pr.draft, push --ready stopped at a failed job whose log cannot be read says so, names the run's address and still exits 1
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -1875,7 +1875,7 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   # failure. A newer push cancelling the run cancels its jobs before the run ends,
   # and that has no verdict (bug 41), so a build that stops at any job that did not
   # succeed exits 1 here, at its first look, for a run nothing judged.
-  @wip @slice-225 @ID-PUSHDRAFT-87 @guard
+  @slice-225 @ID-PUSHDRAFT-87 @guard
   Scenario: Under push.pr.draft, push --ready passes over a job cancelled while its run goes on, and a run that ends cancelled is run-cancelled as before
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -1902,7 +1902,7 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   # group makes reachable. A build that guards the stop with run.Conclusion !=
   # "success" and not with the run being unfinished exits 1 here, and never follows
   # the newer run.
-  @wip @slice-225 @ID-PUSHDRAFT-92 @guard
+  @slice-225 @ID-PUSHDRAFT-92 @guard
   Scenario: Under push.pr.draft, push --ready reading a run finished cancelled with a job failed ends it run-cancelled, as before
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -1931,7 +1931,7 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   # run's own conclusion. A build that judges a finished run by its jobs never lands
   # this. Fails before the work at the first exit code: today the wait reaches the
   # run's end, exit 0, merged.
-  @wip @slice-225 @ID-PUSHDRAFT-88
+  @slice-225 @ID-PUSHDRAFT-88
   Scenario: Under push.pr.draft, push --ready stops at a job allowed to fail while its run goes on, and run again once the run ended a success lands
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -1962,7 +1962,7 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   # itos ci watch reads the same run and waits for its end, so a build that stops in
   # the shared watch with no regard for --ready exits 1 here. A plain push under
   # push.pr.draft waits for no run, and without it takes the same path.
-  @wip @slice-225 @ID-PUSHDRAFT-89 @guard
+  @slice-225 @ID-PUSHDRAFT-89 @guard
   Scenario: itos ci watch goes on waiting for a run with a failed job, exit 75 at ci.watch.timeout, as the stop is push --ready's alone
     Given ci.watch asks a fake GitHub, which reports the run "https://ci.example/runs/1"
     And ci.watch.timeout is 1

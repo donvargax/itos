@@ -301,7 +301,10 @@
 // watched with ciwatch.WatchReady, which passes over the draft's run whose jobs
 // were all skipped; a run that does not succeed ends it, auto-merge off, and a
 // run cancelled with no other that checked the head ends it as run-cancelled,
-// naming the rerun (runNotPassed). With
+// naming the rerun (runNotPassed). A job concluded failure ends it too, the run
+// still going (slice-225, the watch's stop): as a red run's end, but that the last
+// line, knowing no verdict yet, names itos ci watch <the head's full SHA> as the
+// way to wait for the run's end. With
 // no ci.watch provider unwatchedHead asks gh pr view once, with no wait: the
 // head it answers is the rebased one only when viewHead says so, else --ready
 // stops at once, rebase waiting (ready-still-waiting).

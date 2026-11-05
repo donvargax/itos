@@ -56,8 +56,9 @@ type Run struct {
 }
 
 // Job is one job of a run, as Run is. A job that did not succeed gains, once
-// the run completed (slice 172), the Step it failed at, whether its Log was
-// read, the Failures that log names and how many more it left out; its ID
+// the run completed (slice 172), or once itos push --ready stopped at a failed
+// job with the run still going (slice-225), the Step it failed at, whether its
+// Log was read, the Failures that log names and how many more it left out; its ID
 // and the steps the API lists say how they were found, and --json leaves
 // them out.
 type Job struct {

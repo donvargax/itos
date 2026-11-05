@@ -239,6 +239,14 @@ checks and the reviews. The reviews, comments and threads are one gh api graphql
 question. The clocks of ci.watch.timeout are GitHub's: the run's from its
 latest attempt's start, else its creation, the reviews' from when the pull request was marked ready
 or its head pushed, whichever is later, so running --ready again continues them.
+A job of the run concluded failure, the run not finished, ends --ready at the look
+that finds it, before either limit: exit 1, no merge, "CI failure: <address>;
+failed jobs: <names>; the run has not finished", each job described as for a red
+run. A cancelled job does not, nor does timed_out or a running job's failed step.
+The last line says auto-merge is not turned on and names itos ci watch <the head's
+full SHA>, the way to wait for the run's end, as for a job allowed to fail
+(continue-on-error), which the stop cannot tell from one that sinks the run; a
+finished run goes by its own conclusion.
 push.pr.ready_wait (seconds, 540 by default, 0 for no bound) ends one --ready call
 that has waited that long, exit 75, outcome ready-still-waiting, saying what it
 waits on and the head's full SHA; itos push --ready again goes on.
@@ -323,7 +331,7 @@ Exit: 0 pushed, or nothing to push; 1 refused before the pull, the rebase
 stopped, the remote or the pre-push hook refused the push (a lease the remote
 moved from included), --onto-main outside push.mode pr or from main, a tag or a branch
 named that the clone does not have, a tag the remote has as another object,
-the CI run waited for failed, or, under push.mode pr, work pushed to main or
+the CI run waited for failed, for --ready a job of it failed while it goes on, or, under push.mode pr, work pushed to main or
 a branch that names no item, and under push.pr.update merge a merge that
 conflicts or does not run, or --onto-main, and for --ready, an unresolved review thread or
 --ready where it has nothing to do, and for push threads and push thread,
@@ -377,7 +385,9 @@ read from git's message; git's own exit code is never itos's.
         either also gives threads-without-pr-mode, pull-request-failed and
         no-github-repository, push threads without --pr threads-on-main,
         detached and no-pull-request, and push thread no-such-thread;
-        ci, run and superseded as itos ci watch's, when it waited`,
+        ci, run and superseded as itos ci watch's, when it waited; for --ready
+        run can have no conclusion beside "ci": "failure", its status as GitHub
+        gave it, when a job failed while it goes on`,
 	},
 	Spec: declare.Spec{Unread: true},
 }
