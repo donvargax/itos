@@ -17775,3 +17775,15 @@ items:
     why: >
       From a read of the beads tracker, 2026-11-05. A SessionStart hook on source=compact re-primes
       an agent whose rules were compacted away. Additive and optional: no flow may need the plugin.
+
+  - id: p3-init-remove
+    title: itos init --remove takes out what init wrote
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      From a read of the beads tracker, 2026-11-05. itos has only git-shim uninstall. A remove that
+      reverses init's hooks, config and agent files, tested against a repository init changed, makes
+      trying itos reversible.
