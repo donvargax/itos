@@ -17661,3 +17661,16 @@ items:
       checkout already reads its AGENTS.md, and --at main restores the old reading. The fix needs a
       request attempt can recompute from two commits, rules at HEAD and spec at the branch. For v9's
       coordinator.
+
+  - id: p3-ready-merge-spends-review
+    title: --ready merging main changes the head, spending a review already asked for on a head that never lands
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      slice-226, 2026-11-05: a request made by hand on 91c6fb3 went stale when itos push --ready
+      merged main on its next run, and --ready asked Codex again for the new head. A review was
+      spent on a head that never landed. --ready could say before asking that main will be merged,
+      or merge first.
