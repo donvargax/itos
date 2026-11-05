@@ -19,6 +19,10 @@ import (
 // answers.
 const reviewPoll = 50 * time.Millisecond
 
+// noRunWindow is how long --ready, having pushed the head, looks for a run of it
+// before it takes it that none is coming (bug-160).
+const noRunWindow = 60 * time.Second
+
 // reviewQuery is the question the reviews, the comments, the ready time and
 // the review threads are read with: providers.PullStateQuery, which review
 // post reads too (slice-206), so the two commands read one answer.
@@ -57,13 +61,9 @@ type openThread struct {
 // request: its run is watched, a review state counts for it alone and the merge
 // is pinned to it. Whichever stops it exits without merging, naming what is
 // left, and push.pr.ready_wait ends the call with ready-still-waiting (slice
-// 200). outcome is pushed or nothing-to-push, line what the push says of it.
-func (r *pushRun) finish(ctx context.Context, repository, outcome, line string) Answer {
+// 200). outcome is pushed or nothing-to-push.
+func (r *pushRun) finish(ctx context.Context, repository, outcome string) Answer {
 	cfg := r.cfg
-	r.announce(line)
-	if seconds := cfg.Push.PR.ReadyWait; seconds > 0 {
-		r.bound = r.began.Add(time.Duration(seconds * float64(time.Second)))
-	}
 	w := newWaiting(r, cfg.Push.PR.ReviewBy)
 	wr, ok, err := r.ports.Watcher(ctx, cfg, r.remote)
 	switch {
@@ -79,8 +79,7 @@ func (r *pushRun) finish(ctx context.Context, repository, outcome, line string) 
 			return r.stillWaiting(w)
 		}
 		if r.watched.Code != 0 {
-			fmt.Fprintln(r.o.Stderr, "itos: auto-merge is not turned on: the run did not succeed. Fix what failed and push, or wait for the run, then itos push --ready again.")
-			return r.report(r.watched.Code, outcome)
+			return r.runNotPassed(outcome)
 		}
 		if w.run != "" {
 			w.run = "succeeded"
@@ -120,6 +119,128 @@ func (r *pushRun) finish(ctx context.Context, repository, outcome, line string) 
 		return r.report(policy, "review-threads-unresolved")
 	}
 	return r.merge(ctx, repository, w.head, outcome)
+}
+
+// runNotPassed ends --ready at a watch that did not end in success, r.watched:
+// a run cancelled with none to follow is its own end, outcome run-cancelled,
+// naming the rerun that would give the head a result; any other leaves outcome,
+// pushed or nothing-to-push.
+func (r *pushRun) runNotPassed(outcome string) Answer {
+	if r.watched.Outcome == "cancelled" {
+		run := r.watched.Run
+		fmt.Fprintf(r.o.Stderr, "itos: the run %s of %s on %s was cancelled and no other run checked that head, so auto-merge is not turned on: rerun it with gh run rerun %d, then itos push --ready again.\n",
+			run.URL, short(run.HeadSHA), r.pr.URL, run.ID)
+		return r.report(r.watched.Code, "run-cancelled")
+	}
+	fmt.Fprintln(r.o.Stderr, "itos: auto-merge is not turned on: the run did not succeed. Fix what failed and push, or wait for the run, then itos push --ready again.")
+	return r.report(r.watched.Code, outcome)
+}
+
+// pushStarted is whether a push starts runs of the event: GitHub's run names no
+// activity type, a synchronize and a ready_for_review alike being pull_request,
+// and none is needed before a draft is marked, when nothing has marked its head
+// ready yet. A provider that names no event counts as naming the push's.
+func pushStarted(event string) bool {
+	return event == "pull_request" || event == "push" || event == ""
+}
+
+// awaitPushRuns is what --ready does before it marks a draft ready with
+// ci.watch's provider (bug-160): every GitHub operation that starts a run
+// waits for it before the next, for the draft's run of a push, which skips, and
+// the ready run share a concurrency group, and the later cancels the earlier.
+// It looks at the head's runs at once and each ci.watch.interval, and comes back
+// not done once none its push started is going, what those concluded being the
+// ready run's to judge. Having pushed the head it looks for one for noRunWindow
+// from the first look, or ci.watch.timeout when that is shorter, a push path
+// filters start no run for; with nothing pushed one look is enough. A run going
+// counts toward ci.watch.timeout from its start, as WatchReady's does, and
+// push.pr.ready_wait bounds the whole, nothing marked. A failed look follows the
+// watch's rule (ciwatch.Looks), and a provider that cannot be built stops here.
+// Done, the answer is the call's end. outcome is pushed or nothing-to-push.
+func (r *pushRun) awaitPushRuns(ctx context.Context, outcome string, pushed bool) (Answer, bool) {
+	wr, ok, err := r.ports.Watcher(ctx, r.cfg, r.remote)
+	if err != nil {
+		r.watcherFailed(err, r.sha)
+		return r.runNotPassed(outcome), true
+	}
+	if !ok {
+		return Answer{}, false
+	}
+	interval := time.Duration(*r.cfg.CI.Watch.Interval * float64(time.Second))
+	timeout := time.Duration(*r.cfg.CI.Watch.Timeout * float64(time.Second))
+	first := now()
+	deadline := first.Add(timeout)
+	window := min(noRunWindow, timeout)
+	var last *providers.Run
+	var looks ciwatch.Looks
+	said := false
+	for {
+		looks.Pause = 0
+		var windowLeft time.Duration // what is left of the window, after a look that found no run
+		runs, err := wr.HeadRuns(r.sha)
+		if err != nil {
+			if code, ended := looks.Failing(err, r.sha, r.o.Stderr); ended {
+				r.watched = &ciwatch.Watched{Code: code, Outcome: "error", Run: last}
+				return r.runNotPassed(outcome), true
+			}
+		} else {
+			looks.Failed, looks.Last = 0, nil
+			going, shown := goingOf(runs)
+			switch {
+			case going != nil:
+				last = going
+				if started, ok := ciwatch.StartOf(*going); ok {
+					deadline = started.Add(timeout)
+				}
+			case shown || !pushed:
+				return Answer{}, false
+			default:
+				if windowLeft = first.Add(window).Sub(now()); windowLeft <= 0 {
+					r.say(fmt.Sprintf("No run of %s appeared within %s seconds, so none is coming: marking %s ready.",
+						short(r.sha), value.Number(window.Seconds()), r.pr.URL))
+					return Answer{}, false
+				}
+			}
+		}
+		timedOut, bounded, left := r.limits(deadline)
+		if timedOut {
+			watched := ciwatch.TimedOut(r.cfg, r.sha, last, looks.Last, r.o.Stderr)
+			r.watched = &watched
+			return r.runNotPassed(outcome), true
+		}
+		if bounded {
+			w := newWaiting(r, r.cfg.Push.PR.ReviewBy)
+			w.run = "waiting"
+			return r.stillWaiting(w), true
+		}
+		if !said {
+			said = true
+			r.say(fmt.Sprintf("Waiting for the run of %s to finish before marking %s ready.", short(r.sha), r.pr.URL))
+		}
+		wait := min(max(interval, looks.Pause, reviewPoll), left)
+		if windowLeft > 0 {
+			wait = min(wait, windowLeft)
+		}
+		if looks.Pause > interval {
+			r.say("GitHub's rate limit: looking again in " + wait.Round(time.Second).String())
+		}
+		sleep(wait)
+	}
+}
+
+// goingOf reads the head's runs, newest first, for those a push started: going,
+// the newest not done, nil for none; shown, whether there is one at all.
+func goingOf(runs []providers.Run) (going *providers.Run, shown bool) {
+	for i := range runs {
+		if !pushStarted(runs[i].Event) {
+			continue
+		}
+		shown = true
+		if !runs[i].Done() {
+			return &runs[i], true
+		}
+	}
+	return nil, shown
 }
 
 // readyBound is the watch's share of push.pr.ready_wait: how long the call has left

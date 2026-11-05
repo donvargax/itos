@@ -119,9 +119,57 @@ func WatchReady(ctx context.Context, cfg *config.Loaded, wr providers.Watcher, v
 }
 
 // DraftsRun is whether a run is only a draft's: it lists no job, or every job
-// it lists was skipped.
+// it lists was skipped. One cancelled before its jobs started is not (bug-160):
+// it is the end of the run that was to check the head.
 func DraftsRun(run providers.Run) bool {
-	return !slices.ContainsFunc(run.Jobs, func(j providers.Job) bool { return j.Conclusion != "skipped" })
+	return !run.CancelledUnstarted() &&
+		!slices.ContainsFunc(run.Jobs, func(j providers.Job) bool { return j.Conclusion != "skipped" })
+}
+
+// Looks is the rule a wait for a run keeps of the looks that fail: Failed is how
+// many in a row have, Last the last that did, and Pause how long it asked to be
+// left, a rate limit's wait.
+type Looks struct {
+	Failed int
+	Last   error
+	Pause  time.Duration
+}
+
+// Failing judges a look at sha's run that failed: a temporary failure is looked
+// past until giveUp in a row, then ended with 75; any other ends it with 3. Ended,
+// it says so on stderr.
+func (l *Looks) Failing(err error, sha string, stderr io.Writer) (code int, ended bool) {
+	if kind.Of(err) == kind.Temporary {
+		l.Last, l.Pause = err, providers.Wait(err)
+		if l.Failed++; l.Failed >= giveUp {
+			fmt.Fprintf(stderr, "itos: %d looks in a row at the CI run of %s failed, the last: %s; %s\n", l.Failed, sha, err, waitsAgain(sha))
+			return exitTemporary, true
+		}
+		return 0, false
+	}
+	fmt.Fprintf(stderr, "itos: %s; %s\n", err, waitsAgain(sha))
+	return exitMissing, true
+}
+
+// waitsAgain is the watch's advice for a commit whose run it stopped looking at.
+func waitsAgain(sha string) string {
+	return fmt.Sprintf("itos ci watch %s waits for it again", sha)
+}
+
+// TimedOut ends a watch of sha's run at ci.watch.timeout, saying so on stderr:
+// last is the run as last seen, nil for none, and lastErr the look that failed
+// last, nil when none has since a run was seen.
+func TimedOut(cfg *config.Loaded, sha string, last *providers.Run, lastErr error, stderr io.Writer) Watched {
+	what := "has not finished"
+	if last == nil {
+		what = "has not appeared"
+	}
+	fmt.Fprintf(stderr, "itos: the CI run of %s %s after %s seconds (ci.watch.timeout); %s\n",
+		sha, what, value.Number(*cfg.CI.Watch.Timeout), waitsAgain(sha))
+	if lastErr != nil {
+		fmt.Fprintf(stderr, "itos: the last look failed: %s\n", lastErr)
+	}
+	return Watched{Code: exitTemporary, Outcome: "timeout", Run: last}
 }
 
 func watch(ctx context.Context, cfg *config.Loaded, wr providers.Watcher, v vcsport.VCS, sha, remote, branch string, o Out, ready *Ready) Watched {
@@ -135,31 +183,21 @@ func watch(ctx context.Context, cfg *config.Loaded, wr providers.Watcher, v vcsp
 	interval := time.Duration(*cfg.CI.Watch.Interval * float64(time.Second))
 	timeout := time.Duration(*cfg.CI.Watch.Timeout * float64(time.Second))
 	deadline := time.Now().Add(timeout)
-	again := fmt.Sprintf("itos ci watch %s waits for it again", sha)
 	printed := map[string]bool{}
 	shown := "" // the run's address, once printed
 	var last *providers.Run
-	var lastErr error
-	failed := 0             // the looks in a row that failed for a temporary reason
-	var pause time.Duration // how long the failed look asked to be left: a rate limit's wait
-	target := sha           // the commit whose run is looked at: sha, or the head of a newer run followed
-	superseded := ""        // the address of sha's cancelled run, once a newer run is followed
-	// failing is a look that failed: looked past when temporary, until giveUp
-	// in a row; ended otherwise.
+	var looks Looks
+	target := sha    // the commit whose run is looked at: sha, or the head of a newer run followed
+	superseded := "" // the address of sha's cancelled run, once a newer run is followed
 	failing := func(err error) (Watched, bool) {
-		if kind.Of(err) == kind.Temporary {
-			lastErr, pause = err, providers.Wait(err)
-			if failed++; failed >= giveUp {
-				fmt.Fprintf(o.Stderr, "itos: %d looks in a row at the CI run of %s failed, the last: %s; %s\n", failed, sha, err, again)
-				return Watched{Code: exitTemporary, Outcome: "error", Run: last, Superseded: superseded}, true
-			}
+		code, ended := looks.Failing(err, sha, o.Stderr)
+		if !ended {
 			return Watched{}, false
 		}
-		fmt.Fprintf(o.Stderr, "itos: %s; %s\n", err, again)
-		return Watched{Code: exitMissing, Outcome: "error", Run: last, Superseded: superseded}, true
+		return Watched{Code: code, Outcome: "error", Run: last, Superseded: superseded}, true
 	}
 	for {
-		pause = 0
+		looks.Pause = 0
 		run, found, err := wr.Look(target)
 		if ready != nil && found && DraftsRun(run) {
 			found = false
@@ -185,10 +223,10 @@ func watch(ctx context.Context, cfg *config.Loaded, wr providers.Watcher, v vcsp
 					continue
 				}
 			}
-			failed = 0
+			looks.Failed = 0
 		default:
-			lastErr, failed = nil, 0
-			if started, ok := startOf(run); ready != nil && ok {
+			looks.Last, looks.Failed = nil, 0
+			if started, ok := StartOf(run); ready != nil && ok {
 				deadline = started.Add(timeout)
 			}
 			if run.URL != "" && run.URL != shown {
@@ -218,7 +256,7 @@ func watch(ctx context.Context, cfg *config.Loaded, wr providers.Watcher, v vcsp
 				}
 			case !ok:
 				fmt.Fprintf(o.Stderr, "CI cancelled: %s; no newer run on %s has %s, so it has no result: rerun the workflow, and %s\n",
-					run.URL, run.Branch, short(sha), again)
+					run.URL, run.Branch, short(sha), waitsAgain(sha))
 				return Watched{Code: exitTemporary, Outcome: "cancelled", Run: &run, Superseded: superseded}
 			default:
 				if superseded == "" {
@@ -238,18 +276,9 @@ func watch(ctx context.Context, cfg *config.Loaded, wr providers.Watcher, v vcsp
 			}
 		}
 		if left <= 0 {
-			what := "has not finished"
-			if last == nil {
-				what = "has not appeared"
-			}
-			fmt.Fprintf(o.Stderr, "itos: the CI run of %s %s after %s seconds (ci.watch.timeout); %s\n",
-				sha, what, value.Number(*cfg.CI.Watch.Timeout), again)
-			if lastErr != nil {
-				fmt.Fprintf(o.Stderr, "itos: the last look failed: %s\n", lastErr)
-			}
-			return Watched{Code: exitTemporary, Outcome: "timeout", Run: last}
+			return TimedOut(cfg, sha, last, looks.Last, o.Stderr)
 		}
-		wait := min(max(interval, pause), left)
+		wait := min(max(interval, looks.Pause), left)
 		if ready != nil && ready.Left != nil {
 			wait = min(wait, bound)
 		}
@@ -260,10 +289,10 @@ func watch(ctx context.Context, cfg *config.Loaded, wr providers.Watcher, v vcsp
 	}
 }
 
-// startOf is when the run's latest attempt started, as GitHub writes it, else
+// StartOf is when the run's latest attempt started, as GitHub writes it, else
 // when the run was created; none for a run with neither, or neither that can be
 // read.
-func startOf(run providers.Run) (time.Time, bool) {
+func StartOf(run providers.Run) (time.Time, bool) {
 	t, err := time.Parse(time.RFC3339, run.Started)
 	if err != nil {
 		t, err = time.Parse(time.RFC3339, run.Created)
@@ -274,9 +303,11 @@ func startOf(run providers.Run) (time.Time, bool) {
 // Covering is the run that covers sha: the newest of the workflow's runs on
 // the branch whose head is sha or has it as an ancestor; found is false when
 // there is none. With cancelled, sha's run that a newer push cancelled (bug
-// 41), only a run newer than it counts, the one that superseded it; without,
-// any run counts, for a commit that has no run of its own (bug 49). With a
-// conclusion, only a run that ended so counts: work done's look for a run
+// 41), only a run of a newer head than the cancelled run's counts, the one that
+// superseded it (bug-160: RunOf has read any other of that head already, and a
+// draft's taken for its successor would be followed back to it for ever);
+// without, any run counts, for a commit that has no run of its own (bug 49).
+// With a conclusion, only a run that ended so counts: work done's look for a run
 // that passed (slice 127). A head the
 // clone does not have is fetched from remote once, since the newer push may be
 // someone else's; one still missing after it is passed over.
@@ -293,7 +324,8 @@ func Covering(ctx context.Context, runs providers.Runs, v vcsport.VCS, branch, s
 		if cancelled != nil && (r.ID == cancelled.ID || (r.Created != "" && cancelled.Created != "" && r.Created < cancelled.Created)) {
 			break
 		}
-		if r.HeadSHA == "" || (conclusion != "" && r.Conclusion != conclusion) {
+		if r.HeadSHA == "" || (conclusion != "" && r.Conclusion != conclusion) ||
+			(cancelled != nil && r.HeadSHA == cancelled.HeadSHA) {
 			continue
 		}
 		if r.HeadSHA != sha && !fetched && !hasCommit(ctx, v, r.HeadSHA) {

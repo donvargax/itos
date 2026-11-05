@@ -3,7 +3,8 @@
 // commit's runs by a script (headScript), which reads the recording gh's calls
 // at each answer, so a run gh pr ready starts shows at the first answer after
 // that call, whichever way the two raced. The rest give it two runs of one
-// second, and a watched run of a certain number of looks.
+// second, and a watched run of a certain number of looks: bug-160's wait takes
+// one before anything is marked.
 package features
 
 import (

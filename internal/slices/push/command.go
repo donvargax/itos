@@ -192,14 +192,27 @@ so an agent pushes as it works with nothing judging or merging it; a pull
 request already open, a draft or ready, is left as it is, and the push says
 which it is. itos push --ready, with push.mode pr and push.pr.draft true,
 pushes as above and then: opens the pull request ready when there is none, or
-marks the draft ready (gh pr ready); asks GitHub to rebase it when main has a
-commit its head lacks (gh pr update-branch --rebase); with ci.watch's provider,
-waits for the run of the head GitHub made, passing over a run all of whose jobs
-were skipped (a draft's), which exits as above and, when it did not succeed,
-turns on no auto-merge (with none, it reads that head once with gh pr view, and
-stops at once, "rebase waiting", when GitHub has not rebased the pull request
-yet); with push.pr.review_by, waits, each ci.watch.interval within
-ci.watch.timeout, for a verdict by each login (a "[bot]" suffix is dropped from
+marks the draft ready (gh pr ready), which with ci.watch's provider and no
+--no-wait first waits for the head's runs a push started (those of
+ci.watch.github.workflow of the pull_request or push event, whatever they
+conclude), since a run left going can cancel the one the marking starts:
+"Waiting for the run of <head> to finish before marking <address> ready."
+Having pushed the head and seen no such run, it looks each ci.watch.interval
+for 60 seconds from its first look, or ci.watch.timeout when that is shorter,
+then says "No run of <head> appeared within <n> seconds, so none is coming:
+marking <address> ready."; having pushed nothing, it looks once. A run still
+going at ci.watch.timeout from its start or at push.pr.ready_wait, a look that
+fails as the watch's do, or a provider that cannot be built leaves the draft
+unmarked. Then it asks GitHub to rebase it when main has a commit its head lacks
+(gh pr update-branch --rebase); with ci.watch's provider, waits for the run of
+the head GitHub made, the newest of that head that did not end with every job
+skipped, passing over a run all of whose jobs were skipped (a draft's), which
+exits as above and, when it did not succeed, turns on no auto-merge; a run
+cancelled with no other that checked that head ends it, exit 75, outcome
+run-cancelled, naming gh run rerun <its id> (with no provider, it reads that
+head once with gh pr view, and stops at once, "rebase waiting", when GitHub has
+not rebased the pull request yet); with push.pr.review_by, waits, each
+ci.watch.interval within ci.watch.timeout, for a verdict by each login (a "[bot]" suffix is dropped from
 both sides, since GraphQL names a bot without it): a review that is not
 Copilot's refusal to review, or, from a login that wrote a Codex review-state
 comment, that comment with both reviews completed and both of the head judged
@@ -318,9 +331,9 @@ names no branch it has (for a branch with no upstream, or under push.mode pr),
 or, under push.mode pr, no GitHub repository to name or a pull request not
 opened, or a gh that failed for push threads or push thread; 75 a remote that cannot be
 reached (a connection refused or timed out, a host that does not resolve), a
-CI run not finished, a CI run cancelled with no newer run to follow,
-GitHub's API failing, or --ready's wait for a review not answered within
-ci.watch.timeout, a review still running push.pr.review_stall seconds after
+CI run not finished, a CI run cancelled with no newer run to follow (for
+--ready, outcome run-cancelled), GitHub's API failing, or --ready's wait for a
+review not answered within ci.watch.timeout, a review still running push.pr.review_stall seconds after
 it was asked again, a review not started that long after its second request, or
 --ready's wait for GitHub, the run and the reviews at
 push.pr.ready_wait; 70 a fetch, a read of the remote's tags or a push that
@@ -343,8 +356,8 @@ read from git's message; git's own exit code is never itos's.
         merge-conflict and merge-failed, for --onto-main onto-main-without-pr,
         onto-main-on-main and onto-main-under-merge, and for --ready
         review-timeout, review-refused, review-stalled, review-not-started,
-        ready-still-waiting, review-threads-unresolved, ready-without-draft and
-        ready-on-main; not_started {"login","review","head","request"} with
+        run-cancelled, ready-still-waiting, review-threads-unresolved,
+        ready-without-draft and ready-on-main; not_started {"login","review","head","request"} with
         review-not-started, review code or security and request the address of
         the latest request;
         push threads gives {"schema":1,"ok","outcome","pull_request"?,"threads"?},

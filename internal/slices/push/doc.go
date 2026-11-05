@@ -299,7 +299,9 @@
 // takes over, whether or not anything was pushed: the run of the pull
 // request's head, the head GitHub made when it was asked to rebase, is
 // watched with ciwatch.WatchReady, which passes over the draft's run whose jobs
-// were all skipped; a run that does not succeed ends it, auto-merge off. With
+// were all skipped; a run that does not succeed ends it, auto-merge off, and a
+// run cancelled with no other that checked the head ends it as run-cancelled,
+// naming the rerun (runNotPassed). With
 // no ci.watch provider unwatchedHead asks gh pr view once, with no wait: the
 // head it answers is the rebased one only when viewHead says so, else --ready
 // stops at once, rebase waiting (ready-still-waiting).
@@ -331,9 +333,27 @@
 // summary (commentSummary); only then merge, so auto-merge comes after the
 // checks and the reviews, never before.
 //
+// A draft is not marked while a run its push started goes (bug-160): the
+// synchronize's run, which skips every job, and the ready_for_review's share CI's
+// concurrency group, and reaching GitHub in one second the later cancelled the
+// earlier, the one that checks the head. So, under the provider and without
+// --no-wait, awaitPushRuns looks at the head's runs before gh pr ready
+// (providers.Watcher.HeadRuns): one of the pull_request or push event, or naming
+// none, not done is waited for, and what such a run concluded it does not judge;
+// a workflow_dispatch or a schedule run is not its push's. GitHub's run names no
+// activity type, and none is needed: nothing has marked this head ready yet.
+// Having pushed the head it looks for such a run for noRunWindow from its first
+// look, a constant, or ci.watch.timeout when that is shorter, since a push path
+// filters start none for must not wait for ever; having pushed nothing it takes
+// one look. A failed look keeps the watch's rule (ciwatch.Looks), a run going
+// ends at ci.watch.timeout from its start (ciwatch.TimedOut), and nothing is
+// marked in any of those, nor at push.pr.ready_wait, nor with a provider that
+// cannot be built. A second workflow sharing the group stays unseen, and --no-wait
+// still races.
+//
 // push.pr.ready_wait (slice 200; 540 seconds by default, 0 for no bound) bounds
 // one --ready call, counted from its start (pushRun.began, bound): every wait of
-// it, for GitHub's rebase, the run and the reviews, ends at it having looked once
+// it, for its push's runs, GitHub's rebase, the run and the reviews, ends at it having looked once
 // at least, whichever of it and ci.watch.timeout comes first deciding (limits).
 // At the bound --ready exits 75, outcome ready-still-waiting, saying what it
 // waits on and the full SHA of the head (stillWaiting), and itos push --ready

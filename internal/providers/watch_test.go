@@ -2,6 +2,7 @@ package providers
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
@@ -507,5 +508,122 @@ func TestJobAnnotationsIsAnErrorForAnythingButTheList(t *testing.T) {
 		if err == nil || got != nil {
 			t.Errorf("%s: read %+v, err %v", name, got, err)
 		}
+	}
+}
+
+// RunOf reads the run that checked the head (bug-160): the newest of its runs
+// that did not end having skipped every job, else the newest, and asks for a
+// further run's jobs only when the one before it skipped all of them. A run not
+// done is itself whatever its jobs, so a green older run is not taken while it
+// goes; so is one cancelled before its jobs started, or with a job that was not
+// skipped.
+func TestRunOfReadsTheRunThatCheckedTheHead(t *testing.T) {
+	const second = "2026-11-01T10:00:00Z"
+	run := func(id int, status, conclusion string) string {
+		ended := "null"
+		if conclusion != "" {
+			ended = `"` + conclusion + `"`
+		}
+		return fmt.Sprintf(`{"id":%d,"html_url":"r%d","status":%q,"conclusion":%s,"created_at":%q}`, id, id, status, ended, second)
+	}
+	job := func(name, conclusion string) string {
+		return fmt.Sprintf(`{"name":%q,"status":"completed","conclusion":%q}`, name, conclusion)
+	}
+	skipped := []string{job("ci", "skipped"), job("platform", "skipped")}
+	green := []string{job("ci", "success"), job("platform", "success")}
+	for name, c := range map[string]struct {
+		runs  []string
+		jobs  map[int][]string
+		want  string
+		asked []int
+	}{
+		"a draft's listed first, beside a run rerun green": {
+			runs: []string{run(2, "completed", "success"), run(1, "completed", "success")},
+			jobs: map[int][]string{2: skipped, 1: green}, want: "r1", asked: []int{2, 1},
+		},
+		"only a draft's": {
+			runs: []string{run(2, "completed", "success")},
+			jobs: map[int][]string{2: skipped}, want: "r2", asked: []int{2},
+		},
+		"two draft's, the newest": {
+			runs: []string{run(3, "completed", "success"), run(2, "completed", "success")},
+			jobs: map[int][]string{3: skipped, 2: nil}, want: "r3", asked: []int{3, 2},
+		},
+		"real jobs listed first, those behind never asked for": {
+			runs: []string{run(2, "completed", "success"), run(1, "completed", "success")},
+			jobs: map[int][]string{2: green, 1: skipped}, want: "r2", asked: []int{2},
+		},
+		"the newest cancelled, the older green": {
+			runs: []string{run(2, "completed", "cancelled"), run(1, "completed", "success")},
+			jobs: map[int][]string{2: {job("ci", "cancelled")}, 1: green}, want: "r2", asked: []int{2},
+		},
+		"a queued run listing no job before a green one": {
+			runs: []string{run(2, "queued", ""), run(1, "completed", "success")},
+			jobs: map[int][]string{2: nil, 1: green}, want: "r2", asked: []int{2},
+		},
+		"a run going whose listed jobs are all skipped before a green one": {
+			runs: []string{run(2, "in_progress", ""), run(1, "completed", "success")},
+			jobs: map[int][]string{2: skipped, 1: green}, want: "r2", asked: []int{2},
+		},
+		"completed with no conclusion yet": {
+			runs: []string{run(2, "completed", ""), run(1, "completed", "success")},
+			jobs: map[int][]string{2: skipped, 1: green}, want: "r2", asked: []int{2},
+		},
+		"a cancelled run whose job release was skipped": {
+			runs: []string{run(2, "completed", "cancelled"), run(1, "completed", "success")},
+			jobs: map[int][]string{2: {job("ci", "cancelled"), job("release", "skipped")}, 1: green}, want: "r2", asked: []int{2},
+		},
+		"a cancelled run listing no job, a draft's listed before it": {
+			runs: []string{run(2, "completed", "success"), run(1, "completed", "cancelled")},
+			jobs: map[int][]string{2: skipped, 1: nil}, want: "r1", asked: []int{2, 1},
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			var asked []int
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if strings.Contains(r.URL.Path, "/workflows/") {
+					fmt.Fprintf(w, `{"workflow_runs":[%s]}`, strings.Join(c.runs, ","))
+					return
+				}
+				var id int
+				if _, err := fmt.Sscanf(r.URL.Path, "/repos/o/n/actions/runs/%d/jobs", &id); err != nil {
+					t.Errorf("asked for %s", r.URL.Path)
+				}
+				asked = append(asked, id)
+				fmt.Fprintf(w, `{"jobs":[%s]}`, strings.Join(c.jobs[id], ","))
+			}))
+			defer server.Close()
+			was := GitHubAPI
+			GitHubAPI = server.URL
+			defer func() { GitHubAPI = was }()
+			got, found, err := GitHub{Repository: "o/n", Token: "t", Workflow: "ci.yml"}.RunOf("abc")
+			if err != nil || !found || got.URL != c.want || !reflect.DeepEqual(asked, c.asked) {
+				t.Errorf("found %v, err %v, run %q, jobs asked for %v", found, err, got.URL, asked)
+			}
+		})
+	}
+}
+
+// A failed ask for a run's jobs is the look's, and the head's runs say what
+// started them, for the wait before --ready marks a draft.
+func TestRunOfFailsWithAnAskForJobsAndHeadRunsNameTheirEvent(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.Contains(r.URL.Path, "/jobs") {
+			w.WriteHeader(http.StatusBadGateway)
+			return
+		}
+		w.Write([]byte(`{"workflow_runs":[{"id":1,"status":"completed","conclusion":"success","event":"pull_request"}]}`))
+	}))
+	defer server.Close()
+	was := GitHubAPI
+	GitHubAPI = server.URL
+	defer func() { GitHubAPI = was }()
+	g := GitHub{Repository: "o/n", Token: "t", Workflow: "ci.yml"}
+	if _, found, err := g.RunOf("abc"); found || kind.Of(err) != kind.Temporary {
+		t.Errorf("found %v, err %v", found, err)
+	}
+	listed, err := g.RunsOfHead("abc")
+	if err != nil || len(listed) != 1 || listed[0].Event != "pull_request" || listed[0].Jobs != nil {
+		t.Errorf("err %v, listed %+v", err, listed)
 	}
 }

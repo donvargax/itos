@@ -1275,7 +1275,8 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   # when it rebased the pull request onto main, whose run it watched, never
   # the head pushed; --json says it merged, auto-merge off. Fails before the
   # work at the exit code: today the refusal is any gh call failing, exit 3,
-  # pull-request-failed.
+  # pull-request-failed. The last head asked for: bug-160's wait asks for the
+  # head pushed first, before the marking and the rebase.
   @ID-PUSHDRAFT-32 @slice-200
   Scenario: Under push.pr.draft, push --ready whose --auto merge GitHub refuses as clean merges once itself at the head GitHub made, and --json says it merged
     Given the config, committed and pushed to the remote's main, adds the YAML:
@@ -1298,7 +1299,7 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
     Then itos exits with code 0
     And its JSON's "pull_request.merged" is true
     And its JSON's "pull_request.auto_merge" is false
-    And the fake GitHub was asked for the run of the head of the remote's branch "slice-9"
+    And the fake GitHub was last asked for the run of the head of the remote's branch "slice-9"
     And the recording gh's "pr merge" call with "--auto" has the full SHA of the head of the remote's branch "slice-9"
     And the recording gh's "pr merge" call has "--repo owner/scratch --rebase --match-head-commit"
     And the recording gh's call with "pr merge slice-9 --repo owner/scratch --auto" comes before its call with "pr merge slice-9 --repo owner/scratch --rebase"
@@ -1394,7 +1395,8 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   # moment later. --ready passes over the skipped run and judges the real
   # one, red here. Fails before the work at the exit code: today push
   # refuses --ready, exit 2; without the rule it would take the skipped run
-  # and exit 0.
+  # and exit 0. Two skipped looks: bug-160's wait takes one before the marking,
+  # and this judges the watch's.
   @ID-PUSHDRAFT-08 @slice-179
   Scenario: Under push.pr.draft, push --ready passes over the draft's run whose jobs were all skipped and waits for the real one
     Given the config, committed and pushed to the remote's main, adds the YAML:
@@ -1405,7 +1407,7 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
           draft: true
       """
     And ci.watch asks a fake GitHub, which reports the run "https://ci.example/runs/1"
-    And the watched run's first look has its jobs "ci" and "platform" skipped, as a draft's run has, and its later looks its job "ci" failing and its job "platform" succeeding
+    And the watched run's first 2 looks have its jobs "ci" and "platform" skipped, as a draft's run has, and its later looks its job "ci" failing and its job "platform" succeeding
     And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
     And the clone is on the new branch "slice-9"
     And the clone has the commit "feat: add the widget" touching "widget.md"
@@ -1421,7 +1423,7 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   # that run was going. Waiting first, it succeeds. Fails before the work at the exit
   # code: today gh pr ready comes before any look, so the ready run is cancelled, the
   # draft's is passed over, and ci.watch.timeout ends it, exit 75.
-  @ID-PUSHDRAFT-74 @wip @bug-160
+  @ID-PUSHDRAFT-74 @bug-160
   Scenario: Under push.pr.draft, push --ready waits for the run of the head it pushed to finish before it marks the pull request ready, so that run cancels nothing
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -1449,7 +1451,7 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   # for a bounded time, here ci.watch.timeout, the shorter, then marks. Fails before the
   # work at "at least twice": today gh pr ready comes before any look, and the exit
   # code is 0 as the run it starts is green. A wait with no bound fails at the exit code.
-  @ID-PUSHDRAFT-75 @wip @bug-160
+  @ID-PUSHDRAFT-75 @bug-160
   Scenario: Under push.pr.draft, push --ready whose push starts no run looks for one for a bounded time, then marks the pull request ready
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -1477,7 +1479,7 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   # bound it has marked nothing, and run again, pushing nothing, it looks once more, and
   # the run having finished it marks and goes on. Fails before the work at "never called
   # as": today gh pr ready comes first, and the exit and outcome are the same.
-  @ID-PUSHDRAFT-76 @wip @bug-160
+  @ID-PUSHDRAFT-76 @bug-160
   Scenario: Under push.pr.draft, push --ready stopped at push.pr.ready_wait by its push's run has marked nothing, and run again once that run finished marks the pull request ready and goes on
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -1513,7 +1515,7 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   # --ready, pushing nothing, has no window to wait in, yet must not mark. A build that
   # looks only after its own push marks here. Fails before the work at "never called
   # as": today gh pr ready comes first, and the exit and outcome are the same.
-  @ID-PUSHDRAFT-79 @wip @bug-160
+  @ID-PUSHDRAFT-79 @bug-160
   Scenario: Under push.pr.draft, push --ready with nothing to push while the head's run still goes stops at push.pr.ready_wait and has not marked the pull request ready
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -1543,7 +1545,7 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   # result. The rest is TestRunOfReadsTheRunThatCheckedTheHead's. Fails before the work
   # at the exit code: today RunOf takes the draft's, WatchReady passes over it as no run,
   # and ci.watch.timeout ends it, exit 75.
-  @ID-PUSHDRAFT-77 @wip @bug-160
+  @ID-PUSHDRAFT-77 @bug-160
   Scenario: Under push.pr.draft, push --ready judges the run that checked the head, not a draft's run listed first from the same second
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -1573,7 +1575,7 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   # two for ever: this hangs, never reaching the exit code. Fails before the work at the
   # outcome: today RunOf takes the draft's and ci.watch.timeout ends it, exit 75, outcome
   # nothing-to-push.
-  @ID-PUSHDRAFT-78 @wip @bug-160
+  @ID-PUSHDRAFT-78 @bug-160
   Scenario: Under push.pr.draft, push --ready whose head's run was cancelled, a draft's run beside it, exits 75 as run-cancelled and names the rerun
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -2209,7 +2211,9 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   # Fails before the work at the exit code: today push.pr.ready_wait is an
   # unknown key, so the config cannot be read and --ready is refused, exit
   # 1, ready-without-draft (and with the key known but not obeyed, the
-  # watch runs to ci.watch.timeout, outcome nothing-to-push).
+  # watch runs to ci.watch.timeout, outcome nothing-to-push). The run has
+  # finished at its first look, bug-160's wait before the marking; going on at
+  # that look nothing is marked or rebased, and the head named is the one pushed.
   @ID-PUSHDRAFT-35 @slice-200
   Scenario: Under push.pr.draft, push --ready stops at push.pr.ready_wait while the run of the head GitHub made goes on, exit 75, naming that head
     Given the config, committed and pushed to the remote's main, adds the YAML:
@@ -2222,7 +2226,7 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
       """
     And ci.watch asks a fake GitHub, which reports the run "https://ci.example/runs/1"
     And ci.watch.timeout is 10
-    And the watched run never finishes
+    And the watched run has finished at its first look, and goes on at every later one
     And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
     And the clone is on the new branch "slice-9"
     And the clone has the commit "feat: add the widget" touching "widget.md"

@@ -441,6 +441,18 @@ func (r *pushRun) pullRequest(ctx context.Context, repository, main, theirMain, 
 		}
 		r.pr = &PullRequest{URL: url, Number: pullNumber(url), Created: true, Draft: asDraft}
 	}
+	outcome, line := "pushed", ""
+	if pushed {
+		line = r.pushedLine(ctx, r.pr.URL)
+	} else {
+		outcome, line = "nothing-to-push", fmt.Sprintf("Nothing to push: %s is at %s. Pull request: %s", item, r.upstream(), r.pr.URL)
+	}
+	if r.markReady && !r.noWait {
+		r.announce(line)
+		if seconds := r.cfg.Push.PR.ReadyWait; seconds > 0 {
+			r.bound = r.began.Add(time.Duration(seconds * float64(time.Second)))
+		}
+	}
 	switch {
 	case !draft:
 		if _, a, failed := r.gh(ctx, append([]string{"pr", "merge", item, "--repo", repository, "--auto"}, r.landing()...)...); failed {
@@ -448,6 +460,11 @@ func (r *pushRun) pullRequest(ctx context.Context, repository, main, theirMain, 
 		}
 		r.pr.AutoMerge = true
 	case r.markReady && r.pr.Draft:
+		if !r.noWait {
+			if a, done := r.awaitPushRuns(ctx, outcome, pushed); done {
+				return a
+			}
+		}
 		if _, a, failed := r.gh(ctx, "pr", "ready", item, "--repo", repository); failed {
 			return a
 		}
@@ -461,19 +478,13 @@ func (r *pushRun) pullRequest(ctx context.Context, repository, main, theirMain, 
 		r.pr.Updated = true
 		r.rebased = &rebased{repository: repository, onto: theirMain, ontoName: r.remote + "/" + main, since: asked}
 	}
-	outcome, line := "pushed", ""
-	if pushed {
-		line = r.pushedLine(ctx, r.pr.URL)
-	} else {
-		outcome, line = "nothing-to-push", fmt.Sprintf("Nothing to push: %s is at %s. Pull request: %s", item, r.upstream(), r.pr.URL)
-	}
 	switch {
 	case draft && !r.markReady:
 		return r.report(0, outcome, line, draftNote(r.pr.Draft))
 	case r.markReady && r.noWait:
 		return r.report(0, outcome, line, r.pr.URL+" is ready for review; itos push --ready again waits for its checks and reviews, then turns on auto-merge.")
 	case r.markReady:
-		return r.finish(ctx, repository, outcome, line)
+		return r.finish(ctx, repository, outcome)
 	case !pushed || r.noWait:
 		return r.report(0, outcome, line)
 	}
