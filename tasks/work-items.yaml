@@ -17713,3 +17713,18 @@ items:
       there, and each push ran the proof over all history with one fixed seed, reporting survivors
       its changes never touched. itos ci range could say it is measuring from commits.since for lack
       of a green run, so a reader does not take them for the push's fault.
+
+  - id: p1-consumer-reports-need-consent
+    title: The shipped repair guide tells every consumer's agent to file an issue on itos without asking its person
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      From a read of the beads tracker, 2026-11-05. internal/guide/repair.md says 'You report it'
+      and gives gh issue create -R donvargax/itos --template consumer-report.yml, with no step
+      asking the person. An agent in someone's private project then posts publicly on its own, the
+      pattern the person avoided in another tool. The guide should draft the report and ask, or say
+      nothing without p2-user-feedback-targets' setting; a test should refuse any shipped guide that
+      tells an agent to act on a hardcoded repository.
