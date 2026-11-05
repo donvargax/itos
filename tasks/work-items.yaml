@@ -16846,8 +16846,8 @@ items:
   - id: bug-160
     title: itos push --ready marks a pull request ready while the run its own push triggered has not finished, so the two runs race
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: bug
     why: >
