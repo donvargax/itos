@@ -17187,8 +17187,8 @@ items:
   - id: slice-223
     title: itos next reads a task's checks from the working tree alone, so a check on the item's branch reads as needs-spec
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: slice
     why: >
