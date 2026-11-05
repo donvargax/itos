@@ -240,9 +240,11 @@ Feature: itos next reads an in-flight item's state from the forge under push.mod
   missing first request is handed-back though another login is stuck; two logins
   stuck name the first in the config's order, a login still inside its clock
   passed over; another login refused, where --ready says review-refused, is
-  review-stuck naming the stuck login; and a kept state, spec-accepted on a draft
-  and repair on a red pull request, has one revision either side of a stop's
-  clock, its second request five seconds old and then past review_stall.
+  review-stuck naming the stuck login; a ready time past ci.watch.timeout, where
+  --ready says review-timeout, is review-stuck naming the stuck review; and a kept
+  state, spec-accepted on a draft and repair on a red pull request, has one revision
+  either side of a stop's clock, its second request five seconds old and then past
+  review_stall, and observed.review_stuck null on both sides.
 
   Not in slice-224: --ready's other stops at its first look with no review stuck,
   review-timeout past ci.watch.timeout and review-refused; a reviewer with no
