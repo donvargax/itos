@@ -8384,6 +8384,9 @@ items:
       print the same text). The gain is grep noise as much as tokens. Not breaking (the user,
       2026-10-11): the files' readers are agents, who follow the rules' pointer, not programs bound
       to the layout, so it ships in a minor. Pairs with p1-work-show-closing-checks.
+
+      2026-11-05: the registry is now 767 KB, up from the 328 KB this cites; raise its priority. Do
+      not use LLM summaries of closed items.
     tags: [records, v9]
 
   - id: T-299
