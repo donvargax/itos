@@ -2186,9 +2186,9 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
 
   # The agent reads what --ready waits on: a line when the wait starts and
   # one at each change, none while nothing changes. Codex's review runs at
-  # the first two asks and completes at the third, so the line naming it
-  # running is printed once, not at each ask, and the run's success comes
-  # with the first ask's states, never beside a login not asked. Fails
+  # the first look and the first two asks and completes at the third, so the
+  # line naming it running beside the run's success is printed once, not at
+  # each ask, and the run's success comes with the first ask's states. Fails
   # before the work at the "Waiting on" output step: today --ready prints
   # only "Waiting for reviews by ...".
   @ID-PUSHDRAFT-25 @slice-190
@@ -2209,13 +2209,13 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
     And the clone has the commit "feat: add the widget" touching "widget.md"
     And git pushes HEAD to the remote's new branch "slice-9"
     And the recording gh has the draft pull request "https://github.example/o/r/pull/7" open for the branch "slice-9"
-    And the recording gh answers that the pull request has a comment by "chatgpt-codex-connector" holding Codex's review state, its code review "running" and its security review "running" for its first 2 api graphql calls, then both "completed"
+    And the recording gh answers that the pull request has a comment by "chatgpt-codex-connector" holding Codex's review state, its code review "running" and its security review "running" for its first 3 api graphql calls, then both "completed"
     When itos runs "push --ready"
     Then itos exits with code 0
     And its output says "Waiting on https://github.example/o/r/pull/7 at "
-    And its output says ": run waiting, chatgpt-codex-connector not asked." once, before ": run succeeded, chatgpt-codex-connector running."
+    And its output says ": run waiting, chatgpt-codex-connector running." once, before ": run succeeded, chatgpt-codex-connector running."
     And its output says ": run succeeded, chatgpt-codex-connector running." once, before ": run succeeded, chatgpt-codex-connector completed."
-    And its output does not say "run succeeded, chatgpt-codex-connector not asked."
+    And its output does not say "not asked"
 
   # What every pull request of 2026-11-04 showed: the requests on the head, and
   # "not asked" through the whole wait on the run. Nothing moves but the words:
@@ -2223,7 +2223,7 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   # today. Fails before the work at the ": run waiting, ... asked." output step:
   # newWaiting starts every login at "not asked", and no look at the reviews comes
   # before the run's end.
-  @wip @ID-PUSHDRAFT-80 @bug-166
+  @ID-PUSHDRAFT-80 @bug-166
   Scenario: Under push.pr.draft, push --ready's waiting line reads asked from its first look, while the run goes on, when a request for the head is on the pull request
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -2260,7 +2260,7 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   # (and a build with no first look asks once). Fails before the work at the
   # ": run waiting, ... running." output step: today the line says "not asked"
   # until the run ends.
-  @wip @ID-PUSHDRAFT-81 @bug-166
+  @ID-PUSHDRAFT-81 @bug-166
   Scenario: Under push.pr.draft, push --ready's waiting line reads running from its first look while the run goes on, at one api graphql question more whatever the run's looks
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -2292,7 +2292,7 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   # stays waiting (@ID-PUSHDRAFT-36): the command would not ask it. Fails before
   # the work at the ": run waiting, ... no review requested" output step: today
   # the line says "not asked", then "waiting".
-  @wip @ID-PUSHDRAFT-82 @bug-166
+  @ID-PUSHDRAFT-82 @bug-166
   Scenario: Under push.pr.draft, push --ready's waiting line says no review was requested and names itos review request when a login has no review state and no request on the head, still exits 75 and asks nothing
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -2327,7 +2327,7 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   # on that run. Its parts must read the facts too. Fails before the work at the
   # ": run waiting, ... asked; auto-merge" output step: awaitPushRuns makes a new
   # waiting at the bound, every login "not asked".
-  @wip @ID-PUSHDRAFT-83 @bug-166
+  @ID-PUSHDRAFT-83 @bug-166
   Scenario: Under push.pr.draft, push --ready stopped at push.pr.ready_wait before it marks the draft ready says asked when a request for the head is on the pull request
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -2428,10 +2428,10 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   # GitHub's rebase (gh pr view answering the old head four times, a
   # ci.watch.interval of 1 apart) uses four of its ten seconds, so the
   # reviews get the six left: asks at about 4, 5, ..., 10 seconds, seven at
-  # most, and Codex's review, running at its first seven asks and completed
-  # at the eighth, is still running when the bound ends it. A build that
-  # gives each wait its own ten seconds asks eleven times in the reviews'
-  # wait, reaches the eighth ask about seven seconds in and turns on
+  # most, and Codex's review, running at the first look and its first seven
+  # asks and completed at the eighth, is still running when the bound ends it.
+  # A build that gives each wait its own ten seconds asks eleven times in the
+  # reviews' wait, reaches the eighth ask about seven seconds in and turns on
   # auto-merge, exit 0. The push before the waits has six seconds of slack
   # before the rebase wait would reach the bound. Fails before the work at the exit code:
   # today push.pr.ready_wait is an unknown key, so --ready is refused,
@@ -2458,7 +2458,7 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
     And the recording gh has the draft pull request "https://github.example/o/r/pull/7" open for the branch "slice-9"
     And the remote has gained the commit "chore: tidy the docs" touching "docs.md"
     And the recording gh's pr view answers the pull request's previous head for its first 4 calls after pr update-branch
-    And the recording gh answers that the pull request has a comment by "chatgpt-codex-connector" holding Codex's review state of the head of the remote's branch "slice-9" at each call, its code review "running" and its security review "running" for its first 7 api graphql calls, then both "completed"
+    And the recording gh answers that the pull request has a comment by "chatgpt-codex-connector" holding Codex's review state of the head of the remote's branch "slice-9" at each call, its code review "running" and its security review "running" for its first 8 api graphql calls, then both "completed"
     When itos runs "push --ready --json"
     Then itos exits with code 75
     And its JSON's "outcome" is "ready-still-waiting"
@@ -3069,7 +3069,7 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
     And its JSON's "not_started.review" is "<review>"
     And its JSON's "not_started.request" is "https://github.example/o/r/pull/7#issuecomment-<comment>"
     And the recording gh's "pr comment" calls for "slice-9" are the comments of "<request>" of "chatgpt-codex-connector" at the head of the remote's branch "slice-9"
-    And its output says ": run succeeded, chatgpt-codex-connector waiting."
+    And its output says ": run succeeded, chatgpt-codex-connector asked."
     And its output does not say "chatgpt-codex-connector running"
     And its output says "the <review> review by chatgpt-codex-connector of " with the full SHA of the head of the remote's branch "slice-9"
     And the recording gh was never called as "pr merge"

@@ -72,9 +72,9 @@ func comments(f *fake) []string {
 }
 
 // --ready says what it waits on when the wait starts and after each look that
-// changes a part, in the config's order, and nothing while nothing changes:
-// the run's success comes with the first ask's states, never beside a login
-// not asked; a login with neither a verdict nor a state reads waiting, one
+// changes a part, in the config's order, and nothing while nothing changes: the
+// states are read before the run is watched, and the run's success comes with
+// the first ask's; a login with neither a verdict nor a state reads waiting, one
 // with a state not completed running, one with a verdict completed.
 func TestPushReadySaysWhatItWaitsOn(t *testing.T) {
 	f, p := draftRepo(t, "draft: true, review_by: [a, b]", "ci: { watch: { provider: github, interval: 2, timeout: 30 } }\n")
@@ -82,9 +82,9 @@ func TestPushReadySaysWhatItWaitsOn(t *testing.T) {
 	p.open, p.draft = open7, true
 	p.graph = func(ask int) string {
 		switch {
-		case ask < 3:
+		case ask < 4:
 			return answerOf(nil, []string{runningBy("b")})
-		case ask == 3:
+		case ask == 4:
 			return answerOf([]string{node("a", "")}, []string{runningBy("b")})
 		}
 		return answerOf([]string{node("a", "")}, []string{doneBy("b")})
@@ -93,12 +93,12 @@ func TestPushReadySaysWhatItWaitsOn(t *testing.T) {
 	code, stdout, stderr, _ := call(t, f, "--ready")
 	head := f.head(t)
 	want := []string{
-		"run waiting, a not asked, b not asked.",
+		"run waiting, a waiting, b running.",
 		"run succeeded, a waiting, b running.",
 		"run succeeded, a completed, b running.",
 		"run succeeded, a completed, b completed.",
 	}
-	if got := waitingLines(stdout, open7, head); code != 0 || stderr != "" || !reflect.DeepEqual(got, want) || p.asks != 4 {
+	if got := waitingLines(stdout, open7, head); code != 0 || stderr != "" || !reflect.DeepEqual(got, want) || p.asks != 5 {
 		t.Errorf("exit %d, asks %d\n%s%s\nwant %q", code, p.asks, stdout, stderr, want)
 	}
 	// The first line is before the run is watched, the next after the reviews are asked.
@@ -127,13 +127,13 @@ func TestPushReadySaysWhatItWaitsOn(t *testing.T) {
 	p.graph = func(int) string { return answerOf([]string{node("a", quota)}, nil) }
 	clocked(t)
 	code, stdout, _, _ = call(t, f, "--ready")
-	if got := waitingLines(stdout, open7, f.head(t)); code != temporary || !reflect.DeepEqual(got, []string{"a not asked.", "a waiting."}) {
+	if got := waitingLines(stdout, open7, f.head(t)); code != temporary || !reflect.DeepEqual(got, []string{"a waiting."}) {
 		t.Errorf("refused: exit %d\n%s", code, stdout)
 	}
 }
 
-// With no run to watch the wait starts before the first ask, and the logins
-// are not asked until it.
+// With no run to watch there is no first look: the first ask comes before the
+// first line, and no question more.
 func TestPushReadySaysWhatItWaitsOnWithNoRun(t *testing.T) {
 	f, p := draftRepo(t, "draft: true, review_by: [a]")
 	p.open, p.draft = open7, true
@@ -145,12 +145,9 @@ func TestPushReadySaysWhatItWaitsOnWithNoRun(t *testing.T) {
 	}
 	clocked(t)
 	code, stdout, _, _ := call(t, f, "--ready")
-	want := []string{"a not asked.", "a waiting.", "a completed."}
-	if got := waitingLines(stdout, open7, f.head(t)); code != 0 || !reflect.DeepEqual(got, want) {
-		t.Errorf("exit %d\n%s\nwant %q", code, stdout, want)
-	}
-	if first, ask := strings.Index(stdout, "a not asked."), strings.Index(stdout, "a waiting."); first < 0 || ask < first {
-		t.Errorf("not in order:\n%s", stdout)
+	want := []string{"a waiting.", "a completed."}
+	if got := waitingLines(stdout, open7, f.head(t)); code != 0 || !reflect.DeepEqual(got, want) || p.asks != 2 {
+		t.Errorf("exit %d, asks %d\n%s\nwant %q", code, p.asks, stdout, want)
 	}
 
 	// With no run and no login there is nothing to wait on.
@@ -171,8 +168,200 @@ func TestPushReadySaysWhatItWaitsOnAtTheRebasedHead(t *testing.T) {
 	f.on(item, "nw000")
 	clocked(t)
 	code, stdout, _, _ := call(t, f, "--ready")
-	if got := waitingLines(stdout, open7, "rb000"); code != 0 || !reflect.DeepEqual(got, []string{"run waiting, a not asked.", "run succeeded, a completed."}) {
+	if got := waitingLines(stdout, open7, "rb000"); code != 0 || !reflect.DeepEqual(got, []string{"run waiting, a completed.", "run succeeded, a completed."}) {
 		t.Errorf("exit %d\n%s", code, stdout)
+	}
+
+	// The first look is at that head: a request for it reads asked, one for the head
+	// pushed does not.
+	for request, want := range map[string]string{"rb000": "run waiting, a asked.", "nw000": "run waiting, a waiting."} {
+		f, p := draftRepo(t, "draft: true, review_by: [a]", "ci: { watch: { provider: github, interval: 2, timeout: 5 } }\n")
+		watching(f, "success")
+		f.History = append(f.History, rebasedCommit(f))
+		p.open, p.draft, p.heads = open7, true, []string{"rb000"}
+		p.graph = func(ask int) string {
+			if ask == 1 {
+				return answerOf(nil, []string{askedBy("someone", "a", request)})
+			}
+			return answerOf([]string{node("a", "")}, nil)
+		}
+		f.Remote["origin"].Refs["refs/heads/slice-9"] = mine
+		f.on(item, "nw000")
+		clocked(t)
+		_, stdout, _, _ := call(t, f, "--ready")
+		if got := waitingLines(stdout, open7, "rb000"); len(got) == 0 || got[0] != want {
+			t.Errorf("a request for %s: %q, want %q first\n%s", request, got, want, stdout)
+		}
+	}
+}
+
+// The table of a login's states in the line (bug-166), the first that holds, read
+// at the first look while the run goes and again once it is over: completed; running;
+// asked, for either review, for a request naming the login and the head; no review
+// requested, with no state and no request, for a login push.pr.reviewers names; else
+// waiting. after is the state --ready ends on where it differs: it asks for a review
+// a state of another commit leaves unasked, which then reads asked.
+func TestWaitingLineStates(t *testing.T) {
+	nobody := "no review requested (itos review request " + item + ")"
+	cursor := func(login, head string) string {
+		return node("someone", "@cursor review\n\n<!-- itos-review-request:v1 "+login+" "+head+" -->")
+	}
+	elsewhere := func(login string) string { return codexFor(login, "completed", otherSHA, "completed", otherSHA) }
+	const named = ", reviewers: [{ login: a, kind: codex }, { login: cur, kind: bugbot }, { login: \"bot[bot]\", kind: codex }]"
+	for name, c := range map[string]struct {
+		login    string
+		reviews  []string
+		comments []string
+		want     string
+		after    string
+	}{
+		"a review":                                {login: "a", reviews: []string{node("a", "")}, want: "completed"},
+		"a review beside a request":               {login: "a", reviews: []string{node("a", "")}, comments: []string{askedBy("x", "a", "@head")}, want: "completed"},
+		"a state completed":                       {login: "a", comments: []string{doneBy("a")}, want: "completed"},
+		"a state completed and a request":         {login: "a", comments: []string{askedBy("x", "a", "@head"), doneBy("a")}, want: "completed"},
+		"a state running":                         {login: "a", comments: []string{runningBy("a")}, want: "running"},
+		"a state running and a request":           {login: "a", comments: []string{askedBy("x", "a", "@head"), runningBy("a")}, want: "running"},
+		"the code request":                        {login: "a", comments: []string{askedBy("x", "a", "@head")}, want: "asked"},
+		"the security request":                    {login: "a", comments: []string{askedForSecurity("x", "a", "@head")}, want: "asked"},
+		"a request naming the bot":                {login: "a", comments: []string{askedBy("x", "a[bot]", "@head")}, want: "asked"},
+		"a state of another commit and a request": {login: "a", comments: []string{elsewhere("a"), askedBy("x", "a", "@head")}, want: "asked"},
+		"a review not started and its request":    {login: "a", comments: []string{notStartedBy("a"), askedForSecurity("x", "a", "@head")}, want: "asked"},
+		"a state of another commit":               {login: "a", comments: []string{elsewhere("a")}, want: "waiting", after: "asked"},
+		"a review not started":                    {login: "a", comments: []string{notStartedBy("a")}, want: "waiting", after: "asked"},
+		"nothing":                                 {login: "a", want: nobody},
+		"a request of another head":               {login: "a", comments: []string{askedBy("x", "a", otherSHA)}, want: nobody},
+		"a request of another login":              {login: "a", comments: []string{askedBy("x", "b", "@head")}, want: nobody},
+		"a request's line with no marker":         {login: "a", comments: []string{node("x", "@codex review")}, want: nobody},
+		"named with [bot], written without":       {login: "bot", want: nobody},
+		"named without, written with [bot]":       {login: "a[bot]", want: nobody},
+		"not named, nothing":                      {login: "c", want: "waiting"},
+		"not named, the code request":             {login: "c", comments: []string{askedBy("x", "c", "@head")}, want: "asked"},
+		"not named, the security request":         {login: "c", comments: []string{askedForSecurity("x", "c", "@head")}, want: "asked"},
+		"not named, a state of another commit":    {login: "c", comments: []string{elsewhere("c")}, want: "waiting", after: "asked"},
+		"bugbot, its request":                     {login: "cur", comments: []string{cursor("cur", "@head")}, want: "asked"},
+		"bugbot, a request not of its kind":       {login: "cur", comments: []string{askedBy("x", "cur", "@head")}, want: nobody},
+		"bugbot, nothing":                         {login: "cur", want: nobody},
+		"bugbot, a state of another commit":       {login: "cur", comments: []string{elsewhere("cur")}, want: "waiting", after: "asked"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			f, p := draftRepo(t, fmt.Sprintf("draft: true, review_by: [%q], ready_wait: 1%s", c.login, named), github)
+			watching(f, "success")
+			p.open, p.draft = open7, true
+			p.graph = func(int) string { return answerOf(c.reviews, c.comments) }
+			clocked(t)
+			_, stdout, stderr, _ := call(t, f, "--ready")
+			after := c.after
+			if after == "" {
+				after = c.want
+			}
+			want := []string{"run waiting, " + c.login + " " + c.want + ".", "run succeeded, " + c.login + " " + after + "."}
+			got := waitingLines(stdout, open7, f.head(t))
+			if len(got) < 2 || got[0] != want[0] || got[len(got)-1] != want[1] {
+				t.Errorf("%q, want %q first and last\n%s%s", got, want, stdout, stderr)
+			}
+		})
+	}
+}
+
+// The first look judges nothing and costs one question: its failing changes the word
+// alone, to not read, the next ask reading the states, or judging the failure as it
+// did. A stop before that ask gives the word.
+func TestWaitingLineWhereTheFirstLookFails(t *testing.T) {
+	for name, firstLook := range map[string]func() (string, error){
+		"gh fails":            func() (string, error) { return "", refused("HTTP 502") },
+		"an answer not of it": func() (string, error) { return "{}", nil },
+	} {
+		t.Run(name, func(t *testing.T) {
+			f, p := draftRepo(t, "draft: true, review_by: [a]", github)
+			watching(f, "success")
+			p.open, p.draft, p.reviews = open7, true, []string{"a"}
+			pass, looked := f.gh, false
+			f.gh = func(args []string) (string, error) {
+				if strings.Join(args[:2], " ") == "api graphql" && !looked {
+					looked = true
+					return firstLook()
+				}
+				return pass(args)
+			}
+			code, stdout, stderr, _ := call(t, f, "--ready")
+			want := []string{"run waiting, a not read.", "run succeeded, a completed."}
+			if got := waitingLines(stdout, open7, f.head(t)); code != 0 || !reflect.DeepEqual(got, want) || p.asks != 1 || strings.Contains(stderr, "failed") {
+				t.Errorf("exit %d, asks %d, %q\n%s%s", code, p.asks, got, stdout, stderr)
+			}
+		})
+	}
+
+	f, p := draftRepo(t, "draft: true, review_by: [a]", github)
+	watching(f, "success")
+	p.open, p.draft = open7, true
+	p.fail = map[string]error{"api graphql": refused("HTTP 502")}
+	code, stdout, stderr, _ := call(t, f, "--json", "--ready")
+	if r := reported(t, stdout); code != missing || r.Outcome != "pull-request-failed" || !strings.Contains(stderr, ": run waiting, a not read.") ||
+		strings.Count(stderr, "gh api graphql failed: HTTP 502") != 1 {
+		t.Errorf("failing still: exit %d, %s\n%s", code, r.Outcome, stderr)
+	}
+}
+
+// The stop before a draft is marked reads the states too, with the one question its
+// wait asks, for it alone; with no login it asks none.
+func TestWaitingLineAtTheStopBeforeTheMarking(t *testing.T) {
+	stopped := func(t *testing.T, pr string) (*fake, *pulls) {
+		t.Helper()
+		f, p := draftRepo(t, pr, "ci: { watch: { provider: github, interval: 10, timeout: 100 } }\n")
+		f.watcher, f.watchOK = providers.Watcher{HeadRuns: func(string) ([]providers.Run, error) {
+			return []providers.Run{{URL: "https://ci/g", Status: "in_progress", Event: "pull_request"}}, nil
+		}}, true
+		p.open, p.draft = open7, true
+		clocked(t)
+		return f, p
+	}
+	for name, c := range map[string]struct {
+		graph func(int) string
+		fail  bool
+		want  string
+	}{
+		"a request":      {graph: func(int) string { return answerOf(nil, []string{askedBy("x", "a", "@head")}) }, want: "asked"},
+		"nothing":        {graph: func(int) string { return answerOf(nil, nil) }, want: "waiting"},
+		"a look failing": {fail: true, want: "not read"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			f, p := stopped(t, "draft: true, review_by: [a], ready_wait: 25")
+			p.graph = c.graph
+			if c.fail {
+				p.fail = map[string]error{"api graphql": refused("HTTP 502")}
+			}
+			code, stdout, stderr, _ := call(t, f, "--json", "--ready")
+			want := ": run waiting, a " + c.want + "; auto-merge is not turned on."
+			if r := reported(t, stdout); code != temporary || r.Outcome != "ready-still-waiting" || !strings.Contains(stderr, want) ||
+				strings.Contains(strings.Join(f.calls(), "\n"), "pr ready") {
+				t.Errorf("exit %d, %s, want %q\n%s", code, r.Outcome, want, stderr)
+			}
+			if !c.fail && p.asks != 1 {
+				t.Errorf("%d asks, want 1", p.asks)
+			}
+		})
+	}
+
+	f, p := stopped(t, "draft: true, ready_wait: 25")
+	if code, _, stderr, _ := call(t, f, "--json", "--ready"); code != temporary || p.asks != 0 || !strings.Contains(stderr, ": run waiting; auto-merge") {
+		t.Errorf("no login: exit %d, asks %d\n%s", code, p.asks, stderr)
+	}
+}
+
+// A request --ready has just posted reads asked at once: at the line after it, and at
+// a stop in the same look.
+func TestWaitingLineSaysAskedAtTheLookThatPosts(t *testing.T) {
+	f, p := draftRepo(t, "draft: true, review_by: [a], ready_wait: 1")
+	p.open, p.draft = open7, true
+	c := clocked(t)
+	p.graph = func(int) string {
+		c.at = c.at.Add(2 * time.Second)
+		return answerOf(nil, []string{codexFor("a", "completed", otherSHA, "completed", otherSHA)})
+	}
+	code, stdout, stderr, _ := call(t, f, "--ready")
+	if got, want := waitingLines(stdout, open7, f.head(t)), []string{"a waiting.", "a asked."}; code != temporary || !reflect.DeepEqual(got, want) ||
+		p.asks != 1 || !strings.Contains(stderr, ": a asked; auto-merge is not turned on.") {
+		t.Errorf("exit %d, asks %d, %q\n%s%s", code, p.asks, got, stdout, stderr)
 	}
 }
 

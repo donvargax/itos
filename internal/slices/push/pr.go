@@ -461,7 +461,7 @@ func (r *pushRun) pullRequest(ctx context.Context, repository, main, theirMain, 
 		r.pr.AutoMerge = true
 	case r.markReady && r.pr.Draft:
 		if !r.noWait {
-			if a, done := r.awaitPushRuns(ctx, outcome, pushed); done {
+			if a, done := r.awaitPushRuns(ctx, repository, outcome, pushed); done {
 				return a
 			}
 		}
