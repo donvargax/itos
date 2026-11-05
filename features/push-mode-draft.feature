@@ -335,19 +335,33 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   state waiting until the run succeeded, then succeeded (a run that does
   not succeed ends the wait as before, the watch's own lines saying so);
   then, for each review_by login in the config's order and as the config
-  writes it, "<login> <state>", its state not asked until step 4's first
-  ask (the run is watched first), then waiting (neither a verdict nor a
-  review-state comment), running (its review-state comment with a review
-  not completed) or completed (its verdict). The line is printed once when
-  the wait starts (before the run is watched, or before the first ask when
-  no run is), and again after each look that changes a part; a look that
-  changes nothing prints nothing, so there is no heartbeat. With review_by,
-  the run's success and the first ask are one look: no line says "run
-  succeeded" beside a login "not asked". The states are read as step 4
-  reads verdicts: nothing is compared with the head, and the state's
-  commit_sha is still not read (slice 200 reads it). Slice 179's "Waiting
-  for reviews by ..."
-  stays as it is.
+  writes it, "<login> <state>", its state as the next paragraph reads it.
+  The line is printed once when the wait starts (before the run is watched,
+  or after the first ask when no run is), and again after each look that
+  changes a part; a look that changes nothing prints nothing, so there is no
+  heartbeat. With review_by, the run's success and an ask are one look.
+  Slice 179's "Waiting for reviews by ..." stays as it is.
+
+  A login's state in the line (bug-166) is read from the pull request from the
+  first look, while the run still goes, the first of these that holds:
+  completed (its verdict); running (a review of its review-state comment under
+  way on the head); asked (a request naming the login and the head is on the
+  pull request, for either review, or this --ready posted one); no review
+  requested (itos review request <item>) (no review-state comment and no
+  request, and push.pr.reviewers names the login); else waiting: a state of
+  another commit or a review not started with no request, which --ready asks
+  for once the run is over, or a login push.pr.reviewers does not name, whom
+  itos review request would not ask (a Copilot reviews unasked). Asking is not
+  --ready's where no state is, by slice-217's decision 3: it still posts
+  nothing, and still exits 75 at push.pr.ready_wait, the words its only change.
+  The cost: with a run watched, one api graphql question more per --ready, at
+  the first look, and none at the run's looks after it, the next question being
+  the one its success already asks; at push.pr.ready_wait before the marking,
+  that one question before the stop's line; with no run, none, the first ask
+  coming before the first line. The question failing changes nothing but the
+  word, "not read", until the next ask, which judges a failure as before.
+  TestWaitingLineStates (internal/slices/push/waiting_test.go) is the table of
+  these states.
 
   The re-request. push.pr.review_stall is a number of seconds, as
   ci.watch.timeout is, 0 by default, 0 or left out meaning off; it is read
@@ -445,7 +459,7 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   request. So the code review having completed does not count for the security
   review. A status other than null and completed for the head is a review
   under way: slice 190's stall, outcome review-stalled, as before. A review
-  not started reads waiting in the waiting line. A login with no review-state
+  not started reads asked in the waiting line (bug-166). A login with no review-state
   comment is judged by nothing here, and waits up to ci.watch.timeout as
   before. Without push.pr.review_stall none of this runs.
 
@@ -825,7 +839,8 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   an earlier push) reads as waiting: no verdict and not running, and it
   still decides the login's verdict, a review by that login not counting
   under 4a beside it. The waiting line gives that login's state as
-  waiting. Reviews (4a) are still counted for any commit, as Copilot's
+  waiting, or asked once a request for the head is there (bug-166). Reviews
+  (4a) are still counted for any commit, as Copilot's
   always were.
 
   The new head's request. Codex here reviews on ready_for_review alone, so
@@ -2201,6 +2216,142 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
     And its output says ": run waiting, chatgpt-codex-connector not asked." once, before ": run succeeded, chatgpt-codex-connector running."
     And its output says ": run succeeded, chatgpt-codex-connector running." once, before ": run succeeded, chatgpt-codex-connector completed."
     And its output does not say "run succeeded, chatgpt-codex-connector not asked."
+
+  # What every pull request of 2026-11-04 showed: the requests on the head, and
+  # "not asked" through the whole wait on the run. Nothing moves but the words:
+  # no state means no request of --ready's, and the wait ends at ready_wait as
+  # today. Fails before the work at the ": run waiting, ... asked." output step:
+  # newWaiting starts every login at "not asked", and no look at the reviews comes
+  # before the run's end.
+  @wip @ID-PUSHDRAFT-80 @bug-166
+  Scenario: Under push.pr.draft, push --ready's waiting line reads asked from its first look, while the run goes on, when a request for the head is on the pull request
+    Given the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+        pr:
+          draft: true
+          review_by: [chatgpt-codex-connector]
+          reviewers:
+            - { login: chatgpt-codex-connector, kind: codex }
+          ready_wait: 2
+      """
+    And ci.watch asks a fake GitHub, which reports the run "https://ci.example/runs/1"
+    And ci.watch.timeout is 10
+    And the watched run's jobs "ci" and "platform" succeed
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the clone is on the new branch "slice-9"
+    And the clone has the commit "feat: add the widget" touching "widget.md"
+    And git pushes HEAD to the remote's new branch "slice-9"
+    And the recording gh has the draft pull request "https://github.example/o/r/pull/7" open for the branch "slice-9"
+    And the recording gh answers that the pull request has a comment by "someone" asking "chatgpt-codex-connector" to review the clone's HEAD again
+    When itos runs "push --ready --json"
+    Then itos exits with code 75
+    And its JSON's "outcome" is "ready-still-waiting"
+    And its output says ": run waiting, chatgpt-codex-connector asked."
+    And its output says "chatgpt-codex-connector asked; auto-merge is not turned on."
+    And its output does not say "not asked"
+    And the recording gh was never called as "pr comment"
+    And the recording gh was never called as "pr merge"
+
+  # The state read at the first look, and what it costs: one question at that
+  # look and the one the run's success already asks, the run's other look reading
+  # nothing of the pull request. A build reading at each look of the run asks more
+  # (and a build with no first look asks once). Fails before the work at the
+  # ": run waiting, ... running." output step: today the line says "not asked"
+  # until the run ends.
+  @wip @ID-PUSHDRAFT-81 @bug-166
+  Scenario: Under push.pr.draft, push --ready's waiting line reads running from its first look while the run goes on, at one api graphql question more whatever the run's looks
+    Given the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+        pr:
+          draft: true
+          review_by: [chatgpt-codex-connector]
+      """
+    And ci.watch asks a fake GitHub, which reports the run "https://ci.example/runs/1"
+    And ci.watch.timeout is 10
+    And the watched run finishes its job "ci" first and its job "platform" one poll later, both succeeding
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the clone is on the new branch "slice-9"
+    And the clone has the commit "feat: add the widget" touching "widget.md"
+    And git pushes HEAD to the remote's new branch "slice-9"
+    And the recording gh has the draft pull request "https://github.example/o/r/pull/7" open for the branch "slice-9"
+    And the recording gh answers that the pull request has a comment by "chatgpt-codex-connector" holding Codex's review state, its code review "running" and its security review "running" for its first 1 api graphql calls, then both "completed"
+    When itos runs "push --ready"
+    Then itos exits with code 0
+    And its output says ": run waiting, chatgpt-codex-connector running." once, before ": run succeeded, chatgpt-codex-connector completed."
+    And its output does not say "not asked"
+    And the recording gh was called as "api graphql" 2 times
+
+  # A pull request nobody asked about: --ready asks nothing by slice-217's
+  # decision 3, the first request being itos review request's, and a whole call
+  # waits for a review that is not coming. The reader now knows why, and what to
+  # run; the outcome and the exit stay. A login push.pr.reviewers does not name
+  # stays waiting (@ID-PUSHDRAFT-36): the command would not ask it. Fails before
+  # the work at the ": run waiting, ... no review requested" output step: today
+  # the line says "not asked", then "waiting".
+  @wip @ID-PUSHDRAFT-82 @bug-166
+  Scenario: Under push.pr.draft, push --ready's waiting line says no review was requested and names itos review request when a login has no review state and no request on the head, still exits 75 and asks nothing
+    Given the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+        pr:
+          draft: true
+          review_by: [chatgpt-codex-connector]
+          reviewers:
+            - { login: chatgpt-codex-connector, kind: codex }
+          ready_wait: 2
+      """
+    And ci.watch asks a fake GitHub, which reports the run "https://ci.example/runs/1"
+    And ci.watch.timeout is 10
+    And the watched run's jobs "ci" and "platform" succeed
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the clone is on the new branch "slice-9"
+    And the clone has the commit "feat: add the widget" touching "widget.md"
+    And git pushes HEAD to the remote's new branch "slice-9"
+    And the recording gh has the draft pull request "https://github.example/o/r/pull/7" open for the branch "slice-9"
+    When itos runs "push --ready --json"
+    Then itos exits with code 75
+    And its JSON's "outcome" is "ready-still-waiting"
+    And its output says ": run waiting, chatgpt-codex-connector no review requested (itos review request slice-9)."
+    And its output says "chatgpt-codex-connector no review requested (itos review request slice-9); auto-merge is not turned on."
+    And its output does not say "not asked"
+    And the recording gh was never called as "pr comment"
+    And the recording gh was never called as "pr merge"
+
+  # The stop before the marking has its own line and no earlier look: a first
+  # --ready on a draft whose run still goes ends here, all of its ready_wait spent
+  # on that run. Its parts must read the facts too. Fails before the work at the
+  # ": run waiting, ... asked; auto-merge" output step: awaitPushRuns makes a new
+  # waiting at the bound, every login "not asked".
+  @wip @ID-PUSHDRAFT-83 @bug-166
+  Scenario: Under push.pr.draft, push --ready stopped at push.pr.ready_wait before it marks the draft ready says asked when a request for the head is on the pull request
+    Given the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+        pr:
+          draft: true
+          review_by: [chatgpt-codex-connector]
+          ready_wait: 1
+      """
+    And ci.watch asks a fake GitHub, which reports the run "https://ci.example/runs/1"
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the clone is on the new branch "slice-9"
+    And the clone has the commit "feat: add the widget" touching "widget.md"
+    And git pushes HEAD to the remote's new branch "slice-9"
+    And the recording gh has the draft pull request "https://github.example/o/r/pull/7" open for the branch "slice-9"
+    And the fake GitHub's run of the clone's HEAD is a draft's, going until a step finishes it, then skipping every job, and the recording gh's "pr ready" starts the run "https://ci.example/runs/ready" of it, cancelled if the draft's was still going, else its jobs "ci" and "platform" succeeding
+    And the recording gh answers that the pull request has a comment by "someone" asking "chatgpt-codex-connector" to review the clone's HEAD again
+    When itos runs "push --ready --json"
+    Then itos exits with code 75
+    And its JSON's "outcome" is "ready-still-waiting"
+    And the recording gh was never called as "pr ready"
+    And its output says ": run waiting, chatgpt-codex-connector asked; auto-merge is not turned on."
+    And its output does not say "not asked"
 
   # --ready returns within its caller's time limit (slices 191 to 197
   # outlived Claude Code's 600 s cap): at push.pr.ready_wait it stops, exit
