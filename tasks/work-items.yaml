@@ -17728,3 +17728,15 @@ items:
       pattern the person avoided in another tool. The guide should draft the report and ask, or say
       nothing without p2-user-feedback-targets' setting; a test should refuse any shipped guide that
       tells an agent to act on a hardcoded repository.
+
+  - id: p2-work-add-duplicate-title
+    title: itos work add warns when the title matches an existing item's
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      From a read of the beads tracker, 2026-11-05. The registry holds five exact duplicate titles
+      today (git-shim install and uninstall..., go test failures in CI become annotations, ...). A
+      normalized match at work add, a warning only, catches them as they are made.
