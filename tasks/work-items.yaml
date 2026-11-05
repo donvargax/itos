@@ -17558,8 +17558,8 @@ items:
   - id: slice-225
     title: itos push --ready stops at a job that already failed and names it, instead of waiting out the run
     phase: 2
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: slice
     why: >
