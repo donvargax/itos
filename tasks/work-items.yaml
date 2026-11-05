@@ -17603,3 +17603,17 @@ items:
     why: >
       bug-165, 2026-11-04: commits holding both a merge and a registry commit are refused
       (merge-in-history), so merge, push, take, push is the working order, and no guide says so.
+
+  - id: p2-next-blocked-not-always-the-person
+    title: itos next sends every blocked implementer to the person, though a coordinator's step may be what it waits for
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      A driven run, 2026-11-04: an implementer stopped, rightly, for a step its repository's README
+      gives the coordinator: CI evidence only the forge can give. next read its blocked record as
+      person answer, the driver printed 'needs the person', and the person was not needed. A blocked
+      record could say whom it waits for; next would name that actor. Autonomous projects need the
+      person out of this path.
