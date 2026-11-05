@@ -17,9 +17,11 @@ working tree, its dependencies' statuses, the open questions of itos decision
 naming it (work.asks, from the working tree), a slice's or a bug's scenarios
 at HEAD (those tagged @<id>, live or @wip, as work done reads them; under
 push.mode pr at origin/<id> when the clone has that ref and it holds some, else
-at HEAD) and a task's checks in its ledger entry. It writes no file, makes no
-commit and fetches nothing; git is read through tree and object reads alone,
-never git status. An item's kind is its kind key; with none, its id says:
+at HEAD) and a task's checks in its ledger entry (in the working tree; under
+push.mode pr at origin/<id> when the clone has that ref and the ledger there,
+read under the clone's config, holds an entry for the task, unless it is done
+or dropped). It writes no file, makes no commit and fetches nothing; git is
+read through tree and object reads alone, never git status. An item's kind is its kind key; with none, its id says:
 slice-<n> a slice, bug-<n> a bug, an id ledger.id matches a task.
 
 The states, the first that holds winning: done (status done); parked
@@ -100,7 +102,7 @@ push.pr.reviewers logins, as written, not requested for the open pull
 request's head, [] for none, "auto_merge", whether auto-merge is enabled for
 the open pull request, false when none was asked about}; revision "sha256:"
 and the hex digest of exactly the facts read, the kind as read among them and
-under pr the ref the scenarios were read at and what the forge and the
+under pr the ref the spec was read at and what the forge and the
 journal said, so a commit that touches none of them leaves it as it was and a
 config change that moves the step moves it. Refused:
 {"schema":1,"ok":false,"problems":[{"rule","message","fix"}]}`,

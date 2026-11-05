@@ -21,9 +21,12 @@ import (
 // Scenarios, @wip ones included, at HEAD, or under push.mode pr at SpecRef,
 // origin/<id> when that ref holds some, else HEAD ("" outside pr); and a
 // task's Checks, its ledger entry's done_when, none for a task the ledger
-// lacks. Under push.mode pr, for an item in flight, Observed is what the
-// forge and the attempt journal say, and Asked every question naming the
-// item, in the questions file's order; outside, both are none.
+// lacks, in the working tree, or under push.mode pr at SpecRef, origin/<id>,
+// when the ledger there holds an entry and the task is neither done nor
+// dropped, else with SpecRef "". Under push.mode pr, for an item in flight,
+// Observed is what the forge and the attempt journal say, and Asked every
+// question naming the item, in the questions file's order; outside, both are
+// none.
 type Facts struct {
 	Item         *value.Map
 	Kind         string
@@ -86,7 +89,7 @@ func read(ctx context.Context, cfg *config.Loaded, tracker trackerport.Tracker, 
 			return Facts{}, nil, nil, err
 		}
 	case "task":
-		f.Checks, _, err = ledger.ChecksOf(cfg, id)
+		f.Checks, f.SpecRef, err = checks(ctx, cfg, shown.Item, id, pr)
 		if err != nil {
 			return Facts{}, nil, nil, err
 		}
@@ -102,24 +105,60 @@ func read(ctx context.Context, cfg *config.Loaded, tracker trackerport.Tracker, 
 	return f, nil, nil, nil
 }
 
+// atBranch is an item's spec under push.mode pr and the ref it was read at:
+// at origin/<id> when the clone has that ref, the one the last fetch or push
+// left, nothing fetched, and at says the tree holds it, else fallback's. A
+// tree that cannot be read is at's error, never fallback's answer.
+func atBranch[T any](ctx context.Context, cfg *config.Loaded, id string, at func(tree string) (T, bool, error), fallback func() (T, string, error)) (T, string, error) {
+	remote := "origin/" + id
+	if _, err := cfg.VCS.Ref(ctx, "refs/remotes/"+remote); err == nil {
+		found, holds, err := at("refs/remotes/" + remote)
+		if err != nil || holds {
+			return found, remote, err
+		}
+	}
+	return fallback()
+}
+
 // scenarios are the scenarios tagged for the item and the ref they were
 // read at: at HEAD outside push.mode pr, ref "" (slice-203); under it at
-// origin/<id> when the clone has that ref and it holds some, the ref the
-// last fetch or push left, nothing fetched, else at HEAD.
+// origin/<id> when that ref holds some, else at HEAD (atBranch).
 func scenarios(ctx context.Context, cfg *config.Loaded, id string, pr bool) ([]tests.Test, string, error) {
 	if !pr {
 		found, err := tests.Tagged(cfg, "@"+id, "HEAD")
 		return found, "", err
 	}
-	remote := "origin/" + id
-	if _, err := cfg.VCS.Ref(ctx, "refs/remotes/"+remote); err == nil {
-		found, err := tests.Tagged(cfg, "@"+id, "refs/remotes/"+remote)
-		if err != nil || len(found) > 0 {
-			return found, remote, err
-		}
+	return atBranch(ctx, cfg, id, func(tree string) ([]tests.Test, bool, error) {
+		found, err := tests.Tagged(cfg, "@"+id, tree)
+		return found, len(found) > 0, err
+	}, func() ([]tests.Test, string, error) {
+		found, err := tests.Tagged(cfg, "@"+id, "HEAD")
+		return found, "HEAD", err
+	})
+}
+
+// checks are the task's ledger checks and the ref they were read at: in the
+// working tree, ref "", outside push.mode pr and for a done or dropped task,
+// whose branch may be stale; under pr at origin/<id> when the ledger there,
+// read under the clone's config as attempt submit reads a head's, holds an
+// entry for the task, whatever its checks, else in the working tree
+// (atBranch).
+func checks(ctx context.Context, cfg *config.Loaded, item *value.Map, id string, pr bool) ([]ledger.Check, string, error) {
+	inWorkingTree := func() ([]ledger.Check, string, error) {
+		found, _, err := ledger.ChecksOf(cfg, id)
+		return found, "", err
 	}
-	found, err := tests.Tagged(cfg, "@"+id, "HEAD")
-	return found, "HEAD", err
+	status := item.At("status")
+	if !pr || status == "done" || status == work.Dropped {
+		return inWorkingTree()
+	}
+	return atBranch(ctx, cfg, id, func(tree string) ([]ledger.Check, bool, error) {
+		source, err := cfg.Trees.At(ctx, tree)
+		if err != nil {
+			return nil, false, err
+		}
+		return ledger.ChecksOf(cfg.DataFrom(source), id)
+	}, inWorkingTree)
 }
 
 // dependencies are the item's depends_on, each with its status in the

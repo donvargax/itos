@@ -9,8 +9,10 @@ import (
 	"testing"
 
 	"github.com/donvargax/itos/v8/internal/ask"
+	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/kind"
 	"github.com/donvargax/itos/v8/internal/providers"
+	treefake "github.com/donvargax/itos/v8/internal/store/tree/port/porttest"
 	"github.com/donvargax/itos/v8/internal/work"
 )
 
@@ -416,6 +418,10 @@ func TestTaskSpecRef(t *testing.T) {
 		ref    string
 		checks []string
 		state  string
+		// The read's error: its rule, or any at all.
+		rule       string
+		unreadable bool
+		noTrees    bool
 	}{
 		{
 			name: "trunk, a check only at the ref", config: configText, id: "T-1", status: "todo",
@@ -448,6 +454,26 @@ func TestTaskSpecRef(t *testing.T) {
 			tree: none, held: map[string]string{ledgerFile: entry("slice-9", `, done_when: [{ run: "go vet" }]`)},
 			ref: "HEAD", state: "needs-spec",
 		},
+		{
+			name: "a check at the ref", config: prConfig, id: "T-1", status: "todo",
+			tree: none, held: map[string]string{ledgerFile: vet}, ref: "origin/T-1", checks: []string{"go vet"}, state: "spec-proposed",
+		},
+		{
+			name: "an entry at the ref with no done_when key, whatever the working tree's", config: prConfig, id: "T-1", status: "todo",
+			tree: vet, held: map[string]string{ledgerFile: entry("T-1", "")}, ref: "origin/T-1", state: "needs-spec",
+		},
+		{
+			name: "no ledger folder at the ref", config: prConfig, id: "T-1", status: "todo",
+			tree: vet, held: map[string]string{}, rule: "ledger-folder-missing",
+		},
+		{
+			name: "deferred, an unreadable ledger at the ref", config: prConfig, id: "T-1", status: "todo, deferred: later",
+			tree: vet, held: bad, unreadable: true,
+		},
+		{
+			name: "a ref that cannot be opened", config: prConfig, id: "T-1", status: "todo",
+			tree: vet, held: map[string]string{ledgerFile: vet}, noTrees: true, unreadable: true,
+		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			registry := registryOf(item("id: " + test.id + ", status: " + test.status + ", title: One, phase: 1, owner: null, depends_on: []"))
@@ -458,8 +484,23 @@ func TestTaskSpecRef(t *testing.T) {
 			}
 			p := over(t, fixture{config: test.config, files: files, head: map[string]string{}, refs: refs})
 			p.repository, p.gh = "o/r", &gh{answers: map[string][]string{"pr list": {"[]"}}}
+			if test.noTrees {
+				p.cfg.Trees = treefake.Trees{}
+			}
 			facts, _, _, err := read(t.Context(), p.cfg, p.tracker, p, test.id)
-			if err != nil {
+			var refused *config.Error
+			switch {
+			case test.rule != "":
+				if !errors.As(err, &refused) || refused.Problems[0].Rule != test.rule {
+					t.Fatalf("read: %v, want the rule %s", err, test.rule)
+				}
+				return
+			case test.unreadable:
+				if err == nil {
+					t.Fatalf("read %+v, want its error", facts)
+				}
+				return
+			case err != nil:
 				t.Fatal(err)
 			}
 			var checks []string

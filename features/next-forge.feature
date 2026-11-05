@@ -15,8 +15,11 @@ Feature: itos next reads an in-flight item's state from the forge under push.mod
   the clone has that ref, else at HEAD; needs-spec holds only when neither
   holds a scenario tagged for the item. Nothing is fetched: the ref is the
   one the clone's last fetch or push left. This amends slice-203's "tagged
-  scenarios at HEAD" for pr mode alone; under trunk, and for a task's
-  ledger checks, nothing changes.
+  scenarios at HEAD" for pr mode alone; under trunk nothing changes. A task's
+  ledger checks follow the same rule (slice-223): at origin/<item> when the
+  clone has that ref and the ledger there, read under the clone's config,
+  holds an entry for the task, else in the working tree; a done or dropped
+  task reads the working tree, never the ref.
 
   Under push.mode pr, an item slice-203 would call in-flight (a spec present
   as read above) asks the forge, through the gh on the PATH and the
@@ -106,7 +109,7 @@ Feature: itos next reads an in-flight item's state from the forge under push.mod
   answer without one, none; so a red context unrelated to the run --ready
   watches is repair here even where --ready would merge. threads_open
   counts the review threads not resolved. The revision digests these forge
-  facts, the journal's and the ref the scenarios were read at beside
+  facts, the journal's and the ref the spec was read at beside
   slice-203's, so a new head, a new verdict, a check's result or a new
   thread gives a new one, and the same facts the same.
   A gh that is missing or fails exits 3, rule next-forge-failed, naming
@@ -277,13 +280,9 @@ Feature: itos next reads an in-flight item's state from the forge under push.mod
   # stale branch with a bad ledger would otherwise exit 2 instead of saying
   # done or parked. Trunk mode is unchanged. The ref read is digested as a
   # slice's is; the fallback read no ref and writes no ref line, so a task with
-  # no branch keeps the revision it had. The fix commit amends this feature's description, in
-  # that commit and not in a docs one, since it changes what a live scenario
-  # means: "for a task's ledger checks, nothing changes" under "Where the
-  # spec is read", and "the ref the scenarios were read at" in the revision's
-  # sentence. A table test beside TestSpecRef holds the rest: trunk with a
-  # check only at the ref is needs-spec and reads no ref; pr with no ref reads
-  # the working tree; an entry at the ref with no done_when key counts as one
+  # no branch keeps the revision it had. A table test beside TestSpecRef holds
+  # the rest: trunk with a check only at the ref is needs-spec and reads no
+  # ref; pr with no ref reads the working tree; an entry at the ref with no done_when key counts as one
   # with done_when: []; a ref with no ledger folder is the read's error,
   # ledger-folder-missing, as at a head (ID-ATTEMPT-27); a done task and a
   # dropped one with an unreadable ledger at the ref are done and parked, read
@@ -295,7 +294,7 @@ Feature: itos next reads an in-flight item's state from the forge under push.mod
   # on its branch, and next, reading only the working tree on main, said
   # needs-spec and sent the drafter back, without bound in a driver. Fails
   # before the work at the complete line: next says needs-spec.
-  @ID-NEXTFORGE-20 @wip @slice-223
+  @ID-NEXTFORGE-20 @slice-223
   Scenario: Under push.mode pr, a task whose check is only at origin/<task> is in spec review once attempt submit took its drafter head
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -339,7 +338,7 @@ Feature: itos next reads an in-flight item's state from the forge under push.mod
   # spec-proposed throughout: the note on the branch moves the ref and touches
   # no fact, then the changed check moves the revision alone. Fails before the
   # work at the first state: next says needs-spec.
-  @ID-NEXTFORGE-21 @wip @slice-223
+  @ID-NEXTFORGE-21 @slice-223
   Scenario: Under push.mode pr, a task's check changing at origin/<task> moves the revision, and work take --expect refuses the old one
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -393,7 +392,7 @@ Feature: itos next reads an in-flight item's state from the forge under push.mod
   # shadowing merged and repair; that is bounded, ending when the drafter
   # merges main. Fails before the work at the complete line: next reads main's check
   # and says spec-review.
-  @ID-NEXTFORGE-22 @wip @slice-223
+  @ID-NEXTFORGE-22 @slice-223
   Scenario: Under push.mode pr, a task whose entry at origin/<task> has no check needs a spec, whatever main's entry holds
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -426,7 +425,7 @@ Feature: itos next reads an in-flight item's state from the forge under push.mod
   # ref's ledger whenever the ref exists says needs-spec, as does one falling
   # back to HEAD as a slice's scenarios do, the check being staged and in no
   # commit, or one matching T-0010 for T-001, whose entry there has no check.
-  @ID-NEXTFORGE-23 @wip @guard @slice-223
+  @ID-NEXTFORGE-23 @guard @slice-223
   Scenario: Under push.mode pr, a task with no entry at origin/<task> has its checks read in the working tree
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -454,7 +453,7 @@ Feature: itos next reads an in-flight item's state from the forge under push.mod
   # check; the clone's config still finds tasks/phase-1.yaml at the ref, with
   # one. A build that loaded the config at the ref says needs-spec, as next
   # does before the work, reading main's entry: it fails at the state.
-  @ID-NEXTFORGE-24 @wip @slice-223
+  @ID-NEXTFORGE-24 @slice-223
   Scenario: Under push.mode pr, a task's checks at origin/<task> are read under the clone's config, never the branch's
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
@@ -482,7 +481,7 @@ Feature: itos next reads an in-flight item's state from the forge under push.mod
   # answer: main's entry has a check, so a build that fell back on the error
   # says spec-proposed, and one that took it for no check says needs-spec.
   # Fails before the work at the exit code: next reads main's check, exit 0.
-  @ID-NEXTFORGE-25 @wip @slice-223
+  @ID-NEXTFORGE-25 @slice-223
   Scenario: Under push.mode pr, a ledger that cannot be read at origin/<task> is an error, not a state
     Given the config, committed and pushed to the remote's main, adds the YAML:
       """
