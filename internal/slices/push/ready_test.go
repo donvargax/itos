@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/donvargax/itos/v8/internal/kind"
 	"github.com/donvargax/itos/v8/internal/out"
 	"github.com/donvargax/itos/v8/internal/providers"
 	vcsfake "github.com/donvargax/itos/v8/internal/vcs/port/porttest"
@@ -133,8 +134,14 @@ func watching(f *fake, conclusion string) *[]string {
 		*asked = append(*asked, sha)
 		return providers.Run{URL: "https://ci/1", Status: "completed", Conclusion: conclusion,
 			Jobs: []providers.Job{{Name: "ci", Status: "completed", Conclusion: conclusion}}}, true, nil
-	}}, true
+	}, HeadRuns: pushRunDone}, true
 	return asked
+}
+
+// pushRunDone is a head whose push's run has finished, as the wait before a
+// draft is marked reads it.
+func pushRunDone(string) ([]providers.Run, error) {
+	return []providers.Run{{URL: "https://ci/0", Status: "completed", Conclusion: "success", Event: "pull_request"}}, nil
 }
 
 const github = "ci: { watch: { provider: github, interval: 0, timeout: 30 } }\n"
@@ -145,6 +152,9 @@ func never(t *testing.T, f *fake) {
 	f.watcher, f.watchOK = providers.Watcher{Look: func(string) (providers.Run, bool, error) {
 		t.Error("a run was looked at")
 		return providers.Run{}, false, nil
+	}, HeadRuns: func(string) ([]providers.Run, error) {
+		t.Error("a head's runs were looked at")
+		return nil, nil
 	}}, true
 }
 
@@ -791,5 +801,117 @@ func TestPushReadyWhereTheAnswerHasNoComments(t *testing.T) {
 	}
 	if code, _, stderr, _ := call(t, f, "--ready"); code != 0 {
 		t.Errorf("exit %d\n%s", code, stderr)
+	}
+}
+
+// Before --ready marks a draft ready it waits for the runs of the head its push
+// started (bug-160), judging none of them: a run of pull_request or push, or
+// naming no event, is waited for, and one of workflow_dispatch or schedule is
+// not. A head it pushed gets 60 seconds from the first look for a run to show,
+// or ci.watch.timeout when that is shorter, then is marked; a head it did not
+// push gets one look. A failed look follows the watch's rule, a run going counts
+// toward ci.watch.timeout from its start and push.pr.ready_wait bounds the
+// whole, and whichever stops it has marked nothing.
+func TestReadyWaitsForTheRunsOfItsPush(t *testing.T) {
+	type look struct {
+		runs []providers.Run
+		err  error
+	}
+	going := func(event string) look {
+		return look{runs: []providers.Run{{URL: "https://ci/g", Status: "in_progress", Event: event}}}
+	}
+	done := look{runs: []providers.Run{{URL: "https://ci/d", Status: "completed", Conclusion: "cancelled", Event: "pull_request"}}}
+	blip := look{err: kind.Wrap(kind.Temporary, errors.New("502"))}
+	limit := look{err: kind.Wrap(kind.Temporary, &providers.RateLimited{Wait: 30 * time.Second, Err: errors.New("429")})}
+	long := look{runs: []providers.Run{{URL: "https://ci/g", Status: "in_progress", Event: "push", Started: (&clock{}).ago(700)}}}
+	tenSeconds := func(n int) string { return "[" + strings.TrimSpace(strings.Repeat("10s ", n)) + "]" }
+	const waits = "Waiting for the run of "
+	for name, c := range map[string]struct {
+		pushed  bool
+		pr      string
+		timeout int
+		looks   []look
+		code    int
+		outcome string
+		looked  int
+		slept   string
+		says    string
+		saysNot string
+	}{
+		"a pull_request run going":   {looks: []look{going("pull_request"), done}, looked: 2, slept: tenSeconds(1), says: waits},
+		"a push run going":           {looks: []look{going("push"), done}, looked: 2, slept: tenSeconds(1), says: waits},
+		"a run naming no event":      {looks: []look{going(""), done}, looked: 2, slept: tenSeconds(1), says: waits},
+		"a workflow_dispatch run":    {looks: []look{going("workflow_dispatch")}, looked: 1, slept: "[]", saysNot: waits},
+		"a schedule run":             {looks: []look{going("schedule")}, looked: 1, slept: "[]", saysNot: waits},
+		"a run finished":             {pushed: true, looks: []look{done}, looked: 1, slept: "[]", saysNot: waits},
+		"no run, nothing pushed":     {looks: []look{{}}, looked: 1, slept: "[]", saysNot: "No run of"},
+		"no run, 60 seconds":         {pushed: true, looks: []look{{}}, looked: 7, slept: tenSeconds(6), says: "appeared within 60 seconds, so none is coming: marking " + open7 + " ready."},
+		"no run, the timeout sooner": {pushed: true, timeout: 15, looks: []look{{}}, looked: 3, slept: "[10s 5s]", says: "appeared within 15 seconds, so none is coming: marking " + open7 + " ready."},
+		"a dispatch only, pushed":    {pushed: true, timeout: 15, looks: []look{going("workflow_dispatch")}, looked: 3, slept: "[10s 5s]", says: "appeared within 15 seconds"},
+		"a run shows in the window":  {pushed: true, looks: []look{{}, going("pull_request"), done}, looked: 3, slept: tenSeconds(2), saysNot: "No run of"},
+		"a blip, then the run done":  {looks: []look{blip, done}, looked: 2, slept: tenSeconds(1)},
+		"a rate limit's wait":        {looks: []look{limit, done}, looked: 2, slept: "[30s]", says: "GitHub's rate limit: looking again in 30s"},
+		"a failed look past the window marks nothing": {pushed: true, looks: []look{{}, {}, {}, {}, {}, {}, blip}, code: temporary, outcome: "error", looked: 12, slept: tenSeconds(11),
+			says: "6 looks in a row at the CI run of"},
+		"temporary failures to the give-up": {looks: []look{blip}, code: temporary, outcome: "error", looked: 6, slept: tenSeconds(5),
+			says: "6 looks in a row at the CI run of"},
+		"a refusal":            {looks: []look{{err: errors.New("401")}}, code: missing, outcome: "error", looked: 1, slept: "[]", says: "itos: 401; itos ci watch "},
+		"a run past its clock": {looks: []look{long}, code: temporary, outcome: "timeout", looked: 1, slept: "[]", says: "has not finished after 600 seconds (ci.watch.timeout)"},
+		"the bound": {pr: ", ready_wait: 25", looks: []look{going("pull_request")}, code: temporary, outcome: "bound", looked: 4, slept: "[10s 10s 5s]",
+			says: "(push.pr.ready_wait) on " + open7 + " at "},
+	} {
+		t.Run(name, func(t *testing.T) {
+			timeout := 600
+			if c.timeout != 0 {
+				timeout = c.timeout
+			}
+			f, p := draftRepo(t, "draft: true"+c.pr, fmt.Sprintf("ci: { watch: { provider: github, interval: 10, timeout: %d } }\n", timeout))
+			watching(f, "success")
+			p.open, p.draft = open7, true
+			if !c.pushed {
+				if code, _, _, _ := call(t, f); code != 0 {
+					t.Fatal("the first push failed")
+				}
+				f.ghCalls = nil
+			}
+			looked := 0
+			f.watcher.HeadRuns = func(sha string) ([]providers.Run, error) {
+				if sha != f.head(t) || slices.Contains(f.calls(), ready) {
+					t.Errorf("runs of %s looked at, gh having been called\n%s", sha, strings.Join(f.calls(), "\n"))
+				}
+				got := c.looks[min(looked, len(c.looks)-1)]
+				looked++
+				return got.runs, got.err
+			}
+			clk := clocked(t)
+			code, stdout, stderr, _ := call(t, f, "--json", "--ready")
+			r := reported(t, stdout)
+			marked := slices.Contains(f.calls(), ready)
+			if code != c.code || looked != c.looked || fmt.Sprint(clk.slept) != c.slept || marked != (c.code == 0) || r.PR == nil || r.PR.Draft == marked {
+				t.Errorf("exit %d, %d looks, slept %v, marked %t\n%s%s", code, looked, clk.slept, marked, stdout, stderr)
+			}
+			if c.outcome == "bound" && r.Outcome != "ready-still-waiting" || c.outcome != "bound" && c.outcome != "" && r.CI != c.outcome {
+				t.Errorf("outcome %s, ci %s, not %s\n%s", r.Outcome, r.CI, c.outcome, stdout)
+			}
+			if !strings.Contains(stderr, c.says) || c.saysNot != "" && strings.Contains(stderr, c.saysNot) {
+				t.Errorf("said\n%s", stderr)
+			}
+		})
+	}
+
+	// A provider that cannot be built stops before marking, and --no-wait marks
+	// with no look at all.
+	f, p := draftRepo(t, "draft: true", github)
+	f.watchErr, f.watchOK = errors.New("no token"), false
+	p.open, p.draft = open7, true
+	code, _, stderr, _ := call(t, f, "--ready")
+	if code != missing || !strings.Contains(stderr, "itos: no token; the commits are pushed") || slices.Contains(f.calls(), ready) {
+		t.Errorf("no provider: exit %d\n%s\n%s", code, stderr, strings.Join(f.calls(), "\n"))
+	}
+	f, p = draftRepo(t, "draft: true", github)
+	never(t, f)
+	p.open, p.draft = open7, true
+	if code, _, stderr, _ := call(t, f, "--ready", "--no-wait"); code != 0 || !slices.Contains(f.calls(), ready) {
+		t.Errorf("--no-wait: exit %d\n%s", code, stderr)
 	}
 }

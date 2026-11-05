@@ -44,11 +44,18 @@
 //
 // WatchProvider(cfg, WatchSetup) makes a Watcher from ci.watch: Look, one
 // look at a commit's run, github's RunOf, which lists the workflow's runs for
-// head_sha, takes the newest by created_at, and reads its jobs, a Run (url,
-// status, conclusion, jobs, and the ID, head, branch and creation --json
+// head_sha, newest first by created_at, and reads the jobs of the newest that
+// did not end having skipped every job, else of the newest, asking for a further
+// run's only when the one before skipped them all (bug-160): a draft's run from
+// the same second as the run that checked the head must not hide it. A run not
+// done is read as itself, so an older green one is not taken while it goes; so
+// is one cancelled before its jobs started. It gives a Run (url,
+// status, conclusion, jobs, and the ID, head, branch, creation and event --json
 // leaves out); and Runs, RunsOn, the workflow's last 20 runs on a branch,
 // newest first, among which a watch finds the run that superseded a
-// cancelled one (bug 41); and Visibility, the repository's (Visibility, slice
+// cancelled one (bug 41); HeadRuns, RunsOfHead, its last 20 of a commit, without
+// their jobs, which itos push --ready waits for before it marks a draft ready
+// (bug-160); and Visibility, the repository's (Visibility, slice
 // 135), from its endpoint's visibility, else its private bool, which itos
 // status names on the head's line. Its token is ci.range.github.token_env's variable else
 // GhToken (gh auth token), its repository repository_env's else
@@ -61,7 +68,7 @@
 // limit, as GitHub answers its primary limit and often its secondary one: a
 // RateLimited, whose Wait is retry-after's, else the time to
 // x-ratelimit-reset when none remain, else 0; Wait reads it from any error. NightlyProvider reads ci.watch.github.nightly_workflow's newest
-// run on a branch (NewestRun) as RunOf reads a commit's; a provider naming
+// run on a branch (NewestRun), with its jobs, whatever they did; a provider naming
 // no nightly gives no look. The loop that waits is internal/cli's watchRun.
 // Log, github's JobLog, is a failed job's log (slice 172): GitHub redirects the
 // request to a short-lived address serving the text, which the client follows

@@ -136,6 +136,9 @@
 //     GitHub answers one: a redirect to a download address serving the text,
 //     each line stamped with its time and ended by LF or CRLF, or 410. The
 //     steps read the jobs of itos's --json back by name.
+//   - readyrace_test.go: a race as a sequence, never a sleep: the fake GitHub
+//     answers a commit's runs by a script that reads the recording gh's calls
+//     at each answer, so what gh pr ready starts shows at the next answer.
 //   - shim_test.go: the link is to the binary the itos under test runs,
 //     never tools/bin/itos; it lives in the support folder's shim/, put first
 //     on every command's PATH (pathFirst), so no step leaves a shim on the

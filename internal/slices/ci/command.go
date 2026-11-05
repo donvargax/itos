@@ -187,13 +187,14 @@ the run of the commit it pushed: looks at it every ci.watch.interval seconds,
 printing the run's address and each job's result once, as it finishes, until
 the run completes or ci.watch.timeout seconds pass. ci.watch.provider says how
 it looks: github asks GitHub's API (GITHUB_API_URL, else
-https://api.github.com) for the run of ci.watch.github.workflow, with a token
+https://api.github.com) for the run of ci.watch.github.workflow, the commit's
+newest that did not end with every job skipped, else its newest, with a token
 from ci.range.github.token_env, else gh auth token, for the repository
 ci.range.github.repository_env names, else the remote's URL. A run not there
 yet is waited for. A run a newer push cancelled is no result: the newest run
-of the workflow on its branch whose head has the commit is followed in its
-place, named when it is, its head fetched from the remote when the clone does
-not have it. Exit 0 when the run succeeded; 1 when it did not, naming the
+of the workflow on its branch of a newer head that has the commit is followed
+in its place, named when it is, its head fetched from the remote when the clone
+does not have it. Exit 0 when the run succeeded; 1 when it did not, naming the
 failed jobs; 2 ci.watch.provider none, or not a commit; 3 a refusal from
 GitHub's API, or no token, naming both ways to give one; 75 the run still
 going, or not there, after the timeout, six looks in a row failing for a

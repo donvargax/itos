@@ -418,8 +418,7 @@ func (r pushRun) announce(pushed string) {
 // gh pr view does.
 func (r *pushRun) watchRun(ctx context.Context, cfg *config.Loaded, wr providers.Watcher, err error, remote, sha string) (Answer, bool) {
 	if err != nil {
-		fmt.Fprintf(r.o.Stderr, "itos: %s; the commits are pushed, and itos ci watch %s waits for their run\n", err, sha)
-		r.watched = &ciwatch.Watched{Code: missing, Outcome: "error"}
+		r.watcherFailed(err, sha)
 		return Answer{}, false
 	}
 	if r.rebased != nil {
@@ -451,6 +450,13 @@ func (r *pushRun) watchRun(ctx context.Context, cfg *config.Loaded, wr providers
 	}
 	r.watched = &w
 	return Answer{}, false
+}
+
+// watcherFailed sets watched to the error the provider could not be built with,
+// said as an error of the watch.
+func (r *pushRun) watcherFailed(err error, sha string) {
+	fmt.Fprintf(r.o.Stderr, "itos: %s; the commits are pushed, and itos ci watch %s waits for their run\n", err, sha)
+	r.watched = &ciwatch.Watched{Code: missing, Outcome: "error"}
 }
 
 // say prints a line of the wait's progress where the watch's goes: stdout,

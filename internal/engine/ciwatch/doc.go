@@ -27,8 +27,11 @@
 // than it whose head has the commit as an ancestor, after one quiet fetch of
 // the remote when a head is not in the clone; the watch says which and looks
 // at that head's run from then on, under the same deadline, ending with its
-// result. A cancelled run with no newer run to follow exits 75, outcome
-// cancelled: a rerun may pass.
+// result. A run of the cancelled run's own head is no successor (bug-160):
+// providers' RunOf has read whichever of that head checked it, a rerun's result
+// included, so what is left is a draft's, and following it would read the same
+// two runs for ever, with no sleep and no deadline. A cancelled run with no
+// newer run to follow exits 75, outcome cancelled: a rerun may pass.
 //
 // work done judges a commit that may have no run of its own (bug 49): pushed
 // with registry-only commits after it, CI ran once, for the push's head. By
@@ -39,7 +42,9 @@
 // ran CI with every job skipped, and GitHub may record that run as a success,
 // so a run all of whose jobs were skipped, or that lists none, is taken for no
 // run yet and looked for again each interval within the timeout, until the run
-// that marking the pull request ready starts shows. Its timeout counts from
+// that marking the pull request ready starts shows; one cancelled before its
+// jobs started is the end of the run that was to check the head, and is read as
+// itself (DraftsRun, bug-160). Its timeout counts from
 // the start of the run's latest attempt (run_started_at, providers.Run.Started)
 // when GitHub gives it, so that a --ready run again continues the clock, else
 // from the run's creation, else from the watch's start (slice 200); and

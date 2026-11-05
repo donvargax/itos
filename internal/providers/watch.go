@@ -22,6 +22,7 @@ import (
 	"net/url"
 	"os/exec"
 	"regexp"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -37,8 +38,9 @@ import (
 // failure, cancelled…), and its jobs, each the same. Its ID, the commit it
 // ran on, its branch and when it was made say which run it is, for finding
 // the run that superseded a cancelled one; Started is when its latest attempt
-// started (slice 200), the clock of itos push --ready's wait; --json leaves
-// them out.
+// started (slice 200), the clock of itos push --ready's wait; Event is what
+// started it, as the provider names it, "" where it names none (bug-160);
+// --json leaves them out.
 type Run struct {
 	URL        string   `json:"url"`
 	Status     string   `json:"status"`
@@ -50,6 +52,7 @@ type Run struct {
 	Branch     string   `json:"-"`
 	Created    string   `json:"-"`
 	Started    string   `json:"-"`
+	Event      string   `json:"-"`
 }
 
 // Job is one job of a run, as Run is. A job that did not succeed gains, once
@@ -112,6 +115,21 @@ func (j Job) FailedStep() string {
 // one is no result yet.
 func (r Run) Done() bool { return r.Status == "completed" && r.Conclusion != "" }
 
+// CancelledUnstarted is whether the run was cancelled before any job started:
+// it completed, cancelled, listing no job (bug-160). GitHub gives some so, and
+// such a run checked nothing yet is no draft's, whose jobs were skipped.
+func (r Run) CancelledUnstarted() bool {
+	return r.Done() && r.Conclusion == "cancelled" && len(r.Jobs) == 0
+}
+
+// skippedAll is whether the run ended without checking anything, so a further
+// run of its commit may be the one that did: it is done, every job it lists was
+// skipped or it lists none, and it was not cancelled before its jobs started.
+func (r Run) skippedAll() bool {
+	return r.Done() && !r.CancelledUnstarted() &&
+		!slices.ContainsFunc(r.Jobs, func(j Job) bool { return j.Conclusion != "skipped" })
+}
+
 // Done is whether the job has finished with a conclusion recorded.
 func (j Job) Done() bool { return j.Status == "completed" && j.Conclusion != "" }
 
@@ -126,6 +144,11 @@ type Watch func(sha string) (run Run, found bool, err error)
 // out: where a watch looks for the run that superseded a cancelled one. An
 // error is as Watch's.
 type Runs func(branch string) ([]Run, error)
+
+// HeadRuns lists the workflow's runs of a commit, given by its full SHA, newest
+// first, their jobs left out: what itos push --ready waits for before it marks
+// a draft ready (bug-160). An error is as Watch's.
+type HeadRuns func(sha string) ([]Run, error)
 
 // Visibility is the repository's visibility, public, private or internal
 // (slice 135), asked once: "" with an error when it cannot be told.
@@ -150,12 +173,13 @@ type Annotation struct {
 type JobAnnotations func(id int64) ([]Annotation, error)
 
 // Watcher is ci.watch's provider: Look at a commit's run, the Runs on a
-// branch, the repository's Visibility, nil for a provider that cannot tell
-// it, the JobLog of a failed job, nil for one that keeps none, and its
-// Annotations, nil for one that lists none.
+// branch, the HeadRuns of a commit, the repository's Visibility, nil for a
+// provider that cannot tell it, the JobLog of a failed job, nil for one that
+// keeps none, and its Annotations, nil for one that lists none.
 type Watcher struct {
 	Look        Watch
 	Runs        Runs
+	HeadRuns    HeadRuns
 	Visibility  Visibility
 	Log         JobLog
 	Annotations JobAnnotations
@@ -183,7 +207,7 @@ func WatchProvider(cfg *config.Loaded, s WatchSetup) (watch Watcher, ok bool, er
 		return Watcher{}, false, err
 	}
 	g.Workflow = w.GitHub.Workflow
-	return Watcher{Look: g.RunOf, Runs: g.RunsOn, Visibility: g.Visibility, Log: g.JobLog,
+	return Watcher{Look: g.RunOf, Runs: g.RunsOn, HeadRuns: g.RunsOfHead, Visibility: g.Visibility, Log: g.JobLog,
 		Annotations: g.JobAnnotations}, true, nil
 }
 
@@ -268,22 +292,53 @@ func GitHubRepository(remoteURL string) string {
 	return m[1] + "/" + m[2]
 }
 
-// RunOf is the workflow's newest run for the commit, with its jobs, read
-// from the GitHub API with the token: found is false while GitHub has none,
-// as just after a push. A server error, a rate limit or no network is
-// kind.Temporary, a rate limit a RateLimited; any other refusal (a bad token,
-// no such workflow) ends the watch.
+// RunOf is the run that checked the commit, with its jobs, read from the GitHub
+// API with the token: the newest of the workflow's runs for it that did not end
+// having skipped every job (skippedAll), else the newest, a further run's jobs
+// asked for only when the one before it skipped all of them (bug-160). Found is
+// false while GitHub has none, as just after a push. A server error, a rate
+// limit or no network is kind.Temporary, a rate limit a RateLimited; any other
+// refusal (a bad token, no such workflow) ends the watch.
 func (g GitHub) RunOf(sha string) (Run, bool, error) {
-	return g.newestOf(fmt.Sprintf("/repos/%s/actions/workflows/%s/runs?head_sha=%s&per_page=20",
+	found, err := g.RunsOfHead(sha)
+	if err != nil || len(found) == 0 {
+		return Run{}, false, err
+	}
+	var newest Run
+	for i, run := range found {
+		if run, err = g.withJobs(run); err != nil {
+			return Run{}, false, err
+		}
+		if !run.skippedAll() {
+			return run, true, nil
+		}
+		if i == 0 {
+			newest = run
+		}
+	}
+	return newest, true, nil
+}
+
+// RunsOfHead is the workflow's runs for the commit, newest first, without their
+// jobs: the last 20.
+func (g GitHub) RunsOfHead(sha string) ([]Run, error) {
+	return g.list(fmt.Sprintf("/repos/%s/actions/workflows/%s/runs?head_sha=%s&per_page=20",
 		g.Repository, url.PathEscape(g.Workflow), url.QueryEscape(sha)))
 }
 
-// NewestRun is the workflow's newest run on the branch, with its jobs, as
-// RunOf reads a commit's: found is false when the workflow has never run
-// there.
+// NewestRun is the workflow's newest run on the branch, with its jobs: found is
+// false when the workflow has never run there.
 func (g GitHub) NewestRun() (Run, bool, error) {
-	return g.newestOf(fmt.Sprintf("/repos/%s/actions/workflows/%s/runs?branch=%s&per_page=20",
+	found, err := g.list(fmt.Sprintf("/repos/%s/actions/workflows/%s/runs?branch=%s&per_page=20",
 		g.Repository, url.PathEscape(g.Workflow), url.QueryEscape(g.Branch)))
+	if err != nil || len(found) == 0 {
+		return Run{}, false, err
+	}
+	run, err := g.withJobs(found[0])
+	if err != nil {
+		return Run{}, false, err
+	}
+	return run, true, nil
 }
 
 // RunsOn is the workflow's runs on the branch, newest first, without their
@@ -328,6 +383,7 @@ func (g GitHub) list(path string) ([]Run, error) {
 			StartedAt  string  `json:"run_started_at"`
 			HeadSHA    string  `json:"head_sha"`
 			HeadBranch string  `json:"head_branch"`
+			Event      string  `json:"event"`
 		} `json:"workflow_runs"`
 	}
 	if err := g.get(path, &runs); err != nil {
@@ -338,21 +394,13 @@ func (g GitHub) list(path string) ([]Run, error) {
 	listed := make([]Run, 0, len(found))
 	for _, r := range found {
 		listed = append(listed, Run{URL: r.HTMLURL, Status: r.Status, Conclusion: deref(r.Conclusion),
-			ID: r.ID, HeadSHA: r.HeadSHA, Branch: r.HeadBranch, Created: r.CreatedAt, Started: r.StartedAt})
+			ID: r.ID, HeadSHA: r.HeadSHA, Branch: r.HeadBranch, Created: r.CreatedAt, Started: r.StartedAt, Event: r.Event})
 	}
 	return listed, nil
 }
 
-// newestOf is the newest of the runs the API path lists, with its jobs.
-func (g GitHub) newestOf(path string) (Run, bool, error) {
-	found, err := g.list(path)
-	if err != nil {
-		return Run{}, false, err
-	}
-	if len(found) == 0 {
-		return Run{}, false, nil
-	}
-	run := found[0]
+// withJobs is the run with its jobs, as the jobs API lists them.
+func (g GitHub) withJobs(run Run) (Run, error) {
 	var jobs struct {
 		Jobs []struct {
 			ID         int64   `json:"id"`
@@ -366,7 +414,7 @@ func (g GitHub) newestOf(path string) (Run, bool, error) {
 		} `json:"jobs"`
 	}
 	if err := g.get(fmt.Sprintf("/repos/%s/actions/runs/%d/jobs?per_page=100", g.Repository, run.ID), &jobs); err != nil {
-		return Run{}, false, err
+		return Run{}, err
 	}
 	for _, j := range jobs.Jobs {
 		job := Job{ID: j.ID, Name: j.Name, Status: j.Status, Conclusion: deref(j.Conclusion)}
@@ -375,7 +423,7 @@ func (g GitHub) newestOf(path string) (Run, bool, error) {
 		}
 		run.Jobs = append(run.Jobs, job)
 	}
-	return run, true, nil
+	return run, nil
 }
 
 func deref(s *string) string {

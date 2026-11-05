@@ -70,6 +70,7 @@ type fakeGitHub struct {
 	looks     int          // how many looks at the watched run were given
 	given     []string     // the commits a look at the watched run was given
 	alone     string       // the one commit the watched run is of, when a step says so (bug 49)
+	script    *headScript  // what it answers one commit's runs by, when a step says so (bug-160)
 	startedAt string       // the watched run's run_started_at, when a step gives one (slice 200)
 	createdAt string       // the watched run's created_at, when a step gives one; the time of the look otherwise
 	// The repository's visibility, public, private or internal; "" answers
@@ -224,8 +225,15 @@ func (g *fakeGitHub) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 	workflow := m[1]
-	of := slices.DeleteFunc(slices.Clone(g.runs), func(r gitHubRun) bool { return r.workflow != workflow })
 	q := req.URL.Query()
+	scripted := g.script != nil && q.Get("head_sha") == g.script.sha
+	if scripted {
+		if err := g.script.play(g); err != nil {
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+	of := slices.DeleteFunc(slices.Clone(g.runs), func(r gitHubRun) bool { return r.workflow != workflow })
 	var runs []gitHubRun
 	if sha := q.Get("head_sha"); sha != "" {
 		for _, r := range of {
@@ -233,7 +241,7 @@ func (g *fakeGitHub) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 				runs = append(runs, r)
 			}
 		}
-		if len(runs) == 0 && g.watched != nil && workflow == watchedWorkflow && (g.alone == "" || sha == g.alone) {
+		if len(runs) == 0 && !scripted && g.watched != nil && workflow == watchedWorkflow && (g.alone == "" || sha == g.alone) {
 			if g.looks == 0 && g.firstLook != nil {
 				first := g.firstLook
 				g.firstLook = nil

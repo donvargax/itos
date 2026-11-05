@@ -89,10 +89,12 @@ func TestATransientFailureIsLookedPast(t *testing.T) {
 }
 
 // A cancelled run is no verdict (bug 41): one whose branch has no newer run
-// of the commit exits 75, outcome cancelled; one that has, a rerun of the
-// commit itself here, is followed, and its result is the watch's. The first
-// watch ends at its first look: a second is an error that ends it, so a
-// watch that follows no run does not spin.
+// of the commit exits 75, outcome cancelled; one that has, of a newer head, is
+// followed, and its result is the watch's. A run of the cancelled run's own head
+// is not its successor (bug-160), a draft's listed before it above all, whether
+// the head is the commit asked about or one a watch followed to: comparing the
+// commit, the last watch would read the same two runs for ever. A watch that
+// should end at its first look errs at a second, so it does not spin.
 func TestACancelledRunIsFollowedOr75(t *testing.T) {
 	noSleep(t)
 	cancelled := providers.Run{URL: "u", Status: "completed", Conclusion: "cancelled", ID: 1, HeadSHA: "abc", Branch: "main", Created: "1"}
@@ -110,20 +112,53 @@ func TestACancelledRunIsFollowedOr75(t *testing.T) {
 		t.Fatalf("code %d, outcome %s, superseded %q\n%s", w.Code, w.Outcome, w.Superseded, stderr.String())
 	}
 
-	rerun := providers.Run{URL: "v", Status: "completed", Conclusion: "success", ID: 2, HeadSHA: "abc", Branch: "main", Created: "2"}
+	draftOfItsHead := providers.Run{URL: "d", Status: "completed", Conclusion: "success", ID: 2, HeadSHA: "abc", Branch: "main", Created: "1"}
+	once = 0
+	beside := func(string) ([]providers.Run, error) { return []providers.Run{draftOfItsHead, cancelled}, nil }
+	stdout.Reset()
+	stderr.Reset()
+	w = watchRun(watchConfig(0, 60), providers.Watcher{Look: look, Runs: beside}, "abc", "", Out{Stdout: &stdout, Stderr: &stderr})
+	if w.Code != exitTemporary || w.Outcome != "cancelled" || w.Superseded != "" {
+		t.Fatalf("a draft's beside it: code %d, outcome %s, superseded %q\n%s", w.Code, w.Outcome, w.Superseded, stderr.String())
+	}
+
+	repo := &porttest.VCS{History: []porttest.Commit{{Name: "abc"}, {Name: "new", Parents: []string{"abc"}}}}
+	newer := providers.Run{URL: "v", Status: "completed", Conclusion: "success", ID: 2, HeadSHA: "new", Branch: "main", Created: "2"}
 	looks := 0
 	look = func(string) (providers.Run, bool, error) {
 		if looks++; looks == 1 {
 			return cancelled, true, nil
 		}
-		return rerun, true, nil
+		return newer, true, nil
 	}
-	newer := func(string) ([]providers.Run, error) { return []providers.Run{rerun, cancelled}, nil }
+	listed := func(string) ([]providers.Run, error) { return []providers.Run{newer, cancelled}, nil }
 	stdout.Reset()
 	stderr.Reset()
-	w = watchRun(watchConfig(0, 60), providers.Watcher{Look: look, Runs: newer}, "abc", "", Out{Stdout: &stdout, Stderr: &stderr})
+	w = Watch(context.Background(), watchConfig(0, 60), providers.Watcher{Look: look, Runs: listed}, repo, "abc", "", "", Out{Stdout: &stdout, Stderr: &stderr})
 	if w.Code != 0 || w.Outcome != "success" || w.Superseded != "u" || !strings.Contains(stdout.String(), "following v") {
 		t.Fatalf("code %d, outcome %s, superseded %q\n%s%s", w.Code, w.Outcome, w.Superseded, stdout.String(), stderr.String())
+	}
+
+	alsoCancelled := providers.Run{URL: "w", Status: "completed", Conclusion: "cancelled", ID: 3, HeadSHA: "new", Branch: "main", Created: "2"}
+	draftOfNew := providers.Run{URL: "x", Status: "completed", Conclusion: "success", ID: 4, HeadSHA: "new", Branch: "main", Created: "2"}
+	asked := 0
+	followed := func(sha string) (providers.Run, bool, error) {
+		if asked++; asked > 2 {
+			return providers.Run{}, false, errors.New("looked again")
+		}
+		if sha == "new" {
+			return alsoCancelled, true, nil
+		}
+		return cancelled, true, nil
+	}
+	both := func(string) ([]providers.Run, error) {
+		return []providers.Run{draftOfNew, alsoCancelled, cancelled}, nil
+	}
+	stdout.Reset()
+	stderr.Reset()
+	w = Watch(context.Background(), watchConfig(0, 60), providers.Watcher{Look: followed, Runs: both}, repo, "abc", "", "", Out{Stdout: &stdout, Stderr: &stderr})
+	if w.Code != exitTemporary || w.Outcome != "cancelled" || asked != 2 || w.Run == nil || w.Run.URL != "w" {
+		t.Fatalf("followed to a head cancelled too: code %d, outcome %s, %d looks\n%s%s", w.Code, w.Outcome, asked, stdout.String(), stderr.String())
 	}
 }
 
@@ -341,6 +376,18 @@ func TestWatchReadyPassesOverADraftsRun(t *testing.T) {
 			}
 		})
 	}
+	t.Run("a run cancelled before its jobs started", func(t *testing.T) {
+		looks := 0
+		look := func(string) (providers.Run, bool, error) {
+			looks++
+			return providers.Run{URL: "cut", Status: "completed", Conclusion: "cancelled", ID: 1, HeadSHA: "abc", Branch: "main"}, true, nil
+		}
+		var stdout, stderr strings.Builder
+		w := WatchReady(context.Background(), watchConfig(0, 60), providers.Watcher{Look: look}, &porttest.VCS{}, "abc", "", Out{Stdout: &stdout, Stderr: &stderr}, Ready{})
+		if w.Code != exitTemporary || w.Outcome != "cancelled" || looks != 1 {
+			t.Errorf("code %d, outcome %s, looks %d\n%s%s", w.Code, w.Outcome, looks, stdout.String(), stderr.String())
+		}
+	})
 	t.Run("a job still going", func(t *testing.T) {
 		looks := 0
 		look := func(string) (providers.Run, bool, error) {

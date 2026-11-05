@@ -140,7 +140,7 @@ func TestPushReadyStopsAtReadyWaitWhileWatching(t *testing.T) {
 	f.watcher, f.watchOK = providers.Watcher{Look: func(string) (providers.Run, bool, error) {
 		t.Error("a run was looked at")
 		return providers.Run{}, false, nil
-	}}, true
+	}, HeadRuns: pushRunDone}, true
 	began := time.Now()
 	code, stdout, stderr, _ := call(t, f, "--json", "--ready")
 	r := reported(t, stdout)
@@ -153,7 +153,7 @@ func TestPushReadyStopsAtReadyWaitWhileWatching(t *testing.T) {
 	f, _ = behind(t, "rb000")
 	f.watcher, f.watchOK = providers.Watcher{Look: func(string) (providers.Run, bool, error) {
 		return providers.Run{URL: "https://ci/1", Status: "in_progress", Jobs: []providers.Job{{Name: "ci", Status: "in_progress"}}}, true, nil
-	}}, true
+	}, HeadRuns: pushRunDone}, true
 	code, stdout, stderr, _ = call(t, f, "--json", "--ready")
 	r = reported(t, stdout)
 	want = "itos: still waiting after 0.2 seconds (push.pr.ready_wait) on " + open7 + " at rb000: run waiting; auto-merge is not turned on. itos push --ready again goes on waiting.\n"

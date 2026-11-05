@@ -621,6 +621,133 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   calls being that long edited (createdAt and updatedAt) as of when the step ran, and
   the later state having no times.
 
+  bug-160: --ready's push and its marking race. Seen on bug-157's pull request
+  (2026-11-01) and bug-163's (2026-11-04): --ready's merge push, a synchronize event
+  with the pull request still a draft, and its ready_for_review reached GitHub in the
+  same second. The draft's run skips every job, yet shares the workflow's concurrency
+  group with cancel-in-progress, so it cancelled the ready run, the one that checks the
+  head. --ready then read a cancelled run, exit 75 each time. After a rerun went green
+  three more calls of 540 seconds still read "run waiting": GitHub's RunOf takes the
+  first listed of the head's runs, with equal created_at the draft's, and WatchReady
+  reads that as no run. The way out was a new head. The fix is in itos, for any
+  consumer's CI, and keeps cancel-in-progress for a truly newer head
+  (docs/plans/v9-coordinator.md, One forge operation per step). It closes
+  p2-ready-draft-run-hides-green.
+
+  The wait. When --ready has a draft to mark and ci.watch has a provider, it looks at
+  the head's runs before gh pr ready, and while one its push started has not
+  completed, it waits; what that run concluded it does not judge, the ready run does.
+  A run its push started is one of the head whose event is pull_request or push, as
+  GitHub lists them, so a workflow_dispatch or schedule run of the head is not waited
+  for. GitHub's run names no activity type, pull_request for a synchronize and a
+  ready_for_review alike, and none is needed: nothing has marked this head ready yet,
+  so every such run there is the push's. Only ci.watch.github.workflow's runs are read,
+  so a second workflow sharing the concurrency group stays unseen. Under --no-wait it
+  marks at once, as before, and that race stays; a pull request opened ready or already
+  ready has nothing to mark, and with no provider there is no run to read: each goes on
+  as before. While it waits it says once, where the watch's progress goes, "Waiting for
+  the run of <the head's first 7 characters> to finish before marking <address> ready.";
+  a first look with nothing to wait for says nothing.
+
+  No run. A push that starts none (path filters) must not wait for ever. When this
+  --ready pushed the head and no such run has shown, it looks each ci.watch.interval
+  for 60 seconds from its first look, a constant, or ci.watch.timeout when that is
+  shorter, then says, where the watch's progress goes, "No run of <the head's first 7
+  characters> appeared within <n> seconds, so none is coming: marking <address> ready."
+  and marks it. When it pushed nothing (a rerun, a head pushed earlier) it takes one
+  look: no run, it marks at once; a run going, it waits as above. A provider that cannot
+  be built stops before marking, with its error as today, exit 3.
+
+  The limits. Every wait counts toward push.pr.ready_wait, as today, and there is no
+  loop inside: at the bound --ready exits 75, ready-still-waiting, ": run waiting" in
+  its line, the pull request still a draft, and a rerun picks up, so the bound must
+  hold from before gh pr ready (finish sets it today, after). ci.watch.timeout counts
+  from the run's start as WatchReady's does, ending it with the watch's own line, exit
+  75, nothing marked: ID-PUSHDRAFT-43 and 45 hold, the wait reading their run. A run
+  whose status stays open, as GitHub's updated_at on some draft runs suggests, costs
+  exit 75 at the bound, and a rerun recovers. A failed look follows the watch's rule:
+  kind.Temporary is retried up to giveUp looks in a row, then exit 75; any other error
+  exits 3; nothing is marked either way. Waiting is no state of itos next: that is v9's
+  design. The wait's table test is TestReadyWaitsForTheRunsOfItsPush
+  (internal/slices/push/ready_test.go), its rows: a run of each of pull_request and push
+  going, waited for; a workflow_dispatch and a schedule run going, not; a run naming no
+  event, waited for; no run on a fake clock, marking at 60 seconds from the first look
+  with ci.watch.timeout longer, and not a second before; temporary failures to giveUp,
+  75, pr ready never called; a refusal, 3, pr ready never called; a provider error, 3,
+  pr ready never called.
+
+  Which run. RunOf reads the newest run of the head with a job not skipped, else the
+  newest, which WatchReady passes over as ever, and asks for a further run's jobs only
+  when the one before it skipped all of them. A rerun keeps its run's ID and the jobs
+  API lists its latest attempt, so its result counts. A run not completed is read as
+  itself, never passed over, even listing no job or only skipped ones, so a green older
+  run is not taken while it goes. A completed cancelled run listing no job, as GitHub
+  gives one cancelled before its jobs start, is read as itself too, and DraftsRun does
+  not pass over it. It is RunOf's, so itos ci watch and work done read the head alike;
+  NewestRun's nightly is as it was. The table test is
+  TestRunOfReadsTheRunThatCheckedTheHead (internal/providers/watch_test.go), its rows: a
+  draft's run listed first from the same second, beside a run rerun green; only a draft's
+  run; a run with real jobs listed first, the jobs of those behind it never asked for;
+  two runs with real jobs, the newest cancelled and the older green (the newest counts);
+  a queued run listing no job before a green one; a run in progress whose listed jobs are
+  all skipped before a green one; a cancelled run whose job "release" was skipped, as
+  GitHub lists one; a completed cancelled run listing no job, a draft's run listed before
+  it. A cancelled run's successor is a run of a newer head: Covering, given a cancelled
+  run, must pass over a run of the head itself, cancelled.HeadSHA and not the sha it was
+  asked about, as the draft's listed before the cancelled one, or the watch, whose follow
+  continues with no sleep and no deadline, reads the same two runs for ever; after a
+  watch followed to a newer head, comparing sha spins. RunOf has already read any such
+  run that checked the head, so TestACancelledRunIsFollowedOr75's rerun of the commit
+  itself goes, to that table, and it gains a row: a watch followed to a newer head whose
+  run is cancelled too, that head's draft's run listed before it, ends 75, cancelled.
+
+  A cancelled run. A cancelled run of the head with no other run that checks it is its
+  own end of --ready, not a wait: stderr says "itos: the run <its address> of <the
+  head's first 7 characters> on <address> was cancelled and no other run checked that
+  head, so auto-merge is not turned on: rerun it with gh run rerun <its id>, then itos
+  push --ready again.", in place of "the run did not succeed", exit 75, outcome
+  run-cancelled, --json's ci still "cancelled". That is --ready's half of
+  p2-cancelled-run-rerun. A plain push and itos ci watch keep their words (watch.feature).
+
+  Not in bug-160: ci.yml, whose group stays; a key for the 60 seconds; itos next naming
+  a cancelled run, p2-cancelled-run-rerun's other half.
+
+  The implementing push updates itos push --help (command.go), --ready's paragraph, with
+  the wait, the outcome run-cancelled and the run it reads, and doc.go's passages on
+  --ready, Watching a run and Covering.
+
+  The released scenarios. The fix lands with Changes: ID-PUSHDRAFT-32: its step requires
+  every run asked for to be the head GitHub made, and the wait now asks for the pushed
+  head before the rebase. Here its line becomes one about the last head asked for. Two
+  more still pass, proving less, so their Givens change: the wait takes ID-PUSHDRAFT-08's
+  one skipped look, leaving no pass-over to judge, so it gets a second; and in
+  ID-PUSHDRAFT-35 the wait never ends, so nothing is marked or rebased and the head it
+  names is the pushed one, so its watched run must finish its first look and then go on.
+
+  bug-160's steps. The event is read where the answer gives one: the fake GitHub gives
+  none, as v8.46.0's steps cannot, so a run naming no event counts as the push's, and
+  the rows for workflow_dispatch and schedule are the wait's table test's. New: "the fake
+  GitHub's run of the clone's HEAD is a draft's, going for its first
+  <n> looks, then skipping every job, and the recording gh's "pr ready" starts the run
+  <address> of it, cancelled if the draft's was still going, else its jobs <a> and <b>
+  succeeding": the race, a sequence with no sleep. The draft's run's created_at is
+  stamped at the fake's first answer for the head, as peek does, not when the step ran:
+  stamped at the step, a short ci.watch.timeout can pass before itos looks. Each answer
+  for the head first reads
+  the recording gh's gh-calls; at the first that holds pr ready, the ready run joins the
+  list, created in the draft's second and listed behind it, as GitHub's two IDs ran,
+  cancelled if the looks so far are fewer than n. The same step ending "going until a
+  step finishes it" holds the draft's run going until "the fake GitHub's draft's run
+  finishes". "the fake GitHub has no run of the clone's HEAD until the recording gh's "pr
+  ready", then the run <address> of it, whose jobs <a> and <b> succeed", with no watched
+  run for it either; "the fake GitHub was asked for the run of the clone's HEAD at least
+  twice before the recording gh's "pr ready" call", counting the answers before gh-calls
+  held it. "the fake GitHub has, created in one second, the run <address> of the clone's
+  HEAD, whose jobs <a> and <b> succeed, and the draft's run <address> listed before it,
+  every job skipped", and "the fake GitHub has, created in one second, the cancelled run
+  <address> of the clone's HEAD, listing no job, and the draft's run <address> listed
+  before it, every job skipped"; the run named first has the ID 1 and the draft's 2.
+
   Slice 200: --ready finishes on its own. Seen 2026-10-25 on #146, #149
   and #156: GitHub refuses auto-merge on a pull request that is mergeable
   already ("Pull request is in clean status (enablePullRequestAutoMerge)"),
@@ -1148,7 +1275,8 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   # when it rebased the pull request onto main, whose run it watched, never
   # the head pushed; --json says it merged, auto-merge off. Fails before the
   # work at the exit code: today the refusal is any gh call failing, exit 3,
-  # pull-request-failed.
+  # pull-request-failed. The last head asked for: bug-160's wait asks for the
+  # head pushed first, before the marking and the rebase.
   @ID-PUSHDRAFT-32 @slice-200
   Scenario: Under push.pr.draft, push --ready whose --auto merge GitHub refuses as clean merges once itself at the head GitHub made, and --json says it merged
     Given the config, committed and pushed to the remote's main, adds the YAML:
@@ -1171,7 +1299,7 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
     Then itos exits with code 0
     And its JSON's "pull_request.merged" is true
     And its JSON's "pull_request.auto_merge" is false
-    And the fake GitHub was asked for the run of the head of the remote's branch "slice-9"
+    And the fake GitHub was last asked for the run of the head of the remote's branch "slice-9"
     And the recording gh's "pr merge" call with "--auto" has the full SHA of the head of the remote's branch "slice-9"
     And the recording gh's "pr merge" call has "--repo owner/scratch --rebase --match-head-commit"
     And the recording gh's call with "pr merge slice-9 --repo owner/scratch --auto" comes before its call with "pr merge slice-9 --repo owner/scratch --rebase"
@@ -1267,7 +1395,8 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   # moment later. --ready passes over the skipped run and judges the real
   # one, red here. Fails before the work at the exit code: today push
   # refuses --ready, exit 2; without the rule it would take the skipped run
-  # and exit 0.
+  # and exit 0. Two skipped looks: bug-160's wait takes one before the marking,
+  # and this judges the watch's.
   @ID-PUSHDRAFT-08 @slice-179
   Scenario: Under push.pr.draft, push --ready passes over the draft's run whose jobs were all skipped and waits for the real one
     Given the config, committed and pushed to the remote's main, adds the YAML:
@@ -1278,7 +1407,7 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
           draft: true
       """
     And ci.watch asks a fake GitHub, which reports the run "https://ci.example/runs/1"
-    And the watched run's first look has its jobs "ci" and "platform" skipped, as a draft's run has, and its later looks its job "ci" failing and its job "platform" succeeding
+    And the watched run's first 2 looks have its jobs "ci" and "platform" skipped, as a draft's run has, and its later looks its job "ci" failing and its job "platform" succeeding
     And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
     And the clone is on the new branch "slice-9"
     And the clone has the commit "feat: add the widget" touching "widget.md"
@@ -1287,6 +1416,189 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
     When itos runs "push --ready"
     Then itos exits with code 1
     And its output says "ci: failure"
+    And the recording gh was never called as "pr merge"
+
+  # The race itself, as a sequence: the draft's run of the head --ready pushes goes on
+  # for two looks, and the ready run gh pr ready starts is cancelled if it came while
+  # that run was going. Waiting first, it succeeds. Fails before the work at the exit
+  # code: today gh pr ready comes before any look, so the ready run is cancelled, the
+  # draft's is passed over, and ci.watch.timeout ends it, exit 75.
+  @ID-PUSHDRAFT-74 @bug-160
+  Scenario: Under push.pr.draft, push --ready waits for the run of the head it pushed to finish before it marks the pull request ready, so that run cancels nothing
+    Given the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+        pr:
+          draft: true
+      """
+    And ci.watch asks a fake GitHub, which reports the run "https://ci.example/runs/1"
+    And ci.watch.timeout is 3
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the clone is on the new branch "slice-9"
+    And the clone has the commit "feat: add the widget" touching "widget.md"
+    And git pushes HEAD to the remote's new branch "slice-9"
+    And the recording gh has the draft pull request "https://github.example/o/r/pull/7" open for the branch "slice-9"
+    And the clone has the commit "test: cover the widget" touching "widget-test.md"
+    And the fake GitHub's run of the clone's HEAD is a draft's, going for its first 2 looks, then skipping every job, and the recording gh's "pr ready" starts the run "https://ci.example/runs/ready" of it, cancelled if the draft's was still going, else its jobs "ci" and "platform" succeeding
+    When itos runs "push --ready"
+    Then itos exits with code 0
+    And its output says "before marking https://github.example/o/r/pull/7 ready."
+    And its output says "CI passed: https://ci.example/runs/ready"
+    And the recording gh's "pr merge" call with "--auto" has the full SHA of the clone's HEAD
+
+  # A push that starts no run (path filters) must not hold --ready for ever: it looks
+  # for a bounded time, here ci.watch.timeout, the shorter, then marks. Fails before the
+  # work at "at least twice": today gh pr ready comes before any look, and the exit
+  # code is 0 as the run it starts is green. A wait with no bound fails at the exit code.
+  @ID-PUSHDRAFT-75 @bug-160
+  Scenario: Under push.pr.draft, push --ready whose push starts no run looks for one for a bounded time, then marks the pull request ready
+    Given the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+        pr:
+          draft: true
+      """
+    And ci.watch asks a fake GitHub, which reports the run "https://ci.example/runs/1"
+    And ci.watch.timeout is 1
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the clone is on the new branch "slice-9"
+    And the clone has the commit "feat: add the widget" touching "widget.md"
+    And git pushes HEAD to the remote's new branch "slice-9"
+    And the recording gh has the draft pull request "https://github.example/o/r/pull/7" open for the branch "slice-9"
+    And the clone has the commit "docs: note the widget" touching "widget-notes.md"
+    And the fake GitHub has no run of the clone's HEAD until the recording gh's "pr ready", then the run "https://ci.example/runs/ready" of it, whose jobs "ci" and "platform" succeed
+    When itos runs "push --ready"
+    Then itos exits with code 0
+    And the fake GitHub was asked for the run of the clone's HEAD at least twice before the recording gh's "pr ready" call
+    And its output says "appeared within 1 seconds, so none is coming: marking https://github.example/o/r/pull/7 ready."
+    And its output says "CI passed: https://ci.example/runs/ready"
+
+  # The wait counts toward push.pr.ready_wait, and a rerun picks up: stopped at the
+  # bound it has marked nothing, and run again, pushing nothing, it looks once more, and
+  # the run having finished it marks and goes on. Fails before the work at "never called
+  # as": today gh pr ready comes first, and the exit and outcome are the same.
+  @ID-PUSHDRAFT-76 @bug-160
+  Scenario: Under push.pr.draft, push --ready stopped at push.pr.ready_wait by its push's run has marked nothing, and run again once that run finished marks the pull request ready and goes on
+    Given the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+        pr:
+          draft: true
+          ready_wait: 1
+      """
+    And ci.watch asks a fake GitHub, which reports the run "https://ci.example/runs/1"
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the clone is on the new branch "slice-9"
+    And the clone has the commit "feat: add the widget" touching "widget.md"
+    And git pushes HEAD to the remote's new branch "slice-9"
+    And the recording gh has the draft pull request "https://github.example/o/r/pull/7" open for the branch "slice-9"
+    And the clone has the commit "test: cover the widget" touching "widget-test.md"
+    And the fake GitHub's run of the clone's HEAD is a draft's, going until a step finishes it, then skipping every job, and the recording gh's "pr ready" starts the run "https://ci.example/runs/ready" of it, cancelled if the draft's was still going, else its jobs "ci" and "platform" succeeding
+    When itos runs "push --ready --json"
+    Then itos exits with code 75
+    And its JSON's "outcome" is "ready-still-waiting"
+    And the recording gh was never called as "pr ready"
+    And its JSON's "pull_request.draft" is true
+    And its output says ": run waiting; auto-merge is not turned on."
+    When the fake GitHub's draft's run finishes
+    And itos runs "push --ready"
+    Then itos exits with code 0
+    And its output says "Nothing to push"
+    And the recording gh's "pr ready" call has "slice-9"
+    And its output says "CI passed: https://ci.example/runs/ready"
+    And the recording gh's "pr merge" call with "--auto" has the full SHA of the clone's HEAD
+
+  # A wait with nothing pushed: the head went up earlier and its run still goes, so
+  # --ready, pushing nothing, has no window to wait in, yet must not mark. A build that
+  # looks only after its own push marks here. Fails before the work at "never called
+  # as": today gh pr ready comes first, and the exit and outcome are the same.
+  @ID-PUSHDRAFT-79 @bug-160
+  Scenario: Under push.pr.draft, push --ready with nothing to push while the head's run still goes stops at push.pr.ready_wait and has not marked the pull request ready
+    Given the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+        pr:
+          draft: true
+          ready_wait: 1
+      """
+    And ci.watch asks a fake GitHub, which reports the run "https://ci.example/runs/1"
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the clone is on the new branch "slice-9"
+    And the clone has the commit "feat: add the widget" touching "widget.md"
+    And git pushes HEAD to the remote's new branch "slice-9"
+    And the recording gh has the draft pull request "https://github.example/o/r/pull/7" open for the branch "slice-9"
+    And the fake GitHub's run of the clone's HEAD is a draft's, going until a step finishes it, then skipping every job, and the recording gh's "pr ready" starts the run "https://ci.example/runs/ready" of it, cancelled if the draft's was still going, else its jobs "ci" and "platform" succeeding
+    When itos runs "push --ready --json"
+    Then itos exits with code 75
+    And its JSON's "outcome" is "ready-still-waiting"
+    And the recording gh was never called as "pr ready"
+    And its JSON's "pull_request.draft" is true
+    And its output says ": run waiting; auto-merge is not turned on."
+
+  # bug-163's pull request after its rerun went green: the pull request is ready, so
+  # nothing waits before marking, and its head has the draft's run and the run that
+  # checked it from one second, the draft's listed first. The draft's cannot hide the
+  # result. The rest is TestRunOfReadsTheRunThatCheckedTheHead's. Fails before the work
+  # at the exit code: today RunOf takes the draft's, WatchReady passes over it as no run,
+  # and ci.watch.timeout ends it, exit 75.
+  @ID-PUSHDRAFT-77 @bug-160
+  Scenario: Under push.pr.draft, push --ready judges the run that checked the head, not a draft's run listed first from the same second
+    Given the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+        pr:
+          draft: true
+      """
+    And ci.watch asks a fake GitHub, which reports the run "https://ci.example/runs/1"
+    And ci.watch.timeout is 3
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the clone is on the new branch "slice-9"
+    And the clone has the commit "feat: add the widget" touching "widget.md"
+    And git pushes HEAD to the remote's new branch "slice-9"
+    And the recording gh has the pull request "https://github.example/o/r/pull/7" open for the branch "slice-9"
+    And the fake GitHub has, created in one second, the run "https://ci.example/runs/ready" of the clone's HEAD, whose jobs "ci" and "platform" succeed, and the draft's run "https://ci.example/runs/draft" listed before it, every job skipped
+    When itos runs "push --ready"
+    Then itos exits with code 0
+    And its output says "CI passed: https://ci.example/runs/ready"
+    And the recording gh's "pr merge" call with "--auto" has the full SHA of the clone's HEAD
+
+  # bug-157's and bug-163's pull requests before the rerun: the run that checks the head
+  # was cancelled, the draft's beside it skipped. A rerun of --ready can never see it end,
+  # so it names the rerun and is not a wait. It lists no job, as GitHub answered for 2 of
+  # the last 40 cancelled runs here, so a build whose DraftsRun passes over it times out.
+  # A build whose Covering takes the draft's for the cancelled run's successor reads the
+  # two for ever: this hangs, never reaching the exit code. Fails before the work at the
+  # outcome: today RunOf takes the draft's and ci.watch.timeout ends it, exit 75, outcome
+  # nothing-to-push.
+  @ID-PUSHDRAFT-78 @bug-160
+  Scenario: Under push.pr.draft, push --ready whose head's run was cancelled, a draft's run beside it, exits 75 as run-cancelled and names the rerun
+    Given the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+        pr:
+          draft: true
+      """
+    And ci.watch asks a fake GitHub, which reports the run "https://ci.example/runs/1"
+    And ci.watch.timeout is 3
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the clone is on the new branch "slice-9"
+    And the clone has the commit "feat: add the widget" touching "widget.md"
+    And git pushes HEAD to the remote's new branch "slice-9"
+    And the recording gh has the pull request "https://github.example/o/r/pull/7" open for the branch "slice-9"
+    And the fake GitHub has, created in one second, the cancelled run "https://ci.example/runs/ready" of the clone's HEAD, listing no job, and the draft's run "https://ci.example/runs/draft" listed before it, every job skipped
+    When itos runs "push --ready --json"
+    Then itos exits with code 75
+    And its JSON's "outcome" is "run-cancelled"
+    And its JSON's "pull_request.auto_merge" is false
+    And its output says "rerun it with gh run rerun 1, then itos push --ready again."
+    And its output does not say "the run did not succeed"
+    And its output does not say "(ci.watch.timeout)"
     And the recording gh was never called as "pr merge"
 
   # The merge waits until Copilot's findings are addressed: an unresolved
@@ -1899,7 +2211,9 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
   # Fails before the work at the exit code: today push.pr.ready_wait is an
   # unknown key, so the config cannot be read and --ready is refused, exit
   # 1, ready-without-draft (and with the key known but not obeyed, the
-  # watch runs to ci.watch.timeout, outcome nothing-to-push).
+  # watch runs to ci.watch.timeout, outcome nothing-to-push). The run has
+  # finished at its first look, bug-160's wait before the marking; going on at
+  # that look nothing is marked or rebased, and the head named is the one pushed.
   @ID-PUSHDRAFT-35 @slice-200
   Scenario: Under push.pr.draft, push --ready stops at push.pr.ready_wait while the run of the head GitHub made goes on, exit 75, naming that head
     Given the config, committed and pushed to the remote's main, adds the YAML:
@@ -1912,7 +2226,7 @@ Feature: Under push.mode pr with push.pr.draft, pull requests open as drafts and
       """
     And ci.watch asks a fake GitHub, which reports the run "https://ci.example/runs/1"
     And ci.watch.timeout is 10
-    And the watched run never finishes
+    And the watched run has finished at its first look, and goes on at every later one
     And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
     And the clone is on the new branch "slice-9"
     And the clone has the commit "feat: add the widget" touching "widget.md"
