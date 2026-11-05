@@ -267,6 +267,235 @@ Feature: itos next reads an in-flight item's state from the forge under push.mod
     And the recording gh was called as "pr list" 3 times
     And the recording gh was called as "api graphql" 3 times
 
+  # slice-223, the rule of this block. Under push.mode pr a task's checks are
+  # read at origin/<task> when the clone has that ref and the ledger there
+  # holds an entry for the task, else in the working tree, nothing fetched:
+  # the rule facts.go's scenarios codes for a slice, shared rather than
+  # copied, with its own reader and its own fallback. The ledger is read under
+  # the clone's config, as attempt submit reads a head's (slice-219). Trunk
+  # mode is unchanged. The ref read is digested as a slice's is; the fallback
+  # read no ref and writes no ref line, so a task with no branch keeps the
+  # revision it had. The fix commit amends this feature's description, in
+  # that commit and not in a docs one, since it changes what a live scenario
+  # means: "for a task's ledger checks, nothing changes" under "Where the
+  # spec is read", and "the ref the scenarios were read at" in the revision's
+  # sentence. A table test beside TestSpecRef holds the rest: trunk with a
+  # check only at the ref is needs-spec and reads no ref; pr with no ref reads
+  # the working tree; an entry at the ref with no done_when key counts as one
+  # with done_when: []; a ref with no ledger folder is the read's error,
+  # ledger-folder-missing, as at a head (ID-ATTEMPT-27); the kind alone picks
+  # the reader, a task's scenarios and a slice's ledger entry at the ref
+  # counting for nothing.
+  #
+  # The loop this ends: slice-219 accepts a task's drafter head whose check is
+  # on its branch, and next, reading only the working tree on main, said
+  # needs-spec and sent the drafter back, without bound in a driver. Fails
+  # before the work at the complete line: next says needs-spec.
+  @ID-NEXTFORGE-20 @wip @slice-223
+  Scenario: Under push.mode pr, a task whose check is only at origin/<task> is in spec review once attempt submit took its drafter head
+    Given the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+      """
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the work registry has the task "T-001" owned by nobody with the status "todo" and no why
+    When itos runs "brief T-001 --role drafter --json"
+    Then itos exits with code 0
+    And the JSON's "request" is saved as "request"
+    And the JSON's "base" is saved as "base"
+    Given the clone is on the new branch "T-001"
+    And the task "T-001" has the committed check "go vet ./..."
+    And the last commit SHA is saved as "head"
+    And git pushes HEAD to the remote's new branch "T-001"
+    And the clone switches to its branch "main"
+    And the recording gh has the draft pull request "https://github.example/o/r/pull/7" open for the branch "T-001"
+    And the file "result.json" holds the lines, the saved values filled in:
+      """
+      {"schema":1,"item":"T-001","role":"drafter","request":"<request>","base":"<base>","attempt":1,"outcome":"done","head":"<head>"}
+      """
+    When itos runs "attempt submit T-001 result.json"
+    Then itos exits with code 0
+    Given the repository state is saved for comparison
+    When itos runs "next T-001"
+    Then itos exits with code 0
+    And stdout contains the complete line "T-001: spec-review; next: reviewer review; run: itos brief T-001 --role reviewer" exactly once
+    When itos runs "next T-001 --json"
+    Then itos exits with code 0
+    And its JSON's "kind" is "task"
+    And its JSON's "state" is "spec-review"
+    And its JSON's "observed.pr.number" is 7
+    And its JSON's "observed.pr.head" holds the full SHA of the head of the remote's branch "T-001"
+    And the recording gh's "pr list" call has "--head T-001"
+    And the repository files index and HEAD match the saved state
+
+  # What the driver relies on: the revision next gives, and so --expect,
+  # covers the checks it read at the ref. There is no pull request, so no
+  # head of the forge's stands in for the check, and the state stays
+  # spec-proposed throughout: the note on the branch moves the ref and touches
+  # no fact, then the changed check moves the revision alone. Fails before the
+  # work at the first state: next says needs-spec.
+  @ID-NEXTFORGE-21 @wip @slice-223
+  Scenario: Under push.mode pr, a task's check changing at origin/<task> moves the revision, and work take --expect refuses the old one
+    Given the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+      """
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the work registry has the task "T-001" owned by nobody with the status "todo" and no why
+    And the clone is on the new branch "T-001"
+    And the task "T-001" has the committed check "go vet ./..."
+    And git pushes HEAD to the remote's new branch "T-001"
+    And the clone switches to its branch "main"
+    When itos runs "next T-001 --json"
+    Then itos exits with code 0
+    And its JSON's "state" is "spec-proposed"
+    And its JSON's revision is saved as "first"
+    Given the clone switches to its branch "T-001"
+    And the clone has the commit "docs: add a note" touching "notes.md"
+    And git pushes HEAD to the remote's new branch "T-001"
+    And the clone switches to its branch "main"
+    When itos runs "next T-001 --json"
+    Then itos exits with code 0
+    And its JSON's "state" is "spec-proposed"
+    And its JSON's revision is the one saved as "first"
+    Given the clone switches to its branch "T-001"
+    And the task "T-001" has the committed check "go test ./..."
+    And git pushes HEAD to the remote's new branch "T-001"
+    And the clone switches to its branch "main"
+    When itos runs "next T-001 --json"
+    Then itos exits with code 0
+    And its JSON's "state" is "spec-proposed"
+    And its JSON's revision differs from the one saved as "first"
+    And its JSON's revision is saved as "second"
+    When itos runs "work take T-001 --as someone --json" with --expect the revision saved as "first"
+    Then itos exits with code 1
+    And its JSON's problem "work-stale"'s "message" names the revision saved as "second"
+    And the registry's item "T-001" has the status "todo" and the owner "nobody"
+    When itos runs "work take T-001 --as someone --json" with --expect the revision saved as "second"
+    Then itos exits with code 0
+    And its JSON's "outcome" is "taken"
+
+  # Main's entry has a check and the branch's has dropped it: the branch wins.
+  # The branch is the spec under review, what its pull request would land and
+  # what attempt submit judges (ID-ATTEMPT-17 refuses this head), so sending
+  # it to review on main's word would pass on a spec its own head lacks. The
+  # common case is untouched: work promote and task add write a task's check
+  # on main with its entry, before its branch exists, so the branch holds it;
+  # only a branch forked before main gained the check reads as needs-spec, and
+  # its drafter merges main. The forge is not asked, needs-spec being judged
+  # first. Fails before the work at the complete line: next reads main's check
+  # and says spec-review.
+  @ID-NEXTFORGE-22 @wip @slice-223
+  Scenario: Under push.mode pr, a task whose entry at origin/<task> has no check needs a spec, whatever main's entry holds
+    Given the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+      """
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the work registry has the task "T-001" owned by nobody with the status "todo" and no why
+    And the task "T-001" has the committed check "go vet ./..."
+    And the clone is on the new branch "T-001"
+    And the committed file "tasks/phase-1.yaml" holding the lines:
+      """
+      - { id: T-001, type: chore, title: Trim, done_when: [] }
+      """
+    And git pushes HEAD to the remote's new branch "T-001"
+    And the clone switches to its branch "main"
+    And the recording gh has the draft pull request "https://github.example/o/r/pull/7" open for the branch "T-001"
+    When itos runs "next T-001"
+    Then itos exits with code 0
+    And stdout contains the complete line "T-001: needs-spec; next: drafter specify; run: itos brief T-001 --role drafter" exactly once
+    When itos runs "next T-001 --json"
+    Then itos exits with code 0
+    And its JSON's "state" is "needs-spec"
+    And its JSON has no "observed"
+    And the recording gh was never called
+
+  # A guard: with no entry at the ref, a branch that forked before the task's
+  # entry was written, the working tree answers. It passes before the work,
+  # which reads only the working tree, and must after: a build reading the
+  # ref's ledger whenever the ref exists says needs-spec, as does one falling
+  # back to HEAD as a slice's scenarios do, the check being staged and in no
+  # commit, or one matching T-0010 for T-001, whose entry there has no check.
+  @ID-NEXTFORGE-23 @wip @guard @slice-223
+  Scenario: Under push.mode pr, a task with no entry at origin/<task> has its checks read in the working tree
+    Given the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+      """
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the work registry has the task "T-001" owned by nobody with the status "todo" and no why
+    And the clone is on the new branch "T-001"
+    And the committed file "tasks/phase-1.yaml" holding the lines:
+      """
+      - { id: T-0010, type: chore, title: Another, done_when: [] }
+      """
+    And git pushes HEAD to the remote's new branch "T-001"
+    And the clone switches to its branch "main"
+    And the task "T-001" has the check "go vet ./..."
+    And the recording gh has the draft pull request "https://github.example/o/r/pull/7" open for the branch "T-001"
+    When itos runs "next T-001 --json"
+    Then itos exits with code 0
+    And its JSON's "state" is "spec-review"
+    And its JSON's "observed.pr.number" is 7
+
+  # A branch steers only the ledger file, never where its spec is judged from.
+  # The branch moves its ledger in its own itos.yaml to where T-001 has no
+  # check; the clone's config still finds tasks/phase-1.yaml at the ref, with
+  # one. A build that loaded the config at the ref says needs-spec, as next
+  # does before the work, reading main's entry: it fails at the state.
+  @ID-NEXTFORGE-24 @wip @slice-223
+  Scenario: Under push.mode pr, a task's checks at origin/<task> are read under the clone's config, never the branch's
+    Given the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+      """
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the work registry has the task "T-001" owned by nobody with the status "todo" and no why
+    And the clone is on the new branch "T-001"
+    And the task "T-001" has the committed check "go vet ./..."
+    And the config sets "ledger.files" to "other/phase-{group}.yaml"
+    And the committed file "other/phase-1.yaml" holding the lines:
+      """
+      - { id: T-001, type: chore, title: Moved, done_when: [] }
+      """
+    And git pushes HEAD to the remote's new branch "T-001"
+    And the clone switches to its branch "main"
+    And the recording gh has the draft pull request "https://github.example/o/r/pull/7" open for the branch "T-001"
+    When itos runs "next T-001 --json"
+    Then itos exits with code 0
+    And its JSON's "state" is "spec-review"
+
+  # A ledger that cannot be read at the ref is the read's error, a usage
+  # error as ledger.Tasks gives it, never a state and never the working tree's
+  # answer: main's entry has a check, so a build that fell back on the error
+  # says spec-proposed, and one that took it for no check says needs-spec.
+  # Fails before the work at the exit code: next reads main's check, exit 0.
+  @ID-NEXTFORGE-25 @wip @slice-223
+  Scenario: Under push.mode pr, a ledger that cannot be read at origin/<task> is an error, not a state
+    Given the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+      """
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the work registry has the task "T-001" owned by nobody with the status "todo" and no why
+    And the task "T-001" has the committed check "go vet ./..."
+    And the clone is on the new branch "T-001"
+    And the committed file "tasks/phase-1.yaml" holding "{ id: T-001, done_when: ["
+    And git pushes HEAD to the remote's new branch "T-001"
+    And the clone switches to its branch "main"
+    When itos runs "next T-001"
+    Then itos exits with code 2
+    And its output does not say "needs-spec"
+    And its output does not say "spec-proposed"
+    And the recording gh was never called
+
   # ana's approve at the head is the latest counted marker: the later
   # changes is by a login the people file does not list, someone's changes
   # is of the diff stage and the other approve is of slice-8, so none of
