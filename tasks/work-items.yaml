@@ -17740,3 +17740,15 @@ items:
       From a read of the beads tracker, 2026-11-05. The registry holds five exact duplicate titles
       today (git-shim install and uninstall..., go test failures in CI become annotations, ...). A
       normalized match at work add, a warning only, catches them as they are made.
+
+  - id: p2-bounded-output-elision
+    title: Long itos output stops at whole entries and says how many were cut
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      From a read of the beads tracker, 2026-11-05. Hosts truncate long output silently, and itos go
+      prints 28 KB here. Capping at whole-entry boundaries with a line naming what was cut, as
+      beads' prime does, lets an agent know it saw part.
