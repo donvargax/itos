@@ -17645,3 +17645,19 @@ items:
       drafter stopped twice on it. work edit --note said to write the note in the slice's feature
       file, which does not exist until the spec the wrong why is blocking. The only routes left are
       a by-hand registry edit or steering outside the registry.
+
+  - id: p2-brief-rules-from-trusted-head
+    title: itos brief takes agent rules from the item's branch by default; keep them from a trusted HEAD
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      slice-226's security review, 2026-11-05: a brief with no --at reads config, registry, notes
+      and AGENTS.md from origin/<id>, with no check of owner, pull request head or verdict, so
+      someone who can push a branch but not merge can feed instructions to a privileged agent.
+      Accepted for now: only collaborators can push there, a fork gets no such ref, an agent in that
+      checkout already reads its AGENTS.md, and --at main restores the old reading. The fix needs a
+      request attempt can recompute from two commits, rules at HEAD and spec at the branch. For v9's
+      coordinator.
