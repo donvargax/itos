@@ -17951,3 +17951,18 @@ items:
       v9 or v10 workflow format should be data a program runs, with agent steps explicit, like
       Swamp's or Temporal's.
     tags: [v9]
+
+  - id: p3-v9-tradeoff-agent-mail
+    title: "Trade-off: agent mail, a merge slot and federation for agents working at once"
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      From a read of the beads tracker, 2026-11-05; recorded as a trade-off for the v9 and v10
+      design, not adopted. Gains: many agents coordinating directly, across repositories. Costs: a
+      messaging layer, locks to reason about, failure modes of concurrency. itos is sequential by
+      choice and its loop's workers coordinate through itos state and one lock. Worth revisiting
+      only if v10 runs agents in parallel on one item or across repositories.
+    tags: [v9]
