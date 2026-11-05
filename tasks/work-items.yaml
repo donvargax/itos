@@ -18054,3 +18054,18 @@ items:
       An attempt that stops could propose the brief or rule change it needed, rolled up for the
       person, so stops improve the rules.
     tags: [v9]
+
+  - id: p2-v9-shadow-answering-agent
+    title: "v9: the answering agent runs in shadow before a decision class is delegated"
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      From Steve Yegge's essays Fences not Sandboxes, Seats and Sunsets and The Counting House, read
+      2026-11-05. Autonomy tiers are earned by evals: off, shadow, assist, act. For v9's delegated
+      classes, run the answering agent beside the person first, keep a held-out set, and delegate a
+      class only once its agreement with the person reaches the person's own consistency, which is
+      the ceiling any eval can show.
+    tags: [v9]
