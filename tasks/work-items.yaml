@@ -17889,3 +17889,15 @@ items:
       From a read of the beads tracker, 2026-11-05. Input to p1-session-handoff and p1-research-log:
       notes.md grows without shape. Keyed entries replace their key; do not inject them everywhere.
     tags: [v9]
+
+  - id: p2-v9-refusal-playbooks
+    title: "v9: each refusal names why, the next step and its recovery"
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      From a read of the beads tracker, 2026-11-05. Recovery rules live in a coordinator's notes
+      today. Prefer state-machine outcomes that say the next step over more docs.
+    tags: [v9]
