@@ -244,9 +244,13 @@ that has waited that long, exit 75, outcome ready-still-waiting, saying what it
 waits on and the head's full SHA; itos push --ready again goes on.
 While it waits it prints, when the wait starts and after each look that changes
 something, "Waiting on <address> at <head>: run <state>, <login> <state>.", the
-run waiting or succeeded and each push.pr.review_by login not asked, waiting,
-running (its review-state comment reads a review under way on the head) or
-completed.
+run waiting or succeeded and each push.pr.review_by login, read from the first
+look, the first that holds: completed; running (its review-state comment reads a
+review under way on the head); asked (a request for the head is on the pull
+request, or this --ready posted one); no review requested (itos review request
+<item>), with no review-state comment and no request, for a login push.pr.reviewers
+names; else waiting. Where the first look's question fails it says not read until
+the next look.
 push.pr.review_stall (seconds, 0 by default: never) makes it ask a login whose
 review has read running that long for it again, counted from the last edit of its
 review-state comment: a gh pr comment holding "@codex review" and a hidden

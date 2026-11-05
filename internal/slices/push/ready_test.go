@@ -273,7 +273,7 @@ func TestPushReadyMarksTheDraftReadyThenTurnsOnAutoMerge(t *testing.T) {
 	code, stdout, stderr, _ := call(t, f, "--ready")
 	address := open7
 	waiting := "Waiting on " + address + " at " + short(f.head(t)) + ": "
-	want := pushedLine(f, t, address) + waiting + "run waiting, copilot-pull-request-reviewer[bot] not asked.\n" +
+	want := pushedLine(f, t, address) + waiting + "run waiting, copilot-pull-request-reviewer[bot] completed.\n" +
 		"CI run: https://ci/1\n  ci: success\nCI passed: https://ci/1\n" +
 		"Waiting for reviews by copilot-pull-request-reviewer[bot] on " + address + ".\n" +
 		waiting + "run succeeded, copilot-pull-request-reviewer[bot] completed.\n" +
@@ -281,7 +281,7 @@ func TestPushReadyMarksTheDraftReadyThenTurnsOnAutoMerge(t *testing.T) {
 	if code != 0 || stderr != "" || stdout != want {
 		t.Fatalf("exit %d\n%s%s\nwant\n%s", code, stdout, stderr, want)
 	}
-	if got, want := f.calls(), append([]string{list, ready, graphql(7), activity}, merged(f.head(t))...); !reflect.DeepEqual(got, want) {
+	if got, want := f.calls(), append([]string{list, ready, graphql(7), graphql(7), activity}, merged(f.head(t))...); !reflect.DeepEqual(got, want) {
 		t.Errorf("gh was called\n%s\nwant\n%s", strings.Join(got, "\n"), strings.Join(want, "\n"))
 	}
 	if strings.ContainsAny(reviewQuery, "\n\t") || strings.Contains(reviewQuery, "  ") || !strings.HasPrefix(reviewQuery, "query($owner: String!, ") {
@@ -408,7 +408,7 @@ func TestPushReadyWhereTheRunDoesNotSucceed(t *testing.T) {
 	if code != policy || !strings.Contains(stderr, "CI failure: https://ci/1") || !strings.HasSuffix(stderr, left) || !strings.HasPrefix(stdout, "Pushed ") {
 		t.Errorf("exit %d\n%s%s", code, stdout, stderr)
 	}
-	if got, want := f.calls(), []string{list, ready}; !reflect.DeepEqual(got, want) {
+	if got, want := f.calls(), []string{list, ready, graphql(7)}; !reflect.DeepEqual(got, want) {
 		t.Errorf("gh was called\n%s", strings.Join(got, "\n"))
 	}
 	code, stdout, stderr, _ = call(t, f, "--json", "--ready")

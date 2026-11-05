@@ -375,10 +375,17 @@
 //
 // While --ready waits (waiting.go, slice 190) it says what on, where the
 // watch's progress goes: "Waiting on <address> at <head>: run <state>, <login>
-// <state>." when the wait starts and after each look that changes a part, never
-// otherwise (waiting.show). The run is waiting, then succeeded; a login is not
-// asked until the first ask, then waiting, running (its review-state comment
-// with a review under way on the head) or completed (its verdict). The head is the one
+// <state>." when the wait starts (before the run is watched, or after the first ask
+// when no run is) and after each look that changes a part, never otherwise
+// (waiting.show). The run is waiting, then succeeded. A login's state is read from
+// the first look, one question while the run goes (waiting.firstLook, bug-166), whose
+// failure leaves it "not read" until the next ask judges one, and none at the run's
+// later looks; it is the first that holds (waiting.stateOf): completed (its verdict),
+// running (its review-state comment with a review under way on the head), asked
+// (a request for the head on the pull request, for either review, or this --ready
+// posted one), no review requested (itos review request <item>), with no such comment
+// and no request, for a login push.pr.reviewers names, else waiting. The stop at
+// push.pr.ready_wait gives the same parts. The head is the one
 // whose run is watched, the head GitHub made when it rebased the pull request
 // included (watchRun, unwatchedHead). Each review in a login's review-state
 // comment whose commit is not the head, one with no commit included, is asked

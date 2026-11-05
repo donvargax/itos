@@ -64,7 +64,7 @@ type openThread struct {
 // 200). outcome is pushed or nothing-to-push.
 func (r *pushRun) finish(ctx context.Context, repository, outcome string) Answer {
 	cfg := r.cfg
-	w := newWaiting(r, cfg.Push.PR.ReviewBy)
+	w := newWaiting(r, repository, cfg.Push.PR.ReviewBy)
 	wr, ok, err := r.ports.Watcher(ctx, cfg, r.remote)
 	switch {
 	case ok || err != nil:
@@ -157,7 +157,7 @@ func pushStarted(event string) bool {
 // push.pr.ready_wait bounds the whole, nothing marked. A failed look follows the
 // watch's rule (ciwatch.Looks), and a provider that cannot be built stops here.
 // Done, the answer is the call's end. outcome is pushed or nothing-to-push.
-func (r *pushRun) awaitPushRuns(ctx context.Context, outcome string, pushed bool) (Answer, bool) {
+func (r *pushRun) awaitPushRuns(ctx context.Context, repository, outcome string, pushed bool) (Answer, bool) {
 	wr, ok, err := r.ports.Watcher(ctx, r.cfg, r.remote)
 	if err != nil {
 		r.watcherFailed(err, r.sha)
@@ -209,8 +209,9 @@ func (r *pushRun) awaitPushRuns(ctx context.Context, outcome string, pushed bool
 			return r.runNotPassed(outcome), true
 		}
 		if bounded {
-			w := newWaiting(r, r.cfg.Push.PR.ReviewBy)
+			w := newWaiting(r, repository, r.cfg.Push.PR.ReviewBy)
 			w.run = "waiting"
+			w.firstLook(ctx)
 			return r.stillWaiting(w), true
 		}
 		if !said {
@@ -293,9 +294,6 @@ func (r *pushRun) awaitReviews(ctx context.Context, repository string, w *waitin
 	timeout := time.Duration(*watch.Timeout * float64(time.Second))
 	deadline := now().Add(timeout)
 	r.say(fmt.Sprintf("Waiting for reviews by %s on %s.", strings.Join(logins, ", "), r.pr.URL))
-	if w.run == "" {
-		w.show()
-	}
 	rv := newReviewing(r.cfg.Push.PR.ReviewStall)
 	for first := true; ; first = false {
 		state, a, failed := r.ask(ctx, repository, r.pr.Number)
@@ -308,7 +306,7 @@ func (r *pushRun) awaitReviews(ctx context.Context, repository string, w *waitin
 			}
 		}
 		missing, refused := state.pull.Verdicts(logins, w.head)
-		w.look(state, missing)
+		w.look(state, missing, rv)
 		if len(missing) == 0 {
 			return state, Answer{}, false
 		}
@@ -322,6 +320,7 @@ func (r *pushRun) awaitReviews(ctx context.Context, repository string, w *waitin
 		if a, done := r.askForHead(ctx, repository, w, rv, state); done {
 			return state, a, true
 		}
+		w.look(state, missing, rv)
 		timedOut, bounded, left := r.limits(deadline)
 		if timedOut {
 			fmt.Fprintf(r.o.Stderr, "itos: no review by %s on %s after %s seconds (ci.watch.timeout), so auto-merge is not turned on; itos push --ready again turns it on if the reviews have come, else stops here at once, the wait counting from when the pull request was marked ready or its head pushed; a new head starts it afresh.\n",

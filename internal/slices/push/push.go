@@ -440,6 +440,7 @@ func (r *pushRun) watchRun(ctx context.Context, cfg *config.Loaded, wr providers
 	}
 	if r.waiting != nil {
 		r.waiting.head = sha
+		r.waiting.firstLook(ctx)
 		r.waiting.show()
 	}
 	var w ciwatch.Watched

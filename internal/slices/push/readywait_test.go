@@ -185,7 +185,7 @@ func TestPushReadyWithNoProviderReadsTheRebasedHeadOnce(t *testing.T) {
 	f, _ := behind(t, "rb000")
 	code, stdout, stderr, _ := call(t, f, "--ready")
 	if got, want := f.calls(), append([]string{list, ready, update, view, graphql(7), activity}, merged("rb000")...); code != 0 || !reflect.DeepEqual(got, want) ||
-		!strings.Contains(stdout, "Waiting on "+open7+" at rb000: a not asked.\n") {
+		!strings.Contains(stdout, "Waiting on "+open7+" at rb000: a completed.\n") {
 		t.Errorf("exit %d\n%s%s\n%s", code, stdout, stderr, strings.Join(f.calls(), "\n"))
 	}
 

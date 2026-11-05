@@ -18,20 +18,21 @@ import (
 // "succeeded"), and each review_by login's, in the config's order. rebasing is
 // whether GitHub's rebase of the pull request has not shown yet (slice 200).
 type waiting struct {
-	r        *pushRun
-	head     string
-	run      string
-	rebasing bool
-	logins   []string
-	states   []string
-	said     string
+	r          *pushRun
+	repository string
+	head       string
+	run        string
+	rebasing   bool
+	logins     []string
+	states     []string
+	said       string
 }
 
-// newWaiting is the wait on the head and the logins, none of them asked yet.
-func newWaiting(r *pushRun, logins []string) *waiting {
-	w := &waiting{r: r, head: r.sha, logins: logins, states: make([]string, len(logins))}
+// newWaiting is the wait on the head and the logins, none of them read yet.
+func newWaiting(r *pushRun, repository string, logins []string) *waiting {
+	w := &waiting{r: r, repository: repository, head: r.sha, logins: logins, states: make([]string, len(logins))}
 	for i := range w.states {
-		w.states[i] = "not asked"
+		w.states[i] = "not read"
 	}
 	return w
 }
@@ -64,25 +65,83 @@ func (w *waiting) show() {
 	w.r.say(line)
 }
 
-// look records what the pull request says of each login: completed with a
-// verdict, else running when its review-state comment reads a review under way
-// on the head, else waiting; the run, when there is one, has succeeded
-// by now.
-func (w *waiting) look(state pullState, missing []string) {
-	for i, login := range w.logins {
-		switch {
-		case !slices.Contains(missing, login):
-			w.states[i] = "completed"
-		case state.running(login, w.head):
-			w.states[i] = "running"
-		default:
-			w.states[i] = "waiting"
-		}
+// firstLook reads the logins' states while the run still goes (bug-166): the one
+// question the wait asks before the run's end. It judges nothing: an answer it
+// cannot get leaves them not read, for the next ask to judge the failure.
+func (w *waiting) firstLook(ctx context.Context) {
+	if len(w.logins) == 0 {
+		return
 	}
+	got, err := providers.AskPullState(ctx, w.r.ports.Gh, w.repository, w.r.pr.Number)
+	if err != nil {
+		return
+	}
+	missing, _ := got.Verdicts(w.logins, w.head)
+	w.read(pullState{pull: got}, missing, newReviewing(0))
+}
+
+// look records what the pull request says of each login; the run, when there is
+// one, has succeeded by now.
+func (w *waiting) look(state pullState, missing []string, rv *reviewing) {
+	w.read(state, missing, rv)
 	if w.run != "" {
 		w.run = "succeeded"
 	}
 	w.show()
+}
+
+// read is each login's state, as stateOf reads it.
+func (w *waiting) read(state pullState, missing []string, rv *reviewing) {
+	for i, login := range w.logins {
+		w.states[i] = w.stateOf(login, state, missing, rv)
+	}
+}
+
+// stateOf is what the line says of the login, the first that holds (bug-166):
+// completed with a verdict; running when its review-state comment reads a review
+// under way on the head; asked; no review requested when it has neither a
+// review-state comment nor a request, naming the command that would ask, for a
+// login that command asks; else waiting.
+func (w *waiting) stateOf(login string, state pullState, missing []string, rv *reviewing) string {
+	kind, named := w.reviewer(login)
+	switch {
+	case !slices.Contains(missing, login):
+		return "completed"
+	case state.running(login, w.head):
+		return "running"
+	case w.asked(login, kind, state.pull.Comments, rv):
+		return "asked"
+	case named && !state.pull.StateOf(login).Stated:
+		return "no review requested (itos review request " + w.r.branch + ")"
+	}
+	return "waiting"
+}
+
+// reviewer is the login's kind and whether push.pr.reviewers names it: one it
+// does not is codex's, as askForHead asks it.
+func (w *waiting) reviewer(login string) (kind string, named bool) {
+	for _, rv := range w.r.cfg.Push.PR.Reviewers {
+		if providers.SameLogin(rv.Login, login) {
+			return rv.Kind, true
+		}
+	}
+	return "codex", false
+}
+
+// asked is whether a request of the login's kind names it and the head on the pull
+// request, for either review, or this --ready posted one.
+func (w *waiting) asked(login, kind string, comments []providers.Authored, rv *reviewing) bool {
+	for _, line := range reviewers.Lines(kind) {
+		if (reviewers.Request{Login: login, Kind: kind, Line: line}).OnHead(comments, w.head) {
+			return true
+		}
+	}
+	for req := range rv.asked {
+		if req.Login == login {
+			return true
+		}
+	}
+	return false
 }
 
 // running is whether a review of the login's review-state comment is under way
