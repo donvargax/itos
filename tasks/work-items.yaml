@@ -17904,3 +17904,19 @@ items:
       From a read of the beads tracker, 2026-11-05. Recovery rules live in a coordinator's notes
       today. Prefer state-machine outcomes that say the next step over more docs.
     tags: [v9]
+
+  - id: p3-v9-tradeoff-database-store
+    title: "Trade-off: a versioned database (beads uses Dolt) instead of YAML in git"
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      From a read of the beads tracker, 2026-11-05; recorded as a trade-off for the v9 and v10
+      design, not adopted. Gains: cell-level merges, queries, history per field, state off code
+      branches. Costs: an embedded or server database to run, schema migrations (beads has 144),
+      memory (an open report has orphaned servers at about 2 GB), a second sync path beside git.
+      itos keeps state in git and derives more of it in v9; p2-v9-tracker-state-off-branches takes
+      the off-branch part with a git ref.
+    tags: [v9]
