@@ -17877,3 +17877,15 @@ items:
       From a read of the beads tracker, 2026-11-05. Input to p1-typed-items. Provenance is prose in
       whys today. Take this one edge, not beads' twenty dependency types.
     tags: [v9]
+
+  - id: p2-v9-keyed-notes
+    title: "v9: session notes are keyed entries that replace, not an append-only file"
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      From a read of the beads tracker, 2026-11-05. Input to p1-session-handoff and p1-research-log:
+      notes.md grows without shape. Keyed entries replace their key; do not inject them everywhere.
+    tags: [v9]
