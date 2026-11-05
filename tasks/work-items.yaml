@@ -17604,3 +17604,20 @@ items:
       Confirmed by slice-223's review, 2026-11-04: from main, reviewer and implementer briefs say
       has no checks yet; --at origin/T-001 reads the check. The one spin: a literal reviewer says
       changes and the drafter reruns.
+
+  - id: bug-166
+    title: "--ready's waiting line misreads a review: not asked once asked, and waiting when nobody was asked"
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: bug
+    why: >
+      Seen on every pull request of 2026-11-04: each --ready opens with 'chatgpt-codex-connector not
+      asked' though the requests are on the head, and it stays so through the 540 s wait on the run,
+      as newWaiting starts every login there and reviews are judged only after the run ends. And a
+      pull request with no review state, where --ready asks nothing by design, prints waiting for
+      whole calls as if a review were coming, which cost a coordinator and an implementer 540 s
+      calls each. The line should read the requests on the head from its first look, and name no
+      review requested, run itos review request. Was p3-ready-state-says-asked and
+      p2-ready-says-it-will-not-ask.
