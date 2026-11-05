@@ -18069,3 +18069,17 @@ items:
       class only once its agreement with the person reaches the person's own consistency, which is
       the ceiling any eval can show.
     tags: [v9]
+
+  - id: p2-v9-no-progress-waiting
+    title: "v9: no_progress also covers an agent that keeps waiting or blocked with no new head"
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      From Steve Yegge's essays Fences not Sandboxes, Seats and Sunsets and The Counting House, read
+      2026-11-05. A colony stalled when a harness bug kept a model that politely waited forever: no
+      failure, no progress. 'The same failure twice' misses it; repeated waits at one head should
+      count.
+    tags: [v9]
