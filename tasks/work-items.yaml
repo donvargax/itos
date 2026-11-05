@@ -17593,8 +17593,8 @@ items:
   - id: bug-166
     title: "--ready's waiting line misreads a review: not asked once asked, and waiting when nobody was asked"
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: bug
     why: >
