@@ -18096,3 +18096,17 @@ items:
       failure, no progress. 'The same failure twice' misses it; repeated waits at one head should
       count.
     tags: [v9]
+
+  - id: p3-plugin-titles-wrong-project
+    title: The Claude Code plugin titles another project's item IDs with this repository's items
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      2026-11-06: a coordinator session in this repository, discussing another project's items (a
+      slice of a project it drives), had each bare id like slice-10 rewritten to this repository's
+      item of the same id, so the person read the wrong title. The plugin could title only ids it
+      can tell belong here (a repository prefix, or no rewrite inside text that names another
+      project), or mark a guess as such.
