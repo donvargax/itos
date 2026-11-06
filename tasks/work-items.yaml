@@ -18110,3 +18110,18 @@ items:
       item of the same id, so the person read the wrong title. The plugin could title only ids it
       can tell belong here (a repository prefix, or no rewrite inside text that names another
       project), or mark a guess as such.
+
+  - id: p2-next-spec-ahead
+    title: itos next lets an item's spec be written while what it depends on is still in progress
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      A driven run, 2026-11-06: with one slice implementing and four waiting on it, two of three
+      workers sat idle for hours, as itos next says waiting, next none, for an item whose dependency
+      is not done, so nobody drafts its spec. Drafting and reviewing the spec only needs the
+      dependency's spec and code in flight; implementation is what must wait. next could route a
+      waiting item with no spec to the drafter once each dependency is in progress, holding take
+      until they are done. The risk is a spec revised if the dependency changes what it builds.
