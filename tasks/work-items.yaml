@@ -18125,3 +18125,8 @@ items:
       dependency's spec and code in flight; implementation is what must wait. next could route a
       waiting item with no spec to the drafter once each dependency is in progress, holding take
       until they are done. The risk is a spec revised if the dependency changes what it builds.
+
+      Tried in a driven run, 2026-11-06: four specs were written and approved ahead, and the first
+      implementer stopped because its branch was cut before the dependency merged and lacked its
+      code. Bring main into a spec-ahead branch before building on it (one branch conflicted in a
+      feature file both edited, and the merge creates a new head that needs the spec re-approved).
