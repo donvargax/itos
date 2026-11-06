@@ -18130,3 +18130,19 @@ items:
       implementer stopped because its branch was cut before the dependency merged and lacked its
       code. Bring main into a spec-ahead branch before building on it (one branch conflicted in a
       feature file both edited, and the merge creates a new head that needs the spec re-approved).
+
+  - id: p2-merge-judged-by-what-main-brought
+    title: itos commit judges a resolved merge of main by everything main brought, so scenarios main made live block it
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      A driven run, 2026-11-06: itos push merged main into an item branch, stopped on a conflict,
+      and asked for a typed commit. itos commit then refused test and chore, as the scenarios
+      another item had made live on main counted as this merge bringing them live, and feat needed
+      those scenarios named. The only way through was a feat merge commit claiming another item's
+      scenarios, which misattributes them and, once releases run on feat, would cut a release for a
+      merge. A merge of main could be judged by its resolution alone (the diff against the merge of
+      both parents), or by what the branch's own side changes.
