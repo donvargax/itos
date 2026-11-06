@@ -17641,6 +17641,10 @@ items:
       implementing, and already happens with --at origin/<id>. The check could read from where the
       item's branch left main.
 
+      Seen in a driven run, 2026-11-06: an implementer brief taken after the coordinator pushed the
+      red-first test commit had the branch tip as base, so the implementation's first feat was
+      refused attempt-not-red-first though the test commit sat just before the base.
+
   - id: p3-work-edit-spec-less-why
     title: "A slice's why cannot be corrected before its spec exists: work edit --note refuses and points at a feature file it does not have"
     phase: 3
