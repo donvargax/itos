@@ -18161,3 +18161,17 @@ items:
       drop, a task add (whose first try minted and lost an ID on a wrong --group) and a second take.
       task add is the way to make a task; work add --kind task should refuse with that fix, or itos
       commit --task should check the ledger before running any hook. Seen with v8.46.x.
+
+  - id: p2-ci-failure-carries-assertion
+    title: A red run's report to the agent names each failing assertion, not just the failing test
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      A project's loop reported several times (2026-11-07) that itos push --ready and itos ci watch,
+      when a run is red, name the failing jobs and tests but not their assertion messages, so an
+      implementing agent without authenticated access to CI logs cannot see why a test failed and
+      retries blind. The coordinator had to fetch job logs with gh api to read the messages. Carry
+      the first failing assertion lines (bounded) beside each failing test name in the handoff.
