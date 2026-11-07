@@ -18175,3 +18175,18 @@ items:
       implementing agent without authenticated access to CI logs cannot see why a test failed and
       retries blind. The coordinator had to fetch job logs with gh api to read the messages. Carry
       the first failing assertion lines (bounded) beside each failing test name in the handoff.
+
+  - id: p2-next-holds-until-evidence-changes
+    title: itos next stops routing an item back to repair when nothing has changed since its last attempt
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      A project's loop reported (2026-11-07) that itos next kept routing an item to repair after
+      attempts that changed nothing, as long as the same CI evidence stood, so agents re-ran on
+      unchanged input until the driver's own no-progress stop fired; one item cycled about ten times
+      over an hour. Repair eligibility could require new evidence since the last attempt (a new red
+      run, a new thread, a new commit on main) or an explicit answer, and otherwise report waiting
+      with the reason. Related to p2-v9-no-progress-waiting.
