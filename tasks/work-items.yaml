@@ -18146,3 +18146,18 @@ items:
       scenarios, which misattributes them and, once releases run on feat, would cut a release for a
       merge. A merge of main could be judged by its resolution alone (the diff against the merge of
       both parents), or by what the branch's own side changes.
+
+  - id: p2-work-add-task-without-ledger
+    title: work add --kind task refuses, pointing at task add, or makes the ledger entry too
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      A coordinator made a task with itos work add --kind task (2026-11-07): the registry got a task
+      item with no ledger entry, take and push accepted it, and only the commit naming it failed,
+      after the slow pre-commit gates, with 'unknown tasks: T-27 [task-footer]'. Recovering cost a
+      drop, a task add (whose first try minted and lost an ID on a wrong --group) and a second take.
+      task add is the way to make a task; work add --kind task should refuse with that fix, or itos
+      commit --task should check the ledger before running any hook. Seen with v8.46.x.
