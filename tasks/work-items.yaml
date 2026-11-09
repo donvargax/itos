@@ -18206,3 +18206,21 @@ items:
       runner) that runs a task's checks in a throwaway clone shaped like that checkout would catch
       such checks before the push. Related: checks that pass only on a developer's clone are a
       class, not this one command.
+
+  - id: p2-reviewer-kind-claude
+    title: push.pr.reviewers accepts a claude kind for the Claude GitHub App and Action
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      A project wants to switch pull request reviews between Codex, Claude on GitHub, a reviewer its
+      own loop runs, and none (2026-11-09), as Codex usage runs out. internal/engine/reviewers knows
+      only codex and bugbot (the kinds map in reviewers.go), so a Claude Code GitHub Action review
+      (anthropics/claude-code-action, triggered by an @claude mention) can't be requested, waited
+      for or have its threads counted by itos push --ready. Add a claude adapter like bugbot's: the
+      request line (@claude review, plus a security variant if the action is prompted for one), how
+      its reply is recognised (the app's login and a marker), and how its findings become threads.
+      Document the workflow guard a public repository needs (trigger only for the owner, never for
+      arbitrary commenters).
