@@ -18086,6 +18086,13 @@ items:
       2026-11-05. A clerk may decline with a reason code and attach a proposed fix to its procedure.
       An attempt that stops could propose the brief or rule change it needed, rolled up for the
       person, so stops improve the rules.
+
+      Evidence from a driven loop, 2026-11-09: a drafter's needs_decision result was accepted by
+      itos attempt submit, but nothing was asked, so itos next offered the same step again and the
+      next attempt (max effort) started a minute later and stopped the same way; twice before a
+      person noticed. itos attempt submit could file the question as an open decision on the item
+      (itos decision add --item) from a needs_decision result, so next waits until it is answered.
+      The driver now files it itself.
     tags: [v9]
 
   - id: p2-v9-shadow-answering-agent
