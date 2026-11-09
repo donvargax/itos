@@ -18208,6 +18208,12 @@ items:
       block and the lines under it (or the godog step error), and an explicit 'no message could be
       extracted' instead of an empty one.
 
+      Concrete diagnosis from the same loop: go test -test.v streams the <file>.go:N: error lines as
+      they happen and prints the --- FAIL line bare, and a timeout prints no --- FAIL at all, so an
+      extractor keyed on --- FAIL finds an empty message. Attribute each error block to the test
+      named by the last === RUN or === NAME line, which is what go tool test2json does on a captured
+      log; say plainly when no message was found.
+
   - id: p2-next-holds-until-evidence-changes
     title: itos next stops routing an item back to repair when nothing has changed since its last attempt
     phase: 2
