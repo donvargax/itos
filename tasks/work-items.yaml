@@ -18289,3 +18289,9 @@ items:
       stdin), and an explicit 'none' when one is given empty, would let a driver hand over a
       complete brief; an unfilled marker could then be a warning. Today the driver works around it
       with a sentence in its preamble.
+
+      Second report, 2026-11-09: a drafter's brief showed the raw settled-decisions marker and
+      nothing about two questions already answered for its item in tasks/asks.yaml on main, because
+      its attempt branch predated the answers. The brief could also list the item's answered asks,
+      read from the main line rather than the attempt branch, so an answered question is never asked
+      again.
