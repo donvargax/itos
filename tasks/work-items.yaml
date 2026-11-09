@@ -14943,6 +14943,10 @@ items:
       verbose today (each command and its output); check first whether 8.25 already marks each
       check's result, then print pass, fail with exit code, or timed out per check, and the failing
       check's tail.
+
+      Seen again from a driven loop, 2026-11-09: a drafter had to rerun each of a task's several
+      done_when checks by hand to show how each fails before the work, because itos task printed
+      only one final status line.
     refs: [internal/slices/task]
     tags: [work, evidence, v8]
 
