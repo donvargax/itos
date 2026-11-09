@@ -18409,3 +18409,18 @@ items:
       on the job graph, not on the task's own check. Let a check name the job (or a fixture profile)
       that runs it, with ci plan routing it there, or document a pattern for fixture-bound checks.
       Engine-backed tasks will multiply as sandboxing work grows.
+
+  - id: p3-work-show-keeps-spaces
+    title: itos work show prints a why's runs of spaces as the ledger stores them
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Seen from a driven loop, 2026-11-09: work show collapsed runs of spaces in a task's why, so a
+      quoted test line ' suite.go:640:' printed as ' suite.go:640:' and '=== RUN X' would print with
+      one space; a reader comparing it with real output sees a different shape. A folded YAML scalar
+      also drops spaces silently where a line break falls inside such a run, so an author wrapping a
+      quoted line has to guard it by hand. Print the scalar as stored, or have the guide warn that
+      runs of spaces don't survive folding.
