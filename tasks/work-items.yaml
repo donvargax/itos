@@ -18264,3 +18264,21 @@ items:
       signs a delegation once; a delegate key signs decisions within it, conditions checked
       from the orchestrator's own records) and with a sandbox's scoped GitHub token, which would be the bot's,
       never the person's. Not to build now.
+
+  - id: p2-brief-fill-placeholders
+    title: itos brief fills its coordinator placeholders from flags, or says none, so a driven agent never sees a raw marker
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Seen from a driven loop, 2026-11-09: itos brief printed '<settled decisions, filled by the
+      coordinator>' and '<the item's own questions, filled by the coordinator>' literally
+      (internal/slices/brief/fill.go settledMark, neighboursMark, questionsMark), because a script,
+      not a person, drives the agent and edits nothing. The drafter could not tell 'nothing settled'
+      from 'the coordinator forgot', which matters when it decides whether to stop on a security
+      question. Flags such as --settled <file>, --neighbours <file> and --questions <file> (or
+      stdin), and an explicit 'none' when one is given empty, would let a driver hand over a
+      complete brief; an unfilled marker could then be a warning. Today the driver works around it
+      with a sentence in its preamble.
