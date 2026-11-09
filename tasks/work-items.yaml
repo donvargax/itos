@@ -18344,3 +18344,17 @@ items:
       says plainly, when a named task's checks were skipped; and work promote --check or config
       check warns when a prose-only task carries a check without prose: true. This is
       verified-not-claimed's core promise, so p1.
+
+  - id: p2-ci-run-warns-off-range-end
+    title: itos ci run <from> <to> refuses, or warns, when HEAD isn't <to>
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Seen from a driven loop, 2026-11-09: a reviewer replayed itos ci run <from> <to> from a
+      checkout whose HEAD was another commit, and the task checks ran against that working tree's
+      files, not the range end's, giving a false red ('ls: cannot access') at a range end that did
+      hold the record. A one-line warning, or a refusal unless --at-head (or a clean worktree at
+      <to>) is given, would stop a replay judging the wrong files.
