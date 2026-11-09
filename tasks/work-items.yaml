@@ -18323,3 +18323,24 @@ items:
       and let a P1 through. The brief (or itos review status) should quote the standing verdict's
       body for the role that must answer it, and 'no open threads' should not read as 'nothing to
       answer'.
+
+  - id: p1-task-close-needs-its-checks-run
+    title: A task with checks never closes on a green run that didn't run them, and CI says so when it skips them
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Measured from a driven loop on itos 8.46.4, 2026-11-09: three routes close a task whose checks
+      never ran. (1) A prose-only range drops every late check without prose: true ('(reads no
+      prose; left out)', internal/ci/ci.go:191) and then prints CI passed, so a docs task's
+      done_when gates nothing: a one-heading decision record passed itos commit --task, itos verify
+      and itos ci run. (2) A commit whose only footer is Item: <task> names no task, so CI runs no
+      task check. (3) A range naming a task the registry at its head still calls todo prints 'its
+      checks wait' (ci.go:182) and passes; work done then accepts that green run. itos help work
+      done says the checks gate the close, which is untrue in all three. Wanted: work done refuses a
+      task with checks when no CI run ran them at the commit it closes on; CI fails, or at least
+      says plainly, when a named task's checks were skipped; and work promote --check or config
+      check warns when a prose-only task carries a check without prose: true. This is
+      verified-not-claimed's core promise, so p1.
