@@ -18379,3 +18379,18 @@ items:
       engine-only scenarios) and exits 0 with a skip, so a task check naming only such IDs is green
       before any work. ci plan or config check should warn or refuse when every selected ID carries
       a tag the configured whole run excludes (the adapter could declare that tag).
+
+  - id: p2-task-check-names-its-job
+    title: A task check can name the CI job that judges it
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Seen from a driven loop, 2026-11-09: itos ci run runs every task check in the ci job, but a
+      project whose real-engine evidence exists only in a separate engine job (a fixture registry,
+      Docker, a longer budget) can't write a done_when that names an engine row; closure then rests
+      on the job graph, not on the task's own check. Let a check name the job (or a fixture profile)
+      that runs it, with ci plan routing it there, or document a pattern for fixture-bound checks.
+      Engine-backed tasks will multiply as sandboxing work grows.
