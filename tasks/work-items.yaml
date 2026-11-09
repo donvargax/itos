@@ -15968,6 +15968,15 @@ items:
       #251 (2026-11-03): under a strict required check, every direct registry commit makes every
       open pull request BEHIND, each then needing a rebase and a whole new CI run before auto-merge
       fires.
+
+      The same under push.pr.update merge, from a driven loop, 2026-11-09: --ready pushes its own
+      'Merge main into <item>' whenever main moved, and with four workers pushing takes, closes and
+      triage notes to main every few minutes, an item tried to land three times in 30 minutes. Its
+      runs (about 13 minutes green, up to 8 more queued) were each cancelled by the next call's
+      merge. The loop's workaround: its own --ready call runs with a config copy setting
+      push.pr.ready_wait to 2700, so one call sees a head through. Either fix above covers both
+      update modes: no merge or rebase while the head's run is in progress, or a green head accepted
+      when main gained only bookkeeping.
     tags: [push, v9]
 
   - id: p2-gh-transient-exit-75
