@@ -18439,3 +18439,16 @@ items:
       in the spec round. work promote (or config check) should refuse, or warn, when a task's type
       is one of commits.types whose required footers a task's ledger entry can't supply, and say
       which types fit.
+
+  - id: p3-task-prints-each-check-status
+    title: itos task <id> prints each done_when check's exit status beside its command
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Seen from a driven loop, 2026-11-09: for a task with several done_when checks, itos task <id>
+      printed the commands and one final status line, not which check failed or with what exit
+      status, so a drafter reran every check by hand to report how each fails before the work (the
+      red-first evidence a task spec needs). Print pass/fail and the exit status per check.
