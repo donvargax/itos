@@ -18424,3 +18424,18 @@ items:
       also drops spaces silently where a line break falls inside such a run, so an author wrapping a
       quoted line has to guard it by hand. Print the scalar as stored, or have the guide warn that
       runs of spaces don't survive folding.
+
+  - id: p2-promote-refuses-unusable-task-type
+    title: work promote refuses a task type whose commits need a footer a task can't carry
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Seen from a driven loop, 2026-11-09: a task was promoted with type feat, but the commit rules
+      require a live Scenarios: footer on a feat commit, and a task has a go test check and no
+      scenarios, so no commit of that task can pass; each drafter has to notice and rewrite the type
+      in the spec round. work promote (or config check) should refuse, or warn, when a task's type
+      is one of commits.types whose required footers a task's ledger entry can't supply, and say
+      which types fit.
