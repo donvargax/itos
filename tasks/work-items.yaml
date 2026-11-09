@@ -18345,6 +18345,10 @@ items:
       check warns when a prose-only task carries a check without prose: true. This is
       verified-not-claimed's core promise, so p1.
 
+      A further suggestion from the same loop: flag an Item-only commit that touches a path a ledger
+      task covers, or run the checks of every task whose paths a commit touches, so a task's check
+      can't be skipped by the footer chosen.
+
   - id: p2-ci-run-warns-off-range-end
     title: itos ci run <from> <to> refuses, or warns, when HEAD isn't <to>
     phase: 2
