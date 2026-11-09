@@ -18190,3 +18190,19 @@ items:
       over an hour. Repair eligibility could require new evidence since the last attempt (a new red
       run, a new thread, a new commit on main) or an explicit answer, and otherwise report waiting
       with the reason. Related to p2-v9-no-progress-waiting.
+
+  - id: p2-task-check-ci-shaped-clone
+    title: itos task can rehearse a task's checks in a clone shaped like CI's checkout
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      A project's loop reported (2026-11-09) a task check that passed in every local clone and
+      failed only in CI: it ran git show-ref, which exits 1 in CI's checkout of a pull request (a
+      detached merge-ref HEAD, refs only under refs/remotes/pull, no tags, no branch heads). The
+      failure surfaced only after the push and a full CI run. A flag on itos task (or the check
+      runner) that runs a task's checks in a throwaway clone shaped like that checkout would catch
+      such checks before the push. Related: checks that pass only on a developer's clone are a
+      class, not this one command.
