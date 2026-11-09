@@ -18295,3 +18295,20 @@ items:
       its attempt branch predated the answers. The brief could also list the item's answered asks,
       read from the main line rather than the attempt branch, so an answered question is never asked
       again.
+
+  - id: p2-brief-carries-standing-verdict
+    title: itos brief carries the standing review verdict's findings when an item is sent back
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Seen from a driven loop, 2026-11-09: after a spec-changes verdict, itos brief --role drafter
+      read like a first-time spec request and never mentioned the verdict; itos next showed only
+      that the verdict was spec-changes with no open threads, and itos review status only a pending
+      Codex review. The findings sat in a pull request comment the drafter role can't read without
+      gh. A drafter that followed its brief could have checked the old spec, returned it unchanged
+      and let a P1 through. The brief (or itos review status) should quote the standing verdict's
+      body for the role that must answer it, and 'no open threads' should not read as 'nothing to
+      answer'.
