@@ -4370,6 +4370,12 @@ items:
 
       #252 (2026-11-03): an implementer who built more than the checks covered had no command to add
       a check to its open task.
+
+      Seen from a coordinator's loop, 2026-11-09: a triage step that judged an idea a duplicate of a
+      task ran work edit <task> --note, and itos refused with 'write the note in T-33's ledger
+      entry' but offers no command that does it, so the duplicate's reason was lost twice in an
+      hour. task edit --note, or work edit --note routing a task's note to its ledger entry, would
+      close it.
     tags: [work, v9]
 
   - id: p3-stealth-ledger-portability
