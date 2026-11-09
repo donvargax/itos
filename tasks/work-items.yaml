@@ -12603,13 +12603,13 @@ items:
       data) against the base's implementation, expecting each new scenario to fail at its intended
       Then, then the full head to pass, so no test commit is needed and red-first stops depending on
       commit order; (b) agents split their commits locally, red then green, and the loop verifies
-      both and records a signed approval (weir's). (a) is the stronger property (these tests fail
+      both and records a signed approval. (a) is the stronger property (these tests fail
       without this change) and drops the commit-splitting ceremony agents get wrong (an
       implementer's fix was refused for no test commit before it, the same day). Limits of (a): a Go
       unit test calling a new function fails to build against the base, which is not a red at a
       Then, so (a) suits black-box scenarios first; test support outside _test.go needs a path rule;
       scenarios that need a real container engine still run where the engine is allowed (CI). A red
-      record kept off git (weir's store) instead of a commit would also drop attempt-not-red-first's
+      record kept off git, in a signed store, instead of a commit would also drop attempt-not-red-first's
       commit-order rule.
     tags: [evidence, v8]
 
@@ -18260,7 +18260,7 @@ items:
       loop's own PR reviews post under the person's login today). Give agents a bot account or
       GitHub App identity, kept out of the people list, and the person's login for the person alone;
       then sign agent commits with that identity's SSH key and check signatures in CI, so authorship
-      stops being self-declared git config. Pairs with weir's delegated, chained approvals (a person
-      signs a delegation once; weir's delegate key signs decisions within it, conditions checked
-      from weir's own records) and with a sandbox's scoped GitHub token, which would be the bot's,
+      stops being self-declared git config. Pairs with delegated, chained approvals (a person
+      signs a delegation once; a delegate key signs decisions within it, conditions checked
+      from the orchestrator's own records) and with a sandbox's scoped GitHub token, which would be the bot's,
       never the person's. Not to build now.
