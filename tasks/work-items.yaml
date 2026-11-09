@@ -18296,6 +18296,12 @@ items:
       read from the main line rather than the attempt branch, so an answered question is never asked
       again.
 
+      Third report, 2026-11-09: itos work show <item> reads the questions from the checked-out
+      branch, so on an item branch behind main it listed two answered questions for the item and
+      missed a third answered on main since. Both the brief and work show should read the item's
+      questions from the main line (or warn when the branch's copy is behind), so a session never
+      misses a decision about its own item.
+
   - id: p2-brief-carries-standing-verdict
     title: itos brief carries the standing review verdict's findings when an item is sent back
     phase: 2
