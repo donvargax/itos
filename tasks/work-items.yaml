@@ -18390,6 +18390,11 @@ items:
       before any work. ci plan or config check should warn or refuse when every selected ID carries
       a tag the configured whole run excludes (the adapter could declare that tag).
 
+      Third case: a promoted check that already passes on the unchanged tree (it runs tests that
+      exist today), so the task reports done with no work; three tasks in one evening, caught only
+      by a drafter's review. work promote --check (and itos task) should warn when the check passes
+      before any change, the cheapest red-first test there is.
+
   - id: p2-task-check-names-its-job
     title: A task check can name the CI job that judges it
     phase: 2
