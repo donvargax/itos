@@ -18203,6 +18203,11 @@ items:
       retries blind. The coordinator had to fetch job logs with gh api to read the messages. Carry
       the first failing assertion lines (bounded) beside each failing test name in the handoff.
 
+      Seen again from a driven loop, 2026-11-09: a CI failure summary for a failing Go test showed a
+      log tail ending in passing tests and an empty message. Wanted: the failing test's --- FAIL
+      block and the lines under it (or the godog step error), and an explicit 'no message could be
+      extracted' instead of an empty one.
+
   - id: p2-next-holds-until-evidence-changes
     title: itos next stops routing an item back to repair when nothing has changed since its last attempt
     phase: 2
