@@ -18097,6 +18097,12 @@ items:
       person noticed. itos attempt submit could file the question as an open decision on the item
       (itos decision add --item) from a needs_decision result, so next waits until it is answered.
       The driver now files it itself.
+
+      Second report from a driven loop, 2026-11-09: a drafter may commit only through itos commit,
+      and itos decision add commits on its own, so the brief leaves a drafter no route to put a
+      question to the person but its hand-back report. Filing the decision from the needs_decision
+      result at itos attempt submit closes that too; the brief should then say a drafter's question
+      goes in that result.
     tags: [v9]
 
   - id: p2-v9-shadow-answering-agent
