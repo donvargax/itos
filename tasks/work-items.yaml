@@ -12597,6 +12597,20 @@ items:
       the intended Then failure from a setup or infrastructure failure, the same question as
       bug-155's fails: checks; the blueprint labels evidence by trust class (narrative, local
       record, CI record, sign-off).
+
+      The person, 2026-11-09: take red-first out of agents' hands. Two shapes: (a) agents build
+      everything; the loop deterministically runs the head's tests (features/**, *_test.go, test
+      data) against the base's implementation, expecting each new scenario to fail at its intended
+      Then, then the full head to pass, so no test commit is needed and red-first stops depending on
+      commit order; (b) agents split their commits locally, red then green, and the loop verifies
+      both and records a signed approval (weir's). (a) is the stronger property (these tests fail
+      without this change) and drops the commit-splitting ceremony agents get wrong (an
+      implementer's fix was refused for no test commit before it, the same day). Limits of (a): a Go
+      unit test calling a new function fails to build against the base, which is not a red at a
+      Then, so (a) suits black-box scenarios first; test support outside _test.go needs a path rule;
+      scenarios that need a real container engine still run where the engine is allowed (CI). A red
+      record kept off git (weir's store) instead of a commit would also drop attempt-not-red-first's
+      commit-order rule.
     tags: [evidence, v8]
 
   - id: p1-evidence-pre-push
