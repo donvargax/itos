@@ -18358,3 +18358,18 @@ items:
       files, not the range end's, giving a false red ('ls: cannot access') at a range end that did
       hold the record. A one-line warning, or a refusal unless --at-head (or a clean worktree at
       <to>) is given, would stop a replay judging the wrong files.
+
+  - id: p2-promote-check-warns-vacuous
+    title: work promote --check and config check warn about a check that can't mean anything
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Seen from a driven loop, 2026-11-09: itos work promote --check ran the check it was given and
+      warned about nothing. A go test -run pattern that matches no test exits 0, so the task's check
+      passed before any work; another promoted check carried a path that only exists on the loop's
+      host, so it can't pass in CI. Warn when a go test -run (or -scenarios) selection matches
+      nothing, and when a check names an absolute path outside the repository; and consider a
+      local-only prefix for checks a developer runs but CI doesn't.
