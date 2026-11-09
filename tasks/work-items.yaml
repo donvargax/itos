@@ -18373,3 +18373,9 @@ items:
       host, so it can't pass in CI. Warn when a go test -run (or -scenarios) selection matches
       nothing, and when a check names an absolute path outside the repository; and consider a
       local-only prefix for checks a developer runs but CI doesn't.
+
+      Second case, 2026-11-09: itos ci plan recognizes go test ./features -count=1
+      -scenarios={pattern} and merges it into the ordinary run, which excludes a tag (a project's
+      engine-only scenarios) and exits 0 with a skip, so a task check naming only such IDs is green
+      before any work. ci plan or config check should warn or refuse when every selected ID carries
+      a tag the configured whole run excludes (the adapter could declare that tag).
