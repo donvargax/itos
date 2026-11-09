@@ -16675,6 +16675,13 @@ items:
       review request (slice-215) would read it. Until then: hold registry pushes to main while an
       item is landing.
 
+      Second report from a driven loop, 2026-11-09: one item went four clean review rounds without
+      landing, and a second spent two. Each --ready merged main in (often for a single registry
+      commit), waited out push.pr.ready_wait, and the new head needed new reviews while main moved
+      again. The loop now carries its own local review across a clean merge (a merge commit whose
+      first parent passed and whose combined diff, git diff-tree --cc, is empty); Codex's reviews
+      and CI still run on every head. The same test would let review_by carry its verdicts too.
+
   - id: bug-157
     title: The VCS adapter's log reader drops, without a word, a commit whose message holds the byte 0x1e
     phase: 1
