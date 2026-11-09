@@ -18230,3 +18230,23 @@ items:
       its reply is recognised (the app's login and a marker), and how its findings become threads.
       Document the workflow guard a public repository needs (trigger only for the owner, never for
       arbitrary commenters).
+
+  - id: p2-agents-own-identity
+    title: Agents act under an identity of their own, never the person's login
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The person, 2026-11-09, after a comparison of how 25 trackers trust changes (most trust a
+      self-declared actor; Radicle alone signs). itos's strongest trust rule counts reviews and
+      markers only from logins among the people, but agents, the loop and the coordinator all use
+      the person's gh token, so an agent's comment is indistinguishable from the person's (the
+      loop's own PR reviews post under the person's login today). Give agents a bot account or
+      GitHub App identity, kept out of the people list, and the person's login for the person alone;
+      then sign agent commits with that identity's SSH key and check signatures in CI, so authorship
+      stops being self-declared git config. Pairs with weir's delegated, chained approvals (a person
+      signs a delegation once; weir's delegate key signs decisions within it, conditions checked
+      from weir's own records) and with a sandbox's scoped GitHub token, which would be the bot's,
+      never the person's. Not to build now.
