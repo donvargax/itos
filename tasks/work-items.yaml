@@ -16019,6 +16019,14 @@ items:
       (ADR-0055 keys only the sign-off). A narrow guard rule refusing these three to an agent
       session is the additive rail, to build only once an agent is seen settling a decision as the
       person (guard rails from evidence).
+
+      Evidence from a driven loop, 2026-11-09/10: a coordinator session answering open questions
+      under the person's standing instructions answered eight questions directly, as the person.
+      --provisional was refused because the project delegates no decision class, and when the person
+      disagreed with one answer, decision overturn refused it (no provisional answer), so a new
+      question had to replace the old. Before a guard: let a session the person has authorized
+      answer provisionally without a delegated class (or say how to delegate one), and let overturn,
+      or a supersede, replace any answer the person did not give.
     tags: [guard, v9]
 
   - id: p3-rule-ids-gate
