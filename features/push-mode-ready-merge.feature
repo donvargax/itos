@@ -86,6 +86,142 @@ Feature: Under push.pr.update merge, itos push --ready brings the pull request u
   "the head of the remote's branch <name> is the merge commit <subject>" is
   slice-213's. Nothing else is new.
 
+  Slice-222: a merge of main that conflicts only because both sides added to
+  the registry or a ledger. Two sessions appending there conflict on every
+  such merge, by construction (#107), and no person should be needed.
+
+  Where. Only the merge of main that itos push makes under push.pr.update
+  merge, a plain push and --ready alike (mergeItem's bringUp of main, in
+  update.go, which decides, commits and reports). Not the merge of the
+  remote's own item branch, a rebase, git pull or work done's pull. A mode
+  with no merge is untouched: push.pr.update rebase, and trunk. What stays
+  p1-registry-merge's: those paths, and #107's comment's case, work done
+  dropping a task's done_when or an item's why lines right above another
+  session's append, whose hunk has base lines and so stops here.
+
+  Which paths. The conflict set is merge-tree's (internal/git's mergedTree),
+  not git diff --diff-filter=U, which leaves out a path rerere.autoupdate has
+  staged. Every path in it must be the work registry (work.registry) or a
+  ledger file (as ledger.LayoutOf reads ledger.files), read from the config as
+  the merge left it, never a path pattern, with all three index stages and no
+  merge attribute. Anything else is exactly today's: merge left in progress,
+  exit 1, merge-conflict, naming merge-tree's paths. So are another conflicted
+  path; a path git leaves unmerged that merge-tree does not name; add/add, with
+  no stage 1; a modify/delete or a rename; a path rerere staged; a path with a
+  merge attribute. All or nothing.
+
+  The first filter is on hunks. They come from git merge-file --diff3 over the
+  three stages, and from nothing else: git checkout --conflict=diff3 reruns a
+  custom driver. git's default style refines conflicts: two appended items
+  sharing their phase, owner and status lines split into two hunks, and keeping
+  each would leave the first item with its id and title alone and the second
+  with both whys. diff3 does not refine, and merge.conflictStyle does not reach
+  merge-file. keep-both is a pure function of that text in internal/git
+  (keepboth.go), with a table test: where a hunk's base is empty, both sides
+  inserting at one place, it writes ours then theirs, byte for byte, adding no
+  line, since each side already holds its own leading blank line. Any hunk with
+  base lines stops: an item both sides changed, whether the lines are a status
+  (which would parse as a key written twice) or a why's text (which would parse
+  and pass). Its rows: one hunk; several; a hunk with base lines; markers left
+  unmatched; no markers; a side with no final newline; a CRLF file, whose
+  markers carry the CR, the result's endings the sides' own.
+
+  The second filter is on entries, because an empty base shows only that both
+  sides inserted at one place, not that each insert is a new entry. Main's work
+  defer on the last item and the branch's work add are such a hunk: kept ours
+  first, the defer lands on the branch's new item, and every rule passes. work
+  edit's --note and --refs, and a ledger task's why, move the same way. So
+  beside keep-both, a second pure function with its own table test takes the
+  four texts of a path, base, ours, theirs and the result, and reads entries by
+  id: a ledger's are its list, a registry's its items. Writing an absent entry
+  as a value, each id's result must be what merging that one entry gives:
+    ours == base: theirs
+    theirs == base: ours
+    ours == theirs: that
+    otherwise: abort
+  So a new id must be its own side's entry, and two sides adding different keys
+  or why lines to one item abort, even where git would merge them. An id twice
+  in any of the four aborts. Each other top-level key of a registry takes the
+  same rule, whole. The queue's: each side's additions are in the result, and
+  nothing either side took out is, with keep-both's order, ours first, so a
+  branch's queue add outranks a later --top on main. An id both sides queued at
+  one place is git's single line, no conflict. Held twice by the kept hunks it
+  aborts. Git may still merge one id queued at two neighbouring places cleanly,
+  twice: no conflict, so nothing here runs.
+
+  The readers. Neither typed reader serves: work's parse and ledger's read are
+  private, and read a registry or a file for its problems. value.Parse does:
+  flow and block read alike, and a folded why reads as its string, so a rewrap
+  is no change. A key's order must be no change either, and value has no
+  comparison that ignores it (value.JSON writes keys in their order), so the
+  work adds value.Equal. Its rows, in that function's table: key order; flow
+  against block; a folded text rewrapped; an absent key against a present one,
+  which is a change.
+
+  The soundness check, in process, is config check's over the merged result,
+  the stages resolved into the index and read from there (cfg.DataFrom over the
+  tree at vcsport.Index), never the work tree: a dirty ledger file must not
+  abort it, nor a clean one mask it. work.Problems and ledger.Findings'
+  problems, all their rules, warnings not counted; an err from work.Problems,
+  as a key written twice gives, aborts too.
+
+  Any stop in either filter or the check: git merge --abort, exit 1,
+  merge-conflict, naming the paths and why, nothing pushed (registry commits
+  already sent to main stay there), every path together: a keepable registry
+  beside a ledger with base lines aborts whole. No merge is then in progress, so
+  it says to run git merge origin/main by hand, resolve it, commit it with a
+  typed first line and itos push again.
+
+  The commit. Its type is read from the config, before anything is touched:
+  docs first, as itos's registry writers type theirs, then the types the
+  registry footer stands in for (in_place_of), in the config's order; the
+  first whose path rules pass the conflicted paths (scope.Rules.Issues) and
+  that message.Missing finds nothing missing for. feat and fix are never
+  candidates: a merge is no release. None fits: today's behaviour, merge left
+  in progress. The message is "<type>: merge main into <item>", with the
+  registry footer ("Item: <item>") when the config has one and the merged
+  registry holds the item. The type's helper is push's own, in update.go:
+  slice-221 needs the same reading and is not in yet, so sharing it is for
+  later. It commits past the hooks, as bringUp's own merge does, and is judged
+  at pre-push. Its own paths (bugs 158, 159) are merge-tree's conflict set and
+  nothing else, so it passes as a typed by-hand merge passes.
+
+  What it says: "Merged main into <item>, keeping both sides of <paths>.", and
+  --json gains kept_both, the list of paths, only when it kept any.
+
+  Line endings: keep-both adds no line, so it cannot mix them. The table's CRLF
+  row and a contract test of the port's diff3 text under core.autocrlf=true
+  hold it, on every OS; no scenario does. The rows that need no real git:
+
+  - The entries' table: main defers the last item as the branch appends; two
+    appends; an item each side gave a different key; the queue, each side
+    adding, and a side's removal coming back; an id held twice by a ledger.
+  - update_test.go: no type fits, left in progress; a ledger's duplicate id;
+    work.Problems' err aborts; a keepable registry beside a ledger with base
+    lines aborts whole; one id minted by both sides aborts, naming it; a
+    modify/delete, an add/add, a rerere-staged and a merge-attributed path
+    each left in progress.
+  - The type's table: this repository's config gives docs; docs and test barred
+    with an Item footer gives chore; feat never.
+
+  It lands as a feat, Upgrading: none: no released scenario or corpus case
+  pins a registry or ledger conflict as merge-conflict, so no Changes. The
+  implementing push updates itos push --help, doc.go's "push.pr.update merge"
+  passage, and push-merge.feature's paragraph on a conflict in either merge.
+
+  Slice-222's steps. Five are new. "the clone has <path> unmerged" finds the
+  path in git diff --name-only --diff-filter=U. "the config's <type> commits
+  may touch only
+  <glob>" sets commits.scopes.<type>.only in the scratch config, in place of
+  docs' own line for docs. "the file <path> on the remote's branch <name> has
+  exactly the lines:" compares that blob at the branch's head with the
+  docstring and a final newline. "the clone has no merge in progress" is the
+  opposite of slice-213's. "the remote's branch <name> has gained the commit
+  <subject> adding the idea <id> to the registry" is remoteBranchGains with
+  addIdeaIn for its edit. The registries are written out with slice-213's
+  "writing <path> with the lines:" where a scenario needs block items; the
+  Background's are flow lines, one line an item.
+
   Background:
     Given a repository whose ledger has the task "T-001"
     And a clone of it, where itos runs
@@ -156,6 +292,565 @@ Feature: Under push.pr.update merge, itos push --ready brings the pull request u
     And the recording gh's "pr merge" call does not have "--rebase"
     And the recording gh was never called as "pr update-branch"
     And its output says "Merged https://github.example/o/r/pull/7 by merge at "
+
+  # Slice-222's point, on block items as a real registry has them, which is
+  # what git's default style would split: both sides queue an id at the top
+  # and append an item. Each hunk's base is empty, so both are kept, ours
+  # first, adding no line; the file is compared whole. The real pre-push hook
+  # judges the merge, whose own path is the registry, and verify agrees. The
+  # hook is installed last, so no Given's push meets it. Fails before the work
+  # at the exit code: the merge stops and is left in progress, exit 1.
+  @wip @slice-222 @ID-READYMERGE-07
+  Scenario: Under push.pr.update merge, a merge of main where both sides only added to the registry keeps both, ours first, and pushes a typed merge past the pre-push hook and verify
+    Given the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+        pr:
+          draft: true
+          update: merge
+      """
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the remote has gained the commit "docs: write the registry out" writing "tasks/work-items.yaml" with the lines:
+      """
+      phases:
+        1: null
+
+      queue:
+        - slice-9
+
+      items:
+        - id: slice-9
+          title: Add the widget
+          phase: 1
+          owner: null
+          status: todo
+          depends_on: []
+          kind: slice
+      """
+    And the clone has fetched the remote
+    And the clone has reset its branch to the remote's main
+    And the clone is on the new branch "slice-9"
+    And the clone has the commit "docs: add p1-mine" writing "tasks/work-items.yaml" with the lines:
+      """
+      phases:
+        1: null
+
+      queue:
+        - p1-mine
+        - slice-9
+
+      items:
+        - id: slice-9
+          title: Add the widget
+          phase: 1
+          owner: null
+          status: todo
+          depends_on: []
+          kind: slice
+
+        - id: p1-mine
+          title: Mine
+          phase: 1
+          owner: null
+          status: todo
+          depends_on: []
+          kind: idea
+          why: >
+            My reason.
+      """
+    And git pushes HEAD to the remote's new branch "slice-9"
+    And the recording gh has the draft pull request "https://github.example/o/r/pull/7" open for the branch "slice-9"
+    And the remote has gained the commit "docs: add p1-theirs" writing "tasks/work-items.yaml" with the lines:
+      """
+      phases:
+        1: null
+
+      queue:
+        - p1-theirs
+        - slice-9
+
+      items:
+        - id: slice-9
+          title: Add the widget
+          phase: 1
+          owner: null
+          status: todo
+          depends_on: []
+          kind: slice
+
+        - id: p1-theirs
+          title: Theirs
+          phase: 1
+          owner: null
+          status: todo
+          depends_on: []
+          kind: idea
+          why: >
+            Their reason.
+      """
+    And the pre-push hook is installed
+    When itos runs "push --json"
+    Then itos exits with code 0
+    And its JSON's "kept_both" has a line saying "tasks/work-items.yaml"
+    And the head of the remote's branch "slice-9" is the merge commit "docs: merge main into slice-9"
+    And the remote's branch "slice-9" has the remote main's commit "docs: add p1-theirs"
+    And the clone's HEAD is the head of the remote's branch "slice-9"
+    And the file "tasks/work-items.yaml" on the remote's branch "slice-9" has exactly the lines:
+      """
+      phases:
+        1: null
+
+      queue:
+        - p1-mine
+        - p1-theirs
+        - slice-9
+
+      items:
+        - id: slice-9
+          title: Add the widget
+          phase: 1
+          owner: null
+          status: todo
+          depends_on: []
+          kind: slice
+
+        - id: p1-mine
+          title: Mine
+          phase: 1
+          owner: null
+          status: todo
+          depends_on: []
+          kind: idea
+          why: >
+            My reason.
+
+        - id: p1-theirs
+          title: Theirs
+          phase: 1
+          owner: null
+          status: todo
+          depends_on: []
+          kind: idea
+          why: >
+            Their reason.
+      """
+    When itos verifies every commit up to HEAD
+    Then itos exits with code 0
+    And its output says "commits pass the commit rules"
+
+  # The type is read from the config. docs may not touch the registry here,
+  # and test, which the Item footer stands in for and comes first, may not
+  # either, so the merge is a chore. The Item footer is what lets a chore pass:
+  # it needs a Task or an Item, and the real pre-push hook judges it, which
+  # refuses a docs merge under scope-only and an untyped one under merge-type.
+  # Fails before the work at the exit code: the merge stops, exit 1.
+  @wip @slice-222 @ID-READYMERGE-08
+  Scenario: Under push.pr.update merge, keeping both in a config whose docs commits may not touch the registry commits the merge under the type the config lets it take
+    Given the config has an Item footer of registry items, taken in place of Task for test, docs and chore
+    And the config's "docs" commits may touch only "docs/**"
+    And the config's "test" commits may touch only "features/**"
+    And the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+        pr:
+          draft: true
+          update: merge
+      """
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the clone is on the new branch "slice-9"
+    And the remote has gained the commit "docs: add p1-theirs" adding the idea "p1-theirs" to the registry
+    And the clone has the commit "docs: add p1-mine" adding the idea "p1-mine" to the registry
+    And git pushes HEAD to the remote's new branch "slice-9"
+    And the recording gh has the draft pull request "https://github.example/o/r/pull/7" open for the branch "slice-9"
+    And the pre-push hook is installed
+    When itos runs "push"
+    Then itos exits with code 0
+    And the head of the remote's branch "slice-9" is the merge commit "chore: merge main into slice-9"
+    And the clone's HEAD is the head of the remote's branch "slice-9"
+
+  # An item both sides changed. Both rewrite one line of its why, so the hunk
+  # has a base line and the id is nowhere in it. Kept both, it would parse and
+  # pass every rule (a status changed on both sides is a table row: it would
+  # only be a key written twice). The first filter stops it, by its base line.
+  # Aborted, not left in progress: the clone is back where it was.
+  # Fails before the work at "both sides changed": today's words say to
+  # resolve the files, and the merge is left in progress.
+  @wip @slice-222 @ID-READYMERGE-09
+  Scenario: Under push.pr.update merge, a merge of main where both sides changed one item is aborted, exit 1, saying why and how to go on, nothing pushed
+    Given the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+        pr:
+          draft: true
+          update: merge
+      """
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the remote has gained the commit "docs: write the registry out" writing "tasks/work-items.yaml" with the lines:
+      """
+      phases:
+        1: null
+
+      items:
+        - id: slice-9
+          title: Add the widget
+          phase: 1
+          owner: null
+          status: todo
+          depends_on: []
+          kind: slice
+
+        - id: p1-gadget
+          title: Add the gadget
+          phase: 1
+          owner: null
+          status: todo
+          depends_on: []
+          kind: idea
+          why: >
+            The first reason.
+      """
+    And the clone has fetched the remote
+    And the clone has reset its branch to the remote's main
+    And the clone is on the new branch "slice-9"
+    And the clone has the commit "docs: edit p1-gadget here" writing "tasks/work-items.yaml" with the lines:
+      """
+      phases:
+        1: null
+
+      items:
+        - id: slice-9
+          title: Add the widget
+          phase: 1
+          owner: null
+          status: todo
+          depends_on: []
+          kind: slice
+
+        - id: p1-gadget
+          title: Add the gadget
+          phase: 1
+          owner: null
+          status: todo
+          depends_on: []
+          kind: idea
+          why: >
+            The reason as the item's branch has it.
+      """
+    And git pushes HEAD to the remote's new branch "slice-9"
+    And the recording gh has the draft pull request "https://github.example/o/r/pull/7" open for the branch "slice-9"
+    And the remote has gained the commit "docs: edit p1-gadget there" writing "tasks/work-items.yaml" with the lines:
+      """
+      phases:
+        1: null
+
+      items:
+        - id: slice-9
+          title: Add the widget
+          phase: 1
+          owner: null
+          status: todo
+          depends_on: []
+          kind: slice
+
+        - id: p1-gadget
+          title: Add the gadget
+          phase: 1
+          owner: null
+          status: todo
+          depends_on: []
+          kind: idea
+          why: >
+            The reason as main has it.
+      """
+    When itos runs "push --json"
+    Then itos exits with code 1
+    And its JSON's "outcome" is "merge-conflict"
+    And its output says "tasks/work-items.yaml"
+    And its output says "both sides changed"
+    And its output says "git merge origin/main"
+    And the clone has no merge in progress
+    And the clone's HEAD is the commit "docs: edit p1-gadget here", with no rebase in progress
+    And the remote's branch "slice-9" does not have "docs: edit p1-gadget there"
+    And the recording gh was never called
+
+  # The second filter. Main defers the last item as the branch appends one, as
+  # work defer and work add write them, so the hunk's base is empty: both sides
+  # insert at the end of the file. Kept ours first, the deferred line would land
+  # on p1-mine and leave p1-last open, and every rule of config check would
+  # pass, so a build with the first filter alone lands it, at the exit code. The
+  # merge aborts naming the entry. Fails before the work at its output saying
+  # "p1-last": today's words name only the path, and the merge stays in progress.
+  @wip @slice-222 @ID-READYMERGE-16
+  Scenario: Under push.pr.update merge, a merge of main that defers the last item as the branch appends one is aborted, exit 1, nothing pushed
+    Given the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+        pr:
+          draft: true
+          update: merge
+      """
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the remote has gained the commit "docs: write the registry out" writing "tasks/work-items.yaml" with the lines:
+      """
+      phases:
+        1: null
+
+      items:
+        - id: slice-9
+          title: Add the widget
+          phase: 1
+          owner: null
+          status: todo
+          depends_on: []
+          kind: slice
+
+        - id: p1-last
+          title: The last
+          phase: 1
+          owner: null
+          status: todo
+          depends_on: []
+          kind: idea
+      """
+    And the clone has fetched the remote
+    And the clone has reset its branch to the remote's main
+    And the clone is on the new branch "slice-9"
+    And the clone has the commit "docs: add p1-mine" writing "tasks/work-items.yaml" with the lines:
+      """
+      phases:
+        1: null
+
+      items:
+        - id: slice-9
+          title: Add the widget
+          phase: 1
+          owner: null
+          status: todo
+          depends_on: []
+          kind: slice
+
+        - id: p1-last
+          title: The last
+          phase: 1
+          owner: null
+          status: todo
+          depends_on: []
+          kind: idea
+
+        - id: p1-mine
+          title: Mine
+          phase: 1
+          owner: null
+          status: todo
+          depends_on: []
+          kind: idea
+      """
+    And git pushes HEAD to the remote's new branch "slice-9"
+    And the recording gh has the draft pull request "https://github.example/o/r/pull/7" open for the branch "slice-9"
+    And the remote has gained the commit "docs: defer p1-last" writing "tasks/work-items.yaml" with the lines:
+      """
+      phases:
+        1: null
+
+      items:
+        - id: slice-9
+          title: Add the widget
+          phase: 1
+          owner: null
+          status: todo
+          depends_on: []
+          kind: slice
+
+        - id: p1-last
+          title: The last
+          phase: 1
+          owner: null
+          status: todo
+          depends_on: []
+          kind: idea
+          deferred: until the widget lands
+      """
+    When itos runs "push --json"
+    Then itos exits with code 1
+    And its JSON's "outcome" is "merge-conflict"
+    And its output says "tasks/work-items.yaml"
+    And its output says "p1-last"
+    And the clone has no merge in progress
+    And the clone's HEAD is the commit "docs: add p1-mine", with no rebase in progress
+    And the remote's branch "slice-9" does not have "docs: defer p1-last"
+    And the recording gh was never called
+
+  # What a ledger file is comes from the config: here its files are outside
+  # tasks/, so a build reading a path pattern stops. A ledger file alone
+  # conflicts, which registryPaths does not count as the registry's. docs may
+  # touch them in this config, or no type would fit. ledger.files would move the
+  # default registry with it, so the config keeps it where it is. Fails before
+  # the work at the exit code: the merge stops, exit 1.
+  @wip @slice-222 @ID-READYMERGE-11
+  Scenario: Under push.pr.update merge, a merge of main where both sides only appended to a ledger file the config names keeps both and says so
+    Given the ledger's files are "data/phase-{group}.yaml"
+    And the config sets "work.registry" to "tasks/work-items.yaml"
+    And the config's "docs" commits may touch only "data/**"
+    And the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+        pr:
+          draft: true
+          update: merge
+      """
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the remote has gained the commit "docs: move the ledger" writing "data/phase-1.yaml" with the lines:
+      """
+      - { id: T-001, type: chore, title: Tidy }
+      """
+    And the clone has fetched the remote
+    And the clone has reset its branch to the remote's main
+    And the clone is on the new branch "slice-9"
+    And the clone has the commit "docs: add T-002" writing "data/phase-1.yaml" with the lines:
+      """
+      - { id: T-001, type: chore, title: Tidy }
+      - { id: T-002, type: chore, title: Sweep }
+      """
+    And git pushes HEAD to the remote's new branch "slice-9"
+    And the recording gh has the draft pull request "https://github.example/o/r/pull/7" open for the branch "slice-9"
+    And the remote has gained the commit "docs: add T-003" writing "data/phase-1.yaml" with the lines:
+      """
+      - { id: T-001, type: chore, title: Tidy }
+      - { id: T-003, type: chore, title: Dust }
+      """
+    When itos runs "push"
+    Then itos exits with code 0
+    And its output says "keeping both sides of data/phase-1.yaml"
+    And the head of the remote's branch "slice-9" is the merge commit "docs: merge main into slice-9"
+    And the file "data/phase-1.yaml" on the remote's branch "slice-9" has exactly the lines:
+      """
+      - { id: T-001, type: chore, title: Tidy }
+      - { id: T-002, type: chore, title: Sweep }
+      - { id: T-003, type: chore, title: Dust }
+      """
+
+  # --ready merges main in as a push does, so it keeps both too, and the head
+  # it judges and pins is the merge it made: the case bug-157's close took four
+  # tries over by hand. Fails before the work at the exit code: the merge stops
+  # before --ready waits for anything, exit 1.
+  @wip @slice-222 @ID-READYMERGE-12
+  Scenario: Under push.pr.update merge, push --ready keeps both sides of a registry conflict and turns on auto-merge at the merge it pushed
+    Given the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+        pr:
+          draft: true
+          update: merge
+      """
+    And ci.watch asks a fake GitHub, which reports the run "https://ci.example/runs/1"
+    And the watched run's jobs "ci" and "platform" succeed
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the clone is on the new branch "slice-9"
+    And the remote has gained the commit "docs: add p1-theirs" adding the idea "p1-theirs" to the registry
+    And the clone has the commit "docs: add p1-mine" adding the idea "p1-mine" to the registry
+    And git pushes HEAD to the remote's new branch "slice-9"
+    And the recording gh has the draft pull request "https://github.example/o/r/pull/7" open for the branch "slice-9"
+    When itos runs "push --ready"
+    Then itos exits with code 0
+    And the head of the remote's branch "slice-9" is the merge commit "docs: merge main into slice-9"
+    And the remote's branch "slice-9" has the remote main's commit "docs: add p1-theirs"
+    And the fake GitHub was asked for the run of the clone's HEAD
+    And the recording gh's "pr merge" call with "--auto" has the full SHA of the clone's HEAD
+    And the recording gh was never called as "pr update-branch"
+
+  # A guard: all or nothing, and by the config's names. The registry's hunk is
+  # one keep-both would take, and the other conflicted path sits under tasks/
+  # and is no ledger file. So a build reading a path pattern lands both, at the
+  # exit code; one resolving the registry alone leaves it merged, at its
+  # step; one aborting has no merge in progress. It passes before the work,
+  # today's behaviour, and must after it.
+  @wip @slice-222 @ID-READYMERGE-13 @guard
+  Scenario: Under push.pr.update merge, a merge of main conflicting in the registry and another file under its folder is left in progress with both unresolved, as before
+    Given the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+        pr:
+          draft: true
+          update: merge
+      """
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the clone is on the new branch "slice-9"
+    And the remote has gained the commit "docs: add p1-theirs" adding the idea "p1-theirs" to the registry
+    And the remote has gained the commit "docs: write their notes" touching "tasks/notes.yaml"
+    And the clone has the commit "docs: add p1-mine" adding the idea "p1-mine" to the registry and touching "tasks/notes.yaml"
+    And git pushes HEAD to the remote's new branch "slice-9"
+    And the recording gh has the draft pull request "https://github.example/o/r/pull/7" open for the branch "slice-9"
+    When itos runs "push --json"
+    Then itos exits with code 1
+    And its JSON's "outcome" is "merge-conflict"
+    And its output says "tasks/work-items.yaml"
+    And its output says "tasks/notes.yaml"
+    And the clone has a merge in progress
+    And the clone has "tasks/work-items.yaml" unmerged
+    And the remote's branch "slice-9" does not have "docs: add p1-theirs"
+    And the recording gh was never called
+
+  # A guard: the merge of the remote's own item branch is not this. Someone
+  # pushed there, so resolving it needs a look; main has not moved. A build
+  # keeping both in any merge lands it, at the exit code. It passes before the
+  # work and must after it.
+  @wip @slice-222 @ID-READYMERGE-14 @guard
+  Scenario: Under push.pr.update merge, a merge of the remote's own item branch conflicting in the registry is left in progress, as before
+    Given the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+        pr:
+          draft: true
+          update: merge
+      """
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the clone is on the new branch "slice-9"
+    And the clone has the commit "feat: add the widget" touching "widget.md"
+    And git pushes HEAD to the remote's new branch "slice-9"
+    And the recording gh has the draft pull request "https://github.example/o/r/pull/7" open for the branch "slice-9"
+    And the remote's branch "slice-9" has gained the commit "docs: add p1-theirs" adding the idea "p1-theirs" to the registry
+    And the clone has the commit "docs: add p1-mine" adding the idea "p1-mine" to the registry and touching "spec.md"
+    When itos runs "push --json"
+    Then itos exits with code 1
+    And its JSON's "outcome" is "merge-conflict"
+    And its output says "tasks/work-items.yaml"
+    And its output says "origin/slice-9"
+    And the clone has a merge in progress
+    And the recording gh was never called
+
+  # A guard: with no push.pr.update there is no merge, so nothing here runs,
+  # and the same conflict stops the rebase, for the person. A build keeping
+  # both in a rebase lands it, at the exit code. It passes before the work and
+  # must after it. Trunk's rebase is the same code, so no scenario of its own.
+  @wip @slice-222 @ID-READYMERGE-15 @guard
+  Scenario: Without push.pr.update, the same registry conflict stops the rebase, left in progress, as before
+    Given the config, committed and pushed to the remote's main, adds the YAML:
+      """
+      push:
+        mode: pr
+        pr:
+          draft: true
+      """
+    And a recording gh on the PATH, which opens pull requests as "https://github.example/o/r/pull/1"
+    And the clone is on the new branch "slice-9"
+    And the clone has the commit "feat: add the widget" touching "widget.md"
+    And git pushes HEAD to the remote's new branch "slice-9"
+    And the recording gh has the draft pull request "https://github.example/o/r/pull/7" open for the branch "slice-9"
+    And the remote's branch "slice-9" has gained the commit "docs: add p1-theirs" adding the idea "p1-theirs" to the registry
+    And the clone has the commit "docs: add p1-mine" adding the idea "p1-mine" to the registry and touching "spec.md"
+    When itos runs "push --json"
+    Then itos exits with code 1
+    And its JSON's "outcome" is "rebase-stopped"
+    And the clone has a rebase in progress
+    And the recording gh was never called
 
   # A guard: verify judges a merge by its own changes (bug 30). The landing
   # as it happens under merge: the item's commits carry their Item: footer,
