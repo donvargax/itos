@@ -18504,3 +18504,22 @@ items:
       reported) or hands the run to the coordinator, so a real regression is never hidden. Sibling
       of p2-next-job-never-started and p2-cancelled-run-rerun.
     tags: [ci]
+
+  - id: p2-brief-ci-only-scenarios
+    title: An implementer brief separates scenarios that run only in CI from those run locally
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Seen from a coordinator's loop, 2026-11-13: itos brief <slice> --role implementer tells the
+      implementer, for every scenario whatever its tags, to run it locally with @wip removed and see
+      it fail before building. A project whose engine-tagged scenarios run only in CI cannot produce
+      that red evidence locally: it is the coordinator's dispatch, and the session should end at the
+      step-definition commit. Followed literally the brief has the implementer build first, against
+      the project's own rules, and the project's appended brief lines cannot remove the sentence.
+      Wanted: the config names the tags whose scenarios run only in CI (as it names wip_tag), and
+      the brief splits the list: local ones keep today's sentence, CI-only ones say commit the step
+      definitions, then hand back for the red run.
+    tags: [agents]
