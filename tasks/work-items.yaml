@@ -18486,3 +18486,21 @@ items:
     status: dropped
     depends_on: []
     kind: idea
+
+  - id: p2-next-known-flake-rerun
+    title: A red run that fails only on scenarios an open flake task names is re-run once before an implementer is sent
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Seen from a coordinator's loop, 2026-11-13: when a pull request's run is red only on scenarios
+      an open task already names as a flake, itos next still sends the item's implementer. It has no
+      forge access, so it can neither re-run the failed jobs nor fix what its branch does not touch,
+      and each attempt returns the same diagnosis (five items, one at its sixteenth attempt).
+      Wanted: a way for a task to declare the scenario IDs it owns as flaky; when every failing
+      scenario of the head's run is among them, next names a rerun step (once per run, both runs
+      reported) or hands the run to the coordinator, so a real regression is never hidden. Sibling
+      of p2-next-job-never-started and p2-cancelled-run-rerun.
+    tags: [ci]
