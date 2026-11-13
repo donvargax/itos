@@ -4376,6 +4376,11 @@ items:
       entry' but offers no command that does it, so the duplicate's reason was lost twice in an
       hour. task edit --note, or work edit --note routing a task's note to its ledger entry, would
       close it.
+
+      Seen from a coordinator's loop, 2026-11-13: several drafters specifying promoted tasks on
+      sibling branches hand-edit one large ledger file at once, giving YAML splice errors and merge
+      noise on every spec. The command should take the why and the checks from files (--why-file,
+      --checks-file) and write only that entry.
     tags: [work, v9]
 
   - id: p3-stealth-ledger-portability
