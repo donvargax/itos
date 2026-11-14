@@ -18523,3 +18523,23 @@ items:
       the brief splits the list: local ones keep today's sentence, CI-only ones say commit the step
       definitions, then hand back for the red run.
     tags: [agents]
+
+  - id: p2-commit-cheap-refusals-first
+    title: itos commit judges its own static rules, the smoke rule included, before the configured slow steps
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Seen from a coordinator's loop, 2026-11-13: a feat that made a feature file's first scenario
+      live ran the project's architecture check, linter and vulnerability scan for several minutes
+      and only then was refused with '<file> has no smoke scenario' (tests.scenario.smoke with
+      every_file: true). That rule reads only the feature files and the smoke file, so it can be
+      judged before any slow step; ordering the project's own steps does not help, since itos
+      applies the rule itself during the commit. Wanted: (1) itos commit runs its own static
+      refusals before the configured steps, or at least before any step of cost late; (2) itos
+      commit check-paths, or a sibling dry run, reports a missing smoke entry for the staged tree,
+      since the guide points agents to check-paths to learn what would be rejected. Related:
+      p1-smoke-suggest, p1-smoke-beside-feature.
+    tags: [hooks]
