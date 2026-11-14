@@ -18553,3 +18553,21 @@ items:
       since the guide points agents to check-paths to learn what would be rejected. Related:
       p1-smoke-suggest, p1-smoke-beside-feature.
     tags: [hooks]
+
+  - id: p2-ci-watch-one-failure-full
+    title: itos ci watch prints one named failure's full lines, or those matching a pattern, with a bound
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      itos ci watch, and itos push, which prints the same report, keep 10 lines of each failure and
+      20 failures of a job, count what they leave out, and have no option for the rest. An agent
+      that may not use gh, or has no token for job logs, cannot read the cut lines at all. Seen on
+      2026-11-14: a repair's rule needed one journal line with two timestamps to choose a remedy,
+      and it was cut for two of three failed rows (39 and 110 lines left out), so the agent could
+      only hand back a question. Wanted: an option on ci watch that names one failure (job and test
+      or scenario) and prints its lines in full, or its lines matching a pattern, with an upper
+      bound so a runaway log stays out of an agent's context.
+    tags: [ci]
