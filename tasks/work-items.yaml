@@ -18503,6 +18503,16 @@ items:
       scenario of the head's run is among them, next names a rerun step (once per run, both runs
       reported) or hands the run to the coordinator, so a real regression is never hidden. Sibling
       of p2-next-job-never-started and p2-cancelled-run-rerun.
+
+      Seen again on 2026-11-14, three items in one evening: each occurrence cost one implementer
+      session and one question whose only answer was a re-run of the failed jobs, and all three
+      re-runs that finished passed. The task that owns the flake did not end it when its work was
+      ready: by its own spec it stopped the leak and named the failure, and a first row that times
+      out still fails, so 'until the flake task lands' is not the right bound for the rule; the
+      declared rows stay re-runnable until the task's entry is closed or drops them. More were
+      expected at once, since the first run after a Go toolchain bump was red on this signature on
+      every branch that had it. A standing steer for the agent shortens the session but still spends
+      it and its question, so the one-time re-run is the rule to build.
     tags: [ci]
 
   - id: p2-brief-ci-only-scenarios
