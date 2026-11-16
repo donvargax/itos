@@ -18588,3 +18588,20 @@ items:
       branch's head, where a decision answered on main is absent. Either the brief reads the item's
       questions and answers from the default branch, or itos next names merging main as the step
       before an attempt that an answer released.
+
+  - id: p2-attempt-outcome-unfinished
+    title: "An attempt can end unfinished: an outcome that says go on, where today only blocked fits and parks the item for the person"
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      itos attempt submit takes done, blocked, needs_decision or spec_defect. An implementer that
+      runs out of room mid-slice has made progress and needs nobody, and no outcome says so: on
+      2026-11-16 a harness-home slice's attempt committed its bindings, wrote 'no further
+      coordinator decision is needed' and returned blocked, so itos next gave the item to the person
+      and it sat until a coordinator asked and answered a question whose answer was 'nothing is
+      owed'. The same day a loop's coordinator did that for three items. An outcome for unfinished
+      work, which next routes back to the implementer with the attempt's notes, would keep the item
+      moving; a bound on consecutive unfinished attempts would keep it honest.
