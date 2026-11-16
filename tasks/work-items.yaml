@@ -18571,3 +18571,20 @@ items:
       or scenario) and prints its lines in full, or its lines matching a pattern, with an upper
       bound so a runaway log stays out of an agent's context.
     tags: [ci]
+
+  - id: p2-brief-carries-item-answers
+    title: An item's brief carries the answers to its questions, so an attempt on a branch older than the answer does not ask again
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Seen on 2026-11-15 in a project a loop of agents builds under push.mode pr: an implementer
+      returned needs_decision, the person answered on main, itos next released the item, and the
+      next attempt ran on the item's branch, which had not merged main since. tasks/asks.yaml at
+      that head held no answer, so the agent reported 'no answer is recorded' and the same question
+      was filed again; the item sat idle until someone read it. The brief is computed at the
+      branch's head, where a decision answered on main is absent. Either the brief reads the item's
+      questions and answers from the default branch, or itos next names merging main as the step
+      before an attempt that an answer released.
